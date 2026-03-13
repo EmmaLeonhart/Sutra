@@ -7,10 +7,13 @@
 - **Update README.md regularly.** It should always reflect the current state of the project for human readers.
 
 ## Project Description
-_TODO: Describe what this project is about._
+Unsupervised ontology induction from embedding spaces. Takes embedding geometry and extracts logical structure (classes, relations, propositions) as RDF. Starting with Wikidata triple imports where each triple = an edge between two embedded concepts.
 
 ## Architecture and Conventions
-_TODO: Document key decisions, file structure, and patterns as they emerge._
+- **Stack:** Python + rdflib + numpy. No graph DB yet (start simple).
+- **Source data:** Wikidata SPARQL endpoint
+- **Planning docs:** `planning/` directory for design decisions and roadmap
+- See `planning/architecture-decisions.md` for rationale
 
 # currentDate
 Today's date is 2026-03-13.
