@@ -4,7 +4,11 @@
 
 ## About
 
-_TODO: Describe what this project does._
+Unsupervised ontology induction from embedding spaces using vector arithmetic. Imports triples from Wikidata, embeds the entities, and analyzes the geometry of the embedding space to extract logical structure (classes, relations, propositions) as RDF.
+
+**Core question:** Can you discover what an embedding space "knows" about ontological structure just by examining its geometry?
+
+See `planning/` for detailed vision, architecture decisions, and roadmap.
 
 ## Getting Started
 
