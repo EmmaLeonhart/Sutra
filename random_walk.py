@@ -28,9 +28,10 @@ from import_wikidata import (
     WD, WDT, EMB, EMBED_MODEL
 )
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if hasattr(sys.stdout, 'buffer'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-DEFAULT_SEED = "Q1342448"  # Engishiki — dense ontological neighborhood
+DEFAULT_SEED = "Q1342448"  # Engishiki - dense ontological neighborhood
 WALK_STATE_FILE = "data/walk_state.json"
 
 
@@ -167,7 +168,7 @@ def main():
         visited = set()
         imported_count = 0
 
-    print(f"BFS from {args.seed} — importing up to {args.limit} QIDs")
+    print(f"BFS from {args.seed} - importing up to {args.limit} QIDs")
     print(f"Current data: {len(items)} items, {emb.shape[0] if emb.size else 0} embeddings\n")
 
     while queue and imported_count < args.limit:
@@ -199,7 +200,7 @@ def main():
             print(f"  Could not fetch, skipping")
             continue
 
-        print(f"  {item['label']} — {len(item['triples'])} triples, discovered {len(discovered)} linked QIDs")
+        print(f"  {item['label']} - {len(item['triples'])} triples, discovered {len(discovered)} linked QIDs")
         fully_imported.add(current_qid)
 
         # Add discovered QIDs to queue
