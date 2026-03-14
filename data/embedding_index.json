@@ -323,5 +323,3710 @@
     "qid": "Q82019",
     "text": "Kanchinjinga",
     "type": "alias"
+  },
+  {
+    "qid": "E339",
+    "text": "E339",
+    "type": "label"
+  },
+  {
+    "qid": "P17",
+    "text": "P17",
+    "type": "label"
+  },
+  {
+    "qid": "P2044",
+    "text": "P2044",
+    "type": "label"
+  },
+  {
+    "qid": "P2659",
+    "text": "P2659",
+    "type": "label"
+  },
+  {
+    "qid": "P2660",
+    "text": "P2660",
+    "type": "label"
+  },
+  {
+    "qid": "P3109",
+    "text": "P3109",
+    "type": "label"
+  },
+  {
+    "qid": "P3137",
+    "text": "P3137",
+    "type": "label"
+  },
+  {
+    "qid": "P3309",
+    "text": "P3309",
+    "type": "label"
+  },
+  {
+    "qid": "P3507",
+    "text": "P3507",
+    "type": "label"
+  },
+  {
+    "qid": "P3513",
+    "text": "P3513",
+    "type": "label"
+  },
+  {
+    "qid": "P3514",
+    "text": "P3514",
+    "type": "label"
+  },
+  {
+    "qid": "P3770",
+    "text": "P3770",
+    "type": "label"
+  },
+  {
+    "qid": "P3907",
+    "text": "P3907",
+    "type": "label"
+  },
+  {
+    "qid": "P4552",
+    "text": "P4552",
+    "type": "label"
+  },
+  {
+    "qid": "P7479",
+    "text": "P7479",
+    "type": "label"
+  },
+  {
+    "qid": "P793",
+    "text": "P793",
+    "type": "label"
+  },
+  {
+    "qid": "P8450",
+    "text": "P8450",
+    "type": "label"
+  },
+  {
+    "qid": "P9568",
+    "text": "P9568",
+    "type": "label"
+  },
+  {
+    "qid": "Q1038866",
+    "text": "Q1038866",
+    "type": "label"
+  },
+  {
+    "qid": "Q104144714",
+    "text": "Q104144714",
+    "type": "label"
+  },
+  {
+    "qid": "Q104155704",
+    "text": "Q104155704",
+    "type": "label"
+  },
+  {
+    "qid": "Q104176116",
+    "text": "Q104176116",
+    "type": "label"
+  },
+  {
+    "qid": "Q104176122",
+    "text": "Q104176122",
+    "type": "label"
+  },
+  {
+    "qid": "Q104176172",
+    "text": "Q104176172",
+    "type": "label"
+  },
+  {
+    "qid": "Q104224379",
+    "text": "Q104224379",
+    "type": "label"
+  },
+  {
+    "qid": "Q104430191",
+    "text": "Q104430191",
+    "type": "label"
+  },
+  {
+    "qid": "Q104431246",
+    "text": "Q104431246",
+    "type": "label"
+  },
+  {
+    "qid": "Q104431296",
+    "text": "Q104431296",
+    "type": "label"
+  },
+  {
+    "qid": "Q104433070",
+    "text": "Q104433070",
+    "type": "label"
+  },
+  {
+    "qid": "Q104594761",
+    "text": "Q104594761",
+    "type": "label"
+  },
+  {
+    "qid": "Q104594762",
+    "text": "Q104594762",
+    "type": "label"
+  },
+  {
+    "qid": "Q104601028",
+    "text": "Q104601028",
+    "type": "label"
+  },
+  {
+    "qid": "Q104628567",
+    "text": "Q104628567",
+    "type": "label"
+  },
+  {
+    "qid": "Q105457808",
+    "text": "Q105457808",
+    "type": "label"
+  },
+  {
+    "qid": "Q105738718",
+    "text": "Q105738718",
+    "type": "label"
+  },
+  {
+    "qid": "Q105739306",
+    "text": "Q105739306",
+    "type": "label"
+  },
+  {
+    "qid": "Q106575972",
+    "text": "Q106575972",
+    "type": "label"
+  },
+  {
+    "qid": "Q106589819",
+    "text": "Q106589819",
+    "type": "label"
+  },
+  {
+    "qid": "Q106727050",
+    "text": "Q106727050",
+    "type": "label"
+  },
+  {
+    "qid": "Q10802042",
+    "text": "Q10802042",
+    "type": "label"
+  },
+  {
+    "qid": "Q110467",
+    "text": "Q110467",
+    "type": "label"
+  },
+  {
+    "qid": "Q11060571",
+    "text": "Q11060571",
+    "type": "label"
+  },
+  {
+    "qid": "Q11086198",
+    "text": "Q11086198",
+    "type": "label"
+  },
+  {
+    "qid": "Q11086322",
+    "text": "Q11086322",
+    "type": "label"
+  },
+  {
+    "qid": "Q111177881",
+    "text": "Q111177881",
+    "type": "label"
+  },
+  {
+    "qid": "Q113510146",
+    "text": "Q113510146",
+    "type": "label"
+  },
+  {
+    "qid": "Q1137542",
+    "text": "Q1137542",
+    "type": "label"
+  },
+  {
+    "qid": "Q11391707",
+    "text": "Q11391707",
+    "type": "label"
+  },
+  {
+    "qid": "Q11397889",
+    "text": "Q11397889",
+    "type": "label"
+  },
+  {
+    "qid": "Q1139892",
+    "text": "Q1139892",
+    "type": "label"
+  },
+  {
+    "qid": "Q11414752",
+    "text": "Place of Scenic Beauty",
+    "type": "label"
+  },
+  {
+    "qid": "Q1143153",
+    "text": "China Standard Time",
+    "type": "label"
+  },
+  {
+    "qid": "Q1143153",
+    "text": "Beijing Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1143153",
+    "text": "CST",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1143153",
+    "text": "Chinese Standard Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11434369",
+    "text": "Mount Ōmuro",
+    "type": "label"
+  },
+  {
+    "qid": "Q11434369",
+    "text": "Ōmuro-yama",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11436954",
+    "text": "Ōsawa Failure",
+    "type": "label"
+  },
+  {
+    "qid": "Q11436954",
+    "text": "Ōsawa Kuzure",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11436954",
+    "text": "Ōsawa Break",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11436954",
+    "text": "Ōsawa Collapse",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11455920",
+    "text": "Fuji worship",
+    "type": "label"
+  },
+  {
+    "qid": "Q11455920",
+    "text": "Fujisan Sengen Faith",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11469638",
+    "text": "100 Famous Yamanashi mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q11469638",
+    "text": "Yamanashi Hyaku Meizan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11469638",
+    "text": "Yamanashi 100 Meizan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11502391",
+    "text": "New 100 Famous Japanese Mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q11502391",
+    "text": "Shin Nihon Hyaku Meizan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11502391",
+    "text": "Shin Nihon 100 Meizan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1154962",
+    "text": "Fuji district",
+    "type": "label"
+  },
+  {
+    "qid": "Q1156761",
+    "text": "100 Famous Japanese Mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q1156761",
+    "text": "Nihon Hyaku Meizan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11571545",
+    "text": "isolated peak",
+    "type": "label"
+  },
+  {
+    "qid": "Q11571545",
+    "text": "independent peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11588709",
+    "text": "shintaisan",
+    "type": "label"
+  },
+  {
+    "qid": "Q11634546",
+    "text": "Jōgan eruption of Mount Fuji",
+    "type": "label"
+  },
+  {
+    "qid": "Q11663091",
+    "text": "2011 Shizuoka earthquake",
+    "type": "label"
+  },
+  {
+    "qid": "Q1190729",
+    "text": "Las Heras Department",
+    "type": "label"
+  },
+  {
+    "qid": "Q1191622",
+    "text": "Special Area of Conservation",
+    "type": "label"
+  },
+  {
+    "qid": "Q1191622",
+    "text": "SAC",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1194369",
+    "text": "first ascent",
+    "type": "label"
+  },
+  {
+    "qid": "Q1194369",
+    "text": "FA",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1194369",
+    "text": "first summit",
+    "type": "alias"
+  },
+  {
+    "qid": "Q11985041",
+    "text": "list of mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q12046615",
+    "text": "feature type",
+    "type": "label"
+  },
+  {
+    "qid": "Q12046615",
+    "text": "geographic feature type",
+    "type": "alias"
+  },
+  {
+    "qid": "Q12046615",
+    "text": "type of feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q12046615",
+    "text": "type of geographic feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q12046615",
+    "text": "feature class",
+    "type": "alias"
+  },
+  {
+    "qid": "Q12046615",
+    "text": "class of feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q12049440",
+    "text": "Q12049440",
+    "type": "label"
+  },
+  {
+    "qid": "Q12049440",
+    "text": "Riegrův Slovník naučný",
+    "type": "alias"
+  },
+  {
+    "qid": "Q12049440",
+    "text": "Riegerův slovník naučný",
+    "type": "alias"
+  },
+  {
+    "qid": "Q123560817",
+    "text": "Armenian Soviet Encyclopedia, vol. 1",
+    "type": "label"
+  },
+  {
+    "qid": "Q123560817",
+    "text": "ASE1",
+    "type": "alias"
+  },
+  {
+    "qid": "Q123560817",
+    "text": "Armenian Soviet Encyclopedia 1",
+    "type": "alias"
+  },
+  {
+    "qid": "Q124504945",
+    "text": "first ascent of Mont Blanc",
+    "type": "label"
+  },
+  {
+    "qid": "Q126937278",
+    "text": "Meyer’s Universum, Zweiter Band",
+    "type": "label"
+  },
+  {
+    "qid": "Q126937278",
+    "text": "Meyers Universum, Zweiter Band",
+    "type": "alias"
+  },
+  {
+    "qid": "Q130381740",
+    "text": "2021 K2 disaster",
+    "type": "label"
+  },
+  {
+    "qid": "Q13060315",
+    "text": "1952 Swiss Mount Everest expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q13060315",
+    "text": "1952 Swiss Mount Everest Expedition",
+    "type": "alias"
+  },
+  {
+    "qid": "Q131320",
+    "text": "Shizuoka Prefecture",
+    "type": "label"
+  },
+  {
+    "qid": "Q131375985",
+    "text": "ranelitto",
+    "type": "label"
+  },
+  {
+    "qid": "Q131375985",
+    "text": "Ὄλυμπος",
+    "type": "alias"
+  },
+  {
+    "qid": "Q131490319",
+    "text": "Category:Deaths on Aconcagua",
+    "type": "label"
+  },
+  {
+    "qid": "Q131719188",
+    "text": "Meyer’s Universum, Neunter Band",
+    "type": "label"
+  },
+  {
+    "qid": "Q131860194",
+    "text": "ridge prominence",
+    "type": "label"
+  },
+  {
+    "qid": "Q131860194",
+    "text": "ridge point",
+    "type": "alias"
+  },
+  {
+    "qid": "Q131860194",
+    "text": "ridge elevation",
+    "type": "alias"
+  },
+  {
+    "qid": "Q132720",
+    "text": "Yamanashi Prefecture",
+    "type": "label"
+  },
+  {
+    "qid": "Q1330974",
+    "text": "Volcano",
+    "type": "label"
+  },
+  {
+    "qid": "Q1334383",
+    "text": "arête",
+    "type": "label"
+  },
+  {
+    "qid": "Q1334383",
+    "text": "arete",
+    "type": "alias"
+  },
+  {
+    "qid": "Q134980502",
+    "text": "Kartographer icon",
+    "type": "label"
+  },
+  {
+    "qid": "Q1374",
+    "text": "Matterhorn",
+    "type": "label"
+  },
+  {
+    "qid": "Q1374",
+    "text": "Mont Cervin",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Honshu",
+    "type": "label"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Honshū",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Big Island",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Japan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Meaco",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Nipon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Nippon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Niphon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Honshu Island",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Honshu I.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Meako",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Hondo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Hondo Island",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Hondo Is.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Hondo I.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q13989",
+    "text": "Main Island",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1400565",
+    "text": "spur",
+    "type": "label"
+  },
+  {
+    "qid": "Q142",
+    "text": "France",
+    "type": "label"
+  },
+  {
+    "qid": "Q142",
+    "text": "French Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q14614576",
+    "text": "Portal:Mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q14683428",
+    "text": "Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q14683428",
+    "text": "Mount Olympus (San Francisco)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "People's Republic of China",
+    "type": "label"
+  },
+  {
+    "qid": "Q148",
+    "text": "Red China",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "PR China",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "Communist China",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "China PR",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "RPC",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "cn",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "The PRC",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "China",
+    "type": "alias"
+  },
+  {
+    "qid": "Q148",
+    "text": "P.R.C.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q14943910",
+    "text": "WikiProject Geology",
+    "type": "label"
+  },
+  {
+    "qid": "Q14943910",
+    "text": "Wikipedia:WikiProject Geology",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1505",
+    "text": "Sikkim",
+    "type": "label"
+  },
+  {
+    "qid": "Q1505",
+    "text": "IN-SK",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15069452",
+    "text": "Natura 2000 site",
+    "type": "label"
+  },
+  {
+    "qid": "Q15069452",
+    "text": "Natura 2000 protected area",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15076798",
+    "text": "Template:Mountain-stub",
+    "type": "label"
+  },
+  {
+    "qid": "Q15123",
+    "text": "Province of Naples",
+    "type": "label"
+  },
+  {
+    "qid": "Q15123",
+    "text": "Naples province",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15123",
+    "text": "Napoli province",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15123",
+    "text": "provincia di Napoli",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "Soviet Union",
+    "type": "label"
+  },
+  {
+    "qid": "Q15180",
+    "text": "USSR",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "U.S.S.R.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "Soviets",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "U.S.S.R",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "the Union of Soviet Socialist Republics",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "the Soviet Union",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "Union of Soviet Socialist Republics",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "The Soviets",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "CCCP",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "SU",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "URS",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15180",
+    "text": "The USSR",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15304950",
+    "text": "WikiProject Volcanoes",
+    "type": "label"
+  },
+  {
+    "qid": "Q1570358",
+    "text": "pyramidal peak",
+    "type": "label"
+  },
+  {
+    "qid": "Q1570358",
+    "text": "glacial horn",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1570358",
+    "text": "horn",
+    "type": "alias"
+  },
+  {
+    "qid": "Q15712303",
+    "text": "list of Mount Everest records",
+    "type": "label"
+  },
+  {
+    "qid": "Q15787792",
+    "text": "mountain shoulder",
+    "type": "label"
+  },
+  {
+    "qid": "Q158454",
+    "text": "biosphere reserve",
+    "type": "label"
+  },
+  {
+    "qid": "Q159",
+    "text": "Russia",
+    "type": "label"
+  },
+  {
+    "qid": "Q159",
+    "text": "Russian Federation",
+    "type": "alias"
+  },
+  {
+    "qid": "Q159",
+    "text": "Federation of Russia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1595289",
+    "text": "sacred mountain",
+    "type": "label"
+  },
+  {
+    "qid": "Q1595289",
+    "text": "sacred mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1595289",
+    "text": "holy mountain",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1595289",
+    "text": "holy mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q16056948",
+    "text": "1933 British Mount Everest expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q16082057",
+    "text": "The New Student's Reference Work",
+    "type": "label"
+  },
+  {
+    "qid": "Q16082057",
+    "text": "NSRW",
+    "type": "alias"
+  },
+  {
+    "qid": "Q16482294",
+    "text": "Fujisan, sacred place and source of artistic inspiration",
+    "type": "label"
+  },
+  {
+    "qid": "Q16564618",
+    "text": "K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q16564618",
+    "text": "Tomasz Marycki",
+    "type": "alias"
+  },
+  {
+    "qid": "Q166409",
+    "text": "gneiss",
+    "type": "label"
+  },
+  {
+    "qid": "Q16737558",
+    "text": "Elassona Municipality",
+    "type": "label"
+  },
+  {
+    "qid": "Q169358",
+    "text": "stratovolcano",
+    "type": "label"
+  },
+  {
+    "qid": "Q169358",
+    "text": "composite volcano",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Japan",
+    "type": "label"
+  },
+  {
+    "qid": "Q17",
+    "text": "State of Japan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Land of the Rising Sun",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Nihon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Nippon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Nippon-koku",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Nihon-koku",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Iapan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Iapon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17",
+    "text": "Land of Rising Sun",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17008251",
+    "text": "list of 20th-century summiters of Mount Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q17012778",
+    "text": "North Face",
+    "type": "label"
+  },
+  {
+    "qid": "Q17012778",
+    "text": "North Slope",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17084245",
+    "text": "Seven Third Summits",
+    "type": "label"
+  },
+  {
+    "qid": "Q17152",
+    "text": "Central Macedonia Region",
+    "type": "label"
+  },
+  {
+    "qid": "Q17152",
+    "text": "Central Macedonia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17152",
+    "text": "Central Macedonia Periphery",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17182596",
+    "text": "1921 British Mount Everest reconnaissance expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q17182596",
+    "text": "1921 British Mount Everest expedition",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1718337",
+    "text": "K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q1723748",
+    "text": "Kangshung Face",
+    "type": "label"
+  },
+  {
+    "qid": "Q1723748",
+    "text": "East Face",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1723748",
+    "text": "Eastern Face",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Tibet Autonomous Region",
+    "type": "label"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Xizang Autonomous Region",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Xizang",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Hsi-tsang",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Xizang Province",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Province of Xizang",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Tibetan Autonomous Region",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Province of Tibet",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Thibet",
+    "type": "alias"
+  },
+  {
+    "qid": "Q17269",
+    "text": "Tibet",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1740763",
+    "text": "four-thousander",
+    "type": "label"
+  },
+  {
+    "qid": "Q17635311",
+    "text": "Mont-Olympe Charleville-Mézières",
+    "type": "label"
+  },
+  {
+    "qid": "Q1768721",
+    "text": "Gujin Tushu Jicheng",
+    "type": "label"
+  },
+  {
+    "qid": "Q1768721",
+    "text": "Imperial Encyclopaedia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1768721",
+    "text": "Complete Classics Collection of Ancient China",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1792880",
+    "text": "Kuppe",
+    "type": "label"
+  },
+  {
+    "qid": "Q18241891",
+    "text": "Metropolitan City of Naples",
+    "type": "label"
+  },
+  {
+    "qid": "Q18241891",
+    "text": "contiene entità territoriale amministrativa",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1855408",
+    "text": "Seven Second Summits",
+    "type": "label"
+  },
+  {
+    "qid": "Q185552",
+    "text": "eight-thousander",
+    "type": "label"
+  },
+  {
+    "qid": "Q185552",
+    "text": "8000ander",
+    "type": "alias"
+  },
+  {
+    "qid": "Q185552",
+    "text": "eightthousander",
+    "type": "alias"
+  },
+  {
+    "qid": "Q185552",
+    "text": "eight thousander",
+    "type": "alias"
+  },
+  {
+    "qid": "Q185552",
+    "text": "8000m peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q190727",
+    "text": "rhyolite",
+    "type": "label"
+  },
+  {
+    "qid": "Q19180675",
+    "text": "Small Brockhaus and Efron Encyclopedic Dictionary",
+    "type": "label"
+  },
+  {
+    "qid": "Q19180675",
+    "text": "SBEED",
+    "type": "alias"
+  },
+  {
+    "qid": "Q19190511",
+    "text": "New Encyclopedic Dictionary",
+    "type": "label"
+  },
+  {
+    "qid": "Q19211082",
+    "text": "Orthodox Theological Encyclopedia",
+    "type": "label"
+  },
+  {
+    "qid": "Q19211082",
+    "text": "Theological Encyclopedic Dictionary",
+    "type": "alias"
+  },
+  {
+    "qid": "Q19211082",
+    "text": "the Theological Encyclopedic Dictionary, containing the information necessary for everyone on all the most important subjects of theological knowledge in alphabetical order",
+    "type": "alias"
+  },
+  {
+    "qid": "Q19219752",
+    "text": "Meyers Konversations-Lexikon, 4th edition (1885–1890)",
+    "type": "label"
+  },
+  {
+    "qid": "Q19262",
+    "text": "Elbrussky District",
+    "type": "label"
+  },
+  {
+    "qid": "Q19360186",
+    "text": "1935 British Mount Everest reconnaissance expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q19524027",
+    "text": "Q19524027",
+    "type": "label"
+  },
+  {
+    "qid": "Q19839672",
+    "text": "1936 British Mount Everest expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q19900675",
+    "text": "Mount Hōei",
+    "type": "label"
+  },
+  {
+    "qid": "Q19900675",
+    "text": "Hōeizan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q19900675",
+    "text": "Hōei Zan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1991288",
+    "text": "France–Italy border",
+    "type": "label"
+  },
+  {
+    "qid": "Q1991288",
+    "text": "border between France and Italy",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1991288",
+    "text": "border between Italy and France",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1991288",
+    "text": "France-Italy border",
+    "type": "alias"
+  },
+  {
+    "qid": "Q1991288",
+    "text": "Italy-France border",
+    "type": "alias"
+  },
+  {
+    "qid": "Q200",
+    "text": "2",
+    "type": "label"
+  },
+  {
+    "qid": "Q200",
+    "text": "two",
+    "type": "alias"
+  },
+  {
+    "qid": "Q200",
+    "text": "number 2",
+    "type": "alias"
+  },
+  {
+    "qid": "Q200",
+    "text": "number two",
+    "type": "alias"
+  },
+  {
+    "qid": "Q200",
+    "text": "the number 2",
+    "type": "alias"
+  },
+  {
+    "qid": "Q200",
+    "text": "2 (number)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q20078554",
+    "text": "Great Soviet Encyclopedia (1926–1947)",
+    "type": "label"
+  },
+  {
+    "qid": "Q20089403",
+    "text": "Vesuvius eruption of 1906",
+    "type": "label"
+  },
+  {
+    "qid": "Q20311951",
+    "text": "1938 British Mount Everest expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Otto's encyclopedia",
+    "type": "label"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Słownik naukowy Otty",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "J. Otto's scientific dictionary",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Jan Otto's scientific dictionary",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Ottova encyklopedie",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Ottuv slovnik naucny",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Otto's Encyclopedia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2041543",
+    "text": "Otto's Encyclopaedia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q207132",
+    "text": "Terich Mir",
+    "type": "label"
+  },
+  {
+    "qid": "Q207326",
+    "text": "summit",
+    "type": "label"
+  },
+  {
+    "qid": "Q207326",
+    "text": "peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q207326",
+    "text": "mountain peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q207762",
+    "text": "tree line",
+    "type": "label"
+  },
+  {
+    "qid": "Q207762",
+    "text": "treeline",
+    "type": "alias"
+  },
+  {
+    "qid": "Q207762",
+    "text": "tree lines",
+    "type": "alias"
+  },
+  {
+    "qid": "Q207762",
+    "text": "timberline",
+    "type": "alias"
+  },
+  {
+    "qid": "Q208126",
+    "text": "Seven Summits",
+    "type": "label"
+  },
+  {
+    "qid": "Q208846",
+    "text": "Pieria Prefecture",
+    "type": "label"
+  },
+  {
+    "qid": "Q21068106",
+    "text": "list of Mount Everest summiters by number of times to the summit",
+    "type": "label"
+  },
+  {
+    "qid": "Q21068206",
+    "text": "list of Mount Everest guides",
+    "type": "label"
+  },
+  {
+    "qid": "Q21068306",
+    "text": "list of Mount Everest expeditions",
+    "type": "label"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Armenian Highlands",
+    "type": "label"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Javakheti-Armenian Uplands",
+    "type": "alias"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Armenian Plateau",
+    "type": "alias"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Eastern Anatolian highlands",
+    "type": "alias"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Armenia (region)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Armenian tableland",
+    "type": "alias"
+  },
+  {
+    "qid": "Q211263",
+    "text": "Armenian Upland",
+    "type": "alias"
+  },
+  {
+    "qid": "Q213360",
+    "text": "Table Mountain",
+    "type": "label"
+  },
+  {
+    "qid": "Q217119",
+    "text": "George Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q217119",
+    "text": "Sir George Everest",
+    "type": "alias"
+  },
+  {
+    "qid": "Q21830253",
+    "text": "WikiProject Kingdom of Naples",
+    "type": "label"
+  },
+  {
+    "qid": "Q21830253",
+    "text": "Wikipedia:WikiProject Kingdom of Naples",
+    "type": "alias"
+  },
+  {
+    "qid": "Q21905854",
+    "text": "Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q21937975",
+    "text": "1995 K2 disaster",
+    "type": "label"
+  },
+  {
+    "qid": "Q21999807",
+    "text": "1951 British Mount Everest reconnaissance expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q22009162",
+    "text": "ice dome",
+    "type": "label"
+  },
+  {
+    "qid": "Q2211959",
+    "text": "Sagarmatha National Park",
+    "type": "label"
+  },
+  {
+    "qid": "Q2211959",
+    "text": "Sagarmatha rastriya nikunja",
+    "type": "alias"
+  },
+  {
+    "qid": "Q224242",
+    "text": "K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q224242",
+    "text": "K-2",
+    "type": "alias"
+  },
+  {
+    "qid": "Q227494",
+    "text": "Thirty-six Views of Mount Fuji",
+    "type": "label"
+  },
+  {
+    "qid": "Q227494",
+    "text": "Fugaku Sanjūrokkei",
+    "type": "alias"
+  },
+  {
+    "qid": "Q227494",
+    "text": "36 Views of Mount Fuji",
+    "type": "alias"
+  },
+  {
+    "qid": "Q227494",
+    "text": "Thirty-six Views of Mt. Fuji",
+    "type": "alias"
+  },
+  {
+    "qid": "Q227494",
+    "text": "36 cảnh núi Phú Sĩ",
+    "type": "alias"
+  },
+  {
+    "qid": "Q22828393",
+    "text": "Q22828393",
+    "type": "label"
+  },
+  {
+    "qid": "Q23392",
+    "text": "ice",
+    "type": "label"
+  },
+  {
+    "qid": "Q23392",
+    "text": "solid water",
+    "type": "alias"
+  },
+  {
+    "qid": "Q23392",
+    "text": "water ice",
+    "type": "alias"
+  },
+  {
+    "qid": "Q23392",
+    "text": "water",
+    "type": "alias"
+  },
+  {
+    "qid": "Q23392",
+    "text": "crystalline water",
+    "type": "alias"
+  },
+  {
+    "qid": "Q23392",
+    "text": "frozen water",
+    "type": "alias"
+  },
+  {
+    "qid": "Q23392",
+    "text": "frozen ice",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2351884",
+    "text": "1986 K2 disaster",
+    "type": "label"
+  },
+  {
+    "qid": "Q23757",
+    "text": "limestone",
+    "type": "label"
+  },
+  {
+    "qid": "Q23757",
+    "text": "Kalkstein",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2411998",
+    "text": "eruption of Mount Vesuvius in 79",
+    "type": "label"
+  },
+  {
+    "qid": "Q24260551",
+    "text": "Category:Kangchenjunga",
+    "type": "label"
+  },
+  {
+    "qid": "Q24283281",
+    "text": "Category:Deaths on Kanchenjunga",
+    "type": "label"
+  },
+  {
+    "qid": "Q2463705",
+    "text": "Special Protection Area",
+    "type": "label"
+  },
+  {
+    "qid": "Q2463705",
+    "text": "SPA",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2463705",
+    "text": "Special Protection Area (Birds Directive)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q24952342",
+    "text": "list of Mount Everest death statistics",
+    "type": "label"
+  },
+  {
+    "qid": "Q249727",
+    "text": "Mont",
+    "type": "label"
+  },
+  {
+    "qid": "Q250831",
+    "text": "Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q25392523",
+    "text": "Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q25689508",
+    "text": "Q25689508",
+    "type": "label"
+  },
+  {
+    "qid": "Q2600471",
+    "text": "2008 K2 disaster",
+    "type": "label"
+  },
+  {
+    "qid": "Q2605019",
+    "text": "Khangchendzonga National Park",
+    "type": "label"
+  },
+  {
+    "qid": "Q2617708",
+    "text": "Encyclopaedia of the Qur'ān",
+    "type": "label"
+  },
+  {
+    "qid": "Q2617708",
+    "text": "eqo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2617708",
+    "text": "EQ",
+    "type": "alias"
+  },
+  {
+    "qid": "Q26208713",
+    "text": "WikiProject Classical Greece and Rome",
+    "type": "label"
+  },
+  {
+    "qid": "Q26208713",
+    "text": "Wikipedia:WikiProject Classical Greece and Rome",
+    "type": "alias"
+  },
+  {
+    "qid": "Q26267391",
+    "text": "Somma-Vesuvius complex",
+    "type": "label"
+  },
+  {
+    "qid": "Q26267391",
+    "text": "Somma–Vesuvius volcanic complex",
+    "type": "alias"
+  },
+  {
+    "qid": "Q2657718",
+    "text": "Armenian Soviet Encyclopedia",
+    "type": "label"
+  },
+  {
+    "qid": "Q2657718",
+    "text": "ASE",
+    "type": "alias"
+  },
+  {
+    "qid": "Q27498539",
+    "text": "Category:Deaths on K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q2806720",
+    "text": "100 Landscapes of Heisei",
+    "type": "label"
+  },
+  {
+    "qid": "Q2806720",
+    "text": "100 Landscapes of Japan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q28363",
+    "text": "Solukhumbu District",
+    "type": "label"
+  },
+  {
+    "qid": "Q28363",
+    "text": "Solukhumbu",
+    "type": "alias"
+  },
+  {
+    "qid": "Q28590",
+    "text": "Taplejung District",
+    "type": "label"
+  },
+  {
+    "qid": "Q28590",
+    "text": "Taplejung",
+    "type": "alias"
+  },
+  {
+    "qid": "Q288045",
+    "text": "Hōei eruption",
+    "type": "label"
+  },
+  {
+    "qid": "Q29021768",
+    "text": "Volcano Research Center",
+    "type": "label"
+  },
+  {
+    "qid": "Q30059240",
+    "text": "Russian translation of Lübker's Antiquity Lexicon",
+    "type": "label"
+  },
+  {
+    "qid": "Q3031536",
+    "text": "Aconcagua Provincial Park",
+    "type": "label"
+  },
+  {
+    "qid": "Q3056175",
+    "text": "Volcanic Seven Summits",
+    "type": "label"
+  },
+  {
+    "qid": "Q3064051",
+    "text": "mountainside",
+    "type": "label"
+  },
+  {
+    "qid": "Q30818638",
+    "text": "Category:Aconcagua",
+    "type": "label"
+  },
+  {
+    "qid": "Q30834580",
+    "text": "Historic Site of Japan",
+    "type": "label"
+  },
+  {
+    "qid": "Q30834580",
+    "text": "National Historic Site of Japan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q30834580",
+    "text": "Historic Site",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3089177",
+    "text": "China–Nepal border",
+    "type": "label"
+  },
+  {
+    "qid": "Q3089177",
+    "text": "border between China and Nepal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3089177",
+    "text": "border between Nepal and China",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3089177",
+    "text": "China-Nepal border",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3089177",
+    "text": "Nepal-China border",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3089177",
+    "text": "Nepal–China border",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3116906",
+    "text": "ultra-prominent peak",
+    "type": "label"
+  },
+  {
+    "qid": "Q3116906",
+    "text": "P1500",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3116906",
+    "text": "ultra",
+    "type": "alias"
+  },
+  {
+    "qid": "Q31187811",
+    "text": "Q31187811",
+    "type": "label"
+  },
+  {
+    "qid": "Q31187950",
+    "text": "Q31187950",
+    "type": "label"
+  },
+  {
+    "qid": "Q3181656",
+    "text": "The Nuttall Encyclopædia",
+    "type": "label"
+  },
+  {
+    "qid": "Q3181656",
+    "text": "The Nuttall Encyclopaedia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3181656",
+    "text": "Nuttall Encyclopædia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3189123",
+    "text": "WikiProject Geography",
+    "type": "label"
+  },
+  {
+    "qid": "Q32664862",
+    "text": "Q32664862",
+    "type": "label"
+  },
+  {
+    "qid": "Q32664869",
+    "text": "Q32664869",
+    "type": "label"
+  },
+  {
+    "qid": "Q3297477",
+    "text": "Nepal Standard Time",
+    "type": "label"
+  },
+  {
+    "qid": "Q3297477",
+    "text": "NPT",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3297477",
+    "text": "NSP",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3322007",
+    "text": "Mont Olympe",
+    "type": "label"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "highest point",
+    "type": "label"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "highest peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "highest elevation",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "high point",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "maximum elevation",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "maximum point",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3393392",
+    "text": "maximum height",
+    "type": "alias"
+  },
+  {
+    "qid": "Q342075",
+    "text": "Aconcagua",
+    "type": "label"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Russian Empire",
+    "type": "label"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Tsarist Russia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Imperial Russia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Russia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Empire of Russia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Moscovy",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Moscovy or Russia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Russia or Moscovy",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Rossia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34266",
+    "text": "Rusia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q34993",
+    "text": "Courmayeur",
+    "type": "label"
+  },
+  {
+    "qid": "Q35145263",
+    "text": "natural geographic object",
+    "type": "label"
+  },
+  {
+    "qid": "Q35666",
+    "text": "glacier",
+    "type": "label"
+  },
+  {
+    "qid": "Q3591484",
+    "text": "eruption of Mount Vesuvius in 1944",
+    "type": "label"
+  },
+  {
+    "qid": "Q3618634",
+    "text": "subpeak",
+    "type": "label"
+  },
+  {
+    "qid": "Q3618634",
+    "text": "subsummit",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3618634",
+    "text": "sub-peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3618634",
+    "text": "sub-summit",
+    "type": "alias"
+  },
+  {
+    "qid": "Q3732650",
+    "text": "eruption of Mount Vesuvius in 1861",
+    "type": "label"
+  },
+  {
+    "qid": "Q38",
+    "text": "Italy",
+    "type": "label"
+  },
+  {
+    "qid": "Q38",
+    "text": "Italian Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38",
+    "text": "Republic of Italy",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38",
+    "text": "Italia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38072305",
+    "text": "fastest climb",
+    "type": "label"
+  },
+  {
+    "qid": "Q3822857",
+    "text": "Mallory and Irvine Research Expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q38701",
+    "text": "15",
+    "type": "label"
+  },
+  {
+    "qid": "Q38701",
+    "text": "ONE.FIVE",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38701",
+    "text": "XV111",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38701",
+    "text": "the number 15",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38701",
+    "text": "xv",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38701",
+    "text": "M4",
+    "type": "alias"
+  },
+  {
+    "qid": "Q38701",
+    "text": "⑮",
+    "type": "alias"
+  },
+  {
+    "qid": "Q40758",
+    "text": "Damavand",
+    "type": "label"
+  },
+  {
+    "qid": "Q40758",
+    "text": "Mount Damāvand",
+    "type": "alias"
+  },
+  {
+    "qid": "Q40758",
+    "text": "Demavend",
+    "type": "alias"
+  },
+  {
+    "qid": "Q40758",
+    "text": "Mount Damavand",
+    "type": "alias"
+  },
+  {
+    "qid": "Q40758",
+    "text": "Mount Demavend",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4086271",
+    "text": "Bible Encyclopedia of Archimandrite Nicephorus",
+    "type": "label"
+  },
+  {
+    "qid": "Q41",
+    "text": "Greece",
+    "type": "label"
+  },
+  {
+    "qid": "Q41",
+    "text": "Hellenic Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41",
+    "text": "Hellas",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41",
+    "text": "gr",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41",
+    "text": "el",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41",
+    "text": "Greek Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41",
+    "text": "Ellada",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41",
+    "text": "Hellas, Greece",
+    "type": "alias"
+  },
+  {
+    "qid": "Q41177",
+    "text": "granite",
+    "type": "label"
+  },
+  {
+    "qid": "Q4135594",
+    "text": "Geographical statistical dictionary of the Russian Empire",
+    "type": "label"
+  },
+  {
+    "qid": "Q4139132",
+    "text": "Principal Cordillera",
+    "type": "label"
+  },
+  {
+    "qid": "Q414",
+    "text": "Argentina",
+    "type": "label"
+  },
+  {
+    "qid": "Q414",
+    "text": "Argentine Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q414",
+    "text": "Republic of Argentina",
+    "type": "alias"
+  },
+  {
+    "qid": "Q414",
+    "text": "Republica Argentina",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4173137",
+    "text": "Jewish Encyclopedia of Brockhaus and Efron",
+    "type": "label"
+  },
+  {
+    "qid": "Q4173137",
+    "text": "ЕЭБЕ",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4173137",
+    "text": "JEBE",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43",
+    "text": "Turkey",
+    "type": "label"
+  },
+  {
+    "qid": "Q43",
+    "text": "Republic of Türkiye",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43",
+    "text": "Republic of Turkey",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43113623",
+    "text": "part of UNESCO World Heritage Site",
+    "type": "label"
+  },
+  {
+    "qid": "Q43113623",
+    "text": "inscribed component",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43113623",
+    "text": "part of WHS",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4321631",
+    "text": "Berg",
+    "type": "label"
+  },
+  {
+    "qid": "Q43338",
+    "text": "basalt",
+    "type": "label"
+  },
+  {
+    "qid": "Q4532135",
+    "text": "Encyclopedic Lexicon",
+    "type": "label"
+  },
+  {
+    "qid": "Q4532135",
+    "text": "Энциклопедический лексикон",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4532135",
+    "text": "Entsiklopedicheskiy Leksikon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4532135",
+    "text": "Pluchart's Lexicon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4532135",
+    "text": "Pluchart's Encyclopedic Lexicon",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4532138",
+    "text": "Granat Encyclopedic Dictionary",
+    "type": "label"
+  },
+  {
+    "qid": "Q4567715",
+    "text": "1953 British Mount Everest Expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q46",
+    "text": "Europe",
+    "type": "label"
+  },
+  {
+    "qid": "Q46",
+    "text": "European continent",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46",
+    "text": "The Old Continent",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46",
+    "text": "European Continent",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46",
+    "text": "European Peninsula",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46",
+    "text": "Old Continent",
+    "type": "alias"
+  },
+  {
+    "qid": "Q4607881",
+    "text": "2007 Altitude Everest Expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q46169",
+    "text": "national park",
+    "type": "label"
+  },
+  {
+    "qid": "Q46169",
+    "text": "conservation park",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46169",
+    "text": "national reserve",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "mountain range",
+    "type": "label"
+  },
+  {
+    "qid": "Q46831",
+    "text": "mountain belt",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "mountain barrier",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "hill range",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "range",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "oceanic range",
+    "type": "alias"
+  },
+  {
+    "qid": "Q46831",
+    "text": "mountain system",
+    "type": "alias"
+  },
+  {
+    "qid": "Q48",
+    "text": "Asia",
+    "type": "label"
+  },
+  {
+    "qid": "Q48",
+    "text": "Asian continent",
+    "type": "alias"
+  },
+  {
+    "qid": "Q48",
+    "text": "Continental Asia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q484725",
+    "text": "Alborz",
+    "type": "label"
+  },
+  {
+    "qid": "Q484725",
+    "text": "Alborz mountain range",
+    "type": "alias"
+  },
+  {
+    "qid": "Q484924",
+    "text": "tuff",
+    "type": "label"
+  },
+  {
+    "qid": "Q484924",
+    "text": "volcanic tuff",
+    "type": "alias"
+  },
+  {
+    "qid": "Q520",
+    "text": "Olympus Mons",
+    "type": "label"
+  },
+  {
+    "qid": "Q520",
+    "text": "Nix Olympica",
+    "type": "alias"
+  },
+  {
+    "qid": "Q52109",
+    "text": "geomorphology",
+    "type": "label"
+  },
+  {
+    "qid": "Q5327060",
+    "text": "Earth Day 20 International Peace Climb",
+    "type": "label"
+  },
+  {
+    "qid": "Q5328",
+    "text": "Karachay-Cherkessia",
+    "type": "label"
+  },
+  {
+    "qid": "Q5328",
+    "text": "Karachay-Cherkessiya",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5328",
+    "text": "Karachayevo-Cheresia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5328",
+    "text": "Karachay-Cherkess Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5328",
+    "text": "Karachay-Circassian Republic",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5328",
+    "text": "Karachay-Circassia",
+    "type": "alias"
+  },
+  {
+    "qid": "Q534206",
+    "text": "Saint-Gervais-les-Bains",
+    "type": "label"
+  },
+  {
+    "qid": "Q5356574",
+    "text": "Fossa Magna",
+    "type": "label"
+  },
+  {
+    "qid": "Q54050",
+    "text": "hill",
+    "type": "label"
+  },
+  {
+    "qid": "Q54050",
+    "text": "hills",
+    "type": "alias"
+  },
+  {
+    "qid": "Q54050",
+    "text": "elevation",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himalayas",
+    "type": "label"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himalaya",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himalayan Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himalaya Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himmaleh",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "the Himalayas",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himálaya",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Snowy Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "Himálaya Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "the Himalaya",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5451",
+    "text": "the Himálaya",
+    "type": "alias"
+  },
+  {
+    "qid": "Q545768",
+    "text": "Mytikas",
+    "type": "label"
+  },
+  {
+    "qid": "Q5460604",
+    "text": "Wikipedia:List of articles all languages should have",
+    "type": "label"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakoram",
+    "type": "label"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakorum",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakoram Range",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakoram Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakoroum",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakoroum Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5469",
+    "text": "Karakorum Mountains",
+    "type": "alias"
+  },
+  {
+    "qid": "Q56406134",
+    "text": "group of mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q56406134",
+    "text": "mountainous area",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "tourist attraction",
+    "type": "label"
+  },
+  {
+    "qid": "Q570116",
+    "text": "visitor attraction",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "tourist spot",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "tourist place",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "attraction for tourists",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "POI for tourists",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "tourism attraction",
+    "type": "alias"
+  },
+  {
+    "qid": "Q570116",
+    "text": "touristic attraction",
+    "type": "alias"
+  },
+  {
+    "qid": "Q5741923",
+    "text": "Category:Mountains",
+    "type": "label"
+  },
+  {
+    "qid": "Q5825897",
+    "text": "Template:Infobox mountain",
+    "type": "label"
+  },
+  {
+    "qid": "Q58824487",
+    "text": "WikiProject Rome",
+    "type": "label"
+  },
+  {
+    "qid": "Q59008004",
+    "text": "Mount Ararat",
+    "type": "label"
+  },
+  {
+    "qid": "Q602358",
+    "text": "Brockhaus and Efron Encyclopedic Dictionary",
+    "type": "label"
+  },
+  {
+    "qid": "Q602358",
+    "text": "BEED",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6171655",
+    "text": "death zone",
+    "type": "label"
+  },
+  {
+    "qid": "Q6171655",
+    "text": "lethal zone",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6173448",
+    "text": "Wikipedia:Vital articles/Level/4",
+    "type": "label"
+  },
+  {
+    "qid": "Q6173448",
+    "text": "WP:VA/E",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6173448",
+    "text": "vital articles level 4",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6173448",
+    "text": "Vital Articles/Expanded",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "geographical feature",
+    "type": "label"
+  },
+  {
+    "qid": "Q618123",
+    "text": "geographical object",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "geographic feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "geographic object",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "topological feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "topological object",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "topologic feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "topologic object",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "terrain feature",
+    "type": "alias"
+  },
+  {
+    "qid": "Q618123",
+    "text": "terrain object",
+    "type": "alias"
+  },
+  {
+    "qid": "Q63284758",
+    "text": "Desktop Encyclopedic Dictionary",
+    "type": "label"
+  },
+  {
+    "qid": "Q635414",
+    "text": "Vesuvius National Park",
+    "type": "label"
+  },
+  {
+    "qid": "Q653180",
+    "text": "Fujisan Hongū Sengen Taisha",
+    "type": "label"
+  },
+  {
+    "qid": "Q653180",
+    "text": "Fujisan Hongū Sengen Grand Shrine",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6633171",
+    "text": "list of people who died climbing Mount Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q6655",
+    "text": "UTC+01:00",
+    "type": "label"
+  },
+  {
+    "qid": "Q6655",
+    "text": "Western European Summer Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6655",
+    "text": "Swatch Internet Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6655",
+    "text": "CET",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6655",
+    "text": "Rome Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6655",
+    "text": "UTC+1",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6655",
+    "text": "West Africa Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q6655",
+    "text": "West Africa Standard Time",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "India",
+    "type": "label"
+  },
+  {
+    "qid": "Q668",
+    "text": "Republic of India",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Bharat",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Bharatvarsh",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Hindustan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Bharata",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Hindoostan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Indostan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Bharat Ganarajya",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Al Hind",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Tianzhu",
+    "type": "alias"
+  },
+  {
+    "qid": "Q668",
+    "text": "Tenjiku",
+    "type": "alias"
+  },
+  {
+    "qid": "Q669197",
+    "text": "Bokovoy Range",
+    "type": "label"
+  },
+  {
+    "qid": "Q669197",
+    "text": "Lateral Range",
+    "type": "alias"
+  },
+  {
+    "qid": "Q671343",
+    "text": "Mont Blanc massif",
+    "type": "label"
+  },
+  {
+    "qid": "Q6876022",
+    "text": "WikiProject Italy",
+    "type": "label"
+  },
+  {
+    "qid": "Q6876022",
+    "text": "Wikipedia:WikiProject Italy",
+    "type": "alias"
+  },
+  {
+    "qid": "Q70054479",
+    "text": "Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q70054479",
+    "text": "Mount Olympus",
+    "type": "alias"
+  },
+  {
+    "qid": "Q70054479",
+    "text": "Olympos",
+    "type": "alias"
+  },
+  {
+    "qid": "Q70054479",
+    "text": "Oros Olympos",
+    "type": "alias"
+  },
+  {
+    "qid": "Q7272167",
+    "text": "Category:K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q7278710",
+    "text": "Category:Mount Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q7464475",
+    "text": "Category:Mont Blanc",
+    "type": "label"
+  },
+  {
+    "qid": "Q7465933",
+    "text": "Category:Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q7571147",
+    "text": "Category:Mount Fuji",
+    "type": "label"
+  },
+  {
+    "qid": "Q76267",
+    "text": "Miocene",
+    "type": "label"
+  },
+  {
+    "qid": "Q76267",
+    "text": "Miocene Epoch",
+    "type": "alias"
+  },
+  {
+    "qid": "Q76267",
+    "text": "Miocene Series",
+    "type": "alias"
+  },
+  {
+    "qid": "Q7692360",
+    "text": "volcanic eruption",
+    "type": "label"
+  },
+  {
+    "qid": "Q7692360",
+    "text": "eruption",
+    "type": "alias"
+  },
+  {
+    "qid": "Q7692360",
+    "text": "volcano eruption",
+    "type": "alias"
+  },
+  {
+    "qid": "Q777112",
+    "text": "tephrite",
+    "type": "label"
+  },
+  {
+    "qid": "Q77983903",
+    "text": "Fujisan with rice fields",
+    "type": "label"
+  },
+  {
+    "qid": "Q80051",
+    "text": "Ağrı Province",
+    "type": "label"
+  },
+  {
+    "qid": "Q805805",
+    "text": "Baltoro Muztagh",
+    "type": "label"
+  },
+  {
+    "qid": "Q805805",
+    "text": "Baltoro Karakoram",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8063",
+    "text": "rock",
+    "type": "label"
+  },
+  {
+    "qid": "Q8063",
+    "text": "rocks",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8063",
+    "text": "rock (geology)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8072",
+    "text": "volcano",
+    "type": "label"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Olympus",
+    "type": "alias"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Troodos",
+    "type": "alias"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Chionístra",
+    "type": "alias"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Όλυμπος",
+    "type": "alias"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Ólympos",
+    "type": "alias"
+  },
+  {
+    "qid": "Q819979",
+    "text": "Χιονίστρα",
+    "type": "alias"
+  },
+  {
+    "qid": "Q82480",
+    "text": "sedimentary rock",
+    "type": "label"
+  },
+  {
+    "qid": "Q830481",
+    "text": "timeline of Mount Everest expeditions",
+    "type": "label"
+  },
+  {
+    "qid": "Q830481",
+    "text": "Mount Everest expeditions timeline",
+    "type": "alias"
+  },
+  {
+    "qid": "Q83236",
+    "text": "Chamonix-Mont-Blanc",
+    "type": "label"
+  },
+  {
+    "qid": "Q83236",
+    "text": "Chamonix",
+    "type": "alias"
+  },
+  {
+    "qid": "Q83236",
+    "text": "Chamouni",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8366750",
+    "text": "Category:Deaths on Mount Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nepal",
+    "type": "label"
+  },
+  {
+    "qid": "Q837",
+    "text": "Federal Democratic Republic of Nepal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nipal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nekbal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nehpal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Palpou",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Naipala",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Naipála",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Pa-lo-pou",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Pa-le-pou",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Pa-eul-pou",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Paï-pou",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Pai-pou",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Balpo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Balbo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Bal-bo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Bal-po'i yul",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Bal-yul",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Naipál",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Necbal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nei-pal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Népaal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nepall",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nepaul",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Ne-pel",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nercerri",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Niepal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Ni-po-lo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Ni-po-louo",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Palpa",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Balpo-yul",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nekpal",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Nepál",
+    "type": "alias"
+  },
+  {
+    "qid": "Q837",
+    "text": "Népál",
+    "type": "alias"
+  },
+  {
+    "qid": "Q839199",
+    "text": "1922 British Mount Everest Expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q83976312",
+    "text": "Category:Maps of Mount Vesuvius",
+    "type": "label"
+  },
+  {
+    "qid": "Q83979656",
+    "text": "Category:Maps of Mount Fuji",
+    "type": "label"
+  },
+  {
+    "qid": "Q83990474",
+    "text": "Category:Maps of Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q84063060",
+    "text": "Category:Maps of Mont Blanc",
+    "type": "label"
+  },
+  {
+    "qid": "Q84084667",
+    "text": "Category:Maps of Mount Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q843",
+    "text": "Pakistan",
+    "type": "label"
+  },
+  {
+    "qid": "Q843",
+    "text": "Islamic Republic of Pakistan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q843",
+    "text": "Republic of Pakistan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q843",
+    "text": "pk",
+    "type": "alias"
+  },
+  {
+    "qid": "Q843",
+    "text": "PAK",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8504015",
+    "text": "WikiProject Japan",
+    "type": "label"
+  },
+  {
+    "qid": "Q8504015",
+    "text": "Wikipedia:WikiProject Japan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8525023",
+    "text": "Olympus (Euboea)",
+    "type": "label"
+  },
+  {
+    "qid": "Q867541",
+    "text": "Encyclopædia Britannica 11th edition",
+    "type": "label"
+  },
+  {
+    "qid": "Q867541",
+    "text": "1911 Encyclopedia Britannica",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "EB-11",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "EB1911",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "EB11",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "1911 Encyclopædia Britannica",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "Encyclopædia Britannica (1911)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "Encyclopedia Britannica (1911)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q867541",
+    "text": "Encyclopedia Britannica",
+    "type": "alias"
+  },
+  {
+    "qid": "Q872294",
+    "text": "K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q91094170",
+    "text": "1902 Karakoram expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q91094170",
+    "text": "1902 expedition to K2",
+    "type": "alias"
+  },
+  {
+    "qid": "Q91094170",
+    "text": "K2 expedition of 1902",
+    "type": "alias"
+  },
+  {
+    "qid": "Q911737",
+    "text": "Taxkorgan Tajik Autonomous County",
+    "type": "label"
+  },
+  {
+    "qid": "Q911737",
+    "text": "Tashkurgan Tajik Autonomous County",
+    "type": "alias"
+  },
+  {
+    "qid": "Q918286",
+    "text": "1924 British Mount Everest Expedition",
+    "type": "label"
+  },
+  {
+    "qid": "Q924257",
+    "text": "Mahalangur Himal",
+    "type": "label"
+  },
+  {
+    "qid": "Q924257",
+    "text": "Mahālangūr Himāl",
+    "type": "alias"
+  },
+  {
+    "qid": "Q9313304",
+    "text": "Category:Mount Vesuvius",
+    "type": "label"
+  },
+  {
+    "qid": "Q9394813",
+    "text": "schistose rock",
+    "type": "label"
+  },
+  {
+    "qid": "Q9394813",
+    "text": "schist",
+    "type": "alias"
+  },
+  {
+    "qid": "Q9394813",
+    "text": "shale",
+    "type": "alias"
+  },
+  {
+    "qid": "Q9394813",
+    "text": "slate",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "Henry Haversham Godwin-Austen",
+    "type": "label"
+  },
+  {
+    "qid": "Q948618",
+    "text": "H. H. Godwin-Austen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "Henry Haversham Austin",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "Henry Haversham Godwin-Austin",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "Henry Haversham Godwin-Austeen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "Godwin-Austen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "H H Godwin-Austen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "H H G Austen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q948618",
+    "text": "Henry Godwin-Austen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q94987823",
+    "text": "Special Place of Scenic Beauty",
+    "type": "label"
+  },
+  {
+    "qid": "Q954201",
+    "text": "Mount Vesuvius eruption of 1631",
+    "type": "label"
+  },
+  {
+    "qid": "Q9628142",
+    "text": "Category:Views of Mount Fuji",
+    "type": "label"
+  },
+  {
+    "qid": "Q967776",
+    "text": "Vesuvius Observatory",
+    "type": "label"
+  },
+  {
+    "qid": "Q9727330",
+    "text": "Category:Elbrus",
+    "type": "label"
+  },
+  {
+    "qid": "Q98",
+    "text": "Pacific Ocean",
+    "type": "label"
+  },
+  {
+    "qid": "Q98",
+    "text": "Pacific",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Pacific Sea",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "the Pacific",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Pacifick",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Pacifick Ocean",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Pacifick Sea",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "the Pacifick",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Southern Ocean",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Southern Sea",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "the Southern Ocean",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "the Southern Sea",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Great Southern Ocean",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "the Great Southern Ocean",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "Great Southern Sea",
+    "type": "alias"
+  },
+  {
+    "qid": "Q98",
+    "text": "the Great Southern Sea",
+    "type": "alias"
+  },
+  {
+    "qid": "Q9838313",
+    "text": "Category:Mount Ararat",
+    "type": "label"
+  },
+  {
+    "qid": "Q99671023",
+    "text": "Everest Base Camp (North, Tibet)",
+    "type": "label"
+  },
+  {
+    "qid": "Q99671023",
+    "text": "Everest Base Camp - North (Tibet)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671023",
+    "text": "North Base Camp",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671023",
+    "text": "EBC North",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671023",
+    "text": "EBC Tibet",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671286",
+    "text": "Everest Base Camp (South, Nepal)",
+    "type": "label"
+  },
+  {
+    "qid": "Q99671286",
+    "text": "Everest Base Camp - South (Nepal)",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671286",
+    "text": "South Base Camp",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671286",
+    "text": "EBC South",
+    "type": "alias"
+  },
+  {
+    "qid": "Q99671286",
+    "text": "EBC Nepal",
+    "type": "alias"
   }
 ]
