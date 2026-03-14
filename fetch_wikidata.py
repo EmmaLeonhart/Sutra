@@ -1,7 +1,8 @@
 """
-Fetch all instances of mountain (Q8502) from Wikidata.
-Gets English labels and all English aliases for each entity.
-Uses POST requests and pagination. Saves to data/mountains.json
+Fetch mountain (Q8502) + 10 instance mountains from Wikidata.
+For each item: get QID, English label, English aliases, and ALL properties as triples.
+Triples reference other items by QID without needing to import those items.
+Saves to data/items.json
 """
 
 import json
@@ -15,121 +16,136 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 USER_AGENT = "embedding-mapping/0.1 (https://github.com/Immanuelle/embedding-mapping)"
-BATCH_SIZE = 5000
-MAX_RETRIES = 3
+WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 
 
-def sparql_query(query):
-    for attempt in range(MAX_RETRIES):
-        try:
-            resp = requests.post(
-                SPARQL_ENDPOINT,
-                data={"query": query},
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Accept": "application/sparql-results+json",
-                },
-                timeout=180,
-            )
-            resp.raise_for_status()
-            return resp.json()["results"]["bindings"]
-        except (requests.ConnectionError, requests.Timeout) as e:
-            if attempt < MAX_RETRIES - 1:
-                wait = 10 * (attempt + 1)
-                print(f"  Retry {attempt+1}/{MAX_RETRIES} in {wait}s... ({e.__class__.__name__})")
-                time.sleep(wait)
-            else:
-                raise
+def wikidata_api_get(qid):
+    """Fetch a single Wikidata item via the API (more reliable than SPARQL for full items)."""
+    resp = requests.get(
+        WIKIDATA_API,
+        params={
+            "action": "wbgetentities",
+            "ids": qid,
+            "format": "json",
+            "languages": "en",
+        },
+        headers={"User-Agent": USER_AGENT},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()["entities"][qid]
 
 
-def fetch_labels():
-    """Fetch QID + English label for all mountains, paginated."""
-    mountains = {}
-    offset = 0
-
-    while True:
-        query = f"""
-SELECT ?item ?itemLabel WHERE {{
+def get_10_mountains():
+    """Get 10 well-known mountains via SPARQL."""
+    query = """
+SELECT ?item WHERE {
   ?item wdt:P31 wd:Q8502 .
-  ?item rdfs:label ?itemLabel .
-  FILTER(LANG(?itemLabel) = "en")
-}}
-ORDER BY ?item
-LIMIT {BATCH_SIZE}
-OFFSET {offset}
+  ?item wikibase:sitelinks ?sitelinks .
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 10
 """
-        print(f"Fetching labels at offset {offset}...")
-        bindings = sparql_query(query)
-        print(f"  Got {len(bindings)} results")
-
-        for b in bindings:
-            qid = b["item"]["value"].split("/")[-1]
-            label = b["itemLabel"]["value"]
-            mountains[qid] = {"qid": qid, "label": label, "aliases": []}
-
-        if len(bindings) < BATCH_SIZE:
-            break
-
-        offset += BATCH_SIZE
-        time.sleep(3)
-
-    return mountains
+    resp = requests.post(
+        SPARQL_ENDPOINT,
+        data={"query": query},
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/sparql-results+json",
+        },
+        timeout=60,
+    )
+    resp.raise_for_status()
+    bindings = resp.json()["results"]["bindings"]
+    return [b["item"]["value"].split("/")[-1] for b in bindings]
 
 
-def fetch_aliases(mountains):
-    """Fetch English aliases for all mountains, paginated."""
-    offset = 0
+def extract_value(snak):
+    """Extract a usable value from a Wikidata snak."""
+    if snak["snaktype"] != "value":
+        return {"type": snak["snaktype"], "value": None}
 
-    while True:
-        query = f"""
-SELECT ?item ?alias WHERE {{
-  ?item wdt:P31 wd:Q8502 .
-  ?item skos:altLabel ?alias .
-  FILTER(LANG(?alias) = "en")
-}}
-ORDER BY ?item
-LIMIT {BATCH_SIZE}
-OFFSET {offset}
-"""
-        print(f"Fetching aliases at offset {offset}...")
-        bindings = sparql_query(query)
-        print(f"  Got {len(bindings)} results")
+    dv = snak["datavalue"]
+    vtype = dv["type"]
 
-        for b in bindings:
-            qid = b["item"]["value"].split("/")[-1]
-            alias = b["alias"]["value"]
-            if qid in mountains:
-                mountains[qid]["aliases"].append(alias)
+    if vtype == "wikibase-entityid":
+        return {"type": "wikibase-item", "value": dv["value"]["id"]}
+    elif vtype == "string":
+        return {"type": "string", "value": dv["value"]}
+    elif vtype == "monolingualtext":
+        return {"type": "monolingualtext", "value": dv["value"]["text"], "language": dv["value"]["language"]}
+    elif vtype == "quantity":
+        q = dv["value"]
+        return {"type": "quantity", "value": q["amount"], "unit": q.get("unit", "")}
+    elif vtype == "time":
+        return {"type": "time", "value": dv["value"]["time"]}
+    elif vtype == "globecoordinate":
+        gc = dv["value"]
+        return {"type": "coordinate", "latitude": gc["latitude"], "longitude": gc["longitude"]}
+    else:
+        return {"type": vtype, "value": str(dv["value"])}
 
-        if len(bindings) < BATCH_SIZE:
-            break
 
-        offset += BATCH_SIZE
-        time.sleep(3)
+def process_entity(entity):
+    """Extract label, aliases, and all triples from a Wikidata entity."""
+    qid = entity["id"]
 
-    return mountains
+    # English label
+    labels = entity.get("labels", {})
+    label = labels.get("en", {}).get("value", qid)
+
+    # English aliases
+    alias_list = entity.get("aliases", {}).get("en", [])
+    aliases = [a["value"] for a in alias_list]
+
+    # All claims as triples: (qid, property, value)
+    triples = []
+    for prop_id, claim_list in entity.get("claims", {}).items():
+        for claim in claim_list:
+            mainsnak = claim.get("mainsnak", {})
+            if mainsnak:
+                val = extract_value(mainsnak)
+                triples.append({
+                    "subject": qid,
+                    "predicate": prop_id,
+                    "value": val,
+                    "rank": claim.get("rank", "normal"),
+                })
+
+    return {
+        "qid": qid,
+        "label": label,
+        "aliases": aliases,
+        "triples": triples,
+    }
 
 
 def main():
-    mountains = fetch_labels()
-    print(f"\nGot {len(mountains)} mountains with labels")
+    # Get the 10 most notable mountains
+    print("Finding 10 most notable mountains...")
+    mountain_qids = get_10_mountains()
+    print(f"  Got: {mountain_qids}")
 
-    fetch_aliases(mountains)
-    alias_count = sum(1 for m in mountains.values() if m["aliases"])
-    print(f"{alias_count} mountains have aliases")
+    # Add Q8502 (mountain class itself)
+    all_qids = ["Q8502"] + mountain_qids
+    print(f"\nFetching {len(all_qids)} items: Q8502 + {len(mountain_qids)} mountains")
 
-    result = list(mountains.values())
+    items = []
+    for qid in all_qids:
+        print(f"  Fetching {qid}...")
+        entity = wikidata_api_get(qid)
+        item = process_entity(entity)
+        items.append(item)
+        print(f"    {item['label']}: {len(item['triples'])} triples, {len(item['aliases'])} aliases")
+        time.sleep(0.5)
 
     os.makedirs("data", exist_ok=True)
-    out_path = "data/mountains.json"
+    out_path = "data/items.json"
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(items, f, ensure_ascii=False, indent=2)
 
-    print(f"\nSaved {len(result)} mountains to {out_path}")
-
-    for m in result[:5]:
-        aliases_str = ", ".join(m["aliases"][:3]) if m["aliases"] else "(none)"
-        print(f"  {m['qid']}: {m['label']} — aliases: {aliases_str}")
+    total_triples = sum(len(i["triples"]) for i in items)
+    print(f"\nSaved {len(items)} items ({total_triples} total triples) to {out_path}")
 
 
 if __name__ == "__main__":
