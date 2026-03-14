@@ -25,12 +25,20 @@ The program systematically maps these regions by walking through Wikidata, gener
    - Which vector operations (if any) each geodesic manifests
 6. The walk continues until the map is dense enough to draw conclusions
 
-## Geodesics as Comparable Objects
-A geodesic is not just a measurement — it is an **object**. The geodesic connecting "Mount Everest" to "mountain" via P31 exists as a thing that can be compared across embedding spaces. In model A it has one length and direction; in model B it has another. The geodesic is constant; the geometry changes.
+## Geodesics Are Real Objects, Not Results of Operations
+Geodesics are not the results of vector operations. They are real mathematical objects that we identified — they simply exist as the line between two embedded texts that a Wikidata triple connects. They are data points, not conclusions.
 
-Geodesics are manifestations of vector operations. A geodesic is what happens when you perform a vector subtraction (or addition, or other operation) between two embedded texts. The operation is fixed by the triple; the result depends on the model. The core question is whether geodesics of the same property type actually ARE a consistent vector operation in a given space, or not.
+What we are doing with them is building a **hypothesis for isosymbolic operations** — operations that are isomorphic in the vector space and in the graph space. If "instance of" triples consistently produce parallel displacement vectors, that's an isosymbolic operation: the graph relationship (P31) has a faithful geometric counterpart. If they don't, the embedding space doesn't encode that relationship structurally.
 
-There will be thousands of geodesics. The program examines whether they cluster into consistent operations or scatter — and that tells you what the embedding space actually encodes.
+This hypothesis needs to be tested **for every single embedding space**, because an embedding space is only as good as its training:
+- Some are specifically made for certain ontologies
+- Some are trained on narrow domains
+- Some only cover certain languages
+- Some are general-purpose but shallow
+
+A logical relationship like "man → woman" might hold as a consistent vector in English embedding spaces trained on Western corpora, but not in a Japanese model, or not in a model trained primarily on scientific text. Each embedding space needs to be mapped independently, using the same geodesic definitions, to discover what it actually encodes.
+
+There will be thousands of geodesics. The program examines whether they cluster into consistent isosymbolic operations or scatter — and that tells you what the embedding space actually encodes and where it breaks down.
 
 ## What Makes This Different
 - **Not similarity search.** We're not asking "what's near X?" — we're asking "what does the path between X and Y look like, and is it consistent with the path between A and B?"
