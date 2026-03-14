@@ -7,7 +7,9 @@
 - [ ] Store as: RDF graph (rdflib) + entity-to-vector mapping (numpy arrays)
 - [ ] Each triple = an edge (line) between two points in embedding space
 
-## Phase 2: Geometric Analysis
+## Phase 2: HNSW Index + Geometric Analysis
+- [ ] Implement Hierarchical Navigable Small World (HNSW) index over the embedding space
+- [ ] Use HNSW for efficient nearest-neighbor structure discovery
 - [ ] Compute displacement vectors for all edges (object_vec - subject_vec)
 - [ ] Cluster displacement vectors to find consistent relational axes
 - [ ] Compare: do triples sharing the same predicate cluster in displacement space?

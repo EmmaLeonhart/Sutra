@@ -12,7 +12,17 @@
 - Fuseki is fully open source (Apache 2.0), no licensing friction
 - Keeping vectors in numpy arrays avoids the sync problem of two databases
 
-**Tradeoff:** No ANN (approximate nearest neighbor) queries — all similarity is brute-force. Acceptable at current scale. Revisit if vector count exceeds ~100K.
+**Tradeoff:** Brute-force similarity is fine for initial exploration. HNSW will be implemented for efficient nearest-neighbor structure discovery (see AD-5).
+
+## AD-5: HNSW Index for Structure Discovery
+
+**Decision:** Implement Hierarchical Navigable Small World (HNSW) indexing over the embedding space.
+
+**Rationale:**
+- HNSW builds a navigable graph over the embedding space — the graph structure itself is semantically interesting
+- The layered proximity graph HNSW constructs is a natural representation of how the embedding space clusters
+- Enables efficient nearest-neighbor queries needed for displacement vector analysis at scale
+- Can be implemented in pure Python or via hnswlib/FAISS — no external database needed
 
 ## AD-2: Start with Wikidata as Source
 
