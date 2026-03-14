@@ -50,3 +50,19 @@ Wikidata creates new properties regularly. Set up a GitHub Actions workflow that
 5. Auto-commit and push
 
 This keeps the property list current without manual intervention. Could be as simple as running `fetch_all_properties.py` with a merge-not-overwrite mode.
+
+## Embedding Space Probing (`probe.py`) - IMPLEMENTED, NEEDS EXPLORATION
+
+`probe.py` exists with 5 probing modes:
+- `random` - random direction from a point or origin
+- `between` - interpolate between two entities
+- `displace` - vector arithmetic (A->B displacement applied to C)
+- `direction` - walk from A toward B and overshoot
+- `neighbors` - nearest neighbors of an entity
+
+**Still need to figure out:**
+- How to systematically use probing to discover structure (not just ad-hoc)
+- Whether probing should be integrated into the BFS walk (probe as you explore)
+- How to record probing results as data (not just console output)
+- Whether probed synthetic points should become first-class objects in the graph
+- Relationship between probing results and the oversymbolic/isosymbolic/undersymbolic classification
