@@ -4,7 +4,11 @@
       "Bash(python -c \"import rdflib; print\\('rdflib', rdflib.__version__\\)\" 2>&1 && python -c \"import numpy; print\\('numpy', numpy.__version__\\)\" 2>&1 && python -c \"import SPARQLWrapper; print\\('SPARQLWrapper ok'\\)\" 2>&1 && python -c \"import sentence_transformers; print\\('sentence_transformers', sentence_transformers.__version__\\)\" 2>&1)",
       "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python fetch_wikidata.py)",
       "Bash(python -c \"import requests; print\\('requests ok'\\)\" 2>&1)",
-      "Bash(taskkill //F //IM python.exe 2>/dev/null; echo \"done\")"
+      "Bash(taskkill //F //IM python.exe 2>/dev/null; echo \"done\")",
+      "Bash(ls -la \"C:/Users/Immanuelle/Documents/Github/embedding-mapping/redoing-paper/old-paper/prototype/\" | grep -E \"\\\\.\\(npz|json|pkl|npy\\)$\" | head -10)",
+      "Bash(python -c \"import ollama; print\\('ollama ok'\\)\" 2>&1)",
+      "Bash(python -c \"import ollama; r = ollama.embed\\(model='mxbai-embed-large', input='test'\\); print\\(f'dim={len\\(r.embeddings[0]\\)}'\\)\" 2>&1)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python embed_entities.py)"
     ]
   }
 }

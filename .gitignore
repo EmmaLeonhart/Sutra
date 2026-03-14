@@ -25,3 +25,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Large binary data (regenerable)
+data/*.npz
+data/*.npy

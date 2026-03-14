@@ -1,0 +1,327 @@
+[
+  {
+    "qid": "Q8502",
+    "text": "mountain",
+    "type": "label"
+  },
+  {
+    "qid": "Q8502",
+    "text": "mount",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8502",
+    "text": "mt.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q8502",
+    "text": "mtn.",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Mount Everest",
+    "type": "label"
+  },
+  {
+    "qid": "Q513",
+    "text": "Everest",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Mount Qomolangma",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Mount Sagarmatha",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Qomolangma",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Chomolangma",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Chomolungma",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Qomolangma Feng",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Sagarmāthā",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Zhumulangma",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Sagarmatha",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Mount Chomolubutangma",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Mt. Everest",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Mt Everest",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Himalaya Peak XV",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "Peak XV",
+    "type": "alias"
+  },
+  {
+    "qid": "Q513",
+    "text": "World highest peak",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Mount Fuji",
+    "type": "label"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Mt Fuji",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Fuji Mountain",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Fuji-san",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Mt. Fuji",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Fujisan",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Fuji-yama",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "Fujiyama",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39231",
+    "text": "🗻",
+    "type": "alias"
+  },
+  {
+    "qid": "Q524",
+    "text": "Mount Vesuvius",
+    "type": "label"
+  },
+  {
+    "qid": "Q524",
+    "text": "Vesuvius",
+    "type": "alias"
+  },
+  {
+    "qid": "Q583",
+    "text": "Mont Blanc",
+    "type": "label"
+  },
+  {
+    "qid": "Q583",
+    "text": "Il Bianco",
+    "type": "alias"
+  },
+  {
+    "qid": "Q583",
+    "text": "Monte Bianco",
+    "type": "alias"
+  },
+  {
+    "qid": "Q583",
+    "text": "Mt Blanc",
+    "type": "alias"
+  },
+  {
+    "qid": "Q583",
+    "text": "Mt. Blanc",
+    "type": "alias"
+  },
+  {
+    "qid": "Q583",
+    "text": "La Dame blanche",
+    "type": "alias"
+  },
+  {
+    "qid": "Q39739",
+    "text": "Aconcagua",
+    "type": "label"
+  },
+  {
+    "qid": "Q43105",
+    "text": "Mount Elbrus",
+    "type": "label"
+  },
+  {
+    "qid": "Q43105",
+    "text": "Elbrus",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43105",
+    "text": "Mingi Tau",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43105",
+    "text": "Elbruz",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43105",
+    "text": "Mount Elbruz",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43512",
+    "text": "K2",
+    "type": "label"
+  },
+  {
+    "qid": "Q43512",
+    "text": "Mount Godwin-Austen",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43512",
+    "text": "Chhogori",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43512",
+    "text": "Mount K2",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43512",
+    "text": "Dapsang",
+    "type": "alias"
+  },
+  {
+    "qid": "Q43512",
+    "text": "Mt. Qogir",
+    "type": "alias"
+  },
+  {
+    "qid": "Q72303",
+    "text": "Mount Ararat",
+    "type": "label"
+  },
+  {
+    "qid": "Q72303",
+    "text": "Greater Ararat",
+    "type": "alias"
+  },
+  {
+    "qid": "Q72303",
+    "text": "Agri Dagi",
+    "type": "alias"
+  },
+  {
+    "qid": "Q72303",
+    "text": "Mount Aghri",
+    "type": "alias"
+  },
+  {
+    "qid": "Q72303",
+    "text": "Ararat",
+    "type": "alias"
+  },
+  {
+    "qid": "Q72303",
+    "text": "Mount Agri",
+    "type": "alias"
+  },
+  {
+    "qid": "Q80344",
+    "text": "Mount Olympus",
+    "type": "label"
+  },
+  {
+    "qid": "Q80344",
+    "text": "Olympos",
+    "type": "alias"
+  },
+  {
+    "qid": "Q80344",
+    "text": "Oros Olympos",
+    "type": "alias"
+  },
+  {
+    "qid": "Q80344",
+    "text": "Olympus",
+    "type": "alias"
+  },
+  {
+    "qid": "Q82019",
+    "text": "Kanchenjunga",
+    "type": "label"
+  },
+  {
+    "qid": "Q82019",
+    "text": "Kangchenjunga",
+    "type": "alias"
+  },
+  {
+    "qid": "Q82019",
+    "text": "Kañcanjaṅghā",
+    "type": "alias"
+  },
+  {
+    "qid": "Q82019",
+    "text": "Kangchendzonga",
+    "type": "alias"
+  },
+  {
+    "qid": "Q82019",
+    "text": "Kanchinjinga",
+    "type": "alias"
+  }
+]
