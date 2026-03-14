@@ -1,0 +1,283 @@
+{
+  "axis_dot_product": 0.15010833740234375,
+  "gender_axis_definition": "normalize(embed('woman') - embed('man'))",
+  "cute_axis_definition": "mean displacement from nouns to 'The X is cute' propositions",
+  "calibration_nouns": [
+    "cat",
+    "dog",
+    "baby",
+    "flower",
+    "bird",
+    "rabbit",
+    "frog",
+    "rock"
+  ],
+  "items": [
+    {
+      "label": "man",
+      "text": "man",
+      "category": "gendered",
+      "x_cute": -0.32946452498435974,
+      "y_gender": -0.4404248595237732
+    },
+    {
+      "label": "woman",
+      "text": "woman",
+      "category": "gendered",
+      "x_cute": -0.1972416639328003,
+      "y_gender": 0.4404250979423523
+    },
+    {
+      "label": "king",
+      "text": "king",
+      "category": "gendered",
+      "x_cute": -0.3943603038787842,
+      "y_gender": -0.18616227805614471
+    },
+    {
+      "label": "queen",
+      "text": "queen",
+      "category": "gendered",
+      "x_cute": -0.328690767288208,
+      "y_gender": 0.11435812711715698
+    },
+    {
+      "label": "prince",
+      "text": "prince",
+      "category": "gendered",
+      "x_cute": -0.2536991238594055,
+      "y_gender": -0.22684568166732788
+    },
+    {
+      "label": "princess",
+      "text": "princess",
+      "category": "gendered",
+      "x_cute": -0.17018890380859375,
+      "y_gender": 0.19612959027290344
+    },
+    {
+      "label": "boy",
+      "text": "boy",
+      "category": "gendered",
+      "x_cute": -0.23782479763031006,
+      "y_gender": -0.25586628913879395
+    },
+    {
+      "label": "girl",
+      "text": "girl",
+      "category": "gendered",
+      "x_cute": -0.16486293077468872,
+      "y_gender": 0.19377121329307556
+    },
+    {
+      "label": "husband",
+      "text": "husband",
+      "category": "gendered",
+      "x_cute": -0.2875939607620239,
+      "y_gender": -0.1718800961971283
+    },
+    {
+      "label": "wife",
+      "text": "wife",
+      "category": "gendered",
+      "x_cute": -0.24518194794654846,
+      "y_gender": 0.22017858922481537
+    },
+    {
+      "label": "puppy",
+      "text": "puppy",
+      "category": "cute",
+      "x_cute": -0.08038152754306793,
+      "y_gender": -0.00998781993985176
+    },
+    {
+      "label": "kitten",
+      "text": "kitten",
+      "category": "cute",
+      "x_cute": -0.08086757361888885,
+      "y_gender": 0.027167242020368576
+    },
+    {
+      "label": "baby",
+      "text": "baby",
+      "category": "cute",
+      "x_cute": -0.1852221041917801,
+      "y_gender": 0.0154198557138443
+    },
+    {
+      "label": "bunny",
+      "text": "bunny",
+      "category": "cute",
+      "x_cute": -0.090106301009655,
+      "y_gender": 0.0075797452591359615
+    },
+    {
+      "label": "duckling",
+      "text": "duckling",
+      "category": "cute",
+      "x_cute": -0.06665390729904175,
+      "y_gender": 0.036580752581357956
+    },
+    {
+      "label": "teddy bear",
+      "text": "teddy bear",
+      "category": "cute",
+      "x_cute": 0.049079880118370056,
+      "y_gender": -0.05091430991888046
+    },
+    {
+      "label": "rock",
+      "text": "rock",
+      "category": "neutral",
+      "x_cute": -0.39433932304382324,
+      "y_gender": -0.12449418008327484
+    },
+    {
+      "label": "mountain",
+      "text": "mountain",
+      "category": "neutral",
+      "x_cute": -0.3350929319858551,
+      "y_gender": -0.09157682210206985
+    },
+    {
+      "label": "desk",
+      "text": "desk",
+      "category": "neutral",
+      "x_cute": -0.27538934350013733,
+      "y_gender": -0.03998071700334549
+    },
+    {
+      "label": "salt",
+      "text": "salt",
+      "category": "neutral",
+      "x_cute": -0.4148450493812561,
+      "y_gender": -0.08712854981422424
+    },
+    {
+      "label": "concrete",
+      "text": "concrete",
+      "category": "neutral",
+      "x_cute": -0.3444860875606537,
+      "y_gender": -0.06218228489160538
+    },
+    {
+      "label": "gravel",
+      "text": "gravel",
+      "category": "neutral",
+      "x_cute": -0.2779751420021057,
+      "y_gender": -0.06471790373325348
+    },
+    {
+      "label": "thing",
+      "text": "thing",
+      "category": "neutral",
+      "x_cute": -0.29007983207702637,
+      "y_gender": -0.11040208488702774
+    },
+    {
+      "label": "object",
+      "text": "object",
+      "category": "neutral",
+      "x_cute": -0.3176649510860443,
+      "y_gender": -0.07036840915679932
+    },
+    {
+      "label": "justice",
+      "text": "justice",
+      "category": "abstract",
+      "x_cute": -0.3692411780357361,
+      "y_gender": -0.05065249651670456
+    },
+    {
+      "label": "democracy",
+      "text": "democracy",
+      "category": "abstract",
+      "x_cute": -0.32154974341392517,
+      "y_gender": -0.06615953892469406
+    },
+    {
+      "label": "entropy",
+      "text": "entropy",
+      "category": "abstract",
+      "x_cute": -0.3976462185382843,
+      "y_gender": -0.08141510933637619
+    },
+    {
+      "label": "algorithm",
+      "text": "algorithm",
+      "category": "abstract",
+      "x_cute": -0.3072180151939392,
+      "y_gender": -0.08055932819843292
+    },
+    {
+      "label": "The puppy is cute",
+      "text": "The puppy is cute",
+      "category": "proposition",
+      "x_cute": 0.2635466456413269,
+      "y_gender": 0.04407932609319687
+    },
+    {
+      "label": "The kitten is cute",
+      "text": "The kitten is cute",
+      "category": "proposition",
+      "x_cute": 0.28335827589035034,
+      "y_gender": 0.06417153775691986
+    },
+    {
+      "label": "The woman is cute",
+      "text": "The woman is cute",
+      "category": "proposition",
+      "x_cute": 0.22938509285449982,
+      "y_gender": 0.40948235988616943
+    },
+    {
+      "label": "The man is strong",
+      "text": "The man is strong",
+      "category": "proposition",
+      "x_cute": -0.19231191277503967,
+      "y_gender": -0.3176546096801758
+    },
+    {
+      "label": "The rock is heavy",
+      "text": "The rock is heavy",
+      "category": "proposition",
+      "x_cute": -0.13450700044631958,
+      "y_gender": -0.07158015668392181
+    },
+    {
+      "label": "The queen is powerful",
+      "text": "The queen is powerful",
+      "category": "proposition",
+      "x_cute": -0.12802958488464355,
+      "y_gender": 0.21347568929195404
+    },
+    {
+      "label": "De-icing salts applied\nto road surfaces",
+      "text": "De-icing salts applied to road surfaces cause corrosion of reinforced concrete bridge decks",
+      "category": "complex",
+      "x_cute": -0.15950854122638702,
+      "y_gender": -0.024641253054142
+    },
+    {
+      "label": "The adorable puppy\nchased the butterfly",
+      "text": "The adorable golden retriever puppy chased the iridescent butterfly through the sunlit meadow",
+      "category": "complex",
+      "x_cute": 0.12790490686893463,
+      "y_gender": 0.003454269841313362
+    },
+    {
+      "label": "Monetary policy affects\ninflation expectations",
+      "text": "Central bank monetary policy decisions affect long-term inflation expectations through forward guidance mechanisms",
+      "category": "complex",
+      "x_cute": -0.14346113801002502,
+      "y_gender": -0.014811454340815544
+    },
+    {
+      "label": "Mitochondrial DNA\nmutations cause disease",
+      "text": "Mitochondrial DNA mutations in the electron transport chain cause progressive neurodegenerative disease",
+      "category": "complex",
+      "x_cute": -0.16924867033958435,
+      "y_gender": -0.017578400671482086
+    }
+  ]
+}

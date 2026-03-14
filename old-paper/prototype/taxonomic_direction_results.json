@@ -1,0 +1,2268 @@
+{
+  "displacement_vectors": {
+    "noun_dog": {
+      "chain": [
+        "puppy",
+        "dog",
+        "hound",
+        "canine",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "puppy\u2192dog",
+        "dog\u2192hound",
+        "hound\u2192canine",
+        "canine\u2192carnivore",
+        "carnivore\u2192mammal",
+        "mammal\u2192animal",
+        "animal\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.5280163288116455,
+        0.006743767764419317,
+        -0.033153049647808075,
+        0.30072322487831116,
+        -0.177925705909729,
+        0.10558804124593735,
+        0.35093188285827637,
+        0.4528696835041046
+      ],
+      "mean_alignment": 0.19172427168814465,
+      "pairwise_consistency": -0.10084778519480356,
+      "pairwise_range": [
+        -0.8774206042289734,
+        0.28860586881637573
+      ],
+      "mean_direction_magnitude": 0.1917242556810379
+    },
+    "noun_cat": {
+      "chain": [
+        "kitten",
+        "cat",
+        "feline",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "kitten\u2192cat",
+        "cat\u2192feline",
+        "feline\u2192carnivore",
+        "carnivore\u2192mammal",
+        "mammal\u2192animal",
+        "animal\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.434775173664093,
+        0.18332159519195557,
+        0.19570134580135345,
+        -0.09379946440458298,
+        0.0934959277510643,
+        0.28150835633277893,
+        0.4182433784008026
+      ],
+      "mean_alignment": 0.2161780446767807,
+      "pairwise_consistency": -0.11214489755885941,
+      "pairwise_range": [
+        -0.5153509378433228,
+        0.17842711508274078
+      ],
+      "mean_direction_magnitude": 0.2161780595779419
+    },
+    "noun_horse": {
+      "chain": [
+        "foal",
+        "horse",
+        "stallion",
+        "equine",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "foal\u2192horse",
+        "horse\u2192stallion",
+        "stallion\u2192equine",
+        "equine\u2192mammal",
+        "mammal\u2192animal",
+        "animal\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.42045241594314575,
+        0.0567534863948822,
+        -0.05469109117984772,
+        0.08206382393836975,
+        0.0896281898021698,
+        0.2893059253692627,
+        0.44675374031066895
+      ],
+      "mean_alignment": 0.1900380700826645,
+      "pairwise_consistency": -0.12453312568721317,
+      "pairwise_range": [
+        -0.7337712049484253,
+        0.12155987322330475
+      ],
+      "mean_direction_magnitude": 0.1900380700826645
+    },
+    "noun_fish": {
+      "chain": [
+        "trout",
+        "fish",
+        "aquatic animal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "trout\u2192fish",
+        "fish\u2192aquatic animal",
+        "aquatic animal\u2192animal",
+        "animal\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.417239248752594,
+        0.11683586239814758,
+        0.27166563272476196,
+        0.1518021672964096,
+        0.5230892896652222
+      ],
+      "mean_alignment": 0.29612644016742706,
+      "pairwise_consistency": -0.14038642272353172,
+      "pairwise_range": [
+        -0.39768537878990173,
+        0.12732240557670593
+      ],
+      "mean_direction_magnitude": 0.29612645506858826
+    },
+    "noun_bird": {
+      "chain": [
+        "sparrow",
+        "bird",
+        "avian",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "sparrow\u2192bird",
+        "bird\u2192avian",
+        "avian\u2192animal",
+        "animal\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.3797723352909088,
+        0.1980230212211609,
+        0.092721126973629,
+        0.20999355614185333,
+        0.4815368056297302
+      ],
+      "mean_alignment": 0.27240936905145646,
+      "pairwise_consistency": -0.1572414418682456,
+      "pairwise_range": [
+        -0.5844772458076477,
+        0.13347510993480682
+      ],
+      "mean_direction_magnitude": 0.2724093496799469
+    },
+    "noun_tree": {
+      "chain": [
+        "oak",
+        "tree",
+        "plant",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "oak\u2192tree",
+        "tree\u2192plant",
+        "plant\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.44760817289352417,
+        0.1406276375055313,
+        0.2535296380519867,
+        0.4258579611778259
+      ],
+      "mean_alignment": 0.316905852407217,
+      "pairwise_consistency": -0.19942758915325007,
+      "pairwise_range": [
+        -0.28085049986839294,
+        0.03193259611725807
+      ],
+      "mean_direction_magnitude": 0.3169058859348297
+    },
+    "noun_rock": {
+      "chain": [
+        "pebble",
+        "rock",
+        "stone",
+        "mineral",
+        "substance",
+        "matter",
+        "entity"
+      ],
+      "step_labels": [
+        "pebble\u2192rock",
+        "rock\u2192stone",
+        "stone\u2192mineral",
+        "mineral\u2192substance",
+        "substance\u2192matter",
+        "matter\u2192entity"
+      ],
+      "alignments": [
+        0.3867686986923218,
+        -0.020084500312805176,
+        0.136802539229393,
+        0.24583055078983307,
+        0.20752081274986267,
+        0.24258236587047577
+      ],
+      "mean_alignment": 0.19990341116984686,
+      "pairwise_consistency": -0.15204636293152968,
+      "pairwise_range": [
+        -0.5897105932235718,
+        0.09715176373720169
+      ],
+      "mean_direction_magnitude": 0.19990339875221252
+    },
+    "noun_truck": {
+      "chain": [
+        "pickup",
+        "truck",
+        "vehicle",
+        "machine",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "step_labels": [
+        "pickup\u2192truck",
+        "truck\u2192vehicle",
+        "vehicle\u2192machine",
+        "machine\u2192artifact",
+        "artifact\u2192object",
+        "object\u2192entity"
+      ],
+      "alignments": [
+        0.24357149004936218,
+        0.39538678526878357,
+        0.06945519894361496,
+        -0.012597143650054932,
+        0.0529145784676075,
+        0.5298417806625366
+      ],
+      "mean_alignment": 0.21309544829030833,
+      "pairwise_consistency": -0.1455084058145682,
+      "pairwise_range": [
+        -0.5054548382759094,
+        0.09833449125289917
+      ],
+      "mean_direction_magnitude": 0.21309545636177063
+    },
+    "noun_child": {
+      "chain": [
+        "toddler",
+        "child",
+        "person",
+        "human",
+        "primate",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "toddler\u2192child",
+        "child\u2192person",
+        "person\u2192human",
+        "human\u2192primate",
+        "primate\u2192mammal",
+        "mammal\u2192animal",
+        "animal\u2192organism",
+        "organism\u2192entity"
+      ],
+      "alignments": [
+        0.553076982498169,
+        0.37572866678237915,
+        0.016704726964235306,
+        -0.14019238948822021,
+        -0.013153779320418835,
+        0.19699102640151978,
+        0.13286328315734863,
+        0.3841276168823242
+      ],
+      "mean_alignment": 0.18826826673466712,
+      "pairwise_consistency": -0.10234865167045168,
+      "pairwise_range": [
+        -0.5707624554634094,
+        0.2065790593624115
+      ],
+      "mean_direction_magnitude": 0.18826824426651
+    },
+    "noun_star": {
+      "chain": [
+        "sun",
+        "star",
+        "celestial body",
+        "astronomical object",
+        "entity"
+      ],
+      "step_labels": [
+        "sun\u2192star",
+        "star\u2192celestial body",
+        "celestial body\u2192astronomical object",
+        "astronomical object\u2192entity"
+      ],
+      "alignments": [
+        0.5221639275550842,
+        0.020515162497758865,
+        0.29435479640960693,
+        0.29859861731529236
+      ],
+      "mean_alignment": 0.2839081259444356,
+      "pairwise_consistency": -0.2258615978062153,
+      "pairwise_range": [
+        -0.42767849564552307,
+        0.15992027521133423
+      ],
+      "mean_direction_magnitude": 0.2839081287384033
+    },
+    "verb_eat": {
+      "chain": [
+        "munch",
+        "eat",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "step_labels": [
+        "munch\u2192eat",
+        "eat\u2192consume",
+        "consume\u2192ingest",
+        "ingest\u2192take in",
+        "take in\u2192process",
+        "process\u2192act"
+      ],
+      "alignments": [
+        0.3080088496208191,
+        0.296303927898407,
+        0.22763033211231232,
+        0.10447803884744644,
+        -0.0823606476187706,
+        0.36176806688308716
+      ],
+      "mean_alignment": 0.20263809462388357,
+      "pairwise_consistency": -0.15072537139058112,
+      "pairwise_range": [
+        -0.5376760959625244,
+        0.06346534937620163
+      ],
+      "mean_direction_magnitude": 0.20263807475566864
+    },
+    "verb_devour": {
+      "chain": [
+        "devour",
+        "gorge",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "step_labels": [
+        "devour\u2192gorge",
+        "gorge\u2192consume",
+        "consume\u2192ingest",
+        "ingest\u2192take in",
+        "take in\u2192process",
+        "process\u2192act"
+      ],
+      "alignments": [
+        0.4482235312461853,
+        -0.2971194386482239,
+        0.3236757516860962,
+        0.27031493186950684,
+        0.006504884455353022,
+        0.42229774594306946
+      ],
+      "mean_alignment": 0.1956495677586645,
+      "pairwise_consistency": -0.15406549191102387,
+      "pairwise_range": [
+        -0.7726439237594604,
+        0.17193204164505005
+      ],
+      "mean_direction_magnitude": 0.19564957916736603
+    },
+    "verb_carry": {
+      "chain": [
+        "lug",
+        "carry",
+        "transport",
+        "move",
+        "displace",
+        "act"
+      ],
+      "step_labels": [
+        "lug\u2192carry",
+        "carry\u2192transport",
+        "transport\u2192move",
+        "move\u2192displace",
+        "displace\u2192act"
+      ],
+      "alignments": [
+        0.576246440410614,
+        -0.03126503527164459,
+        0.08827952295541763,
+        0.05960693210363388,
+        0.4087856411933899
+      ],
+      "mean_alignment": 0.22033070027828217,
+      "pairwise_consistency": -0.18931798543781042,
+      "pairwise_range": [
+        -0.5644976496696472,
+        0.11040761321783066
+      ],
+      "mean_direction_magnitude": 0.22033070027828217
+    },
+    "verb_throw": {
+      "chain": [
+        "hurl",
+        "throw",
+        "propel",
+        "move",
+        "displace",
+        "act"
+      ],
+      "step_labels": [
+        "hurl\u2192throw",
+        "throw\u2192propel",
+        "propel\u2192move",
+        "move\u2192displace",
+        "displace\u2192act"
+      ],
+      "alignments": [
+        0.6334739327430725,
+        0.06770458072423935,
+        0.13533011078834534,
+        0.010928608477115631,
+        0.3354218304157257
+      ],
+      "mean_alignment": 0.2365718126296997,
+      "pairwise_consistency": -0.1800422389060259,
+      "pairwise_range": [
+        -0.5644976496696472,
+        0.0975051075220108
+      ],
+      "mean_direction_magnitude": 0.2365717738866806
+    },
+    "verb_watch": {
+      "chain": [
+        "stare",
+        "watch",
+        "observe",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "step_labels": [
+        "stare\u2192watch",
+        "watch\u2192observe",
+        "observe\u2192perceive",
+        "perceive\u2192sense",
+        "sense\u2192experience",
+        "experience\u2192act"
+      ],
+      "alignments": [
+        0.42840147018432617,
+        0.04916930943727493,
+        0.07117235660552979,
+        0.2363405078649521,
+        -0.05502045154571533,
+        0.3531428277492523
+      ],
+      "mean_alignment": 0.18053433671593666,
+      "pairwise_consistency": -0.1608888218489786,
+      "pairwise_range": [
+        -0.5403904318809509,
+        0.08640230447053909
+      ],
+      "mean_direction_magnitude": 0.18053433299064636
+    },
+    "verb_listen": {
+      "chain": [
+        "eavesdrop",
+        "listen",
+        "hear",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "step_labels": [
+        "eavesdrop\u2192listen",
+        "listen\u2192hear",
+        "hear\u2192perceive",
+        "perceive\u2192sense",
+        "sense\u2192experience",
+        "experience\u2192act"
+      ],
+      "alignments": [
+        0.33347126841545105,
+        0.41926637291908264,
+        0.13647733628749847,
+        0.18389250338077545,
+        -0.10722474008798599,
+        0.34917864203453064
+      ],
+      "mean_alignment": 0.2191768971582254,
+      "pairwise_consistency": -0.1423537902534008,
+      "pairwise_range": [
+        -0.5403904318809509,
+        0.08413086831569672
+      ],
+      "mean_direction_magnitude": 0.21917690336704254
+    },
+    "verb_cut": {
+      "chain": [
+        "slice",
+        "cut",
+        "sever",
+        "divide",
+        "separate",
+        "alter",
+        "act"
+      ],
+      "step_labels": [
+        "slice\u2192cut",
+        "cut\u2192sever",
+        "sever\u2192divide",
+        "divide\u2192separate",
+        "separate\u2192alter",
+        "alter\u2192act"
+      ],
+      "alignments": [
+        0.5832601189613342,
+        0.07811369001865387,
+        -0.07540681958198547,
+        0.24755331873893738,
+        -0.05425747111439705,
+        0.43682190775871277
+      ],
+      "mean_alignment": 0.20268079079687595,
+      "pairwise_consistency": -0.15070461047192416,
+      "pairwise_range": [
+        -0.6238222122192383,
+        0.10684901475906372
+      ],
+      "mean_direction_magnitude": 0.2026807814836502
+    },
+    "verb_build": {
+      "chain": [
+        "assemble",
+        "build",
+        "construct",
+        "create",
+        "produce",
+        "act"
+      ],
+      "step_labels": [
+        "assemble\u2192build",
+        "build\u2192construct",
+        "construct\u2192create",
+        "create\u2192produce",
+        "produce\u2192act"
+      ],
+      "alignments": [
+        0.46177780628204346,
+        0.10805442929267883,
+        0.11304520070552826,
+        0.04758055508136749,
+        0.36949622631073
+      ],
+      "mean_alignment": 0.2199908435344696,
+      "pairwise_consistency": -0.18950503505766392,
+      "pairwise_range": [
+        -0.5681516528129578,
+        0.08173507452011108
+      ],
+      "mean_direction_magnitude": 0.2199908345937729
+    },
+    "verb_run": {
+      "chain": [
+        "sprint",
+        "run",
+        "move",
+        "travel",
+        "act"
+      ],
+      "step_labels": [
+        "sprint\u2192run",
+        "run\u2192move",
+        "move\u2192travel",
+        "travel\u2192act"
+      ],
+      "alignments": [
+        0.4599594473838806,
+        0.27652016282081604,
+        -0.016409214586019516,
+        0.3800712823867798
+      ],
+      "mean_alignment": 0.27503541950136423,
+      "pairwise_consistency": -0.23247404249074557,
+      "pairwise_range": [
+        -0.5653026103973389,
+        -0.006554956082254648
+      ],
+      "mean_direction_magnitude": 0.27503541111946106
+    },
+    "verb_speak": {
+      "chain": [
+        "whisper",
+        "speak",
+        "communicate",
+        "express",
+        "act"
+      ],
+      "step_labels": [
+        "whisper\u2192speak",
+        "speak\u2192communicate",
+        "communicate\u2192express",
+        "express\u2192act"
+      ],
+      "alignments": [
+        0.4957045912742615,
+        0.25629493594169617,
+        0.057300273329019547,
+        0.4350448548793793
+      ],
+      "mean_alignment": 0.3110861638560891,
+      "pairwise_consistency": -0.2043005588153998,
+      "pairwise_range": [
+        -0.44803881645202637,
+        0.10391223430633545
+      ],
+      "mean_direction_magnitude": 0.31108614802360535
+    },
+    "adj_red": {
+      "chain": [
+        "crimson",
+        "red",
+        "warm-colored",
+        "colored",
+        "visible",
+        "perceptible"
+      ],
+      "step_labels": [
+        "crimson\u2192red",
+        "red\u2192warm-colored",
+        "warm-colored\u2192colored",
+        "colored\u2192visible",
+        "visible\u2192perceptible"
+      ],
+      "alignments": [
+        0.460702121257782,
+        0.1518392264842987,
+        -0.026558266952633858,
+        0.22461862862110138,
+        0.5612116456031799
+      ],
+      "mean_alignment": 0.27436267100274564,
+      "pairwise_consistency": -0.1559064346831292,
+      "pairwise_range": [
+        -0.6496414542198181,
+        0.11626601964235306
+      ],
+      "mean_direction_magnitude": 0.2743626534938812
+    },
+    "adj_huge": {
+      "chain": [
+        "enormous",
+        "huge",
+        "large",
+        "big",
+        "sized"
+      ],
+      "step_labels": [
+        "enormous\u2192huge",
+        "huge\u2192large",
+        "large\u2192big",
+        "big\u2192sized"
+      ],
+      "alignments": [
+        0.7025595307350159,
+        0.24926821887493134,
+        0.1238662376999855,
+        0.5220617651939392
+      ],
+      "mean_alignment": 0.399438938125968,
+      "pairwise_consistency": -0.12059805107613404,
+      "pairwise_range": [
+        -0.7310314774513245,
+        0.3608936667442322
+      ],
+      "mean_direction_magnitude": 0.3994389474391937
+    },
+    "adj_cold": {
+      "chain": [
+        "freezing",
+        "cold",
+        "cool",
+        "temperature",
+        "condition"
+      ],
+      "step_labels": [
+        "freezing\u2192cold",
+        "cold\u2192cool",
+        "cool\u2192temperature",
+        "temperature\u2192condition"
+      ],
+      "alignments": [
+        0.6162368059158325,
+        0.17376458644866943,
+        -0.01571485958993435,
+        0.4625646471977234
+      ],
+      "mean_alignment": 0.30921279499307275,
+      "pairwise_consistency": -0.20584995796283087,
+      "pairwise_range": [
+        -0.659774899482727,
+        0.07887003570795059
+      ],
+      "mean_direction_magnitude": 0.3092127740383148
+    },
+    "adj_fast": {
+      "chain": [
+        "lightning-fast",
+        "fast",
+        "quick",
+        "speedy",
+        "moving"
+      ],
+      "step_labels": [
+        "lightning-fast\u2192fast",
+        "fast\u2192quick",
+        "quick\u2192speedy",
+        "speedy\u2192moving"
+      ],
+      "alignments": [
+        0.4875028133392334,
+        0.28078362345695496,
+        0.03686537221074104,
+        0.5086228847503662
+      ],
+      "mean_alignment": 0.3284436734393239,
+      "pairwise_consistency": -0.18949969609578451,
+      "pairwise_range": [
+        -0.5368871092796326,
+        0.0897478237748146
+      ],
+      "mean_direction_magnitude": 0.3284436762332916
+    }
+  },
+  "cross_hierarchy": {
+    "cross_hierarchy_sim": {
+      "adj_cold": {
+        "adj_cold": 0.9999999997999995,
+        "adj_fast": 0.07834353525011689,
+        "adj_huge": 0.09269758995149595,
+        "adj_red": 0.0005594835763308419,
+        "noun_bird": 0.11263695071887095,
+        "noun_cat": 0.08903288387977264,
+        "noun_child": 0.12463763761156242,
+        "noun_dog": 0.1458542450028305,
+        "noun_fish": 0.0898386366529322,
+        "noun_horse": 0.10549361084139713,
+        "noun_rock": 0.11296339114481066,
+        "noun_star": 0.021757694595225772,
+        "noun_tree": 0.0772014323446312,
+        "noun_truck": 0.11895815402560092,
+        "verb_build": 0.23065408900749015,
+        "verb_carry": 0.04531762389138333,
+        "verb_cut": 0.1610071401730981,
+        "verb_devour": 0.12820156936143234,
+        "verb_eat": 0.1655448474259439,
+        "verb_listen": 0.20030358787814279,
+        "verb_run": 0.030536232650316547,
+        "verb_speak": 0.07572608285673632,
+        "verb_throw": 0.08552643620551119,
+        "verb_watch": 0.165312450777697
+      },
+      "adj_fast": {
+        "adj_cold": 0.07834353525011689,
+        "adj_fast": 0.9999999998000003,
+        "adj_huge": 0.11973007610938188,
+        "adj_red": 0.03579235739170972,
+        "noun_bird": 0.017796373488341163,
+        "noun_cat": 0.0560019350338299,
+        "noun_child": 0.005778055388671618,
+        "noun_dog": 0.04407015429029634,
+        "noun_fish": 0.05456407787568468,
+        "noun_horse": 0.0601679380522846,
+        "noun_rock": 0.050265829296294286,
+        "noun_star": 0.09665845357192324,
+        "noun_tree": 0.0710037432932922,
+        "noun_truck": -0.05776616642767346,
+        "verb_build": -0.10276495374724262,
+        "verb_carry": -0.02770542694277786,
+        "verb_cut": 0.029382502149095706,
+        "verb_devour": 0.09413411784358908,
+        "verb_eat": 0.0414084942987995,
+        "verb_listen": 0.10903016939326846,
+        "verb_run": 0.13120800723428602,
+        "verb_speak": 0.016263133589816903,
+        "verb_throw": 0.08691901994843575,
+        "verb_watch": 0.07454740972977238
+      },
+      "adj_huge": {
+        "adj_cold": 0.09269758995149595,
+        "adj_fast": 0.11973007610938188,
+        "adj_huge": 0.9999999998000004,
+        "adj_red": 0.015869709520222305,
+        "noun_bird": -0.06889212308197637,
+        "noun_cat": -0.09644989696718731,
+        "noun_child": -0.10309148654485303,
+        "noun_dog": -0.07104507586385525,
+        "noun_fish": -0.10140761380854946,
+        "noun_horse": -0.03710923028080435,
+        "noun_rock": -0.11216206234846003,
+        "noun_star": -0.1078728194538254,
+        "noun_tree": -0.007083473887172271,
+        "noun_truck": -0.15084602146689616,
+        "verb_build": 0.015537335741342199,
+        "verb_carry": 0.0034174720049200257,
+        "verb_cut": 0.022642321664033342,
+        "verb_devour": 0.10291202063385302,
+        "verb_eat": 0.06061600440393377,
+        "verb_listen": 0.05559149626361922,
+        "verb_run": -0.07880932964934727,
+        "verb_speak": -0.06356578484550503,
+        "verb_throw": 0.09695307222514685,
+        "verb_watch": 0.06339330033757427
+      },
+      "adj_red": {
+        "adj_cold": 0.0005594835763308419,
+        "adj_fast": 0.03579235739170972,
+        "adj_huge": 0.015869709520222305,
+        "adj_red": 0.9999999998000002,
+        "noun_bird": 0.03908053214189154,
+        "noun_cat": 0.06132935561246798,
+        "noun_child": 0.02330737117148461,
+        "noun_dog": 0.08046058693201771,
+        "noun_fish": 0.036135133483997384,
+        "noun_horse": 0.03898396773461304,
+        "noun_rock": 0.06468014452464221,
+        "noun_star": 0.1743897188317016,
+        "noun_tree": 0.11136281025031988,
+        "noun_truck": 0.03130191031003586,
+        "verb_build": 0.013953480358627628,
+        "verb_carry": 0.02430938929616446,
+        "verb_cut": 0.02908049458989921,
+        "verb_devour": 0.061153704028654284,
+        "verb_eat": 0.05721323361133378,
+        "verb_listen": -0.08835196214155284,
+        "verb_run": 0.005943023447813264,
+        "verb_speak": -0.11068524873490258,
+        "verb_throw": 0.010360709938910286,
+        "verb_watch": 0.0073795436433794805
+      },
+      "noun_bird": {
+        "adj_cold": 0.11263695071887095,
+        "adj_fast": 0.017796373488341163,
+        "adj_huge": -0.06889212308197637,
+        "adj_red": 0.03908053214189154,
+        "noun_bird": 0.9999999998000006,
+        "noun_cat": 0.5053919273984014,
+        "noun_child": 0.4295769970336706,
+        "noun_dog": 0.4835515019064717,
+        "noun_fish": 0.5672355961954857,
+        "noun_horse": 0.5188711943621257,
+        "noun_rock": 0.5021385837810709,
+        "noun_star": 0.39071809825572024,
+        "noun_tree": 0.5141762900240529,
+        "noun_truck": 0.4691042316584336,
+        "verb_build": 0.12619171340353375,
+        "verb_carry": 0.00031682011683639103,
+        "verb_cut": 0.026797049000081813,
+        "verb_devour": 0.0777295186582369,
+        "verb_eat": 0.06144725783461197,
+        "verb_listen": 0.06971847153375187,
+        "verb_run": 0.059253548951184544,
+        "verb_speak": 0.057642835706679864,
+        "verb_throw": 0.0528900708919761,
+        "verb_watch": 0.1035404116464137
+      },
+      "noun_cat": {
+        "adj_cold": 0.08903288387977264,
+        "adj_fast": 0.0560019350338299,
+        "adj_huge": -0.09644989696718731,
+        "adj_red": 0.06132935561246798,
+        "noun_bird": 0.5053919273984014,
+        "noun_cat": 0.9999999998,
+        "noun_child": 0.5818391885232022,
+        "noun_dog": 0.6770431850074503,
+        "noun_fish": 0.4581388089439211,
+        "noun_horse": 0.4983323475940126,
+        "noun_rock": 0.35635384874633025,
+        "noun_star": 0.38191588187988257,
+        "noun_tree": 0.43128455652465675,
+        "noun_truck": 0.49232520573065147,
+        "verb_build": 0.08598557524541621,
+        "verb_carry": -0.027986255994441954,
+        "verb_cut": 0.07649649429065153,
+        "verb_devour": 0.0750961928723471,
+        "verb_eat": 0.11669051913917858,
+        "verb_listen": 0.04757489391358287,
+        "verb_run": 0.07715481512148416,
+        "verb_speak": 0.008829951896931405,
+        "verb_throw": 0.031043837609563273,
+        "verb_watch": 0.08712146479064783
+      },
+      "noun_child": {
+        "adj_cold": 0.12463763761156242,
+        "adj_fast": 0.005778055388671618,
+        "adj_huge": -0.10309148654485303,
+        "adj_red": 0.02330737117148461,
+        "noun_bird": 0.4295769970336706,
+        "noun_cat": 0.5818391885232022,
+        "noun_child": 0.9999999997999998,
+        "noun_dog": 0.6112582196881606,
+        "noun_fish": 0.4385908577318757,
+        "noun_horse": 0.5403337043444856,
+        "noun_rock": 0.3671715226761654,
+        "noun_star": 0.34213101402228896,
+        "noun_tree": 0.4249237623284161,
+        "noun_truck": 0.49284913695993043,
+        "verb_build": 0.1271942569137919,
+        "verb_carry": 0.010980117752337107,
+        "verb_cut": 0.04305776631709121,
+        "verb_devour": -0.02784062375605631,
+        "verb_eat": 0.0375331432225144,
+        "verb_listen": 0.012925278965779007,
+        "verb_run": 0.028217296709849127,
+        "verb_speak": -0.03588071049891622,
+        "verb_throw": 0.016792473285981796,
+        "verb_watch": 0.04665371703854353
+      },
+      "noun_dog": {
+        "adj_cold": 0.1458542450028305,
+        "adj_fast": 0.04407015429029634,
+        "adj_huge": -0.07104507586385525,
+        "adj_red": 0.08046058693201771,
+        "noun_bird": 0.4835515019064717,
+        "noun_cat": 0.6770431850074503,
+        "noun_child": 0.6112582196881606,
+        "noun_dog": 0.9999999998000003,
+        "noun_fish": 0.4592398056127928,
+        "noun_horse": 0.6961649158835338,
+        "noun_rock": 0.365646675961768,
+        "noun_star": 0.3945016418643386,
+        "noun_tree": 0.4621023611093676,
+        "noun_truck": 0.49511314612846685,
+        "verb_build": 0.08690779330455617,
+        "verb_carry": 0.017667189645150617,
+        "verb_cut": 0.04589226788179031,
+        "verb_devour": 0.06919438954515732,
+        "verb_eat": 0.07771368061685052,
+        "verb_listen": 0.04989426848100463,
+        "verb_run": 0.063186023321783,
+        "verb_speak": 0.014731539598963436,
+        "verb_throw": 0.0385902893395772,
+        "verb_watch": 0.09517704603006652
+      },
+      "noun_fish": {
+        "adj_cold": 0.0898386366529322,
+        "adj_fast": 0.05456407787568468,
+        "adj_huge": -0.10140761380854946,
+        "adj_red": 0.036135133483997384,
+        "noun_bird": 0.5672355961954857,
+        "noun_cat": 0.4581388089439211,
+        "noun_child": 0.4385908577318757,
+        "noun_dog": 0.4592398056127928,
+        "noun_fish": 0.9999999997999999,
+        "noun_horse": 0.49728748035354203,
+        "noun_rock": 0.4043758242261341,
+        "noun_star": 0.38382828510655814,
+        "noun_tree": 0.44444315455425654,
+        "noun_truck": 0.5017898932096422,
+        "verb_build": 0.04811573863508902,
+        "verb_carry": 0.013500803611831634,
+        "verb_cut": 0.1093773027954374,
+        "verb_devour": 0.09048475833403234,
+        "verb_eat": 0.12940733698006623,
+        "verb_listen": 0.07204040640382471,
+        "verb_run": 0.09289313024965888,
+        "verb_speak": 0.018193145362908985,
+        "verb_throw": 0.07547622874740476,
+        "verb_watch": 0.06456786036834716
+      },
+      "noun_horse": {
+        "adj_cold": 0.10549361084139713,
+        "adj_fast": 0.0601679380522846,
+        "adj_huge": -0.03710923028080435,
+        "adj_red": 0.03898396773461304,
+        "noun_bird": 0.5188711943621257,
+        "noun_cat": 0.4983323475940126,
+        "noun_child": 0.5403337043444856,
+        "noun_dog": 0.6961649158835338,
+        "noun_fish": 0.49728748035354203,
+        "noun_horse": 0.9999999998000001,
+        "noun_rock": 0.4034741746130228,
+        "noun_star": 0.4021245265691644,
+        "noun_tree": 0.5099862339528232,
+        "noun_truck": 0.4558097869668729,
+        "verb_build": 0.1411196245806202,
+        "verb_carry": 0.0583449082535625,
+        "verb_cut": 0.11059007487204073,
+        "verb_devour": 0.07712392528513021,
+        "verb_eat": 0.12703096051584767,
+        "verb_listen": 0.06453932854403566,
+        "verb_run": 0.09739126239288601,
+        "verb_speak": 0.03560049326913286,
+        "verb_throw": 0.12985393968839942,
+        "verb_watch": 0.11882878992766074
+      },
+      "noun_rock": {
+        "adj_cold": 0.11296339114481066,
+        "adj_fast": 0.050265829296294286,
+        "adj_huge": -0.11216206234846003,
+        "adj_red": 0.06468014452464221,
+        "noun_bird": 0.5021385837810709,
+        "noun_cat": 0.35635384874633025,
+        "noun_child": 0.3671715226761654,
+        "noun_dog": 0.365646675961768,
+        "noun_fish": 0.4043758242261341,
+        "noun_horse": 0.4034741746130228,
+        "noun_rock": 0.9999999998000003,
+        "noun_star": 0.42526765955184054,
+        "noun_tree": 0.34596633482828754,
+        "noun_truck": 0.4557918484846827,
+        "verb_build": 0.08376026005374218,
+        "verb_carry": 0.05973437476083142,
+        "verb_cut": 0.06364570704486186,
+        "verb_devour": 0.059980592964150425,
+        "verb_eat": 0.10001065594866768,
+        "verb_listen": 0.08788557738565042,
+        "verb_run": 0.08307948162329998,
+        "verb_speak": 0.021299499450559683,
+        "verb_throw": 0.04779922896497198,
+        "verb_watch": 0.12810974838804248
+      },
+      "noun_star": {
+        "adj_cold": 0.021757694595225772,
+        "adj_fast": 0.09665845357192324,
+        "adj_huge": -0.1078728194538254,
+        "adj_red": 0.1743897188317016,
+        "noun_bird": 0.39071809825572024,
+        "noun_cat": 0.38191588187988257,
+        "noun_child": 0.34213101402228896,
+        "noun_dog": 0.3945016418643386,
+        "noun_fish": 0.38382828510655814,
+        "noun_horse": 0.4021245265691644,
+        "noun_rock": 0.42526765955184054,
+        "noun_star": 0.9999999998,
+        "noun_tree": 0.41256302884601415,
+        "noun_truck": 0.43213020962415927,
+        "verb_build": 0.09075485133695084,
+        "verb_carry": -0.019562371232519214,
+        "verb_cut": 0.02056198399117179,
+        "verb_devour": 0.09419803668073244,
+        "verb_eat": 0.10839188683556915,
+        "verb_listen": -0.01519951791129014,
+        "verb_run": 0.09417653872253909,
+        "verb_speak": 0.012281630775250931,
+        "verb_throw": -0.010083956355348759,
+        "verb_watch": 0.07958631018224016
+      },
+      "noun_tree": {
+        "adj_cold": 0.0772014323446312,
+        "adj_fast": 0.0710037432932922,
+        "adj_huge": -0.007083473887172271,
+        "adj_red": 0.11136281025031988,
+        "noun_bird": 0.5141762900240529,
+        "noun_cat": 0.43128455652465675,
+        "noun_child": 0.4249237623284161,
+        "noun_dog": 0.4621023611093676,
+        "noun_fish": 0.44444315455425654,
+        "noun_horse": 0.5099862339528232,
+        "noun_rock": 0.34596633482828754,
+        "noun_star": 0.41256302884601415,
+        "noun_tree": 0.9999999998,
+        "noun_truck": 0.507024539545273,
+        "verb_build": 0.1528477276408723,
+        "verb_carry": 0.030280109298301192,
+        "verb_cut": 0.056636312400863045,
+        "verb_devour": 0.04438240356312931,
+        "verb_eat": 0.1555212992877693,
+        "verb_listen": 0.03033754967273165,
+        "verb_run": -0.0177713869960709,
+        "verb_speak": -0.014013921773421024,
+        "verb_throw": 0.026223119984792126,
+        "verb_watch": 0.06261933105025616
+      },
+      "noun_truck": {
+        "adj_cold": 0.11895815402560092,
+        "adj_fast": -0.05776616642767346,
+        "adj_huge": -0.15084602146689616,
+        "adj_red": 0.03130191031003586,
+        "noun_bird": 0.4691042316584336,
+        "noun_cat": 0.49232520573065147,
+        "noun_child": 0.49284913695993043,
+        "noun_dog": 0.49511314612846685,
+        "noun_fish": 0.5017898932096422,
+        "noun_horse": 0.4558097869668729,
+        "noun_rock": 0.4557918484846827,
+        "noun_star": 0.43213020962415927,
+        "noun_tree": 0.507024539545273,
+        "noun_truck": 0.9999999998000002,
+        "verb_build": 0.18182632062183424,
+        "verb_carry": 0.020368522465154235,
+        "verb_cut": 0.05648654096323717,
+        "verb_devour": 0.07862251039869643,
+        "verb_eat": 0.09516993731754161,
+        "verb_listen": 0.08364984780833612,
+        "verb_run": 0.09207228758644935,
+        "verb_speak": 0.0017335601591412222,
+        "verb_throw": 0.019057623425069285,
+        "verb_watch": 0.047466456845310756
+      },
+      "verb_build": {
+        "adj_cold": 0.23065408900749015,
+        "adj_fast": -0.10276495374724262,
+        "adj_huge": 0.015537335741342199,
+        "adj_red": 0.013953480358627628,
+        "noun_bird": 0.12619171340353375,
+        "noun_cat": 0.08598557524541621,
+        "noun_child": 0.1271942569137919,
+        "noun_dog": 0.08690779330455617,
+        "noun_fish": 0.04811573863508902,
+        "noun_horse": 0.1411196245806202,
+        "noun_rock": 0.08376026005374218,
+        "noun_star": 0.09075485133695084,
+        "noun_tree": 0.1528477276408723,
+        "noun_truck": 0.18182632062183424,
+        "verb_build": 0.9999999998,
+        "verb_carry": 0.45247947640653335,
+        "verb_cut": 0.37349195014809833,
+        "verb_devour": 0.33527615239976905,
+        "verb_eat": 0.3530456029795469,
+        "verb_listen": 0.3322787669755267,
+        "verb_run": 0.31921214799055064,
+        "verb_speak": 0.30354389009185906,
+        "verb_throw": 0.3570903737058605,
+        "verb_watch": 0.42675493129185016
+      },
+      "verb_carry": {
+        "adj_cold": 0.04531762389138333,
+        "adj_fast": -0.02770542694277786,
+        "adj_huge": 0.0034174720049200257,
+        "adj_red": 0.02430938929616446,
+        "noun_bird": 0.00031682011683639103,
+        "noun_cat": -0.027986255994441954,
+        "noun_child": 0.010980117752337107,
+        "noun_dog": 0.017667189645150617,
+        "noun_fish": 0.013500803611831634,
+        "noun_horse": 0.0583449082535625,
+        "noun_rock": 0.05973437476083142,
+        "noun_star": -0.019562371232519214,
+        "noun_tree": 0.030280109298301192,
+        "noun_truck": 0.020368522465154235,
+        "verb_build": 0.45247947640653335,
+        "verb_carry": 0.9999999997999999,
+        "verb_cut": 0.2997014426005687,
+        "verb_devour": 0.32994050592772084,
+        "verb_eat": 0.3929874211207425,
+        "verb_listen": 0.3080094869933482,
+        "verb_run": 0.36023421289858715,
+        "verb_speak": 0.4043851192432446,
+        "verb_throw": 0.47335568304983605,
+        "verb_watch": 0.40316844413211406
+      },
+      "verb_cut": {
+        "adj_cold": 0.1610071401730981,
+        "adj_fast": 0.029382502149095706,
+        "adj_huge": 0.022642321664033342,
+        "adj_red": 0.02908049458989921,
+        "noun_bird": 0.026797049000081813,
+        "noun_cat": 0.07649649429065153,
+        "noun_child": 0.04305776631709121,
+        "noun_dog": 0.04589226788179031,
+        "noun_fish": 0.1093773027954374,
+        "noun_horse": 0.11059007487204073,
+        "noun_rock": 0.06364570704486186,
+        "noun_star": 0.02056198399117179,
+        "noun_tree": 0.056636312400863045,
+        "noun_truck": 0.05648654096323717,
+        "verb_build": 0.37349195014809833,
+        "verb_carry": 0.2997014426005687,
+        "verb_cut": 0.9999999998000003,
+        "verb_devour": 0.47599705494525757,
+        "verb_eat": 0.4684088239320042,
+        "verb_listen": 0.31329238106817764,
+        "verb_run": 0.33628084697707256,
+        "verb_speak": 0.3362199737168311,
+        "verb_throw": 0.37868883533438297,
+        "verb_watch": 0.3152495280116083
+      },
+      "verb_devour": {
+        "adj_cold": 0.12820156936143234,
+        "adj_fast": 0.09413411784358908,
+        "adj_huge": 0.10291202063385302,
+        "adj_red": 0.061153704028654284,
+        "noun_bird": 0.0777295186582369,
+        "noun_cat": 0.0750961928723471,
+        "noun_child": -0.02784062375605631,
+        "noun_dog": 0.06919438954515732,
+        "noun_fish": 0.09048475833403234,
+        "noun_horse": 0.07712392528513021,
+        "noun_rock": 0.059980592964150425,
+        "noun_star": 0.09419803668073244,
+        "noun_tree": 0.04438240356312931,
+        "noun_truck": 0.07862251039869643,
+        "verb_build": 0.33527615239976905,
+        "verb_carry": 0.32994050592772084,
+        "verb_cut": 0.47599705494525757,
+        "verb_devour": 0.9999999997999997,
+        "verb_eat": 0.5568574115493453,
+        "verb_listen": 0.35019483526319245,
+        "verb_run": 0.3808899373760626,
+        "verb_speak": 0.47421441223696104,
+        "verb_throw": 0.46013502226869935,
+        "verb_watch": 0.4129960756152764
+      },
+      "verb_eat": {
+        "adj_cold": 0.1655448474259439,
+        "adj_fast": 0.0414084942987995,
+        "adj_huge": 0.06061600440393377,
+        "adj_red": 0.05721323361133378,
+        "noun_bird": 0.06144725783461197,
+        "noun_cat": 0.11669051913917858,
+        "noun_child": 0.0375331432225144,
+        "noun_dog": 0.07771368061685052,
+        "noun_fish": 0.12940733698006623,
+        "noun_horse": 0.12703096051584767,
+        "noun_rock": 0.10001065594866768,
+        "noun_star": 0.10839188683556915,
+        "noun_tree": 0.1555212992877693,
+        "noun_truck": 0.09516993731754161,
+        "verb_build": 0.3530456029795469,
+        "verb_carry": 0.3929874211207425,
+        "verb_cut": 0.4684088239320042,
+        "verb_devour": 0.5568574115493453,
+        "verb_eat": 0.9999999998,
+        "verb_listen": 0.291822393539548,
+        "verb_run": 0.3239267835180053,
+        "verb_speak": 0.3067219563226201,
+        "verb_throw": 0.35487492995686204,
+        "verb_watch": 0.3607535941023481
+      },
+      "verb_listen": {
+        "adj_cold": 0.20030358787814279,
+        "adj_fast": 0.10903016939326846,
+        "adj_huge": 0.05559149626361922,
+        "adj_red": -0.08835196214155284,
+        "noun_bird": 0.06971847153375187,
+        "noun_cat": 0.04757489391358287,
+        "noun_child": 0.012925278965779007,
+        "noun_dog": 0.04989426848100463,
+        "noun_fish": 0.07204040640382471,
+        "noun_horse": 0.06453932854403566,
+        "noun_rock": 0.08788557738565042,
+        "noun_star": -0.01519951791129014,
+        "noun_tree": 0.03033754967273165,
+        "noun_truck": 0.08364984780833612,
+        "verb_build": 0.3322787669755267,
+        "verb_carry": 0.3080094869933482,
+        "verb_cut": 0.31329238106817764,
+        "verb_devour": 0.35019483526319245,
+        "verb_eat": 0.291822393539548,
+        "verb_listen": 0.9999999997999998,
+        "verb_run": 0.3666749944405805,
+        "verb_speak": 0.5409106120973535,
+        "verb_throw": 0.30579434672844,
+        "verb_watch": 0.385547478252979
+      },
+      "verb_run": {
+        "adj_cold": 0.030536232650316547,
+        "adj_fast": 0.13120800723428602,
+        "adj_huge": -0.07880932964934727,
+        "adj_red": 0.005943023447813264,
+        "noun_bird": 0.059253548951184544,
+        "noun_cat": 0.07715481512148416,
+        "noun_child": 0.028217296709849127,
+        "noun_dog": 0.063186023321783,
+        "noun_fish": 0.09289313024965888,
+        "noun_horse": 0.09739126239288601,
+        "noun_rock": 0.08307948162329998,
+        "noun_star": 0.09417653872253909,
+        "noun_tree": -0.0177713869960709,
+        "noun_truck": 0.09207228758644935,
+        "verb_build": 0.31921214799055064,
+        "verb_carry": 0.36023421289858715,
+        "verb_cut": 0.33628084697707256,
+        "verb_devour": 0.3808899373760626,
+        "verb_eat": 0.3239267835180053,
+        "verb_listen": 0.3666749944405805,
+        "verb_run": 0.9999999998000002,
+        "verb_speak": 0.5028689234170632,
+        "verb_throw": 0.39272253619807806,
+        "verb_watch": 0.30921029787246473
+      },
+      "verb_speak": {
+        "adj_cold": 0.07572608285673632,
+        "adj_fast": 0.016263133589816903,
+        "adj_huge": -0.06356578484550503,
+        "adj_red": -0.11068524873490258,
+        "noun_bird": 0.057642835706679864,
+        "noun_cat": 0.008829951896931405,
+        "noun_child": -0.03588071049891622,
+        "noun_dog": 0.014731539598963436,
+        "noun_fish": 0.018193145362908985,
+        "noun_horse": 0.03560049326913286,
+        "noun_rock": 0.021299499450559683,
+        "noun_star": 0.012281630775250931,
+        "noun_tree": -0.014013921773421024,
+        "noun_truck": 0.0017335601591412222,
+        "verb_build": 0.30354389009185906,
+        "verb_carry": 0.4043851192432446,
+        "verb_cut": 0.3362199737168311,
+        "verb_devour": 0.47421441223696104,
+        "verb_eat": 0.3067219563226201,
+        "verb_listen": 0.5409106120973535,
+        "verb_run": 0.5028689234170632,
+        "verb_speak": 0.9999999997999998,
+        "verb_throw": 0.4473007685319371,
+        "verb_watch": 0.389216641783512
+      },
+      "verb_throw": {
+        "adj_cold": 0.08552643620551119,
+        "adj_fast": 0.08691901994843575,
+        "adj_huge": 0.09695307222514685,
+        "adj_red": 0.010360709938910286,
+        "noun_bird": 0.0528900708919761,
+        "noun_cat": 0.031043837609563273,
+        "noun_child": 0.016792473285981796,
+        "noun_dog": 0.0385902893395772,
+        "noun_fish": 0.07547622874740476,
+        "noun_horse": 0.12985393968839942,
+        "noun_rock": 0.04779922896497198,
+        "noun_star": -0.010083956355348759,
+        "noun_tree": 0.026223119984792126,
+        "noun_truck": 0.019057623425069285,
+        "verb_build": 0.3570903737058605,
+        "verb_carry": 0.47335568304983605,
+        "verb_cut": 0.37868883533438297,
+        "verb_devour": 0.46013502226869935,
+        "verb_eat": 0.35487492995686204,
+        "verb_listen": 0.30579434672844,
+        "verb_run": 0.39272253619807806,
+        "verb_speak": 0.4473007685319371,
+        "verb_throw": 0.9999999998,
+        "verb_watch": 0.39580706322988757
+      },
+      "verb_watch": {
+        "adj_cold": 0.165312450777697,
+        "adj_fast": 0.07454740972977238,
+        "adj_huge": 0.06339330033757427,
+        "adj_red": 0.0073795436433794805,
+        "noun_bird": 0.1035404116464137,
+        "noun_cat": 0.08712146479064783,
+        "noun_child": 0.04665371703854353,
+        "noun_dog": 0.09517704603006652,
+        "noun_fish": 0.06456786036834716,
+        "noun_horse": 0.11882878992766074,
+        "noun_rock": 0.12810974838804248,
+        "noun_star": 0.07958631018224016,
+        "noun_tree": 0.06261933105025616,
+        "noun_truck": 0.047466456845310756,
+        "verb_build": 0.42675493129185016,
+        "verb_carry": 0.40316844413211406,
+        "verb_cut": 0.3152495280116083,
+        "verb_devour": 0.4129960756152764,
+        "verb_eat": 0.3607535941023481,
+        "verb_listen": 0.385547478252979,
+        "verb_run": 0.30921029787246473,
+        "verb_speak": 0.389216641783512,
+        "verb_throw": 0.39580706322988757,
+        "verb_watch": 0.9999999998000003
+      }
+    },
+    "noun_within": [
+      0.5053919273984014,
+      0.4295769970336706,
+      0.4835515019064717,
+      0.5672355961954857,
+      0.5188711943621257,
+      0.5021385837810709,
+      0.39071809825572024,
+      0.5141762900240529,
+      0.4691042316584336,
+      0.5818391885232022,
+      0.6770431850074503,
+      0.4581388089439211,
+      0.4983323475940126,
+      0.35635384874633025,
+      0.38191588187988257,
+      0.43128455652465675,
+      0.49232520573065147,
+      0.6112582196881606,
+      0.4385908577318757,
+      0.5403337043444856,
+      0.3671715226761654,
+      0.34213101402228896,
+      0.4249237623284161,
+      0.49284913695993043,
+      0.4592398056127928,
+      0.6961649158835338,
+      0.365646675961768,
+      0.3945016418643386,
+      0.4621023611093676,
+      0.49511314612846685,
+      0.49728748035354203,
+      0.4043758242261341,
+      0.38382828510655814,
+      0.44444315455425654,
+      0.5017898932096422,
+      0.4034741746130228,
+      0.4021245265691644,
+      0.5099862339528232,
+      0.4558097869668729,
+      0.42526765955184054,
+      0.34596633482828754,
+      0.4557918484846827,
+      0.41256302884601415,
+      0.43213020962415927,
+      0.507024539545273
+    ],
+    "verb_within": [
+      0.45247947640653335,
+      0.37349195014809833,
+      0.33527615239976905,
+      0.3530456029795469,
+      0.3322787669755267,
+      0.31921214799055064,
+      0.30354389009185906,
+      0.3570903737058605,
+      0.42675493129185016,
+      0.2997014426005687,
+      0.32994050592772084,
+      0.3929874211207425,
+      0.3080094869933482,
+      0.36023421289858715,
+      0.4043851192432446,
+      0.47335568304983605,
+      0.40316844413211406,
+      0.47599705494525757,
+      0.4684088239320042,
+      0.31329238106817764,
+      0.33628084697707256,
+      0.3362199737168311,
+      0.37868883533438297,
+      0.3152495280116083,
+      0.5568574115493453,
+      0.35019483526319245,
+      0.3808899373760626,
+      0.47421441223696104,
+      0.46013502226869935,
+      0.4129960756152764,
+      0.291822393539548,
+      0.3239267835180053,
+      0.3067219563226201,
+      0.35487492995686204,
+      0.3607535941023481,
+      0.3666749944405805,
+      0.5409106120973535,
+      0.30579434672844,
+      0.385547478252979,
+      0.5028689234170632,
+      0.39272253619807806,
+      0.30921029787246473,
+      0.4473007685319371,
+      0.389216641783512,
+      0.39580706322988757
+    ],
+    "adj_within": [
+      0.07834353525011689,
+      0.09269758995149595,
+      0.0005594835763308419,
+      0.11973007610938188,
+      0.03579235739170972,
+      0.015869709520222305
+    ],
+    "global_up_magnitude": 0.4555351183215467,
+    "global_alignments": {
+      "adj_cold": 0.316304311922489,
+      "adj_fast": 0.19069411726547345,
+      "adj_huge": 0.059547684956872224,
+      "adj_red": 0.15765427494897163,
+      "noun_bird": 0.5594989253955329,
+      "noun_cat": 0.5552578360013536,
+      "noun_child": 0.5066329737238567,
+      "noun_dog": 0.5856588168365564,
+      "noun_fish": 0.5440594635000162,
+      "noun_horse": 0.6082904528123203,
+      "noun_rock": 0.5009894470956693,
+      "noun_star": 0.47610843965000776,
+      "noun_tree": 0.5334401450597384,
+      "noun_truck": 0.5414913148983095,
+      "verb_build": 0.5062962310041237,
+      "verb_carry": 0.42379142824751403,
+      "verb_cut": 0.4709648608739377,
+      "verb_devour": 0.530683063211893,
+      "verb_eat": 0.5253069388531152,
+      "verb_listen": 0.4550019362707162,
+      "verb_run": 0.46196142046972494,
+      "verb_speak": 0.4338796939517735,
+      "verb_throw": 0.48232392393022244,
+      "verb_watch": 0.507005173043895
+    }
+  },
+  "abstraction_levels": {
+    "specific (0.0-0.33)": {
+      "count": 52,
+      "mean_sim": 0.5533367991447449,
+      "min_sim": 0.3836669325828552,
+      "max_sim": 0.9646857976913452
+    },
+    "mid (0.33-0.67)": {
+      "count": 37,
+      "mean_sim": 0.5732879042625427,
+      "min_sim": 0.39781415462493896,
+      "max_sim": 0.8892638087272644
+    },
+    "general (0.67-1.0)": {
+      "count": 22,
+      "mean_sim": 0.5846837759017944,
+      "min_sim": 0.45000630617141724,
+      "max_sim": 0.8179929256439209
+    },
+    "cross_specific (0.0-0.33)_x_mid (0.33-0.67)": {
+      "mean_sim": 0.5593506178340396
+    },
+    "cross_specific (0.0-0.33)_x_general (0.67-1.0)": {
+      "mean_sim": 0.5580999980439673
+    },
+    "cross_mid (0.33-0.67)_x_general (0.67-1.0)": {
+      "mean_sim": 0.5801218621780597
+    }
+  },
+  "distance_decay": {
+    "noun_dog": {
+      "chain": [
+        "puppy",
+        "dog",
+        "hound",
+        "canine",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.8327731490135193,
+        0.7224783897399902,
+        0.8557919263839722,
+        0.5204615592956543,
+        0.675646960735321,
+        0.7453517913818359,
+        0.5145882368087769,
+        0.4490906298160553
+      ],
+      "positions": [
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "noun_cat": {
+      "chain": [
+        "kitten",
+        "cat",
+        "feline",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.829093337059021,
+        0.8344470858573914,
+        0.558387815952301,
+        0.6038978695869446,
+        0.6815998554229736,
+        0.5212929248809814,
+        0.4743404984474182
+      ],
+      "positions": [
+        0.0,
+        0.14285714285714285,
+        0.2857142857142857,
+        0.42857142857142855,
+        0.5714285714285714,
+        0.7142857142857143,
+        0.8571428571428571,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "noun_horse": {
+      "chain": [
+        "foal",
+        "horse",
+        "stallion",
+        "equine",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.785049319267273,
+        0.7369335293769836,
+        0.8007440567016602,
+        0.6171042919158936,
+        0.7129666805267334,
+        0.5858708024024963,
+        0.5654540657997131
+      ],
+      "positions": [
+        0.0,
+        0.14285714285714285,
+        0.2857142857142857,
+        0.42857142857142855,
+        0.5714285714285714,
+        0.7142857142857143,
+        0.8571428571428571,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_fish": {
+      "chain": [
+        "trout",
+        "fish",
+        "aquatic animal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7507301568984985,
+        0.681036114692688,
+        0.6186227202415466,
+        0.5926201939582825,
+        0.499313622713089
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "noun_bird": {
+      "chain": [
+        "sparrow",
+        "bird",
+        "avian",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7107495069503784,
+        0.6471002697944641,
+        0.5727731585502625,
+        0.571185827255249,
+        0.5323427319526672
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "noun_tree": {
+      "chain": [
+        "oak",
+        "tree",
+        "plant",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7280799746513367,
+        0.6374531984329224,
+        0.5988733172416687,
+        0.6006770730018616
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "noun_rock": {
+      "chain": [
+        "pebble",
+        "rock",
+        "stone",
+        "mineral",
+        "substance",
+        "matter",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6929891109466553,
+        0.7761879563331604,
+        0.6776602268218994,
+        0.5901988744735718,
+        0.5437997579574585,
+        0.5829700827598572
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_truck": {
+      "chain": [
+        "pickup",
+        "truck",
+        "vehicle",
+        "machine",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6663075089454651,
+        0.6817948222160339,
+        0.6051936149597168,
+        0.5819025039672852,
+        0.6365342140197754,
+        0.5708001852035522
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_child": {
+      "chain": [
+        "toddler",
+        "child",
+        "person",
+        "human",
+        "primate",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.8276622891426086,
+        0.540043294429779,
+        0.6023983955383301,
+        0.48991963267326355,
+        0.5462722182273865,
+        0.5708244442939758,
+        0.5285513401031494,
+        0.5019343495368958
+      ],
+      "positions": [
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "noun_star": {
+      "chain": [
+        "sun",
+        "star",
+        "celestial body",
+        "astronomical object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7150328159332275,
+        0.6520047187805176,
+        0.6206586360931396,
+        0.5833417773246765
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "verb_eat": {
+      "chain": [
+        "munch",
+        "eat",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6322066187858582,
+        0.6159762144088745,
+        0.6204596161842346,
+        0.5760018825531006,
+        0.5247970223426819,
+        0.5539392828941345
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_devour": {
+      "chain": [
+        "devour",
+        "gorge",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.5793138146400452,
+        0.798154354095459,
+        0.8018871545791626,
+        0.689534068107605,
+        0.551736056804657,
+        0.5608421564102173
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "verb_carry": {
+      "chain": [
+        "lug",
+        "carry",
+        "transport",
+        "move",
+        "displace",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6609603762626648,
+        0.6071146726608276,
+        0.622027575969696,
+        0.5820066928863525,
+        0.5269176959991455
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_throw": {
+      "chain": [
+        "hurl",
+        "throw",
+        "propel",
+        "move",
+        "displace",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.8100675940513611,
+        0.5822348594665527,
+        0.6051902770996094,
+        0.5843676924705505,
+        0.565374493598938
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_watch": {
+      "chain": [
+        "stare",
+        "watch",
+        "observe",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6206759214401245,
+        0.6646339297294617,
+        0.6512436866760254,
+        0.605369508266449,
+        0.5049633979797363,
+        0.5621739625930786
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_listen": {
+      "chain": [
+        "eavesdrop",
+        "listen",
+        "hear",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6888629198074341,
+        0.6846773028373718,
+        0.5608961582183838,
+        0.5352425575256348,
+        0.494570791721344,
+        0.5298942923545837
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_cut": {
+      "chain": [
+        "slice",
+        "cut",
+        "sever",
+        "divide",
+        "separate",
+        "alter",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7644170522689819,
+        0.5670219659805298,
+        0.6271863579750061,
+        0.5644891858100891,
+        0.5867411494255066,
+        0.5498056411743164
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_build": {
+      "chain": [
+        "assemble",
+        "build",
+        "construct",
+        "create",
+        "produce",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7579904198646545,
+        0.7251811623573303,
+        0.7128055691719055,
+        0.5837756395339966,
+        0.6252325773239136
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_run": {
+      "chain": [
+        "sprint",
+        "run",
+        "move",
+        "travel",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6546566486358643,
+        0.6098883152008057,
+        0.5564486980438232,
+        0.5706557631492615
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_speak": {
+      "chain": [
+        "whisper",
+        "speak",
+        "communicate",
+        "express",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7390556335449219,
+        0.690138041973114,
+        0.5966526865959167,
+        0.5467977523803711
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "adj_red": {
+      "chain": [
+        "crimson",
+        "red",
+        "warm-colored",
+        "colored",
+        "visible",
+        "perceptible"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7901997566223145,
+        0.6146326065063477,
+        0.7077929973602295,
+        0.6205735206604004,
+        0.5473214387893677
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_huge": {
+      "chain": [
+        "enormous",
+        "huge",
+        "large",
+        "big",
+        "sized"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.9646856188774109,
+        0.861771285533905,
+        0.8762036561965942,
+        0.6539290547370911
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_cold": {
+      "chain": [
+        "freezing",
+        "cold",
+        "cool",
+        "temperature",
+        "condition"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7971290946006775,
+        0.6010582447052002,
+        0.6629299521446228,
+        0.6014919877052307
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_fast": {
+      "chain": [
+        "lightning-fast",
+        "fast",
+        "quick",
+        "speedy",
+        "moving"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.780388355255127,
+        0.7162638902664185,
+        0.7349683046340942,
+        0.5481385588645935
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    }
+  }
+}
