@@ -44,3 +44,22 @@
 **Decision:** Defer Neo4j/GraphDB. Use rdflib for local RDF and Fuseki only if persistence/SPARQL querying becomes necessary.
 
 **Rationale:** Start simple. rdflib can serialize to Turtle/N-Triples files. Add a server only when the query patterns demand it.
+
+## AD-6: Geodesics Are Subject-Object Only
+
+**Decision:** Geodesics connect subject and object entities of a triple. Properties (predicates) are embedded as entities in the vector space but do NOT get geodesics connecting them to their subjects or objects.
+
+**Rationale:**
+- The subject-object relationship is linguistic/semantic — both are noun-like concepts whose embedding positions are meaningful relative to each other.
+- The subject-predicate and predicate-object relationships are structural, not linguistic. "Mountain" and "instance of" are related by role, not by semantic similarity.
+- Predicate-involving geodesics would require propositional form — embedding the full sentence "Mount Everest is an instance of mountain" rather than just the entity labels. This is planned for a future phase but not yet systematically implemented.
+- Properties ARE still embedded and exist as points in the space. Their positions relative to other entities may be interesting for density analysis, but they don't participate in geodesics.
+
+## AD-7: Properties Are First-Class Entities
+
+**Decision:** Wikidata property IDs (P31, P17, etc.) are fetched and embedded just like item QIDs. They have labels, aliases, and embedding vectors.
+
+**Rationale:**
+- Properties represent hierarchical relationships that are important but not often well understood.
+- Having them in the embedding space lets us analyze how the model represents relational concepts relative to the entities they connect.
+- They participate in the density analysis of the space even though they don't have geodesics.

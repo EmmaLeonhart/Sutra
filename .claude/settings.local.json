@@ -8,7 +8,18 @@
       "Bash(ls -la \"C:/Users/Immanuelle/Documents/Github/embedding-mapping/redoing-paper/old-paper/prototype/\" | grep -E \"\\\\.\\(npz|json|pkl|npy\\)$\" | head -10)",
       "Bash(python -c \"import ollama; print\\('ollama ok'\\)\" 2>&1)",
       "Bash(python -c \"import ollama; r = ollama.embed\\(model='mxbai-embed-large', input='test'\\); print\\(f'dim={len\\(r.embeddings[0]\\)}'\\)\" 2>&1)",
-      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python embed_entities.py)"
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python embed_entities.py)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && echo \"\" | python inspect_data.py)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python -c \"\nimport json, sys, io\nsys.stdout = io.TextIOWrapper\\(sys.stdout.buffer, encoding='utf-8'\\)\nwith open\\('data/items.json'\\) as f:\n    items = json.load\\(f\\)\nimported = {i['qid'] for i in items}\nlinked = set\\(\\)\nfor item in items:\n    for t in item['triples']:\n        if t['value']['type'] == 'wikibase-item':\n            linked.add\\(t['value']['value']\\)\nunresolved = linked - imported\nprint\\(f'Imported QIDs: {len\\(imported\\)}'\\)\nprint\\(f'Linked QIDs \\(wikibase-item values\\): {len\\(linked\\)}'\\)\nprint\\(f'Already imported: {len\\(linked & imported\\)}'\\)\nprint\\(f'Need to fetch: {len\\(unresolved\\)}'\\)\nprint\\(f'First 20: {sorted\\(unresolved\\)[:20]}'\\)\n\")",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python -c \"\nimport json, sys, io\nsys.stdout = io.TextIOWrapper\\(sys.stdout.buffer, encoding='utf-8'\\)\nwith open\\('data/items.json', encoding='utf-8'\\) as f:\n    items = json.load\\(f\\)\nimported = {i['qid'] for i in items}\nlinked = set\\(\\)\nfor item in items:\n    for t in item['triples']:\n        if t['value']['type'] == 'wikibase-item':\n            linked.add\\(t['value']['value']\\)\nunresolved = linked - imported\nprint\\(f'Imported QIDs: {len\\(imported\\)}'\\)\nprint\\(f'Linked QIDs \\(wikibase-item values\\): {len\\(linked\\)}'\\)\nprint\\(f'Already imported: {len\\(linked & imported\\)}'\\)\nprint\\(f'Need to fetch labels+aliases for: {len\\(unresolved\\)}'\\)\n\")",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python fetch_linked.py)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python compute_geodesics.py)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py Q2319)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py Q14657)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py Q8502)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python -c \"\nimport os\nfor f in ['data/geodesics.ttl']:\n    if os.path.exists\\(f\\):\n        os.remove\\(f\\)\n        print\\(f'Removed {f}'\\)\n\" && python import_wikidata.py Q8502)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python -c \"\nimport os, json\nos.makedirs\\('data', exist_ok=True\\)\nwith open\\('data/items.json', 'w'\\) as f: json.dump\\([], f\\)\nfor f in ['data/embeddings.npz','data/embedding_index.json','data/geodesics.ttl','data/triples.nt']:\n    if os.path.exists\\(f\\): os.remove\\(f\\)\nprint\\('Data cleared'\\)\n\")",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py --instances Q8502 --limit 10)"
     ]
   }
 }
