@@ -19,7 +19,11 @@
       "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py Q8502)",
       "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python -c \"\nimport os\nfor f in ['data/geodesics.ttl']:\n    if os.path.exists\\(f\\):\n        os.remove\\(f\\)\n        print\\(f'Removed {f}'\\)\n\" && python import_wikidata.py Q8502)",
       "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python -c \"\nimport os, json\nos.makedirs\\('data', exist_ok=True\\)\nwith open\\('data/items.json', 'w'\\) as f: json.dump\\([], f\\)\nfor f in ['data/embeddings.npz','data/embedding_index.json','data/geodesics.ttl','data/triples.nt']:\n    if os.path.exists\\(f\\): os.remove\\(f\\)\nprint\\('Data cleared'\\)\n\")",
-      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py --instances Q8502 --limit 10)"
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python import_wikidata.py --instances Q8502 --limit 10)",
+      "Bash(python -c \"import ollama; r = ollama.chat\\(model='gemma3:4b', messages=[{'role':'user','content':'test'}]\\); print\\('gemma3:4b ok'\\)\" 2>&1)",
+      "Bash(ollama list:*)",
+      "Bash(cd C:/Users/Immanuelle/Documents/Github/embedding-mapping && python generate_property_templates.py)",
+      "Bash(ls -la C:/Users/Immanuelle/Documents/Github/embedding-mapping/data/property_templates.json 2>/dev/null && python -c \"\nimport json, sys, io\nsys.stdout = io.TextIOWrapper\\(sys.stdout.buffer, encoding='utf-8'\\)\nwith open\\('data/property_templates.json', encoding='utf-8'\\) as f:\n    t = json.load\\(f\\)\nprint\\(f'{len\\(t\\)} properties done so far'\\)\nfor pid in ['P31','P17','P279','P625','P2044']:\n    if pid in t:\n        print\\(f'\\\\n{pid} \\({t[pid][\\\\\"label\\\\\"]}\\):'\\)\n        for r in t[pid]['realizations']:\n            print\\(f'  {r}'\\)\n\" 2>&1)"
     ]
   }
 }
