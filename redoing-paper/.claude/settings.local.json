@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(cd /c/Users/Immanuelle/Documents/Github/redoing-paper && git push origin master 2>&1)",
+      "Bash(gh auth:*)",
+      "Bash(cd /c/Users/Immanuelle/Documents/Github/redoing-paper && gh repo create redoing-paper --private --source=. --push 2>&1)",
+      "Bash(python:*)"
+    ]
+  }
+}

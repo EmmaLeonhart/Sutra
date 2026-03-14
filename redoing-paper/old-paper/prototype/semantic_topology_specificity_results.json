@@ -1,0 +1,1632 @@
+[
+  {
+    "text": "thing",
+    "chain": "reference",
+    "color": "#FFD700",
+    "spec_idx": 0,
+    "comp_level": "ref",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "Mount Everest",
+    "chain": "reference",
+    "color": "#FFD700",
+    "spec_idx": 0,
+    "comp_level": "ref",
+    "noun": "Mount Everest",
+    "x": 1.005242003507169,
+    "y": 0.3218889420505624
+  },
+  {
+    "text": "I love things because they are good",
+    "chain": "reference",
+    "color": "#FFD700",
+    "spec_idx": 0,
+    "comp_level": "ref",
+    "noun": "I love things because they are good",
+    "x": 0.2942179436887556,
+    "y": 0.9188269509891583
+  },
+  {
+    "text": "thing",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "place",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "place",
+    "x": 0.3958714452648251,
+    "y": 0.3101192356062067
+  },
+  {
+    "text": "I love places",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "place",
+    "x": 0.45539751037359877,
+    "y": 0.7140753482879529
+  },
+  {
+    "text": "I love places because they are great",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "place",
+    "x": 0.48066871455416876,
+    "y": 0.8683551728852952
+  },
+  {
+    "text": "I love places because they are great and they make me happy every single day",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "place",
+    "x": 0.49157477528969273,
+    "y": 0.8666812004157614
+  },
+  {
+    "text": "mountain",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "mountain",
+    "x": 0.666048883898567,
+    "y": 0.2955577993944401
+  },
+  {
+    "text": "I love mountains",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "mountain",
+    "x": 0.6790456623968306,
+    "y": 0.6954792682555445
+  },
+  {
+    "text": "I love mountains because they are great",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "mountain",
+    "x": 0.6660101604843629,
+    "y": 0.8199302986002797
+  },
+  {
+    "text": "I love mountains because they are great and they make me happy every single day",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "mountain",
+    "x": 0.644583306023382,
+    "y": 0.8150257036259186
+  },
+  {
+    "text": "Mount Everest",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Mount Everest",
+    "x": 1.005242003507169,
+    "y": 0.3218889420505624
+  },
+  {
+    "text": "I love Mount Everest",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Mount Everest",
+    "x": 0.8611227943561574,
+    "y": 0.7109708537617154
+  },
+  {
+    "text": "I love Mount Everest because it is great",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Mount Everest",
+    "x": 0.8239245065607455,
+    "y": 0.78931414614731
+  },
+  {
+    "text": "I love Mount Everest because it is great and it makes me happy every single day",
+    "chain": "Geography",
+    "color": "#e74c3c",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Mount Everest",
+    "x": 0.7720931754226559,
+    "y": 0.7895202248241799
+  },
+  {
+    "text": "thing",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "creature",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "creature",
+    "x": 0.24009305091567337,
+    "y": 0.175316009707629
+  },
+  {
+    "text": "I love creatures",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "creature",
+    "x": 0.3127555974369564,
+    "y": 0.5974063029942933
+  },
+  {
+    "text": "I love creatures because they are great",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "creature",
+    "x": 0.3407243303771549,
+    "y": 0.7277034254639108
+  },
+  {
+    "text": "I love creatures because they are great and they make me happy every single day",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "creature",
+    "x": 0.3847289087882088,
+    "y": 0.7771592564887551
+  },
+  {
+    "text": "dog",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "dog",
+    "x": 0.38534836714317805,
+    "y": 0.24529366447517814
+  },
+  {
+    "text": "I love dogs",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "dog",
+    "x": 0.4075535003260845,
+    "y": 0.6637702374903129
+  },
+  {
+    "text": "I love dogs because they are great",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "dog",
+    "x": 0.4257769498616218,
+    "y": 0.8172082185839536
+  },
+  {
+    "text": "I love dogs because they are great and they make me happy every single day",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "dog",
+    "x": 0.43188740082122007,
+    "y": 0.802319299483481
+  },
+  {
+    "text": "golden retriever",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "golden retriever",
+    "x": 0.507258008823638,
+    "y": 0.3958139190578417
+  },
+  {
+    "text": "I love golden retrievers",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "golden retriever",
+    "x": 0.492928501869035,
+    "y": 0.6924526105578273
+  },
+  {
+    "text": "I love golden retrievers because they are great",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "golden retriever",
+    "x": 0.4838649645189995,
+    "y": 0.7680783018750981
+  },
+  {
+    "text": "I love golden retrievers because they are great and they make me happy every single day",
+    "chain": "Animals",
+    "color": "#3498db",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "golden retriever",
+    "x": 0.4704323209098059,
+    "y": 0.7751955194596254
+  },
+  {
+    "text": "thing",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "food",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "food",
+    "x": 0.38242852556959467,
+    "y": 0.3995393260881307
+  },
+  {
+    "text": "I love food",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "food",
+    "x": 0.38346784537157,
+    "y": 0.7780695058931435
+  },
+  {
+    "text": "I love food because it is great",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "food",
+    "x": 0.4176398155883444,
+    "y": 0.918722440849573
+  },
+  {
+    "text": "I love food because it is great and it makes me happy every single day",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "food",
+    "x": 0.43714082570422363,
+    "y": 0.9033359636037753
+  },
+  {
+    "text": "pizza",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "pizza",
+    "x": 0.36451436194048087,
+    "y": 0.36439164052144035
+  },
+  {
+    "text": "I love pizza",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "pizza",
+    "x": 0.3501988453108883,
+    "y": 0.6758077796330766
+  },
+  {
+    "text": "I love pizza because it is great",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "pizza",
+    "x": 0.3763555040004222,
+    "y": 0.786905904774226
+  },
+  {
+    "text": "I love pizza because it is great and it makes me happy every single day",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "pizza",
+    "x": 0.3903704088381863,
+    "y": 0.7873256821134901
+  },
+  {
+    "text": "pepperoni pizza",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "pepperoni pizza",
+    "x": 0.3527649839280548,
+    "y": 0.40424683751446544
+  },
+  {
+    "text": "I love pepperoni pizza",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "pepperoni pizza",
+    "x": 0.35245522913000615,
+    "y": 0.6641457385554291
+  },
+  {
+    "text": "I love pepperoni pizza because it is great",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "pepperoni pizza",
+    "x": 0.368124493699876,
+    "y": 0.740605380279936
+  },
+  {
+    "text": "I love pepperoni pizza because it is great and it makes me happy every single day",
+    "chain": "Food",
+    "color": "#2ecc71",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "pepperoni pizza",
+    "x": 0.38256278522435705,
+    "y": 0.7657287178283183
+  },
+  {
+    "text": "thing",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "place",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "place",
+    "x": 0.3958714452648251,
+    "y": 0.3101192356062067
+  },
+  {
+    "text": "I love places",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "place",
+    "x": 0.45539751037359877,
+    "y": 0.7140753482879529
+  },
+  {
+    "text": "I love places because they are great",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "place",
+    "x": 0.48066871455416876,
+    "y": 0.8683551728852952
+  },
+  {
+    "text": "I love places because they are great and they make me happy every single day",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "place",
+    "x": 0.49157477528969273,
+    "y": 0.8666812004157614
+  },
+  {
+    "text": "city",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "city",
+    "x": 0.41439675922863267,
+    "y": 0.31863246060434625
+  },
+  {
+    "text": "I love cities",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "city",
+    "x": 0.4300541275686873,
+    "y": 0.7054225838766354
+  },
+  {
+    "text": "I love cities because they are great",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "city",
+    "x": 0.4600696124578275,
+    "y": 0.8452396889621405
+  },
+  {
+    "text": "I love cities because they are great and they make me happy every single day",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "city",
+    "x": 0.4713119098572399,
+    "y": 0.8448915687095531
+  },
+  {
+    "text": "Tokyo",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Tokyo",
+    "x": 0.4871710313662684,
+    "y": 0.36135365175346346
+  },
+  {
+    "text": "I love Tokyo",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Tokyo",
+    "x": 0.47016701363197855,
+    "y": 0.6789730660596465
+  },
+  {
+    "text": "I love Tokyo because it is great",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Tokyo",
+    "x": 0.4980464520066081,
+    "y": 0.7873455476660233
+  },
+  {
+    "text": "I love Tokyo because it is great and it makes me happy every single day",
+    "chain": "Cities",
+    "color": "#9b59b6",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Tokyo",
+    "x": 0.49451033532282096,
+    "y": 0.7971429717442926
+  },
+  {
+    "text": "thing",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "person",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "person",
+    "x": 0.3471846954883608,
+    "y": 0.2516428698749316
+  },
+  {
+    "text": "I love people",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "person",
+    "x": 0.4028237295952457,
+    "y": 0.7146774500406359
+  },
+  {
+    "text": "I love people because they are great",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "person",
+    "x": 0.4447283908219324,
+    "y": 0.8535273906185139
+  },
+  {
+    "text": "I love people because they are great and they make me happy every single day",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "person",
+    "x": 0.4481412143260894,
+    "y": 0.8417325472222573
+  },
+  {
+    "text": "scientist",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "scientist",
+    "x": 0.4099274866544556,
+    "y": 0.28443110877655114
+  },
+  {
+    "text": "I love scientists",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "scientist",
+    "x": 0.4424224370932047,
+    "y": 0.6241420547876739
+  },
+  {
+    "text": "I love scientists because they are great",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "scientist",
+    "x": 0.4713472914965614,
+    "y": 0.7590764912573151
+  },
+  {
+    "text": "I love scientists because they are great and they make me happy every single day",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "scientist",
+    "x": 0.4737035350679015,
+    "y": 0.7668655704349506
+  },
+  {
+    "text": "Albert Einstein",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Albert Einstein",
+    "x": 0.5190390699244631,
+    "y": 0.34638580185712997
+  },
+  {
+    "text": "I love Albert Einstein",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Albert Einstein",
+    "x": 0.5025592258583189,
+    "y": 0.6817359545876059
+  },
+  {
+    "text": "I love Albert Einstein because he is great",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Albert Einstein",
+    "x": 0.5035948921284243,
+    "y": 0.7674582820698878
+  },
+  {
+    "text": "I love Albert Einstein because he is great and he makes me happy every single day",
+    "chain": "People",
+    "color": "#e67e22",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Albert Einstein",
+    "x": 0.5045024080088517,
+    "y": 0.7676023517601945
+  },
+  {
+    "text": "thing",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "vehicle",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "vehicle",
+    "x": 0.36326851056216136,
+    "y": 0.25596870221863666
+  },
+  {
+    "text": "I love vehicles",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "vehicle",
+    "x": 0.34663768621320923,
+    "y": 0.58959018723106
+  },
+  {
+    "text": "I love vehicles because they are great",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "vehicle",
+    "x": 0.38029683412636356,
+    "y": 0.7781901396966737
+  },
+  {
+    "text": "I love vehicles because they are great and they make me happy every single day",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "vehicle",
+    "x": 0.40026987569235967,
+    "y": 0.7850418559030929
+  },
+  {
+    "text": "car",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "car",
+    "x": 0.3470421368327917,
+    "y": 0.2530656616910197
+  },
+  {
+    "text": "I love cars",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "car",
+    "x": 0.36034505262427974,
+    "y": 0.6338158238386882
+  },
+  {
+    "text": "I love cars because they are great",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "car",
+    "x": 0.39269819095242975,
+    "y": 0.8132519051066401
+  },
+  {
+    "text": "I love cars because they are great and they make me happy every single day",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "car",
+    "x": 0.40656404788290745,
+    "y": 0.7935540335357155
+  },
+  {
+    "text": "red Ferrari",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "red Ferrari",
+    "x": 0.44374787018038875,
+    "y": 0.35348572670150247
+  },
+  {
+    "text": "I love red Ferraris",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "red Ferrari",
+    "x": 0.4228909845803713,
+    "y": 0.634015991987043
+  },
+  {
+    "text": "I love red Ferraris because they are great",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "red Ferrari",
+    "x": 0.4300535585689458,
+    "y": 0.7275926665125984
+  },
+  {
+    "text": "I love red Ferraris because they are great and they make me happy every single day",
+    "chain": "Vehicles",
+    "color": "#1abc9c",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "red Ferrari",
+    "x": 0.4349986523926842,
+    "y": 0.7556003349868385
+  },
+  {
+    "text": "thing",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "structure",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "structure",
+    "x": 0.3583661755509773,
+    "y": 0.2964236639999439
+  },
+  {
+    "text": "I love structures",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "structure",
+    "x": 0.3961638192916413,
+    "y": 0.6360978240945909
+  },
+  {
+    "text": "I love structures because they are great",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "structure",
+    "x": 0.42513159613271173,
+    "y": 0.7816963495419214
+  },
+  {
+    "text": "I love structures because they are great and they make me happy every single day",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "structure",
+    "x": 0.4425751096376891,
+    "y": 0.8040169325092269
+  },
+  {
+    "text": "tower",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "tower",
+    "x": 0.5023353638308057,
+    "y": 0.34723096946768606
+  },
+  {
+    "text": "I love towers",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "tower",
+    "x": 0.4900249642906917,
+    "y": 0.6506646189297287
+  },
+  {
+    "text": "I love towers because they are great",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "tower",
+    "x": 0.498754113147998,
+    "y": 0.7879072796987452
+  },
+  {
+    "text": "I love towers because they are great and they make me happy every single day",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "tower",
+    "x": 0.49275776061465515,
+    "y": 0.8089169694457548
+  },
+  {
+    "text": "Eiffel Tower",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Eiffel Tower",
+    "x": 0.6138515649918723,
+    "y": 0.34695998908652986
+  },
+  {
+    "text": "I love Eiffel Tower",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Eiffel Tower",
+    "x": 0.585495460307601,
+    "y": 0.6638157486345106
+  },
+  {
+    "text": "I love Eiffel Tower because it is great",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Eiffel Tower",
+    "x": 0.5772925057769074,
+    "y": 0.7649629658865865
+  },
+  {
+    "text": "I love Eiffel Tower because it is great and it makes me happy every single day",
+    "chain": "Buildings",
+    "color": "#e84393",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Eiffel Tower",
+    "x": 0.5626291643519159,
+    "y": 0.7805208108565787
+  },
+  {
+    "text": "thing",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "instrument",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "instrument",
+    "x": 0.3377655940263649,
+    "y": 0.27994907495725097
+  },
+  {
+    "text": "I love instruments",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "instrument",
+    "x": 0.3135049345276648,
+    "y": 0.6150966801735938
+  },
+  {
+    "text": "I love instruments because they are great",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "instrument",
+    "x": 0.3473052831660424,
+    "y": 0.7811138494412415
+  },
+  {
+    "text": "I love instruments because they are great and they make me happy every single day",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "instrument",
+    "x": 0.37074666242496657,
+    "y": 0.7950924555444803
+  },
+  {
+    "text": "violin",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "violin",
+    "x": 0.4508670756130874,
+    "y": 0.3707132850698433
+  },
+  {
+    "text": "I love violins",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "violin",
+    "x": 0.429866869082555,
+    "y": 0.64793057891871
+  },
+  {
+    "text": "I love violins because they are great",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "violin",
+    "x": 0.44232321987600703,
+    "y": 0.766372073433676
+  },
+  {
+    "text": "I love violins because they are great and they make me happy every single day",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "violin",
+    "x": 0.4440695819313232,
+    "y": 0.7752255454492513
+  },
+  {
+    "text": "Stradivarius violin",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Stradivarius violin",
+    "x": 0.4367233966329155,
+    "y": 0.38294089269631937
+  },
+  {
+    "text": "I love Stradivarius violins",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Stradivarius violin",
+    "x": 0.43183740937330684,
+    "y": 0.6605389724042425
+  },
+  {
+    "text": "I love Stradivarius violins because they are great",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Stradivarius violin",
+    "x": 0.43493919513263246,
+    "y": 0.73916317068902
+  },
+  {
+    "text": "I love Stradivarius violins because they are great and they make me happy every single day",
+    "chain": "Music",
+    "color": "#00b894",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Stradivarius violin",
+    "x": 0.43878141047800046,
+    "y": 0.770147124080438
+  },
+  {
+    "text": "thing",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "celestial body",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "celestial body",
+    "x": 0.4174491528352358,
+    "y": 0.2945646650186865
+  },
+  {
+    "text": "I love celestial bodies",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "celestial body",
+    "x": 0.42973274979058507,
+    "y": 0.629070161091134
+  },
+  {
+    "text": "I love celestial bodies because they are great",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "celestial body",
+    "x": 0.4430908315168609,
+    "y": 0.7458594817010334
+  },
+  {
+    "text": "I love celestial bodies because they are great and they make me happy every single day",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "celestial body",
+    "x": 0.45116501446715884,
+    "y": 0.772263863883768
+  },
+  {
+    "text": "planet",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "planet",
+    "x": 0.47313570414010164,
+    "y": 0.2627162412597679
+  },
+  {
+    "text": "I love planets",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "planet",
+    "x": 0.4649691707032296,
+    "y": 0.6454158869397273
+  },
+  {
+    "text": "I love planets because they are great",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "planet",
+    "x": 0.4862534007736814,
+    "y": 0.7938529619154528
+  },
+  {
+    "text": "I love planets because they are great and they make me happy every single day",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "planet",
+    "x": 0.48519043240751913,
+    "y": 0.7951015607160037
+  },
+  {
+    "text": "Jupiter",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Jupiter",
+    "x": 0.45280010165190193,
+    "y": 0.317078432196377
+  },
+  {
+    "text": "I love Jupiter",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Jupiter",
+    "x": 0.45543197593658713,
+    "y": 0.672159452915406
+  },
+  {
+    "text": "I love Jupiter because it is great",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Jupiter",
+    "x": 0.47740197730192924,
+    "y": 0.7570526909068257
+  },
+  {
+    "text": "I love Jupiter because it is great and it makes me happy every single day",
+    "chain": "Astronomy",
+    "color": "#6c5ce7",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Jupiter",
+    "x": 0.4755448508634016,
+    "y": 0.7625990917907051
+  },
+  {
+    "text": "thing",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 0,
+    "comp_level": "bare",
+    "noun": "thing",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "text": "I love things",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 0,
+    "comp_level": "simple",
+    "noun": "thing",
+    "x": 0.22806828214917801,
+    "y": 0.6713172037549631
+  },
+  {
+    "text": "I love things because they are great",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 0,
+    "comp_level": "reason",
+    "noun": "thing",
+    "x": 0.29099306755299115,
+    "y": 0.8609420525217248
+  },
+  {
+    "text": "I love things because they are great and they make me happy every single day",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 0,
+    "comp_level": "extended",
+    "noun": "thing",
+    "x": 0.35640892560593307,
+    "y": 0.8729112938559482
+  },
+  {
+    "text": "plant",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 1,
+    "comp_level": "bare",
+    "noun": "plant",
+    "x": 0.3478674961564264,
+    "y": 0.30722124348866753
+  },
+  {
+    "text": "I love plants",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 1,
+    "comp_level": "simple",
+    "noun": "plant",
+    "x": 0.4235196541072124,
+    "y": 0.6835114875296731
+  },
+  {
+    "text": "I love plants because they are great",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 1,
+    "comp_level": "reason",
+    "noun": "plant",
+    "x": 0.4399011804047765,
+    "y": 0.8401333273768712
+  },
+  {
+    "text": "I love plants because they are great and they make me happy every single day",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 1,
+    "comp_level": "extended",
+    "noun": "plant",
+    "x": 0.44511304889464753,
+    "y": 0.8285352382896815
+  },
+  {
+    "text": "flower",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 2,
+    "comp_level": "bare",
+    "noun": "flower",
+    "x": 0.3646445566901082,
+    "y": 0.33853503689771564
+  },
+  {
+    "text": "I love flowers",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 2,
+    "comp_level": "simple",
+    "noun": "flower",
+    "x": 0.38333308365054186,
+    "y": 0.680953031230541
+  },
+  {
+    "text": "I love flowers because they are great",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 2,
+    "comp_level": "reason",
+    "noun": "flower",
+    "x": 0.4060891046066746,
+    "y": 0.8297371048486282
+  },
+  {
+    "text": "I love flowers because they are great and they make me happy every single day",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 2,
+    "comp_level": "extended",
+    "noun": "flower",
+    "x": 0.42593208882371514,
+    "y": 0.8188904430610003
+  },
+  {
+    "text": "Japanese cherry blossom",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 3,
+    "comp_level": "bare",
+    "noun": "Japanese cherry blossom",
+    "x": 0.4523985797875002,
+    "y": 0.44099059515087824
+  },
+  {
+    "text": "I love Japanese cherry blossoms",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 3,
+    "comp_level": "simple",
+    "noun": "Japanese cherry blossom",
+    "x": 0.4193085515162326,
+    "y": 0.6679481971469203
+  },
+  {
+    "text": "I love Japanese cherry blossoms because they are great",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 3,
+    "comp_level": "reason",
+    "noun": "Japanese cherry blossom",
+    "x": 0.4254905385102004,
+    "y": 0.7557441770561537
+  },
+  {
+    "text": "I love Japanese cherry blossoms because they are great and they make me happy every single day",
+    "chain": "Nature",
+    "color": "#fd79a8",
+    "spec_idx": 3,
+    "comp_level": "extended",
+    "noun": "Japanese cherry blossom",
+    "x": 0.4423376929448688,
+    "y": 0.7830809786491086
+  }
+]

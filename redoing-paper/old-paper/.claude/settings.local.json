@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:gemini.google.com)",
+      "Bash(cd \"C:/Users/Immanuelle/Documents/Github/axiv-neurosymbolic-paper\" && python extract_gemini.py 2>&1)",
+      "Bash(python:*)",
+      "Bash(cd:*)",
+      "Bash(ollama list:*)",
+      "Bash(ollama pull:*)",
+      "Bash(git:*)",
+      "Bash(cd /c/Users/Immanuelle/Documents/Github/axiv-neurosymbolic-paper && gh api repos/Emma-Leonhart/arxiv-neurosymbolic-paper/pages -X PUT -f build_type=workflow 2>&1)",
+      "Bash(cd /c/Users/Immanuelle/Documents/Github/axiv-neurosymbolic-paper && gh api repos/Emma-Leonhart/arxiv-neurosymbolic-paper/pages 2>&1)",
+      "Bash(cd /c/Users/Immanuelle/Documents/Github/axiv-neurosymbolic-paper && gh workflow run pages.yml 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Immanuelle\\\\Documents\\\\Github\\\\axiv-neurosymbolic-paper\" && rm -rf .git/refs/original/ && git reflog expire --expire=now --all && git gc --prune=now --aggressive 2>&1)",
+      "Bash(pip install:*)",
+      "Bash(tail:*)",
+      "Bash(\"C:\\\\Users\\\\ambie\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\":*)",
+      "WebFetch(domain:projector.tensorflow.org)",
+      "WebSearch",
+      "Bash(ls:*)",
+      "WebFetch(domain:arxiv.org)",
+      "Bash(python3:*)",
+      "Bash(wc:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cd C:\\\\Users\\\\Immanuelle\\\\Documents\\\\Github\\\\axiv-neurosymbolic-paper:*)",
+      "WebFetch(domain:emmaleonhart.com)",
+      "WebFetch(domain:emma-leonhart.github.io)",
+      "Bash(head:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
