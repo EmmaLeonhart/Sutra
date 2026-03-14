@@ -26,6 +26,11 @@ Thumbs.db
 .env
 .env.local
 
-# Large binary data (regenerable)
+# Regenerable database output
+data/items.json
+data/embedding_index.json
+data/triples.nt
+data/geodesics.ttl
+data/walk_state.json
 data/*.npz
 data/*.npy
