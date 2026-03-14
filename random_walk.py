@@ -1,14 +1,14 @@
 """
-Random walk through Wikidata, building the geodesic map.
+Breadth-first search through Wikidata, building the geodesic map.
 
-Starts at a seed entity and follows random triples to discover new entities.
-At each step: import the entity, compute geodesics, track density and collisions.
+Starts at a seed entity and adds every linked QID to a queue.
+Processes the queue breadth-first, maximizing density around the seed.
 
 Usage:
-  python random_walk.py                          # start from Q133284072 (embedding)
+  python random_walk.py                          # start from Q1342448 (Engishiki)
   python random_walk.py Q8502                    # start from mountain
-  python random_walk.py Q8502 --steps 50         # 50 steps
-  python random_walk.py --resume                 # continue from last position
+  python random_walk.py Q8502 --limit 1000       # import up to 1000 QIDs
+  python random_walk.py --resume                 # continue from saved queue
 """
 
 import json
@@ -16,61 +16,38 @@ import sys
 import io
 import os
 import time
-import random
+import collections
 import argparse
 import numpy as np
 import requests
 import ollama
 from import_wikidata import (
     load_existing, save_all, fetch_entity, fetch_labels_batch,
-    process_entity, extract_value, embed_texts, value_to_rdf,
+    process_entity, embed_texts,
     build_triples_graph, compute_geodesics_for_items,
     WD, WDT, EMB, EMBED_MODEL
 )
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-WIKIDATA_API = "https://www.wikidata.org/w/api.php"
-USER_AGENT = "embedding-mapping/0.1 (https://github.com/Immanuelle/embedding-mapping)"
-DEFAULT_SEED = "Q133284072"  # embedding
+DEFAULT_SEED = "Q1342448"  # Engishiki — dense ontological neighborhood
 WALK_STATE_FILE = "data/walk_state.json"
 
 
-def pick_next_entity(item, existing_qids):
-    """Pick a random linked QID from an item's triples to walk to next."""
-    candidates = []
-    for t in item["triples"]:
-        if t["value"]["type"] == "wikibase-item":
-            qid = t["value"]["value"]
-            # Prefer items we haven't fully imported yet
-            if qid.startswith("Q"):
-                candidates.append(qid)
-
-    if not candidates:
-        return None
-
-    # Shuffle and prefer unvisited
-    random.shuffle(candidates)
-    unvisited = [q for q in candidates if q not in existing_qids]
-    if unvisited:
-        return unvisited[0]
-    return candidates[0]
-
-
 def import_single(qid, items, index, emb):
-    """Import a single QID with all linked entities. Returns updated data."""
+    """Import a single QID with all linked entities. Returns updated data + linked QIDs found."""
     existing_qids = {i["qid"] for i in items}
 
+    # Check if already fully imported
     if qid in existing_qids:
-        # Check if it's linked-only (no triples)
         for item in items:
             if item["qid"] == qid and item["triples"]:
-                return items, index, emb, item  # already fully imported
+                return items, index, emb, item, set()
 
     # Fetch full entity
     entity = fetch_entity(qid)
     if not entity or "missing" in entity:
-        return items, index, emb, None
+        return items, index, emb, None, set()
 
     item = process_entity(entity)
 
@@ -79,22 +56,34 @@ def import_single(qid, items, index, emb):
     items.append(item)
     existing_qids = {i["qid"] for i in items}
 
-    # Resolve linked QIDs and properties
+    # Collect all linked QIDs and properties
     linked = set()
     properties = set()
+    discovered_qids = set()
+
     for t in item["triples"]:
         if t["value"]["type"] == "wikibase-item":
-            linked.add(t["value"]["value"])
+            v = t["value"]["value"]
+            linked.add(v)
+            if v.startswith("Q"):
+                discovered_qids.add(v)
         properties.add(t["predicate"])
         for qual in t.get("qualifiers", []):
             if qual["value"]["type"] == "wikibase-item":
-                linked.add(qual["value"]["value"])
+                v = qual["value"]["value"]
+                linked.add(v)
+                if v.startswith("Q"):
+                    discovered_qids.add(v)
             properties.add(qual["predicate"])
         for src in t.get("sources", []):
             if src["value"]["type"] == "wikibase-item":
-                linked.add(src["value"]["value"])
+                v = src["value"]["value"]
+                linked.add(v)
+                if v.startswith("Q"):
+                    discovered_qids.add(v)
             properties.add(src["predicate"])
 
+    # Resolve linked entities that need labels
     all_needed = linked | properties
     unresolved = sorted(all_needed - existing_qids)
 
@@ -135,7 +124,7 @@ def import_single(qid, items, index, emb):
         emb = np.vstack([emb, new_emb]) if emb.size > 0 else new_emb
         index.extend(new_index_entries)
 
-    return items, index, emb, item
+    return items, index, emb, item, discovered_qids
 
 
 def save_walk_state(state):
@@ -151,77 +140,96 @@ def load_walk_state():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Random walk through Wikidata")
-    parser.add_argument("seed", nargs="?", default=DEFAULT_SEED, help=f"Seed QID (default: {DEFAULT_SEED})")
-    parser.add_argument("--steps", type=int, default=20, help="Number of steps (default 20)")
-    parser.add_argument("--resume", action="store_true", help="Resume from last walk position")
+    parser = argparse.ArgumentParser(description="BFS through Wikidata for maximum geodesic density")
+    parser.add_argument("seed", nargs="?", default=DEFAULT_SEED, help=f"Seed QID (default: {DEFAULT_SEED} Engishiki)")
+    parser.add_argument("--limit", type=int, default=1000, help="Max QIDs to fully import (default 1000)")
+    parser.add_argument("--resume", action="store_true", help="Resume from saved queue state")
     args = parser.parse_args()
 
     items, index, emb = load_existing()
-    existing_qids = {i["qid"] for i in items}
+    fully_imported = {i["qid"] for i in items if i["triples"]}
 
-    # Determine starting point
+    # Set up BFS queue
     if args.resume:
         state = load_walk_state()
-        if state:
-            current_qid = state["current_qid"]
-            walk_history = state["history"]
-            print(f"Resuming walk from {current_qid} (step {len(walk_history)})")
+        if state and "queue" in state:
+            queue = collections.deque(state["queue"])
+            visited = set(state.get("visited", []))
+            imported_count = state.get("imported_count", 0)
+            print(f"Resuming BFS: {len(queue)} in queue, {len(visited)} visited, {imported_count} imported")
         else:
-            print("No walk state found, starting fresh")
-            current_qid = args.seed
-            walk_history = []
+            print("No BFS state found, starting fresh")
+            queue = collections.deque([args.seed])
+            visited = set()
+            imported_count = 0
     else:
-        current_qid = args.seed
-        walk_history = []
+        queue = collections.deque([args.seed])
+        visited = set()
+        imported_count = 0
 
-    print(f"Starting random walk from {current_qid}")
-    print(f"Steps: {args.steps}")
+    print(f"BFS from {args.seed} — importing up to {args.limit} QIDs")
     print(f"Current data: {len(items)} items, {emb.shape[0] if emb.size else 0} embeddings\n")
 
-    for step in range(args.steps):
-        print(f"--- Step {step + 1}/{args.steps}: {current_qid} ---")
+    while queue and imported_count < args.limit:
+        current_qid = queue.popleft()
 
-        # Import this entity
-        items, index, emb, item = import_single(current_qid, items, index, emb)
+        # Skip if already visited
+        if current_qid in visited:
+            continue
+        visited.add(current_qid)
+
+        # Skip if already fully imported
+        if current_qid in fully_imported:
+            # Still need to add its linked QIDs to the queue
+            for item in items:
+                if item["qid"] == current_qid and item["triples"]:
+                    for t in item["triples"]:
+                        if t["value"]["type"] == "wikibase-item":
+                            v = t["value"]["value"]
+                            if v.startswith("Q") and v not in visited:
+                                queue.append(v)
+            continue
+
+        imported_count += 1
+        print(f"[{imported_count}/{args.limit}] Importing {current_qid} (queue: {len(queue)})...")
+
+        items, index, emb, item, discovered = import_single(current_qid, items, index, emb)
 
         if item is None:
-            print(f"  Could not fetch {current_qid}, picking random known item")
-            full_items = [i for i in items if i["triples"]]
-            if full_items:
-                item = random.choice(full_items)
-                current_qid = item["qid"]
-            else:
-                print("  No items to walk to, stopping")
-                break
+            print(f"  Could not fetch, skipping")
+            continue
 
-        print(f"  {item['label']} — {len(item['triples'])} triples")
-        walk_history.append({"qid": current_qid, "label": item["label"]})
+        print(f"  {item['label']} — {len(item['triples'])} triples, discovered {len(discovered)} linked QIDs")
+        fully_imported.add(current_qid)
 
-        # Pick next entity
-        next_qid = pick_next_entity(item, {i["qid"] for i in items if i["triples"]})
-        if next_qid:
-            print(f"  Walking to: {next_qid}")
-            current_qid = next_qid
-        else:
-            print(f"  Dead end, jumping to random known item")
-            full_items = [i for i in items if i["triples"]]
-            if full_items:
-                item = random.choice(full_items)
-                current_qid = item["qid"]
+        # Add discovered QIDs to queue
+        for qid in discovered:
+            if qid not in visited:
+                queue.append(qid)
 
-        # Save progress every 5 steps
-        if (step + 1) % 5 == 0:
-            print(f"\n  Saving progress... ({len(items)} items, {emb.shape[0]} embeddings)")
+        # Save progress every 10 imports
+        if imported_count % 10 == 0:
+            print(f"\n  Saving progress... ({len(items)} items, {emb.shape[0]} embeddings, queue: {len(queue)})")
             save_all(items, index, emb)
-            save_walk_state({"current_qid": current_qid, "history": walk_history})
+            save_walk_state({
+                "queue": list(queue),
+                "visited": list(visited),
+                "imported_count": imported_count,
+                "seed": args.seed,
+            })
+            print()
 
-        time.sleep(1)
+        time.sleep(0.5)
 
     # Final save
-    print(f"\n--- Walk complete ---")
+    print(f"\n--- BFS complete ---")
     save_all(items, index, emb)
-    save_walk_state({"current_qid": current_qid, "history": walk_history})
+    save_walk_state({
+        "queue": list(queue),
+        "visited": list(visited),
+        "imported_count": imported_count,
+        "seed": args.seed,
+    })
 
     # Rebuild triples and geodesics
     print("Rebuilding triples and geodesics...")
@@ -233,13 +241,10 @@ def main():
 
     print(f"\nFinal state:")
     print(f"  Items: {len(items)}")
+    print(f"  Fully imported: {len(fully_imported)}")
     print(f"  Embeddings: {emb.shape[0]} x {emb.shape[1]}")
     print(f"  Geodesics: {geo_count}")
-    print(f"  Walk history: {len(walk_history)} steps")
-
-    print(f"\nWalk path:")
-    for i, h in enumerate(walk_history):
-        print(f"  {i+1}. {h['label']} ({h['qid']})")
+    print(f"  Remaining in queue: {len(queue)}")
 
 
 if __name__ == "__main__":
