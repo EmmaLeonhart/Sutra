@@ -29,6 +29,11 @@ Since each entity can have multiple embeddings (label + aliases) and each proper
 ## Starting Point
 Mountains (Q8502) — 11 items, ~13K properties with realization templates. Scale up from here.
 
+## Geodesics as Comparable Objects
+A geodesic is not just a measurement — it is an **object**. The geodesic connecting "Mount Everest" to "mountain" via P31 exists as a thing that can be compared across embedding spaces. In model A it has one length and direction; in model B it has another. The geodesic is constant; the geometry changes.
+
+This means geodesics are manifestations of vector operations. A geodesic is what happens when you perform a vector subtraction (or addition, or other operation) between two embedded texts. The operation is fixed by the triple; the result depends on the model. This makes geodesics a natural unit of comparison — a benchmark primitive.
+
 ## Two Interpretation Approaches (to explore)
 1. **Supervised grounding** — seed with known relations, see how far they generalize
 2. **Unsupervised clustering of displacement vectors** — find consistent axes first, label later
