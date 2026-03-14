@@ -34480,5 +34480,1070 @@
     "realizations": [
       "$SUB's identifier in Il Nuovo DOP online vocabulary is $OBJ."
     ]
+  },
+  "P12863": {
+    "label": "RGALI person ID",
+    "description": "identifier for person in the Russian State Archive of Literature and Art (RGALI)",
+    "aliases": [
+      "RGALI ID"
+    ],
+    "realizations": [
+      "The RGALI person ID ($OBJ) of $SUB.",
+      "$SUB has the identifier RGALI ID ($OBJ).",
+      "$SUB's identifier is RGALI ID ($OBJ)."
+    ]
+  },
+  "P12864": {
+    "label": "RGALI organization ID",
+    "description": "identifier for organization in the Russian State Archive of Literature and Art (RGALI)",
+    "aliases": [],
+    "realizations": [
+      "$SUB has RGALI organization ID $OBJ"
+    ]
+  },
+  "P12865": {
+    "label": "Archelec person ID",
+    "description": "identifier of person on Archelec",
+    "aliases": [],
+    "realizations": [
+      "The person identified by Archelec ($SUB) is an Archelec person ID ($OBJ).",
+      "Archelec person ID ($OBJ) for $SUB.",
+      "$SUB has an Archelec person ID ($OBJ)."
+    ]
+  },
+  "P12866": {
+    "label": "Lojas com História ID",
+    "description": "ID for cultural heritage sites as defined by the Lojas com História program, organisation managed by the Lisbon Municipal Counsel.",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Lojas com História ID $OBJ"
+    ]
+  },
+  "P12867": {
+    "label": "milononline.net entry ID",
+    "description": "identifier for an entry in the milononline.net reproduction of the Sapir (Avneyon) Dictionary",
+    "aliases": [
+      "Sapir Dictionary entry identifier",
+      "Avneyon Dictionary entry identifier"
+    ],
+    "realizations": [
+      "The Sapir Dictionary entry identifier of the $SUB is the milononline.net entry ID for the $OBJ.",
+      "The $SUB has an identifier in the milononline.net reproduction of the Sapir (Avneyon) Dictionary, which is also known as the $OBJ.",
+      "The $SUB's entry in the Sapir (Avneyon) Dictionary corresponds to a unique identifier on milononline.net, denoted by the $OBJ."
+    ]
+  },
+  "P12868": {
+    "label": "Hebrew Academy term ID",
+    "description": "identifier for a term in the online term database of the Academy of the Hebrew Language",
+    "aliases": [],
+    "realizations": [
+      "$SUB has the Hebrew Academy term ID $OBJ.",
+      "$SUB uses the Hebrew Academy term ID $OBJ."
+    ]
+  },
+  "P12869": {
+    "label": "LAGL author ID",
+    "description": "identifier for an Ancient Greek or Latin author in the LAGL Catalog of Authors and Works",
+    "aliases": [],
+    "realizations": [
+      "$SUB was written by the LAGL author ID in $OBJ.",
+      "$SUB's works are cataloged with the LAGL author ID in $OBJ."
+    ]
+  },
+  "P1287": {
+    "label": "Komponisten der Gegenwart ID",
+    "description": "identifier on the Munzinger Archiv",
+    "aliases": [
+      "KDG ID",
+      "KDG Komponisten der Gegenwart ID"
+    ],
+    "realizations": [
+      "$SUB is identified by $OBJ in the Munzinger Archiv.",
+      "$OBJ is the identifier for $SUB in the Komponisten der Gegenwart ID."
+    ]
+  },
+  "P12870": {
+    "label": "KANAL ID",
+    "description": "identifier assigned to an artist and a work held by KANAL",
+    "aliases": [
+      "KANAL - Centre Pompidou ID"
+    ],
+    "realizations": [
+      "$SUB has KANAL ID $OBJ"
+    ]
+  },
+  "P12871": {
+    "label": "Google Play author ID",
+    "description": "identifier of an author on the Google Play website",
+    "aliases": [
+      "Google Play Books author ID"
+    ],
+    "realizations": [
+      "The author of \"$SUB\" has an identifier on Google Play as \"$OBJ\".",
+      "The subject \"$SUB\" is associated with an author ID on Google Play, denoted by \"$OBJ\".",
+      "The entity \"$SUB\" is linked to a unique author identifier on the Google Play website, referred to as \"$OBJ\"."
+    ]
+  },
+  "P12872": {
+    "label": "Overcast episode ID",
+    "description": "identifier for a podcast episode in Overcast",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an Overcast episode ID of $OBJ.",
+      "Overcast identifies podcast episode $OBJ as its identifier for $SUB."
+    ]
+  },
+  "P12873": {
+    "label": "ArchWiki article",
+    "description": "identifier for an article on ArchWiki",
+    "aliases": [
+      "Arch Linux Wiki article",
+      "wiki.archlinux.org article",
+      "Arch Wiki article"
+    ],
+    "realizations": [
+      "The ArchWiki article ($SUB) is an identifier for an article on ArchWiki ($OBJ).",
+      "The subject entity ($SUB) is associated with an article identifier on ArchWiki ($OBJ).",
+      "The $SUB entity corresponds to a wiki article on ArchWiki ($OBJ)."
+    ]
+  },
+  "P12874": {
+    "label": "Valencian Library ID",
+    "description": "identifier for authority control used by the Valencian Library",
+    "aliases": [],
+    "realizations": [
+      "$SUB is assigned an identifier by the Valencian Library as $OBJ."
+    ]
+  },
+  "P12875": {
+    "label": "StarWars.com ID",
+    "description": "identifier of film, TV series, episode, etc. on Star Wars.com",
+    "aliases": [
+      "Star Wars.com ID"
+    ],
+    "realizations": [
+      "$SUB has the identifier $OBJ on StarWars.com.",
+      "The $OBJ of $SUB is its unique identifier on StarWars.com."
+    ]
+  },
+  "P12876": {
+    "label": "writing technique",
+    "description": "technique used for writing on stone, paper or other support",
+    "aliases": [],
+    "realizations": [
+      "The writing technique used by $SUB was applied to $OBJ.",
+      "$SUB employed the technique of writing on $OBJ.",
+      "A specific writing technique was utilized for $OBJ by $SUB."
+    ]
+  },
+  "P12877": {
+    "label": "ScienceDirect journal ID",
+    "description": "identifier for a scientific journal on ScienceDirect",
+    "aliases": [
+      "ScienceDirect journal identifier",
+      "Science Direct journal ID",
+      "ScienceDirect ID"
+    ],
+    "realizations": [
+      "$SUB has ScienceDirect journal ID $OBJ"
+    ]
+  },
+  "P12878": {
+    "label": "last appearance",
+    "description": "last work featuring a fictional character or item",
+    "aliases": [
+      "last episode",
+      "last film",
+      "final appearance"
+    ],
+    "realizations": [
+      "The last appearance of $SUB was in $OBJ.",
+      "$SUB's final work featured $OBJ.",
+      "$SUB last appeared in $OBJ."
+    ]
+  },
+  "P12879": {
+    "label": "Filmová databáze film ID",
+    "description": "identifier for a movie in the Filmová databáze (FDb)",
+    "aliases": [
+      "FDb film ID"
+    ],
+    "realizations": [
+      "$SUB has Filmová databáze film ID $OBJ"
+    ]
+  },
+  "P1288": {
+    "label": "Kritisches Lexikon der Gegenwartsliteratur ID",
+    "description": "identifier on the Munzinger Archiv",
+    "aliases": [
+      "KLG ID",
+      "KLG Kritisches Lexikon der Gegenwartsliteratur ID"
+    ],
+    "realizations": [
+      "$SUB has Kritisches Lexikon der Gegenwartsliteratur ID $OBJ"
+    ]
+  },
+  "P12880": {
+    "label": "Filmová databáze person ID",
+    "description": "identifier for a person in the Filmová databáze (FDb)",
+    "aliases": [
+      "FDb person ID"
+    ],
+    "realizations": [
+      "The Filmová databáze person ID ($SUB) is identified by ($OBJ).",
+      "A person in the Filmová databáze ($SUB) has an identifier of ($OBJ).",
+      "($SUB) is uniquely identified as a person in the Filmová databáze by ($OBJ)."
+    ]
+  },
+  "P12881": {
+    "label": "FC Krasnodar player ID",
+    "description": "identifier for player at FC Krasnodar official site",
+    "aliases": [],
+    "realizations": [
+      "$SUB has FC Krasnodar player ID $OBJ"
+    ]
+  },
+  "P12882": {
+    "label": "Iraqnla book ID",
+    "description": "an ID for an edition literally work in Iraq National Library and Archive",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Iraqnla book ID $OBJ"
+    ]
+  },
+  "P12883": {
+    "label": "Turkey neighborhood ID",
+    "description": "identifier of neighborhoods (mahalle) in Turkey in TÜİK (Turkish Statistical Institute) database",
+    "aliases": [
+      "TÜİK mahalle ID",
+      "Tüik neighborhood ID",
+      "Tüik mahalle ID"
+    ],
+    "realizations": [
+      "The neighborhood ID in Turkey's TÜİK database ($SUB) is identified as $OBJ.",
+      "$SUB has an identifier known as $OBJ in the Turkish Statistical Institute's database.",
+      "The $OBJ of a neighborhood in Turkey ($SUB) is its unique identifier in the TÜİK database."
+    ]
+  },
+  "P12884": {
+    "label": "Alle Burgen ID",
+    "description": "~40K castles worldwide",
+    "aliases": [],
+    "realizations": [
+      "The $SUB has an Alle Burgen ID of $OBJ.",
+      "$SUB has been assigned an Alle Burgen ID by $OBJ.",
+      "$SUB's castle identification number is managed by $OBJ."
+    ]
+  },
+  "P12885": {
+    "label": "Oxford Italian-English Dictionary ID",
+    "description": "identifier for a subject page in the Pocket Oxford Italian Dictionary: Italian-English",
+    "aliases": [
+      "Pocket Oxford Italian Dictionary: Italian-English ID",
+      "Pocket Oxford Italian Dictionary",
+      "Italian-English ID",
+      "IED ID",
+      "Italian-English Dictionary ID"
+    ],
+    "realizations": [
+      "The Oxford Italian-English Dictionary ID of the $SUB is $OBJ.",
+      "The dictionary entry for the $SUB has an identifier of $OBJ in the Pocket Oxford Italian Dictionary.",
+      "The $SUB's subject page in the Pocket Oxford Italian Dictionary is identified by $OBJ."
+    ]
+  },
+  "P12886": {
+    "label": "Sandbox-EntitySchema",
+    "description": "Sandbox property for value of type \"EntitySchema\"",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Sandbox-EntitySchema $OBJ"
+    ]
+  },
+  "P12887": {
+    "label": "islamway authority ID",
+    "description": "scholar ID on the islamway website",
+    "aliases": [],
+    "realizations": [
+      "The scholar identified as $SUB on Islamway is authority ID $OBJ.",
+      "$SUB is associated with the Islamway authority ID $OBJ.",
+      "The scholar entity $SUB has an authority ID of $OBJ on Islamway."
+    ]
+  },
+  "P12888": {
+    "label": "Metamath statement ID",
+    "description": "unique identifier for a theorem, axiom or definition in the Metamath set.mm database",
+    "aliases": [],
+    "realizations": [
+      "The Metamath statement ID of $SUB is $OBJ.",
+      "$SUB has the Metamath statement ID $OBJ.",
+      "$SUB is identified by the unique Metamath statement ID $OBJ."
+    ]
+  },
+  "P12889": {
+    "label": "myfixguide.com ID",
+    "description": "identifier of a category on the repair site myfixguide.com",
+    "aliases": [
+      "MyFixGuide ID"
+    ],
+    "realizations": [
+      "$SUB is identified by its MyFixGuide ID as $OBJ."
+    ]
+  },
+  "P1289": {
+    "label": "Kritisches Lexikon zur fremdsprachigen Gegenwartsliteratur ID",
+    "description": "identifier in the critical dictionary of foreign contemporary literature",
+    "aliases": [
+      "KLfG ID"
+    ],
+    "realizations": [
+      "The critical dictionary of foreign contemporary literature ID ($SUB) is identified by ($OBJ).",
+      "($SUB) has identifier $OBJ in the critical dictionary of foreign contemporary literature.",
+      "($SUB) corresponds to Kritisches Lexikon zur fremdsprachigen Gegenwartsliteratur ID ($OBJ)."
+    ]
+  },
+  "P12890": {
+    "label": "Imperial University of Dorpat student ID",
+    "description": "matriculation number of a student of the Imperial University of Dorpat",
+    "aliases": [
+      "Album Studiosorum Academiae Dorpatensis ID",
+      "ASAD ID"
+    ],
+    "realizations": [
+      "The student of the Imperial University of Dorpat ($SUB) has matriculation number $OBJ.",
+      "A student at the Imperial University of Dorpat ($SUB) was assigned ID $OBJ.",
+      "$SUB was issued with a unique ID $OBJ by the Imperial University of Dorpat."
+    ]
+  },
+  "P12891": {
+    "label": "Coptic Dictionary Online ID",
+    "description": "entry for a Coptic lexeme in Coptic Dictionary Online",
+    "aliases": [],
+    "realizations": [
+      "The Coptic Dictionary Online ID of the $SUB is $OBJ.",
+      "The $SUB has an entry in the Coptic Dictionary Online with the ID $OBJ.",
+      "The $SUB's lexeme is listed as $OBJ in the Coptic Dictionary Online."
+    ]
+  },
+  "P12892": {
+    "label": "English-Italian Dictionary ID",
+    "description": "identifier for a subject page in the Pocket Oxford Italian Dictionary: English-Italian",
+    "aliases": [
+      "Pocket Oxford Italian Dictionary: English-Italian ID",
+      "EID ID"
+    ],
+    "realizations": [
+      "The English-Italian Dictionary ID ($SUB) is related to the Pocket Oxford Italian Dictionary: English-Italian ($OBJ).",
+      "$SUB is identified as the identifier for a subject page in the Pocket Oxford Italian Dictionary: English-Italian ($OBJ).",
+      "The EID ID ($SUB) corresponds to the Pocket Oxford Italian Dictionary: English-Italian ($OBJ)."
+    ]
+  },
+  "P12893": {
+    "label": "autoritateak.eus ID",
+    "description": "identifier for an person in the Basque authority file autoritateak.eus",
+    "aliases": [],
+    "realizations": [
+      "$SUB has a Basque authority file identifier of $OBJ."
+    ]
+  },
+  "P12894": {
+    "label": "Museum of the Russian Academy of Arts artist ID",
+    "description": "identifier for an artist at the Museum of the Russian Academy of Arts",
+    "aliases": [
+      "MotRAoA artist ID"
+    ],
+    "realizations": [
+      "The artist associated with the Museum of the Russian Academy of Arts ($SUB) has an identifier ($OBJ) known as MotRAoA artist ID.",
+      "$SUB is identified by $OBJ, which is also referred to as MotRAoA artist ID.",
+      "The MotRAoA artist ID ($OBJ) uniquely identifies an artist at the Museum of the Russian Academy of Arts ($SUB)."
+    ]
+  },
+  "P12895": {
+    "label": "indexer",
+    "description": "entity responsible for compiling an index of a book, database, website or other forms of media publications in the form of a methodical arrangement of records designed to enable users to locate information quickly",
+    "aliases": [
+      "index by",
+      "indexed by",
+      "indexor"
+    ],
+    "realizations": [
+      "Someone named $SUB indexed $OBJ."
+    ]
+  },
+  "P12896": {
+    "label": "Nintendo Life company ID",
+    "description": "identifier for a company on Nintendo Life, Pure Xbox or Push Square",
+    "aliases": [
+      "Pure Xbox company ID",
+      "Push Square company ID"
+    ],
+    "realizations": [
+      "$SUB has Nintendo Life company ID $OBJ"
+    ]
+  },
+  "P12897": {
+    "label": "Wiley Online Library journal ID",
+    "description": "identifier for a scientific journal on the Wiley Online Library, a website about works published by John Wiley & Sons",
+    "aliases": [
+      "John Wiley & Sons journal ID",
+      "onlinelibrary.wiley.com journal ID"
+    ],
+    "realizations": [
+      "$SUB has the identifier $OBJ for its publication on the Wiley Online Library."
+    ]
+  },
+  "P12898": {
+    "label": "Museums in Russia ID",
+    "description": "identifier of a museum page on the website \"Museums in Russia\"",
+    "aliases": [
+      "MiR ID",
+      "Museums of Russia ID",
+      "MoR ID",
+      "museum.ru ID"
+    ],
+    "realizations": [
+      "The Museums in Russia ID ($SUB) is associated with the museum page on museum.ru ($OBJ).",
+      "The entity identified by Museums in Russia ID ($SUB) corresponds to a museum page on museum.ru ($OBJ).",
+      "Museums in Russia ID ($SUB) uniquely identifies a museum page on the website museum.ru ($OBJ)."
+    ]
+  },
+  "P12899": {
+    "label": "Helveticat ID",
+    "description": "identifier in the authority file of the Swiss National Library",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Helveticat ID $OBJ"
+    ]
+  },
+  "P129": {
+    "label": "physically interacts with",
+    "description": "physical entity that the subject interacts with",
+    "aliases": [
+      "interact with",
+      "interact"
+    ],
+    "realizations": [
+      "The subject ($SUB) physically interacts with the object ($OBJ).",
+      "$SUB has physical contact with $OBJ.",
+      "$SUB is in physical contact with $OBJ."
+    ]
+  },
+  "P1290": {
+    "label": "godparent",
+    "description": "person who is the godparent of a given person",
+    "aliases": [
+      "godfather",
+      "godmother"
+    ],
+    "realizations": [
+      "$SUB was godparent of $OBJ",
+      "The $SUB was the godparent of $OBJ",
+      "$SUB served as the godparent to $OBJ"
+    ]
+  },
+  "P12900": {
+    "label": "ARABTERM entry ID",
+    "description": "identifier for a term in the joint publication of the Arab League's ALECSO and the German BMZ",
+    "aliases": [],
+    "realizations": [
+      "$SUB has ARABTERM entry ID $OBJ"
+    ]
+  },
+  "P12901": {
+    "label": "Hawramani Arabic Lexicon entry ID",
+    "description": "identifier for a word in Ikram Hawramani's compilation of Arabic lexicons",
+    "aliases": [],
+    "realizations": [
+      "The Hawramani Arabic Lexicon entry ID of $SUB is $OBJ.",
+      "$SUB has an identifier in Ikram Hawramani's compilation known as $OBJ.",
+      "$SUB corresponds to the word number $OBJ in Ikram Hawramani's Arabic lexicons."
+    ]
+  },
+  "P12902": {
+    "label": "Women in Resistance ID",
+    "description": "identifier for a biographical entry on the website Frauen im Widerstand gegen den Nationalsozialismus (Women in Resistance against National Socialism)",
+    "aliases": [
+      "Women in Resistance against National Socialism ID"
+    ],
+    "realizations": [
+      "Women in Resistance ID ($SUB) refers to ($OBJ)",
+      "The subject ($SUB) is identified as Women in Resistance against National Socialism ($OBJ)",
+      "$SUB is associated with the identifier for a biographical entry on Frauen im Widerstand gegen den Nationalsozialismus ($OBJ)"
+    ]
+  },
+  "P12903": {
+    "label": "Oxford French-English Dictionary ID",
+    "description": "identifier for a subject page in the Pocket Oxford-Hachette French Dictionary: French-English",
+    "aliases": [
+      "Pocket Oxford-Hachette French Dictionary: French-English ID",
+      "FED ID",
+      "French-English Dictionary ID"
+    ],
+    "realizations": [
+      "The $SUB's entry in the Pocket Oxford-Hachette French Dictionary: French-English is identified by the FED ID, $OBJ."
+    ]
+  },
+  "P12904": {
+    "label": "Oxford German-English Dictionary ID",
+    "description": "identifier for a subject page in the Pocket Oxford German Dictionary: German-English",
+    "aliases": [
+      "Pocket Oxford German Dictionary: German-English ID",
+      "GED ID",
+      "German-English Dictionary ID"
+    ],
+    "realizations": [
+      "The Oxford German-English Dictionary ID ($SUB) is equivalent to the Pocket Oxford German Dictionary: German-English ID ($OBJ).",
+      "The $SUB entity corresponds to the $OBJ identifier in the Pocket Oxford German Dictionary.",
+      "The subject page of the $SUB entity has an identifier matching the $OBJ."
+    ]
+  },
+  "P12905": {
+    "label": "Emerald Group Publishing journal ID",
+    "description": "identifier for a scientific journal published by Emerald Group Publishing",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Emerald Group Publishing journal ID $OBJ"
+    ]
+  },
+  "P12906": {
+    "label": "Taylor & Francis journal ID",
+    "description": "identifier for a scientific journal on Taylor & Francis Online, a website about works published by Taylor & Francis",
+    "aliases": [
+      "tandfonline.com journal ID",
+      "Taylor and Francis journal ID"
+    ],
+    "realizations": [
+      "The journal ID of $SUB is $OBJ.",
+      "$SUB has the identifier $OBJ for publication on Taylor & Francis Online.",
+      "$SUB's journal ID is available at $OBJ."
+    ]
+  },
+  "P12907": {
+    "label": "JTA Sightseeing Database ID",
+    "description": "identifier for tourist attractions and related items in Japan, in the multilingual JTA Sightseeing Database",
+    "aliases": [],
+    "realizations": [
+      "The JTA Sightseeing Database ID of the $SUB is $OBJ.",
+      "$SUB has an identifier in the JTA Sightseeing Database with the value $OBJ.",
+      "The identifier for the $SUB is listed as $OBJ in the JTA Sightseeing Database."
+    ]
+  },
+  "P12908": {
+    "label": "WorldCyclingStats ID",
+    "description": "identifier on the website WorldCyclingStats",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier on the website WorldCyclingStats with the ID $OBJ.",
+      "$SUB's identifier on WorldCyclingStats is denoted as $OBJ."
+    ]
+  },
+  "P12909": {
+    "label": "The New Mithraeum ID",
+    "description": "identifier for a monument of Mithras in The New Mithraeum database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has identifier $OBJ in The New Mithraeum database.",
+      "$SUB's monument entry is identified by $OBJ."
+    ]
+  },
+  "P1291": {
+    "label": "Association Authors of Switzerland ID (former scheme)",
+    "description": "identifier in a Swiss database of modern writers",
+    "aliases": [
+      "ADS ID"
+    ],
+    "realizations": [
+      "$SUB has Association Authors of Switzerland ID (former scheme) $OBJ"
+    ]
+  },
+  "P12910": {
+    "label": "Finnish Ministers database ID (new)",
+    "description": "code of the entry on the Finnish ministers database",
+    "aliases": [],
+    "realizations": [
+      "The $SUB has an identifier on the Finnish ministers database, denoted as $OBJ.",
+      "$SUB's entry in the Finnish ministers database is identified by the code $OBJ."
+    ]
+  },
+  "P12911": {
+    "label": "State Historical Museum of Russia person ID",
+    "description": "identifier for person at the State Historical Museum of Russia online collection",
+    "aliases": [],
+    "realizations": [
+      "$SUB has State Historical Museum of Russia person ID $OBJ"
+    ]
+  },
+  "P12912": {
+    "label": "object of occurrence",
+    "description": "specific object to which an occurrence or class of occurrences applies",
+    "aliases": [
+      "action applies to item",
+      "target of action",
+      "undergoer",
+      "patient",
+      "of",
+      "target",
+      "done to",
+      "affects",
+      "direct object",
+      "does to",
+      "did to",
+      "object of action",
+      "occurs to item",
+      "happens to",
+      "happened to"
+    ],
+    "realizations": [
+      "The $SUB undergoes an action to the $OBJ."
+    ]
+  },
+  "P12913": {
+    "label": "class of object(s) of occurrence",
+    "description": "class that includes the object(s) to which this occurrence (or class of occurrence) occurs or occurred",
+    "aliases": [
+      "target class of action",
+      "undergoer class",
+      "patient class",
+      "of",
+      "target class",
+      "direct object class",
+      "used on",
+      "may occur to items of the class",
+      "class of object of occurrence",
+      "object class of action",
+      "acts on",
+      "object class of occurrence",
+      "done to item(s) of the class",
+      "affects item(s) of the class",
+      "class of undergoer(s)",
+      "class of target(s) of action",
+      "applies to item(s) of the class",
+      "happens to object(s) of the class",
+      "happened to object(s) of the class",
+      "acted on",
+      "may happen to",
+      "target"
+    ],
+    "realizations": [
+      "$SUB has class of object(s) of occurrence $OBJ"
+    ]
+  },
+  "P12914": {
+    "label": "mandumah ID",
+    "description": "identifier in the mandumah databases",
+    "aliases": [
+      "MD ID"
+    ],
+    "realizations": [
+      "The mandumah ID of $SUB is $OBJ.",
+      "$SUB has an identifier in the mandumah databases known as MD ID, which is $OBJ.",
+      "$SUB's identifier in the mandumah databases is referred to as $OBJ."
+    ]
+  },
+  "P12915": {
+    "label": "Educational center of resistance and deportation of Landes ID",
+    "description": "identifier for a person on the educational center of resistance and deportation of Landes website",
+    "aliases": [
+      "identifier of the educational center of resistance and deportation of Landes"
+    ],
+    "realizations": [
+      "$SUB's identifier on the educational center of resistance and deportation of Landes website corresponds to $OBJ."
+    ]
+  },
+  "P12916": {
+    "label": "Encyclopaedia of Islam (French edition) ID",
+    "description": "identifier of an article from the French edition of the Encyclopaedia of Islam",
+    "aliases": [
+      "EIFO"
+    ],
+    "realizations": [
+      "$SUB has an identifier in the French edition of the Encyclopaedia of Islam, which is $OBJ.",
+      "The article referenced by $OBJ in the French edition of the Encyclopaedia of Islam is $SUB."
+    ]
+  },
+  "P12917": {
+    "label": "FoodData Central ID",
+    "description": "identifier in the database of nutritional data about generic and branded foods operated by the U.S. Department of Agriculture",
+    "aliases": [
+      "FDC ID"
+    ],
+    "realizations": [
+      "$SUB has the identifier $OBJ in the database of nutritional data operated by the U.S. Department of Agriculture.",
+      "The $OBJ is the FoodData Central ID (also known as FDC ID) for $SUB."
+    ]
+  },
+  "P12918": {
+    "label": "French bathing water ID",
+    "description": "Unique identifier of a swimming site in France (Metropolitan, Guadeloupe, Martinique, Guyana, Mayotte and Réunion) on the website",
+    "aliases": [],
+    "realizations": [
+      "The French bathing water ID of the swimming site in France ($SUB) is $OBJ.",
+      "$SUB has the French bathing water ID $OBJ."
+    ]
+  },
+  "P12919": {
+    "label": "public funding",
+    "description": "amount of public funding an organisation receives",
+    "aliases": [],
+    "realizations": [
+      "$SUB has public funding $OBJ"
+    ]
+  },
+  "P1292": {
+    "label": "DNB edition ID",
+    "description": "identifier in the German National Library catalogue (see also authority data P227)",
+    "aliases": [
+      "DNB recording",
+      "d-nb.info",
+      "DNB-IDN"
+    ],
+    "realizations": [
+      "$SUB has DNB edition ID $OBJ"
+    ]
+  },
+  "P12920": {
+    "label": "Norwegian Kunstnerforbundet artist ID",
+    "description": "identifier for an artist member of Kunstnerforbundet in Norway",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier for membership in Kunstnerforbundet in Norway, which is $OBJ.",
+      "$SUB's Norwegian Kunstnerforbundet ID is $OBJ."
+    ]
+  },
+  "P12921": {
+    "label": "Political Dictionary ID",
+    "description": "entry for a term in Taegan Goddard's Political Dictionary",
+    "aliases": [
+      "Political Dictionary entry",
+      "Taegan Goddard's Political Dictionary ID",
+      "Taegan Goddard's Political Dictionary entry"
+    ],
+    "realizations": [
+      "The Political Dictionary ID of $SUB is $OBJ.",
+      "$SUB has entry in Taegan Goddard's Political Dictionary with ID $OBJ.",
+      "$SUB is listed as $OBJ in Taegan Goddard's Political Dictionary."
+    ]
+  },
+  "P12922": {
+    "label": "United Nations Digital Library ID",
+    "description": "identifier for authority control used by the United Nations Digital Library",
+    "aliases": [],
+    "realizations": [
+      "$SUB has United Nations Digital Library ID $OBJ"
+    ]
+  },
+  "P12923": {
+    "label": "U.S. Copyright Office Public Records System work ID",
+    "description": "identifier for a creative work in the U.S. Copyright Office Public Records System database",
+    "aliases": [
+      "USCOPRS work ID",
+      "COPRS work ID",
+      "US Copyright Office Public Records System work ID",
+      "Copyright Office Public Records System work ID",
+      "Copyright Office Public Records System"
+    ],
+    "realizations": [
+      "$SUB has an identifier in the U.S. Copyright Office Public Records System database known as $OBJ."
+    ]
+  },
+  "P12924": {
+    "label": "365scores football player ID",
+    "description": "identifier for 365scores players",
+    "aliases": [],
+    "realizations": [
+      "$SUB is identified by the identifier $OBJ in 365scores."
+    ]
+  },
+  "P12925": {
+    "label": "African Music Library artist ID",
+    "description": "identifier of musical artist id entry in African Music Library africanmusiclibrary.org",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier in the African Music Library, which is $OBJ.",
+      "$SUB's entry in the African Music Library is identified as $OBJ."
+    ]
+  },
+  "P12926": {
+    "label": "Akademický slovník současné češtiny ID",
+    "description": "identifier for a Czech lexeme in Akademický slovník současné češtiny",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Akademický slovník současné češtiny ID $OBJ"
+    ]
+  },
+  "P12927": {
+    "label": "GamingOnLinux Database ID",
+    "description": "ID in the GamingOnLinux database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an ID in the GamingOnLinux database of $OBJ.",
+      "The ID in the GamingOnLinux database for $SUB is $OBJ."
+    ]
+  },
+  "P12928": {
+    "label": "TIPLOC code",
+    "description": "code for a timing point location on the UK railway network",
+    "aliases": [],
+    "realizations": [
+      "$SUB has TIPLOC code $OBJ"
+    ]
+  },
+  "P12929": {
+    "label": "JJM Habitation ID",
+    "description": "identifier for Indian hamlets(/rural habitations) issued by Department of Drinking Water and Sanitation, Ministry of Jal Shakti (Q85785741) of the Government of India",
+    "aliases": [],
+    "realizations": [
+      "$SUB has JJM Habitation ID $OBJ"
+    ]
+  },
+  "P1293": {
+    "label": "Royal Aero Club Aviator's Certificate ID",
+    "description": "identifier",
+    "aliases": [],
+    "realizations": [
+      "The Royal Aero Club Aviator's Certificate ID of the $SUB is $OBJ.",
+      "The $SUB holds the Royal Aero Club Aviator's Certificate ID $OBJ.",
+      "The Royal Aero Club Aviator's Certificate ID number for the $SUB is $OBJ."
+    ]
+  },
+  "P12930": {
+    "label": "IDU play ID",
+    "description": "identifier for plays in Czechia in Theatre Institute database (IDU)",
+    "aliases": [],
+    "realizations": [
+      "The IDU play ID of the $SUB is $OBJ.",
+      "The $SUB has an IDU play ID of $OBJ.",
+      "The IDU play ID for $SUB is $OBJ."
+    ]
+  },
+  "P12931": {
+    "label": "IDU literary work ID",
+    "description": "identifier of literary works (e.g. novels) or movies dramatized for theatrical performance in the Theatre Institute database (IDU)",
+    "aliases": [],
+    "realizations": [
+      "The IDU literary work ID is $OBJ of $SUB.",
+      "$SUB has an IDU literary work ID of $OBJ.",
+      "The IDU literary work ID for $SUB is $OBJ."
+    ]
+  },
+  "P12932": {
+    "label": "Stichting Erfgoed Nederlandse Biercultuur beer ID",
+    "description": "identifier for a beer in the database of Stichting Erfgoed Nederlandse Biercultuur",
+    "aliases": [
+      "SENB beer ID"
+    ],
+    "realizations": [
+      "$SUB has an identifier of $OBJ.",
+      "$SUB is associated with the SENB beer ID $OBJ."
+    ]
+  },
+  "P12933": {
+    "label": "relates to sustainable development goal, target or indicator",
+    "description": "indicates a relation between the subject and the SDGs or one of the components",
+    "aliases": [
+      "relates to SDG",
+      "SDG subject",
+      "Sustainable Development Goals subject",
+      "relates to SDGs"
+    ],
+    "realizations": [
+      "$SUB has relates to sustainable development goal, target or indicator $OBJ"
+    ]
+  },
+  "P12934": {
+    "label": "The House of Graphs ID",
+    "description": "ID for an undirected graph on houseofgraphs.org",
+    "aliases": [
+      "House of Graphs ID",
+      "HoG ID"
+    ],
+    "realizations": [
+      "$SUB has The House of Graphs ID $OBJ"
+    ]
+  },
+  "P12935": {
+    "label": "Illinois Center for the Book author ID",
+    "description": "numerical identifier for a person in the Illinois Authors Directory",
+    "aliases": [
+      "Illinois Authors Directory author ID"
+    ],
+    "realizations": [
+      "$SUB has an author ID in the Illinois Authors Directory, which is also known as $OBJ."
+    ]
+  },
+  "P12936": {
+    "label": "Slekt og Data grave ID",
+    "description": "identifier for a grave on Slekt og Data Grave database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier in the Slekt og Data Grave database, known as $OBJ.",
+      "$OBJ is a unique identifier for the grave of $SUB."
+    ]
+  },
+  "P12937": {
+    "label": "FolkWiki ID",
+    "description": "identifier of a musician or song in the FolkWiki database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has the FolkWiki ID $OBJ.",
+      "The FolkWiki ID $OBJ corresponds to the musician $SUB."
+    ]
+  },
+  "P12938": {
+    "label": "iasj article ID",
+    "description": "identifier for a article in iasj",
+    "aliases": [],
+    "realizations": [
+      "The iasj article ID of $SUB is $OBJ.",
+      "$SUB has an identifier in iasj of $OBJ.",
+      "$SUB's identifier in iasj is $OBJ."
+    ]
+  },
+  "P12939": {
+    "label": "365scores football team ID",
+    "description": "identifier for 365scores football team ID",
+    "aliases": [],
+    "realizations": [
+      "$SUB has 365scores football team ID $OBJ"
+    ]
+  },
+  "P1294": {
+    "label": "WWF ecoregion code",
+    "description": "identifier for ecoregions",
+    "aliases": [],
+    "realizations": [
+      "$SUB has WWF ecoregion code $OBJ"
+    ]
+  },
+  "P12940": {
+    "label": "speedrun.com series ID",
+    "description": "video game franchise on speedrun.com",
+    "aliases": [],
+    "realizations": [
+      "$SUB has a series ID on speedrun.com of $OBJ.",
+      "A video game franchise with $OBJ as its series ID on speedrun.com is $SUB."
+    ]
+  },
+  "P12941": {
+    "label": "All Musicals lyrics ID",
+    "description": "identifier for lyrics for musicals and songs from musicals at All Musicals",
+    "aliases": [
+      "All Musicals ID"
+    ],
+    "realizations": [
+      "$SUB has All Musicals lyrics ID $OBJ"
+    ]
+  },
+  "P12942": {
+    "label": "MobyGames critic ID",
+    "description": "video game reviewers at MobyGames",
+    "aliases": [],
+    "realizations": [
+      "The critic ID of $SUB was created by $OBJ.",
+      "$SUB was reviewed by $OBJ on MobyGames.",
+      "$SUB's critic ID was assigned by $OBJ."
+    ]
+  },
+  "P12943": {
+    "label": "Polygon game ID",
+    "description": "identifier of a video game in the Polygon database",
+    "aliases": [],
+    "realizations": [
+      "$SUB's polygon game ID corresponds to $OBJ."
+    ]
+  },
+  "P12944": {
+    "label": "Madain Project ID",
+    "description": "identifier of an article from the Madain Project",
+    "aliases": [
+      "MPID"
+    ],
+    "realizations": [
+      "The Madain Project ID ($SUB) refers to article ($OBJ).",
+      "$SUB has an identifier in the Madain Project ($OBJ), known as MPID.",
+      "The article ($OBJ) is identified by its unique Madain Project ID ($SUB)."
+    ]
+  },
+  "P12945": {
+    "label": "365scores basketball player ID",
+    "description": "identifier for 365scores basketball players",
+    "aliases": [],
+    "realizations": [
+      "$SUB is a 365scores basketball player and $OBJ is their ID.",
+      "The subject $SUB is associated with the identifier $OBJ for 365scores basketball players."
+    ]
+  },
+  "P12946": {
+    "label": "FOLDOC ID",
+    "description": "identifier on the Free On-line Dictionary of Computing",
+    "aliases": [
+      "Free On-line Dictionary of Computing ID"
+    ],
+    "realizations": [
+      "The Free On-line Dictionary of Computing ID for $SUB is $OBJ.",
+      "$SUB has an identifier on the Free On-line Dictionary of Computing, known as $OBJ.",
+      "$SUB's identifier in the Free On-line Dictionary of Computing is $OBJ."
+    ]
+  },
+  "P12947": {
+    "label": "GameFAQs genre ID",
+    "description": "identifier of a video game genre on GameFAQs",
+    "aliases": [],
+    "realizations": [
+      "$SUB has GameFAQs genre ID $OBJ"
+    ]
+  },
+  "P12948": {
+    "label": "Retromags game ID",
+    "description": "game ID in the Retromags database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an entry in the Retromags database with the ID $OBJ.",
+      "The game ID of $SUB can be found in the Retromags database as $OBJ."
+    ]
+  },
+  "P12949": {
+    "label": "denomination",
+    "description": "value of a currency or type of currency",
+    "aliases": [],
+    "realizations": [
+      "$SUB has a denomination of $OBJ.",
+      "$SUB's currency type is known as $OBJ."
+    ]
+  },
+  "P1295": {
+    "label": "emissivity",
+    "description": "ability of a substance to radiate thermal energy from its surface",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an ability to radiate thermal energy from its surface with an emissivity of $OBJ.",
+      "The emissivity of $SUB is $OBJ."
+    ]
+  },
+  "P12950": {
+    "label": "Nomes e Voces ID",
+    "description": "numerical identifier for a person in Nomes e Voces database of Francoist Repression",
+    "aliases": [],
+    "realizations": [
+      "The Nomes e Voces ID of $SUB is $OBJ.",
+      "$SUB has an identifier in the Nomes e Voces database of Francoist Repression with the value $OBJ.",
+      "$SUB's entry in the Nomes e Voces database of Francoist Repression is identified by the numerical ID $OBJ."
+    ]
+  },
+  "P12951": {
+    "label": "Altar of Gaming company ID",
+    "description": "identifier for a company in the Altar of Gaming database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Altar of Gaming company ID $OBJ"
+    ]
+  },
+  "P12952": {
+    "label": "Altar of Gaming franchise ID",
+    "description": "identifier for a franchise in the Altar of Gaming database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier in the Altar of Gaming database denoted as $OBJ.",
+      "$SUB's gaming franchise ID corresponds to a unique entry in the Altar of Gaming database referenced by $OBJ."
+    ]
   }
 }
