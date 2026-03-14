@@ -63,3 +63,22 @@
 - Properties represent hierarchical relationships that are important but not often well understood.
 - Having them in the embedding space lets us analyze how the model represents relational concepts relative to the entities they connect.
 - They participate in the density analysis of the space even though they don't have geodesics.
+
+## AD-8: Breadth-First Search for Maximum Density
+
+**Decision:** The walk through Wikidata uses breadth-first search (BFS), not random walk or depth-first. Every linked QID from an imported item is added to the queue.
+
+**Rationale:**
+- The goal is maximum geodesic density around the seed. BFS explores all neighbors before going deeper, so it fills in the local region first.
+- Density is the point — we want as many geodesics as possible in a connected neighborhood to test whether they form consistent vector operations.
+- DFS would produce long chains with sparse coverage. Random walk would scatter. BFS produces a dense ball expanding outward from the seed.
+
+## AD-9: Engishiki (Q1342448) as Default Seed
+
+**Decision:** Default BFS seed is Engishiki (Q1342448), not a generic concept like "embedding."
+
+**Rationale:**
+- Engishiki sits in a thick ontological neighborhood — it connects to Shinto shrines, Japanese geography, historical periods, court ranks, religious practices, and administrative systems.
+- This produces a dense cluster of culturally and semantically interconnected entities, which is ideal for testing whether geodesics form consistent vector operations.
+- A generic concept like "embedding" (Q133284072) would fan out into sparse, disconnected areas too quickly.
+- The seed is customizable (`python random_walk.py Q8502 --limit 1000`) — Engishiki is just a good default for density.
