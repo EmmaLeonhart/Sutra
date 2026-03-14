@@ -33942,5 +33942,543 @@
       "$SUB is the studio responsible for $OBJ.",
       "$SUB's ID in the Latvian film database is $OBJ."
     ]
+  },
+  "P12817": {
+    "label": "Cockroach Species File taxon ID (new)",
+    "description": "identifier for a taxon in the Cockroach Species File database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has the identifier $OBJ in the Cockroach Species File database.",
+      "The identifier for the taxon of $SUB in the Cockroach Species File database is $OBJ."
+    ]
+  },
+  "P12818": {
+    "label": "Lygaeoidea Species File taxon ID (new)",
+    "description": "identifier for a taxon in the Lygaeoidea Species File database",
+    "aliases": [],
+    "realizations": [
+      "The Lygaeoidea Species File taxon ID ($SUB) is associated with ($OBJ) the identifier for a taxon in the Lygaeoidea Species File database.",
+      "$SUB has an identifier of ($OBJ) in the Lygaeoidea Species File database.",
+      "The taxon ID ($SUB) matches ($OBJ), an identifier in the Lygaeoidea Species File database."
+    ]
+  },
+  "P12819": {
+    "label": "Phasmida Species File taxon ID (new)",
+    "description": "identifier for a taxon in the Phasmida Species File database",
+    "aliases": [],
+    "realizations": [
+      "The Phasmida Species File taxon ID ($SUB) is assigned to the species ($OBJ).",
+      "The $SUB identifier in the Phasmida Species File corresponds to the species ($OBJ)."
+    ]
+  },
+  "P1282": {
+    "label": "OpenStreetMap tag",
+    "description": "OpenStreetMap tagging schema (a key=value) for classes, properties, and values [! don't use for Relation:type, or Role:role]",
+    "aliases": [
+      "OSM tag",
+      "OpenStreetMap tag"
+    ],
+    "realizations": [
+      "$SUB uses the following OSM tags: $OBJ.",
+      "The schema for $SUB's tagging includes classes, properties, and values as defined in $OBJ."
+    ]
+  },
+  "P12820": {
+    "label": "Psocodea Species File taxon ID (new)",
+    "description": "identifier for a taxon in the Psocodea Species File database",
+    "aliases": [],
+    "realizations": [
+      "The Psocodea Species File taxon ID ($SUB) is identified by ($OBJ).",
+      "($SUB) corresponds to a unique identifier in the Psocodea Species File database as ($OBJ)."
+    ]
+  },
+  "P12821": {
+    "label": "Oxford Spanish-English Dictionary ID",
+    "description": "identifier for a subject page in the Pocket Oxford Spanish Dictionary: Spanish-English",
+    "aliases": [
+      "Pocket Oxford Spanish Dictionary: Spanish-English ID",
+      "Pocket Oxford Spanish Dictionary",
+      "Spanish-English ID",
+      "SED ID",
+      "Spanish-English Dictionary ID"
+    ],
+    "realizations": [
+      "The dictionary ID for the $SUB is $OBJ.",
+      "The $SUB has an identifier in the Pocket Oxford Spanish Dictionary: $OBJ."
+    ]
+  },
+  "P12822": {
+    "label": "Norwegian National Museum producer ID",
+    "description": "ID for a producer (artist etc.) at the Norwegian National Museum",
+    "aliases": [],
+    "realizations": [
+      "The Norwegian National Museum producer ID ($SUB) produced work for ($OBJ).",
+      "$SUB was produced by ($OBJ), according to the Norwegian National Museum.",
+      "($OBJ) is associated with the Norwegian National Museum producer ID ($SUB)."
+    ]
+  },
+  "P12823": {
+    "label": "Burgenwelt ID",
+    "description": "identifier of the castle in the Burgenwelt database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has a Burgenwelt ID of $OBJ.",
+      "$SUB's Burgenwelt ID matches $OBJ."
+    ]
+  },
+  "P12824": {
+    "label": "Oxford Irish-English Dictionary ID",
+    "description": "identifier for an entry in the Pocket Oxford Irish Dictionary: Irish-English",
+    "aliases": [
+      "Pocket Oxford Irish Dictionary ID",
+      "Oxford Irish Dictionary ID",
+      "IED ID",
+      "Pocket Oxford Irish Dictionary: Irish-English ID",
+      "Irish-English Dictionary ID"
+    ],
+    "realizations": [
+      "The $SUB is associated with the $OBJ of the Oxford Irish-English Dictionary ID."
+    ]
+  },
+  "P12825": {
+    "label": "Tesoro della Lingua Italiana delle Origini ID",
+    "description": "identifier for an entry in the online reproduction of Pietro G. Beltrami's dictionary at tlio.ovi.cnr.it",
+    "aliases": [],
+    "realizations": [
+      "$SUB has the Tesoro della Lingua Italiana delle Origini ID, which is $OBJ.",
+      "$SUB's identifier is $OBJ."
+    ]
+  },
+  "P12826": {
+    "label": "Tommaseo-Bellini Online ID",
+    "description": "identifier for an entry in the reproduction of Tommaseo and Bellini's Italian dictionary hosted at tommaseobellini.it",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier of $OBJ, which corresponds to the Tommaseo-Bellini Online ID at tommaseobellini.it.",
+      "The Tommaseo-Bellini Online ID is identified as $OBJ for $SUB."
+    ]
+  },
+  "P12827": {
+    "label": "danskfodbold.com player ID",
+    "description": "identifier for player at danskfodbold.com",
+    "aliases": [],
+    "realizations": [
+      "The $SUB is a Danish football player and $OBJ is their unique identifier on danskfodbold.com.",
+      "$SUB's information can be found on danskfodbold.com with the ID $OBJ."
+    ]
+  },
+  "P12828": {
+    "label": "DAKA Danish-Greenlandic Dictionary ID",
+    "description": "entry for a Danish lexeme in the online DAKA dictionary",
+    "aliases": [],
+    "realizations": [
+      "The $SUB is associated with the $OBJ of the DAKA Danish-Greenlandic Dictionary ID.",
+      "The $SUB entity has an identifier denoted by the $OBJ, which corresponds to its entry in the DAKA dictionary."
+    ]
+  },
+  "P1283": {
+    "label": "filmography",
+    "description": "item for the list of films a person has contributed to. Don't use it to add film items. Instead, add actors as \"cast member\" (P161) on items for films, directors with \"director\" (P57)",
+    "aliases": [
+      "list of films with the person",
+      "list of films about the person",
+      "list of films the person contributed to"
+    ],
+    "realizations": [
+      "$SUB has filmography $OBJ"
+    ]
+  },
+  "P12830": {
+    "label": "music mood",
+    "description": "qualifier carrying an emotion (mood) relevant to a musical audio recording",
+    "aliases": [
+      "mood of the music",
+      "mood of the song",
+      "song mood",
+      "song emotion",
+      "music emotion"
+    ],
+    "realizations": [
+      "$SUB has a mood of $OBJ.",
+      "$SUB's emotion is $OBJ."
+    ]
+  },
+  "P12831": {
+    "label": "DAKA Greenlandic-Danish Dictionary ID",
+    "description": "entry for a Greenlandic lexeme in the online DAKA dictionary",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an entry in the online DAKA dictionary with ID $OBJ.",
+      "The online DAKA dictionary contains a lexeme for $SUB with ID $OBJ."
+    ]
+  },
+  "P12832": {
+    "label": "Canadian Great War Project person ID",
+    "description": "identifier for a person in the Canadian Great War Project database of Canadian military personnel of World War I",
+    "aliases": [
+      "‎CGWP person ID"
+    ],
+    "realizations": [
+      "The Canadian Great War Project person ID ($SUB) is identified as ($OBJ).",
+      "$SUB has the identifier $OBJ.",
+      "$SUB's identifier is ($OBJ)."
+    ]
+  },
+  "P12833": {
+    "label": "English-Irish Dictionary ID",
+    "description": "identifier for a subject page in the Pocket Oxford Irish Dictionary: English-Irish",
+    "aliases": [
+      "Pocket Oxford Irish Dictionary: English-Irish ID",
+      "Pocket Oxford Irish Dictionary",
+      "English-Irish ID",
+      "EID ID"
+    ],
+    "realizations": [
+      "The English-Irish Dictionary ID ($SUB) has an identifier that matches its entry in the Pocket Oxford Irish Dictionary: English-Irish ($OBJ).",
+      "The subject page of the $SUB is identified by a unique identifier found within the $OBJ.",
+      "The $SUB's identifier corresponds to a specific entry in the Pocket Oxford Irish Dictionary: English-Irish, denoted as $OBJ."
+    ]
+  },
+  "P12834": {
+    "label": "PMC journal ID",
+    "description": "identifier for a journal on PubMed Central (PMC)",
+    "aliases": [],
+    "realizations": [
+      "$SUB has PMC journal ID $OBJ"
+    ]
+  },
+  "P12835": {
+    "label": "Census ID",
+    "description": "identifier of a record in the database of the Census of Antique Works of Art and Architecture Known in the Renaissance",
+    "aliases": [
+      "CensusID",
+      "Census Identifier",
+      "Census of Antique Works of Art and Architecture Known in the Renaissance ID",
+      "Census of Antique Works of Art and Architecture Known in the Renaissance identifier"
+    ],
+    "realizations": [
+      "The Census ID of $SUB is $OBJ.",
+      "$SUB has the identifier $OBJ in the Census of Antique Works of Art and Architecture Known in the Renaissance database.",
+      "$SUB's record in the Census of Antique Works of Art and Architecture Known in the Renaissance is identified by $OBJ."
+    ]
+  },
+  "P12836": {
+    "label": "Douban personage ID",
+    "description": "identifier of a person on the Douban.com website",
+    "aliases": [
+      "Douban people ID"
+    ],
+    "realizations": [
+      "The Douban personage ID of $SUB is $OBJ.",
+      "$SUB has the Douban people ID $OBJ.",
+      "$SUB's Douban people ID is $OBJ."
+    ]
+  },
+  "P12837": {
+    "label": "Avibase person ID",
+    "description": "identifier for a person in the Avibase database",
+    "aliases": [],
+    "realizations": [
+      "The person in the Avibase database ($SUB) has an identifier ($OBJ) as Avibase person ID.",
+      "A person in the Avibase database ($SUB) is identified by ($OBJ) Avibase person ID.",
+      "($SUB) is associated with ($OBJ) Avibase person ID."
+    ]
+  },
+  "P12838": {
+    "label": "Brezhoneg21 ID",
+    "description": "identifier in the Breton dictionary of sciences and techniques (Brezhoneg21)",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier in the Breton dictionary of sciences and techniques (Brezhoneg21), which is $OBJ.",
+      "$OBJ is the identifier used by the Breton dictionary of sciences and techniques (Brezhoneg21) for $SUB."
+    ]
+  },
+  "P12839": {
+    "label": "European Education Thesaurus ID",
+    "description": "identifier for a concept in the European Education Thesaurus",
+    "aliases": [
+      "EET ID"
+    ],
+    "realizations": [
+      "The European Education Thesaurus ID ($SUB) refers to ($OBJ).",
+      "$SUB has identifier $OBJ in the European Education Thesaurus.",
+      "The concept represented by $SUB is identified as $OBJ."
+    ]
+  },
+  "P1284": {
+    "label": "Munzinger person ID",
+    "description": "identifier on the Munzinger Archiv",
+    "aliases": [
+      "Munzinger IBA",
+      "Munzinger Personen – Internationales Biographisches Archiv ID",
+      "Internationales Biographisches Archiv ID"
+    ],
+    "realizations": [
+      "The Munzinger person ID ($SUB) is associated with ($OBJ):",
+      "$SUB has identifier ($OBJ):",
+      "($SUB) is identified by ($OBJ):"
+    ]
+  },
+  "P12840": {
+    "label": "Cineuropa distributor ID",
+    "description": "identifier for a distributor in Cineuropa",
+    "aliases": [],
+    "realizations": [
+      "$SUB has distributor ID $OBJ in Cineuropa.",
+      "$SUB's distributor ID is $OBJ."
+    ]
+  },
+  "P12841": {
+    "label": "Cineuropa production company ID",
+    "description": "identifier for a company in Cineuropa",
+    "aliases": [],
+    "realizations": [
+      "$SUB has a production company ID in Cineuropa, denoted as $OBJ.",
+      "The production company of $SUB is identified as $OBJ within the Cineuropa database."
+    ]
+  },
+  "P12842": {
+    "label": "OpenCitations Meta ID",
+    "description": "earlier version of OpenCitations used the DOI directly but were also limited to DOI only",
+    "aliases": [],
+    "realizations": [
+      "$SUB has OpenCitations Meta ID $OBJ"
+    ]
+  },
+  "P12843": {
+    "label": "IGN franchise ID",
+    "description": "identifier for a franchise on IGN.com",
+    "aliases": [],
+    "realizations": [
+      "The IGN franchise ID of $SUB is $OBJ.",
+      "$SUB has an IGN franchise ID of $OBJ.",
+      "$SUB's IGN franchise ID is $OBJ."
+    ]
+  },
+  "P12844": {
+    "label": "Federal Reserve Subject Taxonomy ID",
+    "description": "identifier for a concept in the Federal Reserve Subject Taxonomy",
+    "aliases": [
+      "FRST ID"
+    ],
+    "realizations": [
+      "The Federal Reserve Subject Taxonomy ID ($SUB) is associated with the FRST ID ($OBJ).",
+      "$SUB has an identifier in the Federal Reserve Subject Taxonomy ID ($OBJ).",
+      "The $SUB entity is identified by its FRST ID ($OBJ)."
+    ]
+  },
+  "P12845": {
+    "label": "Farhang-i forsī ba rusī ID",
+    "description": "entry for a Persian lexeme in the farhang.ru online reproduction of Yuri Rubinchik’s Persian–Russian dictionary",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Farhang-i forsī ba rusī ID $OBJ"
+    ]
+  },
+  "P12846": {
+    "label": "Devri ID",
+    "description": "identifier in the Breton diachronic dictionary Devri",
+    "aliases": [],
+    "realizations": [
+      "The Devri ID of $SUB is $OBJ.",
+      "$SUB has the identifier $OBJ in the Breton diachronic dictionary Devri.",
+      "$SUB's identifier in the Breton diachronic dictionary Devri is $OBJ."
+    ]
+  },
+  "P12847": {
+    "label": "Cambridge University Press book ID",
+    "description": "identifier of a book from Cambridge University Press",
+    "aliases": [
+      "CUP ID",
+      "Cambridge University Press ID"
+    ],
+    "realizations": [
+      "$SUB is published by Cambridge University Press with ID: $OBJ.",
+      "$SUB's publication details include ID from Cambridge University Press: $OBJ."
+    ]
+  },
+  "P12848": {
+    "label": "Canadian Virtual War Memorial ID",
+    "description": "ID of a person in Canadian Virtual War Memorial",
+    "aliases": [
+      "Canadian Virtual War Memorial"
+    ],
+    "realizations": [
+      "The Canadian Virtual War Memorial ID ($SUB) is associated with a person in the Canadian Virtual War Memorial ($OBJ).",
+      "The $SUB of a person in the Canadian Virtual War Memorial ($OBJ) is the Canadian Virtual War Memorial ID.",
+      "A person in the Canadian Virtual War Memorial ($OBJ) has a unique identifier, known as the Canadian Virtual War Memorial ID ($SUB)."
+    ]
+  },
+  "P12849": {
+    "label": "coin edge image",
+    "description": "image or images that show the edge of a coin",
+    "aliases": [
+      "gurt",
+      "image of coin edge"
+    ],
+    "realizations": [
+      "$SUB has coin edge image $OBJ"
+    ]
+  },
+  "P1285": {
+    "label": "Munzinger Sport number",
+    "description": "identifier on the Munzinger Archiv",
+    "aliases": [],
+    "realizations": [
+      "$SUB has Munzinger Sport number $OBJ"
+    ]
+  },
+  "P12850": {
+    "label": "Personnel Records of the First World War ID",
+    "description": "ID of a person in Personnel Records of the First World War",
+    "aliases": [
+      "Personnel Records of the First World War (Library and Archives Canada) ID"
+    ],
+    "realizations": [
+      "$SUB's ID is $OBJ."
+    ]
+  },
+  "P12851": {
+    "label": "Fowler’s Concise Dictionary ID",
+    "description": "identifier for a subject page in the Fowler’s Concise Dictionary of Modern English Usage",
+    "aliases": [
+      "Fowler’s Concise Dictionary of Modern English Usage ID",
+      "FCD ID"
+    ],
+    "realizations": [
+      "The Fowler’s Concise Dictionary ID ($OBJ) of a subject page in the Fowler’s Concise Dictionary of Modern English Usage ($SUB).",
+      "The $SUB has an identifier known as Fowler’s Concise Dictionary ID ($OBJ), also referred to as FCD ID.",
+      "A subject page in the Fowler’s Concise Dictionary of Modern English Usage ($SUB) is identified by its Fowler’s Concise Dictionary ID ($OBJ)."
+    ]
+  },
+  "P12852": {
+    "label": "NooSFere publisher ID",
+    "description": "ID for a publishing house in the NooSFere database",
+    "aliases": [],
+    "realizations": [
+      "$SUB has an identifier in the NooSFere database denoted as $OBJ.",
+      "$SUB's publishing house entry corresponds to the ID $OBJ in the NooSFere database."
+    ]
+  },
+  "P12853": {
+    "label": "ozone depletion potential",
+    "description": "relative amount of degradation to the ozone layer relative to CFC-11",
+    "aliases": [],
+    "realizations": [
+      "The ozone depletion potential of $SUB has a relative amount of degradation to the ozone layer compared to CFC-11 of $OBJ.",
+      "$SUB has an ozone depletion effect that is $OBJ times greater than that of CFC-11.",
+      "The ozone depletion potential of $SUB is equivalent to that of CFC-11, with $OBJ being the relative measure."
+    ]
+  },
+  "P12854": {
+    "label": "Plex person key",
+    "description": "24 hex character identifier for person on Plex",
+    "aliases": [
+      "plex.tv person key",
+      "Plex person ID",
+      "plex.tv person ID",
+      "Plex ID",
+      "plex.tv ID"
+    ],
+    "realizations": [
+      "The Plex person key ($SUB) has the value of a 24 hex character identifier for a person on Plex ($OBJ).",
+      "The Plex ID ($SUB) corresponds to a unique 24 hex character identifier for a person on Plex ($OBJ).",
+      "A Plex person key ($SUB) is equivalent to a 24 hex character identifier for a person on Plex ($OBJ)."
+    ]
+  },
+  "P12855": {
+    "label": "BHMPI object ID",
+    "description": "identifier of an object in the photographic archive of the BHMPI",
+    "aliases": [
+      "BHMPI OBJ ID"
+    ],
+    "realizations": [
+      "$SUB is identified by its object ID in the BHMPI's photographic archive as $OBJ."
+    ]
+  },
+  "P12856": {
+    "label": "Index Fungorum person ID",
+    "description": "identifier for a person in the Index Fungorum database",
+    "aliases": [
+      "Fungal Name Author ID"
+    ],
+    "realizations": [
+      "The person in the Index Fungorum database ($SUB) has an identifier as author of a fungal name ($OBJ).",
+      "The subject entity ($SUB) is associated with a unique identifier for a fungal name author ($OBJ).",
+      "A person in the Index Fungorum database ($SUB) corresponds to a specific ID used for their contributions to fungal nomenclature ($OBJ)."
+    ]
+  },
+  "P12857": {
+    "label": "stiga.trefik.cz player ID",
+    "description": "identifier for player at stiga.trefik.cz",
+    "aliases": [],
+    "realizations": [
+      "The $SUB has a unique identifier at stiga.trefik.cz, denoted as $OBJ."
+    ]
+  },
+  "P12858": {
+    "label": "UNIBO professor ID",
+    "description": "identifier for a professor of the University of Bologna in the website of the historical archives of the University of Bologna",
+    "aliases": [],
+    "realizations": [
+      "$SUB has UNIBO professor ID $OBJ"
+    ]
+  },
+  "P12859": {
+    "label": "Cineuropa international sales agent ID",
+    "description": "identifier for an international sales agent in Cineuropa",
+    "aliases": [],
+    "realizations": [
+      "The international sales agent of $SUB is $OBJ.",
+      "$SUB has been represented by $OBJ in Cineuropa.",
+      "$SUB is represented internationally by $OBJ."
+    ]
+  },
+  "P1286": {
+    "label": "Munzinger Pop ID",
+    "description": "identifier on the Munzinger Archiv",
+    "aliases": [
+      "Munzinger Pop",
+      "Munzinger Pop identifier"
+    ],
+    "realizations": [
+      "The Munzinger Pop ID of $SUB is $OBJ.",
+      "$SUB has identifier $OBJ in the Munzinger Archiv.",
+      "$SUB uses identifier $OBJ, also known as Munzinger Pop."
+    ]
+  },
+  "P12860": {
+    "label": "Mapes de Patrimoni Cultural ID",
+    "description": "an ensemble of exhaustive catalogues of cultural heritage elements in one municipality, promoted by Provincial Deputation of Barcelona",
+    "aliases": [],
+    "realizations": [
+      "$SUB is promoted by $OBJ.",
+      "$SUB consists of an ensemble of exhaustive catalogues of cultural heritage elements in $OBJ."
+    ]
+  },
+  "P12861": {
+    "label": "EntitySchema for this class",
+    "description": "schema that members of a class should conform to",
+    "aliases": [
+      "Shape Expression for class",
+      "schema for class",
+      "entity schema for class",
+      "ShEx for class",
+      "Shape Expressions for this class",
+      "ShEx for this class"
+    ],
+    "realizations": [
+      "$SUB has EntitySchema for this class $OBJ"
+    ]
+  },
+  "P12862": {
+    "label": "Il Nuovo DOP ID",
+    "description": "identifier for an Italian lexeme in the Il Nuovo DOP online vocabulary",
+    "aliases": [
+      "Nuovo DOP ID"
+    ],
+    "realizations": [
+      "$SUB's identifier in Il Nuovo DOP online vocabulary is $OBJ."
+    ]
   }
 }
