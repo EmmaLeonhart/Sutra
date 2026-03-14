@@ -36,3 +36,17 @@ Generate canonical English sentence templates for every Wikidata property (~13,0
 - Connects to redoing-paper finding: "subject axis contributes 3.5x more to similarity than predicate axis" — propositional form may change this
 
 **Future:** Extend templates to other languages.
+
+**Status:** `data/properties.json` now has all 13,286 properties with simple `"$SUB {label} $OBJ"` realizations (37,252 total). LLM-generated natural phrasings in progress via `generate_property_templates.py`.
+
+## Monthly Property Scanner (GitHub Actions)
+
+Wikidata creates new properties regularly. Set up a GitHub Actions workflow that runs once a month to:
+
+1. Fetch all current Wikidata property IDs
+2. Diff against `data/properties.json`
+3. For any new properties, fetch their English labels and aliases
+4. Add them to `data/properties.json` with `"$SUB {label} $OBJ"` realizations
+5. Auto-commit and push
+
+This keeps the property list current without manual intervention. Could be as simple as running `fetch_all_properties.py` with a merge-not-overwrite mode.
