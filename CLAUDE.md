@@ -11,10 +11,15 @@
 Unsupervised ontology induction from embedding spaces. Takes embedding geometry and extracts logical structure (classes, relations, propositions) as RDF. Starting with Wikidata triple imports where each triple = an edge between two embedded concepts.
 
 ## Architecture and Conventions
-- **Stack:** Python + rdflib + numpy. No graph DB yet (start simple).
-- **Source data:** Wikidata SPARQL endpoint
+- **Stack:** Python + rdflib (with RDF-star) + numpy + Ollama (mxbai-embed-large). No graph DB yet (start simple).
+- **Source data:** Wikidata API + SPARQL endpoint
+- **Embeddings:** mxbai-embed-large (1024-dim) via Ollama, matching redoing-paper
 - **Planning docs:** `planning/` directory for design decisions and roadmap
 - See `planning/architecture-decisions.md` for rationale
+
+## Development Philosophy
+- **Adding data IS building the pipeline.** In this early stage, every import is also pipeline development. The import tooling and the data graph grow together.
+- **Geodesics are first-class objects.** Each geodesic (line between two embedding points connected by a triple) is its own RDF object with pointers to both endpoint strings, distance, and the parent triple.
 
 # currentDate
 Today's date is 2026-03-13.
