@@ -264,7 +264,7 @@ The health dashboard is a diagnostic tool, not a monitoring system — it report
 
 ## 5. SPARQL+ Extension
 
-SutraDB's query language is called **SPARQL+** — a superset of SPARQL 1.1. Any valid SPARQL 1.1 query works as-is. SPARQL+ adds two categories of extensions that standard SPARQL cannot express: vector search operators and predicate-based exit conditions on property path traversal.
+SutraDB's query language is called **SPARQL+** — a superset of SPARQL 1.1. Any valid SPARQL 1.1 query works as-is. SPARQL+ adds three categories of extensions that standard SPARQL cannot express: vector search operators, predicate-based exit conditions on property path traversal, and temporal scope operators.
 
 ### 5.1 VECTOR_SIMILAR Operator
 
@@ -322,6 +322,59 @@ SELECT ?president WHERE {
 - Exit on one branch does not kill other branches (scoping is per-path)
 - Only meaningful when traversal order is defined (directed labeled edges provide this naturally)
 - HNSW-specific exit condition: "no closer neighbor found" — local optimality termination that maps to the HNSW algorithm's natural stopping criterion
+
+### 5.4 Temporal Scope Operators
+
+SPARQL+ includes four temporal operators that leverage the TSPO index to scope query patterns to specific moments or intervals. These are the ontochronological query primitives — see `docs/ontochronology.md` for full design and theory.
+
+```sparql
+# AT_TIME: scope patterns to a single moment
+SELECT ?person ?location WHERE {
+  AT_TIME("2024-03-14T10:00:00"^^xsd:dateTime) {
+    ?person :locatedIn ?location .
+    ?person rdf:type :Suspect .
+  }
+}
+
+# DURING: scope patterns to an interval (overlap semantics)
+SELECT ?person ?location WHERE {
+  DURING("2024-03-14T09:00:00"^^xsd:dateTime,
+         "2024-03-14T11:00:00"^^xsd:dateTime) {
+    ?person :locatedIn ?location .
+  }
+}
+
+# WORLD_STATE: complete state snapshot at a point in time
+SELECT ?s ?p ?o WHERE {
+  WORLD_STATE("2024-03-14T10:00:00"^^xsd:dateTime) {
+    ?s ?p ?o .
+  }
+}
+
+# TEMPORAL_DIFF: diff between two world states
+SELECT ?change_type ?s ?p ?o WHERE {
+  TEMPORAL_DIFF("2024-03-14T09:00:00"^^xsd:dateTime,
+                "2024-03-14T11:00:00"^^xsd:dateTime) {
+    ?s ?p ?o .
+  }
+}
+```
+
+**Timestamp formats:** All temporal operators accept typed literals (`xsd:dateTime`, `sutra:temporal`), plain string literals parsed as ISO dates, integer literals (for frame/scene ordering axes), and bound variables.
+
+**Containment model:** AT_TIME and WORLD_STATE use three-valued temporal containment (Definite/Open/Outside/Atemporal). DURING uses interval overlap detection. TEMPORAL_DIFF binds `?change_type` to `"added"`, `"removed"`, or `"unchanged"`.
+
+**Composability:** Temporal operators compose with vector search — AT_TIME can scope the graph patterns while VECTOR_SIMILAR runs on the HNSW index:
+
+```sparql
+SELECT ?doc ?entity WHERE {
+  AT_TIME("2024-06-01"^^xsd:dateTime) {
+    ?entity rdf:type :Person .
+    ?doc :mentions ?entity .
+  }
+  VECTOR_SIMILAR(?doc :hasEmbedding "..."^^sutra:f32vec, 0.85)
+}
+```
 
 ---
 
