@@ -28,6 +28,10 @@ pub enum CoreError {
     /// A stored byte sequence had an unexpected length (corrupt data).
     #[error("corrupt stored value: expected {expected} bytes, got {actual}")]
     CorruptValue { expected: usize, actual: usize },
+
+    /// A temporal literal string could not be parsed.
+    #[error("invalid temporal literal: {0}")]
+    InvalidTemporal(String),
 }
 
 pub type Result<T> = std::result::Result<T, CoreError>;
