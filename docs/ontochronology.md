@@ -596,12 +596,143 @@ As data quality improves, assertion time becomes less necessary. A well-instrume
 
 ## 12. Implementation Priority
 
-1. **`sutra:temporal` literal type** — timestamp + precision, stored as (i64, u8)
-2. **Reserved temporal predicates** — `sutra:assertedAt`, `sutra:validFrom`, `sutra:validTo`
-3. **TSPO index** — B-tree with time as leading key, built when temporal predicates are detected
-4. **AT_TIME / DURING** — SPARQL+ temporal scope operators
-5. **WORLD_STATE** — complete state snapshot query
-6. **TEMPORAL_DIFF** — world state comparison
+1. ~~**`sutra:temporal` literal type** — timestamp + precision, stored as (i64, u8)~~ ✅ Done
+2. ~~**Reserved temporal predicates** — `sutra:assertedAt`, `sutra:validFrom`, `sutra:validTo`~~ ✅ Done
+3. ~~**TSPO index** — B-tree with time as leading key, built when temporal predicates are detected~~ ✅ Done
+4. ~~**AT_TIME / DURING** — SPARQL+ temporal scope operators~~ ✅ Done
+5. ~~**WORLD_STATE** — complete state snapshot query~~ ✅ Done
+6. ~~**TEMPORAL_DIFF** — world state comparison~~ ✅ Done
 7. **Periodic snapshots** — configurable snapshot boundaries
 8. **Coordinate indexing** — XYSPO index (optional, same pattern)
 9. **Convention ontology** — persistence rules for text extraction
+
+---
+
+## 13. Implementation Notes (Phases 1–4)
+
+This section documents how the temporal operators were actually implemented, covering architecture decisions, execution models, and known limitations.
+
+### 13.1 Storage Layer (Phase 1–3)
+
+**TSPO index key format (33 bytes):**
+```
+[signifier:1 | timestamp:8 | subject:8 | predicate:8 | object:8]
+```
+
+The `signifier` byte (0=AssertedAt, 1=ValidFrom, 2=ValidTo) is the leading key component. This means all entries for a given signifier type are contiguous, enabling efficient range scans like "all ValidFrom entries before time T."
+
+The timestamp uses **sign-bit-flip encoding** (`XOR` with `0x8000000000000000`) so that signed `i64` values sort correctly as unsigned bytes. This is the same technique RocksDB uses for ordered integer keys.
+
+**Inline temporal encoding:** Temporal values are packed into 56-bit TermId payloads: 48-bit signed timestamp (seconds since epoch, ±4.4M years) + 4-bit precision level. This avoids dictionary lookups for temporal literals — they are compared and range-scanned as integers.
+
+**Temporal annotations are on quoted triples, not regular triples.** The RDF-star pattern is:
+```turtle
+<< :alice :worksAt :acme >> sutra:validFrom "2023-01-15"^^sutra:temporal .
+```
+The TSPO index stores the *inner* triple `(:alice, :worksAt, :acme)` with the timestamp from the outer triple's object. The store's `insert_temporal()` method takes the pre-extracted (signifier, timestamp, S, P, O) — it does not parse RDF-star structure itself. The ingestion layer is responsible for detecting temporal predicates and calling `insert_temporal()`.
+
+### 13.2 Annotation Gathering
+
+To evaluate temporal containment for a specific triple, the executor calls `TripleStore::gather_temporal_annotations(s, p, o)`. This method scans the TSPO index for all three signifiers, filtering by (S, P, O), and returns a `TemporalAnnotations` struct containing all `asserted_at`, `valid_from`, and `valid_to` timestamps.
+
+**Current limitation:** Because the TSPO key sorts by `[signifier | timestamp | S | P | O]`, we cannot do a prefix scan on (S, P, O) directly — we must scan all timestamps for each signifier and filter. This is O(N) per signifier where N is the total number of TSPO entries for that signifier.
+
+This is acceptable because:
+1. The TSPO index is much smaller than SPO (only temporally-annotated triples contribute entries).
+2. The alternative — a reverse index (S,P,O → timestamps) — would add write amplification and storage overhead for a query pattern that's already fast enough in practice.
+
+**Future optimization:** For large-scale deployments, a secondary SPOT (subject-predicate-object-time) index could provide O(1) lookups. This should be benchmarked against the current scan approach before committing to the extra write cost.
+
+### 13.3 Temporal Query Execution Model
+
+All four temporal operators (AT_TIME, DURING, WORLD_STATE, TEMPORAL_DIFF) follow the same **evaluate-then-filter** execution model:
+
+```
+1. Evaluate inner patterns normally against SPO/POS/OSP indexes
+2. For each result row:
+   a. Extract all bound triples from the row
+   b. Gather temporal annotations for each triple
+   c. Evaluate containment (AT_TIME) or overlap (DURING)
+   d. Keep or discard the row based on the result
+```
+
+This is a **post-filter** strategy: the graph patterns run first, producing candidate rows, and the temporal check prunes them. The alternative — **pre-filter** via TSPO scan — would first find all triples valid at T, then evaluate patterns only against those triples. Pre-filtering would be faster for WORLD_STATE on large graphs but requires deeper integration with the query planner.
+
+**Why post-filter first:** It's simpler, correct, and composes with all existing pattern types (OPTIONAL, UNION, VECTOR_SIMILAR, property paths). Pre-filter optimization is planned for WORLD_STATE specifically, where the TSPO scan can replace the inner pattern evaluation entirely.
+
+### 13.4 AT_TIME Semantics
+
+`AT_TIME(T) { patterns }` evaluates containment at a single point:
+
+- **Definite** (T in closed interval) → visible
+- **Open** (T past open endpoint, with distance) → visible
+- **Atemporal** (no annotations) → visible
+- **Outside** (T before start or after end) → invisible
+
+A row passes the filter only if **all** triples in the row are visible. This is an AND semantic: if a row binds `?person :locatedIn ?place` and `?person :worksAt ?company`, both must be temporally visible at T.
+
+### 13.5 DURING Semantics
+
+`DURING(start, end) { patterns }` checks **interval overlap**, not point containment:
+
+A triple overlaps `[q_start, q_end]` if:
+- It's atemporal (always overlaps), or
+- Any `assertedAt` point falls within `[q_start, q_end]`, or
+- Any closed interval `[validFrom_i, validTo_i]` intersects with `[q_start, q_end]` (i.e., `start_i ≤ q_end AND end_i ≥ q_start`), or
+- Any open-ended interval reaches into `[q_start, q_end]` (e.g., `validFrom` with no `validTo`, and `validFrom ≤ q_end`)
+
+### 13.6 WORLD_STATE
+
+`WORLD_STATE(T) { patterns }` is currently a semantic alias for `AT_TIME(T)` — it delegates to the same execution path. The distinction exists for two reasons:
+
+1. **Intent signaling:** WORLD_STATE is meant for full graph dumps (`?s ?p ?o`), while AT_TIME is for scoped queries with bound patterns. This distinction will drive future optimization.
+2. **Future TSPO-first execution:** For `WORLD_STATE(T) { ?s ?p ?o }`, the optimal execution plan is a TSPO range scan (all ValidFrom ≤ T, minus all ValidTo ≤ T), not an SPO full scan with post-filtering. This optimization requires query planner changes and will be implemented when benchmarks show the post-filter approach is a bottleneck.
+
+### 13.7 TEMPORAL_DIFF
+
+`TEMPORAL_DIFF(T1, T2) { patterns }` computes the set difference between two world states:
+
+1. Evaluate inner patterns to get all candidate triples.
+2. For each row, check visibility at T1 and T2 independently.
+3. Classify:
+   - **Added**: not visible at T1, visible at T2
+   - **Removed**: visible at T1, not visible at T2
+   - **Unchanged**: visible at both T1 and T2
+   - Not visible at either → **skipped** (not in results)
+4. Bind `?change_type` to the interned string `"added"`, `"removed"`, or `"unchanged"`.
+
+**Design note:** The change type strings must be pre-interned in the TermDictionary for binding to work. If they are not interned, the `?change_type` variable will not be bound in the result row. This is a limitation of the current executor design where the dictionary is immutable during query execution. Applications that use TEMPORAL_DIFF should ensure these strings exist in the dictionary (e.g., by inserting a triple that references them, or by interning them at database creation time).
+
+### 13.8 Timestamp Resolution
+
+Temporal operators accept timestamps in multiple formats:
+
+| Input | Interpretation |
+|---|---|
+| `"2024-03-14T10:00:00"^^xsd:dateTime` | Parsed as temporal literal → seconds since epoch |
+| `"1847"^^sutra:temporal` | Year precision → start of year in seconds |
+| `"hello"` (plain literal) | Parsed as temporal string (ISO-like format) |
+| `42` (integer literal) | Raw integer — used as-is (seconds, frames, scenes) |
+| `?var` (bound variable) | Decoded from inline temporal TermId, or resolved from dictionary and parsed |
+
+The `resolve_timestamp()` function in the executor handles all these cases. For databases using non-UTC ordering axes (integer frames, float chapter.verse), integer literals are the natural input format.
+
+### 13.9 Query Planner Integration
+
+Temporal operators are treated as subquery-weight patterns in the cost-based planner:
+
+- **Cost weight:** Same as subqueries (12) — they should execute after binding patterns to minimize the candidate set that needs temporal filtering.
+- **Variable collection:** Inner pattern variables are propagated through. TEMPORAL_DIFF also contributes `?change_type`.
+- **Filter pushdown:** Temporal blocks are opaque to filter pushdown — a FILTER on a variable bound inside an AT_TIME block stays inside the block.
+
+### 13.10 Known Limitations and Future Work
+
+1. **No TSPO-first execution for WORLD_STATE.** Currently evaluates all triples then filters. For full graph dumps on large databases, this is O(total triples) instead of O(valid triples at T). Pre-filter via TSPO scan is the planned optimization.
+
+2. **O(N) annotation gathering.** Scanning the full TSPO range per signifier for a specific (S,P,O) triple. A secondary SPOT index would give O(1) lookups at the cost of write amplification.
+
+3. **Immutable dictionary during execution.** TEMPORAL_DIFF requires change type strings to be pre-interned. A future change could allow the executor to intern strings on-the-fly, or use a fixed set of well-known TermIds for change types.
+
+4. **No temporal-aware property path traversal.** Property paths (`?s :knows+ ?o`) do not currently respect AT_TIME scoping — they traverse all edges regardless of temporal validity. Supporting this requires passing the temporal context into the path evaluation loop.
+
+5. **No temporal index statistics for the planner.** The planner cannot estimate cardinality of temporal patterns (e.g., "how many triples are valid at T?"). This means temporal blocks are always treated as subquery-cost, even when TSPO statistics could improve ordering decisions.
