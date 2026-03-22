@@ -1,6 +1,6 @@
 # SutraDB
 
-A lean, high-performance RDF-star triplestore written in Rust with native HNSW vector indexing and SPARQL+ query language.
+A lean, high-performance RDF-star triplestore written in Rust with native HNSW vector indexing, ontochronological temporal queries, and SPARQL+ query language.
 
 [![CI](https://github.com/EmmaLeonhart/SutraDB/actions/workflows/ci.yml/badge.svg)](https://github.com/EmmaLeonhart/SutraDB/actions/workflows/ci.yml)
 
@@ -73,19 +73,34 @@ All data is **RDF-star** triples. Vectors are stored as `sutra:f32vec` literals:
 
 ## SPARQL+
 
-SutraDB's query language is **SPARQL+** — a superset of SPARQL 1.1 with `VECTOR_SIMILAR` for unified graph + vector queries and `UNTIL` for predicate-based exit conditions on property path traversal:
+SutraDB's query language is **SPARQL+** — a superset of SPARQL 1.1 with vector search, temporal scope operators, and predicate-based exit conditions:
 
 ```sparql
+# Vector search: find semantically similar documents
 SELECT ?doc ?entity WHERE {
   ?entity rdf:type :Person .
   ?doc :mentions ?entity .
   VECTOR_SIMILAR(?doc :hasEmbedding "..."^^sutra:f32vec, 0.85)
 }
+
+# Temporal: query the world state at a specific time
+SELECT ?person ?location WHERE {
+  AT_TIME("1810-06-15"^^xsd:dateTime) {
+    ?person :locatedIn ?location .
+  }
+}
+
+# Temporal diff: what changed between two points in time
+SELECT ?change_type ?s ?p ?o WHERE {
+  TEMPORAL_DIFF("2024-01-01"^^xsd:dateTime, "2024-06-01"^^xsd:dateTime) {
+    ?s ?p ?o .
+  }
+}
 ```
 
 ### Supported SPARQL Features
 
-SELECT, ASK, CONSTRUCT, DESCRIBE | INSERT DATA, DELETE DATA | FILTER (=, !=, <, >, <=, >=, &&, ||, !) | FILTER NOT EXISTS / EXISTS | OPTIONAL, UNION | BIND, VALUES | GROUP BY + COUNT/SUM/AVG/MIN/MAX | ORDER BY, LIMIT, OFFSET, DISTINCT | VECTOR_SIMILAR, VECTOR_SCORE | String functions (CONTAINS, STRSTARTS, STRENDS, REGEX) | LANG(), LANGMATCHES(), isIRI(), isLiteral() | PREFIX declarations
+SELECT, ASK, CONSTRUCT, DESCRIBE | INSERT DATA, DELETE DATA | FILTER (=, !=, <, >, <=, >=, &&, ||, !) | FILTER NOT EXISTS / EXISTS | OPTIONAL, UNION | BIND, VALUES | GROUP BY + COUNT/SUM/AVG/MIN/MAX | ORDER BY, LIMIT, OFFSET, DISTINCT | VECTOR_SIMILAR, VECTOR_SCORE | AT_TIME, DURING, WORLD_STATE, TEMPORAL_DIFF | String functions (CONTAINS, STRSTARTS, STRENDS, REGEX) | LANG(), LANGMATCHES(), isIRI(), isLiteral() | PREFIX declarations
 
 ## Architecture
 
