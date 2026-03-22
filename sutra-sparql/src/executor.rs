@@ -614,6 +614,15 @@ fn evaluate_pattern(
             end,
             patterns,
         } => evaluate_during(start, end, patterns, current, current_scores, ctx),
+        Pattern::WorldState {
+            timestamp,
+            patterns,
+        } => evaluate_world_state(timestamp, patterns, current, current_scores, ctx),
+        Pattern::TemporalDiff {
+            t1,
+            t2,
+            patterns,
+        } => evaluate_temporal_diff(t1, t2, patterns, current, current_scores, ctx),
     }
 }
 
@@ -855,6 +864,115 @@ fn evaluate_during(
             result.push(row.clone());
             result_scores.push(inner_scores[i].clone());
         }
+    }
+
+    Ok((result, result_scores))
+}
+
+/// Evaluate WORLD_STATE: complete state snapshot at time T.
+///
+/// Semantically equivalent to AT_TIME — evaluates inner patterns, then filters
+/// by temporal containment. Future optimization: use TSPO-first execution to
+/// avoid evaluating patterns that can't be valid at T.
+fn evaluate_world_state(
+    timestamp: &Term,
+    inner_patterns: &[Pattern],
+    current: &[Bindings],
+    current_scores: &[HashMap<String, f32>],
+    ctx: &mut ExecutionContext<'_>,
+) -> Result<(Vec<Bindings>, Vec<HashMap<String, f32>>)> {
+    // WORLD_STATE is semantically AT_TIME — same containment filtering.
+    // The difference is intent (full snapshot vs. scoped query) and future
+    // optimization (TSPO-first execution for WORLD_STATE).
+    evaluate_at_time(timestamp, inner_patterns, current, current_scores, ctx)
+}
+
+/// Evaluate TEMPORAL_DIFF: compute the difference between two world states.
+///
+/// Algorithm:
+/// 1. Evaluate inner patterns to get all candidate triples.
+/// 2. For each result row, check temporal containment at T1 and T2.
+/// 3. Classify as "added" (not visible at T1, visible at T2),
+///    "removed" (visible at T1, not visible at T2), or
+///    "unchanged" (visible at both).
+/// 4. Bind ?change_type to the classification string.
+fn evaluate_temporal_diff(
+    t1_term: &Term,
+    t2_term: &Term,
+    inner_patterns: &[Pattern],
+    current: &[Bindings],
+    current_scores: &[HashMap<String, f32>],
+    ctx: &mut ExecutionContext<'_>,
+) -> Result<(Vec<Bindings>, Vec<HashMap<String, f32>>)> {
+    let empty_row = Bindings::new();
+    let ref_row = current.first().unwrap_or(&empty_row);
+    let t1 = resolve_timestamp(t1_term, ref_row, ctx.dict, ctx.prefixes)?;
+    let t2 = resolve_timestamp(t2_term, ref_row, ctx.dict, ctx.prefixes)?;
+
+    // Evaluate inner patterns to get all candidate triples
+    let mut inner_results = current.to_vec();
+    let mut inner_scores = current_scores.to_vec();
+    for p in inner_patterns {
+        let (new_results, new_s) =
+            evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
+        inner_results = new_results;
+        inner_scores = new_s;
+    }
+
+    // Intern the change type strings
+    // We need mutable access to dict for interning, but ctx.dict is shared.
+    // Instead, we'll look up existing IDs or store change_type as a well-known
+    // string that we intern on the fly. Since TermDictionary is immutable in
+    // the executor, we use pre-existing IDs if available, or store the raw
+    // string identifier as the TermId.
+    //
+    // For now, we use a convention: change_type is stored as one of three
+    // well-known literal IDs. We look them up, or if not present, we skip
+    // binding (the column will show the raw string in result rendering).
+    let added_id = ctx.dict.lookup("\"added\"");
+    let removed_id = ctx.dict.lookup("\"removed\"");
+    let unchanged_id = ctx.dict.lookup("\"unchanged\"");
+
+    let mut result = Vec::new();
+    let mut result_scores = Vec::new();
+
+    for (i, row) in inner_results.iter().enumerate() {
+        let triples = collect_triple_ids_from_row(row, inner_patterns, ctx);
+
+        if triples.is_empty() {
+            // Can't determine temporal status — include as unchanged
+            let mut new_row = row.clone();
+            if let Some(id) = unchanged_id {
+                new_row.insert("change_type".to_string(), id);
+            }
+            result.push(new_row);
+            result_scores.push(inner_scores[i].clone());
+            continue;
+        }
+
+        // Check visibility at T1 and T2 for ALL triples in the row
+        let visible_at_t1 = triples.iter().all(|&(s, p, o)| {
+            let ann = ctx.store.gather_temporal_annotations(s, p, o);
+            ann.containment_at(t1).is_visible()
+        });
+        let visible_at_t2 = triples.iter().all(|&(s, p, o)| {
+            let ann = ctx.store.gather_temporal_annotations(s, p, o);
+            ann.containment_at(t2).is_visible()
+        });
+
+        let change_type_id = match (visible_at_t1, visible_at_t2) {
+            (false, true) => added_id,    // Added between T1 and T2
+            (true, false) => removed_id,  // Removed between T1 and T2
+            (true, true) => unchanged_id, // Present at both
+            (false, false) => continue,   // Not visible at either — skip
+        };
+
+        let mut new_row = row.clone();
+        if let Some(id) = change_type_id {
+            new_row.insert("change_type".to_string(), id);
+        }
+        result.push(new_row);
+        result_scores.push(inner_scores[i].clone());
     }
 
     Ok((result, result_scores))
@@ -3255,5 +3373,169 @@ mod tests {
 
         let ann = store.gather_temporal_annotations(water, formula, h2o);
         assert!(ann.is_atemporal());
+    }
+
+    #[test]
+    fn world_state_filters_like_at_time() {
+        let (store, dict) = setup_temporal();
+
+        // WORLD_STATE at 175: both alice and bob in office
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             WORLD_STATE(175) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
+    }
+
+    #[test]
+    fn world_state_excludes_outside() {
+        let (store, dict) = setup_temporal();
+
+        // WORLD_STATE at 50: nobody in office yet
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             WORLD_STATE(50) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 0);
+    }
+
+    #[test]
+    fn world_state_includes_atemporal() {
+        let (store, dict) = setup_temporal();
+
+        // Atemporal facts always visible in any world state
+        let q = parser::parse(
+            "SELECT ?s WHERE { \
+             WORLD_STATE(0) { \
+               ?s <http://example.org/formula> <http://example.org/H2O> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 1);
+    }
+
+    /// Set up a temporal store with change_type strings interned for TEMPORAL_DIFF.
+    fn setup_temporal_with_diff() -> (TripleStore, TermDictionary) {
+        use sutra_core::TemporalSignifier;
+
+        let mut dict = TermDictionary::new();
+        let mut store = TripleStore::new();
+
+        let alice = dict.intern("http://example.org/Alice");
+        let bob = dict.intern("http://example.org/Bob");
+        let located_in = dict.intern("http://example.org/locatedIn");
+        let office = dict.intern("http://example.org/Office");
+        let park = dict.intern("http://example.org/Park");
+
+        // Intern the change type strings so TEMPORAL_DIFF can bind them
+        dict.intern("\"added\"");
+        dict.intern("\"removed\"");
+        dict.intern("\"unchanged\"");
+
+        // alice locatedIn office: valid [100, 200]
+        store.insert(Triple::new(alice, located_in, office)).unwrap();
+        store.insert_temporal(TemporalSignifier::ValidFrom, 100, alice, located_in, office);
+        store.insert_temporal(TemporalSignifier::ValidTo, 200, alice, located_in, office);
+
+        // bob locatedIn office: valid [150, 300]
+        store.insert(Triple::new(bob, located_in, office)).unwrap();
+        store.insert_temporal(TemporalSignifier::ValidFrom, 150, bob, located_in, office);
+        store.insert_temporal(TemporalSignifier::ValidTo, 300, bob, located_in, office);
+
+        // alice locatedIn park: valid [250, 400]
+        store.insert(Triple::new(alice, located_in, park)).unwrap();
+        store.insert_temporal(TemporalSignifier::ValidFrom, 250, alice, located_in, park);
+        store.insert_temporal(TemporalSignifier::ValidTo, 400, alice, located_in, park);
+
+        (store, dict)
+    }
+
+    #[test]
+    fn temporal_diff_detects_added() {
+        let (store, dict) = setup_temporal_with_diff();
+
+        // Between T1=50 and T2=175:
+        // alice→office: not visible at 50, visible at 175 → added
+        // bob→office: not visible at 50, visible at 175 → added
+        // alice→park: not visible at either → skipped
+        let q = parser::parse(
+            "SELECT ?change_type ?person WHERE { \
+             TEMPORAL_DIFF(50, 175) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
+        // Both should be "added"
+        let added_id = dict.lookup("\"added\"").unwrap();
+        for row in &result.rows {
+            assert_eq!(*row.get("change_type").unwrap(), added_id);
+        }
+    }
+
+    #[test]
+    fn temporal_diff_detects_removed() {
+        let (store, dict) = setup_temporal_with_diff();
+
+        // Between T1=175 and T2=250:
+        // alice→office: visible at 175 (in [100,200]), not visible at 250 → removed
+        // bob→office: visible at both (in [150,300]) → unchanged
+        let q = parser::parse(
+            "SELECT ?change_type ?person WHERE { \
+             TEMPORAL_DIFF(175, 250) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
+
+        let alice_id = dict.lookup("http://example.org/Alice").unwrap();
+        let bob_id = dict.lookup("http://example.org/Bob").unwrap();
+        let added_id = dict.lookup("\"added\"");
+        let removed_id = dict.lookup("\"removed\"").unwrap();
+        let unchanged_id = dict.lookup("\"unchanged\"").unwrap();
+
+        for row in &result.rows {
+            let person = *row.get("person").unwrap();
+            let change = *row.get("change_type").unwrap();
+            if person == alice_id {
+                assert_eq!(change, removed_id);
+            } else if person == bob_id {
+                assert_eq!(change, unchanged_id);
+            }
+        }
+    }
+
+    #[test]
+    fn temporal_diff_skips_invisible_at_both() {
+        let (store, dict) = setup_temporal_with_diff();
+
+        // Between T1=10 and T2=50: nothing visible at either time
+        let q = parser::parse(
+            "SELECT ?change_type ?person WHERE { \
+             TEMPORAL_DIFF(10, 50) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 0);
     }
 }
