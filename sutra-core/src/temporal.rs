@@ -93,6 +93,175 @@ pub const PREDICATE_VALID_TO: &str = "https://sutradb.dev/ns/validTo";
 pub const DATATYPE_TEMPORAL: &str = "https://sutradb.dev/ns/temporal";
 
 // ---------------------------------------------------------------------------
+// Temporal containment
+// ---------------------------------------------------------------------------
+
+/// The result of evaluating whether a triple is valid at a query time T.
+///
+/// Three-valued temporal logic: a triple is either certainly valid (Definite),
+/// probably valid with measurable uncertainty (Open), certainly not valid
+/// (Outside), or timelessly true (Atemporal).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TemporalContainment {
+    /// T is within a closed interval. The triple is certainly valid at T.
+    Definite,
+    /// T is on the unbounded side of a half-open interval.
+    /// `distance` is the number of axis units (seconds for UTC) from the
+    /// nearest known temporal endpoint. Larger distance = less certainty.
+    Open { distance: i64 },
+    /// T is outside all temporal intervals. The triple is not valid at T.
+    Outside,
+    /// The triple has no temporal annotations. It is valid at all times.
+    Atemporal,
+}
+
+impl TemporalContainment {
+    /// Ordering key for result ranking. Lower = higher priority.
+    /// Atemporal(0) > Definite(1) > Open(2+distance) > Outside(i64::MAX).
+    pub fn rank(&self) -> i64 {
+        match self {
+            Self::Atemporal => 0,
+            Self::Definite => 1,
+            Self::Open { distance } => 2 + *distance,
+            Self::Outside => i64::MAX,
+        }
+    }
+
+    /// Whether this triple should be included in temporal query results.
+    /// Outside triples are always excluded.
+    pub fn is_visible(&self) -> bool {
+        !matches!(self, Self::Outside)
+    }
+
+    /// Whether this triple should be included given a maximum open distance.
+    /// Definite and Atemporal always pass. Open passes if distance ≤ max.
+    /// Outside never passes.
+    pub fn is_visible_within(&self, max_distance: i64) -> bool {
+        match self {
+            Self::Atemporal | Self::Definite => true,
+            Self::Open { distance } => *distance <= max_distance,
+            Self::Outside => false,
+        }
+    }
+}
+
+/// Temporal annotations collected for a single triple, used to evaluate
+/// containment at a query time.
+///
+/// Built by gathering TSPO index entries for a triple's (S, P, O).
+#[derive(Debug, Clone, Default)]
+pub struct TemporalAnnotations {
+    /// All `sutra:assertedAt` timestamps for this triple.
+    pub asserted_at: Vec<i64>,
+    /// All `sutra:validFrom` timestamps (interval start points).
+    pub valid_from: Vec<i64>,
+    /// All `sutra:validTo` timestamps (interval end points).
+    pub valid_to: Vec<i64>,
+}
+
+impl TemporalAnnotations {
+    /// Returns true if this triple has no temporal annotations at all.
+    pub fn is_atemporal(&self) -> bool {
+        self.asserted_at.is_empty() && self.valid_from.is_empty() && self.valid_to.is_empty()
+    }
+
+    /// Evaluate the temporal containment of this triple at query time `t`.
+    ///
+    /// The evaluation follows this precedence:
+    /// 1. If no annotations exist → Atemporal
+    /// 2. Check closed intervals (validFrom/validTo pairs, or validFrom/assertedAt)
+    /// 3. Check open intervals (validFrom without validTo, or vice versa)
+    /// 4. Check point attestations (assertedAt alone)
+    /// 5. Otherwise → Outside
+    pub fn containment_at(&self, t: i64) -> TemporalContainment {
+        if self.is_atemporal() {
+            return TemporalContainment::Atemporal;
+        }
+
+        // --- Closed intervals: pair validFrom[i] with validTo[i] ---
+        // Sort both lists and pair them positionally. Unpaired entries
+        // become half-open intervals handled below.
+        let mut starts: Vec<i64> = self.valid_from.clone();
+        let mut ends: Vec<i64> = self.valid_to.clone();
+        starts.sort();
+        ends.sort();
+
+        let paired = starts.len().min(ends.len());
+
+        // Check closed intervals (paired start/end)
+        for i in 0..paired {
+            if starts[i] <= t && t <= ends[i] {
+                return TemporalContainment::Definite;
+            }
+        }
+
+        // Check validFrom + assertedAt as bounded interval
+        // (any start that wasn't paired with an end can use assertedAt)
+        if !self.asserted_at.is_empty() {
+            let max_asserted = *self.asserted_at.iter().max().unwrap();
+            for &start in starts.iter().skip(paired) {
+                if start <= t && t <= max_asserted {
+                    return TemporalContainment::Definite;
+                }
+            }
+        }
+
+        // Exact assertedAt match is definite
+        for &a in &self.asserted_at {
+            if a == t {
+                return TemporalContainment::Definite;
+            }
+        }
+
+        // --- Outside checks on closed intervals ---
+        // If ALL intervals are closed and T is outside all of them, it's Outside.
+        // But if there are open intervals, we check those first.
+
+        // --- Open intervals: unpaired starts (no end) ---
+        let mut min_distance = i64::MAX;
+
+        for &start in starts.iter().skip(paired) {
+            if t >= start {
+                // T is past the start with no known end
+                let d = t - start;
+                min_distance = min_distance.min(d);
+            }
+            // t < start → Outside for this interval (hasn't started)
+        }
+
+        // --- Open intervals: unpaired ends (no start) ---
+        for &end in ends.iter().skip(paired) {
+            if t <= end {
+                // T is before the end with no known start
+                let d = end - t;
+                min_distance = min_distance.min(d);
+            }
+            // t > end → Outside for this interval (already ended)
+        }
+
+        // --- Assertion time as open point ---
+        // If assertedAt exists but no validFrom/validTo, distance from
+        // the assertion point determines openness.
+        if starts.is_empty() && ends.is_empty() && !self.asserted_at.is_empty() {
+            for &a in &self.asserted_at {
+                let d = (t - a).abs();
+                if d > 0 {
+                    min_distance = min_distance.min(d);
+                }
+            }
+        }
+
+        if min_distance < i64::MAX {
+            return TemporalContainment::Open {
+                distance: min_distance,
+            };
+        }
+
+        TemporalContainment::Outside
+    }
+}
+
+// ---------------------------------------------------------------------------
 // TemporalValue
 // ---------------------------------------------------------------------------
 
@@ -655,5 +824,202 @@ mod tests {
         assert!(!v.contains(before));
         let after = seconds_from_civil(2025, 1, 1);
         assert!(!v.contains(after));
+    }
+
+    // -- Temporal containment --
+
+    #[test]
+    fn containment_atemporal() {
+        let ann = TemporalAnnotations::default();
+        assert_eq!(ann.containment_at(0), TemporalContainment::Atemporal);
+        assert!(ann.containment_at(0).is_visible());
+    }
+
+    #[test]
+    fn containment_closed_interval() {
+        // Napoleon as Emperor: 1804-05-18 to 1814-04-11
+        let start = seconds_from_civil(1804, 5, 18);
+        let end = seconds_from_civil(1814, 4, 11);
+        let ann = TemporalAnnotations {
+            valid_from: vec![start],
+            valid_to: vec![end],
+            ..Default::default()
+        };
+
+        // Inside → Definite
+        let mid = seconds_from_civil(1810, 1, 1);
+        assert_eq!(ann.containment_at(mid), TemporalContainment::Definite);
+
+        // At boundaries → Definite
+        assert_eq!(ann.containment_at(start), TemporalContainment::Definite);
+        assert_eq!(ann.containment_at(end), TemporalContainment::Definite);
+
+        // Before start → Outside
+        let before = seconds_from_civil(1800, 1, 1);
+        assert_eq!(ann.containment_at(before), TemporalContainment::Outside);
+
+        // After end → Outside
+        let after = seconds_from_civil(1820, 1, 1);
+        assert_eq!(ann.containment_at(after), TemporalContainment::Outside);
+    }
+
+    #[test]
+    fn containment_open_interval_no_end() {
+        // Alice works at Acme from 2023-01-15, no end date
+        let start = seconds_from_civil(2023, 1, 15);
+        let ann = TemporalAnnotations {
+            valid_from: vec![start],
+            ..Default::default()
+        };
+
+        // Query in 2024 → Open, distance ~1 year
+        let query = seconds_from_civil(2024, 1, 15);
+        match ann.containment_at(query) {
+            TemporalContainment::Open { distance } => {
+                assert_eq!(distance, query - start);
+                assert!(distance > 0);
+            }
+            other => panic!("expected Open, got {other:?}"),
+        }
+
+        // Before start → Outside
+        let before = seconds_from_civil(2022, 1, 1);
+        assert_eq!(ann.containment_at(before), TemporalContainment::Outside);
+    }
+
+    #[test]
+    fn containment_open_interval_no_start() {
+        // Building existed until 1950, no known start
+        let end = seconds_from_civil(1950, 1, 1);
+        let ann = TemporalAnnotations {
+            valid_to: vec![end],
+            ..Default::default()
+        };
+
+        // Query in 1900 → Open, distance = 50 years
+        let query = seconds_from_civil(1900, 1, 1);
+        match ann.containment_at(query) {
+            TemporalContainment::Open { distance } => {
+                assert_eq!(distance, end - query);
+            }
+            other => panic!("expected Open, got {other:?}"),
+        }
+
+        // After end → Outside
+        let after = seconds_from_civil(1960, 1, 1);
+        assert_eq!(ann.containment_at(after), TemporalContainment::Outside);
+    }
+
+    #[test]
+    fn containment_assertion_only_exact() {
+        // Building observed in 1847
+        let asserted = seconds_from_civil(1847, 1, 1);
+        let ann = TemporalAnnotations {
+            asserted_at: vec![asserted],
+            ..Default::default()
+        };
+
+        // Exact match → Definite
+        assert_eq!(ann.containment_at(asserted), TemporalContainment::Definite);
+
+        // Nearby → Open with distance
+        let nearby = seconds_from_civil(1848, 1, 1);
+        match ann.containment_at(nearby) {
+            TemporalContainment::Open { distance } => {
+                assert_eq!(distance, (nearby - asserted).abs());
+            }
+            other => panic!("expected Open, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn containment_validfrom_plus_assertedat() {
+        // Triple started at T1, asserted at T2. [T1, T2] is closed.
+        let start = seconds_from_civil(2020, 1, 1);
+        let asserted = seconds_from_civil(2023, 6, 1);
+        let ann = TemporalAnnotations {
+            valid_from: vec![start],
+            asserted_at: vec![asserted],
+            ..Default::default()
+        };
+
+        // Between start and assertedAt → Definite
+        let mid = seconds_from_civil(2022, 1, 1);
+        assert_eq!(ann.containment_at(mid), TemporalContainment::Definite);
+
+        // After assertedAt → Open (past the last known point)
+        let after = seconds_from_civil(2025, 1, 1);
+        match ann.containment_at(after) {
+            TemporalContainment::Open { distance } => {
+                assert!(distance > 0);
+            }
+            other => panic!("expected Open, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn containment_multiple_intervals() {
+        // Person held title in two periods: 2018-2020, 2022-2024
+        let ann = TemporalAnnotations {
+            valid_from: vec![
+                seconds_from_civil(2018, 1, 1),
+                seconds_from_civil(2022, 3, 1),
+            ],
+            valid_to: vec![
+                seconds_from_civil(2020, 6, 30),
+                seconds_from_civil(2024, 1, 15),
+            ],
+            ..Default::default()
+        };
+
+        // In first interval → Definite
+        assert_eq!(
+            ann.containment_at(seconds_from_civil(2019, 6, 1)),
+            TemporalContainment::Definite
+        );
+
+        // In second interval → Definite
+        assert_eq!(
+            ann.containment_at(seconds_from_civil(2023, 1, 1)),
+            TemporalContainment::Definite
+        );
+
+        // In gap between → Outside
+        assert_eq!(
+            ann.containment_at(seconds_from_civil(2021, 6, 1)),
+            TemporalContainment::Outside
+        );
+
+        // Before all → Outside
+        assert_eq!(
+            ann.containment_at(seconds_from_civil(2017, 1, 1)),
+            TemporalContainment::Outside
+        );
+    }
+
+    #[test]
+    fn containment_ranking() {
+        assert!(TemporalContainment::Atemporal.rank() < TemporalContainment::Definite.rank());
+        assert!(
+            TemporalContainment::Definite.rank()
+                < TemporalContainment::Open { distance: 1 }.rank()
+        );
+        assert!(
+            TemporalContainment::Open { distance: 1 }.rank()
+                < TemporalContainment::Open { distance: 100 }.rank()
+        );
+        assert!(
+            TemporalContainment::Open { distance: 100 }.rank()
+                < TemporalContainment::Outside.rank()
+        );
+    }
+
+    #[test]
+    fn containment_visibility_with_max_distance() {
+        assert!(TemporalContainment::Atemporal.is_visible_within(0));
+        assert!(TemporalContainment::Definite.is_visible_within(0));
+        assert!(TemporalContainment::Open { distance: 10 }.is_visible_within(10));
+        assert!(!TemporalContainment::Open { distance: 11 }.is_visible_within(10));
+        assert!(!TemporalContainment::Outside.is_visible_within(i64::MAX));
     }
 }
