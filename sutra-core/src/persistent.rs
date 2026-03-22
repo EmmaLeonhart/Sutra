@@ -283,13 +283,7 @@ impl PersistentStore {
     /// Find all `ValidTo` entries with timestamp ≤ `at`.
     pub fn find_valid_to_before(&self, at: i64) -> Vec<(i64, Triple)> {
         let lo = tspo_key(TemporalSignifier::ValidTo, i64::MIN, 0, 0, 0);
-        let hi = tspo_key(
-            TemporalSignifier::ValidTo,
-            at,
-            u64::MAX,
-            u64::MAX,
-            u64::MAX,
-        );
+        let hi = tspo_key(TemporalSignifier::ValidTo, at, u64::MAX, u64::MAX, u64::MAX);
         self.tspo
             .range(lo..=hi)
             .filter_map(|r| r.ok())
@@ -304,7 +298,13 @@ impl PersistentStore {
     /// Find all `AssertedAt` entries at a specific time.
     pub fn find_asserted_at(&self, at: i64) -> Vec<Triple> {
         let lo = tspo_key(TemporalSignifier::AssertedAt, at, 0, 0, 0);
-        let hi = tspo_key(TemporalSignifier::AssertedAt, at, u64::MAX, u64::MAX, u64::MAX);
+        let hi = tspo_key(
+            TemporalSignifier::AssertedAt,
+            at,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+        );
         self.tspo
             .range(lo..=hi)
             .filter_map(|r| r.ok())

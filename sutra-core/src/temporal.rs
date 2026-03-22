@@ -528,20 +528,14 @@ mod tests {
     fn parse_hour() {
         let v = parse_temporal("1847-03-15T09").unwrap();
         assert_eq!(v.precision, TemporalPrecision::Hour);
-        assert_eq!(
-            v.timestamp,
-            seconds_from_civil(1847, 3, 15) + 9 * 3600
-        );
+        assert_eq!(v.timestamp, seconds_from_civil(1847, 3, 15) + 9 * 3600);
     }
 
     #[test]
     fn parse_minute() {
         let v = parse_temporal("2024-03-14T10:00").unwrap();
         assert_eq!(v.precision, TemporalPrecision::Minute);
-        assert_eq!(
-            v.timestamp,
-            seconds_from_civil(2024, 3, 14) + 10 * 3600
-        );
+        assert_eq!(v.timestamp, seconds_from_civil(2024, 3, 14) + 10 * 3600);
     }
 
     #[test]
@@ -572,24 +566,24 @@ mod tests {
     fn inline_roundtrip() {
         let cases = [
             TemporalValue::new(0, TemporalPrecision::Second),
-            TemporalValue::new(
-                seconds_from_civil(1847, 3, 15),
-                TemporalPrecision::Day,
-            ),
+            TemporalValue::new(seconds_from_civil(1847, 3, 15), TemporalPrecision::Day),
             TemporalValue::new(
                 seconds_from_civil(2024, 6, 1) + 10 * 3600,
                 TemporalPrecision::Hour,
             ),
-            TemporalValue::new(
-                seconds_from_civil(-500, 1, 1),
-                TemporalPrecision::Year,
-            ),
+            TemporalValue::new(seconds_from_civil(-500, 1, 1), TemporalPrecision::Year),
         ];
         for val in &cases {
             let id = inline_temporal(val).expect("should encode");
             let decoded = decode_inline_temporal(id).expect("should decode");
-            assert_eq!(val.timestamp, decoded.timestamp, "timestamp mismatch for {val:?}");
-            assert_eq!(val.precision, decoded.precision, "precision mismatch for {val:?}");
+            assert_eq!(
+                val.timestamp, decoded.timestamp,
+                "timestamp mismatch for {val:?}"
+            );
+            assert_eq!(
+                val.precision, decoded.precision,
+                "precision mismatch for {val:?}"
+            );
         }
     }
 
