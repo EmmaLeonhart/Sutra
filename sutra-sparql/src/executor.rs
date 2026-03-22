@@ -40,6 +40,17 @@ pub struct QueryResult {
     pub scores: Vec<HashMap<String, f32>>,
 }
 
+/// Temporal filter context for scoping queries to a specific time or interval.
+/// Set by AT_TIME/DURING/WORLD_STATE operators; checked during property path
+/// traversal to ensure only temporally-valid edges are followed.
+#[derive(Debug, Clone)]
+pub enum TemporalFilter {
+    /// Only follow edges valid at this exact point in time.
+    AtTime(i64),
+    /// Only follow edges that overlap with this interval.
+    During(i64, i64),
+}
+
 /// Execution context holding all the state needed during query evaluation.
 pub struct ExecutionContext<'a> {
     pub store: &'a TripleStore,
@@ -55,6 +66,9 @@ pub struct ExecutionContext<'a> {
     /// SPO/POS/OSP index scan. This is the RDF equivalent of a SQL engine
     /// choosing between a columnar scan and a B-tree lookup.
     pub pseudo_tables: Option<&'a PseudoTableRegistry>,
+    /// Optional temporal filter set by AT_TIME/DURING/WORLD_STATE operators.
+    /// When present, property path traversal only follows temporally-valid edges.
+    pub temporal_filter: Option<TemporalFilter>,
 }
 
 /// Execute a parsed query against an in-memory store with vector support.
@@ -394,6 +408,7 @@ fn execute_with_deadline(
         config,
         deadline,
         pseudo_tables: None,
+        temporal_filter: None,
     };
     execute_query_with_ctx(query, &mut ctx)
 }
@@ -774,7 +789,11 @@ fn evaluate_at_time(
     let ref_row = current.first().unwrap_or(&empty_row);
     let t = resolve_timestamp(timestamp, ref_row, ctx.dict, ctx.prefixes)?;
 
-    // Step 2: evaluate inner patterns normally
+    // Step 2: set temporal filter so property path traversal respects time
+    let prev_filter = ctx.temporal_filter.take();
+    ctx.temporal_filter = Some(TemporalFilter::AtTime(t));
+
+    // Step 3: evaluate inner patterns with temporal context
     let mut inner_results = current.to_vec();
     let mut inner_scores = current_scores.to_vec();
     for p in inner_patterns {
@@ -782,6 +801,9 @@ fn evaluate_at_time(
         inner_results = new_results;
         inner_scores = new_s;
     }
+
+    // Restore previous temporal filter
+    ctx.temporal_filter = prev_filter;
 
     // Step 3: filter by temporal containment
     let mut result = Vec::new();
@@ -832,7 +854,11 @@ fn evaluate_during(
     let t_start = resolve_timestamp(start_term, ref_row, ctx.dict, ctx.prefixes)?;
     let t_end = resolve_timestamp(end_term, ref_row, ctx.dict, ctx.prefixes)?;
 
-    // Evaluate inner patterns normally
+    // Set temporal filter for property path traversal
+    let prev_filter = ctx.temporal_filter.take();
+    ctx.temporal_filter = Some(TemporalFilter::During(t_start, t_end));
+
+    // Evaluate inner patterns with temporal context
     let mut inner_results = current.to_vec();
     let mut inner_scores = current_scores.to_vec();
     for p in inner_patterns {
@@ -840,6 +866,9 @@ fn evaluate_during(
         inner_results = new_results;
         inner_scores = new_s;
     }
+
+    // Restore previous temporal filter
+    ctx.temporal_filter = prev_filter;
 
     // Filter by interval overlap
     let mut result = Vec::new();
@@ -1033,6 +1062,33 @@ fn overlaps_interval(annotations: &TemporalAnnotations, q_start: i64, q_end: i64
     }
 
     false
+}
+
+/// Check whether an edge (triple) passes the active temporal filter.
+///
+/// Returns `true` if:
+/// - No temporal filter is active (all edges are valid), or
+/// - The edge is temporally valid under the active filter.
+///
+/// Used during property path traversal to prune temporally-invalid edges.
+fn is_edge_temporally_valid(
+    s: TermId,
+    p: TermId,
+    o: TermId,
+    filter: &Option<TemporalFilter>,
+    store: &TripleStore,
+) -> bool {
+    match filter {
+        None => true, // No filter — all edges are valid
+        Some(TemporalFilter::AtTime(t)) => {
+            let ann = store.gather_temporal_annotations(s, p, o);
+            ann.containment_at(*t).is_visible()
+        }
+        Some(TemporalFilter::During(start, end)) => {
+            let ann = store.gather_temporal_annotations(s, p, o);
+            overlaps_interval(&ann, *start, *end)
+        }
+    }
 }
 
 /// Execute a VECTOR_SIMILAR pattern against the VectorRegistry.
@@ -2754,8 +2810,20 @@ fn evaluate_property_path(
                         if !visited.insert(node) {
                             continue;
                         }
-                        // Find all objects reachable via one step of pred_id from node
+                        // Find all objects reachable via one step of pred_id from node.
+                        // If a temporal filter is active, only follow edges that are
+                        // temporally valid.
                         for triple in ctx.store.find_by_subject_predicate(node, pred_id) {
+                            // Temporal gate: check if this edge passes the filter
+                            if !is_edge_temporally_valid(
+                                triple.subject,
+                                triple.predicate,
+                                triple.object,
+                                &ctx.temporal_filter,
+                                ctx.store,
+                            ) {
+                                continue;
+                            }
                             let target = triple.object;
                             // Add to results
                             if let Term::Variable(o_var) = object {
@@ -3536,5 +3604,138 @@ mod tests {
         .unwrap();
         let result = execute(&q, &store, &dict).unwrap();
         assert_eq!(result.rows.len(), 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // Temporal-aware property path tests
+    // -----------------------------------------------------------------------
+
+    /// Set up a graph with temporal edges for path traversal testing.
+    ///
+    /// Graph (a chain: alice → bob → charlie → dave):
+    ///   alice  :knows bob     (valid [100, 200])
+    ///   bob    :knows charlie  (valid [150, 300])
+    ///   charlie :knows dave    (valid [250, 400])
+    ///
+    /// At time 175: alice→bob (yes), bob→charlie (yes), charlie→dave (no)
+    /// So alice :knows+ at T=175 should reach bob and charlie, but NOT dave.
+    fn setup_temporal_paths() -> (TripleStore, TermDictionary) {
+        use sutra_core::TemporalSignifier;
+
+        let mut dict = TermDictionary::new();
+        let mut store = TripleStore::new();
+
+        let alice = dict.intern("http://example.org/Alice");
+        let bob = dict.intern("http://example.org/Bob");
+        let charlie = dict.intern("http://example.org/Charlie");
+        let dave = dict.intern("http://example.org/Dave");
+        let knows = dict.intern("http://example.org/knows");
+
+        store.insert(Triple::new(alice, knows, bob)).unwrap();
+        store.insert_temporal(TemporalSignifier::ValidFrom, 100, alice, knows, bob);
+        store.insert_temporal(TemporalSignifier::ValidTo, 200, alice, knows, bob);
+
+        store.insert(Triple::new(bob, knows, charlie)).unwrap();
+        store.insert_temporal(TemporalSignifier::ValidFrom, 150, bob, knows, charlie);
+        store.insert_temporal(TemporalSignifier::ValidTo, 300, bob, knows, charlie);
+
+        store.insert(Triple::new(charlie, knows, dave)).unwrap();
+        store.insert_temporal(TemporalSignifier::ValidFrom, 250, charlie, knows, dave);
+        store.insert_temporal(TemporalSignifier::ValidTo, 400, charlie, knows, dave);
+
+        (store, dict)
+    }
+
+    #[test]
+    fn temporal_path_traversal_at_time() {
+        let (store, dict) = setup_temporal_paths();
+
+        // Without temporal filter: alice :knows+ reaches bob, charlie, dave (3 results)
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             <http://example.org/Alice> <http://example.org/knows>+ ?person . \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 3);
+
+        // With AT_TIME(175): alice→bob (valid), bob→charlie (valid),
+        // charlie→dave (NOT valid, 175 < 250). Should reach bob and charlie only.
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             AT_TIME(175) { \
+               <http://example.org/Alice> <http://example.org/knows>+ ?person . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
+        let bob_id = dict.lookup("http://example.org/Bob").unwrap();
+        let charlie_id = dict.lookup("http://example.org/Charlie").unwrap();
+        let persons: std::collections::HashSet<TermId> =
+            result.rows.iter().map(|r| *r.get("person").unwrap()).collect();
+        assert!(persons.contains(&bob_id));
+        assert!(persons.contains(&charlie_id));
+    }
+
+    #[test]
+    fn temporal_path_traversal_none_valid() {
+        let (store, dict) = setup_temporal_paths();
+
+        // AT_TIME(50): alice→bob not valid (50 < 100), so nothing reachable
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             AT_TIME(50) { \
+               <http://example.org/Alice> <http://example.org/knows>+ ?person . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 0);
+    }
+
+    #[test]
+    fn temporal_path_traversal_all_valid() {
+        let (store, dict) = setup_temporal_paths();
+
+        // AT_TIME(275): all edges valid (alice→bob: Open, bob→charlie: valid,
+        // charlie→dave: valid). Should reach all 3.
+        // alice→bob has validTo=200, and 275>200, so alice→bob is Outside!
+        // Actually only bob→charlie and charlie→dave are valid at 275.
+        // alice→bob is Outside (275 > 200). So alice can't reach anyone.
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             AT_TIME(275) { \
+               <http://example.org/Alice> <http://example.org/knows>+ ?person . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        // alice→bob is Outside at 275 (validTo=200), so traversal stops at alice
+        assert_eq!(result.rows.len(), 0);
+    }
+
+    #[test]
+    fn temporal_path_traversal_during() {
+        let (store, dict) = setup_temporal_paths();
+
+        // DURING(150, 200): alice→bob overlaps [100,200]∩[150,200]=yes,
+        // bob→charlie overlaps [150,300]∩[150,200]=yes,
+        // charlie→dave overlaps [250,400]∩[150,200]=no.
+        // Should reach bob and charlie.
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             DURING(150, 200) { \
+               <http://example.org/Alice> <http://example.org/knows>+ ?person . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
     }
 }
