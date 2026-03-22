@@ -636,10 +636,9 @@ fn resolve_timestamp(
                 || resolved_dt.contains("temporal")
                 || resolved_dt == DATATYPE_TEMPORAL
             {
-                let tv = parse_temporal(value)
-                    .map_err(|_| SparqlError::Execution(
-                        format!("invalid temporal literal: {}", value),
-                    ))?;
+                let tv = parse_temporal(value).map_err(|_| {
+                    SparqlError::Execution(format!("invalid temporal literal: {}", value))
+                })?;
                 Ok(tv.timestamp)
             } else {
                 Err(SparqlError::Execution(format!(
@@ -649,10 +648,9 @@ fn resolve_timestamp(
             }
         }
         Term::Literal(value) => {
-            let tv = parse_temporal(value)
-                .map_err(|_| SparqlError::Execution(
-                    format!("cannot parse temporal literal: {}", value),
-                ))?;
+            let tv = parse_temporal(value).map_err(|_| {
+                SparqlError::Execution(format!("cannot parse temporal literal: {}", value))
+            })?;
             Ok(tv.timestamp)
         }
         Term::IntegerLiteral(n) => Ok(*n),
@@ -664,10 +662,12 @@ fn resolve_timestamp(
                 }
                 // Try to resolve from dictionary as string and parse
                 if let Some(iri) = dict.resolve(id) {
-                    let tv = parse_temporal(&iri)
-                        .map_err(|_| SparqlError::Execution(
-                            format!("cannot parse bound variable as temporal: {}", iri),
-                        ))?;
+                    let tv = parse_temporal(&iri).map_err(|_| {
+                        SparqlError::Execution(format!(
+                            "cannot parse bound variable as temporal: {}",
+                            iri
+                        ))
+                    })?;
                     return Ok(tv.timestamp);
                 }
                 Err(SparqlError::Execution(format!(
@@ -729,11 +729,7 @@ fn collect_triple_ids_from_row(
 }
 
 /// Resolve a Term to a TermId using the current row bindings.
-fn resolve_term_to_id(
-    term: &Term,
-    row: &Bindings,
-    ctx: &ExecutionContext<'_>,
-) -> Option<TermId> {
+fn resolve_term_to_id(term: &Term, row: &Bindings, ctx: &ExecutionContext<'_>) -> Option<TermId> {
     match term {
         Term::Variable(name) => row.get(name).copied(),
         Term::Iri(iri) => ctx.dict.lookup(iri),
@@ -775,8 +771,7 @@ fn evaluate_at_time(
     let mut inner_results = current.to_vec();
     let mut inner_scores = current_scores.to_vec();
     for p in inner_patterns {
-        let (new_results, new_s) =
-            evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
+        let (new_results, new_s) = evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
         inner_results = new_results;
         inner_scores = new_s;
     }
@@ -834,8 +829,7 @@ fn evaluate_during(
     let mut inner_results = current.to_vec();
     let mut inner_scores = current_scores.to_vec();
     for p in inner_patterns {
-        let (new_results, new_s) =
-            evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
+        let (new_results, new_s) = evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
         inner_results = new_results;
         inner_scores = new_s;
     }
@@ -3058,7 +3052,9 @@ mod tests {
         let h2o = dict.intern("http://example.org/H2O");
 
         // Insert triples
-        store.insert(Triple::new(alice, located_in, office)).unwrap();
+        store
+            .insert(Triple::new(alice, located_in, office))
+            .unwrap();
         store.insert(Triple::new(bob, located_in, office)).unwrap();
         store.insert(Triple::new(alice, works_at, acme)).unwrap();
         store.insert(Triple::new(water, formula, h2o)).unwrap();
