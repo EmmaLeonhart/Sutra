@@ -31,11 +31,11 @@ pub use pseudotable::{
     SelectionVector, SubgraphPath, SubgraphPattern,
 };
 pub use rdfxml::parse_rdfxml;
+pub use store::TripleStore;
 pub use temporal::{
     decode_inline_temporal, inline_temporal, parse_temporal, TemporalPrecision, TemporalSignifier,
     TemporalValue, DATATYPE_TEMPORAL, PREDICATE_ASSERTED_AT, PREDICATE_VALID_FROM,
     PREDICATE_VALID_TO,
 };
-pub use store::TripleStore;
 pub use triple::Triple;
 pub use turtle::parse_turtle;
