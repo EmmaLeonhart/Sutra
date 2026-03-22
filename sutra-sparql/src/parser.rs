@@ -153,6 +153,22 @@ pub enum Pattern {
         end: Term,
         patterns: Vec<Pattern>,
     },
+    /// WORLD_STATE("timestamp"^^type) { patterns }
+    /// Complete state snapshot at T. Semantically equivalent to AT_TIME but
+    /// intended for full graph dumps — future optimization will use TSPO-first
+    /// execution instead of post-filtering.
+    WorldState {
+        timestamp: Term,
+        patterns: Vec<Pattern>,
+    },
+    /// TEMPORAL_DIFF("t1"^^type, "t2"^^type) { patterns }
+    /// Compute the diff between two world states. Each result row gets a
+    /// bound ?change_type variable: "added", "removed", or "unchanged".
+    TemporalDiff {
+        t1: Term,
+        t2: Term,
+        patterns: Vec<Pattern>,
+    },
 }
 
 /// Distance metric for metric-specific search operators.
@@ -620,6 +636,20 @@ impl<'a> Parser<'a> {
                 if self.peek_char() == Some('.') {
                     self.pos += 1;
                 }
+            } else if self.peek_keyword("WORLD_STATE") {
+                let ws = self.parse_world_state()?;
+                patterns.push(ws);
+                self.skip_whitespace();
+                if self.peek_char() == Some('.') {
+                    self.pos += 1;
+                }
+            } else if self.peek_keyword("TEMPORAL_DIFF") {
+                let td = self.parse_temporal_diff()?;
+                patterns.push(td);
+                self.skip_whitespace();
+                if self.peek_char() == Some('.') {
+                    self.pos += 1;
+                }
             } else if self.peek_keyword("BIND") {
                 self.expect_keyword("BIND")?;
                 self.expect_char('(')?;
@@ -915,6 +945,57 @@ impl<'a> Parser<'a> {
         Ok(Pattern::During {
             start,
             end,
+            patterns,
+        })
+    }
+
+    /// Parse a WORLD_STATE temporal scope operator.
+    ///
+    /// Grammar: WORLD_STATE("timestamp"^^datatype) { patterns }
+    ///
+    /// Returns the complete state snapshot at T. Semantically equivalent to
+    /// AT_TIME but intended for full graph dumps.
+    fn parse_world_state(&mut self) -> Result<Pattern> {
+        self.expect_keyword("WORLD_STATE")?;
+        self.expect_char('(')?;
+        self.skip_whitespace();
+        let timestamp = self.parse_term()?;
+        self.skip_whitespace();
+        self.expect_char(')')?;
+        self.skip_whitespace();
+        self.expect_char('{')?;
+        let patterns = self.parse_patterns()?;
+        self.expect_char('}')?;
+        Ok(Pattern::WorldState {
+            timestamp,
+            patterns,
+        })
+    }
+
+    /// Parse a TEMPORAL_DIFF operator.
+    ///
+    /// Grammar: TEMPORAL_DIFF("t1"^^datatype, "t2"^^datatype) { patterns }
+    ///
+    /// Computes the diff between world states at T1 and T2. Each result row
+    /// gets a ?change_type binding: "added", "removed", or "unchanged".
+    fn parse_temporal_diff(&mut self) -> Result<Pattern> {
+        self.expect_keyword("TEMPORAL_DIFF")?;
+        self.expect_char('(')?;
+        self.skip_whitespace();
+        let t1 = self.parse_term()?;
+        self.skip_whitespace();
+        self.expect_char(',')?;
+        self.skip_whitespace();
+        let t2 = self.parse_term()?;
+        self.skip_whitespace();
+        self.expect_char(')')?;
+        self.skip_whitespace();
+        self.expect_char('{')?;
+        let patterns = self.parse_patterns()?;
+        self.expect_char('}')?;
+        Ok(Pattern::TemporalDiff {
+            t1,
+            t2,
             patterns,
         })
     }
@@ -2212,5 +2293,86 @@ mod tests {
         assert_eq!(q.patterns.len(), 2);
         assert!(matches!(&q.patterns[0], Pattern::AtTime { .. }));
         assert!(matches!(&q.patterns[1], Pattern::Triple { .. }));
+    }
+
+    #[test]
+    fn parse_world_state_basic() {
+        let q = parse(
+            r#"SELECT ?s ?p ?o WHERE {
+                WORLD_STATE("2024-03-14T10:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>) {
+                    ?s ?p ?o .
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 1);
+        if let Pattern::WorldState {
+            timestamp,
+            patterns,
+        } = &q.patterns[0]
+        {
+            assert!(matches!(timestamp, Term::TypedLiteral { .. }));
+            assert_eq!(patterns.len(), 1);
+        } else {
+            panic!("expected WorldState pattern, got {:?}", q.patterns[0]);
+        }
+    }
+
+    #[test]
+    fn parse_world_state_integer_axis() {
+        let q = parse(
+            r#"SELECT ?s ?p ?o WHERE {
+                WORLD_STATE(7) {
+                    ?s ?p ?o .
+                }
+            }"#,
+        )
+        .unwrap();
+        if let Pattern::WorldState { timestamp, .. } = &q.patterns[0] {
+            assert_eq!(*timestamp, Term::IntegerLiteral(7));
+        } else {
+            panic!("expected WorldState pattern");
+        }
+    }
+
+    #[test]
+    fn parse_temporal_diff_basic() {
+        let q = parse(
+            r#"SELECT ?change_type ?s ?p ?o WHERE {
+                TEMPORAL_DIFF(
+                    "2024-03-14T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>,
+                    "2024-03-14T11:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>
+                ) {
+                    ?s ?p ?o .
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 1);
+        if let Pattern::TemporalDiff { t1, t2, patterns } = &q.patterns[0] {
+            assert!(matches!(t1, Term::TypedLiteral { .. }));
+            assert!(matches!(t2, Term::TypedLiteral { .. }));
+            assert_eq!(patterns.len(), 1);
+        } else {
+            panic!("expected TemporalDiff pattern, got {:?}", q.patterns[0]);
+        }
+    }
+
+    #[test]
+    fn parse_temporal_diff_integer_axis() {
+        let q = parse(
+            r#"SELECT ?change_type ?s ?p ?o WHERE {
+                TEMPORAL_DIFF(5, 10) {
+                    ?s ?p ?o .
+                }
+            }"#,
+        )
+        .unwrap();
+        if let Pattern::TemporalDiff { t1, t2, .. } = &q.patterns[0] {
+            assert_eq!(*t1, Term::IntegerLiteral(5));
+            assert_eq!(*t2, Term::IntegerLiteral(10));
+        } else {
+            panic!("expected TemporalDiff pattern");
+        }
     }
 }
