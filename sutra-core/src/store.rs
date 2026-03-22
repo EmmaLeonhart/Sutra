@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 
 use crate::error::{CoreError, Result};
 use crate::id::TermId;
+use crate::temporal::{decode_tspo_key, tspo_key, TemporalSignifier};
 use crate::triple::Triple;
 
 /// An in-memory triple store backed by three sorted indexes.
@@ -22,6 +23,9 @@ pub struct TripleStore {
     pos: BTreeSet<[u8; 24]>,
     /// Object → Subject → Predicate index.
     osp: BTreeSet<[u8; 24]>,
+    /// Time → Subject → Predicate → Object index (ontochronological).
+    /// 33-byte keys: [signifier:1 | timestamp:8 | S:8 | P:8 | O:8].
+    tspo: BTreeSet<[u8; 33]>,
     /// Materialized adjacency list: subject → list of (predicate, object) pairs.
     /// Provides O(1) lookup for star-shaped queries (all edges from a node).
     adjacency: std::collections::HashMap<TermId, Vec<(TermId, TermId)>>,
@@ -36,6 +40,7 @@ impl TripleStore {
             spo: BTreeSet::new(),
             pos: BTreeSet::new(),
             osp: BTreeSet::new(),
+            tspo: BTreeSet::new(),
             adjacency: std::collections::HashMap::new(),
             count: 0,
         }
@@ -149,6 +154,115 @@ impl TripleStore {
         hi[16..24].fill(0xFF);
 
         self.pos.range(lo..=hi).map(Triple::from_pos_key).collect()
+    }
+
+    // --- Temporal (TSPO) index operations ---
+
+    /// Insert a temporal index entry.
+    ///
+    /// The caller is responsible for detecting temporal predicates on quoted
+    /// triples and extracting the inner (S, P, O) and timestamp. The store
+    /// itself is dumb — it just indexes what it's told.
+    pub fn insert_temporal(
+        &mut self,
+        signifier: TemporalSignifier,
+        timestamp: i64,
+        subject: TermId,
+        predicate: TermId,
+        object: TermId,
+    ) -> bool {
+        let key = tspo_key(signifier, timestamp, subject, predicate, object);
+        self.tspo.insert(key)
+    }
+
+    /// Remove a temporal index entry. Returns true if it was present.
+    pub fn remove_temporal(
+        &mut self,
+        signifier: TemporalSignifier,
+        timestamp: i64,
+        subject: TermId,
+        predicate: TermId,
+        object: TermId,
+    ) -> bool {
+        let key = tspo_key(signifier, timestamp, subject, predicate, object);
+        self.tspo.remove(&key)
+    }
+
+    /// Find all temporal entries for a given signifier type within a time range
+    /// `[start, end)`. Returns `(signifier, timestamp, Triple)` tuples.
+    pub fn find_temporal_range(
+        &self,
+        signifier: TemporalSignifier,
+        start: i64,
+        end: i64,
+    ) -> Vec<(i64, Triple)> {
+        let lo = tspo_key(signifier, start, 0, 0, 0);
+        let hi = tspo_key(signifier, end, u64::MAX, u64::MAX, u64::MAX);
+        self.tspo
+            .range(lo..hi)
+            .map(|key| {
+                let (_, ts, s, p, o) = decode_tspo_key(key);
+                (ts, Triple::new(s, p, o))
+            })
+            .collect()
+    }
+
+    /// Find all `ValidFrom` entries with timestamp ≤ `at`, i.e. triples
+    /// whose validity started on or before the given time.
+    pub fn find_valid_from_before(&self, at: i64) -> Vec<(i64, Triple)> {
+        let lo = tspo_key(TemporalSignifier::ValidFrom, i64::MIN, 0, 0, 0);
+        let hi = tspo_key(
+            TemporalSignifier::ValidFrom,
+            at,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+        );
+        self.tspo
+            .range(lo..=hi)
+            .map(|key| {
+                let (_, ts, s, p, o) = decode_tspo_key(key);
+                (ts, Triple::new(s, p, o))
+            })
+            .collect()
+    }
+
+    /// Find all `ValidTo` entries with timestamp ≤ `at`, i.e. triples
+    /// whose validity ended on or before the given time.
+    pub fn find_valid_to_before(&self, at: i64) -> Vec<(i64, Triple)> {
+        let lo = tspo_key(TemporalSignifier::ValidTo, i64::MIN, 0, 0, 0);
+        let hi = tspo_key(
+            TemporalSignifier::ValidTo,
+            at,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+        );
+        self.tspo
+            .range(lo..=hi)
+            .map(|key| {
+                let (_, ts, s, p, o) = decode_tspo_key(key);
+                (ts, Triple::new(s, p, o))
+            })
+            .collect()
+    }
+
+    /// Find all `AssertedAt` entries at a specific time.
+    pub fn find_asserted_at(&self, at: i64) -> Vec<Triple> {
+        let lo = tspo_key(TemporalSignifier::AssertedAt, at, 0, 0, 0);
+        let hi = tspo_key(TemporalSignifier::AssertedAt, at, u64::MAX, u64::MAX, u64::MAX);
+        self.tspo
+            .range(lo..=hi)
+            .map(|key| {
+                let (_, _, s, p, o) = decode_tspo_key(key);
+                Triple::new(s, p, o)
+            })
+            .collect()
+    }
+
+    /// Number of entries in the TSPO index.
+    pub fn temporal_len(&self) -> usize {
+        self.tspo.len()
     }
 
     /// Fast adjacency lookup: get all (predicate, object) pairs for a subject.
