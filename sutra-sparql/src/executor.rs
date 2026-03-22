@@ -3674,8 +3674,11 @@ mod tests {
         assert_eq!(result.rows.len(), 2);
         let bob_id = dict.lookup("http://example.org/Bob").unwrap();
         let charlie_id = dict.lookup("http://example.org/Charlie").unwrap();
-        let persons: std::collections::HashSet<TermId> =
-            result.rows.iter().map(|r| *r.get("person").unwrap()).collect();
+        let persons: std::collections::HashSet<TermId> = result
+            .rows
+            .iter()
+            .map(|r| *r.get("person").unwrap())
+            .collect();
         assert!(persons.contains(&bob_id));
         assert!(persons.contains(&charlie_id));
     }
