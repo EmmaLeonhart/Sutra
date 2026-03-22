@@ -9,10 +9,11 @@ pub mod persistent;
 pub mod pseudotable;
 pub mod rdfxml;
 pub mod store;
+pub mod temporal;
 pub mod triple;
 pub mod turtle;
 
-pub use config::{DatabaseConfig, HnswEdgeMode, RdfMode};
+pub use config::{DatabaseConfig, HnswEdgeMode, RdfMode, TemporalAxis};
 pub use error::{CoreError, Result};
 pub use id::{
     decode_inline_boolean, decode_inline_integer, inline_boolean, inline_integer, inline_type,
@@ -30,6 +31,11 @@ pub use pseudotable::{
     SelectionVector, SubgraphPath, SubgraphPattern,
 };
 pub use rdfxml::parse_rdfxml;
+pub use temporal::{
+    decode_inline_temporal, inline_temporal, parse_temporal, TemporalPrecision, TemporalSignifier,
+    TemporalValue, DATATYPE_TEMPORAL, PREDICATE_ASSERTED_AT, PREDICATE_VALID_FROM,
+    PREDICATE_VALID_TO,
+};
 pub use store::TripleStore;
 pub use triple::Triple;
 pub use turtle::parse_turtle;

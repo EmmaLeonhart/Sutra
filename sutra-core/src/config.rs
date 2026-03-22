@@ -31,6 +31,21 @@ pub enum HnswEdgeMode {
     Materialized,
 }
 
+/// The ordering axis for temporal (TSPO) indexing.
+///
+/// Configured at database creation time. Determines what the "T" in TSPO
+/// represents. The index structure is identical regardless — it's always
+/// a B-tree over ordered keys.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TemporalAxis {
+    /// UTC timestamps (seconds since epoch). The default.
+    Utc,
+    /// Arbitrary integer positions (frame numbers, scene numbers, etc.).
+    Integer,
+    /// Floating-point positions (chapter.verse, minutes into a movie, etc.).
+    Float,
+}
+
 /// Top-level database configuration.
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
@@ -41,6 +56,8 @@ pub struct DatabaseConfig {
     /// Whether OWL reasoning is enabled (opt-in, query-time only).
     /// Default: true (enabled but requires explicit schema setup).
     pub owl_enabled: bool,
+    /// Ordering axis for temporal indexing. Default: Utc.
+    pub temporal_axis: TemporalAxis,
 }
 
 impl Default for DatabaseConfig {
@@ -49,6 +66,7 @@ impl Default for DatabaseConfig {
             rdf_mode: RdfMode::RdfStar,
             hnsw_edge_mode: HnswEdgeMode::Virtual,
             owl_enabled: true,
+            temporal_axis: TemporalAxis::Utc,
         }
     }
 }
