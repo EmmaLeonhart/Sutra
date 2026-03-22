@@ -725,7 +725,39 @@ Temporal operators are treated as subquery-weight patterns in the cost-based pla
 - **Variable collection:** Inner pattern variables are propagated through. TEMPORAL_DIFF also contributes `?change_type`.
 - **Filter pushdown:** Temporal blocks are opaque to filter pushdown — a FILTER on a variable bound inside an AT_TIME block stays inside the block.
 
-### 13.10 Known Limitations and Future Work
+### 13.10 Temporal-Aware Property Path Traversal
+
+Property paths (`?s :knows+ ?o`, `?s :knows* ?o`) inside temporal scope operators (AT_TIME, DURING, WORLD_STATE) are temporally aware: each edge in the BFS traversal is checked against the active temporal filter before being followed.
+
+**How it works:**
+
+1. When AT_TIME/DURING/WORLD_STATE evaluates its inner patterns, it sets a `TemporalFilter` on the `ExecutionContext` (either `AtTime(i64)` or `During(i64, i64)`).
+2. During BFS in `evaluate_property_path()`, each candidate edge `(node, predicate, target)` is passed through `is_edge_temporally_valid()`.
+3. This function calls `gather_temporal_annotations()` on the edge triple, then checks containment (for AtTime) or overlap (for During).
+4. Edges that fail the check are pruned — neither added to results nor added to the BFS frontier.
+5. After the temporal block finishes, the previous filter is restored (supporting nested temporal blocks).
+
+**Example:**
+
+```sparql
+# At time 175, traverse :knows edges — only follow edges valid at T=175
+SELECT ?person WHERE {
+  AT_TIME(175) {
+    :alice :knows+ ?person .
+  }
+}
+```
+
+If `:alice :knows :bob` is valid [100, 200] and `:bob :knows :charlie` is valid [150, 300] and `:charlie :knows :dave` is valid [250, 400], then at T=175:
+- alice→bob: valid (175 ∈ [100, 200]) ✓
+- bob→charlie: valid (175 ∈ [150, 300]) ✓
+- charlie→dave: **outside** (175 < 250) ✗
+
+Result: `?person` = `:bob`, `:charlie` (not `:dave`).
+
+**Performance note:** Each edge check calls `gather_temporal_annotations()`, which is O(N) per signifier where N is the TSPO index size. For deep traversals on large temporally-annotated graphs, this could be slow. The SPOT reverse index (future work) would reduce this to O(1) per edge.
+
+### 13.11 Known Limitations and Future Work
 
 1. **No TSPO-first execution for WORLD_STATE.** Currently evaluates all triples then filters. For full graph dumps on large databases, this is O(total triples) instead of O(valid triples at T). Pre-filter via TSPO scan is the planned optimization.
 
@@ -733,6 +765,6 @@ Temporal operators are treated as subquery-weight patterns in the cost-based pla
 
 3. **Immutable dictionary during execution.** TEMPORAL_DIFF requires change type strings to be pre-interned. A future change could allow the executor to intern strings on-the-fly, or use a fixed set of well-known TermIds for change types.
 
-4. **No temporal-aware property path traversal.** Property paths (`?s :knows+ ?o`) do not currently respect AT_TIME scoping — they traverse all edges regardless of temporal validity. Supporting this requires passing the temporal context into the path evaluation loop.
+4. ~~**No temporal-aware property path traversal.**~~ ✅ **Resolved.** Property paths inside AT_TIME/DURING/WORLD_STATE blocks now check each edge against the active temporal filter during BFS traversal. A `TemporalFilter` enum (AtTime/During) is threaded through the `ExecutionContext`, and `is_edge_temporally_valid()` prunes edges that are Outside or don't overlap the query interval.
 
 5. **No temporal index statistics for the planner.** The planner cannot estimate cardinality of temporal patterns (e.g., "how many triples are valid at T?"). This means temporal blocks are always treated as subquery-cost, even when TSPO statistics could improve ordering decisions.
