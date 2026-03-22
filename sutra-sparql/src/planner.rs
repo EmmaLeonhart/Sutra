@@ -259,7 +259,10 @@ fn pattern_weight(pattern: &Pattern, bound: &HashSet<String>) -> u32 {
         Pattern::Optional(_) => WEIGHT_OPTIONAL,
         // Temporal scopes behave like subqueries: evaluate inner patterns,
         // then filter by containment. Similar cost profile to subqueries.
-        Pattern::AtTime { .. } | Pattern::During { .. } => WEIGHT_SUBQUERY,
+        Pattern::AtTime { .. }
+        | Pattern::During { .. }
+        | Pattern::WorldState { .. }
+        | Pattern::TemporalDiff { .. } => WEIGHT_SUBQUERY,
     }
 }
 
@@ -578,10 +581,17 @@ fn collect_variables(pattern: &Pattern, vars: &mut HashSet<String>) {
                 collect_variables(p, vars);
             }
         }
-        Pattern::During { patterns, .. } => {
+        Pattern::During { patterns, .. } | Pattern::WorldState { patterns, .. } => {
             for p in patterns {
                 collect_variables(p, vars);
             }
+        }
+        Pattern::TemporalDiff { patterns, .. } => {
+            for p in patterns {
+                collect_variables(p, vars);
+            }
+            // TEMPORAL_DIFF also binds ?change_type
+            vars.insert("change_type".to_string());
         }
     }
 }
