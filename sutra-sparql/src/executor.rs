@@ -13,8 +13,9 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use sutra_core::{
-    batch_gather_nodes, fused_multi_column_scan, ColumnFilter, DatabaseConfig, HnswEdgeMode,
-    Property, PropertyPosition, PseudoTableRegistry, TermDictionary, TermId, Triple, TripleStore,
+    batch_gather_nodes, fused_multi_column_scan, parse_temporal, ColumnFilter, DatabaseConfig,
+    HnswEdgeMode, Property, PropertyPosition, PseudoTableRegistry, TemporalAnnotations,
+    TermDictionary, TermId, Triple, TripleStore, DATATYPE_TEMPORAL,
 };
 use sutra_hnsw::VectorRegistry;
 
@@ -604,7 +605,325 @@ fn evaluate_pattern(
             }
             Ok((result, result_scores))
         }
+        Pattern::AtTime {
+            timestamp,
+            patterns,
+        } => evaluate_at_time(timestamp, patterns, current, current_scores, ctx),
+        Pattern::During {
+            start,
+            end,
+            patterns,
+        } => evaluate_during(start, end, patterns, current, current_scores, ctx),
     }
+}
+
+/// Resolve a timestamp Term to an i64 (seconds since epoch).
+///
+/// Supports:
+/// - TypedLiteral with xsd:dateTime or sutra:temporal datatype
+/// - Plain string literals (parsed as temporal)
+/// - IntegerLiteral (raw timestamp or frame/scene number)
+fn resolve_timestamp(
+    term: &Term,
+    row: &Bindings,
+    dict: &TermDictionary,
+    prefixes: &HashMap<String, String>,
+) -> std::result::Result<i64, SparqlError> {
+    match term {
+        Term::TypedLiteral { value, datatype } => {
+            let resolved_dt = resolve_prefixed_iri(datatype, prefixes);
+            if resolved_dt.contains("dateTime")
+                || resolved_dt.contains("temporal")
+                || resolved_dt == DATATYPE_TEMPORAL
+            {
+                let tv = parse_temporal(value)
+                    .map_err(|_| SparqlError::Execution(
+                        format!("invalid temporal literal: {}", value),
+                    ))?;
+                Ok(tv.timestamp)
+            } else {
+                Err(SparqlError::Execution(format!(
+                    "unsupported temporal datatype: {}",
+                    datatype
+                )))
+            }
+        }
+        Term::Literal(value) => {
+            let tv = parse_temporal(value)
+                .map_err(|_| SparqlError::Execution(
+                    format!("cannot parse temporal literal: {}", value),
+                ))?;
+            Ok(tv.timestamp)
+        }
+        Term::IntegerLiteral(n) => Ok(*n),
+        Term::Variable(name) => {
+            if let Some(&id) = row.get(name) {
+                // Try to decode as inline temporal
+                if let Some(tv) = sutra_core::decode_inline_temporal(id) {
+                    return Ok(tv.timestamp);
+                }
+                // Try to resolve from dictionary as string and parse
+                if let Some(iri) = dict.resolve(id) {
+                    let tv = parse_temporal(&iri)
+                        .map_err(|_| SparqlError::Execution(
+                            format!("cannot parse bound variable as temporal: {}", iri),
+                        ))?;
+                    return Ok(tv.timestamp);
+                }
+                Err(SparqlError::Execution(format!(
+                    "cannot resolve variable ?{} as temporal value",
+                    name
+                )))
+            } else {
+                Err(SparqlError::Execution(format!(
+                    "unbound variable ?{} in temporal operator",
+                    name
+                )))
+            }
+        }
+        _ => Err(SparqlError::Execution(
+            "unsupported term type in temporal operator".to_string(),
+        )),
+    }
+}
+
+/// Helper to resolve prefixed IRIs (e.g., xsd:dateTime → full IRI).
+fn resolve_prefixed_iri(iri: &str, prefixes: &HashMap<String, String>) -> String {
+    if let Some(colon_pos) = iri.find(':') {
+        let prefix = &iri[..colon_pos];
+        let local = &iri[colon_pos + 1..];
+        if let Some(base) = prefixes.get(prefix) {
+            return format!("{}{}", base, local);
+        }
+    }
+    iri.to_string()
+}
+
+/// Collect all bound (S, P, O) triples from result bindings.
+///
+/// For temporal filtering, we need to know which triples each binding row
+/// references. We extract all 3-variable combinations that look like
+/// triple patterns from the inner patterns.
+fn collect_triple_ids_from_row(
+    row: &Bindings,
+    inner_patterns: &[Pattern],
+    ctx: &ExecutionContext<'_>,
+) -> Vec<(TermId, TermId, TermId)> {
+    let mut triples = Vec::new();
+    for pattern in inner_patterns {
+        if let Pattern::Triple {
+            subject,
+            predicate,
+            object,
+        } = pattern
+        {
+            let s = resolve_term_to_id(subject, row, ctx);
+            let p = resolve_term_to_id(predicate, row, ctx);
+            let o = resolve_term_to_id(object, row, ctx);
+            if let (Some(s), Some(p), Some(o)) = (s, p, o) {
+                triples.push((s, p, o));
+            }
+        }
+    }
+    triples
+}
+
+/// Resolve a Term to a TermId using the current row bindings.
+fn resolve_term_to_id(
+    term: &Term,
+    row: &Bindings,
+    ctx: &ExecutionContext<'_>,
+) -> Option<TermId> {
+    match term {
+        Term::Variable(name) => row.get(name).copied(),
+        Term::Iri(iri) => ctx.dict.lookup(iri),
+        Term::PrefixedName { prefix, local } => {
+            if let Some(base) = ctx.prefixes.get(prefix.as_str()) {
+                ctx.dict.lookup(&format!("{}{}", base, local))
+            } else {
+                None
+            }
+        }
+        Term::A => ctx
+            .dict
+            .lookup("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+        _ => None,
+    }
+}
+
+/// Evaluate AT_TIME: execute inner patterns, then filter by temporal containment.
+///
+/// Algorithm:
+/// 1. Resolve the timestamp term to a point in time T.
+/// 2. Evaluate inner patterns normally against the store.
+/// 3. For each result row, gather temporal annotations for all triples
+///    in the row and check containment at T.
+/// 4. Keep only rows where ALL triples pass containment (visible).
+fn evaluate_at_time(
+    timestamp: &Term,
+    inner_patterns: &[Pattern],
+    current: &[Bindings],
+    current_scores: &[HashMap<String, f32>],
+    ctx: &mut ExecutionContext<'_>,
+) -> Result<(Vec<Bindings>, Vec<HashMap<String, f32>>)> {
+    // Step 1: resolve timestamp using the first current row (or empty row)
+    let empty_row = Bindings::new();
+    let ref_row = current.first().unwrap_or(&empty_row);
+    let t = resolve_timestamp(timestamp, ref_row, ctx.dict, ctx.prefixes)?;
+
+    // Step 2: evaluate inner patterns normally
+    let mut inner_results = current.to_vec();
+    let mut inner_scores = current_scores.to_vec();
+    for p in inner_patterns {
+        let (new_results, new_s) =
+            evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
+        inner_results = new_results;
+        inner_scores = new_s;
+    }
+
+    // Step 3: filter by temporal containment
+    let mut result = Vec::new();
+    let mut result_scores = Vec::new();
+    for (i, row) in inner_results.iter().enumerate() {
+        let triples = collect_triple_ids_from_row(row, inner_patterns, ctx);
+
+        if triples.is_empty() {
+            // No resolvable triple patterns — keep the row (can't filter)
+            result.push(row.clone());
+            result_scores.push(inner_scores[i].clone());
+            continue;
+        }
+
+        // All triples in the row must be temporally visible at T
+        let all_visible = triples.iter().all(|&(s, p, o)| {
+            let annotations = ctx.store.gather_temporal_annotations(s, p, o);
+            annotations.containment_at(t).is_visible()
+        });
+
+        if all_visible {
+            result.push(row.clone());
+            result_scores.push(inner_scores[i].clone());
+        }
+    }
+
+    Ok((result, result_scores))
+}
+
+/// Evaluate DURING: execute inner patterns, then filter by interval overlap.
+///
+/// A triple overlaps interval [start, end] if its temporal containment at
+/// any point in the interval is not Outside. We check containment at both
+/// endpoints — if either is visible, the triple overlaps.
+///
+/// For more precise overlap detection, we also check if the triple's
+/// valid interval intersects with [start, end].
+fn evaluate_during(
+    start_term: &Term,
+    end_term: &Term,
+    inner_patterns: &[Pattern],
+    current: &[Bindings],
+    current_scores: &[HashMap<String, f32>],
+    ctx: &mut ExecutionContext<'_>,
+) -> Result<(Vec<Bindings>, Vec<HashMap<String, f32>>)> {
+    let empty_row = Bindings::new();
+    let ref_row = current.first().unwrap_or(&empty_row);
+    let t_start = resolve_timestamp(start_term, ref_row, ctx.dict, ctx.prefixes)?;
+    let t_end = resolve_timestamp(end_term, ref_row, ctx.dict, ctx.prefixes)?;
+
+    // Evaluate inner patterns normally
+    let mut inner_results = current.to_vec();
+    let mut inner_scores = current_scores.to_vec();
+    for p in inner_patterns {
+        let (new_results, new_s) =
+            evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
+        inner_results = new_results;
+        inner_scores = new_s;
+    }
+
+    // Filter by interval overlap
+    let mut result = Vec::new();
+    let mut result_scores = Vec::new();
+    for (i, row) in inner_results.iter().enumerate() {
+        let triples = collect_triple_ids_from_row(row, inner_patterns, ctx);
+
+        if triples.is_empty() {
+            result.push(row.clone());
+            result_scores.push(inner_scores[i].clone());
+            continue;
+        }
+
+        let all_overlap = triples.iter().all(|&(s, p, o)| {
+            let annotations = ctx.store.gather_temporal_annotations(s, p, o);
+            overlaps_interval(&annotations, t_start, t_end)
+        });
+
+        if all_overlap {
+            result.push(row.clone());
+            result_scores.push(inner_scores[i].clone());
+        }
+    }
+
+    Ok((result, result_scores))
+}
+
+/// Check whether a triple's temporal annotations overlap with [q_start, q_end].
+///
+/// A triple overlaps the query interval if:
+/// - It's atemporal (always valid), OR
+/// - Any of its valid intervals intersect with [q_start, q_end], OR
+/// - Any assertedAt point falls within [q_start, q_end], OR
+/// - It has an open interval that reaches into [q_start, q_end].
+fn overlaps_interval(annotations: &TemporalAnnotations, q_start: i64, q_end: i64) -> bool {
+    if annotations.is_atemporal() {
+        return true;
+    }
+
+    // Check assertedAt points within the query interval
+    for &a in &annotations.asserted_at {
+        if a >= q_start && a <= q_end {
+            return true;
+        }
+    }
+
+    // Pair validFrom/validTo and check interval intersection
+    let mut starts: Vec<i64> = annotations.valid_from.clone();
+    let mut ends: Vec<i64> = annotations.valid_to.clone();
+    starts.sort();
+    ends.sort();
+
+    let paired = starts.len().min(ends.len());
+
+    // Closed intervals: [start_i, end_i] overlaps [q_start, q_end]?
+    for i in 0..paired {
+        if starts[i] <= q_end && ends[i] >= q_start {
+            return true;
+        }
+    }
+
+    // Unpaired starts (open-ended: valid from start_i to ∞)
+    for &start in starts.iter().skip(paired) {
+        // [start, ∞) overlaps [q_start, q_end] if start <= q_end
+        if start <= q_end {
+            return true;
+        }
+    }
+
+    // Unpaired ends (open-start: valid from -∞ to end_i)
+    for &end in ends.iter().skip(paired) {
+        // (-∞, end] overlaps [q_start, q_end] if end >= q_start
+        if end >= q_start {
+            return true;
+        }
+    }
+
+    // If only assertedAt exists (checked above) and none matched, check
+    // containment at the query midpoint as a fallback
+    if starts.is_empty() && ends.is_empty() && !annotations.asserted_at.is_empty() {
+        // Already checked assertedAt points above
+        return false;
+    }
+
+    false
 }
 
 /// Execute a VECTOR_SIMILAR pattern against the VectorRegistry.
@@ -2709,5 +3028,236 @@ mod tests {
         // 2 name triples + 2 age triples = 4, but Alice and Bob appear in both
         // UNION doesn't deduplicate, so we get 4
         assert_eq!(result.rows.len(), 4);
+    }
+
+    // -----------------------------------------------------------------------
+    // Temporal query operator tests
+    // -----------------------------------------------------------------------
+
+    /// Set up a store with temporal annotations for testing AT_TIME / DURING.
+    ///
+    /// Graph:
+    ///   :alice :locatedIn :office  (validFrom 100, validTo 200)
+    ///   :bob   :locatedIn :office  (validFrom 150, validTo 300)
+    ///   :alice :worksAt   :acme    (validFrom 50, no validTo — open-ended)
+    ///   :water :formula   :h2o     (atemporal — no temporal annotations)
+    fn setup_temporal() -> (TripleStore, TermDictionary) {
+        use sutra_core::TemporalSignifier;
+
+        let mut dict = TermDictionary::new();
+        let mut store = TripleStore::new();
+
+        let alice = dict.intern("http://example.org/Alice");
+        let bob = dict.intern("http://example.org/Bob");
+        let located_in = dict.intern("http://example.org/locatedIn");
+        let works_at = dict.intern("http://example.org/worksAt");
+        let formula = dict.intern("http://example.org/formula");
+        let office = dict.intern("http://example.org/Office");
+        let acme = dict.intern("http://example.org/Acme");
+        let water = dict.intern("http://example.org/Water");
+        let h2o = dict.intern("http://example.org/H2O");
+
+        // Insert triples
+        store.insert(Triple::new(alice, located_in, office)).unwrap();
+        store.insert(Triple::new(bob, located_in, office)).unwrap();
+        store.insert(Triple::new(alice, works_at, acme)).unwrap();
+        store.insert(Triple::new(water, formula, h2o)).unwrap();
+
+        // Temporal annotations:
+        // alice locatedIn office: valid [100, 200]
+        store.insert_temporal(TemporalSignifier::ValidFrom, 100, alice, located_in, office);
+        store.insert_temporal(TemporalSignifier::ValidTo, 200, alice, located_in, office);
+
+        // bob locatedIn office: valid [150, 300]
+        store.insert_temporal(TemporalSignifier::ValidFrom, 150, bob, located_in, office);
+        store.insert_temporal(TemporalSignifier::ValidTo, 300, bob, located_in, office);
+
+        // alice worksAt acme: valid from 50, open-ended
+        store.insert_temporal(TemporalSignifier::ValidFrom, 50, alice, works_at, acme);
+
+        // water formula h2o: no temporal annotations (atemporal)
+
+        (store, dict)
+    }
+
+    #[test]
+    fn at_time_filters_by_containment() {
+        let (store, dict) = setup_temporal();
+
+        // At time 120: alice is in office (100≤120≤200), bob is NOT (120<150)
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             AT_TIME(120) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 1);
+        let alice_id = dict.lookup("http://example.org/Alice").unwrap();
+        assert_eq!(*result.rows[0].get("person").unwrap(), alice_id);
+    }
+
+    #[test]
+    fn at_time_both_present() {
+        let (store, dict) = setup_temporal();
+
+        // At time 175: both alice (100≤175≤200) and bob (150≤175≤300) are in office
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             AT_TIME(175) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
+    }
+
+    #[test]
+    fn at_time_none_present() {
+        let (store, dict) = setup_temporal();
+
+        // At time 50: neither alice (100>50) nor bob (150>50) are in office yet
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             AT_TIME(50) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 0);
+    }
+
+    #[test]
+    fn at_time_atemporal_always_visible() {
+        let (store, dict) = setup_temporal();
+
+        // Atemporal triple (water formula h2o) should always be visible
+        let q = parser::parse(
+            "SELECT ?s WHERE { \
+             AT_TIME(99999) { \
+               ?s <http://example.org/formula> <http://example.org/H2O> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 1);
+    }
+
+    #[test]
+    fn at_time_open_ended_interval() {
+        let (store, dict) = setup_temporal();
+
+        // alice worksAt acme has validFrom=50 but no validTo (open-ended).
+        // At time 1000, this should be visible (Open containment).
+        let q = parser::parse(
+            "SELECT ?s WHERE { \
+             AT_TIME(1000) { \
+               ?s <http://example.org/worksAt> <http://example.org/Acme> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 1);
+    }
+
+    #[test]
+    fn during_interval_overlap() {
+        let (store, dict) = setup_temporal();
+
+        // DURING(160, 250): overlaps alice [100,200] and bob [150,300]
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             DURING(160, 250) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 2);
+    }
+
+    #[test]
+    fn during_partial_overlap() {
+        let (store, dict) = setup_temporal();
+
+        // DURING(80, 130): overlaps alice [100,200] but NOT bob [150,300]
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             DURING(80, 130) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 1);
+        let alice_id = dict.lookup("http://example.org/Alice").unwrap();
+        assert_eq!(*result.rows[0].get("person").unwrap(), alice_id);
+    }
+
+    #[test]
+    fn during_no_overlap() {
+        let (store, dict) = setup_temporal();
+
+        // DURING(10, 40): before any temporal intervals
+        let q = parser::parse(
+            "SELECT ?person WHERE { \
+             DURING(10, 40) { \
+               ?person <http://example.org/locatedIn> <http://example.org/Office> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 0);
+    }
+
+    #[test]
+    fn during_atemporal_always_overlaps() {
+        let (store, dict) = setup_temporal();
+
+        let q = parser::parse(
+            "SELECT ?s WHERE { \
+             DURING(0, 1) { \
+               ?s <http://example.org/formula> <http://example.org/H2O> . \
+             } \
+             }",
+        )
+        .unwrap();
+        let result = execute(&q, &store, &dict).unwrap();
+        assert_eq!(result.rows.len(), 1);
+    }
+
+    #[test]
+    fn gather_temporal_annotations_basic() {
+        let (store, dict) = setup_temporal();
+        let alice = dict.lookup("http://example.org/Alice").unwrap();
+        let located_in = dict.lookup("http://example.org/locatedIn").unwrap();
+        let office = dict.lookup("http://example.org/Office").unwrap();
+
+        let ann = store.gather_temporal_annotations(alice, located_in, office);
+        assert_eq!(ann.valid_from, vec![100]);
+        assert_eq!(ann.valid_to, vec![200]);
+        assert!(ann.asserted_at.is_empty());
+    }
+
+    #[test]
+    fn gather_temporal_annotations_atemporal() {
+        let (store, dict) = setup_temporal();
+        let water = dict.lookup("http://example.org/Water").unwrap();
+        let formula = dict.lookup("http://example.org/formula").unwrap();
+        let h2o = dict.lookup("http://example.org/H2O").unwrap();
+
+        let ann = store.gather_temporal_annotations(water, formula, h2o);
+        assert!(ann.is_atemporal());
     }
 }
