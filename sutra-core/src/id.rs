@@ -41,7 +41,9 @@ const PAYLOAD_MASK: u64 = (1 << 56) - 1;
 pub enum InlineType {
     Integer = 0x01,
     Boolean = 0x02,
-    // Future: Float = 0x03, Date = 0x04, etc.
+    /// Temporal literal: 48-bit timestamp + 4-bit precision.
+    Temporal = 0x03,
+    // Future: Float = 0x04, etc.
 }
 
 /// Check if a TermId is an inline literal (not a dictionary pointer).
@@ -107,6 +109,7 @@ pub fn inline_type(id: TermId) -> Option<InlineType> {
     match tag {
         0x01 => Some(InlineType::Integer),
         0x02 => Some(InlineType::Boolean),
+        0x03 => Some(InlineType::Temporal),
         _ => None,
     }
 }
