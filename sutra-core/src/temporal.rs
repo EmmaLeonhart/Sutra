@@ -1001,8 +1001,7 @@ mod tests {
     fn containment_ranking() {
         assert!(TemporalContainment::Atemporal.rank() < TemporalContainment::Definite.rank());
         assert!(
-            TemporalContainment::Definite.rank()
-                < TemporalContainment::Open { distance: 1 }.rank()
+            TemporalContainment::Definite.rank() < TemporalContainment::Open { distance: 1 }.rank()
         );
         assert!(
             TemporalContainment::Open { distance: 1 }.rank()
