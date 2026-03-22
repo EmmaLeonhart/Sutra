@@ -993,11 +993,7 @@ impl<'a> Parser<'a> {
         self.expect_char('{')?;
         let patterns = self.parse_patterns()?;
         self.expect_char('}')?;
-        Ok(Pattern::TemporalDiff {
-            t1,
-            t2,
-            patterns,
-        })
+        Ok(Pattern::TemporalDiff { t1, t2, patterns })
     }
 
     /// Parse a vector literal string and its datatype, returning the parsed f32 values.
