@@ -140,6 +140,19 @@ pub enum Pattern {
     Values { variable: String, values: Vec<Term> },
     /// Subquery: { SELECT ... WHERE { ... } }
     Subquery(Box<Query>),
+    /// AT_TIME("timestamp"^^type) { patterns }
+    /// Scope inner patterns to a specific moment — only triples valid at T.
+    AtTime {
+        timestamp: Term,
+        patterns: Vec<Pattern>,
+    },
+    /// DURING("start"^^type, "end"^^type) { patterns }
+    /// Scope inner patterns to an interval — triples overlapping [start, end].
+    During {
+        start: Term,
+        end: Term,
+        patterns: Vec<Pattern>,
+    },
 }
 
 /// Distance metric for metric-specific search operators.
@@ -593,6 +606,20 @@ impl<'a> Parser<'a> {
                 if self.peek_char() == Some('.') {
                     self.pos += 1;
                 }
+            } else if self.peek_keyword("AT_TIME") {
+                let at_time = self.parse_at_time()?;
+                patterns.push(at_time);
+                self.skip_whitespace();
+                if self.peek_char() == Some('.') {
+                    self.pos += 1;
+                }
+            } else if self.peek_keyword("DURING") {
+                let during = self.parse_during()?;
+                patterns.push(during);
+                self.skip_whitespace();
+                if self.peek_char() == Some('.') {
+                    self.pos += 1;
+                }
             } else if self.peek_keyword("BIND") {
                 self.expect_keyword("BIND")?;
                 self.expect_char('(')?;
@@ -840,6 +867,55 @@ impl<'a> Parser<'a> {
             ef_search,
             top_k,
             metric,
+        })
+    }
+
+    /// Parse an AT_TIME temporal scope operator.
+    ///
+    /// Grammar: AT_TIME("timestamp"^^datatype) { patterns }
+    ///
+    /// Scopes inner patterns to only match triples valid at the given moment.
+    fn parse_at_time(&mut self) -> Result<Pattern> {
+        self.expect_keyword("AT_TIME")?;
+        self.expect_char('(')?;
+        self.skip_whitespace();
+        let timestamp = self.parse_term()?;
+        self.skip_whitespace();
+        self.expect_char(')')?;
+        self.skip_whitespace();
+        self.expect_char('{')?;
+        let patterns = self.parse_patterns()?;
+        self.expect_char('}')?;
+        Ok(Pattern::AtTime {
+            timestamp,
+            patterns,
+        })
+    }
+
+    /// Parse a DURING temporal scope operator.
+    ///
+    /// Grammar: DURING("start"^^datatype, "end"^^datatype) { patterns }
+    ///
+    /// Scopes inner patterns to triples whose valid-time overlaps the interval.
+    fn parse_during(&mut self) -> Result<Pattern> {
+        self.expect_keyword("DURING")?;
+        self.expect_char('(')?;
+        self.skip_whitespace();
+        let start = self.parse_term()?;
+        self.skip_whitespace();
+        self.expect_char(',')?;
+        self.skip_whitespace();
+        let end = self.parse_term()?;
+        self.skip_whitespace();
+        self.expect_char(')')?;
+        self.skip_whitespace();
+        self.expect_char('{')?;
+        let patterns = self.parse_patterns()?;
+        self.expect_char('}')?;
+        Ok(Pattern::During {
+            start,
+            end,
+            patterns,
         })
     }
 
@@ -2021,5 +2097,120 @@ mod tests {
         } else {
             panic!("expected triple pattern");
         }
+    }
+
+    #[test]
+    fn parse_at_time_basic() {
+        let q = parse(
+            r#"SELECT ?person ?location WHERE {
+                AT_TIME("2024-03-14T10:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>) {
+                    ?person :locatedIn ?location .
+                    ?person a :Suspect .
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 1);
+        if let Pattern::AtTime {
+            timestamp,
+            patterns,
+        } = &q.patterns[0]
+        {
+            assert!(matches!(timestamp, Term::TypedLiteral { .. }));
+            assert_eq!(patterns.len(), 2);
+        } else {
+            panic!("expected AtTime pattern, got {:?}", q.patterns[0]);
+        }
+    }
+
+    #[test]
+    fn parse_at_time_with_integer_axis() {
+        let q = parse(
+            r#"SELECT ?s ?p ?o WHERE {
+                AT_TIME(42) {
+                    ?s ?p ?o .
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 1);
+        if let Pattern::AtTime {
+            timestamp,
+            patterns,
+        } = &q.patterns[0]
+        {
+            assert_eq!(*timestamp, Term::IntegerLiteral(42));
+            assert_eq!(patterns.len(), 1);
+        } else {
+            panic!("expected AtTime pattern");
+        }
+    }
+
+    #[test]
+    fn parse_during_basic() {
+        let q = parse(
+            r#"SELECT ?person ?location WHERE {
+                DURING("2024-03-14T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>,
+                       "2024-03-14T11:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>) {
+                    ?person :locatedIn ?location .
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 1);
+        if let Pattern::During {
+            start,
+            end,
+            patterns,
+        } = &q.patterns[0]
+        {
+            assert!(matches!(start, Term::TypedLiteral { .. }));
+            assert!(matches!(end, Term::TypedLiteral { .. }));
+            assert_eq!(patterns.len(), 1);
+        } else {
+            panic!("expected During pattern, got {:?}", q.patterns[0]);
+        }
+    }
+
+    #[test]
+    fn parse_during_with_integer_axis() {
+        let q = parse(
+            r#"SELECT ?s ?p ?o WHERE {
+                DURING(10, 20) {
+                    ?s ?p ?o .
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 1);
+        if let Pattern::During {
+            start,
+            end,
+            patterns,
+        } = &q.patterns[0]
+        {
+            assert_eq!(*start, Term::IntegerLiteral(10));
+            assert_eq!(*end, Term::IntegerLiteral(20));
+            assert_eq!(patterns.len(), 1);
+        } else {
+            panic!("expected During pattern");
+        }
+    }
+
+    #[test]
+    fn parse_at_time_with_other_patterns() {
+        let q = parse(
+            r#"SELECT ?doc ?entity WHERE {
+                AT_TIME("2024-06-01"^^<http://www.w3.org/2001/XMLSchema#dateTime>) {
+                    ?entity a :Person .
+                    ?doc :mentions ?entity .
+                }
+                ?doc :hasTitle ?title .
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(q.patterns.len(), 2);
+        assert!(matches!(&q.patterns[0], Pattern::AtTime { .. }));
+        assert!(matches!(&q.patterns[1], Pattern::Triple { .. }));
     }
 }
