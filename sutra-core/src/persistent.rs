@@ -14,6 +14,7 @@ use sled::Transactional;
 
 use crate::error::{CoreError, Result};
 use crate::id::TermId;
+use crate::temporal::{decode_tspo_key, tspo_key, TemporalSignifier};
 use crate::triple::Triple;
 
 /// A persistent triple store backed by sled.
@@ -26,6 +27,9 @@ pub struct PersistentStore {
     spo: sled::Tree,
     pos: sled::Tree,
     osp: sled::Tree,
+    /// Time → Subject → Predicate → Object index (ontochronological).
+    /// 33-byte keys: [signifier:1 | timestamp:8 | S:8 | P:8 | O:8].
+    tspo: sled::Tree,
     /// Term dictionary: forward map (string → u64 ID).
     terms_forward: sled::Tree,
     /// Term dictionary: reverse map (u64 ID → string).
@@ -43,6 +47,7 @@ impl PersistentStore {
         let spo = db.open_tree("spo")?;
         let pos = db.open_tree("pos")?;
         let osp = db.open_tree("osp")?;
+        let tspo = db.open_tree("tspo")?;
         let terms_forward = db.open_tree("terms_fwd")?;
         let terms_reverse = db.open_tree("terms_rev")?;
         let meta = db.open_tree("meta")?;
@@ -57,6 +62,7 @@ impl PersistentStore {
             spo,
             pos,
             osp,
+            tspo,
             terms_forward,
             terms_reverse,
             meta,
@@ -69,6 +75,7 @@ impl PersistentStore {
         let spo = db.open_tree("spo")?;
         let pos = db.open_tree("pos")?;
         let osp = db.open_tree("osp")?;
+        let tspo = db.open_tree("tspo")?;
         let terms_forward = db.open_tree("terms_fwd")?;
         let terms_reverse = db.open_tree("terms_rev")?;
         let meta = db.open_tree("meta")?;
@@ -80,6 +87,7 @@ impl PersistentStore {
             spo,
             pos,
             osp,
+            tspo,
             terms_forward,
             terms_reverse,
             meta,
@@ -202,6 +210,117 @@ impl PersistentStore {
             .map(|(k, _)| Triple::from_spo_key(&key_to_array(&k)))
     }
 
+    // --- Temporal (TSPO) index operations ---
+
+    /// Insert a temporal index entry.
+    pub fn insert_temporal(
+        &self,
+        signifier: TemporalSignifier,
+        timestamp: i64,
+        subject: TermId,
+        predicate: TermId,
+        object: TermId,
+    ) -> Result<bool> {
+        let key = tspo_key(signifier, timestamp, subject, predicate, object);
+        let was_new = self.tspo.insert(key, &[] as &[u8])?.is_none();
+        Ok(was_new)
+    }
+
+    /// Remove a temporal index entry. Returns true if it was present.
+    pub fn remove_temporal(
+        &self,
+        signifier: TemporalSignifier,
+        timestamp: i64,
+        subject: TermId,
+        predicate: TermId,
+        object: TermId,
+    ) -> Result<bool> {
+        let key = tspo_key(signifier, timestamp, subject, predicate, object);
+        Ok(self.tspo.remove(key)?.is_some())
+    }
+
+    /// Find all temporal entries for a given signifier within `[start, end)`.
+    pub fn find_temporal_range(
+        &self,
+        signifier: TemporalSignifier,
+        start: i64,
+        end: i64,
+    ) -> Vec<(i64, Triple)> {
+        let lo = tspo_key(signifier, start, 0, 0, 0);
+        let hi = tspo_key(signifier, end, u64::MAX, u64::MAX, u64::MAX);
+        self.tspo
+            .range(lo..hi)
+            .filter_map(|r| r.ok())
+            .map(|(k, _)| {
+                let arr = key_to_array_33(&k);
+                let (_, ts, s, p, o) = decode_tspo_key(&arr);
+                (ts, Triple::new(s, p, o))
+            })
+            .collect()
+    }
+
+    /// Find all `ValidFrom` entries with timestamp ≤ `at`.
+    pub fn find_valid_from_before(&self, at: i64) -> Vec<(i64, Triple)> {
+        let lo = tspo_key(TemporalSignifier::ValidFrom, i64::MIN, 0, 0, 0);
+        let hi = tspo_key(
+            TemporalSignifier::ValidFrom,
+            at,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+        );
+        self.tspo
+            .range(lo..=hi)
+            .filter_map(|r| r.ok())
+            .map(|(k, _)| {
+                let arr = key_to_array_33(&k);
+                let (_, ts, s, p, o) = decode_tspo_key(&arr);
+                (ts, Triple::new(s, p, o))
+            })
+            .collect()
+    }
+
+    /// Find all `ValidTo` entries with timestamp ≤ `at`.
+    pub fn find_valid_to_before(&self, at: i64) -> Vec<(i64, Triple)> {
+        let lo = tspo_key(TemporalSignifier::ValidTo, i64::MIN, 0, 0, 0);
+        let hi = tspo_key(
+            TemporalSignifier::ValidTo,
+            at,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+        );
+        self.tspo
+            .range(lo..=hi)
+            .filter_map(|r| r.ok())
+            .map(|(k, _)| {
+                let arr = key_to_array_33(&k);
+                let (_, ts, s, p, o) = decode_tspo_key(&arr);
+                (ts, Triple::new(s, p, o))
+            })
+            .collect()
+    }
+
+    /// Find all `AssertedAt` entries at a specific time.
+    pub fn find_asserted_at(&self, at: i64) -> Vec<Triple> {
+        let lo = tspo_key(TemporalSignifier::AssertedAt, at, 0, 0, 0);
+        let hi = tspo_key(TemporalSignifier::AssertedAt, at, u64::MAX, u64::MAX, u64::MAX);
+        self.tspo
+            .range(lo..=hi)
+            .filter_map(|r| r.ok())
+            .map(|(k, _)| {
+                let arr = key_to_array_33(&k);
+                let (_, _, s, p, o) = decode_tspo_key(&arr);
+                Triple::new(s, p, o)
+            })
+            .collect()
+    }
+
+    /// Number of entries in the TSPO index.
+    pub fn temporal_len(&self) -> usize {
+        self.tspo.len()
+    }
+
     // --- Term dictionary operations ---
 
     /// Intern a string term, returning its ID. If already interned, returns existing ID.
@@ -267,6 +386,7 @@ impl PersistentStore {
         self.spo.clear()?;
         self.pos.clear()?;
         self.osp.clear()?;
+        self.tspo.clear()?;
         Ok(())
     }
 
@@ -303,6 +423,7 @@ impl PersistentStore {
         self.spo.flush()?;
         self.pos.flush()?;
         self.osp.flush()?;
+        self.tspo.flush()?;
         self.terms_forward.flush()?;
         self.terms_reverse.flush()?;
         self.meta.flush()?;
@@ -358,6 +479,12 @@ fn prefix_range_24_2(first: TermId, second: TermId) -> ([u8; 24], [u8; 24]) {
 
 fn key_to_array(ivec: &sled::IVec) -> [u8; 24] {
     let mut arr = [0u8; 24];
+    arr.copy_from_slice(ivec.as_ref());
+    arr
+}
+
+fn key_to_array_33(ivec: &sled::IVec) -> [u8; 33] {
+    let mut arr = [0u8; 33];
     arr.copy_from_slice(ivec.as_ref());
     arr
 }
