@@ -618,11 +618,9 @@ fn evaluate_pattern(
             timestamp,
             patterns,
         } => evaluate_world_state(timestamp, patterns, current, current_scores, ctx),
-        Pattern::TemporalDiff {
-            t1,
-            t2,
-            patterns,
-        } => evaluate_temporal_diff(t1, t2, patterns, current, current_scores, ctx),
+        Pattern::TemporalDiff { t1, t2, patterns } => {
+            evaluate_temporal_diff(t1, t2, patterns, current, current_scores, ctx)
+        }
     }
 }
 
@@ -913,8 +911,7 @@ fn evaluate_temporal_diff(
     let mut inner_results = current.to_vec();
     let mut inner_scores = current_scores.to_vec();
     for p in inner_patterns {
-        let (new_results, new_s) =
-            evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
+        let (new_results, new_s) = evaluate_pattern(p, &inner_results, &inner_scores, ctx, None)?;
         inner_results = new_results;
         inner_scores = new_s;
     }
@@ -3445,7 +3442,9 @@ mod tests {
         dict.intern("\"unchanged\"");
 
         // alice locatedIn office: valid [100, 200]
-        store.insert(Triple::new(alice, located_in, office)).unwrap();
+        store
+            .insert(Triple::new(alice, located_in, office))
+            .unwrap();
         store.insert_temporal(TemporalSignifier::ValidFrom, 100, alice, located_in, office);
         store.insert_temporal(TemporalSignifier::ValidTo, 200, alice, located_in, office);
 
