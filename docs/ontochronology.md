@@ -438,6 +438,107 @@ The conventions are stored as ontology triples in the database itself — they'r
 
 ---
 
+## 9b. Temporal Containment Model
+
+When evaluating whether a triple is "valid at time T," there are three distinct containment states. These are not boolean — they form a three-valued logic that drives query filtering, ranking, and the semantics of AT_TIME / DURING.
+
+### 9b.1 The Three States
+
+| State | Meaning | Condition |
+|---|---|---|
+| **Definite** | Triple is certainly valid at T | T falls within a closed interval: `validFrom ≤ T ≤ validTo`, or `validFrom ≤ T ≤ assertedAt` |
+| **Open** | Triple is probably valid at T, with decaying certainty | T is on the unbounded side of a half-open interval (e.g., `validFrom` exists, no `validTo`, `T > validFrom`) |
+| **Outside** | Triple is certainly not valid at T | T falls before `validFrom`, or after `validTo`, or completely outside all annotated intervals |
+
+These states reflect the epistemic reality of temporal data. A closed interval is a complete claim: "this was true from X to Y." An open interval is a partial claim: "this started at X, and we have no record of it ending." The further T is from the known endpoint, the less certain we are — but the triple is never *ruled out* the way an Outside triple is.
+
+### 9b.2 Definite Containment
+
+A triple is **Definite** at time T when T falls within fully bounded temporal annotations:
+
+```
+Case 1: validFrom ≤ T ≤ validTo        (closed interval)
+Case 2: validFrom ≤ T ≤ assertedAt     (start + attestation = bounded)
+Case 3: assertedAt = T                  (point attestation, exact match)
+```
+
+Case 2 deserves explanation: if a triple has both a `validFrom` and an `assertedAt` but no `validTo`, the interval `[validFrom, assertedAt]` is closed — we know the triple was true at `assertedAt` because someone observed it, and we know it started at `validFrom`. Between those two points, it is certainly valid.
+
+### 9b.3 Open Containment (Distance from Open Point)
+
+A triple is **Open** at time T when T lies beyond the known endpoint of a half-open interval. The key metric here is **distance** — how far T is from the last known point.
+
+```
+Case 1: validFrom exists, no validTo, T > validFrom
+         → distance = T - validFrom
+
+Case 2: validTo exists, no validFrom, T < validTo
+         → distance = validTo - T
+
+Case 3: assertedAt only, T ≠ assertedAt
+         → distance = |T - assertedAt|
+```
+
+Distance is measured in the database's temporal axis units (seconds for UTC, integers for frame numbers, etc.). It serves two purposes:
+
+1. **Ranking**: in AT_TIME queries, Definite triples rank above Open triples, and closer Open triples rank above distant ones.
+2. **Decay threshold**: applications can set a maximum distance beyond which Open triples are excluded. A character wearing a red coat in scene 1 is probably still wearing it in scene 2 (distance=1), but maybe not in scene 50 (distance=49).
+
+The distance is not stored — it is computed at query time from the TSPO index entries and the query's target time T.
+
+### 9b.4 Outside
+
+A triple is **Outside** at time T when it is definitively excluded:
+
+```
+Case 1: T < validFrom                  (hasn't started yet)
+Case 2: T > validTo                    (already ended)
+Case 3: Closed interval [validFrom, validTo] and T ∉ [validFrom, validTo]
+```
+
+Outside triples are never returned by AT_TIME or DURING queries. They are invisible at time T.
+
+### 9b.5 Atemporal Triples
+
+Triples with no temporal annotations at all are **atemporal** — they are valid at every time. They always match AT_TIME and DURING queries regardless of T. This is correct: `2 + 2 = 4` has no start time and no end time because it is timelessly true.
+
+### 9b.6 The TemporalContainment Enum
+
+The containment result for a triple at time T:
+
+```rust
+enum TemporalContainment {
+    /// T is within a closed interval. Certainly valid.
+    Definite,
+    /// T is on the open side. Distance = seconds (or axis units) from
+    /// the nearest known temporal endpoint.
+    Open { distance: i64 },
+    /// T is outside all temporal intervals. Not valid.
+    Outside,
+    /// No temporal annotations. Valid at all times.
+    Atemporal,
+}
+```
+
+Query operators use this enum to filter and rank:
+- `AT_TIME`: returns Definite + Open (optionally filtered by max distance) + Atemporal. Excludes Outside.
+- `DURING`: same logic applied to interval overlap rather than point containment.
+- `WORLD_STATE`: same as AT_TIME over all triples.
+- `TEMPORAL_DIFF`: compares containment at T1 vs T2 for every triple.
+
+### 9b.7 Ordering in Query Results
+
+When a temporal query returns multiple triples, they are ordered by containment quality:
+
+1. **Atemporal** — always true, highest priority (definitional facts)
+2. **Definite** — within closed bounds, second priority
+3. **Open (ascending distance)** — closer to known endpoint = higher priority
+4. **Outside** — never returned
+
+This ordering ensures that well-annotated data always surfaces above uncertain data, and that temporal decay is reflected in result ranking.
+
+---
+
 ## 10. Relationship to Existing SutraDB Architecture
 
 ### 10.1 New Index Type
