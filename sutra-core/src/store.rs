@@ -260,6 +260,48 @@ impl TripleStore {
             .collect()
     }
 
+    /// Gather all temporal annotations for a specific triple (S, P, O).
+    ///
+    /// Scans the TSPO index for all three signifiers and collects timestamps
+    /// into a `TemporalAnnotations` struct. This is used by the executor to
+    /// evaluate temporal containment for AT_TIME / DURING queries.
+    pub fn gather_temporal_annotations(
+        &self,
+        subject: TermId,
+        predicate: TermId,
+        object: TermId,
+    ) -> crate::temporal::TemporalAnnotations {
+        use crate::temporal::TemporalAnnotations;
+
+        let mut annotations = TemporalAnnotations::default();
+
+        // For each signifier, scan the full range and filter by (S, P, O).
+        // The TSPO key sorts by [signifier | timestamp | S | P | O], so we
+        // can't skip to a specific (S,P,O) — we must scan all timestamps
+        // for each signifier. The TSPO index is small (only annotated triples),
+        // so this is acceptable for v1.
+        for signifier in [
+            TemporalSignifier::AssertedAt,
+            TemporalSignifier::ValidFrom,
+            TemporalSignifier::ValidTo,
+        ] {
+            let lo = tspo_key(signifier, i64::MIN, 0, 0, 0);
+            let hi = tspo_key(signifier, i64::MAX, u64::MAX, u64::MAX, u64::MAX);
+            for key in self.tspo.range(lo..=hi) {
+                let (_, ts, s, p, o) = decode_tspo_key(key);
+                if s == subject && p == predicate && o == object {
+                    match signifier {
+                        TemporalSignifier::AssertedAt => annotations.asserted_at.push(ts),
+                        TemporalSignifier::ValidFrom => annotations.valid_from.push(ts),
+                        TemporalSignifier::ValidTo => annotations.valid_to.push(ts),
+                    }
+                }
+            }
+        }
+
+        annotations
+    }
+
     /// Number of entries in the TSPO index.
     pub fn temporal_len(&self) -> usize {
         self.tspo.len()

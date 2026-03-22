@@ -257,6 +257,9 @@ fn pattern_weight(pattern: &Pattern, bound: &HashSet<String>) -> u32 {
         Pattern::Union(_) => WEIGHT_UNION,
         // OPTIONALs always last — they add nullable bindings.
         Pattern::Optional(_) => WEIGHT_OPTIONAL,
+        // Temporal scopes behave like subqueries: evaluate inner patterns,
+        // then filter by containment. Similar cost profile to subqueries.
+        Pattern::AtTime { .. } | Pattern::During { .. } => WEIGHT_SUBQUERY,
     }
 }
 
@@ -568,6 +571,16 @@ fn collect_variables(pattern: &Pattern, vars: &mut HashSet<String>) {
         Pattern::Subquery(q) => {
             for v in &q.projection {
                 vars.insert(v.clone());
+            }
+        }
+        Pattern::AtTime { patterns, .. } => {
+            for p in patterns {
+                collect_variables(p, vars);
+            }
+        }
+        Pattern::During { patterns, .. } => {
+            for p in patterns {
+                collect_variables(p, vars);
             }
         }
     }
