@@ -26,6 +26,9 @@ Thumbs.db
 .env
 .env.local
 
+# SutraDB data
+sutra-data/
+
 # Regenerable database output
 data/items.json
 data/embedding_index.json
