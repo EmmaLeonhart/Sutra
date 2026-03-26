@@ -28,7 +28,8 @@ import ollama
 from rdflib import Graph, URIRef, Literal, Namespace, BNode
 from rdflib.namespace import RDF, XSD
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
@@ -53,7 +54,11 @@ def load_existing():
         with open("data/embedding_index.json", "r", encoding="utf-8") as f:
             index = json.load(f)
     if os.path.exists("data/embeddings.npz"):
-        emb = np.load("data/embeddings.npz")["vectors"]
+        try:
+            emb = np.load("data/embeddings.npz")["vectors"]
+        except Exception:
+            # Fall back for files saved with older numpy or interrupted writes
+            emb = np.load("data/embeddings.npz", allow_pickle=True)["vectors"]
 
     return items, index, emb
 
