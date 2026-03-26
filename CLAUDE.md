@@ -1,25 +1,54 @@
 # embedding-mapping
 
+## Project Overview
+Discovering first-order logic operations in arbitrary embedding spaces via geodesic displacement analysis. Takes a general-purpose embedding model (mxbai-embed-large) and Wikidata triples, discovers which predicates encode as consistent vector arithmetic.
+
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
 - **Commit and push everything.** Always push to remote after committing. No local-only work.
-- **Do not enter planning-only modes.** All thinking must produce files and commits. If scope is unclear, create a `planning/` directory and write `.md` files there instead of using an internal planning mode.
-- **Keep this file up to date.** As the project takes shape, record architectural decisions, conventions, and anything needed to work effectively in this repo.
-- **Update README.md regularly.** It should always reflect the current state of the project for human readers.
-
-## Project Description
-Unsupervised ontology induction from embedding spaces. Takes embedding geometry and extracts logical structure (classes, relations, propositions) as RDF. Starting with Wikidata triple imports where each triple = an edge between two embedded concepts.
+- **Do not enter planning-only modes.** All thinking must produce files and commits.
+- **Keep this file up to date.** Record architectural decisions, conventions, and anything needed to work effectively.
+- **Update README.md regularly.** It should always reflect the current state of the project.
 
 ## Architecture and Conventions
-- **Stack:** Python + rdflib (with RDF-star) + numpy + Ollama (mxbai-embed-large). No graph DB yet (start simple).
+- **Stack:** Python + numpy + rdflib + Ollama (mxbai-embed-large, 1024-dim)
 - **Source data:** Wikidata API + SPARQL endpoint
-- **Embeddings:** mxbai-embed-large (1024-dim) via Ollama, matching redoing-paper
+- **Storage:** Flat files (items.json, embeddings.npz, embedding_index.json) + optional SutraDB
 - **Planning docs:** `planning/` directory for design decisions and roadmap
-- See `planning/architecture-decisions.md` for rationale
+
+## Key Scripts
+- `random_walk.py` — BFS through Wikidata, imports entities and computes geodesics
+- `import_wikidata.py` — Core import logic (fetch, embed, store, geodesics)
+- `fol_discovery.py` — **Main analysis:** discovers FOL operations, evaluates prediction, tests composition
+- `analyze_collisions.py` — Collision detection, density analysis, regime classification
+- `probe.py` — Interactive embedding space exploration
+- `sutra_client.py` + `import_to_sutra.py` — SutraDB integration
+
+## Key Results (current dataset)
+- 41,725 embeddings from 14,796 entities (500 fully imported via BFS from Engishiki Q1342448)
+- 86 predicates discovered as FOL operations (alignment > 0.5)
+- 32 strong operations (alignment > 0.7), 4 with perfect prediction (MRR = 1.0)
+- r = 0.78 correlation between consistency and prediction accuracy
+- Two-hop composition: 28.3% Hits@10 on 5,000 tests
+- 164,084 cross-entity embedding collisions at cosine ≥ 0.95
+
+## Data Files (in data/)
+All regenerable from Wikidata + Ollama. Gitignored except properties.json and property_templates.json.
+- `items.json` — Imported entities with all triples
+- `embeddings.npz` — Numpy array of embedding vectors (float64, 1024-dim)
+- `embedding_index.json` — Maps vector index → (qid, text, type)
+- `walk_state.json` — BFS queue state (resumable)
+- `fol_results.json` — FOL discovery output
+- `analysis_results.json` — Collision/density output
 
 ## Development Philosophy
-- **Adding data IS building the pipeline.** In this early stage, every import is also pipeline development. The import tooling and the data graph grow together.
-- **Geodesics are first-class objects.** Each geodesic (line between two embedding points connected by a triple) is its own RDF object with pointers to both endpoint strings, distance, and the parent triple.
+- **Discovery, not construction.** We don't build spaces for logic. We find logic in existing spaces.
+- **Geodesics are first-class objects.** Each geodesic has its own RDF identity with subject, object, predicate, and distance metrics.
+- **Adding data IS building the pipeline.** Import tooling and data grow together.
+- **Reproducible.** Full analysis runs in ~30 minutes on commodity hardware with local Ollama.
 
-# currentDate
-Today's date is 2026-03-13.
+## Submission Target
+Claw4S Conference 2026 (deadline April 5, 2026)
+- Paper: `paper.md`
+- SKILL.md for executable review
+- Publish to clawRxiv (http://18.118.210.52)

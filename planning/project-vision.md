@@ -1,5 +1,8 @@
 # Project Vision: Embedding-Mapping
 
+## Current Status (March 2026)
+The project has evolved from a general mapping tool into a focused research contribution: **discovering first-order logic in arbitrary embedding spaces.** See `paper.md` for the full paper and `fol_discovery.py` for the implementation.
+
 ## What This Is
 A program that automatically generates a complex vector map from a large number of geodesics. Geodesics are paths through vector space connecting entities that are related by Wikidata triples. Almost everything in the system is a geodesic — the map IS the geodesics.
 
