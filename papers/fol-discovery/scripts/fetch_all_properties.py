@@ -15,6 +15,9 @@ import io
 import os
 import time
 import requests
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -116,8 +119,8 @@ def main():
             print(f"  {done}/{len(pids)} properties fetched")
         time.sleep(0.5)
 
-    os.makedirs("data", exist_ok=True)
-    with open("data/properties.json", "w", encoding="utf-8") as f:
+    os.makedirs(str(DATA_DIR), exist_ok=True)
+    with open(str(DATA_DIR / "properties.json"), "w", encoding="utf-8") as f:
         json.dump(properties, f, ensure_ascii=False, indent=2)
 
     total_realizations = sum(len(p["realizations"]) for p in properties.values())

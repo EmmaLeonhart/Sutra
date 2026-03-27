@@ -10,6 +10,9 @@ import sys
 import io
 import time
 import requests
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -37,7 +40,7 @@ def fetch_entities_batch(qids):
 
 
 def main():
-    with open("data/items.json", "r", encoding="utf-8") as f:
+    with open(str(DATA_DIR / "items.json"), "r", encoding="utf-8") as f:
         items = json.load(f)
 
     imported = {i["qid"] for i in items}
@@ -86,7 +89,7 @@ def main():
     # Append to items
     items.extend(new_items)
 
-    with open("data/items.json", "w", encoding="utf-8") as f:
+    with open(str(DATA_DIR / "items.json"), "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
 
     print(f"\nAdded {len(new_items)} linked items")

@@ -11,6 +11,9 @@ import sys
 import io
 import time
 import requests
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -139,8 +142,8 @@ def main():
         print(f"    {item['label']}: {len(item['triples'])} triples, {len(item['aliases'])} aliases")
         time.sleep(0.5)
 
-    os.makedirs("data", exist_ok=True)
-    out_path = "data/items.json"
+    os.makedirs(str(DATA_DIR), exist_ok=True)
+    out_path = str(DATA_DIR / "items.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
 

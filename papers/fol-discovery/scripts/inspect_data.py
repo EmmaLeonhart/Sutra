@@ -7,18 +7,21 @@ import json
 import sys
 import io
 import numpy as np
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 
 def main():
     # Load items
-    with open("data/items.json", "r", encoding="utf-8") as f:
+    with open(str(DATA_DIR / "items.json"), "r", encoding="utf-8") as f:
         items = json.load(f)
 
     # Load embeddings
-    emb = np.load("data/embeddings.npz")["vectors"]
-    with open("data/embedding_index.json", "r", encoding="utf-8") as f:
+    emb = np.load(str(DATA_DIR / "embeddings.npz"))["vectors"]
+    with open(str(DATA_DIR / "embedding_index.json"), "r", encoding="utf-8") as f:
         index = json.load(f)
 
     print("=" * 70)

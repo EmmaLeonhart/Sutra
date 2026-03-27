@@ -15,6 +15,9 @@ import os
 import time
 import requests
 import ollama
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -116,7 +119,7 @@ Rules:
 
 def main():
     # Check for existing partial progress
-    output_path = "data/property_templates.json"
+    output_path = str(DATA_DIR / "property_templates.json")
     existing = {}
     if os.path.exists(output_path):
         with open(output_path, "r", encoding="utf-8") as f:
@@ -179,14 +182,14 @@ def main():
         if (idx + 1) % 50 == 0:
             print(f"  Generated: {idx + 1}/{len(pids_remaining)} ({pid}: {label})")
             # Save progress
-            os.makedirs("data", exist_ok=True)
+            os.makedirs(str(DATA_DIR), exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(templates, f, ensure_ascii=False, indent=2)
 
         time.sleep(0.1)  # Don't hammer Ollama
 
     # Final save
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(str(DATA_DIR), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(templates, f, ensure_ascii=False, indent=2)
 

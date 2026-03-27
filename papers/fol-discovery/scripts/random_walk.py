@@ -21,6 +21,10 @@ import argparse
 import numpy as np
 import requests
 import ollama
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
 from import_wikidata import (
     load_existing, save_all, fetch_entity, fetch_labels_batch,
     process_entity, embed_texts,
@@ -32,7 +36,7 @@ if hasattr(sys.stdout, 'buffer'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 DEFAULT_SEED = "Q1342448"  # Engishiki - dense ontological neighborhood
-WALK_STATE_FILE = "data/walk_state.json"
+WALK_STATE_FILE = str(DATA_DIR / "walk_state.json")
 
 
 def import_single(qid, items, index, emb):
@@ -235,10 +239,10 @@ def main():
     # Rebuild triples and geodesics
     print("Rebuilding triples and geodesics...")
     triples_g = build_triples_graph(items)
-    triples_g.serialize("data/triples.nt", format="nt")
+    triples_g.serialize(str(DATA_DIR / "triples.nt"), format="nt")
 
     geo_g, geo_count = compute_geodesics_for_items(items, index, emb)
-    geo_g.serialize("data/geodesics.ttl", format="turtle")
+    geo_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
 
     print(f"\nFinal state:")
     print(f"  Items: {len(items)}")
