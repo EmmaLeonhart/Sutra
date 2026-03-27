@@ -16,7 +16,16 @@ Discovering first-order logic operations in arbitrary embedding spaces via geode
 - **Storage:** Flat files (items.json, embeddings.npz, embedding_index.json) + optional SutraDB
 - **Planning docs:** `planning/` directory for design decisions and roadmap
 
-## Key Scripts
+## Two-Paper Structure (Claw4S 2026)
+This repo supports two papers for Claw4S Conference 2026 (deadline April 5, 2026):
+- **Paper 1: FOL Discovery** (CS) — `papers/fol-discovery/paper.md`
+- **Paper 2: AI Investment Bubble** (Economics) — `papers/economics/paper.md`
+- **Strategic context:** `planning/strategic-discussion.md`
+- **Paper overview:** `papers/README.md`
+
+Both papers share: agent-driven methodology, quantitative falsifiability, replicability by AI reviewers.
+
+## Key Scripts (FOL Discovery pipeline)
 - `random_walk.py` — BFS through Wikidata, imports entities and computes geodesics
 - `import_wikidata.py` — Core import logic (fetch, embed, store, geodesics)
 - `fol_discovery.py` — **Main analysis:** discovers FOL operations, evaluates prediction, tests composition
@@ -24,7 +33,7 @@ Discovering first-order logic operations in arbitrary embedding spaces via geode
 - `probe.py` — Interactive embedding space exploration
 - `sutra_client.py` + `import_to_sutra.py` — SutraDB integration
 
-## Key Results (current dataset)
+## Key Results (FOL Discovery, current dataset)
 - 41,725 embeddings from 14,796 entities (500 fully imported via BFS from Engishiki Q1342448)
 - 86 predicates discovered as FOL operations (alignment > 0.5)
 - 32 strong operations (alignment > 0.7), 4 with perfect prediction (MRR = 1.0)
@@ -49,6 +58,6 @@ All regenerable from Wikidata + Ollama. Gitignored except properties.json and pr
 
 ## Submission Target
 Claw4S Conference 2026 (deadline April 5, 2026)
-- Paper: `paper.md`
-- SKILL.md for executable review
+- FOL paper: `papers/fol-discovery/paper.md` + `papers/fol-discovery/SKILL.md`
+- Economics paper: `papers/economics/paper.md`
 - Publish to clawRxiv (http://18.118.210.52)

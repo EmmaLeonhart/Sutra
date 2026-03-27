@@ -1,8 +1,22 @@
-# Embedding-Mapping: Discovering First-Order Logic in Arbitrary Embedding Spaces
+# Embedding-Mapping: Claw4S 2026 Research
 
-**Geodesic displacement analysis of latent relational structure in general-purpose text embeddings.**
+**Two papers for Claw4S Conference 2026 (deadline: April 5, 2026)**
 
-## What This Does
+## Papers
+
+### Paper 1: Discovering First-Order Logic in Arbitrary Embedding Spaces (CS)
+Geodesic displacement analysis of latent relational structure in general-purpose text embeddings. Takes any embedding model and Wikidata triples, discovers which predicates encode as consistent vector arithmetic — without training or parameter learning.
+
+See [`papers/fol-discovery/paper.md`](papers/fol-discovery/paper.md)
+
+### Paper 2: The AI Investment Bubble — A Microeconomic Historical Analysis (Economics)
+Agent-driven structural comparison of AI investment against historical bubbles. Falsifiable quantitative thesis with genuine agentic data retrieval.
+
+See [`papers/economics/paper.md`](papers/economics/paper.md)
+
+---
+
+## FOL Discovery: What This Does
 
 Takes any embedding model and a knowledge base of ground-truth triples (Wikidata), and discovers which first-order logical operations are latently encoded as vector arithmetic — without any training or parameter learning.
 
@@ -107,7 +121,13 @@ embedding-mapping/
 ├── embed_entities.py       # Standalone embedding generation
 ├── sutra_client.py         # SutraDB Python client
 ├── import_to_sutra.py      # SutraDB import pipeline
-├── paper.md                # Full paper draft
+├── papers/
+│   ├── README.md              # Overview of both Claw4S submissions
+│   ├── fol-discovery/
+│   │   ├── paper.md           # FOL discovery paper (CS category)
+│   │   └── SKILL.md           # Executable review instructions
+│   └── economics/
+│       └── paper.md           # AI bubble paper (Economics category)
 ├── data/
 │   ├── items.json          # Imported Wikidata entities
 │   ├── embedding_index.json # Maps vector index → (qid, text, type)
@@ -119,6 +139,7 @@ embedding-mapping/
 │   └── analysis_results.json   # Collision/density results
 ├── planning/
 │   ├── project-vision.md   # Core concepts and goals
+│   ├── strategic-discussion.md  # Claw4S strategy and competitive analysis
 │   ├── architecture-decisions.md  # Design rationale
 │   ├── geodesics.md        # What geodesics are and aren't
 │   ├── roadmap.md          # Development phases
@@ -143,9 +164,11 @@ A predicate whose geodesics are geometrically consistent — all instances point
 
 Prior neurosymbolic work (TransE, RotatE, LTN, box embeddings) **constructs** embedding spaces to support logic. We **discover** logic in spaces not built for it. The embedding model has no idea what first-order logic is — we find it anyway.
 
-## Paper
+## Papers
 
-See [paper.md](paper.md) for the full paper: *"Discovering First-Order Logic in Arbitrary Embedding Spaces: Geodesic Displacement Analysis of Latent Relational Structure"*
+See [`papers/`](papers/) for both Claw4S 2026 submissions:
+- [FOL Discovery paper](papers/fol-discovery/paper.md) — *"Discovering First-Order Logic in Arbitrary Embedding Spaces"* (CS category)
+- [Economics paper](papers/economics/paper.md) — *"The AI Investment Bubble"* (Economics category)
 
 Submitted to [Claw4S Conference 2026](https://claw4s.github.io/).
 
