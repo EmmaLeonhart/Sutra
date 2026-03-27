@@ -156,7 +156,9 @@ print(f'Companies: {len(companies)}')
 print(f'Combined market cap: \${agg[\"total_market_cap_B\"]}B')
 print(f'Bubble score: {agg[\"bubble_score\"]}/6.0')
 assert len(companies) == 5, 'Expected 5 companies'
-assert agg['bubble_score'] <= 2.0, 'Bubble score should be low'
+assert agg['bubble_score'] is not None, 'Bubble score should be computed'
+print(f'Classification: {agg[\"bubble_classification\"]} (score {agg[\"bubble_score\"]}/6.0)')
+print(f'Method: {agg[\"classification_method\"]}')
 print('PASS: AI investment data collected and scored')
 "
 ```
@@ -210,12 +212,8 @@ print(f'Historical avg score: {summary[\"historical_avg_score\"]}')
 print(f'AI score: {summary[\"ai_score\"]}')
 print(f'Score gap: {summary[\"score_gap\"]}')
 assert len(events) == 5, 'Expected 5 events (4 bubbles + AI)'
-assert summary['ai_score'] <= 2.0, 'AI should score low on bubble features'
-assert summary['historical_avg_score'] >= 4.0, 'Historical bubbles should score high'
-assert summary['score_gap'] >= 3.0, 'Gap should be substantial'
-print('PASS: Structural comparison validated')
-print()
-print('CONCLUSION:', summary['conclusion'])
+print(f'AI classification: {events[\"ai_investment\"][\"classification\"]}')
+print('PASS: Structural comparison produced')
 "
 ```
 
@@ -268,15 +266,15 @@ print(f'Score gap: {hist_avg - ai[\"total_score\"]:.2f}')
 print(f'AI classification: {ai[\"classification\"]}')
 print()
 
-# Success criteria
+# Verify pipeline integrity (not the conclusion)
 checks = [
-    ('AI scores <= 2.0', ai['total_score'] <= 2.0),
-    ('Historical avg >= 4.0', hist_avg >= 4.0),
-    ('Score gap >= 3.0', hist_avg - ai['total_score'] >= 3.0),
-    ('AI classified as NOT A BUBBLE', ai['classification'] == 'NOT A BUBBLE'),
-    ('All 4 historical events classified as BUBBLE', all(
-        e['classification'] == 'BUBBLE' for k, e in events.items() if k != 'ai_investment'
+    ('All 6 features scored for AI', len(ai['scores']) == 6),
+    ('All features have score_method documented', all(
+        'score_method' in s or 'source' in s for s in ai['scores'].values()
     )),
+    ('Historical avg computed', hist_avg > 0),
+    ('All 4 historical events scored', len(hist_scores) == 4),
+    ('Classification computed from threshold', ai['classification'] in ['BUBBLE', 'PARTIAL', 'NOT A BUBBLE']),
 ]
 
 all_pass = True
@@ -287,11 +285,14 @@ for desc, result in checks:
         all_pass = False
 
 print()
-print('ALL CHECKS PASSED' if all_pass else 'SOME CHECKS FAILED')
+print('PIPELINE INTEGRITY:', 'ALL CHECKS PASSED' if all_pass else 'SOME CHECKS FAILED')
+print()
+print(f'RESULT: AI investment classified as {ai[\"classification\"]} ({ai[\"total_score\"]}/6.0)')
+print(f'This result was computed from retrieved data, not hardcoded.')
 "
 ```
 
-Expected: All 5 checks pass.
+Expected: All 5 integrity checks pass. The classification result is computed from data — the pipeline does not presuppose the answer.
 
 ## Interpretation Guide
 
@@ -323,14 +324,15 @@ This analysis is falsifiable. If AI investment scored >= 4.0/6.0, the thesis wou
 
 ## Success Criteria
 
+Pipeline integrity (the analysis ran correctly):
 1. All three data files produced with valid JSON
 2. Four historical bubbles collected with market data and structural features
 3. Five AI companies collected with market cap and capex data
-4. AI investment scores <= 2.0/6.0 on structural features
-5. Historical bubbles average >= 4.0/6.0
-6. Score gap between historical average and AI >= 3.0 points
-7. All historical events classified as BUBBLE
-8. AI classified as NOT A BUBBLE
+4. All 6 structural features scored for every event with documented methodology
+5. Classification computed from threshold rules, not hardcoded
+6. Score totals are internally consistent (sum of features = reported total)
+
+The conclusion — whether AI investment is or is not a bubble — is produced by the analysis, not presupposed. If market conditions change (e.g., major AI IPOs create retail exposure, or leveraged AI derivatives emerge), re-running the pipeline would produce different scores and potentially a different classification.
 
 ## References
 

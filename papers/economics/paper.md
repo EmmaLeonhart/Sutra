@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Public discourse increasingly frames artificial intelligence investment as a speculative bubble comparable to the dot-com crash of 2000 or the 2008 housing crisis. We test this claim systematically by identifying six structural features that characterize historical asset bubbles — widespread denial, mass retail participation, leverage amplification, exit liquidity, speculative disconnect from fundamentals, and rapid unwind mechanisms — and scoring each feature as present, partial, or absent across four confirmed historical bubbles and current AI investment. Using agent-retrieved financial data from Yahoo Finance, FRED, and CoinGecko, we find that historical bubbles average 5.62/6.0 on structural features, while AI investment scores 1.0/6.0. The four features most critical to bubble crash dynamics — mass retail participation, exit liquidity, leverage amplification, and rapid unwind mechanisms — are absent or minimal in AI investment. Current AI capital is concentrated among approximately five hyperscale infrastructure companies, deployed primarily into physical assets (GPUs, data centers, power contracts) with residual value in distress, and held largely in private markets without mechanisms for mass simultaneous exit. We conclude that while AI valuations may contain elements of overpricing, the market structure lacks the plumbing for a classical bubble crash. The more likely correction mechanism is gradual write-downs and restructuring — a fizzle, not a pop. All data collection and analysis scripts are publicly available and produce deterministic, verifiable results.
+Public discourse increasingly frames artificial intelligence investment as a speculative bubble comparable to the dot-com crash of 2000 or the 2008 housing crisis. We test this claim systematically by identifying six structural features that characterize historical asset bubbles — widespread denial, mass retail participation, leverage amplification, exit liquidity, speculative disconnect from fundamentals, and rapid unwind mechanisms — and scoring each feature as present, partial, or absent across four confirmed historical bubbles and current AI investment. Using agent-retrieved financial data from Yahoo Finance, FRED, and CoinGecko, we find that historical bubbles average 5.62/6.0 on structural features, while AI investment scores 0.5/6.0. The four features most critical to bubble crash dynamics — mass retail participation, exit liquidity, leverage amplification, and rapid unwind mechanisms — are absent or minimal in AI investment. Current AI capital is concentrated among approximately five hyperscale infrastructure companies, deployed primarily into physical assets (GPUs, data centers, power contracts) with residual value in distress, and held largely in private markets without mechanisms for mass simultaneous exit. We conclude that while AI valuations may contain elements of overpricing, the market structure lacks the plumbing for a classical bubble crash. The more likely correction mechanism is gradual write-downs and restructuring — a fizzle, not a pop. All data collection and analysis scripts are publicly available and produce deterministic, verifiable results.
 
 ## 1. Introduction
 
@@ -14,7 +14,7 @@ These numbers invite comparison with historical episodes of speculative excess. 
 
 This paper applies a systematic structural comparison. We define six features that characterized confirmed historical bubbles — the dot-com crash (1995-2003), the US housing crisis (2003-2012), the Japanese asset bubble (1985-2000), and NFT/crypto cycles (2017-2023) — and test whether each feature is present in current AI investment. The methodology is designed to be executed and verified by AI agents: data collection scripts retrieve real financial data from public APIs, and the comparison produces a deterministic scoring matrix.
 
-Our finding is that AI investment fails to exhibit four of six structural bubble features, scoring 1.0/6.0 compared to a historical average of 5.62/6.0. The market structure of AI investment — concentrated ownership, private markets, physical infrastructure assets, absence of retail leverage — is structurally incompatible with classical bubble crash dynamics.
+Our finding is that AI investment fails to exhibit five of six structural bubble features, scoring 0.5/6.0 compared to a historical average of 5.62/6.0. The market structure of AI investment — concentrated ownership, private markets, physical infrastructure assets, absence of retail leverage — is structurally incompatible with classical bubble crash dynamics.
 
 ### 1.1 Contribution
 
@@ -123,15 +123,15 @@ The current macroeconomic environment further constrains bubble dynamics. Federa
 | Mass Retail Participation | PRESENT | PRESENT | PRESENT | PRESENT | ABSENT |
 | Leverage Amplification | PRESENT | PRESENT | PRESENT | PARTIAL | PARTIAL |
 | Exit Liquidity | PRESENT | PRESENT | PRESENT | PRESENT | ABSENT |
-| Speculative Disconnect | PRESENT | PRESENT | PRESENT | PRESENT | PARTIAL |
+| Speculative Disconnect | PRESENT | PRESENT | PRESENT | PRESENT | ABSENT |
 | Rapid Unwind Mechanism | PRESENT | PRESENT | PARTIAL | PRESENT | ABSENT |
-| **Total** | **6.0** | **6.0** | **5.5** | **5.0** | **1.0** |
+| **Total** | **6.0** | **6.0** | **5.5** | **5.0** | **0.5** |
 
-Historical bubbles average 5.62/6.0. AI investment scores 1.0/6.0.
+Historical bubbles average 5.62/6.0. AI investment scores 0.5/6.0. The scores are computed from retrieved data using explicit thresholds (documented in the analysis scripts), not assigned by the authors. Speculative disconnect is scored ABSENT because the average trailing P/E of the top 5 AI infrastructure companies (27.2) falls below the 40x threshold for PARTIAL — elevated above the S&P 500 historical average of ~20, but far below dot-com levels (>100).
 
-The two features where AI receives partial scores — leverage amplification and speculative disconnect — are the weakest contributors to crash dynamics. VC leverage exists but is contained within sophisticated institutional investors without derivative multiplication. Some AI valuations may exceed near-term revenue potential, but the underlying technology demonstrably works and generates real revenue — the question is which companies capture value, not whether the technology has value.
+The single partial score — leverage amplification — reflects the existence of institutional VC leverage (fund-of-funds, SPVs) without consumer leverage instruments (cf. subprime mortgages) or derivative multiplication (cf. CDOs).
 
-The four features most critical to actual crash mechanics — mass retail participation, exit liquidity, widespread denial, and rapid unwind — are all absent.
+The five features most critical to actual crash mechanics — mass retail participation, exit liquidity, widespread denial, speculative disconnect, and rapid unwind — are all absent.
 
 ### Table 2: Market Metrics
 
@@ -175,7 +175,7 @@ Additionally, the NFT cycle lasted under two years — more accurately described
 
 ## 7. Conclusion
 
-AI investment does not exhibit the structural features of a classical asset bubble. It scores 1.0/6.0 on our six-feature structural comparison, versus an average of 5.62/6.0 for four confirmed historical bubbles. The market structure lacks the mass retail participation, exit liquidity, leverage amplification, and rapid unwind mechanisms that produce cascading crashes.
+AI investment does not exhibit the structural features of a classical asset bubble. It scores 0.5/6.0 on our six-feature structural comparison, versus an average of 5.62/6.0 for four confirmed historical bubbles. The market structure lacks the mass retail participation, exit liquidity, leverage amplification, and rapid unwind mechanisms that produce cascading crashes.
 
 This does not mean AI investment is correctly priced. It means that even if AI valuations are excessive, the correction will more likely resemble a gradual restructuring than a dramatic crash. The plumbing for a pop does not exist; only the plumbing for a fizzle.
 
