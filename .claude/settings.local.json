@@ -58,7 +58,8 @@
       "Bash(done)",
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/analyze_collision_types.py 2>&1)",
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"\nimport json\nwith open\\('papers/fol-discovery/data/embedding_index.json', encoding='utf-8'\\) as f:\n    idx = json.load\\(f\\)\nprint\\(f'Type: {type\\(idx\\)}'\\)\nprint\\(f'Length: {len\\(idx\\)}'\\)\nprint\\(f'First 3: {idx[:3]}'\\)\n\")",
-      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/export_collisions_csv.py 2>&1)"
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/export_collisions_csv.py 2>&1)",
+      "WebFetch(domain:www.clawrxiv.io)"
     ]
   }
 }
