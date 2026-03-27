@@ -1,0 +1,141 @@
+{
+  "metadata": {
+    "generated_at": "2026-03-27T01:40:37.649496",
+    "data_dir": "C:\\Users\\Immanuelle\\Documents\\Github\\embedding-mapping\\papers\\fol-discovery\\data",
+    "n_operations": 50,
+    "n_predictions": 50
+  },
+  "alignment_mrr_correlation": {
+    "observed_r": 0.8607,
+    "ci_low": 0.7734,
+    "ci_high": 0.9259,
+    "ci_level": 0.95,
+    "n_bootstrap": 10000,
+    "p_value_bootstrap": 0.0,
+    "boot_mean": 0.8607,
+    "boot_std": 0.0391
+  },
+  "alignment_hits1_correlation": {
+    "observed_r": 0.8482,
+    "ci_low": 0.7212,
+    "ci_high": 0.9318,
+    "ci_level": 0.95,
+    "n_bootstrap": 10000,
+    "p_value_bootstrap": 0.0,
+    "boot_mean": 0.848,
+    "boot_std": 0.0563
+  },
+  "alignment_hits10_correlation": {
+    "observed_r": 0.6254,
+    "ci_low": 0.4689,
+    "ci_high": 0.7604,
+    "ci_level": 0.95,
+    "n_bootstrap": 10000,
+    "p_value_bootstrap": 0.0,
+    "boot_mean": 0.6265,
+    "boot_std": 0.0743
+  },
+  "effect_size_functional_vs_weak": {
+    "cohens_d": 2.423,
+    "n_functional": 32,
+    "n_weak": 5,
+    "mean_functional": 0.8014,
+    "mean_weak": 0.6443,
+    "interpretation": "large"
+  },
+  "effect_size_prediction": {
+    "cohens_d": 3.092,
+    "n_strong": 25,
+    "n_moderate": 25,
+    "mean_mrr_strong": 0.812,
+    "mean_mrr_moderate": 0.3025,
+    "interpretation": "large"
+  },
+  "ablation_min_triples": [
+    {
+      "min_triples": 5,
+      "total_discovered": 50,
+      "strong": 32,
+      "moderate": 18,
+      "mean_alignment": 0.7516,
+      "std_alignment": 0.0864,
+      "mean_mrr": 0.6328
+    },
+    {
+      "min_triples": 10,
+      "total_discovered": 50,
+      "strong": 32,
+      "moderate": 18,
+      "mean_alignment": 0.7516,
+      "std_alignment": 0.0864,
+      "mean_mrr": 0.6328
+    },
+    {
+      "min_triples": 15,
+      "total_discovered": 42,
+      "strong": 28,
+      "moderate": 14,
+      "mean_alignment": 0.7553,
+      "std_alignment": 0.0865,
+      "mean_mrr": 0.6572
+    },
+    {
+      "min_triples": 20,
+      "total_discovered": 33,
+      "strong": 21,
+      "moderate": 12,
+      "mean_alignment": 0.7505,
+      "std_alignment": 0.0834,
+      "mean_mrr": 0.6357
+    },
+    {
+      "min_triples": 30,
+      "total_discovered": 20,
+      "strong": 12,
+      "moderate": 8,
+      "mean_alignment": 0.733,
+      "std_alignment": 0.0667,
+      "mean_mrr": 0.5723
+    },
+    {
+      "min_triples": 50,
+      "total_discovered": 7,
+      "strong": 3,
+      "moderate": 4,
+      "mean_alignment": 0.6952,
+      "std_alignment": 0.0394,
+      "mean_mrr": 0.4124
+    },
+    {
+      "min_triples": 100,
+      "total_discovered": 2,
+      "strong": 0,
+      "moderate": 2,
+      "mean_alignment": 0.6558,
+      "std_alignment": 0.0034,
+      "mean_mrr": 0.2232
+    }
+  ],
+  "multiple_comparisons": {
+    "n_tests": 3,
+    "bonferroni_alpha": 0.0167,
+    "all_survive": true,
+    "claims": [
+      {
+        "name": "alignment-MRR correlation",
+        "p_value": 0.0,
+        "survives_bonferroni": true
+      },
+      {
+        "name": "alignment-Hits@1 correlation",
+        "p_value": 0.0,
+        "survives_bonferroni": true
+      },
+      {
+        "name": "alignment-Hits@10 correlation",
+        "p_value": 0.0,
+        "survives_bonferroni": true
+      }
+    ]
+  }
+}
