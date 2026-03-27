@@ -5,7 +5,7 @@
 ## Papers
 
 ### Paper 1: Discovering First-Order Logic in Arbitrary Embedding Spaces (CS)
-Geodesic displacement analysis of latent relational structure in general-purpose text embeddings. Takes any embedding model and Wikidata triples, discovers which predicates encode as consistent vector arithmetic — without training or parameter learning.
+Trajectory displacement analysis of latent relational structure in general-purpose text embeddings. Takes any embedding model and Wikidata triples, discovers which predicates encode as consistent vector arithmetic — without training or parameter learning.
 
 See [`papers/fol-discovery/paper.md`](papers/fol-discovery/paper.md)
 
@@ -28,7 +28,7 @@ The key insight: embedding spaces trained for semantic similarity **already enco
 |--------|-------|
 | Entities imported | 14,796 |
 | Embeddings | 41,725 |
-| Geodesics computed | 216,319 |
+| Trajectories computed | 216,319 |
 | Predicates analyzed (≥10 triples) | 159 |
 | **Operations discovered** (alignment > 0.5) | **86** |
 | Strong operations (alignment > 0.7) | 32 |
@@ -58,7 +58,7 @@ The key insight: embedding spaces trained for semantic similarity **already enco
 
 1. **Import** entities from Wikidata via BFS from a seed entity
 2. **Embed** all entity labels and aliases (mxbai-embed-large via Ollama)
-3. **Compute geodesics** — displacement vectors for each triple's subject→object
+3. **Compute trajectories** — displacement vectors for each triple's subject→object
 4. **Discover operations** — test which predicates produce consistent displacements
 5. **Validate** — leave-one-out prediction, two-hop composition, failure analysis
 
@@ -119,7 +119,7 @@ Claw4S-submissions/
 │   │   ├── SKILL.md               # Executable review instructions
 │   │   ├── scripts/
 │   │   │   ├── random_walk.py     # BFS Wikidata import pipeline
-│   │   │   ├── import_wikidata.py # Core import logic (fetch, embed, geodesics)
+│   │   │   ├── import_wikidata.py # Core import logic (fetch, embed, trajectories)
 │   │   │   ├── fol_discovery.py   # FOL operation discovery + evaluation
 │   │   │   ├── analyze_collisions.py  # Collision detection + density analysis
 │   │   │   ├── probe.py           # Interactive embedding space explorer
@@ -140,7 +140,7 @@ Claw4S-submissions/
 │   ├── project-vision.md          # Core concepts and goals
 │   ├── strategic-discussion.md    # Claw4S strategy and competitive analysis
 │   ├── architecture-decisions.md  # Design rationale
-│   ├── geodesics.md               # What geodesics are and aren't
+│   ├── trajectories.md            # What trajectories are and aren't
 │   ├── roadmap.md                 # Development phases
 │   └── todo.md                    # Current tasks
 └── redoing-paper/                 # Prior work on neurosymbolic embedding analysis
@@ -148,11 +148,11 @@ Claw4S-submissions/
 
 ## Key Concepts
 
-### Geodesic
-A displacement vector connecting two entities in embedding space that are related by a Wikidata triple. The geodesic for `(Mount Everest, instance-of, mountain)` is `embed("mountain") - embed("Mount Everest")`.
+### Trajectory
+A displacement vector connecting two entities in embedding space that are related by a Wikidata triple. The trajectory for `(Mount Everest, instance-of, mountain)` is `embed("mountain") - embed("Mount Everest")`.
 
 ### Discovered Operation
-A predicate whose geodesics are geometrically consistent — all instances point in approximately the same direction. If `flag` consistently displaces countries toward their flags, that's a discovered FOL operation.
+A predicate whose trajectories are geometrically consistent — all instances point in approximately the same direction. If `flag` consistently displaces countries toward their flags, that's a discovered FOL operation.
 
 ### The Three Regimes (from companion paper)
 - **Oversymbolic**: Dense regions where distinct entities collide (164,084 collisions at cosine ≥ 0.95)

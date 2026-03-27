@@ -1,4 +1,4 @@
-# Discovering First-Order Logic in Arbitrary Embedding Spaces: Geodesic Displacement Analysis of Latent Relational Structure
+# Discovering First-Order Logic in Arbitrary Embedding Spaces: Trajectory Displacement Analysis of Latent Relational Structure
 
 **Immanuelle (Emma) Leonhart**
 
@@ -12,7 +12,7 @@ A persistent question in representation learning is whether embedding spaces enc
 
 All of these approaches share a common assumption: **the embedding space must be constructed with logical operations in mind.** The relation vector `r` in TransE is a learned parameter, optimized specifically to make `h + r ≈ t` hold. The rotation in RotatE is a learned transformation. The box boundaries are learned constraints. If you take a general-purpose text embedding model — one trained for semantic similarity, not for logical reasoning — none of these guarantees hold.
 
-**Our contribution is empirical rather than architectural.** We ask: given an embedding model that was never trained for logic, which logical operations does it *already* encode? We introduce **geodesic displacement analysis**, a model-agnostic method for discovering latent logical operations in any embedding space. Given a knowledge base of ground-truth triples, we discover the subset of predicates whose triples manifest as consistent vector displacements — treating the embedding space as existing infrastructure to be analyzed, not a system to be constructed. No training is required. No parameters are learned. The method is a pure diagnostic applicable to any text embedding model.
+**Our contribution is empirical rather than architectural.** We ask: given an embedding model that was never trained for logic, which logical operations does it *already* encode? We introduce **trajectory displacement analysis**, a model-agnostic method for discovering latent logical operations in any embedding space. Given a knowledge base of ground-truth triples, we discover the subset of predicates whose triples manifest as consistent vector displacements — treating the embedding space as existing infrastructure to be analyzed, not a system to be constructed. No training is required. No parameters are learned. The method is a pure diagnostic applicable to any text embedding model.
 
 ### 1.1 Key Findings
 
@@ -54,9 +54,9 @@ Probing classifiers (Conneau et al., 2018; Hewitt & Manning, 2019) test what lin
 
 **Find:** The subset of predicates $P^* \subseteq P$ whose triples manifest as consistent displacement vectors in the embedding space.
 
-**Definition (Geodesic).** For a triple $(s, p, o) \in \mathcal{K}$, the *geodesic* is the displacement vector $\mathbf{g}_{s,p,o} = f(o) - f(s)$, connecting the subject's embedding to the object's embedding.
+**Definition (Trajectory).** For a triple $(s, p, o) \in \mathcal{K}$, the *trajectory* is the displacement vector $\mathbf{g}_{s,p,o} = f(o) - f(s)$, connecting the subject's embedding to the object's embedding.
 
-**Definition (Operation Consistency).** For a predicate $p$ with triples $\{(s_1, p, o_1), \ldots, (s_n, p, o_n)\}$, the *operation vector* is $\mathbf{d}_p = \frac{1}{n}\sum_{i=1}^{n} \mathbf{g}_{s_i, p, o_i}$. The *consistency* of $p$ is the mean cosine alignment of individual geodesics with the operation vector:
+**Definition (Operation Consistency).** For a predicate $p$ with triples $\{(s_1, p, o_1), \ldots, (s_n, p, o_n)\}$, the *operation vector* is $\mathbf{d}_p = \frac{1}{n}\sum_{i=1}^{n} \mathbf{g}_{s_i, p, o_i}$. The *consistency* of $p$ is the mean cosine alignment of individual trajectories with the operation vector:
 
 $$\text{consistency}(p) = \frac{1}{n}\sum_{i=1}^{n} \cos(\mathbf{g}_{s_i,p,o_i}, \mathbf{d}_p)$$
 
@@ -68,17 +68,17 @@ A predicate with consistency > 0.5 is a **discovered operation**: its triples ar
 
 2. **Embedding.** Each entity's English label is embedded using mxbai-embed-large (1024-dim) via Ollama. Aliases receive separate embeddings. Total: 41,725 embeddings.
 
-3. **Geodesic Computation.** For each entity-entity triple, compute the displacement vector between subject and object label embeddings. Total: 16,893 entity-entity triples across 1,472 unique predicates.
+3. **Trajectory Computation.** For each entity-entity triple, compute the displacement vector between subject and object label embeddings. Total: 16,893 entity-entity triples across 1,472 unique predicates.
 
 ### 3.3 Discovery Procedure
 
 For each predicate $p$ with $\geq 10$ entity-entity triples:
 
-1. Compute all geodesics $\{\mathbf{g}_i\}$
-2. Compute operation vector $\mathbf{d}_p$ (mean geodesic)
+1. Compute all trajectories $\{\mathbf{g}_i\}$
+2. Compute operation vector $\mathbf{d}_p$ (mean trajectory)
 3. Compute consistency: mean alignment of each $\mathbf{g}_i$ with $\mathbf{d}_p$
-4. Compute pairwise consistency: mean cosine similarity between all pairs of geodesics
-5. Compute magnitude coefficient of variation: stability of geodesic lengths
+4. Compute pairwise consistency: mean cosine similarity between all pairs of trajectories
+5. Compute magnitude coefficient of variation: stability of trajectory lengths
 
 ### 3.4 Prediction Evaluation
 
@@ -134,7 +134,7 @@ The top 15 discovered operations:
 | P1464 | cat. for people born here | 32 | 0.814 | 0.653 | 0.145 | 0.265 |
 | P237 | coat of arms | 21 | 0.798 | 0.620 | 0.138 | 0.268 |
 
-**Table 2.** Top 15 discovered operations by consistency (alignment with mean displacement). N = number of triples. Pairwise = mean cosine similarity between all pairs of geodesics. MagCV = coefficient of variation of geodesic magnitudes. Cos Dist = mean cosine distance between subject and object.
+**Table 2.** Top 15 discovered operations by consistency (alignment with mean displacement). N = number of triples. Pairwise = mean cosine similarity between all pairs of trajectories. MagCV = coefficient of variation of trajectory magnitudes. Cos Dist = mean cosine distance between subject and object.
 
 ### 4.2 Prediction Accuracy
 

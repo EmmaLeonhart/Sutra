@@ -1,6 +1,6 @@
 ---
 name: fol-discovery
-description: Discover first-order logic operations latently encoded in arbitrary embedding spaces. Imports entities from Wikidata, embeds them, computes geodesic displacement vectors, and tests which predicates function as consistent vector arithmetic. Reproduces the key finding that 86 predicates encode as discoverable operations with r=0.78 self-diagnostic correlation.
+description: Discover first-order logic operations latently encoded in arbitrary embedding spaces. Imports entities from Wikidata, embeds them, computes trajectory displacement vectors, and tests which predicates function as consistent vector arithmetic. Reproduces the key finding that 86 predicates encode as discoverable operations with r=0.78 self-diagnostic correlation.
 allowed-tools: Bash(python *), Bash(pip *), Bash(ollama *), WebFetch
 ---
 
@@ -71,7 +71,7 @@ This imports 100 entities starting from Engishiki (Q1342448), a Japanese histori
 1. Has all Wikidata triples fetched
 2. Has its label and aliases embedded (1024-dim)
 3. Has all linked entities' labels fetched and embedded
-4. Has geodesics (displacement vectors) computed for all entity-entity triples
+4. Has trajectories (displacement vectors) computed for all entity-entity triples
 
 **Parameters:**
 - `Q1342448` — Seed entity (Engishiki). Any QID works.
@@ -85,7 +85,7 @@ Expected Output:
 - `Final state:`
 - `  Items: <N> (hundreds to thousands)`
 - `  Embeddings: <N> x 1024`
-- `  Geodesics: <N> (hundreds to thousands)`
+- `  Trajectories: <N> (hundreds to thousands)`
 
 **Runtime:** ~10-15 minutes for 100 entities (depends on Wikidata API speed and Ollama inference).
 
@@ -95,7 +95,7 @@ Expected Output:
 - `papers/fol-discovery/data/embedding_index.json` — Vector index → (qid, text, type) mapping
 - `papers/fol-discovery/data/walk_state.json` — Resumable BFS queue state
 - `papers/fol-discovery/data/triples.nt` — RDF triples (N-Triples format)
-- `papers/fol-discovery/data/geodesics.ttl` — Geodesic objects (Turtle format)
+- `papers/fol-discovery/data/geodesics.ttl` — Trajectory objects (Turtle format)
 
 ## Step 3: Discover First-Order Logic Operations
 
@@ -106,7 +106,7 @@ python papers/fol-discovery/scripts/fol_discovery.py --min-triples 5
 ```
 
 The discovery procedure for each predicate:
-1. Compute all geodesics (object_vec - subject_vec) for the predicate's triples
+1. Compute all trajectories (object_vec - subject_vec) for the predicate's triples
 2. Compute the mean displacement = the "operation vector"
 3. Measure consistency: how aligned are individual displacements with the mean?
 4. Evaluate prediction: leave-one-out, predict object via subject + operation vector
@@ -171,7 +171,7 @@ python papers/fol-discovery/scripts/analyze_collisions.py --threshold 0.95 --k 1
 Expected Output:
 - Cross-entity collisions found at the threshold
 - Density statistics (mean k-NN distance, regime classification)
-- Geodesic consistency per predicate
+- Trajectory consistency per predicate
 
 **Artifacts:**
 - `papers/fol-discovery/data/analysis_results.json` — Collision and density results

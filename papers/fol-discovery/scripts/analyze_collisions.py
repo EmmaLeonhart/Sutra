@@ -1,10 +1,10 @@
 """
 Collision and Density Analysis for Embedding Space
 ===================================================
-Analyzes the geodesic map to find:
+Analyzes the trajectory map to find:
 1. Embedding collisions — semantically unrelated entities landing near each other
 2. Density classification — under/iso/oversymbolic regions
-3. Geodesic consistency — do same-predicate geodesics form parallel displacements?
+3. Trajectory consistency — do same-predicate trajectories form parallel displacements?
 
 This is the core empirical analysis for the Claw4S submission.
 """
@@ -170,15 +170,15 @@ def density_analysis(emb, index, k=10):
     return knn_distances, oversymbolic, isosymbolic, undersymbolic
 
 
-def geodesic_consistency(emb, index, items):
-    """Analyze whether same-predicate geodesics produce consistent displacement vectors.
-    
+def trajectory_consistency(emb, index, items):
+    """Analyze whether same-predicate trajectories produce consistent displacement vectors.
+
     If P31 (instance of) consistently produces similar displacement vectors,
     that's an isosymbolic operation — the graph relationship has a faithful
     geometric counterpart in the embedding space.
     """
     print(f"\n{'='*70}", flush=True)
-    print(f"GEODESIC CONSISTENCY ANALYSIS", flush=True)
+    print(f"TRAJECTORY CONSISTENCY ANALYSIS", flush=True)
     print(f"{'='*70}", flush=True)
     
     # Build QID -> label vector index
@@ -323,8 +323,8 @@ def main():
     # Density analysis
     knn_distances, oversymbolic, isosymbolic, undersymbolic = density_analysis(emb, index, args.k)
     
-    # Geodesic consistency
-    consistency = geodesic_consistency(emb, index, items)
+    # Trajectory consistency
+    consistency = trajectory_consistency(emb, index, items)
     
     # Save results
     results = {

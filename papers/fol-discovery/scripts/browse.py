@@ -6,7 +6,7 @@ Usage:
   python browse.py                  # list all full items
   python browse.py Q8502            # show all triples for an item
   python browse.py Q8502 --raw      # show raw triple data
-  python browse.py --geodesics Q513 # show geodesics for an item
+  python browse.py --trajectories Q513 # show trajectories for an item
 """
 
 import json
