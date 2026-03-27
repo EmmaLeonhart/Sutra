@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SutraDB Playground</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    color: var(--text);
+  }
+
+  .status {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .status-dot.error { background: var(--red); }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .header-btn {
+    padding: 4px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .header-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .header-btn.studio {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .header-btn.studio:hover { opacity: 0.9; }
+
+  .main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 300px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 12px 16px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .example-group {
+    margin-bottom: 8px;
+  }
+
+  .example-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--orange);
+    padding: 8px 8px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .example-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.15s;
+    line-height: 1.3;
+  }
+
+  .example-btn:hover {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+
+  .example-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+
+  .example-btn .tag {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  /* ── Editor + Results ── */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .editor-area {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .editor-toolbar label {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  #query-editor {
+    width: 100%;
+    min-height: 160px;
+    max-height: 300px;
+    padding: 12px 16px;
+    background: var(--bg);
+    color: var(--text);
+    border: none;
+    outline: none;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    tab-size: 2;
+  }
+
+  .run-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: var(--surface);
+  }
+
+  .run-btn {
+    padding: 6px 20px;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+
+  .run-btn:hover { opacity: 0.9; }
+  .run-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .run-info {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .keyboard-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  kbd {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 11px;
+    font-family: inherit;
+  }
+
+  /* ── Results ── */
+  .results-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .results-header {
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .results-header .count {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .results-scroll {
+    flex: 1;
+    overflow: auto;
+    padding: 0;
+  }
+
+  /* Results table */
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  .results-table th {
+    background: var(--surface);
+    color: var(--accent);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .results-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .results-table tr:hover td {
+    background: var(--surface2);
+  }
+
+  .val-uri { color: var(--accent); }
+  .val-literal { color: var(--green); }
+  .val-number { color: var(--orange); }
+  .val-score { color: var(--purple); font-size: 11px; }
+  .val-unbound { color: var(--text-dim); font-style: italic; }
+
+  /* Empty / error states */
+  .results-message {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .results-message.error {
+    color: var(--red);
+    font-family: monospace;
+    text-align: left;
+    padding: 20px;
+    white-space: pre-wrap;
+  }
+
+  .results-message .hint {
+    font-size: 12px;
+    margin-top: 8px;
+    color: var(--text-dim);
+  }
+
+  /* ── Schema panel ── */
+  .schema-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+  }
+
+  .schema-toggle:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .schema-panel {
+    display: none;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-dim);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .schema-panel.open { display: block; }
+
+  .schema-panel h3 {
+    color: var(--orange);
+    font-size: 11px;
+    text-transform: uppercase;
+    margin: 8px 0 4px;
+  }
+
+  .schema-panel h3:first-child { margin-top: 0; }
+
+  .schema-panel ul {
+    list-style: none;
+    padding-left: 12px;
+  }
+
+  .schema-panel li { line-height: 1.6; }
+  .schema-panel .s-class { color: var(--accent); }
+  .schema-panel .s-prop { color: var(--green); }
+  .schema-panel .s-entity { color: var(--text); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sutra<span>DB</span> Playground</h1>
+  <span class="badge">v0.3.5</span>
+  <div class="status">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Connected</span>
+    <span id="triple-count"></span>
+  </div>
+  <div class="header-actions">
+    <button class="header-btn" onclick="openBrowser()">Graph Browser</button>
+    <button class="header-btn studio" onclick="launchStudio()">Sutra Studio</button>
+  </div>
+</header>
+
+<div class="main-container">
+  <!-- Sidebar: example queries -->
+  <div class="sidebar">
+    <div class="sidebar-header">Example Queries</div>
+    <div class="sidebar-scroll" id="examples-list"></div>
+  </div>
+
+  <!-- Editor + Results -->
+  <div class="content">
+    <div class="editor-area">
+      <div class="editor-toolbar">
+        <label>SPARQL+</label>
+        <button class="schema-toggle" onclick="toggleSchema()">Schema</button>
+      </div>
+      <div class="schema-panel" id="schema-panel">
+        <h3>Classes</h3>
+        <ul>
+          <li><span class="s-class">ex:Shrine</span> &mdash; Ise Jingu, Izumo Taisha, Fushimi Inari, Meiji Jingu, Kasuga Taisha</li>
+          <li><span class="s-class">ex:Deity</span> &mdash; Amaterasu, Okuninushi, Inari, Takemikazuchi</li>
+          <li><span class="s-class">ex:Person</span> &mdash; Tanaka, Suzuki (shrine priests)</li>
+          <li><span class="s-class">ex:Myth</span> &mdash; Kojiki, Nihon Shoki</li>
+        </ul>
+        <h3>Properties</h3>
+        <ul>
+          <li><span class="s-prop">ex:name</span>, <span class="s-prop">ex:alternateName</span> &mdash; text labels</li>
+          <li><span class="s-prop">ex:foundedYear</span> &mdash; integer (e.g. 711)</li>
+          <li><span class="s-prop">ex:rank</span> &mdash; integer 1-5</li>
+          <li><span class="s-prop">ex:locatedIn</span> &mdash; Mie, Shimane, Kyoto, Tokyo, Nara, Osaka</li>
+          <li><span class="s-prop">ex:enshrines</span> &mdash; shrine &rarr; deity</li>
+          <li><span class="s-prop">ex:domain</span> &mdash; deity &rarr; Sun/Earth/Harvest/Thunder</li>
+          <li><span class="s-prop">ex:appearsIn</span> &mdash; deity &rarr; myth</li>
+          <li><span class="s-prop">ex:servesAt</span> &mdash; person &rarr; shrine (temporal!)</li>
+          <li><span class="s-prop">ex:hasEmbedding</span> &mdash; 4D vector (HNSW indexed)</li>
+        </ul>
+        <h3>RDF-star Edges</h3>
+        <ul>
+          <li><code>&lt;&lt; shrine enshrines deity &gt;&gt;</code> <span class="s-prop">ex:confidence</span> &mdash; "0.99", "0.95", "0.70"</li>
+          <li><code>&lt;&lt; shrine enshrines deity &gt;&gt;</code> <span class="s-prop">ex:source</span> &mdash; provenance string</li>
+        </ul>
+        <h3>Temporal Annotations</h3>
+        <ul>
+          <li>Tanaka servesAt Ise: valid <b>[1900, 1950]</b></li>
+          <li>Suzuki servesAt Ise: valid <b>[1950, &infin;)</b></li>
+          <li>Fushimi locatedIn Osaka: valid <b>[1467, 1499]</b> (Onin War)</li>
+          <li>Fushimi locatedIn Kyoto: valid <b>[711, &infin;)</b></li>
+          <li>Meiji locatedIn Tokyo: valid <b>[1920, &infin;)</b></li>
+        </ul>
+      </div>
+      <textarea id="query-editor" spellcheck="false" placeholder="Enter a SPARQL+ query...">PREFIX ex: &lt;http://example.org/&gt;
+SELECT ?shrine ?name WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name
+}</textarea>
+      <div class="run-bar">
+        <button class="run-btn" id="run-btn" onclick="runQuery()">Run</button>
+        <span class="run-info" id="run-info"></span>
+        <span class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run</span>
+      </div>
+    </div>
+
+    <div class="results-area">
+      <div class="results-header">
+        <span>Results</span>
+        <span class="count" id="row-count"></span>
+        <span id="timing"></span>
+      </div>
+      <div class="results-scroll" id="results-container">
+        <div class="results-message">
+          Click an example or write a query, then press <b>Run</b>.<br>
+          <span class="hint">The database is pre-loaded with a Shinto shrine knowledge graph.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ENDPOINT = '/sparql';
+const PREFIX = 'http://example.org/';
+
+// ── Example queries ──
+const EXAMPLES = [
+  {
+    group: '1. Basic Patterns',
+    queries: [
+      {
+        title: 'All shrines',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine WHERE {
+  ?shrine a ex:Shrine
+}`
+      },
+      {
+        title: 'Point lookup (Ise Jingu name)',
+        query: `SELECT ?name WHERE {
+  <http://example.org/IseJingu> <http://example.org/name> ?name
+}`
+      },
+      {
+        title: 'Reverse lookup (who enshrines Amaterasu?)',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine WHERE {
+  ?shrine ex:enshrines ex:Amaterasu
+}`
+      },
+      {
+        title: 'Everything in the database',
+        query: `SELECT ?s ?p ?o WHERE { ?s ?p ?o }
+LIMIT 30`
+      },
+    ]
+  },
+  {
+    group: '2. Joins & Traversal',
+    queries: [
+      {
+        title: 'Shrine \u2192 deity \u2192 domain (2-hop)',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?deity ?domain WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:enshrines ?deity .
+  ?deity ex:domain ?domain
+}`
+      },
+      {
+        title: 'Shrine \u2192 deity \u2192 myth (3-hop)',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?deity ?myth WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:enshrines ?deity .
+  ?deity ex:appearsIn ?myth .
+  ?myth a ex:Myth
+}`
+      },
+      {
+        title: 'Self-join: shrines sharing a deity',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine1 ?shrine2 ?deity WHERE {
+  ?shrine1 ex:enshrines ?deity .
+  ?shrine2 ex:enshrines ?deity .
+  FILTER(?shrine1 != ?shrine2)
+}`
+      },
+      {
+        title: 'Star pattern (all properties of Ise)',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?property ?value WHERE {
+  ex:IseJingu ?property ?value
+}`
+      },
+    ]
+  },
+  {
+    group: '3. FILTER',
+    queries: [
+      {
+        title: 'Founded before 800 CE',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name ?year WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  ?shrine ex:foundedYear ?year .
+  FILTER(?year < 800)
+}`
+      },
+      {
+        title: 'Name contains "Taisha"',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  FILTER(CONTAINS(?name, "Taisha"))
+}`
+      },
+      {
+        title: 'High rank AND old (combined)',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name ?rank ?year WHERE {
+  ?shrine ex:name ?name .
+  ?shrine ex:rank ?rank .
+  ?shrine ex:foundedYear ?year .
+  FILTER(?rank <= 2) .
+  FILTER(?year < 1000)
+}`
+      },
+    ]
+  },
+  {
+    group: '4. OPTIONAL & UNION',
+    queries: [
+      {
+        title: 'OPTIONAL: shrines with/without alt names',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name ?altName WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  OPTIONAL { ?shrine ex:alternateName ?altName }
+}`
+      },
+      {
+        title: 'Anti-pattern: shrines WITHOUT alt names',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  OPTIONAL { ?shrine ex:alternateName ?alt } .
+  FILTER(!BOUND(?alt))
+}`
+      },
+      {
+        title: 'UNION: deities OR people',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?entity ?name WHERE {
+  { ?entity a ex:Deity . ?entity ex:name ?name }
+  UNION
+  { ?entity a ex:Person . ?entity ex:name ?name }
+}`
+      },
+    ]
+  },
+  {
+    group: '5. Aggregates & Sorting',
+    queries: [
+      {
+        title: 'COUNT: myths per deity',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?deity (COUNT(?myth) AS ?appearances) WHERE {
+  ?deity a ex:Deity .
+  ?deity ex:appearsIn ?myth
+}
+GROUP BY ?deity
+ORDER BY DESC(?appearances)`
+      },
+      {
+        title: 'Top 3 oldest shrines',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name ?year WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  ?shrine ex:foundedYear ?year
+}
+ORDER BY ?year
+LIMIT 3`
+      },
+      {
+        title: 'DISTINCT locations',
+        query: `PREFIX ex: <http://example.org/>
+SELECT DISTINCT ?location WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:locatedIn ?location
+}`
+      },
+    ]
+  },
+  {
+    group: '6. RDF-star (Edge Metadata)',
+    queries: [
+      {
+        title: 'Confidence on enshrinement edges',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?deity ?conf WHERE {
+  ?shrine ex:enshrines ?deity .
+  << ?shrine ex:enshrines ?deity >> ex:confidence ?conf
+}`
+      },
+      {
+        title: 'Provenance sources',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?deity ?src WHERE {
+  ?shrine ex:enshrines ?deity .
+  << ?shrine ex:enshrines ?deity >> ex:source ?src
+}`
+      },
+    ]
+  },
+  {
+    group: '7. Vector Search (HNSW)',
+    queries: [
+      {
+        title: 'Similar to "sun/nature" vector',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  VECTOR_SIMILAR(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>, 0.70)
+}
+ORDER BY DESC(VECTOR_SCORE(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>))`
+      },
+      {
+        title: 'Hybrid: vector + graph traversal',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name ?deity WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  ?shrine ex:enshrines ?deity .
+  VECTOR_SIMILAR(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>, 0.70)
+}`
+      },
+      {
+        title: 'Find the "harvest" cluster',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?shrine ?name WHERE {
+  ?shrine a ex:Shrine .
+  ?shrine ex:name ?name .
+  VECTOR_SIMILAR(?shrine ex:hasEmbedding "0.3 0.2 0.9 0.0"^^<http://sutra.dev/f32vec>, 0.70)
+}
+ORDER BY DESC(VECTOR_SCORE(?shrine ex:hasEmbedding "0.3 0.2 0.9 0.0"^^<http://sutra.dev/f32vec>))`
+      },
+    ]
+  },
+  {
+    group: '8. Temporal (World State)',
+    queries: [
+      {
+        title: 'AT_TIME: who served at Ise in 1925?',
+        query: `SELECT ?person WHERE {
+  AT_TIME(1925) {
+    ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
+  }
+}`
+      },
+      {
+        title: 'AT_TIME: who served at Ise in 1975?',
+        query: `SELECT ?person WHERE {
+  AT_TIME(1975) {
+    ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
+  }
+}`
+      },
+      {
+        title: 'DURING: Ise priests 1940-1960 (overlap)',
+        query: `SELECT ?person WHERE {
+  DURING(1940, 1960) {
+    ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
+  }
+}`
+      },
+      {
+        title: 'AT_TIME: Fushimi during Onin War (1470)',
+        query: `SELECT ?location WHERE {
+  AT_TIME(1470) {
+    <http://example.org/FushimiInari> <http://example.org/locatedIn> ?location .
+  }
+}`
+      },
+      {
+        title: 'AT_TIME: Fushimi now (2024)',
+        query: `SELECT ?location WHERE {
+  AT_TIME(2024) {
+    <http://example.org/FushimiInari> <http://example.org/locatedIn> ?location .
+  }
+}`
+      },
+      {
+        title: 'WORLD_STATE: shrine locations in 1800',
+        query: `SELECT ?shrine ?location WHERE {
+  WORLD_STATE(1800) {
+    ?shrine <http://example.org/locatedIn> ?location .
+  }
+}`
+      },
+      {
+        title: 'TEMPORAL_DIFF: Ise changes 1925 vs 1975',
+        query: `SELECT ?person ?change_type WHERE {
+  TEMPORAL_DIFF(1925, 1975) {
+    ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
+  }
+}`
+      },
+      {
+        title: 'Atemporal = always visible',
+        query: `SELECT ?shrine ?deity WHERE {
+  AT_TIME(99999) {
+    ?shrine <http://example.org/enshrines> ?deity .
+  }
+}`
+      },
+    ]
+  },
+  {
+    group: '9. SPARQL Update',
+    queries: [
+      {
+        title: 'INSERT new triple',
+        query: `INSERT DATA {
+  <http://example.org/Nikko> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Shrine> .
+  <http://example.org/Nikko> <http://example.org/name> "Nikko Toshogu" .
+  <http://example.org/Nikko> <http://example.org/locatedIn> <http://example.org/Tochigi> .
+}`
+      },
+      {
+        title: 'Then query for it',
+        query: `PREFIX ex: <http://example.org/>
+SELECT ?name ?loc WHERE {
+  ex:Nikko ex:name ?name .
+  ex:Nikko ex:locatedIn ?loc
+}`
+      },
+    ]
+  },
+];
+
+// ── Build sidebar ──
+function buildSidebar() {
+  const list = document.getElementById('examples-list');
+  EXAMPLES.forEach(group => {
+    const div = document.createElement('div');
+    div.className = 'example-group';
+    div.innerHTML = `<div class="example-group-title">${group.group}</div>`;
+    group.queries.forEach(ex => {
+      const btn = document.createElement('button');
+      btn.className = 'example-btn';
+      btn.textContent = ex.title;
+      btn.onclick = () => loadExample(ex.query, btn);
+      div.appendChild(btn);
+    });
+    list.appendChild(div);
+  });
+}
+
+let activeBtn = null;
+function loadExample(query, btn) {
+  document.getElementById('query-editor').value = query;
+  if (activeBtn) activeBtn.classList.remove('active');
+  btn.classList.add('active');
+  activeBtn = btn;
+  runQuery();
+}
+
+// ── Run query ──
+async function runQuery() {
+  const editor = document.getElementById('query-editor');
+  const query = editor.value.trim();
+  if (!query) return;
+
+  const btn = document.getElementById('run-btn');
+  const info = document.getElementById('run-info');
+  btn.disabled = true;
+  info.textContent = 'Running...';
+
+  const start = performance.now();
+  try {
+    const resp = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sparql-query' },
+      body: query,
+    });
+
+    const elapsed = (performance.now() - start).toFixed(1);
+    document.getElementById('timing').textContent = `${elapsed}ms`;
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      showError(text);
+      info.textContent = `Error (${resp.status})`;
+      updateStatus(false);
+      return;
+    }
+
+    const data = await resp.json();
+    renderResults(data);
+    updateStatus(true);
+    const count = data.results?.bindings?.length ?? 0;
+    info.textContent = `${count} row${count !== 1 ? 's' : ''} in ${elapsed}ms`;
+  } catch (e) {
+    showError(`Connection failed: ${e.message}\n\nIs the server running on localhost:3030?`);
+    info.textContent = 'Connection failed';
+    updateStatus(false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function updateStatus(ok) {
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className = 'status-dot' + (ok ? '' : ' error');
+  text.textContent = ok ? 'Connected' : 'Disconnected';
+}
+
+// ── Render ──
+function renderResults(data) {
+  const container = document.getElementById('results-container');
+  const vars = data.head?.vars || [];
+  const bindings = data.results?.bindings || [];
+
+  document.getElementById('row-count').textContent =
+    `${bindings.length} row${bindings.length !== 1 ? 's' : ''}`;
+
+  if (vars.length === 0 && bindings.length > 0) {
+    // UPDATE result
+    container.innerHTML = `<div class="results-message" style="color:var(--green)">
+      Query executed successfully.
+    </div>`;
+    return;
+  }
+
+  if (bindings.length === 0) {
+    container.innerHTML = `<div class="results-message">
+      0 rows returned.<br>
+      <span class="hint">The query executed successfully but matched nothing.</span>
+    </div>`;
+    return;
+  }
+
+  // Check if any row has scores
+  const hasScores = bindings.some(b => b._scores);
+
+  let html = '<table class="results-table"><thead><tr>';
+  vars.forEach(v => { html += `<th>?${v}</th>`; });
+  if (hasScores) html += '<th>score</th>';
+  html += '</tr></thead><tbody>';
+
+  bindings.forEach(row => {
+    html += '<tr>';
+    vars.forEach(v => {
+      const cell = row[v];
+      if (!cell) {
+        html += '<td><span class="val-unbound">unbound</span></td>';
+      } else {
+        html += `<td>${formatValue(cell)}</td>`;
+      }
+    });
+    if (hasScores) {
+      if (row._scores) {
+        const scores = Object.values(row._scores).map(s => s.toFixed(4)).join(', ');
+        html += `<td><span class="val-score">${scores}</span></td>`;
+      } else {
+        html += '<td></td>';
+      }
+    }
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function formatValue(cell) {
+  const val = cell.value || '';
+  if (cell.type === 'uri') {
+    // Shorten known prefixes
+    let display = val;
+    if (val.startsWith(PREFIX)) {
+      display = 'ex:' + val.substring(PREFIX.length);
+    } else if (val.startsWith('http://www.w3.org/1999/02/22-rdf-syntax-ns#')) {
+      display = 'rdf:' + val.substring('http://www.w3.org/1999/02/22-rdf-syntax-ns#'.length);
+    } else if (val.startsWith('http://www.w3.org/2001/XMLSchema#')) {
+      display = 'xsd:' + val.substring('http://www.w3.org/2001/XMLSchema#'.length);
+    }
+    return `<span class="val-uri" title="${val}">${escapeHtml(display)}</span>`;
+  }
+  if (cell.datatype && cell.datatype.includes('integer')) {
+    return `<span class="val-number">${escapeHtml(val)}</span>`;
+  }
+  return `<span class="val-literal">"${escapeHtml(val)}"</span>`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showError(text) {
+  const container = document.getElementById('results-container');
+  container.innerHTML = `<div class="results-message error">${escapeHtml(text)}</div>`;
+  document.getElementById('row-count').textContent = 'Error';
+}
+
+function toggleSchema() {
+  document.getElementById('schema-panel').classList.toggle('open');
+}
+
+// ── Keyboard shortcut ──
+document.getElementById('query-editor').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runQuery();
+  }
+  // Tab inserts spaces
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart;
+    ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(ta.selectionEnd);
+    ta.selectionStart = ta.selectionEnd = start + 2;
+  }
+});
+
+// ── Studio / Browser launch ──
+function launchStudio() {
+  const msg = `To launch Sutra Studio:
+
+1. If you have it installed, run:
+     sutra studio --endpoint http://localhost:3030
+
+2. Or via the CLI MCP server:
+     sutra mcp
+   Then use the launch_studio tool.
+
+3. Or download from GitHub Releases:
+     github.com/EmmaLeonhart/SutraDB/releases
+
+Studio connects to this playground at:
+  http://localhost:3030/sparql`;
+  alert(msg);
+}
+
+function openBrowser() {
+  // Try opening the graph browser tool
+  window.open('/graph', '_blank');
+}
+
+// ── Fetch triple count on load ──
+async function fetchInfo() {
+  try {
+    const resp = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sparql-query' },
+      body: 'SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }',
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const count = data.results?.bindings?.[0]?.count?.value;
+      if (count) document.getElementById('triple-count').textContent = `\u00B7 ${count} triples`;
+      updateStatus(true);
+    }
+  } catch (e) {
+    updateStatus(false);
+  }
+}
+
+// ── Init ──
+buildSidebar();
+fetchInfo();
+</script>
+</body>
+</html>
