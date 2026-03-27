@@ -251,13 +251,19 @@ The r = 0.78 correlation between consistency and prediction accuracy means the m
 
 Our results, combined with collision analysis, reveal that embedding spaces are not uniformly structured. We identify three regimes:
 
-- **Oversymbolic regions** — areas where the model lacks sufficient resolution to distinguish semantically distinct concepts. Our collision analysis finds 164,084 cross-entity embedding pairs with cosine similarity ≥ 0.95. Of these, 147,687 (90%) are genuine semantic collisions: different text mapped to near-identical vectors. The collisions are overwhelmingly concentrated among romanized Japanese terms (e.g., "Jinmyōchō" ≈ "kugyō" ≈ "Shōtai" at cosine ~1.0) — concepts that mxbai-embed-large, trained primarily on English text, cannot meaningfully differentiate. These are regions where the embedding space is *too dense*: distinct symbols occupy the same coordinates.
+- **Oversymbolic regions** — areas where the model compresses too many semantically *rich* concepts into overlapping coordinates. In an oversymbolic region, distinct and meaningful entities share embedding space because the model's representational capacity is saturated. This regime produces collisions between concepts the model *has learned* but cannot separate at the required granularity.
 
 - **Isosymbolic regions** — the narrow manifold where vector arithmetic reliably preserves logical structure. Our 86 discovered operations live here. The functional predicates (flag, coat of arms, demographics) produce consistent displacements precisely because the entities involved are well-represented and well-separated in the embedding space. The isosymbolic regime is where our method works.
 
-- **Undersymbolic regions** — sparse areas with insufficient representational mass to anchor specific concepts. We observe this indirectly through the failure of predicates like instance-of: the displacement vectors are not just inconsistent but point in essentially random directions, suggesting the relevant entities are not meaningfully positioned relative to each other.
+- **Undersymbolic regions** — sparse areas with insufficient representational mass to anchor specific concepts. These regions lack the training signal needed to differentiate their contents — distinct inputs receive near-identical embeddings not because the model chose to group them, but because it never learned to distinguish them.
 
-This three-regime structure has practical implications. It suggests that vector arithmetic methods — whether our trajectory displacement analysis or TransE-style learned translations — will always be bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates.
+**Empirical evidence: the Jinmyōchō collapse.** Our collision analysis finds 164,084 cross-entity embedding pairs with cosine similarity ≥ 0.95. Of these, 147,687 (90%) are genuine semantic collisions: different text mapped to near-identical vectors. The collisions are dominated by romanized non-Latin-script terms — the single text "Hokkaidō" collides with 1,428 other entities, while "Jinmyōchō" collides with 504 unique texts spanning romanized Japanese (kugyō, Shōtai), Arabic (Djazaïr, Filasṭīn), Irish (Éire), Brazilian indigenous languages (Aikanã, Amanayé), and IPA characters.
+
+Crucially, this is an **undersymbolic** phenomenon, not an oversymbolic one. Tokenizer analysis reveals the mechanism: mxbai-embed-large's WordPiece tokenizer strips diacritical marks during normalization — "Hokkaidō" tokenizes to `['hokkaido']`, "Tōkyō" to `['tokyo']`, "România" to `['romania']`. Terms whose semantic content is carried primarily by diacritics lose that content at tokenization, collapsing into shared or similar subword sequences. The embedding space downstream of the tokenizer has no information to work with — it maps these inputs to a degenerate neighborhood because it was *never given* the distinguishing features.
+
+This resembles the glitch token phenomenon documented in LLM research (Li et al., 2024), where low-frequency tokens receive poorly trained embeddings. Our finding extends this to sentence-embedding models: it is not individual tokens but entire *classes* of input (romanized non-Latin scripts, diacritical text, IPA notation) that collapse into an undersymbolic manifold. The collision count — 147,687 pairs — quantifies the scale of this failure mode in a production embedding model.
+
+This three-regime structure has practical implications. It suggests that vector arithmetic methods — whether our trajectory displacement analysis or TransE-style learned translations — will always be bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates. The undersymbolic collapse we document here is particularly insidious because it is invisible to standard evaluation: the model appears to embed these inputs normally, but the resulting vectors carry no discriminative information.
 
 ### 5.4 Implications for Neurosymbolic AI
 
@@ -296,6 +302,8 @@ Bordes, A., Usunier, N., Garcia-Durán, A., Weston, J., & Yakhnenko, O. (2013). 
 Conneau, A., Kruszewski, G., Lample, G., Barrault, L., & Baroni, M. (2018). What you can cram into a single $&!#* vector: Probing sentence embeddings for linguistic properties. *ACL*.
 
 Hewitt, J., & Manning, C. D. (2019). A structural probe for finding syntax in word representations. *NAACL*.
+
+Li, Y., Liu, Y., Deng, G., Zhang, Y., & Song, W. (2024). Glitch Tokens in Large Language Models: Categorization Taxonomy and Effective Detection. *Proceedings of the ACM on Software Engineering*, 1(FSE). https://doi.org/10.1145/3660799
 
 Linzen, T. (2016). Issues in evaluating semantic spaces using word analogies. *RepEval Workshop*.
 
