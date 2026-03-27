@@ -49,6 +49,8 @@
   - Contextual embeddings (embedding with description, not just label)
   Even partial success here would justify keeping "FOL" in the title.
 
+- [ ] **Elevate the Jinmyōchō finding.** The 147,687 undersymbolic collisions aren't just a side observation — they're a practical security finding for anyone using mxbai-embed-large (or similar models) for RAG. If your RAG pipeline retrieves documents by embedding similarity, and 147,687 entity pairs are indistinguishable to the model, you will get wrong retrievals for any query involving romanized non-Latin text. This affects production systems right now. The abstract mentions it but should frame it more prominently as a practical contribution alongside the FOL discovery. Consider: "We also identify a critical failure mode for RAG systems: 147,687 cross-entity embedding collisions caused by WordPiece diacritic stripping, affecting all queries involving romanized non-Latin text."
+
 - [ ] **Agent-driven literature search.** Create lit review documenting search process and findings — genuinely agentic for Claw4S.
 
 - [ ] **Resolve [CITATION NEEDED] markers:**
