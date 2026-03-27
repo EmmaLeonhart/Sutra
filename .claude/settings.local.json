@@ -43,7 +43,8 @@
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import yfinance; print\\('OK'\\)\")",
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_bubble_data.py 2>&1)",
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_ai_investment.py 2>&1)",
-      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/structural_comparison.py 2>&1)"
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/structural_comparison.py 2>&1)",
+      "Bash(Asset Manias\" — applies six-feature Kindleberger-Minsky framework to:*)"
     ]
   }
 }
