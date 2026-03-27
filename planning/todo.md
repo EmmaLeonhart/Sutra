@@ -71,6 +71,10 @@ per tested operation (the standard stats threshold for CLT assumptions).
   - Apply Bonferroni/Holm correction if making multiple claims
   This directly matches swarm-safety-lab's statistical discipline.
 
+- [ ] **Derive transformation matrices (not just displacement vectors).** The strategic discussion described finding matrices that transform words between forms (e.g., noun -> verb, subject -> object). Currently we only compute additive displacements (d = embed(object) - embed(subject)). The richer model: embed("Hank is running") = embed("Hank") + M * embed("running") where M is a learned transformation matrix. Compute M via least squares across multiple examples, test invertibility.
+
+- [ ] **Cross-lingual experiments.** Test whether operations discovered in English embedding spaces also appear in other languages. Especially interesting: languages with grammatical case systems (Finnish, Japanese, Latin) — do they produce different transformation matrices for the same semantic relationships? The Wikidata labels exist in many languages; the pipeline can be re-run with different language labels.
+
 ### Post-Deadline / Future Work
 - [ ] Monthly property scanner (GitHub Actions) for keeping Wikidata properties current
 - [ ] Systematic probing methodology for probe.py (5 modes exist, no systematic framework)

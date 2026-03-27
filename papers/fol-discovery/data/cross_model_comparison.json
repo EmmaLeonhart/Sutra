@@ -1,0 +1,343 @@
+{
+  "models_compared": [
+    "mxbai-embed-large",
+    "nomic-embed-text",
+    "all-minilm"
+  ],
+  "model_details": {
+    "mxbai-embed-large": {
+      "dim": 1024,
+      "label": "mxbai-embed-large (1024d)"
+    },
+    "nomic-embed-text": {
+      "dim": 768,
+      "label": "nomic-embed-text (768d)"
+    },
+    "all-minilm": {
+      "dim": 384,
+      "label": "all-minilm (384d)"
+    }
+  },
+  "universal_operations": [
+    {
+      "predicate": "P9241",
+      "label": "demographics of topic",
+      "avg_alignment": 0.9252,
+      "per_model": {
+        "mxbai-embed-large": 0.899,
+        "nomic-embed-text": 0.9699,
+        "all-minilm": 0.9068
+      }
+    },
+    {
+      "predicate": "P2596",
+      "label": "culture",
+      "avg_alignment": 0.9235,
+      "per_model": {
+        "mxbai-embed-large": 0.8959,
+        "nomic-embed-text": 0.9812,
+        "all-minilm": 0.8935
+      }
+    },
+    {
+      "predicate": "P1740",
+      "label": "category for films shot at this location",
+      "avg_alignment": 0.9117,
+      "per_model": {
+        "mxbai-embed-large": 0.8618,
+        "nomic-embed-text": 0.985,
+        "all-minilm": 0.8881
+      }
+    },
+    {
+      "predicate": "P5125",
+      "label": "Wikimedia outline",
+      "avg_alignment": 0.9113,
+      "per_model": {
+        "mxbai-embed-large": 0.8875,
+        "nomic-embed-text": 0.9776,
+        "all-minilm": 0.8689
+      }
+    },
+    {
+      "predicate": "P1791",
+      "label": "category for people buried here",
+      "avg_alignment": 0.8979,
+      "per_model": {
+        "mxbai-embed-large": 0.8574,
+        "nomic-embed-text": 0.9368,
+        "all-minilm": 0.8996
+      }
+    },
+    {
+      "predicate": "P8744",
+      "label": "economy of topic",
+      "avg_alignment": 0.8957,
+      "per_model": {
+        "mxbai-embed-large": 0.8701,
+        "nomic-embed-text": 0.9205,
+        "all-minilm": 0.8964
+      }
+    },
+    {
+      "predicate": "P1923",
+      "label": "participating team",
+      "avg_alignment": 0.8892,
+      "per_model": {
+        "mxbai-embed-large": 0.831,
+        "nomic-embed-text": 0.9871,
+        "all-minilm": 0.8495
+      }
+    },
+    {
+      "predicate": "P163",
+      "label": "flag",
+      "avg_alignment": 0.8831,
+      "per_model": {
+        "mxbai-embed-large": 0.8553,
+        "nomic-embed-text": 0.9059,
+        "all-minilm": 0.8879
+      }
+    },
+    {
+      "predicate": "P7867",
+      "label": "category for maps or plans",
+      "avg_alignment": 0.8818,
+      "per_model": {
+        "mxbai-embed-large": 0.8779,
+        "nomic-embed-text": 0.8727,
+        "all-minilm": 0.8947
+      }
+    },
+    {
+      "predicate": "P2633",
+      "label": "geography of topic",
+      "avg_alignment": 0.8767,
+      "per_model": {
+        "mxbai-embed-large": 0.9101,
+        "nomic-embed-text": 0.8475,
+        "all-minilm": 0.8725
+      }
+    },
+    {
+      "predicate": "P1465",
+      "label": "category for people who died here",
+      "avg_alignment": 0.8746,
+      "per_model": {
+        "mxbai-embed-large": 0.8567,
+        "nomic-embed-text": 0.8792,
+        "all-minilm": 0.8878
+      }
+    },
+    {
+      "predicate": "P8989",
+      "label": "category for the view of the item",
+      "avg_alignment": 0.8531,
+      "per_model": {
+        "mxbai-embed-large": 0.7699,
+        "nomic-embed-text": 0.8756,
+        "all-minilm": 0.9137
+      }
+    },
+    {
+      "predicate": "P1464",
+      "label": "category for people born here",
+      "avg_alignment": 0.8374,
+      "per_model": {
+        "mxbai-embed-large": 0.8142,
+        "nomic-embed-text": 0.8427,
+        "all-minilm": 0.8554
+      }
+    },
+    {
+      "predicate": "P209",
+      "label": "highest judicial authority",
+      "avg_alignment": 0.8248,
+      "per_model": {
+        "mxbai-embed-large": 0.7317,
+        "nomic-embed-text": 0.8866,
+        "all-minilm": 0.8563
+      }
+    },
+    {
+      "predicate": "P5913",
+      "label": "has paradigm class",
+      "avg_alignment": 0.8178,
+      "per_model": {
+        "mxbai-embed-large": 0.7638,
+        "nomic-embed-text": 0.8386,
+        "all-minilm": 0.8511
+      }
+    },
+    {
+      "predicate": "P5110",
+      "label": "has grammatical person",
+      "avg_alignment": 0.8028,
+      "per_model": {
+        "mxbai-embed-large": 0.7446,
+        "nomic-embed-text": 0.9109,
+        "all-minilm": 0.7529
+      }
+    },
+    {
+      "predicate": "P1304",
+      "label": "central bank",
+      "avg_alignment": 0.793,
+      "per_model": {
+        "mxbai-embed-large": 0.7943,
+        "nomic-embed-text": 0.7728,
+        "all-minilm": 0.8117
+      }
+    },
+    {
+      "predicate": "P1906",
+      "label": "office held by head of state",
+      "avg_alignment": 0.7898,
+      "per_model": {
+        "mxbai-embed-large": 0.7618,
+        "nomic-embed-text": 0.8445,
+        "all-minilm": 0.763
+      }
+    },
+    {
+      "predicate": "P2587",
+      "label": "has phoneme",
+      "avg_alignment": 0.7865,
+      "per_model": {
+        "mxbai-embed-large": 0.7356,
+        "nomic-embed-text": 0.7947,
+        "all-minilm": 0.8292
+      }
+    },
+    {
+      "predicate": "P2184",
+      "label": "history of topic",
+      "avg_alignment": 0.7853,
+      "per_model": {
+        "mxbai-embed-large": 0.7748,
+        "nomic-embed-text": 0.8548,
+        "all-minilm": 0.7263
+      }
+    },
+    {
+      "predicate": "P1792",
+      "label": "category of associated people",
+      "avg_alignment": 0.7811,
+      "per_model": {
+        "mxbai-embed-large": 0.7624,
+        "nomic-embed-text": 0.7372,
+        "all-minilm": 0.8436
+      }
+    },
+    {
+      "predicate": "P237",
+      "label": "coat of arms",
+      "avg_alignment": 0.7775,
+      "per_model": {
+        "mxbai-embed-large": 0.7981,
+        "nomic-embed-text": 0.7605,
+        "all-minilm": 0.774
+      }
+    },
+    {
+      "predicate": "P21",
+      "label": "sex or gender",
+      "avg_alignment": 0.7669,
+      "per_model": {
+        "mxbai-embed-large": 0.6738,
+        "nomic-embed-text": 0.8761,
+        "all-minilm": 0.7507
+      }
+    },
+    {
+      "predicate": "P97",
+      "label": "noble title",
+      "avg_alignment": 0.7621,
+      "per_model": {
+        "mxbai-embed-large": 0.6563,
+        "nomic-embed-text": 0.927,
+        "all-minilm": 0.703
+      }
+    },
+    {
+      "predicate": "P7938",
+      "label": "associated electoral district",
+      "avg_alignment": 0.7542,
+      "per_model": {
+        "mxbai-embed-large": 0.6592,
+        "nomic-embed-text": 0.8021,
+        "all-minilm": 0.8013
+      }
+    },
+    {
+      "predicate": "P1313",
+      "label": "office held by head of government",
+      "avg_alignment": 0.7535,
+      "per_model": {
+        "mxbai-embed-large": 0.7013,
+        "nomic-embed-text": 0.7691,
+        "all-minilm": 0.7901
+      }
+    },
+    {
+      "predicate": "P1622",
+      "label": "driving side",
+      "avg_alignment": 0.7479,
+      "per_model": {
+        "mxbai-embed-large": 0.6508,
+        "nomic-embed-text": 0.8903,
+        "all-minilm": 0.7026
+      }
+    },
+    {
+      "predicate": "P2989",
+      "label": "has grammatical case",
+      "avg_alignment": 0.7387,
+      "per_model": {
+        "mxbai-embed-large": 0.6982,
+        "nomic-embed-text": 0.8424,
+        "all-minilm": 0.6754
+      }
+    },
+    {
+      "predicate": "P3161",
+      "label": "has grammatical mood",
+      "avg_alignment": 0.7097,
+      "per_model": {
+        "mxbai-embed-large": 0.6778,
+        "nomic-embed-text": 0.7928,
+        "all-minilm": 0.6585
+      }
+    },
+    {
+      "predicate": "P275",
+      "label": "copyright license",
+      "avg_alignment": 0.7081,
+      "per_model": {
+        "mxbai-embed-large": 0.6899,
+        "nomic-embed-text": 0.7577,
+        "all-minilm": 0.6768
+      }
+    }
+  ],
+  "overlap_counts": {
+    "found_in_all": 30,
+    "found_in_some": 15,
+    "found_in_one": 30,
+    "total_unique": 75
+  },
+  "per_model_summary": {
+    "mxbai-embed-large": {
+      "total_discovered": 50,
+      "strong": 32
+    },
+    "nomic-embed-text": {
+      "total_discovered": 50,
+      "strong": 50
+    },
+    "all-minilm": {
+      "total_discovered": 50,
+      "strong": 41
+    }
+  }
+}
