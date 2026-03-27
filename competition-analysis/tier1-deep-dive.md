@@ -90,9 +90,49 @@ Detailed analysis of the strongest CS category competitors and how to position a
 
 ---
 
-## 4. resistome-profiler (Samarth Patankar) — 5 papers
+## 4. resistome-profiler (Samarth Patankar) — 4 CS papers + bioinformatics
 
-Transformer efficiency optimizations. Not analyzed in deep dive because these are incremental ML engineering papers (spectral gating, entropy pruning, curriculum synthetic data) without the novelty or methodological ambition of our work. Solid applied ML but a different competitive lane entirely.
+### Flagship: "Spectral Gating: Frequency-Domain Adaptive Sparsity for Sub-Quadratic Transformer Attention"
+
+**What they did:** FFT-decomposes Q/K/V matrices into frequency space, applies learned gating to select informative frequencies, computes attention only on compressed top-k frequencies. Claims O(n log n + k²) complexity.
+
+**Results (real benchmarks):**
+- 5.16x faster than standard attention at N=2048
+- 29x memory reduction at N=2048 (524 MB → 4.5 MB)
+- 235.7x memory reduction at N=4096
+- 3.2% perplexity improvement over standard attention at optimal compression
+- 8 experiments with ablation studies, scaling laws, spectral energy analysis
+
+**Strengths:**
+- Most technically ambitious Tier 1 paper. Novel idea (frequency-domain attention) with real implementation.
+- Comprehensive experiments: 8 experiments with ablations, scaling analysis, spectral characterization.
+- Actual SKILL.md provided with reproduction steps and expected outputs.
+- Strong quantitative claims backed by numbers (not just "improves performance").
+
+**Weaknesses we can exploit:**
+- **Small scale only.** All experiments use d ≤ 256, n ≤ 4096 on toy models. "Modern production models (d=12,288) untested." They acknowledge this but it means the core claim (sub-quadratic attention) is unvalidated at the scales that matter.
+- **"Meaningful but not transformative" by their own admission.** 3.2% perplexity improvement. The efficiency gains (5x, 29x) are dramatic but the accuracy gain is marginal.
+- **No comparison to FlashAttention.** The most relevant modern baseline is completely missing. They compare against vanilla dense, linear, and fixed sparse — but FlashAttention is what people actually use for efficient inference.
+- **Long-range dependency failure.** Their needle-in-haystack test shows all methods (including theirs) collapse to ~5% accuracy at N=256+. The frequency compression doesn't help with the hard problem.
+- **FFT overhead.** They're slower than linear attention (2.8x slower). The crossover point vs sparse only occurs at N≈128. For short sequences their method is actually *worse*.
+- **SKILL.md is "primarily descriptive."** The reproduction framework references a GitHub repo but the skill itself lacks actual executable code — it's conceptual guidance, not runnable automation. Would likely fail the alchemy1729-bot cold-start audit.
+
+### Other papers (brief):
+- **Entropy-Guided Dynamic Layer Pruning**: 3.1x inference speedup via attention entropy. Limited details available but conceptually sound incremental optimization.
+- **Stochastic Gradient Routing for MoE**: Gradient-level load balancing for mixture-of-experts. Training stability improvement.
+- **Curriculum-Aware Synthetic Data**: 19.17% perplexity improvement via difficulty-staged training. Interesting but straightforward curriculum learning.
+
+### Overall assessment:
+
+resistome-profiler is genuinely technical — Patankar clearly has ML engineering skills and the spectral gating idea is novel. But the competitive lane is "transformer efficiency optimization," which is crowded and incremental. The papers optimize *how* models compute, not *what* they compute or *what they know*.
+
+**Our advantage:**
+- We discover something about embedding spaces (what they encode); they optimize runtime (how fast they run). Different category of contribution.
+- Our results have implications for neurosymbolic AI, knowledge graphs, and model evaluation. Their results have implications for inference cost.
+- Our SKILL.md runs end-to-end (30 minutes, commodity hardware). Theirs is descriptive and needs a GPU.
+- Our three-zone taxonomy + Jinmyōchō collapse is a finding that connects to multiple fields (glitch tokens, tokenizer design, multilingual NLP). Their spectral gating is a self-contained optimization technique.
+
+**Where they beat us:** Raw experimental volume (8 experiments with ablations vs our single-model analysis). If we add the multi-model or propositional trajectory experiment, we close this gap.
 
 ---
 
