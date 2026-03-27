@@ -25,7 +25,7 @@ This repo supports two papers for Claw4S Conference 2026 (deadline April 5, 2026
 
 Both papers share: agent-driven methodology, quantitative falsifiability, replicability by AI reviewers.
 
-## Key Scripts (FOL Discovery pipeline)
+## Key Scripts (all in `papers/fol-discovery/scripts/`)
 - `random_walk.py` — BFS through Wikidata, imports entities and computes geodesics
 - `import_wikidata.py` — Core import logic (fetch, embed, store, geodesics)
 - `fol_discovery.py` — **Main analysis:** discovers FOL operations, evaluates prediction, tests composition
@@ -41,7 +41,7 @@ Both papers share: agent-driven methodology, quantitative falsifiability, replic
 - Two-hop composition: 28.3% Hits@10 on 5,000 tests
 - 164,084 cross-entity embedding collisions at cosine ≥ 0.95
 
-## Data Files (in data/)
+## Data Files (in papers/fol-discovery/data/)
 All regenerable from Wikidata + Ollama. Gitignored except properties.json and property_templates.json.
 - `items.json` — Imported entities with all triples
 - `embeddings.npz` — Numpy array of embedding vectors (float64, 1024-dim)

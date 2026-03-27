@@ -29,11 +29,14 @@ Thumbs.db
 # SutraDB data
 sutra-data/
 
-# Regenerable database output
-data/items.json
-data/embedding_index.json
-data/triples.nt
-data/geodesics.ttl
-data/walk_state.json
-data/*.npz
-data/*.npy
+# Compatibility symlink (scripts expect data/ at root)
+/data
+
+# Regenerable database output (FOL discovery pipeline)
+papers/fol-discovery/data/items.json
+papers/fol-discovery/data/embedding_index.json
+papers/fol-discovery/data/triples.nt
+papers/fol-discovery/data/geodesics.ttl
+papers/fol-discovery/data/walk_state.json
+papers/fol-discovery/data/*.npz
+papers/fol-discovery/data/*.npy

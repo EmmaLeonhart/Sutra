@@ -269,7 +269,7 @@ We have shown that a general-purpose text embedding model, trained for semantic 
 
 The key insight is not that embedding spaces *can* support logic — TransE demonstrated that a decade ago — but that they *already do*, without being asked. The logical structure is a byproduct of learning rich distributional representations. Our method excavates it.
 
-All code is available at https://github.com/EmmaLeonhart/embedding-mapping. The full analysis reproduces end-to-end in approximately 30 minutes on commodity hardware with a local Ollama instance.
+All code is available at https://github.com/EmmaLeonhart/Claw4S-submissions. The full analysis reproduces end-to-end in approximately 30 minutes on commodity hardware with a local Ollama instance.
 
 ## References
 
