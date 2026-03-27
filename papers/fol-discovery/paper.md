@@ -44,6 +44,12 @@ Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktä
 
 Probing classifiers (Conneau et al., 2018; Hewitt & Manning, 2019) test what linguistic properties are encoded in learned representations. Our method is analogous but operates at the relational/logical level rather than the syntactic level, and uses vector arithmetic rather than learned classifiers — making our results directly interpretable as geometric properties of the space.
 
+### 2.5 Vector Symbolic Architectures
+
+Vector Symbolic Architectures (VSAs) perform algebraic operations — binding, bundling, permutation — on high-dimensional vectors to represent symbolic structures [CITATION NEEDED — Kanerva, 2009; Plate, 2003]. VSAs are primarily applied in cognitive science and neuromorphic hardware, constructing hypervector representations from scratch. Recent work has begun probing LLM internal representations using VSA-inspired methods [CITATION NEEDED — "Hyperdimensional Probe"]. Our approach differs in a key respect: VSAs *construct* symbolic algebras over vectors, while we *discover* what algebraic structure already exists in embedding spaces not built for it. We do not impose a binding operation — we test whether the space's native geometry already functions as one.
+
+Separately, work on embedding space topology has identified stratified sub-manifolds of different dimensions within learned representations [CITATION NEEDED — stratified manifold work]. This independently validates the intuition behind our three-regime classification (Section 5.3): embedding spaces are not uniformly structured but contain regions of varying representational density and reliability.
+
 ## 3. Method
 
 ### 3.1 Problem Formulation
@@ -198,7 +204,7 @@ Selected successful compositions (Rank ≤ 5):
 | Tadahira →[citizenship]→ Japan →[head of state]→ Emperor of Japan | 4 |
 | Tadahira →[sex or gender]→ male →[main category]→ Category:Male | 5 |
 
-**Table 6.** Successful two-hop compositions.
+**Table 6.** Successful two-hop compositions. Note: all examples involve Fujiwara no Tadahira because our dataset is seeded from Engishiki (Q1342448), a Japanese historical text. Tadahira is one of the most densely connected entities in this neighborhood, appearing in many two-hop paths. The composition mechanism itself is general — the examples reflect dataset composition, not a limitation of the method.
 
 ### 4.4 Failure Analysis
 
@@ -227,7 +233,7 @@ Three failure modes emerge:
 
 3. **Semantically overloaded predicates** (instance-of, subclass-of, part-of): "Tokyo is an instance of city" and "7 is an instance of prime number" produce wildly different displacement vectors because the predicate covers too many semantic domains.
 
-**Instance-of (P31) at 0.244 is particularly notable.** It is the most important predicate in Wikidata (835 triples in our dataset) and a cornerstone of first-order logic, yet it does not function as a vector operation. This confirms the finding from prior embedding geometry work (Leonhart, 2026) that embedding spaces systematically under-represent relational structure: the space encodes *entities* well but *predicates* poorly.
+**Instance-of (P31) at 0.244 is particularly notable.** It is the most important predicate in Wikidata (835 triples in our dataset) and a cornerstone of first-order logic, yet it does not function as a vector operation. This suggests that embedding spaces systematically under-represent relational structure: the space encodes *entities* well but *predicates* poorly.
 
 ## 5. Discussion
 
@@ -241,7 +247,19 @@ This finding has implications for knowledge graph completion: vector arithmetic 
 
 The r = 0.78 correlation between consistency and prediction accuracy means the method is **self-calibrating**: you can determine which operations will work without needing ground-truth evaluation data. This is practically important because it means the method can be applied to embedding spaces where no labeled evaluation set exists — the discovery process produces its own quality estimate.
 
-### 5.3 Implications for Neurosymbolic AI
+### 5.3 Three Regimes of Embedding Space
+
+Our results, combined with collision analysis, reveal that embedding spaces are not uniformly structured. We identify three regimes:
+
+- **Oversymbolic regions** — areas where the model lacks sufficient resolution to distinguish semantically distinct concepts. Our collision analysis finds 164,084 cross-entity embedding pairs with cosine similarity ≥ 0.95. Of these, 147,687 (90%) are genuine semantic collisions: different text mapped to near-identical vectors. The collisions are overwhelmingly concentrated among romanized Japanese terms (e.g., "Jinmyōchō" ≈ "kugyō" ≈ "Shōtai" at cosine ~1.0) — concepts that mxbai-embed-large, trained primarily on English text, cannot meaningfully differentiate. These are regions where the embedding space is *too dense*: distinct symbols occupy the same coordinates.
+
+- **Isosymbolic regions** — the narrow manifold where vector arithmetic reliably preserves logical structure. Our 86 discovered operations live here. The functional predicates (flag, coat of arms, demographics) produce consistent displacements precisely because the entities involved are well-represented and well-separated in the embedding space. The isosymbolic regime is where our method works.
+
+- **Undersymbolic regions** — sparse areas with insufficient representational mass to anchor specific concepts. We observe this indirectly through the failure of predicates like instance-of: the displacement vectors are not just inconsistent but point in essentially random directions, suggesting the relevant entities are not meaningfully positioned relative to each other.
+
+This three-regime structure has practical implications. It suggests that vector arithmetic methods — whether our trajectory displacement analysis or TransE-style learned translations — will always be bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates.
+
+### 5.4 Implications for Neurosymbolic AI
 
 Our results suggest a recategorization of the neurosymbolic landscape:
 
@@ -251,9 +269,9 @@ Our results suggest a recategorization of the neurosymbolic landscape:
 The analytical approach is complementary. It tells you what a given embedding space *can* do logically, without modification. This is useful for:
 - **Model evaluation:** Comparing embedding models by the richness of their latent logical structure
 - **Hybrid architectures:** Using vector arithmetic for operations that work (functional predicates) and falling back to symbolic graph traversal for operations that don't (relational predicates)
-- **Embedding space cartography:** Mapping which regions of a space support reliable vector arithmetic (cf. isosymbolic space; Leonhart, 2026)
+- **Embedding space cartography:** Mapping which regions of a space support reliable vector arithmetic, identifying oversymbolic collapse zones, and diagnosing where a model needs more training data
 
-### 5.4 Limitations
+### 5.5 Limitations
 
 1. **Single embedding model.** We test mxbai-embed-large only. The generality claim (arbitrary embedding spaces) requires testing on multiple models with different architectures and dimensionalities. The infrastructure supports this — only the embedding function needs to change. Future work will evaluate cross-model generalization by applying the same analysis to models of varying size and training methodology, and test whether discovered transformation matrices transfer across embedding spaces — which would establish a stronger form of model-agnostic neuro-symbolic reasoning.
 
@@ -278,8 +296,6 @@ Bordes, A., Usunier, N., Garcia-Durán, A., Weston, J., & Yakhnenko, O. (2013). 
 Conneau, A., Kruszewski, G., Lample, G., Barrault, L., & Baroni, M. (2018). What you can cram into a single $&!#* vector: Probing sentence embeddings for linguistic properties. *ACL*.
 
 Hewitt, J., & Manning, C. D. (2019). A structural probe for finding syntax in word representations. *NAACL*.
-
-Leonhart, I. (2026). Beyond Proximity: Mapping the Topology of Isosymbolic Space. Working draft.
 
 Linzen, T. (2016). Issues in evaluating semantic spaces using word analogies. *RepEval Workshop*.
 
