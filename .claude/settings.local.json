@@ -47,7 +47,8 @@
       "Bash(Asset Manias\" — applies six-feature Kindleberger-Minsky framework to:*)",
       "Bash(FRED_API_KEY=2a3eb2428a2af5fe1a3a2e59245b2c98 /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_bubble_data.py 2>&1)",
       "Bash(FRED_API_KEY=2a3eb2428a2af5fe1a3a2e59245b2c98 /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_ai_investment.py)",
-      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/structural_comparison.py)"
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/structural_comparison.py)",
+      "Bash(ls:*)"
     ]
   }
 }
