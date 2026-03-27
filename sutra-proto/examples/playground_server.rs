@@ -110,13 +110,17 @@ fn build_demo() -> (TripleStore, TermDictionary, VectorRegistry) {
 
     // ── Types ──
     for &s in &[ise, izumo, fushimi, meiji, kasuga] {
-        store.insert(Triple::new(s, rdf_type, shrine_class)).unwrap();
+        store
+            .insert(Triple::new(s, rdf_type, shrine_class))
+            .unwrap();
     }
     for &d in &[amaterasu, okuninushi, inari, takemikazuchi] {
         store.insert(Triple::new(d, rdf_type, deity_class)).unwrap();
     }
     for &p in &[tanaka, suzuki] {
-        store.insert(Triple::new(p, rdf_type, person_class)).unwrap();
+        store
+            .insert(Triple::new(p, rdf_type, person_class))
+            .unwrap();
     }
     for &m in &[kojiki, nihon_shoki] {
         store.insert(Triple::new(m, rdf_type, myth_class)).unwrap();
@@ -124,76 +128,147 @@ fn build_demo() -> (TripleStore, TermDictionary, VectorRegistry) {
 
     // ── Names ──
     let name_pairs: &[(TermId, TermId)] = &[
-        (ise, n_ise), (izumo, n_izumo), (fushimi, n_fushimi), (meiji, n_meiji),
-        (kasuga, n_kasuga), (amaterasu, n_amaterasu), (okuninushi, n_okuninushi),
-        (inari, n_inari), (takemikazuchi, n_takemikazuchi), (kojiki, n_kojiki),
-        (nihon_shoki, n_nihon), (tanaka, n_tanaka), (suzuki, n_suzuki),
+        (ise, n_ise),
+        (izumo, n_izumo),
+        (fushimi, n_fushimi),
+        (meiji, n_meiji),
+        (kasuga, n_kasuga),
+        (amaterasu, n_amaterasu),
+        (okuninushi, n_okuninushi),
+        (inari, n_inari),
+        (takemikazuchi, n_takemikazuchi),
+        (kojiki, n_kojiki),
+        (nihon_shoki, n_nihon),
+        (tanaka, n_tanaka),
+        (suzuki, n_suzuki),
     ];
     for &(s, o) in name_pairs {
         store.insert(Triple::new(s, name, o)).unwrap();
     }
 
     // ── Alternate names ──
-    store.insert(Triple::new(ise, alt_name, n(&mut dict, "The Grand Shrine"))).unwrap();
-    store.insert(Triple::new(fushimi, alt_name, n(&mut dict, "O-Inari-san"))).unwrap();
+    store
+        .insert(Triple::new(ise, alt_name, n(&mut dict, "The Grand Shrine")))
+        .unwrap();
+    store
+        .insert(Triple::new(fushimi, alt_name, n(&mut dict, "O-Inari-san")))
+        .unwrap();
 
     // ── Founded years ──
     let years: &[(TermId, i64)] = &[
-        (ise, -4), (izumo, 659), (fushimi, 711), (meiji, 1920), (kasuga, 768),
+        (ise, -4),
+        (izumo, 659),
+        (fushimi, 711),
+        (meiji, 1920),
+        (kasuga, 768),
     ];
     for &(s, y) in years {
-        store.insert(Triple::new(s, founded, inline_integer(y).unwrap())).unwrap();
+        store
+            .insert(Triple::new(s, founded, inline_integer(y).unwrap()))
+            .unwrap();
     }
 
     // ── Ranks ──
     for (i, &s) in [ise, izumo, fushimi, meiji, kasuga].iter().enumerate() {
-        store.insert(Triple::new(s, rank, inline_integer(i as i64 + 1).unwrap())).unwrap();
+        store
+            .insert(Triple::new(s, rank, inline_integer(i as i64 + 1).unwrap()))
+            .unwrap();
     }
 
     // ── Locations ──
     let locs: &[(TermId, TermId)] = &[
-        (ise, mie), (izumo, shimane), (fushimi, kyoto), (meiji, tokyo), (kasuga, nara),
+        (ise, mie),
+        (izumo, shimane),
+        (fushimi, kyoto),
+        (meiji, tokyo),
+        (kasuga, nara),
     ];
     for &(s, o) in locs {
         store.insert(Triple::new(s, located_in, o)).unwrap();
     }
 
     // ── Enshrinement ──
-    store.insert(Triple::new(ise, enshrines, amaterasu)).unwrap();
-    store.insert(Triple::new(izumo, enshrines, okuninushi)).unwrap();
-    store.insert(Triple::new(fushimi, enshrines, inari)).unwrap();
-    store.insert(Triple::new(meiji, enshrines, emperor_meiji)).unwrap();
-    store.insert(Triple::new(kasuga, enshrines, takemikazuchi)).unwrap();
-    store.insert(Triple::new(kasuga, enshrines, amaterasu)).unwrap();
+    store
+        .insert(Triple::new(ise, enshrines, amaterasu))
+        .unwrap();
+    store
+        .insert(Triple::new(izumo, enshrines, okuninushi))
+        .unwrap();
+    store
+        .insert(Triple::new(fushimi, enshrines, inari))
+        .unwrap();
+    store
+        .insert(Triple::new(meiji, enshrines, emperor_meiji))
+        .unwrap();
+    store
+        .insert(Triple::new(kasuga, enshrines, takemikazuchi))
+        .unwrap();
+    store
+        .insert(Triple::new(kasuga, enshrines, amaterasu))
+        .unwrap();
 
     // ── Deity domains ──
     store.insert(Triple::new(amaterasu, domain, sun)).unwrap();
-    store.insert(Triple::new(okuninushi, domain, earth)).unwrap();
+    store
+        .insert(Triple::new(okuninushi, domain, earth))
+        .unwrap();
     store.insert(Triple::new(inari, domain, harvest)).unwrap();
-    store.insert(Triple::new(takemikazuchi, domain, thunder)).unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, domain, thunder))
+        .unwrap();
 
     // ── Myths ──
-    store.insert(Triple::new(amaterasu, appears_in, kojiki)).unwrap();
-    store.insert(Triple::new(amaterasu, appears_in, nihon_shoki)).unwrap();
-    store.insert(Triple::new(okuninushi, appears_in, kojiki)).unwrap();
-    store.insert(Triple::new(takemikazuchi, appears_in, kojiki)).unwrap();
-    store.insert(Triple::new(takemikazuchi, appears_in, nihon_shoki)).unwrap();
+    store
+        .insert(Triple::new(amaterasu, appears_in, kojiki))
+        .unwrap();
+    store
+        .insert(Triple::new(amaterasu, appears_in, nihon_shoki))
+        .unwrap();
+    store
+        .insert(Triple::new(okuninushi, appears_in, kojiki))
+        .unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, appears_in, kojiki))
+        .unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, appears_in, nihon_shoki))
+        .unwrap();
 
     // ── People ──
-    store.insert(Triple::new(tanaka, role, chief_priest)).unwrap();
+    store
+        .insert(Triple::new(tanaka, role, chief_priest))
+        .unwrap();
     store.insert(Triple::new(suzuki, role, kannushi)).unwrap();
 
     // ── RDF-star: confidence + provenance on edges ──
     let qt_ise = quoted_triple_id(ise, enshrines, amaterasu);
-    store.insert(Triple::new(qt_ise, confidence, n(&mut dict, "0.99"))).unwrap();
-    store.insert(Triple::new(qt_ise, source, n(&mut dict, "academic_survey_2023"))).unwrap();
+    store
+        .insert(Triple::new(qt_ise, confidence, n(&mut dict, "0.99")))
+        .unwrap();
+    store
+        .insert(Triple::new(
+            qt_ise,
+            source,
+            n(&mut dict, "academic_survey_2023"),
+        ))
+        .unwrap();
 
     let qt_izumo = quoted_triple_id(izumo, enshrines, okuninushi);
-    store.insert(Triple::new(qt_izumo, confidence, n(&mut dict, "0.95"))).unwrap();
-    store.insert(Triple::new(qt_izumo, source, n(&mut dict, "Kojiki_text_analysis"))).unwrap();
+    store
+        .insert(Triple::new(qt_izumo, confidence, n(&mut dict, "0.95")))
+        .unwrap();
+    store
+        .insert(Triple::new(
+            qt_izumo,
+            source,
+            n(&mut dict, "Kojiki_text_analysis"),
+        ))
+        .unwrap();
 
     let qt_kasuga = quoted_triple_id(kasuga, enshrines, amaterasu);
-    store.insert(Triple::new(qt_kasuga, confidence, n(&mut dict, "0.70"))).unwrap();
+    store
+        .insert(Triple::new(qt_kasuga, confidence, n(&mut dict, "0.70")))
+        .unwrap();
 
     // ── Vector embeddings (4D) ──
     vectors
@@ -219,7 +294,9 @@ fn build_demo() -> (TripleStore, TermDictionary, VectorRegistry) {
             dict.resolve(entity).unwrap()
         );
         let vec_id = dict.intern(&label);
-        store.insert(Triple::new(entity, has_embedding, vec_id)).unwrap();
+        store
+            .insert(Triple::new(entity, has_embedding, vec_id))
+            .unwrap();
         vectors.insert(has_embedding, vec.to_vec(), vec_id).unwrap();
     }
 
@@ -232,10 +309,24 @@ fn build_demo() -> (TripleStore, TermDictionary, VectorRegistry) {
     store.insert_temporal(TemporalSignifier::ValidFrom, 1950, suzuki, serves_at, ise);
 
     // Fushimi temporarily in Osaka during Onin War (1467-1499)
-    store.insert(Triple::new(fushimi, located_in, osaka)).unwrap();
-    store.insert_temporal(TemporalSignifier::ValidFrom, 1467, fushimi, located_in, osaka);
+    store
+        .insert(Triple::new(fushimi, located_in, osaka))
+        .unwrap();
+    store.insert_temporal(
+        TemporalSignifier::ValidFrom,
+        1467,
+        fushimi,
+        located_in,
+        osaka,
+    );
     store.insert_temporal(TemporalSignifier::ValidTo, 1499, fushimi, located_in, osaka);
-    store.insert_temporal(TemporalSignifier::ValidFrom, 711, fushimi, located_in, kyoto);
+    store.insert_temporal(
+        TemporalSignifier::ValidFrom,
+        711,
+        fushimi,
+        located_in,
+        kyoto,
+    );
     store.insert_temporal(TemporalSignifier::ValidFrom, 1920, meiji, located_in, tokyo);
 
     // Pre-intern change type literals for TEMPORAL_DIFF

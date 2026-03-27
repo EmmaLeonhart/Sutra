@@ -100,7 +100,11 @@ fn print_result(result: &QueryResult, dict: &TermDictionary, _store: &TripleStor
         .collect::<Vec<_>>()
         .join(" | ");
     println!("  {header}");
-    let sep: String = widths.iter().map(|w| "-".repeat(w + 1)).collect::<Vec<_>>().join("-+-");
+    let sep: String = widths
+        .iter()
+        .map(|w| "-".repeat(w + 1))
+        .collect::<Vec<_>>()
+        .join("-+-");
     println!("  {sep}");
 
     // Rows
@@ -126,7 +130,11 @@ fn print_result(result: &QueryResult, dict: &TermDictionary, _store: &TripleStor
         };
         println!("  {line}{score_info}");
     }
-    println!("  ({} row{})", result.rows.len(), if result.rows.len() == 1 { "" } else { "s" });
+    println!(
+        "  ({} row{})",
+        result.rows.len(),
+        if result.rows.len() == 1 { "" } else { "s" }
+    );
 }
 
 // ── Dataset Builder ──────────────────────────────────────────────────────────
@@ -230,13 +238,17 @@ fn build_demo_db() -> DemoDb {
 
     // ── Type assertions ──
     for &s in &[ise, izumo, fushimi, meiji, kasuga] {
-        store.insert(Triple::new(s, rdf_type, shrine_class)).unwrap();
+        store
+            .insert(Triple::new(s, rdf_type, shrine_class))
+            .unwrap();
     }
     for &d in &[amaterasu, okuninushi, inari, takemikazuchi] {
         store.insert(Triple::new(d, rdf_type, deity_class)).unwrap();
     }
     for &p in &[tanaka, suzuki] {
-        store.insert(Triple::new(p, rdf_type, person_class)).unwrap();
+        store
+            .insert(Triple::new(p, rdf_type, person_class))
+            .unwrap();
     }
     for &m in &[kojiki, nihon_shoki] {
         store.insert(Triple::new(m, rdf_type, myth_class)).unwrap();
@@ -248,77 +260,149 @@ fn build_demo_db() -> DemoDb {
     store.insert(Triple::new(fushimi, name, n_fushimi)).unwrap();
     store.insert(Triple::new(meiji, name, n_meiji)).unwrap();
     store.insert(Triple::new(kasuga, name, n_kasuga)).unwrap();
-    store.insert(Triple::new(amaterasu, name, n_amaterasu)).unwrap();
-    store.insert(Triple::new(okuninushi, name, n_okuninushi)).unwrap();
+    store
+        .insert(Triple::new(amaterasu, name, n_amaterasu))
+        .unwrap();
+    store
+        .insert(Triple::new(okuninushi, name, n_okuninushi))
+        .unwrap();
     store.insert(Triple::new(inari, name, n_inari)).unwrap();
-    store.insert(Triple::new(takemikazuchi, name, n_takemikazuchi)).unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, name, n_takemikazuchi))
+        .unwrap();
     store.insert(Triple::new(kojiki, name, n_kojiki)).unwrap();
-    store.insert(Triple::new(nihon_shoki, name, n_nihon)).unwrap();
+    store
+        .insert(Triple::new(nihon_shoki, name, n_nihon))
+        .unwrap();
     store.insert(Triple::new(tanaka, name, n_tanaka)).unwrap();
     store.insert(Triple::new(suzuki, name, n_suzuki)).unwrap();
 
     // ── Alternate names (only some shrines have them) ──
     store.insert(Triple::new(ise, alt_name, alt_ise)).unwrap();
-    store.insert(Triple::new(fushimi, alt_name, alt_fushimi)).unwrap();
+    store
+        .insert(Triple::new(fushimi, alt_name, alt_fushimi))
+        .unwrap();
 
     // ── Founded years (inline integers) ──
-    store.insert(Triple::new(ise, founded, inline_integer(-4).unwrap())).unwrap(); // 4 BCE
-    store.insert(Triple::new(izumo, founded, inline_integer(659).unwrap())).unwrap();
-    store.insert(Triple::new(fushimi, founded, inline_integer(711).unwrap())).unwrap();
-    store.insert(Triple::new(meiji, founded, inline_integer(1920).unwrap())).unwrap();
-    store.insert(Triple::new(kasuga, founded, inline_integer(768).unwrap())).unwrap();
+    store
+        .insert(Triple::new(ise, founded, inline_integer(-4).unwrap()))
+        .unwrap(); // 4 BCE
+    store
+        .insert(Triple::new(izumo, founded, inline_integer(659).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(fushimi, founded, inline_integer(711).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(meiji, founded, inline_integer(1920).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(kasuga, founded, inline_integer(768).unwrap()))
+        .unwrap();
 
     // ── Ranks (1 = highest) ──
-    store.insert(Triple::new(ise, rank, inline_integer(1).unwrap())).unwrap();
-    store.insert(Triple::new(izumo, rank, inline_integer(2).unwrap())).unwrap();
-    store.insert(Triple::new(fushimi, rank, inline_integer(3).unwrap())).unwrap();
-    store.insert(Triple::new(meiji, rank, inline_integer(4).unwrap())).unwrap();
-    store.insert(Triple::new(kasuga, rank, inline_integer(5).unwrap())).unwrap();
+    store
+        .insert(Triple::new(ise, rank, inline_integer(1).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(izumo, rank, inline_integer(2).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(fushimi, rank, inline_integer(3).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(meiji, rank, inline_integer(4).unwrap()))
+        .unwrap();
+    store
+        .insert(Triple::new(kasuga, rank, inline_integer(5).unwrap()))
+        .unwrap();
 
     // ── Locations ──
     store.insert(Triple::new(ise, located_in, mie)).unwrap();
-    store.insert(Triple::new(izumo, located_in, shimane)).unwrap();
-    store.insert(Triple::new(fushimi, located_in, kyoto)).unwrap();
+    store
+        .insert(Triple::new(izumo, located_in, shimane))
+        .unwrap();
+    store
+        .insert(Triple::new(fushimi, located_in, kyoto))
+        .unwrap();
     store.insert(Triple::new(meiji, located_in, tokyo)).unwrap();
     store.insert(Triple::new(kasuga, located_in, nara)).unwrap();
 
     // ── Enshrinement relationships ──
-    store.insert(Triple::new(ise, enshrines, amaterasu)).unwrap();
-    store.insert(Triple::new(izumo, enshrines, okuninushi)).unwrap();
-    store.insert(Triple::new(fushimi, enshrines, inari)).unwrap();
-    store.insert(Triple::new(meiji, enshrines, emperor_meiji)).unwrap();
-    store.insert(Triple::new(kasuga, enshrines, takemikazuchi)).unwrap();
+    store
+        .insert(Triple::new(ise, enshrines, amaterasu))
+        .unwrap();
+    store
+        .insert(Triple::new(izumo, enshrines, okuninushi))
+        .unwrap();
+    store
+        .insert(Triple::new(fushimi, enshrines, inari))
+        .unwrap();
+    store
+        .insert(Triple::new(meiji, enshrines, emperor_meiji))
+        .unwrap();
+    store
+        .insert(Triple::new(kasuga, enshrines, takemikazuchi))
+        .unwrap();
     // Kasuga also enshrines a second deity for self-join demo
-    store.insert(Triple::new(kasuga, enshrines, amaterasu)).unwrap();
+    store
+        .insert(Triple::new(kasuga, enshrines, amaterasu))
+        .unwrap();
 
     // ── Deity domains ──
     store.insert(Triple::new(amaterasu, domain, sun)).unwrap();
-    store.insert(Triple::new(okuninushi, domain, earth)).unwrap();
+    store
+        .insert(Triple::new(okuninushi, domain, earth))
+        .unwrap();
     store.insert(Triple::new(inari, domain, harvest)).unwrap();
-    store.insert(Triple::new(takemikazuchi, domain, thunder)).unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, domain, thunder))
+        .unwrap();
 
     // ── Deities appear in myths ──
-    store.insert(Triple::new(amaterasu, appears_in, kojiki)).unwrap();
-    store.insert(Triple::new(amaterasu, appears_in, nihon_shoki)).unwrap();
-    store.insert(Triple::new(okuninushi, appears_in, kojiki)).unwrap();
-    store.insert(Triple::new(takemikazuchi, appears_in, kojiki)).unwrap();
-    store.insert(Triple::new(takemikazuchi, appears_in, nihon_shoki)).unwrap();
+    store
+        .insert(Triple::new(amaterasu, appears_in, kojiki))
+        .unwrap();
+    store
+        .insert(Triple::new(amaterasu, appears_in, nihon_shoki))
+        .unwrap();
+    store
+        .insert(Triple::new(okuninushi, appears_in, kojiki))
+        .unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, appears_in, kojiki))
+        .unwrap();
+    store
+        .insert(Triple::new(takemikazuchi, appears_in, nihon_shoki))
+        .unwrap();
 
     // ── People and roles ──
-    store.insert(Triple::new(tanaka, role, chief_priest)).unwrap();
+    store
+        .insert(Triple::new(tanaka, role, chief_priest))
+        .unwrap();
     store.insert(Triple::new(suzuki, role, kannushi)).unwrap();
 
     // ── RDF-star: annotate enshrinement edges with confidence + source ──
     let qt_ise_ama = quoted_triple_id(ise, enshrines, amaterasu);
-    store.insert(Triple::new(qt_ise_ama, confidence, conf_99)).unwrap();
-    store.insert(Triple::new(qt_ise_ama, source, src_academic)).unwrap();
+    store
+        .insert(Triple::new(qt_ise_ama, confidence, conf_99))
+        .unwrap();
+    store
+        .insert(Triple::new(qt_ise_ama, source, src_academic))
+        .unwrap();
 
     let qt_izumo_oku = quoted_triple_id(izumo, enshrines, okuninushi);
-    store.insert(Triple::new(qt_izumo_oku, confidence, conf_95)).unwrap();
-    store.insert(Triple::new(qt_izumo_oku, source, src_kojiki_text)).unwrap();
+    store
+        .insert(Triple::new(qt_izumo_oku, confidence, conf_95))
+        .unwrap();
+    store
+        .insert(Triple::new(qt_izumo_oku, source, src_kojiki_text))
+        .unwrap();
 
     let qt_kasuga_ama = quoted_triple_id(kasuga, enshrines, amaterasu);
-    store.insert(Triple::new(qt_kasuga_ama, confidence, conf_70)).unwrap();
+    store
+        .insert(Triple::new(qt_kasuga_ama, confidence, conf_70))
+        .unwrap();
 
     // ── Vector embeddings (4D for simplicity) ──
     // Shrines about sun/nature cluster together, modern shrine is separate
@@ -333,17 +417,22 @@ fn build_demo_db() -> DemoDb {
         .unwrap();
 
     let vecs: &[(TermId, [f32; 4])] = &[
-        (ise, [0.9, 0.3, 0.1, 0.0]),         // sun-related shrine
-        (izumo, [0.7, 0.5, 0.2, 0.1]),        // earth-related shrine
-        (fushimi, [0.6, 0.4, 0.8, 0.1]),      // harvest shrine
-        (meiji, [0.1, 0.1, 0.1, 0.9]),        // modern shrine (very different)
-        (kasuga, [0.8, 0.4, 0.2, 0.0]),       // thunder+sun shrine
+        (ise, [0.9, 0.3, 0.1, 0.0]),     // sun-related shrine
+        (izumo, [0.7, 0.5, 0.2, 0.1]),   // earth-related shrine
+        (fushimi, [0.6, 0.4, 0.8, 0.1]), // harvest shrine
+        (meiji, [0.1, 0.1, 0.1, 0.9]),   // modern shrine (very different)
+        (kasuga, [0.8, 0.4, 0.2, 0.0]),  // thunder+sun shrine
     ];
 
     for &(entity, ref vec) in vecs {
-        let vec_label = format!("\"vec_{}\"^^<http://sutra.dev/f32vec>", resolve(&dict, entity));
+        let vec_label = format!(
+            "\"vec_{}\"^^<http://sutra.dev/f32vec>",
+            resolve(&dict, entity)
+        );
         let vec_id = dict.intern(&vec_label);
-        store.insert(Triple::new(entity, has_embedding, vec_id)).unwrap();
+        store
+            .insert(Triple::new(entity, has_embedding, vec_id))
+            .unwrap();
         vectors.insert(has_embedding, vec.to_vec(), vec_id).unwrap();
     }
 
@@ -364,12 +453,26 @@ fn build_demo_db() -> DemoDb {
 
     // Fushimi was rebuilt (located in Kyoto from 711, but temporarily in Osaka 1467-1499 during Onin War)
     let osaka = dict.intern("http://example.org/Osaka");
-    store.insert(Triple::new(fushimi, located_in, osaka)).unwrap();
-    store.insert_temporal(TemporalSignifier::ValidFrom, 1467, fushimi, located_in, osaka);
+    store
+        .insert(Triple::new(fushimi, located_in, osaka))
+        .unwrap();
+    store.insert_temporal(
+        TemporalSignifier::ValidFrom,
+        1467,
+        fushimi,
+        located_in,
+        osaka,
+    );
     store.insert_temporal(TemporalSignifier::ValidTo, 1499, fushimi, located_in, osaka);
 
     // The main Fushimi-Kyoto location has temporal bounds too
-    store.insert_temporal(TemporalSignifier::ValidFrom, 711, fushimi, located_in, kyoto);
+    store.insert_temporal(
+        TemporalSignifier::ValidFrom,
+        711,
+        fushimi,
+        located_in,
+        kyoto,
+    );
     // No ValidTo = still there
 
     // Meiji Jingu: exists only from 1920 onward
@@ -380,7 +483,11 @@ fn build_demo_db() -> DemoDb {
     dict.intern("\"removed\"");
     dict.intern("\"unchanged\"");
 
-    DemoDb { store, dict, vectors }
+    DemoDb {
+        store,
+        dict,
+        vectors,
+    }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -406,7 +513,9 @@ fn main() {
 SELECT ?shrine WHERE {
   ?shrine a ex:Shrine
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -414,7 +523,9 @@ SELECT ?shrine WHERE {
         r#"SELECT ?name WHERE {
   <http://example.org/IseJingu> <http://example.org/name> ?name
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -429,7 +540,9 @@ SELECT ?shrine ?deity ?domain WHERE {
   ?shrine ex:enshrines ?deity .
   ?deity ex:domain ?domain
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -441,7 +554,9 @@ SELECT ?shrine ?deity ?myth WHERE {
   ?deity ex:appearsIn ?myth .
   ?myth a ex:Myth
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -452,7 +567,9 @@ SELECT ?shrine1 ?shrine2 ?deity WHERE {
   ?shrine2 ex:enshrines ?deity .
   FILTER(?shrine1 != ?shrine2)
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -468,7 +585,9 @@ SELECT ?shrine ?name ?year WHERE {
   ?shrine ex:foundedYear ?year .
   FILTER(?year < 800)
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -479,7 +598,9 @@ SELECT ?shrine ?name WHERE {
   ?shrine ex:name ?name .
   FILTER(CONTAINS(?name, "Taisha"))
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -492,7 +613,9 @@ SELECT ?shrine ?name ?rank ?year WHERE {
   FILTER(?rank <= 2) .
   FILTER(?year < 1000)
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -507,7 +630,9 @@ SELECT ?shrine ?name ?altName WHERE {
   ?shrine ex:name ?name .
   OPTIONAL { ?shrine ex:alternateName ?altName }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -519,7 +644,9 @@ SELECT ?shrine ?name WHERE {
   OPTIONAL { ?shrine ex:alternateName ?altName } .
   FILTER(!BOUND(?altName))
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -534,7 +661,9 @@ SELECT ?entity ?name WHERE {
   UNION
   { ?entity a ex:Person . ?entity ex:name ?name }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -549,7 +678,9 @@ SELECT ?location (COUNT(?shrine) AS ?count) WHERE {
   ?shrine ex:locatedIn ?location
 }
 GROUP BY ?location"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -561,7 +692,9 @@ SELECT ?deity (COUNT(?myth) AS ?appearances) WHERE {
 }
 GROUP BY ?deity
 ORDER BY DESC(?appearances)"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -578,7 +711,9 @@ SELECT ?shrine ?name ?year WHERE {
 }
 ORDER BY ?year
 LIMIT 3"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -588,7 +723,9 @@ SELECT DISTINCT ?location WHERE {
   ?shrine a ex:Shrine .
   ?shrine ex:locatedIn ?location
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -602,7 +739,9 @@ SELECT ?shrine ?deity ?conf WHERE {
   ?shrine ex:enshrines ?deity .
   << ?shrine ex:enshrines ?deity >> ex:confidence ?conf
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -612,7 +751,9 @@ SELECT ?shrine ?deity ?src WHERE {
   ?shrine ex:enshrines ?deity .
   << ?shrine ex:enshrines ?deity >> ex:source ?src
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -628,7 +769,9 @@ SELECT ?shrine ?name WHERE {
   VECTOR_SIMILAR(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>, 0.70)
 }
 ORDER BY DESC(VECTOR_SCORE(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>))"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -640,7 +783,9 @@ SELECT ?shrine ?name ?deity WHERE {
   ?shrine ex:enshrines ?deity .
   VECTOR_SIMILAR(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>, 0.70)
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -653,7 +798,9 @@ SELECT ?shrine ?name WHERE {
 }
 ORDER BY VECTOR_SCORE(?shrine ex:hasEmbedding "0.9 0.3 0.1 0.0"^^<http://sutra.dev/f32vec>)
 LIMIT 1"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -667,7 +814,9 @@ LIMIT 1"#,
     ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -677,7 +826,9 @@ LIMIT 1"#,
     ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -687,7 +838,9 @@ LIMIT 1"#,
     ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -697,7 +850,9 @@ LIMIT 1"#,
     <http://example.org/FushimiInari> <http://example.org/locatedIn> ?location .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -707,7 +862,9 @@ LIMIT 1"#,
     <http://example.org/FushimiInari> <http://example.org/locatedIn> ?location .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -717,7 +874,9 @@ LIMIT 1"#,
     ?shrine <http://example.org/locatedIn> ?location .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -727,7 +886,9 @@ LIMIT 1"#,
     ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -737,7 +898,9 @@ LIMIT 1"#,
     ?person <http://example.org/servesAt> <http://example.org/IseJingu> .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     run_query(
@@ -747,7 +910,9 @@ LIMIT 1"#,
     ?shrine <http://example.org/enshrines> ?deity .
   }
 }"#,
-        s, d, v,
+        s,
+        d,
+        v,
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -755,7 +920,9 @@ LIMIT 1"#,
     // ─────────────────────────────────────────────────────────────────────────
 
     println!("\n╔══════════════════════════════════════════════════════════════════════╗");
-    println!("║  Demo complete. {} triples in graph.                      ║",
-             s.len());
+    println!(
+        "║  Demo complete. {} triples in graph.                      ║",
+        s.len()
+    );
     println!("╚══════════════════════════════════════════════════════════════════════╝");
 }
