@@ -95,7 +95,7 @@ Expected Output:
 - `papers/fol-discovery/data/embedding_index.json` — Vector index → (qid, text, type) mapping
 - `papers/fol-discovery/data/walk_state.json` — Resumable BFS queue state
 - `papers/fol-discovery/data/triples.nt` — RDF triples (N-Triples format)
-- `papers/fol-discovery/data/geodesics.ttl` — Trajectory objects (Turtle format)
+- `papers/fol-discovery/data/trajectories.ttl` — Trajectory objects (Turtle format)
 
 ## Step 3: Discover First-Order Logic Operations
 

@@ -70,7 +70,20 @@
       "Bash(ollama show:*)",
       "Bash(EMBED_MODEL=nomic-embed-text FOL_DATA_DIR=papers/fol-discovery/data-nomic /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \":*)",
       "Bash(EMBED_MODEL=nomic-embed-text FOL_DATA_DIR=papers/fol-discovery/data-nomic /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500)",
-      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import matplotlib; print\\('matplotlib', matplotlib.__version__\\)\" 2>&1)"
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import matplotlib; print\\('matplotlib', matplotlib.__version__\\)\" 2>&1)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/generate_figures.py 2>&1)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/generate_figures.py 2>&1)",
+      "Bash(EMBED_MODEL=all-minilm FOL_DATA_DIR=papers/fol-discovery/data-minilm /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/statistical_analysis.py 2>&1)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import markdown; print\\(''''markdown'''', markdown.__version__\\)\")",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import weasyprint; print\\(''''weasyprint OK''''\\)\")",
+      "Bash(pandoc --version)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -m pip install pdfkit markdown)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -m pip install fpdf2)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/generate_pdf.py 2>&1)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/generate_pdf.py 2>&1)",
+      "Bash(FOL_DATA_DIR=papers/fol-discovery/data-nomic /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)",
+      "Bash(FOL_DATA_DIR=papers/fol-discovery/data-minilm /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)"
     ]
   }
 }

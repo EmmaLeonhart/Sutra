@@ -487,7 +487,7 @@ def main():
     print(f"Triples: {len(triples_g)}")
 
     traj_g, traj_count = compute_trajectories_for_items(items, index, emb)
-    traj_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
+    traj_g.serialize(str(DATA_DIR / "trajectories.ttl"), format="turtle")
     print(f"Trajectories: {traj_count}")
 
     print(f"\n--- Done ---")

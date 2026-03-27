@@ -3,7 +3,7 @@ Compute trajectories for all triples where both subject and object have embeddin
 Each trajectory is a line between two specific text embeddings (label or alias)
 connected by a triple. Stored as RDF-star: each trajectory is its own object.
 
-Output: data/geodesics.ttl (Turtle with RDF-star)
+Output: data/trajectories.ttl (Turtle with RDF-star)
 """
 
 import json
@@ -111,12 +111,12 @@ def main():
                     traj_count += 1
 
     # Save
-    g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
+    g.serialize(str(DATA_DIR / "trajectories.ttl"), format="turtle")
 
     print(f"Computed {traj_count} trajectories")
     print(f"Skipped {skipped_no_embedding} triples (object has no embedding)")
     print(f"RDF statements: {len(g)}")
-    print(f"Saved to data/geodesics.ttl")
+    print(f"Saved to data/trajectories.ttl")
 
     # Stats
     distances = []

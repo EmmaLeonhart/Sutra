@@ -242,7 +242,7 @@ def main():
     triples_g.serialize(str(DATA_DIR / "triples.nt"), format="nt")
 
     traj_g, traj_count = compute_trajectories_for_items(items, index, emb)
-    traj_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
+    traj_g.serialize(str(DATA_DIR / "trajectories.ttl"), format="turtle")
 
     print(f"\nFinal state:")
     print(f"  Items: {len(items)}")
