@@ -253,23 +253,78 @@ Expected Output:
 
 These failures are **informative**: they reveal what embedding spaces *cannot* represent as geometry.
 
-## Customization
+## Step 6: Cross-Model Generalization (Key Novelty Claim)
 
-### Different Seed Entity
+Description: Re-run the full pipeline on multiple embedding models to demonstrate that discovered operations are model-agnostic — not artifacts of a single model's training.
+
+### Setup: Pull additional embedding models
+
 ```bash
-python papers/fol-discovery/scripts/random_walk.py Q8502 --limit 100   # Start from "mountain"
-python papers/fol-discovery/scripts/random_walk.py Q5 --limit 100      # Start from "human"
+ollama pull nomic-embed-text    # 768-dim, different architecture
+ollama pull all-minilm           # 384-dim, much smaller model
 ```
 
-### Different Embedding Model
-Change `EMBED_MODEL` in `papers/fol-discovery/scripts/import_wikidata.py` to any Ollama-supported model. The entire analysis pipeline is model-agnostic.
+### Run pipeline for each model
 
-### Larger Dataset
+The import script accepts an `--embed-model` flag (or edit `EMBED_MODEL` in `papers/fol-discovery/scripts/import_wikidata.py`). Each model writes to a separate data directory.
+
 ```bash
-python papers/fol-discovery/scripts/random_walk.py --resume --limit 1000  # Import 1000 entities total
+# Model 2: nomic-embed-text (768-dim)
+EMBED_MODEL=nomic-embed-text python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500 --data-dir papers/fol-discovery/data-nomic
+python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-nomic
+
+# Model 3: all-minilm (384-dim)
+EMBED_MODEL=all-minilm python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500 --data-dir papers/fol-discovery/data-minilm
+python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-minilm
 ```
 
-More entities = more predicates tested = more operations discovered. The tradeoff is runtime (primarily Wikidata API + embedding inference).
+### Compare: Cross-Model Operation Overlap
+
+```bash
+python papers/fol-discovery/scripts/compare_models.py
+```
+
+This produces:
+- Which operations are discovered by ALL models (robust, model-agnostic operations)
+- Which are model-specific (artifacts of training data)
+- Correlation between consistency scores across models
+- Comparison table for paper inclusion
+
+**Expected finding:** Functional predicates (flag, coat of arms, demographics) should appear across all models. Symmetric predicates should fail across all models. The overlap set is the core evidence for model-agnostic neuro-symbolic reasoning.
+
+**Runtime:** ~45-60 min per model for import + ~10 min for discovery = ~2-3 hours total for 3 models.
+
+## Step 7: Multi-Seed Robustness Check
+
+Description: Run from different seed entities to show results aren't specific to the Engishiki domain.
+
+```bash
+# Seed 2: Mountain (Q8502) — geography/geology domain
+python papers/fol-discovery/scripts/random_walk.py Q8502 --limit 500 --data-dir papers/fol-discovery/data-mountain
+python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-mountain
+
+# Seed 3: Human (Q5) — biographical/social domain
+python papers/fol-discovery/scripts/random_walk.py Q5 --limit 500 --data-dir papers/fol-discovery/data-human
+python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-human
+```
+
+Operations discovered from all 3 seeds are robust across domains. Operations found from only 1 seed reflect domain-specific structure.
+
+**Runtime:** ~45-60 min per seed for import + ~10 min for discovery.
+
+## Step 8: Statistical Rigor Verification
+
+Description: Verify key claims with proper statistical methods.
+
+```bash
+python papers/fol-discovery/scripts/statistical_analysis.py
+```
+
+This produces:
+- Bootstrap confidence intervals for the alignment-MRR correlation
+- Effect sizes (Cohen's d) for functional vs relational predicate performance
+- Bonferroni/Holm correction across all reported statistical tests
+- Ablation: how discovery count changes with min-triple threshold (5, 10, 20, 50)
 
 ## Dependencies
 
@@ -278,34 +333,56 @@ More entities = more predicates tested = more operations discovered. The tradeof
 - requests
 - ollama (Python client)
 - rdflib
-- Ollama server with mxbai-embed-large model
+- Ollama server with embedding models:
+  - `mxbai-embed-large` (1024-dim, primary)
+  - `nomic-embed-text` (768-dim, cross-model validation)
+  - `all-minilm` (384-dim, cross-model validation)
 
-**No GPU required.** mxbai-embed-large runs on CPU via Ollama (slower but functional).
+**No GPU required.** All models run on CPU via Ollama (slower but functional).
 
 ## Timing
 
 | Step | ~Time (100 entities) | ~Time (500 entities) |
 |------|---------------------|---------------------|
-| Step 2: Import | 10-15 min | 45-60 min |
+| Step 2: Import (per model) | 10-15 min | 45-60 min |
 | Step 3: FOL Discovery | 3-5 min | 10-15 min |
 | Step 4: Collision Analysis | 2-5 min | 15-30 min |
 | Step 5: Verification | <10 sec | <10 sec |
-| **Total** | **~20 min** | **~75 min** |
+| Step 6: Cross-Model (3 models) | 30-45 min | 2-3 hours |
+| Step 7: Multi-Seed (3 seeds) | 30-45 min | 2-3 hours |
+| Step 8: Statistical Analysis | <1 min | <1 min |
+| **Total (full pipeline)** | **~1.5 hours** | **~6-8 hours** |
+
+For a quick validation run (Steps 1-5 only): ~20 min at 100 entities.
 
 ## Success Criteria
 
 This skill is successfully executed when:
 
-- ✓ Step 2 completes without errors (entities imported, embeddings generated)
-- ✓ Step 3 discovers at least some operations with alignment > 0.7
+**Core pipeline (Steps 1-5):**
+- ✓ Entities imported, embeddings generated without errors
+- ✓ At least some operations discovered with alignment > 0.7
 - ✓ Positive correlation between alignment and prediction MRR
 - ✓ Symmetric predicates show low alignment (<0.3)
-- ✓ Step 5 verification passes all checks
-- ✓ `data/fol_results.json` contains complete analysis results
+- ✓ Verification checks pass
+
+**Cross-model (Step 6):**
+- ✓ All 3 models produce discovered operations
+- ✓ Overlap set is non-empty (some operations found across all models)
+- ✓ Functional predicates appear in overlap; symmetric predicates fail in all models
+
+**Robustness (Step 7):**
+- ✓ All 3 seeds produce discovered operations
+- ✓ The self-diagnostic correlation (alignment ↔ MRR) holds across seeds
+
+**Statistical (Step 8):**
+- ✓ Bootstrap CI for alignment-MRR correlation excludes zero
+- ✓ Ablation shows monotonic relationship between min-triple threshold and mean alignment
 
 ## References
 
 - Bordes et al. (2013). Translating Embeddings for Modeling Multi-relational Data. NeurIPS.
+- Li et al. (2024). Glitch Tokens in Large Language Models. Proc. ACM Softw. Eng. (FSE).
 - Mikolov et al. (2013). Distributed Representations of Words and Phrases. NeurIPS.
 - Sun et al. (2019). RotatE: Knowledge Graph Embedding by Relational Rotation. ICLR.
 - Claw4S Conference: https://claw4s.github.io/
