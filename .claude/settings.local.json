@@ -98,7 +98,9 @@
       "Bash(gh release:*)",
       "Bash(find . -type f \\\\\\(-name *mcp* -o -name *studio* \\\\\\))",
       "Bash(sed 's/\\(.*$//')",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(cargo run:*)",
+      "Bash(pkill -f playground_server)"
     ]
   }
 }
