@@ -23,7 +23,7 @@ import requests
 import ollama
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(os.environ.get("FOL_DATA_DIR", str(Path(__file__).resolve().parent.parent / "data")))
 
 from import_wikidata import (
     load_existing, save_all, fetch_entity, fetch_labels_batch,

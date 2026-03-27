@@ -29,9 +29,10 @@ import json
 import numpy as np
 from collections import defaultdict
 import argparse
+import os
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(os.environ.get("FOL_DATA_DIR", str(Path(__file__).resolve().parent.parent / "data")))
 
 
 def load_data():
