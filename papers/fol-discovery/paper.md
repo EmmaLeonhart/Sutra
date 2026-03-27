@@ -12,7 +12,7 @@ A persistent question in representation learning is whether embedding spaces enc
 
 All of these approaches share a common assumption: **the embedding space must be constructed with logical operations in mind.** The relation vector `r` in TransE is a learned parameter, optimized specifically to make `h + r ≈ t` hold. The rotation in RotatE is a learned transformation. The box boundaries are learned constraints. If you take a general-purpose text embedding model — one trained for semantic similarity, not for logical reasoning — none of these guarantees hold.
 
-**Our contribution is empirical rather than architectural.** We ask: given an embedding model that was never trained for logic, which logical operations does it *already* encode? We introduce a method — **geodesic displacement analysis** — that takes any embedding space and a knowledge base of ground-truth triples, and discovers the subset of predicates whose triples manifest as consistent vector displacements. No training is required. No parameters are learned. The method is a diagnostic: a tool for excavating latent logical structure from existing representations.
+**Our contribution is empirical rather than architectural.** We ask: given an embedding model that was never trained for logic, which logical operations does it *already* encode? We introduce **geodesic displacement analysis**, a model-agnostic method for discovering latent logical operations in any embedding space. Given a knowledge base of ground-truth triples, we discover the subset of predicates whose triples manifest as consistent vector displacements — treating the embedding space as existing infrastructure to be analyzed, not a system to be constructed. No training is required. No parameters are learned. The method is a pure diagnostic applicable to any text embedding model.
 
 ### 1.1 Key Findings
 
@@ -255,7 +255,7 @@ The analytical approach is complementary. It tells you what a given embedding sp
 
 ### 5.4 Limitations
 
-1. **Single embedding model.** We test mxbai-embed-large only. The generality claim (arbitrary embedding spaces) requires testing on multiple models. The infrastructure supports this — only the embedding function needs to change.
+1. **Single embedding model.** We test mxbai-embed-large only. The generality claim (arbitrary embedding spaces) requires testing on multiple models with different architectures and dimensionalities. The infrastructure supports this — only the embedding function needs to change. Future work will evaluate cross-model generalization by applying the same analysis to models of varying size and training methodology, and test whether discovered transformation matrices transfer across embedding spaces — which would establish a stronger form of model-agnostic neuro-symbolic reasoning.
 
 2. **Wikidata bias.** Our entity set is seeded from Engishiki (Japanese historical text), producing a dataset heavy on Japanese history, linguistics, and geography. Different seeds would produce different distributions of predicates.
 

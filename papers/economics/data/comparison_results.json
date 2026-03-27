@@ -1,0 +1,269 @@
+{
+  "metadata": {
+    "generated_at": "2026-03-26T21:40:12.362083",
+    "features": [
+      "denial_reflexivity",
+      "mass_retail_participation",
+      "leverage_amplification",
+      "exit_liquidity",
+      "speculative_disconnect",
+      "rapid_unwind_mechanism"
+    ],
+    "scoring": "0.0 = ABSENT, 0.5 = PARTIAL, 1.0 = PRESENT",
+    "threshold": "An event with >= 4/6 features PRESENT exhibits classic bubble dynamics"
+  },
+  "events": {
+    "dotcom": {
+      "name": "Dot-com Bubble",
+      "period": "1995-2003",
+      "scores": {
+        "denial_reflexivity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "'New economy' narrative; Glassman & Hassett 'Dow 36,000' published 1999",
+          "source": "Glassman & Hassett (1999), Dow 36,000"
+        },
+        "mass_retail_participation": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Number of online brokerage accounts grew from 1.5M (1997) to 9.7M (2000)",
+          "source": "[CITATION NEEDED - SEC/FINRA data on online brokerage growth]"
+        },
+        "leverage_amplification": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "NYSE margin debt peaked at $278.5B in March 2000, up from $141B in 1997",
+          "source": "FINRA margin statistics"
+        },
+        "exit_liquidity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "486 IPOs in 1999, 406 in 2000. Average first-day return 71% in 1999",
+          "source": "[CITATION NEEDED - Jay Ritter IPO data]"
+        },
+        "speculative_disconnect": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Median P/E of NASDAQ stocks exceeded 100 at peak; many IPOs had no revenue",
+          "source": "[CITATION NEEDED - Shiller P/E data]"
+        },
+        "rapid_unwind_mechanism": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "NASDAQ fell 78% from peak (5,048) to trough (1,114) over 31 months",
+          "source": "Market data (yfinance)"
+        }
+      },
+      "total_score": 6.0,
+      "max_score": 6.0,
+      "market_metrics": {
+        "peak_decline_pct": 77.93,
+        "runup_months": 62.3,
+        "crash_months": 31.0,
+        "market_index": "nasdaq"
+      },
+      "classification": "BUBBLE"
+    },
+    "housing_2008": {
+      "name": "US Housing Bubble",
+      "period": "2003-2012",
+      "scores": {
+        "denial_reflexivity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "'Housing prices never decline nationally' was consensus. Bernanke (2005): 'no bubble'",
+          "source": "Bernanke Congressional testimony, 2005"
+        },
+        "mass_retail_participation": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Homeownership rate peaked at 69.2% (2004). Subprime loans ~20% of originations by 2006",
+          "source": "US Census Bureau; Inside Mortgage Finance"
+        },
+        "leverage_amplification": {
+          "score": 1.0,
+          "label": "EXTREME",
+          "detail": "Average LTV exceeded 80%; many loans 100%+ LTV. CDO notional values in trillions",
+          "source": "[CITATION NEEDED - FCIC Report data]"
+        },
+        "exit_liquidity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "MBS widely held by pension funds, banks, retail investors globally",
+          "source": "Financial Crisis Inquiry Commission Report (2011)"
+        },
+        "speculative_disconnect": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Home prices 70% above historical trend relative to rents and income",
+          "source": "[CITATION NEEDED - Case-Shiller price-to-rent data]"
+        },
+        "rapid_unwind_mechanism": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "S&P 500 fell 57% from Oct 2007 to Mar 2009. Cascading bank failures, AIG bailout",
+          "source": "Market data; TARP records"
+        }
+      },
+      "total_score": 6.0,
+      "max_score": 6.0,
+      "market_metrics": {
+        "peak_decline_pct": 56.78,
+        "runup_months": 57.2,
+        "crash_months": 17.0,
+        "market_index": "sp500"
+      },
+      "classification": "BUBBLE"
+    },
+    "japan": {
+      "name": "Japanese Asset Bubble",
+      "period": "1985-2000",
+      "scores": {
+        "denial_reflexivity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "'Japan as Number One' narrative. Imperial Palace grounds worth more than all California real estate",
+          "source": "Vogel (1979), Japan as Number One; widely cited comparison"
+        },
+        "mass_retail_participation": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Japanese household stock ownership peaked; land speculation widespread among individuals",
+          "source": "[CITATION NEEDED - Bank of Japan financial statistics]"
+        },
+        "leverage_amplification": {
+          "score": 1.0,
+          "label": "EXTREME",
+          "detail": "Bank lending grew ~10% annually 1985-1989. Land used as collateral for further land purchases",
+          "source": "[CITATION NEEDED - BOJ lending statistics]"
+        },
+        "exit_liquidity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Tokyo Stock Exchange was world's largest by market cap in 1989. Highly liquid public markets",
+          "source": "World Federation of Exchanges historical data"
+        },
+        "speculative_disconnect": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Nikkei P/E exceeded 70 at peak. Land prices 5-10x reasonable valuations",
+          "source": "[CITATION NEEDED - BOJ land price survey data]"
+        },
+        "rapid_unwind_mechanism": {
+          "score": 0.5,
+          "label": "MODERATE",
+          "detail": "Nikkei fell ~60% by 1992 but full recovery took 30+ years (slow deflation, not panic crash)",
+          "source": "Market data (yfinance)"
+        }
+      },
+      "total_score": 5.5,
+      "max_score": 6.0,
+      "market_metrics": {
+        "peak_decline_pct": 80.45,
+        "runup_months": 59.9,
+        "crash_months": 159.9,
+        "market_index": "nikkei"
+      },
+      "classification": "BUBBLE"
+    },
+    "nft_crypto": {
+      "name": "NFT/Crypto Cycles",
+      "period": "2017-2023",
+      "scores": {
+        "denial_reflexivity": {
+          "score": 0.5,
+          "label": "MIXED",
+          "detail": "Crypto community actively trained members to dismiss 'FUD'. But external skepticism was high",
+          "source": "Cultural observation; strategic discussion analysis"
+        },
+        "mass_retail_participation": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Coinbase had 98M verified users by Q4 2021. NFT market dominated by retail",
+          "source": "Coinbase Q4 2021 earnings; Chainalysis 2022 report"
+        },
+        "leverage_amplification": {
+          "score": 0.5,
+          "label": "MODERATE",
+          "detail": "Significant DeFi leverage and exchange margin trading, but less than traditional finance",
+          "source": "[CITATION NEEDED - DeFi Llama TVL data]"
+        },
+        "exit_liquidity": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "Crypto markets operate 24/7 with near-instant settlement. Highly liquid for BTC/ETH",
+          "source": "Market structure observation"
+        },
+        "speculative_disconnect": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "NFT market reached $25B in 2021 sales. Many projects had no utility beyond speculation",
+          "source": "[CITATION NEEDED - DappRadar/NonFungible.com annual report]"
+        },
+        "rapid_unwind_mechanism": {
+          "score": 1.0,
+          "label": "HIGH",
+          "detail": "BTC fell 77% (2021 cycle). NFT floor prices collapsed 90%+. FTX/Luna/3AC cascading failures",
+          "source": "Market data; public reporting on FTX collapse"
+        }
+      },
+      "total_score": 5.0,
+      "max_score": 6.0,
+      "market_metrics": {
+        "peak_decline_pct": 77.3,
+        "market_index": "bitcoin"
+      },
+      "classification": "BUBBLE"
+    },
+    "ai_investment": {
+      "name": "AI Investment (2023-2026)",
+      "period": "2023-present",
+      "scores": {
+        "denial_reflexivity": {
+          "score": 0.0,
+          "label": "ABSENT",
+          "reasoning": "Public discourse widely questions AI valuations. 'AI bubble' is mainstream media narrative. Contrast with dot-com ('new economy') and housing ('prices never fall') where denial was dominant. Per the heuristic: if many people are calling it a bubble, it probably isn't one, because real bubbles require widespread denial to sustain overvaluation."
+        },
+        "mass_retail_participation": {
+          "score": 0.0,
+          "label": "ABSENT",
+          "reasoning": "No mechanism for broad retail AI-specific investment. Major AI companies are private. Public companies with AI exposure (NVDA, MSFT) are diversified. Dot-com had 486 IPOs in 1999 alone; AI has had essentially zero pure-play IPOs."
+        },
+        "leverage_amplification": {
+          "score": 0.5,
+          "label": "PARTIAL",
+          "reasoning": "VC leverage exists (fund-of-funds, SPVs). But no consumer leverage (cf. mortgages in 2008) and no derivative multiplication (cf. CDOs). Leverage is contained within sophisticated institutional investors who understand the risk, not distributed to retail."
+        },
+        "exit_liquidity": {
+          "score": 0.0,
+          "label": "ABSENT",
+          "reasoning": "Private company shares are illiquid. No public market for mass simultaneous exit. WeWork demonstrated the fizzle-not-pop pattern: private overvaluations just get written down. For a crash, you need the ability to sell at scale, which requires public markets."
+        },
+        "speculative_disconnect": {
+          "score": 0.5,
+          "label": "PARTIAL",
+          "reasoning": "Some AI valuations may exceed near-term revenue potential (OpenAI at 100x+ revenue). But unlike dot-com, the underlying technology demonstrably works and generates real revenue. The question is WHICH companies capture value, not WHETHER the technology has value."
+        },
+        "rapid_unwind_mechanism": {
+          "score": 0.0,
+          "label": "ABSENT",
+          "reasoning": "No cascade mechanism. GPU assets can't be liquidated at scale (market would collapse). Companies with compute infrastructure will restructure, not evaporate. Even severely distressed AI companies look like utilities in bankruptcy, not dot-com zeros."
+        }
+      },
+      "total_score": 1.0,
+      "max_score": 6.0,
+      "market_metrics": {
+        "combined_market_cap_B": 13893.2,
+        "annualized_capex_B": 480.0,
+        "avg_2y_price_change_pct": 38.5
+      },
+      "classification": "NOT A BUBBLE"
+    }
+  },
+  "summary": {
+    "historical_avg_score": 5.62,
+    "ai_score": 1.0,
+    "score_gap": 4.62,
+    "conclusion": "AI investment does NOT exhibit the structural features of a classic asset bubble. It scores 1.0/6.0 on structural features, compared to an average of 5.62/6.0 for confirmed historical bubbles. The absence of mass retail participation, exit liquidity, and rapid unwind mechanisms means classical bubble crash dynamics cannot manifest in the current market structure."
+  }
+}
