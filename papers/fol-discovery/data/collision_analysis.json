@@ -1,0 +1,381 @@
+{
+  "metadata": {
+    "generated_at": "2026-03-26T23:18:28.640541",
+    "threshold": 0.95,
+    "total_embeddings": 41725,
+    "total_cross_entity_collisions": 164084,
+    "total_same_entity_collisions": 6376
+  },
+  "categories": {
+    "substring_overlap": 13085,
+    "identical_text": 2587,
+    "genuine_semantic": 147687,
+    "near_identical_text": 725
+  },
+  "category_percentages": {
+    "substring_overlap": 8.0,
+    "identical_text": 1.6,
+    "genuine_semantic": 90.0,
+    "near_identical_text": 0.4
+  },
+  "examples": {
+    "genuine_semantic": [
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q3138036",
+        "text_a": "Jinmyōchō",
+        "text_b": "kugyō",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1367992",
+        "text_a": "Jinmyōchō",
+        "text_b": "xíngshū",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1324780",
+        "text_a": "Jinmyōchō",
+        "text_b": "Shōtai",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1327274",
+        "text_a": "Jinmyōchō",
+        "text_b": "Enchō",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q24706",
+        "text_a": "Jinmyōchō",
+        "text_b": "Nengō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q24706",
+        "text_a": "Jinmyōchō",
+        "text_b": "Gengō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q34600",
+        "text_a": "Jinmyōchō",
+        "text_b": "Kyōto",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q11572068",
+        "text_a": "Jinmyōchō",
+        "text_b": "yūshi",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q17216063",
+        "text_a": "Jinmyōchō",
+        "text_b": "Tsuneakirashinnō",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q208233",
+        "text_a": "Jinmyōchō",
+        "text_b": "Tennō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q751907",
+        "text_a": "Jinmyōchō",
+        "text_b": "Kyō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q10372494",
+        "text_a": "Jinmyōchō",
+        "text_b": "Minpō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1037393",
+        "text_a": "Jinmyōchō",
+        "text_b": "Hokkaidō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q11606829",
+        "text_a": "Jinmyōchō",
+        "text_b": "Tōkeikyoku",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1209728",
+        "text_a": "Jinmyōchō",
+        "text_b": "Kōki",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q130290",
+        "text_a": "Jinmyōchō",
+        "text_b": "Hyōgo",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1364781",
+        "text_a": "Jinmyōchō",
+        "text_b": "Hachirōgata",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1490",
+        "text_a": "Jinmyōchō",
+        "text_b": "Tōkyō",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q1490",
+        "text_a": "Jinmyōchō",
+        "text_b": "Tôkyô",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q212",
+        "text_a": "Jinmyōchō",
+        "text_b": "Ukraïna",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "genuine_semantic"
+      }
+    ],
+    "identical_text": [
+      {
+        "qid_a": "P50",
+        "qid_b": "P170",
+        "text_a": "creator",
+        "text_b": "creator",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "identical_text"
+      },
+      {
+        "qid_a": "P571",
+        "qid_b": "P577",
+        "text_a": "launch date",
+        "text_b": "launch date",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "identical_text"
+      },
+      {
+        "qid_a": "P571",
+        "qid_b": "P577",
+        "text_a": "release date",
+        "text_b": "release date",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "identical_text"
+      },
+      {
+        "qid_a": "P571",
+        "qid_b": "P577",
+        "text_a": "released",
+        "text_b": "released",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "identical_text"
+      },
+      {
+        "qid_a": "P571",
+        "qid_b": "P577",
+        "text_a": "released in",
+        "text_b": "released in",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "identical_text"
+      }
+    ],
+    "near_identical_text": [
+      {
+        "qid_a": "P407",
+        "qid_b": "Q75488338",
+        "text_a": "language",
+        "text_b": "Language",
+        "type_a": "alias",
+        "type_b": "label",
+        "similarity": 1.0,
+        "category": "near_identical_text"
+      },
+      {
+        "qid_a": "P366",
+        "qid_b": "Q16641",
+        "text_a": "as",
+        "text_b": "AS",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "near_identical_text"
+      },
+      {
+        "qid_a": "P349",
+        "qid_b": "Q477675",
+        "text_a": "ndl",
+        "text_b": "NDL",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "near_identical_text"
+      },
+      {
+        "qid_a": "P646",
+        "qid_b": "Q280190",
+        "text_a": "Freebase",
+        "text_b": "freebase",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "near_identical_text"
+      },
+      {
+        "qid_a": "Q329753",
+        "qid_b": "Q5209110",
+        "text_a": "Daigo",
+        "text_b": "daigo",
+        "type_a": "label",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "near_identical_text"
+      }
+    ],
+    "substring_overlap": [
+      {
+        "qid_a": "Q1342448",
+        "qid_b": "Q11064932",
+        "text_a": "Engishiki",
+        "text_b": "Engishiki Jinmyōchō",
+        "type_a": "label",
+        "type_b": "label",
+        "similarity": 0.968859,
+        "category": "substring_overlap"
+      },
+      {
+        "qid_a": "P143",
+        "qid_b": "P5008",
+        "text_a": "Wikimedia project",
+        "text_b": "part of Wikimedia project",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 0.959925,
+        "category": "substring_overlap"
+      },
+      {
+        "qid_a": "P227",
+        "qid_b": "Q54506313",
+        "text_a": "Gemeinsame Normdatei ID",
+        "text_b": "Gemeinsame Normdatei identifier",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 0.956385,
+        "category": "substring_overlap"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q193294",
+        "text_a": "Jinmyōchō",
+        "text_b": "🌅",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "substring_overlap"
+      },
+      {
+        "qid_a": "Q11064932",
+        "qid_b": "Q193294",
+        "text_a": "Jinmyōchō",
+        "text_b": "🌄",
+        "type_a": "alias",
+        "type_b": "alias",
+        "similarity": 1.0,
+        "category": "substring_overlap"
+      }
+    ]
+  }
+}
