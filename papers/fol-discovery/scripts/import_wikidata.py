@@ -11,7 +11,7 @@ For each imported item:
   2. Fetches labels+aliases for all linked QIDs
   3. Generates embeddings for all labels and aliases (mxbai-embed-large)
   4. Stores triples as RDF
-  5. Computes geodesics for all new triples
+  5. Computes trajectories for all new triples
 
 All data is merged into the existing data/ files.
 """
@@ -223,8 +223,8 @@ def embed_texts(texts):
     return np.array([np.array(e) for e in result.embeddings])
 
 
-def compute_geodesics_for_items(items, index, emb):
-    """Compute geodesics for all triples. Returns an RDF graph."""
+def compute_trajectories_for_items(items, index, emb):
+    """Compute trajectories for all triples. Returns an RDF graph."""
     # Build lookup: qid -> list of (vector_index, text, type)
     qid_embeddings = {}
     for i, entry in enumerate(index):
@@ -242,7 +242,7 @@ def compute_geodesics_for_items(items, index, emb):
     g.bind("wdt", WDT)
     g.bind("emb", EMB)
 
-    geodesic_count = 0
+    traj_count = 0
 
     for item in items:
         subj_qid = item["qid"]
@@ -263,10 +263,10 @@ def compute_geodesics_for_items(items, index, emb):
             pred_id = triple["predicate"]
             pred_entries = qid_embeddings.get(pred_id, [])
 
-            # Subject-Object geodesics only.
+            # Subject-Object trajectories only.
             # Properties are embedded as entities in the space but do NOT get
-            # geodesics with their subject/object — that relationship is not
-            # linguistic. Predicate-involving geodesics would require propositional
+            # trajectories with their subject/object — that relationship is not
+            # linguistic. Predicate-involving trajectories would require propositional
             # form (full sentence embedding), which is not yet implemented.
             for s_entry in subj_entries:
                 s_vec = emb[s_entry["vec_idx"]]
@@ -280,22 +280,22 @@ def compute_geodesics_for_items(items, index, emb):
                     cos_dist = 1.0 - cos_sim
                     euclidean_dist = float(np.linalg.norm(s_vec - o_vec))
 
-                    geo = BNode()
-                    g.add((geo, RDF.type, EMB.Geodesic))
-                    g.add((geo, EMB.subjectEntity, WD[subj_qid]))
-                    g.add((geo, EMB.objectEntity, WD[obj_qid]))
-                    g.add((geo, EMB.predicate, WDT[pred_id]))
-                    g.add((geo, EMB.subjectText, Literal(s_entry["text"])))
-                    g.add((geo, EMB.objectText, Literal(o_entry["text"])))
-                    g.add((geo, EMB.subjectTextType, Literal(s_entry["type"])))
-                    g.add((geo, EMB.objectTextType, Literal(o_entry["type"])))
-                    g.add((geo, EMB.cosineDistance, Literal(round(cos_dist, 6), datatype=XSD.float)))
-                    g.add((geo, EMB.cosineSimilarity, Literal(round(cos_sim, 6), datatype=XSD.float)))
-                    g.add((geo, EMB.euclideanDistance, Literal(round(euclidean_dist, 6), datatype=XSD.float)))
+                    traj = BNode()
+                    g.add((traj, RDF.type, EMB.Trajectory))
+                    g.add((traj, EMB.subjectEntity, WD[subj_qid]))
+                    g.add((traj, EMB.objectEntity, WD[obj_qid]))
+                    g.add((traj, EMB.predicate, WDT[pred_id]))
+                    g.add((traj, EMB.subjectText, Literal(s_entry["text"])))
+                    g.add((traj, EMB.objectText, Literal(o_entry["text"])))
+                    g.add((traj, EMB.subjectTextType, Literal(s_entry["type"])))
+                    g.add((traj, EMB.objectTextType, Literal(o_entry["type"])))
+                    g.add((traj, EMB.cosineDistance, Literal(round(cos_dist, 6), datatype=XSD.float)))
+                    g.add((traj, EMB.cosineSimilarity, Literal(round(cos_sim, 6), datatype=XSD.float)))
+                    g.add((traj, EMB.euclideanDistance, Literal(round(euclidean_dist, 6), datatype=XSD.float)))
 
-                    geodesic_count += 1
+                    traj_count += 1
 
-    return g, geodesic_count
+    return g, traj_count
 
 
 def value_to_rdf(val):
@@ -480,21 +480,21 @@ def main():
     print(f"\n--- Step 4: Save ---")
     save_all(items, index, emb)
 
-    # Step 5: Rebuild triples and geodesics
-    print(f"\n--- Step 5: Compute triples and geodesics ---")
+    # Step 5: Rebuild triples and trajectories
+    print(f"\n--- Step 5: Compute triples and trajectories ---")
     triples_g = build_triples_graph(items)
     triples_g.serialize(str(DATA_DIR / "triples.nt"), format="nt")
     print(f"Triples: {len(triples_g)}")
 
-    geo_g, geo_count = compute_geodesics_for_items(items, index, emb)
-    geo_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
-    print(f"Geodesics: {geo_count}")
+    traj_g, traj_count = compute_trajectories_for_items(items, index, emb)
+    traj_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
+    print(f"Trajectories: {traj_count}")
 
     print(f"\n--- Done ---")
     print(f"Items: {len(items)}")
     print(f"Embeddings: {emb.shape[0]} x {emb.shape[1]}")
     print(f"RDF triples: {len(triples_g)}")
-    print(f"Geodesics: {geo_count}")
+    print(f"Trajectories: {traj_count}")
 
 
 if __name__ == "__main__":

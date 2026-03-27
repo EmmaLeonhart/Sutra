@@ -1,6 +1,6 @@
 """
 Fetch English labels and aliases for all QIDs referenced in triples
-but not yet imported. These are the "other ends" of geodesics.
+but not yet imported. These are the "other ends" of trajectories.
 Only fetches labels+aliases, not full properties.
 Appends to data/items.json (with triples=[] for linked-only items).
 """

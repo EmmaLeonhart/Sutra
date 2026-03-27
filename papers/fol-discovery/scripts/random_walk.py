@@ -1,5 +1,5 @@
 """
-Breadth-first search through Wikidata, building the geodesic map.
+Breadth-first search through Wikidata, building the trajectory map.
 
 Starts at a seed entity and adds every linked QID to a queue.
 Processes the queue breadth-first, maximizing density around the seed.
@@ -28,7 +28,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 from import_wikidata import (
     load_existing, save_all, fetch_entity, fetch_labels_batch,
     process_entity, embed_texts,
-    build_triples_graph, compute_geodesics_for_items,
+    build_triples_graph, compute_trajectories_for_items,
     WD, WDT, EMB, EMBED_MODEL
 )
 
@@ -145,7 +145,7 @@ def load_walk_state():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="BFS through Wikidata for maximum geodesic density")
+    parser = argparse.ArgumentParser(description="BFS through Wikidata for maximum trajectory density")
     parser.add_argument("seed", nargs="?", default=DEFAULT_SEED, help=f"Seed QID (default: {DEFAULT_SEED} Engishiki)")
     parser.add_argument("--limit", type=int, default=1000, help="Max QIDs to fully import (default 1000)")
     parser.add_argument("--resume", action="store_true", help="Resume from saved queue state")
@@ -236,19 +236,19 @@ def main():
         "seed": args.seed,
     })
 
-    # Rebuild triples and geodesics
-    print("Rebuilding triples and geodesics...")
+    # Rebuild triples and trajectories
+    print("Rebuilding triples and trajectories...")
     triples_g = build_triples_graph(items)
     triples_g.serialize(str(DATA_DIR / "triples.nt"), format="nt")
 
-    geo_g, geo_count = compute_geodesics_for_items(items, index, emb)
-    geo_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
+    traj_g, traj_count = compute_trajectories_for_items(items, index, emb)
+    traj_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
 
     print(f"\nFinal state:")
     print(f"  Items: {len(items)}")
     print(f"  Fully imported: {len(fully_imported)}")
     print(f"  Embeddings: {emb.shape[0]} x {emb.shape[1]}")
-    print(f"  Geodesics: {geo_count}")
+    print(f"  Trajectories: {traj_count}")
     print(f"  Remaining in queue: {len(queue)}")
 
 

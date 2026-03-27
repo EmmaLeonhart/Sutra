@@ -27,10 +27,10 @@ if hasattr(sys.stdout, 'buffer'):
 from import_wikidata import (
     load_existing, save_all, fetch_entity, fetch_labels_batch,
     process_entity, embed_texts, get_instances,
-    build_triples_graph, compute_geodesics_for_items,
+    build_triples_graph, compute_trajectories_for_items,
     WD, WDT, EMB
 )
-from sutra_client import SutraClient, save_to_sutra, save_geodesics_to_sutra
+from sutra_client import SutraClient, save_to_sutra, save_trajectories_to_sutra
 
 SUTRA_ENDPOINT = "http://localhost:3030"
 EMBEDDING_PREDICATE = "http://embedding-mapping.local/ontology/hasEmbedding"
@@ -76,12 +76,12 @@ def load_existing_into_sutra(client):
     # Insert triples
     triple_count = save_to_sutra(client, items, index, emb, EMBEDDING_PREDICATE)
 
-    # Insert geodesics
-    geo_count = save_geodesics_to_sutra(client, items, index, emb)
+    # Insert trajectories
+    traj_count = save_trajectories_to_sutra(client, items, index, emb)
 
     print(f"\n--- Load complete ---")
     print(f"Triples loaded: {triple_count}")
-    print(f"Geodesics loaded: {geo_count}")
+    print(f"Trajectories loaded: {traj_count}")
     print(f"Vectors loaded: {emb.shape[0] if emb.size else 0}")
 
 
@@ -183,14 +183,14 @@ def import_to_sutra(qids_to_import, client):
     print(f"\n--- Step 5: Save to SutraDB ---")
     triple_count = save_to_sutra(client, items, index, emb, EMBEDDING_PREDICATE)
 
-    print(f"\n--- Step 6: Compute and save geodesics ---")
-    geo_count = save_geodesics_to_sutra(client, items, index, emb)
+    print(f"\n--- Step 6: Compute and save trajectories ---")
+    traj_count = save_trajectories_to_sutra(client, items, index, emb)
 
     print(f"\n--- Done ---")
     print(f"Items: {len(items)}")
     print(f"Embeddings: {emb.shape[0]} x {emb.shape[1]}")
     print(f"Triples in SutraDB: {triple_count}")
-    print(f"Geodesics in SutraDB: {geo_count}")
+    print(f"Trajectories in SutraDB: {traj_count}")
 
 
 def main():

@@ -197,15 +197,15 @@ def save_to_sutra(client, items, index, emb, embedding_predicate="http://embeddi
     return len(g)
 
 
-def save_geodesics_to_sutra(client, items, index, emb):
-    """Compute and save geodesics to SutraDB."""
-    from import_wikidata import compute_geodesics_for_items
+def save_trajectories_to_sutra(client, items, index, emb):
+    """Compute and save trajectories to SutraDB."""
+    from import_wikidata import compute_trajectories_for_items
 
-    print("  Computing geodesics...")
-    geo_g, geo_count = compute_geodesics_for_items(items, index, emb)
-    if geo_count > 0:
-        nt_text = geo_g.serialize(format="nt")
-        print(f"  Inserting {geo_count} geodesics ({len(geo_g)} triples) into SutraDB...")
+    print("  Computing trajectories...")
+    traj_g, traj_count = compute_trajectories_for_items(items, index, emb)
+    if traj_count > 0:
+        nt_text = traj_g.serialize(format="nt")
+        print(f"  Inserting {traj_count} trajectories ({len(traj_g)} triples) into SutraDB...")
         result = client.insert_triples(nt_text)
         print(f"  Inserted: {result.get('inserted', 0)}")
-    return geo_count
+    return traj_count

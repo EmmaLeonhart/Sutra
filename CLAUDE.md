@@ -1,7 +1,7 @@
 # embedding-mapping
 
 ## Project Overview
-Discovering first-order logic operations in arbitrary embedding spaces via geodesic displacement analysis. Takes a general-purpose embedding model (mxbai-embed-large) and Wikidata triples, discovers which predicates encode as consistent vector arithmetic.
+Discovering first-order logic operations in arbitrary embedding spaces via trajectory displacement analysis. Takes a general-purpose embedding model (mxbai-embed-large) and Wikidata triples, discovers which predicates encode as consistent vector arithmetic.
 
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
@@ -26,8 +26,8 @@ This repo supports two papers for Claw4S Conference 2026 (deadline April 5, 2026
 Both papers share: agent-driven methodology, quantitative falsifiability, replicability by AI reviewers.
 
 ## Key Scripts (all in `papers/fol-discovery/scripts/`)
-- `random_walk.py` — BFS through Wikidata, imports entities and computes geodesics
-- `import_wikidata.py` — Core import logic (fetch, embed, store, geodesics)
+- `random_walk.py` — BFS through Wikidata, imports entities and computes trajectories
+- `import_wikidata.py` — Core import logic (fetch, embed, store, trajectories)
 - `fol_discovery.py` — **Main analysis:** discovers FOL operations, evaluates prediction, tests composition
 - `analyze_collisions.py` — Collision detection, density analysis, regime classification
 - `probe.py` — Interactive embedding space exploration
@@ -52,7 +52,7 @@ All regenerable from Wikidata + Ollama. Gitignored except properties.json and pr
 
 ## Development Philosophy
 - **Discovery, not construction.** We don't build spaces for logic. We find logic in existing spaces.
-- **Geodesics are first-class objects.** Each geodesic has its own RDF identity with subject, object, predicate, and distance metrics.
+- **Trajectories are first-class objects.** Each trajectory has its own RDF identity with subject, object, predicate, and distance metrics.
 - **Adding data IS building the pipeline.** Import tooling and data grow together.
 - **Reproducible.** Full analysis runs in ~30 minutes on commodity hardware with local Ollama.
 

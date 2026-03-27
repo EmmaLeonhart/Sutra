@@ -1,7 +1,7 @@
 """
-Compute geodesics for all triples where both subject and object have embeddings.
-Each geodesic is a line between two specific text embeddings (label or alias)
-connected by a triple. Stored as RDF-star: each geodesic is its own object.
+Compute trajectories for all triples where both subject and object have embeddings.
+Each trajectory is a line between two specific text embeddings (label or alias)
+connected by a triple. Stored as RDF-star: each trajectory is its own object.
 
 Output: data/geodesics.ttl (Turtle with RDF-star)
 """
@@ -51,7 +51,7 @@ def main():
     g.bind("wdt", WDT)
     g.bind("emb", EMB)
 
-    geodesic_count = 0
+    traj_count = 0
     skipped_no_embedding = 0
 
     for item in items:
@@ -74,7 +74,7 @@ def main():
             obj_entries = qid_embeddings[obj_qid]
             pred_id = triple["predicate"]
 
-            # Create a geodesic for every (subject_text, object_text) pair
+            # Create a trajectory for every (subject_text, object_text) pair
             for s_entry in subj_entries:
                 s_vec = emb[s_entry["vec_idx"]]
 
@@ -88,32 +88,32 @@ def main():
                     cos_dist = 1.0 - cos_sim
                     euclidean_dist = float(np.linalg.norm(s_vec - o_vec))
 
-                    # Create geodesic as a blank node
-                    geo = BNode()
-                    g.add((geo, RDF.type, EMB.Geodesic))
+                    # Create trajectory as a blank node
+                    traj = BNode()
+                    g.add((traj, RDF.type, EMB.Trajectory))
 
                     # Link to the triple's components
-                    g.add((geo, EMB.subjectEntity, WD[subj_qid]))
-                    g.add((geo, EMB.objectEntity, WD[obj_qid]))
-                    g.add((geo, EMB.predicate, WDT[pred_id]))
+                    g.add((traj, EMB.subjectEntity, WD[subj_qid]))
+                    g.add((traj, EMB.objectEntity, WD[obj_qid]))
+                    g.add((traj, EMB.predicate, WDT[pred_id]))
 
                     # The specific text endpoints
-                    g.add((geo, EMB.subjectText, Literal(s_entry["text"])))
-                    g.add((geo, EMB.objectText, Literal(o_entry["text"])))
-                    g.add((geo, EMB.subjectTextType, Literal(s_entry["type"])))
-                    g.add((geo, EMB.objectTextType, Literal(o_entry["type"])))
+                    g.add((traj, EMB.subjectText, Literal(s_entry["text"])))
+                    g.add((traj, EMB.objectText, Literal(o_entry["text"])))
+                    g.add((traj, EMB.subjectTextType, Literal(s_entry["type"])))
+                    g.add((traj, EMB.objectTextType, Literal(o_entry["type"])))
 
                     # Distances
-                    g.add((geo, EMB.cosineDistance, Literal(round(cos_dist, 6), datatype=XSD.float)))
-                    g.add((geo, EMB.cosineSimilarity, Literal(round(cos_sim, 6), datatype=XSD.float)))
-                    g.add((geo, EMB.euclideanDistance, Literal(round(euclidean_dist, 6), datatype=XSD.float)))
+                    g.add((traj, EMB.cosineDistance, Literal(round(cos_dist, 6), datatype=XSD.float)))
+                    g.add((traj, EMB.cosineSimilarity, Literal(round(cos_sim, 6), datatype=XSD.float)))
+                    g.add((traj, EMB.euclideanDistance, Literal(round(euclidean_dist, 6), datatype=XSD.float)))
 
-                    geodesic_count += 1
+                    traj_count += 1
 
     # Save
     g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
 
-    print(f"Computed {geodesic_count} geodesics")
+    print(f"Computed {traj_count} trajectories")
     print(f"Skipped {skipped_no_embedding} triples (object has no embedding)")
     print(f"RDF statements: {len(g)}")
     print(f"Saved to data/geodesics.ttl")
@@ -125,7 +125,7 @@ def main():
 
     if distances:
         distances = np.array(distances)
-        print(f"\nGeodesic distance stats:")
+        print(f"\nTrajectory distance stats:")
         print(f"  Count: {len(distances)}")
         print(f"  Mean cosine distance: {distances.mean():.4f}")
         print(f"  Min: {distances.min():.4f}")

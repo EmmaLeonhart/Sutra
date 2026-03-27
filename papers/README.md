@@ -8,7 +8,7 @@ Both papers share common methodological constraints: agent-driven research, quan
 ## Paper 1: FOL Discovery (CS category)
 **Directory:** `fol-discovery/`
 
-Discovering first-order logic operations in arbitrary embedding spaces via geodesic displacement analysis. Model-agnostic neuro-symbolic reasoning treating embedding spaces as existing infrastructure.
+Discovering first-order logic operations in arbitrary embedding spaces via trajectory displacement analysis. Model-agnostic neuro-symbolic reasoning treating embedding spaces as existing infrastructure.
 
 - Core pipeline code is in the repo root
 - Existing results: 86 predicates discovered, 32 strong operations, composition validated

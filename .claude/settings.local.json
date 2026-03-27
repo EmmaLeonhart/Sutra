@@ -49,7 +49,13 @@
       "Bash(FRED_API_KEY=2a3eb2428a2af5fe1a3a2e59245b2c98 /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_ai_investment.py)",
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/structural_comparison.py)",
       "Bash(ls:*)",
-      "Bash(cmd //c \"mklink /D data papers\\\\\\\\fol-discovery\\\\\\\\data\" 2>&1)"
+      "Bash(cmd //c \"mklink /D data papers\\\\\\\\fol-discovery\\\\\\\\data\" 2>&1)",
+      "Bash(grep -rl geodesic papers/fol-discovery/scripts/*.py)",
+      "Bash(git rm:*)",
+      "Bash(while read:*)",
+      "Bash(do grep:*)",
+      "Bash(xargs -I{} echo \"$f: {}\")",
+      "Bash(done)"
     ]
   }
 }
