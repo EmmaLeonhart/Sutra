@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "collected_at": "2026-03-26T21:36:05.723635",
+    "collected_at": "2026-03-26T21:55:13.757280",
     "sources": [
       "yfinance",
       "FRED API",
@@ -85,8 +85,26 @@
         "crash_months": 17.0,
         "data_points": 2516
       },
-      "case_shiller": null,
-      "fed_funds": null,
+      "case_shiller": {
+        "series_id": "CSUSHPISA",
+        "start_date": "2003-01-01",
+        "end_date": "2012-12-01",
+        "data_points": 120,
+        "peak_value": 184.6,
+        "trough_value": 128.46,
+        "start_value": 128.46,
+        "end_value": 145.49
+      },
+      "fed_funds": {
+        "series_id": "FEDFUNDS",
+        "start_date": "2003-01-01",
+        "end_date": "2012-12-01",
+        "data_points": 120,
+        "peak_value": 5.26,
+        "trough_value": 0.07,
+        "start_value": 1.24,
+        "end_value": 0.16
+      },
       "structural_features": {
         "retail_participation": {
           "value": "HIGH",

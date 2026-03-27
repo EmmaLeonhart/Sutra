@@ -56,7 +56,7 @@ All six structural features were fully present. Retail participation was massive
 
 ### 3.2 US Housing Bubble (2003-2012)
 
-The S&P 500 peaked at 1,565.15 (October 9, 2007) and fell 56.8% to 676.53 (March 9, 2009) — a 17-month crash. Housing prices, measured by the Case-Shiller Index, peaked in 2006 and declined approximately 35% nationally.
+The S&P 500 peaked at 1,565.15 (October 9, 2007) and fell 56.8% to 676.53 (March 9, 2009) — a 17-month crash. The Case-Shiller US National Home Price Index rose from 128.46 to 184.60 during 2003-2006 before declining approximately 35% from peak (FRED series CSUSHPISA). The Federal Funds Rate dropped from 5.26% to 0.07% as the Federal Reserve responded to the crisis (FRED series FEDFUNDS).
 
 All six features were present, with leverage at extreme levels. Subprime loans reached approximately 20% of originations by 2006 (Inside Mortgage Finance). CDO notional values reached trillions. The crash cascaded through banking system interconnections, producing the most severe financial crisis since the Great Depression.
 
