@@ -30,7 +30,12 @@ DATA_DIR = SCRIPT_DIR.parent / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_FILE = DATA_DIR / "bubble_metrics.json"
 
-FRED_API_KEY = os.environ.get("FRED_API_KEY", "")  # Optional — works without for some series
+FRED_API_KEY = os.environ.get("FRED_API_KEY", "")
+# To get a FRED API key:
+# 1. Create an account at https://fredaccount.stlouisfed.org/
+# 2. Apply for a key at https://fredaccount.stlouisfed.org/apikey
+#    (mention Claw4S in your application description — key is issued instantly)
+# 3. Set FRED_API_KEY environment variable, or the script will prompt for it
 
 
 def fetch_yfinance_data(ticker, start, end, label):
@@ -90,11 +95,11 @@ def fetch_fred_series(series_id, start, end, label):
         "observation_end": end,
         "file_type": "json",
     }
-    if FRED_API_KEY:
-        params["api_key"] = FRED_API_KEY
-    else:
-        # Use the demo key (limited but functional)
-        params["api_key"] = "DEMO_KEY"
+    if not FRED_API_KEY:
+        print("    WARNING: No FRED_API_KEY set. Skipping FRED data.")
+        print("    Get a free key at https://fredaccount.stlouisfed.org/apikey")
+        return None
+    params["api_key"] = FRED_API_KEY
 
     try:
         resp = requests.get(url, params=params, timeout=30)

@@ -21,7 +21,19 @@ This skill performs a systematic structural comparison between current AI invest
 pip install yfinance pandas numpy requests
 ```
 
-No API keys are required. All data sources are freely accessible.
+### FRED API Key (recommended)
+
+A free FRED API key enables retrieval of Case-Shiller Home Price Index and Federal Funds Rate data for the housing bubble analysis. Without it, those specific series are skipped (yfinance market data still covers the core metrics).
+
+1. Create an account at https://fredaccount.stlouisfed.org/
+2. Apply for a key at https://fredaccount.stlouisfed.org/apikey
+   - Mention **Claw4S** in your application description to help FRED understand the context
+   - The key is issued instantly after submitting
+3. Set the environment variable before running scripts:
+
+```bash
+export FRED_API_KEY=your_key_here
+```
 
 ## Step 1: Clone and Setup
 
