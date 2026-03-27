@@ -2,19 +2,22 @@
 import sys, json, os
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 import numpy as np
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 # Load embeddings
-data = np.load('data/embeddings.npz', allow_pickle=True)
+data = np.load(str(DATA_DIR / 'embeddings.npz'), allow_pickle=True)
 emb = data['vectors']
 print(f"Embeddings: {emb.shape}", flush=True)
 
 # Load index
-with open('data/embedding_index.json', encoding='utf-8') as f:
+with open(str(DATA_DIR / 'embedding_index.json'), encoding='utf-8') as f:
     index = json.load(f)
 print(f"Index entries: {len(index)}", flush=True)
 
 # Load items
-with open('data/items.json', encoding='utf-8') as f:
+with open(str(DATA_DIR / 'items.json'), encoding='utf-8') as f:
     items = json.load(f)
 full = sum(1 for i in items if i['triples'])
 print(f"Items: {len(items)}, fully imported: {full}, stubs: {len(items)-full}", flush=True)
@@ -26,7 +29,7 @@ else:
     print("Index and embeddings are aligned.", flush=True)
 
 # Walk state
-with open('data/walk_state.json', encoding='utf-8') as f:
+with open(str(DATA_DIR / 'walk_state.json'), encoding='utf-8') as f:
     state = json.load(f)
 print(f"Walk state: queue={len(state['queue'])}, visited={len(state['visited'])}, imported={state['imported_count']}", flush=True)
 

@@ -17,14 +17,17 @@ import numpy as np
 from collections import defaultdict
 from itertools import combinations
 import argparse
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def load_data():
     """Load all project data."""
-    emb = np.load('data/embeddings.npz')['vectors']
-    with open('data/embedding_index.json', encoding='utf-8') as f:
+    emb = np.load(str(DATA_DIR / 'embeddings.npz'))['vectors']
+    with open(str(DATA_DIR / 'embedding_index.json'), encoding='utf-8') as f:
         index = json.load(f)
-    with open('data/items.json', encoding='utf-8') as f:
+    with open(str(DATA_DIR / 'items.json'), encoding='utf-8') as f:
         items = json.load(f)
     return emb, index, items
 
@@ -303,7 +306,7 @@ def main():
     parser.add_argument('--threshold', type=float, default=0.95, help='Collision similarity threshold')
     parser.add_argument('--k', type=int, default=10, help='k for k-NN density analysis')
     parser.add_argument('--skip-collisions', action='store_true', help='Skip pairwise collision detection')
-    parser.add_argument('--output', default='data/analysis_results.json', help='Output file')
+    parser.add_argument('--output', default=str(DATA_DIR / 'analysis_results.json'), help='Output file')
     args = parser.parse_args()
     
     emb, index, items = load_data()

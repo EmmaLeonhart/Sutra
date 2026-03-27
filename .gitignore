@@ -27,10 +27,7 @@ Thumbs.db
 .env.local
 
 # SutraDB data
-sutra-data/
-
-# Compatibility symlink (scripts expect data/ at root)
-/data
+papers/fol-discovery/sutra-data/
 
 # Regenerable database output (FOL discovery pipeline)
 papers/fol-discovery/data/items.json

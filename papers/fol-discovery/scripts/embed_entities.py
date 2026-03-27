@@ -16,6 +16,9 @@ import io
 import numpy as np
 import ollama
 from rdflib import Graph, URIRef, Literal, Namespace
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -63,7 +66,7 @@ def build_rdf_graph(items):
 
 
 def main():
-    with open("data/items.json", "r", encoding="utf-8") as f:
+    with open(str(DATA_DIR / "items.json"), "r", encoding="utf-8") as f:
         items = json.load(f)
 
     print(f"Loaded {len(items)} items")
@@ -88,8 +91,8 @@ def main():
     print(f"  Shape: {embeddings.shape}")
 
     # Save embeddings
-    np.savez_compressed("data/embeddings.npz", vectors=embeddings)
-    with open("data/embedding_index.json", "w", encoding="utf-8") as f:
+    np.savez_compressed(str(DATA_DIR / "embeddings.npz"), vectors=embeddings)
+    with open(str(DATA_DIR / "embedding_index.json"), "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
 
     print(f"Saved {len(embeddings)} embeddings to data/embeddings.npz")
@@ -97,7 +100,7 @@ def main():
     # Build and save RDF graph
     print("Building RDF graph...")
     g = build_rdf_graph(items)
-    g.serialize("data/triples.nt", format="nt")
+    g.serialize(str(DATA_DIR / "triples.nt"), format="nt")
     print(f"Saved {len(g)} RDF triples to data/triples.nt")
 
     # Summary

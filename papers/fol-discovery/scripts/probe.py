@@ -17,14 +17,17 @@ import sys
 import io
 import argparse
 import numpy as np
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 if hasattr(sys.stdout, 'buffer'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
 def load_data():
-    emb = np.load("data/embeddings.npz")["vectors"]
-    with open("data/embedding_index.json", "r", encoding="utf-8") as f:
+    emb = np.load(str(DATA_DIR / "embeddings.npz"))["vectors"]
+    with open(str(DATA_DIR / "embedding_index.json"), "r", encoding="utf-8") as f:
         index = json.load(f)
     return emb, index
 

@@ -13,12 +13,15 @@ import json
 import sys
 import io
 import argparse
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 
 def load_data():
-    with open("data/items.json", "r", encoding="utf-8") as f:
+    with open(str(DATA_DIR / "items.json"), "r", encoding="utf-8") as f:
         items = json.load(f)
 
     # Build label lookup: QID/PID -> label
@@ -28,7 +31,7 @@ def load_data():
 
     # Also load properties if available
     try:
-        with open("data/properties.json", "r", encoding="utf-8") as f:
+        with open(str(DATA_DIR / "properties.json"), "r", encoding="utf-8") as f:
             props = json.load(f)
         for pid, pdata in props.items():
             if pdata.get("label"):

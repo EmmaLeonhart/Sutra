@@ -27,6 +27,9 @@ import requests
 import ollama
 from rdflib import Graph, URIRef, Literal, Namespace, BNode
 from rdflib.namespace import RDF, XSD
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -47,30 +50,30 @@ def load_existing():
     index = []
     emb = np.empty((0, 1024))
 
-    if os.path.exists("data/items.json"):
-        with open("data/items.json", "r", encoding="utf-8") as f:
+    if os.path.exists(str(DATA_DIR / "items.json")):
+        with open(str(DATA_DIR / "items.json"), "r", encoding="utf-8") as f:
             items = json.load(f)
-    if os.path.exists("data/embedding_index.json"):
-        with open("data/embedding_index.json", "r", encoding="utf-8") as f:
+    if os.path.exists(str(DATA_DIR / "embedding_index.json")):
+        with open(str(DATA_DIR / "embedding_index.json"), "r", encoding="utf-8") as f:
             index = json.load(f)
-    if os.path.exists("data/embeddings.npz"):
+    if os.path.exists(str(DATA_DIR / "embeddings.npz")):
         try:
-            emb = np.load("data/embeddings.npz")["vectors"]
+            emb = np.load(str(DATA_DIR / "embeddings.npz"))["vectors"]
         except Exception:
             # Fall back for files saved with older numpy or interrupted writes
-            emb = np.load("data/embeddings.npz", allow_pickle=True)["vectors"]
+            emb = np.load(str(DATA_DIR / "embeddings.npz"), allow_pickle=True)["vectors"]
 
     return items, index, emb
 
 
 def save_all(items, index, emb):
     """Save all data files."""
-    os.makedirs("data", exist_ok=True)
-    with open("data/items.json", "w", encoding="utf-8") as f:
+    os.makedirs(str(DATA_DIR), exist_ok=True)
+    with open(str(DATA_DIR / "items.json"), "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
-    with open("data/embedding_index.json", "w", encoding="utf-8") as f:
+    with open(str(DATA_DIR / "embedding_index.json"), "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
-    np.savez_compressed("data/embeddings.npz", vectors=emb)
+    np.savez_compressed(str(DATA_DIR / "embeddings.npz"), vectors=emb)
 
 
 def fetch_entity(qid):
@@ -480,11 +483,11 @@ def main():
     # Step 5: Rebuild triples and geodesics
     print(f"\n--- Step 5: Compute triples and geodesics ---")
     triples_g = build_triples_graph(items)
-    triples_g.serialize("data/triples.nt", format="nt")
+    triples_g.serialize(str(DATA_DIR / "triples.nt"), format="nt")
     print(f"Triples: {len(triples_g)}")
 
     geo_g, geo_count = compute_geodesics_for_items(items, index, emb)
-    geo_g.serialize("data/geodesics.ttl", format="turtle")
+    geo_g.serialize(str(DATA_DIR / "geodesics.ttl"), format="turtle")
     print(f"Geodesics: {geo_count}")
 
     print(f"\n--- Done ---")
