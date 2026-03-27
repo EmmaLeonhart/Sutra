@@ -326,6 +326,33 @@ This produces:
 - Bonferroni/Holm correction across all reported statistical tests
 - Ablation: how discovery count changes with min-triple threshold (5, 10, 20, 50)
 
+## Step 9: Generate Figures and PDF
+
+Description: Generate all publication figures and compile the paper as a PDF with embedded figures.
+
+```bash
+pip install fpdf2 matplotlib
+
+# Generate figures
+python papers/fol-discovery/scripts/generate_figures.py
+
+# Generate PDF with figures embedded
+python papers/fol-discovery/scripts/generate_pdf.py
+```
+
+Expected Output:
+- `papers/fol-discovery/figures/` — 7 PNG figures at 300 DPI
+- `papers/fol-discovery/paper.pdf` — Complete paper with embedded figures (~12 pages)
+
+Figures produced:
+1. Alignment vs MRR scatter plot (self-diagnostic correlation)
+2. Operation discovery distribution histogram
+3. Collision type breakdown (genuine semantic vs trivial)
+4. Three-zone regime diagram with empirical data
+5. Cross-model comparison (after Step 6)
+6. Ablation study (after Step 8)
+7. Bootstrap distribution of correlation (after Step 8)
+
 ## Dependencies
 
 - Python 3.10+

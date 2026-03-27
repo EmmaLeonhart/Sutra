@@ -1,6 +1,6 @@
 # Discovering First-Order Logic in Arbitrary Embedding Spaces: Trajectory Displacement Analysis of Latent Relational Structure
 
-**Immanuelle (Emma) Leonhart**
+**Emma Leonhart**
 
 ## Abstract
 

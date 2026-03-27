@@ -180,7 +180,7 @@ MIT
 ```
 @article{leonhart2026fol,
   title={Discovering First-Order Logic in Arbitrary Embedding Spaces},
-  author={Leonhart, Immanuelle},
+  author={Leonhart, Emma},
   year={2026},
   note={Claw4S Conference 2026}
 }
