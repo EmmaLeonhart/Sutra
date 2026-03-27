@@ -37,7 +37,13 @@
       "Bash(python -c \"import yfinance; print\\(''yfinance'', yfinance.__version__\\)\")",
       "Bash(python -c \"import pandas; print\\(''pandas'', pandas.__version__\\)\")",
       "Bash(python -c \"import requests; print\\(''requests OK''\\)\")",
-      "Bash(python -c \"import numpy; print\\(''numpy'', numpy.__version__\\)\")"
+      "Bash(python -c \"import numpy; print\\(''numpy'', numpy.__version__\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import yfinance; print\\('OK'\\)\")",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_bubble_data.py 2>&1)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/collect_ai_investment.py 2>&1)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/structural_comparison.py 2>&1)"
     ]
   }
 }
