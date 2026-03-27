@@ -1,6 +1,6 @@
 # The AI Investment Bubble: A Structural Comparison with Historical Asset Manias
 
-**Immanuelle (Emma) Leonhart**
+**Emma Leonhart**
 
 ## Abstract
 

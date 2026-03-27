@@ -24,6 +24,11 @@
 - [x] **Fix self-citation.** Removed "Leonhart, 2026" — three-zone taxonomy now presented as original contribution in this paper.
 - [x] **Diversify composition examples.** Added note explaining Tadahira bias is from Engishiki seed, not method limitation.
 - [x] **Competition analysis.** Full inventory of ~120+ CS submissions + Tier 1 deep dive (see competition-analysis/).
+- [ ] **Resolve [CITATION NEEDED] markers in CS paper.** Specific items:
+  - Kanerva (2009) and/or Plate (2003) on Vector Symbolic Architectures — find and verify
+  - "Hyperdimensional Probe" paper — find the actual paper using VSAs to decode LLM representations
+  - Stratified sub-manifold work — find the paper on stratified manifolds in embedding spaces
+  These were identified in the strategic discussion lit review but need actual paper verification.
 - [ ] **Reduce Wikidata import emphasis.** The brute-force BFS import was primarily for collision-hunting, not core methodology. Reframe it as data collection, not the contribution. The strategic approach to finding trajectories matters more.
 
 ### To Do — Experimental Enhancements (compete with resistome-profiler's 8 experiments)
@@ -79,13 +84,27 @@ per tested operation (the standard stats threshold for CLT assumptions).
 
 ### Done
 - [x] Data collection scripts (bubble data, AI investment, structural comparison)
-- [x] Full pipeline working: historical bubbles avg 5.62/6.0, AI scores 1.0/6.0
+- [x] Full pipeline working: historical bubbles avg 5.62/6.0, AI scores 0.5/6.0
 - [x] Paper draft (~250 lines) with real data tables
 - [x] SKILL.md with executable review steps
 - [x] FRED API integration (Case-Shiller, Federal Funds Rate)
+- [x] Scoring made data-driven (not hardcoded conclusions)
+- [x] Figures generated (structural heatmap, market performance)
+- [x] PDF generation script
 
 ### To Do
-- [ ] **Resolve [CITATION NEEDED] markers.** ~7 in the paper. Verify Kindleberger/Minsky/Shiller editions. Some data citations (retail participation rates, IPO counts) need primary sources.
+- [ ] **Resolve [CITATION NEEDED] markers.** Specific items to verify:
+  - Kindleberger & Aliber (2005) "Manias, Panics, and Crashes" — verify it's the 5th edition, Wiley publisher
+  - Minsky (1986) "Stabilizing an Unstable Economy" — verify Yale University Press
+  - Online brokerage account growth (1.5M to 9.7M, 1997-2000) — find SEC/FINRA primary source
+  - IPO counts (486 in 1999) — find Jay Ritter's IPO data or alternative source
+  - NASDAQ median P/E exceeding 100 — find Shiller P/E database or similar
+  - Housing price 70% above trend — find Case-Shiller price-to-rent historical data
+  - FCIC Report leverage data — verify specific pages/chapters
+  - NFT $25B annual sales (2021) — find DappRadar or NonFungible.com annual report
+  - DeFi leverage data — find DeFi Llama TVL historical data
+  - Training cost estimates ($100M-$1B+) — find Stanford AI Index or similar
+  - Private company valuations (OpenAI ~$157B, Anthropic ~$61.5B, xAI ~$50B) — verify current figures via Crunchbase/PitchBook
 - [ ] **Review for consistency.** Ensure all tables match the data files. Cross-check numbers.
 - [ ] **Test SKILL.md end-to-end.** Run from clean checkout, verify all steps produce expected output.
 

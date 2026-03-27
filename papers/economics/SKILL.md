@@ -311,6 +311,25 @@ AI investment scores 1.0/6.0. The two partial scores (leverage and speculative d
 
 This analysis is falsifiable. If AI investment scored >= 4.0/6.0, the thesis would be falsified and the conclusion would be that AI exhibits classical bubble structure. The scripts produce the answer from the data; they do not assume it.
 
+## Step 6: Generate Figures and PDF
+
+Description: Generate publication figures and compile the paper as a PDF with embedded figures.
+
+```bash
+pip install fpdf2 matplotlib
+
+# Generate figures
+python papers/economics/scripts/generate_figures.py
+
+# Generate PDF with figures embedded
+python papers/economics/scripts/generate_pdf.py
+```
+
+Expected Output:
+- `papers/economics/figures/fig1_structural_heatmap.png` — Feature comparison heatmap
+- `papers/economics/figures/fig2_market_metrics.png` — Market performance comparison
+- `papers/economics/paper.pdf` — Complete paper with embedded figures (~6 pages)
+
 ## Timing
 
 | Step | Expected Duration |
