@@ -83,7 +83,8 @@
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/generate_pdf.py 2>&1)",
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/generate_pdf.py 2>&1)",
       "Bash(FOL_DATA_DIR=papers/fol-discovery/data-nomic /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)",
-      "Bash(FOL_DATA_DIR=papers/fol-discovery/data-minilm /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)"
+      "Bash(FOL_DATA_DIR=papers/fol-discovery/data-minilm /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)",
+      "Bash(git reset:*)"
     ]
   }
 }
