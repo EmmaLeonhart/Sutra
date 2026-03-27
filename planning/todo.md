@@ -31,17 +31,23 @@
 
 ### To Do — Paper Substance
 
-- [ ] **Honest FOL vs predicate logic framing.** We currently claim "first-order logic" in the title, but what we actually demonstrate is predicate-level consistency (functional predicates as vector displacements). True FOL includes quantifiers (∀, ∃), variable binding, negation, and complex composition — none of which we test. instance-of (P31) at 0.244 is specifically a FOL cornerstone that fails. Options:
-  1. Reframe as "predicate logic operations" or "relational operations" — more honest
-  2. Keep "FOL" but add explicit caveats about what we do and don't test
-  3. Argue that discovering which predicates encode as displacements IS a FOL discovery (about what the space can represent)
-  Need to decide and update title, abstract, and framing accordingly. This is important — overclaiming will hurt credibility with reviewers.
+- [ ] **Honest FOL vs predicate logic framing.** We currently claim "first-order logic" in the title, but what we've demonstrated so far is predicate-level consistency (functional predicates as vector displacements). True FOL includes quantifiers (∀, ∃), variable binding, negation, and complex composition — none of which we test yet. instance-of (P31) at 0.244 is specifically a FOL cornerstone that fails with simple displacement. However, we believe FOL-level operations ARE possible in embedding space — they just require more complex operations than simple additive displacement. The paper should:
+  1. Keep "FOL" framing — it's what we're working toward and what makes the paper interesting
+  2. Be honest about what we've demonstrated (predicate-level) vs what remains to show (quantifiers, composition)
+  3. Frame the gap as "the operations are more complex, not impossible" — instance-of probably needs a matrix transformation or subtype decomposition, not a single vector
 
-- [ ] **Deeper investigation of instance-of and other hard predicates.** instance-of at 0.244 isn't just a failure — it's a measurement of how far the space is from encoding FOL's most fundamental operation. Can we improve it with:
+- [ ] **Attempt actual FOL operations in embedding space.** The predicate-level displacements are the easy case. FOL requires harder operations that we think are possible but more complex:
+  - **instance-of decomposition:** Instead of one displacement for all instance-of triples, decompose by object type. "instance-of-country" and "instance-of-person" should be separate operations with much higher consistency than the combined 0.244. This is essentially discovering that instance-of is a *family* of operations, not one operation.
+  - **Negation:** If "Japan" + d_flag = "flag of Japan", does "flag of Japan" - d_flag ≈ "Japan"? Test invertibility systematically. If displacements are invertible, that's a form of negation (undoing an operation).
+  - **Quantifier-like behavior:** The two-hop composition (28.3% Hits@10) is already testing ∃-like behavior — "there exists a path through the space." Can we find universal patterns? E.g., does the mean displacement for "country → flag" work for ALL countries, or only a subset?
+  - **Conjunction/disjunction:** Can we combine two displacement vectors to express "has flag AND has coat of arms"? Test whether d_flag + d_coat_of_arms applied to a country lands near the right compound target.
+  These are harder than simple displacement but the embedding space geometry might support them — the operations are just more complex (matrices, compositions, decompositions) rather than impossible.
+
+- [ ] **Deeper investigation of instance-of and other hard predicates.** instance-of at 0.244 isn't just a failure — it's telling us the operation exists but requires decomposition. Test:
+  - Subtype-specific analysis (instance-of-country vs instance-of-person should work individually)
   - Propositional form ("Tokyo is an instance of city" instead of just "Tokyo" → "city")
-  - Subtype-specific analysis (instance-of-country vs instance-of-person might work individually)
   - Contextual embeddings (embedding with description, not just label)
-  Even partial success here would strengthen the FOL claim significantly.
+  Even partial success here would justify keeping "FOL" in the title.
 
 - [ ] **Agent-driven literature search.** Create lit review documenting search process and findings — genuinely agentic for Claw4S.
 
