@@ -7,80 +7,76 @@
 ## CS Paper (FOL Discovery)
 
 ### Done
-- [x] Core pipeline: BFS import, embedding, trajectory computation, FOL discovery
-- [x] Paper draft with 7 tables of real data (86 operations, r=0.78 correlation)
-- [x] SKILL.md with executable review steps
+- [x] Core pipeline: BFS import, embedding, trajectory computation, operation discovery
+- [x] Paper draft with 9 tables of real data
+- [x] SKILL.md with 9 executable steps
 - [x] Propositional realization templates (13,286 properties with natural phrasings)
-- [x] Collision analysis (164,084 cross-entity collisions at cosine >= 0.95)
-- [x] Terminology fix: geodesic → trajectory throughout
+- [x] Collision analysis (164,084 cross-entity, 147,687 genuine semantic)
+- [x] Terminology fix: geodesic → trajectory throughout (including geodesics.ttl → trajectories.ttl)
 - [x] Scripts moved to papers/fol-discovery/scripts/ with relative path resolution
 - [x] Model-agnostic framing strengthened in intro
-- [x] Terminology: geodesic → trajectory (paper, SKILL.md, docs done; scripts in progress)
+- [x] Three-zone taxonomy (oversymbolic/isosymbolic/undersymbolic) in Section 5.3 with Jinmyōchō data
+- [x] VSA positioning in Related Work (Section 2.5)
+- [x] Self-citation fixed (Leonhart 2026 removed, three-zone taxonomy is now original contribution)
+- [x] Composition examples bias explained (Tadahira = seed artifact)
+- [x] Competition analysis: full inventory + Tier 1 deep dive
+- [x] Multi-model experiment: 3 models (mxbai 1024d, nomic 768d, minilm 384d), 30 universal operations
+- [x] Statistical rigor: bootstrap CIs, Cohen's d, Bonferroni correction
+- [x] Ablation study: min-triple threshold sensitivity
+- [x] Scatter plot + 7 figures total
+- [x] PDF generation with embedded figures (12 pages)
+- [x] Cross-model comparison script + figure
+- [x] Li et al. (2024) glitch token citation added
+- [x] Author name fixed: Emma Leonhart
 
 ### To Do — Paper Substance
-- [ ] **Three-zone taxonomy in paper.** Integrate oversymbolic/isosymbolic/undersymbolic framework into Section 5 (Discussion). The collision analysis data already supports this — 164,084 collisions demonstrate the oversymbolic regime. The functional-vs-relational split maps to the isosymbolic boundary. Currently only mentioned in one line (Section 5.3).
-- [ ] **VSA positioning in Related Work.** Add Section 2.5 covering Vector Symbolic Architectures and how our approach differs (we discover operations in existing spaces; VSAs construct hypervector algebras from scratch). Also mention stratified manifold work as independent validation of the three-zone idea.
-- [ ] **Agent-driven literature search.** Use agents to search for prior work on model-agnostic neuro-symbolic approaches treating embedding spaces as infrastructure. Validate novelty claim. Create literature review file documenting the search process and findings — this is genuinely agentic methodology for Claw4S.
-- [x] **Fix self-citation.** Removed "Leonhart, 2026" — three-zone taxonomy now presented as original contribution in this paper.
-- [x] **Diversify composition examples.** Added note explaining Tadahira bias is from Engishiki seed, not method limitation.
-- [x] **Competition analysis.** Full inventory of ~120+ CS submissions + Tier 1 deep dive (see competition-analysis/).
-- [ ] **Resolve [CITATION NEEDED] markers in CS paper.** Specific items:
-  - Kanerva (2009) and/or Plate (2003) on Vector Symbolic Architectures — find and verify
-  - "Hyperdimensional Probe" paper — find the actual paper using VSAs to decode LLM representations
-  - Stratified sub-manifold work — find the paper on stratified manifolds in embedding spaces
-  These were identified in the strategic discussion lit review but need actual paper verification.
-- [ ] **Reduce Wikidata import emphasis.** The brute-force BFS import was primarily for collision-hunting, not core methodology. Reframe it as data collection, not the contribution. The strategic approach to finding trajectories matters more.
 
-### To Do — Experimental Enhancements (compete with resistome-profiler's 8 experiments)
+- [ ] **Honest FOL vs predicate logic framing.** We currently claim "first-order logic" in the title, but what we actually demonstrate is predicate-level consistency (functional predicates as vector displacements). True FOL includes quantifiers (∀, ∃), variable binding, negation, and complex composition — none of which we test. instance-of (P31) at 0.244 is specifically a FOL cornerstone that fails. Options:
+  1. Reframe as "predicate logic operations" or "relational operations" — more honest
+  2. Keep "FOL" but add explicit caveats about what we do and don't test
+  3. Argue that discovering which predicates encode as displacements IS a FOL discovery (about what the space can represent)
+  Need to decide and update title, abstract, and framing accordingly. This is important — overclaiming will hurt credibility with reviewers.
 
-**Current gap:** We have 1 model, 1 seed entity, 1 experiment. resistome-profiler has 8 experiments
-with ablations. swarm-safety-lab uses 10 seeds with Bonferroni correction. We need experimental
-volume and statistical rigor to match.
+- [ ] **Deeper investigation of instance-of and other hard predicates.** instance-of at 0.244 isn't just a failure — it's a measurement of how far the space is from encoding FOL's most fundamental operation. Can we improve it with:
+  - Propositional form ("Tokyo is an instance of city" instead of just "Tokyo" → "city")
+  - Subtype-specific analysis (instance-of-country vs instance-of-person might work individually)
+  - Contextual embeddings (embedding with description, not just label)
+  Even partial success here would strengthen the FOL claim significantly.
 
-**Current sample sizes:** 159 predicates analyzed, 86 discovered operations, median 27 triples per
-operation, only 40% have ≥30 triples. For statistical credibility, we should aim for ≥30 triples
-per tested operation (the standard stats threshold for CLT assumptions).
+- [ ] **Agent-driven literature search.** Create lit review documenting search process and findings — genuinely agentic for Claw4S.
 
-- [ ] **Multi-model experiment (HIGH PRIORITY — key novelty claim).** Run the full pipeline on 3+ embedding models to demonstrate cross-model generalization. This is what differentiates us from all prior work. Models to test:
-  - `mxbai-embed-large` (1024-dim, current) — already done
-  - `nomic-embed-text` (768-dim) — `ollama pull nomic-embed-text`
-  - `all-minilm` (384-dim) — `ollama pull all-minilm`
-  - Optional: `bge-large-en` (1024-dim, same dim different architecture)
-  Each model gets its own data directory under `papers/fol-discovery/data/`. Re-run `random_walk.py` (same seed Q1342448, same --limit 500) + `fol_discovery.py` for each. Compare: which operations are discovered across all models? Which are model-specific? The overlap is the core finding.
-  **Estimated time:** ~45-60 min per model for import + ~10 min for discovery = ~2-3 hours for 3 models.
+- [ ] **Resolve [CITATION NEEDED] markers:**
+  - Kanerva (2009) / Plate (2003) on VSAs
+  - "Hyperdimensional Probe" paper
+  - Stratified sub-manifold work
 
-- [ ] **Increase sample size per operation.** Current --limit 500 gives median 27 triples per predicate. Raise to --limit 1000 or higher to push more predicates above 30 triples. This directly addresses the statistical rigor gap. Run with `--resume` to extend existing dataset.
-  **Target:** ≥100 predicates with ≥30 triples, aiming for 100+ discovered operations. Beats swarm-safety-lab's 10 seeds/condition on raw power.
+- [ ] **Reduce Wikidata import emphasis.** Reframe BFS as data collection, not the contribution.
 
-- [ ] **Multiple seed entities.** Run from 3 different seeds to show results aren't Engishiki-specific:
-  - Q1342448 (Engishiki) — done
-  - Q8502 (mountain) — different domain
-  - Q5 (human) — maximally different
-  Compare discovered operations across seeds. Operations found from all 3 seeds are robust.
+### To Do — Experimental Enhancements
 
-- [ ] **Propositional trajectory experiment.** Templates exist (13,286). Fill slots with entity labels, embed the propositions, re-run FOL discovery on propositional embeddings. Tests whether full-sentence encoding improves results for currently-failing predicates (instance-of at 0.244). The axis hierarchy finding from redoing-paper (subject 3.5x > predicate 1.0x) predicts propositional form should help.
+- [ ] **Multilingual experiments.** Run pipeline with non-English Wikidata labels on multilingual embedding models. Priority tests:
+  - Japanese labels on multilingual-e5-large or similar — does the undersymbolic diacritic collapse disappear when using a model trained on Japanese?
+  - Languages with case systems (Finnish, German, Latin) — do grammatical cases produce different displacement patterns for the same semantic relationships?
+  - Compare: do the same 30 universal operations appear across languages, or are some language-specific?
+  This requires a multilingual Ollama model (e.g., `multilingual-e5-large` or `bge-m3`).
 
-- [ ] **Alignment-vs-MRR scatter plot.** Generate a figure for the r=0.78 correlation. Most impactful single visual addition. Color-code by functional vs relational predicates.
+- [ ] **Derive transformation matrices.** Currently we only compute additive displacements (d = embed(object) - embed(subject)). The richer model: embed(proposition) = embed(subject) + M * embed(predicate) where M is a transformation matrix. Compute M via least squares across examples. Test:
+  - Does M improve prediction over simple displacement?
+  - Is M invertible? (Can you recover subject from object + inverse M?)
+  - Do case-system languages produce different M matrices for the same semantic relationship?
 
-- [ ] **Ablation study.** Vary the minimum triple threshold (5, 10, 20, 50) and report how discovery count and prediction accuracy change. Simple to compute from existing data, adds an "ablation" section matching resistome-profiler's experimental structure.
+- [ ] **Increase sample size.** --limit 1000+ to push more predicates above 30 triples (CLT threshold).
 
-- [ ] **Statistical rigor matching.** For all reported metrics:
-  - Report confidence intervals (not just point estimates)
-  - Report effect sizes (Cohen's d equivalent for our correlation findings)
-  - Run bootstrap resampling on the alignment-MRR correlation
-  - Apply Bonferroni/Holm correction if making multiple claims
-  This directly matches swarm-safety-lab's statistical discipline.
+- [ ] **Multiple seed entities.** Q8502 (mountain), Q5 (human) — robustness check across domains.
 
-- [ ] **Derive transformation matrices (not just displacement vectors).** The strategic discussion described finding matrices that transform words between forms (e.g., noun -> verb, subject -> object). Currently we only compute additive displacements (d = embed(object) - embed(subject)). The richer model: embed("Hank is running") = embed("Hank") + M * embed("running") where M is a learned transformation matrix. Compute M via least squares across multiple examples, test invertibility.
-
-- [ ] **Cross-lingual experiments.** Test whether operations discovered in English embedding spaces also appear in other languages. Especially interesting: languages with grammatical case systems (Finnish, Japanese, Latin) — do they produce different transformation matrices for the same semantic relationships? The Wikidata labels exist in many languages; the pipeline can be re-run with different language labels.
+- [ ] **Propositional trajectory experiment.** Templates ready. Test full-sentence encoding vs label-only.
 
 ### Post-Deadline / Future Work
-- [ ] Monthly property scanner (GitHub Actions) for keeping Wikidata properties current
-- [ ] Systematic probing methodology for probe.py (5 modes exist, no systematic framework)
-- [ ] Cross-model transformation matrix transfer (do matrices from model A work on model B?)
-- [ ] Invertibility testing (can operations be undone by applying -d?)
-- [ ] Controlled sentence corpus experiments (3x3x3 semantic grid from redoing-paper)
+- [ ] Monthly property scanner (GitHub Actions)
+- [ ] Systematic probing methodology for probe.py
+- [ ] Cross-model transformation matrix transfer
+- [ ] Invertibility testing
+- [ ] Controlled sentence corpus (3x3x3 semantic grid from redoing-paper)
 
 ---
 
@@ -89,28 +85,29 @@ per tested operation (the standard stats threshold for CLT assumptions).
 ### Done
 - [x] Data collection scripts (bubble data, AI investment, structural comparison)
 - [x] Full pipeline working: historical bubbles avg 5.62/6.0, AI scores 0.5/6.0
-- [x] Paper draft (~250 lines) with real data tables
+- [x] Paper draft with real data tables
 - [x] SKILL.md with executable review steps
 - [x] FRED API integration (Case-Shiller, Federal Funds Rate)
-- [x] Scoring made data-driven (not hardcoded conclusions)
+- [x] Scoring made data-driven (computed from retrieved data, not hardcoded)
 - [x] Figures generated (structural heatmap, market performance)
 - [x] PDF generation script
+- [x] Author name fixed: Emma Leonhart
 
 ### To Do
-- [ ] **Resolve [CITATION NEEDED] markers.** Specific items to verify:
-  - Kindleberger & Aliber (2005) "Manias, Panics, and Crashes" — verify it's the 5th edition, Wiley publisher
-  - Minsky (1986) "Stabilizing an Unstable Economy" — verify Yale University Press
-  - Online brokerage account growth (1.5M to 9.7M, 1997-2000) — find SEC/FINRA primary source
-  - IPO counts (486 in 1999) — find Jay Ritter's IPO data or alternative source
-  - NASDAQ median P/E exceeding 100 — find Shiller P/E database or similar
-  - Housing price 70% above trend — find Case-Shiller price-to-rent historical data
-  - FCIC Report leverage data — verify specific pages/chapters
-  - NFT $25B annual sales (2021) — find DappRadar or NonFungible.com annual report
-  - DeFi leverage data — find DeFi Llama TVL historical data
-  - Training cost estimates ($100M-$1B+) — find Stanford AI Index or similar
-  - Private company valuations (OpenAI ~$157B, Anthropic ~$61.5B, xAI ~$50B) — verify current figures via Crunchbase/PitchBook
-- [ ] **Review for consistency.** Ensure all tables match the data files. Cross-check numbers.
-- [ ] **Test SKILL.md end-to-end.** Run from clean checkout, verify all steps produce expected output.
+- [ ] **Resolve [CITATION NEEDED] markers.** Specific items:
+  - Kindleberger & Aliber (2005) — verify 5th edition, Wiley
+  - Minsky (1986) — verify Yale University Press
+  - Online brokerage growth (1.5M to 9.7M) — SEC/FINRA primary source
+  - IPO counts (486 in 1999) — Jay Ritter's IPO data
+  - NASDAQ median P/E > 100 — Shiller P/E database
+  - Housing price 70% above trend — Case-Shiller price-to-rent
+  - FCIC Report leverage data — verify pages
+  - NFT $25B (2021) — DappRadar annual report
+  - DeFi leverage — DeFi Llama TVL
+  - Training costs ($100M-$1B+) — Stanford AI Index
+  - Private valuations (OpenAI, Anthropic, xAI) — Crunchbase/PitchBook
+- [ ] **Review for consistency.** Tables match data files, numbers cross-checked.
+- [ ] **Test SKILL.md end-to-end.** Clean checkout test.
 
 ---
 
@@ -118,9 +115,12 @@ per tested operation (the standard stats threshold for CLT assumptions).
 
 ### Done
 - [x] Repo reorganized: each paper self-contained in papers/
-- [x] Both papers have paper.md + SKILL.md
-- [x] README and CLAUDE.md updated for two-paper structure
+- [x] Both papers have paper.md + SKILL.md + figures + PDF
+- [x] README and CLAUDE.md updated
+- [x] Competition analysis with Tier 1 deep dive
+- [x] Literature review pages for both papers
 
 ### To Do
-- [ ] **Final review pass on both papers.** Read critically for consistency, missing data, unresolved markers.
-- [ ] **Submit to clawRxiv.** Push final versions, submit both papers.
+- [ ] **Final review pass on both papers.**
+- [ ] **Cold-start test both SKILL.md files.** Clone fresh, run from scratch. Critical — alchemy1729 audit found 94% fail.
+- [ ] **Submit to clawRxiv.**
