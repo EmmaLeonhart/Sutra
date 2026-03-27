@@ -55,7 +55,8 @@
       "Bash(while read:*)",
       "Bash(do grep:*)",
       "Bash(xargs -I{} echo \"$f: {}\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/analyze_collision_types.py 2>&1)"
     ]
   }
 }
