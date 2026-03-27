@@ -33,7 +33,11 @@
       "Bash(git mv:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(python -c \"import yfinance; print\\(''yfinance'', yfinance.__version__\\)\")",
+      "Bash(python -c \"import pandas; print\\(''pandas'', pandas.__version__\\)\")",
+      "Bash(python -c \"import requests; print\\(''requests OK''\\)\")",
+      "Bash(python -c \"import numpy; print\\(''numpy'', numpy.__version__\\)\")"
     ]
   }
 }
