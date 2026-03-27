@@ -38,9 +38,9 @@ Expected Output: `OK: 1024-dim`
 Description: Clone the repository and verify the environment.
 
 ```bash
-git clone https://github.com/EmmaLeonhart/embedding-mapping.git
-cd embedding-mapping
-mkdir -p data
+git clone https://github.com/EmmaLeonhart/Claw4S-submissions.git
+cd Claw4S-submissions
+mkdir -p papers/fol-discovery/data
 ```
 
 Verify Python dependencies:
@@ -64,7 +64,7 @@ Expected Output:
 Description: Breadth-first search from a seed entity through Wikidata, importing entities with all their triples and computing embeddings via mxbai-embed-large.
 
 ```bash
-python random_walk.py Q1342448 --limit 100
+python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 100
 ```
 
 This imports 100 entities starting from Engishiki (Q1342448), a Japanese historical text with a dense ontological neighborhood. Each imported entity:
@@ -90,19 +90,19 @@ Expected Output:
 **Runtime:** ~10-15 minutes for 100 entities (depends on Wikidata API speed and Ollama inference).
 
 **Artifacts:**
-- `data/items.json` — All imported entities with triples
-- `data/embeddings.npz` — Embedding vectors (numpy)
-- `data/embedding_index.json` — Vector index → (qid, text, type) mapping
-- `data/walk_state.json` — Resumable BFS queue state
-- `data/triples.nt` — RDF triples (N-Triples format)
-- `data/geodesics.ttl` — Geodesic objects (Turtle format)
+- `papers/fol-discovery/data/items.json` — All imported entities with triples
+- `papers/fol-discovery/data/embeddings.npz` — Embedding vectors (numpy)
+- `papers/fol-discovery/data/embedding_index.json` — Vector index → (qid, text, type) mapping
+- `papers/fol-discovery/data/walk_state.json` — Resumable BFS queue state
+- `papers/fol-discovery/data/triples.nt` — RDF triples (N-Triples format)
+- `papers/fol-discovery/data/geodesics.ttl` — Geodesic objects (Turtle format)
 
 ## Step 3: Discover First-Order Logic Operations
 
 Description: The core analysis. For each predicate with sufficient triples, compute displacement vector consistency and evaluate prediction accuracy.
 
 ```bash
-python fol_discovery.py --min-triples 5
+python papers/fol-discovery/scripts/fol_discovery.py --min-triples 5
 ```
 
 The discovery procedure for each predicate:
@@ -115,7 +115,7 @@ The discovery procedure for each predicate:
 
 **Parameters:**
 - `--min-triples 5` — Minimum triples per predicate to analyze (lower = more predicates tested, noisier results)
-- `--output data/fol_results.json` — Output file path
+- `--output papers/fol-discovery/data/fol_results.json` — Output file path
 
 Expected Output:
 
@@ -158,14 +158,14 @@ PHASE 4: FAILURE ANALYSIS
 **Runtime:** ~5-15 minutes depending on dataset size.
 
 **Artifacts:**
-- `data/fol_results.json` — Complete results with discovered operations, prediction scores, and failure analysis
+- `papers/fol-discovery/data/fol_results.json` — Complete results with discovered operations, prediction scores, and failure analysis
 
 ## Step 4: Collision and Density Analysis (Optional)
 
 Description: Detect embedding collisions (distinct entities with near-identical vectors) and classify regions by density.
 
 ```bash
-python analyze_collisions.py --threshold 0.95 --k 10
+python papers/fol-discovery/scripts/analyze_collisions.py --threshold 0.95 --k 10
 ```
 
 Expected Output:
@@ -174,7 +174,7 @@ Expected Output:
 - Geodesic consistency per predicate
 
 **Artifacts:**
-- `data/analysis_results.json` — Collision and density results
+- `papers/fol-discovery/data/analysis_results.json` — Collision and density results
 
 ## Step 5: Verify Results
 
@@ -186,7 +186,7 @@ import json
 import numpy as np
 
 # Load FOL results
-with open('data/fol_results.json', encoding='utf-8') as f:
+with open('papers/fol-discovery/data/fol_results.json', encoding='utf-8') as f:
     results = json.load(f)
 
 summary = results['summary']
@@ -257,16 +257,16 @@ These failures are **informative**: they reveal what embedding spaces *cannot* r
 
 ### Different Seed Entity
 ```bash
-python random_walk.py Q8502 --limit 100   # Start from "mountain"
-python random_walk.py Q5 --limit 100      # Start from "human"
+python papers/fol-discovery/scripts/random_walk.py Q8502 --limit 100   # Start from "mountain"
+python papers/fol-discovery/scripts/random_walk.py Q5 --limit 100      # Start from "human"
 ```
 
 ### Different Embedding Model
-Change `EMBED_MODEL` in `import_wikidata.py` to any Ollama-supported model. The entire analysis pipeline is model-agnostic.
+Change `EMBED_MODEL` in `papers/fol-discovery/scripts/import_wikidata.py` to any Ollama-supported model. The entire analysis pipeline is model-agnostic.
 
 ### Larger Dataset
 ```bash
-python random_walk.py --resume --limit 1000  # Import 1000 entities total
+python papers/fol-discovery/scripts/random_walk.py --resume --limit 1000  # Import 1000 entities total
 ```
 
 More entities = more predicates tested = more operations discovered. The tradeoff is runtime (primarily Wikidata API + embedding inference).
@@ -309,4 +309,4 @@ This skill is successfully executed when:
 - Mikolov et al. (2013). Distributed Representations of Words and Phrases. NeurIPS.
 - Sun et al. (2019). RotatE: Knowledge Graph Embedding by Relational Rotation. ICLR.
 - Claw4S Conference: https://claw4s.github.io/
-- Repository: https://github.com/EmmaLeonhart/embedding-mapping
+- Repository: https://github.com/EmmaLeonhart/Claw4S-submissions

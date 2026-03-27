@@ -82,69 +82,68 @@ ollama pull mxbai-embed-large
 
 ```bash
 # 1. Import entities from Wikidata (BFS from seed)
-python random_walk.py Q1342448 --limit 500
+python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500
 
 # 2. Discover FOL operations
-python fol_discovery.py
+python papers/fol-discovery/scripts/fol_discovery.py
 
 # 3. Analyze collisions and density
-python analyze_collisions.py
+python papers/fol-discovery/scripts/analyze_collisions.py
 
 # 4. (Optional) Load into SutraDB
 sutra serve --port 3030
-python import_to_sutra.py --load-existing
+python papers/fol-discovery/scripts/import_to_sutra.py --load-existing
 ```
 
 ### Explore the Embedding Space
 
 ```bash
 # Nearest neighbors
-python probe.py neighbors Q513          # Mount Everest
+python papers/fol-discovery/scripts/probe.py neighbors Q513          # Mount Everest
 
 # Interpolate between entities
-python probe.py between Q513 Q8502      # Everest ↔ mountain
+python papers/fol-discovery/scripts/probe.py between Q513 Q8502      # Everest ↔ mountain
 
 # Vector arithmetic (displacement)
-python probe.py displace Q513 Q8502 Q39231  # (mountain - Everest) + Fuji = ?
+python papers/fol-discovery/scripts/probe.py displace Q513 Q8502 Q39231  # (mountain - Everest) + Fuji = ?
 ```
 
 ## Project Structure
 
 ```
-embedding-mapping/
-├── random_walk.py          # BFS Wikidata import pipeline
-├── import_wikidata.py      # Core import logic (fetch, embed, geodesics)
-├── fol_discovery.py        # FOL operation discovery + evaluation
-├── analyze_collisions.py   # Collision detection + density analysis
-├── probe.py                # Interactive embedding space explorer
-├── compute_geodesics.py    # Standalone geodesic computation
-├── embed_entities.py       # Standalone embedding generation
-├── sutra_client.py         # SutraDB Python client
-├── import_to_sutra.py      # SutraDB import pipeline
+Claw4S-submissions/
 ├── papers/
-│   ├── README.md              # Overview of both Claw4S submissions
+│   ├── README.md                  # Overview of both Claw4S submissions
 │   ├── fol-discovery/
-│   │   ├── paper.md           # FOL discovery paper (CS category)
-│   │   └── SKILL.md           # Executable review instructions
+│   │   ├── paper.md               # FOL discovery paper (CS category)
+│   │   ├── SKILL.md               # Executable review instructions
+│   │   ├── scripts/
+│   │   │   ├── random_walk.py     # BFS Wikidata import pipeline
+│   │   │   ├── import_wikidata.py # Core import logic (fetch, embed, geodesics)
+│   │   │   ├── fol_discovery.py   # FOL operation discovery + evaluation
+│   │   │   ├── analyze_collisions.py  # Collision detection + density analysis
+│   │   │   ├── probe.py           # Interactive embedding space explorer
+│   │   │   └── ...                # Additional pipeline scripts
+│   │   └── data/
+│   │       ├── properties.json    # Wikidata property labels
+│   │       ├── property_templates.json  # Propositional realization templates
+│   │       └── (regenerable files gitignored)
 │   └── economics/
-│       └── paper.md           # AI bubble paper (Economics category)
-├── data/
-│   ├── items.json          # Imported Wikidata entities
-│   ├── embedding_index.json # Maps vector index → (qid, text, type)
-│   ├── embeddings.npz      # All embedding vectors
-│   ├── properties.json     # Wikidata property labels
-│   ├── property_templates.json  # Propositional realization templates
-│   ├── walk_state.json     # BFS queue state (resumable)
-│   ├── fol_results.json    # FOL discovery results
-│   └── analysis_results.json   # Collision/density results
+│       ├── paper.md               # AI bubble paper (Economics category)
+│       ├── SKILL.md               # Executable review instructions
+│       ├── scripts/
+│       │   ├── collect_bubble_data.py      # Historical bubble data retrieval
+│       │   ├── collect_ai_investment.py    # AI company financial data
+│       │   └── structural_comparison.py    # Comparison matrix analysis
+│       └── data/                  # Retrieved financial data (committed)
 ├── planning/
-│   ├── project-vision.md   # Core concepts and goals
-│   ├── strategic-discussion.md  # Claw4S strategy and competitive analysis
+│   ├── project-vision.md          # Core concepts and goals
+│   ├── strategic-discussion.md    # Claw4S strategy and competitive analysis
 │   ├── architecture-decisions.md  # Design rationale
-│   ├── geodesics.md        # What geodesics are and aren't
-│   ├── roadmap.md          # Development phases
-│   └── todo.md             # Current tasks
-└── redoing-paper/          # Prior work on neurosymbolic embedding analysis
+│   ├── geodesics.md               # What geodesics are and aren't
+│   ├── roadmap.md                 # Development phases
+│   └── todo.md                    # Current tasks
+└── redoing-paper/                 # Prior work on neurosymbolic embedding analysis
 ```
 
 ## Key Concepts
