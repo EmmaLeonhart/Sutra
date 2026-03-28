@@ -1,0 +1,140 @@
+{
+  "model": "nomic-embed-text",
+  "patterns": [
+    {
+      "pattern": "SVO",
+      "n_sentences": 800,
+      "roles": [
+        "verb",
+        "object"
+      ],
+      "feature_rank": 39,
+      "training": {
+        "matrix_mean": 0.9165261474783106,
+        "baseline_mean": 0.8628695370461982,
+        "improvement": 0.05365661043211245
+      },
+      "leave_one_out": {
+        "n_evaluated": 200,
+        "matrix_mean": 0.9116224402074234,
+        "baseline_mean": 0.8651929024910193,
+        "improvement": 0.04642953771640412
+      },
+      "matrix_properties": {
+        "verb": {
+          "frobenius": 2.5231174331332635,
+          "identity_distance": 27.492130412159
+        },
+        "object": {
+          "frobenius": 2.9693134460966295,
+          "identity_distance": 27.445176313733064
+        }
+      }
+    },
+    {
+      "pattern": "Adj-SVO",
+      "n_sentences": 800,
+      "roles": [
+        "adjective",
+        "verb",
+        "object"
+      ],
+      "feature_rank": 28,
+      "training": {
+        "matrix_mean": 0.8945663062143052,
+        "baseline_mean": 0.820839949224447,
+        "improvement": 0.07372635698985819
+      },
+      "leave_one_out": {
+        "n_evaluated": 200,
+        "matrix_mean": 0.8884040664766054,
+        "baseline_mean": 0.82196641336452,
+        "improvement": 0.06643765311208538
+      },
+      "matrix_properties": {
+        "adjective": {
+          "frobenius": 1.6174844843174225,
+          "identity_distance": 27.60519612160429
+        },
+        "verb": {
+          "frobenius": 1.3713559350015456,
+          "identity_distance": 27.631656418584747
+        },
+        "object": {
+          "frobenius": 1.9206026595451164,
+          "identity_distance": 27.59356445361587
+        }
+      }
+    },
+    {
+      "pattern": "S-Adv-V-O",
+      "n_sentences": 800,
+      "roles": [
+        "verb",
+        "adverb",
+        "object"
+      ],
+      "feature_rank": 28,
+      "training": {
+        "matrix_mean": 0.9125529261170882,
+        "baseline_mean": 0.8113322993634098,
+        "improvement": 0.10122062675367838
+      },
+      "leave_one_out": {
+        "n_evaluated": 200,
+        "matrix_mean": 0.9092819570977394,
+        "baseline_mean": 0.817157770512562,
+        "improvement": 0.0921241865851774
+      },
+      "matrix_properties": {
+        "verb": {
+          "frobenius": 1.534065964414978,
+          "identity_distance": 27.62511300554819
+        },
+        "adverb": {
+          "frobenius": 1.0717643813204518,
+          "identity_distance": 27.641885096097134
+        },
+        "object": {
+          "frobenius": 2.032046042343973,
+          "identity_distance": 27.591775884267825
+        }
+      }
+    },
+    {
+      "pattern": "S-V-Prep-PObj",
+      "n_sentences": 800,
+      "roles": [
+        "verb",
+        "preposition",
+        "prep_object"
+      ],
+      "feature_rank": 28,
+      "training": {
+        "matrix_mean": 0.9181167401443298,
+        "baseline_mean": 0.8289935445574677,
+        "improvement": 0.0891231955868621
+      },
+      "leave_one_out": {
+        "n_evaluated": 200,
+        "matrix_mean": 0.9163983434189137,
+        "baseline_mean": 0.8291873365782029,
+        "improvement": 0.08721100684071081
+      },
+      "matrix_properties": {
+        "verb": {
+          "frobenius": 1.5303300992693216,
+          "identity_distance": 27.62378027195112
+        },
+        "preposition": {
+          "frobenius": 1.2196690164975954,
+          "identity_distance": 27.64527571529624
+        },
+        "prep_object": {
+          "frobenius": 1.9381817754560264,
+          "identity_distance": 27.5848444433981
+        }
+      }
+    }
+  ]
+}
