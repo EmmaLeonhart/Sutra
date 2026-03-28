@@ -112,7 +112,8 @@
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/discover_matrices.py --model nomic-embed-text --max-sentences 1000 --output C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/data/matrix_v2_nomic-embed-text.json)",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/discover_matrices.py --model all-minilm --max-sentences 1000 --output C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/data/matrix_v2_all-minilm.json)",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/discover_matrices_extended.py --model mxbai-embed-large --max-per-pattern 800)",
-      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/discover_matrices_extended.py --model nomic-embed-text --max-per-pattern 800)"
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/discover_matrices_extended.py --model nomic-embed-text --max-per-pattern 800)",
+      "WebFetch(domain:claude.ai)"
     ]
   }
 }
