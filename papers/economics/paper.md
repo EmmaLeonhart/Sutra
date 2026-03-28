@@ -8,7 +8,7 @@ Public discourse increasingly frames artificial intelligence investment as a spe
 
 ## 1. Introduction
 
-Is AI investment a bubble? The question appears frequently in financial media, policy discussions, and public discourse. NVIDIA's market capitalization has grown from approximately $300B to over $4T in three years. Private AI companies carry valuations of $50-157B with limited revenue histories. Combined quarterly capital expenditure among the top five AI infrastructure companies now exceeds $120B.
+Is AI investment a bubble? The question appears frequently in financial media, policy discussions, and public discourse. NVIDIA's market capitalization has grown from approximately \$300B to over \$4T in three years. Private AI companies carry valuations of \$50-157B with limited revenue histories. Combined quarterly capital expenditure among the top five AI infrastructure companies now exceeds \$120B.
 
 These numbers invite comparison with historical episodes of speculative excess. But comparison requires structure. The word "bubble" carries specific economic meaning beyond "expensive" or "overhyped." A bubble is a self-reinforcing cycle of asset price inflation driven by speculative behavior, sustained by leverage and denial, and resolved through rapid, cascading liquidation. Not all overvaluation is a bubble. Not all corrections are crashes.
 
