@@ -14,11 +14,19 @@ Discovering first-order logic operations in arbitrary embedding spaces via traje
 - Existing results: 86 predicates discovered, 32 strong operations, composition validated
 - Key novelty: cross-model generalization of discovered transformation matrices
 
-## Paper 2: AI Investment Bubble (Economics category)
+## Paper 2: AI Investment Bubble (Economics — Quantitative Finance)
 **Directory:** `economics/`
+**Status:** Deprioritized in favor of Paper 3
 
 Microeconomic historical analysis of AI investment through the lens of bubble mechanics. Agent-driven collection and systematic comparison of structural features across historical bubbles.
 
-- Genuine agentic research contribution (agents do the data retrieval and comparison)
-- Falsifiable quantitative core with interesting qualitative framing
-- Weak competitive field = strong positioning opportunity
+## Paper 3: Dimensional Decomposition for Many-to-Many Matching (Economics — Labor/Micro)
+**Directory:** `many-to-many/`
+
+Structured matching primitive that decomposes embedding similarity into three components: active selection, active control (orthogonal projection), and residual general similarity. Combines dimensional decomposition with directed small-world graph navigation.
+
+- **Core contribution:** Three-part query structure (select + control + navigate) as a unified matching primitive — doesn't exist in current literature
+- **Key insight:** Single-score similarity conflation is where algorithmic discrimination structurally originates; decomposition is the remedy, not correction
+- **Case studies:** Labor market matching, ontological categorization, gender-controlled similarity, emergent latent structure
+- **Research arc:** Paper 1 handles directional one-to-one relations; this paper extends to directional many-to-many; bidirectional many-to-many remains open
+- Theoretical paper, no empirical component required
