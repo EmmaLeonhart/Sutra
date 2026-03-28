@@ -25,19 +25,19 @@ Our finding is that AI investment fails to exhibit five of six structural bubble
 
 ## 2. Framework: What Makes a Bubble
 
-We adopt the Kindleberger-Minsky framework [CITATION NEEDED] as our baseline definition of speculative bubbles, augmented with structural features identified across multiple historical episodes. A bubble is not merely overvaluation — it is a specific market pathology requiring particular structural conditions.
+We adopt the Kindleberger-Minsky framework (Kindleberger & Aliber, 2005; Minsky, 1986) as our baseline definition of speculative bubbles, augmented with structural features identified across multiple historical episodes. A bubble is not merely overvaluation — it is a specific market pathology requiring particular structural conditions.
 
 ### 2.1 Six Structural Features
 
 **Feature 1: Widespread Denial / Reflexive Valuation.** In confirmed bubbles, the dominant narrative actively denies bubble conditions. "This time is different" becomes consensus. Career risk attaches to bearish positions. The dot-com era produced *Dow 36,000* (Glassman & Hassett, 1999); the housing era featured Federal Reserve testimony that "a national decline has never occurred" (Bernanke, 2005). The reflexive dynamic sustains overvaluation by suppressing corrective price signals.
 
-**Feature 2: Mass Retail Participation.** Bubbles require a broad base of participants who can simultaneously panic. The dot-com bubble saw online brokerage accounts grow from 1.5 million (1997) to 9.7 million (2000) [CITATION NEEDED]. The housing bubble reached homeownership rates of 69.2% (US Census Bureau, 2004). Concentrated institutional holdings cannot produce the simultaneous mass exit that defines a crash.
+**Feature 2: Mass Retail Participation.** Bubbles require a broad base of participants who can simultaneously panic. The dot-com bubble saw online brokerage accounts grow from 3.7 million (1997) to 9.7 million (1999) (SEC, 1999). The housing bubble reached homeownership rates of 69.2% (US Census Bureau, 2004). Concentrated institutional holdings cannot produce the simultaneous mass exit that defines a crash.
 
-**Feature 3: Leverage Amplification.** Leverage transforms overvaluation into systemic risk. NYSE margin debt peaked at $278.5B during the dot-com peak (FINRA). The housing bubble operated on loan-to-value ratios exceeding 100%, amplified through CDO tranching into trillions in notional exposure [CITATION NEEDED]. Leverage creates forced sellers — margin calls and liquidations that cascade regardless of fundamental value.
+**Feature 3: Leverage Amplification.** Leverage transforms overvaluation into systemic risk. NYSE margin debt peaked at $278.5B during the dot-com peak (FINRA). The housing bubble operated on loan-to-value ratios exceeding 100%, amplified through CDO tranching into trillions in notional exposure (Financial Crisis Inquiry Commission, 2011, Ch. 8). Leverage creates forced sellers — margin calls and liquidations that cascade regardless of fundamental value.
 
 **Feature 4: Exit Liquidity.** A crash requires the ability to sell at scale. This requires deep public markets with continuous pricing and instant settlement. Housing had a liquid secondary mortgage market. Dot-com stocks traded on NASDAQ with retail-accessible order books. Without exit liquidity, overvaluation deflates through write-downs rather than crashing through mass liquidation.
 
-**Feature 5: Speculative Disconnect from Fundamentals.** Asset prices must diverge substantially from any reasonable fundamental anchor. The dot-com peak featured median NASDAQ P/E ratios exceeding 100 [CITATION NEEDED], with many IPOs having zero revenue. Housing prices rose 70% above historical price-to-rent ratios [CITATION NEEDED]. The disconnect must be large enough that eventual reversion produces catastrophic losses.
+**Feature 5: Speculative Disconnect from Fundamentals.** Asset prices must diverge substantially from any reasonable fundamental anchor. The dot-com peak featured NASDAQ trailing P/E ratios approaching 175 (Ofek & Richardson, 2003; Shiller, 2000), with many IPOs having zero revenue. Housing prices rose over 50% above historical price-to-rent ratios (Davis, Lehnert, & Martin, 2008). The disconnect must be large enough that eventual reversion produces catastrophic losses.
 
 **Feature 6: Rapid Unwind Mechanism.** The crash itself requires a mechanism for rapid, cascading price decline. Margin calls force selling which depresses prices which triggers more margin calls. Bank failures cascade through interbank lending. The NASDAQ fell 78% over 31 months. The S&P 500 fell 57% in 17 months during the housing crisis. Without a cascade mechanism, corrections are slow and orderly.
 
@@ -51,7 +51,7 @@ Each feature is scored as PRESENT (1.0), PARTIAL (0.5), or ABSENT (0.0) for each
 
 The NASDAQ Composite rose from approximately 1,000 (January 1995) to a peak of 5,048.62 (March 10, 2000), a run-up of 62 months. It subsequently fell 77.9% to a trough of 1,114.11 (October 9, 2002) over 31 months.
 
-All six structural features were fully present. Retail participation was massive (486 IPOs in 1999 alone [CITATION NEEDED]). Leverage was high (margin debt nearly doubled in three years). The "new economy" narrative provided reflexive denial. Public markets provided exit liquidity. Many IPOs had no revenue, let alone earnings. Margin calls cascaded the decline.
+All six structural features were fully present. Retail participation was massive (486 IPOs in 1999 alone; Ritter, 2025). Leverage was high (margin debt nearly doubled in three years). The "new economy" narrative provided reflexive denial. Public markets provided exit liquidity. Many IPOs had no revenue, let alone earnings. Margin calls cascaded the decline.
 
 **Score: 6.0/6.0**
 
@@ -71,7 +71,7 @@ The Nikkei 225 peaked at 38,915.87 (December 29, 1989) and fell 80.5% to 7,607.8
 
 ### 3.4 NFT/Crypto Cycles (2017-2023)
 
-Bitcoin peaked at approximately $68,790 (November 10, 2021) and fell 77.3% to approximately $15,599 (November 21, 2022). The NFT market collapsed from $25B in annual sales (2021) to negligible volumes [CITATION NEEDED]. The cycle included cascading institutional failures: Terra/Luna, Three Arrows Capital, and FTX.
+Bitcoin peaked at approximately $68,790 (November 10, 2021) and fell 77.3% to approximately $15,599 (November 21, 2022). The NFT market collapsed from $25B in annual sales (2021) to negligible volumes (DappRadar, 2022). The cycle included cascading institutional failures: Terra/Luna, Three Arrows Capital, and FTX.
 
 Five of six features were present. The one partial feature was denial — uniquely, crypto communities actively trained members to dismiss bubble accusations as "FUD" (fear, uncertainty, doubt), creating a sophisticated antibody to corrective narrative. But external skepticism from institutional finance was consistently high, making the denial dynamic mixed rather than fully reflexive.
 
@@ -104,11 +104,11 @@ The distinction matters for crash dynamics. A severely distressed AI company loo
 
 ### 4.3 Cost Economics
 
-AI has a split cost structure. Model training is lumpy capital expenditure ($100M-$1B+ per frontier model [CITATION NEEDED]). But inference — actually serving the model — has favorable and declining marginal costs. This is closer to the AWS model (high upfront infrastructure cost, low marginal service cost) than to blitzscaling (continuous cash burn subsidizing every unit sold).
+AI has a split cost structure. Model training is lumpy capital expenditure ($100M-$1B+ per frontier model; Maslej et al., 2025; Epoch AI, 2024). But inference — actually serving the model — has favorable and declining marginal costs. This is closer to the AWS model (high upfront infrastructure cost, low marginal service cost) than to blitzscaling (continuous cash burn subsidizing every unit sold).
 
 ### 4.4 Public vs. Private Markets
 
-The most prominent pure-play AI companies are private: OpenAI (~$157B valuation), Anthropic (~$61.5B), xAI (~$50B) [CITATION NEEDED — verify current valuations]. There have been essentially zero pure-play AI IPOs. This means there is no public market mechanism for mass retail exit. Private overvaluations get resolved through down rounds, write-downs, and restructuring — the WeWork pattern of fizzle rather than pop.
+The most prominent pure-play AI companies are private: OpenAI (~$300B valuation), Anthropic (~$61.5B), xAI (~$50B) (PitchBook, 2025). There have been essentially zero pure-play AI IPOs. This means there is no public market mechanism for mass retail exit. Private overvaluations get resolved through down rounds, write-downs, and restructuring — the WeWork pattern of fizzle rather than pop.
 
 ### 4.5 Macro Environment
 
@@ -239,7 +239,7 @@ Additionally, the NFT cycle lasted under two years — more accurately described
 
 3. **Temporal limitation.** This analysis reflects market structure as of March 2026. If major AI companies begin IPO processes, retail participation channels emerge, or leverage instruments develop, the structural assessment could change rapidly.
 
-4. **Data gaps.** Private market valuations are approximate. Some historical metrics (retail participation rates, exact leverage ratios) rely on published estimates rather than primary data. Items marked [CITATION NEEDED] in the data files require verification.
+4. **Data gaps.** Private market valuations are approximate. Some historical metrics (retail participation rates, exact leverage ratios) rely on published estimates rather than primary data.
 
 ## 8. Conclusion
 
@@ -255,14 +255,28 @@ All code and data are available at https://github.com/EmmaLeonhart/Claw4S-submis
 
 Bernanke, B. S. (2005). Testimony before the Joint Economic Committee, US Congress. October 20, 2005.
 
+DappRadar. (2022). *DappRadar Industry Report 2021*.
+
+Davis, M. A., Lehnert, A., & Martin, R. F. (2008). The rent-price ratio for the aggregate stock of owner-occupied housing. *Review of Income and Wealth*, 54(2), 279-284.
+
+Epoch AI. (2024). How much does it cost to train frontier AI models? https://epoch.ai/blog/how-much-does-it-cost-to-train-frontier-ai-models
+
 Financial Crisis Inquiry Commission. (2011). *The Financial Crisis Inquiry Report*. US Government Printing Office.
 
 Glassman, J. K., & Hassett, K. A. (1999). *Dow 36,000: The New Strategy for Profiting from the Coming Rise in the Stock Market*. Times Books.
 
-Kindleberger, C. P., & Aliber, R. Z. (2005). *Manias, Panics, and Crashes: A History of Financial Crises* (5th ed.). Wiley. [CITATION NEEDED — verify edition]
+Kindleberger, C. P., & Aliber, R. Z. (2005). *Manias, Panics, and Crashes: A History of Financial Crises* (5th ed.). Wiley.
 
-Minsky, H. P. (1986). *Stabilizing an Unstable Economy*. Yale University Press. [CITATION NEEDED — verify]
+Maslej, N., Fattorini, L., Perrault, R., et al. (2025). *The AI Index 2025 Annual Report*. Stanford Institute for Human-Centered Artificial Intelligence (HAI), Stanford University.
+
+Minsky, H. P. (1986). *Stabilizing an Unstable Economy*. Yale University Press.
+
+Ofek, E., & Richardson, M. (2003). DotCom mania: The rise and fall of internet stock prices. *The Journal of Finance*, 58(3), 1113-1137.
+
+Ritter, J. R. (2025). Initial public offerings: Updated statistics. University of Florida. https://site.warrington.ufl.edu/ritter/files/IPO-Statistics.pdf
 
 Shiller, R. J. (2000). *Irrational Exuberance*. Princeton University Press.
+
+U.S. Securities and Exchange Commission. (1999). *On-line brokerage: Keeping apace of cyberspace*. SEC Staff Report.
 
 Vogel, E. F. (1979). *Japan as Number One: Lessons for America*. Harvard University Press.
