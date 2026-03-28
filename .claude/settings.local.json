@@ -90,7 +90,12 @@
       "Bash(curl -s http://localhost:11434/api/tags)",
       "Bash(git lfs:*)",
       "Bash(tasklist)",
-      "Bash(taskkill //PID 32360 //F)"
+      "Bash(taskkill //PID 32360 //F)",
+      "Bash(find /c/Users/Immanuelle/Documents/Github/embedding-mapping/papers/economics -type f -name *.py -o -name *.sh)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/economics/scripts/generate_pdf.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/measure_collapse_geometry.py)",
+      "WebSearch",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" C:/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts/generate_pdf.py)"
     ]
   }
 }
