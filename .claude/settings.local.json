@@ -84,7 +84,11 @@
       "Bash(/c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/economics/scripts/generate_pdf.py 2>&1)",
       "Bash(FOL_DATA_DIR=papers/fol-discovery/data-nomic /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)",
       "Bash(FOL_DATA_DIR=papers/fol-discovery/data-minilm /c/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe papers/fol-discovery/scripts/fol_discovery.py --min-triples 10)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"centroid\\\\|mean vector\\\\|well-structured\\\\|non-colliding\" /c/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts --include=*.py)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(git lfs:*)"
     ]
   }
 }
