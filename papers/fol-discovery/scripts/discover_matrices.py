@@ -54,18 +54,40 @@ def cosine_sim(a, b):
 # --- Vocabulary for controlled permutations ---
 
 SUBJECTS = [
-    "I", "he", "she", "they", "we",
+    # Pronouns
+    "I", "he", "she", "they", "we", "you", "it",
+    # Definite NPs
     "the man", "the woman", "the child", "the dog", "the cat",
+    "the teacher", "the doctor", "the student", "the king", "the queen",
+    # Proper names
+    "John", "Mary", "Alice", "Bob", "Tom",
+    # Indefinite NPs
+    "a farmer", "a soldier", "a scientist", "a merchant", "a priest",
 ]
 
 VERBS = [
-    "love", "hate", "see", "hear", "want",
-    "eat", "drink", "find", "know", "like",
+    # Emotion/cognition
+    "love", "hate", "fear", "want", "know",
+    "like", "trust", "doubt", "admire", "envy",
+    # Perception
+    "see", "hear", "feel", "smell", "taste",
+    # Action
+    "eat", "drink", "find", "carry", "build",
+    "read", "write", "break", "sell", "buy",
+    # Communication
+    "praise", "blame", "teach", "warn", "ask",
 ]
 
 OBJECTS = [
-    "cats", "dogs", "music", "food", "water",
-    "books", "money", "art", "science", "nature",
+    # Animals
+    "cats", "dogs", "horses", "birds", "fish",
+    # Abstract
+    "music", "art", "science", "truth", "justice",
+    # Concrete
+    "food", "water", "books", "gold", "fire",
+    "bread", "wine", "stone", "wood", "iron",
+    # People-ish
+    "children", "strangers", "enemies", "friends", "kings",
 ]
 
 
