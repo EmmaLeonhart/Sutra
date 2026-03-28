@@ -88,7 +88,9 @@
       "Bash(xargs grep:*)",
       "Bash(grep -r \"centroid\\\\|mean vector\\\\|well-structured\\\\|non-colliding\" /c/Users/Immanuelle/Documents/Github/embedding-mapping/papers/fol-discovery/scripts --include=*.py)",
       "Bash(curl -s http://localhost:11434/api/tags)",
-      "Bash(git lfs:*)"
+      "Bash(git lfs:*)",
+      "Bash(tasklist)",
+      "Bash(taskkill //PID 32360 //F)"
     ]
   }
 }
