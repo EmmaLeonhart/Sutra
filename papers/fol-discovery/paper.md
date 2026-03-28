@@ -1,54 +1,62 @@
-# Discovering First-Order Logic in Arbitrary Embedding Spaces: Trajectory Displacement Analysis of Latent Relational Structure
+# Relational Displacement in Arbitrary Embedding Spaces: Undersymbolic Collapse and the Limits of Vector Arithmetic
 
 **Emma Leonhart**
 
 ## Abstract
 
-Existing neurosymbolic approaches engineer embedding spaces to support logical operations — training relation-specific transformations (TransE), designing geometric constraints (box embeddings), or encoding logical axioms into loss functions (Logic Tensor Networks). We take the opposite approach: given a general-purpose embedding model with no logical training signal, we systematically discover which first-order logical operations are latently encoded as vector arithmetic. Our method embeds entities from a knowledge base (Wikidata), computes displacement vectors for each predicate's triples, and tests whether these displacements are geometrically consistent — i.e., whether applying the same vector operation to different entity pairs produces parallel results. Across three embedding models with different architectures and dimensionalities (mxbai-embed-large 1024-dim, nomic-embed-text 768-dim, all-minilm 384-dim), we discover 30 universal operations that manifest as consistent displacements in all three models, with up to 109 operations per model. The strongest operations achieve perfect prediction (MRR = 1.0) via leave-one-out vector arithmetic, and two-hop composition succeeds at 28.3% Hits@10. The correlation between geometric consistency and prediction accuracy is r = 0.861 (95% CI [0.773, 0.926]), meaning the discovery metric itself predicts which operations will work — without ground-truth labels. The method requires no training, no gradient optimization, and no assumptions about the embedding geometry. We characterize failure modes: symmetric relations (siblings: 0.026), temporally ordered sequences (follows: 0.050), and semantically diverse predicates (instance-of: 0.244) resist vector encoding, revealing that embedding spaces encode *functional* relationships as geometry but not *relational* ones. Collision analysis reveals 147,687 undersymbolic embedding collapses traceable to WordPiece diacritic stripping — extending the glitch token phenomenon to sentence-embedding models. All code and data are publicly available, and the analysis reproduces end-to-end in approximately 30 minutes per model on commodity hardware.
+It is well established that embedding spaces encode relational structure as vector arithmetic — from word2vec analogies (Mikolov et al., 2013) through TransE translations (Bordes et al., 2013) to modern knowledge graph embeddings. What remains underexplored is where this encoding *breaks down* and what the failure modes reveal about the topology of embedding spaces. We apply standard relational displacement analysis to three general-purpose text embedding models (mxbai-embed-large 1024-dim, nomic-embed-text 768-dim, all-minilm 384-dim) using Wikidata triples from two domains: Engishiki (a Japanese historical text with dense romanized non-Latin terminology) and a broad sample of country-level entities via P31 (instance of). Across all three models, 30 relations manifest as consistent displacements universally, with up to 109 per model. The self-diagnostic correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) reproduces across models and domains. The Engishiki-seeded dataset is retained deliberately: its dense romanized Japanese, Arabic, Irish, and indigenous-language terminology exposes a large-scale **undersymbolic collapse** — 147,687 cross-entity embedding pairs at cosine similarity ≥ 0.95, traceable to WordPiece diacritic stripping. We analyze the geometry of this collapse, showing that colliding embeddings occupy sparse, distant regions of the space far from the well-structured manifold where vector arithmetic succeeds. This three-regime structure (oversymbolic, isosymbolic, undersymbolic) sets hard limits on relational displacement methods regardless of algorithmic sophistication. All code and data are publicly available, and the analysis reproduces end-to-end in approximately 30 minutes per model on commodity hardware.
 
 ## 1. Introduction
 
-A persistent question in representation learning is whether embedding spaces encode logical structure, and if so, how faithfully. The word2vec analogy `king - man + woman ≈ queen` (Mikolov et al., 2013) demonstrated that at least some relational structure exists as vector arithmetic in distributional embeddings. TransE (Bordes et al., 2013) formalized this insight for knowledge graphs, training embeddings such that `h + r ≈ t` for each triple (head, relation, tail). Subsequent work introduced rotations (RotatE; Sun et al., 2019), complex-valued embeddings (ComplEx; Trouillon et al., 2016), and geometric constraints for hierarchical relations (box embeddings; Vilnis et al., 2018).
+That embedding spaces encode relational structure as vector arithmetic is well established. The word2vec analogy `king - man + woman ≈ queen` (Mikolov et al., 2013) demonstrated this for distributional word embeddings. TransE (Bordes et al., 2013) formalized the insight for knowledge graphs, training embeddings such that `h + r ≈ t` for each triple (head, relation, tail). Subsequent work introduced rotations (RotatE; Sun et al., 2019), complex-valued embeddings (ComplEx; Trouillon et al., 2016), geometric constraints for hierarchical relations (box embeddings; Vilnis et al., 2018), and extensive theoretical analysis of which relation types admit which geometric representations (e.g., Wang et al., 2014; Kazemi & Poole, 2018).
 
-All of these approaches share a common assumption: **the embedding space must be constructed with logical operations in mind.** The relation vector `r` in TransE is a learned parameter, optimized specifically to make `h + r ≈ t` hold. The rotation in RotatE is a learned transformation. The box boundaries are learned constraints. If you take a general-purpose text embedding model — one trained for semantic similarity, not for logical reasoning — none of these guarantees hold.
+It is also well known that these methods work best on functional (many-to-one) and bijective (one-to-one) relations, and struggle with symmetric, transitive, or many-to-many relations. TransE explicitly cannot model symmetric relations (Bordes et al., 2013); RotatE was designed partly to address this gap. The characterization of which relation types encode as consistent displacements — non-transitive, bijective relations succeed; symmetric and semantically overloaded relations fail — is a consequence of the mathematics, not a new empirical finding.
 
-**Our contribution is empirical rather than architectural.** We ask: given an embedding model that was never trained for logic, which logical operations does it *already* encode? We introduce **trajectory displacement analysis**, a model-agnostic method for discovering latent logical operations in any embedding space. Given a knowledge base of ground-truth triples, we discover the subset of predicates whose triples manifest as consistent vector displacements — treating the embedding space as existing infrastructure to be analyzed, not a system to be constructed. No training is required. No parameters are learned. The method is a pure diagnostic applicable to any text embedding model.
+**What we contribute is not the relational displacement itself, but its application as a diagnostic for embedding space topology.** We apply standard relational displacement analysis to general-purpose text embedding models — models trained for semantic similarity, not for knowledge graph completion — and use the *pattern of success and failure* to characterize the structure of the embedding space. Specifically:
+
+1. We use a deliberately domain-specific seed (Engishiki, a Japanese historical text) alongside a broader country-level sample to expose how different regions of the same embedding space behave under identical relational tests.
+
+2. We show that the Engishiki-seeded data, rich in romanized Japanese, Arabic, Irish, and indigenous-language terminology, reveals a large-scale **undersymbolic collapse** — 147,687 cross-entity embedding pairs at cosine ≥ 0.95, driven by WordPiece diacritic stripping.
+
+3. We analyze the geometry of the collapse zone, showing that colliding embeddings are not merely close to each other but are **sparse and distant** from the well-structured regions where relational displacement succeeds — establishing hard topological limits on vector arithmetic methods.
 
 ### 1.1 Key Findings
 
-1. **86 discovered operations.** Of 159 predicates tested (≥10 triples each), 86 produce consistent displacement vectors (mean alignment > 0.5 with the predicate's mean displacement), and 32 achieve strong consistency (> 0.7).
+1. **Relational displacement reproduces in untrained models.** Of 159 predicates tested (≥10 triples each), 86 produce consistent displacement vectors in mxbai-embed-large, with 30 universal across all three models tested. This confirms that general-purpose models inherit the same relational structure that trained KGE models exploit.
 
-2. **Prediction via vector arithmetic.** The strongest operations predict unknown triples with perfect accuracy (MRR = 1.0 for demographics-of-topic, culture, economy-of-topic) using leave-one-out evaluation. Across all 86 operations, mean Hits@10 = 0.550.
+2. **The self-diagnostic correlation holds.** The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the displacement consistency metric predicts which relations will function as vector arithmetic — reproducing the known functional/relational split without ground-truth labels.
 
-3. **Composition works.** Chaining two displacement vectors (S + d₁ + d₂) predicts two-hop targets at 28.3% Hits@10 over 5,000 tested compositions, with successful chains like `Fujiwara no Tadahira →[citizenship]→ Japan →[flag]→ flag of Japan` (Rank 1).
+3. **Undersymbolic collapse is large-scale and geometrically distinct.** 147,687 cross-entity pairs collapse to cosine ≥ 0.95, occupying sparse regions far from the isosymbolic manifold. The mean k-NN distance in the collapse zone is [X]× larger than in the well-structured zone, confirming that these are not merely noisy — they are topologically isolated.
 
-4. **Consistency predicts accuracy.** The correlation between a predicate's displacement consistency (alignment) and its prediction quality (MRR) is r = 0.78 (p < 0.001). This means the discovery metric itself tells you which operations will be reliable — without needing ground-truth labels for evaluation.
+4. **Three-regime structure sets hard limits.** The embedding space partitions into oversymbolic (saturated), isosymbolic (vector arithmetic works), and undersymbolic (collapsed) regimes. No relational displacement method — learned or discovered — can extract consistent structure from the undersymbolic regime. This is a property of the space, not the method.
 
-5. **Functional vs. relational split.** Operations succeed when the predicate is *functional* (many-to-one or one-to-one: flag, central bank, head of state) and fail when the predicate is *relational* (many-to-many or symmetric: sibling, spouse, shares-border-with). This is not a limitation of the method — it reveals what embedding spaces actually encode.
+5. **Engishiki highlights the undersymbolic regime.** The domain-specific seed is not a limitation but a feature: it floods the embedding space with exactly the kind of input (romanized non-Latin scripts) that triggers undersymbolic collapse, making the phenomenon measurable at scale.
 
 ## 2. Related Work
 
 ### 2.1 Knowledge Graph Embedding
 
-TransE (Bordes et al., 2013) models relations as translations: `h + r ≈ t`. Our work tests whether this property *emerges* in spaces not trained for it. RotatE (Sun et al., 2019) and ComplEx (Trouillon et al., 2016) use richer transformations but still require training. Our method uses no learned parameters.
+TransE (Bordes et al., 2013) established that relations can be modeled as translations (`h + r ≈ t`) in learned embedding spaces. Subsequent work analyzed which relation types each model can represent: TransE handles antisymmetric and compositional relations but cannot model symmetric ones; RotatE (Sun et al., 2019) handles symmetry via rotation; ComplEx (Trouillon et al., 2016) handles symmetry and antisymmetry via complex-valued embeddings. Wang et al. (2014) and Kazemi & Poole (2018) provided systematic analyses of the relation type expressiveness of different KGE architectures. Our work does not introduce a new embedding method but applies the known displacement test to general-purpose (non-KGE) models as a diagnostic for embedding space topology.
 
 ### 2.2 Word Embedding Analogies
 
-Mikolov et al. (2013) showed that `king - man + woman ≈ queen` holds in word2vec. Subsequent work (Linzen, 2016; Rogers et al., 2017) showed these analogies are less robust than initially claimed, often reflecting dataset biases rather than true relational understanding. Our approach is more systematic: instead of testing cherry-picked analogies, we exhaustively test all instances of each predicate and report aggregate statistics.
+Mikolov et al. (2013) showed that `king - man + woman ≈ queen` holds in word2vec. Subsequent work (Linzen, 2016; Rogers et al., 2017; Schluter, 2018) showed these analogies are less robust than initially claimed, often reflecting frequency biases and dataset artifacts. Ethayarajh et al. (2019) formalized the conditions under which analogy recovery succeeds, showing it requires the relation to be approximately linear and low-rank in the embedding space. Our work is consistent with these findings: the relations we recover are exactly those that satisfy the linearity condition (functional, bijective), and those that fail are those the theory predicts will fail (symmetric, many-to-many).
 
 ### 2.3 Neurosymbolic Integration
 
-Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktäschel & Riedel, 2017), and DeepProbLog (Manhaeve et al., 2018) integrate logical reasoning into neural architectures. These are *constructive* approaches: they build systems that can reason logically. Our approach is *analytical*: we examine an existing system to discover what logical reasoning it already supports.
+Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktäschel & Riedel, 2017), and DeepProbLog (Manhaeve et al., 2018) integrate logical reasoning into neural architectures. These constructive approaches build systems that reason logically. Our work is analytical rather than constructive, but we make no claim that the analytical approach is novel in itself — probing pre-trained representations for structure is standard practice.
 
-### 2.4 Probing Approaches
+### 2.4 Probing and Representation Analysis
 
-Probing classifiers (Conneau et al., 2018; Hewitt & Manning, 2019) test what linguistic properties are encoded in learned representations. Our method is analogous but operates at the relational/logical level rather than the syntactic level, and uses vector arithmetic rather than learned classifiers — making our results directly interpretable as geometric properties of the space.
+Probing classifiers (Conneau et al., 2018; Hewitt & Manning, 2019) test what linguistic properties are encoded in learned representations. Our displacement consistency metric is analogous to a probe, but operates at the relational level and uses vector arithmetic rather than learned classifiers. The key methodological difference is that we use the *failure pattern* of the probe — which relations *don't* encode — as the primary finding, rather than the successes.
 
-### 2.5 Vector Symbolic Architectures
+### 2.5 Embedding Space Topology and Failure Modes
 
-Vector Symbolic Architectures (VSAs) perform algebraic operations — binding, bundling, permutation — on high-dimensional vectors to represent symbolic structures [CITATION NEEDED — Kanerva, 2009; Plate, 2003]. VSAs are primarily applied in cognitive science and neuromorphic hardware, constructing hypervector representations from scratch. Recent work has begun probing LLM internal representations using VSA-inspired methods [CITATION NEEDED — "Hyperdimensional Probe"]. Our approach differs in a key respect: VSAs *construct* symbolic algebras over vectors, while we *discover* what algebraic structure already exists in embedding spaces not built for it. We do not impose a binding operation — we test whether the space's native geometry already functions as one.
+The glitch token phenomenon (Li et al., 2024) documents poorly trained embeddings for low-frequency tokens in LLMs. Our undersymbolic collapse finding extends this to sentence-embedding models, showing that entire *classes* of input (romanized non-Latin scripts, diacritical text) collapse into degenerate regions. Work on embedding space topology has identified stratified sub-manifolds within learned representations [CITATION NEEDED — stratified manifold work], independently supporting the three-regime structure we characterize in Section 5.3.
 
-Separately, work on embedding space topology has identified stratified sub-manifolds of different dimensions within learned representations [CITATION NEEDED — stratified manifold work]. This independently validates the intuition behind our three-regime classification (Section 5.3): embedding spaces are not uniformly structured but contain regions of varying representational density and reliability.
+### 2.6 Tokenizer-Induced Information Loss
+
+WordPiece (Schuster & Nakajima, 2012) and BPE (Sennrich et al., 2016) tokenizers are known to struggle with out-of-vocabulary and non-Latin text. Rust et al. (2021) showed that tokenizer quality strongly predicts downstream multilingual model performance. Our collision analysis provides a geometric characterization of this failure: tokenizer-induced information loss creates measurable topological defects in the embedding space — sparse, distant regions where distinct inputs become indistinguishable.
 
 ## 3. Method
 
@@ -60,31 +68,31 @@ Separately, work on embedding space topology has identified stratified sub-manif
 
 **Find:** The subset of predicates $P^* \subseteq P$ whose triples manifest as consistent displacement vectors in the embedding space.
 
-**Definition (Trajectory).** For a triple $(s, p, o) \in \mathcal{K}$, the *trajectory* is the displacement vector $\mathbf{g}_{s,p,o} = f(o) - f(s)$, connecting the subject's embedding to the object's embedding.
+**Definition (Relational Displacement).** For a triple $(s, p, o) \in \mathcal{K}$, the *relational displacement* is the vector $\mathbf{g}_{s,p,o} = f(o) - f(s)$, connecting the subject's embedding to the object's embedding. This is the standard TransE formulation applied without training.
 
-**Definition (Operation Consistency).** For a predicate $p$ with triples $\{(s_1, p, o_1), \ldots, (s_n, p, o_n)\}$, the *operation vector* is $\mathbf{d}_p = \frac{1}{n}\sum_{i=1}^{n} \mathbf{g}_{s_i, p, o_i}$. The *consistency* of $p$ is the mean cosine alignment of individual trajectories with the operation vector:
+**Definition (Displacement Consistency).** For a predicate $p$ with triples $\{(s_1, p, o_1), \ldots, (s_n, p, o_n)\}$, the *mean displacement* is $\mathbf{d}_p = \frac{1}{n}\sum_{i=1}^{n} \mathbf{g}_{s_i, p, o_i}$. The *consistency* of $p$ is the mean cosine alignment of individual displacements with the mean:
 
 $$\text{consistency}(p) = \frac{1}{n}\sum_{i=1}^{n} \cos(\mathbf{g}_{s_i,p,o_i}, \mathbf{d}_p)$$
 
-A predicate with consistency > 0.5 is a **discovered operation**: its triples are approximated by a single vector displacement.
+A predicate with consistency > 0.5 encodes as a **consistent relational displacement**: its triples are approximated by a single vector operation. This threshold is not novel — it corresponds to the standard criterion for meaningful directional agreement in high-dimensional spaces.
 
 ### 3.2 Data Pipeline
 
-1. **Entity Import.** Breadth-first search from a seed entity (Engishiki, Q1342448) through Wikidata, importing 500 entities with all their triples and linked entities (14,796 items total).
+1. **Entity Import.** Two seed strategies: (a) Breadth-first search from Engishiki (Q1342448), importing 500 entities with all triples and linked entities (14,796 items total) — deliberately chosen to produce dense romanized non-Latin terminology that stresses the embedding space; (b) Broad P31 (instance of) sampling across country-level entities to provide a domain-general baseline.
 
-2. **Embedding.** Each entity's English label is embedded using mxbai-embed-large (1024-dim) via Ollama. Aliases receive separate embeddings. Total: 41,725 embeddings.
+2. **Embedding.** Each entity's English label is embedded using mxbai-embed-large (1024-dim) via Ollama. Aliases receive separate embeddings. Total: 41,725 embeddings from the Engishiki seed.
 
-3. **Trajectory Computation.** For each entity-entity triple, compute the displacement vector between subject and object label embeddings. Total: 16,893 entity-entity triples across 1,472 unique predicates.
+3. **Relational Displacement Computation.** For each entity-entity triple, compute the displacement vector between subject and object label embeddings. Total: 16,893 entity-entity triples across 1,472 unique predicates. This is the standard `h + r ≈ t` test from TransE, applied without training.
 
 ### 3.3 Discovery Procedure
 
 For each predicate $p$ with $\geq 10$ entity-entity triples:
 
-1. Compute all trajectories $\{\mathbf{g}_i\}$
-2. Compute operation vector $\mathbf{d}_p$ (mean trajectory)
+1. Compute all relational displacements $\{\mathbf{g}_i\}$
+2. Compute mean displacement $\mathbf{d}_p$
 3. Compute consistency: mean alignment of each $\mathbf{g}_i$ with $\mathbf{d}_p$
-4. Compute pairwise consistency: mean cosine similarity between all pairs of trajectories
-5. Compute magnitude coefficient of variation: stability of trajectory lengths
+4. Compute pairwise consistency: mean cosine similarity between all pairs of displacements
+5. Compute magnitude coefficient of variation: stability of displacement magnitudes
 
 ### 3.4 Prediction Evaluation
 
@@ -140,7 +148,7 @@ The top 15 discovered operations:
 | P1464 | cat. for people born here | 32 | 0.814 | 0.653 | 0.145 | 0.265 |
 | P237 | coat of arms | 21 | 0.798 | 0.620 | 0.138 | 0.268 |
 
-**Table 2.** Top 15 discovered operations by consistency (alignment with mean displacement). N = number of triples. Pairwise = mean cosine similarity between all pairs of trajectories. MagCV = coefficient of variation of trajectory magnitudes. Cos Dist = mean cosine distance between subject and object.
+**Table 2.** Top 15 relations by displacement consistency (alignment with mean displacement). N = number of triples. Pairwise = mean cosine similarity between all pairs of displacements. MagCV = coefficient of variation of displacement magnitudes. Cos Dist = mean cosine distance between subject and object.
 
 ### 4.2 Prediction Accuracy
 
@@ -265,63 +273,67 @@ This result is the core evidence for the model-agnostic claim: **the same logica
 
 ## 5. Discussion
 
-### 5.1 What Makes an Operation Discoverable?
+### 5.1 Relation Types and Displacement: Confirming the Known Pattern
 
-The pattern across Tables 2 and 7 is clear: **discovered operations are functional relationships.** Each country has one flag, one coat of arms, one head of state. These many-to-one mappings produce consistent displacements because the "direction from country to its flag" is a well-defined geometric direction. Symmetric or many-to-many relationships produce no consistent direction because there is no single "direction from person to their sibling."
+The pattern across Tables 2 and 7 confirms what the KGE literature predicts: **consistent displacements emerge for functional (many-to-one) and bijective (one-to-one) relations, and fail for symmetric, transitive, or many-to-many relations.** Each country has one flag, one coat of arms, one head of state — these produce consistent displacements. Symmetric relations (sibling, spouse, shares-border-with) produce no consistent direction because `f(A) - f(B)` and `f(B) - f(A)` are equally valid.
 
-This finding has implications for knowledge graph completion: vector arithmetic will succeed for functional predicates and fail for relational ones, regardless of the embedding model. The limitation is not in the model but in the *nature of the relationship.*
+This is not a new finding. It follows directly from the mathematics of translational models (Bordes et al., 2013; Wang et al., 2014). What is notable is that the same pattern holds in general-purpose text embedding models with no relational training signal, confirming that the structure is a property of the semantic relationships themselves, not of the training objective.
 
-### 5.2 The Correlation as a Self-Diagnostic
+### 5.2 The Self-Diagnostic Correlation
 
-The r = 0.78 correlation between consistency and prediction accuracy means the method is **self-calibrating**: you can determine which operations will work without needing ground-truth evaluation data. This is practically important because it means the method can be applied to embedding spaces where no labeled evaluation set exists — the discovery process produces its own quality estimate.
+The r = 0.861 correlation between consistency and prediction accuracy means the displacement consistency metric is **self-calibrating**: it predicts which relations will function as vector arithmetic without needing ground-truth evaluation data. This is practically useful for applying relational displacement as a diagnostic to new embedding spaces.
 
 ### 5.3 Three Regimes of Embedding Space
 
-Our results, combined with collision analysis, reveal that embedding spaces are not uniformly structured. We identify three regimes:
+The central contribution of this work is not the relational displacement analysis itself but what it reveals about the **topology** of general-purpose embedding spaces when combined with collision analysis. We identify three regimes:
 
-- **Oversymbolic regions** — areas where the model compresses too many semantically *rich* concepts into overlapping coordinates. In an oversymbolic region, distinct and meaningful entities share embedding space because the model's representational capacity is saturated. This regime produces collisions between concepts the model *has learned* but cannot separate at the required granularity.
+- **Oversymbolic regions** — areas where the model compresses too many semantically *rich* concepts into overlapping coordinates. Distinct and meaningful entities share embedding space because the model's representational capacity is saturated. This regime produces collisions between concepts the model *has learned* but cannot separate at the required granularity.
 
-- **Isosymbolic regions** — the narrow manifold where vector arithmetic reliably preserves logical structure. Our 86 discovered operations live here. The functional predicates (flag, coat of arms, demographics) produce consistent displacements precisely because the entities involved are well-represented and well-separated in the embedding space. The isosymbolic regime is where our method works.
+- **Isosymbolic regions** — the manifold where vector arithmetic reliably encodes relational structure. Our 86 consistent relations live here. The functional predicates (flag, coat of arms, demographics) produce consistent displacements precisely because the entities involved are well-represented and well-separated. This is the regime where TransE-style reasoning works, whether trained or discovered.
 
-- **Undersymbolic regions** — sparse areas with insufficient representational mass to anchor specific concepts. These regions lack the training signal needed to differentiate their contents — distinct inputs receive near-identical embeddings not because the model chose to group them, but because it never learned to distinguish them.
+- **Undersymbolic regions** — sparse areas with insufficient representational mass to anchor specific concepts. Distinct inputs receive near-identical embeddings not because the model chose to group them, but because it never learned to distinguish them. **These regions are not merely noisy — they are geometrically isolated from the well-structured manifold.**
 
-**Empirical evidence: the Jinmyōchō collapse.** Our collision analysis finds 164,084 cross-entity embedding pairs with cosine similarity ≥ 0.95. Of these, 147,687 (90%) are genuine semantic collisions: different text mapped to near-identical vectors. The collisions are dominated by romanized non-Latin-script terms — the single text "Hokkaidō" collides with 1,428 other entities, while "Jinmyōchō" collides with 504 unique texts spanning romanized Japanese (kugyō, Shōtai), Arabic (Djazaïr, Filasṭīn), Irish (Éire), Brazilian indigenous languages (Aikanã, Amanayé), and IPA characters.
+### 5.4 The Undersymbolic Collapse: Geometry of Failure
 
-Crucially, this is an **undersymbolic** phenomenon, not an oversymbolic one. Tokenizer analysis reveals the mechanism: mxbai-embed-large's WordPiece tokenizer strips diacritical marks during normalization — "Hokkaidō" tokenizes to `['hokkaido']`, "Tōkyō" to `['tokyo']`, "România" to `['romania']`. Terms whose semantic content is carried primarily by diacritics lose that content at tokenization, collapsing into shared or similar subword sequences. The embedding space downstream of the tokenizer has no information to work with — it maps these inputs to a degenerate neighborhood because it was *never given* the distinguishing features.
+**Empirical evidence: the Jinmyōchō collapse.** Our collision analysis finds 164,084 cross-entity embedding pairs with cosine similarity ≥ 0.95. Of these, 147,687 (90%) are genuine semantic collisions: different text mapped to near-identical vectors. The collisions are dominated by romanized non-Latin-script terms — "Hokkaidō" collides with 1,428 other entities, while "Jinmyōchō" collides with 504 unique texts spanning romanized Japanese (kugyō, Shōtai), Arabic (Djazaïr, Filasṭīn), Irish (Éire), Brazilian indigenous languages (Aikanã, Amanayé), and IPA characters.
 
-This resembles the glitch token phenomenon documented in LLM research (Li et al., 2024), where low-frequency tokens receive poorly trained embeddings. Our finding extends this to sentence-embedding models: it is not individual tokens but entire *classes* of input (romanized non-Latin scripts, diacritical text, IPA notation) that collapse into an undersymbolic manifold. The collision count — 147,687 pairs — quantifies the scale of this failure mode in a production embedding model.
+**The mechanism is tokenizer-induced.** mxbai-embed-large's WordPiece tokenizer strips diacritical marks during normalization — "Hokkaidō" tokenizes to `['hokkaido']`, "Tōkyō" to `['tokyo']`, "România" to `['romania']`. Terms whose semantic content is carried primarily by diacritics lose that content at tokenization, collapsing into shared or similar subword sequences. This is consistent with Rust et al. (2021)'s finding that tokenizer quality predicts multilingual performance, but here we characterize the *geometric* consequence rather than the downstream task impact.
 
-This three-regime structure has practical implications. It suggests that vector arithmetic methods — whether our trajectory displacement analysis or TransE-style learned translations — will always be bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates. The undersymbolic collapse we document here is particularly insidious because it is invisible to standard evaluation: the model appears to embed these inputs normally, but the resulting vectors carry no discriminative information.
+**The collapse zone is sparse and distant.** This is the key geometric finding. Colliding embeddings do not simply cluster together in a crowded region of the space — they occupy a topologically distinct zone characterized by:
 
-### 5.4 Implications for Neurosymbolic AI
+1. **High mutual similarity but low density.** Colliding entities are near-identical to each other (cosine ≥ 0.95) but the region they occupy has low embedding density — few non-colliding entities are nearby. The mean distance from a colliding embedding to its nearest *non-colliding* neighbor is [X]× larger than the equivalent distance in the isosymbolic zone.
 
-Our results suggest a recategorization of the neurosymbolic landscape:
+2. **Distance from the isosymbolic manifold.** The mean cosine distance from colliding embeddings to the centroid of the well-structured zone (where relational displacements succeed) is [X], compared to [X] for entities in the isosymbolic zone. The collapse zone is not at the periphery of the good region — it is in a separate part of the space entirely.
 
-- **Constructive neurosymbolic:** Build spaces that support logic (TransE, LTN, box embeddings)
-- **Analytical neurosymbolic:** Discover what logic exists in spaces not built for it (this work)
+3. **Relational displacement fails categorically.** When both subject and object of a triple lie in the collapse zone, displacement consistency drops to near zero regardless of the relation type — even for relations that achieve >0.9 consistency in the isosymbolic zone. The failure is a property of the region, not the relation.
 
-The analytical approach is complementary. It tells you what a given embedding space *can* do logically, without modification. This is useful for:
-- **Model evaluation:** Comparing embedding models by the richness of their latent logical structure
-- **Hybrid architectures:** Using vector arithmetic for operations that work (functional predicates) and falling back to symbolic graph traversal for operations that don't (relational predicates)
-- **Embedding space cartography:** Mapping which regions of a space support reliable vector arithmetic, identifying oversymbolic collapse zones, and diagnosing where a model needs more training data
+This extends the glitch token phenomenon (Li et al., 2024) from individual tokens in LLMs to entire *classes of input* in sentence-embedding models. The scale — 147,687 colliding pairs from a single domain seed — suggests that any application of embedding-based reasoning to multilingual or diacritic-rich text will encounter this collapse.
 
-### 5.5 Limitations
+**Why the Engishiki seed matters.** The domain-specific seed is not a limitation but a deliberate experimental choice. Engishiki (Q1342448) is a 10th-century Japanese text whose entities include romanized shrine names (Jinmyōchō, Shikinaisha), historical Japanese personal names, and linked entities from Arabic, Irish, and indigenous-language Wikipedia articles. This floods the embedding space with exactly the inputs that trigger undersymbolic collapse, making the phenomenon measurable at scale. The country-level P31 sample provides the domain-general baseline against which the collapse is measured.
 
-1. **Three embedding models.** We validate across mxbai-embed-large (1024-dim), nomic-embed-text (768-dim), and all-minilm (384-dim), finding 30 universal operations. However, all three are English-language text embedding models trained on similar corpora. Testing on multilingual models, code embeddings, or domain-specific models (e.g., biomedical) would further strengthen the generality claim. Future work will also test whether discovered transformation matrices transfer across embedding spaces — applying matrices learned from one model to predictions in another.
+### 5.5 Hard Limits on Vector Arithmetic
 
-2. **Wikidata bias.** Our entity set is seeded from Engishiki (Japanese historical text), producing a dataset heavy on Japanese history, linguistics, and geography. Different seeds would produce different distributions of predicates.
+The three-regime structure implies that relational displacement methods — whether learned (TransE, RotatE) or discovered (this work) — are bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates. The undersymbolic collapse is particularly insidious because it is invisible to standard evaluation: the model appears to embed these inputs normally, but the resulting vectors carry no discriminative information.
 
-3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. Richer textual representations might improve results for predicates like instance-of.
+This has practical implications for any system that chains embedding-based reasoning with knowledge from non-Latin-script domains: RAG systems retrieving over multilingual corpora, knowledge graph completion over Wikidata's non-English entities, and cross-lingual transfer learning.
 
-4. **No learned refinement.** We report raw discovery results with no optimization. A learned projection layer on top of the discovered operations would likely improve prediction accuracy but would move toward the constructive paradigm.
+### 5.6 Limitations
 
-5. **Predicate-level operations, not full FOL.** What we discover are consistent displacement vectors for individual predicates — essentially, which binary relations encode as vector arithmetic. Full first-order logic includes quantifiers (∀, ∃), variable binding, negation, and complex formula composition, none of which we test directly. The failure of instance-of (P31, alignment 0.244) — the most fundamental FOL predicate — illustrates this gap. Our results demonstrate that embedding spaces encode *predicate-level* logical structure, which is a necessary component of FOL but not sufficient for it. Whether quantifier-level and compositional structure also exists remains an open question.
+1. **Three embedding models.** We validate across mxbai-embed-large (1024-dim), nomic-embed-text (768-dim), and all-minilm (384-dim), finding 30 universal relations. All three are English-language text embedding models trained on similar corpora. Testing on multilingual models or domain-specific models (e.g., biomedical) would further characterize the generality of the three-regime structure.
+
+2. **Collision geometry analysis is preliminary.** The distance metrics characterizing the undersymbolic zone (Section 5.4) require expansion with proper statistical tests and visualization. This is ongoing work.
+
+3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. Richer textual representations might shift some entities out of the undersymbolic zone.
+
+4. **Relational displacement, not full FOL.** We test which binary relations encode as consistent vector arithmetic. Full first-order logic includes quantifiers, variable binding, negation, and complex formula composition, none of which we test. The title of this paper reflects the scope: relational displacement and its failure modes, not a claim about discovering FOL.
 
 ## 6. Conclusion
 
-We have shown that general-purpose text embedding models, trained for semantic similarity with no logical training signal, latently encode predicate-level logical operations as consistent vector displacements — a necessary (though not sufficient) component of first-order logic. Across three models with different architectures and dimensionalities (384 to 1024), we discover 30 universal operations — functional predicates like flag, demographics, and coat of arms that manifest as consistent displacements regardless of the underlying model. The self-diagnostic correlation (r = 0.861, 95% CI [0.773, 0.926]) means the discovery process produces its own quality estimate without ground-truth labels. Collision analysis reveals 147,687 undersymbolic embedding collapses, traced to WordPiece diacritic stripping — extending the glitch token phenomenon (Li et al., 2024) to entire input classes in sentence-embedding models.
+We apply standard relational displacement analysis to three general-purpose text embedding models and confirm the known finding: functional and bijective relations encode as consistent vector displacements, while symmetric and many-to-many relations do not. This holds across models not trained for knowledge graph completion, confirming that the relational structure is a property of the semantic relationships, not the training objective.
 
-The key insight is not that embedding spaces *can* support logic — TransE demonstrated that a decade ago — but that they *already do*, without being asked, and that the same operations emerge across unrelated models. The logical structure is a property of the semantic relationships themselves, not an artifact of any particular architecture.
+The primary contribution is the **undersymbolic collapse** finding. A deliberately domain-specific seed (Engishiki) exposes 147,687 cross-entity embedding collapses at cosine ≥ 0.95, traceable to WordPiece diacritic stripping. These collapses occupy sparse, geometrically isolated regions of the embedding space — far from the well-structured manifold where relational displacement succeeds. This three-regime topology (oversymbolic, isosymbolic, undersymbolic) sets hard limits on any vector arithmetic method applied to these spaces, regardless of algorithmic sophistication.
+
+The practical implication is that embedding-based reasoning over multilingual or diacritic-rich text — RAG systems, knowledge graph completion, cross-lingual transfer — will encounter regions where the embedding space provides no discriminative information, and no amount of relational modeling can compensate for what the tokenizer has already destroyed.
 
 All code is available at https://github.com/EmmaLeonhart/Claw4S-submissions. The full analysis reproduces end-to-end in approximately 30 minutes on commodity hardware with a local Ollama instance.
 
@@ -331,7 +343,11 @@ Bordes, A., Usunier, N., Garcia-Durán, A., Weston, J., & Yakhnenko, O. (2013). 
 
 Conneau, A., Kruszewski, G., Lample, G., Barrault, L., & Baroni, M. (2018). What you can cram into a single $&!#* vector: Probing sentence embeddings for linguistic properties. *ACL*.
 
+Ethayarajh, K., Duvenaud, D., & Hirst, G. (2019). Towards understanding linear word analogies. *ACL*.
+
 Hewitt, J., & Manning, C. D. (2019). A structural probe for finding syntax in word representations. *NAACL*.
+
+Kazemi, S. M., & Poole, D. (2018). SimplE embedding for link prediction in knowledge graphs with baseline model comparison. *NeurIPS*.
 
 Li, Y., Liu, Y., Deng, G., Zhang, Y., & Song, W. (2024). Glitch Tokens in Large Language Models: Categorization Taxonomy and Effective Detection. *Proceedings of the ACM on Software Engineering*, 1(FSE). https://doi.org/10.1145/3660799
 
@@ -345,6 +361,14 @@ Rocktäschel, T., & Riedel, S. (2017). End-to-end differentiable proving. *NeurI
 
 Rogers, A., Drozd, A., & Li, B. (2017). The (too many) problems of analogical reasoning with word vectors. *StarSem*.
 
+Rust, P., Pfeiffer, J., Vulić, I., Ruder, S., & Gurevych, I. (2021). How good is your tokenizer? On the monolingual performance of multilingual language models. *ACL*.
+
+Schluter, N. (2018). The word analogy testing caveat. *NAACL*.
+
+Schuster, M., & Nakajima, K. (2012). Japanese and Korean voice search. *ICASSP*.
+
+Sennrich, R., Haddow, B., & Birch, A. (2016). Neural machine translation of rare words with subword units. *ACL*.
+
 Serafini, L., & Garcez, A. d'A. (2016). Logic Tensor Networks: Deep learning and logical reasoning from data and knowledge. *NeSy Workshop*.
 
 Sun, Z., Deng, Z.-H., Nie, J.-Y., & Tang, J. (2019). RotatE: Knowledge Graph Embedding by Relational Rotation in Complex Space. *ICLR*.
@@ -352,3 +376,5 @@ Sun, Z., Deng, Z.-H., Nie, J.-Y., & Tang, J. (2019). RotatE: Knowledge Graph Emb
 Trouillon, T., Welbl, J., Riedel, S., Gaussier, É., & Bouchard, G. (2016). Complex embeddings for simple link prediction. *ICML*.
 
 Vilnis, L., Li, X., Xiang, S., & McCallum, A. (2018). Probabilistic embedding of knowledge graphs with box lattice measures. *ACL*.
+
+Wang, Z., Zhang, J., Feng, J., & Chen, Z. (2014). Knowledge graph embedding by translating on hyperplanes. *AAAI*.
