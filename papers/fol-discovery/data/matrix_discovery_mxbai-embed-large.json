@@ -1,0 +1,29 @@
+{
+  "model": "mxbai-embed-large",
+  "n_sentences": 500,
+  "n_subjects": 10,
+  "n_verbs": 10,
+  "n_objects": 10,
+  "embedding_dim": 1024,
+  "training_set": {
+    "matrix_mean_cosine": 0.8948094462431938,
+    "matrix_median_cosine": 0.9048641422943688,
+    "baseline_mean_cosine": 0.7528634031348143,
+    "baseline_median_cosine": 0.7565730539275048,
+    "improvement": 0.14194604310837955
+  },
+  "leave_one_out": {
+    "n_evaluated": 200,
+    "matrix_mean_cosine": 0.8842367078098118,
+    "matrix_median_cosine": 0.8946709570341974,
+    "baseline_mean_cosine": 0.7522627035680182,
+    "baseline_median_cosine": 0.7550804595253134,
+    "improvement": 0.13197400424179362
+  },
+  "matrix_properties": {
+    "M_verb_frobenius": 1.7438280436144544,
+    "M_obj_frobenius": 2.555075379799973,
+    "M_verb_identity_distance": 31.945557906176283,
+    "M_obj_identity_distance": 31.914228822817552
+  }
+}
