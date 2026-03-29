@@ -1,0 +1,396 @@
+{
+  "experiment": "dimensional_decomposition",
+  "timestamp": "2026-03-28T22:20:21",
+  "results": [
+    {
+      "experiment": "Biomedical: Protein Function vs. Organism Context",
+      "model": "Ollama/mxbai-embed-large",
+      "embedding_dim": 1024,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.29579365079365083,
+      "projected_mrr": 0.3852380952380952,
+      "mrr_improvement": 0.08944444444444438,
+      "naive_precision": 0.2,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.6000000000000001,
+      "naive_mean_rank": 7.0,
+      "projected_mean_rank": 4.0,
+      "rank_improvement": 3.0,
+      "naive_correct_ranks": [
+        1,
+        7,
+        8,
+        9,
+        10
+      ],
+      "projected_correct_ranks": [
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      "query_control_alignment_before": 0.2393417830132557,
+      "query_control_alignment_after": 6.938893903907228e-18
+    },
+    {
+      "experiment": "Labor Matching: Role Fitness vs. Gender Coding",
+      "model": "Ollama/mxbai-embed-large",
+      "embedding_dim": 1024,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.45666666666666667,
+      "projected_mrr": 0.45666666666666667,
+      "mrr_improvement": 0.0,
+      "naive_precision": 1.0,
+      "projected_precision": 1.0,
+      "precision_improvement": 0.0,
+      "naive_mean_rank": 3.0,
+      "projected_mean_rank": 3.0,
+      "rank_improvement": 0.0,
+      "naive_correct_ranks": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "query_control_alignment_before": 0.14951417536009284,
+      "query_control_alignment_after": 3.469446951953614e-17
+    },
+    {
+      "experiment": "Ontology: Functional Role vs. Domain Register",
+      "model": "Ollama/mxbai-embed-large",
+      "embedding_dim": 1024,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.25746031746031744,
+      "projected_mrr": 0.4352380952380952,
+      "mrr_improvement": 0.17777777777777776,
+      "naive_precision": 0.6,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.20000000000000007,
+      "naive_mean_rank": 5.2,
+      "projected_mean_rank": 3.6,
+      "rank_improvement": 1.6,
+      "naive_correct_ranks": [
+        2,
+        3,
+        5,
+        7,
+        9
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        3,
+        5,
+        7
+      ],
+      "query_control_alignment_before": 0.2559478423815435,
+      "query_control_alignment_after": 2.6020852139652106e-17
+    },
+    {
+      "experiment": "Biomedical: Protein Function vs. Organism Context",
+      "model": "Ollama/nomic-embed-text",
+      "embedding_dim": 768,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.29579365079365083,
+      "projected_mrr": 0.3005555555555556,
+      "mrr_improvement": 0.004761904761904745,
+      "naive_precision": 0.2,
+      "projected_precision": 0.2,
+      "precision_improvement": 0.0,
+      "naive_mean_rank": 7.0,
+      "projected_mean_rank": 6.8,
+      "rank_improvement": 0.20000000000000018,
+      "naive_correct_ranks": [
+        1,
+        7,
+        8,
+        9,
+        10
+      ],
+      "projected_correct_ranks": [
+        1,
+        6,
+        8,
+        9,
+        10
+      ],
+      "query_control_alignment_before": 0.18209169519228496,
+      "query_control_alignment_after": 3.122502256758253e-17
+    },
+    {
+      "experiment": "Labor Matching: Role Fitness vs. Gender Coding",
+      "model": "Ollama/nomic-embed-text",
+      "embedding_dim": 768,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.42857142857142855,
+      "projected_mrr": 0.4499999999999999,
+      "mrr_improvement": 0.021428571428571352,
+      "naive_precision": 0.6,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.20000000000000007,
+      "naive_mean_rank": 3.8,
+      "projected_mean_rank": 3.2,
+      "rank_improvement": 0.5999999999999996,
+      "naive_correct_ranks": [
+        1,
+        2,
+        3,
+        6,
+        7
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "query_control_alignment_before": 0.14673472625297312,
+      "query_control_alignment_after": 0.0
+    },
+    {
+      "experiment": "Ontology: Functional Role vs. Domain Register",
+      "model": "Ollama/nomic-embed-text",
+      "embedding_dim": 768,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.37222222222222223,
+      "projected_mrr": 0.4352380952380952,
+      "mrr_improvement": 0.06301587301587297,
+      "naive_precision": 0.6,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.20000000000000007,
+      "naive_mean_rank": 4.6,
+      "projected_mean_rank": 3.6,
+      "rank_improvement": 0.9999999999999996,
+      "naive_correct_ranks": [
+        1,
+        3,
+        4,
+        6,
+        9
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        3,
+        5,
+        7
+      ],
+      "query_control_alignment_before": 0.1952260923543764,
+      "query_control_alignment_after": 3.122502256758253e-17
+    },
+    {
+      "experiment": "Biomedical: Protein Function vs. Organism Context",
+      "model": "Ollama/all-minilm",
+      "embedding_dim": 384,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.3852380952380952,
+      "projected_mrr": 0.39,
+      "mrr_improvement": 0.0047619047619048005,
+      "naive_precision": 0.8,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.0,
+      "naive_mean_rank": 4.0,
+      "projected_mean_rank": 3.8,
+      "rank_improvement": 0.20000000000000018,
+      "naive_correct_ranks": [
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      "projected_correct_ranks": [
+        1,
+        3,
+        4,
+        5,
+        6
+      ],
+      "query_control_alignment_before": 0.17722275572363938,
+      "query_control_alignment_after": 2.2551405187698492e-17
+    },
+    {
+      "experiment": "Labor Matching: Role Fitness vs. Gender Coding",
+      "model": "Ollama/all-minilm",
+      "embedding_dim": 384,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.425,
+      "projected_mrr": 0.4352380952380952,
+      "mrr_improvement": 0.010238095238095213,
+      "naive_precision": 0.6,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.20000000000000007,
+      "naive_mean_rank": 4.0,
+      "projected_mean_rank": 3.6,
+      "rank_improvement": 0.3999999999999999,
+      "naive_correct_ranks": [
+        1,
+        2,
+        3,
+        6,
+        8
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        3,
+        5,
+        7
+      ],
+      "query_control_alignment_before": 0.17215110994665933,
+      "query_control_alignment_after": 5.204170427930421e-18
+    },
+    {
+      "experiment": "Ontology: Functional Role vs. Domain Register",
+      "model": "Ollama/all-minilm",
+      "embedding_dim": 384,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.2157936507936508,
+      "projected_mrr": 0.3852380952380952,
+      "mrr_improvement": 0.16944444444444443,
+      "naive_precision": 0.4,
+      "projected_precision": 0.8,
+      "precision_improvement": 0.4,
+      "naive_mean_rank": 6.2,
+      "projected_mean_rank": 4.0,
+      "rank_improvement": 2.2,
+      "naive_correct_ranks": [
+        2,
+        5,
+        7,
+        8,
+        9
+      ],
+      "projected_correct_ranks": [
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      "query_control_alignment_before": 0.3387929156564469,
+      "query_control_alignment_after": 1.0408340855860843e-17
+    },
+    {
+      "experiment": "Biomedical: Protein Function vs. Organism Context",
+      "model": "BioBERT (biomedical)",
+      "embedding_dim": 768,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.3319047619047619,
+      "projected_mrr": 0.37,
+      "mrr_improvement": 0.03809523809523807,
+      "naive_precision": 0.4,
+      "projected_precision": 0.6,
+      "precision_improvement": 0.19999999999999996,
+      "naive_mean_rank": 5.6,
+      "projected_mean_rank": 4.8,
+      "rank_improvement": 0.7999999999999998,
+      "naive_correct_ranks": [
+        1,
+        4,
+        6,
+        7,
+        10
+      ],
+      "projected_correct_ranks": [
+        1,
+        3,
+        4,
+        6,
+        10
+      ],
+      "query_control_alignment_before": 1.078566074371338,
+      "query_control_alignment_after": 1.1175870895385742e-08
+    },
+    {
+      "experiment": "Labor Matching: Role Fitness vs. Gender Coding",
+      "model": "BioBERT (biomedical)",
+      "embedding_dim": 768,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.40555555555555556,
+      "projected_mrr": 0.40555555555555556,
+      "mrr_improvement": 0.0,
+      "naive_precision": 0.6,
+      "projected_precision": 0.6,
+      "precision_improvement": 0.0,
+      "naive_mean_rank": 4.4,
+      "projected_mean_rank": 4.4,
+      "rank_improvement": 0.0,
+      "naive_correct_ranks": [
+        1,
+        2,
+        4,
+        6,
+        9
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        4,
+        6,
+        9
+      ],
+      "query_control_alignment_before": 0.3108331263065338,
+      "query_control_alignment_after": 5.960464477539063e-08
+    },
+    {
+      "experiment": "Ontology: Functional Role vs. Domain Register",
+      "model": "BioBERT (biomedical)",
+      "embedding_dim": 768,
+      "n_candidates": 10,
+      "n_correct": 5,
+      "naive_mrr": 0.4499999999999999,
+      "projected_mrr": 0.45666666666666667,
+      "mrr_improvement": 0.006666666666666765,
+      "naive_precision": 0.8,
+      "projected_precision": 1.0,
+      "precision_improvement": 0.19999999999999996,
+      "naive_mean_rank": 3.2,
+      "projected_mean_rank": 3.0,
+      "rank_improvement": 0.20000000000000018,
+      "naive_correct_ranks": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "projected_correct_ranks": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "query_control_alignment_before": 0.43632131814956665,
+      "query_control_alignment_after": 5.960464477539063e-08
+    }
+  ],
+  "summary": {
+    "n_experiments": 12,
+    "n_improved": 10,
+    "mean_mrr_improvement": 0.04880291005291004,
+    "max_mrr_improvement": 0.17777777777777776
+  }
+}
