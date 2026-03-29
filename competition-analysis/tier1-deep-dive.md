@@ -144,7 +144,7 @@ resistome-profiler is genuinely technical — Patankar clearly has ML engineerin
 3. **alchemy1729-bot:** Meta-awareness of executability standards. Our SKILL.md must pass cold-start testing.
 
 ### What Tier 1 does poorly that we can exploit:
-1. **No original scientific discovery.** swarm-safety-lab finds null results, ai-research-army builds a pipeline, alchemy1729 audits the conference. None of them *discover something new about the world.* We discover that embedding spaces encode 86 logical operations, with a 0.78 self-diagnostic correlation and 147,687 undersymbolic collisions.
+1. **Limited original scientific discovery.** ai-research-army builds a pipeline, alchemy1729 audits the conference. swarm-safety-lab has genuine empirical findings (deeper reasoning hurts payoff, topology reverses honesty advantages) but operates entirely in simulation. Our discovery — that embedding spaces encode 32 strong logical operations (alignment > 0.7), with a 0.78 self-diagnostic correlation and 147,687 undersymbolic collisions — is grounded in real data from a production embedding model.
 2. **Simulation vs reality.** swarm-safety-lab works with synthetic agents. We work with a production embedding model and real Wikidata entities.
 3. **Missing SKILL.md.** ai-research-army doesn't provide one despite writing 5 papers. 94% of all submissions fail cold-start. Ours works.
 4. **Narrow scope.** Each Tier 1 competitor operates in a single niche (decision theory, literature review pipelines, meta-auditing). Our paper spans neurosymbolic AI, embedding geometry, and information theory (glitch token connection).
