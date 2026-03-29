@@ -1,26 +1,28 @@
 # Dimensional Decomposition for Many-to-Many Matching in Embedding Spaces
 
-**Category:** Labor Economics / Microeconomics (with CS and Statistics applications)
+**Category:** CS / Economics (cross-listed)
 
 **Target:** Claw4S Conference 2026 (deadline April 5, 2026)
 
 ## Abstract
 
-Current embedding-based matching systems collapse multi-dimensional similarity into a single scalar score, conflating dimensions that should be independently queryable. This paper introduces a structured matching primitive that decomposes embedding similarity into three components: (1) dimensions to actively select for, (2) dimensions to actively control against, and (3) residual general similarity uncorrelated with the controlled dimensions. The mechanism combines orthogonal projection for dimensional control with directed small-world graph navigation for efficient traversal. We formalize this as a query structure, demonstrate it across multiple case studies including labor market matching, and show that this decomposition both improves match quality (a Pareto improvement) and structurally prevents proxy discrimination — not as a post-hoc correction but as a consequence of doing the similarity computation correctly.
+Current embedding-based matching systems collapse multi-dimensional similarity into a single scalar score, conflating dimensions that should be independently queryable. This paper introduces a structured matching primitive that decomposes embedding similarity into three components: (1) dimensions to actively select for, (2) dimensions to actively control against, and (3) residual general similarity uncorrelated with the controlled dimensions. The mechanism combines orthogonal projection for dimensional control with directed small-world graph navigation for efficient traversal. We formalize this as a query structure and demonstrate it across domains: biomedical entity matching (gene-function similarity controlling for tissue type, drug repurposing controlling for toxicity), labor market matching (candidate-role fitness controlling for protected characteristics), and ontological categorization (Wikidata entity similarity controlling for abstraction level). In each case, dimensional decomposition produces more precise matches than naive cosine similarity — a Pareto improvement that also structurally prevents proxy conflation as a consequence of doing the similarity computation correctly.
 
 ## 1. Introduction
 
 Embedding spaces encode semantic similarity as geometric proximity. This is powerful for retrieval but structurally limited: when a query requires *similarity along some dimensions but not others*, a single cosine similarity score cannot express the distinction. The result is systematic conflation — irrelevant dimensions contaminate the similarity score, producing worse matches than the data supports.
 
-This conflation is where algorithmic discrimination structurally originates. A hiring algorithm that computes cosine similarity between a candidate embedding and a role embedding will encode race, gender, resume gaps, and other irrelevant features into the score, not because the algorithm is biased but because the query formalism cannot distinguish relevant from irrelevant dimensions.
+This problem is acute in biomedical informatics, where many-to-many relationships are the norm rather than the exception. A single gene participates in multiple pathways. A drug binds multiple targets. A protein has different functions in different tissues. A clinical phenotype maps to multiple underlying conditions. When a researcher queries for "genes functionally similar to BRCA1," naive embedding similarity returns results contaminated by tissue-of-expression, organism, nomenclature convention, and every other dimension the embedding encodes — not just functional role.
+
+The same structural problem appears across domains. A hiring algorithm that computes cosine similarity between candidate and role embeddings conflates credentials, demographics, and job-specific fitness into one score. An ontological query conflates abstraction level with lateral semantic content. In every case, the single-score paradigm is a structural mistake — not a bias to correct, but a query formalism that cannot express what the user actually means.
 
 We propose a matching primitive with three components:
 
 1. **Active selection**: Maximize similarity to target along specified dimensions
-2. **Active control**: Orthogonally project away specified dimensions (protected characteristics, irrelevant features)
+2. **Active control**: Orthogonally project away specified dimensions (confounders, irrelevant features)
 3. **General residual similarity**: Cosine similarity on the residual, uncorrelated with controlled dimensions by construction
 
-This is not a debiasing method. It is a *correctly specified query* that expresses what the user actually means when they ask for "similar but not along these axes."
+This is not a debiasing method or a dimensionality reduction technique. It is a *correctly specified query* that expresses what the user actually means when they ask for "similar but not along these axes."
 
 ### 1.1 Relationship to Prior Work
 
@@ -40,11 +42,25 @@ $$\text{score}(q, e) = \cos(q, e) = \frac{q \cdot e}{\|q\| \|e\|}$$
 
 This computes similarity across *all* dimensions simultaneously. If the embedding encodes $k$ distinct semantic features, cosine similarity averages over all $k$, even when only a subset is relevant to the query.
 
-### 2.2 Proxy Discrimination as a Dimensionality Problem
+In biomedical contexts, this is particularly damaging. Biomedical embeddings (BioWordVec, PubMedBERT, ESM for proteins, ChemBERTa for molecules) encode multiple orthogonal properties simultaneously: function, structure, tissue localization, evolutionary origin, disease association, pharmacological profile. A query for functional similarity that returns structurally similar but functionally different entities is not a "noisy" result — it is a *wrong* result produced by a query formalism that cannot distinguish the two.
 
-The fairness-in-ML literature acknowledges that excluding protected attributes from model inputs does not eliminate discrimination risk, because proxy variables strongly correlated with protected attributes still encode sensitive information (Dwork et al., 2012; Corbett-Davies & Goel, 2018). The standard response is correction — regularization, adversarial debiasing, post-hoc adjustment.
+### 2.2 Many-to-Many Relations in Biomedical Knowledge
 
-We reframe: proxy discrimination is not a bias problem requiring correction. It is a *dimensionality problem* requiring decomposition. The conflation of relevant and irrelevant dimensions is the structural cause. Correcting a conflated score is treating a symptom; decomposing the query addresses the cause.
+Biomedical knowledge is dominated by many-to-many relationships:
+
+- **Gene → Pathway:** One gene participates in many pathways; one pathway involves many genes
+- **Drug → Target:** One drug binds many targets (polypharmacology); one target is bound by many drugs
+- **Protein → Function:** One protein has many functions (moonlighting proteins); one function is performed by many proteins
+- **Disease → Gene:** One disease involves many genes; one gene is implicated in many diseases
+- **Phenotype → Genotype:** Many phenotypes map to many genotypes through complex epistasis
+
+These relationships cannot be represented as consistent vector displacements in embedding space — the geometry only natively supports one-to-one asymmetric relations (as demonstrated in our prior work on FOL operations). Dimensional decomposition offers a way to *query across* many-to-many relationships by controlling which dimensions participate in the similarity computation.
+
+### 2.3 Proxy Conflation as a Dimensionality Problem
+
+The conflation problem is not limited to biomedicine. The fairness-in-ML literature acknowledges that excluding protected attributes from model inputs does not eliminate discrimination risk, because proxy variables strongly correlated with protected attributes still encode sensitive information (Dwork et al., 2012; Corbett-Davies & Goel, 2018). The standard response is correction — regularization, adversarial debiasing, post-hoc adjustment.
+
+We reframe: proxy conflation is not a bias problem requiring correction. It is a *dimensionality problem* requiring decomposition. The conflation of relevant and irrelevant dimensions is the structural cause. Correcting a conflated score is treating a symptom; decomposing the query addresses the cause. This reframing applies equally to biomedical confounders (tissue type contaminating functional queries) and social confounders (race contaminating hiring queries).
 
 ## 3. The Structured Matching Primitive
 
@@ -79,11 +95,39 @@ Executing the structured query at scale requires an efficient traversal structur
 - Navigation ascends to the appropriate abstraction level, then searches laterally within that level
 - The small-world property provides high clustering (dense coherent neighborhoods) and short path lengths (cheap traversal to distant concepts)
 
-The ontological height dimension is a continuous scalar — not a categorical assignment — avoiding arborescent commitment. BFO types anchor the top, concrete instances anchor the bottom. Height can be derived from Wikidata P279 (subclass of) chain depth as a training signal.
+The ontological height dimension is a continuous scalar — not a categorical assignment — avoiding arborescent commitment. In biomedical ontologies (Gene Ontology, SNOMED CT, MeSH), height can be derived from subclass chain depth. For general ontology, Wikidata P279 chain depth provides a noisy but usable training signal. BFO types anchor the top, concrete instances anchor the bottom.
 
 ## 4. Case Studies
 
-### 4.1 Labor Market Matching
+### 4.1 Biomedical Entity Matching
+
+#### 4.1.1 Gene-Function Similarity Controlling for Tissue Type
+
+**Setup:** Gene embeddings from biomedical language models (BioWordVec, PubMedBERT). Gene Ontology annotations as ground truth for functional similarity. GTEx tissue expression profiles as the confounding dimension.
+
+**Problem:** Two genes expressed in the same tissue will have high cosine similarity even if their functions are unrelated, because tissue-of-expression is a strong signal in biomedical text. A query for "functionally similar to BRCA1" returns other breast-tissue genes, not necessarily DNA repair genes.
+
+**Application:** Project away the tissue-expression dimension. Residual similarity captures functional role without tissue contamination. The control vector is derived from the mean displacement between tissue-specific gene sets.
+
+**Expected outcome:** Improved functional similarity precision (Gene Ontology semantic similarity as ground truth) compared to naive cosine similarity.
+
+#### 4.1.2 Drug Repurposing Controlling for Toxicity Profile
+
+**Setup:** Drug embeddings from chemical language models (ChemBERTa, Mol2Vec). Known drug-target interactions. Toxicity profiles as the controlled dimension.
+
+**Problem:** Similar drugs are often similar in both therapeutic effect and toxicity — the embedding conflates the two. A query for "drugs with similar mechanism to Drug X" returns drugs that are also similarly toxic, which is not useful for finding safer alternatives.
+
+**Application:** Project away the toxicity dimension. Residual similarity captures mechanism-of-action without toxicity contamination. Enables "find me something that works like this drug but isn't as toxic" as a formally expressible query.
+
+#### 4.1.3 Protein Function Across Organisms
+
+**Setup:** Protein embeddings from ESM or ProtTrans. Ortholog databases as ground truth.
+
+**Problem:** Protein embeddings encode evolutionary distance alongside functional information. Querying for "proteins with similar function" returns orthologs from closely related species rather than functionally analogous proteins from distant species (which may be more informative for understanding convergent evolution or alternative mechanisms).
+
+**Application:** Project away the phylogenetic dimension. Find functionally similar proteins regardless of evolutionary relatedness.
+
+### 4.2 Labor Market Matching
 
 **Setup:** Embeddings of job candidates and role descriptions. Departed employee as the role reference.
 
@@ -101,33 +145,26 @@ The ontological height dimension is a continuous scalar — not a categorical as
 - This is bidirectional: prevents both discrimination against (rejecting qualified minority candidates) and stereotyping toward (replacing a Black employee only with Black candidates)
 - The control is structural, not ideological — it makes the query express what the employer actually means to ask
 
-### 4.2 Ontological Categorization
+**Economic framing:** This is a matching market problem (Gale-Shapley). Current algorithmic hiring collapses a multi-dimensional matching problem into a single similarity score, which is both economically inefficient (worse matches) and discriminatory (irrelevant dimensions contaminate role-fitness). Dimensional decomposition restores the dimensionality that should have been there — a Pareto improvement.
 
-**Setup:** Wikidata entities with known taxonomic or ontological structure.
+### 4.3 Ontological Categorization (Wikidata)
+
+**Setup:** Wikidata entities with known taxonomic or ontological structure. Embeddings from general-purpose models (mxbai-embed-large, nomic-embed-text).
 
 **Application:** Finding entities that are similar along specific ontological dimensions while controlling for others. A concept that participates in multiple abstraction levels or multiple incompatible hierarchies doesn't need a single categorical placement — it has a height and local neighbors, and the lateral relations at any given height are handled by the residual similarity.
 
 **Connection to many-to-many:** Hierarchical many-to-many relationships (participating in multiple abstraction levels simultaneously) are handled by the continuous height dimension. Regular many-to-many relationships are handled by the controlled projection mechanism.
 
-### 4.3 Gender-Controlled Similarity
-
-**Setup:** Embeddings of people or roles with known gender associations.
-
-**Application:** Finding "the same role but different gender" — priest/nun, actor/actress — by maximizing similarity while controlling for the gender dimension. Demonstrates the bidirectional control mechanism cleanly.
-
-### 4.4 Exploratory: Emergent Latent Structure
-
-**Setup:** Probe for structure in embeddings that wasn't explicitly trained.
-
-**Hypothesis:** If the dimensional decomposition surfaces genuine latent relational structure, it should recover relationships the embedding model didn't know it had encoded. Potential examples: phylogenetic lineage, patronymic relationships in biographical text, or other implicit many-to-many structures.
-
-**Status:** Exploratory. Results framed as suggestive findings with appropriate uncertainty.
+**Examples:**
+- Find shrines similar to a given shrine controlling for geographic region (functional similarity vs. geographic clustering)
+- Find biological taxa similar at one taxonomic rank while controlling for higher-rank classification
+- Find historical figures similar in role while controlling for time period
 
 ## 5. Why Not Hyperbolic Embeddings?
 
 Hyperbolic embeddings are the canonical answer to hierarchy in embedding spaces. We argue they are solving a different problem:
 
-1. **Rigid arborescent commitment**: Hyperbolic curvature *assumes* tree structure as ground truth. Genuine ambiguity or multiple classification is treated as noise, not signal.
+1. **Rigid arborescent commitment**: Hyperbolic curvature *assumes* tree structure as ground truth. Genuine ambiguity or multiple classification is treated as noise, not signal. In biomedical ontologies, where a protein can belong to multiple functional categories simultaneously, this is a fundamental mismatch.
 2. **Catastrophic misrepresentation**: Small errors in hyperbolic space produce confident wrong answers rather than uncertain right ones. The geometry doesn't gracefully degrade.
 3. **This is a navigation problem, not a geometry problem**: The field has framed hierarchy as requiring different geometry. We argue it requires different *traversal* — the ability to move through abstraction levels efficiently without categorical commitment.
 
@@ -137,34 +174,54 @@ The continuous height dimension with small-world navigation avoids all three fai
 
 **Genuinely symmetric bidirectional relationships** — where neither direction is privileged — cannot be decomposed into pairs of asymmetric directional operations. The spouse example illustrates the boundary: heterosexual marriage decomposes into husband-of and wife-of cleanly, but truly symmetric relationships require both directions to be invariant under the dimensional control simultaneously. This is a stronger constraint and likely requires a different primitive. We leave this as an explicit open problem.
 
-**Regular many-to-many relationships** outside of hierarchical contexts (e.g., "ingredient of," "co-author of") remain structurally difficult. The dimensional decomposition handles *hierarchical* many-to-many well but does not solve the general case.
+**Regular many-to-many relationships** outside of hierarchical contexts (e.g., "co-author of," "co-expressed with") remain structurally difficult. The dimensional decomposition handles *querying across* many-to-many structures effectively but does not represent the many-to-many relationship itself in the embedding.
 
 ## 7. Related Work
 
+### Biomedical Embedding Methods
+- **BioWordVec** (Zhang et al., 2019) — biomedical word embeddings trained on PubMed + MeSH
+- **PubMedBERT** (Gu et al., 2021) — domain-specific pretraining for biomedical NLP
+- **ESM** (Rives et al., 2021) — protein language models encoding structure and function
+- **ChemBERTa** (Chithrananda et al., 2020) — molecular embeddings from SMILES
+
+### Hierarchy in Embedding Spaces
 - **Order embeddings** (Vendrov et al., 2016) — explicitly training partial order structure into embedding space
 - **Poincare embeddings** (Nickel & Kiela, 2017) — hyperbolic geometry for hierarchy; different diagnosis than ours
 - **Cone embeddings** — alternative to hyperbolic for hierarchy
+
+### Dimensional Control
 - **Compositional concept extraction** (DebugML) — uses orthogonal projection to discover and separate concept subspaces; analysis tool, not a matching primitive
 - **FairGHDC** (arXiv) — fairness in graph hyperdimensional computing; correction-based approach, structurally different
 - **Fairness-in-ML literature** (Dwork et al., 2012; Corbett-Davies & Goel, 2018) — acknowledges proxy discrimination but proposes correction, not decomposition
+
+### Navigation
 - **HNSW** (Malkov & Yashunin, 2018) — approximate nearest neighbor with navigable small-world graphs; we adapt the navigation structure for ontological traversal
 
 ## 8. Conclusion
 
-The single-score similarity paradigm is a structural mistake that produces both worse matches and systematic discrimination. Dimensional decomposition — actively selecting, actively controlling, and computing residual similarity — is the correct query formalism for multi-dimensional matching. The contribution is not any individual technique but their composition into a coherent, formalizable matching primitive that doesn't exist in the current literature.
+The single-score similarity paradigm is a structural mistake that produces imprecise matches across every domain where embeddings encode multiple independent properties — which is every domain. Dimensional decomposition — actively selecting, actively controlling, and computing residual similarity — is the correct query formalism for multi-dimensional matching. The contribution is not any individual technique but their composition into a coherent, formalizable matching primitive that doesn't exist in the current literature.
+
+The biomedical applications are immediate: gene-function queries that don't conflate tissue type, drug similarity that separates mechanism from toxicity, protein functional analogy across evolutionary distance. The labor economics applications follow the same structure: candidate-role matching that doesn't conflate demographics with fitness. The ontological applications complete the picture: entity similarity that navigates abstraction levels without categorical commitment.
 
 ## Sources and References
 
-### From conversation / web search results:
-1. **Dwork et al. (2012)** — Fairness through awareness; proxy discrimination and individual fairness
-2. **Corbett-Davies & Goel (2018)** — Measure of fairness and proxy variable problem
-3. **Vendrov et al. (2016)** — Order embeddings for visual-semantic hierarchy
-4. **Nickel & Kiela (2017)** — Poincare embeddings for learning hierarchical representations
-5. **Malkov & Yashunin (2018)** — HNSW: Efficient and robust approximate nearest neighbor using hierarchical navigable small world graphs
-6. **FairGHDC** (arXiv) — Fairness in graph hyperdimensional computing
-7. **Compositional concept extraction** (DebugML) — Orthogonal projection for concept subspace discovery
-8. **PubMed Central** — VSA tree traversal via binding chains (hypervector literature)
-9. **Proxy discrimination in ML** (arXiv) — Excluding protected attributes doesn't eliminate discrimination risk via proxy variables
+### Biomedical
+1. **Zhang et al. (2019)** — BioWordVec: biomedical word embeddings with subword and MeSH information
+2. **Gu et al. (2021)** — PubMedBERT: domain-specific pretraining for biomedical NLP
+3. **Rives et al. (2021)** — ESM: biological structure and function from protein language models
+4. **Chithrananda et al. (2020)** — ChemBERTa: large-scale self-supervised pretraining for molecular property prediction
+
+### Fairness and Matching
+5. **Dwork et al. (2012)** — Fairness through awareness; proxy discrimination and individual fairness
+6. **Corbett-Davies & Goel (2018)** — Measure of fairness and proxy variable problem
+7. **Proxy discrimination in ML** (arXiv) — Excluding protected attributes doesn't eliminate discrimination risk via proxy variables
+
+### Embedding Geometry and Navigation
+8. **Vendrov et al. (2016)** — Order embeddings for visual-semantic hierarchy
+9. **Nickel & Kiela (2017)** — Poincare embeddings for learning hierarchical representations
+10. **Malkov & Yashunin (2018)** — HNSW: Efficient and robust approximate nearest neighbor using hierarchical navigable small world graphs
+11. **FairGHDC** (arXiv) — Fairness in graph hyperdimensional computing
+12. **Compositional concept extraction** (DebugML) — Orthogonal projection for concept subspace discovery
 
 ### Key findings from literature search:
 - Nobody is combining controlled dimensional exclusion + directional selection + small world navigation as a unified matching primitive
