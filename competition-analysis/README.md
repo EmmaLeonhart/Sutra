@@ -13,13 +13,19 @@ Analysis of all current submissions to identify competitive landscape, different
 | Economics | ~12 | 1-2 | ~10 (TrumpClaw) | Clear winner by default |
 | Quant Finance | 4 | 3-4 | 0 | Not submitting here |
 
-## Economics Category: Essentially No Competition
+## Economics Category: Low Stakes, Low Priority
 
 The economics category is 90% spam from "TrumpClaw" — inflammatory provocateur pieces like "Marriage is Institutionalized Misery," "Democracy is Mob Rule," "The Reproductive Scam." None are economics papers in any meaningful sense.
 
 **One legitimate paper:** "Final push to renewables and nuclear?" by Cherry_Nanobot — analyzes the 2026 US-Israel-Iran War's impact on energy transition. More policy advocacy than economic analysis.
 
-**Our advantage:** We are the only submission doing actual microeconomic analysis with quantitative methodology. The bar is literally "be a real paper." Our structural comparison framework with agent-retrieved data (FRED, yfinance) and a falsifiable 6-feature scoring matrix is orders of magnitude more rigorous than anything else in the category.
+**Strategic reality:** The total prize pool is ~$10,000 with an arbitrary $400 balance whose purpose and category allocation is unclear. Even if the $400 is an economics prize, this is not where the meaningful prize money is. The CS category is where the stakes are.
+
+**Our economics-adjacent submissions:**
+1. **AI Investment Bubble paper** (`papers/economics/`) — microeconomic analysis with quantitative methodology
+2. **Many-to-Many Matching paper** (`papers/many-to-many/`) — listed under Labor Economics / Microeconomics, with the resume filtering / proxy discrimination angle providing economics framing
+
+Having two entries that could count as economics is fine for coverage, but neither should be optimized at the expense of CS paper quality.
 
 ## Quantitative Finance: Weak but Real
 
@@ -99,7 +105,18 @@ Most CS submissions fall into one of three categories:
 
 The "Executable or Ornamental?" paper found that most SKILL.md files on clawRxiv don't actually work when run cold-start. This means **having a working SKILL.md is itself a competitive advantage**. We should ensure ours passes cold-start testing before submission.
 
+## Risks
+
+- **Late entrants.** This scrape is from March 26 — 10 days before the April 5 deadline. Strong teams often submit last. The current landscape may shift significantly.
+- **Judging criteria unknown.** We're assuming executability (SKILL.md) will be weighted heavily based on the alchemy1729-bot audit, but we don't know the actual judging rubric.
+- **Our SKILL.md claim is untested.** The competitive strategy hinges on cold-start executability, but this hasn't been validated by an independent cold-start test yet. This is the single biggest risk.
+- **The "86 operations" headline is soft.** Alignment > 0.5 is a loose threshold. The 32 strong operations (alignment > 0.7) or the 4 perfect-prediction operations (MRR = 1.0) are more defensible headline numbers against statistically sophisticated reviewers (swarm-safety-lab).
+
 ## Recommendation
 
-- **Economics:** Submit as-is. No real competition. Win by being legitimate.
-- **CS:** Focus on making the SKILL.md bulletproof (cold-start runnable). The scientific content is already differentiated — most papers are systems/tooling, not discovery. Emphasize the three-zone taxonomy and the collision analysis as empirical novelty. The r=0.78 self-diagnostic correlation is our strongest quantitative result.
+- **Economics:** Low priority. Max $400 prize if that's even what it's for. Submit what we have, don't optimize further. The many-to-many paper also has economics elements (labor market matching, resume filtering) providing category coverage.
+- **CS:** This is where the prize money is. Focus on:
+  1. Making the SKILL.md bulletproof (cold-start runnable) — actually test it, don't just claim it works
+  2. Leading with stronger numbers (32 operations at >0.7, not 86 at >0.5)
+  3. Ensuring the paper addresses existing neurosymbolic baselines (TransE, RotatE) since we're criticizing competitors for missing baselines (FlashAttention)
+  4. The three-zone taxonomy and collision analysis as empirical novelty
