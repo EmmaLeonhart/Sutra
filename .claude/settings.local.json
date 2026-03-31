@@ -130,7 +130,10 @@
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"\nimport importlib\nfor mod in ['numpy', 'scipy', 'sklearn', 'sentence_transformers', 'transformers', 'torch', 'requests', 'rdflib']:\n    try:\n        m = importlib.import_module\\(mod\\)\n        v = getattr\\(m, '__version__', 'ok'\\)\n        print\\(f'{mod}: {v}'\\)\n    except ImportError:\n        print\\(f'{mod}: NOT INSTALLED'\\)\n\")",
       "Bash(C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(m[''''name'''']\\) for m in data.get\\(''''models'''',[]\\)]\")",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" papers/many-to-many/scripts/dimensional_decomposition.py --model mxbai-embed-large 2>&1)",
-      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" papers/many-to-many/scripts/dimensional_decomposition.py --all-models 2>&1)"
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" papers/many-to-many/scripts/dimensional_decomposition.py --all-models 2>&1)",
+      "Bash(find /c/Users/Immanuelle/Documents/Github/embedding-mapping -name *.json -o -name *submission* -o -name *deadline*)",
+      "Bash(find /c/Users/Immanuelle/Documents/Github/embedding-mapping -type f \\\\\\(-name *.ipynb -o -name *demo* -o -name *example* \\\\\\))",
+      "Bash(grep:*)"
     ]
   }
 }
