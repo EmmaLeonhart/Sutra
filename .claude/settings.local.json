@@ -100,7 +100,8 @@
       "Bash(sed 's/\\(.*$//')",
       "Bash(flutter build:*)",
       "Bash(cargo run:*)",
-      "Bash(pkill -f playground_server)"
+      "Bash(pkill -f playground_server)",
+      "Bash(grep -E \"^[^/]*\\(/[^/]*\\){2}$\")"
     ]
   }
 }
