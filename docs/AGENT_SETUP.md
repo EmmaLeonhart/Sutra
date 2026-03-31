@@ -2,7 +2,9 @@
 
 > **For AI agents setting up SutraDB.** If you are an AI agent (Claude, GPT, Gemini, Copilot, etc.), this document tells you everything you need to install, configure, and operate SutraDB programmatically.
 
-## Quick Start (3 commands)
+> **Important: SutraDB is serverless by default.** Like SQLite, you should open a `.sdb` file directly — no server process needed. Only use server mode (`sutra serve`) when you specifically need HTTP access, concurrent multi-client access, or remote connections. **Most use cases should use serverless mode.**
+
+## Quick Start — Serverless (recommended)
 
 ```bash
 # 1. Clone and build
@@ -10,19 +12,34 @@ git clone https://github.com/EmmaLeonhart/SutraDB.git
 cd SutraDB
 cargo build --release -p sutra-cli
 
-# 2. Start the server
-./target/release/sutra serve --port 3030
+# 2. Import data directly into a .sdb directory (no server needed)
+./target/release/sutra import -d ./my-database data.nt
 
-# 3. Verify it's running
-curl http://localhost:3030/health
-# Returns: ok
+# 3. Query directly (no server needed)
+./target/release/sutra query -d ./my-database "SELECT * WHERE { ?s ?p ?o } LIMIT 10"
+
+# 4. Check health
+./target/release/sutra health -d ./my-database
 ```
 
-SutraDB is now running. The SPARQL endpoint is at `http://localhost:3030/sparql`.
+That's it. No daemon, no port, no config. The database lives in `./my-database/`.
+
+### When to use server mode instead
+
+Only start a server if you need one of these:
+- **Multiple clients** connecting simultaneously
+- **Remote access** over HTTP from another machine
+- **HTTP API** for web applications or services
+
+```bash
+# Server mode (only when needed)
+./target/release/sutra serve --port 3030
+curl http://localhost:3030/health
+```
 
 ## What is SutraDB?
 
-SutraDB is a **unified RDF triplestore + vector database** written in Rust. It stores knowledge graphs (RDF triples) and vector embeddings (HNSW index) in the same database, queryable with a single SPARQL query.
+SutraDB is a **unified RDF triplestore + vector database** written in Rust. It stores knowledge graphs (RDF triples) and vector embeddings (HNSW index) in the same database, queryable with a single SPARQL query. It works like SQLite — just open a file, no server required.
 
 **Key concept:** Vectors are triples. An embedding is just `<entity> <hasEmbedding> "0.1 0.2 ..."^^sutra:f32vec .` — stored in the graph, indexed by HNSW.
 
@@ -53,19 +70,34 @@ docker run -p 3030:3030 -v sutra-data:/data sutradb
 
 ## CLI Commands
 
+### Serverless commands (recommended — no server needed)
+
+| Command | Description |
+|---------|-------------|
+| `sutra query -d ./mydb "SELECT ..."` | Run SPARQL query directly on .sdb directory |
+| `sutra import -d ./mydb data.nt` | Import N-Triples file |
+| `sutra import -d ./mydb - < data.nt` | Import from stdin |
+| `sutra export -d ./mydb` | Export all triples to stdout |
+| `sutra export -d ./mydb -o dump.nt` | Export to file |
+| `sutra export -d ./mydb -f ttl` | Export as Turtle |
+| `sutra info -d ./mydb` | Show triple/term counts |
+| `sutra health -d ./mydb` | Database health diagnostics |
+| `sutra mcp --data_dir ./mydb` | MCP server in serverless mode |
+
+### Server mode commands (only when you need HTTP/multi-client access)
+
 | Command | Description |
 |---------|-------------|
 | `sutra serve` | Start HTTP server (default port 3030) |
 | `sutra serve --port 8080` | Custom port |
 | `sutra serve --memory-only` | In-memory only, no persistence |
 | `sutra serve --data-dir ./my-db` | Custom data directory |
-| `sutra query "SELECT ..."` | Run SPARQL query from command line |
-| `sutra import data.nt` | Import N-Triples file |
-| `sutra import - < data.nt` | Import from stdin |
-| `sutra export` | Export all triples to stdout |
-| `sutra export -o dump.nt` | Export to file |
-| `sutra export -f ttl` | Export as Turtle |
-| `sutra info` | Show triple/term counts |
+| `sutra mcp --url http://host:3030` | MCP server connecting to HTTP instance |
+
+### General commands
+
+| Command | Description |
+|---------|-------------|
 | `sutra update` | Check for and install updates |
 | `sutra --version` | Print version |
 
@@ -179,9 +211,13 @@ Official client libraries:
 
 ## Persistence
 
-By default, `sutra serve` persists data to `./sutra-data/` using sled (embedded LSM-tree). Data survives restarts.
+SutraDB stores data in a `.sdb` directory using sled (embedded LSM-tree). Data survives restarts.
 
-Use `--memory-only` for ephemeral testing.
+- **Serverless mode:** specify the data directory with `-d ./my-database` on any command
+- **Server mode:** `sutra serve` defaults to `./sutra-data/`; use `--data-dir` to customize
+- **In-memory only:** use `sutra serve --memory-only` for ephemeral testing
+
+The same `.sdb` directory format works in both modes. You can operate on a database serverlessly and later serve it over HTTP, or vice versa.
 
 ## Architecture Notes for Agents
 
@@ -194,4 +230,16 @@ Use `--memory-only` for ephemeral testing.
 
 ## MCP Server
 
-AI agents can use the MCP (Model Context Protocol) server at `tools/mcp-server/server.py` for database maintenance operations. The MCP server supports dual-mode operation (serverless and server) and exposes 8 maintenance tools for tasks such as health checks, HNSW index management, backup operations, and database statistics. To start it, run `python tools/mcp-server/server.py` alongside the SutraDB instance.
+AI agents can use the native MCP (Model Context Protocol) server for database operations. The MCP server supports dual-mode operation and exposes 12 tools.
+
+```bash
+# Serverless mode (recommended — no server process needed)
+sutra mcp --data_dir ./my-database
+
+# Server mode (only if you have a running HTTP instance)
+sutra mcp --url http://localhost:3030
+```
+
+Tools: `health_report`, `rebuild_hnsw`, `verify_consistency`, `database_info`, `sparql_query`, `insert_triples`, `backup`, `vector_search`, `download_studio`, `launch_studio`, `check_update`, `decline_update`.
+
+A legacy Python MCP server is also available at `tools/mcp-server/server.py`.
