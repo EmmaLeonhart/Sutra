@@ -122,7 +122,14 @@ sutra query "SELECT ..."        # Run SPARQL query
 sutra import data.nt            # Import N-Triples
 sutra export -o dump.nt         # Export all triples
 sutra info                      # Show database stats
+sutra health                    # Database health diagnostics
+sutra health --rebuild_hnsw     # Rebuild HNSW indexes
+sutra mcp                       # Start MCP server for AI agents
+sutra update                    # Check for updates and self-update
+sutra install-agent mydb        # Agent-first database setup
 ```
+
+See **[CLI Reference](docs/cli-reference.md)** for the full list of commands, flags, and options.
 
 ## SDKs
 
@@ -175,6 +182,18 @@ sutra mcp --data-dir ./my-database
 12 tools: `health_report`, `rebuild_hnsw`, `verify_consistency`, `database_info`, `sparql_query`, `insert_triples`, `backup`, `vector_search`, `download_studio`, `launch_studio`, `check_update`, `decline_update`.
 
 Auto-updates the CLI binary (and Studio if installed) from GitHub releases on startup, with a 2-minute decline window.
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| **[Architecture](docs/architecture.md)** | Full technical architecture: data model, storage engine, indexes, SPARQL+, crate structure |
+| **[Query Examples](docs/query-examples.md)** | 70+ SPARQL+ query examples from basic patterns to hybrid vector+temporal+graph queries |
+| **[Temporal Queries](docs/temporal-queries.md)** | Practical guide to AT_TIME, DURING, WORLD_STATE, and TEMPORAL_DIFF operators |
+| **[Ontochronology](docs/ontochronology.md)** | Theory and design of SutraDB's temporal (ontochronological) data model |
+| **[Vector SPARQL](docs/vectorSPARQL.md)** | VECTOR_SIMILAR, VECTOR_SCORE, edge embeddings, query planner heuristics |
+| **[CLI Reference](docs/cli-reference.md)** | All CLI commands, flags, HTTP API endpoints, and MCP tools |
+| **[Agent Setup](docs/AGENT_SETUP.md)** | Quick start guide for AI agents |
 
 ## Test Suite
 
