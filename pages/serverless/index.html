@@ -33,7 +33,7 @@
 <div class="container">
     <div class="page-header">
         <h1>Deployment: <span>Embedded &amp; Server</span></h1>
-        <p class="subtitle">Two ways to run the same database. Pick what fits your use case.</p>
+        <p class="subtitle">Serverless is the default. Use server mode only when you need multi-client or remote access.</p>
     </div>
 
     <h2>Two Modes, One Database</h2>
@@ -42,7 +42,7 @@
 
     <div class="comparison">
         <div class="card">
-            <h4>Embedded (Serverless)</h4>
+            <h4>Embedded (Serverless) &mdash; Recommended</h4>
             <ul>
                 <li>Open a <code>.sdb</code> file directly &mdash; no daemon, no config</li>
                 <li>Zero setup: download the binary, point at a file, query</li>
@@ -52,7 +52,7 @@
             </ul>
         </div>
         <div class="card">
-            <h4>Server Mode</h4>
+            <h4>Server Mode &mdash; When You Need It</h4>
             <ul>
                 <li>HTTP SPARQL endpoint at <code>localhost:3030/sparql</code></li>
                 <li>Multiple clients can query concurrently</li>

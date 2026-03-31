@@ -2,13 +2,97 @@
 
 > Complete reference for `sutra` command-line interface.
 
+> **Serverless by default.** Most commands operate directly on a `.sdb` directory via the `-d` flag — no server needed. Only use `sutra serve` when you need HTTP access, concurrent clients, or remote connections.
+
 ---
 
 ## Commands
 
+### `sutra query`
+
+Execute a SPARQL query directly on a `.sdb` directory. No server needed.
+
+```bash
+sutra query -d ./my-database "SELECT * WHERE { ?s ?p ?o } LIMIT 10"
+sutra query -d /data/mydb "SELECT ?name WHERE { ?s :name ?name }"
+```
+
+| Argument/Flag | Default | Description |
+|---|---|---|
+| `query` (positional) | required | The SPARQL query string |
+| `-d, --data_dir` | `./sutra-data` | Data directory |
+
+---
+
+### `sutra import`
+
+Import N-Triples data from a file into the database. No server needed.
+
+```bash
+sutra import -d ./my-database data.nt     # import from file
+sutra import -d ./my-database -            # import from stdin
+```
+
+| Argument/Flag | Default | Description |
+|---|---|---|
+| `file` (positional) | required | Path to N-Triples file (use `-` for stdin) |
+| `-d, --data_dir` | `./sutra-data` | Data directory |
+
+---
+
+### `sutra export`
+
+Export all triples from the database. No server needed.
+
+```bash
+sutra export -d ./my-database              # export to stdout as N-Triples
+sutra export -d ./my-database -o backup.nt # export to file
+sutra export -d ./my-database -f ttl       # export as Turtle
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `-d, --data_dir` | `./sutra-data` | Data directory |
+| `-o, --output` | stdout | Output file path |
+| `-f, --format` | `nt` | Export format: `nt` (N-Triples) or `ttl` (Turtle) |
+
+---
+
+### `sutra info`
+
+Show database statistics (triple count, term count, vector indexes, etc.). No server needed.
+
+```bash
+sutra info -d ./my-database
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `-d, --data_dir` | `./sutra-data` | Data directory |
+
+---
+
+### `sutra health`
+
+Database health diagnostics. No server needed.
+
+```bash
+sutra health -d ./my-database              # full health report
+sutra health -d ./my-database --rebuild_hnsw # rebuild HNSW indexes
+sutra health -d ./my-database --refresh    # rediscover pseudo-tables
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `-d, --data_dir` | `./sutra-data` | Data directory |
+| `--rebuild_hnsw` | off | Rebuild all HNSW indexes |
+| `--refresh` | off | Rediscover pseudo-tables from current graph data |
+
+---
+
 ### `sutra serve`
 
-Start the SPARQL HTTP server.
+Start the SPARQL HTTP server. **Only needed for multi-client access, remote connections, or HTTP API consumers.** For single-process use, prefer the serverless commands above.
 
 ```bash
 sutra serve                                # defaults: port 3030, data in ./sutra-data
@@ -25,91 +109,6 @@ sutra serve --backup_interval 60            # auto-backup every 60 minutes
 | `--memory_only` | off | Run in-memory only (no persistence) |
 | `--passcode` | none | Simple passcode auth; all requests except `/health` require `Authorization: Bearer <passcode>` |
 | `--backup_interval` | `0` (disabled) | Periodic backup interval in minutes |
-
----
-
-### `sutra query`
-
-Execute a SPARQL query from the command line.
-
-```bash
-sutra query "SELECT * WHERE { ?s ?p ?o } LIMIT 10"
-sutra query -d /data/mydb "SELECT ?name WHERE { ?s :name ?name }"
-```
-
-| Argument/Flag | Default | Description |
-|---|---|---|
-| `query` (positional) | required | The SPARQL query string |
-| `-d, --data_dir` | `./sutra-data` | Data directory |
-
----
-
-### `sutra import`
-
-Import N-Triples data from a file into the database.
-
-```bash
-sutra import data.nt                        # import from file
-sutra import -                              # import from stdin
-sutra import -d /data/mydb data.nt          # custom data directory
-```
-
-| Argument/Flag | Default | Description |
-|---|---|---|
-| `file` (positional) | required | Path to N-Triples file (use `-` for stdin) |
-| `-d, --data_dir` | `./sutra-data` | Data directory |
-
----
-
-### `sutra export`
-
-Export all triples from the database.
-
-```bash
-sutra export                                # export to stdout as N-Triples
-sutra export -o backup.nt                   # export to file
-sutra export -f ttl -o data.ttl             # export as Turtle
-```
-
-| Flag | Default | Description |
-|---|---|---|
-| `-d, --data_dir` | `./sutra-data` | Data directory |
-| `-o, --output` | stdout | Output file path |
-| `-f, --format` | `nt` | Export format: `nt` (N-Triples) or `ttl` (Turtle) |
-
----
-
-### `sutra info`
-
-Show database statistics (triple count, term count, vector indexes, etc.).
-
-```bash
-sutra info
-sutra info -d /data/mydb
-```
-
-| Flag | Default | Description |
-|---|---|---|
-| `-d, --data_dir` | `./sutra-data` | Data directory |
-
----
-
-### `sutra health`
-
-Database health diagnostics. Outputs a structured report covering HNSW vector indexes, pseudo-tables, and storage. Every metric includes context explaining what healthy vs unhealthy looks like.
-
-```bash
-sutra health                                # full health report
-sutra health --rebuild_hnsw                 # rebuild all HNSW indexes
-sutra health --refresh                      # rediscover pseudo-tables
-sutra health -d /data/mydb                  # custom data directory
-```
-
-| Flag | Default | Description |
-|---|---|---|
-| `-d, --data_dir` | `./sutra-data` | Data directory |
-| `--rebuild_hnsw` | off | Rebuild all HNSW indexes (removes tombstones, restores connectivity) |
-| `--refresh` | off | Rediscover pseudo-tables from current graph data |
 
 ---
 
@@ -155,8 +154,8 @@ sutra install-agent mydb --no_serve --launch_studio
 Start the MCP (Model Context Protocol) server for AI agents. Runs a JSON-RPC server over stdin/stdout.
 
 ```bash
-sutra mcp                                   # connect to http://localhost:3030
-sutra mcp --data_dir ./mydb.sdb             # serverless mode (direct .sdb access)
+sutra mcp --data_dir ./mydb.sdb             # serverless mode (recommended — direct .sdb access)
+sutra mcp                                   # server mode: connect to http://localhost:3030
 sutra mcp --url http://remote:3030 --passcode secret
 sutra mcp --studio                          # also launch Sutra Studio GUI
 sutra mcp --no_auto_update                  # disable auto-update check
