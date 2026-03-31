@@ -516,14 +516,14 @@ SELECT ?shrine ?label ?prefecture WHERE {
 ```sparql
 PREFIX ex: <http://example.org/>
 
-# Find all ancestors up to 5 generations
+# Find all ancestors (transitive closure over parent)
 SELECT ?ancestor ?name WHERE {
   <http://example.org/PersonA> ex:parent+ ?ancestor .
   ?ancestor ex:name ?name
 }
 ```
 
-(Property paths like `+` are future work but this shows the target.)
+Uses the `+` (one-or-more) property path operator. SutraDB also supports `*` (zero-or-more), `?` (zero-or-one), and `/` (sequence).
 
 ### Document corpus exploration
 
@@ -579,6 +579,126 @@ Graph traversal finds friends-of-friends; vector search ranks them by semantic i
 
 ---
 
+## 10. Temporal Queries (Ontochronology)
+
+These queries use SutraDB's temporal (ontochronological) SPARQL+ extensions. See `docs/temporal-queries.md` for the full practical guide and `docs/ontochronology.md` for the theory.
+
+### AT_TIME: query at a specific moment
+
+```sparql
+# Who was located where on March 14, 2024 at 10am?
+SELECT ?person ?location WHERE {
+  AT_TIME("2024-03-14T10:00:00"^^xsd:dateTime) {
+    ?person :locatedIn ?location .
+    ?person rdf:type :Suspect .
+  }
+}
+```
+
+Only triples valid at that exact moment are returned. Atemporal triples (no temporal annotations) always match.
+
+### AT_TIME with year precision
+
+```sparql
+# Who held which position in 1810?
+SELECT ?person ?position WHERE {
+  AT_TIME("1810"^^sutra:temporal) {
+    ?person :heldPosition ?position .
+  }
+}
+```
+
+### AT_TIME with integer axis (frame numbers)
+
+```sparql
+# What entities are present in frame 42?
+SELECT ?entity ?property ?value WHERE {
+  AT_TIME(42) {
+    ?entity ?property ?value .
+  }
+}
+```
+
+### DURING: query over an interval
+
+```sparql
+# Who was located where between 9am and 11am?
+SELECT ?person ?location WHERE {
+  DURING("2024-03-14T09:00:00"^^xsd:dateTime,
+         "2024-03-14T11:00:00"^^xsd:dateTime) {
+    ?person :locatedIn ?location .
+  }
+}
+```
+
+Returns triples whose valid-time interval **overlaps** with the query interval.
+
+### WORLD_STATE: complete snapshot
+
+```sparql
+# Complete world state at a specific moment
+SELECT ?s ?p ?o WHERE {
+  WORLD_STATE("2024-03-14T10:00:00"^^xsd:dateTime) {
+    ?s ?p ?o .
+  }
+}
+```
+
+### TEMPORAL_DIFF: what changed between two times?
+
+```sparql
+# What changed between 1804 and 1814?
+SELECT ?change_type ?person ?position WHERE {
+  TEMPORAL_DIFF("1804"^^sutra:temporal, "1814"^^sutra:temporal) {
+    ?person :heldPosition ?position .
+  }
+}
+```
+
+Binds `?change_type` to `"added"`, `"removed"`, or `"unchanged"`.
+
+### Temporal + graph traversal
+
+```sparql
+# At time 175, traverse :knows edges — only edges valid at T are followed
+SELECT ?person WHERE {
+  AT_TIME(175) {
+    :alice :knows+ ?person .
+  }
+}
+```
+
+Property paths inside temporal blocks are temporally aware: each edge is checked before being followed.
+
+### Temporal + vector search
+
+```sparql
+# Find semantically similar documents mentioning people who existed in 2024
+SELECT ?doc ?entity WHERE {
+  AT_TIME("2024-06-01"^^xsd:dateTime) {
+    ?entity rdf:type :Person .
+    ?doc :mentions ?entity .
+  }
+  VECTOR_SIMILAR(?doc :hasEmbedding "..."^^sutra:f32vec, 0.85)
+}
+```
+
+### Co-presence query
+
+```sparql
+# Which people were at the same location during an interval?
+SELECT ?person1 ?person2 ?location WHERE {
+  DURING("2024-03-14T09:00:00"^^xsd:dateTime,
+         "2024-03-14T11:00:00"^^xsd:dateTime) {
+    ?person1 :locatedIn ?location .
+    ?person2 :locatedIn ?location .
+    FILTER(?person1 != ?person2)
+  }
+}
+```
+
+---
+
 ## Implementation Status
 
 | Query Feature | Status |
@@ -587,22 +707,29 @@ Graph traversal finds friends-of-friends; vector search ranks them by semantic i
 | Multi-pattern joins | Implemented |
 | PREFIX declarations | Implemented |
 | FILTER (numeric) | Implemented |
+| FILTER (string: CONTAINS, STRSTARTS, STRENDS, REGEX) | Implemented |
 | OPTIONAL | Implemented |
+| UNION | Implemented |
 | LIMIT / OFFSET | Implemented |
 | DISTINCT | Implemented |
+| ORDER BY | Implemented |
+| GROUP BY / aggregates | Implemented |
+| BIND / VALUES | Implemented |
 | `a` shorthand | Implemented |
 | Integer literals / inline | Implemented |
 | String literals | Implemented |
 | Full IRI syntax | Implemented |
 | Prefixed names | Implemented |
-| RDF-star quoted triples | Core support (not yet in SPARQL) |
-| ORDER BY | Implemented |
-| Property paths (+, *, ?) | Not yet |
-| UNION | Not yet |
-| BIND / VALUES | Implemented |
-| String functions (CONTAINS, STRSTARTS, STRENDS, REGEX) | Implemented |
+| RDF-star quoted triples | Implemented |
+| Property paths (+, *, ?) | Implemented |
 | VECTOR_SIMILAR | Implemented |
 | VECTOR_SCORE | Implemented |
 | COSINE_SEARCH / EUCLID_SEARCH / DOTPRODUCT_SEARCH | Implemented |
+| AT_TIME | Implemented |
+| DURING | Implemented |
+| WORLD_STATE | Implemented |
+| TEMPORAL_DIFF | Implemented |
+| Temporal-aware property paths | Implemented |
 | ef_search hint | Not yet |
 | Top-K mode | Not yet |
+| UNTIL (predicate-based exit conditions) | Not yet |
