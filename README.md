@@ -8,7 +8,7 @@ A lean, high-performance RDF-star triplestore written in Rust with native HNSW v
 
 > **Status: Developer Preview.** Core engine, SPARQL+, vector indexing, HTTP server, ACID compliance, self-update, and MCP server are fully functional. APIs may evolve before 1.0. See the [Roadmap](https://sutradb.org/roadmap/) for what's done and what's next.
 
-> **AI Agents:** If you are an AI agent setting up a database, see **[Agent Setup Guide](docs/AGENT_SETUP.md)** for complete CLI reference, API endpoints, and step-by-step instructions. SutraDB is designed to be fully operable by AI agents without ever touching a GUI.
+> **AI Agents:** If you are an AI agent setting up a database, see **[Agent Setup Guide](docs/AGENT_SETUP.md)** for complete CLI reference, API endpoints, and step-by-step instructions. SutraDB is designed to be fully operable by AI agents without ever touching a GUI. **Start with serverless mode** (just open a `.sdb` file, no server needed) — only use server mode for multi-client or remote access scenarios.
 
 ## What is this?
 
@@ -22,16 +22,39 @@ The vector indexing architecture is heavily influenced by [Qdrant](https://githu
 2. **Vectors are triples.** A vector embedding is an attribute of a node or edge, stored via a typed predicate and indexed by HNSW — not a separate system.
 3. **Full traversal in a single query.** Any traversal of any depth must be expressible in one SPARQL query.
 4. **Lean by default.** Every feature must justify itself. Complexity is the enemy of performance.
-5. **Agent-first, GUI-optional.** The CLI is the primary interface. Sutra Studio (GUI) exists for visual diagnostics.
+5. **Serverless by default, server when needed.** Like SQLite, SutraDB can be embedded directly — just open a `.sdb` file. No daemon, no config. Server mode (`sutra serve`) is opt-in for when you need HTTP access, concurrent clients, or remote connections.
+6. **Agent-first, GUI-optional.** The CLI is the primary interface. Sutra Studio (GUI) exists for visual diagnostics.
 
 ## Quick Start
+
+### Serverless (recommended — like SQLite)
+
+No server process needed. Just point at a `.sdb` directory:
 
 ```bash
 # Build
 cargo build --release -p sutra-cli
 
+# Import data directly into a .sdb file
+sutra import data.nt -d ./my-database
+
+# Query directly — no server needed
+sutra query -d ./my-database "SELECT * WHERE { ?s ?p ?o } LIMIT 10"
+
+# Check database health
+sutra health -d ./my-database
+
+# Use with AI agents via MCP (serverless mode)
+sutra mcp --data_dir ./my-database
+```
+
+### Server mode (for multi-client or remote access)
+
+Only use server mode when you need HTTP access, concurrent clients, or remote connections:
+
+```bash
 # Start server (persistent storage)
-./target/release/sutra serve
+sutra serve
 
 # Insert some data
 curl -X POST http://localhost:3030/triples \
@@ -116,17 +139,23 @@ SELECT, ASK, CONSTRUCT, DESCRIBE | INSERT DATA, DELETE DATA | FILTER (=, !=, <, 
 ## CLI
 
 ```bash
-sutra serve                     # Start HTTP server (port 3030)
-sutra serve --memory-only       # In-memory only
-sutra query "SELECT ..."        # Run SPARQL query
-sutra import data.nt            # Import N-Triples
-sutra export -o dump.nt         # Export all triples
-sutra info                      # Show database stats
-sutra health                    # Database health diagnostics
-sutra health --rebuild_hnsw     # Rebuild HNSW indexes
-sutra mcp                       # Start MCP server for AI agents
-sutra update                    # Check for updates and self-update
-sutra install-agent mydb        # Agent-first database setup
+# Serverless operations (no server needed)
+sutra query -d ./mydb "SELECT ..." # Run SPARQL query directly
+sutra import -d ./mydb data.nt     # Import N-Triples
+sutra export -d ./mydb -o dump.nt  # Export all triples
+sutra info -d ./mydb               # Show database stats
+sutra health -d ./mydb             # Database health diagnostics
+sutra mcp --data_dir ./mydb        # MCP server (serverless mode)
+
+# Server mode (when you need HTTP/multi-client access)
+sutra serve                        # Start HTTP server (port 3030)
+sutra serve --memory-only          # In-memory only
+sutra mcp --url http://host:3030   # MCP server (server mode)
+
+# Maintenance
+sutra health --rebuild_hnsw        # Rebuild HNSW indexes
+sutra update                       # Check for updates and self-update
+sutra install-agent mydb           # Agent-first database setup
 ```
 
 See **[CLI Reference](docs/cli-reference.md)** for the full list of commands, flags, and options.
@@ -172,11 +201,11 @@ Studio connects to SutraDB via HTTP (server mode) or will connect directly via F
 Native Model Context Protocol server for AI agents. Runs over JSON-RPC 2.0 on stdin/stdout.
 
 ```bash
-# Server mode (connects to running instance)
-sutra mcp --url http://localhost:3030
-
-# Serverless mode (opens .sdb file directly)
+# Serverless mode (recommended — opens .sdb file directly, no server needed)
 sutra mcp --data-dir ./my-database
+
+# Server mode (connects to running instance — only if you need multi-client access)
+sutra mcp --url http://localhost:3030
 ```
 
 12 tools: `health_report`, `rebuild_hnsw`, `verify_consistency`, `database_info`, `sparql_query`, `insert_triples`, `backup`, `vector_search`, `download_studio`, `launch_studio`, `check_update`, `decline_update`.

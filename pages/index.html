@@ -301,7 +301,7 @@
 
     <div style="margin-top: 32px; padding: 16px 24px; background: #1a2332; border: 1px solid #2d4a6f; border-radius: 10px; max-width: 600px; margin-left: auto; margin-right: auto;">
         <p style="font-size: 1em; color: #79c0ff; margin-bottom: 4px; font-weight: 600;">AI Agent?</p>
-        <p style="font-size: 0.95em; color: #8b949e; margin-bottom: 8px;">SutraDB is designed agent-first. Install, configure, and query entirely from the command line.</p>
+        <p style="font-size: 0.95em; color: #8b949e; margin-bottom: 8px;">SutraDB is serverless by default, like SQLite. Just open a <code>.sdb</code> file &mdash; no server needed. Install, configure, and query entirely from the command line.</p>
         <a href="https://github.com/EmmaLeonhart/SutraDB/blob/main/docs/AGENT_SETUP.md" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9em;">Agent Setup Guide</a>
     </div>
 </div>
@@ -415,9 +415,9 @@
         </div>
         <p style="margin-top: 32px; color: var(--text-muted); font-size: 0.9em;">
             File format: <strong>.sdb</strong> &mdash; a superset of RDF containing triples + HNSW vector indexes.<br>
-            Start a server: <code style="background: var(--surface); padding: 2px 8px; border-radius: 4px;">sutra serve --port 3030</code>
+            Query directly (no server needed): <code style="background: var(--surface); padding: 2px 8px; border-radius: 4px;">sutra query "SELECT * WHERE { ?s ?p ?o } LIMIT 10"</code>
             &nbsp;|&nbsp;
-            Query directly: <code style="background: var(--surface); padding: 2px 8px; border-radius: 4px;">sutra query "SELECT * WHERE { ?s ?p ?o } LIMIT 10"</code>
+            Optional server: <code style="background: var(--surface); padding: 2px 8px; border-radius: 4px;">sutra serve --port 3030</code>
         </p>
     </div>
 </div>
