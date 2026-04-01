@@ -463,7 +463,11 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        Commands::Import { file, data_dir, show_errors } => {
+        Commands::Import {
+            file,
+            data_dir,
+            show_errors,
+        } => {
             let ps = sutra_core::PersistentStore::open(&data_dir)?;
 
             let reader: Box<dyn BufRead> = if file == "-" {

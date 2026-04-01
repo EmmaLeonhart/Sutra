@@ -469,7 +469,12 @@ fn execute_insert_data(
         {
             // If subject or object is a quoted triple, also store the inner triple
             use sutra_sparql::parser::Term;
-            if let Term::QuotedTriple { subject: qs, predicate: qp, object: qo } = subject {
+            if let Term::QuotedTriple {
+                subject: qs,
+                predicate: qp,
+                object: qo,
+            } = subject
+            {
                 let qs_id = resolve_term_to_id(qs, &mut dict, &query.prefixes)?;
                 let qp_id = resolve_term_to_id(qp, &mut dict, &query.prefixes)?;
                 let qo_id = resolve_term_to_id(qo, &mut dict, &query.prefixes)?;
@@ -483,7 +488,12 @@ fn execute_insert_data(
                     }
                 }
             }
-            if let Term::QuotedTriple { subject: qs, predicate: qp, object: qo } = object {
+            if let Term::QuotedTriple {
+                subject: qs,
+                predicate: qp,
+                object: qo,
+            } = object
+            {
                 let qs_id = resolve_term_to_id(qs, &mut dict, &query.prefixes)?;
                 let qp_id = resolve_term_to_id(qp, &mut dict, &query.prefixes)?;
                 let qo_id = resolve_term_to_id(qo, &mut dict, &query.prefixes)?;
@@ -651,7 +661,11 @@ fn resolve_term_to_id(
         Term::IntegerLiteral(n) => sutra_core::inline_integer(*n)
             .ok_or_else(|| ProtoError::BadRequest("integer out of range".into())),
         Term::A => Ok(dict.intern("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")),
-        Term::QuotedTriple { subject, predicate, object } => {
+        Term::QuotedTriple {
+            subject,
+            predicate,
+            object,
+        } => {
             let s_id = resolve_term_to_id(subject, dict, prefixes)?;
             let p_id = resolve_term_to_id(predicate, dict, prefixes)?;
             let o_id = resolve_term_to_id(object, dict, prefixes)?;
