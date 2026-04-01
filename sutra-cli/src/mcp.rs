@@ -781,7 +781,9 @@ fn get_asset_url(assets: &[Value]) -> Option<String> {
     };
     for asset in assets {
         if let Some(name) = asset["name"].as_str() {
-            if name.contains(target) {
+            // Match the CLI asset (e.g. "sutra-windows-x64.zip") but not
+            // the Studio asset (e.g. "sutra-studio-windows-x64.zip")
+            if name.contains(target) && !name.contains("studio") {
                 return asset["browser_download_url"]
                     .as_str()
                     .map(|s| s.to_string());
