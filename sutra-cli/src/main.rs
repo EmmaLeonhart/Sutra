@@ -52,7 +52,7 @@ enum Commands {
         #[arg(short, long, default_value = "./sutra-data")]
         data_dir: String,
     },
-    /// Import N-Triples data from a file into the database.
+    /// Import N-Triples (or N-Triples-star) data from a file into the database.
     Import {
         /// Path to the N-Triples file (use - for stdin).
         file: String,
@@ -60,6 +60,10 @@ enum Commands {
         /// Data directory.
         #[arg(short, long, default_value = "./sutra-data")]
         data_dir: String,
+
+        /// Print each line that fails to parse or insert, with the reason.
+        #[arg(long)]
+        show_errors: bool,
     },
     /// Export all triples as N-Triples.
     Export {
@@ -459,7 +463,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        Commands::Import { file, data_dir } => {
+        Commands::Import { file, data_dir, show_errors } => {
             let ps = sutra_core::PersistentStore::open(&data_dir)?;
 
             let reader: Box<dyn BufRead> = if file == "-" {
@@ -477,19 +481,56 @@ async fn main() -> anyhow::Result<()> {
                 let line = line?;
                 line_no += 1;
 
-                let parsed = match sutra_core::parse_ntriples_line(&line) {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    continue;
+                }
+
+                let parsed = match sutra_core::parse_ntriples_star_line(&line) {
                     Some(t) => t,
-                    None => continue,
+                    None => {
+                        errors += 1;
+                        if show_errors {
+                            eprintln!("  line {}: parse error: {}", line_no, trimmed);
+                        }
+                        continue;
+                    }
                 };
 
-                let (subj_str, pred_str, obj_str) = parsed;
-                let s_id = ps.intern(&subj_str)?;
-                let p_id = ps.intern(&pred_str)?;
-                let o_id = ps.intern(&obj_str)?;
+                // If the subject is a quoted triple, intern the inner triple
+                // and compute a content-addressed ID for it.
+                let s_id = if let Some((inner_s, inner_p, inner_o)) = &parsed.inner_subject {
+                    let is_id = ps.intern(inner_s)?;
+                    let ip_id = ps.intern(inner_p)?;
+                    let io_id = ps.intern(inner_o)?;
+                    // Store the inner triple itself
+                    let _ = ps.insert(sutra_core::Triple::new(is_id, ip_id, io_id));
+                    sutra_core::quoted_triple_id(is_id, ip_id, io_id)
+                } else {
+                    ps.intern(&parsed.subject)?
+                };
+
+                let p_id = ps.intern(&parsed.predicate)?;
+
+                // If the object is a quoted triple, intern it too
+                let o_id = if let Some((inner_s, inner_p, inner_o)) = &parsed.inner_object {
+                    let is_id = ps.intern(inner_s)?;
+                    let ip_id = ps.intern(inner_p)?;
+                    let io_id = ps.intern(inner_o)?;
+                    let _ = ps.insert(sutra_core::Triple::new(is_id, ip_id, io_id));
+                    sutra_core::quoted_triple_id(is_id, ip_id, io_id)
+                } else {
+                    ps.intern(&parsed.object)?
+                };
 
                 match ps.insert(sutra_core::Triple::new(s_id, p_id, o_id)) {
                     Ok(()) => inserted += 1,
-                    Err(_) => errors += 1,
+                    Err(e) => {
+                        errors += 1;
+                        if show_errors {
+                            eprintln!("  line {}: insert error: {}: {}", line_no, e, trimmed);
+                        }
+                    }
                 }
 
                 #[allow(clippy::manual_is_multiple_of)]
@@ -951,7 +992,9 @@ fn get_asset_url(assets: &[serde_json::Value]) -> Option<String> {
 
     for asset in assets {
         if let Some(name) = asset["name"].as_str() {
-            if name.contains(target) {
+            // Match the CLI asset (e.g. "sutra-windows-x64.zip") but not
+            // the Studio asset (e.g. "sutra-studio-windows-x64.zip")
+            if name.contains(target) && !name.contains("studio") {
                 return asset["browser_download_url"]
                     .as_str()
                     .map(|s| s.to_string());
