@@ -63,17 +63,18 @@ pub fn parse_ntriples_star_line(line: &str) -> Option<ParsedTriple> {
     skip_whitespace(bytes, &mut pos);
 
     // Parse object (IRI, blank node, literal, or quoted triple)
-    let (object, inner_object) = if pos + 1 < bytes.len() && bytes[pos] == b'<' && bytes[pos + 1] == b'<' {
-        parse_quoted_triple(bytes, &mut pos)?
-    } else if pos < bytes.len() && bytes[pos] == b'<' {
-        (parse_iri(bytes, &mut pos)?, None)
-    } else if pos < bytes.len() && bytes[pos] == b'"' {
-        (parse_literal(bytes, &mut pos)?, None)
-    } else if pos + 1 < bytes.len() && bytes[pos] == b'_' && bytes[pos + 1] == b':' {
-        (parse_blank_node(bytes, &mut pos)?, None)
-    } else {
-        return None;
-    };
+    let (object, inner_object) =
+        if pos + 1 < bytes.len() && bytes[pos] == b'<' && bytes[pos + 1] == b'<' {
+            parse_quoted_triple(bytes, &mut pos)?
+        } else if pos < bytes.len() && bytes[pos] == b'<' {
+            (parse_iri(bytes, &mut pos)?, None)
+        } else if pos < bytes.len() && bytes[pos] == b'"' {
+            (parse_literal(bytes, &mut pos)?, None)
+        } else if pos + 1 < bytes.len() && bytes[pos] == b'_' && bytes[pos + 1] == b':' {
+            (parse_blank_node(bytes, &mut pos)?, None)
+        } else {
+            return None;
+        };
 
     // Parse optional graph name (N-Quads extension)
     skip_whitespace(bytes, &mut pos);
@@ -151,7 +152,10 @@ fn parse_node(bytes: &[u8], pos: &mut usize) -> Option<String> {
 
 /// Parse a node that may be an IRI, blank node, or quoted triple `<< s p o >>`.
 /// Returns the term string and optionally the inner triple components.
-fn parse_node_or_quoted(bytes: &[u8], pos: &mut usize) -> Option<(String, Option<(String, String, String)>)> {
+fn parse_node_or_quoted(
+    bytes: &[u8],
+    pos: &mut usize,
+) -> Option<(String, Option<(String, String, String)>)> {
     if *pos + 1 < bytes.len() && bytes[*pos] == b'<' && bytes[*pos + 1] == b'<' {
         parse_quoted_triple(bytes, pos)
     } else if *pos < bytes.len() && bytes[*pos] == b'<' {
@@ -165,7 +169,10 @@ fn parse_node_or_quoted(bytes: &[u8], pos: &mut usize) -> Option<(String, Option
 
 /// Parse a quoted triple `<< subject predicate object >>`.
 /// Returns a sentinel marker string and the inner (s, p, o) components.
-fn parse_quoted_triple(bytes: &[u8], pos: &mut usize) -> Option<(String, Option<(String, String, String)>)> {
+fn parse_quoted_triple(
+    bytes: &[u8],
+    pos: &mut usize,
+) -> Option<(String, Option<(String, String, String)>)> {
     // Skip '<<'
     if *pos + 1 >= bytes.len() || bytes[*pos] != b'<' || bytes[*pos + 1] != b'<' {
         return None;
@@ -200,7 +207,10 @@ fn parse_quoted_triple(bytes: &[u8], pos: &mut usize) -> Option<(String, Option<
     }
     *pos += 2;
 
-    Some((QUOTED_TRIPLE_MARKER.to_string(), Some((inner_s, inner_p, inner_o))))
+    Some((
+        QUOTED_TRIPLE_MARKER.to_string(),
+        Some((inner_s, inner_p, inner_o)),
+    ))
 }
 
 /// Parse a blank node label `_:label`. Returns the full `_:label` string.
