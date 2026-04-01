@@ -20,7 +20,10 @@ pub use id::{
     is_inline, quoted_triple_id, InlineType, TermDictionary, TermId, INVALID_ID,
 };
 pub use jsonld::parse_jsonld;
-pub use ntriples::{parse_nquads_line, parse_ntriples_line, parse_ntriples_star_line, ParsedTriple, QUOTED_TRIPLE_MARKER};
+pub use ntriples::{
+    parse_nquads_line, parse_ntriples_line, parse_ntriples_star_line, ParsedTriple,
+    QUOTED_TRIPLE_MARKER,
+};
 pub use persistent::PersistentStore;
 pub use pseudotable::{
     batch_gather, batch_gather_multi, batch_gather_nodes, compute_fan_in,
