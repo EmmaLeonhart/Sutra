@@ -467,6 +467,37 @@ fn execute_insert_data(
             object,
         } = pattern
         {
+            // If subject or object is a quoted triple, also store the inner triple
+            use sutra_sparql::parser::Term;
+            if let Term::QuotedTriple { subject: qs, predicate: qp, object: qo } = subject {
+                let qs_id = resolve_term_to_id(qs, &mut dict, &query.prefixes)?;
+                let qp_id = resolve_term_to_id(qp, &mut dict, &query.prefixes)?;
+                let qo_id = resolve_term_to_id(qo, &mut dict, &query.prefixes)?;
+                let inner = sutra_core::Triple::new(qs_id, qp_id, qo_id);
+                if store.insert(inner).is_ok() {
+                    if let Some(ref ps_lock) = state.persistent {
+                        let ps = ps_lock
+                            .write()
+                            .map_err(|e| ProtoError::BadRequest(format!("lock: {}", e)))?;
+                        let _ = ps.insert(inner);
+                    }
+                }
+            }
+            if let Term::QuotedTriple { subject: qs, predicate: qp, object: qo } = object {
+                let qs_id = resolve_term_to_id(qs, &mut dict, &query.prefixes)?;
+                let qp_id = resolve_term_to_id(qp, &mut dict, &query.prefixes)?;
+                let qo_id = resolve_term_to_id(qo, &mut dict, &query.prefixes)?;
+                let inner = sutra_core::Triple::new(qs_id, qp_id, qo_id);
+                if store.insert(inner).is_ok() {
+                    if let Some(ref ps_lock) = state.persistent {
+                        let ps = ps_lock
+                            .write()
+                            .map_err(|e| ProtoError::BadRequest(format!("lock: {}", e)))?;
+                        let _ = ps.insert(inner);
+                    }
+                }
+            }
+
             let s_id = resolve_term_to_id(subject, &mut dict, &query.prefixes)?;
             let p_id = resolve_term_to_id(predicate, &mut dict, &query.prefixes)?;
             let o_id = resolve_term_to_id(object, &mut dict, &query.prefixes)?;
@@ -620,6 +651,12 @@ fn resolve_term_to_id(
         Term::IntegerLiteral(n) => sutra_core::inline_integer(*n)
             .ok_or_else(|| ProtoError::BadRequest("integer out of range".into())),
         Term::A => Ok(dict.intern("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")),
+        Term::QuotedTriple { subject, predicate, object } => {
+            let s_id = resolve_term_to_id(subject, dict, prefixes)?;
+            let p_id = resolve_term_to_id(predicate, dict, prefixes)?;
+            let o_id = resolve_term_to_id(object, dict, prefixes)?;
+            Ok(sutra_core::quoted_triple_id(s_id, p_id, o_id))
+        }
         _ => Err(ProtoError::BadRequest(
             "variables not allowed in INSERT/DELETE DATA".into(),
         )),
