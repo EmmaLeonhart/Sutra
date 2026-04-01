@@ -1,0 +1,25 @@
+category,text_a,text_b,cosine_similarity,collision
+cross_collision,Jinmyōchō,kugyō,1.000000,YES
+cross_collision,Hokkaidō,Shōtai,1.000000,YES
+cross_collision,Djazaïr,Éire,1.000000,YES
+cross_collision,Hokkaidō,Jinmyōchō,1.000000,YES
+cross_collision,Shōtoku,Jinmyōchō,1.000000,YES
+cross_collision,Hokkaidō,Éire,1.000000,YES
+cross_collision,kugyō,Djazaïr,1.000000,YES
+cross_collision,Shōtoku,România,1.000000,YES
+cross_collision,Filasṭīn,Jinmyōchō,1.000000,YES
+cross_collision,Filasṭīn,Éire,1.000000,YES
+cross_collision,Aikanã,kugyō,1.000000,YES
+cross_collision,naïve,Zürich,1.000000,YES
+control,Tokyo,Berlin,0.750998,no
+control,cat,democracy,0.540130,no
+diacritic_vs_plain,Tōkyō,Tokyo,0.500445,no
+diacritic_vs_plain,România,Romania,0.492771,no
+diacritic_vs_plain,Éire,Eire,0.475148,no
+diacritic_vs_plain,kugyō,kugyo,0.474704,no
+diacritic_vs_plain,Shōtoku,Shotoku,0.461605,no
+diacritic_vs_plain,Hokkaidō,Hokkaido,0.449958,no
+control,emperor,bicycle,0.438969,no
+control,shrine,economics,0.433361,no
+control,Hokkaido,quantum physics,0.424337,no
+diacritic_vs_plain,Jinmyōchō,Jinmyocho,0.415252,no
