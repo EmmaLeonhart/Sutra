@@ -2,6 +2,8 @@
 
 **Emma Leonhart**
 
+**Date of analysis: March 2026.** All financial data cited in this paper was retrieved programmatically from public APIs (Yahoo Finance, FRED, CoinGecko) at the time of writing. Market capitalizations, P/E ratios, and capex figures reflect real market conditions as of March 2026 and are verifiable via the provided data collection scripts.
+
 ## Abstract
 
 Public discourse increasingly frames artificial intelligence investment as a speculative bubble comparable to the dot-com crash of 2000 or the 2008 housing crisis. We test this claim systematically by identifying six structural features that characterize historical asset bubbles — widespread denial, mass retail participation, leverage amplification, exit liquidity, speculative disconnect from fundamentals, and rapid unwind mechanisms — and scoring each feature as present, partial, or absent across four confirmed historical bubbles and current AI investment. Using agent-retrieved financial data from Yahoo Finance, FRED, and CoinGecko, we find that historical bubbles average 5.62/6.0 on structural features, while AI investment scores 0.5/6.0. The four features most critical to bubble crash dynamics — mass retail participation, exit liquidity, leverage amplification, and rapid unwind mechanisms — are absent or minimal in AI investment. Current AI capital is concentrated among approximately five hyperscale infrastructure companies, deployed primarily into physical assets (GPUs, data centers, power contracts) with residual value in distress, and held largely in private markets without mechanisms for mass simultaneous exit. Statistical robustness analysis confirms these findings: Herfindahl-Hirschman Index analysis shows AI infrastructure is 13x more concentrated than dot-com era markets (HHI = 2,564 vs ~200); Monte Carlo sensitivity analysis (100,000 trials) shows 0% of simulations reach the bubble threshold even under extreme adversarial scoring assumptions; and P/E distribution analysis shows AI valuations at 27% of dot-com peak levels with 32% forward P/E compression indicating expected earnings growth rather than speculative disconnect. We conclude that while AI valuations may contain elements of overpricing, the market structure lacks the plumbing for a classical bubble crash. The more likely correction mechanism is gradual write-downs and restructuring — a fizzle, not a pop. All data collection and analysis scripts are publicly available and produce deterministic, verifiable results.
@@ -267,7 +269,7 @@ Glassman, J. K., & Hassett, K. A. (1999). *Dow 36,000: The New Strategy for Prof
 
 Kindleberger, C. P., & Aliber, R. Z. (2005). *Manias, Panics, and Crashes: A History of Financial Crises* (5th ed.). Wiley.
 
-Maslej, N., Fattorini, L., Perrault, R., et al. (2025). *The AI Index 2025 Annual Report*. Stanford Institute for Human-Centered Artificial Intelligence (HAI), Stanford University.
+Maslej, N., Fattorini, L., Perrault, R., et al. (2025). *The AI Index 2025 Annual Report*. Stanford Institute for Human-Centered Artificial Intelligence (HAI), Stanford University. https://aiindex.stanford.edu/report/
 
 Minsky, H. P. (1986). *Stabilizing an Unstable Economy*. Yale University Press.
 
