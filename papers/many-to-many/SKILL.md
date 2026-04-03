@@ -1,21 +1,17 @@
-# SKILL.md — Dimensional Decomposition for Many-to-Many Matching
+# SKILL.md — Structured Matching Primitive for Many-to-Many Matching
 
 ## Executable Demonstration
 
-This paper's core claim — that orthogonal projection of confounding dimensions improves embedding-based matching — is fully reproducible via a single script.
+This paper's core claim — that the three-part structured matching primitive (directional selection + control projection + residual similarity) outperforms both naive cosine similarity and control-only projection — is fully reproducible via a single script.
 
 ## Prerequisites
 
 - Python 3.10+
 - Ollama running locally with models: `mxbai-embed-large`, `nomic-embed-text`, `all-minilm`
 - Python packages: `numpy`, `scipy`, `ollama`
-- Optional: `transformers`, `torch` (for BioBERT comparison)
-
 Install:
 ```bash
 pip install numpy scipy ollama
-# Optional for BioBERT:
-pip install transformers torch
 ```
 
 Pull Ollama models:
@@ -30,17 +26,17 @@ ollama pull all-minilm
 ### Single model (fastest, ~30 seconds):
 ```bash
 cd papers/many-to-many
-python scripts/dimensional_decomposition.py --model mxbai-embed-large
+python scripts/structured_matching.py --model mxbai-embed-large
 ```
 
-### All models including BioBERT (~2 minutes):
+### All models (~2 minutes):
 ```bash
-python scripts/dimensional_decomposition.py --all-models
+python scripts/structured_matching.py --all-models
 ```
 
 ### Custom output location:
 ```bash
-python scripts/dimensional_decomposition.py --all-models --output results.json
+python scripts/structured_matching.py --all-models --output results.json
 ```
 
 ## What the Script Does
