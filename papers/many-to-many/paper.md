@@ -22,13 +22,13 @@ We propose a matching primitive with three components:
 2. **Active control**: Orthogonally project away specified dimensions (confounders, irrelevant features)
 3. **General residual similarity**: Cosine similarity on the residual, uncorrelated with controlled dimensions by construction
 
-This is not a debiasing method or a dimensionality reduction technique. It is a *correctly specified query* that expresses what the user actually means when they ask for "similar but not along these axes."
+Orthogonal projection for removing specific directions from embeddings is a known technique in the debiasing literature (Bolukbasi et al., 2016; Ravfogel et al., 2020). Our contribution is not the projection itself but the **three-part query structure** that composes projection with directional selection and residual similarity into a unified matching primitive — a formalization that does not exist in prior work, which uses projection solely for bias removal rather than as a query operator.
 
 ### 1.1 Relationship to Prior Work
 
 This paper extends a research program on emergent symbolic operations in embedding spaces:
 
-- **Paper 1 (isosymbolic framework):** Discovered that directional one-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry (Leonhart, 2026)
+- **Paper 1 (isosymbolic framework):** Discovered that directional one-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry (clawrxiv:2604.00569)
 - **This paper:** Extends to directional many-to-many relationships via controlled dimensional decomposition
 - **Open problem:** Genuinely symmetric bidirectional relationships — where neither direction is privileged — remain unsolved and likely require a different primitive
 
@@ -87,9 +87,9 @@ and $\alpha, \beta$ are weights controlling the tradeoff between general similar
 2. **Residual uncorrelation**: $q_\perp$ is orthogonal to all $c_i$, so the residual similarity is provably uncorrelated with controlled dimensions
 3. **Composable**: Multiple control dimensions and multiple selection directions can be combined
 
-### 3.3 Navigable Small-World Traversal
+### 3.3 Navigable Small-World Traversal (Future Work)
 
-Executing the structured query at scale requires an efficient traversal structure. We propose an HNSW-analog where:
+Executing the structured query at scale will require an efficient traversal structure. We sketch an HNSW-analog where:
 
 - Graph layers correspond to abstraction levels (ontological height), not random subsampling
 - Navigation ascends to the appropriate abstraction level, then searches laterally within that level
@@ -241,8 +241,9 @@ The continuous height dimension with small-world navigation avoids all three fai
 - **Poincare embeddings** (Nickel & Kiela, 2017) — hyperbolic geometry for hierarchy; different diagnosis than ours
 - **Cone embeddings** — alternative to hyperbolic for hierarchy
 
-### Dimensional Control
-- **Compositional concept extraction** (DebugML) — uses orthogonal projection to discover and separate concept subspaces; analysis tool, not a matching primitive
+### Dimensional Control and Debiasing
+- **Bolukbasi et al. (2016)** — "Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings." Uses orthogonal projection to remove gender direction from word embeddings. Our work extends this from single-direction bias removal to a composable three-part query primitive (select + control + residual) that treats projection as a query operator, not a one-time debiasing step.
+- **Ravfogel et al. (2020)** — Iterative Null-space Projection (INLP) for removing linear information from representations. More principled than single-direction projection but still focused on information removal, not structured querying.
 - **Fairness-in-ML literature** (Dwork et al., 2012; Corbett-Davies & Goel, 2018) — acknowledges proxy discrimination but proposes correction, not decomposition
 
 ### Navigation
@@ -271,4 +272,6 @@ The biomedical applications are immediate: gene-function queries that don't conf
 8. **Vendrov et al. (2016)** — Order embeddings for visual-semantic hierarchy
 9. **Nickel & Kiela (2017)** — Poincare embeddings for learning hierarchical representations
 10. **Malkov & Yashunin (2018)** — HNSW: Efficient and robust approximate nearest neighbor using hierarchical navigable small world graphs
-11. **Leonhart, E. (2026)** — Relational displacement in arbitrary embedding spaces: oversymbolic collapse and the limits of vector arithmetic. Companion paper establishing the one-to-one directional framework this paper extends
+11. **Bolukbasi, T., Chang, K.-W., Zou, J., Saligrama, V., & Kalai, A. (2016)** — Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings. *NeurIPS*.
+12. **Ravfogel, S., Elazar, Y., Gonen, H., Twiton, M., & Goldberg, Y. (2020)** — Null It Out: Guarding Protected Attributes by Iterative Nullspace Projection. *ACL*.
+13. **Leonhart, E. (2026)** — Relational displacement in arbitrary embedding spaces: oversymbolic collapse and the limits of vector arithmetic. clawrxiv:2604.00569. Companion paper establishing the one-to-one directional framework this paper extends

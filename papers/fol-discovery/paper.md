@@ -52,7 +52,7 @@ Probing classifiers (Conneau et al., 2018; Hewitt & Manning, 2019) test what lin
 
 ### 2.5 Embedding Space Topology and Failure Modes
 
-The glitch token phenomenon (Li et al., 2024) documents poorly trained embeddings for low-frequency tokens in LLMs. Our undersymbolic collapse finding extends this to sentence-embedding models, showing that entire *classes* of input (romanized non-Latin scripts, diacritical text) collapse into degenerate regions. Work on embedding space topology has identified stratified sub-manifolds within learned representations (Li & Sarwate, 2025), independently supporting the three-regime structure we characterize in Section 5.3.
+The glitch token phenomenon (Li et al., 2024) documents poorly trained embeddings for low-frequency tokens in LLMs. Our undersymbolic collapse finding extends this to sentence-embedding models, showing that entire *classes* of input (romanized non-Latin scripts, diacritical text) collapse into degenerate regions. Work on embedding space topology has identified stratified sub-manifolds within learned representations (Li & Sarwate, 2025; arXiv:2502.13577), independently supporting the three-regime structure we characterize in Section 5.3.
 
 ### 2.6 Tokenizer-Induced Information Loss
 
@@ -189,7 +189,7 @@ Leave-one-out evaluation of all 86 discovered operations:
 
 **Table 4.** Aggregate prediction statistics with bootstrap confidence intervals (10,000 resamples). All correlations survive Bonferroni correction across 3 tests (adjusted alpha = 0.017).
 
-The correlation between displacement consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) is the central methodological finding: **the discovery metric is also the quality metric.** A predicate's geometric consistency, computable without any held-out evaluation, predicts how well that predicate will function as a vector operation. The effect size between strong (>0.7) and moderate (0.5-0.7) operations is Cohen's d = 3.092 — a large effect, indicating the alignment threshold cleanly separates high-performing from marginal operations.
+The correlation between displacement consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) is the central methodological finding: **the discovery metric is also the quality metric.** A predicate's geometric consistency, computable without any held-out evaluation, predicts how well that predicate will function as a vector operation. Note that this correlation is not tautological despite the apparent circularity: consistency is computed over all triples, while MRR is computed via **leave-one-out** evaluation where each prediction uses a mean displacement that excludes the test triple. A predicate could have high alignment (all displacements point the same direction) but poor prediction (if the mean displacement points to a crowded region where many non-target entities cluster). The correlation is an empirical finding about the geometry of these embedding spaces, not a mathematical necessity. The effect size between strong (>0.7) and moderate (0.5-0.7) operations is Cohen's d = 3.092 — a large effect, indicating the alignment threshold cleanly separates high-performing from marginal operations.
 
 ### 4.3 Two-Hop Composition
 
@@ -297,7 +297,7 @@ The central contribution of this work is not the relational displacement analysi
 
 ### 5.4 The Embedding Collapse: Geometry of Oversymbolic Crowding
 
-**Empirical evidence: the Jinmyōchō collapse.** Our collision analysis finds 147,687 cross-entity embedding pairs with cosine similarity ≥ 0.95 that represent genuine semantic collisions: different text mapped to near-identical vectors. The collisions are dominated by romanized non-Latin-script terms — "Hokkaidō" collides with 1,428 other entities, while "Jinmyōchō" collides with 504 unique texts spanning romanized Japanese (kugyō, Shōtai), Arabic (Djazaïr, Filasṭīn), Irish (Éire), Brazilian indigenous languages (Aikanã, Amanayé), and IPA characters.
+**Empirical evidence: the Jinmyōchō collapse.** Our collision analysis finds 147,687 cross-entity embedding pairs with cosine similarity ≥ 0.95 that represent genuine semantic collisions: different text mapped to near-identical vectors. The collisions are dominated by romanized non-Latin-script terms — the embedding vector for "Hokkaidō" has cosine similarity ≥ 0.95 with the vectors for 1,428 other entities. This does not mean all 1,428 entities normalize to the same string; rather, the WordPiece tokenizer maps diacritic-bearing text to similar subword sequences, producing embedding vectors that are geometrically near-identical despite representing distinct concepts. "Jinmyōchō" similarly collides with 504 unique texts spanning romanized Japanese (kugyō, Shōtai), Arabic (Djazaïr, Filasṭīn), Irish (Éire), Brazilian indigenous languages (Aikanã, Amanayé), and IPA characters — all of which tokenize to overlapping subword sequences after diacritic stripping.
 
 **The mechanism is tokenizer-induced.** mxbai-embed-large's WordPiece tokenizer strips diacritical marks during normalization — "Hokkaidō" tokenizes to `['hokkaido']`, "Tōkyō" to `['tokyo']`, "România" to `['romania']`. Terms whose semantic content is carried primarily by diacritics lose that content at tokenization, collapsing into shared or similar subword sequences. This is consistent with Rust et al. (2021)'s finding that tokenizer quality predicts multilingual performance, but here we characterize the *geometric* consequence rather than the downstream task impact.
 
@@ -327,7 +327,7 @@ This has practical implications for any system that chains embedding-based reaso
 
 2. **Collision geometry analysis covers one seed.** The distance metrics characterizing the oversymbolic collapse zone (Section 5.4) are computed from the Engishiki-seeded dataset. Multi-seed analysis would test whether the same crowding pattern holds across domains.
 
-3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. Richer textual representations might shift some entities out of the undersymbolic zone.
+3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. This deliberately mirrors how these models are used in practice for entity linking and knowledge graph completion (short query strings, not full documents). Richer textual representations might shift some entities out of the undersymbolic zone, but the label-only setting represents a common real-world deployment pattern for these models.
 
 4. **Relational displacement, not full FOL.** We test which binary relations encode as consistent vector arithmetic. Full first-order logic includes quantifiers, variable binding, negation, and complex formula composition, none of which we test. The title of this paper reflects the scope: relational displacement and its failure modes, not a claim about discovering FOL.
 
