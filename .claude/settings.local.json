@@ -133,7 +133,13 @@
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" papers/many-to-many/scripts/dimensional_decomposition.py --all-models 2>&1)",
       "Bash(find /c/Users/Immanuelle/Documents/Github/embedding-mapping -name *.json -o -name *submission* -o -name *deadline*)",
       "Bash(find /c/Users/Immanuelle/Documents/Github/embedding-mapping -type f \\\\\\(-name *.ipynb -o -name *demo* -o -name *example* \\\\\\))",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m experiments.e1_uniform)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m experiments.e2_split)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m experiments.e3_random)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m experiments.e4_doubled)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m experiments.e5_perplexity)"
     ]
   }
 }
