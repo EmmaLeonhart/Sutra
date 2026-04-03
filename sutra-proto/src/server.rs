@@ -909,16 +909,63 @@ async fn insert_triples(
     let mut errors = Vec::new();
 
     for (line_no, line) in body.lines().enumerate() {
-        let parsed = match sutra_core::parse_ntriples_line(line) {
+        let parsed = match sutra_core::parse_ntriples_star_line(line) {
             Some(t) => t,
             None => continue, // blank / comment
         };
 
-        let (subj_str, pred_str, obj_str) = parsed;
+        // If the subject is a quoted triple, intern the inner triple
+        // and compute a content-addressed ID for it.
+        let s_id = if let Some((inner_s, inner_p, inner_o)) = &parsed.inner_subject {
+            let is_id = dict.intern(inner_s);
+            let ip_id = dict.intern(inner_p);
+            let io_id = intern_object(&mut dict, inner_o);
+            let inner_triple = sutra_core::Triple::new(is_id, ip_id, io_id);
+            let _ = store.insert(inner_triple);
+            if let Some(ref ps_lock) = state.persistent {
+                let ps = ps_lock
+                    .write()
+                    .map_err(|e| ProtoError::BadRequest(format!("lock: {}", e)))?;
+                ps.intern(inner_s)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+                ps.intern(inner_p)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+                ps.intern(inner_o)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+                ps.insert(inner_triple)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+            }
+            sutra_core::quoted_triple_id(is_id, ip_id, io_id)
+        } else {
+            dict.intern(&parsed.subject)
+        };
 
-        let s_id = dict.intern(&subj_str);
-        let p_id = dict.intern(&pred_str);
-        let o_id = intern_object(&mut dict, &obj_str);
+        let p_id = dict.intern(&parsed.predicate);
+
+        // If the object is a quoted triple, intern it too
+        let o_id = if let Some((inner_s, inner_p, inner_o)) = &parsed.inner_object {
+            let is_id = dict.intern(inner_s);
+            let ip_id = dict.intern(inner_p);
+            let io_id = intern_object(&mut dict, inner_o);
+            let inner_triple = sutra_core::Triple::new(is_id, ip_id, io_id);
+            let _ = store.insert(inner_triple);
+            if let Some(ref ps_lock) = state.persistent {
+                let ps = ps_lock
+                    .write()
+                    .map_err(|e| ProtoError::BadRequest(format!("lock: {}", e)))?;
+                ps.intern(inner_s)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+                ps.intern(inner_p)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+                ps.intern(inner_o)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+                ps.insert(inner_triple)
+                    .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
+            }
+            sutra_core::quoted_triple_id(is_id, ip_id, io_id)
+        } else {
+            intern_object(&mut dict, &parsed.object)
+        };
 
         let triple = sutra_core::Triple::new(s_id, p_id, o_id);
         match store.insert(triple) {
@@ -928,11 +975,11 @@ async fn insert_triples(
                     let ps = ps_lock
                         .write()
                         .map_err(|e| ProtoError::BadRequest(format!("lock: {}", e)))?;
-                    ps.intern(&subj_str)
+                    ps.intern(&parsed.subject)
                         .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
-                    ps.intern(&pred_str)
+                    ps.intern(&parsed.predicate)
                         .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
-                    ps.intern(&obj_str)
+                    ps.intern(&parsed.object)
                         .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;
                     ps.insert(triple)
                         .map_err(|e| ProtoError::BadRequest(format!("persist: {}", e)))?;

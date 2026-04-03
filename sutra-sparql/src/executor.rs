@@ -1437,6 +1437,247 @@ fn evaluate_triple_pattern(
     // (< 50 rows) where the per-row overhead is minimal.
 
     'outer: for (row_idx, row) in current.iter().enumerate() {
+        // --- Star triple wildcard expansion ---
+        //
+        // When subject or object is a QuotedTriple with unresolvable variables,
+        // we can't compute the content-addressed hash directly. Instead, we:
+        // 1. Query the inner triple pattern against the store
+        // 2. For each inner match, compute quoted_triple_id
+        // 3. Use that as the bound subject/object for the outer pattern
+        // 4. Bind inner variables in the result
+        if let Term::QuotedTriple {
+            subject: inner_s,
+            predicate: inner_p,
+            object: inner_o,
+        } = subject
+        {
+            let is_id = resolve_term(inner_s, row, ctx.dict, ctx.prefixes)?;
+            let ip_id = resolve_term(inner_p, row, ctx.dict, ctx.prefixes)?;
+            let io_id = resolve_term(inner_o, row, ctx.dict, ctx.prefixes)?;
+
+            // If all inner terms resolve, use the fast hash path
+            if is_id.is_some() && ip_id.is_some() && io_id.is_some() {
+                // Fall through to normal path below
+            } else {
+                // Wildcard inner triple: scan for matching inner triples
+                let inner_candidates: Vec<Triple> = match (is_id, ip_id, io_id) {
+                    (Some(s), Some(p), _) => ctx.store.find_by_subject_predicate(s, p),
+                    (Some(s), None, _) => ctx.store.find_by_subject(s),
+                    (None, Some(p), Some(o)) => ctx.store.find_by_predicate_object(p, o),
+                    (None, Some(p), None) => ctx.store.find_by_predicate(p),
+                    (None, None, Some(o)) => ctx.store.find_by_object(o),
+                    (None, None, None) => ctx.store.iter().collect(),
+                };
+
+                let p_id = resolve_term(predicate, row, ctx.dict, ctx.prefixes)?;
+                let o_id = resolve_term(object, row, ctx.dict, ctx.prefixes)?;
+
+                for inner_triple in &inner_candidates {
+                    if let Some(s) = is_id {
+                        if inner_triple.subject != s { continue; }
+                    }
+                    if let Some(p) = ip_id {
+                        if inner_triple.predicate != p { continue; }
+                    }
+                    if let Some(o) = io_id {
+                        if inner_triple.object != o { continue; }
+                    }
+
+                    let qt_id = sutra_core::quoted_triple_id(
+                        inner_triple.subject,
+                        inner_triple.predicate,
+                        inner_triple.object,
+                    );
+
+                    // Look up outer triples with this quoted triple ID as subject
+                    let outer_candidates: Vec<Triple> = match p_id {
+                        Some(p) => ctx.store.find_by_subject_predicate(qt_id, p),
+                        None => ctx.store.find_by_subject(qt_id),
+                    };
+
+                    for outer_triple in &outer_candidates {
+                        if let Some(o) = o_id {
+                            if outer_triple.object != o { continue; }
+                        }
+
+                        let mut new_row = row.clone();
+
+                        // Bind inner variables
+                        if let Term::Variable(name) = inner_s.as_ref() {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != inner_triple.subject { continue; }
+                            } else {
+                                new_row.insert(name.clone(), inner_triple.subject);
+                            }
+                        }
+                        if let Term::Variable(name) = inner_p.as_ref() {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != inner_triple.predicate { continue; }
+                            } else {
+                                new_row.insert(name.clone(), inner_triple.predicate);
+                            }
+                        }
+                        if let Term::Variable(name) = inner_o.as_ref() {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != inner_triple.object { continue; }
+                            } else {
+                                new_row.insert(name.clone(), inner_triple.object);
+                            }
+                        }
+
+                        // Bind outer predicate/object variables
+                        if let Term::Variable(name) = predicate {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != outer_triple.predicate { continue; }
+                            } else {
+                                new_row.insert(name.clone(), outer_triple.predicate);
+                            }
+                        }
+                        if let Term::Variable(name) = object {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != outer_triple.object { continue; }
+                            } else {
+                                new_row.insert(name.clone(), outer_triple.object);
+                            }
+                        }
+
+                        results.push(new_row);
+                        source_indices.push(row_idx);
+
+                        if let Some(limit) = row_limit {
+                            if results.len() >= limit {
+                                break 'outer;
+                            }
+                        }
+                    }
+                }
+                continue; // Skip normal path for this row
+            }
+        }
+
+        // --- Star triple wildcard expansion for object position ---
+        if let Term::QuotedTriple {
+            subject: inner_s,
+            predicate: inner_p,
+            object: inner_o,
+        } = object
+        {
+            let is_id = resolve_term(inner_s, row, ctx.dict, ctx.prefixes)?;
+            let ip_id = resolve_term(inner_p, row, ctx.dict, ctx.prefixes)?;
+            let io_id = resolve_term(inner_o, row, ctx.dict, ctx.prefixes)?;
+
+            if is_id.is_some() && ip_id.is_some() && io_id.is_some() {
+                // Fall through to normal path below
+            } else {
+                let s_id = resolve_term(subject, row, ctx.dict, ctx.prefixes)?;
+                let p_id = resolve_term(predicate, row, ctx.dict, ctx.prefixes)?;
+
+                // Scan for matching inner triples
+                let inner_candidates: Vec<Triple> = match (is_id, ip_id, io_id) {
+                    (Some(s), Some(p), _) => ctx.store.find_by_subject_predicate(s, p),
+                    (Some(s), None, _) => ctx.store.find_by_subject(s),
+                    (None, Some(p), Some(o)) => ctx.store.find_by_predicate_object(p, o),
+                    (None, Some(p), None) => ctx.store.find_by_predicate(p),
+                    (None, None, Some(o)) => ctx.store.find_by_object(o),
+                    (None, None, None) => ctx.store.iter().collect(),
+                };
+
+                for inner_triple in &inner_candidates {
+                    if let Some(s) = is_id {
+                        if inner_triple.subject != s { continue; }
+                    }
+                    if let Some(p) = ip_id {
+                        if inner_triple.predicate != p { continue; }
+                    }
+                    if let Some(o) = io_id {
+                        if inner_triple.object != o { continue; }
+                    }
+
+                    let qt_id = sutra_core::quoted_triple_id(
+                        inner_triple.subject,
+                        inner_triple.predicate,
+                        inner_triple.object,
+                    );
+
+                    // Look up outer triples with this quoted triple ID as object
+                    let outer_candidates: Vec<Triple> = match (s_id, p_id) {
+                        (Some(s), Some(p)) => {
+                            ctx.store.find_by_subject_predicate(s, p)
+                                .into_iter()
+                                .filter(|t| t.object == qt_id)
+                                .collect()
+                        }
+                        (Some(s), None) => {
+                            ctx.store.find_by_subject(s)
+                                .into_iter()
+                                .filter(|t| t.object == qt_id)
+                                .collect()
+                        }
+                        (None, Some(p)) => {
+                            ctx.store.find_by_predicate_object(p, qt_id)
+                        }
+                        (None, None) => {
+                            ctx.store.find_by_object(qt_id)
+                        }
+                    };
+
+                    for outer_triple in &outer_candidates {
+                        let mut new_row = row.clone();
+
+                        // Bind inner variables
+                        if let Term::Variable(name) = inner_s.as_ref() {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != inner_triple.subject { continue; }
+                            } else {
+                                new_row.insert(name.clone(), inner_triple.subject);
+                            }
+                        }
+                        if let Term::Variable(name) = inner_p.as_ref() {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != inner_triple.predicate { continue; }
+                            } else {
+                                new_row.insert(name.clone(), inner_triple.predicate);
+                            }
+                        }
+                        if let Term::Variable(name) = inner_o.as_ref() {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != inner_triple.object { continue; }
+                            } else {
+                                new_row.insert(name.clone(), inner_triple.object);
+                            }
+                        }
+
+                        // Bind outer subject/predicate variables
+                        if let Term::Variable(name) = subject {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != outer_triple.subject { continue; }
+                            } else {
+                                new_row.insert(name.clone(), outer_triple.subject);
+                            }
+                        }
+                        if let Term::Variable(name) = predicate {
+                            if let Some(&existing) = new_row.get(name) {
+                                if existing != outer_triple.predicate { continue; }
+                            } else {
+                                new_row.insert(name.clone(), outer_triple.predicate);
+                            }
+                        }
+
+                        results.push(new_row);
+                        source_indices.push(row_idx);
+
+                        if let Some(limit) = row_limit {
+                            if results.len() >= limit {
+                                break 'outer;
+                            }
+                        }
+                    }
+                }
+                continue; // Skip normal path for this row
+            }
+        }
+
+        // --- Normal triple pattern evaluation (no wildcard star triples) ---
         let s_id = resolve_term(subject, row, ctx.dict, ctx.prefixes)?;
         let p_id = resolve_term(predicate, row, ctx.dict, ctx.prefixes)?;
         let o_id = resolve_term(object, row, ctx.dict, ctx.prefixes)?;
@@ -2889,7 +3130,15 @@ fn check_deadline(ctx: &ExecutionContext<'_>) -> Result<()> {
 }
 
 fn is_concrete(term: &Term) -> bool {
-    !matches!(term, Term::Variable(_))
+    match term {
+        Term::Variable(_) => false,
+        Term::QuotedTriple {
+            subject,
+            predicate,
+            object,
+        } => is_concrete(subject) && is_concrete(predicate) && is_concrete(object),
+        _ => true,
+    }
 }
 
 fn filter_term_value(term: &Term, row: &Bindings) -> Option<TermId> {
