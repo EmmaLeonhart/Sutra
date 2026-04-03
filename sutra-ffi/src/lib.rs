@@ -1,3 +1,4 @@
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
 //! C-compatible FFI layer for SutraDB.
 //!
 //! This crate produces a shared library (`.dll`/`.so`/`.dylib`) that can be
@@ -332,7 +333,7 @@ pub extern "C" fn sutra_resolve(db: *const SutraDb, id: u64) -> *mut c_char {
     inner
         .dict
         .resolve(id)
-        .map(|s| string_to_c(s))
+        .map(string_to_c)
         .unwrap_or(std::ptr::null_mut())
 }
 
