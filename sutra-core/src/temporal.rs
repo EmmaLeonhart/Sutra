@@ -467,8 +467,8 @@ pub fn parse_temporal(s: &str) -> Result<TemporalValue> {
     }
 
     // Split off optional negative sign
-    let (negative, rest) = if s.starts_with('-') {
-        (true, &s[1..])
+    let (negative, rest) = if let Some(stripped) = s.strip_prefix('-') {
+        (true, stripped)
     } else {
         (false, s)
     };

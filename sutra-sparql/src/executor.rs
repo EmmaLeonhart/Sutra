@@ -684,7 +684,7 @@ fn resolve_timestamp(
                 }
                 // Try to resolve from dictionary as string and parse
                 if let Some(iri) = dict.resolve(id) {
-                    let tv = parse_temporal(&iri).map_err(|_| {
+                    let tv = parse_temporal(iri).map_err(|_| {
                         SparqlError::Execution(format!(
                             "cannot parse bound variable as temporal: {}",
                             iri
