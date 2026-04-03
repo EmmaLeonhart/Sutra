@@ -78,7 +78,7 @@ A predicate with consistency > 0.5 encodes as a **consistent relational displace
 
 ### 3.2 Data Pipeline
 
-1. **Entity Import.** Two seed strategies: (a) Breadth-first search from Engishiki (Q1342448), importing 500 entities with all triples and linked entities (14,796 items total) — deliberately chosen to produce dense romanized non-Latin terminology that stresses the embedding space; (b) Broad P31 (instance of) sampling across country-level entities to provide a domain-general baseline. Both seeds contribute to the relational displacement analysis (Section 4.1); the collision analysis (Section 5.4) focuses on the Engishiki seed because it contains the diacritic-rich text that triggers tokenizer collisions.
+1. **Entity Import.** Two seed strategies: (a) Breadth-first search from Engishiki (Q1342448), seeding 500 entities then importing all their triples and linked entities. The BFS expansion produces **34,335 unique entities** (not 500), of which 1,781 contain diacritical marks. With aliases, the total embedding count reaches 41,725. (b) Broad P31 (instance of) sampling across country-level entities to provide a domain-general baseline. Both seeds contribute to the relational displacement analysis (Section 4.1); the collision analysis (Section 5.4) focuses on the Engishiki seed because its 1,781 diacritic-bearing labels trigger tokenizer collisions at scale.
 
 2. **Embedding.** Each entity's English label is embedded using mxbai-embed-large (1024-dim) via Ollama. Aliases receive separate embeddings. Total: 41,725 embeddings from the Engishiki seed. Labels are short text strings (typically 1-5 words), consistent with how these models are used in practice for entity linking and retrieval.
 
@@ -231,7 +231,7 @@ A potential concern is that the discovered displacements merely capture string-l
 
 The gap is not marginal: mean vector MRR is 49× higher than string MRR. Even the strongest string overlap scores (max 0.093 for P163 "flag") are far below the corresponding vector MRR (0.937). The 24 predicates with vector MRR > 0.5 all have string MRR < 0.1, confirming that the embedding captures relational structure that cannot be recovered from label text alone.
 
-This null model directly addresses the concern that relations like "history of topic" or "demographics of topic" are trivial string prefix operations. They are not: the string "demographics of Japan" has negligible substring overlap with "Japan", yet the embedding displacement reliably maps from one to the other. The embedding has learned a semantic operation that happens to align with a naming convention but is not dependent on it.
+This null model directly addresses the concern that relations like "history of topic" or "demographics of topic" are trivial string prefix operations. They are not: the string "demographics of Japan" has negligible substring overlap with "Japan", yet the embedding displacement reliably maps from one to the other. We test three baselines — longest common substring ratio, token (word) overlap (Jaccard), and string containment — to cover both character-level and word-level matching. All three baselines fail: mean MRR of 0.013, 0.056, and below 0.01 respectively, compared to vector MRR of 0.633. The gap holds even for predicates whose naming conventions involve adding a prefix (e.g., "History of [X]"), because the null model must rank the correct object among all 34,335 entities, not just detect the prefix.
 
 ### 4.5 Failure Analysis
 
