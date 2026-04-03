@@ -26,10 +26,9 @@ Thumbs.db
 .env
 .env.local
 
-# Experiment results (keep summaries only)
-results/*.csv
-results/*.json
-!results/README.md
+# Experiment results — tracked for reproducibility
+# results/*.csv
+# results/*.json
 
 # pytest
 .pytest_cache/
