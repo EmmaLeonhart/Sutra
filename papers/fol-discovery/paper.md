@@ -338,6 +338,10 @@ This has practical implications for any system that chains embedding-based reaso
 
 3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. This deliberately mirrors how these models are used in practice for entity linking and knowledge graph completion (short query strings, not full documents). Richer textual representations might shift some entities out of the sparse zone, but the label-only setting represents a common real-world deployment pattern for these models.
 
+4. **Potential training data overlap.** The embedding models tested were trained on large web crawls that likely include Wikipedia content, and Wikidata entities often have corresponding Wikipedia articles. This raises the possibility that some discovered displacements reflect memorized associations from training data rather than emergent geometric structure. The cross-model consistency (30 universal operations across three independently trained models) provides partial mitigation: memorization patterns would be model-specific, while consistent operations across architectures suggest structural encoding. However, a definitive test would require embedding models trained on corpora that exclude Wikipedia, which we leave for future work.
+
+5. **Single tokenizer family.** All three models use WordPiece or similar subword tokenizers. The collision analysis reflects this specific tokenization strategy. Models using byte-level tokenizers (e.g., CANINE, ByT5) or SentencePiece with different normalization would likely show different collision patterns. Testing against such models would clarify whether the observed collisions are a general embedding phenomenon or specific to the WordPiece diacritic-stripping behavior.
+
 4. **Relational displacement, not full FOL.** We test which binary relations encode as consistent vector arithmetic. Full first-order logic includes quantifiers, variable binding, negation, and complex formula composition, none of which we test. The title of this paper reflects the scope: relational displacement and its failure modes, not a claim about discovering FOL.
 
 ## 6. Conclusion
