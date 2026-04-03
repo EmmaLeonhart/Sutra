@@ -618,6 +618,93 @@ fn rdf_star_edge_with_vector() {
     assert_eq!(conf, 95);
 }
 
+// --- RDF-star wildcard queries ---
+
+#[test]
+fn rdf_star_wildcard_subject_bound() {
+    // Test: << :alice ?p ?o >> ?mp ?mo — variable predicate/object in inner triple
+    let mut dict = TermDictionary::new();
+    let mut store = TripleStore::new();
+
+    let alice = dict.intern("http://example.org/Alice");
+    let bob = dict.intern("http://example.org/Bob");
+    let carol = dict.intern("http://example.org/Carol");
+    let knows = dict.intern("http://example.org/knows");
+    let likes = dict.intern("http://example.org/likes");
+    let confidence = dict.intern("http://example.org/confidence");
+    let _source = dict.intern("http://example.org/source");
+
+    // Base triples
+    store.insert(Triple::new(alice, knows, bob)).unwrap();
+    store.insert(Triple::new(alice, likes, carol)).unwrap();
+
+    // Annotate edges
+    let edge1 = sutra_core::quoted_triple_id(alice, knows, bob);
+    let conf_val = sutra_core::inline_integer(90).unwrap();
+    store
+        .insert(Triple::new(edge1, confidence, conf_val))
+        .unwrap();
+
+    let edge2 = sutra_core::quoted_triple_id(alice, likes, carol);
+    let conf_val2 = sutra_core::inline_integer(80).unwrap();
+    store
+        .insert(Triple::new(edge2, confidence, conf_val2))
+        .unwrap();
+
+    // Wildcard query: all annotations on edges where Alice is the subject
+    let q = parse(
+        "SELECT ?p ?o ?mp ?mo WHERE { \
+         << <http://example.org/Alice> ?p ?o >> ?mp ?mo \
+         }",
+    )
+    .unwrap();
+
+    let vectors = VectorRegistry::new();
+    let result = execute_with_vectors(&q, &store, &dict, &vectors).unwrap();
+    // Should find both annotated edges
+    assert_eq!(result.rows.len(), 2);
+}
+
+#[test]
+fn rdf_star_fully_unbound() {
+    // Test: << ?s ?p ?o >> ?mp ?mo — fully unbound inner triple
+    let mut dict = TermDictionary::new();
+    let mut store = TripleStore::new();
+
+    let alice = dict.intern("http://example.org/Alice");
+    let bob = dict.intern("http://example.org/Bob");
+    let knows = dict.intern("http://example.org/knows");
+    let confidence = dict.intern("http://example.org/confidence");
+    let page_source = dict.intern("http://example.org/page_source");
+
+    // Base triple
+    store.insert(Triple::new(alice, knows, bob)).unwrap();
+
+    // Annotate the edge with two meta-predicates
+    let edge_id = sutra_core::quoted_triple_id(alice, knows, bob);
+    let conf_val = sutra_core::inline_integer(95).unwrap();
+    let page_val = sutra_core::inline_integer(42).unwrap();
+    store
+        .insert(Triple::new(edge_id, confidence, conf_val))
+        .unwrap();
+    store
+        .insert(Triple::new(edge_id, page_source, page_val))
+        .unwrap();
+
+    // Fully unbound inner triple
+    let q = parse(
+        "SELECT ?s ?p ?o ?mp ?mo WHERE { \
+         << ?s ?p ?o >> ?mp ?mo \
+         }",
+    )
+    .unwrap();
+
+    let vectors = VectorRegistry::new();
+    let result = execute_with_vectors(&q, &store, &dict, &vectors).unwrap();
+    // Should find 2 annotations on the one edge
+    assert_eq!(result.rows.len(), 2);
+}
+
 // --- Virtual HNSW edge triples ---
 
 #[test]

@@ -505,10 +505,22 @@ fn collect_filter_expr_variables(expr: &FilterExpr, vars: &mut HashSet<String>) 
     }
 }
 
-/// Extract variable names from a Term.
+/// Extract variable names from a Term, recursing into QuotedTriple.
 fn collect_term_variables(term: &Term, vars: &mut HashSet<String>) {
-    if let Term::Variable(name) = term {
-        vars.insert(name.clone());
+    match term {
+        Term::Variable(name) => {
+            vars.insert(name.clone());
+        }
+        Term::QuotedTriple {
+            subject,
+            predicate,
+            object,
+        } => {
+            collect_term_variables(subject, vars);
+            collect_term_variables(predicate, vars);
+            collect_term_variables(object, vars);
+        }
+        _ => {}
     }
 }
 
@@ -521,6 +533,11 @@ fn collect_term_variables(term: &Term, vars: &mut HashSet<String>) {
 fn is_bound(term: &Term, bound: &HashSet<String>) -> bool {
     match term {
         Term::Variable(name) => bound.contains(name),
+        Term::QuotedTriple {
+            subject,
+            predicate,
+            object,
+        } => is_bound(subject, bound) && is_bound(predicate, bound) && is_bound(object, bound),
         _ => true, // IRIs, literals, etc. are always "bound" (known values)
     }
 }
@@ -537,15 +554,9 @@ fn collect_variables(pattern: &Pattern, vars: &mut HashSet<String>) {
             predicate,
             object,
         } => {
-            if let Term::Variable(name) = subject {
-                vars.insert(name.clone());
-            }
-            if let Term::Variable(name) = predicate {
-                vars.insert(name.clone());
-            }
-            if let Term::Variable(name) = object {
-                vars.insert(name.clone());
-            }
+            collect_term_variables(subject, vars);
+            collect_term_variables(predicate, vars);
+            collect_term_variables(object, vars);
         }
         Pattern::VectorSimilar { subject, .. } | Pattern::MetricSearch { subject, .. } => {
             if let Term::Variable(name) = subject {

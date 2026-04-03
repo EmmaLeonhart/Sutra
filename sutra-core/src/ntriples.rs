@@ -298,6 +298,7 @@ fn parse_literal(bytes: &[u8], pos: &mut usize) -> Option<String> {
             && bytes[*pos] != b' '
             && bytes[*pos] != b'\t'
             && bytes[*pos] != b'.'
+            && bytes[*pos] != b'\r'
         {
             *pos += 1;
         }
@@ -310,7 +311,9 @@ fn parse_literal(bytes: &[u8], pos: &mut usize) -> Option<String> {
 }
 
 fn skip_whitespace(bytes: &[u8], pos: &mut usize) {
-    while *pos < bytes.len() && (bytes[*pos] == b' ' || bytes[*pos] == b'\t') {
+    while *pos < bytes.len()
+        && (bytes[*pos] == b' ' || bytes[*pos] == b'\t' || bytes[*pos] == b'\r')
+    {
         *pos += 1;
     }
 }
@@ -415,6 +418,21 @@ mod tests {
         let result = parse_ntriples_line(line).unwrap();
         // Verify the typed literal is correctly parsed
         assert!(result.2.contains("XMLSchema#integer"));
+    }
+
+    #[test]
+    fn parse_crlf_line_ending() {
+        let line = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .\r";
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "http://example.org/s");
+        assert_eq!(result.2, "http://example.org/o");
+    }
+
+    #[test]
+    fn parse_crlf_language_tag() {
+        let line = "<http://example.org/s> <http://example.org/p> \"hello\"@en\r";
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.2, "\"hello\"@en");
     }
 
     #[test]
