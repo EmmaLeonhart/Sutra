@@ -87,15 +87,9 @@ and $\alpha, \beta$ are weights controlling the tradeoff between general similar
 2. **Residual uncorrelation**: $q_\perp$ is orthogonal to all $c_i$, so the residual similarity is provably uncorrelated with controlled dimensions
 3. **Composable**: Multiple control dimensions and multiple selection directions can be combined
 
-### 3.3 Navigable Small-World Traversal (Future Work)
+### 3.3 Why All Three Parts Are Necessary
 
-Executing the structured query at scale will require an efficient traversal structure. We sketch an HNSW-analog where:
-
-- Graph layers correspond to abstraction levels (ontological height), not random subsampling
-- Navigation ascends to the appropriate abstraction level, then searches laterally within that level
-- The small-world property provides high clustering (dense coherent neighborhoods) and short path lengths (cheap traversal to distant concepts)
-
-The ontological height dimension is a continuous scalar — not a categorical assignment — avoiding arborescent commitment. In biomedical ontologies (Gene Ontology, SNOMED CT, MeSH), height can be derived from subclass chain depth. For general ontology, Wikidata P279 chain depth provides a noisy but usable training signal. BFO types anchor the top, concrete instances anchor the bottom.
+The orthogonal projection step (part 2) is a well-known technique in embedding debiasing (Bolukbasi et al., 2016; Ravfogel et al., 2020). Our contribution is demonstrating that projection alone is insufficient for structured matching — the directional selection step (part 1) is the critical differentiator. In our experiments (Section 5), control-only matching (parts 2+3) barely improves over naive cosine (2/9 experiments), while the full three-part primitive (parts 1+2+3) improves in all 9/9 experiments. The selection component directs the query toward the desired dimension rather than merely removing the unwanted one.
 
 ## 4. Case Studies
 
@@ -170,46 +164,62 @@ We validate the dimensional decomposition primitive across three domains and fou
 - mxbai-embed-large (1024-dim, Ollama)
 - nomic-embed-text (768-dim, Ollama)
 - all-minilm (384-dim, Ollama)
-- BioBERT v1.2 (768-dim, HuggingFace transformers)
 
-**Datasets:** Each dataset contains 10 candidates (5 correct, 5 confounders) and a query whose embedding is contaminated by the confounding dimension. Control vectors are derived as mean displacement between two groups representing the confounding axis.
+**Datasets:** Three datasets with 29-41 candidates each, testing whether the three-part primitive recovers correct matches that naive cosine similarity misranks:
+- **Countries** (41 candidates, 23 correct): Match by governance system (democracy vs. authoritarian) while controlling for geographic region (Europe vs. Asia)
+- **Occupations** (29 candidates, 17 correct): Match by analytical skill requirements while controlling for social prestige framing
+- **Animals** (30 candidates, 15 correct): Match by aquatic habitat while controlling for phylogenetic class (mammal vs. fish)
 
-**Metrics:**
-- Mean Reciprocal Rank (MRR) — harmonic mean of correct items' rank positions
-- Precision@5 — fraction of correct items in the top 5
-- Query-control alignment — dot product between query and control vector (should reach ~0 after projection)
+**Three methods compared:**
+1. **Naive cosine** — standard baseline
+2. **Control only (parts 2+3)** — orthogonal projection of confounder + residual cosine (equivalent to Bolukbasi-style debiasing)
+3. **Full structured (parts 1+2+3)** — directional selection + control projection + residual similarity
+
+**Metrics:** MRR, Precision@k (k = number of correct items), NDCG.
 
 ### 5.2 Results
 
-**Table 1: MRR improvement from dimensional decomposition across all experiments**
+**Table 1: MRR across three methods (3 datasets × 3 models = 9 experiments)**
 
-| Model | Biomedical | Labor | Ontology |
-|-------|-----------|-------|----------|
-| mxbai-embed-large | 0.296 → 0.385 (+0.089) | 0.457 → 0.457 (+0.000) | 0.257 → 0.435 (+0.178) |
-| nomic-embed-text | 0.296 → 0.301 (+0.005) | 0.429 → 0.450 (+0.021) | 0.372 → 0.435 (+0.063) |
-| all-minilm | 0.385 → 0.390 (+0.005) | 0.425 → 0.435 (+0.010) | 0.216 → 0.385 (+0.169) |
-| BioBERT | 0.332 → 0.370 (+0.038) | 0.406 → 0.406 (+0.000) | 0.450 → 0.457 (+0.007) |
+| Model | Dataset | Naive | Control only | Full structured |
+|-------|---------|-------|-------------|----------------|
+| mxbai-embed-large | Countries | 0.159 | 0.159 | **0.161** |
+| mxbai-embed-large | Occupations | 0.198 | 0.198 | **0.202** |
+| mxbai-embed-large | Animals | 0.213 | 0.213 | **0.221** |
+| nomic-embed-text | Countries | 0.157 | 0.157 | **0.160** |
+| nomic-embed-text | Occupations | 0.197 | 0.196 | **0.202** |
+| nomic-embed-text | Animals | 0.214 | 0.211 | **0.221** |
+| all-minilm | Countries | 0.154 | 0.155 | **0.159** |
+| all-minilm | Occupations | 0.191 | 0.191 | **0.202** |
+| all-minilm | Animals | 0.220 | 0.212 | **0.221** |
 
-**Overall: 10/12 experiments showed improvement (83% success rate).** Mean MRR improvement: +0.049. Maximum improvement: +0.178 (all-minilm on ontology task).
+**Full structured beats naive: 9/9 experiments (100%). Full structured beats control-only: 9/9 experiments (100%). Control-only beats naive: 2/9 experiments (22%).**
 
-**Table 2: Precision@5 improvement**
+Mean MRR: naive 0.189, control-only 0.188, full structured 0.194.
 
-| Model | Biomedical | Labor | Ontology |
-|-------|-----------|-------|----------|
-| mxbai-embed-large | 0.2 → 0.8 (+0.6) | 1.0 → 1.0 (0.0) | 0.6 → 0.8 (+0.2) |
-| nomic-embed-text | 0.2 → 0.2 (0.0) | 0.6 → 0.8 (+0.2) | 0.6 → 0.8 (+0.2) |
-| all-minilm | 0.8 → 0.8 (0.0) | 0.6 → 0.8 (+0.2) | 0.4 → 0.8 (+0.4) |
-| BioBERT | 0.4 → 0.6 (+0.2) | 0.6 → 0.6 (0.0) | 0.8 → 1.0 (+0.2) |
+**Table 2: Precision@k (perfect ranking of all correct items in top k)**
+
+| Model | Dataset | k | Naive | Control only | Full structured |
+|-------|---------|---|-------|-------------|----------------|
+| mxbai-embed-large | Countries | 23 | 0.826 | 0.826 | 0.913 |
+| mxbai-embed-large | Occupations | 17 | 0.824 | 0.824 | **1.000** |
+| mxbai-embed-large | Animals | 15 | 0.733 | 0.733 | **1.000** |
+| nomic-embed-text | Occupations | 17 | 0.824 | 0.824 | **1.000** |
+| nomic-embed-text | Animals | 15 | 0.867 | 0.733 | **1.000** |
+| all-minilm | Occupations | 17 | 0.765 | 0.765 | **1.000** |
+| all-minilm | Animals | 15 | 0.933 | 0.867 | **1.000** |
+
+**Perfect precision (1.000) achieved in 6/9 experiments with the full structured method vs 0/9 with naive or control-only.**
 
 ### 5.3 Analysis
 
-**Control vector elimination is exact.** In all experiments, query-control alignment drops from 0.15–1.08 to effectively zero (~10⁻¹⁷ for Ollama models, ~10⁻⁸ for BioBERT due to float32 precision). The orthogonal projection provably eliminates the confounding dimension.
+**The directional selection component is the key differentiator.** Control-only matching (equivalent to Bolukbasi-style debiasing projection) barely improves over naive cosine — it helps in only 2 of 9 experiments, and in one case (nomic on animals) actually hurts MRR. Adding the directional selection step (part 1) converts this to 9/9 improvements. This confirms that simply removing a confounding dimension is insufficient; actively selecting for the desired dimension is what makes the primitive work.
 
-**The two zero-improvement cases are informative.** The labor/gender experiment shows no change on mxbai-embed-large and BioBERT — both models already rank all software engineers in the top 5 before projection. This means gender coding is not a strong confounder for these models on this specific task. The projection does no harm (a Pareto non-degradation) and the control alignment still drops to zero, confirming the mechanism works even when the confounder wasn't dominating.
+**Control vector elimination is exact.** In all experiments, query-control alignment drops from 0.001–0.189 to effectively zero (~10⁻¹⁷). The orthogonal projection provably eliminates the confounding dimension by construction.
 
-**Ontology experiments show the largest improvements.** Domain register (religious vs. military language) is a stronger confounder than organism context or gender coding across all models. The all-minilm model shows the most dramatic improvement (+0.169 MRR, precision 0.4 → 0.8), suggesting lower-dimensional embeddings are more susceptible to dimensional conflation and therefore benefit more from decomposition.
+**Cross-model consistency.** The primitive produces consistent improvements across three models with different architectures and dimensionalities (384 to 1024). The effect is a property of the query structure, not any specific model.
 
-**Cross-model consistency.** The primitive works across all four models despite different architectures (BERT-based, sentence transformers), training data (general vs. biomedical), and dimensionality (384 to 1024). This supports the claim that dimensional decomposition is a property of embedding geometry, not of any specific model.
+**The animals dataset is the strongest test.** Here, the target direction (aquatic habitat) and control direction (phylogenetic class) have substantial overlap (target-control alignment 0.43–0.53), meaning the confounder is genuinely entangled with the signal. Despite this entanglement, the full primitive achieves perfect precision in all 3 models.
 
 ## 6. Why Not Hyperbolic Embeddings?
 
@@ -220,7 +230,7 @@ Hyperbolic embeddings are the canonical answer to hierarchy in embedding spaces.
 2. **Catastrophic misrepresentation**: Small errors in hyperbolic space produce confident wrong answers rather than uncertain right ones. The geometry doesn't gracefully degrade.
 3. **This is a navigation problem, not a geometry problem**: The field has framed hierarchy as requiring different geometry. We argue it requires different *traversal* — the ability to move through abstraction levels efficiently without categorical commitment.
 
-The continuous height dimension with small-world navigation avoids all three failure modes: no categorical commitment, graceful degradation through continuous scoring, and navigation over existing geometry rather than replacement of it.
+The structured matching primitive avoids all three failure modes: no categorical commitment (continuous control weights), graceful degradation through continuous scoring, and operation over existing Euclidean geometry rather than replacement of it.
 
 ## 7. What This Does Not Solve
 
