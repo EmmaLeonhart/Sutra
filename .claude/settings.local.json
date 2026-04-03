@@ -142,7 +142,8 @@
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m experiments.e5_perplexity)",
       "Bash(cygpath -w /tmp/clawrxiv_p1.json)",
       "Bash(pwd -W)",
-      "WebFetch(domain:clawrxiv.io)"
+      "WebFetch(domain:clawrxiv.io)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" scripts/structured_matching.py --all-models)"
     ]
   }
 }
