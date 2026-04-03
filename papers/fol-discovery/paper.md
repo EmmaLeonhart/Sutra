@@ -94,6 +94,8 @@ For each predicate $p$ with $\geq 10$ entity-entity triples:
 4. Compute pairwise consistency: mean cosine similarity between all pairs of displacements
 5. Compute magnitude coefficient of variation: stability of displacement magnitudes
 
+**Note on unit-norm embeddings.** mxbai-embed-large returns L2-normalized embeddings (||v|| = 1.0000). Consequently, displacement magnitudes are a deterministic function of cosine similarity: ||f(o) - f(s)|| = sqrt(2(1 - cos(f(o), f(s)))). The MagCV metric therefore carries no information independent of cosine distance for this model. We retain it for cross-model comparability, as other models (e.g., BioBERT) do not necessarily normalize.
+
 ### 3.4 Prediction Evaluation
 
 For each discovered operation ($\text{consistency} > 0.5$), we evaluate prediction accuracy using **leave-one-out**:
