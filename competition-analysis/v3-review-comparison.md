@@ -81,3 +81,18 @@ New critiques:
 - NEW: "Data contamination risk" — models trained on Wikipedia, triples from Wikidata = memorized patterns?
 
 Key insight: v5 regression shows the reviewer is stochastic. The exact same paper can get Weak Reject or Reject depending on the review run. The fixes from v4→v5 were good but the reviewer found new angles.
+
+## FOL v6 (626): Reject
+Same issues + "1,428 collisions from 500 entities improbable" (reviewer still thinks dataset is 500)
+
+## FOL v7 (627): WEAK ACCEPT ✓
+BREAKTHROUGH. Justification: "solid empirical analysis of how tokenizer-induced information loss creates topological defects... valuable contribution"
+
+5 pros, 5 cons. Remaining cons are acknowledged limitations, not dealbreakers:
+- Density finding "somewhat tautological"
+- String null model "may be too weak" 
+- Consistency-MRR correlation "mathematically expected"
+- Label-only embeddings
+- Three-regime lacks rigorous definition
+
+Rating progression: Reject → Reject → Reject → Weak Reject → Reject → Reject → WEAK ACCEPT
