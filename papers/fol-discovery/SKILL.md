@@ -1,6 +1,6 @@
 ---
 name: fol-discovery
-description: Discover first-order logic operations latently encoded in arbitrary embedding spaces. Imports entities from Wikidata, embeds them, computes trajectory displacement vectors, and tests which predicates function as consistent vector arithmetic. Reproduces the key finding that 86 predicates encode as discoverable operations with r=0.78 self-diagnostic correlation.
+description: Discover first-order logic operations latently encoded in arbitrary embedding spaces. Imports entities from Wikidata, embeds them, computes trajectory displacement vectors, and tests which predicates function as consistent vector arithmetic. Reproduces the key finding that 86 predicates encode as discoverable operations with r=0.861 self-diagnostic correlation.
 allowed-tools: Bash(python *), Bash(pip *), Bash(ollama *), WebFetch
 ---
 
