@@ -1,0 +1,2445 @@
+[
+  {
+    "alpha": -1.0,
+    "temperature": 1.0,
+    "accuracy": 0.20833333333333334,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.5,
+      "disambiguation_by_outlier": 0.125,
+      "needle_in_context": 0.0
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.707372307777405,
+          -4.937388241291046,
+          -3.548397846519947,
+          -4.133278560638428
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.547545671463013,
+          -7.884887027740478,
+          -3.6932066828012466,
+          -5.687390685081482
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -5.0353975767890615,
+          -7.231905460357666,
+          -3.9240851402282715,
+          -5.054169058799744
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.3781485557556152,
+          -2.7877796789010367,
+          -1.7477709706872702,
+          -4.508272131284078
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.169967889785767,
+          -4.996368408203125,
+          -6.243121862411499,
+          -4.384307950735092
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.954083681106567,
+          -4.3530129591623945,
+          -5.530954360961914,
+          -6.292672793070476
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.9724873304367065,
+          -8.647486845652262,
+          -4.6500639234270364,
+          -5.118860483169556
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.665465235710144,
+          -7.749926662445068,
+          -5.99838399887085,
+          -4.2097184419631954
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.6203912675380705,
+          -3.8214154265413525,
+          -3.02926504611969,
+          -4.296980977058411
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.8729562560717263,
+          -3.0881105312582804,
+          -2.150919419527054,
+          -3.350521441016878
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.071403726935387,
+          -4.693898022174835,
+          -4.746324330568314,
+          -3.927784189581871
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.572118056938052,
+          -3.5063419342041016,
+          -4.97568682829539,
+          -4.414426743984222
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.772783327102661,
+          -6.020273494720459,
+          -3.7382092773914337,
+          -3.1036890506744386
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.21878445148468,
+          -4.295831978321075,
+          -3.4220774475252256,
+          -6.529895722866058
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.950565814971924,
+          -3.869614267349243,
+          -5.268967333767149,
+          -4.476473603929792
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.249461936950683,
+          -4.470256065949798,
+          -5.98399641778734,
+          -4.369177198410034
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.52516782283783,
+          -4.997319958039692,
+          -6.816851350996229,
+          -6.287678599357605
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.1276870833502874,
+          -5.529665565490722,
+          -5.742419767379761,
+          -5.5938005447387695
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.787923540387835,
+          -5.800955295562744,
+          -5.93502368245806,
+          -5.6804980635643005
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.56140831609567,
+          -5.996358394622803,
+          -6.486110432942708,
+          -7.481998085975647
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.3076137701670327,
+          -3.6335490942001343,
+          -6.737731297810872,
+          -3.583003302415212
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.44842497507731,
+          -6.62682831287384,
+          -8.47406918661935,
+          -8.390140851338705
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.314326246579488,
+          -5.481612920761108,
+          -6.265984839863247,
+          -6.080298662185669
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.124531666437785,
+          -7.619493908352322,
+          -5.520954029900687,
+          -5.364024496078491
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  },
+  {
+    "alpha": -0.5,
+    "temperature": 1.0,
+    "accuracy": 0.16666666666666666,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.375,
+      "disambiguation_by_outlier": 0.125,
+      "needle_in_context": 0.0
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.118400514125824,
+          -4.580702722072601,
+          -3.9235413007438185,
+          -4.509720516204834
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -6.5051589012146,
+          -6.07276029586792,
+          -3.3661240953952074,
+          -5.6195114850997925
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -5.5690464079380035,
+          -6.924886067708333,
+          -3.74252188205719,
+          -4.521443436543147
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.312163352966309,
+          -2.823273226618767,
+          -2.3157624918967485,
+          -2.800437736014525
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.739881657063961,
+          -4.635275840759277,
+          -4.837587237358093,
+          -3.7405846118927
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.301692605018616,
+          -4.409583568572998,
+          -6.020429491996765,
+          -6.01527214050293
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.381175518035889,
+          -7.062518119812012,
+          -4.55715194770268,
+          -3.0575659722089767
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.184464380145073,
+          -6.486639976501465,
+          -4.515959739685059,
+          -4.214784431457519
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.033620500564575,
+          -3.6469724724069237,
+          -3.2598378658294678,
+          -4.658174574375153
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.042657454808553,
+          -3.4400976073229685,
+          -2.0947732120752334,
+          -3.279616635824953
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.322137832641602,
+          -5.126068890094757,
+          -4.176831029355526,
+          -3.0149325355887413
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.675326677411794,
+          -3.392283797264099,
+          -5.297456343968709,
+          -4.350528359413147
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.7697712898254396,
+          -5.977136421203613,
+          -3.5267732539879426,
+          -3.0027720451354982
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.5060293674468994,
+          -3.5733787417411804,
+          -3.108631623792462,
+          -7.5569339990615845
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.955707311630249,
+          -4.2657194375991825,
+          -4.77740126185947,
+          -4.839135033743722
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.604239368438721,
+          -4.011819164734334,
+          -5.807055022981432,
+          -4.24341311454773
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.317786693572998,
+          -5.0235592148133685,
+          -7.190209653642443,
+          -6.7223663330078125
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.145101653205024,
+          -5.300571250915527,
+          -6.174673962593078,
+          -5.194094467163086
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.856428282601493,
+          -6.551070213317871,
+          -6.553737436022077,
+          -6.148540159066518
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.0735738190511865,
+          -5.767778038978577,
+          -6.566484133402507,
+          -7.197205722332001
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.771818002065023,
+          -4.651678085327148,
+          -5.7795469760894775,
+          -3.926165779431661
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.3706739743550616,
+          -5.482061326503754,
+          -7.503464835030692,
+          -7.356749852498372
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.318112214406331,
+          -5.840737462043762,
+          -6.536493976910909,
+          -6.1463700294494625
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.507985194524129,
+          -7.349207348293728,
+          -5.947879450661795,
+          -5.646422290802002
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  },
+  {
+    "alpha": -0.25,
+    "temperature": 1.0,
+    "accuracy": 0.16666666666666666,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.375,
+      "disambiguation_by_outlier": 0.125,
+      "needle_in_context": 0.0
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.6147748827934265,
+          -4.809549659490585,
+          -3.9333436742424963,
+          -4.807712197303772
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -6.001101016998291,
+          -5.448381471633911,
+          -3.5324045158922672,
+          -6.196058034896851
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -6.148800949255626,
+          -6.910477638244629,
+          -4.037589609622955,
+          -5.0706667105356855
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.401221036911011,
+          -3.1474536607662835,
+          -2.771790203638375,
+          -2.850518132249514
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.2939751520752907,
+          -4.179910659790039,
+          -4.314819574356079,
+          -3.8206003308296204
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.234642028808594,
+          -4.589014450709025,
+          -6.56380295753479,
+          -6.391154130299886
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.889098405838013,
+          -6.744172255198161,
+          -4.568840404706342,
+          -3.0433240830898285
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.8844204420844712,
+          -6.0836261510849,
+          -4.622466087341309,
+          -4.226565980911255
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.4342551231384277,
+          -3.64622305855155,
+          -3.38648122549057,
+          -5.007810592651367
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.4244879881540933,
+          -3.282014267751947,
+          -2.5778809517621992,
+          -3.5112482649939403
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.772012993693352,
+          -5.13843156894048,
+          -4.254343857057393,
+          -2.7381030209362507
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.867416886240244,
+          -3.364937901496887,
+          -5.974385764863756,
+          -4.272766828536987
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.846791958808899,
+          -5.989752769470215,
+          -3.5318894632426754,
+          -3.084199333190918
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.386394364493234,
+          -4.189463257789612,
+          -3.224815591238439,
+          -7.887423396110535
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.218828320503235,
+          -4.8757891178131105,
+          -4.921261615223354,
+          -4.9657565866197855
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.736342096328736,
+          -4.130840248428285,
+          -5.7817152341206866,
+          -4.4594909191131595
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.00124724706014,
+          -4.75525838136673,
+          -7.1619181632995605,
+          -6.427319884300232
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.5168660216861305,
+          -5.5649659633636475,
+          -7.0004946947097775,
+          -5.398149299621582
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.171304634639195,
+          -6.937491297721863,
+          -7.085735593523298,
+          -6.464136441548665
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.07761812210083,
+          -6.13914155960083,
+          -6.916064643859864,
+          -7.490103930234909
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.700919985771179,
+          -5.253345370292664,
+          -5.364181439081828,
+          -3.8583960930506387
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.828840732574463,
+          -5.1933393478393555,
+          -7.4017961365836005,
+          -7.438644727071126
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.653639117876689,
+          -6.291624188423157,
+          -5.925583746698168,
+          -5.944965505599976
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.419194380442302,
+          -7.521221054924859,
+          -6.198366233280727,
+          -6.133262300491333
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  },
+  {
+    "alpha": 0.0,
+    "temperature": 1.0,
+    "accuracy": 0.2916666666666667,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.125,
+      "disambiguation_by_outlier": 0.375,
+      "needle_in_context": 0.375
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.787836290895939,
+          -3.2540643513202667,
+          -3.5877099968492985,
+          -3.339746522903442
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.441646456718445,
+          -2.084788160934113,
+          -3.3252768460661173,
+          -2.7016646414995193
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.8923261811335883,
+          -5.504346529642741,
+          -4.137972876429558,
+          -5.495587672106922
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.644351422786713,
+          -3.26156019171079,
+          -2.742165024392307,
+          -3.9917969470358607
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.3834814466536045,
+          -7.414793014526367,
+          -4.90560245513916,
+          -3.4444634988904
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.906179338693619,
+          -4.272831420103709,
+          -5.626321226358414,
+          -6.5647217476119595
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.378405332565308,
+          -2.7459676526486874,
+          -3.9457235293728963,
+          -6.065394401550293
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.049926042556763,
+          -4.157047399878502,
+          -5.82554817199707,
+          -3.529438006877899
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.745289707183838,
+          -3.9769969562068583,
+          -2.7303273677825928,
+          -3.8476075790822506
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.9642158846060433,
+          -3.4975695802713744,
+          -3.5704941928386686,
+          -3.2918762649767035
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.046989711270726,
+          -4.5956434309482574,
+          -4.337830554533866,
+          -1.7426743354590144
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -5.475801209436031,
+          -5.842743337154388,
+          -2.529004641730959,
+          -4.641330003738403
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 1,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.6313115477561952,
+          -3.5178102999925613,
+          -3.636204663780518,
+          -3.8566394805908204
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.032013995306833,
+          -5.386080801486969,
+          -2.7359051452403946,
+          -4.777577459812164
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.862738251686096,
+          -2.2665376901626586,
+          -3.4864843527320772,
+          -3.416955658367702
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.953842520713806,
+          -3.3284582383639645,
+          -3.8899369372261896,
+          -4.171913051605225
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.4798168341318765,
+          -3.6151887238707525,
+          -4.778068059020573,
+          -5.696422815322876
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.616356545024448,
+          -6.144549083709717,
+          -3.6013129455968738,
+          -6.287586498260498
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.6434786207973957,
+          -4.894910910632461,
+          -3.20272990399982,
+          -2.300616175867617
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.767685168733199,
+          -4.5405410677194595,
+          -3.951639978090922,
+          -5.041521221399307
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -1.4935789636025827,
+          -3.9402845948934555,
+          -3.6603126923243203,
+          -1.9841030885775883
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.284106175104777,
+          -5.1732703894376755,
+          -5.544673445634544,
+          -5.6572550137837725
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.1516343248022167,
+          -2.5581801612861454,
+          -3.4251035948594413,
+          -2.2257251679897307
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -5.781599084536235,
+          -2.4174689654674797,
+          -2.3973117702906683,
+          -3.302199599146843
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  },
+  {
+    "alpha": 0.25,
+    "temperature": 1.0,
+    "accuracy": 0.16666666666666666,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.25,
+      "disambiguation_by_outlier": 0.125,
+      "needle_in_context": 0.125
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.935958564281464,
+          -5.072806715965271,
+          -3.5046588726341725,
+          -5.624073886871338
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -5.773512125015259,
+          -4.91302375793457,
+          -3.517647795844823,
+          -5.650631129741669
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.993920090297858,
+          -7.247237205505371,
+          -5.5574066042900085,
+          -4.9643324216206866
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.606339931488037,
+          -2.746757681171099,
+          -3.4707671841606498,
+          -2.77962968001763
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.873346979729831,
+          -2.2669906616210938,
+          -3.271901249885559,
+          -4.172733962535858
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.646403551101685,
+          -4.164602677027385,
+          -8.073544025421143,
+          -7.400173823038737
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.122114896774292,
+          -7.6550469398498535,
+          -6.01224710047245,
+          -3.1119225025177
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.790891552964846,
+          -6.856050211191177,
+          -3.424447536468506,
+          -5.591293907165527
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.579489421844483,
+          -3.947769284620881,
+          -3.90508941312631,
+          -4.098904490470886
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.411596029996872,
+          -3.708419165457599,
+          -3.87547190785408,
+          -3.2112616981778825
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.1156123471446335,
+          -5.341001828511556,
+          -4.8193304319283925,
+          -2.5755163070280105
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.582302859425544,
+          -4.317751616239548,
+          -6.302968740463257,
+          -4.8798075914382935
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.6866284251213073,
+          -4.695633840560913,
+          -4.04072206573827,
+          -4.915123224258423
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.535183838435582,
+          -4.608137249946594,
+          -3.694860658957623,
+          -7.288939714431763
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -7.1239795088768005,
+          -6.015200853347778,
+          -4.821283843782213,
+          -4.833749737058367
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.92955470085144,
+          -4.326824400573969,
+          -5.726833211051093,
+          -5.487350082397461
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.903216520945231,
+          -5.655784723481962,
+          -7.474072562323676,
+          -6.6283921003341675
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.991279813978407,
+          -6.481891918182373,
+          -6.931105661392212,
+          -5.98314266204834
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.532229968479702,
+          -7.218910336494446,
+          -8.020712852478027,
+          -6.82645304997762
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.741124947865804,
+          -7.5486204624176025,
+          -7.59780699412028,
+          -7.665468692779541
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.700163041551908,
+          -7.659381628036499,
+          -4.01731014251709,
+          -5.933053493499756
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.407223542531331,
+          -5.638195276260376,
+          -7.987231254577637,
+          -7.89099661509196
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.067863901456197,
+          -6.472466945648193,
+          -5.727994524770313,
+          -5.150555086135864
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -7.243059873580933,
+          -7.434241029951307,
+          -6.230273110525949,
+          -6.551639819145203
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  },
+  {
+    "alpha": 0.5,
+    "temperature": 1.0,
+    "accuracy": 0.20833333333333334,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.25,
+      "disambiguation_by_outlier": 0.25,
+      "needle_in_context": 0.125
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.6316898465156555,
+          -5.100453019142151,
+          -4.031411111354828,
+          -6.33472957611084
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -5.642445087432861,
+          -5.917226362228393,
+          -4.3915988598018885,
+          -6.113656163215637
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.243330959230661,
+          -6.855662822723389,
+          -5.338497340679169,
+          -5.025722066561381
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.848616361618042,
+          -1.5620853801568348,
+          -3.9632763899862766,
+          -1.3535849557568629
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -2.5449797613546252,
+          -1.536548137664795,
+          -2.8832132816314697,
+          -4.276722967624664
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.464878559112549,
+          -3.2597983678181968,
+          -8.110406279563904,
+          -7.577661673227946
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.913551568984985,
+          -7.191413879394531,
+          -5.765490199838366,
+          -2.9874154329299927
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -3.7138001918792725,
+          -7.77347764968872,
+          -2.2062536776065826,
+          -6.11873607635498
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.523880386352539,
+          -4.467632195353508,
+          -4.310471996665001,
+          -4.577677220106125
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.7242356737454734,
+          -4.175573247601278,
+          -4.838779401779175,
+          -3.7276248591286794
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -4.608425140730105,
+          -5.515975634256999,
+          -4.787956728978315,
+          -3.028161033638753
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.71306300163269,
+          -4.826581239700317,
+          -7.06421693166097,
+          -5.354371428489685
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.3609275341033937,
+          -5.152725791931152,
+          -4.593497489179883,
+          -6.082152557373047
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -4.1244960853031705,
+          -4.931227385997772,
+          -4.015703577082604,
+          -5.981612920761108
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -6.847314476966858,
+          -6.175171661376953,
+          -4.712434106402927,
+          -4.8529044560023715
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.530237483978271,
+          -4.454385198652744,
+          -5.828822559780544,
+          -5.548248767852783
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.655795097351074,
+          -6.561442483748708,
+          -8.485906389024523,
+          -6.580111742019653
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.875733110639784,
+          -7.340160655975342,
+          -7.305943417549133,
+          -6.5543989658355715
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.396949257169451,
+          -8.748911619186401,
+          -9.101249694824219,
+          -7.725494742393494
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.562142054239909,
+          -7.459717273712158,
+          -7.868788655598959,
+          -8.33980017900467
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -3.428929259379705,
+          -8.089723110198975,
+          -5.251266241073608,
+          -7.265413522720337
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.77097749710083,
+          -7.189279556274414,
+          -8.61713968004499,
+          -8.118658383687338
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -7.8081347942352295,
+          -7.5660622119903564,
+          -6.592918833096822,
+          -7.084544658660889
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -6.67609445254008,
+          -7.148842957284716,
+          -6.680514539991107,
+          -6.914100313186646
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  },
+  {
+    "alpha": 1.0,
+    "temperature": 1.0,
+    "accuracy": 0.20833333333333334,
+    "accuracy_by_category": {
+      "planted_incongruence": 0.25,
+      "disambiguation_by_outlier": 0.125,
+      "needle_in_context": 0.25
+    },
+    "num_items": 24,
+    "item_results": [
+      {
+        "category": "planted_incongruence",
+        "question": "What was unusual about the tribe's possessions?",
+        "correct_idx": 1,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.3786715269088745,
+          -8.393247365951538,
+          -8.118478393554687,
+          -8.170720863342286
+        ],
+        "violation_hint": "Digital watches in a remote tribe with minimal outside contact"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What detail does not fit the time period?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -8.630748748779297,
+          -10.945201778411866,
+          -7.066704988479614,
+          -7.449134111404419
+        ],
+        "violation_hint": "Reinforced concrete didn't exist in 1243"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which detail is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.403531511624654,
+          -9.657502969106039,
+          -8.078344166278839,
+          -9.403171618779501
+        ],
+        "violation_hint": "Email didn't exist in Mozart's time"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which feature was not on the Titanic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -10.875049114227295,
+          -4.503921588261922,
+          -6.908729553222656,
+          -3.0823084513346353
+        ],
+        "violation_hint": "Helicopters weren't invented until decades later"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What material is historically inaccurate for Roman roads?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -5.4067778661847115,
+          -8.718240737915039,
+          -7.688270807266235,
+          -6.3641157150268555
+        ],
+        "violation_hint": "Romans didn't use asphalt; they used volcanic cement and stone"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What is out of place in this description of Leonardo?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -12.258206844329834,
+          -9.709482510884603,
+          -10.664836168289185,
+          -11.801474253336588
+        ],
+        "violation_hint": "Blogs didn't exist in the Renaissance"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "Which construction method is anachronistic?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -11.997838497161865,
+          -13.082678159077963,
+          -9.656977789742607,
+          -7.371450424194336
+        ],
+        "violation_hint": "Solar panels in ancient Egypt"
+      },
+      {
+        "category": "planted_incongruence",
+        "question": "What doesn't belong in this description of Viking ships?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -9.891561508178711,
+          -11.39353675842285,
+          -8.559449672698975,
+          -9.29975447654724
+        ],
+        "violation_hint": "Diesel engines in the Viking age"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "Why is the mechanic's opinion noteworthy here?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.812355709075927,
+          -7.729242634773255,
+          -5.10320770740509,
+          -6.846340775489807
+        ],
+        "violation_hint": "Mechanic giving medical advice is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes the plumber's role surprising?",
+        "correct_idx": 1,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.254314104715983,
+          -6.288823872804642,
+          -7.432378053665161,
+          -6.179868834359305
+        ],
+        "violation_hint": "Plumber as key witness is unexpected"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is unusual about this situation?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -7.262314856052399,
+          -7.011409044265747,
+          -7.39432532992214,
+          -5.427405470982194
+        ],
+        "violation_hint": "Janitor consulted on musical interpretation"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is surprising about this request?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.617300319671632,
+          -8.308887124061584,
+          -10.169145849015978,
+          -3.7217422127723694
+        ],
+        "violation_hint": "An intern given a task far above their level"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is wrong with the chief's decision?",
+        "correct_idx": 1,
+        "predicted_idx": 2,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.201587390899657,
+          -9.747865676879883,
+          -6.804577010018485,
+          -6.99836835861206
+        ],
+        "violation_hint": "Accountant sent to do an engineer's job in a fire"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is alarming about this scene?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -8.93835381099156,
+          -8.716315031051636,
+          -6.529120445251465,
+          -9.217667818069458
+        ],
+        "violation_hint": "Librarian performing surgery"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What makes this decision absurd?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.974521279335022,
+          -9.948716354370116,
+          -10.514409912957085,
+          -7.635843821934292
+        ],
+        "violation_hint": "Gift shop cashier consulted on rocket science"
+      },
+      {
+        "category": "disambiguation_by_outlier",
+        "question": "What is absurd about the grading process?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -8.641727542877197,
+          -7.7235961854457855,
+          -9.599712371826172,
+          -7.17390022277832
+        ],
+        "violation_hint": "Cat involved in academic grading"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Is there an inconsistency in this report?",
+        "correct_idx": 2,
+        "predicted_idx": 0,
+        "is_correct": false,
+        "choice_logprobs": [
+          -10.261977513631185,
+          -12.259512833186559,
+          -11.45386388566759,
+          -10.365801811218262
+        ],
+        "violation_hint": "Summary says costs decreased but data shows 5% increase"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is wrong with this itinerary?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -16.464382542504204,
+          -13.10695686340332,
+          -17.266551876068114,
+          -16.133610343933107
+        ],
+        "violation_hint": "Sydney Opera House is in Australia, not Vienna"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction doesn't belong?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -14.555992262704033,
+          -14.631376504898071,
+          -12.566552707127162,
+          -12.098496596018473
+        ],
+        "violation_hint": "Cilantro garnish on chocolate chip cookies"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What is contradictory in this review?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -12.730831623077393,
+          -13.713134527206421,
+          -8.962499443689982,
+          -10.925054788589478
+        ],
+        "violation_hint": "Below expectations rating contradicts positive review and promotion recommendation"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which species doesn't belong in this survey?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -12.620971838633219,
+          -18.319539070129395,
+          -16.994108200073242,
+          -11.842528184254965
+        ],
+        "violation_hint": "Emperor penguins are Antarctic, not found in Yellowstone"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "Which agenda item is out of place for a board meeting?",
+        "correct_idx": 2,
+        "predicted_idx": 3,
+        "is_correct": false,
+        "choice_logprobs": [
+          -9.308525403340658,
+          -9.740559458732605,
+          -10.30168320451464,
+          -8.663911819458008
+        ],
+        "violation_hint": "Hamster agility competition in a corporate board meeting"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What instruction is contradictory?",
+        "correct_idx": 2,
+        "predicted_idx": 1,
+        "is_correct": false,
+        "choice_logprobs": [
+          -10.56839402516683,
+          -8.734795808792114,
+          -10.792567941877577,
+          -13.717061042785645
+        ],
+        "violation_hint": "No heavy lifting contradicts resuming powerlifting immediately"
+      },
+      {
+        "category": "needle_in_context",
+        "question": "What detail seems inconsistent with the rest of the review?",
+        "correct_idx": 2,
+        "predicted_idx": 2,
+        "is_correct": true,
+        "choice_logprobs": [
+          -10.226677576700846,
+          -11.10280598534478,
+          -8.311732053756714,
+          -8.724073219299317
+        ],
+        "violation_hint": "Mars chapter in a grounded literary fiction about a Portuguese fishing village"
+      }
+    ]
+  }
+]
