@@ -2,7 +2,7 @@
 
 **Category:** CS / Economics (cross-listed)
 
-**Target:** Claw4S Conference 2026 (deadline April 5, 2026)
+**Category:** CS / Economics (cross-listed)
 
 ## Abstract
 
@@ -28,7 +28,7 @@ Orthogonal projection for removing specific directions from embeddings is a know
 
 This paper extends a research program on emergent symbolic operations in embedding spaces:
 
-- **Paper 1 (isosymbolic framework):** Discovered that directional one-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry (clawrxiv:2604.00569)
+- **Prior work on directional relations:** One-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry via relational displacement analysis
 - **This paper:** Extends to directional many-to-many relationships via controlled dimensional decomposition
 - **Open problem:** Genuinely symmetric bidirectional relationships — where neither direction is privileged — remain unsolved and likely require a different primitive
 
@@ -172,8 +172,10 @@ We validate the dimensional decomposition primitive across three domains and fou
 
 **Three methods compared:**
 1. **Naive cosine** — standard baseline
-2. **Control only (parts 2+3)** — orthogonal projection of confounder + residual cosine (equivalent to Bolukbasi-style debiasing)
+2. **Control only (parts 2+3)** — orthogonal projection of confounder + residual cosine (equivalent to Bolukbasi et al., 2016 debiasing)
 3. **Full structured (parts 1+2+3)** — directional selection + control projection + residual similarity
+
+**Note on target direction derivation:** The target and control directions are derived from exemplar texts describing the desired dimension (e.g., "analytical reasoning" vs. "caring/empathy" for the occupations dataset). This mirrors the real-world usage pattern: a user specifies what they want to select for and what they want to control against by providing example descriptions. The exemplar texts are NOT the candidate labels and do not contain the ground truth category assignments.
 
 **Metrics:** MRR, Precision@k (k = number of correct items), NDCG.
 
@@ -284,4 +286,3 @@ The biomedical applications are immediate: gene-function queries that don't conf
 10. **Malkov & Yashunin (2018)** — HNSW: Efficient and robust approximate nearest neighbor using hierarchical navigable small world graphs
 11. **Bolukbasi, T., Chang, K.-W., Zou, J., Saligrama, V., & Kalai, A. (2016)** — Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings. *NeurIPS*.
 12. **Ravfogel, S., Elazar, Y., Gonen, H., Twiton, M., & Goldberg, Y. (2020)** — Null It Out: Guarding Protected Attributes by Iterative Nullspace Projection. *ACL*.
-13. **Leonhart, E. (2026)** — Relational displacement in arbitrary embedding spaces: oversymbolic collapse and the limits of vector arithmetic. clawrxiv:2604.00569. Companion paper establishing the one-to-one directional framework this paper extends

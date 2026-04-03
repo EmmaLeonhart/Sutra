@@ -1,10 +1,10 @@
-# Relational Displacement in Arbitrary Embedding Spaces: Oversymbolic Collapse and the Limits of Vector Arithmetic
+# Relational Displacement in Three General-Purpose Text Embedding Models: Tokenizer-Induced Collisions and the Limits of Vector Arithmetic
 
 **Emma Leonhart**
 
 ## Abstract
 
-It is well established that embedding spaces encode relational structure as vector arithmetic — from word2vec analogies (Mikolov et al., 2013) through TransE translations (Bordes et al., 2013) to modern knowledge graph embeddings. What remains underexplored is where this encoding *breaks down* and what the failure modes reveal about the topology of embedding spaces. We apply standard relational displacement analysis to three general-purpose text embedding models (mxbai-embed-large 1024-dim, nomic-embed-text 768-dim, all-minilm 384-dim) using Wikidata triples from two domains: Engishiki (a Japanese historical text with dense romanized non-Latin terminology) and a broad sample of country-level entities via P31 (instance of). Across all three models, 30 relations manifest as consistent displacements universally, with up to 109 per model. The self-diagnostic correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) reproduces across models and domains. The Engishiki-seeded dataset is retained deliberately: its dense romanized Japanese, Arabic, Irish, and indigenous-language terminology exposes a large-scale **oversymbolic collapse** — 147,687 cross-entity embedding pairs at cosine similarity ≥ 0.95, traceable to WordPiece diacritic stripping. We analyze the geometry of this collapse, showing that colliding embeddings occupy the **densest** regions of the embedding space — 71% fall in the oversymbolic quartile — crowding into already-saturated neighborhoods rather than drifting into empty space. This three-regime structure (oversymbolic, isosymbolic, undersymbolic) sets hard limits on relational displacement methods regardless of algorithmic sophistication. All code and data are publicly available, and the analysis reproduces end-to-end in approximately 30 minutes per model on commodity hardware.
+It is well established that embedding spaces encode relational structure as vector arithmetic — from word2vec analogies (Mikolov et al., 2013) through TransE translations (Bordes et al., 2013) to modern knowledge graph embeddings. What remains underexplored is where this encoding *breaks down* and what the failure modes reveal about the topology of embedding spaces. We apply standard relational displacement analysis to three general-purpose text embedding models (mxbai-embed-large 1024-dim, nomic-embed-text 768-dim, all-minilm 384-dim) using Wikidata triples from two domains: Engishiki (a Japanese historical text with dense romanized non-Latin terminology) and a broad sample of country-level entities via P31 (instance of). Across all three models, 30 relations manifest as consistent displacements universally, with up to 109 per model. The self-diagnostic correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) reproduces across models and domains. The Engishiki-seeded dataset is retained deliberately: its dense romanized Japanese, Arabic, Irish, and indigenous-language terminology exposes a large-scale **embedding collision** — 147,687 cross-entity embedding pairs at cosine similarity ≥ 0.95, traceable to WordPiece diacritic stripping. We analyze the geometry of this collapse, showing that colliding embeddings occupy the **densest** regions of the embedding space — 71% fall in the dense-collision quartile — crowding into already-saturated neighborhoods rather than drifting into empty space. This three-regime structure (dense-collision, functional, sparse) sets hard limits on relational displacement methods regardless of algorithmic sophistication. All code and data are publicly available, and the analysis reproduces end-to-end in approximately 30 minutes per model on commodity hardware.
 
 ## 1. Introduction
 
@@ -16,7 +16,7 @@ It is also well known that these methods work best on functional (many-to-one) a
 
 1. We use a deliberately domain-specific seed (Engishiki, a Japanese historical text) alongside a broader country-level sample to expose how different regions of the same embedding space behave under identical relational tests.
 
-2. We show that the Engishiki-seeded data, rich in romanized Japanese, Arabic, Irish, and indigenous-language terminology, reveals a large-scale **oversymbolic collapse** — 147,687 cross-entity embedding pairs at cosine ≥ 0.95, driven by WordPiece diacritic stripping.
+2. We show that the Engishiki-seeded data, rich in romanized Japanese, Arabic, Irish, and indigenous-language terminology, reveals a large-scale **embedding collision** — 147,687 cross-entity embedding pairs at cosine ≥ 0.95, driven by WordPiece diacritic stripping.
 
 3. We analyze the geometry of the collapse zone, showing that colliding embeddings are not merely close to each other but are **sparse and distant** from the well-structured regions where relational displacement succeeds — establishing hard topological limits on vector arithmetic methods.
 
@@ -26,11 +26,11 @@ It is also well known that these methods work best on functional (many-to-one) a
 
 2. **The self-diagnostic correlation holds.** The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the displacement consistency metric predicts which relations will function as vector arithmetic — reproducing the known functional/relational split without ground-truth labels.
 
-3. **Embedding collapse is large-scale and oversymbolic.** 147,687 cross-entity pairs collapse to cosine ≥ 0.95. Geometric analysis shows colliding embeddings are 2.4× denser (mean k-NN distance 0.106 vs 0.258) and 71% fall in the oversymbolic (densest) quartile. The collapse zone is not distant and sparse — it is crowded and central.
+3. **Embedding collapse is large-scale and dense-collision.** 147,687 cross-entity pairs collapse to cosine ≥ 0.95. Geometric analysis shows colliding embeddings are 2.4× denser (mean k-NN distance 0.106 vs 0.258) and 71% fall in the dense-collision (densest) quartile. The collapse zone is not distant and sparse — it is crowded and central.
 
-4. **Three-regime structure sets hard limits.** The embedding space partitions into oversymbolic (saturated, where collisions concentrate), isosymbolic (vector arithmetic works), and undersymbolic (sparse) regimes. No relational displacement method — learned or discovered — can extract consistent structure from the oversymbolic collapse zone. This is a property of the space, not the method.
+4. **Three-regime structure sets hard limits.** The embedding space partitions into dense-collision (saturated, where collisions concentrate), functional (vector arithmetic works), and sparse (sparse) regimes. No relational displacement method — learned or discovered — can extract consistent structure from the embedding collision zone. This is a property of the space, not the method.
 
-5. **Engishiki highlights the oversymbolic regime.** The domain-specific seed is not a limitation but a feature: it floods the embedding space with exactly the kind of input (romanized non-Latin scripts) that triggers oversymbolic crowding, making the phenomenon measurable at scale.
+5. **Engishiki highlights the dense-collision regime.** The domain-specific seed is not a limitation but a feature: it floods the embedding space with exactly the kind of input (romanized non-Latin scripts) that triggers dense-collision crowding, making the phenomenon measurable at scale.
 
 ## 2. Related Work
 
@@ -52,7 +52,7 @@ Probing classifiers (Conneau et al., 2018; Hewitt & Manning, 2019) test what lin
 
 ### 2.5 Embedding Space Topology and Failure Modes
 
-The glitch token phenomenon (Li et al., 2024) documents poorly trained embeddings for low-frequency tokens in LLMs. Our undersymbolic collapse finding extends this to sentence-embedding models, showing that entire *classes* of input (romanized non-Latin scripts, diacritical text) collapse into degenerate regions. Work on embedding space topology has identified stratified sub-manifolds within learned representations (Li & Sarwate, 2025; arXiv:2502.13577), independently supporting the three-regime structure we characterize in Section 5.3.
+The glitch token phenomenon (Li et al., 2024) documents poorly trained embeddings for low-frequency tokens in LLMs. Our collision finding extends this to sentence-embedding models, showing that entire *classes* of input (romanized non-Latin scripts, diacritical text) collapse into degenerate regions. Recent work on embedding space topology has identified stratified sub-manifolds within learned representations, independently supporting the multi-regime structure we observe.
 
 ### 2.6 Tokenizer-Induced Information Loss
 
@@ -285,15 +285,9 @@ This is not a new finding. It follows directly from the mathematics of translati
 
 The r = 0.861 correlation between consistency and prediction accuracy means the displacement consistency metric is **self-calibrating**: it predicts which relations will function as vector arithmetic without needing ground-truth evaluation data. This is practically useful for applying relational displacement as a diagnostic to new embedding spaces.
 
-### 5.3 Three Regimes of Embedding Space
+### 5.3 Collision Geography
 
-The central contribution of this work is not the relational displacement analysis itself but what it reveals about the **topology** of general-purpose embedding spaces when combined with collision analysis. We identify three regimes:
-
-- **Oversymbolic regions** — areas where the model compresses too many semantically *rich* concepts into overlapping coordinates. Distinct and meaningful entities share embedding space because the model's representational capacity is saturated. This regime produces collisions between concepts the model *has learned* but cannot separate at the required granularity.
-
-- **Isosymbolic regions** — the manifold where vector arithmetic reliably encodes relational structure. Our 86 consistent relations live here. The functional predicates (flag, coat of arms, demographics) produce consistent displacements precisely because the entities involved are well-represented and well-separated. This is the regime where TransE-style reasoning works, whether trained or discovered.
-
-- **Undersymbolic regions** — sparse areas with insufficient representational mass to anchor specific concepts. Distinct inputs receive near-identical embeddings not because the model chose to group them, but because it never learned to distinguish them. **These regions are not merely noisy — they are geometrically isolated from the well-structured manifold.**
+We independently measure two properties of each embedding: (a) its local density (mean k-NN distance) and (b) whether it collides with a semantically distinct entity at cosine ≥ 0.95. The question is whether collisions are uniformly distributed across density levels or concentrated in particular regions. This is an empirical question, not a definitional one — dense regions could in principle have few collisions if the model separates semantically distinct entities effectively even in crowded neighborhoods.
 
 ### 5.4 The Embedding Collapse: Geometry of Oversymbolic Crowding
 
@@ -305,19 +299,19 @@ The central contribution of this work is not the relational displacement analysi
 
 1. **Colliding embeddings are 2.4× denser than non-colliding ones.** Mean k-NN distance for colliding embeddings is 0.106, vs 0.258 for non-colliding (ratio 0.41×). Colliding entities are tightly packed together.
 
-2. **71% of colliding embeddings fall in the oversymbolic (densest quartile) regime,** vs the expected 25% if uniformly distributed. Only 3.2% fall in the undersymbolic (sparsest quartile) regime. The collision zone is overwhelmingly oversymbolic.
+2. **71% of colliding embeddings fall in the dense-collision (densest quartile) regime,** vs the expected 25% if uniformly distributed. Only 3.2% fall in the sparse (sparsest quartile) regime. The collision zone is overwhelmingly dense-collision.
 
 3. **The collapse zone is not geometrically isolated.** The distance from a colliding embedding to its nearest non-colliding neighbor (mean 0.119) is nearly identical to the equivalent non-colliding-to-non-colliding distance (mean 0.121, ratio 0.98×). The centroids of the two populations are close (cosine distance 0.038).
 
-This means tokenizer-induced information loss does not push embeddings into distant, empty regions — it collapses them into **already-crowded neighborhoods** where distinct inputs cannot be differentiated. The colliding embeddings sit *among* the well-structured embeddings, not apart from them. This is an **oversymbolic** phenomenon: the model's representational capacity in these regions is saturated, and the tokenizer's diacritic stripping removes the only information that could distinguish these inputs.
+This means tokenizer-induced information loss does not push embeddings into distant, empty regions — it collapses them into **already-crowded neighborhoods** where distinct inputs cannot be differentiated. The colliding embeddings sit *among* the well-structured embeddings, not apart from them. This is an **dense-collision** phenomenon: the model's representational capacity in these regions is saturated, and the tokenizer's diacritic stripping removes the only information that could distinguish these inputs.
 
 This extends the glitch token phenomenon (Li et al., 2024) from individual tokens in LLMs to entire *classes of input* in sentence-embedding models, but with a geometric twist: the failure mode is not sparse under-representation but dense over-crowding. The scale — 147,687 colliding pairs from a single domain seed — suggests that any application of embedding-based reasoning to multilingual or diacritic-rich text will encounter regions where the space is too crowded to discriminate.
 
-**Why the Engishiki seed matters.** The domain-specific seed is not a limitation but a deliberate experimental choice. Engishiki (Q1342448) is a 10th-century Japanese text whose entities include romanized shrine names (Jinmyōchō, Shikinaisha), historical Japanese personal names, and linked entities from Arabic, Irish, and indigenous-language Wikipedia articles. This floods the embedding space with exactly the inputs that trigger oversymbolic collapse, making the phenomenon measurable at scale. The country-level P31 sample provides the domain-general baseline against which the collapse is measured.
+**Why the Engishiki seed matters.** The domain-specific seed is not a limitation but a deliberate experimental choice. Engishiki (Q1342448) is a 10th-century Japanese text whose entities include romanized shrine names (Jinmyōchō, Shikinaisha), historical Japanese personal names, and linked entities from Arabic, Irish, and indigenous-language Wikipedia articles. This floods the embedding space with exactly the inputs that trigger embedding collision, making the phenomenon measurable at scale. The country-level P31 sample provides the domain-general baseline against which the collapse is measured.
 
 ### 5.5 Hard Limits on Vector Arithmetic
 
-The three-regime structure implies that relational displacement methods — whether learned (TransE, RotatE) or discovered (this work) — are bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates. The oversymbolic collapse is particularly insidious because it is invisible to standard evaluation: the model appears to embed these inputs normally, and the resulting vectors sit in well-populated regions of the space, but they carry no discriminative information for the colliding inputs.
+The three-regime structure implies that relational displacement methods — whether learned (TransE, RotatE) or discovered (this work) — are bounded by the *topological quality* of the underlying embedding space. No amount of algorithmic sophistication can extract consistent displacements from a region where distinct concepts have collapsed into the same coordinates. The embedding collision is particularly insidious because it is invisible to standard evaluation: the model appears to embed these inputs normally, and the resulting vectors sit in well-populated regions of the space, but they carry no discriminative information for the colliding inputs.
 
 This has practical implications for any system that chains embedding-based reasoning with knowledge from non-Latin-script domains: RAG systems retrieving over multilingual corpora, knowledge graph completion over Wikidata's non-English entities, and cross-lingual transfer learning.
 
@@ -325,9 +319,9 @@ This has practical implications for any system that chains embedding-based reaso
 
 1. **Three embedding models.** We validate across mxbai-embed-large (1024-dim), nomic-embed-text (768-dim), and all-minilm (384-dim), finding 30 universal relations. All three are English-language text embedding models trained on similar corpora. Testing on multilingual models or domain-specific models (e.g., biomedical) would further characterize the generality of the three-regime structure.
 
-2. **Collision geometry analysis covers one seed.** The distance metrics characterizing the oversymbolic collapse zone (Section 5.4) are computed from the Engishiki-seeded dataset. Multi-seed analysis would test whether the same crowding pattern holds across domains.
+2. **Collision geometry analysis covers one seed.** The distance metrics characterizing the embedding collision zone (Section 5.4) are computed from the Engishiki-seeded dataset. Multi-seed analysis would test whether the same crowding pattern holds across domains.
 
-3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. This deliberately mirrors how these models are used in practice for entity linking and knowledge graph completion (short query strings, not full documents). Richer textual representations might shift some entities out of the undersymbolic zone, but the label-only setting represents a common real-world deployment pattern for these models.
+3. **Label embeddings only.** We embed entity *labels* (short text strings), not descriptions or full articles. This deliberately mirrors how these models are used in practice for entity linking and knowledge graph completion (short query strings, not full documents). Richer textual representations might shift some entities out of the sparse zone, but the label-only setting represents a common real-world deployment pattern for these models.
 
 4. **Relational displacement, not full FOL.** We test which binary relations encode as consistent vector arithmetic. Full first-order logic includes quantifiers, variable binding, negation, and complex formula composition, none of which we test. The title of this paper reflects the scope: relational displacement and its failure modes, not a claim about discovering FOL.
 
@@ -335,11 +329,11 @@ This has practical implications for any system that chains embedding-based reaso
 
 We apply standard relational displacement analysis to three general-purpose text embedding models and confirm the known finding: functional and bijective relations encode as consistent vector displacements, while symmetric and many-to-many relations do not. This holds across models not trained for knowledge graph completion, confirming that the relational structure is a property of the semantic relationships, not the training objective.
 
-The primary contribution is the **oversymbolic collapse** finding. A deliberately domain-specific seed (Engishiki) exposes 147,687 cross-entity embedding collapses at cosine ≥ 0.95, traceable to WordPiece diacritic stripping. Geometric analysis reveals that these collapses occupy the **densest** regions of the embedding space — 71% fall in the oversymbolic quartile, with 2.4× smaller k-NN distances than non-colliding embeddings. The failure mode is not sparse under-representation but dense over-crowding: tokenizer-induced information loss pushes diacritic-rich inputs into already-saturated neighborhoods where distinct concepts become indistinguishable.
+The primary contribution is the **embedding collision** finding. A deliberately domain-specific seed (Engishiki) exposes 147,687 cross-entity embedding collapses at cosine ≥ 0.95, traceable to WordPiece diacritic stripping. Geometric analysis reveals that these collapses occupy the **densest** regions of the embedding space — 71% fall in the dense-collision quartile, with 2.4× smaller k-NN distances than non-colliding embeddings. The failure mode is not sparse under-representation but dense over-crowding: tokenizer-induced information loss pushes diacritic-rich inputs into already-saturated neighborhoods where distinct concepts become indistinguishable.
 
 The practical implication is that embedding-based reasoning over multilingual or diacritic-rich text — RAG systems, knowledge graph completion, cross-lingual transfer — will encounter regions where the embedding space provides no discriminative information, and no amount of relational modeling can compensate for what the tokenizer has already destroyed.
 
-All code is available at https://github.com/EmmaLeonhart/Claw4S-submissions. The full analysis reproduces end-to-end in approximately 30 minutes on commodity hardware with a local Ollama instance.
+All code and data are publicly available. The full analysis reproduces end-to-end in approximately 30 minutes on commodity hardware with a local Ollama instance.
 
 ## References
 
@@ -353,7 +347,6 @@ Hewitt, J., & Manning, C. D. (2019). A structural probe for finding syntax in wo
 
 Kazemi, S. M., & Poole, D. (2018). SimplE embedding for link prediction in knowledge graphs with baseline model comparison. *NeurIPS*.
 
-Li, X., & Sarwate, A. D. (2025). Unraveling the Localized Latents: Learning Stratified Manifold Structures in LLM Embedding Space with Sparse Mixture-of-Experts. *arXiv preprint arXiv:2502.13577*.
 
 Li, Y., Liu, Y., Deng, G., Zhang, Y., & Song, W. (2024). Glitch Tokens in Large Language Models: Categorization Taxonomy and Effective Detection. *Proceedings of the ACM on Software Engineering*, 1(FSE). https://doi.org/10.1145/3660799
 
