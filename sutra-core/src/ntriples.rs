@@ -150,12 +150,15 @@ fn parse_node(bytes: &[u8], pos: &mut usize) -> Option<String> {
     }
 }
 
+/// Inner triple components: (subject, predicate, object).
+type InnerTriple = (String, String, String);
+
 /// Parse a node that may be an IRI, blank node, or quoted triple `<< s p o >>`.
 /// Returns the term string and optionally the inner triple components.
 fn parse_node_or_quoted(
     bytes: &[u8],
     pos: &mut usize,
-) -> Option<(String, Option<(String, String, String)>)> {
+) -> Option<(String, Option<InnerTriple>)> {
     if *pos + 1 < bytes.len() && bytes[*pos] == b'<' && bytes[*pos + 1] == b'<' {
         parse_quoted_triple(bytes, pos)
     } else if *pos < bytes.len() && bytes[*pos] == b'<' {
@@ -172,7 +175,7 @@ fn parse_node_or_quoted(
 fn parse_quoted_triple(
     bytes: &[u8],
     pos: &mut usize,
-) -> Option<(String, Option<(String, String, String)>)> {
+) -> Option<(String, Option<InnerTriple>)> {
     // Skip '<<'
     if *pos + 1 >= bytes.len() || bytes[*pos] != b'<' || bytes[*pos + 1] != b'<' {
         return None;
