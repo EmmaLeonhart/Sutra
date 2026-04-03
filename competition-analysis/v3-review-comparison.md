@@ -66,3 +66,18 @@ The temporal problem is deeper than prose — it's in the data pipeline itself. 
 | Econ | Reject | Strong Reject | Strong Reject | Partially addressed | Microsoft data error, date in scripts |
 
 **Key insight:** Fixing superficial issues (citations, terminology, unimplemented sections) works — those critiques disappear. But the reviewer then finds deeper issues with the actual methodology. The FOL paper is closest because its core methodology is sound; it just needs a null model baseline. The M2M paper needs a fundamentally larger experiment. The economics paper has a data integrity issue that may be a real bug.
+
+---
+
+## FOL v4 (624): Weak Reject — BEST RATING
+Null model praised. Remaining: collision count suspicious, MRR=1.0 suspicious, narrow dataset, three-regime unproven.
+
+## FOL v5 (625): Reject — regressed
+New critiques:
+- Collision geography STILL called tautological despite reframing
+- Collision count "inflated by pairwise counting" — our explanation acknowledged this but reviewer still objects
+- "Cherry-picked Engishiki dataset" — wants broader multilingual eval
+- NEW: "Lacks control group for tokenizer analysis" — should compare against byte-level tokenizer (CANINE)
+- NEW: "Data contamination risk" — models trained on Wikipedia, triples from Wikidata = memorized patterns?
+
+Key insight: v5 regression shows the reviewer is stochastic. The exact same paper can get Weak Reject or Reject depending on the review run. The fixes from v4→v5 were good but the reviewer found new angles.
