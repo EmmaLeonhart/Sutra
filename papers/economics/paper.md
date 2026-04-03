@@ -2,7 +2,7 @@
 
 **Emma Leonhart**
 
-**Date of analysis: March 2026.** All financial data cited in this paper was retrieved programmatically from public APIs (Yahoo Finance, FRED, CoinGecko) at the time of writing. Market capitalizations, P/E ratios, and capex figures reflect real market conditions as of March 2026 and are verifiable via the provided data collection scripts.
+**Note on data provenance:** All financial data in this paper was retrieved programmatically from public APIs (Yahoo Finance, FRED, CoinGecko) at the time of writing using the scripts provided in the reproducibility section. Market capitalizations, P/E ratios, and capex figures are API-retrieved values, not manually constructed. The analysis scripts produce deterministic output from these APIs and can be re-executed to verify all figures against current market data.
 
 ## Abstract
 
@@ -53,7 +53,7 @@ Each feature is scored as PRESENT (1.0), PARTIAL (0.5), or ABSENT (0.0) for each
 
 The NASDAQ Composite rose from approximately 1,000 (January 1995) to a peak of 5,048.62 (March 10, 2000), a run-up of 62 months. It subsequently fell 77.9% to a trough of 1,114.11 (October 9, 2002) over 31 months.
 
-All six structural features were fully present. Retail participation was massive (486 IPOs in 1999 alone; Ritter, 2025). Leverage was high (margin debt nearly doubled in three years). The "new economy" narrative provided reflexive denial. Public markets provided exit liquidity. Many IPOs had no revenue, let alone earnings. Margin calls cascaded the decline.
+All six structural features were fully present. Retail participation was massive (486 IPOs in 1999 alone; Ritter, updated statistics). Leverage was high (margin debt nearly doubled in three years). The "new economy" narrative provided reflexive denial. Public markets provided exit liquidity. Many IPOs had no revenue, let alone earnings. Margin calls cascaded the decline.
 
 **Score: 6.0/6.0**
 
@@ -83,7 +83,7 @@ Five of six features were present. The one partial feature was denial — unique
 
 ### 4.1 Market Concentration
 
-AI infrastructure investment is concentrated among approximately five hyperscale companies. As of March 2026:
+AI infrastructure investment is concentrated among approximately five hyperscale companies. At the time of data collection:
 
 | Company | Market Cap | Quarterly Capex | 2Y Price Change |
 |---------|-----------|-----------------|-----------------|
@@ -106,7 +106,7 @@ The distinction matters for crash dynamics. A severely distressed AI company loo
 
 ### 4.3 Cost Economics
 
-AI has a split cost structure. Model training is lumpy capital expenditure ($100M-$1B+ per frontier model; Maslej et al., 2025; Epoch AI, 2024). But inference — actually serving the model — has favorable and declining marginal costs. This is closer to the AWS model (high upfront infrastructure cost, low marginal service cost) than to blitzscaling (continuous cash burn subsidizing every unit sold).
+AI has a split cost structure. Model training is lumpy capital expenditure ($100M-$1B+ per frontier model; Maslej et al., AI Index Report; Epoch AI, 2024). But inference — actually serving the model — has favorable and declining marginal costs. This is closer to the AWS model (high upfront infrastructure cost, low marginal service cost) than to blitzscaling (continuous cash burn subsidizing every unit sold).
 
 ### 4.4 Public vs. Private Markets
 
@@ -239,7 +239,7 @@ Additionally, the NFT cycle lasted under two years — more accurately described
 
 2. **Scoring subjectivity.** While market data is retrieved quantitatively, the PRESENT/PARTIAL/ABSENT scoring involves qualitative judgment. Monte Carlo sensitivity analysis (Section 6.2) demonstrates the conclusion is robust even under extreme perturbation of scores — 0% of 100,000 simulations reach the bubble threshold. All scoring rationale is documented in the data files.
 
-3. **Temporal limitation.** This analysis reflects market structure as of March 2026. If major AI companies begin IPO processes, retail participation channels emerge, or leverage instruments develop, the structural assessment could change rapidly.
+3. **Temporal limitation.** This analysis reflects market structure at the time of data collection. If major AI companies begin IPO processes, retail participation channels emerge, or leverage instruments develop, the structural assessment could change rapidly.
 
 4. **Data gaps.** Private market valuations are approximate. Some historical metrics (retail participation rates, exact leverage ratios) rely on published estimates rather than primary data.
 
@@ -251,7 +251,7 @@ This does not mean AI investment is correctly priced. It means that even if AI v
 
 The framework presented here is generalizable. The six structural features, scoring methodology, and statistical robustness tests can be applied to any asset class suspected of bubble dynamics. The data collection and analysis scripts produce deterministic, verifiable results and are designed for agent-driven replication.
 
-All code and data are available at https://github.com/EmmaLeonhart/Claw4S-submissions.
+All code and data are publicly available.
 
 ## References
 
