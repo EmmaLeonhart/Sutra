@@ -1,0 +1,348 @@
+{
+  "experiment": "structured_matching_primitive",
+  "timestamp": "2026-04-03T11:42:53",
+  "results": [
+    {
+      "experiment": "Countries: Governance System vs. Geographic Region",
+      "model": "Ollama/mxbai-embed-large",
+      "embedding_dim": 1024,
+      "n_candidates": 41,
+      "n_correct": 23,
+      "target_control_alignment": 0.1512355502223643,
+      "naive": {
+        "mrr": 0.15871606844718975,
+        "precision_at_23": 0.8260869565217391,
+        "mean_rank": 13.826086956521738,
+        "ndcg": 0.9840365762268962
+      },
+      "control_only": {
+        "mrr": 0.15864196463995248,
+        "precision_at_23": 0.8260869565217391,
+        "mean_rank": 14.043478260869565,
+        "ndcg": 0.983341041719844
+      },
+      "structured": {
+        "mrr": 0.1609946159639781,
+        "precision_at_23": 0.9130434782608695,
+        "mean_rank": 12.608695652173912,
+        "ndcg": 0.994088347080156
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -7.410380723726906e-05
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.002278547516788354
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.002352651324025623
+      },
+      "query_control_alignment_before": 0.1145549259655354,
+      "query_control_alignment_after": 1.734723475976807e-18
+    },
+    {
+      "experiment": "Occupations: Analytical Skill vs. Social Prestige",
+      "model": "Ollama/mxbai-embed-large",
+      "embedding_dim": 1024,
+      "n_candidates": 29,
+      "n_correct": 17,
+      "target_control_alignment": 0.1210359076638787,
+      "naive": {
+        "mrr": 0.19815934065934068,
+        "precision_at_17": 0.8235294117647058,
+        "mean_rank": 10.176470588235293,
+        "ndcg": 0.9853556627349621
+      },
+      "control_only": {
+        "mrr": 0.19770722999051174,
+        "precision_at_17": 0.8235294117647058,
+        "mean_rank": 10.294117647058824,
+        "ndcg": 0.9837815967871822
+      },
+      "structured": {
+        "mrr": 0.20232661897886814,
+        "precision_at_17": 1.0,
+        "mean_rank": 9.0,
+        "ndcg": 1.0
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -0.00045211066882894224
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.0041672783195274565
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.004619388988356399
+      },
+      "query_control_alignment_before": 0.020826797218804968,
+      "query_control_alignment_after": 3.469446951953614e-18
+    },
+    {
+      "experiment": "Animals: Aquatic Habitat vs. Phylogenetic Class",
+      "model": "Ollama/mxbai-embed-large",
+      "embedding_dim": 1024,
+      "n_candidates": 30,
+      "n_correct": 15,
+      "target_control_alignment": 0.5297126316521343,
+      "naive": {
+        "mrr": 0.21271524771524766,
+        "precision_at_15": 0.7333333333333333,
+        "mean_rank": 10.0,
+        "ndcg": 0.9724892908888941
+      },
+      "control_only": {
+        "mrr": 0.2128906863117389,
+        "precision_at_15": 0.7333333333333333,
+        "mean_rank": 9.933333333333334,
+        "ndcg": 0.9731219038072985
+      },
+      "structured": {
+        "mrr": 0.22121526621526624,
+        "precision_at_15": 1.0,
+        "mean_rank": 8.0,
+        "ndcg": 1.0
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": 0.00017543859649124527
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.00850001850001858
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.008324579903527335
+      },
+      "query_control_alignment_before": 0.0003710779650380816,
+      "query_control_alignment_after": 0.0
+    },
+    {
+      "experiment": "Countries: Governance System vs. Geographic Region",
+      "model": "Ollama/nomic-embed-text",
+      "embedding_dim": 768,
+      "n_candidates": 41,
+      "n_correct": 23,
+      "target_control_alignment": 0.055663064632615264,
+      "naive": {
+        "mrr": 0.1568177377406672,
+        "precision_at_23": 0.8260869565217391,
+        "mean_rank": 14.391304347826088,
+        "ndcg": 0.9765410032304843
+      },
+      "control_only": {
+        "mrr": 0.15663911556716012,
+        "precision_at_23": 0.8260869565217391,
+        "mean_rank": 14.478260869565217,
+        "ndcg": 0.9757704402616074
+      },
+      "structured": {
+        "mrr": 0.15961676769388325,
+        "precision_at_23": 0.9130434782608695,
+        "mean_rank": 13.26086956521739,
+        "ndcg": 0.9881804392034518
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -0.00017862217350708698
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.0027990299532160423
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.0029776521267231293
+      },
+      "query_control_alignment_before": 0.004611582174857461,
+      "query_control_alignment_after": 4.336808689942018e-18
+    },
+    {
+      "experiment": "Occupations: Analytical Skill vs. Social Prestige",
+      "model": "Ollama/nomic-embed-text",
+      "embedding_dim": 768,
+      "n_candidates": 29,
+      "n_correct": 17,
+      "target_control_alignment": 0.09269177761956292,
+      "naive": {
+        "mrr": 0.1966649440524873,
+        "precision_at_17": 0.8235294117647058,
+        "mean_rank": 10.470588235294118,
+        "ndcg": 0.9804648905861137
+      },
+      "control_only": {
+        "mrr": 0.19572321469380294,
+        "precision_at_17": 0.8235294117647058,
+        "mean_rank": 10.588235294117647,
+        "ndcg": 0.9776449503251601
+      },
+      "structured": {
+        "mrr": 0.20232661897886814,
+        "precision_at_17": 1.0,
+        "mean_rank": 9.0,
+        "ndcg": 1.0
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -0.0009417293586843622
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.005661674926380839
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.006603404285065201
+      },
+      "query_control_alignment_before": 0.09487648536271243,
+      "query_control_alignment_after": 1.474514954580286e-17
+    },
+    {
+      "experiment": "Animals: Aquatic Habitat vs. Phylogenetic Class",
+      "model": "Ollama/nomic-embed-text",
+      "embedding_dim": 768,
+      "n_candidates": 30,
+      "n_correct": 15,
+      "target_control_alignment": 0.4405680491056037,
+      "naive": {
+        "mrr": 0.21377572719677984,
+        "precision_at_15": 0.8666666666666667,
+        "mean_rank": 9.133333333333333,
+        "ndcg": 0.9779580154790487
+      },
+      "control_only": {
+        "mrr": 0.21112889833478066,
+        "precision_at_15": 0.7333333333333333,
+        "mean_rank": 9.933333333333334,
+        "ndcg": 0.968939231007585
+      },
+      "structured": {
+        "mrr": 0.22121526621526624,
+        "precision_at_15": 1.0,
+        "mean_rank": 8.0,
+        "ndcg": 1.0
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -0.002646828861999184
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.007439539018486402
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.010086367880485586
+      },
+      "query_control_alignment_before": 0.10545518145318733,
+      "query_control_alignment_after": 6.071532165918825e-18
+    },
+    {
+      "experiment": "Countries: Governance System vs. Geographic Region",
+      "model": "Ollama/all-minilm",
+      "embedding_dim": 384,
+      "n_candidates": 41,
+      "n_correct": 23,
+      "target_control_alignment": 0.14922453249832007,
+      "naive": {
+        "mrr": 0.1539177033061059,
+        "precision_at_23": 0.6956521739130435,
+        "mean_rank": 15.782608695652174,
+        "ndcg": 0.9639539499646396
+      },
+      "control_only": {
+        "mrr": 0.15459410152301406,
+        "precision_at_23": 0.8260869565217391,
+        "mean_rank": 15.304347826086957,
+        "ndcg": 0.9676888797042158
+      },
+      "structured": {
+        "mrr": 0.15893936445220486,
+        "precision_at_23": 0.8260869565217391,
+        "mean_rank": 13.826086956521738,
+        "ndcg": 0.9846808532136724
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": 0.0006763982169081528
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.005021661146098949
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.004345262929190796
+      },
+      "query_control_alignment_before": 0.188875328377669,
+      "query_control_alignment_after": 6.938893903907228e-18
+    },
+    {
+      "experiment": "Occupations: Analytical Skill vs. Social Prestige",
+      "model": "Ollama/all-minilm",
+      "embedding_dim": 384,
+      "n_candidates": 29,
+      "n_correct": 17,
+      "target_control_alignment": 0.05940546740092051,
+      "naive": {
+        "mrr": 0.19071663192131072,
+        "precision_at_17": 0.7647058823529411,
+        "mean_rank": 11.294117647058824,
+        "ndcg": 0.9622212684983598
+      },
+      "control_only": {
+        "mrr": 0.1905893082645753,
+        "precision_at_17": 0.7647058823529411,
+        "mean_rank": 11.352941176470589,
+        "ndcg": 0.9617202931688525
+      },
+      "structured": {
+        "mrr": 0.20232661897886814,
+        "precision_at_17": 1.0,
+        "mean_rank": 9.0,
+        "ndcg": 1.0
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -0.00012732365673542856
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.01160998705755742
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.011737310714292848
+      },
+      "query_control_alignment_before": 0.021292687643396584,
+      "query_control_alignment_after": 1.6479873021779667e-17
+    },
+    {
+      "experiment": "Animals: Aquatic Habitat vs. Phylogenetic Class",
+      "model": "Ollama/all-minilm",
+      "embedding_dim": 384,
+      "n_candidates": 30,
+      "n_correct": 15,
+      "target_control_alignment": 0.4855302942355554,
+      "naive": {
+        "mrr": 0.22037493008081244,
+        "precision_at_15": 0.9333333333333333,
+        "mean_rank": 8.2,
+        "ndcg": 0.9972454189297146
+      },
+      "control_only": {
+        "mrr": 0.21177082177082177,
+        "precision_at_15": 0.8666666666666667,
+        "mean_rank": 9.533333333333333,
+        "ndcg": 0.972156804300022
+      },
+      "structured": {
+        "mrr": 0.22121526621526624,
+        "precision_at_15": 1.0,
+        "mean_rank": 8.0,
+        "ndcg": 1.0
+      },
+      "naive_improvement_over_ctrl": {
+        "mrr_delta": -0.008604108309990671
+      },
+      "structured_improvement_over_naive": {
+        "mrr_delta": 0.0008403361344538063
+      },
+      "structured_improvement_over_ctrl": {
+        "mrr_delta": 0.009444444444444478
+      },
+      "query_control_alignment_before": 0.17048694045722168,
+      "query_control_alignment_after": 2.0816681711721685e-17
+    }
+  ],
+  "summary": {
+    "n_experiments": 9,
+    "ctrl_beats_naive": 2,
+    "structured_beats_naive": 9,
+    "structured_beats_ctrl": 9,
+    "mean_mrr_naive": 0.18909537012443794,
+    "mean_mrr_ctrl": 0.1877428156773731,
+    "mean_mrr_structured": 0.19446404485471883
+  }
+}
