@@ -28,7 +28,7 @@ This is not a debiasing method or a dimensionality reduction technique. It is a 
 
 This paper extends a research program on emergent symbolic operations in embedding spaces:
 
-- **Paper 1 (isosymbolic framework):** Discovered that directional one-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry [self-cite]
+- **Paper 1 (isosymbolic framework):** Discovered that directional one-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry (Leonhart, 2026)
 - **This paper:** Extends to directional many-to-many relationships via controlled dimensional decomposition
 - **Open problem:** Genuinely symmetric bidirectional relationships — where neither direction is privileged — remain unsolved and likely require a different primitive
 
@@ -243,7 +243,6 @@ The continuous height dimension with small-world navigation avoids all three fai
 
 ### Dimensional Control
 - **Compositional concept extraction** (DebugML) — uses orthogonal projection to discover and separate concept subspaces; analysis tool, not a matching primitive
-- **FairGHDC** (arXiv) — fairness in graph hyperdimensional computing; correction-based approach, structurally different
 - **Fairness-in-ML literature** (Dwork et al., 2012; Corbett-Davies & Goel, 2018) — acknowledges proxy discrimination but proposes correction, not decomposition
 
 ### Navigation
@@ -266,18 +265,10 @@ The biomedical applications are immediate: gene-function queries that don't conf
 ### Fairness and Matching
 5. **Dwork et al. (2012)** — Fairness through awareness; proxy discrimination and individual fairness
 6. **Corbett-Davies & Goel (2018)** — Measure of fairness and proxy variable problem
-7. **Proxy discrimination in ML** (arXiv) — Excluding protected attributes doesn't eliminate discrimination risk via proxy variables
+7. **Calmon et al. (2017)** — Optimized pre-processing for discrimination prevention. Proxy variable analysis for protected attributes
 
 ### Embedding Geometry and Navigation
 8. **Vendrov et al. (2016)** — Order embeddings for visual-semantic hierarchy
 9. **Nickel & Kiela (2017)** — Poincare embeddings for learning hierarchical representations
 10. **Malkov & Yashunin (2018)** — HNSW: Efficient and robust approximate nearest neighbor using hierarchical navigable small world graphs
-11. **FairGHDC** (arXiv) — Fairness in graph hyperdimensional computing
-12. **Compositional concept extraction** (DebugML) — Orthogonal projection for concept subspace discovery
-
-### Key findings from literature search:
-- Nobody is combining controlled dimensional exclusion + directional selection + small world navigation as a unified matching primitive
-- The fairness literature does **correction** (regularization, adversarial debiasing, post-hoc)
-- The compositional concept literature does **subspace discovery**
-- The HNSW literature does **approximate nearest neighbor**
-- **The three-part query structure does not exist in the literature**
+11. **Leonhart, E. (2026)** — Relational displacement in arbitrary embedding spaces: oversymbolic collapse and the limits of vector arithmetic. Companion paper establishing the one-to-one directional framework this paper extends
