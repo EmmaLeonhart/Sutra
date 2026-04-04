@@ -40,7 +40,7 @@ $$\text{score}(q, e) = \cos(q, e) = \frac{q \cdot e}{\|q\| \|e\|}$$
 
 This computes similarity across *all* dimensions simultaneously. If the embedding encodes $k$ distinct semantic features, cosine similarity averages over all $k$, even when only a subset is relevant to the query.
 
-In biomedical contexts, this is particularly damaging. Biomedical embeddings (BioWordVec, PubMedBERT, ESM for proteins, ChemBERTa for molecules) encode multiple orthogonal properties simultaneously: function, structure, tissue localization, evolutionary origin, disease association, pharmacological profile. A query for functional similarity that returns structurally similar but functionally different entities is not a "noisy" result — it is a *wrong* result produced by a query formalism that cannot distinguish the two.
+For example, an embedding of "Germany" encodes geography, governance system, economic status, language, and history simultaneously. A query for "countries with similar governance" returns geographically proximate countries, not necessarily democratic ones, because geographic similarity dominates the cosine score. This is not a "noisy" result — it is a *wrong* result produced by a query formalism that cannot distinguish the relevant dimension from the irrelevant ones.
 
 ### 2.2 Many-to-Many Relations Across Domains
 
