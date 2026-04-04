@@ -111,3 +111,11 @@ Remaining cons:
 - Alpha/beta weights not ablated
 - "Many-to-many" not demonstrated
 - Exemplar-based target direction still called "label leakage"
+
+## M2M v5 (629): Strong Reject — REGRESSED, but reviewer found REAL BUGS
+1. MRR/Precision inconsistency: Precision@23=0.913 but MRR=0.16 is mathematically impossible
+2. Selection term uses original e, not projected e_perp — re-introduces confounder
+3. Ablation identical to 3 decimals — suspicious (but actually expected given the math)
+4. Random baseline MRR would be ~0.57, our 0.16 is WORSE than random — serious bug
+
+These are legitimate bugs that need fixing before next submission.
