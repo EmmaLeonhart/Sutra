@@ -133,8 +133,9 @@ def structured_match(query, candidates, target_direction, control_vectors,
         c_units = c_residuals / c_norms
         residual_scores = c_units @ q_unit
 
-    # Part 1: Directional selection — project candidates onto target direction
-    selection_scores = candidates @ target_direction  # raw projection
+    # Part 1: Directional selection — project RESIDUAL candidates onto target direction
+    # Use projected embeddings so selection doesn't reintroduce confounders
+    selection_scores = c_residuals @ target_direction
     # Normalize to [0, 1] range for composability
     sel_min = selection_scores.min()
     sel_max = selection_scores.max()
@@ -559,18 +560,23 @@ def run_experiment(dataset, embed_fn, model_name):
 
     # Metrics
     def compute_metrics(ranks, n_correct, n_total):
-        mrr = np.mean(1.0 / ranks) if len(ranks) > 0 else 0
+        # Standard MRR: reciprocal rank of the FIRST correct item
+        mrr = 1.0 / ranks.min() if len(ranks) > 0 else 0
         prec_at_k = sum(1 for r in ranks if r <= n_correct) / n_correct if n_correct > 0 else 0
         mean_rank = np.mean(ranks) if len(ranks) > 0 else n_total
-        # NDCG@k where k = n_correct
-        dcg = sum(1.0 / np.log2(r + 1) for r in ranks if r <= n_correct * 2)
-        ideal_dcg = sum(1.0 / np.log2(i + 1) for i in range(1, n_correct + 1))
-        ndcg = dcg / ideal_dcg if ideal_dcg > 0 else 0
+        # Mean Average Precision
+        hits = 0
+        ap_sum = 0.0
+        for i in range(1, n_total + 1):
+            if i in ranks:
+                hits += 1
+                ap_sum += hits / i
+        map_score = ap_sum / n_correct if n_correct > 0 else 0
         return {
             "mrr": mrr,
             f"precision_at_{n_correct}": prec_at_k,
             "mean_rank": mean_rank,
-            "ndcg": ndcg,
+            "map": map_score,
         }
 
     naive_metrics = compute_metrics(naive_ranks, n_correct, n_candidates)
@@ -578,12 +584,12 @@ def run_experiment(dataset, embed_fn, model_name):
     struct_metrics = compute_metrics(struct_ranks, n_correct, n_candidates)
 
     # Print results
-    print(f"\n  {'Method':<30} {'MRR':>8} {'P@{0}'.format(n_correct):>8} {'MeanRank':>10} {'NDCG':>8}")
+    print(f"\n  {'Method':<30} {'MRR':>8} {'P@{0}'.format(n_correct):>8} {'MeanRank':>10} {'MAP':>8}")
     print(f"  {'-'*30} {'-'*8} {'-'*8} {'-'*10} {'-'*8}")
     for name, m in [("Naive cosine", naive_metrics),
                      ("Control only (part 2+3)", ctrl_metrics),
                      ("Full structured (parts 1+2+3)", struct_metrics)]:
-        print(f"  {name:<30} {m['mrr']:8.4f} {m[f'precision_at_{n_correct}']:8.4f} {m['mean_rank']:10.1f} {m['ndcg']:8.4f}")
+        print(f"  {name:<30} {m['mrr']:8.4f} {m[f'precision_at_{n_correct}']:8.4f} {m['mean_rank']:10.1f} {m['map']:8.4f}")
 
     # Control verification
     q_alignment_before = abs(np.dot(query_emb, control_vector))
