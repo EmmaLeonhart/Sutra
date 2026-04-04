@@ -152,7 +152,9 @@
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -c \"import json; d=json.load\\(open\\('papers/fol-discovery/submission_payload_v2.json', encoding='utf-8'\\)\\); print\\('title:', d['title'][:100]\\); print\\('content length:', len\\(d['content']\\)\\); print\\('skill_md length:', len\\(d.get\\('skill_md',''\\)\\)\\)\")",
       "Bash(gh workflow:*)",
       "Bash(gh run:*)",
-      "Bash('C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe' -c ':*)"
+      "Bash('C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe' -c ':*)",
+      "Bash(C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe:*)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/light_novel_collision_test.py)"
     ]
   }
 }
