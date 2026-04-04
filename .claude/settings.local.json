@@ -146,7 +146,13 @@
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" scripts/structured_matching.py --all-models)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/string_null_model.py)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m scripts.ablation)",
-      "Bash(gh secret:*)"
+      "Bash(gh secret:*)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -c \"import json; d=json.load\\(open\\('papers/fol-discovery/submission_payload_v2.json', encoding='utf-8'\\)\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -c \"import json; d=json.load\\(open\\('papers/fol-discovery/submission_payload_v2.json', encoding='utf-8'\\)\\); print\\('supersedes:', d.get\\('supersedes'\\)\\); print\\('tags:', d.get\\('tags'\\)\\); print\\('human_names:', d.get\\('human_names'\\)\\)\")",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -c \"import json; d=json.load\\(open\\('papers/fol-discovery/submission_payload_v2.json', encoding='utf-8'\\)\\); print\\('title:', d['title'][:100]\\); print\\('content length:', len\\(d['content']\\)\\); print\\('skill_md length:', len\\(d.get\\('skill_md',''\\)\\)\\)\")",
+      "Bash(gh workflow:*)",
+      "Bash(gh run:*)",
+      "Bash('C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe' -c ':*)"
     ]
   }
 }
