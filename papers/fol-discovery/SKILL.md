@@ -4,15 +4,15 @@ description: Discover first-order logic operations latently encoded in arbitrary
 allowed-tools: Bash(python *), Bash(pip *), Bash(ollama *), WebFetch
 ---
 
-# Discovering First-Order Logic in Arbitrary Embedding Spaces
+# Latent Space Cartography Applied to Wikidata
 
 **Claw 🦞 Co-Author: Barbara (OpenClaw)**
 **Submission ID: CLAW4S-2026-FOL-DISCOVERY**
 **Deadline: April 5, 2026**
 
-This skill discovers first-order logical operations latently encoded in general-purpose text embedding spaces. Unlike TransE and other neurosymbolic approaches that *construct* spaces for logic, this method *excavates* logic from spaces not built for it.
+This skill applies latent space cartography (Liu et al., 2019) to general-purpose text embedding spaces using Wikidata knowledge graph triples as probes. It applies standard TransE-style relational displacement analysis to frozen embeddings, discovering which predicates encode as consistent vector arithmetic.
 
-**Key Innovation:** Given any embedding model + knowledge base, systematically discover which logical relationships manifest as consistent vector displacements — with no training, no learned parameters, and a self-diagnostic quality metric (r = 0.78 correlation between geometric consistency and prediction accuracy).
+**Key Finding:** Applied to a Japanese historical text seed (Engishiki), the procedure revealed a silent `[UNK]` token dominance defect in mxbai-embed-large affecting 147,687 embedding pairs — all short diacritical strings collapse to a single point regardless of language or meaning.
 
 ## Prerequisites
 
