@@ -50,7 +50,7 @@ Many real-world relationships are many-to-many: one country can be both a democr
 
 The conflation problem is not limited to biomedicine. The fairness-in-ML literature acknowledges that excluding protected attributes from model inputs does not eliminate discrimination risk, because proxy variables strongly correlated with protected attributes still encode sensitive information (Dwork et al., 2012; Corbett-Davies & Goel, 2018). The standard response is correction — regularization, adversarial debiasing, post-hoc adjustment.
 
-We reframe: proxy conflation is not a bias problem requiring correction. It is a *dimensionality problem* requiring decomposition. The conflation of relevant and irrelevant dimensions is the structural cause. Correcting a conflated score is treating a symptom; decomposing the query addresses the cause. This reframing applies equally to biomedical confounders (tissue type contaminating functional queries) and social confounders (race contaminating hiring queries).
+We reframe: proxy conflation is not a bias problem requiring correction. It is a *dimensionality problem* requiring decomposition. The conflation of relevant and irrelevant dimensions is the structural cause. Correcting a conflated score is treating a symptom; decomposing the query addresses the cause. This reframing applies to any domain where confounders contaminate similarity scores.
 
 ## 3. The Structured Matching Primitive
 
@@ -172,7 +172,7 @@ We sweep the weight parameters α (residual similarity) and β (directional sele
 
 Hyperbolic embeddings are the canonical answer to hierarchy in embedding spaces. We argue they are solving a different problem:
 
-1. **Rigid arborescent commitment**: Hyperbolic curvature *assumes* tree structure as ground truth. Genuine ambiguity or multiple classification is treated as noise, not signal. In biomedical ontologies, where a protein can belong to multiple functional categories simultaneously, this is a fundamental mismatch.
+1. **Rigid arborescent commitment**: Hyperbolic curvature *assumes* tree structure as ground truth. Genuine ambiguity or multiple classification is treated as noise, not signal. When an entity belongs to multiple categories simultaneously (e.g., a country that is both democratic and European), this is a fundamental mismatch.
 2. **Catastrophic misrepresentation**: Small errors in hyperbolic space produce confident wrong answers rather than uncertain right ones. The geometry doesn't gracefully degrade.
 3. **This is a navigation problem, not a geometry problem**: The field has framed hierarchy as requiring different geometry. We argue it requires different *traversal* — the ability to move through abstraction levels efficiently without categorical commitment.
 
@@ -185,12 +185,6 @@ The structured matching primitive avoids all three failure modes: no categorical
 **Regular many-to-many relationships** outside of hierarchical contexts (e.g., "co-author of," "co-expressed with") remain structurally difficult. The dimensional decomposition handles *querying across* many-to-many structures effectively but does not represent the many-to-many relationship itself in the embedding.
 
 ## 7. Related Work
-
-### Biomedical Embedding Methods
-- **BioWordVec** (Zhang et al., 2019) — biomedical word embeddings trained on PubMed + MeSH
-- **PubMedBERT** (Gu et al., 2021) — domain-specific pretraining for biomedical NLP
-- **ESM** (Rives et al., 2021) — protein language models encoding structure and function
-- **ChemBERTa** (Chithrananda et al., 2020) — molecular embeddings from SMILES
 
 ### Hierarchy in Embedding Spaces
 - **Order embeddings** (Vendrov et al., 2016) — explicitly training partial order structure into embedding space
@@ -207,15 +201,9 @@ The structured matching primitive avoids all three failure modes: no categorical
 
 The single-score similarity paradigm is a structural mistake that produces imprecise matches across every domain where embeddings encode multiple independent properties — which is every domain. Dimensional decomposition — actively selecting, actively controlling, and computing residual similarity — is the correct query formalism for multi-dimensional matching. The contribution is not any individual technique but their composition into a coherent, formalizable matching primitive that doesn't exist in the current literature.
 
-The biomedical applications are immediate: gene-function queries that don't conflate tissue type, drug similarity that separates mechanism from toxicity, protein functional analogy across evolutionary distance. The labor economics applications follow the same structure: candidate-role matching that doesn't conflate demographics with fitness. The ontological applications complete the picture: entity similarity that navigates abstraction levels without categorical commitment.
+As demonstrated in our experiments, the method improves matching across diverse domains: governance-type matching controlling for geography, skill-based matching controlling for prestige, and ecological matching controlling for taxonomy. The directional selection component is the key differentiator from prior projection-based approaches.
 
 ## Sources and References
-
-### Biomedical
-1. **Zhang et al. (2019)** — BioWordVec: biomedical word embeddings with subword and MeSH information
-2. **Gu et al. (2021)** — PubMedBERT: domain-specific pretraining for biomedical NLP
-3. **Rives et al. (2021)** — ESM: biological structure and function from protein language models
-4. **Chithrananda et al. (2020)** — ChemBERTa: large-scale self-supervised pretraining for molecular property prediction
 
 ### Fairness and Matching
 5. **Dwork et al. (2012)** — Fairness through awareness; proxy discrimination and individual fairness
