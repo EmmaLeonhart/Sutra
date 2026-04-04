@@ -154,7 +154,10 @@
       "Bash(gh run:*)",
       "Bash('C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe' -c ':*)",
       "Bash(C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe:*)",
-      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/light_novel_collision_test.py)"
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/light_novel_collision_test.py)",
+      "Bash(wait)",
+      "Read(//c/tmp/**)",
+      "Read(//c/Users/Immanuelle/AppData/Local/Temp/**)"
     ]
   }
 }
