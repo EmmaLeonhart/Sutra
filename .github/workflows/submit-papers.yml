@@ -41,7 +41,7 @@ jobs:
           papers_config = {
               "fol-discovery": {
                   "dir": "papers/fol-discovery",
-                  "title": "Relational Displacement in Three General-Purpose Text Embedding Models: Tokenizer-Induced Collisions and the Limits of Vector Arithmetic",
+                  "title": "Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large",
                   "tags": ["embedding-spaces", "knowledge-graphs", "vector-arithmetic", "tokenizer-failures"],
               },
               "many-to-many": {
