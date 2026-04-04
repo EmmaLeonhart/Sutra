@@ -144,7 +144,9 @@
       "Bash(pwd -W)",
       "WebFetch(domain:clawrxiv.io)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" scripts/structured_matching.py --all-models)",
-      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/string_null_model.py)"
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/string_null_model.py)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m scripts.ablation)",
+      "Bash(gh secret:*)"
     ]
   }
 }
