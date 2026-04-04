@@ -1,12 +1,10 @@
-# Dimensional Decomposition for Many-to-Many Matching in Embedding Spaces
-
-**Category:** CS / Economics (cross-listed)
+# Directional Selection with Dimensional Control Improves Embedding-Based Matching
 
 **Category:** CS / Economics (cross-listed)
 
 ## Abstract
 
-Current embedding-based matching systems collapse multi-dimensional similarity into a single scalar score, conflating dimensions that should be independently queryable. This paper introduces a structured matching primitive that decomposes embedding similarity into three components: (1) dimensions to actively select for, (2) dimensions to actively control against, and (3) residual general similarity uncorrelated with the controlled dimensions. The mechanism combines orthogonal projection for dimensional control with directed small-world graph navigation for efficient traversal. We formalize this as a query structure and demonstrate it across domains: biomedical entity matching (gene-function similarity controlling for tissue type, drug repurposing controlling for toxicity), labor market matching (candidate-role fitness controlling for protected characteristics), and ontological categorization (Wikidata entity similarity controlling for abstraction level). We validate the primitive experimentally across four embedding models (mxbai-embed-large, nomic-embed-text, all-minilm, BioBERT) and three domains, showing improvement in 10/12 experiments (mean MRR +0.049, max +0.178) with exact elimination of confounding dimensions (query-control alignment → 0). In each case, dimensional decomposition produces more precise matches than naive cosine similarity — a Pareto improvement that also structurally prevents proxy conflation as a consequence of doing the similarity computation correctly.
+Standard embedding-based matching collapses multi-dimensional similarity into a single cosine score, conflating dimensions that users need to query independently. We show that combining directional selection (maximizing similarity along a specified target direction) with orthogonal projection (removing confounding dimensions) produces a three-part matching score that consistently outperforms both naive cosine similarity and projection-alone baselines. The projection component is a known technique in the debiasing literature (Bolukbasi et al., 2016); our contribution is demonstrating that projection alone rarely helps (2/9 experiments), while adding directional selection converts this to 9/9 improvements. We evaluate across three datasets (countries matched by governance controlling for region, 41 candidates; occupations matched by analytical skill controlling for social prestige, 29 candidates; animals matched by habitat controlling for phylogenetic class, 30 candidates) and three embedding models (mxbai-embed-large 1024-dim, nomic-embed-text 768-dim, all-minilm 384-dim). The full three-part method achieves perfect precision in 6/9 experiments vs. 0/9 for naive cosine or projection-alone. Target and control directions are derived from user-supplied exemplar descriptions, not from candidate labels, avoiding circularity.
 
 ## 1. Introduction
 
@@ -28,9 +26,9 @@ Orthogonal projection for removing specific directions from embeddings is a know
 
 This paper extends a research program on emergent symbolic operations in embedding spaces:
 
-- **Prior work on directional relations:** One-to-one asymmetric relationships emerge as first-order logic operations from embedding geometry via relational displacement analysis
-- **This paper:** Extends to directional many-to-many relationships via controlled dimensional decomposition
-- **Open problem:** Genuinely symmetric bidirectional relationships — where neither direction is privileged — remain unsolved and likely require a different primitive
+- **One-to-one relations** are well-served by relational displacement (TransE; Bordes et al., 2013): functional predicates encode as consistent vector operations in embedding space.
+- **This paper:** Addresses the many-to-many case where single displacements fail, by decomposing the query into directional selection, dimensional control, and residual similarity.
+- **Open problem:** Genuinely symmetric bidirectional relationships — where neither direction is privileged — remain unsolved and likely require a different primitive.
 
 ## 2. The Conflation Problem
 
@@ -54,7 +52,7 @@ Biomedical knowledge is dominated by many-to-many relationships:
 - **Disease → Gene:** One disease involves many genes; one gene is implicated in many diseases
 - **Phenotype → Genotype:** Many phenotypes map to many genotypes through complex epistasis
 
-These relationships cannot be represented as consistent vector displacements in embedding space — the geometry only natively supports one-to-one asymmetric relations (as demonstrated in our prior work on FOL operations). Dimensional decomposition offers a way to *query across* many-to-many relationships by controlling which dimensions participate in the similarity computation.
+These relationships cannot be represented as consistent vector displacements in embedding space — the geometry only natively supports one-to-one asymmetric relations (Bordes et al., 2013). Dimensional decomposition offers a way to *query across* many-to-many relationships by controlling which dimensions participate in the similarity computation.
 
 ### 2.3 Proxy Conflation as a Dimensionality Problem
 
@@ -73,7 +71,9 @@ Given:
 
 Find entity $e$ that maximizes:
 
-$$\text{match}(q, e) = \alpha \cdot \cos(q_\perp, e_\perp) + \beta \cdot \text{proj}_t(e)$$
+$$\text{match}(q, e) = \alpha \cdot \cos(q_\perp, e_\perp) + \beta \cdot \hat{t} \cdot e$$
+
+where $\hat{t} \cdot e$ is the scalar dot product of the unit target direction with the candidate embedding (measuring how far $e$ lies in the desired direction),
 
 where $q_\perp$ and $e_\perp$ are projections onto the orthogonal complement of $C$:
 
@@ -156,7 +156,7 @@ The orthogonal projection step (part 2) is a well-known technique in embedding d
 
 ## 5. Experimental Validation
 
-We validate the dimensional decomposition primitive across three domains and four embedding models. Each experiment constructs a scenario where a confounding dimension (organism context, gender coding, or domain register) contaminates cosine similarity rankings, then measures whether orthogonal projection recovers the correct ranking.
+We validate the three-part matching primitive across three datasets and three embedding models. Each experiment constructs a scenario where a confounding dimension contaminates cosine similarity rankings, then compares three methods: naive cosine, control-only (Bolukbasi-style projection), and the full three-part structured match.
 
 ### 5.1 Setup
 
@@ -215,7 +215,7 @@ Mean MRR: naive 0.189, control-only 0.188, full structured 0.194.
 
 ### 5.3 Analysis
 
-**The directional selection component is the key differentiator.** Control-only matching (equivalent to Bolukbasi-style debiasing projection) barely improves over naive cosine — it helps in only 2 of 9 experiments, and in one case (nomic on animals) actually hurts MRR. Adding the directional selection step (part 1) converts this to 9/9 improvements. This confirms that simply removing a confounding dimension is insufficient; actively selecting for the desired dimension is what makes the primitive work.
+**The directional selection component is the key differentiator.** Control-only matching (equivalent to Bolukbasi-style debiasing projection) barely improves over naive cosine — it helps in only 2 of 9 experiments, and in one case (nomic on animals) actually hurts MRR. Adding the directional selection step (part 1) converts this to 9/9 improvements. This is not a contradiction of the debiasing literature: Bolukbasi et al. (2016) showed that projection successfully removes gender bias from *analogy tasks*, where the evaluation metric is specifically sensitive to the projected dimension. In our matching task, removing one confounder barely changes the ranking because many other dimensions still dominate the cosine score. Directional selection reweights the score toward the desired dimension, which is the missing step that makes the difference.
 
 **Control vector elimination is exact.** In all experiments, query-control alignment drops from 0.001–0.189 to effectively zero (~10⁻¹⁷). The orthogonal projection provably eliminates the confounding dimension by construction.
 
@@ -258,8 +258,6 @@ The structured matching primitive avoids all three failure modes: no categorical
 - **Ravfogel et al. (2020)** — Iterative Null-space Projection (INLP) for removing linear information from representations. More principled than single-direction projection but still focused on information removal, not structured querying.
 - **Fairness-in-ML literature** (Dwork et al., 2012; Corbett-Davies & Goel, 2018) — acknowledges proxy discrimination but proposes correction, not decomposition
 
-### Navigation
-- **HNSW** (Malkov & Yashunin, 2018) — approximate nearest neighbor with navigable small-world graphs; we adapt the navigation structure for ontological traversal
 
 ## 9. Conclusion
 
@@ -283,6 +281,5 @@ The biomedical applications are immediate: gene-function queries that don't conf
 ### Embedding Geometry and Navigation
 8. **Vendrov et al. (2016)** — Order embeddings for visual-semantic hierarchy
 9. **Nickel & Kiela (2017)** — Poincare embeddings for learning hierarchical representations
-10. **Malkov & Yashunin (2018)** — HNSW: Efficient and robust approximate nearest neighbor using hierarchical navigable small world graphs
 11. **Bolukbasi, T., Chang, K.-W., Zou, J., Saligrama, V., & Kalai, A. (2016)** — Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings. *NeurIPS*.
 12. **Ravfogel, S., Elazar, Y., Gonen, H., Twiton, M., & Goldberg, Y. (2020)** — Null It Out: Guarding Protected Attributes by Iterative Nullspace Projection. *ACL*.
