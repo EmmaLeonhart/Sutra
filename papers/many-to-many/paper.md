@@ -10,7 +10,7 @@ Standard embedding-based matching collapses multi-dimensional similarity into a 
 
 Embedding spaces encode semantic similarity as geometric proximity. This is powerful for retrieval but structurally limited: when a query requires *similarity along some dimensions but not others*, a single cosine similarity score cannot express the distinction. The result is systematic conflation — irrelevant dimensions contaminate the similarity score, producing worse matches than the data supports.
 
-This problem is acute in biomedical informatics, where many-to-many relationships are the norm rather than the exception. A single gene participates in multiple pathways. A drug binds multiple targets. A protein has different functions in different tissues. A clinical phenotype maps to multiple underlying conditions. When a researcher queries for "genes functionally similar to BRCA1," naive embedding similarity returns results contaminated by tissue-of-expression, organism, nomenclature convention, and every other dimension the embedding encodes — not just functional role.
+This problem appears across many domains. Matching countries by governance system is contaminated by geographic proximity. Matching job candidates by skills is contaminated by social prestige language. Matching animals by habitat is contaminated by taxonomic class. In each case, the user wants similarity along *one* dimension but the cosine score reflects *all* dimensions simultaneously.
 
 The same structural problem appears across domains. A hiring algorithm that computes cosine similarity between candidate and role embeddings conflates credentials, demographics, and job-specific fitness into one score. An ontological query conflates abstraction level with lateral semantic content. In every case, the single-score paradigm is a structural mistake — not a bias to correct, but a query formalism that cannot express what the user actually means.
 
@@ -42,17 +42,9 @@ This computes similarity across *all* dimensions simultaneously. If the embeddin
 
 In biomedical contexts, this is particularly damaging. Biomedical embeddings (BioWordVec, PubMedBERT, ESM for proteins, ChemBERTa for molecules) encode multiple orthogonal properties simultaneously: function, structure, tissue localization, evolutionary origin, disease association, pharmacological profile. A query for functional similarity that returns structurally similar but functionally different entities is not a "noisy" result — it is a *wrong* result produced by a query formalism that cannot distinguish the two.
 
-### 2.2 Many-to-Many Relations in Biomedical Knowledge
+### 2.2 Many-to-Many Relations Across Domains
 
-Biomedical knowledge is dominated by many-to-many relationships:
-
-- **Gene → Pathway:** One gene participates in many pathways; one pathway involves many genes
-- **Drug → Target:** One drug binds many targets (polypharmacology); one target is bound by many drugs
-- **Protein → Function:** One protein has many functions (moonlighting proteins); one function is performed by many proteins
-- **Disease → Gene:** One disease involves many genes; one gene is implicated in many diseases
-- **Phenotype → Genotype:** Many phenotypes map to many genotypes through complex epistasis
-
-These relationships cannot be represented as consistent vector displacements in embedding space — the geometry only natively supports one-to-one asymmetric relations (Bordes et al., 2013). Dimensional decomposition offers a way to *query across* many-to-many relationships by controlling which dimensions participate in the similarity computation.
+Many real-world relationships are many-to-many: one country can be both a democracy AND in Europe; one occupation requires analytical skills AND carries social prestige; one animal is both aquatic AND a mammal. These cross-cutting category memberships cannot be represented as consistent vector displacements — the geometry only natively supports one-to-one asymmetric relations (Bordes et al., 2013). Dimensional decomposition offers a way to query across these relationships by controlling which dimensions participate in the similarity computation.
 
 ### 2.3 Proxy Conflation as a Dimensionality Problem
 
@@ -173,7 +165,7 @@ We sweep the weight parameters α (residual similarity) and β (directional sele
 | 1.0 | 0.0 | Residual only | 0.927 | 0.932 | 0.895 | 0.918 |
 | — | — | Naive cosine | 0.930 | 0.939 | 0.893 | 0.921 |
 
-**Finding: The method is robust to hyperparameter choice.** Any non-zero β produces the same result (MAP 0.995). Only when β = 0 (residual only, equivalent to Bolukbasi-style projection) does MAP drop to the naive baseline (~0.92). This confirms that directional selection is the active ingredient. The residual-only method (α=1, β=0) actually slightly underperforms naive cosine on some datasets, confirming the reviewer observation from Bolukbasi et al. that projection alone can hurt when the evaluation task is not specifically about the projected dimension.
+**Finding: Directional selection is the dominant component.** Any non-zero β produces MAP ≈ 0.995 regardless of α. When β = 0, MAP drops to the naive baseline (~0.92). This means: (a) the method requires no hyperparameter tuning — any β > 0 works; (b) the residual similarity term (α) adds negligible value beyond what directional selection already provides; (c) the "three-part" composition is effectively a "two-part" method in practice: directional selection on projected embeddings, with residual similarity as a tiebreaker. We report this transparently rather than claiming the three-part decomposition is equally load-bearing on all components.
 
 ## 5. Why Not Hyperbolic Embeddings?
 
@@ -188,7 +180,7 @@ The structured matching primitive avoids all three failure modes: no categorical
 
 ## 6. What This Does Not Solve
 
-**Genuinely symmetric bidirectional relationships** — where neither direction is privileged — cannot be decomposed into pairs of asymmetric directional operations. The spouse example illustrates the boundary: heterosexual marriage decomposes into husband-of and wife-of cleanly, but truly symmetric relationships require both directions to be invariant under the dimensional control simultaneously. This is a stronger constraint and likely requires a different primitive. We leave this as an explicit open problem.
+**Genuinely symmetric bidirectional relationships** — where neither direction is privileged — cannot be decomposed into pairs of asymmetric directional operations. For example, "co-author" or "sibling" relationships have no natural directionality to select for. Truly symmetric relationships require both directions to be invariant under the dimensional control simultaneously. This is a stronger constraint and likely requires a different primitive. We leave this as an explicit open problem.
 
 **Regular many-to-many relationships** outside of hierarchical contexts (e.g., "co-author of," "co-expressed with") remain structurally difficult. The dimensional decomposition handles *querying across* many-to-many structures effectively but does not represent the many-to-many relationship itself in the embedding.
 
