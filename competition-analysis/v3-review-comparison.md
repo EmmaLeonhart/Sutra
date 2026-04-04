@@ -96,3 +96,18 @@ BREAKTHROUGH. Justification: "solid empirical analysis of how tokenizer-induced 
 - Three-regime lacks rigorous definition
 
 Rating progression: Reject → Reject → Reject → Weak Reject → Reject → Reject → WEAK ACCEPT
+
+## M2M v4 (628): Reject — UP from Strong Reject
+Progress! Key improvements:
+- No more hallucination flags (self-citations removed)
+- No more "AI-generated text" accusation  
+- No more small-world critique
+- "Logically sound" decomposition praised
+
+Remaining cons:
+- Still "toy datasets" (29-41 candidates)
+- Case studies in Section 4 don't match results in Section 5
+- MRR improvements "marginal" (0.159→0.161)
+- Alpha/beta weights not ablated
+- "Many-to-many" not demonstrated
+- Exemplar-based target direction still called "label leakage"
