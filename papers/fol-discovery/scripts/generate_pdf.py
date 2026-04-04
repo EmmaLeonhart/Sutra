@@ -35,7 +35,7 @@ FIGURE_INSERTIONS = {
     ],
     "### 5.3 Three Regimes": [
         ("fig4_three_zones.png", "Figure 3: The three regimes of embedding space with empirical evidence. "
-         "Undersymbolic: 147,687 collisions from diacritic collapse. "
+         "Undersymbolic: 147,687 collisions from [UNK] token collapse. "
          "Isosymbolic: 86 discovered operations. Oversymbolic: saturated resolution."),
         ("fig3_collision_breakdown.png", "Figure 4: Collision type breakdown. 90% of 164,084 cross-entity "
          "collisions are genuine semantic (different text, near-identical embedding)."),

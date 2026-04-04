@@ -146,7 +146,7 @@ def fig3_collision_breakdown(collision_data):
 
     cats = collision_data['categories']
     labels = {
-        'genuine_semantic': 'Genuine Semantic\n(undersymbolic collapse)',
+        'genuine_semantic': 'Genuine Semantic\n([UNK] token collapse)',
         'substring_overlap': 'Substring Overlap',
         'identical_text': 'Identical Text\n(trivial)',
         'near_identical_text': 'Near-Identical Text',
@@ -207,7 +207,7 @@ def fig4_three_zones(data, collision_data):
     ax.add_patch(rect1)
     ax.text(0.19, 0.82, 'UNDERSYMBOLIC', ha='center', fontsize=11, fontweight='bold', color='#8e44ad')
     ax.text(0.19, 0.72, 'Low representational mass', ha='center', fontsize=8, style='italic')
-    ax.text(0.19, 0.55, '147,687 collisions\n(diacritic collapse)', ha='center', fontsize=9)
+    ax.text(0.19, 0.55, '147,687 collisions\n([UNK] token collapse)', ha='center', fontsize=9)
     ax.text(0.19, 0.38, 'instance-of: 0.244\nsibling: 0.026', ha='center', fontsize=8, color='#666')
 
     # Isosymbolic (center)
