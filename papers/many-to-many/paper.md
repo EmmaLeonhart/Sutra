@@ -91,74 +91,11 @@ and $\alpha, \beta$ are weights controlling the tradeoff between general similar
 
 The orthogonal projection step (part 2) is a well-known technique in embedding debiasing (Bolukbasi et al., 2016; Ravfogel et al., 2020). Our contribution is demonstrating that projection alone is insufficient for structured matching — the directional selection step (part 1) is the critical differentiator. In our experiments (Section 5), control-only matching (parts 2+3) barely improves over naive cosine (2/9 experiments), while the full three-part primitive (parts 1+2+3) improves in all 9/9 experiments. The selection component directs the query toward the desired dimension rather than merely removing the unwanted one.
 
-## 4. Case Studies
+## 4. Experimental Validation
 
-### 4.1 Biomedical Entity Matching
+We evaluate the three-part matching primitive on three datasets where a confounding dimension is known to contaminate cosine similarity rankings. Each experiment compares three methods: naive cosine, control-only (Bolukbasi-style projection), and the full three-part structured match. All datasets, results, and code are included in the reproducibility package.
 
-#### 4.1.1 Gene-Function Similarity Controlling for Tissue Type
-
-**Setup:** Gene embeddings from biomedical language models (BioWordVec, PubMedBERT). Gene Ontology annotations as ground truth for functional similarity. GTEx tissue expression profiles as the confounding dimension.
-
-**Problem:** Two genes expressed in the same tissue will have high cosine similarity even if their functions are unrelated, because tissue-of-expression is a strong signal in biomedical text. A query for "functionally similar to BRCA1" returns other breast-tissue genes, not necessarily DNA repair genes.
-
-**Application:** Project away the tissue-expression dimension. Residual similarity captures functional role without tissue contamination. The control vector is derived from the mean displacement between tissue-specific gene sets.
-
-**Expected outcome:** Improved functional similarity precision (Gene Ontology semantic similarity as ground truth) compared to naive cosine similarity.
-
-#### 4.1.2 Drug Repurposing Controlling for Toxicity Profile
-
-**Setup:** Drug embeddings from chemical language models (ChemBERTa, Mol2Vec). Known drug-target interactions. Toxicity profiles as the controlled dimension.
-
-**Problem:** Similar drugs are often similar in both therapeutic effect and toxicity — the embedding conflates the two. A query for "drugs with similar mechanism to Drug X" returns drugs that are also similarly toxic, which is not useful for finding safer alternatives.
-
-**Application:** Project away the toxicity dimension. Residual similarity captures mechanism-of-action without toxicity contamination. Enables "find me something that works like this drug but isn't as toxic" as a formally expressible query.
-
-#### 4.1.3 Protein Function Across Organisms
-
-**Setup:** Protein embeddings from ESM or ProtTrans. Ortholog databases as ground truth.
-
-**Problem:** Protein embeddings encode evolutionary distance alongside functional information. Querying for "proteins with similar function" returns orthologs from closely related species rather than functionally analogous proteins from distant species (which may be more informative for understanding convergent evolution or alternative mechanisms).
-
-**Application:** Project away the phylogenetic dimension. Find functionally similar proteins regardless of evolutionary relatedness.
-
-### 4.2 Labor Market Matching
-
-**Setup:** Embeddings of job candidates and role descriptions. Departed employee as the role reference.
-
-**Two-axis system:**
-- **Axis 1 (General candidate quality):** A learned dimension encoding credentials, track record, general competence markers. Universal across roles.
-- **Axis 2 (Role fitness):** Cosine similarity to the target role embedding with Axis 1 factored out.
-
-**Key properties:**
-- A nurse with programming skills scores higher on Axis 1 without confusing her cosine similarity with software engineering roles
-- A resume gap affects Axis 1 slightly but structurally cannot contaminate Axis 2
-- The system finds the best candidate *for this role*, not the best candidate *overall*
-
-**Controlling for protected characteristics:**
-- Project away the race/gender/age subspace from the similarity computation
-- This is bidirectional: prevents both discrimination against (rejecting qualified minority candidates) and stereotyping toward (replacing a Black employee only with Black candidates)
-- The control is structural, not ideological — it makes the query express what the employer actually means to ask
-
-**Economic framing:** This is a matching market problem (Gale-Shapley). Current algorithmic hiring collapses a multi-dimensional matching problem into a single similarity score, which is both economically inefficient (worse matches) and discriminatory (irrelevant dimensions contaminate role-fitness). Dimensional decomposition restores the dimensionality that should have been there — a Pareto improvement.
-
-### 4.3 Ontological Categorization (Wikidata)
-
-**Setup:** Wikidata entities with known taxonomic or ontological structure. Embeddings from general-purpose models (mxbai-embed-large, nomic-embed-text).
-
-**Application:** Finding entities that are similar along specific ontological dimensions while controlling for others. A concept that participates in multiple abstraction levels or multiple incompatible hierarchies doesn't need a single categorical placement — it has a height and local neighbors, and the lateral relations at any given height are handled by the residual similarity.
-
-**Connection to many-to-many:** Hierarchical many-to-many relationships (participating in multiple abstraction levels simultaneously) are handled by the continuous height dimension. Regular many-to-many relationships are handled by the controlled projection mechanism.
-
-**Examples:**
-- Find shrines similar to a given shrine controlling for geographic region (functional similarity vs. geographic clustering)
-- Find biological taxa similar at one taxonomic rank while controlling for higher-rank classification
-- Find historical figures similar in role while controlling for time period
-
-## 5. Experimental Validation
-
-We validate the three-part matching primitive across three datasets and three embedding models. Each experiment constructs a scenario where a confounding dimension contaminates cosine similarity rankings, then compares three methods: naive cosine, control-only (Bolukbasi-style projection), and the full three-part structured match.
-
-### 5.1 Setup
+### 4.1 Setup
 
 **Models tested:**
 - mxbai-embed-large (1024-dim, Ollama)
@@ -179,7 +116,7 @@ We validate the three-part matching primitive across three datasets and three em
 
 **Metrics:** MRR, Precision@k (k = number of correct items), NDCG.
 
-### 5.2 Results
+### 4.2 Results
 
 **Table 1: MRR across three methods (3 datasets × 3 models = 9 experiments)**
 
@@ -213,7 +150,7 @@ Mean MRR: naive 0.189, control-only 0.188, full structured 0.194.
 
 **Perfect precision (1.000) achieved in 6/9 experiments with the full structured method vs 0/9 with naive or control-only.**
 
-### 5.3 Analysis
+### 4.3 Analysis
 
 **The directional selection component is the key differentiator.** Control-only matching (equivalent to Bolukbasi-style debiasing projection) barely improves over naive cosine — it helps in only 2 of 9 experiments, and in one case (nomic on animals) actually hurts MRR. Adding the directional selection step (part 1) converts this to 9/9 improvements. This is not a contradiction of the debiasing literature: Bolukbasi et al. (2016) showed that projection successfully removes gender bias from *analogy tasks*, where the evaluation metric is specifically sensitive to the projected dimension. In our matching task, removing one confounder barely changes the ranking because many other dimensions still dominate the cosine score. Directional selection reweights the score toward the desired dimension, which is the missing step that makes the difference.
 
@@ -223,7 +160,22 @@ Mean MRR: naive 0.189, control-only 0.188, full structured 0.194.
 
 **The animals dataset is the strongest test.** Here, the target direction (aquatic habitat) and control direction (phylogenetic class) have substantial overlap (target-control alignment 0.43–0.53), meaning the confounder is genuinely entangled with the signal. Despite this entanglement, the full primitive achieves perfect precision in all 3 models.
 
-## 6. Why Not Hyperbolic Embeddings?
+### 4.4 Alpha/Beta Ablation
+
+We sweep the weight parameters α (residual similarity) and β (directional selection) on mxbai-embed-large:
+
+| α | β | Config | Countries | Occupations | Animals | Mean MRR |
+|---|---|--------|-----------|-------------|---------|----------|
+| 0.0 | 1.0 | Selection only | 0.161 | 0.202 | 0.221 | 0.195 |
+| 0.25 | 0.75 | Selection heavy | 0.161 | 0.202 | 0.221 | 0.195 |
+| 0.50 | 0.50 | Equal weight | 0.161 | 0.202 | 0.221 | 0.195 |
+| 0.75 | 0.25 | Residual heavy | 0.161 | 0.202 | 0.221 | 0.195 |
+| 1.0 | 0.0 | Residual only | 0.159 | 0.198 | 0.213 | 0.190 |
+| — | — | Naive cosine | 0.159 | 0.198 | 0.213 | 0.190 |
+
+**Finding: The method is robust to hyperparameter choice.** Any non-zero β (directional selection weight) produces essentially identical improvement. Only when β = 0 (residual only, equivalent to Bolukbasi-style projection) does performance drop to the naive cosine baseline. This confirms that directional selection is the active ingredient and that the α/β tradeoff is not a sensitive tuning decision — the default α = β = 0.5 is near-optimal.
+
+## 5. Why Not Hyperbolic Embeddings?
 
 
 Hyperbolic embeddings are the canonical answer to hierarchy in embedding spaces. We argue they are solving a different problem:
@@ -234,13 +186,13 @@ Hyperbolic embeddings are the canonical answer to hierarchy in embedding spaces.
 
 The structured matching primitive avoids all three failure modes: no categorical commitment (continuous control weights), graceful degradation through continuous scoring, and operation over existing Euclidean geometry rather than replacement of it.
 
-## 7. What This Does Not Solve
+## 6. What This Does Not Solve
 
 **Genuinely symmetric bidirectional relationships** — where neither direction is privileged — cannot be decomposed into pairs of asymmetric directional operations. The spouse example illustrates the boundary: heterosexual marriage decomposes into husband-of and wife-of cleanly, but truly symmetric relationships require both directions to be invariant under the dimensional control simultaneously. This is a stronger constraint and likely requires a different primitive. We leave this as an explicit open problem.
 
 **Regular many-to-many relationships** outside of hierarchical contexts (e.g., "co-author of," "co-expressed with") remain structurally difficult. The dimensional decomposition handles *querying across* many-to-many structures effectively but does not represent the many-to-many relationship itself in the embedding.
 
-## 8. Related Work
+## 7. Related Work
 
 ### Biomedical Embedding Methods
 - **BioWordVec** (Zhang et al., 2019) — biomedical word embeddings trained on PubMed + MeSH
@@ -259,7 +211,7 @@ The structured matching primitive avoids all three failure modes: no categorical
 - **Fairness-in-ML literature** (Dwork et al., 2012; Corbett-Davies & Goel, 2018) — acknowledges proxy discrimination but proposes correction, not decomposition
 
 
-## 9. Conclusion
+## 8. Conclusion
 
 The single-score similarity paradigm is a structural mistake that produces imprecise matches across every domain where embeddings encode multiple independent properties — which is every domain. Dimensional decomposition — actively selecting, actively controlling, and computing residual similarity — is the correct query formalism for multi-dimensional matching. The contribution is not any individual technique but their composition into a coherent, formalizable matching primitive that doesn't exist in the current literature.
 
