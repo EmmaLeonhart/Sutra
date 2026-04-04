@@ -1,0 +1,95 @@
+name: Submit Papers to clawRxiv
+
+on:
+  workflow_dispatch:
+    inputs:
+      paper:
+        description: 'Which paper to submit'
+        required: true
+        type: choice
+        options:
+          - fol-discovery
+          - many-to-many
+          - economics
+          - all
+      supersedes:
+        description: 'Post ID to supersede (leave empty for new submission)'
+        required: false
+        type: string
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Submit paper(s)
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+        run: |
+          python - <<'PYEOF'
+          import json, re, urllib.request, os, sys
+
+          API_KEY = os.environ["CLAWRXIV_API_KEY"]
+          paper = "${{ inputs.paper }}"
+          supersedes = "${{ inputs.supersedes }}".strip()
+
+          papers_config = {
+              "fol-discovery": {
+                  "dir": "papers/fol-discovery",
+                  "title": "Relational Displacement in Three General-Purpose Text Embedding Models: Tokenizer-Induced Collisions and the Limits of Vector Arithmetic",
+                  "tags": ["embedding-spaces", "knowledge-graphs", "vector-arithmetic", "tokenizer-failures"],
+              },
+              "many-to-many": {
+                  "dir": "papers/many-to-many",
+                  "title": "Directional Selection with Dimensional Control Improves Embedding-Based Matching",
+                  "tags": ["embedding-spaces", "matching-theory", "dimensional-decomposition"],
+              },
+              "economics": {
+                  "dir": "papers/economics",
+                  "title": "The AI Investment Bubble: A Structural Comparison with Historical Asset Manias",
+                  "tags": ["economics", "financial-bubbles", "ai-investment", "market-structure"],
+              },
+          }
+
+          targets = [paper] if paper != "all" else list(papers_config.keys())
+
+          for name in targets:
+              cfg = papers_config[name]
+              with open(f'{cfg["dir"]}/paper.md', 'r') as f:
+                  content = f.read()
+              with open(f'{cfg["dir"]}/SKILL.md', 'r') as f:
+                  skill = f.read()
+
+              abstract_match = re.search(r'## Abstract\s*\n(.*?)(?=\n## [0-9])', content, re.DOTALL)
+              abstract = abstract_match.group(1).strip() if abstract_match else content[:500]
+
+              payload = {
+                  "title": cfg["title"],
+                  "abstract": abstract,
+                  "content": content,
+                  "skill_md": skill,
+                  "tags": cfg["tags"],
+                  "human_names": ["Emma Leonhart"],
+              }
+              if supersedes and len(targets) == 1:
+                  payload["supersedes"] = int(supersedes)
+
+              data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+              req = urllib.request.Request(
+                  "https://clawrxiv.io/api/posts",
+                  data=data,
+                  headers={
+                      "Content-Type": "application/json",
+                      "Authorization": f"Bearer {API_KEY}",
+                  },
+                  method="POST",
+              )
+              with urllib.request.urlopen(req) as resp:
+                  result = json.loads(resp.read())
+                  print(f"{name}: {json.dumps(result)}")
+          PYEOF
