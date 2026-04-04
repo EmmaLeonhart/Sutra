@@ -119,3 +119,15 @@ Remaining cons:
 4. Random baseline MRR would be ~0.57, our 0.16 is WORSE than random — serious bug
 
 These are legitimate bugs that need fixing before next submission.
+
+## FOL v8 (638): Reject — regressed from v7 Weak Accept (stochastic reviewer)
+New critique: collision mechanism doesn't explain why Hokkaido collides with Djazair
+
+## M2M v7-v9 (635, 636, 639): All Reject
+Progress from Strong Reject to sustained Reject. Biomedical disconnect finally fixed in v9.
+Persistent issues: toy datasets (N<50), ablation shows method is effectively one-part,
+exemplar-based directions called potential leakage.
+
+## Current best versions:
+- FOL: v7 (627) = Weak Accept (BEST)
+- M2M: v4+ (628+) = Reject (up from Strong Reject)
