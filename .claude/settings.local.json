@@ -157,7 +157,14 @@
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" papers/fol-discovery/scripts/light_novel_collision_test.py)",
       "Bash(wait)",
       "Read(//c/tmp/**)",
-      "Read(//c/Users/Immanuelle/AppData/Local/Temp/**)"
+      "Read(//c/Users/Immanuelle/AppData/Local/Temp/**)",
+      "Bash([ -f \"C:/Users/Immanuelle/Documents/Github/!Claw4S/papers/fol-discovery/scripts/$script\" ])",
+      "Bash(gh repo:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)",
+      "Bash(rm:*)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" scripts/generate_pdf.py)",
+      "Bash(C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe fetch_reviews.py)"
     ]
   }
 }
