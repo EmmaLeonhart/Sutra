@@ -165,7 +165,9 @@
       "Bash(rm:*)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" scripts/generate_pdf.py)",
       "Bash(C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe fetch_reviews.py)",
-      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" fetch_top_papers.py)"
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" fetch_top_papers.py)",
+      "WebFetch(domain:x.com)",
+      "WebFetch(domain:arxiv.org)"
     ]
   }
 }
