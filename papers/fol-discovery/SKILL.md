@@ -1,31 +1,33 @@
 ---
 name: fol-discovery
-description: Discover first-order logic operations latently encoded in arbitrary embedding spaces. Imports entities from Wikidata, embeds them, computes trajectory displacement vectors, and tests which predicates function as consistent vector arithmetic. Reproduces the key finding that 86 predicates encode as discoverable operations with r=0.861 self-diagnostic correlation.
+description: Discover relational displacement operations in frozen embedding spaces using Wikidata triples. Reproduces the key findings from "Latent Space Cartography Applied to Wikidata" — 30 model-agnostic operations with r=0.861 self-diagnostic correlation, and a silent [UNK] tokenizer defect in mxbai-embed-large causing 147,687 embedding collisions.
 allowed-tools: Bash(python *), Bash(pip *), Bash(ollama *), WebFetch
 ---
 
 # Latent Space Cartography Applied to Wikidata
 
-**Claw 🦞 Co-Author: Barbara (OpenClaw)**
-**Submission ID: CLAW4S-2026-FOL-DISCOVERY**
-**Deadline: April 5, 2026**
+**Author: Emma Leonhart**
+**Paper ID: 2604.00648**
 
-This skill applies latent space cartography (Liu et al., 2019) to general-purpose text embedding spaces using Wikidata knowledge graph triples as probes. It applies standard TransE-style relational displacement analysis to frozen embeddings, discovering which predicates encode as consistent vector arithmetic.
+This skill reproduces the results from "Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large." It applies standard TransE-style relational displacement analysis to frozen text embedding models using Wikidata knowledge graph triples as probes.
 
-**Key Finding:** Applied to a Japanese historical text seed (Engishiki), the procedure revealed a silent `[UNK]` token dominance defect in mxbai-embed-large affecting 147,687 embedding pairs — all short diacritical strings collapse to a single point regardless of language or meaning.
+**Two key findings:**
+1. **30 model-agnostic relational operations** discovered across three embedding models — functional (many-to-one) relations encode as consistent vector arithmetic; symmetric relations do not.
+2. **A silent tokenizer defect** in mxbai-embed-large: 147,687 cross-entity embedding pairs at cosine >= 0.95, caused by WordPiece `[UNK]` token dominance on diacritical text. "Hokkaid&#333;" has cosine 1.0 with "Eire" but only 0.45 with its own ASCII equivalent "Hokkaido."
 
 ## Prerequisites
 
 ```bash
-# Required packages
 pip install numpy requests ollama rdflib
+```
 
-# Required: Ollama with mxbai-embed-large model
-# Install Ollama from https://ollama.ai, then:
+Ollama must be running with `mxbai-embed-large`:
+
+```bash
 ollama pull mxbai-embed-large
 ```
 
-Verify Ollama is running and the model is available:
+Verify:
 
 ```bash
 python -c "import ollama; r = ollama.embed(model='mxbai-embed-large', input=['test']); print(f'OK: {len(r.embeddings[0])}-dim')"
@@ -33,17 +35,18 @@ python -c "import ollama; r = ollama.embed(model='mxbai-embed-large', input=['te
 
 Expected Output: `OK: 1024-dim`
 
-## Step 1: Clone and Setup
+## Step 1: Setup
 
-Description: Clone the repository and verify the environment.
+Description: Clone the repository and verify dependencies.
 
 ```bash
-git clone https://github.com/EmmaLeonhart/Claw4S-submissions.git
-cd Claw4S-submissions
-mkdir -p papers/fol-discovery/data
+git clone https://github.com/EmmaLeonhart/fol-discovery.git
+cd fol-discovery
+pip install -r requirements.txt
+mkdir -p data
 ```
 
-Verify Python dependencies:
+Verify:
 
 ```bash
 python -c "
@@ -61,64 +64,65 @@ Expected Output:
 
 ## Step 2: Import Entities from Wikidata
 
-Description: Breadth-first search from a seed entity through Wikidata, importing entities with all their triples and computing embeddings via mxbai-embed-large.
+Description: Breadth-first search from a seed entity through Wikidata, importing entities with their triples and computing embeddings via mxbai-embed-large.
 
 ```bash
-python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 100
+python scripts/random_walk.py Q1342448 --limit 100
 ```
 
-This imports 100 entities starting from Engishiki (Q1342448), a Japanese historical text with a dense ontological neighborhood. Each imported entity:
-1. Has all Wikidata triples fetched
-2. Has its label and aliases embedded (1024-dim)
-3. Has all linked entities' labels fetched and embedded
-4. Has trajectories (displacement vectors) computed for all entity-entity triples
+This imports 100 entities starting from Engishiki (Q1342448), a Japanese historical text. The BFS expansion discovers linked entities far beyond the initial 100, producing thousands of embeddings. Each imported entity has all Wikidata triples fetched, its label and aliases embedded (1024-dim), and displacement vectors computed for all entity-entity triples.
 
 **Parameters:**
-- `Q1342448` — Seed entity (Engishiki). Any QID works.
-- `--limit 100` — Number of entities to fully import. More = denser map, longer runtime.
-- `--resume` — Continue from a previous run's saved queue state.
+- `Q1342448` — Seed entity (Engishiki). Any Wikidata QID works.
+- `--limit 100` — Number of entities to fully import. More = denser map.
+- `--resume` — Continue from a saved queue state.
+
+**Environment variables:**
+- `EMBED_MODEL` — Embedding model name (default: `mxbai-embed-large`)
+- `FOL_DATA_DIR` — Data directory (default: `data/` relative to scripts)
 
 Expected Output:
-- `[1/100] Importing Q1342448 (queue: 0)...`
-- `  Engishiki - <N> triples, discovered <M> linked QIDs`
-- ... (progress updates every entity)
-- `Final state:`
-- `  Items: <N> (hundreds to thousands)`
-- `  Embeddings: <N> x 1024`
-- `  Trajectories: <N> (hundreds to thousands)`
+```
+[1/100] Importing Q1342448 (queue: 0)...
+  Engishiki - <N> triples, discovered <M> linked QIDs
+...
+Final state:
+  Items: <N> (hundreds to thousands)
+  Embeddings: <N> x 1024
+  Trajectories: <N>
+```
 
 **Runtime:** ~10-15 minutes for 100 entities (depends on Wikidata API speed and Ollama inference).
 
 **Artifacts:**
-- `papers/fol-discovery/data/items.json` — All imported entities with triples
-- `papers/fol-discovery/data/embeddings.npz` — Embedding vectors (numpy)
-- `papers/fol-discovery/data/embedding_index.json` — Vector index → (qid, text, type) mapping
-- `papers/fol-discovery/data/walk_state.json` — Resumable BFS queue state
-- `papers/fol-discovery/data/triples.nt` — RDF triples (N-Triples format)
-- `papers/fol-discovery/data/trajectories.ttl` — Trajectory objects (Turtle format)
+- `data/items.json` — All imported entities with triples
+- `data/embeddings.npz` — Embedding vectors (numpy)
+- `data/embedding_index.json` — Vector index to (qid, text, type) mapping
+- `data/walk_state.json` — Resumable BFS queue state
+- `data/triples.nt` — RDF triples (N-Triples format)
+- `data/trajectories.ttl` — Trajectory objects (Turtle format)
 
-## Step 3: Discover First-Order Logic Operations
+## Step 3: Discover Relational Displacement Operations
 
 Description: The core analysis. For each predicate with sufficient triples, compute displacement vector consistency and evaluate prediction accuracy.
 
 ```bash
-python papers/fol-discovery/scripts/fol_discovery.py --min-triples 5
+python scripts/fol_discovery.py --min-triples 5
 ```
 
-The discovery procedure for each predicate:
-1. Compute all trajectories (object_vec - subject_vec) for the predicate's triples
-2. Compute the mean displacement = the "operation vector"
-3. Measure consistency: how aligned are individual displacements with the mean?
-4. Evaluate prediction: leave-one-out, predict object via subject + operation vector
-5. Test composition: chain two operations (S + d₁ + d₂ → O)
-6. Analyze failures: characterize predicates that resist vector encoding
+For each predicate, the script:
+1. Computes all displacement vectors (object_vec - subject_vec)
+2. Computes the mean displacement ("operation vector")
+3. Measures consistency: how aligned are individual displacements with the mean?
+4. Evaluates prediction via leave-one-out: predict object via subject + operation vector
+5. Tests two-hop composition: chain two operations (S + d1 + d2 -> O)
+6. Characterizes failures: symmetric, overloaded, and sequence predicates
 
 **Parameters:**
-- `--min-triples 5` — Minimum triples per predicate to analyze (lower = more predicates tested, noisier results)
-- `--output papers/fol-discovery/data/fol_results.json` — Output file path
+- `--min-triples 5` — Minimum triples per predicate to analyze
+- `--output data/fol_results.json` — Output path
 
 Expected Output:
-
 ```
 PHASE 1: OPERATION DISCOVERY
   Analyzed <N> predicates (min 5 triples each)
@@ -130,14 +134,13 @@ PHASE 1: OPERATION DISCOVERY
   Predicate  Label                         N   Align  PairCon  MagCV   Dist
   -----------------------------------------------------------------------
   P8324      funder                       25  0.9297  0.8589  0.079  0.447
-  P2633      geography of topic           18  0.9101  0.8185  0.097  0.200
   ...
 
 PHASE 2: PREDICTION EVALUATION
   Mean MRR:              <value>
   Mean Hits@1:           <value>
   Mean Hits@10:          <value>
-  Correlation (alignment ↔ MRR):   <r-value>
+  Correlation (alignment <-> MRR):   <r-value>
 
 PHASE 3: COMPOSITION TEST
   Two-hop compositions tested: <N>
@@ -147,7 +150,6 @@ PHASE 4: FAILURE ANALYSIS
   WEAKEST OPERATIONS:
   P3373 sibling    0.026  (Symmetric)
   P155  follows    0.050  (Sequence)
-  ...
 ```
 
 **Key metrics to verify:**
@@ -157,36 +159,50 @@ PHASE 4: FAILURE ANALYSIS
 
 **Runtime:** ~5-15 minutes depending on dataset size.
 
-**Artifacts:**
-- `papers/fol-discovery/data/fol_results.json` — Complete results with discovered operations, prediction scores, and failure analysis
+## Step 4: Collision and Density Analysis
 
-## Step 4: Collision and Density Analysis (Optional)
-
-Description: Detect embedding collisions (distinct entities with near-identical vectors) and classify regions by density.
+Description: Detect embedding collisions — distinct entities with near-identical vectors — caused by the `[UNK]` tokenizer defect.
 
 ```bash
-python papers/fol-discovery/scripts/analyze_collisions.py --threshold 0.95 --k 10
+python scripts/analyze_collisions.py --threshold 0.95 --k 10
 ```
 
 Expected Output:
-- Cross-entity collisions found at the threshold
+- Cross-entity collisions found at cosine >= 0.95
 - Density statistics (mean k-NN distance, regime classification)
-- Trajectory consistency per predicate
+- Collision breakdown by type (genuine semantic vs trivial text overlap)
 
 **Artifacts:**
-- `papers/fol-discovery/data/analysis_results.json` — Collision and density results
+- `data/analysis_results.json` — Collision and density results
 
-## Step 5: Verify Results
+For detailed collision type classification:
 
-Description: Confirm the key findings are reproducible.
+```bash
+python scripts/analyze_collision_types.py
+```
+
+This separates trivial collisions (same/near-identical text) from genuine semantic collisions (different words, different languages, cosine ~1.0 due to `[UNK]` dominance).
+
+## Step 5: String Overlap Null Model
+
+Description: Verify that discovered operations capture genuine relational structure beyond surface-level string similarity.
+
+```bash
+python scripts/string_null_model.py
+```
+
+This compares vector arithmetic MRR against a string-overlap baseline (longest common substring). The null model should perform substantially worse, confirming that embeddings encode relational structure beyond string patterns.
+
+## Step 6: Verify Results
+
+Description: Automated verification of key findings.
 
 ```bash
 python -c "
 import json
 import numpy as np
 
-# Load FOL results
-with open('papers/fol-discovery/data/fol_results.json', encoding='utf-8') as f:
+with open('data/fol_results.json', encoding='utf-8') as f:
     results = json.load(f)
 
 summary = results['summary']
@@ -199,7 +215,6 @@ print(f'Predicates analyzed: {summary[\"predicates_analyzed\"]}')
 print(f'Strong operations (>0.7): {summary[\"strong_operations\"]}')
 print(f'Total discovered (>0.5): {summary[\"strong_operations\"] + summary[\"moderate_operations\"]}')
 
-# Check self-diagnostic correlation
 if preds:
     aligns = [p['alignment'] for p in preds]
     mrrs = [p['mrr'] for p in preds]
@@ -208,7 +223,6 @@ if preds:
     assert corr > 0.5, f'Correlation too low: {corr}'
     print('Correlation check: PASS')
 
-# Check that symmetric predicates fail
 sym_ops = [o for o in ops if o['predicate'] in ['P3373', 'P26', 'P47', 'P530']]
 if sym_ops:
     max_sym = max(o['mean_alignment'] for o in sym_ops)
@@ -216,7 +230,6 @@ if sym_ops:
     assert max_sym < 0.3, f'Symmetric predicate too high: {max_sym}'
     print('Symmetric failure check: PASS')
 
-# Check that at least some operations have high alignment
 if ops:
     best = max(o['mean_alignment'] for o in ops)
     print(f'Best operation alignment: {best:.3f}')
@@ -229,143 +242,105 @@ print('All checks passed.')
 ```
 
 Expected Output:
-- `Alignment-MRR correlation: >0.5`
 - `Correlation check: PASS`
 - `Symmetric failure check: PASS`
 - `Operation discovery check: PASS`
 - `All checks passed.`
 
+## Step 7: Cross-Model Generalization
+
+Description: Re-run on additional embedding models to demonstrate model-agnostic findings.
+
+```bash
+ollama pull nomic-embed-text    # 768-dim
+ollama pull all-minilm           # 384-dim
+```
+
+Run the pipeline for each model using the `EMBED_MODEL` and `FOL_DATA_DIR` environment variables:
+
+```bash
+# Model 2: nomic-embed-text (768-dim)
+FOL_DATA_DIR=data-nomic EMBED_MODEL=nomic-embed-text python scripts/random_walk.py Q1342448 --limit 100
+FOL_DATA_DIR=data-nomic python scripts/fol_discovery.py
+
+# Model 3: all-minilm (384-dim)
+FOL_DATA_DIR=data-minilm EMBED_MODEL=all-minilm python scripts/random_walk.py Q1342448 --limit 100
+FOL_DATA_DIR=data-minilm python scripts/fol_discovery.py
+```
+
+Compare across models:
+
+```bash
+python scripts/compare_models.py
+```
+
+**Expected finding:** Functional predicates (flag, coat of arms, demographics) appear across all models. Symmetric predicates fail in all models. The overlap set (30 operations in the paper's full dataset) is the evidence for model-agnostic structure.
+
+**Runtime:** ~30-45 min per model (100 entities) or ~2-3 hours per model (500 entities).
+
+## Step 8: Statistical Rigor
+
+Description: Bootstrap confidence intervals, effect sizes, and ablation.
+
+```bash
+python scripts/statistical_analysis.py
+```
+
+Produces:
+- Bootstrap 95% CI for the alignment-MRR correlation
+- Cohen's d effect sizes for functional vs relational predicates
+- Bonferroni/Holm correction across all tests
+- Ablation: how discovery count changes with min-triple threshold (5, 10, 20, 50)
+
+## Step 9: Figures and PDF
+
+Description: Generate publication figures and compile the paper.
+
+```bash
+pip install fpdf2 matplotlib
+python scripts/generate_figures.py
+python scripts/generate_pdf.py
+```
+
+**Artifacts:**
+- `figures/` — 7 PNG figures at 300 DPI
+- `paper.pdf` — Complete paper with embedded figures
+
 ## Interpretation Guide
 
 ### What the Numbers Mean
 
-- **Alignment > 0.7**: Strong discovered operation. The predicate reliably functions as vector arithmetic. You can use `subject + operation_vector ≈ object` for prediction.
+- **Alignment > 0.7**: Strong discovered operation. The predicate reliably functions as vector arithmetic.
 - **Alignment 0.5 - 0.7**: Moderate operation. Works sometimes, noisy.
-- **Alignment < 0.3**: Not a vector operation. The relationship is real but doesn't have a consistent geometric direction.
-- **MRR = 1.0**: Perfect prediction — the correct entity is always the nearest neighbor to the predicted point.
-- **Correlation > 0.7**: The self-diagnostic works — you can trust the alignment score to predict which operations will be useful.
+- **Alignment < 0.3**: Not a vector operation. The relationship is real but lacks consistent geometric direction.
+- **MRR = 1.0**: Perfect prediction — the correct entity is always nearest neighbor to the predicted point.
+- **Correlation > 0.7**: The self-diagnostic works — alignment predicts which operations will be useful.
 
 ### Why Some Predicates Fail
 
-1. **Symmetric predicates** (sibling, spouse): `A→B` and `B→A` produce opposite vectors. No consistent direction.
-2. **Semantically overloaded** (instance-of): "Tokyo instance-of city" and "7 instance-of prime" have nothing in common geometrically.
-3. **Sequence predicates** (follows): "Monday→Tuesday" and "Chapter 1→Chapter 2" point in unrelated directions.
+1. **Symmetric predicates** (sibling, spouse): A->B and B->A produce opposite vectors. No consistent direction.
+2. **Semantically overloaded** (instance-of): "Tokyo instance-of city" and "7 instance-of prime" point in unrelated directions.
+3. **Sequence predicates** (follows): "Monday->Tuesday" and "Chapter 1->Chapter 2" are unrelated geometrically.
 
-These failures are **informative**: they reveal what embedding spaces *cannot* represent as geometry.
+These failures are informative: they reveal what embedding spaces cannot represent as geometry, matching predictions from the KGE literature (Wang et al., 2014).
 
-## Step 6: Cross-Model Generalization (Key Novelty Claim)
+### The Tokenizer Defect
 
-Description: Re-run the full pipeline on multiple embedding models to demonstrate that discovered operations are model-agnostic — not artifacts of a single model's training.
+The most practically significant finding. When mxbai-embed-large encounters characters with diacritical marks (o, u, i, etc.), these are absent from the WordPiece vocabulary and replaced with `[UNK]` tokens. For short inputs where most characters are OOV, the `[UNK]` token representation dominates the embedding, collapsing all such inputs to a single attractor region.
 
-### Setup: Pull additional embedding models
-
-```bash
-ollama pull nomic-embed-text    # 768-dim, different architecture
-ollama pull all-minilm           # 384-dim, much smaller model
-```
-
-### Run pipeline for each model
-
-The import script accepts an `--embed-model` flag (or edit `EMBED_MODEL` in `papers/fol-discovery/scripts/import_wikidata.py`). Each model writes to a separate data directory.
-
-```bash
-# Model 2: nomic-embed-text (768-dim)
-EMBED_MODEL=nomic-embed-text python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500 --data-dir papers/fol-discovery/data-nomic
-python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-nomic
-
-# Model 3: all-minilm (384-dim)
-EMBED_MODEL=all-minilm python papers/fol-discovery/scripts/random_walk.py Q1342448 --limit 500 --data-dir papers/fol-discovery/data-minilm
-python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-minilm
-```
-
-### Compare: Cross-Model Operation Overlap
-
-```bash
-python papers/fol-discovery/scripts/compare_models.py
-```
-
-This produces:
-- Which operations are discovered by ALL models (robust, model-agnostic operations)
-- Which are model-specific (artifacts of training data)
-- Correlation between consistency scores across models
-- Comparison table for paper inclusion
-
-**Expected finding:** Functional predicates (flag, coat of arms, demographics) should appear across all models. Symmetric predicates should fail across all models. The overlap set is the core evidence for model-agnostic neuro-symbolic reasoning.
-
-**Runtime:** ~45-60 min per model for import + ~10 min for discovery = ~2-3 hours total for 3 models.
-
-## Step 7: Multi-Seed Robustness Check
-
-Description: Run from different seed entities to show results aren't specific to the Engishiki domain.
-
-```bash
-# Seed 2: Mountain (Q8502) — geography/geology domain
-python papers/fol-discovery/scripts/random_walk.py Q8502 --limit 500 --data-dir papers/fol-discovery/data-mountain
-python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-mountain
-
-# Seed 3: Human (Q5) — biographical/social domain
-python papers/fol-discovery/scripts/random_walk.py Q5 --limit 500 --data-dir papers/fol-discovery/data-human
-python papers/fol-discovery/scripts/fol_discovery.py --data-dir papers/fol-discovery/data-human
-```
-
-Operations discovered from all 3 seeds are robust across domains. Operations found from only 1 seed reflect domain-specific structure.
-
-**Runtime:** ~45-60 min per seed for import + ~10 min for discovery.
-
-## Step 8: Statistical Rigor Verification
-
-Description: Verify key claims with proper statistical methods.
-
-```bash
-python papers/fol-discovery/scripts/statistical_analysis.py
-```
-
-This produces:
-- Bootstrap confidence intervals for the alignment-MRR correlation
-- Effect sizes (Cohen's d) for functional vs relational predicate performance
-- Bonferroni/Holm correction across all reported statistical tests
-- Ablation: how discovery count changes with min-triple threshold (5, 10, 20, 50)
-
-## Step 9: Generate Figures and PDF
-
-Description: Generate all publication figures and compile the paper as a PDF with embedded figures.
-
-```bash
-pip install fpdf2 matplotlib
-
-# Generate figures
-python papers/fol-discovery/scripts/generate_figures.py
-
-# Generate PDF with figures embedded
-python papers/fol-discovery/scripts/generate_pdf.py
-```
-
-Expected Output:
-- `papers/fol-discovery/figures/` — 7 PNG figures at 300 DPI
-- `papers/fol-discovery/paper.pdf` — Complete paper with embedded figures (~12 pages)
-
-Figures produced:
-1. Alignment vs MRR scatter plot (self-diagnostic correlation)
-2. Operation discovery distribution histogram
-3. Collision type breakdown (genuine semantic vs trivial)
-4. Three-zone regime diagram with empirical data
-5. Cross-model comparison (after Step 6)
-6. Ablation study (after Step 8)
-7. Bootstrap distribution of correlation (after Step 8)
+**Impact:** Any RAG system, semantic search, or knowledge graph using mxbai-embed-large with non-ASCII input silently retrieves results from the `[UNK]` attractor instead of semantically relevant results. Standard benchmarks (MTEB) do not test for this.
 
 ## Dependencies
 
 - Python 3.10+
-- numpy
-- requests
-- ollama (Python client)
-- rdflib
-- Ollama server with embedding models:
+- numpy, requests, ollama, rdflib (core)
+- matplotlib, fpdf2 (figures/PDF only)
+- Ollama with embedding models:
   - `mxbai-embed-large` (1024-dim, primary)
-  - `nomic-embed-text` (768-dim, cross-model validation)
-  - `all-minilm` (384-dim, cross-model validation)
+  - `nomic-embed-text` (768-dim, cross-model, Step 7)
+  - `all-minilm` (384-dim, cross-model, Step 7)
 
-**No GPU required.** All models run on CPU via Ollama (slower but functional).
+No GPU required. All models run on CPU via Ollama.
 
 ## Timing
 
@@ -374,43 +349,37 @@ Figures produced:
 | Step 2: Import (per model) | 10-15 min | 45-60 min |
 | Step 3: FOL Discovery | 3-5 min | 10-15 min |
 | Step 4: Collision Analysis | 2-5 min | 15-30 min |
-| Step 5: Verification | <10 sec | <10 sec |
-| Step 6: Cross-Model (3 models) | 30-45 min | 2-3 hours |
-| Step 7: Multi-Seed (3 seeds) | 30-45 min | 2-3 hours |
-| Step 8: Statistical Analysis | <1 min | <1 min |
-| **Total (full pipeline)** | **~1.5 hours** | **~6-8 hours** |
-
-For a quick validation run (Steps 1-5 only): ~20 min at 100 entities.
+| Step 5: String Null Model | <1 min | <1 min |
+| Step 6: Verification | <10 sec | <10 sec |
+| Step 7: Cross-Model (3 models) | 30-45 min | 2-3 hours |
+| Step 8: Statistics | <1 min | <1 min |
+| **Quick validation (Steps 1-6)** | **~20 min** | **~1.5 hours** |
+| **Full pipeline (all steps)** | **~1.5 hours** | **~6-8 hours** |
 
 ## Success Criteria
 
-This skill is successfully executed when:
+**Core pipeline (Steps 1-6):**
+- Entities imported and embedded without errors
+- At least some operations discovered with alignment > 0.7
+- Positive correlation between alignment and prediction MRR
+- Symmetric predicates show low alignment (< 0.3)
+- String null model performs worse than vector arithmetic
+- Verification checks pass
 
-**Core pipeline (Steps 1-5):**
-- ✓ Entities imported, embeddings generated without errors
-- ✓ At least some operations discovered with alignment > 0.7
-- ✓ Positive correlation between alignment and prediction MRR
-- ✓ Symmetric predicates show low alignment (<0.3)
-- ✓ Verification checks pass
-
-**Cross-model (Step 6):**
-- ✓ All 3 models produce discovered operations
-- ✓ Overlap set is non-empty (some operations found across all models)
-- ✓ Functional predicates appear in overlap; symmetric predicates fail in all models
-
-**Robustness (Step 7):**
-- ✓ All 3 seeds produce discovered operations
-- ✓ The self-diagnostic correlation (alignment ↔ MRR) holds across seeds
+**Cross-model (Step 7):**
+- All 3 models produce discovered operations
+- Non-empty overlap set (operations found across all models)
+- Functional predicates in overlap; symmetric predicates fail in all
 
 **Statistical (Step 8):**
-- ✓ Bootstrap CI for alignment-MRR correlation excludes zero
-- ✓ Ablation shows monotonic relationship between min-triple threshold and mean alignment
+- Bootstrap CI for alignment-MRR correlation excludes zero
+- Ablation shows monotonic relationship between min-triple threshold and mean alignment
 
 ## References
 
 - Bordes et al. (2013). Translating Embeddings for Modeling Multi-relational Data. NeurIPS.
 - Li et al. (2024). Glitch Tokens in Large Language Models. Proc. ACM Softw. Eng. (FSE).
+- Liu et al. (2019). Latent Space Cartography: Visual Analysis of Vector Space Embeddings. Computer Graphics Forum.
 - Mikolov et al. (2013). Distributed Representations of Words and Phrases. NeurIPS.
 - Sun et al. (2019). RotatE: Knowledge Graph Embedding by Relational Rotation. ICLR.
-- Claw4S Conference: https://claw4s.github.io/
-- Repository: https://github.com/EmmaLeonhart/Claw4S-submissions
+- Wang et al. (2014). Knowledge Graph Embedding by Translating on Hyperplanes. AAAI.
