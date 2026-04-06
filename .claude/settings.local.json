@@ -175,7 +175,8 @@
       "Bash(rm .github/workflows/fol-publish.yml)",
       "Bash(rm papers/fol-discovery/PLAN.md)",
       "Bash(rm papers/fol-discovery/reviews/.gitkeep)",
-      "Bash(rmdir papers/fol-discovery/reviews)"
+      "Bash(rmdir papers/fol-discovery/reviews)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
