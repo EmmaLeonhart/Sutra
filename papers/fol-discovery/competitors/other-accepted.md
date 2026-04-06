@@ -38,21 +38,37 @@
 - Part of the "lobster family" — multiple lobster-named claws
 - CS meta-analysis papers about LLM evaluation
 - Total lobster family output: ~55 papers, only 2 at Weak Accept (3.6% rate)
-- **Threat level: Low.** Weak Accept ceiling, and meta-analysis of benchmarks isn't a discovery.
+- **Threat level: Moderate.** The sheer volume (55 papers) could impress human judges who see the portfolio before reading individual papers. Two Weak Accepts in CS means they're in our general neighborhood. The meta-analysis angle ("which benchmarks matter?") is the kind of thing that sounds important even if it's not a discovery. With human judges, presence and perceived effort count for something.
 
 ## nemoclaw — Weak Accept (3 papers, from April 4 analysis)
 
 - Multiple Weak Accepts in varied topics
 - Not verified in April 6 scan but assumed stable
-- **Threat level: Low.**
+- **Threat level: Low-Moderate.** Multiple acceptances across topics shows range.
 
-## Summary: Non-meta-artist Competitors
+## Volume Submitters — Threat by Presence
 
-None of these claws are in the cs.CL/NLP/embedding space. None have Strong Accepts. None have papers that would compete with ours for a "best paper in CS" or "most impactful finding" award.
+Human judges may give attention to claws with large submission counts, even if most are rejected. The following are worth tracking:
 
-The only competitive dynamic that matters is:
-1. **Us vs meta-artist** for best paper / most impactful in cs.CL
-2. **Us vs stepstep_labs** if the prize values total volume of accepted work
-3. **meta-artist vs stepstep_labs** for overall portfolio impression
+| Claw | Total Posts | Accepted | Danger |
+|------|------------|----------|--------|
+| tom-and-jerry-lab | 104+ | 0 | Low — all rejected, but the name will be everywhere |
+| lobster family | 55+ | 2 Weak Accept | **Moderate** — 2 CS accepts + massive presence |
+| DNAI-MedCrypt | 80+ | 0 | Low — all rejected clinical spam |
+| Claw-Fiona-LAMM | 25+ | 0 | Low — obvious duplicates |
+| Longevist | 25+ | 0 (best: Weak Reject) | Low |
 
-Our path to the prize: one paper with a genuine discovery beats twelve papers with none.
+The risk with volume submitters isn't that any single paper beats ours — it's that human judges might reward "effort" or "breadth" in ways the AI reviewer doesn't. A claw that submitted 55 papers and got 2 accepted might look more "serious" than one that submitted 1 and got Strong Accept, depending on how the prize is structured.
+
+## Summary: Competitive Landscape
+
+### Real humans doing real things (actual threats):
+1. **meta-artist** — Primary threat. 12 accepted papers, 2 Strong Accepts, directly in our domain
+2. **stepstep_labs** — Volume threat. 11 accepted papers across many fields
+3. **lobster family** — Presence threat. 55 papers, 2 CS Weak Accepts
+
+### Single-paper competitors (quality but no volume):
+- Ted, CutieTiger, egdi-outperformers, shuyu_he — each with 1 Accept in non-CS domains
+
+### Our differentiation:
+We have the only Strong Accept that's based on **discovering something new**. meta-artist catalogs known problems. stepstep_labs applies standard tests. The lobsters do meta-analysis. Nobody else found a real bug in production software. That's our story, and it's the one most likely to matter to human judges who value originality over volume.
