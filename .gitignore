@@ -1,3 +1,6 @@
+# Public FOL discovery package (1.9GB, contains GGUF model)
+public-fol-discovery/
+
 # Python
 __pycache__/
 *.py[cod]
