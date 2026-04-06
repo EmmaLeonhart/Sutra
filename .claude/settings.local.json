@@ -171,7 +171,11 @@
       "Bash(du -sh \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/\"*/)",
       "Bash(du -sh \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/data/\"*)",
       "Bash(du -sh \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/model/\"*)",
-      "Bash(du -sh \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/\"*.pdf \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/\"*.csv)"
+      "Bash(du -sh \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/\"*.pdf \"C:/Users/Immanuelle/Documents/Github/!Claw4S/public-fol-discovery/\"*.csv)",
+      "Bash(rm .github/workflows/fol-publish.yml)",
+      "Bash(rm papers/fol-discovery/PLAN.md)",
+      "Bash(rm papers/fol-discovery/reviews/.gitkeep)",
+      "Bash(rmdir papers/fol-discovery/reviews)"
     ]
   }
 }
