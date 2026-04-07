@@ -1,0 +1,6 @@
+numpy
+requests
+ollama
+rdflib
+matplotlib
+fpdf2

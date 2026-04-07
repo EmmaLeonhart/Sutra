@@ -1,0 +1,499 @@
+{
+  "displacement": {
+    "eat->carry": {
+      "mean_displacement_cosine": 0.6958558107208874,
+      "std": 0.097954600879877,
+      "mean_alignment": 0.8368599340319633,
+      "displacement_magnitude": 0.5811876058578491,
+      "same_subj": 0.7987552772143057,
+      "same_obj": 0.7796192702704242,
+      "neither": 0.6691896784290368
+    },
+    "eat->watch": {
+      "mean_displacement_cosine": 0.6827208135750086,
+      "std": 0.09972640851885059,
+      "mean_alignment": 0.8291706824675202,
+      "displacement_magnitude": 0.6189079880714417,
+      "same_subj": 0.7788848882274968,
+      "same_obj": 0.7644889313461525,
+      "neither": 0.657301928943061
+    },
+    "eat->destroy": {
+      "mean_displacement_cosine": 0.6814006243921107,
+      "std": 0.1306585810480514,
+      "mean_alignment": 0.8281118213199079,
+      "displacement_magnitude": 0.5459197759628296,
+      "same_subj": 0.7751632860994765,
+      "same_obj": 0.7730671715523515,
+      "neither": 0.654910737411024
+    },
+    "eat->collect": {
+      "mean_displacement_cosine": 0.7096112121990512,
+      "std": 0.09130716936437958,
+      "mean_alignment": 0.8448978420346975,
+      "displacement_magnitude": 0.5440986156463623,
+      "same_subj": 0.8043015258652824,
+      "same_obj": 0.7926516069897583,
+      "neither": 0.6842211109909172
+    },
+    "eat->chase": {
+      "mean_displacement_cosine": 0.7007558891727101,
+      "std": 0.10301959976246935,
+      "mean_alignment": 0.8397509576752782,
+      "displacement_magnitude": 0.612401008605957,
+      "same_subj": 0.79142380106662,
+      "same_obj": 0.7769696806956615,
+      "neither": 0.6769156458274442
+    },
+    "eat->paint": {
+      "mean_displacement_cosine": 0.7674075229359525,
+      "std": 0.08089676235008816,
+      "mean_alignment": 0.8780413027852774,
+      "displacement_magnitude": 0.674028217792511,
+      "same_subj": 0.8495692243533475,
+      "same_obj": 0.8255760031087058,
+      "neither": 0.7473603541373598
+    },
+    "eat->hide": {
+      "mean_displacement_cosine": 0.7580934772267938,
+      "std": 0.07535722092415761,
+      "mean_alignment": 0.8727796468883753,
+      "displacement_magnitude": 0.6250983476638794,
+      "same_subj": 0.8281094546296767,
+      "same_obj": 0.840472140748586,
+      "neither": 0.7363228142375544
+    },
+    "carry->watch": {
+      "mean_displacement_cosine": 0.6383549857899429,
+      "std": 0.11700102893006106,
+      "mean_alignment": 0.8022143943235278,
+      "displacement_magnitude": 0.4896664023399353,
+      "same_subj": 0.7326381229130285,
+      "same_obj": 0.7465383359896285,
+      "neither": 0.6094312018866898
+    },
+    "carry->destroy": {
+      "mean_displacement_cosine": 0.7351564864317576,
+      "std": 0.0946938248487941,
+      "mean_alignment": 0.8596554566174746,
+      "displacement_magnitude": 0.6035683155059814,
+      "same_subj": 0.8012589445071561,
+      "same_obj": 0.8405847208840507,
+      "neither": 0.7106521017849445
+    },
+    "carry->collect": {
+      "mean_displacement_cosine": 0.6680791846639107,
+      "std": 0.10324609701963994,
+      "mean_alignment": 0.8203909229487181,
+      "displacement_magnitude": 0.3795211911201477,
+      "same_subj": 0.7576651948371104,
+      "same_obj": 0.7761447099702699,
+      "neither": 0.6398432510239738
+    },
+    "carry->chase": {
+      "mean_displacement_cosine": 0.6564743569682515,
+      "std": 0.11787152400889478,
+      "mean_alignment": 0.8132477281615138,
+      "displacement_magnitude": 0.4958764314651489,
+      "same_subj": 0.7424267647521836,
+      "same_obj": 0.7637471621856093,
+      "neither": 0.6288707551109244
+    },
+    "carry->paint": {
+      "mean_displacement_cosine": 0.7526593791350485,
+      "std": 0.08343300907531359,
+      "mean_alignment": 0.8696621926501393,
+      "displacement_magnitude": 0.5729103088378906,
+      "same_subj": 0.811422769512449,
+      "same_obj": 0.8413631886776004,
+      "neither": 0.7315926362893411
+    },
+    "carry->hide": {
+      "mean_displacement_cosine": 0.7323314740603405,
+      "std": 0.08553495801694591,
+      "mean_alignment": 0.8580441502854228,
+      "displacement_magnitude": 0.523059606552124,
+      "same_subj": 0.7851487611021314,
+      "same_obj": 0.8508448403860841,
+      "neither": 0.7078556664364071
+    },
+    "watch->destroy": {
+      "mean_displacement_cosine": 0.7421855119663099,
+      "std": 0.09281982539584806,
+      "mean_alignment": 0.8637759843841195,
+      "displacement_magnitude": 0.6725689172744751,
+      "same_subj": 0.8047104245051742,
+      "same_obj": 0.8292492717238409,
+      "neither": 0.7208157016382534
+    },
+    "watch->collect": {
+      "mean_displacement_cosine": 0.639913567800134,
+      "std": 0.10606264782125456,
+      "mean_alignment": 0.8029824085533619,
+      "displacement_magnitude": 0.4584712088108063,
+      "same_subj": 0.7079033858275839,
+      "same_obj": 0.7808403714693019,
+      "neither": 0.6100683361291885
+    },
+    "watch->chase": {
+      "mean_displacement_cosine": 0.6823557064765029,
+      "std": 0.12838365541061278,
+      "mean_alignment": 0.8288143901154399,
+      "displacement_magnitude": 0.5047096014022827,
+      "same_subj": 0.7604392617940903,
+      "same_obj": 0.7595232685229608,
+      "neither": 0.6601769754244965
+    },
+    "watch->paint": {
+      "mean_displacement_cosine": 0.7877725130242724,
+      "std": 0.07042432924231783,
+      "mean_alignment": 0.8893687417730689,
+      "displacement_magnitude": 0.610285758972168,
+      "same_subj": 0.8377738262393645,
+      "same_obj": 0.8544969162238496,
+      "neither": 0.7710974106793197
+    },
+    "watch->hide": {
+      "mean_displacement_cosine": 0.7170290741478167,
+      "std": 0.10321969688155902,
+      "mean_alignment": 0.8491150923073292,
+      "displacement_magnitude": 0.5643983483314514,
+      "same_subj": 0.7793902323714325,
+      "same_obj": 0.8185315474069544,
+      "neither": 0.6936199839359948
+    },
+    "destroy->collect": {
+      "mean_displacement_cosine": 0.7321095107685006,
+      "std": 0.09104299690906946,
+      "mean_alignment": 0.8579387506470084,
+      "displacement_magnitude": 0.567237138748169,
+      "same_subj": 0.793149696663022,
+      "same_obj": 0.8430024018245084,
+      "neither": 0.7075476426327106
+    },
+    "destroy->chase": {
+      "mean_displacement_cosine": 0.7557779789444,
+      "std": 0.0959848721810824,
+      "mean_alignment": 0.8714006524533033,
+      "displacement_magnitude": 0.64524245262146,
+      "same_subj": 0.8156921932739871,
+      "same_obj": 0.8351129809660571,
+      "neither": 0.7358852337513652
+    },
+    "destroy->paint": {
+      "mean_displacement_cosine": 0.7879285592260579,
+      "std": 0.08198892979207208,
+      "mean_alignment": 0.8894526157528162,
+      "displacement_magnitude": 0.6474153399467468,
+      "same_subj": 0.8417091146111488,
+      "same_obj": 0.8665019805942263,
+      "neither": 0.7690208482613065
+    },
+    "destroy->hide": {
+      "mean_displacement_cosine": 0.7941022346032753,
+      "std": 0.07375972125195933,
+      "mean_alignment": 0.8928949488326907,
+      "displacement_magnitude": 0.5822499990463257,
+      "same_subj": 0.8480800294450351,
+      "same_obj": 0.8713332217718873,
+      "neither": 0.7753581228875079
+    },
+    "collect->chase": {
+      "mean_displacement_cosine": 0.6625543844161762,
+      "std": 0.11676081597187171,
+      "mean_alignment": 0.816752172075212,
+      "displacement_magnitude": 0.48524418473243713,
+      "same_subj": 0.7336671356377857,
+      "same_obj": 0.7818920859800917,
+      "neither": 0.6353471768753869
+    },
+    "collect->paint": {
+      "mean_displacement_cosine": 0.7596719255670905,
+      "std": 0.08317966895489193,
+      "mean_alignment": 0.8736359542235732,
+      "displacement_magnitude": 0.5359302759170532,
+      "same_subj": 0.8091362177261284,
+      "same_obj": 0.8560599969433886,
+      "neither": 0.738835873633471
+    },
+    "collect->hide": {
+      "mean_displacement_cosine": 0.7502542733554802,
+      "std": 0.0784360841947598,
+      "mean_alignment": 0.868315109051764,
+      "displacement_magnitude": 0.5159859657287598,
+      "same_subj": 0.7934586802231414,
+      "same_obj": 0.8686672156410558,
+      "neither": 0.7271660806193035
+    },
+    "chase->paint": {
+      "mean_displacement_cosine": 0.7720673495814914,
+      "std": 0.08302306293773395,
+      "mean_alignment": 0.880637233145535,
+      "displacement_magnitude": 0.628196120262146,
+      "same_subj": 0.8292970103876931,
+      "same_obj": 0.8429422527551651,
+      "neither": 0.7537666975843663
+    },
+    "chase->hide": {
+      "mean_displacement_cosine": 0.735118593887559,
+      "std": 0.09798327281885982,
+      "mean_alignment": 0.8595851715654135,
+      "displacement_magnitude": 0.5637692213058472,
+      "same_subj": 0.7983746249228716,
+      "same_obj": 0.8221881775451558,
+      "neither": 0.7136435060742863
+    },
+    "paint->hide": {
+      "mean_displacement_cosine": 0.8010211993038417,
+      "std": 0.07682090449520261,
+      "mean_alignment": 0.8966508032754064,
+      "displacement_magnitude": 0.6271408796310425,
+      "same_subj": 0.8473445996642113,
+      "same_obj": 0.8771757576614618,
+      "neither": 0.7835243480584148
+    },
+    "_summary": {
+      "mean_of_means": 0.7249558428693099,
+      "std_of_means": 0.0468842623433633,
+      "mean_of_alignments": 0.8533623950123521
+    }
+  },
+  "subspace": {
+    "eat_vs_carry": {
+      "pearson": 0.9460821731632947
+    },
+    "eat_vs_watch": {
+      "pearson": 0.9065904362557582
+    },
+    "eat_vs_destroy": {
+      "pearson": 0.9152613587494892
+    },
+    "eat_vs_collect": {
+      "pearson": 0.9404426592550353
+    },
+    "eat_vs_chase": {
+      "pearson": 0.9287932208427383
+    },
+    "eat_vs_paint": {
+      "pearson": 0.9293941644618481
+    },
+    "eat_vs_hide": {
+      "pearson": 0.9479441840757447
+    },
+    "carry_vs_watch": {
+      "pearson": 0.9284837970829928
+    },
+    "carry_vs_destroy": {
+      "pearson": 0.9378433446162208
+    },
+    "carry_vs_collect": {
+      "pearson": 0.9755387328601245
+    },
+    "carry_vs_chase": {
+      "pearson": 0.9422202071589727
+    },
+    "carry_vs_paint": {
+      "pearson": 0.9591229137566953
+    },
+    "carry_vs_hide": {
+      "pearson": 0.9687552255122382
+    },
+    "watch_vs_destroy": {
+      "pearson": 0.8936258574328072
+    },
+    "watch_vs_collect": {
+      "pearson": 0.930056612012378
+    },
+    "watch_vs_chase": {
+      "pearson": 0.9322326470678841
+    },
+    "watch_vs_paint": {
+      "pearson": 0.9363772945054586
+    },
+    "watch_vs_hide": {
+      "pearson": 0.9235330419832716
+    },
+    "destroy_vs_collect": {
+      "pearson": 0.938631032979505
+    },
+    "destroy_vs_chase": {
+      "pearson": 0.9128377752739854
+    },
+    "destroy_vs_paint": {
+      "pearson": 0.9467339842761482
+    },
+    "destroy_vs_hide": {
+      "pearson": 0.9468162053213184
+    },
+    "collect_vs_chase": {
+      "pearson": 0.946275714856034
+    },
+    "collect_vs_paint": {
+      "pearson": 0.9543982059899734
+    },
+    "collect_vs_hide": {
+      "pearson": 0.9605130987855339
+    },
+    "chase_vs_paint": {
+      "pearson": 0.9507869489639968
+    },
+    "chase_vs_hide": {
+      "pearson": 0.9326750698873155
+    },
+    "paint_vs_hide": {
+      "pearson": 0.9516526991227475
+    },
+    "_summary": {
+      "mean_correlation": 0.938700664508911,
+      "std_correlation": 0.017944209788443913,
+      "min": 0.8936258574328072,
+      "max": 0.9755387328601245
+    }
+  },
+  "interactions": {
+    "SP:catsxeat": 0.7355065899235862,
+    "SP:catsxcarry": 0.7637728452682495,
+    "SP:catsxwatch": 0.7562185313020434,
+    "SP:catsxdestroy": 0.749083765915462,
+    "SP:catsxcollect": 0.7564768855060849,
+    "SP:catsxchase": 0.7871938241379601,
+    "SP:catsxpaint": 0.8001002052000591,
+    "SP:catsxhide": 0.7891140239579337,
+    "SP:trucksxeat": 0.7384429446288517,
+    "SP:trucksxcarry": 0.7473794647625515,
+    "SP:trucksxwatch": 0.7433469721249172,
+    "SP:trucksxdestroy": 0.7373130427939552,
+    "SP:trucksxcollect": 0.7426943055221013,
+    "SP:trucksxchase": 0.7583857774734497,
+    "SP:trucksxpaint": 0.8094884008169174,
+    "SP:trucksxhide": 0.7628342424120221,
+    "SP:childrenxeat": 0.7585034412997109,
+    "SP:childrenxcarry": 0.7069310609783445,
+    "SP:childrenxwatch": 0.685785996062415,
+    "SP:childrenxdestroy": 0.7295427641698292,
+    "SP:childrenxcollect": 0.7034879795142582,
+    "SP:childrenxchase": 0.7269079600061689,
+    "SP:childrenxpaint": 0.7610112811837878,
+    "SP:childrenxhide": 0.7582202894347054,
+    "SP:eaglesxeat": 0.7760196115289416,
+    "SP:eaglesxcarry": 0.7774636681590762,
+    "SP:eaglesxwatch": 0.7515919144664492,
+    "SP:eaglesxdestroy": 0.7609652365956988,
+    "SP:eaglesxcollect": 0.7805667093821934,
+    "SP:eaglesxchase": 0.803875459092004,
+    "SP:eaglesxpaint": 0.8045492129666465,
+    "SP:eaglesxhide": 0.7936984087739672,
+    "SP:robotsxeat": 0.7677379548549652,
+    "SP:robotsxcarry": 0.7418201778616224,
+    "SP:robotsxwatch": 0.7107759884425572,
+    "SP:robotsxdestroy": 0.745106965303421,
+    "SP:robotsxcollect": 0.7474983888013023,
+    "SP:robotsxchase": 0.7590525512184415,
+    "SP:robotsxpaint": 0.8001611977815628,
+    "SP:robotsxhide": 0.7721665054559708,
+    "SP:farmersxeat": 0.7506228855678013,
+    "SP:farmersxcarry": 0.7543563119002751,
+    "SP:farmersxwatch": 0.7483990000826972,
+    "SP:farmersxdestroy": 0.7674697722707476,
+    "SP:farmersxcollect": 0.7434511376278741,
+    "SP:farmersxchase": 0.733394233243806,
+    "SP:farmersxpaint": 0.786610620362418,
+    "SP:farmersxhide": 0.7856576016971043,
+    "SP:whalesxeat": 0.7517774424382618,
+    "SP:whalesxcarry": 0.7806313612631389,
+    "SP:whalesxwatch": 0.8010927311011723,
+    "SP:whalesxdestroy": 0.7784283139875957,
+    "SP:whalesxcollect": 0.7842596364872796,
+    "SP:whalesxchase": 0.807990774512291,
+    "SP:whalesxpaint": 0.8414522941623416,
+    "SP:whalesxhide": 0.811497626560075,
+    "SP:soldiersxeat": 0.7837169149092266,
+    "SP:soldiersxcarry": 0.7372659721544811,
+    "SP:soldiersxwatch": 0.7409559999193464,
+    "SP:soldiersxdestroy": 0.7353615867240089,
+    "SP:soldiersxcollect": 0.7298962218420846,
+    "SP:soldiersxchase": 0.7514224840062005,
+    "SP:soldiersxpaint": 0.7845897866146905,
+    "SP:soldiersxhide": 0.7704716388668332,
+    "PO:eatxfish": 0.6622356410537448,
+    "PO:eatxrocks": 0.7059213072061539,
+    "PO:eatxstars": 0.7070455636296954,
+    "PO:eatxflowers": 0.679046977843557,
+    "PO:eatxcoins": 0.7124723047018051,
+    "PO:eatxbooks": 0.6966874173709324,
+    "PO:eatxbridges": 0.6906284668615886,
+    "PO:eatxshadows": 0.6786035150289536,
+    "PO:carryxfish": 0.7023411797625678,
+    "PO:carryxrocks": 0.7011185671601977,
+    "PO:carryxstars": 0.6854837238788605,
+    "PO:carryxflowers": 0.666935648236956,
+    "PO:carryxcoins": 0.7001312673091888,
+    "PO:carryxbooks": 0.7047560002122607,
+    "PO:carryxbridges": 0.6599750497511455,
+    "PO:carryxshadows": 0.6712848906006131,
+    "PO:watchxfish": 0.7240315356424877,
+    "PO:watchxrocks": 0.6467099455850465,
+    "PO:watchxstars": 0.690578464950834,
+    "PO:watchxflowers": 0.6941646614245006,
+    "PO:watchxcoins": 0.7430074832269123,
+    "PO:watchxbooks": 0.671484791806766,
+    "PO:watchxbridges": 0.710108105625425,
+    "PO:watchxshadows": 0.6736582858221871,
+    "PO:destroyxfish": 0.7253809294530323,
+    "PO:destroyxrocks": 0.7156204730272293,
+    "PO:destroyxstars": 0.7041441862072263,
+    "PO:destroyxflowers": 0.7144717467682702,
+    "PO:destroyxcoins": 0.7577066740819386,
+    "PO:destroyxbooks": 0.7516905516386032,
+    "PO:destroyxbridges": 0.6988501357180732,
+    "PO:destroyxshadows": 0.6572343813521522,
+    "PO:collectxfish": 0.7123348010437829,
+    "PO:collectxrocks": 0.7258349465472358,
+    "PO:collectxstars": 0.695186048746109,
+    "PO:collectxflowers": 0.6706590482166835,
+    "PO:collectxcoins": 0.7094789551837104,
+    "PO:collectxbooks": 0.7162643181426185,
+    "PO:collectxbridges": 0.7046136174883161,
+    "PO:collectxshadows": 0.6824176503079278,
+    "PO:chasexfish": 0.7268627009221486,
+    "PO:chasexrocks": 0.6734707483223507,
+    "PO:chasexstars": 0.6563947796821594,
+    "PO:chasexflowers": 0.6829487553664616,
+    "PO:chasexcoins": 0.7169943622180394,
+    "PO:chasexbooks": 0.6935868178095136,
+    "PO:chasexbridges": 0.6809191533497402,
+    "PO:chasexshadows": 0.6821572227137429,
+    "PO:paintxfish": 0.7512822619506291,
+    "PO:paintxrocks": 0.712777704000473,
+    "PO:paintxstars": 0.68915641946452,
+    "PO:paintxflowers": 0.7068275553839547,
+    "PO:paintxcoins": 0.7587937797818866,
+    "PO:paintxbooks": 0.7415387694324765,
+    "PO:paintxbridges": 0.7249672498021807,
+    "PO:paintxshadows": 0.6838311787162509,
+    "PO:hidexfish": 0.7197511494159698,
+    "PO:hidexrocks": 0.7146962583065033,
+    "PO:hidexstars": 0.7321758696011135,
+    "PO:hidexflowers": 0.6850927748850414,
+    "PO:hidexcoins": 0.7488736978599003,
+    "PO:hidexbooks": 0.7618259425674166,
+    "PO:hidexbridges": 0.6955934464931488,
+    "PO:hidexshadows": 0.6665187329053879,
+    "_sp_summary": {
+      "mean": 0.7618994514590928,
+      "std": 0.028940198989190886,
+      "range": [
+        0.685785996062415,
+        0.8414522941623416
+      ]
+    },
+    "_po_summary": {
+      "mean": 0.7019896342119734,
+      "std": 0.02720649525496949,
+      "range": [
+        0.6467099455850465,
+        0.7618259425674166
+      ]
+    }
+  }
+}
