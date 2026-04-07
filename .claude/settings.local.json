@@ -178,7 +178,12 @@
       "Bash(rmdir papers/fol-discovery/reviews)",
       "Bash(echo \"exit: $?\")",
       "WebFetch(domain:link.springer.com)",
-      "WebFetch(domain:bandgap.org)"
+      "WebFetch(domain:bandgap.org)",
+      "WebFetch(domain:redwood.berkeley.edu)",
+      "WebFetch(domain:rctn.org)",
+      "WebFetch(domain:d-nb.info)",
+      "WebFetch(domain:ar5iv.labs.arxiv.org)",
+      "WebFetch(domain:cbmm.mit.edu)"
     ]
   }
 }
