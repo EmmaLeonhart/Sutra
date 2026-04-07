@@ -3,6 +3,12 @@
 ## Project Overview
 Discovering first-order logic operations in arbitrary embedding spaces via trajectory displacement analysis. Takes a general-purpose embedding model (mxbai-embed-large) and Wikidata triples, discovers which predicates encode as consistent vector arithmetic.
 
+## CRITICAL: Paper Editing Rules (applies to public-fol-discovery/paper.md)
+- **NEVER rewrite large sections of the paper at once.** One sentence, one paragraph, one table at a time.
+- **ALWAYS show the diff to the user and wait for approval before committing.**
+- **NEVER push without explicit user approval.** Every push triggers a clawRxiv submission.
+- **Why:** A wholesale rewrite turned a Strong Accept into Rejects. With big changes you cannot isolate what the reviewer disliked. Incremental changes only.
+
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
 - **Commit and push everything.** Always push to remote after committing. No local-only work.
