@@ -1,0 +1,79 @@
+{
+  "displacement": {
+    "eat\u2192carry": {
+      "mean_displacement_cosine": 0.6712306315700213,
+      "std": 0.11126491793376712,
+      "mean_alignment": 0.8410204980108473,
+      "displacement_magnitude": 0.5865722298622131,
+      "same_subj": 0.7692502405908372,
+      "same_obj": 0.713224556710985,
+      "neither": 0.6012238644891315
+    },
+    "eat\u2192watch": {
+      "mean_displacement_cosine": 0.6401941031217575,
+      "std": 0.1020548848377342,
+      "mean_alignment": 0.824673679139879,
+      "displacement_magnitude": 0.6181995868682861,
+      "same_subj": 0.6965855889850192,
+      "same_obj": 0.6908890869882371,
+      "neither": 0.5866508682568868
+    },
+    "carry\u2192watch": {
+      "mean_displacement_cosine": 0.6406771764159203,
+      "std": 0.12920223079790452,
+      "mean_alignment": 0.8244658708572388,
+      "displacement_magnitude": 0.5240609645843506,
+      "same_subj": 0.719709939426846,
+      "same_obj": 0.6964946985244751,
+      "neither": 0.57325203385618
+    }
+  },
+  "subspace": {
+    "eat_vs_carry": {
+      "pearson": 0.9584178475332471,
+      "rank": 0.8885456885456886
+    },
+    "eat_vs_watch": {
+      "pearson": 0.9388223346617027,
+      "rank": 0.8563706563706565
+    },
+    "carry_vs_watch": {
+      "pearson": 0.9728947827128732,
+      "rank": 0.9353925353925354
+    }
+  },
+  "naturalness": {
+    "eat": {
+      "correlation": -0.3294374617872062
+    },
+    "carry": {
+      "correlation": 0.30232394338101876
+    },
+    "watch": {
+      "correlation": -0.045911097736156065
+    },
+    "overall": {
+      "correlation": -0.03108179008977237
+    }
+  },
+  "interactions": {
+    "cats\u00d7eat": 0.7142629226048788,
+    "cats\u00d7carry": 0.7712018291155497,
+    "cats\u00d7watch": 0.7486217419306437,
+    "trucks\u00d7eat": 0.7549965977668762,
+    "trucks\u00d7carry": 0.7654443979263306,
+    "trucks\u00d7watch": 0.7337052424748739,
+    "children\u00d7eat": 0.7590070962905884,
+    "children\u00d7carry": 0.7187782923380533,
+    "children\u00d7watch": 0.6975103616714478,
+    "eat\u00d7fish": 0.6506146391232809,
+    "eat\u00d7rocks": 0.6953555146853129,
+    "eat\u00d7stars": 0.6461077531178793,
+    "carry\u00d7fish": 0.6895000537236532,
+    "carry\u00d7rocks": 0.6959911982218424,
+    "carry\u00d7stars": 0.6665507157643636,
+    "watch\u00d7fish": 0.7014635999997457,
+    "watch\u00d7rocks": 0.6830978790918986,
+    "watch\u00d7stars": 0.6656147837638855
+  }
+}

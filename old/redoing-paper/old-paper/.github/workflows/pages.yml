@@ -1,0 +1,49 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+
+      # Copy figures from prototype/ into pages/img/ for deployment
+      - name: Copy figures
+        run: |
+          mkdir -p pages/img
+          cp prototype/semantic_topology_full.png pages/img/
+          cp prototype/semantic_topology_heatmap.png pages/img/
+          cp prototype/semantic_topology_large_full.png pages/img/
+          cp prototype/semantic_topology_large_heatmap.png pages/img/
+          cp prototype/semantic_topology_large_arrows.png pages/img/
+          cp prototype/semantic_loadedness_plot.png pages/img/ 2>/dev/null || true
+          cp prototype/semantic_loadedness_words_only.png pages/img/ 2>/dev/null || true
+          cp prototype/semantic_topology_complexity_full.png pages/img/
+          cp prototype/semantic_topology_complexity_heatmap.png pages/img/
+          cp prototype/semantic_topology_complexity_arrows.png pages/img/
+          cp prototype/semantic_topology_specificity_trajectories.png pages/img/
+          cp prototype/semantic_topology_specificity_grid.png pages/img/
+          cp prototype/semantic_topology_specificity_arrows.png pages/img/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+      - id: deployment
+        uses: actions/deploy-pages@v4
