@@ -1,0 +1,3497 @@
+{
+  "displacement_vectors": {
+    "noun_dog": {
+      "chain": [
+        "puppy",
+        "dog",
+        "hound",
+        "canine",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "puppy->dog",
+        "dog->hound",
+        "hound->canine",
+        "canine->carnivore",
+        "carnivore->mammal",
+        "mammal->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.5280163288116455,
+        0.006743767764419317,
+        -0.033153049647808075,
+        0.30072322487831116,
+        -0.177925705909729,
+        0.10558804124593735,
+        0.35093188285827637,
+        0.4528696835041046
+      ],
+      "mean_alignment": 0.19172427168814465,
+      "pairwise_consistency": -0.10084778519480356,
+      "pairwise_range": [
+        -0.8774206042289734,
+        0.28860586881637573
+      ],
+      "mean_direction_magnitude": 0.1917242556810379
+    },
+    "noun_cat": {
+      "chain": [
+        "kitten",
+        "cat",
+        "feline",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "kitten->cat",
+        "cat->feline",
+        "feline->carnivore",
+        "carnivore->mammal",
+        "mammal->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.434775173664093,
+        0.18332159519195557,
+        0.19570134580135345,
+        -0.09379946440458298,
+        0.0934959277510643,
+        0.28150835633277893,
+        0.4182433784008026
+      ],
+      "mean_alignment": 0.2161780446767807,
+      "pairwise_consistency": -0.11214489755885941,
+      "pairwise_range": [
+        -0.5153509378433228,
+        0.17842711508274078
+      ],
+      "mean_direction_magnitude": 0.2161780595779419
+    },
+    "noun_horse": {
+      "chain": [
+        "foal",
+        "horse",
+        "stallion",
+        "equine",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "foal->horse",
+        "horse->stallion",
+        "stallion->equine",
+        "equine->mammal",
+        "mammal->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.42045241594314575,
+        0.0567534863948822,
+        -0.05469109117984772,
+        0.08206382393836975,
+        0.0896281898021698,
+        0.2893059253692627,
+        0.44675374031066895
+      ],
+      "mean_alignment": 0.1900380700826645,
+      "pairwise_consistency": -0.12453312568721317,
+      "pairwise_range": [
+        -0.7337712049484253,
+        0.12155987322330475
+      ],
+      "mean_direction_magnitude": 0.1900380700826645
+    },
+    "noun_fish": {
+      "chain": [
+        "trout",
+        "fish",
+        "aquatic animal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "trout->fish",
+        "fish->aquatic animal",
+        "aquatic animal->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.417239248752594,
+        0.11683586239814758,
+        0.27166563272476196,
+        0.1518021672964096,
+        0.5230892896652222
+      ],
+      "mean_alignment": 0.29612644016742706,
+      "pairwise_consistency": -0.14038642272353172,
+      "pairwise_range": [
+        -0.39768537878990173,
+        0.12732240557670593
+      ],
+      "mean_direction_magnitude": 0.29612645506858826
+    },
+    "noun_bird": {
+      "chain": [
+        "sparrow",
+        "bird",
+        "avian",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "sparrow->bird",
+        "bird->avian",
+        "avian->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.3797723352909088,
+        0.1980230212211609,
+        0.092721126973629,
+        0.20999355614185333,
+        0.4815368056297302
+      ],
+      "mean_alignment": 0.27240936905145646,
+      "pairwise_consistency": -0.1572414418682456,
+      "pairwise_range": [
+        -0.5844772458076477,
+        0.13347510993480682
+      ],
+      "mean_direction_magnitude": 0.2724093496799469
+    },
+    "noun_tree": {
+      "chain": [
+        "oak",
+        "tree",
+        "plant",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "oak->tree",
+        "tree->plant",
+        "plant->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.44760817289352417,
+        0.1406276375055313,
+        0.2535296380519867,
+        0.4258579611778259
+      ],
+      "mean_alignment": 0.316905852407217,
+      "pairwise_consistency": -0.19942758915325007,
+      "pairwise_range": [
+        -0.28085049986839294,
+        0.03193259611725807
+      ],
+      "mean_direction_magnitude": 0.3169058859348297
+    },
+    "noun_rock": {
+      "chain": [
+        "pebble",
+        "rock",
+        "stone",
+        "mineral",
+        "substance",
+        "matter",
+        "entity"
+      ],
+      "step_labels": [
+        "pebble->rock",
+        "rock->stone",
+        "stone->mineral",
+        "mineral->substance",
+        "substance->matter",
+        "matter->entity"
+      ],
+      "alignments": [
+        0.3867686986923218,
+        -0.020084500312805176,
+        0.136802539229393,
+        0.24583055078983307,
+        0.20752081274986267,
+        0.24258236587047577
+      ],
+      "mean_alignment": 0.19990341116984686,
+      "pairwise_consistency": -0.15204636293152968,
+      "pairwise_range": [
+        -0.5897105932235718,
+        0.09715176373720169
+      ],
+      "mean_direction_magnitude": 0.19990339875221252
+    },
+    "noun_truck": {
+      "chain": [
+        "pickup",
+        "truck",
+        "vehicle",
+        "machine",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "step_labels": [
+        "pickup->truck",
+        "truck->vehicle",
+        "vehicle->machine",
+        "machine->artifact",
+        "artifact->object",
+        "object->entity"
+      ],
+      "alignments": [
+        0.24357149004936218,
+        0.39538678526878357,
+        0.06945519894361496,
+        -0.012597143650054932,
+        0.0529145784676075,
+        0.5298417806625366
+      ],
+      "mean_alignment": 0.21309544829030833,
+      "pairwise_consistency": -0.1455084058145682,
+      "pairwise_range": [
+        -0.5054548382759094,
+        0.09833449125289917
+      ],
+      "mean_direction_magnitude": 0.21309545636177063
+    },
+    "noun_child": {
+      "chain": [
+        "toddler",
+        "child",
+        "person",
+        "human",
+        "primate",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "toddler->child",
+        "child->person",
+        "person->human",
+        "human->primate",
+        "primate->mammal",
+        "mammal->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.553076982498169,
+        0.37572866678237915,
+        0.016704726964235306,
+        -0.14019238948822021,
+        -0.013153779320418835,
+        0.19699102640151978,
+        0.13286328315734863,
+        0.3841276168823242
+      ],
+      "mean_alignment": 0.18826826673466712,
+      "pairwise_consistency": -0.10234865167045168,
+      "pairwise_range": [
+        -0.5707624554634094,
+        0.2065790593624115
+      ],
+      "mean_direction_magnitude": 0.18826824426651
+    },
+    "noun_star": {
+      "chain": [
+        "sun",
+        "star",
+        "celestial body",
+        "astronomical object",
+        "entity"
+      ],
+      "step_labels": [
+        "sun->star",
+        "star->celestial body",
+        "celestial body->astronomical object",
+        "astronomical object->entity"
+      ],
+      "alignments": [
+        0.5221639275550842,
+        0.020515162497758865,
+        0.29435479640960693,
+        0.29859861731529236
+      ],
+      "mean_alignment": 0.2839081259444356,
+      "pairwise_consistency": -0.2258615978062153,
+      "pairwise_range": [
+        -0.42767849564552307,
+        0.15992027521133423
+      ],
+      "mean_direction_magnitude": 0.2839081287384033
+    },
+    "noun_eagle": {
+      "chain": [
+        "eaglet",
+        "eagle",
+        "raptor",
+        "bird of prey",
+        "bird",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "eaglet->eagle",
+        "eagle->raptor",
+        "raptor->bird of prey",
+        "bird of prey->bird",
+        "bird->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.5391388535499573,
+        0.13736683130264282,
+        -0.18616580963134766,
+        0.20964303612709045,
+        0.2807818651199341,
+        0.20970094203948975,
+        0.41732317209243774
+      ],
+      "mean_alignment": 0.22968412722860063,
+      "pairwise_consistency": -0.10511942542507313,
+      "pairwise_range": [
+        -0.5111207365989685,
+        0.10793586820363998
+      ],
+      "mean_direction_magnitude": 0.22968409955501556
+    },
+    "noun_whale": {
+      "chain": [
+        "calf",
+        "whale",
+        "cetacean",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "calf->whale",
+        "whale->cetacean",
+        "cetacean->mammal",
+        "mammal->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.3442048728466034,
+        0.21558238565921783,
+        -0.12078269571065903,
+        0.12667764723300934,
+        0.30774402618408203,
+        0.5095509886741638
+      ],
+      "mean_alignment": 0.23049620414773622,
+      "pairwise_consistency": -0.1362458157973985,
+      "pairwise_range": [
+        -0.4184322953224182,
+        0.14547611773014069
+      ],
+      "mean_direction_magnitude": 0.23049618303775787
+    },
+    "noun_snake": {
+      "chain": [
+        "hatchling",
+        "snake",
+        "serpent",
+        "reptile",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "hatchling->snake",
+        "snake->serpent",
+        "serpent->reptile",
+        "reptile->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.22143618762493134,
+        0.30993518233299255,
+        0.03665076196193695,
+        0.06454838812351227,
+        0.21433348953723907,
+        0.5578819513320923
+      ],
+      "mean_alignment": 0.23413099348545074,
+      "pairwise_consistency": -0.13421922139823436,
+      "pairwise_range": [
+        -0.42260414361953735,
+        0.16214334964752197
+      ],
+      "mean_direction_magnitude": 0.23413099348545074
+    },
+    "noun_flower": {
+      "chain": [
+        "bud",
+        "flower",
+        "blossom",
+        "plant",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "bud->flower",
+        "flower->blossom",
+        "blossom->plant",
+        "plant->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.3431796431541443,
+        0.16108913719654083,
+        -0.16091793775558472,
+        0.4216875433921814,
+        0.519707441329956
+      ],
+      "mean_alignment": 0.2569491654634476,
+      "pairwise_consistency": -0.1674714223947376,
+      "pairwise_range": [
+        -0.6350963711738586,
+        0.18893876671791077
+      ],
+      "mean_direction_magnitude": 0.25694915652275085
+    },
+    "noun_insect": {
+      "chain": [
+        "larva",
+        "insect",
+        "arthropod",
+        "invertebrate",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "larva->insect",
+        "insect->arthropod",
+        "arthropod->invertebrate",
+        "invertebrate->animal",
+        "animal->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.31588801741600037,
+        0.20727813243865967,
+        0.044785939157009125,
+        0.12695784866809845,
+        0.09857651591300964,
+        0.6221754550933838
+      ],
+      "mean_alignment": 0.2359436514476935,
+      "pairwise_consistency": -0.13319672470291455,
+      "pairwise_range": [
+        -0.6458530426025391,
+        0.1961837261915207
+      ],
+      "mean_direction_magnitude": 0.23594364523887634
+    },
+    "noun_mushroom": {
+      "chain": [
+        "spore",
+        "mushroom",
+        "fungus",
+        "organism",
+        "entity"
+      ],
+      "step_labels": [
+        "spore->mushroom",
+        "mushroom->fungus",
+        "fungus->organism",
+        "organism->entity"
+      ],
+      "alignments": [
+        0.250220388174057,
+        0.2543761730194092,
+        0.1436590850353241,
+        0.6011935472488403
+      ],
+      "mean_alignment": 0.31236229836940765,
+      "pairwise_consistency": -0.20323973490546146,
+      "pairwise_range": [
+        -0.37989017367362976,
+        0.006569836288690567
+      ],
+      "mean_direction_magnitude": 0.31236231327056885
+    },
+    "noun_robot": {
+      "chain": [
+        "drone",
+        "robot",
+        "automaton",
+        "machine",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "step_labels": [
+        "drone->robot",
+        "robot->automaton",
+        "automaton->machine",
+        "machine->artifact",
+        "artifact->object",
+        "object->entity"
+      ],
+      "alignments": [
+        0.44691601395606995,
+        0.2878207564353943,
+        -0.0676761195063591,
+        0.03562111407518387,
+        0.05211223289370537,
+        0.5180449485778809
+      ],
+      "mean_alignment": 0.21213982440531254,
+      "pairwise_consistency": -0.14599604637672503,
+      "pairwise_range": [
+        -0.6280043125152588,
+        0.16670691967010498
+      ],
+      "mean_direction_magnitude": 0.2121398150920868
+    },
+    "noun_sword": {
+      "chain": [
+        "dagger",
+        "sword",
+        "blade",
+        "weapon",
+        "tool",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "step_labels": [
+        "dagger->sword",
+        "sword->blade",
+        "blade->weapon",
+        "weapon->tool",
+        "tool->artifact",
+        "artifact->object",
+        "object->entity"
+      ],
+      "alignments": [
+        0.2984265685081482,
+        0.15319545567035675,
+        -0.12664581835269928,
+        0.21258795261383057,
+        0.09266411513090134,
+        0.11302804201841354,
+        0.5261088609695435
+      ],
+      "mean_alignment": 0.18133788236549922,
+      "pairwise_consistency": -0.12830268032848835,
+      "pairwise_range": [
+        -0.6223559379577637,
+        0.30457717180252075
+      ],
+      "mean_direction_magnitude": 0.1813378483057022
+    },
+    "noun_river": {
+      "chain": [
+        "stream",
+        "river",
+        "waterway",
+        "body of water",
+        "landform",
+        "entity"
+      ],
+      "step_labels": [
+        "stream->river",
+        "river->waterway",
+        "waterway->body of water",
+        "body of water->landform",
+        "landform->entity"
+      ],
+      "alignments": [
+        0.43136757612228394,
+        0.16140764951705933,
+        0.03765528276562691,
+        0.15286481380462646,
+        0.3626529574394226
+      ],
+      "mean_alignment": 0.22918965592980384,
+      "pairwise_consistency": -0.1843401205725968,
+      "pairwise_range": [
+        -0.42498406767845154,
+        0.011029321700334549
+      ],
+      "mean_direction_magnitude": 0.2291896641254425
+    },
+    "noun_book": {
+      "chain": [
+        "novel",
+        "book",
+        "publication",
+        "document",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "step_labels": [
+        "novel->book",
+        "book->publication",
+        "publication->document",
+        "document->artifact",
+        "artifact->object",
+        "object->entity"
+      ],
+      "alignments": [
+        0.36117851734161377,
+        0.08032138645648956,
+        0.14526163041591644,
+        -0.03551337867975235,
+        0.09654054790735245,
+        0.4938640296459198
+      ],
+      "mean_alignment": 0.19027545551458994,
+      "pairwise_consistency": -0.1565543136248986,
+      "pairwise_range": [
+        -0.47130391001701355,
+        0.07487427443265915
+      ],
+      "mean_direction_magnitude": 0.19027544558048248
+    },
+    "verb_eat": {
+      "chain": [
+        "munch",
+        "eat",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "step_labels": [
+        "munch->eat",
+        "eat->consume",
+        "consume->ingest",
+        "ingest->take in",
+        "take in->process",
+        "process->act"
+      ],
+      "alignments": [
+        0.3080088496208191,
+        0.296303927898407,
+        0.22763033211231232,
+        0.10447803884744644,
+        -0.0823606476187706,
+        0.36176806688308716
+      ],
+      "mean_alignment": 0.20263809462388357,
+      "pairwise_consistency": -0.15072537139058112,
+      "pairwise_range": [
+        -0.5376760959625244,
+        0.06346534937620163
+      ],
+      "mean_direction_magnitude": 0.20263807475566864
+    },
+    "verb_devour": {
+      "chain": [
+        "devour",
+        "gorge",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "step_labels": [
+        "devour->gorge",
+        "gorge->consume",
+        "consume->ingest",
+        "ingest->take in",
+        "take in->process",
+        "process->act"
+      ],
+      "alignments": [
+        0.4482235312461853,
+        -0.2971194386482239,
+        0.3236757516860962,
+        0.27031493186950684,
+        0.006504884455353022,
+        0.42229774594306946
+      ],
+      "mean_alignment": 0.1956495677586645,
+      "pairwise_consistency": -0.15406549191102387,
+      "pairwise_range": [
+        -0.7726439237594604,
+        0.17193204164505005
+      ],
+      "mean_direction_magnitude": 0.19564957916736603
+    },
+    "verb_carry": {
+      "chain": [
+        "lug",
+        "carry",
+        "transport",
+        "move",
+        "displace",
+        "act"
+      ],
+      "step_labels": [
+        "lug->carry",
+        "carry->transport",
+        "transport->move",
+        "move->displace",
+        "displace->act"
+      ],
+      "alignments": [
+        0.576246440410614,
+        -0.03126503527164459,
+        0.08827952295541763,
+        0.05960693210363388,
+        0.4087856411933899
+      ],
+      "mean_alignment": 0.22033070027828217,
+      "pairwise_consistency": -0.18931798543781042,
+      "pairwise_range": [
+        -0.5644976496696472,
+        0.11040761321783066
+      ],
+      "mean_direction_magnitude": 0.22033070027828217
+    },
+    "verb_throw": {
+      "chain": [
+        "hurl",
+        "throw",
+        "propel",
+        "move",
+        "displace",
+        "act"
+      ],
+      "step_labels": [
+        "hurl->throw",
+        "throw->propel",
+        "propel->move",
+        "move->displace",
+        "displace->act"
+      ],
+      "alignments": [
+        0.6334739327430725,
+        0.06770458072423935,
+        0.13533011078834534,
+        0.010928608477115631,
+        0.3354218304157257
+      ],
+      "mean_alignment": 0.2365718126296997,
+      "pairwise_consistency": -0.1800422389060259,
+      "pairwise_range": [
+        -0.5644976496696472,
+        0.0975051075220108
+      ],
+      "mean_direction_magnitude": 0.2365717738866806
+    },
+    "verb_watch": {
+      "chain": [
+        "stare",
+        "watch",
+        "observe",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "step_labels": [
+        "stare->watch",
+        "watch->observe",
+        "observe->perceive",
+        "perceive->sense",
+        "sense->experience",
+        "experience->act"
+      ],
+      "alignments": [
+        0.42840147018432617,
+        0.04916930943727493,
+        0.07117235660552979,
+        0.2363405078649521,
+        -0.05502045154571533,
+        0.3531428277492523
+      ],
+      "mean_alignment": 0.18053433671593666,
+      "pairwise_consistency": -0.1608888218489786,
+      "pairwise_range": [
+        -0.5403904318809509,
+        0.08640230447053909
+      ],
+      "mean_direction_magnitude": 0.18053433299064636
+    },
+    "verb_listen": {
+      "chain": [
+        "eavesdrop",
+        "listen",
+        "hear",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "step_labels": [
+        "eavesdrop->listen",
+        "listen->hear",
+        "hear->perceive",
+        "perceive->sense",
+        "sense->experience",
+        "experience->act"
+      ],
+      "alignments": [
+        0.33347126841545105,
+        0.41926637291908264,
+        0.13647733628749847,
+        0.18389250338077545,
+        -0.10722474008798599,
+        0.34917864203453064
+      ],
+      "mean_alignment": 0.2191768971582254,
+      "pairwise_consistency": -0.1423537902534008,
+      "pairwise_range": [
+        -0.5403904318809509,
+        0.08413086831569672
+      ],
+      "mean_direction_magnitude": 0.21917690336704254
+    },
+    "verb_cut": {
+      "chain": [
+        "slice",
+        "cut",
+        "sever",
+        "divide",
+        "separate",
+        "alter",
+        "act"
+      ],
+      "step_labels": [
+        "slice->cut",
+        "cut->sever",
+        "sever->divide",
+        "divide->separate",
+        "separate->alter",
+        "alter->act"
+      ],
+      "alignments": [
+        0.5832601189613342,
+        0.07811369001865387,
+        -0.07540681958198547,
+        0.24755331873893738,
+        -0.05425747111439705,
+        0.43682190775871277
+      ],
+      "mean_alignment": 0.20268079079687595,
+      "pairwise_consistency": -0.15070461047192416,
+      "pairwise_range": [
+        -0.6238222122192383,
+        0.10684901475906372
+      ],
+      "mean_direction_magnitude": 0.2026807814836502
+    },
+    "verb_build": {
+      "chain": [
+        "assemble",
+        "build",
+        "construct",
+        "create",
+        "produce",
+        "act"
+      ],
+      "step_labels": [
+        "assemble->build",
+        "build->construct",
+        "construct->create",
+        "create->produce",
+        "produce->act"
+      ],
+      "alignments": [
+        0.46177780628204346,
+        0.10805442929267883,
+        0.11304520070552826,
+        0.04758055508136749,
+        0.36949622631073
+      ],
+      "mean_alignment": 0.2199908435344696,
+      "pairwise_consistency": -0.18950503505766392,
+      "pairwise_range": [
+        -0.5681516528129578,
+        0.08173507452011108
+      ],
+      "mean_direction_magnitude": 0.2199908345937729
+    },
+    "verb_run": {
+      "chain": [
+        "sprint",
+        "run",
+        "move",
+        "travel",
+        "act"
+      ],
+      "step_labels": [
+        "sprint->run",
+        "run->move",
+        "move->travel",
+        "travel->act"
+      ],
+      "alignments": [
+        0.4599594473838806,
+        0.27652016282081604,
+        -0.016409214586019516,
+        0.3800712823867798
+      ],
+      "mean_alignment": 0.27503541950136423,
+      "pairwise_consistency": -0.23247404249074557,
+      "pairwise_range": [
+        -0.5653026103973389,
+        -0.006554956082254648
+      ],
+      "mean_direction_magnitude": 0.27503541111946106
+    },
+    "verb_speak": {
+      "chain": [
+        "whisper",
+        "speak",
+        "communicate",
+        "express",
+        "act"
+      ],
+      "step_labels": [
+        "whisper->speak",
+        "speak->communicate",
+        "communicate->express",
+        "express->act"
+      ],
+      "alignments": [
+        0.4957045912742615,
+        0.25629493594169617,
+        0.057300273329019547,
+        0.4350448548793793
+      ],
+      "mean_alignment": 0.3110861638560891,
+      "pairwise_consistency": -0.2043005588153998,
+      "pairwise_range": [
+        -0.44803881645202637,
+        0.10391223430633545
+      ],
+      "mean_direction_magnitude": 0.31108614802360535
+    },
+    "verb_destroy": {
+      "chain": [
+        "smash",
+        "destroy",
+        "demolish",
+        "damage",
+        "harm",
+        "affect",
+        "act"
+      ],
+      "step_labels": [
+        "smash->destroy",
+        "destroy->demolish",
+        "demolish->damage",
+        "damage->harm",
+        "harm->affect",
+        "affect->act"
+      ],
+      "alignments": [
+        0.3557351231575012,
+        0.30234861373901367,
+        -0.1586647480726242,
+        0.24799975752830505,
+        0.022215934470295906,
+        0.4225703179836273
+      ],
+      "mean_alignment": 0.19870083313435316,
+      "pairwise_consistency": -0.15262157768011092,
+      "pairwise_range": [
+        -0.4891826808452606,
+        0.1739111989736557
+      ],
+      "mean_direction_magnitude": 0.19870084524154663
+    },
+    "verb_collect": {
+      "chain": [
+        "scoop",
+        "collect",
+        "gather",
+        "accumulate",
+        "acquire",
+        "act"
+      ],
+      "step_labels": [
+        "scoop->collect",
+        "collect->gather",
+        "gather->accumulate",
+        "accumulate->acquire",
+        "acquire->act"
+      ],
+      "alignments": [
+        0.4493318200111389,
+        0.08927197754383087,
+        0.08678295463323593,
+        0.05944019928574562,
+        0.4474887251853943
+      ],
+      "mean_alignment": 0.22646313533186913,
+      "pairwise_consistency": -0.1858930613845587,
+      "pairwise_range": [
+        -0.6152389049530029,
+        0.16375157237052917
+      ],
+      "mean_direction_magnitude": 0.22646312415599823
+    },
+    "verb_chase": {
+      "chain": [
+        "sprint after",
+        "chase",
+        "pursue",
+        "follow",
+        "track",
+        "act"
+      ],
+      "step_labels": [
+        "sprint after->chase",
+        "chase->pursue",
+        "pursue->follow",
+        "follow->track",
+        "track->act"
+      ],
+      "alignments": [
+        0.44443267583847046,
+        0.10529759526252747,
+        0.16151292622089386,
+        -0.10751517117023468,
+        0.5437563061714172
+      ],
+      "mean_alignment": 0.22949686646461487,
+      "pairwise_consistency": -0.18416401639115065,
+      "pairwise_range": [
+        -0.5340843200683594,
+        0.09899704903364182
+      ],
+      "mean_direction_magnitude": 0.22949685156345367
+    },
+    "verb_paint": {
+      "chain": [
+        "sketch",
+        "paint",
+        "draw",
+        "depict",
+        "represent",
+        "create",
+        "act"
+      ],
+      "step_labels": [
+        "sketch->paint",
+        "paint->draw",
+        "draw->depict",
+        "depict->represent",
+        "represent->create",
+        "create->act"
+      ],
+      "alignments": [
+        0.40519601106643677,
+        -0.1175089031457901,
+        0.15618543326854706,
+        0.17459452152252197,
+        0.00462111784145236,
+        0.47702595591545105
+      ],
+      "mean_alignment": 0.18335235607810318,
+      "pairwise_consistency": -0.15965831267337005,
+      "pairwise_range": [
+        -0.668403148651123,
+        0.13912779092788696
+      ],
+      "mean_direction_magnitude": 0.18335233628749847
+    },
+    "verb_hide": {
+      "chain": [
+        "conceal",
+        "hide",
+        "obscure",
+        "cover",
+        "protect",
+        "act"
+      ],
+      "step_labels": [
+        "conceal->hide",
+        "hide->obscure",
+        "obscure->cover",
+        "cover->protect",
+        "protect->act"
+      ],
+      "alignments": [
+        0.5712054371833801,
+        0.16173605620861053,
+        -0.11590690165758133,
+        0.12659837305545807,
+        0.5158392190933228
+      ],
+      "mean_alignment": 0.25189443677663803,
+      "pairwise_consistency": -0.17068650107830763,
+      "pairwise_range": [
+        -0.6543043851852417,
+        0.25795426964759827
+      ],
+      "mean_direction_magnitude": 0.25189441442489624
+    },
+    "verb_sing": {
+      "chain": [
+        "hum",
+        "sing",
+        "vocalize",
+        "produce sound",
+        "emit",
+        "act"
+      ],
+      "step_labels": [
+        "hum->sing",
+        "sing->vocalize",
+        "vocalize->produce sound",
+        "produce sound->emit",
+        "emit->act"
+      ],
+      "alignments": [
+        0.47123420238494873,
+        0.20653779804706573,
+        -0.09007177501916885,
+        0.05895691737532616,
+        0.49228817224502563
+      ],
+      "mean_alignment": 0.22778906300663948,
+      "pairwise_consistency": -0.18514019148424268,
+      "pairwise_range": [
+        -0.5300090909004211,
+        0.10576014220714569
+      ],
+      "mean_direction_magnitude": 0.227789044380188
+    },
+    "verb_read": {
+      "chain": [
+        "skim",
+        "read",
+        "study",
+        "learn",
+        "process",
+        "act"
+      ],
+      "step_labels": [
+        "skim->read",
+        "read->study",
+        "study->learn",
+        "learn->process",
+        "process->act"
+      ],
+      "alignments": [
+        0.5591220855712891,
+        0.05045180395245552,
+        0.029172036796808243,
+        -0.1016261950135231,
+        0.495793879032135
+      ],
+      "mean_alignment": 0.20658272206783296,
+      "pairwise_consistency": -0.19665448190644383,
+      "pairwise_range": [
+        -0.6999406814575195,
+        0.16518208384513855
+      ],
+      "mean_direction_magnitude": 0.2065826952457428
+    },
+    "verb_write": {
+      "chain": [
+        "scribble",
+        "write",
+        "compose",
+        "create",
+        "produce",
+        "act"
+      ],
+      "step_labels": [
+        "scribble->write",
+        "write->compose",
+        "compose->create",
+        "create->produce",
+        "produce->act"
+      ],
+      "alignments": [
+        0.5482769012451172,
+        0.14259594678878784,
+        0.12067049741744995,
+        0.07864461839199066,
+        0.30108556151390076
+      ],
+      "mean_alignment": 0.23825470507144927,
+      "pairwise_consistency": -0.1790433782618493,
+      "pairwise_range": [
+        -0.5681516528129578,
+        0.04996967315673828
+      ],
+      "mean_direction_magnitude": 0.23825468122959137
+    },
+    "verb_push": {
+      "chain": [
+        "shove",
+        "push",
+        "force",
+        "move",
+        "displace",
+        "act"
+      ],
+      "step_labels": [
+        "shove->push",
+        "push->force",
+        "force->move",
+        "move->displace",
+        "displace->act"
+      ],
+      "alignments": [
+        0.5210886597633362,
+        0.26465821266174316,
+        -0.06309599429368973,
+        0.020456578582525253,
+        0.4467321038246155
+      ],
+      "mean_alignment": 0.23796791210770607,
+      "pairwise_consistency": -0.17921409234404564,
+      "pairwise_range": [
+        -0.6303747296333313,
+        0.20585760474205017
+      ],
+      "mean_direction_magnitude": 0.23796790838241577
+    },
+    "verb_climb": {
+      "chain": [
+        "scramble",
+        "climb",
+        "ascend",
+        "move",
+        "travel",
+        "act"
+      ],
+      "step_labels": [
+        "scramble->climb",
+        "climb->ascend",
+        "ascend->move",
+        "move->travel",
+        "travel->act"
+      ],
+      "alignments": [
+        0.4020542502403259,
+        0.20714762806892395,
+        0.06718583405017853,
+        -0.017351243644952774,
+        0.462088018655777
+      ],
+      "mean_alignment": 0.22422489747405053,
+      "pairwise_consistency": -0.18715400546789168,
+      "pairwise_range": [
+        -0.5653026103973389,
+        0.12062139809131622
+      ],
+      "mean_direction_magnitude": 0.22422489523887634
+    },
+    "adj_red": {
+      "chain": [
+        "crimson",
+        "red",
+        "warm-colored",
+        "colored",
+        "visible",
+        "perceptible"
+      ],
+      "step_labels": [
+        "crimson->red",
+        "red->warm-colored",
+        "warm-colored->colored",
+        "colored->visible",
+        "visible->perceptible"
+      ],
+      "alignments": [
+        0.460702121257782,
+        0.1518392264842987,
+        -0.026558266952633858,
+        0.22461862862110138,
+        0.5612116456031799
+      ],
+      "mean_alignment": 0.27436267100274564,
+      "pairwise_consistency": -0.1559064346831292,
+      "pairwise_range": [
+        -0.6496414542198181,
+        0.11626601964235306
+      ],
+      "mean_direction_magnitude": 0.2743626534938812
+    },
+    "adj_huge": {
+      "chain": [
+        "enormous",
+        "huge",
+        "large",
+        "big",
+        "sized"
+      ],
+      "step_labels": [
+        "enormous->huge",
+        "huge->large",
+        "large->big",
+        "big->sized"
+      ],
+      "alignments": [
+        0.7025595307350159,
+        0.24926821887493134,
+        0.1238662376999855,
+        0.5220617651939392
+      ],
+      "mean_alignment": 0.399438938125968,
+      "pairwise_consistency": -0.12059805107613404,
+      "pairwise_range": [
+        -0.7310314774513245,
+        0.3608936667442322
+      ],
+      "mean_direction_magnitude": 0.3994389474391937
+    },
+    "adj_cold": {
+      "chain": [
+        "freezing",
+        "cold",
+        "cool",
+        "temperature",
+        "condition"
+      ],
+      "step_labels": [
+        "freezing->cold",
+        "cold->cool",
+        "cool->temperature",
+        "temperature->condition"
+      ],
+      "alignments": [
+        0.6162368059158325,
+        0.17376458644866943,
+        -0.01571485958993435,
+        0.4625646471977234
+      ],
+      "mean_alignment": 0.30921279499307275,
+      "pairwise_consistency": -0.20584995796283087,
+      "pairwise_range": [
+        -0.659774899482727,
+        0.07887003570795059
+      ],
+      "mean_direction_magnitude": 0.3092127740383148
+    },
+    "adj_fast": {
+      "chain": [
+        "lightning-fast",
+        "fast",
+        "quick",
+        "speedy",
+        "moving"
+      ],
+      "step_labels": [
+        "lightning-fast->fast",
+        "fast->quick",
+        "quick->speedy",
+        "speedy->moving"
+      ],
+      "alignments": [
+        0.4875028133392334,
+        0.28078362345695496,
+        0.03686537221074104,
+        0.5086228847503662
+      ],
+      "mean_alignment": 0.3284436734393239,
+      "pairwise_consistency": -0.18949969609578451,
+      "pairwise_range": [
+        -0.5368871092796326,
+        0.0897478237748146
+      ],
+      "mean_direction_magnitude": 0.3284436762332916
+    },
+    "adj_loud": {
+      "chain": [
+        "deafening",
+        "loud",
+        "noisy",
+        "audible",
+        "perceptible"
+      ],
+      "step_labels": [
+        "deafening->loud",
+        "loud->noisy",
+        "noisy->audible",
+        "audible->perceptible"
+      ],
+      "alignments": [
+        0.47933754324913025,
+        0.1749315857887268,
+        0.11027932912111282,
+        0.3570794463157654
+      ],
+      "mean_alignment": 0.2804069761186838,
+      "pairwise_consistency": -0.22849591355770826,
+      "pairwise_range": [
+        -0.5246043801307678,
+        0.05341402068734169
+      ],
+      "mean_direction_magnitude": 0.2804069519042969
+    },
+    "adj_bright": {
+      "chain": [
+        "blinding",
+        "bright",
+        "luminous",
+        "visible",
+        "perceptible"
+      ],
+      "step_labels": [
+        "blinding->bright",
+        "bright->luminous",
+        "luminous->visible",
+        "visible->perceptible"
+      ],
+      "alignments": [
+        0.4102814793586731,
+        0.06096894294023514,
+        0.15504278242588043,
+        0.6244657039642334
+      ],
+      "mean_alignment": 0.3126897271722555,
+      "pairwise_consistency": -0.2029668769488732,
+      "pairwise_range": [
+        -0.6008990406990051,
+        0.04443726688623428
+      ],
+      "mean_direction_magnitude": 0.31268972158432007
+    },
+    "adj_soft": {
+      "chain": [
+        "silky",
+        "soft",
+        "smooth",
+        "textured",
+        "tactile",
+        "perceptible"
+      ],
+      "step_labels": [
+        "silky->soft",
+        "soft->smooth",
+        "smooth->textured",
+        "textured->tactile",
+        "tactile->perceptible"
+      ],
+      "alignments": [
+        0.36652281880378723,
+        0.10497695207595825,
+        0.06596900522708893,
+        0.17980727553367615,
+        0.47717687487602234
+      ],
+      "mean_alignment": 0.2388905853033066,
+      "pairwise_consistency": -0.17866413379088045,
+      "pairwise_range": [
+        -0.5263968110084534,
+        0.23053085803985596
+      ],
+      "mean_direction_magnitude": 0.23889055848121643
+    },
+    "adj_sweet": {
+      "chain": [
+        "sugary",
+        "sweet",
+        "flavored",
+        "tasteable",
+        "perceptible"
+      ],
+      "step_labels": [
+        "sugary->sweet",
+        "sweet->flavored",
+        "flavored->tasteable",
+        "tasteable->perceptible"
+      ],
+      "alignments": [
+        0.44392403960227966,
+        -0.12099876999855042,
+        0.36928585171699524,
+        0.5872297883033752
+      ],
+      "mean_alignment": 0.31986022740602493,
+      "pairwise_consistency": -0.19691926799714565,
+      "pairwise_range": [
+        -0.5457417964935303,
+        0.05763033777475357
+      ],
+      "mean_direction_magnitude": 0.31986021995544434
+    },
+    "adj_old": {
+      "chain": [
+        "ancient",
+        "old",
+        "aged",
+        "mature",
+        "developed"
+      ],
+      "step_labels": [
+        "ancient->old",
+        "old->aged",
+        "aged->mature",
+        "mature->developed"
+      ],
+      "alignments": [
+        0.30020830035209656,
+        0.4025669991970062,
+        0.1906740814447403,
+        0.3755684792995453
+      ],
+      "mean_alignment": 0.3172544650733471,
+      "pairwise_consistency": -0.19913281127810478,
+      "pairwise_range": [
+        -0.29476386308670044,
+        -0.054066143929958344
+      ],
+      "mean_direction_magnitude": 0.3172544836997986
+    },
+    "adj_heavy": {
+      "chain": [
+        "leaden",
+        "heavy",
+        "weighty",
+        "massive",
+        "sized"
+      ],
+      "step_labels": [
+        "leaden->heavy",
+        "heavy->weighty",
+        "weighty->massive",
+        "massive->sized"
+      ],
+      "alignments": [
+        0.43872228264808655,
+        0.5010273456573486,
+        -0.06355385482311249,
+        0.4093782901763916
+      ],
+      "mean_alignment": 0.3213935159146786,
+      "pairwise_consistency": -0.19560828804969788,
+      "pairwise_range": [
+        -0.5504142045974731,
+        0.2649122178554535
+      ],
+      "mean_direction_magnitude": 0.3213934898376465
+    }
+  },
+  "cross_hierarchy": {
+    "noun_within": [
+      0.4559625665471597,
+      0.5053919273984014,
+      0.4295769970336706,
+      0.4835515019064717,
+      0.6192072204622996,
+      0.5672355961954857,
+      0.4479413773580263,
+      0.5188711943621257,
+      0.5564836052970453,
+      0.47023907259314507,
+      0.37588696970331625,
+      0.5580624245102218,
+      0.5021385837810709,
+      0.6139978610482687,
+      0.39071809825572024,
+      0.4938197787403388,
+      0.5141762900240529,
+      0.4691042316584336,
+      0.46872294074972554,
+      0.4280595703204414,
+      0.38410500072247095,
+      0.43256877863469506,
+      0.3960262861031467,
+      0.4177033818650863,
+      0.47761060109557085,
+      0.40897702916210266,
+      0.5065028544946717,
+      0.5071672599721229,
+      0.3982750490519587,
+      0.44562245622585384,
+      0.36774225272730726,
+      0.49984004526355796,
+      0.3668436305065744,
+      0.5230815378956575,
+      0.4021683071819917,
+      0.4644753760996221,
+      0.4013748523524294,
+      0.5818391885232022,
+      0.6770431850074503,
+      0.4811202623513162,
+      0.4581388089439211,
+      0.44513671888787687,
+      0.4983323475940126,
+      0.5831879959928192,
+      0.4347162526869071,
+      0.3569079342991719,
+      0.47331078591055775,
+      0.35635384874633025,
+      0.5838905960892075,
+      0.38191588187988257,
+      0.46183930922005245,
+      0.43128455652465675,
+      0.49232520573065147,
+      0.5644216486724118,
+      0.6112582196881606,
+      0.365928895745941,
+      0.4385908577318757,
+      0.44068879069063527,
+      0.5403337043444856,
+      0.5799497375788341,
+      0.4109652891633411,
+      0.3184816560359764,
+      0.4257414032608371,
+      0.3671715226761654,
+      0.5657567429746124,
+      0.34213101402228896,
+      0.4075980985840574,
+      0.4249237623284161,
+      0.49284913695993043,
+      0.5499025037512613,
+      0.3971799691050404,
+      0.4592398056127928,
+      0.550436383010813,
+      0.6961649158835338,
+      0.6467623591579182,
+      0.48665191241516575,
+      0.3855357180329937,
+      0.4980113768321492,
+      0.365646675961768,
+      0.7090428182046302,
+      0.3945016418643386,
+      0.4916454799384604,
+      0.4621023611093676,
+      0.49511314612846685,
+      0.6304501657398042,
+      0.511681213425562,
+      0.4108805286489423,
+      0.43863870778674174,
+      0.5341373000840415,
+      0.4524980359455835,
+      0.3011075355460575,
+      0.5905380757047607,
+      0.47314188092342246,
+      0.5680369541168655,
+      0.31877346646428095,
+      0.48406608798496936,
+      0.4460913753356378,
+      0.4261862182118658,
+      0.4415977207880317,
+      0.5481986135063588,
+      0.49728748035354203,
+      0.6004606942131135,
+      0.4978247060871347,
+      0.5442572009239842,
+      0.47430046962977807,
+      0.4043758242261341,
+      0.6128750040638673,
+      0.38382828510655814,
+      0.4889746410141297,
+      0.44444315455425654,
+      0.5017898932096422,
+      0.6225885494229605,
+      0.513092296707317,
+      0.5196633545871291,
+      0.5409695114921369,
+      0.40004593301687547,
+      0.4449803287166958,
+      0.388397159415382,
+      0.5768003578652814,
+      0.43504782929350144,
+      0.5282956586243613,
+      0.49959920086434384,
+      0.5633147697718318,
+      0.5407521022229947,
+      0.6338307355934689,
+      0.5117619700528647,
+      0.3527206701500774,
+      0.4462681891655428,
+      0.4034741746130228,
+      0.6325748832551003,
+      0.4021245265691644,
+      0.42728257591236973,
+      0.5099862339528232,
+      0.4558097869668729,
+      0.6814483593290295,
+      0.6317699075883567,
+      0.45118332208861645,
+      0.5382401429167893,
+      0.3876333337577241,
+      0.7833602859952098,
+      0.43315568161746243,
+      0.5328611132981649,
+      0.4574488056393264,
+      0.5018015761151572,
+      0.5997862776388446,
+      0.3905067906289562,
+      0.4445157981170098,
+      0.3999780827916354,
+      0.6423257927116233,
+      0.3479993686612264,
+      0.4699116864580525,
+      0.448711091910496,
+      0.4560161127455663,
+      0.4884537042630786,
+      0.3818858824770689,
+      0.3388923923997566,
+      0.4694306396842951,
+      0.3764239791697912,
+      0.42678824562617557,
+      0.371357244886811,
+      0.4674784532330609,
+      0.41314725606282,
+      0.4364225253215184,
+      0.5694206829179502,
+      0.35375919035984393,
+      0.5229161141136712,
+      0.35451837210592835,
+      0.5021072176204165,
+      0.41476090632149876,
+      0.40572216529052685,
+      0.42526765955184054,
+      0.4483902003904235,
+      0.34596633482828754,
+      0.4557918484846827,
+      0.3962859691297771,
+      0.4394130856142664,
+      0.5560474508442684,
+      0.5024880616023155,
+      0.5438264036249567,
+      0.5868438988448254,
+      0.4087137038373818,
+      0.41256302884601415,
+      0.43213020962415927,
+      0.40909232013165076,
+      0.4547734639420857,
+      0.5140618293106004,
+      0.48642078830308466,
+      0.507024539545273,
+      0.5047387184017302,
+      0.557201019834156
+    ],
+    "verb_within": [
+      0.45247947640653335,
+      0.39938965816722777,
+      0.5211170375882164,
+      0.37624338920105377,
+      0.37349195014809833,
+      0.3099729154358689,
+      0.33527615239976905,
+      0.3530456029795469,
+      0.35619740446700987,
+      0.3322787669755267,
+      0.4013096274117872,
+      0.41533957623231643,
+      0.3745255267140537,
+      0.31921214799055064,
+      0.38580802279627435,
+      0.30354389009185906,
+      0.3570903737058605,
+      0.42675493129185016,
+      0.33337445233935026,
+      0.39841151694311516,
+      0.47484796168927784,
+      0.41337959587998396,
+      0.2997014426005687,
+      0.40157711843459953,
+      0.32994050592772084,
+      0.3929874211207425,
+      0.39505747695975335,
+      0.3080094869933482,
+      0.46048017110142025,
+      0.429206780165341,
+      0.45771086919775195,
+      0.36023421289858715,
+      0.4473138448944145,
+      0.4043851192432446,
+      0.47335568304983605,
+      0.40316844413211406,
+      0.3777941718023111,
+      0.6568897012844483,
+      0.34850945772405373,
+      0.3671711421355923,
+      0.41211132549478546,
+      0.4382844319999666,
+      0.31936927269436177,
+      0.42206947917387105,
+      0.38160514318747674,
+      0.4250075618246947,
+      0.42637550898192234,
+      0.45201137503130523,
+      0.7283876772028395,
+      0.38211704479361525,
+      0.44400283654735107,
+      0.43517968721909106,
+      0.3509563770702224,
+      0.37648959369500345,
+      0.5226538799116252,
+      0.4991836205903101,
+      0.4916119660898756,
+      0.47316574004142997,
+      0.43500519902096835,
+      0.4625488664752525,
+      0.39854614603935057,
+      0.47860591064916197,
+      0.49986485997688174,
+      0.5654587911530742,
+      0.5751397859247933,
+      0.43282639151408525,
+      0.41650128271129006,
+      0.49111400404663874,
+      0.4461475711630222,
+      0.45770621612790285,
+      0.4545277558836227,
+      0.46549909114126153,
+      0.4727411116689567,
+      0.411094958241092,
+      0.39963039233242026,
+      0.3769739562177178,
+      0.42475075254016986,
+      0.4238683567649695,
+      0.6107425108575566,
+      0.4188804647638129,
+      0.399940690089026,
+      0.4928251154574008,
+      0.4362631116549089,
+      0.35443405660763194,
+      0.4017582392949778,
+      0.4108581172360454,
+      0.47599705494525757,
+      0.4684088239320042,
+      0.3279424309574901,
+      0.31329238106817764,
+      0.49291741010532697,
+      0.42312791414220563,
+      0.4816803781056177,
+      0.33628084697707256,
+      0.3728490114069689,
+      0.3362199737168311,
+      0.37868883533438297,
+      0.31524952801160816,
+      0.4048347088358375,
+      0.5351653181621165,
+      0.40590362276698444,
+      0.2839525852757387,
+      0.27169450048008215,
+      0.3629006245184577,
+      0.4135091695349497,
+      0.4071906515146779,
+      0.44358790472687526,
+      0.3447552613568756,
+      0.4282641880210476,
+      0.4944901662567207,
+      0.3379954740158324,
+      0.3484915155583539,
+      0.5568574115493453,
+      0.28217040840451363,
+      0.35019483526319245,
+      0.37425188587356706,
+      0.3242074398610563,
+      0.45091547329809745,
+      0.3808899373760626,
+      0.40433014849522786,
+      0.47421441223696104,
+      0.46013502226869935,
+      0.4129960756152764,
+      0.35941871940735576,
+      0.24107841763583215,
+      0.291822393539548,
+      0.44065728341798943,
+      0.26349257695433725,
+      0.3606705793568674,
+      0.3239267835180053,
+      0.4460640002039926,
+      0.3067219563226201,
+      0.35487492995686204,
+      0.3607535941023481,
+      0.3738733424419465,
+      0.3545902637869673,
+      0.4786701021022547,
+      0.39494029278118803,
+      0.42489955922921063,
+      0.39126276872281207,
+      0.30704863589027215,
+      0.40161276051346007,
+      0.3154087031126994,
+      0.44601077711446435,
+      0.40981683980553174,
+      0.37965184167691546,
+      0.2733578960534121,
+      0.3803137334598937,
+      0.3666749944405805,
+      0.4369085525387331,
+      0.5409106120973535,
+      0.30579434672844,
+      0.38554747825297914,
+      0.277414373866328,
+      0.45516228886474563,
+      0.4939039180730424,
+      0.4310111662173962,
+      0.4276558099837779,
+      0.4290562440389014,
+      0.3362287240220051,
+      0.37854869574684313,
+      0.6915741409543579,
+      0.42157714166948523,
+      0.31526524017291657,
+      0.2955816246914218,
+      0.3199699813144123,
+      0.48400694193713756,
+      0.3127115078716777,
+      0.38087985255036655,
+      0.4702233398530335,
+      0.45992299365435574,
+      0.5624112968134324,
+      0.4835121867487233,
+      0.39042886299949603,
+      0.5431182185854776,
+      0.4206717641930786,
+      0.5028689234170632,
+      0.39272253619807806,
+      0.30921029787246473,
+      0.3928600333851787,
+      0.4729239169599612,
+      0.3885479631082503,
+      0.32516782315434234,
+      0.369869600079912,
+      0.4473007685319371,
+      0.389216641783512,
+      0.44278492547448967,
+      0.39580706322988757,
+      0.34988515166161765,
+      0.3415341862712369
+    ],
+    "adj_within": [
+      0.0928157400770649,
+      0.0995938871926601,
+      0.18561338948781025,
+      0.0681705814723251,
+      0.49979091651204055,
+      0.011464247420249391,
+      0.5103494920316698,
+      0.4671646803394819,
+      0.4334880583054981,
+      0.07834353525011689,
+      0.005211036960861882,
+      0.09269758995149595,
+      0.14926087479664377,
+      -0.027493983693275322,
+      0.0005594835763308419,
+      0.048234880242449756,
+      0.134017193935679,
+      0.07371997258966322,
+      0.11973007610938188,
+      0.11082743625105079,
+      -0.03154999621893024,
+      0.03579235739170972,
+      -0.010303425455674056,
+      -0.016866203937872016,
+      0.31056111829053723,
+      0.1115258717158358,
+      0.02742770927891675,
+      0.1287059462356959,
+      0.10488358631520754,
+      0.12332283439668167,
+      0.1787350147846094,
+      0.23176347306066883,
+      0.015869709520222305,
+      -0.026650910675009295,
+      0.028675460176158504,
+      0.047375587352173204,
+      0.27388773552685436,
+      0.24657320514332215,
+      0.30720027433809177,
+      0.10276865731947485,
+      0.0442739784117859,
+      0.08097077850519734,
+      0.5701404623311134,
+      0.44765345930274647,
+      0.5860031510991245
+    ],
+    "global_up_magnitude": 0.43137560553300447
+  },
+  "abstraction_levels": {
+    "specific (0.0-0.33)": {
+      "count": 105,
+      "mean_sim": 0.5523456335067749,
+      "std_sim": 0.057518377900123596
+    },
+    "mid (0.33-0.67)": {
+      "count": 77,
+      "mean_sim": 0.5591604709625244,
+      "std_sim": 0.0613778755068779
+    },
+    "general (0.67-1.0)": {
+      "count": 36,
+      "mean_sim": 0.5722220540046692,
+      "std_sim": 0.05338778719305992
+    }
+  },
+  "distance_decay": {
+    "noun_dog": {
+      "chain": [
+        "puppy",
+        "dog",
+        "hound",
+        "canine",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.8327731490135193,
+        0.7224783897399902,
+        0.8557919263839722,
+        0.5204615592956543,
+        0.675646960735321,
+        0.7453517913818359,
+        0.5145882368087769,
+        0.4490906298160553
+      ],
+      "positions": [
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "noun_cat": {
+      "chain": [
+        "kitten",
+        "cat",
+        "feline",
+        "carnivore",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.829093337059021,
+        0.8344470858573914,
+        0.558387815952301,
+        0.6038978695869446,
+        0.6815998554229736,
+        0.5212929248809814,
+        0.4743404984474182
+      ],
+      "positions": [
+        0.0,
+        0.14285714285714285,
+        0.2857142857142857,
+        0.42857142857142855,
+        0.5714285714285714,
+        0.7142857142857143,
+        0.8571428571428571,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "noun_horse": {
+      "chain": [
+        "foal",
+        "horse",
+        "stallion",
+        "equine",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.785049319267273,
+        0.7369335293769836,
+        0.8007440567016602,
+        0.6171042919158936,
+        0.7129666805267334,
+        0.5858708024024963,
+        0.5654540657997131
+      ],
+      "positions": [
+        0.0,
+        0.14285714285714285,
+        0.2857142857142857,
+        0.42857142857142855,
+        0.5714285714285714,
+        0.7142857142857143,
+        0.8571428571428571,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_fish": {
+      "chain": [
+        "trout",
+        "fish",
+        "aquatic animal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7507301568984985,
+        0.681036114692688,
+        0.6186227202415466,
+        0.5926201939582825,
+        0.499313622713089
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "noun_bird": {
+      "chain": [
+        "sparrow",
+        "bird",
+        "avian",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7107495069503784,
+        0.6471002697944641,
+        0.5727731585502625,
+        0.571185827255249,
+        0.5323427319526672
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "noun_tree": {
+      "chain": [
+        "oak",
+        "tree",
+        "plant",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7280799746513367,
+        0.6374531984329224,
+        0.5988733172416687,
+        0.6006770730018616
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "noun_rock": {
+      "chain": [
+        "pebble",
+        "rock",
+        "stone",
+        "mineral",
+        "substance",
+        "matter",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6929891109466553,
+        0.7761879563331604,
+        0.6776602268218994,
+        0.5901988744735718,
+        0.5437997579574585,
+        0.5829700827598572
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_truck": {
+      "chain": [
+        "pickup",
+        "truck",
+        "vehicle",
+        "machine",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6663075089454651,
+        0.6817948222160339,
+        0.6051936149597168,
+        0.5819025039672852,
+        0.6365342140197754,
+        0.5708001852035522
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_child": {
+      "chain": [
+        "toddler",
+        "child",
+        "person",
+        "human",
+        "primate",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.8276622891426086,
+        0.540043294429779,
+        0.6023983955383301,
+        0.48991963267326355,
+        0.5462722182273865,
+        0.5708244442939758,
+        0.5285513401031494,
+        0.5019343495368958
+      ],
+      "positions": [
+        0.0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "noun_star": {
+      "chain": [
+        "sun",
+        "star",
+        "celestial body",
+        "astronomical object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7150328159332275,
+        0.6520047187805176,
+        0.6206586360931396,
+        0.5833417773246765
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "noun_eagle": {
+      "chain": [
+        "eaglet",
+        "eagle",
+        "raptor",
+        "bird of prey",
+        "bird",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.877853274345398,
+        0.7035742402076721,
+        0.6855878829956055,
+        0.7337238192558289,
+        0.6294528841972351,
+        0.5410099625587463,
+        0.5090371966362
+      ],
+      "positions": [
+        0.0,
+        0.14285714285714285,
+        0.2857142857142857,
+        0.42857142857142855,
+        0.5714285714285714,
+        0.7142857142857143,
+        0.8571428571428571,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "noun_whale": {
+      "chain": [
+        "calf",
+        "whale",
+        "cetacean",
+        "mammal",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6371830105781555,
+        0.6256479024887085,
+        0.6793449521064758,
+        0.7376372218132019,
+        0.5914212465286255,
+        0.49612754583358765
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_snake": {
+      "chain": [
+        "hatchling",
+        "snake",
+        "serpent",
+        "reptile",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.604630172252655,
+        0.598514199256897,
+        0.6404367089271545,
+        0.5881873369216919,
+        0.6027035117149353,
+        0.5078326463699341
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_flower": {
+      "chain": [
+        "bud",
+        "flower",
+        "blossom",
+        "plant",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7285864949226379,
+        0.6956016421318054,
+        0.746399462223053,
+        0.6163373589515686,
+        0.5974602699279785
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "noun_insect": {
+      "chain": [
+        "larva",
+        "insect",
+        "arthropod",
+        "invertebrate",
+        "animal",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7156610488891602,
+        0.6615326404571533,
+        0.7271034121513367,
+        0.5892540216445923,
+        0.6763718128204346,
+        0.526011049747467
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_mushroom": {
+      "chain": [
+        "spore",
+        "mushroom",
+        "fungus",
+        "organism",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6639217734336853,
+        0.6777581572532654,
+        0.6890173554420471,
+        0.6080942749977112
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_robot": {
+      "chain": [
+        "drone",
+        "robot",
+        "automaton",
+        "machine",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6757553219795227,
+        0.5109304189682007,
+        0.593704104423523,
+        0.5107730031013489,
+        0.5746814012527466,
+        0.5030694007873535
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_sword": {
+      "chain": [
+        "dagger",
+        "sword",
+        "blade",
+        "weapon",
+        "tool",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6639875769615173,
+        0.6992288827896118,
+        0.75832599401474,
+        0.69620281457901,
+        0.6542927026748657,
+        0.6033907532691956,
+        0.535972535610199
+      ],
+      "positions": [
+        0.0,
+        0.14285714285714285,
+        0.2857142857142857,
+        0.42857142857142855,
+        0.5714285714285714,
+        0.7142857142857143,
+        0.8571428571428571,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "noun_river": {
+      "chain": [
+        "stream",
+        "river",
+        "waterway",
+        "body of water",
+        "landform",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7657460570335388,
+        0.7183265686035156,
+        0.7214797139167786,
+        0.6233659982681274,
+        0.5924669504165649
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "noun_book": {
+      "chain": [
+        "novel",
+        "book",
+        "publication",
+        "document",
+        "artifact",
+        "object",
+        "entity"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.722130537033081,
+        0.6195691227912903,
+        0.6069854497909546,
+        0.636803150177002,
+        0.6516008377075195,
+        0.6329455375671387
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_eat": {
+      "chain": [
+        "munch",
+        "eat",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6322066187858582,
+        0.6159762144088745,
+        0.6204596161842346,
+        0.5760018825531006,
+        0.5247970223426819,
+        0.5539392828941345
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_devour": {
+      "chain": [
+        "devour",
+        "gorge",
+        "consume",
+        "ingest",
+        "take in",
+        "process",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.5793138146400452,
+        0.798154354095459,
+        0.8018871545791626,
+        0.689534068107605,
+        0.551736056804657,
+        0.5608421564102173
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 3
+    },
+    "verb_carry": {
+      "chain": [
+        "lug",
+        "carry",
+        "transport",
+        "move",
+        "displace",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6609603762626648,
+        0.6071146726608276,
+        0.622027575969696,
+        0.5820066928863525,
+        0.5269176959991455
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_throw": {
+      "chain": [
+        "hurl",
+        "throw",
+        "propel",
+        "move",
+        "displace",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.8100675940513611,
+        0.5822348594665527,
+        0.6051902770996094,
+        0.5843676924705505,
+        0.565374493598938
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_watch": {
+      "chain": [
+        "stare",
+        "watch",
+        "observe",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6206759214401245,
+        0.6646339297294617,
+        0.6512436866760254,
+        0.605369508266449,
+        0.5049633979797363,
+        0.5621739625930786
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_listen": {
+      "chain": [
+        "eavesdrop",
+        "listen",
+        "hear",
+        "perceive",
+        "sense",
+        "experience",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.6888629198074341,
+        0.6846773028373718,
+        0.5608961582183838,
+        0.5352425575256348,
+        0.494570791721344,
+        0.5298942923545837
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_cut": {
+      "chain": [
+        "slice",
+        "cut",
+        "sever",
+        "divide",
+        "separate",
+        "alter",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7644170522689819,
+        0.5670219659805298,
+        0.6271863579750061,
+        0.5644891858100891,
+        0.5867411494255066,
+        0.5498056411743164
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_build": {
+      "chain": [
+        "assemble",
+        "build",
+        "construct",
+        "create",
+        "produce",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7579904198646545,
+        0.7251811623573303,
+        0.7128055691719055,
+        0.5837756395339966,
+        0.6252325773239136
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_run": {
+      "chain": [
+        "sprint",
+        "run",
+        "move",
+        "travel",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6546566486358643,
+        0.6098883152008057,
+        0.5564486980438232,
+        0.5706557631492615
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_speak": {
+      "chain": [
+        "whisper",
+        "speak",
+        "communicate",
+        "express",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7390556335449219,
+        0.690138041973114,
+        0.5966526865959167,
+        0.5467977523803711
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "verb_destroy": {
+      "chain": [
+        "smash",
+        "destroy",
+        "demolish",
+        "damage",
+        "harm",
+        "affect",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7009783387184143,
+        0.654538094997406,
+        0.6516970992088318,
+        0.562958300113678,
+        0.6169381141662598,
+        0.6038798093795776
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_collect": {
+      "chain": [
+        "scoop",
+        "collect",
+        "gather",
+        "accumulate",
+        "acquire",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7224169969558716,
+        0.6987102031707764,
+        0.6337183713912964,
+        0.6557044982910156,
+        0.6053088903427124
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_chase": {
+      "chain": [
+        "sprint after",
+        "chase",
+        "pursue",
+        "follow",
+        "track",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6898229718208313,
+        0.6880108118057251,
+        0.646247148513794,
+        0.6404321193695068,
+        0.5388736724853516
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "verb_paint": {
+      "chain": [
+        "sketch",
+        "paint",
+        "draw",
+        "depict",
+        "represent",
+        "create",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6918010711669922,
+        0.8116320371627808,
+        0.7034651041030884,
+        0.6627175807952881,
+        0.6703009605407715,
+        0.6235413551330566
+      ],
+      "positions": [
+        0.0,
+        0.16666666666666666,
+        0.3333333333333333,
+        0.5,
+        0.6666666666666666,
+        0.8333333333333334,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_hide": {
+      "chain": [
+        "conceal",
+        "hide",
+        "obscure",
+        "cover",
+        "protect",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.8512017130851746,
+        0.5699713230133057,
+        0.6729584336280823,
+        0.7216899991035461,
+        0.5808109045028687
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 2
+    },
+    "verb_sing": {
+      "chain": [
+        "hum",
+        "sing",
+        "vocalize",
+        "produce sound",
+        "emit",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6950277090072632,
+        0.6590638160705566,
+        0.6283810138702393,
+        0.6701062917709351,
+        0.5711069703102112
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_read": {
+      "chain": [
+        "skim",
+        "read",
+        "study",
+        "learn",
+        "process",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6005498170852661,
+        0.5367100238800049,
+        0.5943307280540466,
+        0.5913338661193848,
+        0.5557637214660645
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_write": {
+      "chain": [
+        "scribble",
+        "write",
+        "compose",
+        "create",
+        "produce",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.7750613689422607,
+        0.6890530586242676,
+        0.6845080256462097,
+        0.521655797958374,
+        0.5881125330924988
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_push": {
+      "chain": [
+        "shove",
+        "push",
+        "force",
+        "move",
+        "displace",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.8489590287208557,
+        0.7155476212501526,
+        0.7353281378746033,
+        0.6836430430412292,
+        0.5982563495635986
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "verb_climb": {
+      "chain": [
+        "scramble",
+        "climb",
+        "ascend",
+        "move",
+        "travel",
+        "act"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.5899277925491333,
+        0.5873358845710754,
+        0.6050296425819397,
+        0.5603063106536865,
+        0.5128055214881897
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_red": {
+      "chain": [
+        "crimson",
+        "red",
+        "warm-colored",
+        "colored",
+        "visible",
+        "perceptible"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7901997566223145,
+        0.6146326065063477,
+        0.7077929973602295,
+        0.6205735206604004,
+        0.5473214387893677
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_huge": {
+      "chain": [
+        "enormous",
+        "huge",
+        "large",
+        "big",
+        "sized"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.9646856188774109,
+        0.861771285533905,
+        0.8762036561965942,
+        0.6539290547370911
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_cold": {
+      "chain": [
+        "freezing",
+        "cold",
+        "cool",
+        "temperature",
+        "condition"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7971290946006775,
+        0.6010582447052002,
+        0.6629299521446228,
+        0.6014919877052307
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_fast": {
+      "chain": [
+        "lightning-fast",
+        "fast",
+        "quick",
+        "speedy",
+        "moving"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.780388355255127,
+        0.7162638902664185,
+        0.7349683046340942,
+        0.5481385588645935
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_loud": {
+      "chain": [
+        "deafening",
+        "loud",
+        "noisy",
+        "audible",
+        "perceptible"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.835392415523529,
+        0.8102918863296509,
+        0.57648104429245,
+        0.6276675462722778
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_bright": {
+      "chain": [
+        "blinding",
+        "bright",
+        "luminous",
+        "visible",
+        "perceptible"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7114276885986328,
+        0.6641708016395569,
+        0.6963949203491211,
+        0.6207800507545471
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_soft": {
+      "chain": [
+        "silky",
+        "soft",
+        "smooth",
+        "textured",
+        "tactile",
+        "perceptible"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7309045195579529,
+        0.7617013454437256,
+        0.6896901726722717,
+        0.6231657266616821,
+        0.6050529479980469
+      ],
+      "positions": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_sweet": {
+      "chain": [
+        "sugary",
+        "sweet",
+        "flavored",
+        "tasteable",
+        "perceptible"
+      ],
+      "sims_from_origin": [
+        1.0000001192092896,
+        0.755626380443573,
+        0.7402758598327637,
+        0.7502500414848328,
+        0.5464722514152527
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    },
+    "adj_old": {
+      "chain": [
+        "ancient",
+        "old",
+        "aged",
+        "mature",
+        "developed"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.7092142701148987,
+        0.6681874394416809,
+        0.6317282915115356,
+        0.5836688280105591
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": true,
+      "violations": 0
+    },
+    "adj_heavy": {
+      "chain": [
+        "leaden",
+        "heavy",
+        "weighty",
+        "massive",
+        "sized"
+      ],
+      "sims_from_origin": [
+        1.0,
+        0.6503196954727173,
+        0.5923795104026794,
+        0.49986034631729126,
+        0.5267344117164612
+      ],
+      "positions": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "monotonic": false,
+      "violations": 1
+    }
+  }
+}

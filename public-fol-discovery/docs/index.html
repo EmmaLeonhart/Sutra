@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VSA Reference &amp; Reframe Plan</title>
+<style>
+  :root { --bg: #1a1a2e; --surface: #16213e; --card: #0f3460; --accent: #e94560; --text: #eee; --dim: #aaa; --green: #4ecca3; --yellow: #f0c040; --blue: #6ec6ff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 2rem; margin-bottom: 0.5rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+  h2 { color: var(--blue); font-size: 1.5rem; margin: 2.5rem 0 1rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+  h3 { color: var(--green); font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+  p, li { margin-bottom: 0.5rem; }
+  ul, ol { padding-left: 1.5rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.92rem; }
+  th { background: var(--card); color: var(--blue); text-align: left; padding: 0.6rem 0.8rem; border-bottom: 2px solid var(--accent); }
+  td { padding: 0.5rem 0.8rem; border-bottom: 1px solid #333; }
+  tr:hover td { background: rgba(110,198,255,0.05); }
+  code { background: var(--surface); padding: 0.15rem 0.4rem; border-radius: 3px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.9em; color: var(--green); }
+  .card { background: var(--surface); border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0; border-left: 3px solid var(--accent); }
+  .card.green { border-left-color: var(--green); }
+  .card.blue { border-left-color: var(--blue); }
+  .card.yellow { border-left-color: var(--yellow); }
+  .yes { color: var(--green); font-weight: bold; }
+  .no { color: var(--accent); font-weight: bold; }
+  .tag { display: inline-block; background: var(--card); color: var(--blue); padding: 0.1rem 0.5rem; border-radius: 12px; font-size: 0.8rem; margin: 0.1rem; }
+  .math { font-style: italic; color: var(--yellow); }
+  .toc { background: var(--surface); padding: 1rem 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
+  .toc a { color: var(--blue); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc li { margin-bottom: 0.3rem; }
+  .notation-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .notation-item { background: var(--card); padding: 1rem; border-radius: 6px; text-align: center; }
+  .notation-item .symbol { font-size: 2rem; color: var(--yellow); font-family: serif; }
+  .notation-item .name { color: var(--green); font-weight: bold; margin: 0.3rem 0; }
+  .notation-item .desc { color: var(--dim); font-size: 0.85rem; }
+  .comparison-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .comparison-row .card { margin: 0; }
+  @media (max-width: 700px) { .comparison-row, .notation-box { grid-template-columns: 1fr; } body { padding: 1rem; } }
+</style>
+</head>
+<body>
+
+<h1>Vector Symbolic Architecture: Reference &amp; Paper Reframe</h1>
+<p style="color:var(--dim)">Planning document for reframing the Latent Space Cartography paper around emergent VSA in frozen embeddings</p>
+
+<div class="toc">
+<strong>Contents</strong>
+<ol>
+  <li><a href="#what-is-vsa">What IS Vector Symbolic Architecture?</a></li>
+  <li><a href="#variants">The VSA Variants</a></li>
+  <li><a href="#bridge">The TransE &harr; VSA Bridge (Novel)</a></li>
+  <li><a href="#our-ops">Our Operations Mapped</a></li>
+  <li><a href="#novel">What's Novel</a></li>
+  <li><a href="#reframe">Paper Reframe Plan</a></li>
+  <li><a href="#checklist">Checklist</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="what-is-vsa">1. What IS Vector Symbolic Architecture?</h2>
+
+<p>VSA is a family of computing frameworks that represent complex data structures as high-dimensional vectors and manipulate them with a small set of well-defined operations. The core idea: you can do <strong>symbolic reasoning</strong> (logic, variable binding, composition) using <strong>vector arithmetic</strong> in high-dimensional spaces.</p>
+
+<h3>The Three Universal VSA Operations</h3>
+
+<div class="notation-box">
+  <div class="notation-item">
+    <div class="symbol">+</div>
+    <div class="name">Bundling</div>
+    <div class="desc">Superposition of vectors. "This AND this." Result is <strong>similar</strong> to all inputs.</div>
+  </div>
+  <div class="notation-item">
+    <div class="symbol">&otimes;</div>
+    <div class="name">Binding</div>
+    <div class="desc">Pairs two vectors. "This WITH this." Result is <strong>dissimilar</strong> to all inputs.</div>
+  </div>
+  <div class="notation-item">
+    <div class="symbol">&pi;</div>
+    <div class="name">Permutation</div>
+    <div class="desc">Reorders elements. "This THEN this." Encodes sequence/order.</div>
+  </div>
+</div>
+
+<div class="card green">
+<h3>Key Algebraic Properties</h3>
+<ul>
+  <li><strong>Bundling</strong> is commutative, associative, and the result is <strong>similar</strong> to all inputs (you can tell what went in)</li>
+  <li><strong>Binding</strong> is (usually) commutative, associative, and the result is <strong>dissimilar</strong> to all inputs (the pair doesn't look like either component)</li>
+  <li><strong>Binding has an inverse</strong> (unbinding): if <code>C = A &otimes; B</code>, then <code>A &approx; C &otimes; B&sup1;</code></li>
+</ul>
+</div>
+
+<h3>Formal Requirements for Binding (Plate 2003)</h3>
+<ol>
+  <li><strong>Dissimilarity:</strong> <span class="math">&delta;(A &otimes; B, A) &approx; 0</span> and <span class="math">&delta;(A &otimes; B, B) &approx; 0</span></li>
+  <li><strong>Invertibility:</strong> Given <span class="math">C = A &otimes; B</span> and B, you can recover A approximately</li>
+  <li><strong>Distributes over bundling:</strong> <span class="math">A &otimes; (B + C) &approx; (A &otimes; B) + (A &otimes; C)</span></li>
+</ol>
+
+<div class="card yellow">
+<strong>Critical point:</strong> Addition <span class="no">FAILS</span> requirement #1. The sum <code>A + B</code> is <em>similar</em> to both A and B &mdash; that's what makes it bundling, not binding. This is why our operations are bundling/unbundling, not binding/unbinding.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="variants">2. The VSA Variants</h2>
+
+<p>Each variant implements the three operations differently. All share the same algebraic structure.</p>
+
+<table>
+<tr>
+  <th>Variant</th>
+  <th>Binding (&otimes;)</th>
+  <th>Unbinding (&otimes;<sup>-1</sup>)</th>
+  <th>Bundling (+)</th>
+  <th>Vector Type</th>
+  <th>Citation</th>
+</tr>
+<tr>
+  <td><strong>MAP</strong></td>
+  <td>Element-wise multiply</td>
+  <td>Element-wise multiply (self-inverse)</td>
+  <td>Element-wise add</td>
+  <td>Binary &plusmn;1</td>
+  <td>Gayler (2003)</td>
+</tr>
+<tr>
+  <td><strong>BSC</strong></td>
+  <td>XOR</td>
+  <td>XOR (self-inverse)</td>
+  <td>Majority vote</td>
+  <td>Binary {0,1}</td>
+  <td>Kanerva (1996)</td>
+</tr>
+<tr>
+  <td><strong>HRR</strong></td>
+  <td>Circular convolution</td>
+  <td>Circular correlation</td>
+  <td>Element-wise add</td>
+  <td>Real-valued</td>
+  <td>Plate (1995)</td>
+</tr>
+<tr>
+  <td><strong>FHRR</strong></td>
+  <td>Element-wise angle addition</td>
+  <td>Element-wise angle subtraction</td>
+  <td>Phasor addition</td>
+  <td>Complex unit phasors</td>
+  <td>Plate (2003)</td>
+</tr>
+<tr>
+  <td><strong>VTB</strong></td>
+  <td>Matrix-vector multiply</td>
+  <td>Inverse matrix multiply</td>
+  <td>Element-wise add</td>
+  <td>Real-valued</td>
+  <td>Gosmann &amp; Eliasmith (2019)</td>
+</tr>
+<tr>
+  <td><strong>MBAT</strong></td>
+  <td>Matrix multiply</td>
+  <td>Inverse matrix multiply</td>
+  <td>Element-wise add</td>
+  <td>Real-valued</td>
+  <td>Gallant &amp; Okaywe (2013)</td>
+</tr>
+<tr>
+  <td><strong>TPR</strong></td>
+  <td>Outer product</td>
+  <td>Contraction</td>
+  <td>Element-wise add</td>
+  <td>Real (grows dim)</td>
+  <td>Smolensky (1990)</td>
+</tr>
+</table>
+
+<div class="card blue">
+<h3>FHRR: The Closest Variant to Our Work</h3>
+<p>In FHRR, binding <em>IS</em> angle addition and unbinding <em>IS</em> angle subtraction. Since mxbai-embed-large produces L2-normalized vectors (&Vert;v&Vert; = 1), all vectors lie on the hypersphere, and cosine similarity measures angular relationships. Our relational displacement analysis operates in exactly the angular domain where FHRR binding lives.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="bridge">3. The TransE &harr; VSA Bridge <span class="tag">NOVEL &mdash; not in existing literature</span></h2>
+
+<p>These two research communities (KG embeddings and VSA/HDC) developed independently. Nobody has published this correspondence.</p>
+
+<table>
+<tr>
+  <th>KG Embedding</th>
+  <th>Scoring Function</th>
+  <th>VSA Equivalent</th>
+  <th>Operation</th>
+</tr>
+<tr>
+  <td><strong>TransE</strong> (Bordes 2013)</td>
+  <td><code>&Vert;h + r &minus; t&Vert;</code></td>
+  <td class="no">No direct equivalent &mdash; bundling-like</td>
+  <td>Addition</td>
+</tr>
+<tr>
+  <td><strong>RotatE</strong> (Sun 2019)</td>
+  <td><code>&Vert;h &odot; r &minus; t&Vert;</code> (complex)</td>
+  <td class="yes">= FHRR binding</td>
+  <td>Angle addition</td>
+</tr>
+<tr>
+  <td><strong>HolE</strong> (Nickel 2016)</td>
+  <td>Circular correlation</td>
+  <td class="yes">= HRR binding</td>
+  <td>Circular convolution</td>
+</tr>
+<tr>
+  <td><strong>DistMult</strong> (Yang 2015)</td>
+  <td><code>h &odot; r &odot; t</code></td>
+  <td class="yes">= MAP binding</td>
+  <td>Element-wise multiply</td>
+</tr>
+<tr>
+  <td><strong>ComplEx</strong> (Trouillon 2016)</td>
+  <td><code>Re(h &odot; r &odot; t&#x0305;)</code></td>
+  <td class="yes">&approx; FHRR binding</td>
+  <td>Complex multiply</td>
+</tr>
+</table>
+
+<div class="card green">
+<strong>Implication:</strong> The KG embedding literature has been independently reinventing VSA variants for a decade. TransE is the odd one out &mdash; it uses addition (bundling), which is why it can't model symmetric relations (a known VSA property: bundling is commutative, so A + B = B + A, no directionality).
+</div>
+
+<!-- ============================================================ -->
+<h2 id="our-ops">4. Our Operations Mapped to VSA</h2>
+
+<table>
+<tr>
+  <th>Our Operation</th>
+  <th>Math</th>
+  <th>VSA Interpretation</th>
+</tr>
+<tr>
+  <td><strong>Displacement extraction</strong></td>
+  <td><code>d = f(tail) &minus; f(head)</code></td>
+  <td><strong>Unbundling</strong>: removing head from superposition to isolate relational residual</td>
+</tr>
+<tr>
+  <td><strong>Prediction</strong></td>
+  <td><code>f(head) + d&#x0304;<sub>p</sub> &approx; f(tail)</code></td>
+  <td><strong>Rebundling</strong>: superposing entity with relational signal to predict target</td>
+</tr>
+<tr>
+  <td><strong>Two-hop composition</strong></td>
+  <td><code>f(head) + d&#x0304;<sub>p1</sub> + d&#x0304;<sub>p2</sub> &approx; f(tail)</code></td>
+  <td><strong>Sequential bundling</strong>: works because addition is associative</td>
+</tr>
+<tr>
+  <td><strong>Consistency metric</strong></td>
+  <td><code>mean cos(g<sub>i</sub>, d&#x0304;<sub>p</sub>)</code></td>
+  <td><strong>Signal coherence</strong>: SNR of the bundled relational component</td>
+</tr>
+</table>
+
+<div class="comparison-row">
+<div class="card">
+  <h3 class="no">NOT TransE</h3>
+  <ul>
+    <li>TransE <strong>trains</strong> vectors so h + r &approx; t</li>
+    <li>Single model, single KG</li>
+    <li>Relations are learned parameters</li>
+    <li>Composition not supported</li>
+  </ul>
+</div>
+<div class="card green">
+  <h3 class="yes">What We Actually Do</h3>
+  <ul>
+    <li>We <strong>observe</strong> h + d &approx; t in <em>frozen</em> embeddings</li>
+    <li>Three models, same structure emerges</li>
+    <li>Relations discovered by averaging observed displacements</li>
+    <li>Composition works: d<sub>1</sub> + d<sub>2</sub> chains naturally</li>
+  </ul>
+</div>
+</div>
+
+<h3>Why This Matters</h3>
+<p>The finding is: <strong>text embedding models spontaneously learn to bundle relational information into their vector representations, and this bundled information can be extracted and composed without any relational training.</strong></p>
+
+<!-- ============================================================ -->
+<h2 id="novel">5. What's Novel (In VSA Terms)</h2>
+
+<div class="card green">
+<h3>Things nobody has done before</h3>
+<ol>
+  <li><strong>Shown emergent VSA-like operations in frozen text embedding outputs.</strong> McCoy et al. (2019) found TPR in RNN internals. "Attention as Binding" (2025) found binding in attention mechanisms. Nobody has shown the <em>output</em> embeddings exhibit extractable relational structure consistent with VSA.</li>
+  <li><strong>Connected TransE-family KG embeddings to VSA algebraically.</strong> The bridge table above does not exist in the published literature.</li>
+  <li><strong>Used VSA-style analysis to discover a production defect.</strong> The [UNK] collision = destruction of algebraic capacity. Collided embeddings lose their identity vectors, making all VSA operations impossible.</li>
+  <li><strong>Demonstrated bundling-based relational extraction across 3 architectures.</strong> 30 universal operations. Substrate-independent &mdash; a hallmark of VSA.</li>
+</ol>
+</div>
+
+<div class="card yellow">
+<h3>Honest Positioning &mdash; What to Claim and What Not To</h3>
+<p><strong>Do NOT claim:</strong></p>
+<ul>
+  <li><span class="no">&cross;</span> "Frozen embeddings implement VSA binding" (fails Plate's dissimilarity requirement)</li>
+  <li><span class="no">&cross;</span> "We have a complete VSA" (no permutation, no random codebook)</li>
+  <li><span class="no">&cross;</span> "This replaces KG embedding training" (our MRR is lower than trained KGE)</li>
+</ul>
+<p><strong>DO claim:</strong></p>
+<ul>
+  <li><span class="yes">&check;</span> "Frozen embeddings encode relational structure as bundled superpositions consistent with VSA principles"</li>
+  <li><span class="yes">&check;</span> "Relational displacement is unbundling &mdash; extracting the relational component from a superposition"</li>
+  <li><span class="yes">&check;</span> "Composition works because bundling is associative"</li>
+  <li><span class="yes">&check;</span> "The consistency metric measures signal-to-noise of the bundled relational component"</li>
+  <li><span class="yes">&check;</span> "This connects two independent literatures (KGE and VSA) that describe the same mathematical structures"</li>
+  <li><span class="yes">&check;</span> "Domain-specific probing via this VSA lens reveals production defects invisible to standard benchmarks"</li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="reframe">6. Paper Reframe Plan</h2>
+
+<h3>Title</h3>
+<div class="card">
+<p><strong>Current:</strong> "Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large"</p>
+<p><strong>Proposed:</strong> "Emergent Vector Symbolic Operations in Frozen Text Embeddings: Relational Displacement Analysis Reveals Bundled Superpositions and a Silent Tokenizer Defect"</p>
+<p><strong>Alt (shorter):</strong> "Native Vector Algebra in Frozen Embeddings: Systematic Probing Reveals Emergent Relational Operations and a Production Defect in mxbai-embed-large"</p>
+</div>
+
+<h3>Section-by-Section Changes</h3>
+<table>
+<tr><th>Section</th><th>Change</th></tr>
+<tr><td>Abstract</td><td>Lead with VSA framing. State bundling/unbundling finding. Include TransE&harr;VSA bridge as contribution. Drop "cartography."</td></tr>
+<tr><td>&sect;1 Intro</td><td>Open with VSA/HDC. Connect to word2vec analogies as earliest evidence. Three contributions reframed.</td></tr>
+<tr><td>&sect;2 Related Work</td><td>Add new &sect;2.X on VSA/HDC literature. Add bridge table to &sect;2.1 (KG Embeddings).</td></tr>
+<tr><td>&sect;3 Method</td><td>Add VSA notation alongside existing math. Consistency = "signal coherence."</td></tr>
+<tr><td>&sect;5.1 Discussion</td><td>Symmetric failure = bundling is commutative, so +/&minus; cancel.</td></tr>
+<tr><td>&sect;5.4 Collisions</td><td>[UNK] collapse = destruction of entity identity vectors, breaking algebraic capacity.</td></tr>
+<tr><td>&sect;5 new</td><td>New subsection: The TransE&harr;VSA Bridge.</td></tr>
+<tr><td>&sect;6 Conclusion</td><td>Reframe around VSA contributions.</td></tr>
+<tr><td>References</td><td>Add ~8 new VSA references (Kanerva, Gayler, Plate, Kleyko, Schlegel, Fong, McCoy, Attention as Binding).</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="checklist">7. Checklist</h2>
+
+<h3>Before Rewriting</h3>
+<ul>
+  <li>&#9744; Confirm L2 normalization (paper says yes &rarr; hypersphere &rarr; FHRR bridge holds)</li>
+  <li>&#9744; Check consistency metric vs known VSA signal quality measures</li>
+  <li>&#9744; Decide notation: &oplus; for bundling, note subtraction as inverse</li>
+</ul>
+
+<h3>During Rewrite</h3>
+<ul>
+  <li>&#9744; Title, abstract, intro</li>
+  <li>&#9744; &sect;2.X VSA/HDC related work</li>
+  <li>&#9744; TransE&harr;VSA bridge table</li>
+  <li>&#9744; VSA notation in &sect;3.1</li>
+  <li>&#9744; Reframe &sect;5 discussion</li>
+  <li>&#9744; Update &sect;6 conclusion</li>
+  <li>&#9744; Add references</li>
+</ul>
+
+<h3>After Rewrite</h3>
+<ul>
+  <li>&#9744; Submit new version to clawRxiv</li>
+  <li>&#9744; Verify reviewer no longer says "just TransE"</li>
+  <li>&#9744; Verify reviewer doesn't say "VSA mapping is forced"</li>
+</ul>
+
+<hr style="margin: 3rem 0 1rem; border-color: #333;">
+<p style="color:var(--dim); font-size: 0.85rem;">Latent Space Cartography &mdash; Emma Leonhart &mdash; April 2026</p>
+
+</body>
+</html>
