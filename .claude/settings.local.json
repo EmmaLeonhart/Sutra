@@ -176,7 +176,9 @@
       "Bash(rm papers/fol-discovery/PLAN.md)",
       "Bash(rm papers/fol-discovery/reviews/.gitkeep)",
       "Bash(rmdir papers/fol-discovery/reviews)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "WebFetch(domain:link.springer.com)",
+      "WebFetch(domain:bandgap.org)"
     ]
   }
 }
