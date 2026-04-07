@@ -1,5 +1,5 @@
-# Public FOL discovery package (1.9GB, contains GGUF model)
-public-fol-discovery/
+# Public FOL discovery — merged via subtree, no longer ignored
+# public-fol-discovery/
 
 # Python
 __pycache__/
