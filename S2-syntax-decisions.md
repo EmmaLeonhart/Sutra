@@ -63,6 +63,80 @@ Open follow-up:
 - Decide whether files imply namespaces.
 - Decide how primitive operations are written inside function bodies.
 
+#### Conditionals use TypeScript-style `if (...) { ... } else { ... }`
+
+Status: active
+
+Decision:
+
+- S2 uses TypeScript-style conditional syntax.
+- The baseline shape is `if (condition) { ... } else { ... }`.
+- This is a surface-syntax decision, not a final semantic decision about truthiness.
+
+Reasoning:
+
+- This gives S2 a familiar and readable conditional form.
+- It preserves explicit braces and keeps branching visually close to C# and TypeScript.
+- It avoids prefix-only conditionals while remaining compatible with fuzzy truth semantics underneath.
+
+Implications:
+
+- Comparison examples should treat the TypeScript conditional form as the default S2 branch syntax.
+- The open issue is how truthiness works, not how the branch keywords and punctuation work.
+
+Open follow-up:
+
+- Define truthiness versus explicit boolean checks.
+- Decide whether `if (cat)` is legal.
+- Decide how `isTrue(...)` interacts with conditional syntax.
+
+#### Use `return`
+
+Status: active
+
+Decision:
+
+- S2 uses the keyword `return`.
+
+Reasoning:
+
+- `return` is conventional, explicit, and readable.
+- It keeps function bodies easy to scan and aligns with the rest of the current mainstream surface direction.
+
+Implications:
+
+- Function examples should use `return` when they need explicit early exits or explicit return points.
+- The open design space is expression orientation, not the exit keyword.
+
+Open follow-up:
+
+- Decide whether final expressions can be implicitly returned in some contexts.
+
+#### Looping uses TypeScript-style `while (...) { ... }`
+
+Status: active
+
+Decision:
+
+- S2 uses TypeScript-style loop syntax for conventional loops.
+- The baseline loop shape is `while (condition) { ... }`.
+
+Reasoning:
+
+- This keeps looping syntax readable and familiar.
+- It aligns with the same branch-and-block surface style as S2 conditionals.
+- It gives a stable surface form even while loop semantics remain open.
+
+Implications:
+
+- Comparison examples should treat TypeScript-style `while` loops as the current S2 baseline.
+- Semantic questions about convergence, fuzziness, and termination remain open.
+
+Open follow-up:
+
+- Decide whether `for` loops exist.
+- Decide whether loop conditions use ordinary truthiness, explicit truth tests, or both.
+
 ## Candidate Decisions
 
 - block delimiters
@@ -70,3 +144,6 @@ Open follow-up:
 - expression-versus-statement bias
 - annotation system for semantic roles
 - return annotation syntax
+- primitive operation call surface
+- truthiness rules
+- primitive cast syntax
