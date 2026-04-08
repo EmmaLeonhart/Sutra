@@ -1,0 +1,72 @@
+# Repository Inventory
+
+What's in this repo, what it's for, and whether it's still useful.
+
+## Active Projects
+
+### `S2-paper/`
+**The main event.** S2 language design paper for Claw4S 2026 (deadline April 20). Contains paper draft, experiment scripts (empirical initiation, binding alternatives, chain depth, sign-flip deep testing), and data from cross-substrate validation. This is where active work happens.
+
+### `VSA-paper/`
+**Published, do not touch.** The FOL discovery paper — "Latent Space Cartography Applied to Wikidata" — currently at Strong Accept on clawRxiv (post 859, v15). Contains frozen model weights, scripts, reviews, and the SKILL.md. This paper provides the empirical foundation for S2 (86 predicates as vector ops, r=0.861, mxbai defect discovery). Locked.
+
+### `planning/`
+**S2 design documentation.** Contains:
+- `s2-spec/` — 19 individual spec documents covering everything from operations to substrate candidates
+- `s2-pivot.md` — Overview doc with conversation archive links
+- `s2-paper-strategy.md` — Strategy for the Claw4S submission
+- `competition-analysis-2026-04-08.md` — Latest competitive landscape assessment
+
+### `many-to-many/`
+**Directly relevant to S2.** A three-part matching primitive for embedding spaces (directional selection + orthogonal projection + residual similarity). Addresses many-to-many relations that cosine similarity conflates. Perfect precision in 6/9 experiments across 3 datasets x 3 models. The dimensional decomposition approach maps directly to S2's "computation is geometry" philosophy. Keep — this is active research that extends into S2 territory.
+
+### `chats/`
+**Design conversation archive.** 20 markdown transcripts of Claude conversations that produced the S2 design ideas. The VSA-related ones (lambda calculus, Turing completeness, cartesian closedness, operations, scaling limits, legitimacy, HDC-JEPA, compute savings, programming languages) are valuable intellectual history. Two files are off-topic:
+- `samsung-s25-comparison.md` — phone comparison, not S2-related
+- `resume-writing-advice.md` — career advice, not S2-related
+
+These could be deleted but aren't hurting anything.
+
+## Reference / Historical
+
+### `DEVLOG.md`
+Development log documenting the VSA reframe disaster (wholesale rewrite turned Strong Accept into Rejects, recovered by reverting), competition analysis, version history. Contains hard-won lessons about clawRxiv and incremental changes. Worth keeping as institutional knowledge.
+
+### `CLAUDE.md`
+Project instructions file. Updated with S2 pivot context, workflow rules, paper editing rules. Active — read by Claude Code on every session.
+
+### `inquisitive-transformer/`
+**Independent project, low S2 relevance.** Novel attention mechanism adding a "perceptiveness" parameter (alpha) orthogonal to temperature. Complete paper with GPT-2 implementation, 24-item benchmark, 4 ablation experiments, 51 unit tests, CI. Reports a negative result (alpha modulates attention but doesn't improve anomaly detection without retraining). Conceptually adjacent to S2 (both about what transformers attend to) but separate. Self-contained and publishable independently. Keep but don't actively maintain for S2 purposes.
+
+## Archive (Historical, Superseded)
+
+### `old-stuff/`
+The original project root before the S2 pivot. Everything here has been superseded or extracted into active directories.
+
+| Subdirectory | What | Status |
+|---|---|---|
+| `old-stuff/papers/economics/` | AI investment bubble paper for Claw4S econ category | Separate from S2. Could be submitted independently. |
+| `old-stuff/papers/mxbai-undersymbolic/` | Earlier version of the FOL paper | Superseded by `VSA-paper/` |
+| `old-stuff/planning/` | Original project vision, roadmap, strategic discussion, architecture decisions | Historical. The oversymbolic/isosymbolic/undersymbolic density classification could inform S2's substrate quality assessment. |
+| `old-stuff/competition-analysis/` | 11 markdown files analyzing Claw4S competitors, review patterns, organizer profiles | Conference strategy, not technical. Useful reference but not S2-relevant. |
+| `old-stuff/mxbai-diacritic-glitch/` | Standalone demo of the mxbai [UNK] collapse defect | Redundant with `VSA-paper/scripts/`. |
+| `old-stuff/competition_analysis_raw.json` | Raw API data from competition analysis | ~500KB of JSON. Historical snapshot. |
+| `old-stuff/competition_reviews.json` | Review data for competitor papers | Historical snapshot. |
+| `old-stuff/fetch_*.py` | Scripts for fetching clawRxiv data | Could be useful again but dated. |
+| `old-stuff/runclaude.bat` | Old batch file for running Claude | Obsolete. |
+| `old-stuff/skill.md` | Old SKILL.md | Superseded. |
+
+**Recommendation:** Leave as-is. It's already in `old-stuff/` which is self-documenting. Not worth spending time reorganizing further — the active work is in `S2-paper/`, `planning/`, and `VSA-paper/`.
+
+## Summary
+
+| Directory | Status | S2 Relevance | Action |
+|---|---|---|---|
+| `S2-paper/` | Active | Core | Keep working |
+| `VSA-paper/` | Locked | Foundation | Do not modify |
+| `planning/` | Active | Core | Keep updating |
+| `many-to-many/` | Active | High | Keep — S2 research |
+| `chats/` | Archive | High (VSA ones) | Keep |
+| `DEVLOG.md` | Reference | Medium | Keep |
+| `inquisitive-transformer/` | Complete | Low | Keep (independent) |
+| `old-stuff/` | Superseded | Historical | Leave archived |
