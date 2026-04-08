@@ -60,19 +60,50 @@ Elementwise vector addition. Creates **superposition** — the result is similar
 
 Properties: commutative, associative. Signal-to-noise degrades as more items are superposed (a fundamental capacity limit, not a bug).
 
-### Bind (Multiplication)
-```
-result = a * b
-```
-Elementwise multiplication (Hadamard product). The result is **dissimilar to both inputs** — a kind of encryption. Encodes key-value pairs, role-filler structures, relationships.
+### Bind
 
-Properties: commutative, associative, has an approximate inverse (unbind). This is how you attach a role to a filler: `bind(SUBJECT_role, "cat")` creates a structured representation.
+Binding encodes key-value pairs and role-filler structures. The result is **dissimilar to both inputs** — a kind of encryption.
 
-### Unbind (Approximate Inverse of Bind)
+**CRITICAL FINDING:** The traditional VSA binding operation (Hadamard / elementwise product) **fails on natural embedding spaces**. Empirical testing on GTE-large (1024d) shows that bundled structures with Hadamard binding lose all signal at 2+ role-filler pairs — the crosstalk from correlated (non-orthogonal) natural embeddings overwhelms the target.
+
+S2 uses **sign-flip binding** as its default and **rotation binding** as its high-accuracy alternative:
+
+#### Sign-Flip Binding (Default)
+```
+result = bind(a, role)    # a * sign(role)
+```
+Flip the signs of the filler's dimensions based on the sign of the role vector. The sign pattern `sign(role)` creates a pseudo-random binary mask (+1/-1) that is:
+- **Self-inverse:** unbinding is the same operation (`unbind = bind`)
+- **Nearly orthogonal** across different role vectors
+- **Cheap:** 6.6μs per operation (only 4.4x slower than Hadamard)
+- **Effective:** Maintains correct snap recovery through 7+ bundled role-filler pairs on natural embeddings
+
+Empirical results on GTE-large: cosine to target = 0.74 at 2 roles, 0.52 at 5 roles, 0.40 at 7 roles. All 7/7 snap-to-nearest recoveries correct.
+
+#### Rotation Binding (High-Accuracy)
+```
+result = bind_precise(a, role)    # R(role) @ a
+```
+Apply a role-dependent orthogonal rotation matrix. The rotation is deterministically derived from the role vector via composed Givens rotations.
+- **Exact inverse:** unbinding via transpose (`R^T @ bound`)
+- **Best accuracy:** 0.89 cosine at 2 roles, 0.80 at 7 roles
+- **Expensive:** 321μs per operation (213x Hadamard)
+- **Use when accuracy matters more than speed**
+
+#### Other Viable Alternatives
+All tested on GTE-large, all achieve 7/7 correct snap at 7 bundled roles:
+- **Permutation** (30.9μs, 21x): Shuffle dimensions based on role. Good middle ground.
+- **Circular convolution** (79.3μs, 53x): Classic Plate HRR binding. Works but slower than sign-flip for comparable accuracy.
+- **FFT correlation** (67.3μs, 45x): Frequency-domain multiply. Similar to circular convolution.
+
+#### Why Hadamard Fails on Natural Embeddings
+The Hadamard product `a * b` works in traditional VSA because the vectors are random and nearly orthogonal by construction. In natural embedding spaces, vectors are **correlated and anisotropic** — they share significant structure. When you bundle multiple Hadamard-bound pairs, the crosstalk terms (from the non-orthogonal roles) dominate the target term. Sign-flip avoids this because `sign(role)` strips the magnitude information that causes correlation, leaving only a random-looking binary mask.
+
+### Unbind (Inverse of Bind)
 ```
 filler = unbind(role, bound_structure)
 ```
-Given a role vector, extract the approximate filler from a bound structure. This is noisy — the result is close to the original filler but not exact. Noise accumulates with binding depth.
+Given a role vector, extract the approximate filler from a bundled bound structure. For sign-flip binding, unbinding is the same operation applied again (self-inverse). For rotation binding, it's the transpose of the rotation matrix. The result is approximate when multiple role-filler pairs are bundled — noise comes from crosstalk with the other pairs.
 
 ### Similarity Query
 ```
@@ -138,9 +169,9 @@ Given a starting vector and a relation type, traverse to connected vectors in th
 
 | | Primitive | Algebraic (VSA) | Non-Algebraic (Vector-Graph) |
 |---|---|---|---|
-| **Operations** | scalars, tuples, bounded iteration | bundle, bind, unbind, similarity, scale, project | snap, cone, hop |
+| **Operations** | scalars, tuples, bounded iteration | bundle, bind (sign-flip), unbind, similarity, scale, project | snap, cone, hop |
 | **Operates on** | Numbers, groups of values | Vectors | Vectors + ANN index |
-| **Cost** | O(1) | O(1) | O(log n) |
+| **Cost** | O(1) | O(1) (~1-7μs) | O(log n) (~30-31,000μs) |
 | **Infrastructure** | None | None (pure math) | HNSW index, codebook, graph DB |
 | **Error behavior** | Exact | Noise accumulates | Noise gets corrected |
 | **Encouraged?** | Use as needed | Yes — the core | Use deliberately — most expensive |
