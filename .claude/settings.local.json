@@ -200,7 +200,8 @@
       "Bash(mkdir -p old-stuff)",
       "Bash(mkdir -p VSA-paper)",
       "Bash(git checkout:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(pip list:*)"
     ]
   }
 }
