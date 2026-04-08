@@ -30,14 +30,43 @@ Implications:
 
 Open follow-up:
 
-- Choose the function declaration keyword and block form.
+- Choose the block form.
+- Decide whether files imply namespaces.
+- Decide how primitive operations are written inside function bodies.
+
+#### Function declarations use `function`
+
+Status: active
+
+Decision:
+
+- S2 uses the keyword `function` to introduce a function declaration.
+- This is intentionally aligned with TypeScript's top-level function form.
+- Shorter alternatives such as `fn` are not the current direction.
+
+Reasoning:
+
+- `function` is explicit and easy to scan.
+- It preserves the independent-function model without bringing in C#'s class-centered structure.
+- It borrows a familiar declaration shape from TypeScript without inheriting the rest of JavaScript's loose surface design.
+
+Implications:
+
+- Comparison examples should treat `function` as the current S2 baseline.
+- Future syntax sketches should prefer `function name(...) { ... }` unless a later decision explicitly changes block form.
+- The remaining open question is not the declaration keyword anymore, but the rest of the function signature and body syntax.
+
+Open follow-up:
+
+- Decide block delimiters.
+- Decide whether return annotations exist.
 - Decide whether files imply namespaces.
 - Decide how primitive operations are written inside function bodies.
 
 ## Candidate Decisions
 
-- function declaration keyword
 - block delimiters
 - namespace or module syntax
 - expression-versus-statement bias
 - annotation system for semantic roles
+- return annotation syntax
