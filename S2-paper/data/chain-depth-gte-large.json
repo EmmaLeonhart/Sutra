@@ -1,0 +1,320 @@
+{
+  "model": "thenlper/gte-large",
+  "chain_no_snap": [
+    {
+      "depth": 1,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.7480281750722497e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 2,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.748466722048761e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 3,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.749197159981122e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 4,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.750219773086428e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 5,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.7515342771475844e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 6,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.7531403879474965e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 7,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.7572262928952114e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 8,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.7624743615415355e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 9,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.7655331059104356e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 10,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.768880899064243e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 11,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.772517172568769e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 12,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.77644107377273e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 13,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.780652034241939e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 14,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.785149485542206e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 15,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.794999881596596e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 16,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.800351121048152e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 17,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.805985440725635e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 18,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.81190113532648e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 19,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.818098204850685e-07,
+      "magnitude": 19.59980010986328
+    },
+    {
+      "depth": 20,
+      "cos_to_original": 0.9999999403953552,
+      "euclid_to_original": 4.824574375561497e-07,
+      "magnitude": 19.59980010986328
+    }
+  ],
+  "chain_with_snap": [
+    {
+      "depth": 1,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 2,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 3,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 4,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 5,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 6,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 7,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 8,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 9,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 10,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 11,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 12,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 13,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 14,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 15,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 16,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 17,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 18,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 19,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    },
+    {
+      "depth": 20,
+      "cos_before_snap": 0.9999999403953552,
+      "cos_after_snap": 0.9999999403953552,
+      "snap_correct": true,
+      "snap_idx": 0,
+      "snap_label": "The cat sat on the mat",
+      "snap_dist": 4.7480281750722497e-07
+    }
+  ],
+  "costs": {
+    "bind_us": 0.9600499999578459,
+    "bundle_us": 1.7116199998781667,
+    "unbind_us": 4.52740000000631,
+    "similarity_us": 1.608239999950456,
+    "euclidean_us": 4.628129999946395,
+    "snap_20_us": 31.795599999895785,
+    "snap_1k_us": 3540.19059000002,
+    "snap_10k_us": 30998.111400000198,
+    "snap_20_vs_bind": 33.118691736151106,
+    "snap_1k_vs_bind": 3687.506473783098,
+    "snap_10k_vs_bind": 32288.017708828986
+  }
+}
