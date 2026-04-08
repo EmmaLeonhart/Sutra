@@ -7,6 +7,9 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - S2 is not aiming to look like a general-purpose scripting language.
 - S2 functions exist independently rather than living inside classes or modules by default.
 - S2 uses `function` as the function declaration keyword.
+- S2 uses TypeScript-style `if (...) { ... } else { ... }` conditionals.
+- S2 uses `return`.
+- S2 uses TypeScript-style `while (...) { ... }` looping syntax.
 - C# remains a primary comparison language because it is the clearest existing baseline for explicit, readable compiled syntax.
 - S2 should probably sit above assembly and below C# in abstraction level.
 - S2 has to stay compatible with fuzzy, vector-native semantics rather than pretending values are conventional datatypes.
@@ -28,6 +31,9 @@ This document is a working reference for designing S2 syntax. It does not lock d
 
 - Functions exist independently.
 - The function declaration keyword is `function`.
+- Conditionals use TypeScript-style `if (...) { ... } else { ... }`.
+- S2 uses `return`.
+- Looping uses TypeScript-style `while (...) { ... }`.
 - C# remains a reference baseline for readability, block structure, and declaration clarity even where S2 diverges from its class model.
 
 ## By Language
@@ -204,6 +210,10 @@ Early S2 implication:
 - Indentation-only syntax is elegant but easier to make fragile.
 - Lisp-style grouping should only be chosen if code-as-structure becomes a core goal.
 
+Current S2 note:
+
+- Current syntax decisions already lean hard toward brace-based structure because conditionals and loops now follow TypeScript-style forms.
+
 ## 3. Statement Versus Expression Orientation
 
 Reference split:
@@ -242,6 +252,10 @@ Early S2 implication:
 - Infix syntax is probably better for readability when representing algebraic operations.
 - Prefix forms might still be useful for primitive substrate operations if they need to be unmistakable.
 
+Current S2 note:
+
+- Primitive operation call syntax is still unresolved and remains a source of confusion.
+
 ## Initial S2 Lean
 
 If we stay aligned with the current direction, the strongest influences are probably:
@@ -271,6 +285,8 @@ These are intentionally not locked yet:
 - whether modules/namespaces are mandatory, optional, or absent
 - whether primitive operations are infix, prefix, or mixed
 - whether S2 source is expression-first or statement-first
+- truthiness rules
+- cast syntax
 
 ## Next Decisions To Make
 
@@ -278,6 +294,8 @@ These are intentionally not locked yet:
 - whether S2 has explicit namespaces or just files plus symbols
 - whether primitive operations look mathematical, keyword-based, or both
 - how truth-testing and fuzzy conditionals should read in source
+- how unsafe casts should read in source
+- how the primitive layer is surfaced in user code
 - whether there is any lightweight role-annotation system even without conventional datatypes
 
 ## Code Comparison Examples
@@ -322,7 +340,7 @@ Lisp
 
 S2 current lean
 function blend(a, b) {
-    combine(a, b)
+    return combine(a, b);
 }
 ```
 
@@ -414,18 +432,18 @@ Lisp
     (dampen signal))
 
 S2 design pressure
-if is_true(signal) {
-    activate(signal)
+if (isTrue(signal)) {
+    return activate(signal);
 } else {
-    dampen(signal)
+    return dampen(signal);
 }
 ```
 
 S2 takeaway:
 
-- Mainstream `if` syntax is probably easier to read than prefix-only conditionals.
+- TypeScript-style `if (...) { ... } else { ... }` is now the active S2 decision.
 - C# remains one of the clearest readability baselines for branch layout.
-- Because S2 truth is fuzzy, the key question is semantic behavior, not basic surface syntax.
+- Because S2 truth is fuzzy, the key open question is semantic behavior rather than branch punctuation.
 
 ## Example 4: Expression-Oriented Conditional
 
@@ -467,6 +485,7 @@ S2 takeaway:
 - C# and TypeScript show the mainstream compact form.
 - Rust and Python are strong references if S2 leans expression-oriented.
 - C#/TypeScript/JavaScript ternaries are compact, but they may be too lightweight for early S2 readability.
+- This is still not an active S2 decision.
 
 ## Example 5: Looping
 
@@ -509,9 +528,9 @@ Lisp
 
 S2 takeaway:
 
+- TypeScript-style `while (...) { ... }` is now the active S2 surface decision.
 - Iteration semantics are still open at the language-design level.
-- C# is still the baseline if S2 wants a conventional explicit loop form.
-- Surface syntax could still borrow a conventional loop even if the eventual substrate behavior is fuzzy or convergence-based.
+- C# remains the readability baseline for explicit loop structure.
 - Scheme's named recursion is a useful reminder that loops do not require dedicated loop syntax.
 
 ## Example 6: Namespace, Module, Or Grouping Pressure
@@ -593,6 +612,7 @@ S2 takeaway:
 - If primitive operations are semantically important, a keyword-call form may be clearer than disguising everything as ordinary arithmetic.
 - C# method-call readability is still a useful baseline for these operations even if the semantics differ completely.
 - Infix operators may still be valuable later for common algebraic operations.
+- This area is still unresolved and currently confusing.
 
 ## Example 8: Return Early
 
@@ -703,8 +723,8 @@ Lisp
 (if (is-true signal) ...)
 
 S2 design pressure
-if similar(candidate, target) { ... }
-if is_true(signal) { ... }
+if (similar(candidate, target)) { ... }
+if (isTrue(signal)) { ... }
 ```
 
 S2 takeaway:
@@ -712,3 +732,253 @@ S2 takeaway:
 - S2 should be explicit about the difference between truth-testing and similarity/equality-like checks.
 - C# is still a good baseline for visibly separating different predicate forms, even though S2 cannot reuse ordinary `==` semantics directly.
 - Mainstream equality syntax is not a safe direct model if S2 semantics are vector-native.
+- Whether bare truthiness such as `if (cat)` is legal is still unresolved.
+
+## Example 11: Explicit Return
+
+```text
+C#
+return result;
+
+TypeScript
+return result;
+
+JavaScript
+return result;
+
+Python
+return result
+
+Rust
+return result;
+
+Scheme
+result
+
+Lisp
+result
+
+S2 current decision
+return result;
+```
+
+S2 takeaway:
+
+- `return` is the active S2 keyword.
+- The open question is whether S2 also permits implicit final-expression returns in some contexts.
+
+## Example 12: Truthiness Versus Explicit Truth Test
+
+```text
+C#
+if (cat) { ... }                 // only valid if cat is actually bool
+if (IsTrue(cat)) { ... }
+
+TypeScript
+if (cat) { ... }
+if (isTrue(cat)) { ... }
+
+JavaScript
+if (cat) { ... }
+if (isTrue(cat)) { ... }
+
+Python
+if cat:
+    ...
+if is_true(cat):
+    ...
+
+Rust
+if cat { ... }                   // only valid if cat is bool
+if is_true(cat) { ... }
+
+Scheme
+(if cat ...)
+(if (is-true cat) ...)
+
+Lisp
+(if cat ...)
+(if (is-true cat) ...)
+
+S2 open issue
+if (cat) { ... }
+if (isTrue(cat)) { ... }
+```
+
+S2 takeaway:
+
+- This is not decided yet.
+- The language needs a clear answer for ordinary truthiness versus explicit truth testing.
+
+## Example 13: Unsafe Cast Between Classes
+
+```text
+C#
+var feline = (Cat)animal;
+var feline = animal as Cat;
+
+TypeScript
+const feline = animal as Cat;
+
+JavaScript
+// no built-in cast syntax
+
+Python
+feline = cast(Cat, animal)
+
+Rust
+// no direct object-style unsafe cast equivalent
+
+Scheme
+; typically runtime or library specific
+
+Lisp
+; typically runtime or library specific
+
+S2 design pressure
+var feline = animal as Cat;
+var feline = unsafe animal as Cat;
+var feline = cast<Cat>(animal);
+```
+
+S2 takeaway:
+
+- C# and TypeScript are the clearest reference points here.
+- If S2 supports unsafe casts, the syntax should make the danger obvious.
+
+## Example 14: Unsafe Cast Up To Primitive Base Layer
+
+The primitive base layer currently described by the design notes is:
+
+- scalar
+- vector
+- matrix
+- tuple
+- string
+
+That is five primitive base classes, even though this sometimes gets referred to as "four core primitives" in conversation.
+
+String is a special case:
+
+- It exists mainly for literals and output.
+- It is uncommon and awkward for internal computation.
+- Most non-trivial internal operations should convert strings into vectors first.
+
+```text
+C#
+Vector v = (Vector)value;
+Matrix m = (Matrix)value;
+Tuple t = (Tuple)value;
+string s = (string)value;
+
+TypeScript
+const v = value as Vector;
+const m = value as Matrix;
+const t = value as Tuple;
+const s = value as string;
+
+Python
+v = cast(Vector, value)
+m = cast(Matrix, value)
+t = cast(TupleValue, value)
+s = cast(str, value)
+
+Rust
+// would usually require explicit conversion traits or wrappers
+
+Scheme
+; library or runtime specific
+
+Lisp
+; library or runtime specific
+
+S2 design pressure
+var v = value as vector;
+var m = value as matrix;
+var t = value as tuple;
+var s = value as string;
+
+var v = unsafe value as vector;
+var m = unsafe value as matrix;
+var t = unsafe value as tuple;
+var s = unsafe value as string;
+
+var v = primitive<vector>(value);
+```
+
+S2 takeaway:
+
+- This needs explicit syntax design.
+- If these are primitive base classes, casting up to them should look standardized and unmistakable.
+- The syntax should make it clear whether this is a checked conversion, an unsafe reinterpretation, or a semantic projection.
+- String should be treated as a special primitive mostly used for literals and output rather than as a common internal compute type.
+
+## Example 15: Property Access Or Field Access
+
+```text
+C#
+var x = point.X;
+
+TypeScript
+const x = point.x;
+
+JavaScript
+const x = point.x;
+
+Python
+x = point.x
+
+Rust
+let x = point.x;
+
+Scheme
+; usually library specific
+
+Lisp
+; usually library specific
+
+S2 design pressure
+var x = point.x;
+var x = point::x;
+x = get(point, x);
+```
+
+S2 takeaway:
+
+- This is still open.
+- C#, TypeScript, and Python are the clearest readability references if S2 exposes field-like access at all.
+
+## Example 16: Type Or Role Annotation
+
+```text
+C#
+Vector blend(Vector a, Vector b)
+
+TypeScript
+function blend(a: Vector, b: Vector): Vector
+
+JavaScript
+// none in core syntax
+
+Python
+def blend(a: Vector, b: Vector) -> Vector:
+
+Rust
+fn blend(a: Vector, b: Vector) -> Vector
+
+Scheme
+; usually external to core syntax
+
+Lisp
+; optional, implementation specific
+
+S2 design pressure
+function blend(a: vector, b: vector): vector { ... }
+function blend(a, b) -> vector { ... }
+function blend(a, b) { ... }
+```
+
+S2 takeaway:
+
+- This remains open.
+- S2 may want role annotations without pretending it has an ordinary mainstream type system.
