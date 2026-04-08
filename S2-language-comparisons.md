@@ -836,15 +836,16 @@ Lisp
 ; typically runtime or library specific
 
 S2 design pressure
-var feline = animal as Cat;
-var feline = unsafe animal as Cat;
-var feline = cast<Cat>(animal);
+var feline = (cat) animal;
+var feline = unsafeCast<cat>(animal);
+var feline = unsafeOverride(animal);
 ```
 
 S2 takeaway:
 
 - C# and TypeScript are the clearest reference points here.
-- If S2 supports unsafe casts, the syntax should make the danger obvious.
+- In S2, safe and unsafe forms should look clearly different.
+- `unsafeOverride(...)` is not the same thing as a cast; it overrides function acceptance rules.
 
 ## Example 14: Unsafe Cast Up To Primitive Base Layer
 
@@ -893,17 +894,15 @@ Lisp
 ; library or runtime specific
 
 S2 design pressure
-var v = value as vector;
-var m = value as matrix;
-var t = value as tuple;
-var s = value as string;
+var v = (vector) value;
+var m = (matrix) value;
+var t = (tuple) value;
+var s = (string) value;
 
-var v = unsafe value as vector;
-var m = unsafe value as matrix;
-var t = unsafe value as tuple;
-var s = unsafe value as string;
-
-var v = primitive<vector>(value);
+var v = unsafeCast<vector>(value);
+var m = unsafeCast<matrix>(value);
+var t = unsafeCast<tuple>(value);
+var s = unsafeCast<string>(value);
 ```
 
 S2 takeaway:
@@ -912,8 +911,28 @@ S2 takeaway:
 - If these are primitive base classes, casting up to them should look standardized and unmistakable.
 - The syntax should make it clear whether this is a checked conversion, an unsafe reinterpretation, or a semantic projection.
 - String should be treated as a special primitive mostly used for literals and output rather than as a common internal compute type.
+- Unsafe casting to `vector` exists syntactically as `unsafeCast<vector>(...)`, but the more common practical issue is usually function acceptance rather than forcing a vector reinterpretation.
 
-## Example 15: Property Access Or Field Access
+## Example 15: Function Call With Safe Cast, Unsafe Cast, And Unsafe Override
+
+```text
+S2 sketch
+function getFur(cat c) {
+    return c.fur;
+}
+
+getFur((cat) animal);
+getFur(unsafeCast<cat>(animal));
+getFur(unsafeOverride(animal));
+```
+
+S2 takeaway:
+
+- `(cat) animal` is the safe cast form.
+- `unsafeCast<cat>(animal)` is the explicit unsafe cast form.
+- `unsafeOverride(animal)` does not cast at all; it forces a function call to accept something it would normally reject.
+
+## Example 16: Property Access Or Field Access
 
 ```text
 C#
@@ -948,7 +967,7 @@ S2 takeaway:
 - This is still open.
 - C#, TypeScript, and Python are the clearest readability references if S2 exposes field-like access at all.
 
-## Example 16: Type Or Role Annotation
+## Example 17: Type Or Role Annotation
 
 ```text
 C#
