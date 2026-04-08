@@ -7,6 +7,7 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - S2 is not aiming to look like a general-purpose scripting language.
 - S2 functions exist independently rather than living inside classes or modules by default.
 - S2 uses `function` as the function declaration keyword.
+- C# remains a primary comparison language because it is the clearest existing baseline for explicit, readable compiled syntax.
 - S2 should probably sit above assembly and below C# in abstraction level.
 - S2 has to stay compatible with fuzzy, vector-native semantics rather than pretending values are conventional datatypes.
 - Syntax should help with reasoning, not hide the substrate.
@@ -27,6 +28,7 @@ This document is a working reference for designing S2 syntax. It does not lock d
 
 - Functions exist independently.
 - The function declaration keyword is `function`.
+- C# remains a reference baseline for readability, block structure, and declaration clarity even where S2 diverges from its class model.
 
 ## By Language
 
@@ -48,6 +50,12 @@ This document is a working reference for designing S2 syntax. It does not lock d
 ### S2 lesson
 
 Take seriousness and declaration clarity from C#, but not its class-first worldview.
+
+### Concrete syntax pressure from C#
+
+- C# is still the best mainstream reference for how explicit block-based code should scan.
+- S2 should keep comparing new syntax sketches against "would this still feel as readable as C#?".
+- Even where S2 adopts `function` from TypeScript, the desired level of structure is still closer to C# than to JavaScript.
 
 ## TypeScript
 
@@ -238,6 +246,7 @@ Early S2 implication:
 
 If we stay aligned with the current direction, the strongest influences are probably:
 
+- C# for readability, declaration seriousness, and brace-oriented structure
 - Rust for serious free-function structure
 - TypeScript for tooling-aware ergonomics
 - Python for readability pressure
@@ -245,9 +254,13 @@ If we stay aligned with the current direction, the strongest influences are prob
 
 The weakest direct influences are probably:
 
-- C# class-centric structure
 - JavaScript permissiveness
 - Lisp concrete notation, unless homoiconicity becomes a central goal
+
+C# is a split influence rather than a weak one:
+
+- strong for readability, statement structure, naming, and explicit blocks
+- weak only where it assumes classes, nominal types, and object-model-first design
 
 ## Provisional Non-Decisions
 
@@ -347,7 +360,7 @@ value pair = bind(left, right)
 S2 takeaway:
 
 - This is still open.
-- Rust, TypeScript, and Python give the cleanest mainstream references here.
+- C#, Rust, TypeScript, and Python give the cleanest mainstream references here.
 - Scheme and Lisp show that declaration syntax can stay minimal if the rest of the language is structurally consistent.
 
 ## Example 3: Conditional Execution
@@ -411,6 +424,7 @@ if is_true(signal) {
 S2 takeaway:
 
 - Mainstream `if` syntax is probably easier to read than prefix-only conditionals.
+- C# remains one of the clearest readability baselines for branch layout.
 - Because S2 truth is fuzzy, the key question is semantic behavior, not basic surface syntax.
 
 ## Example 4: Expression-Oriented Conditional
@@ -450,6 +464,7 @@ Lisp
 
 S2 takeaway:
 
+- C# and TypeScript show the mainstream compact form.
 - Rust and Python are strong references if S2 leans expression-oriented.
 - C#/TypeScript/JavaScript ternaries are compact, but they may be too lightweight for early S2 readability.
 
@@ -495,6 +510,7 @@ Lisp
 S2 takeaway:
 
 - Iteration semantics are still open at the language-design level.
+- C# is still the baseline if S2 wants a conventional explicit loop form.
 - Surface syntax could still borrow a conventional loop even if the eventual substrate behavior is fuzzy or convergence-based.
 - Scheme's named recursion is a useful reminder that loops do not require dedicated loop syntax.
 
@@ -538,7 +554,8 @@ Lisp
 
 S2 takeaway:
 
-- TypeScript and Rust are better references than C# if S2 wants standalone functions plus optional module structure.
+- TypeScript and Rust are better references than C# specifically for standalone functions plus optional module structure.
+- C# is still useful as the comparison point for how much grouping syntax is too heavy.
 - Python's file-level grouping model is also worth considering if S2 stays intentionally small.
 
 ## Example 7: Call A Primitive Operation
@@ -574,6 +591,7 @@ result = bind left right
 S2 takeaway:
 
 - If primitive operations are semantically important, a keyword-call form may be clearer than disguising everything as ordinary arithmetic.
+- C# method-call readability is still a useful baseline for these operations even if the semantics differ completely.
 - Infix operators may still be valuable later for common algebraic operations.
 
 ## Example 8: Return Early
@@ -618,6 +636,7 @@ Lisp
 S2 takeaway:
 
 - Early return syntax is straightforward in mainstream forms.
+- C# remains a good baseline for guard-style readability.
 - If S2 becomes strongly expression-oriented, Rust and Lisp-family languages provide cleaner precedents than C#.
 
 ## Example 9: Anonymous Function Or Lambda
@@ -691,4 +710,5 @@ if is_true(signal) { ... }
 S2 takeaway:
 
 - S2 should be explicit about the difference between truth-testing and similarity/equality-like checks.
+- C# is still a good baseline for visibly separating different predicate forms, even though S2 cannot reuse ordinary `==` semantics directly.
 - Mainstream equality syntax is not a safe direct model if S2 semantics are vector-native.
