@@ -198,7 +198,9 @@
       "Bash(cp papers/fol-discovery/UNIT_VECTOR_ANALYSIS.md public-fol-discovery/old/)",
       "Bash(cp:*)",
       "Bash(mkdir -p old-stuff)",
-      "Bash(mkdir -p VSA-paper)"
+      "Bash(mkdir -p VSA-paper)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)"
     ]
   }
 }
