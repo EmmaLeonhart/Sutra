@@ -83,13 +83,16 @@ S2 organizes operations into three tiers by cost and abstraction level.
 
 **Tier 1: Primitive operations.** Scalars (not vectors — plain numbers for weighting, thresholds, and loop counters), tuples (grouping without superposition), and bounded iteration (`repeat N`). These are conventional computational scaffolding. They exist because not everything in a program is a semantic vector operation.
 
-**Tier 2: Algebraic / VSA operations (O(1)).** The core vector algebra, operating elementwise on fixed-dimensional vectors:
+**Tier 2: Algebraic / VSA operations (O(1)).** The core vector algebra, operating on fixed-dimensional vectors:
 
 - **Bundle** (addition): Creates superposition. `a + b` is similar to both a and b. Encodes sets and fuzzy disjunction.
-- **Bind** (Hadamard product): Creates association. `a * b` is dissimilar to both a and b. Encodes key-value pairs and role-filler structures.
-- **Unbind** (approximate inverse of bind): Given a role, extracts the approximate filler. Noisy — the fundamental source of error accumulation.
-- **Similarity**: Cosine similarity or dot product. Returns a scalar. The fundamental "how close?" query.
+- **Bind** (sign-flip): Creates association. `a * sign(role)` flips signs of the filler based on the role vector, producing a result dissimilar to both inputs. Encodes key-value pairs and role-filler structures. Self-inverse (unbinding = applying the same sign flip). Cost: ~7μs.
+- **Bind-precise** (rotation): High-accuracy alternative. Applies a role-dependent orthogonal rotation `R(role) @ a`. Exact inverse via transpose. Cost: ~320μs. Use when accuracy matters more than speed.
+- **Unbind**: For sign-flip binding, unbinding is the same operation. For rotation binding, it is the transpose rotation. Extracts the approximate filler from a bundled structure — approximate because crosstalk from other bundled pairs introduces noise.
+- **Similarity**: Euclidean distance (primary) or dot product. Returns a scalar. The fundamental "how close?" query.
 - **Projection**: Extract the component of a vector along a subspace.
+
+Note: the traditional VSA binding operation (Hadamard / elementwise product) was tested and **fails on natural embedding spaces** — bundled structures lose all signal at 2+ role-filler pairs due to crosstalk from correlated embeddings. Sign-flip binding avoids this by stripping magnitude correlation (Section 6.2).
 
 These operations require no infrastructure beyond the vectors themselves. They are pure math.
 
@@ -209,17 +212,63 @@ The foundational empirical result (Leonhart, 2026): relational displacement anal
 
 The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the algebraic structure is self-calibrating: internally consistent operations are externally useful. This is the critical empirical validation for S2 — it demonstrates that the algebraic structure needed for computation already exists in pre-trained, general-purpose embedding spaces without any VSA-specific training.
 
-### 6.2 Binding and Unbinding in Natural Spaces
+### 6.2 Binding Operation Selection
 
-VSA operations (binding via Hadamard product, unbinding via approximate inverse) work in naturally learned embedding spaces, not just in spaces designed for VSA. This was initially surprising — natural embeddings are not orthogonal by construction — but is explained by the implicit statistical regularity from training: task-relevant subspaces are sufficiently near-orthogonal for algebraic operations to function.
+A critical empirical finding: the traditional VSA binding operation (Hadamard / elementwise product) **fails on natural embedding spaces** when multiple role-filler pairs are bundled.
 
-This finding is critical for S2's empirical initiation: the compiler can expect algebraic operations to work in most well-trained embedding spaces, with correction matrices improving fidelity rather than creating it from scratch.
+We tested six binding operations on GTE-large (1024-dim) by constructing bundled structures with 1-7 role-filler pairs, then attempting to recover a target filler via unbinding and snap-to-nearest against a 20-item codebook. Results:
 
-### 6.3 Substrate Validation: The mxbai Pathology
+| Method | Cos at 2 roles | Cos at 7 roles | Snap correct (7) | Cost (μs) |
+|--------|---------------|---------------|-------------------|-----------|
+| Hadamard | 0.11 | 0.09 | 2/7 | 1.5 |
+| **Sign-flip** | **0.74** | **0.40** | **7/7** | **6.6** |
+| Permutation | 0.71 | 0.37 | 7/7 | 30.9 |
+| Circular conv | 0.29 | 0.13 | 7/7 | 79.3 |
+| FFT correlation | 0.62 | 0.34 | 7/7 | 67.3 |
+| **Rotation** | **0.89** | **0.80** | **7/7** | **321.3** |
+
+Hadamard binding fails because natural embeddings are correlated and anisotropic — they share significant structure, so crosstalk from non-orthogonal role vectors overwhelms the target signal. All five alternatives achieve 7/7 correct snap recoveries at 7 bundled roles.
+
+**Sign-flip binding** (`a * sign(role)`) is S2's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough for the algebraic tier. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
+
+### 6.3 Cross-Substrate Validation
+
+We ran S2's empirical initiation validation gates on four non-normalized embedding models:
+
+| Model | Dims | Mag Mean | Binding | Bundling | Capacity | Approved |
+|-------|------|----------|---------|----------|----------|----------|
+| GTE-large | 1024 | 19.08 | PASS | PASS | ~4 | Yes |
+| BGE-large-en-v1.5 | 1024 | 17.29 | PASS | PASS | ~4 | Yes |
+| Jina-v2-base-en | 768 | 26.43 | PASS | PASS | ~3 | Yes |
+| mxbai-embed-large | 1024 | 17.38 | PASS | PASS | ~5 | Yes* |
+
+*mxbai passes algebraic tests but has a documented diacritic attention-sink pathology (Leonhart, 2026). This demonstrates that validation gates must include both algebraic tests and pathology detection.
+
+All four models produce non-normalized vectors (magnitudes 17-26, not 1.0) when accessed via raw transformers without post-processing normalization layers. S2 requires non-normalized output because magnitude carries information about binding strength and bundling count — Euclidean distance, not cosine similarity, is the primary metric.
+
+### 6.4 Operation Cost Analysis
+
+Benchmarked on GTE-large (1024-dim, CPU):
+
+| Tier | Operation | Cost (μs) | Relative |
+|------|-----------|-----------|----------|
+| 2 | Bind (sign-flip) | 6.6 | 1x |
+| 2 | Bundle (addition) | 1.7 | 0.3x |
+| 2 | Unbind (sign-flip) | 7.9 | 1.2x |
+| 2 | Similarity (dot) | 1.6 | 0.2x |
+| 2 | Euclidean distance | 4.6 | 0.7x |
+| 3 | Snap (20 items) | 31.8 | 4.8x |
+| 3 | Snap (1K items) | 3,540 | 536x |
+| 3 | Snap (10K items) | 31,000 | 4,697x |
+| — | Embed one text (LLM) | ~250,000 | ~38,000x |
+
+The critical finding: **snap-to-nearest is not the bottleneck**. Even with a 10K-item codebook, snap (31ms) is 8x cheaper than embedding a single text (250ms). The real cost is the LLM forward pass that produces the embeddings in the first place. Once vectors are in the space, algebraic operations are microsecond-scale and snap is millisecond-scale — both negligible compared to the embedding step.
+
+### 6.5 Substrate Validation: The mxbai Pathology
 
 During the cartographic analysis that grounds S2, a previously unreported defect in mxbai-embed-large was discovered: diacritic characters cause catastrophic embedding collapse via attention sink (a high-magnitude key vector dominates the attention mechanism, overwriting all other token representations). Completely unrelated strings containing diacritics produce cosine similarity > 0.95.
 
-This pathology demonstrates why S2 requires substrate validation as part of empirical initiation. The same analysis that discovered the algebraic structure also discovered a failure mode that would corrupt any computation built on the affected regions of the space. S2's validation gates — minimum requirements for binding dissimilarity, unbinding accuracy, and pathology absence — protect programs from substrate defects that standard benchmarks do not detect.
+This pathology demonstrates why S2 requires substrate validation as part of empirical initiation. Notably, mxbai passes all algebraic validation gates — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound but still have silent corruption modes. S2's validation must therefore include both algebraic tests and pathology-specific probes.
 
 ## 7. Discussion
 
@@ -248,6 +297,8 @@ The design conversations are archived in the project repository. This collaborat
 ## 8. Conclusion
 
 S2 demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, truth-extraction matrices, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
+
+Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves 7/7 correct recoveries at 7 bundled roles for only 4.4x the cost. Rotation binding provides 0.80 cosine accuracy at the same depth for applications requiring precision. These results demonstrate that VSA computation on natural embedding spaces is viable with the right binding operation — a finding that updates the VSA literature's assumption that Hadamard product is the standard choice.
 
 The design makes an honest assessment of its own limitations: VSA algebra alone is not Turing-complete, non-algebraic operations are expensive, noise accumulation requires periodic cleanup, and embedding substrates can have silent pathologies. These limitations are explicitly addressed in the language design rather than hidden.
 
