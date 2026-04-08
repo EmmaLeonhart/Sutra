@@ -470,14 +470,16 @@ Unsafe cast
 C#         var feline = (Cat)animal;
 TypeScript const feline = animal as Cat;
 Python     feline = cast(Cat, animal)
-S2         var feline = unsafe animal as Cat;
+S2         var feline = (cat) animal;
+S2         var feline = unsafeCast<cat>(animal);
+S2         var feline = unsafeOverride(animal);
 
 Primitive cast
 C#         Vector v = (Vector)value;
 TypeScript const v = value as Vector;
 Python     v = cast(Vector, value)
-S2         var v = unsafe value as vector;
-S2         var v = primitive&lt;vector&gt;(value);
+S2         var v = (vector) value;
+S2         var v = unsafeCast&lt;vector&gt;(value);
 
 String primitive note
 S2         string exists mostly for literals and output
