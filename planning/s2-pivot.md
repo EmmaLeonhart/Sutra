@@ -1,8 +1,10 @@
 # S2: A Vector Programming Language
 
+> **Language specification draft:** [`s2-language-spec.md`](s2-language-spec.md)
+
 ## What Is S2?
 
-S2 is a programming language that uses an LLM's embedding space as its computational substrate. Named after System 2 thinking (Kahneman) — slow, deliberate, effortful reasoning — the language literally implements this cognitive model. S2 processing is slow, deliberate, and effortful, and the language uses an LLM's embedding space as the substrate for computation. The language itself *embodies* the cognitive metaphor rather than just borrowing the name.
+S2 is a programming language that uses an LLM's embedding space as its computational substrate. Named after System 2 thinking (Kahneman) — slow, deliberate, effortful reasoning — the language literally implements this cognitive model. The language itself *embodies* the cognitive metaphor rather than just borrowing the name.
 
 ## Why Pivot From FOL Discovery?
 
