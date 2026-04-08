@@ -1,0 +1,20 @@
+{
+  "model": "thenlper/gte-large",
+  "hidden_size": 1024,
+  "num_test_texts": 20,
+  "magnitude_variation": true,
+  "magnitude_mean": 19.0833,
+  "magnitude_std": 0.4312,
+  "magnitude_cv": 0.0226,
+  "binding_works": true,
+  "binding_avg_cosine_to_inputs": 0.1314,
+  "unbinding_works": true,
+  "unbinding_avg_cosine_to_target": 0.8523,
+  "unbinding_avg_cosine_to_random": 0.5956,
+  "bundling_works": true,
+  "bundling_avg_cosine_to_components": 0.9228,
+  "bundling_avg_cosine_to_random": 0.7677,
+  "bundling_capacity": 4,
+  "all_gates_pass": true,
+  "notes": "GTE-large produces non-normalized vectors (mag ~19, not ~1). All S2 algebraic operations work. Binding produces vectors with ~0.13 cosine to inputs (strong encryption). Unbinding recovers targets at 0.85 cosine vs 0.60 random. Bundling capacity ~4 items before SNR degrades."
+}
