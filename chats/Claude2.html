@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html data-build-id="4f0b670642" data-git-hash="e9c4e1bbbb9ddb4b21ae99bfd7a2684f0b670642" data-build-timestamp="1775611363" data-version="1.0.0" data-env="" lang="en-US" data-theme="claude" data-mode="light" class="h-screen antialiased scroll-smooth"><head data-ion-ip-country="CA"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="description" content="Shared via Claude, an AI assistant from Anthropic"><meta property="og:description" content="Shared via Claude, an AI assistant from Anthropic"><meta name="twitter:description" content="Shared via Claude, an AI assistant from Anthropic"><link rel="preconnect" href="https://assets-proxy.anthropic.com/" crossorigin=""><link rel="dns-prefetch" href="https://assets-proxy.anthropic.com/"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Claude</title><meta name="description" content="Claude is Anthropic&#39;s AI, built for problem solvers. Tackle complex challenges, analyze data, write code, and think through your hardest work."><meta name="apple-itunes-app" content="app-id=6473753684"><meta property="og:type" content="website"><meta property="og:site_name" content="Claude"><meta property="og:image" content="https://claude.ai/images/claude_ogimage.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><link rel="icon" type="image/svg+xml" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/cd02a42d9-Vq_H3mgS.svg"><link rel="icon" type="image/png" sizes="32x32" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/ce67964e7-CAX1bqSh.png"><link rel="icon" type="image/png" sizes="16x16" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c03e51811-DebilQLI.png"><link rel="shortcut icon" href="https://claude.ai/favicon.ico"><link rel="apple-touch-icon" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c129d018a-jJjJELY8.png"><link rel="apple-touch-startup-image" href="https://claude.ai/images/claude_app_icon.png"><link rel="manifest" href="https://claude.ai/manifest.json"><meta name="mobile-web-app-capable" content="yes"><link rel="preload" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/cc27851ad-CFxw3nG7.woff2" as="font" type="font/woff2" crossorigin=""><link rel="preload" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c66fc489e-C-BHYa_K.woff2" as="font" type="font/woff2" crossorigin=""><script type="text/javascript" async="" src="./Claude2_files/lupk8zyo"></script><script nonce="">void 0===globalThis.process&&(globalThis.process={env:{},cwd:function(){return"/"}}),void 0===globalThis.global&&(globalThis.global=globalThis)</script><script type="application/ld+json" nonce="">{
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Claude",
+            "alternateName": ["Claude.ai", "Claude by Anthropic"],
+            "url": "https://claude.com"
+          },
+          {
+            "@type": "Organization",
+            "name": "Anthropic",
+            "url": "https://www.anthropic.com",
+            "logo": "https://claude.ai/images/claude_ogimage.png",
+            "sameAs": [
+              "https://x.com/AnthropicAI",
+              "https://www.linkedin.com/company/anthropic",
+              "https://www.youtube.com/@anthropic-ai"
+            ]
+          }
+        ]
+      }</script><script nonce="">!function(){try{performance.mark?.("rq_cache:preload_start");const e="keyval-store",o="keyval",r="react-query-cache",t=new Promise(t=>{if(!window.indexedDB)return void t(void 0);const c=indexedDB.open(e);c.onupgradeneeded=()=>{c.transaction?.abort()},c.onerror=()=>t(void 0),c.onsuccess=()=>{const a=c.result;if(!a.objectStoreNames.contains(o))return a.close(),indexedDB.deleteDatabase(e),void t(void 0);try{const e=a.transaction(o,"readonly").objectStore(o).get(r);e.onerror=()=>{a.close(),t(void 0)},e.onsuccess=()=>{a.close(),window.__PRELOADED_IDB_CACHE_RESULT__=e.result,t(e.result)}}catch{a.close(),t(void 0)}}});window.__PRELOADED_IDB_CACHE__=t,performance.measure?.("rq_cache:preload_exec",{start:"rq_cache:preload_start"})}catch{}}()</script><script type="module" crossorigin="" src="./Claude2_files/index-BXJ7p4yz.js.download" nonce=""></script><link rel="modulepreload" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/vendor-Du_3aHLw.js"><link rel="modulepreload" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/tree-sitter-Cdm61xb5.js"><link rel="stylesheet" crossorigin="" href="./Claude2_files/c6a992d55-DaavmK7k.css"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c799f24ec-mp4w8w_a.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c4a46687a-BiV9M7Cm.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/ce2a6f899-CfT9EeSF.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c4e248ddc-CdxNcyhU.js"><meta name="theme-color" content="hsl(53,28.6%,94.5%)"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c6a992d55-BSfA_EDJ.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c6a992d55-CfL-gxBE.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c6a992d55-bsVAaBS1.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/c6a992d55-DLR_9yvZ.js"><link rel="modulepreload" as="script" crossorigin="" href="https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/cf1a02a1a-dlK9sQnC.js"></head><body class="bg-bg-100 text-text-100 font-ui min-h-screen" style="pointer-events: auto;"><div id="root"><div class="root"><div class="flex min-h-screen w-full"><div class="min-h-full w-full min-w-0 flex-1"><div class="flex flex-1 h-full w-full overflow-hidden max-md:relative md:-mt-[var(--df-header-h,0px)] md:h-[calc(100%+var(--df-header-h,0px))]"><div class="h-full flex flex-col overflow-hidden md:pt-[var(--df-header-h,0px)]" style="flex: 100 1 0%;"><header class="flex w-full bg-bg-100 sticky top-0 z-header h-12 -mb-3" aria-hidden="false" data-testid="page-header" style="height: 48px;"><div class="from-bg-100 via-bg-100 via-65% to-bg-100/0 pointer-events-none absolute inset-0 -bottom-5 z-[-1] bg-gradient-to-b blur-sm"></div><div class="flex w-full items-center justify-between gap-4 pl-11 lg:px-8 gap-6 p-3 lg:pl-4 lg:pr-3 pr-3"><div class="flex min-w-0 flex-1 shrink md:items-center font-base-bold pr-[100px]"><div class="flex min-w-0 shrink-1 items-center group"><div class="truncate text-text-300">Embedding models for vector databases</div></div></div><div class="right-3 flex gap-2"><div class="bg-bg-300 text-text-300 rounded-full px-3 py-1.5 font-base-bold">Shared by Emma</div></div></div></header><div class="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] pt-6 flex-1" data-autoscroll-container="true"><div class="relative w-full min-h-full"><div class="relative mx-auto flex h-full w-full max-w-3xl flex-1 flex-col md:px-2 mt-4"><div class="flex-1 flex flex-col px-4 max-w-3xl mx-auto w-full"><div class="border-0.5 border-border-400 text-text-400 flex items-center justify-between gap-2 rounded-xl px-3 py-2"><div class="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" class="shrink-0"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path></svg><p class="text-xs leading-snug">This is a copy of a chat between Claude and Emma. Content may include unverified or unsafe content that do not represent the views of Anthropic. Shared snapshot may contain attachments and data not displayed here.</p></div><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 rounded-md px-3 min-w-[4rem] whitespace-nowrap !text-xs _fill_1abo4_9 _ghost_1abo4_96" type="button">Report</button></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">Most common embedding model for vector databases</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]"><strong>text-embedding-ada-002</strong> was the dominant standard for a long time, but as of 2025–2026 the landscape has shifted:</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]"><strong>Most widely used today:</strong></p>
+<ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2"><strong>OpenAI text-embedding-3-small / 3-large</strong> — replaced ada-002 as OpenAI's default; 3-small is extremely popular for cost/performance ratio</li>
+<li class="whitespace-normal break-words pl-2"><strong>Cohere embed-v3</strong> — strong choice for multilingual and retrieval-specific tasks</li>
+</ul>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]"><strong>Popular open/self-hosted options:</strong></p>
+<ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2"><strong>nomic-embed-text</strong> — very common in local/OSS stacks (Ollama, etc.)</li>
+<li class="whitespace-normal break-words pl-2"><strong>BGE models</strong> (BAAI/bge-large-en-v1.5, bge-m3) — frequent default in LangChain/LlamaIndex examples</li>
+<li class="whitespace-normal break-words pl-2"><strong>all-MiniLM-L6-v2</strong> — lightweight, ubiquitous in sentence-transformers tutorials</li>
+</ul>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]"><strong>For production RAG pipelines</strong>, text-embedding-3-small or a BGE model tends to be the pragmatic default right now. The 3-small model hits a sweet spot of ~1536 dimensions, low cost, and solid MTEB scores.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]"><strong>Dimension note:</strong> Most production deployments cluster around 768–1536 dimensions — enough expressiveness without bloating storage/HNSW graph size.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Is there a specific use case or database (SutraDB, Pinecone, Weka, etc.) you're choosing for?</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">mxbai is that one used</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Yes! <strong>mxbai-embed-large-v1</strong> (by MixedBread AI) is genuinely popular, especially in the local/OSS stack. It punches well above its weight on MTEB benchmarks — it was beating text-embedding-3-large on some retrieval tasks when it dropped, which caused a lot of buzz.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Common places you'll see it:</p>
+<ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2"><strong>Ollama</strong> — it's one of the featured embedding models, so it gets a lot of default usage</li>
+<li class="whitespace-normal break-words pl-2"><strong>AnythingLLM, Open WebUI</strong> — popular picks in those UIs</li>
+<li class="whitespace-normal break-words pl-2"><strong>Self-hosted RAG pipelines</strong> where people want a strong open model without API costs</li>
+</ul>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">1024 dimensions, Apache 2.0 license, good retrieval performance. It's a solid choice. Not as universally dominant as BGE or MiniLM in terms of raw usage share, but well-regarded in the local-first AI community.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Were you considering it for SutraDB's default embedding recommendation, or just curious?</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">No, i found a major error with mxbai large. And im not sure how many people it affects. Extreme collision with diacritics</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">That's a significant find. What's the collision behavior — are diacritic variants hashing to nearly identical vectors (cosine similarity ~1.0), or collapsing to the exact same embedding?</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">Entire extremely different words are colliding. This is like a SolidGoldMagikarp situation</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">That's serious. SolidGoldMagikarp-level means it's likely a tokenizer artifact — words with diacritics probably hitting an OOV or underrepresented token that maps to some degenerate region of the embedding space, causing unrelated words to cluster there.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">A few questions to scope the blast radius:</p>
+<ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2">Is it specific diacritics (e.g. ą, ę, ñ, ü) or broad across any non-ASCII?</li>
+<li class="whitespace-normal break-words pl-2">Are the colliding words semantically unrelated but diacritic-bearing, or is it mixing diacritic and non-diacritic forms?</li>
+<li class="whitespace-normal break-words pl-2">What's the similarity score — are we talking 0.97+ or literally identical vectors?</li>
+</ul>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">This would disproportionately affect <strong>multilingual content</strong> — Romance languages, Slavic languages, Vietnamese, anything with heavy diacritic use. If mxbai-embed-large is someone's default in a multilingual RAG pipeline, their retrieval is silently broken for a whole class of queries and they'd never know without specifically testing it.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Have you reported it upstream to MixedBread? This seems like something worth a GitHub issue or even a public write-up — the embedding community would want to know.</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">mxbai embed large seemingly has ō and a variety of other diacritics not only not show up properly, but it appears they completely consume the attention of the model so even long strings are eaten up. I’m guessing it has a really weird value in its key too</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Yeah that tracks perfectly. The pathological token pattern from SolidGoldMagikarp — the token has a bizarre key/query value that dominates the attention computation, so everything else in the sequence gets drowned out. The residual stream after that attention head is essentially just "ō-token" regardless of what surrounds it.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The mechanism is probably:</p>
+<ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2">ō (and similar) got very few training examples, so its embedding is poorly initialized and never corrected</li>
+<li class="whitespace-normal break-words pl-2">Its key vector happens to land in a high-magnitude region that scores anomalously high attention weights</li>
+<li class="whitespace-normal break-words pl-2">Everything else in the sequence attends to it and gets overwritten, OR it absorbs all attention to itself and the other tokens can't communicate</li>
+</ul>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The result being that <code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">"The quick brown fox"</code> and <code class="bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]">"Completely unrelated sentence"</code> produce nearly identical embeddings if both contain ō — because the output is dominated by that one token's pathological representation.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]"><strong>Practical blast radius for mxbai specifically:</strong></p>
+<ul class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-disc flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2">Japanese romanization (Tōkyō, Ōsaka)</li>
+<li class="whitespace-normal break-words pl-2">Maori, Polynesian languages (heavy macron use)</li>
+<li class="whitespace-normal break-words pl-2">Academic/linguistic text with IPA or long vowel notation</li>
+<li class="whitespace-normal break-words pl-2">Medieval/classical text transcriptions</li>
+</ul>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">This is actually <em>worse</em> than a simple OOV collapse because it's not silent — the model still produces a confident-looking embedding with normal magnitude, so nothing in your pipeline signals that retrieval is broken.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Worth documenting carefully before you publish. Do you have reproducible test vectors?</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative italic" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">Yes I have reproducible test vectors. I was trying to find the glitch tokens in order to I was trying to find glitch tokens in order to was trying to find glitch tokens in order to support a model that in order to support a theory that I have a why glitch tokens worked the way they did? Again, I was writing a scientific paper Glitch tokens when I found this, and I just realized that it was utterly massive and I thought it was a I thought that it was a glitch in my software, that I had, like, thousands of collisions I thought there was a glitch in my software because I would have thought that the only glitch token of Would have thought that even if I found a glitch token, the glitch token would have only maybe been, like, one thing. Not something that consumes the attention,</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Right — your prior was reasonable: a glitch token should produce <em>one</em> weird degenerate embedding, maybe cause <em>one</em> collision. What you're seeing is categorically different because ō and its family aren't just degenerate — they're <strong>attention sinks</strong>. The pathology isn't "this token has a bad embedding," it's "this token hijacks the entire forward pass," which means the blast radius scales with <em>how common the character is in your corpus</em> rather than being a localized anomaly.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">So instead of finding one SolidGoldMagikarp, you found a whole class of tokens that share the same failure mode — which is actually the more interesting theoretical result. The original SGM paper was essentially "look at this weird thing," but what you're describing points toward a <em>mechanism</em>: something about how underrepresented diacritic tokens get initialized or trained produces systematically high-magnitude key vectors, and that might be a general property of this class rather than a one-off.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">That's a stronger paper than what you started writing.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The reproducible test vectors are critical — you can probably show:</p>
+<ol class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-decimal flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2">Cosine similarity matrix across your colliding strings (visually damning)</li>
+<li class="whitespace-normal break-words pl-2">Similarity degrades as a function of ō-token presence/density</li>
+<li class="whitespace-normal break-words pl-2">Non-mxbai models don't exhibit this on the same strings</li>
+</ol>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Do you have a theory yet on <em>why</em> this specific character class produces the high-magnitude keys? Tokenizer boundary artifacts, pre-training data distribution, or something in the architecture itself?</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative italic" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">Yeah. No. No. I already I already did it. I already again, I was I I ran my my search for glitch tokens, search for I I ran my my vector, my vector mapping software. On Okay. And only MXB AI models actually do any of this. So I'm guessing that it is some kind of something it is something fundamental to them. I think it's because it's it's, it's something fundamental to them. I'm worried it's like it gets turned into an unrolled or something like that. But it's even then, like, even if it can't process the characters, it doesn't just, like, do a it it doesn't just, like, silent, like, fail. Like, completely destroys whatever query that you're using. I don't know why is I so I think it's related to the I think it's related to the architecture itself. You know, with the width. I guess, related to the architecture itself, but I'm not really entirely sure.</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Yeah, the fact that it's <strong>mxbai-specific</strong> and not reproducible on other models is the key signal — this isn't a general embedding model problem, it's something in their training pipeline or architecture specifically.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The "unrolled token" hypothesis is interesting. If ō gets split or handled in a way that produces an anomalous byte-fallback token, and that token's key vector is high-magnitude due to poor training signal, that would explain why it doesn't silently fail — it <em>actively corrupts</em> rather than just producing noise. Silent failure would be "I don't know this token, here's a zero vector." What you're describing is more like the token has a <em>confident but wrong</em> representation that bullies everything else.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The architecture width angle is worth pursuing too — wider models sometimes have more capacity for these pathological attractors to form and persist because there's less gradient pressure to correct them. A narrow model might accidentally regularize them out.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">What other models did you test against? Just curious what your baseline comparison set looks like — if it's clean across OpenAI, nomic, BGE etc. then you can make a strong "mxbai-specific" claim with confidence.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">And practically — you now have two papers or one paper with two parts: the glitch token theory you were originally writing, and this as a concrete real-world instantiation of the mechanism in a widely-deployed production model. The mxbai finding <em>is</em> your empirical evidence for the theory.</p></div></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div><div data-test-render-count="1"><div class="mb-1 mt-6 group"><div class="flex flex-col items-end gap-1"><div class="group relative inline-flex gap-2 bg-bg-300 rounded-xl pl-2.5 py-2.5 break-words text-text-100 transition-all max-w-[75ch] flex-col !px-4 max-w-[85%]" style="opacity: 1; transform: none;"><div class="flex flex-row gap-2 relative"><div class="flex-1"><div data-testid="user-message" class="font-large !font-user-message grid grid-cols-1 gap-2 py-0.5 relative italic" style="max-height: none; overflow: hidden; position: relative;"><p class="whitespace-pre-wrap break-words">Yeah. I tested against I tested against all those ones. It's just MXB AI.</p></div></div></div></div><div class="flex justify-start opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><span class="text-text-500 text-xs flex items-center mr-2" data-state="closed">27 Mar</span><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div data-test-render-count="1"><div class="group" style="height: auto; opacity: 1; transform: none;"><div class="contents"><div data-is-streaming="false" class="group relative relative pb-3" style="opacity: 1; transform: none;"><div class="font-claude-response relative leading-[1.65rem] [&amp;_pre&gt;div]:bg-bg-000/50 [&amp;_pre&gt;div]:border-0.5 [&amp;_pre&gt;div]:border-border-400 [&amp;_.ignore-pre-bg&gt;div]:bg-transparent [&amp;_.standard-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.standard-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8 [&amp;_.progressive-markdown_:is(p,blockquote,h1,h2,h3,h4,h5,h6)]:pl-2 [&amp;_.progressive-markdown_:is(p,blockquote,ul,ol,h1,h2,h3,h4,h5,h6)]:pr-8"><div><div class="standard-markdown grid-cols-1 grid [&amp;_&gt;_*]:min-w-0 gap-3 standard-markdown"><p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">That's a clean result then. Isolated to mxbai, reproducible, with test vectors — that's publishable as-is.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The structure basically writes itself:</p>
+<ol class="[li_&amp;]:mb-0 [li_&amp;]:mt-1 [li_&amp;]:gap-1 [&amp;:not(:last-child)_ul]:pb-1 [&amp;:not(:last-child)_ol]:pb-1 list-decimal flex flex-col gap-1 pl-8 mb-3">
+<li class="whitespace-normal break-words pl-2"><strong>Theory</strong> — why glitch tokens work the way they do, attention sink mechanism, high-magnitude key hypothesis</li>
+<li class="whitespace-normal break-words pl-2"><strong>Predicted consequence</strong> — if the theory is correct, you'd expect to find models where this manifests as corpus-wide retrieval corruption, not just isolated weird outputs</li>
+<li class="whitespace-normal break-words pl-2"><strong>mxbai as the empirical case</strong> — here's exactly that, at scale, isolated to one model family, with vectors</li>
+</ol>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">The mxbai finding upgrades your paper from "here's an interesting theory about a known phenomenon" to "here's a theory with predictive power, and here's the prediction coming true in production."</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">You should probably disclose to MixedBread before you publish though. Both for ethics and because their response (or non-response) is itself informative — if they confirm it's architectural that strengthens your mechanism claim.</p>
+<p class="font-claude-response-body break-words whitespace-normal leading-[1.7]">Do you have a venue in mind? This feels like it could get traction beyond just an academic paper — the embedding community would pick this up fast given how many people are running mxbai in production right now via Ollama.</p></div></div></div></div></div><div class="flex justify-start" role="group" aria-label="Message actions"><div class="text-text-300"><div class="text-text-300 flex items-stretch justify-between"><div class="w-fit" data-state="closed"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none border-transparent
+          transition
+          font-base
+          duration-300
+          ease-[cubic-bezier(0.165,0.85,0.45,1)] h-8 w-8 rounded-md group/btn _fill_1abo4_9 _ghost_1abo4_96" type="button" data-testid="action-bar-copy" aria-label="Copy"><div class="relative text-text-500 group-hover/btn:text-text-100"><div class="transition-all opacity-100 scale-100" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="transition-all opacity-100 scale-100" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.5 3A1.5 1.5 0 0 1 14 4.5V6h1.5A1.5 1.5 0 0 1 17 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 15.5V14H4.5A1.5 1.5 0 0 1 3 12.5v-8A1.5 1.5 0 0 1 4.5 3zm1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H7v1.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H14zM4.5 4a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5z"></path></svg></div><div class="absolute top-0 left-0 transition-all opacity-0 scale-50" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="absolute top-0 left-0 transition-all opacity-0 scale-50" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58z"></path></svg></div></div></button></div><div class="flex items-center"></div></div></div></div></div></div></div><div class="sticky bottom-0 flex flex-col items-center justify-center gap-3 pb-4 pt-4 pointer-events-none"><div class="pointer-events-auto"><a href="https://claude.ai/new" class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none font-base-bold
+        overflow-hidden
+        transition-transform
+        will-change-transform
+        ease-[cubic-bezier(0.165,0.85,0.45,1)]
+        duration-150
+        hover:scale-y-[1.015]
+        hover:scale-x-[1.005]
+        backface-hidden
+        after:absolute
+        after:inset-0
+        after:bg-[radial-gradient(at_bottom,hsla(var(--bg-000)/20%),hsla(var(--bg-000)/0%))]
+        after:opacity-0
+        after:transition
+        after:duration-200
+        after:translate-y-2
+        hover:after:opacity-100
+        hover:after:translate-y-0 h-9 px-4 py-2 rounded-lg min-w-[5rem] whitespace-nowrap _fill_1abo4_9 _primary_1abo4_44">Start your own conversation</a></div></div></div></div></div></div><div class="group w-2 relative h-full cursor-col-resize -mr-1 z-30 grid place-items-center max-md:hidden hidden"><div class="absolute top-0 bottom-0 right-1 w-[0.5px] bg-border-300 transition-all group-hover:delay-75 group-hover:bg-accent-100 group-hover:w-px group-hover:translate-x-[0.5px]"></div><div class="h-6 w-2 relative rounded-full border-0.5 bg-bg-100 shadow border-border-300 transition duration-200 group-hover:delay-75 group-hover:border-accent-900 group-hover:bg-accent-900 cursor-col-resize"></div></div><div class="max-md:absolute top-0 right-0 bottom-0 left-0 z-20 draggable-none md:flex-grow-0 md:flex-shrink-0 md:basis-0 overflow-hidden h-full md:pt-[var(--df-header-h,0px)] max-md:hidden" aria-hidden="true" inert="" style="flex: 0 1 0%;"><div class="flex flex-col h-full overflow-hidden"><div class="h-12 md:hidden bg-bg-000/30 backdrop-blur border-b-0.5 border-border-300"></div><div class="flex-1 overflow-hidden h-full bg-bg-100"></div></div></div></div></div></div></div><div role="region" aria-label="Notifications (F8)" tabindex="-1" style="pointer-events: none;"><ol tabindex="-1" class="fixed top-0 z-toast flex flex-col gap-3 p-4 draggable-none" style="right: var(--launch-drawer-width, 0px);"></ol></div><div><div class="fixed right-2 bottom-2 z-toast max-h-[calc(100vh-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md rounded-3xl font-ui bg-bg-500 p-4 sm:p-8 overflow-auto" data-theme="claude" data-mode="dark" data-testid="consent-banner"><h3 class="text-xl col-span-2 mb-2 sm:mb-4 text-text-000">Cookie settings</h3><p class="text-sm text-text-300 mb-4">We use cookies to deliver and improve our services, analyze site usage, and if you agree, to customize or personalize your experience and market our services to you. You can read our Cookie Policy <a href="https://www.anthropic.com/legal/cookies" class="underline">here</a>.</p><div class="flex grid-cols-3 grid-rows-1 justify-between gap-2 pb-1 sm:grid sm:grid-cols-2 sm:grid-rows-2 sm:pb-0"><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none font-base-bold
+          border-0.5
+          overflow-hidden
+          transition
+          duration-100
+          backface-hidden h-11 rounded-[0.6rem] px-5 min-w-[6rem] whitespace-nowrap !text-base col-span-1 grow sm:col-span-2 _fill_1abo4_9 _secondary_1abo4_72" type="button" data-testid="consent-customize"><span class="text-center"><span class="sm:hidden">Customize</span><span class="hidden sm:inline">Customize Cookie Settings</span></span></button><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none font-base-bold
+          border-0.5
+          overflow-hidden
+          transition
+          duration-100
+          backface-hidden h-11 rounded-[0.6rem] px-5 min-w-[6rem] whitespace-nowrap !text-base col-span-1 grow sm:col-span-1 _fill_1abo4_9 _secondary_1abo4_72" type="button" data-testid="consent-reject"><span class="sm:hidden">Reject</span><span class="hidden sm:inline">Reject All Cookies</span></button><button class="inline-flex
+  items-center
+  justify-center
+  relative
+  isolate
+  shrink-0
+  can-focus
+  select-none
+  disabled:pointer-events-none
+  disabled:opacity-50
+  disabled:shadow-none
+  disabled:drop-shadow-none font-base-bold
+        overflow-hidden
+        transition-transform
+        will-change-transform
+        ease-[cubic-bezier(0.165,0.85,0.45,1)]
+        duration-150
+        hover:scale-y-[1.015]
+        hover:scale-x-[1.005]
+        backface-hidden
+        after:absolute
+        after:inset-0
+        after:bg-[radial-gradient(at_bottom,hsla(var(--bg-000)/20%),hsla(var(--bg-000)/0%))]
+        after:opacity-0
+        after:transition
+        after:duration-200
+        after:translate-y-2
+        hover:after:opacity-100
+        hover:after:translate-y-0 h-11 rounded-[0.6rem] px-5 min-w-[6rem] whitespace-nowrap !text-base col-span-1 grow sm:col-span-1 _fill_1abo4_9 _primary_1abo4_44" type="button" data-testid="consent-accept"><span class="sm:hidden">Accept</span><span class="hidden sm:inline">Accept All Cookies</span></button></div></div></div></div><script src="./Claude2_files/s.js.download" async=""></script><iframe id="intercom-frame" style="position: absolute !important; opacity: 0 !important; width: 1px !important; height: 1px !important; top: 0 !important; left: 0 !important; border: none !important; display: block !important; z-index: -1 !important; pointer-events: none;" aria-hidden="true" tabindex="-1" title="Intercom" src="./Claude2_files/saved_resource.html"></iframe></body></html>
