@@ -267,6 +267,9 @@
             <li>S2 is a substrate-oriented language rather than a class-first application language.</li>
             <li>Functions exist independently.</li>
             <li><code>function</code> is the chosen declaration keyword.</li>
+            <li>Conditionals use TypeScript-style <code>if (...) { ... } else { ... }</code>.</li>
+            <li>S2 uses <code>return</code>.</li>
+            <li>Looping uses TypeScript-style <code>while (...) { ... }</code>.</li>
             <li>C# remains a primary readability baseline even where S2 rejects class-first structure.</li>
             <li>The syntax should stay serious and explicit without borrowing conventional datatype assumptions.</li>
             <li>Readability matters, but the surface should not pretend the semantics are ordinary imperative programming.</li>
@@ -281,8 +284,8 @@
         </div>
         <div class="card stat">
           <h2>Established decisions</h2>
-          <span class="stat-value">2</span>
-          <p class="muted">Functions are top-level, independent constructs, and <code>function</code> is the active declaration keyword.</p>
+          <span class="stat-value">5</span>
+          <p class="muted">Functions are independent, declarations use <code>function</code>, conditionals and loops use TypeScript-style forms, and S2 uses <code>return</code>.</p>
         </div>
       </div>
     </section>
@@ -377,6 +380,9 @@ S2         function blend(a, b) { ... }</code></pre>
           <li><strong>Independent functions:</strong> yes</li>
           <li><strong>Declaration keyword:</strong> <code>function</code></li>
           <li><strong>Blocks:</strong> braces are the safest current default</li>
+          <li><strong>Conditional form:</strong> TypeScript-style <code>if (...) { ... }</code></li>
+          <li><strong>Loop form:</strong> TypeScript-style <code>while (...) { ... }</code></li>
+          <li><strong>Return keyword:</strong> <code>return</code></li>
           <li><strong>Readability baseline:</strong> C#-level explicitness</li>
           <li><strong>Typing surface:</strong> probably lightweight, not conventional datatypes</li>
           <li><strong>Notation:</strong> likely mixed mainstream syntax rather than Lisp-only prefix forms</li>
@@ -393,6 +399,14 @@ S2         function blend(a, b) { ... }</code></pre>
           <h3>2026-04-08: Use <code>function</code> for declarations</h3>
           <p>S2 aligns with TypeScript here. The keyword is explicit, readable, and compatible with the independent-function model without pulling in class-first structure.</p>
         </div>
+        <div class="decision">
+          <h3>2026-04-08: Use TypeScript-style conditionals and loops</h3>
+          <p>S2 uses <code>if (...) { ... } else { ... }</code> and <code>while (...) { ... }</code> as its current baseline control-flow forms.</p>
+        </div>
+        <div class="decision">
+          <h3>2026-04-08: Use <code>return</code></h3>
+          <p>S2 uses <code>return</code> for explicit return points and early exits.</p>
+        </div>
       </article>
 
       <article class="card span-6">
@@ -401,7 +415,9 @@ S2         function blend(a, b) { ... }</code></pre>
           <li>What should the rest of the function signature look like?</li>
           <li>Should files imply namespaces, or should grouping be explicit?</li>
           <li>How should primitive substrate operations read in source?</li>
-          <li>How visible should fuzzy truth and conditionals be?</li>
+          <li>How do truthiness and explicit truth checks interact?</li>
+          <li>Is <code>if (cat)</code> legal, discouraged, or forbidden?</li>
+          <li>How should unsafe casts read in source?</li>
           <li>Does S2 need any annotation layer for semantic roles?</li>
         </ul>
       </article>
@@ -414,7 +430,7 @@ TypeScript function blend(a, b) { return combine(a, b); }
 Python     def blend(a, b): return combine(a, b)
 Rust       fn blend(a: Vector, b: Vector) -&gt; Result { combine(a, b) }
 Scheme     (define (blend a b) (combine a b))
-S2         function blend(a, b) { combine(a, b) }
+S2         function blend(a, b) { return combine(a, b); }
 
 Conditional
 C#         if (IsTrue(signal)) { return Activate(signal); } else { return Dampen(signal); }
@@ -423,7 +439,7 @@ Python     if is_true(signal): return activate(signal)
            else: return dampen(signal)
 Rust       if is_true(signal) { activate(signal) } else { dampen(signal) }
 Scheme     (if (is-true signal) (activate signal) (dampen signal))
-S2         if is_true(signal) { activate(signal) } else { dampen(signal) }
+S2         if (isTrue(signal)) { return activate(signal); } else { return dampen(signal); }
 
 Looping
 C#         while (!Done(state)) { state = Step(state); }
@@ -431,6 +447,7 @@ TypeScript while (!done(state)) { state = step(state); }
 Python     while not done(state): state = step(state)
 Rust       while !done(&amp;state) { state = step(state); }
 Scheme     (let loop ((state state)) (if (done state) state (loop (step state))))
+S2         while (!done(state)) { state = step(state); }
 
 Primitive operation call
 C#         var result = Bind(left, right);
@@ -439,7 +456,32 @@ Python     result = bind(left, right)
 Rust       let result = bind(left, right);
 Scheme     (define result (bind left right))
 S2         result = bind(left, right)
-S2 alt     result = left * right</code></pre>
+S2 alt     result = left * right
+
+Truthiness
+C#         if (cat) { ... }                  // only if cat is bool
+TypeScript if (cat) { ... }
+Python     if cat: ...
+Rust       if cat { ... }                    // only if cat is bool
+S2         if (cat) { ... }
+S2         if (isTrue(cat)) { ... }
+
+Unsafe cast
+C#         var feline = (Cat)animal;
+TypeScript const feline = animal as Cat;
+Python     feline = cast(Cat, animal)
+S2         var feline = unsafe animal as Cat;
+
+Primitive cast
+C#         Vector v = (Vector)value;
+TypeScript const v = value as Vector;
+Python     v = cast(Vector, value)
+S2         var v = unsafe value as vector;
+S2         var v = primitive&lt;vector&gt;(value);
+
+String primitive note
+S2         string exists mostly for literals and output
+S2         most internal work should convert strings into vectors first</code></pre>
       </article>
     </section>
 
