@@ -266,6 +266,7 @@
           <ul>
             <li>S2 is a substrate-oriented language rather than a class-first application language.</li>
             <li>Functions exist independently.</li>
+            <li><code>function</code> is the chosen declaration keyword.</li>
             <li>The syntax should stay serious and explicit without borrowing conventional datatype assumptions.</li>
             <li>Readability matters, but the surface should not pretend the semantics are ordinary imperative programming.</li>
           </ul>
@@ -277,9 +278,9 @@
           </div>
         </div>
         <div class="card stat">
-          <h2>Established decision</h2>
-          <span class="stat-value">1</span>
-          <p class="muted">Functions are top-level, independent constructs. Any later grouping mechanism should organize functions, not own them.</p>
+          <h2>Established decisions</h2>
+          <span class="stat-value">2</span>
+          <p class="muted">Functions are top-level, independent constructs, and <code>function</code> is the active declaration keyword.</p>
         </div>
       </div>
     </section>
@@ -357,20 +358,22 @@
 
       <article class="card span-7">
         <h2>Function declaration pressure</h2>
-        <p>The core syntax decision now is how standalone functions should read. Current evidence points toward a declaration keyword rather than punctuation-only forms.</p>
+        <p>The declaration keyword decision is now made. S2 uses <code>function</code>. The remaining pressure is on signature shape, annotations, and block style.</p>
         <pre><code>C#         result Blend(a, b) { ... }
 TypeScript function blend(a, b) { ... }
+JavaScript function blend(a, b) { ... }
 Python     def blend(a, b):
 Rust       fn blend(a, b) -> Result { ... }
 Scheme     (define (blend a b) ...)
-Lisp       (defun blend (a b) ...)</code></pre>
+Lisp       (defun blend (a b) ...)
+S2         function blend(a, b) { ... }</code></pre>
       </article>
 
       <article class="card span-5">
         <h2>Most likely current lean</h2>
         <ul>
           <li><strong>Independent functions:</strong> yes</li>
-          <li><strong>Declaration keyword:</strong> likely yes</li>
+          <li><strong>Declaration keyword:</strong> <code>function</code></li>
           <li><strong>Blocks:</strong> braces are the safest current default</li>
           <li><strong>Typing surface:</strong> probably lightweight, not conventional datatypes</li>
           <li><strong>Notation:</strong> likely mixed mainstream syntax rather than Lisp-only prefix forms</li>
@@ -383,17 +386,53 @@ Lisp       (defun blend (a b) ...)</code></pre>
           <h3>2026-04-08: Functions exist independently</h3>
           <p>S2 treats functions as top-level constructs. Future grouping features, if added, should organize functions rather than own them. Method syntax should be secondary sugar, not the core mental model.</p>
         </div>
+        <div class="decision">
+          <h3>2026-04-08: Use <code>function</code> for declarations</h3>
+          <p>S2 aligns with TypeScript here. The keyword is explicit, readable, and compatible with the independent-function model without pulling in class-first structure.</p>
+        </div>
       </article>
 
       <article class="card span-6">
         <h2>Questions still open</h2>
         <ul>
-          <li>What exact keyword should introduce a function?</li>
+          <li>What should the rest of the function signature look like?</li>
           <li>Should files imply namespaces, or should grouping be explicit?</li>
           <li>How should primitive substrate operations read in source?</li>
           <li>How visible should fuzzy truth and conditionals be?</li>
           <li>Does S2 need any annotation layer for semantic roles?</li>
         </ul>
+      </article>
+
+      <article class="card span-12">
+        <h2>Code Comparison Patterns</h2>
+        <pre><code>Declare a function
+TypeScript function blend(a, b) { return combine(a, b); }
+Python     def blend(a, b): return combine(a, b)
+Rust       fn blend(a: Vector, b: Vector) -&gt; Result { combine(a, b) }
+Scheme     (define (blend a b) (combine a b))
+S2         function blend(a, b) { combine(a, b) }
+
+Conditional
+TypeScript if (isTrue(signal)) { return activate(signal); } else { return dampen(signal); }
+Python     if is_true(signal): return activate(signal)
+           else: return dampen(signal)
+Rust       if is_true(signal) { activate(signal) } else { dampen(signal) }
+Scheme     (if (is-true signal) (activate signal) (dampen signal))
+S2         if is_true(signal) { activate(signal) } else { dampen(signal) }
+
+Looping
+TypeScript while (!done(state)) { state = step(state); }
+Python     while not done(state): state = step(state)
+Rust       while !done(&amp;state) { state = step(state); }
+Scheme     (let loop ((state state)) (if (done state) state (loop (step state))))
+
+Primitive operation call
+TypeScript const result = bind(left, right);
+Python     result = bind(left, right)
+Rust       let result = bind(left, right);
+Scheme     (define result (bind left right))
+S2         result = bind(left, right)
+S2 alt     result = left * right</code></pre>
       </article>
     </section>
 
