@@ -6,6 +6,7 @@ This document is a working reference for designing S2 syntax. It does not lock d
 
 - S2 is not aiming to look like a general-purpose scripting language.
 - S2 functions exist independently rather than living inside classes or modules by default.
+- S2 uses `function` as the function declaration keyword.
 - S2 should probably sit above assembly and below C# in abstraction level.
 - S2 has to stay compatible with fuzzy, vector-native semantics rather than pretending values are conventional datatypes.
 - Syntax should help with reasoning, not hide the substrate.
@@ -21,6 +22,11 @@ This document is a working reference for designing S2 syntax. It does not lock d
 | Rust | explicit, expression-oriented, systems-minded | free functions are normal; methods are secondary | ownership, types, punctuation density | good model for standalone functions and disciplined syntax |
 | Scheme | tiny core, prefix notation, functional | functions are primary and independent | uniform syntax can hide intent for non-Lisp readers | strong reference for small-core language design |
 | Lisp | homoiconic, macro-friendly, symbolic | functions are independent and central | parentheses dominate surface readability | useful if S2 needs code-as-structure, risky if readability matters more |
+
+## S2 Decisions Already Made
+
+- Functions exist independently.
+- The function declaration keyword is `function`.
 
 ## By Language
 
@@ -155,7 +161,7 @@ Lisp is useful as a reminder that a language can center functions and symbolic c
 
 ## 1. Function Declarations
 
-Because independent functions are already a likely decision, the main question is not whether S2 has free functions. The main question is what a function definition should look like.
+Because independent functions are already an active decision, the main question is no longer whether S2 has free functions. The declaration keyword is also decided now: S2 uses `function`. The remaining question is what the rest of a function definition should look like.
 
 Reference shapes:
 
@@ -167,12 +173,13 @@ Python     def blend(a, b):
 Rust       fn blend(a, b) -> Result { ... }
 Scheme     (define (blend a b) ...)
 Lisp       (defun blend (a b) ...)
+S2         function blend(a, b) { ... }
 ```
 
-Early S2 implication:
+Current S2 implication:
 
-- `fn` or `function` style is likely easier to scan than a Lisp form.
-- A declaration keyword is probably better than relying on punctuation alone.
+- `function` is the active declaration keyword.
+- A declaration keyword is better than relying on punctuation alone.
 - Return-type syntax should stay optional until S2 has stronger commitments about its type surface.
 
 ## 2. Blocks Versus Indentation
@@ -246,7 +253,6 @@ The weakest direct influences are probably:
 
 These are intentionally not locked yet:
 
-- exact function declaration keyword
 - whether blocks use braces
 - whether return annotations exist
 - whether modules/namespaces are mandatory, optional, or absent
@@ -255,8 +261,434 @@ These are intentionally not locked yet:
 
 ## Next Decisions To Make
 
-- exact syntax for top-level function declarations
+- exact shape of top-level function signatures beyond the `function` keyword
 - whether S2 has explicit namespaces or just files plus symbols
 - whether primitive operations look mathematical, keyword-based, or both
 - how truth-testing and fuzzy conditionals should read in source
 - whether there is any lightweight role-annotation system even without conventional datatypes
+
+## Code Comparison Examples
+
+These examples exist to compare syntax shape rather than semantics. They intentionally use roughly equivalent constructs even where the underlying language models differ.
+
+## Example 1: Declare A Simple Function
+
+```text
+C#
+static Result Blend(Vector a, Vector b)
+{
+    return Combine(a, b);
+}
+
+TypeScript
+function blend(a: Vector, b: Vector): Result {
+  return combine(a, b);
+}
+
+JavaScript
+function blend(a, b) {
+  return combine(a, b);
+}
+
+Python
+def blend(a, b):
+    return combine(a, b)
+
+Rust
+fn blend(a: Vector, b: Vector) -> Result {
+    combine(a, b)
+}
+
+Scheme
+(define (blend a b)
+  (combine a b))
+
+Lisp
+(defun blend (a b)
+  (combine a b))
+
+S2 current lean
+function blend(a, b) {
+    combine(a, b)
+}
+```
+
+## Example 2: Bind A Name To An Intermediate Value
+
+```text
+C#
+var pair = Bind(left, right);
+
+TypeScript
+const pair = bind(left, right);
+
+JavaScript
+const pair = bind(left, right);
+
+Python
+pair = bind(left, right)
+
+Rust
+let pair = bind(left, right);
+
+Scheme
+(define pair (bind left right))
+
+Lisp
+(let ((pair (bind left right)))
+  ...)
+
+S2 questions to resolve
+let pair = bind(left, right)
+pair = bind(left, right)
+value pair = bind(left, right)
+```
+
+S2 takeaway:
+
+- This is still open.
+- Rust, TypeScript, and Python give the cleanest mainstream references here.
+- Scheme and Lisp show that declaration syntax can stay minimal if the rest of the language is structurally consistent.
+
+## Example 3: Conditional Execution
+
+```text
+C#
+if (isTrue(signal))
+{
+    return activate(signal);
+}
+else
+{
+    return dampen(signal);
+}
+
+TypeScript
+if (isTrue(signal)) {
+  return activate(signal);
+} else {
+  return dampen(signal);
+}
+
+JavaScript
+if (isTrue(signal)) {
+  return activate(signal);
+} else {
+  return dampen(signal);
+}
+
+Python
+if is_true(signal):
+    return activate(signal)
+else:
+    return dampen(signal)
+
+Rust
+if is_true(signal) {
+    activate(signal)
+} else {
+    dampen(signal)
+}
+
+Scheme
+(if (is-true signal)
+    (activate signal)
+    (dampen signal))
+
+Lisp
+(if (is-true signal)
+    (activate signal)
+    (dampen signal))
+
+S2 design pressure
+if is_true(signal) {
+    activate(signal)
+} else {
+    dampen(signal)
+}
+```
+
+S2 takeaway:
+
+- Mainstream `if` syntax is probably easier to read than prefix-only conditionals.
+- Because S2 truth is fuzzy, the key question is semantic behavior, not basic surface syntax.
+
+## Example 4: Expression-Oriented Conditional
+
+```text
+C#
+var result = isTrue(signal) ? activate(signal) : dampen(signal);
+
+TypeScript
+const result = isTrue(signal) ? activate(signal) : dampen(signal);
+
+JavaScript
+const result = isTrue(signal) ? activate(signal) : dampen(signal);
+
+Python
+result = activate(signal) if is_true(signal) else dampen(signal)
+
+Rust
+let result = if is_true(signal) {
+    activate(signal)
+} else {
+    dampen(signal)
+};
+
+Scheme
+(define result
+  (if (is-true signal)
+      (activate signal)
+      (dampen signal)))
+
+Lisp
+(setf result
+      (if (is-true signal)
+          (activate signal)
+          (dampen signal)))
+```
+
+S2 takeaway:
+
+- Rust and Python are strong references if S2 leans expression-oriented.
+- C#/TypeScript/JavaScript ternaries are compact, but they may be too lightweight for early S2 readability.
+
+## Example 5: Looping
+
+```text
+C#
+while (!done(state))
+{
+    state = step(state);
+}
+
+TypeScript
+while (!done(state)) {
+  state = step(state);
+}
+
+JavaScript
+while (!done(state)) {
+  state = step(state);
+}
+
+Python
+while not done(state):
+    state = step(state)
+
+Rust
+while !done(&state) {
+    state = step(state);
+}
+
+Scheme
+(let loop ((state state))
+  (if (done state)
+      state
+      (loop (step state))))
+
+Lisp
+(loop while (not (done state))
+      do (setf state (step state)))
+```
+
+S2 takeaway:
+
+- Iteration semantics are still open at the language-design level.
+- Surface syntax could still borrow a conventional loop even if the eventual substrate behavior is fuzzy or convergence-based.
+- Scheme's named recursion is a useful reminder that loops do not require dedicated loop syntax.
+
+## Example 6: Namespace, Module, Or Grouping Pressure
+
+```text
+C#
+namespace S2.Core;
+
+public static class Basis
+{
+    public static Result Blend(Vector a, Vector b) { ... }
+}
+
+TypeScript
+export function blend(a: Vector, b: Vector): Result {
+  return combine(a, b);
+}
+
+JavaScript
+export function blend(a, b) {
+  return combine(a, b);
+}
+
+Python
+def blend(a, b):
+    return combine(a, b)
+
+Rust
+pub fn blend(a: Vector, b: Vector) -> Result {
+    combine(a, b)
+}
+
+Scheme
+;; usually file/module system dependent
+(define (blend a b) ...)
+
+Lisp
+(defun blend (a b) ...)
+```
+
+S2 takeaway:
+
+- TypeScript and Rust are better references than C# if S2 wants standalone functions plus optional module structure.
+- Python's file-level grouping model is also worth considering if S2 stays intentionally small.
+
+## Example 7: Call A Primitive Operation
+
+```text
+C#
+var result = Bind(left, right);
+
+TypeScript
+const result = bind(left, right);
+
+JavaScript
+const result = bind(left, right);
+
+Python
+result = bind(left, right)
+
+Rust
+let result = bind(left, right);
+
+Scheme
+(define result (bind left right))
+
+Lisp
+(setf result (bind left right))
+
+S2 possible directions
+result = bind(left, right)
+result = left * right
+result = bind left right
+```
+
+S2 takeaway:
+
+- If primitive operations are semantically important, a keyword-call form may be clearer than disguising everything as ordinary arithmetic.
+- Infix operators may still be valuable later for common algebraic operations.
+
+## Example 8: Return Early
+
+```text
+C#
+if (!ready)
+{
+    return fallback;
+}
+
+TypeScript
+if (!ready) {
+  return fallback;
+}
+
+JavaScript
+if (!ready) {
+  return fallback;
+}
+
+Python
+if not ready:
+    return fallback
+
+Rust
+if !ready {
+    return fallback;
+}
+
+Scheme
+(if (not ready)
+    fallback
+    (continue))
+
+Lisp
+(if (not ready)
+    fallback
+    (continue))
+```
+
+S2 takeaway:
+
+- Early return syntax is straightforward in mainstream forms.
+- If S2 becomes strongly expression-oriented, Rust and Lisp-family languages provide cleaner precedents than C#.
+
+## Example 9: Anonymous Function Or Lambda
+
+```text
+C#
+items.Select(x => Transform(x));
+
+TypeScript
+items.map(x => transform(x));
+
+JavaScript
+items.map(x => transform(x));
+
+Python
+map(lambda x: transform(x), items)
+
+Rust
+items.into_iter().map(|x| transform(x));
+
+Scheme
+(map (lambda (x) (transform x)) items)
+
+Lisp
+(mapcar (lambda (x) (transform x)) items)
+```
+
+S2 takeaway:
+
+- Anonymous functions are not yet clearly necessary for S2's first pass.
+- If they are added later, TypeScript/Rust/Scheme give better models than C# delegates.
+
+## Example 10: Truth Testing Versus Equality
+
+```text
+C#
+if (candidate == target) { ... }
+if (IsTrue(signal)) { ... }
+
+TypeScript
+if (candidate === target) { ... }
+if (isTrue(signal)) { ... }
+
+JavaScript
+if (candidate === target) { ... }
+if (isTrue(signal)) { ... }
+
+Python
+if candidate == target:
+    ...
+if is_true(signal):
+    ...
+
+Rust
+if candidate == target { ... }
+if is_true(signal) { ... }
+
+Scheme
+(if (equal? candidate target) ...)
+(if (is-true signal) ...)
+
+Lisp
+(if (equal candidate target) ...)
+(if (is-true signal) ...)
+
+S2 design pressure
+if similar(candidate, target) { ... }
+if is_true(signal) { ... }
+```
+
+S2 takeaway:
+
+- S2 should be explicit about the difference between truth-testing and similarity/equality-like checks.
+- Mainstream equality syntax is not a safe direct model if S2 semantics are vector-native.
