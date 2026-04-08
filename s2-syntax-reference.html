@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S2 Syntax Reference</title>
+  <style>
+    :root {
+      --bg: #f3efe4;
+      --panel: rgba(255, 251, 242, 0.88);
+      --panel-strong: #fffaf0;
+      --ink: #1c241f;
+      --muted: #536057;
+      --line: rgba(28, 36, 31, 0.14);
+      --accent: #9f3f2d;
+      --accent-soft: rgba(159, 63, 45, 0.1);
+      --accent-2: #2e6452;
+      --shadow: 0 20px 50px rgba(58, 42, 24, 0.12);
+      --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      --sans: "Aptos", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(159, 63, 45, 0.16), transparent 32%),
+        radial-gradient(circle at top right, rgba(46, 100, 82, 0.14), transparent 28%),
+        linear-gradient(180deg, #f8f3e8 0%, var(--bg) 48%, #efe8d7 100%);
+      line-height: 1.55;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 64px;
+    }
+
+    .hero {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: linear-gradient(145deg, rgba(255, 250, 240, 0.92), rgba(248, 242, 229, 0.82));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -45% 45%;
+      height: 260px;
+      background: radial-gradient(circle, rgba(159, 63, 45, 0.12), transparent 60%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin: 0 0 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--serif);
+      line-height: 1.08;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.8rem);
+      max-width: 10ch;
+    }
+
+    .lead {
+      max-width: 70ch;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .hero-grid,
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-grid {
+      grid-template-columns: 2.2fr 1fr;
+      margin-top: 28px;
+    }
+
+    .grid {
+      grid-template-columns: repeat(12, 1fr);
+      margin-top: 22px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .card strong {
+      color: var(--ink);
+    }
+
+    .card p:last-child,
+    .card ul:last-child {
+      margin-bottom: 0;
+    }
+
+    .stat {
+      background: var(--panel-strong);
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 10px;
+      font-family: var(--serif);
+      font-size: 2.2rem;
+      color: var(--accent-2);
+    }
+
+    .section-title {
+      margin: 34px 0 0;
+      font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+    }
+
+    .section-copy {
+      margin: 10px 0 0;
+      color: var(--muted);
+      max-width: 72ch;
+    }
+
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.96rem;
+    }
+
+    th, td {
+      padding: 14px 12px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    th {
+      color: var(--accent);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    code, pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+
+    pre {
+      margin: 14px 0 0;
+      padding: 16px;
+      border-radius: 16px;
+      overflow: auto;
+      background: #1d241f;
+      color: #f8f2e6;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    ul {
+      padding-left: 18px;
+    }
+
+    .decision {
+      border-left: 4px solid var(--accent);
+      padding-left: 14px;
+      margin-top: 14px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(46, 100, 82, 0.1);
+      color: var(--accent-2);
+      border: 1px solid rgba(46, 100, 82, 0.18);
+      font-size: 0.9rem;
+    }
+
+    .footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .span-12,
+      .span-8,
+      .span-7,
+      .span-6,
+      .span-5,
+      .span-4 {
+        grid-column: auto;
+      }
+
+      .wrap {
+        width: min(100% - 20px, 1120px);
+        padding-top: 20px;
+      }
+
+      .hero,
+      .card {
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">S2 Surface Design</div>
+      <h1>Language comparisons before syntax lock-in.</h1>
+      <p class="lead">
+        This page is the quick browser view for early S2 language-shape decisions. It compares reference languages, records the current syntactic direction, and keeps live decisions visible while the language is still moving.
+      </p>
+      <div class="hero-grid">
+        <div class="card">
+          <h2>Current direction</h2>
+          <ul>
+            <li>S2 is a substrate-oriented language rather than a class-first application language.</li>
+            <li>Functions exist independently.</li>
+            <li>The syntax should stay serious and explicit without borrowing conventional datatype assumptions.</li>
+            <li>Readability matters, but the surface should not pretend the semantics are ordinary imperative programming.</li>
+          </ul>
+          <div class="chip-row">
+            <span class="chip">Rust pressure</span>
+            <span class="chip">TypeScript tooling model</span>
+            <span class="chip">Python readability</span>
+            <span class="chip">Scheme minimal core</span>
+          </div>
+        </div>
+        <div class="card stat">
+          <h2>Established decision</h2>
+          <span class="stat-value">1</span>
+          <p class="muted">Functions are top-level, independent constructs. Any later grouping mechanism should organize functions, not own them.</p>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Quick Matrix</h2>
+    <p class="section-copy">
+      The goal is not to imitate one language wholesale. The comparison is here to isolate syntax pressures that matter for S2.
+    </p>
+
+    <section class="grid">
+      <article class="card span-12">
+        <table>
+          <thead>
+            <tr>
+              <th>Language</th>
+              <th>Function Model</th>
+              <th>What Helps</th>
+              <th>What Hurts</th>
+              <th>S2 Takeaway</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>C#</strong></td>
+              <td>Usually class-bound</td>
+              <td>Explicit declarations, strong readability</td>
+              <td>Class-first structure, visible type burden</td>
+              <td>Keep seriousness, reject class-default design</td>
+            </tr>
+            <tr>
+              <td><strong>TypeScript</strong></td>
+              <td>Independent functions are normal</td>
+              <td>Tooling-aware surface, modern ergonomics</td>
+              <td>Too much inherited JavaScript surface area</td>
+              <td>Good model for load-bearing tooling</td>
+            </tr>
+            <tr>
+              <td><strong>JavaScript</strong></td>
+              <td>Independent and first-class</td>
+              <td>Flexible function use</td>
+              <td>Permissive, inconsistent forms</td>
+              <td>Keep standalone functions, not the looseness</td>
+            </tr>
+            <tr>
+              <td><strong>Python</strong></td>
+              <td>Top-level functions are normal</td>
+              <td>Readable definitions</td>
+              <td>Indentation reliance, dynamic softness</td>
+              <td>Good readability reference, not necessarily syntax model</td>
+            </tr>
+            <tr>
+              <td><strong>Rust</strong></td>
+              <td>Free functions are fully respectable</td>
+              <td>Disciplined compiled feel, expression pressure</td>
+              <td>Type density, ownership-specific complexity</td>
+              <td>One of the best mainstream references for S2 shape</td>
+            </tr>
+            <tr>
+              <td><strong>Scheme</strong></td>
+              <td>Function-first</td>
+              <td>Small semantic core</td>
+              <td>Uniform prefix syntax can hide category differences</td>
+              <td>Excellent conceptual reference, uncertain concrete notation</td>
+            </tr>
+            <tr>
+              <td><strong>Lisp</strong></td>
+              <td>Function-first</td>
+              <td>Code-as-structure, symbolic directness</td>
+              <td>Parenthesis-heavy surface, polarizing readability</td>
+              <td>Useful if S2 needs metaprogramming later</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card span-7">
+        <h2>Function declaration pressure</h2>
+        <p>The core syntax decision now is how standalone functions should read. Current evidence points toward a declaration keyword rather than punctuation-only forms.</p>
+        <pre><code>C#         result Blend(a, b) { ... }
+TypeScript function blend(a, b) { ... }
+Python     def blend(a, b):
+Rust       fn blend(a, b) -> Result { ... }
+Scheme     (define (blend a b) ...)
+Lisp       (defun blend (a b) ...)</code></pre>
+      </article>
+
+      <article class="card span-5">
+        <h2>Most likely current lean</h2>
+        <ul>
+          <li><strong>Independent functions:</strong> yes</li>
+          <li><strong>Declaration keyword:</strong> likely yes</li>
+          <li><strong>Blocks:</strong> braces are the safest current default</li>
+          <li><strong>Typing surface:</strong> probably lightweight, not conventional datatypes</li>
+          <li><strong>Notation:</strong> likely mixed mainstream syntax rather than Lisp-only prefix forms</li>
+        </ul>
+      </article>
+
+      <article class="card span-6">
+        <h2>Established decisions</h2>
+        <div class="decision">
+          <h3>2026-04-08: Functions exist independently</h3>
+          <p>S2 treats functions as top-level constructs. Future grouping features, if added, should organize functions rather than own them. Method syntax should be secondary sugar, not the core mental model.</p>
+        </div>
+      </article>
+
+      <article class="card span-6">
+        <h2>Questions still open</h2>
+        <ul>
+          <li>What exact keyword should introduce a function?</li>
+          <li>Should files imply namespaces, or should grouping be explicit?</li>
+          <li>How should primitive substrate operations read in source?</li>
+          <li>How visible should fuzzy truth and conditionals be?</li>
+          <li>Does S2 need any annotation layer for semantic roles?</li>
+        </ul>
+      </article>
+    </section>
+
+    <p class="footer">
+      Source files in repo root: <code>S2-language-comparisons.md</code> and <code>S2-syntax-decisions.md</code>.
+    </p>
+  </div>
+</body>
+</html>
