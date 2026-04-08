@@ -78,6 +78,34 @@ The FOL discovery paper (`VSA-paper/`) established that:
 
 These findings validate S2's core premise: embedding spaces are a viable computational substrate, not just a similarity lookup table.
 
+## Design Conversation Archive
+
+These shared conversations contain the architectural thinking behind S2. Deduplicated and roughly grouped.
+
+### Core S2 Design & Architecture
+- https://claude.ai/share/6cefb991-f7b7-448c-91fe-e4467be7c8e5
+- https://claude.ai/share/93604df1-2b68-44b6-b345-5d327aba38e7
+- https://claude.ai/share/5ec27bcd-fd9e-484f-95f8-bf45d8521d2d
+- https://claude.ai/share/b0488971-79fb-4cb5-9378-ad1dea1347a5
+- https://claude.ai/share/01a2ae73-fab7-4ba2-a573-1a5606b1fa9c
+- https://claude.ai/share/994b5cfe-927f-4f32-91e2-e20f80d59a40
+- https://claude.ai/share/56bd2436-a5db-4149-9ad9-bb412fa9c796
+- https://claude.ai/share/0b447bfc-880e-46f2-9009-66a7dfdda54d
+- https://claude.ai/share/5dce9e73-25b4-4768-8916-f49b066430af
+- https://claude.ai/share/694adfbb-aefe-4c4d-a348-7076067a6a85
+- https://claude.ai/share/cb0a7d2c-6205-421e-a50c-4f391231ca51
+- https://claude.ai/share/3396ea4d-4302-45b5-a1c9-d70bfd581c39
+- https://claude.ai/share/b042ec32-688a-4f4b-abef-1a7daefee1ca
+- https://claude.ai/share/f71f1ec6-f1d8-4b61-b6ad-77842aa73294
+- https://claude.ai/share/0ce34966-ecb3-4f53-8939-5fad139f3452
+- https://claude.ai/share/0d43ac48-9a4a-4859-aba3-54c740dfdd73
+- https://claude.ai/share/faa50762-634e-4336-9a08-8ccac02a8533
+- https://claude.ai/share/76f9b5b7-ca7c-4e77-89c2-ee4e8b858dff
+
+### Also Referenced (duplicates from above)
+- https://claude.ai/share/f7d0a9ba-f090-41bf-b8f9-c56910750a32
+- https://claude.ai/share/48f40d39-183b-4dd2-b6a1-edcba104b8ac
+
 ## Status
 
 Conceptual design phase. Core ideas are solidifying (fuzzy-by-default, vector primitives, `is_true` defuzzification, dual S1/S2 runtime, MCP-as-runtime). No implementation yet. More documentation incoming.
