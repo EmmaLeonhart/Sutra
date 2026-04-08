@@ -8,7 +8,7 @@ We present S2, a programming language that uses LLM embedding spaces as its comp
 
 S2 introduces several novel contributions to programming language design. First, a **three-tier operation model**: primitive operations (scalars, tuples, bounded iteration), algebraic VSA operations at O(1) (bind, bundle, unbind, similarity), and non-algebraic vector-graph operations at O(log n) (snap-to-nearest, cone traversal, graph hop) — where all non-algebraic operations are unified by their dependence on approximate nearest neighbor search. Second, **fuzzy-by-default semantics** with opt-in defuzzification via a truth-extraction matrix M(v) derived from the input vector, enabling recursive confidence refinement through repeated application of `is_true`. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
 
-The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, 2026). These results demonstrate that embedding spaces encode sufficient algebraic structure to serve as a computational substrate. S2 is the first programming language designed to exploit this structure directly.
+The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, 2026). We further demonstrate that the traditional VSA binding operation (Hadamard product) fails on natural embedding spaces due to crosstalk from correlated embeddings, but that **sign-flip binding** — a simple operation that flips filler signs based on role sign patterns — achieves 14-role bundling capacity with correct snap-to-nearest recovery across three substrate models (GTE-large, BGE-large, Jina-v2), sustains 10-step chained computation, and supports multi-hop composition. S2 is the first programming language designed to exploit this structure directly.
 
 ## 1. Introduction
 
@@ -231,20 +231,26 @@ Hadamard binding fails because natural embeddings are correlated and anisotropic
 
 **Sign-flip binding** (`a * sign(role)`) is S2's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough for the algebraic tier. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
 
+Extended testing of sign-flip binding revealed substantially higher capacity than the initial 7-role test suggested. With a 15-item codebook on GTE-large, sign-flip achieves **14/14 correct snap recoveries** — cosine degrades gracefully from 0.74 at 2 roles to 0.30 at 14 roles, but snap consistently identifies the correct target. This capacity is substrate-agnostic: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 14/14 results.
+
+**Chained computation** — the critical test for sustained reasoning — was tested by repeatedly building 3-role bundled structures, unbinding the target, snapping, and using the result in the next structure. With sign-flip binding: **10/10 steps correct**, with raw cosine stable at 0.58-0.65 throughout the chain. Snap recovers the exact target at every step.
+
+**Multi-hop composition** was tested by extracting a filler from structure A (agent=cat, action=sit), inserting it into a different role in structure B (agent=dog, patient=extracted_cat), then extracting from B. All three extractions (agent from A, patient from B, agent from B) returned the correct filler. This demonstrates that S2 can perform the fundamental operation required for multi-step inference: move information between structures via unbind-snap-rebind cycles.
+
 ### 6.3 Cross-Substrate Validation
 
-We ran S2's empirical initiation validation gates on four non-normalized embedding models:
+We ran S2's empirical initiation validation gates on four non-normalized embedding models. Initial tests used Hadamard binding; sign-flip capacity was tested subsequently on three models:
 
-| Model | Dims | Mag Mean | Binding | Bundling | Capacity | Approved |
-|-------|------|----------|---------|----------|----------|----------|
-| GTE-large | 1024 | 19.08 | PASS | PASS | ~4 | Yes |
-| BGE-large-en-v1.5 | 1024 | 17.29 | PASS | PASS | ~4 | Yes |
-| Jina-v2-base-en | 768 | 26.43 | PASS | PASS | ~3 | Yes |
-| mxbai-embed-large | 1024 | 17.38 | PASS | PASS | ~5 | Yes* |
+| Model | Dims | Mag Mean | Hadamard Capacity | Sign-Flip Capacity | Approved |
+|-------|------|----------|-------------------|-------------------|----------|
+| GTE-large | 1024 | 19.08 | ~4 | **14** | Yes |
+| BGE-large-en-v1.5 | 1024 | 17.29 | ~4 | **14** | Yes |
+| Jina-v2-base-en | 768 | 26.43 | ~3 | **14** | Yes |
+| mxbai-embed-large | 1024 | 17.38 | ~5 | (not tested)* | Yes* |
 
 *mxbai passes algebraic tests but has a documented diacritic attention-sink pathology (Leonhart, 2026). This demonstrates that validation gates must include both algebraic tests and pathology detection.
 
-All four models produce non-normalized vectors (magnitudes 17-26, not 1.0) when accessed via raw transformers without post-processing normalization layers. S2 requires non-normalized output because magnitude carries information about binding strength and bundling count — Euclidean distance, not cosine similarity, is the primary metric.
+The shift from Hadamard to sign-flip binding increases effective capacity by 3-5x across all tested substrates, from ~3-5 roles to 14 roles — the limit of our test set. All four models produce non-normalized vectors (magnitudes 17-26, not 1.0) when accessed via raw transformers without post-processing normalization layers. S2 requires non-normalized output because magnitude carries information about binding strength and bundling count — Euclidean distance, not cosine similarity, is the primary metric.
 
 ### 6.4 Operation Cost Analysis
 
@@ -298,7 +304,7 @@ The design conversations are archived in the project repository. This collaborat
 
 S2 demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, truth-extraction matrices, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
 
-Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves 7/7 correct recoveries at 7 bundled roles for only 4.4x the cost. Rotation binding provides 0.80 cosine accuracy at the same depth for applications requiring precision. These results demonstrate that VSA computation on natural embedding spaces is viable with the right binding operation — a finding that updates the VSA literature's assumption that Hadamard product is the standard choice.
+Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves **14/14 correct recoveries** at only 4.4x the cost, sustains **10/10 chained computation steps**, and supports **multi-hop composition** (extract from one structure, insert into another, extract again — all correct). These results hold identically across GTE-large (1024-dim), BGE-large (1024-dim), and Jina-v2 (768-dim), demonstrating substrate-agnostic viability. This finding updates the VSA literature's assumption that Hadamard product is the standard binding choice — on natural embedding spaces, sign-flip binding is strictly superior.
 
 The design makes an honest assessment of its own limitations: VSA algebra alone is not Turing-complete, non-algebraic operations are expensive, noise accumulation requires periodic cleanup, and embedding substrates can have silent pathologies. These limitations are explicitly addressed in the language design rather than hidden.
 
