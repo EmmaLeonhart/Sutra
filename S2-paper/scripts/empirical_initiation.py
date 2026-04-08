@@ -379,16 +379,17 @@ def main():
 
     # Save results
     if args.output:
+        Path(args.output).parent.mkdir(parents=True, exist_ok=True)
         results = {
             'model': args.model,
-            'hidden_size': model.config.hidden_size,
+            'hidden_size': int(model.config.hidden_size),
             'num_test_texts': len(test_texts),
-            'magnitude_variation': mag_ok,
-            'binding_works': bind_ok,
-            'unbinding_works': unbind_ok,
-            'bundling_works': bundle_ok,
-            'bundling_capacity': capacity,
-            'all_gates_pass': all_pass,
+            'magnitude_variation': bool(mag_ok),
+            'binding_works': bool(bind_ok),
+            'unbinding_works': bool(unbind_ok),
+            'bundling_works': bool(bundle_ok),
+            'bundling_capacity': int(capacity),
+            'all_gates_pass': bool(all_pass),
             'magnitudes': [float(m) for m in mag_results],
         }
         with open(args.output, 'w') as f:
