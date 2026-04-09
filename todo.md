@@ -9,6 +9,7 @@
 - Expression-versus-statement bias.
 - Which access modifiers exist beyond public/static defaults.
 - How the half-compilation / immediate-execution model works.
+- Implement many-to-many as a `hop` non-algebraic function in S2.
 
 ## Recently Decided (2026-04-08)
 
