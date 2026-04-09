@@ -1,0 +1,50 @@
+/*
+    S2 Example: Objects and Methods
+
+    Shows the core distinction between functions and methods,
+    how methods desugar to static functions, and how objects
+    work in S2.
+*/
+
+// ── Object declaration ──────────────────────────────────────
+// A file can BE an object declaration. Methods live here.
+// Methods are public and non-static by default.
+
+// An Animal has a vector form and a name.
+method string GetName() {
+    return this.name;
+}
+
+method vector GetEmbedding() {
+    return (vector) this;
+}
+
+// A method call like  myAnimal.GetName()
+// is really:          Animal.GetName(myAnimal)
+// Every method is static on the backend.
+// The object is always the first argument.
+
+method fuzzy SimilarTo(Animal other) {
+    var vector self = this.GetEmbedding();
+    var vector them = other.GetEmbedding();
+    return unsafeCast<fuzzy>(Cosine(self, them));
+}
+
+// Static method: operates on ALL animals, not one instance.
+// You must mark it explicitly.
+static method Animal GetArchetype() {
+    return (Animal) (vector) "animal";
+}
+
+// ── What calling looks like ─────────────────────────────────
+//
+//   var cat = GetAnimal("cat");
+//   var dog = GetAnimal("dog");
+//
+//   cat.GetName();              // → "cat"
+//   cat.SimilarTo(dog);         // → fuzzy value
+//   Animal.GetArchetype();      // → static call, no instance
+//
+//   // What the compiler actually does:
+//   Animal.GetName(cat);        // desugared from cat.GetName()
+//   Animal.SimilarTo(cat, dog); // desugared from cat.SimilarTo(dog)
