@@ -205,7 +205,8 @@
       "Bash(pip show:*)",
       "Bash(du -sh old-stuff/*/)",
       "Bash(du -sh old-stuff/*.json)",
-      "Bash(du -sh old-stuff/*.py)"
+      "Bash(du -sh old-stuff/*.py)",
+      "Bash(du -sh old-stuff/papers/mxbai-undersymbolic/*)"
     ]
   }
 }
