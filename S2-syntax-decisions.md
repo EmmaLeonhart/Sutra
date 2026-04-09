@@ -137,6 +137,39 @@ Open follow-up:
 - Decide whether `for` loops exist.
 - Decide whether loop conditions use ordinary truthiness, explicit truth tests, or both.
 
+#### `fuzzy` and `bool` are distinct data types, and `defuzzy(...)` converts `fuzzy` to `bool`
+
+Status: active
+
+Decision:
+
+- S2 has a data type `fuzzy`.
+- S2 has a data type `bool`.
+- `defuzzy(...)` converts a `fuzzy` value into a `bool`.
+- Both `fuzzy` and `bool` are still represented as vectors at the substrate level.
+
+Reasoning:
+
+- This preserves the vector-native model without pretending booleans are a separate low-level substrate.
+- It gives the language an explicit place where fuzzy truth becomes forced into a two-way decision.
+- It avoids overloading ordinary branch syntax with all of the burden of semantic collapse.
+
+Implications:
+
+- Truthiness questions now have to distinguish among raw values, `fuzzy`, and `bool`.
+- `defuzzy(...)` is a first-class operation in the language surface, not just a runtime detail.
+- Comparisons should show both direct truth-testing pressure and explicit `defuzzy(...)` pressure.
+
+Mechanism note:
+
+- `defuzzy(...)` applies an `isTrue` multiplication loop to a `fuzzy` until it reaches true or false.
+
+Open follow-up:
+
+- Decide whether `if (...)` accepts only `bool`, or also accepts `fuzzy`.
+- Decide whether `defuzzy(...)` is required in branching.
+- Decide whether there are implicit conversions involving `fuzzy` and `bool`.
+
 ## Candidate Decisions
 
 - block delimiters
@@ -147,3 +180,5 @@ Open follow-up:
 - primitive operation call surface
 - truthiness rules
 - primitive cast syntax
+- operator overloading surface
+- implicit cast rules

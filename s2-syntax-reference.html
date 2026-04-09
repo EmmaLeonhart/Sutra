@@ -270,6 +270,7 @@
             <li>Conditionals use TypeScript-style <code>if (...) { ... } else { ... }</code>.</li>
             <li>S2 uses <code>return</code>.</li>
             <li>Looping uses TypeScript-style <code>while (...) { ... }</code>.</li>
+            <li><code>fuzzy</code> and <code>bool</code> are distinct, and <code>defuzzy(...)</code> converts between them.</li>
             <li>C# remains a primary readability baseline even where S2 rejects class-first structure.</li>
             <li>The syntax should stay serious and explicit without borrowing conventional datatype assumptions.</li>
             <li>Readability matters, but the surface should not pretend the semantics are ordinary imperative programming.</li>
@@ -285,7 +286,7 @@
         <div class="card stat">
           <h2>Established decisions</h2>
           <span class="stat-value">5</span>
-          <p class="muted">Functions are independent, declarations use <code>function</code>, conditionals and loops use TypeScript-style forms, and S2 uses <code>return</code>.</p>
+          <p class="muted">Functions are independent, declarations use <code>function</code>, control flow uses TypeScript-style forms, S2 uses <code>return</code>, and <code>defuzzy(...)</code> converts <code>fuzzy</code> to <code>bool</code>.</p>
         </div>
       </div>
     </section>
@@ -383,6 +384,7 @@ S2         function blend(a, b) { ... }</code></pre>
           <li><strong>Conditional form:</strong> TypeScript-style <code>if (...) { ... }</code></li>
           <li><strong>Loop form:</strong> TypeScript-style <code>while (...) { ... }</code></li>
           <li><strong>Return keyword:</strong> <code>return</code></li>
+          <li><strong>Truth collapse:</strong> <code>defuzzy(...)</code></li>
           <li><strong>Readability baseline:</strong> C#-level explicitness</li>
           <li><strong>Typing surface:</strong> probably lightweight, not conventional datatypes</li>
           <li><strong>Notation:</strong> likely mixed mainstream syntax rather than Lisp-only prefix forms</li>
@@ -407,6 +409,10 @@ S2         function blend(a, b) { ... }</code></pre>
           <h3>2026-04-08: Use <code>return</code></h3>
           <p>S2 uses <code>return</code> for explicit return points and early exits.</p>
         </div>
+        <div class="decision">
+          <h3>2026-04-08: Distinguish <code>fuzzy</code> and <code>bool</code></h3>
+          <p><code>defuzzy(...)</code> converts a <code>fuzzy</code> into a <code>bool</code>, even though both are vector-level substrate values underneath.</p>
+        </div>
       </article>
 
       <article class="card span-6">
@@ -418,6 +424,8 @@ S2         function blend(a, b) { ... }</code></pre>
           <li>How do truthiness and explicit truth checks interact?</li>
           <li>Is <code>if (cat)</code> legal, discouraged, or forbidden?</li>
           <li>How should unsafe casts read in source?</li>
+          <li>Do operators support overloading?</li>
+          <li>Are implicit casts allowed?</li>
           <li>Does S2 need any annotation layer for semantic roles?</li>
         </ul>
       </article>
@@ -466,6 +474,13 @@ Rust       if cat { ... }                    // only if cat is bool
 S2         if (cat) { ... }
 S2         if (isTrue(cat)) { ... }
 
+Defuzzy
+C#         bool ready = Defuzzy(signal);
+TypeScript const ready = defuzzy(signal);
+Python     ready = defuzzy(signal)
+S2         var ready = defuzzy(signal);
+S2         if (defuzzy(signal)) { ... }
+
 Unsafe cast
 C#         var feline = (Cat)animal;
 TypeScript const feline = animal as Cat;
@@ -480,6 +495,19 @@ TypeScript const v = value as Vector;
 Python     v = cast(Vector, value)
 S2         var v = (vector) value;
 S2         var v = unsafeCast&lt;vector&gt;(value);
+
+Operator overloading
+C#         public static Vector operator +(Vector a, Vector b) { ... }
+Python     def __add__(self, other): ...
+Rust       impl Add for Vector { ... }
+S2         function operator +(vector a, vector b) { ... }
+
+Implicit cast
+C#         public static implicit operator Vector(Cat c) { ... }
+TypeScript // none in core syntax
+Rust       // usually explicit Into/From instead
+S2         vector v = cat;
+S2         vector v = (vector) cat;
 
 String primitive note
 S2         string exists mostly for literals and output
