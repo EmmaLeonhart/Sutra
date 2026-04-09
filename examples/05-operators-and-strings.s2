@@ -1,0 +1,79 @@
+/*
+    S2 Example: Operator Overloading, Strings, and Implicit Casts
+
+    Operators are overloadable because the class system is user-defined.
+    Strings are a primitive mostly for output.
+*/
+
+// ── Operator overloading ────────────────────────────────────
+
+// Bundle = additive superposition (VSA operation)
+function operator +(vector a, vector b) {
+    return Bundle(a, b);
+}
+
+// Bind = multiplicative binding (VSA operation)
+function operator *(vector a, vector b) {
+    return Bind(a, b);
+}
+
+// Cosine similarity as a comparison
+function operator ==(vector a, vector b) {
+    return Cosine(a, b);
+}
+
+// Now vector math reads like algebra:
+var vector cat = Embed("cat");
+var vector pet = Embed("pet");
+var vector petCat = cat + pet;        // Bundle
+var vector bound = cat * pet;         // Bind
+var fuzzy similar = cat == pet;       // Cosine similarity
+
+
+// ── The class system is user-defined ────────────────────────
+
+// Because classes aren't special to the runtime, operator
+// overloading is straightforward — there's no magic dispatch,
+// just function resolution.
+
+// Full internal form of an operator:
+function public static scalar operator +(scalar a, scalar b) {
+    return function.add(a, b);
+}
+
+
+// ── Implicit casts ──────────────────────────────────────────
+
+// Implicit casts are allowed but must be explicitly DEFINED.
+// No silent coercions without a visible definition somewhere.
+
+// If this conversion is defined:
+// implicit Cat → vector
+
+// Then this works at call sites:
+// function vector Process(vector v) { ... }
+// var Cat c = GetCat();
+// Process(c);    ← implicit cast Cat → vector
+
+
+// ── String interpolation ────────────────────────────────────
+
+// C#-style. Strings are mostly for output and debugging.
+
+var string name = "Mittens";
+var scalar score = 0.92;
+var string report = $"Cat '{name}' scored {score}";
+var string detail = $"Embedding: {(vector) name}, Score: {score}";
+
+// Most internal computation should use vectors, not strings.
+// Convert strings to vectors early:
+var vector nameVec = (vector) name;
+// Do work in vector space, convert back to string for output.
+
+
+// ── Comments (all forms allowed) ────────────────────────────
+
+// C-style line comment
+/* C-style block comment */
+/// Doc comment: describes the function below
+# Python-style line comment — also valid

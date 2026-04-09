@@ -1,0 +1,107 @@
+/*
+    S2 Example: Control Flow, Loops, and Error Handling
+
+    Control flow is C#-style. Errors produce garbage vectors.
+    Try-catch is if-statement sugar over failure patterns.
+*/
+
+// ── Conditionals ────────────────────────────────────────────
+
+function string Classify(Animal subject) {
+    var fuzzy signal = subject.PetLikelihood();
+    var bool isPet = defuzzy(signal);
+
+    if (isPet) {
+        return $"Pet: {subject.GetName()}";
+    } else {
+        return $"Not pet: {subject.GetName()}";
+    }
+}
+
+
+// ── All C# loop forms ──────────────────────────────────────
+
+function vector Converge(vector start, vector target) {
+    var vector current = start;
+    var scalar threshold = 0.99;
+
+    // while loop
+    while (defuzzy(unsafeCast<fuzzy>(Cosine(current, target)))) {
+        current = Step(current, target);
+    }
+    return current;
+}
+
+function void ProcessBatch(tuple items) {
+    // for loop
+    for (var i = 0; i < Length(items); i++) {
+        var vector item = Get(items, i);
+        Process(item);
+    }
+
+    // foreach
+    foreach (var item in items) {
+        Process(item);
+    }
+
+    // do...while
+    var scalar quality = 0.0;
+    do {
+        quality = MeasureQuality(items);
+        items = Refine(items);
+    } while (quality < 0.95);
+}
+
+
+// ── Error handling ──────────────────────────────────────────
+
+// Default: errors produce garbage vectors
+// A failed operation doesn't throw — it returns a vector
+// that's far from any meaningful result.
+
+function vector SafeTransform(vector input) {
+    var vector result = RiskyOperation(input);
+
+    // You can check if the result is garbage:
+    var fuzzy quality = unsafeCast<fuzzy>(Cosine(result, ExpectedPattern()));
+    if (defuzzy(quality)) {
+        return result;
+    } else {
+        return Fallback(input);
+    }
+}
+
+// Try-catch exists but it's really an if-statement in disguise.
+// "Did the output match a failure pattern? Then branch."
+
+function Cat SafeCast(Animal a) {
+    try {
+        var Cat c = (Cat) a;
+        return c;
+    } catch {
+        // Catch branch fires when output matches failure pattern.
+        // At the substrate level, this is part of the multiplication math.
+        return DefaultCat();
+    }
+}
+
+// You could also write the same thing as nested functions:
+function Cat SafeCastAlt(Animal a) {
+    return CheckOrDefault(
+        (Cat) a,
+        DefaultCat()
+    );
+}
+
+
+// ── Chaining ────────────────────────────────────────────────
+
+// No pipe operator. Use nested calls or method chaining.
+
+// Nested function calls:
+var vector result = Normalize(Blend(Embed("cat"), Embed("pet")));
+
+// Method chaining on objects:
+var string report = subject.GetEmbedding().Normalize().Describe();
+
+// Both are valid. Pick what reads better.
