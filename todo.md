@@ -31,3 +31,8 @@
 - Implicit casts allowed but must be explicitly defined
 - `fuzzy` to `bool` cast performs `defuzzy`
 - Class system is user-defined, not runtime-special
+
+## Future Goals
+
+- Get S2 running on normal hardware first
+- Then try running it on a simulated fly brain
