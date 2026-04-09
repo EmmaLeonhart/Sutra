@@ -10,9 +10,9 @@
 
 // ── Top-level code just runs ────────────────────────────────
 
-vector cat = Embed("cat");
-vector dog = Embed("dog");
-vector fish = Embed("fish");
+vector cat = embed("cat");
+vector dog = embed("dog");
+vector fish = embed("fish");
 
 // Bundle all the pets together
 vector pets = cat + dog + fish;
