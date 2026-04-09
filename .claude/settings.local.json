@@ -202,7 +202,10 @@
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
       "Bash(pip list:*)",
-      "Bash(pip show:*)"
+      "Bash(pip show:*)",
+      "Bash(du -sh old-stuff/*/)",
+      "Bash(du -sh old-stuff/*.json)",
+      "Bash(du -sh old-stuff/*.py)"
     ]
   }
 }
