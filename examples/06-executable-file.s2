@@ -10,16 +10,16 @@
 
 // ── Top-level code just runs ────────────────────────────────
 
-var vector cat = Embed("cat");
-var vector dog = Embed("dog");
-var vector fish = Embed("fish");
+vector cat = Embed("cat");
+vector dog = Embed("dog");
+vector fish = Embed("fish");
 
 // Bundle all the pets together
-var vector pets = cat + dog + fish;
+vector pets = cat + dog + fish;
 
 // Check similarity
-var fuzzy catDog = unsafeCast<fuzzy>(Cosine(cat, dog));
-var fuzzy catFish = unsafeCast<fuzzy>(Cosine(cat, fish));
+fuzzy catDog = unsafeCast<fuzzy>(Cosine(cat, dog));
+fuzzy catFish = unsafeCast<fuzzy>(Cosine(cat, fish));
 
 // Branch on fuzzy values directly
 if (catDog) {
@@ -35,12 +35,12 @@ if (defuzzy(catFish)) {
 // ── You can define functions inline and call them ───────────
 
 function string ClosestTo(vector target, tuple candidates) {
-    var vector best = Get(candidates, 0);
-    var scalar bestScore = Cosine(target, best);
+    vector best = Get(candidates, 0);
+    scalar bestScore = Cosine(target, best);
 
     for (var i = 1; i < Length(candidates); i++) {
-        var vector candidate = Get(candidates, i);
-        var scalar score = Cosine(target, candidate);
+        vector candidate = Get(candidates, i);
+        scalar score = Cosine(target, candidate);
         if (score > bestScore) {
             best = candidate;
             bestScore = score;
@@ -50,7 +50,7 @@ function string ClosestTo(vector target, tuple candidates) {
 }
 
 // Call it right here, no main() needed
-var string result = ClosestTo(cat, (tuple) pets);
+string result = ClosestTo(cat, (tuple) pets);
 Print(result);
 
 // ── Contrast with object files ──────────────────────────────
