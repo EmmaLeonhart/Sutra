@@ -3,19 +3,28 @@
 ## Pending Decisions
 
 - Decide on anonymous functions. Leaning toward `lambda` keyword. Need to pick exact form.
-- Rework function declaration details — modifiers, full signature shape, how hidden/internal forms relate to surface syntax.
-- Expression-versus-statement bias.
-- Whether S2 has explicit namespaces or just files plus symbols.
 - How primitive substrate operations read in source.
 - Declaration syntax for implicit conversions.
 - Whether there is a lightweight role-annotation system for semantic roles.
-- Return annotation syntax (currently return type goes before name, C#-style).
+- Expression-versus-statement bias.
+- Which access modifiers exist beyond public/static defaults.
+- How the half-compilation / immediate-execution model works.
 
 ## Recently Decided (2026-04-08)
 
-- Function declarations use C# signature shape: `function vector Add(vector a, vector b) { ... }`
-- `function.` prefix is for calling (disambiguation), not declaration
+- Function declarations: C# signature shape with `function` keyword
+- `function` = free function (public static default). `method` = attached to object (public non-static default).
+- Methods desugar to static functions: `Adam.getCat()` → `human.getCat(Adam)`
 - Full internal form: `function public static scalar operator +(scalar a, scalar b) { ... }`
+- `function.` prefix is for calling (disambiguation), not declaration
+- `var` for mutable, `const` for immutable (C#-style)
+- Files do not imply namespaces. Code can just execute. Solution structures optional.
+- All C# loop forms: while, for, foreach, do...while
+- Errors produce garbage vectors. Try-catch is if-statement sugar.
+- C#-style string interpolation: `$"Result: {result}"`
+- All comment forms allowed: //, /* */, ///, #
+- C#-style generics (compile-time only)
+- No pipe operator. Nested calls + dot chaining via methods.
 - `if (cat)` is a compilation error — classes don't exist at runtime
 - Truthiness is geometric — euclidean distance from true/false, accessed via unsafe cast only
 - Operators support overloading
