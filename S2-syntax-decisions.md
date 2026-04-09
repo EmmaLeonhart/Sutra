@@ -280,19 +280,29 @@ Implications:
 - `bool b = (bool) signal;` where `signal` is `fuzzy` is equivalent to `bool b = defuzzy(signal);`.
 - This is a safe, well-defined cast, not an unsafe operation.
 
-#### Variable declarations use `var` with C#-style `const` for immutability
+#### Variable declarations use `var` (inferred) or explicit type, with `const` for immutability
 
 Status: active
 
 Decision:
 
-- `var` declares a mutable binding.
+- `var` declares a mutable binding with inferred type. Used only when no type is stated.
+- An explicit type declaration does NOT use `var`: `vector result = Blend(a, b);`
+- `var` and an explicit type are mutually exclusive — never `var vector x = ...`.
 - `const` declares an immutable binding, same as C#.
-- Explicit type declarations are also valid: `vector result = Blend(a, b);`
+
+Examples:
+
+```
+var result = Blend(a, b);            // var: type inferred
+vector result = Blend(a, b);        // explicit type: no var
+const threshold = 0.85;             // const: immutable, inferred
+const scalar threshold = 0.85;      // const with explicit type
+```
 
 Reasoning:
 
-- C# binding style. Mutable by default, `const` stops mutation.
+- Identical to C# rules. `var` means "infer the type." If you state the type, you don't need `var`.
 - Familiar, no learning curve for C# developers.
 
 #### Files do not imply namespaces

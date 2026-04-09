@@ -386,7 +386,7 @@ function public static vector Blend(vector a, vector b) { ... }</code></pre>
           <li><strong>Free function:</strong> <code>function vector Add(vector a, vector b) { }</code></li>
           <li><strong>Method:</strong> <code>method Cat getCat() { }</code></li>
           <li><strong>Method desugar:</strong> <code>Adam.getCat()</code> → <code>human.getCat(Adam)</code></li>
-          <li><strong>Variables:</strong> <code>var</code> (mutable), <code>const</code> (immutable)</li>
+          <li><strong>Variables:</strong> <code>var</code> (inferred) or explicit type, <code>const</code> (immutable)</li>
           <li><strong>Loops:</strong> all C# forms (<code>while</code>, <code>for</code>, <code>foreach</code>, <code>do...while</code>)</li>
           <li><strong>Conditionals:</strong> <code>if (...) { } else { }</code></li>
           <li><strong>Errors:</strong> garbage vectors; try-catch = if-sugar</li>
@@ -628,12 +628,17 @@ Map(items, lambda(vector x) { return Transform(x); });</code></pre>
 
       <article class="card span-6">
         <h2>Variable declaration ✅ DECIDED</h2>
-        <p><code>var</code> for mutable, <code>const</code> for immutable. C#-style. Explicit types also valid.</p>
-        <pre><code>var result = Blend(a, b);           // mutable, inferred type
-const threshold = 0.85;             // immutable
-vector result = Blend(a, b);        // explicit type
+        <p><code>var</code> = inferred type (no explicit type). Explicit type = no <code>var</code>. Never both. <code>const</code> for immutable.</p>
+        <pre><code>var result = Blend(a, b);           // var: type inferred
+vector result = Blend(a, b);        // explicit type: no var
+const threshold = 0.85;             // immutable, inferred
+const scalar threshold = 0.85;      // immutable, explicit type
+
 var x = Blend(a, b); x = Step(x);  // mutable reassignment OK
-const x = Blend(a, b); x = Step(x); // ERROR: const</code></pre>
+const x = Blend(a, b); x = Step(x); // ERROR: const
+
+// WRONG: never use var with explicit type
+// var vector x = Blend(a, b);      // ← compilation error</code></pre>
       </article>
 
       <article class="card span-6">

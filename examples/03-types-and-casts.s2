@@ -8,10 +8,10 @@
 
 // ── Primitive types ─────────────────────────────────────────
 
-var scalar distance = 0.85;
-var vector cat = (vector) "cat";
-var vector dog = (vector) "dog";
-var string label = "result";
+scalar distance = 0.85;
+vector cat = (vector) "cat";
+vector dog = (vector) "dog";
+string label = "result";
 // matrix and tuple also exist as primitives
 
 // ── Classes are compile-time ────────────────────────────────
@@ -22,7 +22,7 @@ var string label = "result";
 // Animal is a class. It has methods (see 01-objects-and-methods.s2).
 // But Animal values are vectors in embedding space.
 
-var Animal myAnimal = (Animal) cat;  // safe cast: vector → Animal
+Animal myAnimal = (Animal) cat;  // safe cast: vector → Animal
 
 
 // ── Three ways to get past type checking ────────────────────
@@ -32,11 +32,11 @@ function vector GetFur(Cat c) {
 }
 
 // 1. Safe cast: checks at compile time
-var Cat checkedCat = (Cat) myAnimal;
+Cat checkedCat = (Cat) myAnimal;
 GetFur(checkedCat);
 
 // 2. Unsafe cast: forces the type, no checking
-var Cat forcedCat = unsafeCast<Cat>(myAnimal);
+Cat forcedCat = unsafeCast<Cat>(myAnimal);
 GetFur(forcedCat);
 
 // 3. Unsafe override: doesn't change the value at all,
@@ -47,19 +47,19 @@ GetFur(unsafeOverride(myAnimal));
 // ── Casting to primitives ───────────────────────────────────
 
 // You can always cast down to the primitive layer
-var vector v = (vector) checkedCat;
-var scalar s = (scalar) distance;
-var string name = (string) checkedCat;  // for output
+vector v = (vector) checkedCat;
+scalar s = (scalar) distance;
+string name = (string) checkedCat;  // for output
 
 
 // ── fuzzy and bool ──────────────────────────────────────────
 
 // fuzzy and bool are distinct types, both vectors underneath
-var fuzzy similarity = unsafeCast<fuzzy>(Cosine(cat, dog));
-var bool isSimilar = defuzzy(similarity);
+fuzzy similarity = unsafeCast<fuzzy>(Cosine(cat, dog));
+bool isSimilar = defuzzy(similarity);
 
 // Casting fuzzy → bool performs defuzzy
-var bool alsoWorks = (bool) similarity;
+bool alsoWorks = (bool) similarity;
 
 // if() requires bool or fuzzy
 if (isSimilar) {
@@ -85,4 +85,4 @@ function T Identity<T>(T value) {
 
 // At runtime, T is always a vector. The generic only matters
 // for the compiler's acceptance checking.
-var Cat sameCat = Identity<Cat>(checkedCat);
+Cat sameCat = Identity<Cat>(checkedCat);

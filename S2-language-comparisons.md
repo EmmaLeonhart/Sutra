@@ -43,7 +43,7 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - Implicit casts are allowed but must be explicitly defined in source.
 - Casting `fuzzy` to `bool` performs `defuzzy(...)` as a special built-in cast.
 - The class system is almost entirely user-defined, not special to the runtime — this is why operator overloading is straightforward.
-- `var` for mutable bindings, `const` for immutable. C#-style.
+- `var` for inferred type (no explicit type), explicit type means no `var`. `const` for immutable. C#-style.
 - Files do not imply namespaces. Code can just execute. Full solution structures optional.
 - `function` = free function (public static by default). `method` = attached to object (public non-static by default).
 - Every method desugars to a static function with the object as first arg: `Adam.getCat()` → `human.getCat(Adam)`.
