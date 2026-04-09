@@ -33,7 +33,7 @@ method fuzzy SimilarTo(Animal other) {
 // Static method: operates on ALL animals, not one instance.
 // You must mark it explicitly.
 static method Animal GetArchetype() {
-    return (Animal) (vector) "animal";
+    return (Animal) embed("animal");
 }
 
 // ── What calling looks like ─────────────────────────────────
