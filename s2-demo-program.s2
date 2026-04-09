@@ -46,22 +46,22 @@ function bool Decide(fuzzy signal) {
 /// Score an animal-shaped value as "pet-like".
 /// This is intentionally simple; the point is to show syntax, not final semantics.
 function fuzzy ScorePetLikelihood(animal subject) {
-    var vector petMarker = (vector) "pet";
-    var vector catMarker = (vector) "cat";
-    var vector subjectVector = (vector) subject;
+    vector petMarker = (vector) "pet";
+    vector catMarker = (vector) "cat";
+    vector subjectVector = (vector) subject;
 
     // A plausible algebraic sketch: bundle "pet" and "cat", then bind with subject.
-    var vector hint = function.Bundle(petMarker, catMarker);
-    var vector rawSignal = function.Bind(subjectVector, hint);
+    vector hint = function.Bundle(petMarker, catMarker);
+    vector rawSignal = function.Bind(subjectVector, hint);
 
     return function.AsFuzzy(rawSignal);
 }
 
 /// Show the three different acceptance/conversion paths described in the docs.
 function string ExplainCatAccess(animal subject) {
-    var cat checkedCat = (cat) subject;
-    var cat forcedCat = unsafeCast<cat>(subject);
-    var string summary =
+    cat checkedCat = (cat) subject;
+    cat forcedCat = unsafeCast<cat>(subject);
+    string summary =
         $"safe={(vector) checkedCat}, unsafe={(vector) forcedCat}, override=available-at-call-site";
 
     return summary;
@@ -69,8 +69,8 @@ function string ExplainCatAccess(animal subject) {
 
 /// Build a human-readable report string.
 function string Describe(animal subject) {
-    var fuzzy signal = function.ScorePetLikelihood(subject);
-    var bool petLike = function.Decide(signal);
+    fuzzy signal = function.ScorePetLikelihood(subject);
+    bool petLike = function.Decide(signal);
 
     if (petLike) {
         return $"Subject classified as pet-like. signal={(vector) signal}";
@@ -86,20 +86,20 @@ function string Main() {
 
     // Start with plain vectors. Strings mainly exist for literals and output,
     // so the interesting part is converting them into vector-space values.
-    var vector furry = (vector) "furry";
-    var vector small = (vector) "small";
-    var vector domestic = (vector) "domestic";
+    vector furry = (vector) "furry";
+    vector small = (vector) "small";
+    vector domestic = (vector) "domestic";
 
     // Build a raw subject vector from simple pieces.
-    var vector rawSubject = function.Bundle(furry, small);
+    vector rawSubject = function.Bundle(furry, small);
     rawSubject = function.Bundle(rawSubject, domestic);
 
     // `unsafeOverride(...)` does not cast the value.
     // It tells the receiving site to accept something it would normally reject.
-    var animal subject = unsafeOverride(rawSubject);
+    animal subject = unsafeOverride(rawSubject);
 
-    var string classification = function.Describe(subject);
-    var string catAccess = function.ExplainCatAccess(subject);
+    string classification = function.Describe(subject);
+    string catAccess = function.ExplainCatAccess(subject);
 
     return $"[{ProgramName}] {classification} | {catAccess}";
 }
