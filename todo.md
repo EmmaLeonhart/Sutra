@@ -34,6 +34,10 @@
 - `fuzzy` to `bool` cast performs `defuzzy`
 - Class system is user-defined, not runtime-special
 
+## Competition Analysis
+- Run fresh competition analysis using `scripts/fetch_all_papers.py`, `scripts/fetch_reviews.py`, `scripts/fetch_top_papers.py`
+- Update `planning/competition-analysis-2026-04-08.md` with current landscape
+
 ## Future Goals
 
 - Get S2 running on normal hardware first
