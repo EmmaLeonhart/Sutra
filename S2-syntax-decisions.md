@@ -170,6 +170,113 @@ Open follow-up:
 - Decide whether `defuzzy(...)` is required in branching.
 - Decide whether there are implicit conversions involving `fuzzy` and `bool`.
 
+#### `if (cat)` is a compilation error
+
+Status: active
+
+Decision:
+
+- `if (cat)` where `cat` is a class instance is a compilation error.
+- Classes do not exist at runtime. The runtime operates on vectors, scalars, matrices, tuples, and strings.
+- There is no implicit truthiness coercion for arbitrary values.
+
+Reasoning:
+
+- S2 does not have conventional runtime class instances. A "class" is a compile-time organizing concept, not a runtime entity.
+- Allowing `if (cat)` would imply that arbitrary values have truthiness, but in S2, truth is a geometric property (euclidean distance from true/false vectors), not a type-level coercion.
+- If you want to treat an arbitrary vector as a truth value, you must explicitly use an unsafe cast or unsafeOverride to force it into fuzzy/bool space.
+
+Implications:
+
+- `if (condition)` requires `condition` to be `bool` or `fuzzy`.
+- To branch on something that isn't already bool/fuzzy, you must explicitly convert it.
+- Truthiness is a runtime geometric property, not a compile-time type coercion. It emerges from treating a vector as a fuzzy value via unsafe operations.
+
+#### Operators support overloading
+
+Status: active
+
+Decision:
+
+- S2 supports operator overloading.
+- The syntax follows the `function operator` pattern.
+
+Reasoning:
+
+- Vector operations like bind and bundle map naturally to `*` and `+`.
+- Overloading is a real language feature in C#, Python, and Rust, not a hack.
+- It lets primitive operations read as algebra when that improves clarity.
+
+Implications:
+
+- The declaration form is `function operator +(vector a, vector b) { ... }`.
+- This applies to user-defined and primitive types.
+- Built-in meanings for `+`, `*`, etc. on primitive types may exist alongside user overloads.
+
+#### Truthiness is geometric, not type-level
+
+Status: active
+
+Decision:
+
+- Truthiness and falsiness are determined by euclidean distance from the true and false vectors in embedding space.
+- This is a runtime property, not a compile-time type coercion.
+- Truthiness only manifests when a value is forced into fuzzy/bool space via unsafe cast or unsafeOverride.
+
+Reasoning:
+
+- S2's substrate is embedding space. True and false are specific vectors in that space.
+- Any vector has some geometric relationship to true/false, but accessing that relationship is an explicit, unsafe operation.
+- This inverts conventional truthiness: instead of the language defining which values are "truthy," the geometry defines it, and the programmer must opt in.
+
+Implications:
+
+- There is no automatic truthiness for arbitrary values.
+- `if (x)` requires `x` to already be `bool` or `fuzzy`.
+- To get truthiness from a non-bool/non-fuzzy value, use `unsafeCast<fuzzy>(x)` or `unsafeOverride(x)`.
+- `defuzzy(...)` then collapses a `fuzzy` into a `bool` for branching.
+
+#### Implicit casts are allowed but must be explicitly defined
+
+Status: active
+
+Decision:
+
+- Implicit casts can happen at call sites and assignments.
+- The conversion itself must be explicitly declared in source code.
+- There are no silent coercions without a visible definition somewhere.
+
+Reasoning:
+
+- This balances ergonomics with explicitness.
+- C# is the direct precedent: `public static implicit operator Vector(Cat c) { ... }` lets `Vector v = cat;` compile, but someone had to write the conversion.
+- S2 avoids surprise coercions while still allowing convenient call-site syntax.
+
+Implications:
+
+- The declaration form for implicit conversions needs to be designed (candidate: similar to C#'s `implicit operator` pattern).
+- Call sites can look clean (`getVector(cat)`) as long as the implicit conversion is defined.
+- This is distinct from unsafe casts, which bypass the type system rather than defining a conversion.
+
+#### Special cast: `fuzzy` to `bool` performs `defuzzy`
+
+Status: active
+
+Decision:
+
+- Casting a `fuzzy` to `bool` performs the `defuzzy(...)` operation.
+- This is a special built-in cast, not a user-defined implicit conversion.
+
+Reasoning:
+
+- `defuzzy(...)` is already the established bridge from fuzzy to bool.
+- Making the cast invoke `defuzzy` keeps the language consistent: there is one way to collapse fuzzy truth.
+
+Implications:
+
+- `bool b = (bool) signal;` where `signal` is `fuzzy` is equivalent to `bool b = defuzzy(signal);`.
+- This is a safe, well-defined cast, not an unsafe operation.
+
 ## Candidate Decisions
 
 - block delimiters
@@ -178,7 +285,4 @@ Open follow-up:
 - annotation system for semantic roles
 - return annotation syntax
 - primitive operation call surface
-- truthiness rules
 - primitive cast syntax
-- operator overloading surface
-- implicit cast rules
