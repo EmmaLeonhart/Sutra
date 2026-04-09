@@ -25,7 +25,7 @@ import numpy as np
 from vsa_operations import FlyBrainVSA
 
 
-def run_program(smell_name, hunger_name, vsa, threshold=0.2):
+def run_program(smell_name, hunger_name, vsa, threshold=0.3):
     """
     Execute the 4-state S2 program on the fly brain.
 
@@ -100,7 +100,7 @@ def main():
 
     print(f"\nS2 source: four_state_conditional.s2")
     print(f"Substrate: mushroom body circuit (Brian2 LIF simulation)")
-    print(f"Defuzzification threshold: 0.2\n")
+    print(f"Defuzzification threshold: 0.3\n")
 
     header = (f"{'Smell':<12} {'Context':<10} {'Expected':<10} "
               f"{'Got':<10} {'Smell Score':>12} {'Hunger Score':>13} {'':>6}")
@@ -111,7 +111,7 @@ def main():
     results = []
     for smell, context, expected in test_cases:
         behavior, smell_score, hunger_score = run_program(
-            smell, context, vsa, threshold=0.2
+            smell, context, vsa, threshold=0.3
         )
         passed = behavior == expected
         if passed:
