@@ -34,32 +34,35 @@ Open follow-up:
 - Decide whether files imply namespaces.
 - Decide how primitive operations are written inside function bodies.
 
-#### Function declarations use `function`
+#### Function declarations use C# signature shape with `function` keyword
 
 Status: active
 
 Decision:
 
 - S2 uses the keyword `function` to introduce a function declaration.
-- This is intentionally aligned with TypeScript's top-level function form.
-- Shorter alternatives such as `fn` are not the current direction.
+- The rest of the signature follows C# method shape: return type before name, typed parameters, braces.
+- Surface form: `function vector Add(vector a, vector b) { return a + b; }`
+- Full internal form with modifiers: `function public static scalar operator +(scalar a, scalar b) { return function.add(a, b); }`
+- `function.` is a call-site prefix for disambiguation, not part of declarations.
 
 Reasoning:
 
-- `function` is explicit and easy to scan.
-- It preserves the independent-function model without bringing in C#'s class-centered structure.
-- It borrows a familiar declaration shape from TypeScript without inheriting the rest of JavaScript's loose surface design.
+- C# method declarations have a single predictable shape that reads like a manifest entry.
+- `function` replaces C#'s access modifiers and `static` in the surface form, keeping the same visual weight.
+- One form for declarations. No arrows, no alternatives, no competing styles.
+- `function.` as a call-site prefix gives C#'s `ClassName.Method()` disambiguation without requiring actual classes.
 
 Implications:
 
-- Comparison examples should treat `function` as the current S2 baseline.
-- Future syntax sketches should prefer `function name(...) { ... }` unless a later decision explicitly changes block form.
-- The remaining open question is not the declaration keyword anymore, but the rest of the function signature and body syntax.
+- All function declarations follow: `function [return-type] Name([params]) { ... }`
+- Calling can use `Add(x, y)` or `function.Add(x, y)` — second form disambiguates.
+- Modifiers like `public`, `static` exist in the full form but may be hidden in surface syntax.
+- Comparison examples should use the C#-shaped form.
 
 Open follow-up:
 
-- Decide block delimiters.
-- Decide whether return annotations exist.
+- Decide which modifiers are visible in surface syntax vs hidden.
 - Decide whether files imply namespaces.
 - Decide how primitive operations are written inside function bodies.
 
