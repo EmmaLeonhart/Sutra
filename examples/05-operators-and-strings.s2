@@ -23,8 +23,8 @@ function operator ==(vector a, vector b) {
 }
 
 // Now vector math reads like algebra:
-vector cat = Embed("cat");
-vector pet = Embed("pet");
+vector cat = embed("cat");
+vector pet = embed("pet");
 vector petCat = cat + pet;        // Bundle
 vector bound = cat * pet;         // Bind
 fuzzy similar = cat == pet;       // Cosine similarity
@@ -63,11 +63,11 @@ function public static scalar operator +(scalar a, scalar b) {
 string name = "Mittens";
 scalar score = 0.92;
 string report = $"Cat '{name}' scored {score}";
-string detail = $"Embedding: {(vector) name}, Score: {score}";
+string detail = $"Embedding: {embed(name)}, Score: {score}";
 
 // Most internal computation should use vectors, not strings.
 // Convert strings to vectors early:
-vector nameVec = (vector) name;
+vector nameVec = embed(name);
 // Do work in vector space, convert back to string for output.
 
 
