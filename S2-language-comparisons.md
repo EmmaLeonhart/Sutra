@@ -10,6 +10,7 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - S2 uses TypeScript-style `if (...) { ... } else { ... }` conditionals.
 - S2 uses `return`.
 - S2 uses TypeScript-style `while (...) { ... }` looping syntax.
+- S2 has `fuzzy` and `bool`, and `defuzzy(...)` converts `fuzzy` to `bool`.
 - C# remains a primary comparison language because it is the clearest existing baseline for explicit, readable compiled syntax.
 - S2 should probably sit above assembly and below C# in abstraction level.
 - S2 has to stay compatible with fuzzy, vector-native semantics rather than pretending values are conventional datatypes.
@@ -34,7 +35,22 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - Conditionals use TypeScript-style `if (...) { ... } else { ... }`.
 - S2 uses `return`.
 - Looping uses TypeScript-style `while (...) { ... }`.
+- `fuzzy` and `bool` are distinct types, and `defuzzy(...)` converts `fuzzy` to `bool`.
 - C# remains a reference baseline for readability, block structure, and declaration clarity even where S2 diverges from its class model.
+
+## Readability Notes
+
+Python, C#, and TypeScript all help in different ways, but not equally.
+
+- Python has readable definitions because `def name(...)` plus indentation makes the main shape of a function very easy to scan.
+- C# has strong readability because it is explicit, consistent, and visually disciplined. Declarations, blocks, and statements tend to have one obvious mainstream form.
+- TypeScript has good ergonomics, but weaker raw readability than C# because it inherits JavaScript's multiplicity of styles: function declarations, arrows, methods, object-literal-heavy code, optional types, and more variation in what "normal" code looks like.
+
+S2 implication:
+
+- When I say TypeScript is useful, I mostly mean syntax direction and tooling model.
+- When I say C# is a readability baseline, I mean it is the stronger reference for visual discipline and consistency.
+- Python remains useful as a reminder that readable function declarations do not require heavy syntax.
 
 ## By Language
 
@@ -77,6 +93,7 @@ Take seriousness and declaration clarity from C#, but not its class-first worldv
 - Structural typing assumes conventional data shapes.
 - JavaScript inheritance from the host language brings legacy weirdness.
 - Too many equivalent function styles if copied directly.
+- Raw visual consistency is weaker than C# because the ecosystem tolerates more syntactic variation.
 
 ### S2 lesson
 
@@ -287,6 +304,8 @@ These are intentionally not locked yet:
 - whether S2 source is expression-first or statement-first
 - truthiness rules
 - cast syntax
+- operator overloading rules
+- implicit conversion rules
 
 ## Next Decisions To Make
 
@@ -296,6 +315,8 @@ These are intentionally not locked yet:
 - how truth-testing and fuzzy conditionals should read in source
 - how unsafe casts should read in source
 - how the primitive layer is surfaced in user code
+- whether operator overloading exists for primitive and semantic types
+- whether implicit casts are allowed and where
 - whether there is any lightweight role-annotation system even without conventional datatypes
 
 ## Code Comparison Examples
@@ -810,7 +831,36 @@ S2 takeaway:
 - This is not decided yet.
 - The language needs a clear answer for ordinary truthiness versus explicit truth testing.
 
-## Example 13: Unsafe Cast Between Classes
+## Example 13: `fuzzy`, `bool`, And `defuzzy(...)`
+
+```text
+C#-style explicit conversion pressure
+bool ready = Defuzzy(signal);
+if (ready) { ... }
+
+TypeScript-style explicit conversion pressure
+const ready = defuzzy(signal);
+if (ready) { ... }
+
+Python-style explicit conversion pressure
+ready = defuzzy(signal)
+if ready:
+    ...
+
+S2 design pressure
+var ready = defuzzy(signal);
+if (ready) { ... }
+
+if (defuzzy(signal)) { ... }
+```
+
+S2 takeaway:
+
+- `fuzzy` and `bool` are now distinct concepts in S2.
+- `defuzzy(...)` is the explicit bridge from fuzzy truth into boolean truth.
+- The open question is whether branching requires explicit defuzzification or can also consume raw `fuzzy` values.
+
+## Example 14: Unsafe Cast Between Classes
 
 ```text
 C#
@@ -847,7 +897,7 @@ S2 takeaway:
 - In S2, safe and unsafe forms should look clearly different.
 - `unsafeOverride(...)` is not the same thing as a cast; it overrides function acceptance rules.
 
-## Example 14: Unsafe Cast Up To Primitive Base Layer
+## Example 15: Unsafe Cast Up To Primitive Base Layer
 
 The primitive base layer currently described by the design notes is:
 
@@ -913,7 +963,7 @@ S2 takeaway:
 - String should be treated as a special primitive mostly used for literals and output rather than as a common internal compute type.
 - Unsafe casting to `vector` exists syntactically as `unsafeCast<vector>(...)`, but the more common practical issue is usually function acceptance rather than forcing a vector reinterpretation.
 
-## Example 15: Function Call With Safe Cast, Unsafe Cast, And Unsafe Override
+## Example 16: Function Call With Safe Cast, Unsafe Cast, And Unsafe Override
 
 ```text
 S2 sketch
@@ -932,7 +982,126 @@ S2 takeaway:
 - `unsafeCast<cat>(animal)` is the explicit unsafe cast form.
 - `unsafeOverride(animal)` does not cast at all; it forces a function call to accept something it would normally reject.
 
-## Example 16: Property Access Or Field Access
+## Example 17: Operator Overloading
+
+```text
+C#
+public static Vector operator +(Vector a, Vector b) => Bundle(a, b);
+public static Vector operator *(Vector a, Vector b) => Bind(a, b);
+
+TypeScript
+// no operator overloading in core language
+
+Python
+def __add__(self, other): ...
+def __mul__(self, other): ...
+
+Rust
+impl Add for Vector { ... }
+impl Mul for Vector { ... }
+
+Scheme
+; operator names are just procedures
+
+Lisp
+; implementation dependent
+
+S2 design pressure
+function operator +(vector a, vector b) { ... }
+function operator *(vector a, vector b) { ... }
+
+// or simply built-in meanings for + and *
+```
+
+S2 takeaway:
+
+- C# is an important reference here because operator overloading is a real language feature, not a hack.
+- Python and Rust show that overloading can exist without following C# exactly.
+- This is still an open decision for S2.
+
+## Example 18: Implicit Cast Or Conversion
+
+```text
+C#
+public static implicit operator Vector(Cat c) => c.VectorForm;
+Vector v = cat;
+
+TypeScript
+// no direct equivalent in core syntax
+
+Python
+// usually protocol or constructor based, not true implicit cast syntax
+
+Rust
+// usually explicit Into/From patterns rather than silent implicit casts
+
+S2 design pressure
+vector v = cat;
+var v = cat;
+getVector(cat);
+
+// versus requiring explicit conversion
+vector v = (vector) cat;
+```
+
+S2 takeaway:
+
+- C# is the strongest direct reference for implicit conversions.
+- If S2 allows implicit casts, they should probably be narrow and predictable.
+- This is still undecided.
+
+## Example 19: Defuzzy In A Branch
+
+```text
+C#-style explicit pressure
+if (Defuzzy(signal))
+{
+    return Proceed();
+}
+
+TypeScript-style explicit pressure
+if (defuzzy(signal)) {
+  return proceed();
+}
+
+Python-style explicit pressure
+if defuzzy(signal):
+    return proceed()
+
+S2 design pressure
+if (defuzzy(signal)) {
+    return proceed();
+}
+
+if (signal) {
+    return proceed();
+}
+```
+
+S2 takeaway:
+
+- This is now one of the most important remaining syntax/semantic decisions.
+- The question is whether S2 wants explicit defuzzification in control flow, implicit defuzzification, or both.
+
+## Example 20: Function Parameter Acceptance Pressure
+
+```text
+S2 sketch
+function getFur(cat c) {
+    return c.fur;
+}
+
+getFur((cat) animal);
+getFur(unsafeCast<cat>(animal));
+getFur(unsafeOverride(animal));
+```
+
+S2 takeaway:
+
+- This shows the distinction between changing the value and overriding the call-site acceptance rule.
+- It is an important comparison point for future argument-checking semantics.
+
+## Example 21: Property Access Or Field Access
 
 ```text
 C#
@@ -967,7 +1136,7 @@ S2 takeaway:
 - This is still open.
 - C#, TypeScript, and Python are the clearest readability references if S2 exposes field-like access at all.
 
-## Example 17: Type Or Role Annotation
+## Example 22: Type Or Role Annotation
 
 ```text
 C#
