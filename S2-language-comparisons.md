@@ -43,6 +43,17 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - Implicit casts are allowed but must be explicitly defined in source.
 - Casting `fuzzy` to `bool` performs `defuzzy(...)` as a special built-in cast.
 - The class system is almost entirely user-defined, not special to the runtime — this is why operator overloading is straightforward.
+- `var` for mutable bindings, `const` for immutable. C#-style.
+- Files do not imply namespaces. Code can just execute. Full solution structures optional.
+- `function` = free function (public static by default). `method` = attached to object (public non-static by default).
+- Every method desugars to a static function with the object as first arg: `Adam.getCat()` → `human.getCat(Adam)`.
+- Dot syntax for method calls on objects, exactly like C#.
+- All C# loop forms: `while`, `for`, `foreach`, `do...while`.
+- Errors produce garbage vectors; try-catch is if-statement sugar over failure patterns.
+- String interpolation: C#-style `$"Result: {result}"`.
+- All comment forms allowed: `//`, `/* */`, `///`, `#`.
+- Generics: C#-style angle brackets, compile-time only.
+- No pipe operator. Nested function calls: `Step3(Step2(Step1(input)))`. Dot chaining via methods.
 
 ## Readability Notes
 
@@ -313,22 +324,13 @@ These are intentionally not locked yet:
 
 ## Next Decisions To Make
 
-- Anonymous functions: leaning `lambda` keyword, exact form undecided
-- Variable declaration keyword: `var`, `let`, explicit type, or bare assignment
-- Mutability: mutable by default (C#) vs immutable by default (Rust)
-- Namespace / module / file organization and whether a C#-style solution structure makes sense
-- Visibility / access modifiers: what shows in surface syntax
-- Method-style dot calls on values: allowed as sugar or free functions only
-- For loops / iteration: does `for` exist alongside `while`
-- Error handling model: try/catch, Result type, or fuzzy failure
-- Generics: needed at compile-time even if runtime is all vectors?
-- Chaining / piping: nested calls, pipe operator, or dot chaining
-- String interpolation form
-- Comment syntax and doc comments
+- Anonymous function exact form (leaning `lambda` keyword)
 - Whether primitive operations look mathematical, keyword-based, or both
 - Declaration syntax for implicit conversions
 - Whether there is a lightweight role-annotation system for semantic roles
 - Expression-versus-statement bias
+- Which access modifiers exist beyond the public/static defaults
+- How the half-compilation / immediate-execution model works
 
 ## Example 23: Anonymous Functions
 

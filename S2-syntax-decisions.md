@@ -280,12 +280,159 @@ Implications:
 - `bool b = (bool) signal;` where `signal` is `fuzzy` is equivalent to `bool b = defuzzy(signal);`.
 - This is a safe, well-defined cast, not an unsafe operation.
 
+#### Variable declarations use `var` with C#-style `const` for immutability
+
+Status: active
+
+Decision:
+
+- `var` declares a mutable binding.
+- `const` declares an immutable binding, same as C#.
+- Explicit type declarations are also valid: `vector result = Blend(a, b);`
+
+Reasoning:
+
+- C# binding style. Mutable by default, `const` stops mutation.
+- Familiar, no learning curve for C# developers.
+
+#### Files do not imply namespaces
+
+Status: active
+
+Decision:
+
+- Files do not automatically create namespaces.
+- Code is intended to be quickly written by AI and executed on the spot.
+- A file that is not an object declaration can just execute directly.
+- Full C#-style solution structures are possible but not required.
+
+Reasoning:
+
+- S2 is designed for rapid AI-generated code execution, similar to JavaScript's immediacy.
+- A half-compilation model is the vision: code can be compiled but can also just run.
+- Namespacing is opt-in structure, not forced by the file system.
+
+#### `function` vs `method` distinction
+
+Status: active
+
+Decision:
+
+- `function` declares a free function not attached to any object.
+- `method` declares a method attached to an object.
+- Functions are public static by default.
+- Methods are non-static and public by default.
+- Every method is really a static function on the backend. `Adam.getCat()` is really `human.getCat(Adam)`.
+
+Reasoning:
+
+- This preserves C#'s clarity about what's attached to what, while keeping the function/method distinction explicit in the keyword.
+- Functions and methods are semantically different at the surface level but collapse to the same thing at the vector operation level.
+- The method-to-function desugaring makes the substrate transparent: every method call is really a vector operation with the object as the first argument.
+
+Examples:
+
+```
+method Cat getCat() { ... }           // gets the cat of an attached human
+static method Cat getCat() { ... }    // gives you the cat of all humanity  
+function Cat getCat() { ... }         // gives you a random cat
+```
+
+Calling:
+
+```
+Adam.getCat();                        // desugars to human.getCat(Adam)
+```
+
+#### Method-style dot calls work on objects like C#
+
+Status: active
+
+Decision:
+
+- Dot syntax is used for method calls on objects, exactly like C#.
+- This is syntactic sugar; every method call desugars to a static function with the object as the first argument.
+
+#### Everything is public static under function namespace by default
+
+Status: active
+
+Decision:
+
+- Functions are public and static by default.
+- Methods are public and non-static by default.
+- No access modifiers needed in the common case.
+- Access modifiers exist for when you need them, following C# conventions.
+
+#### Loops entirely like C#
+
+Status: active
+
+Decision:
+
+- S2 uses all C# loop forms: `while`, `for`, `foreach`, `do...while`.
+- Loop syntax is identical to C#.
+
+#### Error handling: garbage vectors with try-catch as if-statement sugar
+
+Status: active
+
+Decision:
+
+- Errors generally produce garbage vectors rather than throwing exceptions.
+- `try-catch` exists but is essentially an if-statement in disguise: if output matches a failure pattern, execute the catch branch.
+- Error handling can also be expressed as complex nested functions.
+- Exception handling becomes part of the multiplication math at the substrate level.
+
+Reasoning:
+
+- In a vector substrate, failure is just a vector far from the expected result.
+- Hard exceptions are the special case, not the default.
+- Try-catch as if-sugar keeps the surface familiar for C# developers while the semantics remain vector-native.
+
+#### String interpolation uses C# style
+
+Status: active
+
+Decision:
+
+- String interpolation uses C#-style `$"Result: {result}"`.
+
+#### All comment forms are allowed
+
+Status: active
+
+Decision:
+
+- `//` line comments
+- `/* ... */` block comments
+- `/// ...` doc comments
+- `# ...` line comments (Python-style)
+- All forms are valid. No reason to restrict.
+
+#### Generics use C# style (compile-time only)
+
+Status: active
+
+Decision:
+
+- Generics use C#-style angle bracket syntax: `function T Blend<T>(T a, T b) { ... }`
+- Generics are compile-time only. At runtime, everything is vectors.
+
+#### No pipe operator; nested function calls only
+
+Status: active
+
+Decision:
+
+- Chaining uses nested function calls: `var result = Step3(Step2(Step1(input)));`
+- No pipe operator.
+- Method-style dot chaining is available when calling methods on objects.
+
 ## Candidate Decisions
 
-- block delimiters
-- namespace or module syntax
-- expression-versus-statement bias
 - annotation system for semantic roles
-- return annotation syntax
-- primitive operation call surface
-- primitive cast syntax
+- expression-versus-statement bias
+- anonymous function exact form (leaning `lambda` keyword)
+- which access modifiers exist beyond the defaults
+- how the half-compilation / immediate-execution model works
