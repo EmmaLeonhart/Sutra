@@ -264,17 +264,17 @@
         <div class="card">
           <h2>Current direction</h2>
           <ul>
-            <li>S2 is a substrate-oriented language rather than a class-first application language.</li>
-            <li>Functions exist independently.</li>
-            <li>Declarations use C# signature shape: <code>function vector Add(vector a, vector b) { ... }</code></li>
-            <li><code>function.</code> prefix for call-site disambiguation, not declaration.</li>
-            <li>Conditionals use TypeScript-style <code>if (...) { ... } else { ... }</code>.</li>
-            <li>S2 uses <code>return</code>.</li>
-            <li>Looping uses TypeScript-style <code>while (...) { ... }</code>.</li>
-            <li><code>fuzzy</code> and <code>bool</code> are distinct, and <code>defuzzy(...)</code> converts between them.</li>
-            <li>C# remains a primary readability baseline even where S2 rejects class-first structure.</li>
-            <li>The syntax should stay serious and explicit without borrowing conventional datatype assumptions.</li>
-            <li>Readability matters, but the surface should not pretend the semantics are ordinary imperative programming.</li>
+            <li>S2 is a substrate-oriented language. Surface reads like C#, runtime is all vectors.</li>
+            <li><code>function</code> = free function (public static). <code>method</code> = attached to object (public non-static).</li>
+            <li>C# signature shape: <code>function vector Add(vector a, vector b) { ... }</code></li>
+            <li>Methods desugar to static functions: <code>Adam.getCat()</code> → <code>human.getCat(Adam)</code></li>
+            <li><code>var</code> for mutable bindings, <code>const</code> for immutable. C#-style.</li>
+            <li>All C# loop forms: <code>while</code>, <code>for</code>, <code>foreach</code>, <code>do...while</code>.</li>
+            <li><code>fuzzy</code> and <code>bool</code> are distinct; <code>defuzzy(...)</code> converts between them.</li>
+            <li>Errors produce garbage vectors. Try-catch is if-statement sugar.</li>
+            <li>C#-style generics (compile-time only), string interpolation, and all comment forms.</li>
+            <li>Files don't imply namespaces. Code can just execute. Solution structures optional.</li>
+            <li>No pipe operator. Nested calls + dot chaining via methods.</li>
           </ul>
           <div class="chip-row">
             <span class="chip">C# readability baseline</span>
@@ -286,8 +286,8 @@
         </div>
         <div class="card stat">
           <h2>Established decisions</h2>
-          <span class="stat-value">8</span>
-          <p class="muted">Functions are independent, declarations use <code>function</code>, control flow uses TypeScript-style forms, S2 uses <code>return</code>, <code>defuzzy(...)</code> converts <code>fuzzy</code> to <code>bool</code>, <code>if (cat)</code> is a compilation error, operators support overloading, and truthiness is geometric (unsafe-only).</p>
+          <span class="stat-value">20</span>
+          <p class="muted">C#-shaped declarations, <code>function</code> vs <code>method</code>, <code>var</code>/<code>const</code>, all C# loops, garbage-vector errors, C# generics (compile-time), C# string interpolation, no pipe operator, all comment forms, and more.</p>
         </div>
       </div>
     </section>
@@ -381,22 +381,22 @@ function public static vector Blend(vector a, vector b) { ... }</code></pre>
       </article>
 
       <article class="card span-5">
-        <h2>Most likely current lean</h2>
+        <h2>Quick reference</h2>
         <ul>
-          <li><strong>Independent functions:</strong> yes</li>
-          <li><strong>Declaration shape:</strong> <code>function [return] Name([params]) { }</code> (C# signature)</li>
-          <li><strong>Call disambiguation:</strong> <code>function.Name()</code></li>
-          <li><strong>Blocks:</strong> braces are the safest current default</li>
-          <li><strong>Conditional form:</strong> TypeScript-style <code>if (...) { ... }</code></li>
-          <li><strong>Loop form:</strong> TypeScript-style <code>while (...) { ... }</code></li>
-          <li><strong>Return keyword:</strong> <code>return</code></li>
-          <li><strong>Truth collapse:</strong> <code>defuzzy(...)</code></li>
-          <li><strong>Truthiness:</strong> compilation error on non-bool/fuzzy; geometric via unsafe cast</li>
-          <li><strong>Operator overloading:</strong> yes, via <code>function operator</code></li>
-          <li><strong>Implicit casts:</strong> allowed but must be explicitly defined</li>
-          <li><strong>Readability baseline:</strong> C#-level explicitness</li>
-          <li><strong>Typing surface:</strong> probably lightweight, not conventional datatypes</li>
-          <li><strong>Notation:</strong> likely mixed mainstream syntax rather than Lisp-only prefix forms</li>
+          <li><strong>Free function:</strong> <code>function vector Add(vector a, vector b) { }</code></li>
+          <li><strong>Method:</strong> <code>method Cat getCat() { }</code></li>
+          <li><strong>Method desugar:</strong> <code>Adam.getCat()</code> → <code>human.getCat(Adam)</code></li>
+          <li><strong>Variables:</strong> <code>var</code> (mutable), <code>const</code> (immutable)</li>
+          <li><strong>Loops:</strong> all C# forms (<code>while</code>, <code>for</code>, <code>foreach</code>, <code>do...while</code>)</li>
+          <li><strong>Conditionals:</strong> <code>if (...) { } else { }</code></li>
+          <li><strong>Errors:</strong> garbage vectors; try-catch = if-sugar</li>
+          <li><strong>Generics:</strong> <code>T Blend&lt;T&gt;(T a, T b)</code> (compile-time only)</li>
+          <li><strong>Strings:</strong> <code>$"Result: {result}"</code></li>
+          <li><strong>Comments:</strong> <code>//</code> <code>/* */</code> <code>///</code> <code>#</code></li>
+          <li><strong>Operators:</strong> overloadable via <code>function operator</code></li>
+          <li><strong>Chaining:</strong> nested calls + dot methods, no pipe</li>
+          <li><strong>Truthiness:</strong> compilation error on non-bool/fuzzy</li>
+          <li><strong>Files:</strong> no implicit namespaces, can just execute</li>
         </ul>
       </article>
 
@@ -443,13 +443,13 @@ function public static vector Blend(vector a, vector b) { ... }</code></pre>
       <article class="card span-6">
         <h2>Questions still open</h2>
         <ul>
-          <li>What should the rest of the function signature look like?</li>
-          <li>Should files imply namespaces, or should grouping be explicit?</li>
+          <li>Anonymous function exact form (<code>lambda</code> keyword?)</li>
           <li>How should primitive substrate operations read in source?</li>
-          <!-- implicit casts decided: allowed but must be explicitly defined -->
+          <li>Declaration syntax for implicit conversions</li>
           <li>Does S2 need any annotation layer for semantic roles?</li>
           <li>Expression-versus-statement bias?</li>
-          <li>Return annotation syntax?</li>
+          <li>Which access modifiers exist beyond public/static defaults?</li>
+          <li>How does the half-compilation / immediate-execution model work?</li>
         </ul>
       </article>
 
@@ -592,9 +592,9 @@ S2         most internal work should convert strings into vectors first</code></
       </article>
     </section>
 
-    <h2 class="section-title">Open Syntactic Choices</h2>
+    <h2 class="section-title">Syntactic Choices</h2>
     <p class="section-copy">
-      Each card below is a decision that needs to be made. Examples show how reference languages handle it and what S2 candidates look like.
+      Cards marked ✅ are decided. Remaining cards are still open.
     </p>
 
     <section class="grid">
@@ -627,284 +627,143 @@ Map(items, lambda(vector x) { return Transform(x); });</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>Variable declaration keyword</h2>
-        <p>How do you bind a name to a value?</p>
-        <pre><code>C#
+        <h2>Variable declaration ✅ DECIDED</h2>
+        <p><code>var</code> for mutable, <code>const</code> for immutable. C#-style. Explicit types also valid.</p>
+        <pre><code>var result = Blend(a, b);           // mutable, inferred type
+const threshold = 0.85;             // immutable
+vector result = Blend(a, b);        // explicit type
+var x = Blend(a, b); x = Step(x);  // mutable reassignment OK
+const x = Blend(a, b); x = Step(x); // ERROR: const</code></pre>
+      </article>
+
+      <article class="card span-6">
+        <h2>function vs method ✅ DECIDED</h2>
+        <p><code>function</code> = free, public static. <code>method</code> = attached to object, public non-static.</p>
+        <pre><code>// Free function — public static by default
+function Cat GetCat() { ... }         // gives you a random cat
+
+// Method — attached to an object
+method Cat getCat() { ... }           // gets the cat of the attached human
+
+// Static method
+static method Cat getCat() { ... }    // cat of all humanity
+
+// Method desugaring
+Adam.getCat();                        // really: human.getCat(Adam)
+
+// Full internal form of a function
+function public static scalar operator +(scalar a, scalar b) {
+    return function.add(a, b);
+}</code></pre>
+      </article>
+
+      <article class="card span-6">
+        <h2>File organization ✅ DECIDED</h2>
+        <p>Files do not imply namespaces. A file can just execute. Many files are object declarations. Full C# solution structures possible but not required.</p>
+        <pre><code>// file: blend.s2 — just executes
+var a = GetVector("cat");
+var b = GetVector("dog");
 var result = Blend(a, b);
-Vector result = Blend(a, b);
 
-TypeScript
-const result = blend(a, b);
-let result = blend(a, b);
+// file: Animal.s2 — an object declaration
+method Cat getCat() { ... }
+method string getName() { ... }
 
-Python
-result = blend(a, b)
-
-Rust
-let result = blend(a, b);
-let mut result = blend(a, b);
-
-S2 candidates
-var result = Blend(a, b);          // C#-style, inferred type
-vector result = Blend(a, b);       // explicit type, no keyword
-let result = Blend(a, b);          // Rust-style
-result = Blend(a, b);              // bare assignment (Python-style)</code></pre>
-        <p class="muted">C# uses <code>var</code> for inferred and explicit type for declared. S2 already shows <code>var</code> in some examples. Is <code>var</code> the direction? Is mutability tracked?</p>
+// Optional: C#-style solution structure when you want it
+// but never forced by the language</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>Mutability</h2>
-        <p>Are bindings mutable by default or immutable by default?</p>
-        <pre><code>C#         var x = 5; x = 6;          // mutable by default
-TypeScript let x = 5; x = 6;          // let = mutable
-           const x = 5; x = 6;        // const = immutable (error)
-Rust       let x = 5; x = 6;          // immutable by default (error)
-           let mut x = 5; x = 6;      // explicit mutable
-
-S2 candidates
-var x = Blend(a, b); x = Step(x);          // mutable by default (C#)
-let x = Blend(a, b); x = Step(x);          // immutable by default (Rust-style, error)
-let mut x = Blend(a, b); x = Step(x);      // explicit mutable
-val x = Blend(a, b);                       // immutable (Kotlin/Scala)
-var x = Blend(a, b);                       // mutable
-</code></pre>
-        <p class="muted">Vector operations often chain transformations. Does S2 favor immutable pipelines or mutable state updates?</p>
-      </article>
-
-      <article class="card span-6">
-        <h2>Namespace / module / file organization</h2>
-        <p>How are functions grouped? Does a file imply a namespace?</p>
-        <pre><code>C#
-namespace S2.Core;
-public static class Basis {
-    public static Vector Blend(Vector a, Vector b) { ... }
-}
-// Call: Basis.Blend(a, b)
-
-TypeScript
-export function blend(a: Vector, b: Vector): Vector { ... }
-// Call: import { blend } from './core';
-
-Rust
-pub fn blend(a: Vector, b: Vector) -&gt; Vector { ... }
-// Call: core::blend(a, b)
-
-Python
-def blend(a, b): ...
-# Call: from core import blend
-
-S2 candidates
-// Option 1: file IS the namespace
-// file: core.s2
+        <h2>Visibility ✅ DECIDED</h2>
+        <p>Functions: public static by default. Methods: public non-static by default. Access modifiers available when needed.</p>
+        <pre><code>// These are equivalent:
 function vector Blend(vector a, vector b) { ... }
-// Call: core.Blend(a, b) or just Blend(a, b) if imported
+function public static vector Blend(vector a, vector b) { ... }
 
-// Option 2: explicit namespace declaration
-namespace Core;
-function vector Blend(vector a, vector b) { ... }
-// Call: Core.Blend(a, b)
+// These are equivalent:
+method Cat getCat() { ... }
+public method Cat getCat() { ... }
 
-// Option 3: no namespaces, function. prefix only
-function vector Blend(vector a, vector b) { ... }
-// Call: Blend(a, b) or function.Blend(a, b)</code></pre>
-        <p class="muted">This is load-bearing for how S2 projects feel. C# has solutions/projects/namespaces. Does S2 need that structure?</p>
-      </article>
-
-      <article class="card span-6">
-        <h2>Visibility / access modifiers</h2>
-        <p>The full internal form has <code>public static</code>. What shows in surface syntax?</p>
-        <pre><code>C#
-public static Vector Blend(Vector a, Vector b) { ... }
-private static Vector Helper(Vector v) { ... }
-internal static Vector Util(Vector v) { ... }
-
-Rust
-pub fn blend(a: Vector, b: Vector) -&gt; Vector { ... }
-fn helper(v: Vector) -&gt; Vector { ... }  // private by default
-
-TypeScript
-export function blend(a: Vector, b: Vector): Vector { ... }
-function helper(v: Vector): Vector { ... }  // module-private
-
-S2 candidates
-// Option 1: everything public by default, mark private
-function vector Blend(vector a, vector b) { ... }
+// Access modifiers when you need them:
 private function vector Helper(vector v) { ... }
-
-// Option 2: private by default, mark public (Rust-like)
-function vector Helper(vector v) { ... }
-public function vector Blend(vector a, vector b) { ... }
-
-// Option 3: export keyword (TypeScript-like)
-export function vector Blend(vector a, vector b) { ... }
-function vector Helper(vector v) { ... }</code></pre>
-        <p class="muted">Which default feels right for a substrate language? C# is explicit everywhere. Rust defaults to private. TypeScript uses export.</p>
+static method Cat getCat() { ... }</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>Method-style calls on values</h2>
-        <p>Can you call functions with dot syntax on values?</p>
-        <pre><code>C#
-var result = signal.Transform();
-var result = Transform(signal);
+        <h2>Dot calls ✅ DECIDED</h2>
+        <p>Method calls on objects use dot syntax, just like C#. Every method desugars to a static function.</p>
+        <pre><code>// Method call (C#-style)
+Adam.getCat();
 
-Rust
-let result = signal.transform();  // method via impl
-let result = transform(signal);   // free function
+// What it really is:
+human.getCat(Adam);
 
-TypeScript
-const result = signal.transform();
-const result = transform(signal);
-
-S2 candidates
-// Option 1: no dot calls, free functions only
-var result = Transform(signal);
-
-// Option 2: dot calls as sugar for first-arg dispatch
-var result = signal.Transform();
-// desugars to: Transform(signal)
-
-// Option 3: dot calls only on primitives
-var result = signal.defuzzy();
-// but: var result = Blend(a, b);  // no dot form</code></pre>
-        <p class="muted">Dot syntax is ergonomic for chaining. But it implies objects, which S2 doesn't have at runtime. Is dot sugar acceptable?</p>
+// Free functions use function call syntax
+var result = Blend(a, b);
+var result = function.Blend(a, b);  // disambiguated</code></pre>
       </article>
 
       <article class="card span-7">
-        <h2>For loops / iteration</h2>
-        <p><code>while</code> is decided. Does <code>for</code> exist?</p>
-        <pre><code>C#
-foreach (var item in collection) { ... }
-for (int i = 0; i &lt; n; i++) { ... }
-
-TypeScript
-for (const item of collection) { ... }
-for (let i = 0; i &lt; n; i++) { ... }
-
-Python
-for item in collection: ...
-for i in range(n): ...
-
-Rust
-for item in collection { ... }
-for i in 0..n { ... }
-
-S2 candidates
-for (var item in collection) { ... }
-for (var i = 0; i &lt; n; i++) { ... }
-// or: no for loops, only while + iterators
-// or: for-each only, no C-style for</code></pre>
-        <p class="muted">Does iterating over collections make sense when the substrate is vectors? What would a collection even be — a matrix? A tuple?</p>
+        <h2>Loops ✅ DECIDED</h2>
+        <p>All C# loop forms. Entirely like C#.</p>
+        <pre><code>while (!Done(state)) { state = Step(state); }
+for (var i = 0; i &lt; n; i++) { Process(i); }
+foreach (var item in collection) { Process(item); }
+do { state = Step(state); } while (!Done(state));</code></pre>
       </article>
 
       <article class="card span-5">
-        <h2>Error handling</h2>
-        <p>What happens when something fails?</p>
-        <pre><code>C#         try/catch/finally
-TypeScript try/catch/finally
-Python     try/except/finally
-Rust       Result&lt;T, E&gt; + ? operator
+        <h2>Error handling ✅ DECIDED</h2>
+        <p>Errors produce garbage vectors. Try-catch is if-statement sugar over failure patterns. Exception handling becomes part of the multiplication math.</p>
+        <pre><code>// Default: errors produce garbage vectors
+var result = RiskyOp(input);
+// result is just a bad vector if it fails
 
-S2 candidates
-// Option 1: try/catch (C#-style)
+// Try-catch: really an if over the output
 try {
     var v = UnsafeCast&lt;cat&gt;(animal);
 } catch {
     return fallback;
 }
-
-// Option 2: Result type (Rust-style)
-var v = UnsafeCast&lt;cat&gt;(animal)?;
-
-// Option 3: fuzzy failure
-// failures return a vector near "false"
-// no explicit error handling needed</code></pre>
-        <p class="muted">Option 3 is the most S2-native: if everything is vectors, failure is just distance from expected results. But unsafe ops might need hard errors.</p>
+// equivalent to checking if output matches
+// a failure pattern, then branching</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>String interpolation / formatting</h2>
-        <p>String is a special primitive mostly for output. How does it compose?</p>
-        <pre><code>C#         $"Result: {result}"
-TypeScript `Result: ${result}`
-Python     f"Result: {result}"
-Rust       format!("Result: {}", result)
-
-S2 candidates
-"Result: {result}"
-$"Result: {result}"
-format("Result: {}", result)</code></pre>
-        <p class="muted">Since strings are mostly for output/debugging, the simplest form may be fine.</p>
+        <h2>Strings ✅ DECIDED</h2>
+        <p>C#-style string interpolation.</p>
+        <pre><code>var msg = $"Result: {result}";
+var detail = $"Score: {score}, Label: {label}";</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>Comments</h2>
-        <p>What do comments look like?</p>
-        <pre><code>C#         // line comment    /* block */
-TypeScript // line comment    /* block */
-Python     # line comment     """ docstring """
-Rust       // line comment    /* block */   /// doc
-
-S2 candidates
-// Option 1: C-family (matches braces decision)
-// line comment
-/* block comment */
-
-// Option 2: include doc comments
-/// Doc comment for function below
-function vector Blend(vector a, vector b) { ... }</code></pre>
-        <p class="muted">C-family comments are the obvious choice given brace syntax. Do doc comments exist?</p>
+        <h2>Comments ✅ DECIDED</h2>
+        <p>All comment forms allowed.</p>
+        <pre><code>// C-style line comment
+/* C-style block comment */
+/// Doc comment
+# Python-style line comment</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>Generics / parameterized types</h2>
-        <p>Does S2 have generics? The class system is user-defined, so this matters.</p>
-        <pre><code>C#         List&lt;Vector&gt;    T Blend&lt;T&gt;(T a, T b)
-TypeScript Array&lt;Vector&gt;   function blend&lt;T&gt;(a: T, b: T): T
-Rust       Vec&lt;Vector&gt;     fn blend&lt;T&gt;(a: T, b: T) -&gt; T
-
-S2 candidates
-// Option 1: angle brackets (C#-style)
-function T Blend&lt;T&gt;(T a, T b) { ... }
-
-// Option 2: no generics — everything is vectors
-// if everything reduces to vectors at runtime,
-// generics may be a compile-time-only concern
-
-// Option 3: constrained generics
-function T Blend&lt;T: vector&gt;(T a, T b) { ... }</code></pre>
-        <p class="muted">Since classes are compile-time and vectors are runtime, generics might only matter for the compiler's acceptance checking. <code>unsafeCast</code> already uses angle brackets.</p>
+        <h2>Generics ✅ DECIDED</h2>
+        <p>C#-style angle brackets. Compile-time only — runtime is all vectors.</p>
+        <pre><code>function T Blend&lt;T&gt;(T a, T b) { ... }
+function T Blend&lt;T: vector&gt;(T a, T b) { ... }
+// At runtime, T is always a vector.
+// Generics exist for the compiler's acceptance checking.</code></pre>
       </article>
 
       <article class="card span-6">
-        <h2>Chaining / piping</h2>
-        <p>How do you compose multiple transformations?</p>
-        <pre><code>C#
+        <h2>Chaining ✅ DECIDED</h2>
+        <p>Nested function calls. No pipe operator. Dot chaining available via methods on objects.</p>
+        <pre><code>// Function chaining: nested calls
 var result = Step3(Step2(Step1(input)));
-// or with LINQ
+
+// Method chaining: dot syntax on objects
 var result = input.Step1().Step2().Step3();
 
-TypeScript
-const result = step3(step2(step1(input)));
-// or with pipe proposal
-const result = input |&gt; step1 |&gt; step2 |&gt; step3;
-
-Rust
-let result = input.step1().step2().step3();
-
-F#
-let result = input |&gt; step1 |&gt; step2 |&gt; step3
-
-S2 candidates
-// Option 1: nested calls
-var result = Step3(Step2(Step1(input)));
-
-// Option 2: pipe operator
-var result = input |&gt; Step1 |&gt; Step2 |&gt; Step3;
-
-// Option 3: dot chaining (if method sugar exists)
-var result = input.Step1().Step2().Step3();</code></pre>
-        <p class="muted">Vector transformations naturally chain. A pipe operator would fit the substrate model well without requiring dot syntax.</p>
+// No pipe operator</code></pre>
       </article>
 
     </section>
