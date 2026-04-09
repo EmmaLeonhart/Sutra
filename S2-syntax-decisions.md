@@ -439,6 +439,59 @@ Decision:
 - No pipe operator.
 - Method-style dot chaining is available when calling methods on objects.
 
+#### `embed()` is a function, not a cast; string→vector is real computation
+
+Status: active
+
+Decision:
+
+- Converting a string to a vector uses `embed("cat")`, not `(vector) "cat"`.
+- `embed()` is a language built-in (lowercase, like `defuzzy()`), not a user-defined function.
+- Casting changes the label on a value. `embed()` performs real computation — it runs the string through the empirically-initiated embedding model to produce a vector.
+- `(vector) "cat"` is wrong because it implies the string already is a vector and you're just relabeling it. That's not what's happening.
+
+Reasoning:
+
+- Casting in S2 means reinterpretation: the underlying data stays the same, only the compiler's view of it changes. `(Cat) myAnimal` works because `myAnimal` is already a vector at runtime — you're just telling the compiler to treat it as a Cat.
+- Turning a string into a vector is fundamentally different. It requires running the string through an embedding model — that's a computation with real cost, not a relabeling.
+- Making this explicit prevents a category error in the language's semantics: casts are free, `embed()` is not.
+- Lowercase `embed()` signals it's a language primitive, consistent with `defuzzy()` and `unsafeCast<>()`.
+
+Implications:
+
+- All code examples must use `embed("...")` for string-to-vector conversion.
+- `(vector) someString` is a compilation error — you cannot cast across primitive categories.
+- `embed()` accepts string literals and string variables: `embed("cat")`, `embed(name)`.
+- `embed()` semantics depend on the substrate chosen at empirical initiation time.
+
+#### Casting stays within the same primitive category
+
+Status: active
+
+Decision:
+
+- A cast relabels a value. It changes what the compiler thinks the value is, not what the value actually is.
+- You can cast within the same primitive substrate:
+  - vector → vector (e.g., `(Cat) myAnimal`, `(Animal) cat`) — both are vectors at runtime
+  - string → string (e.g., a typed string class to another string class)
+  - tuple → tuple
+  - scalar → scalar
+  - matrix → matrix
+- You cannot cast across primitive categories. `(vector) "cat"` is wrong — use `embed("cat")`.
+- Functions are matrices at the substrate level, so in principle you could cast a function to a matrix class (though this would be rare in practice since there aren't many matrix classes).
+
+Reasoning:
+
+- Casting is a zero-cost operation. It only affects the compiler's acceptance checking.
+- Cross-category conversion (string→vector, vector→scalar, etc.) is real computation and must use explicit functions: `embed()` for string→vector, `Cosine()` for vector→scalar, etc.
+- This keeps the language honest about what operations actually cost something.
+
+Implications:
+
+- The type system enforces primitive category boundaries at cast time.
+- `unsafeCast<>()` can still force cross-category reinterpretation if the programmer explicitly opts in — but this is semantically distinct from `embed()` which computes a new value.
+- Each cross-category conversion should have a named function that makes the computation visible.
+
 ## Candidate Decisions
 
 - annotation system for semantic roles
