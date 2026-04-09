@@ -9,6 +9,8 @@
 - Expression-versus-statement bias.
 - Which access modifiers exist beyond public/static defaults.
 - How the half-compilation / immediate-execution model works.
+- Implement many-to-many as a `hop` non-algebraic function in S2.
+- Figure out IO — how S2 handles input/output.
 
 ## Recently Decided (2026-04-08)
 
@@ -31,3 +33,8 @@
 - Implicit casts allowed but must be explicitly defined
 - `fuzzy` to `bool` cast performs `defuzzy`
 - Class system is user-defined, not runtime-special
+
+## Future Goals
+
+- Get S2 running on normal hardware first
+- Then try running it on a simulated fly brain
