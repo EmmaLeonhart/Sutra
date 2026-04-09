@@ -8,8 +8,8 @@
 // ── Conditionals ────────────────────────────────────────────
 
 function string Classify(Animal subject) {
-    var fuzzy signal = subject.PetLikelihood();
-    var bool isPet = defuzzy(signal);
+    fuzzy signal = subject.PetLikelihood();
+    bool isPet = defuzzy(signal);
 
     if (isPet) {
         return $"Pet: {subject.GetName()}";
@@ -22,8 +22,8 @@ function string Classify(Animal subject) {
 // ── All C# loop forms ──────────────────────────────────────
 
 function vector Converge(vector start, vector target) {
-    var vector current = start;
-    var scalar threshold = 0.99;
+    vector current = start;
+    scalar threshold = 0.99;
 
     // while loop
     while (defuzzy(unsafeCast<fuzzy>(Cosine(current, target)))) {
@@ -35,7 +35,7 @@ function vector Converge(vector start, vector target) {
 function void ProcessBatch(tuple items) {
     // for loop
     for (var i = 0; i < Length(items); i++) {
-        var vector item = Get(items, i);
+        vector item = Get(items, i);
         Process(item);
     }
 
@@ -45,7 +45,7 @@ function void ProcessBatch(tuple items) {
     }
 
     // do...while
-    var scalar quality = 0.0;
+    scalar quality = 0.0;
     do {
         quality = MeasureQuality(items);
         items = Refine(items);
@@ -60,10 +60,10 @@ function void ProcessBatch(tuple items) {
 // that's far from any meaningful result.
 
 function vector SafeTransform(vector input) {
-    var vector result = RiskyOperation(input);
+    vector result = RiskyOperation(input);
 
     // You can check if the result is garbage:
-    var fuzzy quality = unsafeCast<fuzzy>(Cosine(result, ExpectedPattern()));
+    fuzzy quality = unsafeCast<fuzzy>(Cosine(result, ExpectedPattern()));
     if (defuzzy(quality)) {
         return result;
     } else {
@@ -76,7 +76,7 @@ function vector SafeTransform(vector input) {
 
 function Cat SafeCast(Animal a) {
     try {
-        var Cat c = (Cat) a;
+        Cat c = (Cat) a;
         return c;
     } catch {
         // Catch branch fires when output matches failure pattern.
@@ -99,9 +99,9 @@ function Cat SafeCastAlt(Animal a) {
 // No pipe operator. Use nested calls or method chaining.
 
 // Nested function calls:
-var vector result = Normalize(Blend(Embed("cat"), Embed("pet")));
+vector result = Normalize(Blend(Embed("cat"), Embed("pet")));
 
 // Method chaining on objects:
-var string report = subject.GetEmbedding().Normalize().Describe();
+string report = subject.GetEmbedding().Normalize().Describe();
 
 // Both are valid. Pick what reads better.

@@ -32,9 +32,9 @@ function Cat getCat() {
 
 // ── Using all three ─────────────────────────────────────────
 
-var Cat adamsCat = Adam.getCat();       // method: Adam's cat
-var Cat humanityCat = Human.getCat();   // static method: humanity's cat
-var Cat randomCat = function.getCat();  // function: random cat
+Cat adamsCat = Adam.getCat();       // method: Adam's cat
+Cat humanityCat = Human.getCat();   // static method: humanity's cat
+Cat randomCat = function.getCat();  // function: random cat
 
 // Without function. prefix, getCat() is ambiguous if there's
 // both a free function and a method in scope.

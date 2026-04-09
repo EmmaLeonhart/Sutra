@@ -23,11 +23,11 @@ function operator ==(vector a, vector b) {
 }
 
 // Now vector math reads like algebra:
-var vector cat = Embed("cat");
-var vector pet = Embed("pet");
-var vector petCat = cat + pet;        // Bundle
-var vector bound = cat * pet;         // Bind
-var fuzzy similar = cat == pet;       // Cosine similarity
+vector cat = Embed("cat");
+vector pet = Embed("pet");
+vector petCat = cat + pet;        // Bundle
+vector bound = cat * pet;         // Bind
+fuzzy similar = cat == pet;       // Cosine similarity
 
 
 // ── The class system is user-defined ────────────────────────
@@ -52,7 +52,7 @@ function public static scalar operator +(scalar a, scalar b) {
 
 // Then this works at call sites:
 // function vector Process(vector v) { ... }
-// var Cat c = GetCat();
+// Cat c = GetCat();
 // Process(c);    ← implicit cast Cat → vector
 
 
@@ -60,14 +60,14 @@ function public static scalar operator +(scalar a, scalar b) {
 
 // C#-style. Strings are mostly for output and debugging.
 
-var string name = "Mittens";
-var scalar score = 0.92;
-var string report = $"Cat '{name}' scored {score}";
-var string detail = $"Embedding: {(vector) name}, Score: {score}";
+string name = "Mittens";
+scalar score = 0.92;
+string report = $"Cat '{name}' scored {score}";
+string detail = $"Embedding: {(vector) name}, Score: {score}";
 
 // Most internal computation should use vectors, not strings.
 // Convert strings to vectors early:
-var vector nameVec = (vector) name;
+vector nameVec = (vector) name;
 // Do work in vector space, convert back to string for output.
 
 
