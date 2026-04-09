@@ -1,104 +1,168 @@
 """
 Spike-VSA Bridge: encode/decode between hypervectors and spike patterns.
 
-This is the novel component — the interface between S2's VSA operations
-and the biological neural circuit.
-
-Encoding: hypervector → input currents (rate coding)
-Decoding: spike trains → hypervector (population rate readout)
+Encoding: centered rate coding (preserves sign information)
+Decoding: pseudoinverse reconstruction from KC spike rates
 """
 
 import numpy as np
+from mushroom_body_model import build_model, run_stimulus, get_spike_rates
 
 
-def encode(hypervector, n_neurons, min_current=0.5, max_current=2.5):
+class SpikeVSABridge:
     """
-    Encode a hypervector as input currents for neurons (rate coding).
+    Bridge between hypervectors and the mushroom body spiking circuit.
 
-    Maps each component of the hypervector to a current injection value.
-    Higher vector components → higher currents → higher firing rates.
-
-    Args:
-        hypervector: array of shape (dim,) — the vector to encode
-        n_neurons: number of input neurons (must divide evenly or pad)
-        min_current: minimum current (below threshold = no spikes)
-        max_current: maximum current (saturating firing rate)
-
-    Returns:
-        array of shape (n_neurons,) — current values for each neuron
+    Encode: hypervector → PN input currents (centered rate coding)
+    Decode: KC spike rates → hypervector (pseudoinverse of connectivity matrix)
     """
-    dim = len(hypervector)
 
-    if dim == n_neurons:
-        # 1:1 mapping
-        components = hypervector
-    elif dim > n_neurons:
-        # Downsample: average groups of dimensions
-        group_size = dim // n_neurons
-        components = np.array([
-            np.mean(hypervector[i * group_size:(i + 1) * group_size])
-            for i in range(n_neurons)
-        ])
-    else:
-        # Upsample: repeat dimensions
-        components = np.resize(hypervector, n_neurons)
+    def __init__(self, dim=50, seed=42, **model_kwargs):
+        """
+        Args:
+            dim: hypervector dimensionality (must equal n_pn)
+            seed: random seed for reproducible connectivity
+            **model_kwargs: passed to build_model (n_kc, apl_weight, etc.)
+        """
+        self.dim = dim
+        self.seed = seed
+        self.model_kwargs = model_kwargs
 
-    # Normalize to [0, 1] range
-    v_min, v_max = components.min(), components.max()
-    if v_max - v_min > 1e-10:
-        normalized = (components - v_min) / (v_max - v_min)
-    else:
-        normalized = np.full(n_neurons, 0.5)
+        # Ensure n_pn matches dim
+        if 'n_pn' not in model_kwargs:
+            model_kwargs['n_pn'] = dim
 
-    # Map to current range
-    currents = min_current + normalized * (max_current - min_current)
-    return currents
+        # Build the model and extract connectivity
+        self.model = build_model(seed=seed, **model_kwargs)
+        self.pn_kc_matrix = self.model['pn_kc_matrix']  # shape (n_kc, n_pn)
+        self.n_pn = self.model['n_pn']
+        self.n_kc = self.model['n_kc']
+        self.n_mbon = self.model['n_mbon']
 
+        # Precompute pseudoinverse of PN→KC connectivity for decoding
+        # This inverts the random projection: KC rates → estimated PN currents
+        self.pn_kc_pinv = np.linalg.pinv(self.pn_kc_matrix)  # shape (n_pn, n_kc)
 
-def decode(spike_monitor, n_neurons, duration_ms, output_dim):
-    """
-    Decode spike trains into a hypervector (population rate readout).
+    def rebuild(self, seed=None):
+        """Rebuild the model (needed between runs since Brian2 is stateful)."""
+        if seed is not None:
+            self.seed = seed
+        self.model = build_model(seed=self.seed, **self.model_kwargs)
+        self.pn_kc_matrix = self.model['pn_kc_matrix']
+        self.pn_kc_pinv = np.linalg.pinv(self.pn_kc_matrix)
 
-    Each neuron's mean firing rate becomes one or more components of
-    the output vector.
+    def encode(self, hypervector, baseline_current=1.2, gain=0.6):
+        """
+        Encode a hypervector as PN input currents (centered rate coding).
 
-    Args:
-        spike_monitor: Brian2 SpikeMonitor object
-        n_neurons: number of neurons being monitored
-        duration_ms: simulation duration in milliseconds
-        output_dim: desired output vector dimensionality
+        Zero component → baseline current. Positive → above baseline.
+        Negative → below baseline. Preserves sign information.
 
-    Returns:
-        array of shape (output_dim,) — decoded hypervector
-    """
-    # Compute firing rates for each neuron
-    rates = np.zeros(n_neurons)
-    spike_indices = np.array(spike_monitor.i)
-    for idx in range(n_neurons):
-        rates[idx] = np.sum(spike_indices == idx) / (duration_ms / 1000.0)
+        Args:
+            hypervector: array of shape (dim,)
+            baseline_current: current at zero component value
+            gain: scaling factor for component → current mapping
 
-    if n_neurons == output_dim:
-        raw = rates
-    elif n_neurons > output_dim:
-        # Downsample: average groups
-        group_size = n_neurons // output_dim
-        raw = np.array([
-            np.mean(rates[i * group_size:(i + 1) * group_size])
-            for i in range(output_dim)
-        ])
-    else:
-        # Upsample: repeat
-        raw = np.resize(rates, output_dim)
+        Returns:
+            array of shape (n_pn,) — current values for each PN
+        """
+        assert len(hypervector) == self.dim, f"Expected dim={self.dim}, got {len(hypervector)}"
 
-    # Normalize to zero-mean unit-variance (standard for embedding vectors)
-    mean = raw.mean()
-    std = raw.std()
-    if std > 1e-10:
-        normalized = (raw - mean) / std
-    else:
-        normalized = raw - mean
+        # Normalize to unit variance to get consistent current range
+        std = hypervector.std()
+        if std > 1e-10:
+            normalized = hypervector / std
+        else:
+            normalized = hypervector
 
-    return normalized
+        # Center around baseline current
+        currents = baseline_current + gain * normalized
+
+        # Clamp to non-negative (can't inject negative current)
+        currents = np.maximum(currents, 0.0)
+
+        return currents
+
+    def run(self, currents, duration_ms=200):
+        """Run the circuit with given PN input currents."""
+        self.model = run_stimulus(self.model, currents, duration_ms=duration_ms)
+        self._last_duration_ms = duration_ms
+
+    def decode_kc(self, duration_ms=None):
+        """
+        Decode from KC spike rates using pseudoinverse of connectivity matrix.
+
+        The PN→KC connectivity is a random projection. The pseudoinverse
+        reconstructs the PN-space input from KC population activity.
+        This is compressed sensing: ~5% of 2000 KCs active = 100 measurements
+        reconstructing 50 PN dimensions.
+
+        Returns:
+            array of shape (dim,) — decoded hypervector
+        """
+        if duration_ms is None:
+            duration_ms = self._last_duration_ms
+
+        # Get KC firing rates
+        kc_rates = get_spike_rates(self.model['kc_spikes'], self.n_kc, duration_ms)
+
+        # Pseudoinverse reconstruction: KC rates → estimated PN currents
+        pn_estimate = self.pn_kc_pinv @ kc_rates
+
+        # Convert currents back to hypervector (inverse of encode)
+        # Remove baseline and undo gain scaling
+        # We don't know the exact baseline/gain used, so just normalize
+        mean = pn_estimate.mean()
+        std = pn_estimate.std()
+        if std > 1e-10:
+            decoded = (pn_estimate - mean) / std
+        else:
+            decoded = pn_estimate - mean
+
+        return decoded
+
+    def decode_mbon(self, duration_ms=None):
+        """
+        Decode from MBON spike rates (simpler but lower fidelity).
+
+        Returns:
+            array of shape (dim,) — decoded hypervector
+        """
+        if duration_ms is None:
+            duration_ms = self._last_duration_ms
+
+        mbon_rates = get_spike_rates(self.model['mbon_spikes'], self.n_mbon, duration_ms)
+
+        # Simple: resize MBON rates to match dim
+        if self.n_mbon == self.dim:
+            raw = mbon_rates
+        elif self.n_mbon > self.dim:
+            group_size = self.n_mbon // self.dim
+            raw = np.array([
+                np.mean(mbon_rates[i * group_size:(i + 1) * group_size])
+                for i in range(self.dim)
+            ])
+        else:
+            raw = np.resize(mbon_rates, self.dim)
+
+        mean = raw.mean()
+        std = raw.std()
+        if std > 1e-10:
+            return (raw - mean) / std
+        return raw - mean
+
+    def round_trip(self, hypervector, duration_ms=200):
+        """
+        Full encode → run → decode pipeline.
+
+        Returns:
+            (decoded_vector, cosine_fidelity)
+        """
+        currents = self.encode(hypervector)
+        self.run(currents, duration_ms=duration_ms)
+        decoded = self.decode_kc(duration_ms)
+        fidelity = cosine_similarity(hypervector, decoded)
+        return decoded, fidelity
 
 
 def cosine_similarity(a, b):
@@ -108,15 +172,4 @@ def cosine_similarity(a, b):
     norm_b = np.linalg.norm(b)
     if norm_a < 1e-10 or norm_b < 1e-10:
         return 0.0
-    return dot / (norm_a * norm_b)
-
-
-def round_trip_fidelity(original, decoded):
-    """
-    Measure how well a vector survives encode → simulate → decode.
-
-    Returns cosine similarity between original and decoded vectors.
-    A positive value means the circuit preserves some signal.
-    Values > 0.3 are promising. Values > 0.5 are good.
-    """
-    return cosine_similarity(original, decoded)
+    return float(dot / (norm_a * norm_b))
