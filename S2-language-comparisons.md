@@ -37,6 +37,12 @@ This document is a working reference for designing S2 syntax. It does not lock d
 - Looping uses TypeScript-style `while (...) { ... }`.
 - `fuzzy` and `bool` are distinct types, and `defuzzy(...)` converts `fuzzy` to `bool`.
 - C# remains a reference baseline for readability, block structure, and declaration clarity even where S2 diverges from its class model.
+- `if (cat)` is a compilation error — classes do not exist at runtime, branching requires `bool` or `fuzzy`.
+- Truthiness is geometric (euclidean distance from true/false vectors), accessed only via unsafe cast or unsafeOverride.
+- Operators support overloading via `function operator +(vector a, vector b) { ... }`.
+- Implicit casts are allowed but must be explicitly defined in source.
+- Casting `fuzzy` to `bool` performs `defuzzy(...)` as a special built-in cast.
+- The class system is almost entirely user-defined, not special to the runtime — this is why operator overloading is straightforward.
 
 ## Readability Notes
 
@@ -302,22 +308,18 @@ These are intentionally not locked yet:
 - whether modules/namespaces are mandatory, optional, or absent
 - whether primitive operations are infix, prefix, or mixed
 - whether S2 source is expression-first or statement-first
-- truthiness rules
-- cast syntax
-- operator overloading rules
-- implicit conversion rules
+- cast declaration syntax (the rules are decided, the declaration form is not)
+- annotation system for semantic roles
 
 ## Next Decisions To Make
 
 - exact shape of top-level function signatures beyond the `function` keyword
 - whether S2 has explicit namespaces or just files plus symbols
 - whether primitive operations look mathematical, keyword-based, or both
-- how truth-testing and fuzzy conditionals should read in source
-- how unsafe casts should read in source
 - how the primitive layer is surfaced in user code
-- whether operator overloading exists for primitive and semantic types
-- whether implicit casts are allowed and where
+- declaration syntax for implicit conversions
 - whether there is any lightweight role-annotation system even without conventional datatypes
+- expression-versus-statement bias
 
 ## Code Comparison Examples
 
@@ -821,15 +823,18 @@ Lisp
 (if cat ...)
 (if (is-true cat) ...)
 
-S2 open issue
-if (cat) { ... }
-if (isTrue(cat)) { ... }
+S2 decision
+if (cat) { ... }                 // COMPILATION ERROR — cat is not bool/fuzzy
+if (unsafeCast<fuzzy>(cat)) { ... }  // explicit: treat vector as fuzzy
+if (defuzzy(signal)) { ... }     // explicit: collapse fuzzy to bool
 ```
 
 S2 takeaway:
 
-- This is not decided yet.
-- The language needs a clear answer for ordinary truthiness versus explicit truth testing.
+- This is now decided.
+- `if (cat)` is a compilation error because classes do not exist at runtime.
+- Truthiness is geometric (euclidean distance from true/false vectors) and only accessible via unsafe cast or unsafeOverride.
+- There is no automatic truthiness coercion for arbitrary values.
 
 ## Example 13: `fuzzy`, `bool`, And `defuzzy(...)`
 
@@ -1015,9 +1020,10 @@ function operator *(vector a, vector b) { ... }
 
 S2 takeaway:
 
-- C# is an important reference here because operator overloading is a real language feature, not a hack.
-- Python and Rust show that overloading can exist without following C# exactly.
-- This is still an open decision for S2.
+- Operators support overloading. This is now decided.
+- The class system is almost entirely user-defined (not special to the runtime), so operator overloading is straightforward — there is no special machinery needed.
+- C# is the clearest reference for the declaration form.
+- The S2 form is `function operator +(vector a, vector b) { ... }`.
 
 ## Example 18: Implicit Cast Or Conversion
 
@@ -1046,9 +1052,10 @@ vector v = (vector) cat;
 
 S2 takeaway:
 
-- C# is the strongest direct reference for implicit conversions.
-- If S2 allows implicit casts, they should probably be narrow and predictable.
-- This is still undecided.
+- Implicit casts are allowed but must be explicitly defined. This is now decided.
+- C# is the strongest direct reference: someone writes `implicit operator Vector(Cat c) { ... }`, then `Vector v = cat;` works.
+- S2 follows the same principle: no silent coercions without a visible definition, but call sites can be clean.
+- The declaration form for implicit conversions still needs design.
 
 ## Example 19: Defuzzy In A Branch
 

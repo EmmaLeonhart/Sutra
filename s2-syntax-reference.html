@@ -285,8 +285,8 @@
         </div>
         <div class="card stat">
           <h2>Established decisions</h2>
-          <span class="stat-value">5</span>
-          <p class="muted">Functions are independent, declarations use <code>function</code>, control flow uses TypeScript-style forms, S2 uses <code>return</code>, and <code>defuzzy(...)</code> converts <code>fuzzy</code> to <code>bool</code>.</p>
+          <span class="stat-value">8</span>
+          <p class="muted">Functions are independent, declarations use <code>function</code>, control flow uses TypeScript-style forms, S2 uses <code>return</code>, <code>defuzzy(...)</code> converts <code>fuzzy</code> to <code>bool</code>, <code>if (cat)</code> is a compilation error, operators support overloading, and truthiness is geometric (unsafe-only).</p>
         </div>
       </div>
     </section>
@@ -385,6 +385,9 @@ S2         function blend(a, b) { ... }</code></pre>
           <li><strong>Loop form:</strong> TypeScript-style <code>while (...) { ... }</code></li>
           <li><strong>Return keyword:</strong> <code>return</code></li>
           <li><strong>Truth collapse:</strong> <code>defuzzy(...)</code></li>
+          <li><strong>Truthiness:</strong> compilation error on non-bool/fuzzy; geometric via unsafe cast</li>
+          <li><strong>Operator overloading:</strong> yes, via <code>function operator</code></li>
+          <li><strong>Implicit casts:</strong> allowed but must be explicitly defined</li>
           <li><strong>Readability baseline:</strong> C#-level explicitness</li>
           <li><strong>Typing surface:</strong> probably lightweight, not conventional datatypes</li>
           <li><strong>Notation:</strong> likely mixed mainstream syntax rather than Lisp-only prefix forms</li>
@@ -413,6 +416,22 @@ S2         function blend(a, b) { ... }</code></pre>
           <h3>2026-04-08: Distinguish <code>fuzzy</code> and <code>bool</code></h3>
           <p><code>defuzzy(...)</code> converts a <code>fuzzy</code> into a <code>bool</code>, even though both are vector-level substrate values underneath.</p>
         </div>
+        <div class="decision">
+          <h3>2026-04-08: <code>if (cat)</code> is a compilation error</h3>
+          <p>Classes do not exist at runtime. Branching requires <code>bool</code> or <code>fuzzy</code>. To get truthiness from an arbitrary vector, use <code>unsafeCast&lt;fuzzy&gt;(x)</code> explicitly.</p>
+        </div>
+        <div class="decision">
+          <h3>2026-04-08: Operators support overloading</h3>
+          <p>Declared as <code>function operator +(vector a, vector b) { ... }</code>. Vector operations like bind and bundle map naturally to arithmetic operators.</p>
+        </div>
+        <div class="decision">
+          <h3>2026-04-08: Truthiness is geometric, not type-level</h3>
+          <p>Truthiness is euclidean distance from true/false vectors in embedding space. It is a runtime property accessed only via unsafe cast or <code>unsafeOverride</code>, never automatic.</p>
+        </div>
+        <div class="decision">
+          <h3>2026-04-08: Implicit casts are allowed but must be explicitly defined</h3>
+          <p>Implicit conversions can happen at call sites, but the conversion itself must be declared explicitly in the source. No silent coercions without a visible definition.</p>
+        </div>
       </article>
 
       <article class="card span-6">
@@ -421,13 +440,65 @@ S2         function blend(a, b) { ... }</code></pre>
           <li>What should the rest of the function signature look like?</li>
           <li>Should files imply namespaces, or should grouping be explicit?</li>
           <li>How should primitive substrate operations read in source?</li>
-          <li>How do truthiness and explicit truth checks interact?</li>
-          <li>Is <code>if (cat)</code> legal, discouraged, or forbidden?</li>
-          <li>How should unsafe casts read in source?</li>
-          <li>Do operators support overloading?</li>
-          <li>Are implicit casts allowed?</li>
+          <!-- implicit casts decided: allowed but must be explicitly defined -->
           <li>Does S2 need any annotation layer for semantic roles?</li>
+          <li>Expression-versus-statement bias?</li>
+          <li>Return annotation syntax?</li>
         </ul>
+      </article>
+
+      <article class="card span-12">
+        <h2>TypeScript's Competing Styles (why C# is the stronger readability baseline)</h2>
+        <p>TypeScript inherits JavaScript's multiple ways to write equivalent code. This is useful context for understanding why S2 leans on C# for readability discipline while borrowing TypeScript's tooling model.</p>
+        <pre><code>── Function declaration ──────────────────────────────────────────────
+
+Style 1: function declaration (S2 chose this)
+function blend(a: Vector, b: Vector): Vector {
+    return combine(a, b);
+}
+
+Style 2: arrow function assigned to const
+const blend = (a: Vector, b: Vector): Vector => {
+    return combine(a, b);
+};
+
+Style 3: arrow function with implicit return
+const blend = (a: Vector, b: Vector): Vector => combine(a, b);
+
+Style 4: method in an object literal
+const ops = {
+    blend(a: Vector, b: Vector): Vector {
+        return combine(a, b);
+    }
+};
+
+Style 5: method in a class
+class Ops {
+    blend(a: Vector, b: Vector): Vector {
+        return combine(a, b);
+    }
+}
+
+── C# comparison: ONE dominant form ──────────────────────────────────
+
+static Vector Blend(Vector a, Vector b)
+{
+    return Combine(a, b);
+}
+// That's it. There is one way to write this.
+
+── Why this matters for S2 ───────────────────────────────────────────
+
+TypeScript's five styles all do the same thing, but they look
+different, scan differently, and create ecosystem variance in
+what "normal" code looks like.
+
+C# has one dominant form per construct. This is why C# is the
+readability baseline even where S2 borrows TypeScript's
+function keyword and tooling model.
+
+S2 should have ONE way to declare a function: function name(...) { }
+</code></pre>
       </article>
 
       <article class="card span-12">
@@ -468,11 +539,12 @@ S2 alt     result = left * right
 
 Truthiness
 C#         if (cat) { ... }                  // only if cat is bool
-TypeScript if (cat) { ... }
-Python     if cat: ...
+TypeScript if (cat) { ... }                  // any value — JS truthiness
+Python     if cat: ...                       // any value — Python truthiness
 Rust       if cat { ... }                    // only if cat is bool
-S2         if (cat) { ... }
-S2         if (isTrue(cat)) { ... }
+S2         if (cat) { ... }                  // COMPILATION ERROR — cat is not bool/fuzzy
+S2         if (unsafeCast&lt;fuzzy&gt;(cat)) { ... }  // explicit: treat vector as fuzzy
+S2         if (defuzzy(signal)) { ... }      // explicit: collapse fuzzy to bool
 
 Defuzzy
 C#         bool ready = Defuzzy(signal);
