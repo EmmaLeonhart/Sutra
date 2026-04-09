@@ -313,13 +313,121 @@ These are intentionally not locked yet:
 
 ## Next Decisions To Make
 
-- exact shape of top-level function signatures beyond the `function` keyword
-- whether S2 has explicit namespaces or just files plus symbols
-- whether primitive operations look mathematical, keyword-based, or both
-- how the primitive layer is surfaced in user code
-- declaration syntax for implicit conversions
-- whether there is any lightweight role-annotation system even without conventional datatypes
-- expression-versus-statement bias
+- Anonymous functions: leaning `lambda` keyword, exact form undecided
+- Variable declaration keyword: `var`, `let`, explicit type, or bare assignment
+- Mutability: mutable by default (C#) vs immutable by default (Rust)
+- Namespace / module / file organization and whether a C#-style solution structure makes sense
+- Visibility / access modifiers: what shows in surface syntax
+- Method-style dot calls on values: allowed as sugar or free functions only
+- For loops / iteration: does `for` exist alongside `while`
+- Error handling model: try/catch, Result type, or fuzzy failure
+- Generics: needed at compile-time even if runtime is all vectors?
+- Chaining / piping: nested calls, pipe operator, or dot chaining
+- String interpolation form
+- Comment syntax and doc comments
+- Whether primitive operations look mathematical, keyword-based, or both
+- Declaration syntax for implicit conversions
+- Whether there is a lightweight role-annotation system for semantic roles
+- Expression-versus-statement bias
+
+## Example 23: Anonymous Functions
+
+```text
+C#
+items.Select(x => Transform(x));
+Func<Vector, Vector> op = (a) => Transform(a);
+
+TypeScript
+items.map(x => transform(x));
+const op = (a: Vector): Vector => transform(a);
+// also: const op = function(a: Vector): Vector { return transform(a); };
+
+Python
+list(map(lambda x: transform(x), items))
+op = lambda a: transform(a)
+
+Rust
+items.iter().map(|x| transform(x));
+let op = |a: Vector| -> Vector { transform(a) };
+
+S2 candidates
+var op = lambda(vector a) { return Transform(a); };
+var op = lambda vector(vector a) { return Transform(a); };
+var op = (vector a) => Transform(a);
+Map(items, lambda(vector x) { return Transform(x); });
+```
+
+S2 takeaway:
+
+- Leaning toward `lambda` keyword.
+- Open question: does lambda use the same C# signature shape as function declarations?
+- If yes: `lambda vector(vector a) { return Transform(a); }` — consistent but verbose.
+- If no: could be lighter, but then there are two function forms.
+
+## Example 24: Variable Declaration
+
+```text
+C#
+var result = Blend(a, b);
+Vector result = Blend(a, b);
+
+TypeScript
+const result = blend(a, b);
+let result = blend(a, b);
+
+Python
+result = blend(a, b)
+
+Rust
+let result = blend(a, b);
+let mut result = blend(a, b);
+
+S2 candidates
+var result = Blend(a, b);
+vector result = Blend(a, b);
+let result = Blend(a, b);
+result = Blend(a, b);
+```
+
+## Example 25: Visibility / Access
+
+```text
+C#
+public static Vector Blend(Vector a, Vector b) { ... }
+private static Vector Helper(Vector v) { ... }
+
+Rust
+pub fn blend(a: Vector, b: Vector) -> Vector { ... }
+fn helper(v: Vector) -> Vector { ... }
+
+TypeScript
+export function blend(a: Vector, b: Vector): Vector { ... }
+function helper(v: Vector): Vector { ... }
+
+S2 candidates
+function vector Blend(vector a, vector b) { ... }
+private function vector Helper(vector v) { ... }
+// or: public function, private by default
+// or: export keyword
+```
+
+## Example 26: Method-Style Dot Calls
+
+```text
+C#
+var result = signal.Transform();
+
+Rust
+let result = signal.transform();
+
+TypeScript
+const result = signal.transform();
+
+S2 candidates
+var result = Transform(signal);              // free function only
+var result = signal.Transform();             // dot sugar → Transform(signal)
+var result = signal |> Transform;            // pipe operator
+```
 
 ## Code Comparison Examples
 
