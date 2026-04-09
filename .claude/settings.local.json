@@ -206,7 +206,12 @@
       "Bash(du -sh old-stuff/*/)",
       "Bash(du -sh old-stuff/*.json)",
       "Bash(du -sh old-stuff/*.py)",
-      "Bash(du -sh old-stuff/papers/mxbai-undersymbolic/*)"
+      "Bash(du -sh old-stuff/papers/mxbai-undersymbolic/*)",
+      "Bash(ls -la s2-syntax-reference.html inquisitive-transformer/ old-stuff/)",
+      "Bash(ls inquisitive-transformer/)",
+      "Bash(ls old-stuff/)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" minimal_lif_network.py)",
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" test_bridge.py)"
     ]
   }
 }
