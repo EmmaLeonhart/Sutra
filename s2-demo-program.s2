@@ -46,8 +46,8 @@ function bool Decide(fuzzy signal) {
 /// Score an animal-shaped value as "pet-like".
 /// This is intentionally simple; the point is to show syntax, not final semantics.
 function fuzzy ScorePetLikelihood(animal subject) {
-    vector petMarker = (vector) "pet";
-    vector catMarker = (vector) "cat";
+    vector petMarker = embed("pet");
+    vector catMarker = embed("cat");
     vector subjectVector = (vector) subject;
 
     // A plausible algebraic sketch: bundle "pet" and "cat", then bind with subject.
@@ -86,9 +86,9 @@ function string Main() {
 
     // Start with plain vectors. Strings mainly exist for literals and output,
     // so the interesting part is converting them into vector-space values.
-    vector furry = (vector) "furry";
-    vector small = (vector) "small";
-    vector domestic = (vector) "domestic";
+    vector furry = embed("furry");
+    vector small = embed("small");
+    vector domestic = embed("domestic");
 
     // Build a raw subject vector from simple pieces.
     vector rawSubject = function.Bundle(furry, small);
