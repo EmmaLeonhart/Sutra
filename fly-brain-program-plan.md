@@ -1,98 +1,92 @@
 # Fly Brain Program Plan
 
+## Decisions
+
+- **Substrate**: Literal connectome (FlyWire/FAFB/Hemibrain — real neuron connectivity data)
+- **Complexity**: Doesn't need to be complex. Just needs to be something.
+- **Role of fuzziness**: Not load-bearing. Fuzziness exists as a decision maker for hyperdimensional processing — it replaces the need for flow control. The if-statement isn't branching logic in the conventional sense; it's the point where a high-dimensional vector computation collapses into a discrete outcome.
+
 ## The Idea
 
-Run an S2 program on a fly brain. The program is an if-statement about smell.
+Run an S2 program on the literal Drosophila connectome. The program is an if-statement about smell.
 
-This is a natural fit because:
-- A fly's olfactory system is already a vector computer. Olfactory Receptor Neurons (ORNs) fire in patterns that are literally vectors of activation. The Mushroom Body performs sparse random projection on those vectors — the same operation S2 treats as primitive.
-- S2's fuzzy-by-default semantics match how a fly actually decides things. A fly doesn't compute `smell == food` as a boolean. It computes something like "how food-like is this smell" — a fuzzy truth value that gets sharpened into a behavioral decision (approach vs. avoid). That's `defuzzy()`.
-- The if-statement is the simplest interesting program: sense a smell, evaluate a fuzzy condition, branch to a behavior.
+The fly's olfactory circuit is already doing what S2 does: vectors in, hyperdimensional processing, fuzzy-to-discrete collapse out. The connectome gives us the actual wiring — the matrix that transforms smell vectors into behavior. S2 doesn't simulate the fly brain. It runs *on* it, treating the connectome as the substrate the way it would treat an LLM's embedding space.
 
-## The Fly Olfactory Pipeline
+## The Connectome as Substrate
 
-```
-Antenna (ORNs)  →  Antennal Lobe (glomeruli)  →  Projection Neurons  →  Mushroom Body (Kenyon Cells)  →  Output Neurons  →  Behavior
-   [raw signal]      [normalization/contrast]       [dense vector]         [sparse vector]               [decision]         [action]
-```
+### Available Data
+- **FlyWire** — full adult Drosophila brain, ~130,000 neurons, synapse-level connectivity
+- **Hemibrain** (Janelia) — half brain, ~25,000 neurons, mature dataset with typed neurons
+- **Larval connectome** — complete, smaller (~3,000 neurons), fully mapped
 
-Each stage maps to an S2 concept:
-- **ORN activation** = raw vector from `embed()`
-- **Antennal Lobe** = vector normalization (the AL does lateral inhibition, which is a kind of contrast enhancement — analogous to normalizing a vector)
-- **Mushroom Body** = bind/bundle operations producing a sparse high-dimensional representation
-- **Output Neurons** = `defuzzy()` — collapsing a fuzzy smell-match into a go/no-go decision
+The olfactory circuit is one of the best-annotated subsystems in all of these datasets. The neurons have names. The connections have weights. The glomeruli are identified.
 
-## Candidate Program: Smell → Approach/Avoid
+### What "Running On It" Means
 
-The simplest meaningful program:
+The connectome is a weighted directed graph. That graph is a matrix. S2 operations become matrix operations on the connectome's adjacency/weight matrix:
+
+- **`embed()`** = inject an activation pattern at the ORN layer (the "input" to the circuit). Instead of running a string through an LLM, we set activation values on the ~50 ORN types based on known odorant response profiles.
+- **`*` (bind)** = matrix multiply through a connectivity layer. Propagating a signal from ORNs through Projection Neurons to Kenyon Cells *is* binding — the connectome's wiring does the transformation.
+- **`+` (bundle)** = superposition of activation patterns. Multiple smells or multiple features combining into one representation.
+- **`defuzzy()`** = readout from Mushroom Body Output Neurons (MBONs). The MBONs are literally the collapse point — they take the high-dimensional Kenyon Cell representation and produce a low-dimensional approach/avoid signal. That's defuzzification.
+
+No metaphor needed. The connectome *is* the weight matrix. S2 runs on it the same way it runs on any embedding space, except this one is made of neurons.
+
+## The Program
 
 ```s2
-// A fly smells something. Is it food? Approach or avoid.
+// Fly smells vinegar. Approach or avoid?
+// Substrate: Drosophila connectome (olfactory circuit)
 
-function fuzzy SmellLikeFood(vector smell) {
-    vector food = embed("ripe fruit sugar fermenting");
-    vector danger = embed("toxic bitter predator");
+vector smell = embed("vinegar");
+fuzzy appetizing = unsafeCast<fuzzy>(smell);
 
-    // Bundle the food markers, bind with the smell
-    vector foodSignal = smell * food;
-    vector dangerSignal = smell * danger;
-
-    // The fuzzy truth: how food-like is this relative to danger?
-    fuzzy foodiness = unsafeCast<fuzzy>(foodSignal + dangerSignal);
-    return foodiness;
+if (defuzzy(appetizing)) {
+    return "approach";
+} else {
+    return "avoid";
 }
-
-function string Behave(vector smell) {
-    fuzzy isFood = SmellLikeFood(smell);
-
-    if (defuzzy(isFood)) {
-        return "approach";
-    } else {
-        return "avoid";
-    }
-}
-
-// Run it
-vector vinegar = embed("acetic acid vinegar sharp sour");
-Behave(vinegar);
 ```
 
-This is ~15 lines. It's a real if-statement. It does something a fly actually does. And it uses S2's core primitives: `embed()`, `*` (bind), `+` (bundle), `unsafeCast<fuzzy>()`, `defuzzy()`.
+That's it. Eight lines.
 
-## Open Questions
+What each line actually does on the connectome:
+1. `embed("vinegar")` — set ORN activation pattern to vinegar's known response profile (strong Or42b, moderate Or59b, weak others)
+2. `unsafeCast<fuzzy>(smell)` — propagate that activation through the connectome: ORNs → AL → PNs → Kenyon Cells → MBONs. The output is a fuzzy value because the MBON response isn't binary — it's a graded signal reflecting how much the Mushroom Body's learned associations say "this is good."
+3. `defuzzy(appetizing)` — collapse the MBON output to a decision. The fly's actual circuit does this via competing approach/avoid MBON populations. Whichever side wins is the bool.
+4. The if-statement is the behavioral output. Approach or avoid.
 
-### 1. What substrate are we targeting?
-- **Literal fly brain** (connectome data, e.g. FlyWire/FAFB)? This means mapping S2 vectors onto actual neuron activation patterns.
-- **Simulated fly brain** (a model of the olfactory circuit)? More tractable, still meaningful.
-- **LLM embedding space as a model of what the fly is doing**? The metaphorical version — we're not literally running on neurons, but we're using the same computational structure.
+The fuzziness here isn't a programming convenience — it's what the connectome actually computes. The `defuzzy()` call is where the hyperdimensional representation becomes a discrete action. No flow control needed in the vector space; the if-statement only exists at the boundary between computation and behavior.
 
-### 2. What does "run on a fly brain" mean concretely?
-- Compile S2 to neuron activation patterns?
-- Show that the S2 program's computation is isomorphic to the fly's olfactory processing?
-- Use fly connectome data as the embedding space instead of an LLM?
+## What's Needed to Make This Real
 
-### 3. How complex should the if-statement be?
-Candidates in increasing complexity:
-- **Binary**: food vs. not-food (the example above)
-- **Multi-branch**: food vs. mate vs. danger vs. ignore
-- **Contextual**: same smell, different behavior depending on internal state (hungry vs. satiated) — this would need some notion of state or environment
-- **Learned**: a program that changes its if-threshold based on experience (associative learning — this is literally what the Mushroom Body does)
+### 1. Connectome Data Access
+Pick a dataset and extract the olfactory subcircuit:
+- ORN → PN connectivity (antennal lobe wiring)
+- PN → KC connectivity (mushroom body input)
+- KC → MBON connectivity (mushroom body output)
+- MBON weights for approach vs. avoid
 
-### 4. What's the real smell vocabulary?
-Drosophila has ~50 ORN types. Real odorants to consider:
-- **Attractive**: ethyl acetate (fruity), acetic acid (vinegar), 2,3-butanedione (yeasty)
-- **Aversive**: benzaldehyde (bitter almond), CO2 (stress signal), geosmin (toxic mold)
-- **Pheromones**: cis-vaccenyl acetate (cVA, male pheromone — triggers different responses in males vs. females)
+This is a few matrices. The data is public.
 
-### 5. What makes this more than a demo?
-The demo above is cute but trivial. To be genuinely interesting, the program should demonstrate something that:
-- Can't be easily done in a conventional language (the fuzziness is load-bearing, not decorative)
-- Maps onto real neuroscience (the computation structure matches the fly's actual circuit)
-- Shows S2's value proposition (programming in embedding space gives you something you didn't have before)
+### 2. ORN Response Profiles
+Known from electrophysiology. The DoOR database (Database of Odorant Responses) has measured responses of each Drosophila ORN type to hundreds of odorants. `embed("vinegar")` becomes a lookup into this data.
 
-## Next Steps
+### 3. S2 Substrate Binding
+The mechanism by which S2 says "use this matrix as your embedding space." Currently S2 assumes an LLM embedding model. The connectome case would need:
+- A way to specify the substrate at program initialization (empirical initiation)
+- Matrix dimensions matching the connectome layers (50 ORNs → ~150 PNs → ~2,000 KCs → ~34 MBONs)
+- `embed()` dispatching to ORN response profiles instead of an LLM
 
-1. Decide which "substrate" interpretation we're going for
-2. Pick the specific smell scenario
-3. Write the actual `.s2` file
-4. Figure out what "running it" means in practice
+### 4. Nothing Else
+The program is eight lines. The connectome does the work. S2 just needs to know which matrices to multiply through.
+
+## Why This Matters
+
+This isn't "running AI on a brain" in the hype sense. It's:
+- A real program (if-statement)
+- On a real substrate (connectome connectivity data)
+- Doing a real computation (smell classification)
+- That the substrate actually performs in nature (flies decide to approach vinegar)
+
+S2 claims embedding spaces are computational substrates. The fly connectome is an embedding space (a biological one). If S2 can run on it, that's not a metaphor — it's a proof of concept that the language's computational model generalizes beyond LLMs to any space where vectors are transformed through learned weight matrices.
