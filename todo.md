@@ -10,6 +10,7 @@
 - Which access modifiers exist beyond public/static defaults.
 - How the half-compilation / immediate-execution model works.
 - Implement many-to-many as a `hop` non-algebraic function in S2.
+- Figure out IO — how S2 handles input/output.
 
 ## Recently Decided (2026-04-08)
 
