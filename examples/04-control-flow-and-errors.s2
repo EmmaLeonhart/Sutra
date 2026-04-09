@@ -99,7 +99,7 @@ function Cat SafeCastAlt(Animal a) {
 // No pipe operator. Use nested calls or method chaining.
 
 // Nested function calls:
-vector result = Normalize(Blend(Embed("cat"), Embed("pet")));
+vector result = Normalize(Blend(embed("cat"), embed("pet")));
 
 // Method chaining on objects:
 string report = subject.GetEmbedding().Normalize().Describe();
