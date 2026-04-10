@@ -150,6 +150,12 @@ KEYWORDS = {
 
 # Primitive type names. They are ordinary identifiers at the lexer
 # level - the parser treats them as types in type positions.
+#
+# `permutation` is a vector at the substrate level (a fixed ±1
+# sign-flip mask) but it's a distinct compile-time type: the
+# operations on it (compose, invert, act on a vector) are different
+# from the operations on a plain vector. The fly-brain compile-to-brain
+# strategy relies on this distinction — see `fly-brain/STATUS.md`.
 PRIMITIVE_TYPE_NAMES = {
     "scalar",
     "vector",
@@ -159,6 +165,7 @@ PRIMITIVE_TYPE_NAMES = {
     "bool",
     "fuzzy",
     "void",
+    "permutation",
 }
 
 # Contextual keywords: identifiers with special meaning in expressions

@@ -166,6 +166,31 @@ class Parenthesized(Expr):
     inner: Expr
 
 
+@dataclass
+class ArrayLiteral(Expr):
+    """`[a, b, c]` — an inline sequence of expressions.
+
+    Used for argmax-cosine calls and similar list-of-vectors operands.
+    The element type is inferred at use — the AST node just carries
+    the raw element expressions.
+    """
+
+    elements: List[Expr] = field(default_factory=list)
+
+
+@dataclass
+class Subscript(Expr):
+    """`target[index]` — postfix subscript access.
+
+    Used for map lookups (`BEHAVIOR_OF[winner]`) and future array
+    indexing. Whether the lookup is exact-match, cosine-nearest, or
+    integer indexing is a runtime concern of the target type.
+    """
+
+    target: Expr
+    index: Expr
+
+
 # ============================================================
 # Statements
 # ============================================================
