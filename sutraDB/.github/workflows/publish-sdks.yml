@@ -1,0 +1,142 @@
+name: Publish SDKs
+
+run-name: "Publish SDKs: ${{ github.ref_name }}"
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ── Python → PyPI (trusted publisher, no secret needed) ──────────
+  publish-python:
+    name: Publish Python SDK to PyPI
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdks/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "__version__ = \"${VERSION}\"" > sutradb/_version.py
+          echo "Publishing sutradb ${VERSION}"
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python/dist/
+
+  # ── TypeScript → npm ─────────────────────────────────────────────
+  publish-typescript:
+    name: Publish TypeScript SDK to npm
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: sdks/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Set version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          npm version "${VERSION}" --no-git-tag-version --allow-same-version
+          echo "Publishing sutradb ${VERSION}"
+      - run: npm install
+      - run: npx tsc
+      - name: Publish to npm
+        if: env.NODE_AUTH_TOKEN != ''
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ── Rust → crates.io ────────────────────────────────────────────
+  publish-rust:
+    name: Publish Rust SDK to crates.io
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: sdks/rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Set version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" Cargo.toml
+          echo "Publishing sutradb ${VERSION}"
+      - name: Publish to crates.io
+        if: env.CARGO_REGISTRY_TOKEN != ''
+        run: cargo publish --allow-dirty
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+  # ── Kotlin/Java → Maven Central (Gradle) ────────────────────────
+  publish-java:
+    name: Publish Kotlin/Java SDK to Maven Central
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: sdks/java
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Set version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" build.gradle.kts
+          echo "Publishing sutradb ${VERSION}"
+      - name: Publish to Maven Central
+        if: env.MAVEN_TOKEN != ''
+        run: ./gradlew publishMavenJavaPublicationToCentralRepository
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+  # ── .NET → NuGet ────────────────────────────────────────────────
+  publish-dotnet:
+    name: Publish .NET SDK to NuGet
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: sdks/dotnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Set version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/<Version>.*<\/Version>/<Version>${VERSION}<\/Version>/" SutraDB.csproj
+          echo "Publishing SutraDB.Client ${VERSION}"
+      - run: dotnet pack -c Release
+      - name: Push to NuGet
+        if: env.NUGET_TOKEN != ''
+        run: dotnet nuget push bin/Release/*.nupkg --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
+        env:
+          NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
+
+  # ── Go → tag-based (no publish step needed) ────────────────────
+  # Go modules are published by tagging: git tag sdks/go/v0.1.0
+  # No CI action needed — Go module proxy picks it up automatically.
