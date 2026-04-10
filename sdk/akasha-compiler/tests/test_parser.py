@@ -229,6 +229,80 @@ class TestExpressions(unittest.TestCase):
         )
         self.assertFalse(diag.has_errors())
 
+    def test_array_literal_empty(self):
+        module, diag = parse("function void F() { var xs = []; }")
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0].body.statements[0]
+        self.assertIsInstance(decl.initializer, ast.ArrayLiteral)
+        self.assertEqual(decl.initializer.elements, [])
+
+    def test_array_literal_multi(self):
+        module, diag = parse(
+            "function void F() { var xs = [1, 2, 3]; }"
+        )
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0].body.statements[0]
+        self.assertIsInstance(decl.initializer, ast.ArrayLiteral)
+        self.assertEqual(len(decl.initializer.elements), 3)
+
+    def test_array_literal_as_call_argument(self):
+        module, diag = parse(
+            "function vector F(vector q) "
+            "{ return argmax_cosine(q, [a, b, c, d]); }"
+        )
+        self.assertFalse(diag.has_errors())
+        call = module.items[0].body.statements[0].value
+        self.assertIsInstance(call, ast.Call)
+        self.assertEqual(len(call.args), 2)
+        self.assertIsInstance(call.args[1], ast.ArrayLiteral)
+        self.assertEqual(len(call.args[1].elements), 4)
+
+    def test_subscript_on_identifier(self):
+        module, diag = parse(
+            "function string F(vector w) { return behaviors[w]; }"
+        )
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        self.assertIsInstance(ret.value, ast.Subscript)
+        self.assertIsInstance(ret.value.target, ast.Identifier)
+        self.assertEqual(ret.value.target.name, "behaviors")
+
+    def test_subscript_chained(self):
+        module, diag = parse(
+            "function void F() { var x = grid[1][2]; }"
+        )
+        self.assertFalse(diag.has_errors())
+        init = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(init, ast.Subscript)
+        self.assertIsInstance(init.target, ast.Subscript)
+
+    def test_subscript_on_array_literal(self):
+        module, diag = parse(
+            "function void F() { var x = [a, b, c][0]; }"
+        )
+        self.assertFalse(diag.has_errors())
+        init = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(init, ast.Subscript)
+        self.assertIsInstance(init.target, ast.ArrayLiteral)
+
+    def test_permutation_as_type(self):
+        module, diag = parse(
+            "function permutation F(permutation p) { return p; }"
+        )
+        self.assertFalse(diag.has_errors())
+        fn = module.items[0]
+        self.assertEqual(fn.return_type.name, "permutation")
+        self.assertEqual(fn.params[0].type_ref.name, "permutation")
+
+    def test_permutation_top_level_var(self):
+        module, diag = parse(
+            'permutation NOT_SMELL = permutation_key("NOT_SMELL");'
+        )
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0]
+        self.assertIsInstance(decl, ast.VarDecl)
+        self.assertEqual(decl.type_ref.name, "permutation")
+
 
 class TestErrorRecovery(unittest.TestCase):
     def test_missing_semicolon(self):
