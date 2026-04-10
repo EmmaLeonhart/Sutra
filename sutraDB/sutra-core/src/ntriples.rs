@@ -1,0 +1,468 @@
+//! Minimal N-Triples / N-Triples-star line parser.
+//!
+//! Parses a single line of N-Triples format and returns the subject, predicate,
+//! and object as raw strings. This does not intern terms — the caller is
+//! responsible for interning via `TermDictionary`.
+//!
+//! Supports RDF-star (N-Triples-star) syntax: quoted triples as `<< s p o >>`
+//! in subject or object position.
+
+/// Result of parsing an N-Triples-star line.
+///
+/// For regular triples, `inner_triple` is `None`.
+/// For star triples like `<< s p o >> mp mo .`, the subject is a synthetic
+/// marker `<<QUOTED_TRIPLE>>`, `inner_triple` contains `(s, p, o)`, and the
+/// predicate/object are `mp`/`mo`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParsedTriple {
+    pub subject: String,
+    pub predicate: String,
+    pub object: String,
+    /// If subject was a quoted triple `<< s p o >>`, contains (s, p, o).
+    pub inner_subject: Option<(String, String, String)>,
+    /// If object was a quoted triple `<< s p o >>`, contains (s, p, o).
+    pub inner_object: Option<(String, String, String)>,
+}
+
+/// Sentinel value used as the subject/object string for quoted triples.
+pub const QUOTED_TRIPLE_MARKER: &str = "<<QUOTED_TRIPLE>>";
+
+/// Parse a single N-Triples line into (subject, predicate, object) strings.
+///
+/// Returns `None` for blank lines, comment lines, and malformed lines.
+///
+/// Supported forms:
+/// - IRI references: `<http://...>`
+/// - Blank nodes: `_:label`
+/// - Plain string literals: `"value"`
+/// - Typed literals: `"value"^^<datatype>`
+/// - Language-tagged literals: `"value"@en`
+pub fn parse_ntriples_line(line: &str) -> Option<(String, String, String)> {
+    let parsed = parse_ntriples_star_line(line)?;
+    Some((parsed.subject, parsed.predicate, parsed.object))
+}
+
+/// Parse a single N-Triples-star line, returning full star triple information.
+///
+/// Returns `None` for blank lines, comment lines, and malformed lines.
+pub fn parse_ntriples_star_line(line: &str) -> Option<ParsedTriple> {
+    let line = line.trim();
+    if line.is_empty() || line.starts_with('#') {
+        return None;
+    }
+
+    let mut pos = 0;
+    let bytes = line.as_bytes();
+
+    // Parse subject (IRI, blank node, or quoted triple)
+    let (subject, inner_subject) = parse_node_or_quoted(bytes, &mut pos)?;
+    skip_whitespace(bytes, &mut pos);
+
+    // Parse predicate (must be an IRI)
+    let predicate = parse_iri(bytes, &mut pos)?;
+    skip_whitespace(bytes, &mut pos);
+
+    // Parse object (IRI, blank node, literal, or quoted triple)
+    let (object, inner_object) =
+        if pos + 1 < bytes.len() && bytes[pos] == b'<' && bytes[pos + 1] == b'<' {
+            parse_quoted_triple(bytes, &mut pos)?
+        } else if pos < bytes.len() && bytes[pos] == b'<' {
+            (parse_iri(bytes, &mut pos)?, None)
+        } else if pos < bytes.len() && bytes[pos] == b'"' {
+            (parse_literal(bytes, &mut pos)?, None)
+        } else if pos + 1 < bytes.len() && bytes[pos] == b'_' && bytes[pos + 1] == b':' {
+            (parse_blank_node(bytes, &mut pos)?, None)
+        } else {
+            return None;
+        };
+
+    // Parse optional graph name (N-Quads extension)
+    skip_whitespace(bytes, &mut pos);
+    let _graph = if pos < bytes.len() && bytes[pos] == b'<' {
+        Some(parse_iri(bytes, &mut pos)?)
+    } else if pos + 1 < bytes.len() && bytes[pos] == b'_' && bytes[pos + 1] == b':' {
+        Some(parse_blank_node(bytes, &mut pos)?)
+    } else {
+        None
+    };
+
+    // Skip optional whitespace and trailing '.'
+    skip_whitespace(bytes, &mut pos);
+    if pos < bytes.len() && bytes[pos] == b'.' {
+        // valid terminator
+    }
+
+    Some(ParsedTriple {
+        subject,
+        predicate,
+        object,
+        inner_subject,
+        inner_object,
+    })
+}
+
+/// Parse an N-Quads line into (subject, predicate, object, optional_graph).
+/// N-Quads is N-Triples with an optional 4th element for named graphs.
+pub fn parse_nquads_line(line: &str) -> Option<(String, String, String, Option<String>)> {
+    let line = line.trim();
+    if line.is_empty() || line.starts_with('#') {
+        return None;
+    }
+
+    let mut pos = 0;
+    let bytes = line.as_bytes();
+
+    let subject = parse_node(bytes, &mut pos)?;
+    skip_whitespace(bytes, &mut pos);
+    let predicate = parse_iri(bytes, &mut pos)?;
+    skip_whitespace(bytes, &mut pos);
+
+    let object = if pos < bytes.len() && bytes[pos] == b'<' {
+        parse_iri(bytes, &mut pos)?
+    } else if pos < bytes.len() && bytes[pos] == b'"' {
+        parse_literal(bytes, &mut pos)?
+    } else if pos + 1 < bytes.len() && bytes[pos] == b'_' && bytes[pos + 1] == b':' {
+        parse_blank_node(bytes, &mut pos)?
+    } else {
+        return None;
+    };
+
+    skip_whitespace(bytes, &mut pos);
+    let graph = if pos < bytes.len() && bytes[pos] == b'<' {
+        Some(parse_iri(bytes, &mut pos)?)
+    } else if pos + 1 < bytes.len() && bytes[pos] == b'_' && bytes[pos + 1] == b':' {
+        Some(parse_blank_node(bytes, &mut pos)?)
+    } else {
+        None
+    };
+
+    Some((subject, predicate, object, graph))
+}
+
+/// Parse a node: either an IRI or a blank node.
+fn parse_node(bytes: &[u8], pos: &mut usize) -> Option<String> {
+    if *pos < bytes.len() && bytes[*pos] == b'<' {
+        parse_iri(bytes, pos)
+    } else if *pos + 1 < bytes.len() && bytes[*pos] == b'_' && bytes[*pos + 1] == b':' {
+        parse_blank_node(bytes, pos)
+    } else {
+        None
+    }
+}
+
+/// Inner triple components: (subject, predicate, object).
+type InnerTriple = (String, String, String);
+
+/// Parse a node that may be an IRI, blank node, or quoted triple `<< s p o >>`.
+/// Returns the term string and optionally the inner triple components.
+fn parse_node_or_quoted(bytes: &[u8], pos: &mut usize) -> Option<(String, Option<InnerTriple>)> {
+    if *pos + 1 < bytes.len() && bytes[*pos] == b'<' && bytes[*pos + 1] == b'<' {
+        parse_quoted_triple(bytes, pos)
+    } else if *pos < bytes.len() && bytes[*pos] == b'<' {
+        Some((parse_iri(bytes, pos)?, None))
+    } else if *pos + 1 < bytes.len() && bytes[*pos] == b'_' && bytes[*pos + 1] == b':' {
+        Some((parse_blank_node(bytes, pos)?, None))
+    } else {
+        None
+    }
+}
+
+/// Parse a quoted triple `<< subject predicate object >>`.
+/// Returns a sentinel marker string and the inner (s, p, o) components.
+fn parse_quoted_triple(bytes: &[u8], pos: &mut usize) -> Option<(String, Option<InnerTriple>)> {
+    // Skip '<<'
+    if *pos + 1 >= bytes.len() || bytes[*pos] != b'<' || bytes[*pos + 1] != b'<' {
+        return None;
+    }
+    *pos += 2;
+    skip_whitespace(bytes, pos);
+
+    // Parse inner subject (IRI or blank node — no nested quoting for now)
+    let inner_s = parse_node(bytes, pos)?;
+    skip_whitespace(bytes, pos);
+
+    // Parse inner predicate (IRI)
+    let inner_p = parse_iri(bytes, pos)?;
+    skip_whitespace(bytes, pos);
+
+    // Parse inner object (IRI, blank node, or literal)
+    let inner_o = if *pos < bytes.len() && bytes[*pos] == b'<' {
+        parse_iri(bytes, pos)?
+    } else if *pos < bytes.len() && bytes[*pos] == b'"' {
+        parse_literal(bytes, pos)?
+    } else if *pos + 1 < bytes.len() && bytes[*pos] == b'_' && bytes[*pos + 1] == b':' {
+        parse_blank_node(bytes, pos)?
+    } else {
+        return None;
+    };
+
+    skip_whitespace(bytes, pos);
+
+    // Skip '>>'
+    if *pos + 1 >= bytes.len() || bytes[*pos] != b'>' || bytes[*pos + 1] != b'>' {
+        return None;
+    }
+    *pos += 2;
+
+    Some((
+        QUOTED_TRIPLE_MARKER.to_string(),
+        Some((inner_s, inner_p, inner_o)),
+    ))
+}
+
+/// Parse a blank node label `_:label`. Returns the full `_:label` string.
+fn parse_blank_node(bytes: &[u8], pos: &mut usize) -> Option<String> {
+    if *pos + 1 >= bytes.len() || bytes[*pos] != b'_' || bytes[*pos + 1] != b':' {
+        return None;
+    }
+    let start = *pos;
+    *pos += 2; // skip '_:'
+               // Blank node labels: [A-Za-z0-9_.-]
+    while *pos < bytes.len()
+        && (bytes[*pos].is_ascii_alphanumeric()
+            || bytes[*pos] == b'_'
+            || bytes[*pos] == b'.'
+            || bytes[*pos] == b'-')
+    {
+        *pos += 1;
+    }
+    let label = std::str::from_utf8(&bytes[start..*pos]).ok()?;
+    Some(label.to_string())
+}
+
+/// Parse an IRI enclosed in angle brackets. Advances `pos` past the closing `>`.
+fn parse_iri(bytes: &[u8], pos: &mut usize) -> Option<String> {
+    if *pos >= bytes.len() || bytes[*pos] != b'<' {
+        return None;
+    }
+    *pos += 1; // skip '<'
+    let start = *pos;
+    while *pos < bytes.len() && bytes[*pos] != b'>' {
+        *pos += 1;
+    }
+    if *pos >= bytes.len() {
+        return None;
+    }
+    let iri = std::str::from_utf8(&bytes[start..*pos]).ok()?;
+    *pos += 1; // skip '>'
+    Some(iri.to_string())
+}
+
+/// Parse a literal value starting with `"`. Handles typed and language-tagged literals.
+///
+/// Returns the full literal representation:
+/// - Plain: `"value"`
+/// - Typed: `"value"^^<datatype>` (returns the raw string including datatype IRI)
+/// - Language-tagged: `"value"@lang`
+fn parse_literal(bytes: &[u8], pos: &mut usize) -> Option<String> {
+    if *pos >= bytes.len() || bytes[*pos] != b'"' {
+        return None;
+    }
+    *pos += 1; // skip opening '"'
+    let start = *pos;
+
+    // Find closing quote, handling escape sequences
+    while *pos < bytes.len() {
+        if bytes[*pos] == b'\\' {
+            *pos += 2; // skip escaped character
+            continue;
+        }
+        if bytes[*pos] == b'"' {
+            break;
+        }
+        *pos += 1;
+    }
+    if *pos >= bytes.len() {
+        return None;
+    }
+
+    let value = std::str::from_utf8(&bytes[start..*pos]).ok()?;
+    *pos += 1; // skip closing '"'
+
+    // Check for datatype or language tag
+    if *pos < bytes.len() && bytes[*pos] == b'^' {
+        // Typed literal: ^^<datatype>
+        if *pos + 1 < bytes.len() && bytes[*pos + 1] == b'^' {
+            *pos += 2; // skip '^^'
+            let datatype = parse_iri(bytes, pos)?;
+            return Some(format!("\"{}\"^^<{}>", value, datatype));
+        }
+    } else if *pos < bytes.len() && bytes[*pos] == b'@' {
+        // Language-tagged literal: @lang
+        *pos += 1; // skip '@'
+        let lang_start = *pos;
+        while *pos < bytes.len()
+            && bytes[*pos] != b' '
+            && bytes[*pos] != b'\t'
+            && bytes[*pos] != b'.'
+            && bytes[*pos] != b'\r'
+        {
+            *pos += 1;
+        }
+        let lang = std::str::from_utf8(&bytes[lang_start..*pos]).ok()?;
+        return Some(format!("\"{}\"@{}", value, lang));
+    }
+
+    // Plain literal
+    Some(format!("\"{}\"", value))
+}
+
+fn skip_whitespace(bytes: &[u8], pos: &mut usize) {
+    while *pos < bytes.len()
+        && (bytes[*pos] == b' ' || bytes[*pos] == b'\t' || bytes[*pos] == b'\r')
+    {
+        *pos += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_simple_triple() {
+        let line = r#"<http://example.org/s> <http://example.org/p> <http://example.org/o> ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "http://example.org/s");
+        assert_eq!(result.1, "http://example.org/p");
+        assert_eq!(result.2, "http://example.org/o");
+    }
+
+    #[test]
+    fn parse_string_literal() {
+        let line = r#"<http://example.org/s> <http://example.org/p> "hello world" ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.2, "\"hello world\"");
+    }
+
+    #[test]
+    fn parse_typed_literal() {
+        let line = r#"<http://example.org/s> <http://example.org/p> "42"^^<http://www.w3.org/2001/XMLSchema#integer> ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(
+            result.2,
+            "\"42\"^^<http://www.w3.org/2001/XMLSchema#integer>"
+        );
+    }
+
+    #[test]
+    fn parse_language_tagged_literal() {
+        let line = r#"<http://example.org/s> <http://example.org/p> "hello"@en ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.2, "\"hello\"@en");
+    }
+
+    #[test]
+    fn skip_blank_line() {
+        assert!(parse_ntriples_line("").is_none());
+        assert!(parse_ntriples_line("   ").is_none());
+    }
+
+    #[test]
+    fn skip_comment() {
+        assert!(parse_ntriples_line("# this is a comment").is_none());
+    }
+
+    #[test]
+    fn skip_malformed() {
+        assert!(parse_ntriples_line("not a triple").is_none());
+        assert!(parse_ntriples_line("<incomplete").is_none());
+    }
+
+    #[test]
+    fn parse_escaped_literal() {
+        let line = r#"<http://example.org/s> <http://example.org/p> "say \"hello\"" ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.2, r#""say \"hello\"""#);
+    }
+
+    #[test]
+    fn parse_no_trailing_dot() {
+        // Some serializers omit the trailing dot; we should still parse
+        let line = r#"<http://example.org/s> <http://example.org/p> <http://example.org/o>"#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "http://example.org/s");
+    }
+
+    #[test]
+    fn parse_blank_node_subject() {
+        let line = r#"_:b0 <http://example.org/p> <http://example.org/o> ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "_:b0");
+        assert_eq!(result.1, "http://example.org/p");
+        assert_eq!(result.2, "http://example.org/o");
+    }
+
+    #[test]
+    fn parse_blank_node_object() {
+        let line = r#"<http://example.org/s> <http://example.org/p> _:genid123 ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "http://example.org/s");
+        assert_eq!(result.2, "_:genid123");
+    }
+
+    #[test]
+    fn parse_blank_node_both() {
+        let line = r#"_:node1 <http://example.org/p> _:node2 ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "_:node1");
+        assert_eq!(result.2, "_:node2");
+    }
+
+    #[test]
+    fn parse_integer_literal_value() {
+        let line = r#"<http://example.org/s> <http://example.org/p> "100"^^<http://www.w3.org/2001/XMLSchema#integer> ."#;
+        let result = parse_ntriples_line(line).unwrap();
+        // Verify the typed literal is correctly parsed
+        assert!(result.2.contains("XMLSchema#integer"));
+    }
+
+    #[test]
+    fn parse_crlf_line_ending() {
+        let line = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .\r";
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.0, "http://example.org/s");
+        assert_eq!(result.2, "http://example.org/o");
+    }
+
+    #[test]
+    fn parse_crlf_language_tag() {
+        let line = "<http://example.org/s> <http://example.org/p> \"hello\"@en\r";
+        let result = parse_ntriples_line(line).unwrap();
+        assert_eq!(result.2, "\"hello\"@en");
+    }
+
+    #[test]
+    fn parse_star_triple_subject() {
+        let line = r#"<< <http://example.org/s> <http://example.org/p> "hello" >> <http://example.org/meta> "world" ."#;
+        let result = parse_ntriples_star_line(line).unwrap();
+        assert_eq!(result.subject, QUOTED_TRIPLE_MARKER);
+        assert_eq!(result.predicate, "http://example.org/meta");
+        assert_eq!(result.object, "\"world\"");
+        let inner = result.inner_subject.unwrap();
+        assert_eq!(inner.0, "http://example.org/s");
+        assert_eq!(inner.1, "http://example.org/p");
+        assert_eq!(inner.2, "\"hello\"");
+    }
+
+    #[test]
+    fn parse_star_triple_iri_object_inside() {
+        let line = r#"<< <http://example.org/Alice> <http://example.org/knows> <http://example.org/Bob> >> <http://example.org/confidence> "0.9" ."#;
+        let result = parse_ntriples_star_line(line).unwrap();
+        assert_eq!(result.subject, QUOTED_TRIPLE_MARKER);
+        let inner = result.inner_subject.unwrap();
+        assert_eq!(inner.0, "http://example.org/Alice");
+        assert_eq!(inner.1, "http://example.org/knows");
+        assert_eq!(inner.2, "http://example.org/Bob");
+    }
+
+    #[test]
+    fn parse_star_triple_backward_compat() {
+        // Regular triples still work through parse_ntriples_line
+        let line = r#"<http://example.org/s> <http://example.org/p> <http://example.org/o> ."#;
+        let result = parse_ntriples_star_line(line).unwrap();
+        assert_eq!(result.subject, "http://example.org/s");
+        assert!(result.inner_subject.is_none());
+        assert!(result.inner_object.is_none());
+    }
+}
