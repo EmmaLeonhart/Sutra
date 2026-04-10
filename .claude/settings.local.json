@@ -215,7 +215,14 @@
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" mushroom_body_model.py)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" test_vsa_operations.py)",
       "Bash(C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe:*)",
-      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" permutation_conditional.py)"
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" permutation_conditional.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m akasha_compiler --emit-flybrain ../../fly-brain/permutation_conditional.ak)",
+      "Read(//c/Users/Immanuelle/Documents/fly-brain/**)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" _e2e_codegen_check.py)",
+      "Bash(rm fly-brain/_generated_permutation_conditional.py fly-brain/_e2e_codegen_check.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" fly-brain/test_codegen_e2e.py)",
+      "Bash(reg query:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
