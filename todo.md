@@ -2,6 +2,11 @@
 
 ## Pending Decisions
 
+- **Run the Akasha code checker (akashac, in sdk/akasha-compiler) over every `.ak` file in the repo
+  and fix every inconsistency it reports.** The compiler/validator is the ground truth for what
+  Akasha code should look like. Once it's stable, run it in lint mode against `examples/`,
+  `akasha-demo-program.ak`, `fly-brain/`, and any `.ak` files generated under `scripts/` or
+  elsewhere. Resolve class-name casing, builtin usage, and structural inconsistencies.
 - Decide on anonymous functions. Leaning toward `lambda` keyword. Need to pick exact form.
 - How primitive substrate operations read in source.
 - Declaration syntax for implicit conversions.
