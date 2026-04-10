@@ -1,25 +1,53 @@
 # Akasha TODO
 
-## Next up — AST → FlyBrainVSA compilation path
+## Next up
 
-`fly-brain/permutation_conditional.ak` parses and validates with zero
-diagnostics, and the VSA builtins are now formally declared in
-`planning/akasha-spec/21-builtins.md`. The SDK validator is no longer
-the blocker on the fly-brain work. The next piece that would
-meaningfully move things forward is the compilation path from parsed
-`.ak` source to fly-brain runtime calls:
+The fly-brain compile-to-brain pipeline is now real end-to-end
+(`.ak` → parser → AST → codegen → Brian2 mushroom body → correct
+program A/B/C/D behavior, 16/16 decisions correct, verified locally
+with Brian2 2.10.1). The last medium-term item in
+`fly-brain/STATUS.md` is closed. What's next, roughly in priority:
 
-1. **Compilation path: translator from AST to `FlyBrainVSA` calls.**
-   See the medium-term plan in `fly-brain/STATUS.md`. Walk the AST of
-   an `.ak` file and emit Python that constructs vectors, builds the
-   prototype table, and runs the decide function. This replaces the
-   hand-written `permutation_conditional.py` with compiler output.
-   Staging split: `vector proto_PH = snap(bind(...));` lines run at
-   compile time; the `decide()` function body is runtime. Fixed-frame
-   enforcement should become a compile-time guarantee as part of this.
+1. **Add the fly-brain experiments section to `akasha-paper/paper.md`.**
+   Time-sensitive: Claw4S deadline is 2026-04-20, today is 2026-04-10.
+   The "first language runtime compiled mechanically onto a biological
+   connectome" story is the strongest novelty claim the project has
+   and it isn't in the paper yet. Follow the incremental-changes rule
+   from `CLAUDE.md` — one paragraph / one table at a time, diffs
+   approved before commit, never push without explicit approval.
+
+2. **Run `akashac` across every `.ak` file in the repo and fix what
+   it reports.** From the Pending Decisions list — the compiler is
+   now stable enough to be ground truth. Lint sweep over `examples/`,
+   `akasha-demo-program.ak`, `fly-brain/`, and any other stragglers.
+   Resolve class-name casing, builtin usage, structural drift.
+
+3. **Declare the VSA builtin signatures inside the compiler itself.**
+   Right now `21-builtins.md` has the spec but the validator is still
+   permissive about bareword calls. Once the v0.2 name resolver
+   lands, wire the builtin table into it so undeclared names fire a
+   real diagnostic.
+
+4. **Fresh competition analysis.** `scripts/fetch_all_papers.py`,
+   `scripts/fetch_reviews.py`, `scripts/fetch_top_papers.py` →
+   update `planning/competition-analysis-*.md` with the April 10+
+   landscape. Low effort, relevant to paper decisions before the
+   deadline.
 
 ## Recently done
 
+- **AST → FlyBrainVSA translator + `--emit-flybrain` CLI + e2e.**
+  New module `sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`
+  walks a parsed `Module` and emits Python targeting the
+  `FlyBrainVSA` runtime. The fixed-frame invariant from
+  `fly-brain/STATUS.md` §Technical Insight 2 becomes a compile-time
+  guarantee (every generated module pins the PN→KC seed via a
+  `_FixedFrameFlyBrainVSA` subclass in its prelude). 16 new codegen
+  tests, full SDK suite green at 85/85. `fly-brain/test_codegen_e2e.py`
+  is the real end-to-end check: parses `permutation_conditional.ak`,
+  translates, execs on a live Brian2 mushroom body, verifies all 16
+  decisions match the expected behavior table. Loops and if-stmts
+  are intentionally unsupported and fail loudly with source spans.
 - **VSA builtins declared in the spec.** New file
   `planning/akasha-spec/21-builtins.md` gives formal signatures for
   every implicit-global VSA function used in the repo's `.ak` code:
