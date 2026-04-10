@@ -1,0 +1,75 @@
+[workspace]
+members = [
+    "sutra-core",
+    "sutra-hnsw",
+    "sutra-sparql",
+    "sutra-proto",
+    "sutra-cli",
+    "sutra-ffi",
+]
+exclude = ["sdks/rust"]
+resolver = "2"
+
+[workspace.package]
+version = "0.3.7"
+edition = "2021"
+license = "Apache-2.0"
+authors = []
+repository = "https://github.com/EmmaLeonhart/SutraDB"
+description = "A lean RDF-star triplestore with native HNSW vector indexing and hybrid SPARQL"
+
+[workspace.dependencies]
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# HTTP (sutra-proto)
+axum = "0.7"
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+hyper = { version = "1", features = ["full"] }
+
+# Storage
+memmap2 = "0.9"         # memory-mapped files for HNSW arena
+sled = "0.34"           # embedded key-value store for persistent indexes
+
+# Hashing
+xxhash-rust = { version = "0.8", features = ["xxh3"] }  # content-addressed triple IDs
+
+# Parallelism
+rayon = "1"
+
+# URL encoding
+urlencoding = "2"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Intra-workspace
+sutra-core   = { path = "sutra-core" }
+sutra-hnsw   = { path = "sutra-hnsw" }
+sutra-sparql = { path = "sutra-sparql" }
+sutra-proto  = { path = "sutra-proto" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"
+debug = true   # keep symbols for profiling
