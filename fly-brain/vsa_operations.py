@@ -104,6 +104,34 @@ class FlyBrainVSA:
         """Cosine similarity between two hypervectors."""
         return cosine_similarity(a, b)
 
+    def make_permutation_key(self, name):
+        """
+        Build an involutory permutation key: a fixed random sign vector.
+
+        In this sign-flip VSA, a permutation is a pointwise sign pattern.
+        Applying it twice returns the original, so it acts as an involution
+        (s * s = 1). This is the primitive that implements boolean negation
+        at the vector-space level: `not(X) = permute(NOT_KEY, X)`.
+
+        Keys are deterministic in the name, so `make_permutation_key("NOT")`
+        always returns the same vector for a given VSA instance.
+        """
+        key_seed = (hash("permkey:" + name) % (2**31)) ^ self.seed
+        return np.random.RandomState(key_seed).choice([-1, 1], size=self.dim).astype(float)
+
+    def permute(self, key, vector):
+        """
+        Apply a permutation key to a vector.
+
+        For sign-flip VSA, permute = pointwise multiply by the sign key.
+        This is an involution: permute(k, permute(k, x)) == x.
+
+        Distributes over binding: permute(k, bind(a, b)) == bind(permute(k, a), b)
+        == bind(a, permute(k, b)). Used to implement boolean negation on
+        conditional queries without Python-side if-statements.
+        """
+        return vector * key
+
     def snap_to_codebook(self, vector):
         """
         Snap to nearest named vector in the codebook.
