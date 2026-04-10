@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SutraDB Browser</title>
+    <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117; --surface: #161b22; --border: #30363d;
+            --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+            --green: #3fb950; --orange: #d29922; --purple: #bc8cff; --red: #f85149;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        a { color: var(--accent); text-decoration: none; cursor: pointer; }
+
+        /* Header */
+        header {
+            height: 40px; padding: 0 12px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px; font-size: 0.85em;
+        }
+        header .logo { font-weight: 700; }
+        header .logo::before { content: '\1F4DC '; }
+        header .logo span { color: var(--accent); }
+        #endpoint { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; color: var(--text); padding: 2px 6px; font-size: 0.85em; width: 180px; }
+        #status { font-size: 0.8em; }
+        .on { color: var(--green); } .off { color: var(--red); }
+
+        /* Layout */
+        .layout { display: flex; height: calc(100vh - 40px); }
+
+        /* Left panel */
+        .left { width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        #query {
+            width: 100%; background: var(--surface); border: none; border-bottom: 1px solid var(--border);
+            color: var(--text); padding: 6px 10px; font-family: Consolas, monospace; font-size: 0.78em;
+            resize: vertical; min-height: 60px; max-height: 150px;
+        }
+        .bar { padding: 4px 10px; border-bottom: 1px solid var(--border); display: flex; gap: 4px; flex-wrap: wrap; }
+        .qb {
+            background: none; border: 1px solid var(--border); color: var(--muted);
+            padding: 1px 6px; border-radius: 3px; cursor: pointer; font-size: 0.7em;
+        }
+        .qb:hover { color: var(--accent); border-color: var(--accent); }
+        .run { background: var(--accent); color: var(--bg); border: none; padding: 1px 10px; border-radius: 3px; cursor: pointer; font-size: 0.72em; font-weight: 600; }
+        .results { flex: 1; overflow-y: auto; font-size: 0.78em; }
+        .row { padding: 4px 10px; border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .row:hover { background: var(--surface); }
+        .row.sel { background: #1c2333; border-left: 3px solid var(--accent); }
+        .s { color: var(--accent); } .p { color: var(--purple); } .o { color: var(--green); }
+        .vb { background: #1b2838; color: var(--orange); padding: 0 3px; border-radius: 2px; font-size: 0.75em; }
+        .info { padding: 3px 10px; border-top: 1px solid var(--border); font-size: 0.72em; color: var(--muted); }
+
+        /* Right: graph + detail */
+        .right { flex: 1; position: relative; }
+        #graph { width: 100%; height: 100%; }
+
+        /* Legend */
+        .legend {
+            position: absolute; top: 8px; left: 8px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 6px; padding: 6px 10px; font-size: 0.75em; z-index: 5; display: flex; gap: 10px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        /* Edge filter */
+        .filters {
+            position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 6px; padding: 6px 10px; font-size: 0.72em; z-index: 5; max-width: 250px;
+        }
+        .filters label { display: inline-block; margin: 1px 4px; cursor: pointer; }
+        .filters input { margin-right: 2px; }
+
+        /* Detail panel */
+        #detail {
+            display: none; position: absolute; bottom: 0; left: 0; right: 0; max-height: 40%;
+            background: var(--surface); border-top: 1px solid var(--border); overflow-y: auto;
+            z-index: 10; padding: 12px 16px; font-size: 0.82em;
+        }
+        #detail .close { float: right; cursor: pointer; color: var(--muted); font-size: 1.2em; }
+        #detail h3 { margin-bottom: 8px; font-size: 0.95em; }
+        #detail table { width: 100%; border-collapse: collapse; }
+        #detail th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.8em; }
+        #detail td { padding: 4px 8px; border-bottom: 1px solid var(--border); word-break: break-all; }
+        .section { margin-bottom: 12px; }
+        .section h4 { color: var(--accent); margin-bottom: 4px; font-size: 0.85em; }
+
+        /* Graph status */
+        .gstatus {
+            position: absolute; bottom: 8px; left: 8px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 3px 8px; font-size: 0.72em; color: var(--muted); z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <span class="logo"><span>Sutra</span>DB Browser</span>
+    <input id="endpoint" value="http://localhost:3030">
+    <span id="status" class="off">...</span>
+    <span style="margin-left:auto;color:var(--muted);font-size:0.75em">Click node to expand | Double-click for detail | Drag to move</span>
+</header>
+
+<div class="layout">
+    <div class="left">
+        <textarea id="query">SELECT ?s ?p ?o WHERE {
+  ?s ?p ?o
+} LIMIT 30</textarea>
+        <div class="bar">
+            <button class="run" onclick="runQuery()">Run (Ctrl+Enter)</button>
+            <button class="qb" onclick="qk('all')">All</button>
+            <button class="qb" onclick="qk('types')">Types</button>
+            <button class="qb" onclick="qk('vecs')">Vectors</button>
+            <button class="qb" onclick="qk('hnsw')">HNSW Graph</button>
+            <button class="qb" onclick="qk('hnswNode')">HNSW Node</button>
+        </div>
+        <div class="results" id="results"></div>
+        <div class="info" id="info"></div>
+    </div>
+
+    <div class="right">
+        <div id="graph"></div>
+        <div class="legend">
+            <span class="legend-item"><span class="dot" style="background:#e74c3c"></span> Selected</span>
+            <span class="legend-item"><span class="dot" style="background:#3498db"></span> IRI</span>
+            <span class="legend-item"><span class="dot" style="background:#3fb950"></span> Literal</span>
+            <span class="legend-item"><span class="dot" style="background:#d29922"></span> Vector</span>
+            <span class="legend-item"><span class="dot" style="background:#9b59b6"></span> HNSW Edge</span>
+        </div>
+        <div class="filters" id="filters"><strong>Edge filters:</strong> <label><input type="checkbox" id="toggleAll" checked> All</label><span id="filterBoxes"></span></div>
+        <div class="gstatus" id="gstatus">No data loaded</div>
+        <div id="detail"></div>
+    </div>
+</div>
+
+<script>
+const EP = () => document.getElementById('endpoint').value.replace(/\/$/,'');
+const COLORS = { iri: '#3498db', literal: '#3fb950', vector: '#d29922', selected: '#e74c3c' };
+
+// ── Shorten IRIs ──
+function sh(iri) {
+    if (!iri) return '?';
+    return iri
+        .replace('http://www.w3.org/1999/02/22-rdf-syntax-ns#','rdf:')
+        .replace('http://www.w3.org/2001/XMLSchema#','xsd:')
+        .replace('http://www.wikidata.org/entity/','wd:')
+        .replace('http://www.wikidata.org/prop/direct/','wdt:')
+        .replace('http://embedding-mapping.local/ontology/','emb:')
+        .replace('http://sutra.dev/','sutra:')
+        .replace(/^http:\/\/[^/]+\//,'');
+}
+function isVec(v) { return v && v.includes('f32vec'); }
+
+// ── vis-network ──
+const visNodes = new vis.DataSet();
+const visEdges = new vis.DataSet();
+const expandedNodes = new Set();
+const knownEdgeLabels = new Set();
+const filterState = {};
+let selectedNode = null;
+
+const network = new vis.Network(document.getElementById('graph'), { nodes: visNodes, edges: visEdges }, {
+    physics: {
+        barnesHut: { gravitationalConstant: -3000, springLength: 120, centralGravity: 0.2, springConstant: 0.04, damping: 0.09 },
+        stabilization: { iterations: 100 }
+    },
+    interaction: { hover: true, tooltipDelay: 200 },
+    nodes: { borderWidth: 2, borderWidthSelected: 3 },
+    edges: { width: 1.5, selectionWidth: 2.5 }
+});
+
+function addNode(id, label, type) {
+    if (visNodes.get(id)) return;
+    const isV = isVec(id) || type === 'vector';
+    // For vector literals, show a compact label instead of the raw float array
+    let displayLabel = label;
+    if (isV) {
+        displayLabel = '[vector]';
+    } else if (displayLabel.length > 25) {
+        displayLabel = displayLabel.substring(0,22)+'...';
+    }
+    const col = isV ? COLORS.vector : (type === 'literal' ? COLORS.literal : COLORS.iri);
+    visNodes.add({
+        id, label: displayLabel,
+        title: isV ? 'Vector embedding (' + id.split(' ').length + ' dims)' : id,
+        color: col, size: isV ? 8 : 14,
+        font: { color: '#e6edf3', strokeWidth: 2, strokeColor: '#0d1117', size: 10 },
+        shape: isV ? 'diamond' : 'dot', _type: type, _full: id
+    });
+}
+
+function addEdge(from, to, label) {
+    const eid = from+'|'+to+'|'+label;
+    if (visEdges.get(eid)) return;
+    const hidden = filterState[label] === false;
+    const isHnswEdge = label === 'hnswNeighbor' || label === 'sutra:hnswNeighbor';
+    visEdges.add({
+        id: eid, from, to,
+        label: isHnswEdge ? '' : label,
+        title: isHnswEdge ? 'HNSW neighbor' : label,
+        arrows: isHnswEdge ? '' : 'to',
+        color: { color: isHnswEdge ? '#9b59b6' : '#555', highlight: isHnswEdge ? '#bc8cff' : '#999' },
+        font: { size: 9, color: '#8b949e', strokeWidth: 0 },
+        smooth: { type: 'curvedCW', roundness: isHnswEdge ? 0.0 : 0.12 },
+        width: isHnswEdge ? 1.0 : 1.5,
+        dashes: isHnswEdge ? [4, 4] : false,
+        hidden, _lbl: label
+    });
+    if (!knownEdgeLabels.has(label)) {
+        knownEdgeLabels.add(label);
+        if (!(label in filterState)) filterState[label] = true;
+        addFilterCheckbox(label);
+    }
+}
+
+function addFilterCheckbox(label) {
+    const c = document.getElementById('filterBoxes');
+    const l = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = true; cb.dataset.l = label;
+    cb.onchange = () => { filterState[label] = cb.checked; applyFilters(); };
+    l.appendChild(cb); l.appendChild(document.createTextNode(' '+label));
+    c.appendChild(l);
+}
+
+function applyFilters() {
+    const up = [];
+    visEdges.forEach(e => {
+        const hide = filterState[e._lbl] === false;
+        if (e.hidden !== hide) up.push({ id: e.id, hidden: hide });
+    });
+    if (up.length) visEdges.update(up);
+}
+
+document.getElementById('toggleAll').onchange = function() {
+    document.querySelectorAll('#filterBoxes input').forEach(cb => { cb.checked = this.checked; filterState[cb.dataset.l] = this.checked; });
+    applyFilters();
+};
+
+function updateGStatus() {
+    document.getElementById('gstatus').textContent = `${visNodes.length} nodes, ${visEdges.length} edges`;
+}
+
+// ── SPARQL ──
+async function sparql(q) {
+    const r = await fetch(EP()+'/sparql?query='+encodeURIComponent(q));
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+// ── Expand node: fetch neighbors and add to graph ──
+async function expandNode(iri) {
+    if (expandedNodes.has(iri)) return;
+    // Don't try to expand vector literals or non-IRI nodes
+    if (isVec(iri) || iri.startsWith('"') || !iri.startsWith('http')) return;
+    expandedNodes.add(iri);
+    try {
+        // Outgoing
+        const out = await sparql(`SELECT ?p ?o WHERE { <${iri}> ?p ?o } LIMIT 50`);
+        for (const b of out.results.bindings) {
+            const pLabel = sh(b.p.value);
+            const oId = b.o.value;
+            const oType = b.o.type === 'uri' ? 'iri' : (isVec(oId) ? 'vector' : 'literal');
+            addNode(oId, sh(oId), oType);
+            addEdge(iri, oId, pLabel);
+        }
+        // Incoming
+        const inc = await sparql(`SELECT ?s ?p WHERE { ?s ?p <${iri}> } LIMIT 30`);
+        for (const b of inc.results.bindings) {
+            const pLabel = sh(b.p.value);
+            addNode(b.s.value, sh(b.s.value), 'iri');
+            addEdge(b.s.value, iri, pLabel);
+        }
+        // HNSW neighbors (virtual edges — shows the index graph structure)
+        try {
+            const hnsw = await sparql(`SELECT ?neighbor WHERE { <${iri}> <http://sutra.dev/hnswNeighbor> ?neighbor } LIMIT 20`);
+            for (const b of hnsw.results.bindings) {
+                const nId = b.neighbor.value;
+                addNode(nId, sh(nId), 'iri');
+                addEdge(iri, nId, 'hnswNeighbor');
+            }
+        } catch(e) { /* HNSW edges may not be available */ }
+        updateGStatus();
+    } catch(e) { console.error('Expand failed:', e); }
+}
+
+// ── Click to expand ──
+let cooldown = false;
+network.on('click', params => {
+    if (cooldown || !params.nodes.length) return;
+    const nid = params.nodes[0];
+    cooldown = true; setTimeout(() => cooldown = false, 300);
+
+    // Highlight
+    if (selectedNode) {
+        const old = visNodes.get(selectedNode);
+        if (old) {
+            const t = old._type;
+            visNodes.update({ id: selectedNode, color: isVec(selectedNode) ? COLORS.vector : (t === 'literal' ? COLORS.literal : COLORS.iri) });
+        }
+    }
+    selectedNode = nid;
+    visNodes.update({ id: nid, color: COLORS.selected });
+
+    expandNode(nid);
+});
+
+// ── Double-click for detail panel ──
+network.on('doubleClick', params => {
+    if (!params.nodes.length) return;
+    showDetail(params.nodes[0]);
+});
+
+// ── Detail panel ──
+async function showDetail(iri) {
+    const d = document.getElementById('detail');
+    d.style.display = 'block';
+
+    // For vector literals, show vector info instead of trying to query
+    if (isVec(iri) || iri.startsWith('"')) {
+        const val = iri.replace(/"/g,'').split('^^')[0].trim();
+        const dims = val.split(' ').length;
+        const preview = val.split(' ').slice(0, 8).join(', ');
+        d.innerHTML = `<span class="close" onclick="document.getElementById('detail').style.display='none'">&times;</span>
+            <h3 style="color:var(--orange)">[Vector Embedding]</h3>
+            <div class="section"><h4>Properties</h4><table>
+            <tr><td>Dimensions</td><td>${dims}</td></tr>
+            <tr><td>Preview</td><td style="font-family:monospace;font-size:0.8em">[${preview}, ...]</td></tr>
+            </table></div>`;
+        return;
+    }
+
+    d.innerHTML = `<span class="close" onclick="document.getElementById('detail').style.display='none'">&times;</span><h3>${sh(iri)}</h3><p style="color:var(--muted);font-size:0.8em;word-break:break-all">${iri}</p>Loading...`;
+
+    try {
+        const out = await sparql(`SELECT ?p ?o WHERE { <${iri}> ?p ?o } LIMIT 100`);
+        const inc = await sparql(`SELECT ?s ?p WHERE { ?s ?p <${iri}> } LIMIT 50`);
+
+        let html = `<span class="close" onclick="document.getElementById('detail').style.display='none'">&times;</span>`;
+        html += `<h3>${sh(iri)}</h3><p style="color:var(--muted);font-size:0.78em;word-break:break-all;margin-bottom:10px">${iri}</p>`;
+
+        // Vectors
+        const vecs = out.results.bindings.filter(b => isVec(b.o?.value));
+        const others = out.results.bindings.filter(b => !isVec(b.o?.value));
+
+        if (vecs.length) {
+            html += '<div class="section"><h4 style="color:var(--orange)">Vectors</h4><table>';
+            for (const b of vecs) {
+                const val = b.o.value.replace(/"/g,'').split('^^')[0].trim();
+                const dims = val.split(' ').length;
+                const preview = val.split(' ').slice(0,5).join(', ');
+                html += `<tr><td><span class="p">${sh(b.p.value)}</span></td><td><span class="vb">${dims}-dim</span> [${preview}, ...]</td></tr>`;
+            }
+            html += '</table></div>';
+        }
+
+        if (others.length) {
+            html += `<div class="section"><h4>Outgoing (${others.length})</h4><table>`;
+            for (const b of others) {
+                const oVal = b.o?.type === 'uri' ? `<a onclick="showDetail('${b.o.value}')">${sh(b.o.value)}</a>` : `<span class="o">"${sh(b.o?.value)}"</span>`;
+                html += `<tr><td><span class="p">${sh(b.p.value)}</span></td><td>${oVal}</td></tr>`;
+            }
+            html += '</table></div>';
+        }
+
+        if (inc.results.bindings.length) {
+            html += `<div class="section"><h4>Incoming (${inc.results.bindings.length})</h4><table>`;
+            for (const b of inc.results.bindings) {
+                html += `<tr><td><a onclick="showDetail('${b.s.value}')">${sh(b.s.value)}</a></td><td><span class="p">${sh(b.p.value)}</span></td></tr>`;
+            }
+            html += '</table></div>';
+        }
+
+        d.innerHTML = html;
+    } catch(e) { d.innerHTML += `<p style="color:var(--red)">${e.message}</p>`; }
+}
+
+// ── Query execution ──
+let lastData = null;
+
+async function runQuery() {
+    const q = document.getElementById('query').value;
+    try {
+        const data = await sparql(q);
+        lastData = data;
+        renderResults(data);
+        if (data.head.vars.includes('s') && data.head.vars.includes('p') && data.head.vars.includes('o')) {
+            loadGraphFromSPO(data);
+        } else if (data.head.vars.includes('s') && data.head.vars.includes('o')) {
+            // HNSW edge query: ?s ?o (no predicate)
+            loadGraphFromSO(data, 'hnswNeighbor');
+        }
+    } catch(e) {
+        document.getElementById('results').innerHTML = `<div class="row" style="color:var(--red)">${e.message.substring(0,200)}</div>`;
+    }
+}
+
+function renderResults(data) {
+    const el = document.getElementById('results');
+    const b = data.results.bindings;
+    const v = data.head.vars;
+    if (!b.length) { el.innerHTML = '<div class="row" style="color:var(--muted)">No results</div>'; document.getElementById('info').textContent = '0'; return; }
+    const hasSPO = v.includes('s') && v.includes('p') && v.includes('o');
+    el.innerHTML = b.map((r,i) => {
+        if (hasSPO) {
+            const vec = r.o && isVec(r.o.value);
+            const oDisplay = vec ? '[vector]' : sh(r.o?.value)?.substring(0,30);
+            return `<div class="row" onclick="selectRow(${i})"><span class="s">${sh(r.s?.value)}</span> <span class="p">${sh(r.p?.value)}</span> <span class="o">${oDisplay}</span>${vec?'<span class="vb">VEC</span>':''}</div>`;
+        }
+        return `<div class="row" onclick="selectRow(${i})">${v.map(x=>sh(r[x]?.value)).join(' | ')}</div>`;
+    }).join('');
+    document.getElementById('info').textContent = `${b.length} results`;
+}
+
+function selectRow(i) {
+    document.querySelectorAll('.row').forEach((el,j) => el.classList.toggle('sel', j===i));
+    const b = lastData.results.bindings[i];
+    for (const v of lastData.head.vars) {
+        if (b[v]?.type === 'uri') { showDetail(b[v].value); return; }
+    }
+}
+
+function loadGraphFromSO(data, edgeLabel) {
+    visNodes.clear(); visEdges.clear(); expandedNodes.clear();
+    knownEdgeLabels.clear();
+    document.getElementById('filterBoxes').innerHTML = '';
+    for (const b of data.results.bindings) {
+        if (!b.s || !b.o) continue;
+        const sId = b.s.value, oId = b.o.value;
+        addNode(sId, sh(sId), 'iri');
+        addNode(oId, sh(oId), 'iri');
+        addEdge(sId, oId, edgeLabel);
+    }
+    updateGStatus();
+}
+
+function loadGraphFromSPO(data) {
+    // Clear graph
+    visNodes.clear(); visEdges.clear(); expandedNodes.clear();
+    knownEdgeLabels.clear();
+    document.getElementById('filterBoxes').innerHTML = '';
+
+    for (const b of data.results.bindings) {
+        if (!b.s || !b.p || !b.o) continue;
+        const sId = b.s.value, oId = b.o.value;
+        const sType = b.s.type === 'uri' ? 'iri' : 'literal';
+        const oType = b.o.type === 'uri' ? 'iri' : (isVec(oId) ? 'vector' : 'literal');
+        addNode(sId, sh(sId), sType);
+        addNode(oId, sh(oId), oType);
+        addEdge(sId, oId, sh(b.p.value));
+    }
+    updateGStatus();
+}
+
+// ── Quick queries ──
+function qk(t) {
+    const box = document.getElementById('query');
+    const qs = {
+        all: 'SELECT ?s ?p ?o WHERE {\n  ?s ?p ?o\n} LIMIT 30',
+        types: 'SELECT DISTINCT ?type WHERE {\n  ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type\n} LIMIT 30',
+        vecs: 'SELECT ?s ?p ?o WHERE {\n  ?s ?p ?o\n} LIMIT 50',
+        hnsw: '# HNSW neighbor graph — shows the actual index structure\nSELECT ?s ?o WHERE {\n  ?s <http://sutra.dev/hnswNeighbor> ?o\n} LIMIT 100',
+        hnswNode: '# HNSW neighbors of a specific entity\n# Replace the IRI with any entity that has a vector\nSELECT ?s ?o WHERE {\n  ?s <http://sutra.dev/hnswNeighbor> ?o\n} LIMIT 50',
+    };
+    box.value = qs[t] || qs.all;
+    if (t === 'hnsw' || t === 'hnswNode') {
+        isHnswMode = true;
+    } else {
+        isHnswMode = false;
+    }
+    runQuery();
+}
+
+let isHnswMode = false;
+
+// ── Health ──
+async function checkHealth() {
+    try {
+        const r = await fetch(EP()+'/health');
+        document.getElementById('status').textContent = r.ok ? 'connected' : 'error';
+        document.getElementById('status').className = r.ok ? 'on' : 'off';
+    } catch {
+        document.getElementById('status').textContent = 'offline';
+        document.getElementById('status').className = 'off';
+    }
+}
+
+// ── Init ──
+document.getElementById('query').addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key === 'Enter') { runQuery(); e.preventDefault(); }
+});
+checkHealth(); setInterval(checkHealth, 10000);
+</script>
+</body>
+</html>

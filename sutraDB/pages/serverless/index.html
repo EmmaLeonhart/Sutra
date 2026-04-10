@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Open Graph / Discord / Twitter preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Serverless vs Server Mode — SutraDB">
+    <meta property="og:description" content="Serverless vs server mode: use SutraDB as an embedded database or a SPARQL endpoint.">
+    <meta name="description" content="Serverless vs server mode: use SutraDB as an embedded database or a SPARQL endpoint.">
+    <meta property="og:url" content="https://sutradb.org/serverless/">
+    <meta property="og:site_name" content="SutraDB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Serverless vs Server Mode — SutraDB">
+    <meta name="twitter:description" content="Serverless vs server mode: use SutraDB as an embedded database or a SPARQL endpoint.">
+    <meta name="theme-color" content="#58a6ff">
+    <link rel="canonical" href="https://sutradb.org/serverless/">
+    <title>Serverless vs Server Mode &mdash; SutraDB</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1f4dc;</text></svg>">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav>
+    <a href="../" class="logo"><span>Sutra</span>DB</a>
+    <a href="../#download">Download</a>
+    <a href="../graph-vector/">Graph+Vector</a>
+    <a href="../sdb-format/">Architecture</a>
+    <a href="../theory/">Theory</a>
+    <a href="../codeofethics/">Code of Ethics</a>
+    <a href="https://github.com/EmmaLeonhart/SutraDB">GitHub</a>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <h1>Deployment: <span>Embedded &amp; Server</span></h1>
+        <p class="subtitle">Serverless is the default. Use server mode only when you need multi-client or remote access.</p>
+    </div>
+
+    <h2>Two Modes, One Database</h2>
+
+    <p>SutraDB can run as an <strong>embedded database</strong> (open a <code>.sdb</code> file directly, like SQLite) or as a <strong>server</strong> (HTTP SPARQL endpoint). Both use the same storage format, the same query engine, and the same indexes. The difference is how you access the data.</p>
+
+    <div class="comparison">
+        <div class="card">
+            <h4>Embedded (Serverless) &mdash; Recommended</h4>
+            <ul>
+                <li>Open a <code>.sdb</code> file directly &mdash; no daemon, no config</li>
+                <li>Zero setup: download the binary, point at a file, query</li>
+                <li>Data is a file you can see, copy, and move</li>
+                <li>Single-process access only</li>
+                <li>No network overhead</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>Server Mode &mdash; When You Need It</h4>
+            <ul>
+                <li>HTTP SPARQL endpoint at <code>localhost:3030/sparql</code></li>
+                <li>Multiple clients can query concurrently</li>
+                <li>Remote access from other machines</li>
+                <li>Optional auth, rate limiting, query timeouts</li>
+                <li>Periodic backups, health monitoring</li>
+            </ul>
+        </div>
+    </div>
+
+<pre><code><span class="cmt"># Embedded: query a file directly</span>
+sutra query "SELECT ?s WHERE { ?s a :Person }" --data people.sdb
+
+<span class="cmt"># Server: start an HTTP endpoint on the same file</span>
+sutra serve --port 3030 --data people.sdb
+<span class="cmt"># Now accessible at http://localhost:3030/sparql</span></code></pre>
+
+    <h2>When to Use Each Mode</h2>
+
+    <table>
+        <tr><th>Use Case</th><th>Recommended Mode</th><th>Why</th></tr>
+        <tr><td>Personal project, scripts, prototyping</td><td>Embedded</td><td>Zero setup, fastest possible path to querying</td></tr>
+        <tr><td>AI agents (Claude Code, Cursor, etc.)</td><td>Embedded</td><td>No process management, no port conflicts, deterministic</td></tr>
+        <tr><td>Jupyter notebook exploration</td><td>Either</td><td>Embedded for local; server if sharing with collaborators</td></tr>
+        <tr><td>Web application backend</td><td>Server</td><td>Multiple clients need concurrent access via HTTP</td></tr>
+        <tr><td>Multiple processes reading the same data</td><td>Server</td><td>Embedded mode is single-process; server handles concurrency</td></tr>
+        <tr><td>Remote access from other machines</td><td>Server</td><td>Embedded mode has no network interface</td></tr>
+        <tr><td>Production deployment</td><td>Server</td><td>Auth, rate limiting, monitoring, backups</td></tr>
+    </table>
+
+    <h2>Benefits of Embedded Mode</h2>
+
+    <p>Embedded mode follows the SQLite philosophy: download one binary, run one command, you have a working database. This is the default because it removes every obstacle between you and your data.</p>
+
+    <ul>
+        <li><strong>Instant setup.</strong> No service installation, configuration files, port conflicts, or permission issues.</li>
+        <li><strong>Transparent data location.</strong> The <code>.sdb</code> file is wherever you put it. Copy it, back it up, share it, version-control it.</li>
+        <li><strong>Agent-friendly.</strong> AI agents can install and initialize a database in seconds without managing background processes.</li>
+        <li><strong>No network overhead.</strong> Queries go directly to the storage engine, no serialization/deserialization over HTTP.</li>
+    </ul>
+
+    <h2>Benefits of Server Mode</h2>
+
+    <p>Server mode adds capabilities that embedded mode cannot provide. For anything beyond single-user local access, server mode is the right choice.</p>
+
+    <ul>
+        <li><strong>Concurrent access.</strong> Multiple clients, multiple processes, multiple machines &mdash; all querying the same database simultaneously.</li>
+        <li><strong>Authentication &amp; access control.</strong> Simple passcode auth in the open-source tier; RBAC in the premium tier.</li>
+        <li><strong>Operational safety.</strong> Rate limiting prevents runaway queries. Query timeouts kill expensive queries. Periodic backups run automatically.</li>
+        <li><strong>Standard protocol.</strong> The SPARQL HTTP Protocol means any SPARQL client (Yasgui, curl, Python's SPARQLWrapper) works out of the box.</li>
+        <li><strong>Health monitoring.</strong> The <code>/health</code> endpoint exposes index health, tombstone ratios, and pseudo-table coverage for observability.</li>
+    </ul>
+
+    <h2>Tradeoffs</h2>
+
+    <table>
+        <tr><th></th><th>Embedded</th><th>Server</th></tr>
+        <tr><td><strong>Setup complexity</strong></td><td>None</td><td>Minimal (one command, but you manage a process)</td></tr>
+        <tr><td><strong>Concurrent access</strong></td><td>Single process only</td><td>Multiple clients</td></tr>
+        <tr><td><strong>Network access</strong></td><td>Local only</td><td>Remote + local</td></tr>
+        <tr><td><strong>Auth &amp; security</strong></td><td>File system permissions</td><td>Passcode auth, rate limiting, query timeouts</td></tr>
+        <tr><td><strong>Backups</strong></td><td>Copy the file yourself</td><td>Automatic periodic backups</td></tr>
+        <tr><td><strong>Data visibility</strong></td><td>Plain file &mdash; easy to find, but also easy to accidentally delete</td><td>Managed by the server process</td></tr>
+        <tr><td><strong>Performance overhead</strong></td><td>None (direct access)</td><td>HTTP serialization/deserialization per query</td></tr>
+    </table>
+
+    <div class="callout green">
+        <strong>Same file, either mode</strong>
+        The <code>.sdb</code> file format is the same regardless of how you access it. You can prototype in embedded mode, then deploy the same file in server mode without any migration or conversion.
+    </div>
+
+    <h2>Comparison with Other Databases</h2>
+
+    <table>
+        <tr><th>Database</th><th>Embedded</th><th>Server</th><th>Data Model</th></tr>
+        <tr>
+            <td><strong>SutraDB</strong></td>
+            <td><span class="badge badge-green">Yes (default)</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>RDF-star + vectors</td>
+        </tr>
+        <tr>
+            <td><strong>SQLite</strong></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Relational</td>
+        </tr>
+        <tr>
+            <td><strong>PostgreSQL</strong></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Relational</td>
+        </tr>
+        <tr>
+            <td><strong>Apache Jena Fuseki</strong></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>RDF</td>
+        </tr>
+        <tr>
+            <td><strong>Neo4j</strong></td>
+            <td><span class="badge badge-green">Yes (embedded Java)</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Property graph</td>
+        </tr>
+        <tr>
+            <td><strong>Qdrant</strong></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Vectors</td>
+        </tr>
+    </table>
+
+</div>
+
+<footer>
+    <a href="../">Home</a> &middot;
+    <a href="../protocols/">Protocols</a> &middot;
+    <a href="../sparql/">SPARQL</a> &middot;
+    <a href="../rdf/">RDF</a> &middot;
+    <a href="../owl/">OWL</a> &middot;
+    <a href="https://github.com/EmmaLeonhart/SutraDB">GitHub</a>
+</footer>
+</body>
+</html>
