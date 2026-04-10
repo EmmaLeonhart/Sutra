@@ -1,0 +1,44 @@
+// Akasha corpus test: nested blocks and scoping.
+// Covers: bare block statements, deeply nested control flow.
+
+function vector NestedBlocks(vector v) {
+    {
+        var a = v;
+        {
+            var b = a + v;
+            {
+                var c = b * v;
+                return c;
+            }
+        }
+    }
+}
+
+function scalar DeepIf(scalar x) {
+    if (x < 0.0) {
+        if (x < -1.0) {
+            if (x < -2.0) {
+                return -2.0;
+            } else {
+                return -1.0;
+            }
+        } else {
+            return 0.0;
+        }
+    } else {
+        if (x > 1.0) {
+            return 1.0;
+        } else {
+            return x;
+        }
+    }
+}
+
+function void NestedLoops(tuple outer, tuple inner) {
+    foreach (var o in outer) {
+        foreach (var i in inner) {
+            vector combined = o * i;
+            Process(combined);
+        }
+    }
+}
