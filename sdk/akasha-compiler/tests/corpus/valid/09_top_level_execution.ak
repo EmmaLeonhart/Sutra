@@ -1,0 +1,43 @@
+// Akasha corpus test: top-level executable file.
+// Covers: files that just run — no main(), top-level statements,
+// inline function definitions mixed with top-level code.
+
+vector cat = embed("cat");
+vector dog = embed("dog");
+vector fish = embed("fish");
+
+// Bundle top-level.
+vector pets = cat + dog + fish;
+
+// Fuzzy checks computed at top level.
+fuzzy catDog = unsafeCast<fuzzy>(Cosine(cat, dog));
+fuzzy catFish = unsafeCast<fuzzy>(Cosine(cat, fish));
+
+// Top-level control flow.
+if (catDog) {
+    Print($"Cat and dog similar");
+}
+
+if (defuzzy(catFish)) {
+    Print($"Cat and fish similar");
+} else {
+    Print($"Cat and fish not similar");
+}
+
+// A function defined mid-file, used immediately.
+function string ClosestTo(vector target, tuple candidates) {
+    vector best = Get(candidates, 0);
+    scalar bestScore = Cosine(target, best);
+    for (var i = 1; i < Length(candidates); i++) {
+        vector candidate = Get(candidates, i);
+        scalar score = Cosine(target, candidate);
+        if (score > bestScore) {
+            best = candidate;
+            bestScore = score;
+        }
+    }
+    return $"match (score: {bestScore})";
+}
+
+string result = ClosestTo(cat, (tuple) pets);
+Print(result);

@@ -1,0 +1,29 @@
+// Akasha corpus test: assignment forms.
+// Covers: =, +=, -=, *=, /=, ++, --, member assignment.
+
+function void Assigns() {
+    var x = 0.0;
+    x = 1.0;
+    x += 0.5;
+    x -= 0.25;
+    x *= 2.0;
+    x /= 4.0;
+}
+
+function void IncDec() {
+    var i = 0;
+    i++;
+    i++;
+    i--;
+}
+
+function void ForLoopAssigns() {
+    for (var i = 0; i < 10; i++) {
+        Process(i);
+    }
+}
+
+function void MemberAssign(Animal a) {
+    a.name = "renamed";
+    a.age += 1;
+}

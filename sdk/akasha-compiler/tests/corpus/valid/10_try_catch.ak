@@ -1,0 +1,34 @@
+// Akasha corpus test: try/catch.
+// Covers: try block, catch block, nested try, pattern of checking
+// result quality after a risky op.
+
+function Cat SafeCast(Animal a) {
+    try {
+        Cat c = (Cat) a;
+        return c;
+    } catch {
+        return DefaultCat();
+    }
+}
+
+// Try nested inside a larger function.
+function vector RecoverFromNoise(vector input) {
+    try {
+        vector refined = RiskyOperation(input);
+        return refined;
+    } catch {
+        return Fallback(input);
+    }
+}
+
+// The documented alternative: check quality with fuzzy arithmetic
+// instead of using try/catch.
+function vector SafeTransform(vector input) {
+    vector result = RiskyOperation(input);
+    fuzzy quality = unsafeCast<fuzzy>(Cosine(result, ExpectedPattern()));
+    if (defuzzy(quality)) {
+        return result;
+    } else {
+        return Fallback(input);
+    }
+}
