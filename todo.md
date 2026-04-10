@@ -1,4 +1,4 @@
-# S2 TODO
+# Akasha TODO
 
 ## Pending Decisions
 
@@ -9,8 +9,8 @@
 - Expression-versus-statement bias.
 - Which access modifiers exist beyond public/static defaults.
 - How the half-compilation / immediate-execution model works.
-- Implement many-to-many as a `hop` non-algebraic function in S2.
-- Figure out IO — how S2 handles input/output.
+- Implement many-to-many as a `hop` non-algebraic function in Akasha.
+- Figure out IO — how Akasha handles input/output.
 
 ## Recently Decided (2026-04-08)
 
@@ -40,5 +40,5 @@
 
 ## Future Goals
 
-- Get S2 running on normal hardware first
+- Get Akasha running on normal hardware first
 - Then try running it on a simulated fly brain

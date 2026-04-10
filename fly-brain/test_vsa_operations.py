@@ -15,7 +15,7 @@ def test_demo_program():
     Encode two odor stimuli, bind them, snap through the circuit,
     unbind to retrieve, check similarity.
 
-    This is the minimum viable result: S2 code executing associative
+    This is the minimum viable result: Akasha code executing associative
     memory on a biological neural circuit.
     """
     print("=" * 60)
@@ -24,7 +24,7 @@ def test_demo_program():
 
     vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=42)
 
-    # S2 equivalent:
+    # Akasha equivalent:
     #   var odorA = embed("apple");
     #   var odorB = embed("vinegar");
     odorA = vsa.embed("apple")
@@ -34,25 +34,25 @@ def test_demo_program():
     print(f"odorB (vinegar): norm={np.linalg.norm(odorB):.3f}")
     print(f"similarity(odorA, odorB) = {vsa.similarity(odorA, odorB):.4f}")
 
-    # S2 equivalent:
+    # Akasha equivalent:
     #   var association = bind(odorA, odorB);
     association = vsa.bind(odorA, odorB)
     print(f"\nassociation = bind(odorA, odorB)")
     print(f"  similarity to odorA: {vsa.similarity(association, odorA):.4f}")
     print(f"  similarity to odorB: {vsa.similarity(association, odorB):.4f}")
 
-    # S2 equivalent:
+    # Akasha equivalent:
     #   var stored = snap(association);
     print(f"\nRunning snap through mushroom body circuit...")
     stored = vsa.snap(association)
     print(f"  stored = snap(association)")
 
-    # S2 equivalent:
+    # Akasha equivalent:
     #   var retrieved = unbind(odorA, stored);
     retrieved = vsa.unbind(odorA, stored)
     print(f"  retrieved = unbind(odorA, stored)")
 
-    # S2 equivalent:
+    # Akasha equivalent:
     #   var score = similarity(retrieved, odorB);
     score = vsa.similarity(retrieved, odorB)
     print(f"\nsimilarity(retrieved, odorB) = {score:.4f}")
