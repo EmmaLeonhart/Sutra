@@ -213,7 +213,9 @@
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" minimal_lif_network.py)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" test_bridge.py)",
       "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" mushroom_body_model.py)",
-      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" test_vsa_operations.py)"
+      "Bash(\"C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" test_vsa_operations.py)",
+      "Bash(C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe:*)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" permutation_conditional.py)"
     ]
   }
 }
