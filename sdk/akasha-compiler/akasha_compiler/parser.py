@@ -834,7 +834,23 @@ class Parser:
     # ================================================================
 
     def _parse_expr(self) -> ast.Expr:
-        return self._parse_assignment()
+        return self._parse_pipe_forward()
+
+    def _parse_pipe_forward(self) -> ast.Expr:
+        # The `|>` operator is explicitly forbidden by the spec. The
+        # validator emits AKA0110 for every occurrence via a token
+        # walk. We still parse it here as a low-precedence left-assoc
+        # binary operator so the rest of the expression parses cleanly
+        # and the user only sees the root-cause diagnostic, not a
+        # cascade of "expected `;`" recoveries.
+        left = self._parse_assignment()
+        while self._match(TokenKind.PIPE_FORWARD):
+            right = self._parse_assignment()
+            left = ast.BinaryOp(
+                op="|>", left=left, right=right,
+                span=SourceSpan(start=left.span.start, end=right.span.end),
+            )
+        return left
 
     def _parse_assignment(self) -> ast.Expr:
         left = self._parse_logical_or()

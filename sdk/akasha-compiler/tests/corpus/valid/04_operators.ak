@@ -1,0 +1,39 @@
+// Akasha corpus test: operator overloading.
+// Covers: +, *, ==, !=, unary, precedence via nested expressions.
+
+// Standard VSA overloads.
+function operator +(vector a, vector b) {
+    return Bundle(a, b);
+}
+
+function operator *(vector a, vector b) {
+    return Bind(a, b);
+}
+
+function operator ==(vector a, vector b) {
+    return Cosine(a, b);
+}
+
+// Subtraction and comparison.
+function operator -(vector a, vector b) {
+    return Bundle(a, Negate(b));
+}
+
+function operator <(vector a, vector b) {
+    return Cosine(a, b);
+}
+
+// Unary negation.
+function operator !(vector a) {
+    return Negate(a);
+}
+
+// Use the overloaded operators in an expression with non-trivial
+// precedence — multiplication binds tighter than addition.
+function vector Formula(vector a, vector b, vector c) {
+    return a + b * c;
+}
+
+function vector Nested(vector a, vector b, vector c, vector d) {
+    return (a + b) * (c + d);
+}

@@ -1,0 +1,43 @@
+// Akasha corpus test: function declarations.
+// Covers: public/private, static, nested calls, function.* prefix.
+
+// Default-visibility function.
+function vector Bundle(vector a, vector b) {
+    return a + b;
+}
+
+// Explicit public static.
+function public static vector Bind(vector a, vector b) {
+    return a * b;
+}
+
+// Private helper.
+private function vector Helper(vector v) {
+    return v * v;
+}
+
+// Function that calls other free functions, both bare and via
+// the `function.` disambiguation prefix.
+function vector Combine(vector a, vector b, vector c) {
+    vector ab = Bundle(a, b);
+    vector bc = function.Bind(b, c);
+    return function.Bundle(ab, bc);
+}
+
+// Void return.
+function void DoNothing() {
+    return;
+}
+
+// Function returning a primitive.
+function scalar ClampUnit(scalar s) {
+    if (s < 0.0) {
+        return 0.0;
+    } else {
+        if (s > 1.0) {
+            return 1.0;
+        } else {
+            return s;
+        }
+    }
+}

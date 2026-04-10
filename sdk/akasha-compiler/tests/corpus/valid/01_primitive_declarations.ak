@@ -1,0 +1,25 @@
+// Akasha corpus test: primitive type declarations.
+// Covers: scalar, vector, matrix, tuple, string, bool, fuzzy, void
+// All five primitive types plus bool and fuzzy, plus both var and
+// explicit-type declaration shapes.
+
+function void DeclareAllPrimitives() {
+    // Explicit types — the normal C# shape.
+    scalar threshold = 0.85;
+    vector cat = embed("cat");
+    string label = "result";
+
+    // Fuzzy and bool are the two truth flavors.
+    fuzzy signal = unsafeCast<fuzzy>(cat);
+    bool ready = defuzzy(signal);
+
+    // `var` for inferred types.
+    var inferredScalar = 0.5;
+    var inferredString = "inferred";
+    var inferredVec = embed("dog");
+
+    // `const` for immutable bindings, both inferred and explicit.
+    const Ceiling = 0.99;
+    const scalar Floor = 0.01;
+    const string ProgramName = "primitive demo";
+}
