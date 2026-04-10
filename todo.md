@@ -1,5 +1,36 @@
 # Akasha TODO
 
+## Next up — the two biggest wins for the fly-brain branch
+
+If you have one session to spend on Akasha, spend it on these. Both are pure
+`sdk/akasha-compiler/` + `planning/akasha-spec/` work — no runtime changes,
+no fly-brain edits. See `fly-brain/STATUS.md` for the full rationale.
+
+1. **Add `permutation` as a primitive type.** A permutation is a fixed ±1
+   sign-flip mask; at the substrate level it's a vector, but at compile
+   time it deserves its own type because the operations on it are
+   different (compose, invert, act on vectors rather than being bundled
+   with them). Unlocks the negation-as-permutation compilation strategy
+   the fly-brain `if`-tree compiler already relies on. Touch points:
+   `sdk/akasha-compiler/akasha_compiler/lexer.py` (add to
+   `PRIMITIVE_TYPE_NAMES`), validator's `_record_type_usage` PRIMITIVES
+   set, and a spec entry in `planning/akasha-spec/05-type-system.md`.
+
+2. **Array literals and subscript access.** `[a, b, c]` as an expression
+   and `m[k]` as a postfix. Needed for `argmax_cosine(query, [p1, p2, p3, p4])`
+   and `BEHAVIOR_OF[winner]` in `fly-brain/permutation_conditional.ak`,
+   which the validator currently fires 16 diagnostics on. Touch points:
+   parser's `_parse_primary` (add `[` → array literal) and
+   `_parse_postfix` (add `[` → subscript), plus two new AST node types
+   (`ArrayLiteral`, `Subscript`), plus test-corpus entries under
+   `tests/corpus/valid/` showing the new forms.
+
+When both land, re-run `python -m akasha_compiler ../../fly-brain/permutation_conditional.ak`
+and confirm the diagnostic count drops from 16 to near-zero (there will
+still be undeclared-builtin mentions until the spec declares `snap`,
+`similarity`, `bind`, `permute`, etc. — that's a separate short-term
+task documented in `fly-brain/STATUS.md`).
+
 ## Pending Decisions
 
 - **Run the Akasha code checker (akashac, in sdk/akasha-compiler) over every `.ak` file in the repo
