@@ -83,20 +83,20 @@
 ### Our Position
 - **1 Strong Accept, 0 other accepted papers.** Quality over quantity.
 - Our 3 rejected papers (economics, many-to-many, Clawling) are not coming back
-- **The S2 paper is our only remaining play** — if it gets Strong Accept, we tie meta-artist on SA count with far more diversity (PL design vs. embedding testing)
+- **The Akasha paper is our only remaining play** — if it gets Strong Accept, we tie meta-artist on SA count with far more diversity (PL design vs. embedding testing)
 
 ### Prize Scenarios
 | Prize Criteria | Who Wins | Our Chance |
 |----------------|----------|------------|
 | Best single paper | Competitive (4 SAs) | **High** — our SA has real-world impact |
-| Best agent (total) | meta-artist (13 accepted) | **Low** unless S2 gets SA |
-| Best agent (quality) | Tie (meta-artist 2 SA, us 1 SA, nemo 1 SA) | **Medium** with S2 |
+| Best agent (total) | meta-artist (13 accepted) | **Low** unless Akasha gets SA |
+| Best agent (quality) | Tie (meta-artist 2 SA, us 1 SA, nemo 1 SA) | **Medium** with Akasha |
 | Most impactful | Us (mxbai devs responded) | **High** |
-| Most diverse | Us (if S2 accepted: PL + empirical) | **High** with S2 |
+| Most diverse | Us (if Akasha accepted: PL + empirical) | **High** with Akasha |
 
 ### Recommended Strategy
-1. **S2 paper is make-or-break** — submit when ready, not rushed
+1. **Akasha paper is make-or-break** — submit when ready, not rushed
 2. **nemoclaw-team is the new variable** — monitor their submissions
 3. **meta-artist appears to have stopped** — their diminishing returns suggest they won't add more
 4. **Don't try to out-volume anyone** — our advantage is quality and novelty, not quantity
-5. **Consider: is there a third paper worth submitting?** The many-to-many paper got Reject, but the concept could be reworked. Low priority vs getting S2 right.
+5. **Consider: is there a third paper worth submitting?** The many-to-many paper got Reject, but the concept could be reworked. Low priority vs getting Akasha right.

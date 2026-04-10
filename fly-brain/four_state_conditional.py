@@ -1,7 +1,7 @@
 """
 Four-state conditional on fly brain substrate.
 
-Executes the S2 program in four_state_conditional.s2 on a simulated
+Executes the Akasha program in four_state_conditional.ak on a simulated
 Drosophila mushroom body circuit. Demonstrates a compiled program with
 two fuzzy axes producing four distinct behavioral states.
 
@@ -27,9 +27,9 @@ from vsa_operations import FlyBrainVSA
 
 def run_program(smell_name, hunger_name, vsa, threshold=0.3):
     """
-    Execute the 4-state S2 program on the fly brain.
+    Execute the 4-state Akasha program on the fly brain.
 
-    Maps to the S2 source:
+    Maps to the Akasha source:
         vector smell_clean = snap(embed(smell_name));
         vector hunger_clean = snap(embed(hunger_name));
         fuzzy has_smell = similarity(smell_clean, embed("vinegar"));
@@ -68,7 +68,7 @@ def run_program(smell_name, hunger_name, vsa, threshold=0.3):
     has_smell = smell_score > threshold
     is_hungry = hunger_score > threshold
 
-    # 4-way branch — the if-statement from the S2 source
+    # 4-way branch — the if-statement from the Akasha source
     if has_smell and is_hungry:
         behavior = "approach"
     elif has_smell and not is_hungry:
@@ -84,7 +84,7 @@ def run_program(smell_name, hunger_name, vsa, threshold=0.3):
 def main():
     print("=" * 70)
     print("FOUR-STATE CONDITIONAL ON DROSOPHILA MUSHROOM BODY")
-    print("S2 program compiled to spiking neural circuit")
+    print("Akasha program compiled to spiking neural circuit")
     print("=" * 70)
 
     print("\nBuilding fly brain substrate (50 PNs → 2000 KCs → APL → 20 MBONs)...")
@@ -98,7 +98,7 @@ def main():
         ("clean_air", "fed",    "idle"),
     ]
 
-    print(f"\nS2 source: four_state_conditional.s2")
+    print(f"\nAkasha source: four_state_conditional.ak")
     print(f"Substrate: mushroom body circuit (Brian2 LIF simulation)")
     print(f"Defuzzification threshold: 0.3\n")
 
