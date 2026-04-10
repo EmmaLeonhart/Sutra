@@ -156,6 +156,12 @@ KEYWORDS = {
 # operations on it (compose, invert, act on a vector) are different
 # from the operations on a plain vector. The fly-brain compile-to-brain
 # strategy relies on this distinction — see `fly-brain/STATUS.md`.
+#
+# `map` is a built-in generic collection type, written as
+# `map<K, V>` in type position. It's listed here so the validator
+# doesn't flag it as a user-defined class name subject to
+# casing-drift checks, and so that the spec treats it as a primitive
+# container alongside `tuple`.
 PRIMITIVE_TYPE_NAMES = {
     "scalar",
     "vector",
@@ -166,6 +172,7 @@ PRIMITIVE_TYPE_NAMES = {
     "fuzzy",
     "void",
     "permutation",
+    "map",
 }
 
 # Contextual keywords: identifiers with special meaning in expressions
