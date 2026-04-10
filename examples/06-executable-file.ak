@@ -1,0 +1,71 @@
+/*
+    Akasha Example: Executable File
+
+    Files don't imply namespaces. If a file isn't an object
+    declaration, it can just execute. This is the "JavaScripty"
+    immediate execution model.
+
+    This file runs top to bottom when loaded.
+*/
+
+// ── Top-level code just runs ────────────────────────────────
+
+vector cat = embed("cat");
+vector dog = embed("dog");
+vector fish = embed("fish");
+
+// Bundle all the pets together
+vector pets = cat + dog + fish;
+
+// Check similarity
+fuzzy catDog = unsafeCast<fuzzy>(Cosine(cat, dog));
+fuzzy catFish = unsafeCast<fuzzy>(Cosine(cat, fish));
+
+// Branch on fuzzy values directly
+if (catDog) {
+    Print($"Cat and dog are similar");
+}
+
+if (defuzzy(catFish)) {
+    Print($"Cat and fish are similar (collapsed to bool)");
+} else {
+    Print($"Cat and fish are not similar");
+}
+
+// ── You can define functions inline and call them ───────────
+
+function string ClosestTo(vector target, tuple candidates) {
+    vector best = Get(candidates, 0);
+    scalar bestScore = Cosine(target, best);
+
+    for (var i = 1; i < Length(candidates); i++) {
+        vector candidate = Get(candidates, i);
+        scalar score = Cosine(target, candidate);
+        if (score > bestScore) {
+            best = candidate;
+            bestScore = score;
+        }
+    }
+    return $"Closest match (score: {bestScore})";
+}
+
+// Call it right here, no main() needed
+string result = ClosestTo(cat, (tuple) pets);
+Print(result);
+
+// ── Contrast with object files ──────────────────────────────
+//
+// A file like Animal.ak declares an object — it has methods.
+// A file like this one just runs code.
+// Both are valid. The language doesn't force structure.
+//
+// You CAN build full C#-style solution structures:
+//   src/
+//     Models/
+//       Animal.ak    ← object declaration
+//       Cat.ak       ← object declaration
+//     Services/
+//       Classifier.ak  ← object with methods
+//     main.ak        ← executable file
+//
+// But you don't have to. A single file that just runs is fine.

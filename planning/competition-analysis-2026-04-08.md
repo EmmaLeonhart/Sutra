@@ -10,9 +10,9 @@
 
 ## Our Position
 - **Post 859** (FOL paper): **Strong Accept** — holds, unchanged
-- **S2 paper:** Not yet submitted — draft complete, targeting submission ~April 12
-- If the S2 paper gets Strong Accept, we'd have **2 Strong Accepts**, tying meta-artist
-- If the S2 paper gets Accept or better, we'd have the most diverse portfolio (PL design + empirical defect discovery)
+- **Akasha paper:** Not yet submitted — draft complete, targeting submission ~April 12
+- If the Akasha paper gets Strong Accept, we'd have **2 Strong Accepts**, tying meta-artist
+- If the Akasha paper gets Accept or better, we'd have the most diverse portfolio (PL design + empirical defect discovery)
 
 ## Strong Accept Tier (3 papers, 2 agents — unchanged)
 
@@ -63,18 +63,18 @@
 | 4 | Ted | 0 | 1 | 0 | 1 |
 | 5 | CutieTiger | 0 | 1 | 0 | 1 |
 
-## Competitive Assessment for S2 Paper
+## Competitive Assessment for Akasha Paper
 
 ### Our Strengths
 1. **Only agent with a Strong Accept AND real-world impact** — mxbai devs responding to our defect
-2. **S2 occupies an empty niche** — no other paper at the conference is about programming language design for embedding spaces
-3. **Two different contributions** — FOL (empirical discovery) + S2 (language design). meta-artist has volume but all in one niche (embedding model testing)
+2. **Akasha occupies an empty niche** — no other paper at the conference is about programming language design for embedding spaces
+3. **Two different contributions** — FOL (empirical discovery) + Akasha (language design). meta-artist has volume but all in one niche (embedding model testing)
 4. **The headline** — "AI-designed programming language" is a genuinely novel angle no one else has
 
 ### Our Risks
 1. **meta-artist has volume** — 15 accepted papers across cs, stat, q-bio. They could win on total count even if our individual papers are stronger
-2. **S2 is theoretical** — no implementation, no benchmarks. The reviewer may penalize this
-3. **One agent, two papers** — if the S2 paper gets Weak Accept or below, it doesn't help much
+2. **Akasha is theoretical** — no implementation, no benchmarks. The reviewer may penalize this
+3. **One agent, two papers** — if the Akasha paper gets Weak Accept or below, it doesn't help much
 4. **Prize criteria unclear** — is it best single paper? Best agent? Most impact? Volume?
 
 ### meta-artist Threat Analysis
@@ -84,9 +84,9 @@
 - Their two Strong Accepts are strong: "When Cosine Similarity Lies" is a legitimate contribution and "Sepsis Signatures" is cross-disciplinary
 
 ### Recommended Strategy
-1. **Submit S2 paper by April 12** — get first AI review, iterate
-2. **Position S2 as fundamentally different from everything else at the conference** — not another embedding test, not another benchmark, but a new computational paradigm
+1. **Submit Akasha paper by April 12** — get first AI review, iterate
+2. **Position Akasha as fundamentally different from everything else at the conference** — not another embedding test, not another benchmark, but a new computational paradigm
 3. **Cite our own FOL paper** — creates a coherent two-paper narrative (discover structure → program in it)
-4. **If prize is per-paper:** Our Strong Accept FOL paper is competitive. S2 needs Accept or better.
-5. **If prize is per-agent:** We need S2 to get accepted to show breadth. meta-artist's volume is the threat.
-6. **If prize is most impactful:** FOL paper wins on real-world impact (mxbai defect). S2 wins on novelty.
+4. **If prize is per-paper:** Our Strong Accept FOL paper is competitive. Akasha needs Accept or better.
+5. **If prize is per-agent:** We need Akasha to get accepted to show breadth. meta-artist's volume is the threat.
+6. **If prize is most impactful:** FOL paper wins on real-world impact (mxbai defect). Akasha wins on novelty.
