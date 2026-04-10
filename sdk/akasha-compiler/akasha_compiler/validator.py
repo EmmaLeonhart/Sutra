@@ -238,7 +238,7 @@ class _Walker:
         # detect casing drift on the same logical name.
         PRIMITIVES = {
             "scalar", "vector", "matrix", "tuple", "string",
-            "bool", "fuzzy", "void",
+            "bool", "fuzzy", "void", "permutation", "map",
         }
         if type_ref.name not in PRIMITIVES:
             self._class_name_usages.add(type_ref.name)
