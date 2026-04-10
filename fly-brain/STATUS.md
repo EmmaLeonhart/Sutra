@@ -227,10 +227,13 @@ Two conclusions fall out of this:
 
 ## What needs to happen next
 
-### Short term — spec and validator (1 session of focused work)
+### Short term — spec and validator
 
-Goal: make `permutation_conditional.ak` parse and validate cleanly
-against the formal grammar.
+**Goal achieved.** `permutation_conditional.ak` now parses and
+validates cleanly against the formal grammar — the validator reports
+0 diagnostics on it (down from 46 when this section was first
+written). The three substrate-language gaps documented in the
+"language-spec gap" table above are all closed.
 
 1. ~~**Add `permutation` as a primitive type.**~~ **Done.** Added to
    `PRIMITIVE_TYPE_NAMES` in the lexer, the parser's `_PRIMITIVE_TYPES`,
@@ -240,14 +243,16 @@ against the formal grammar.
    own type even though they're sign-flip masks at the substrate
    level. Test corpus:
    `sdk/akasha-compiler/tests/corpus/valid/21_permutation_type.ak`.
-2. **Specify map types and map literals.** `map<K, V>` as a type,
-   `{k: v, ...}` as a literal. (`m[k]` subscript access already
-   landed, see step 3.) Decide whether keys can be vectors (they have
-   to be for `permutation_conditional.ak` to work — the keys are
-   prototype vectors) and whether the lookup is exact-match or
-   cosine-nearest. **Still outstanding: this is all 25 of the
-   remaining diagnostics on `permutation_conditional.ak`, all on lines
-   60–65.**
+2. ~~**Specify map types and map literals.**~~ **Done.** `map<K, V>`
+   is a primitive generic type; the inline literal `{k1: v1, ...}`
+   parses as a `MapLiteral` expression in expression position; empty
+   `{}` is legal; a bare `{ ... }` at statement position is still
+   always a block (disambiguation by syntactic position, matching
+   C-family languages). Vector-valued keys work, which is what the
+   prototype table needs. The lookup semantics for vector keys
+   (exact-match vs. cosine-nearest) are documented in the spec as an
+   open question tracked in `17-open-questions.md`. Test corpus:
+   `sdk/akasha-compiler/tests/corpus/valid/24_map_literal.ak`.
 3. ~~**Specify array/tuple literals.**~~ **Done** for array literals
    and for postfix subscript access. `[a, b, c]` parses as an
    `ArrayLiteral` expression (empty `[]` is legal), and `target[index]`
@@ -255,6 +260,13 @@ against the formal grammar.
    `sdk/akasha-compiler/tests/corpus/valid/22_array_literal.ak` and
    `.../23_subscript_access.ak`; parser unit tests added to
    `sdk/akasha-compiler/tests/test_parser.py`.
+
+Steps 4–6 of the original short-term plan (declare the VSA builtins,
+add parser/validator support, regression test) are partially
+complete: the parser/validator support landed as part of steps 1–3,
+the regression test passes (0 diagnostics), and the only remaining
+work is formally declaring the builtin signatures in
+`planning/akasha-spec/`. That's now the next thing in `todo.md`.
 4. **Declare the VSA builtins in the spec.** `snap`, `similarity`,
    `bind`, `unbind`, `bundle`, `permute`, `basis_vector`,
    `permutation_key`, `identity_permutation`, `argmax_cosine`. Give
