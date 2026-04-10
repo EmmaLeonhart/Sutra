@@ -27,7 +27,7 @@ An MCP server is a core part of the language runtime, not an add-on. It tells AI
 ### Prior Work (FOL Discovery)
 The embedding-mapping FOL discovery work provides the empirical foundation for Akasha. See `planning/akasha-pivot.md` for the full design document. Key results that validate the approach are in the "Key Results" section below.
 
-## CRITICAL: Paper Editing Rules (applies to public-fol-discovery/paper.md)
+## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md and akasha-paper/paper.md)
 - **NEVER rewrite large sections of the paper at once.** One sentence, one paragraph, one table at a time.
 - **ALWAYS show the diff to the user and wait for approval before committing.**
 - **NEVER push without explicit user approval.** Every push triggers a clawRxiv submission.
@@ -46,22 +46,19 @@ The embedding-mapping FOL discovery work provides the empirical foundation for A
 - **Storage:** Flat files (items.json, embeddings.npz, embedding_index.json) + optional SutraDB
 - **Planning docs:** `planning/` directory for design decisions and roadmap
 
-## Two-Paper Structure (Claw4S 2026)
-This repo supports two papers for Claw4S Conference 2026 (deadline April 5, 2026):
-- **Paper 1: FOL Discovery** (CS) — `papers/fol-discovery/paper.md`
-- **Paper 2: AI Investment Bubble** (Economics) — `papers/economics/paper.md`
-- **Strategic context:** `planning/strategic-discussion.md`
-- **Paper overview:** `papers/README.md`
+## Repo Structure
+- **`VSA-paper/`** — FOL discovery / VSA paper (the empirical foundation)
+- **`akasha-paper/`** — Akasha language paper (substrate-comparison experiments)
+- **`planning/akasha-spec/`** — Akasha language specification
+- **`planning/akasha-pivot.md`** — Full pivot design document
+- **`examples/`** — `.ak` example programs
+- **`fly-brain/`** — Akasha running on a literal Drosophila connectome substrate
 
-Both papers share: agent-driven methodology, quantitative falsifiability, replicability by AI reviewers.
-
-## Key Scripts (all in `papers/fol-discovery/scripts/`)
+## Key Scripts (in `VSA-paper/scripts/`)
 - `random_walk.py` — BFS through Wikidata, imports entities and computes trajectories
 - `import_wikidata.py` — Core import logic (fetch, embed, store, trajectories)
 - `fol_discovery.py` — **Main analysis:** discovers FOL operations, evaluates prediction, tests composition
 - `analyze_collisions.py` — Collision detection, density analysis, regime classification
-- `probe.py` — Interactive embedding space exploration
-- `sutra_client.py` + `import_to_sutra.py` — SutraDB integration
 
 ## Key Results (FOL Discovery, current dataset)
 - 41,725 embeddings from 14,796 entities (500 fully imported via BFS from Engishiki Q1342448)
@@ -71,15 +68,6 @@ Both papers share: agent-driven methodology, quantitative falsifiability, replic
 - Two-hop composition: 28.3% Hits@10 on 5,000 tests
 - 164,084 cross-entity embedding collisions at cosine ≥ 0.95
 
-## Data Files (in papers/fol-discovery/data/)
-All regenerable from Wikidata + Ollama. Gitignored except properties.json and property_templates.json.
-- `items.json` — Imported entities with all triples
-- `embeddings.npz` — Numpy array of embedding vectors (float64, 1024-dim)
-- `embedding_index.json` — Maps vector index → (qid, text, type)
-- `walk_state.json` — BFS queue state (resumable)
-- `fol_results.json` — FOL discovery output
-- `analysis_results.json` — Collision/density output
-
 ## Development Philosophy
 - **Discovery, not construction.** We don't build spaces for logic. We find logic in existing spaces.
 - **Trajectories are first-class objects.** Each trajectory has its own RDF identity with subject, object, predicate, and distance metrics.
@@ -88,6 +76,6 @@ All regenerable from Wikidata + Ollama. Gitignored except properties.json and pr
 
 ## Submission Target
 Claw4S Conference 2026 (deadline April 5, 2026)
-- FOL paper: `papers/fol-discovery/paper.md` + `papers/fol-discovery/SKILL.md`
-- Economics paper: `papers/economics/paper.md`
+- VSA paper: `VSA-paper/paper.md` + `VSA-paper/SKILL.md`
+- Akasha paper: `akasha-paper/paper.md`
 - Publish to clawRxiv (http://18.118.210.52)
