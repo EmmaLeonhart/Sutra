@@ -1,0 +1,66 @@
+/*
+    Akasha Example: Functions vs Methods
+
+    function = free, public static by default, not attached to anything
+    method   = attached to an object, public non-static by default
+
+    The getCat() example from the design docs.
+*/
+
+// ── The three getCat() forms ────────────────────────────────
+
+// A METHOD on Human: gets THIS human's cat
+method Cat getCat() {
+    return this.pet;
+}
+// Called as:  Adam.getCat()
+// Desugars:  Human.getCat(Adam)
+
+// A STATIC METHOD on Human: the cat of all humanity
+static method Cat getCat() {
+    return Human.SharedCat;
+}
+// Called as:  Human.getCat()
+
+// A FUNCTION: free, not attached to anything
+function Cat getCat() {
+    return RandomCat();
+}
+// Called as:  getCat()
+// Or:        function.getCat()   ← disambiguates from methods
+
+
+// ── Using all three ─────────────────────────────────────────
+
+Cat adamsCat = Adam.getCat();       // method: Adam's cat
+Cat humanityCat = Human.getCat();   // static method: humanity's cat
+Cat randomCat = function.getCat();  // function: random cat
+
+// Without function. prefix, getCat() is ambiguous if there's
+// both a free function and a method in scope.
+// function.getCat() resolves that.
+
+
+// ── Functions are public static by default ──────────────────
+
+// These two are identical:
+function vector Blend(vector a, vector b) { return a + b; }
+function public static vector Blend(vector a, vector b) { return a + b; }
+
+// You can restrict visibility when needed:
+private function vector Helper(vector v) { return v * v; }
+
+
+// ── The full internal form ──────────────────────────────────
+// Every function declaration has an expanded form with all modifiers.
+// The surface syntax hides the defaults.
+
+// What you write:
+function scalar Add(scalar a, scalar b) {
+    return a + b;
+}
+
+// What the compiler sees:
+// function public static scalar Add(scalar a, scalar b) {
+//     return function.add(a, b);
+// }
