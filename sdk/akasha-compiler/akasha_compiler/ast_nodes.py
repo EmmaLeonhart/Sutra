@@ -166,6 +166,49 @@ class Parenthesized(Expr):
     inner: Expr
 
 
+@dataclass
+class ArrayLiteral(Expr):
+    """`[a, b, c]` — an inline sequence of expressions.
+
+    Used for argmax-cosine calls and similar list-of-vectors operands.
+    The element type is inferred at use — the AST node just carries
+    the raw element expressions.
+    """
+
+    elements: List[Expr] = field(default_factory=list)
+
+
+@dataclass
+class Subscript(Expr):
+    """`target[index]` — postfix subscript access.
+
+    Used for map lookups (`BEHAVIOR_OF[winner]`) and future array
+    indexing. Whether the lookup is exact-match, cosine-nearest, or
+    integer indexing is a runtime concern of the target type.
+    """
+
+    target: Expr
+    index: Expr
+
+
+@dataclass
+class MapLiteral(Expr):
+    """`{k1: v1, k2: v2, ...}` — an inline map literal.
+
+    Keys and values are stored as parallel lists so the generic
+    AST walker in the validator visits every child expression. An
+    empty map literal `{}` has both lists empty.
+
+    Map literals only appear in expression position (after `=`,
+    `return`, as a function argument, etc.). A bare `{...}` at
+    statement position is always a block — writing a map literal
+    there requires wrapping it in a declaration or call.
+    """
+
+    keys: List[Expr] = field(default_factory=list)
+    values: List[Expr] = field(default_factory=list)
+
+
 # ============================================================
 # Statements
 # ============================================================
