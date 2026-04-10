@@ -1,0 +1,28 @@
+// Akasha corpus test: `permutation` as a primitive type.
+// Permutations are fixed sign-flip masks over vectors. They compose,
+// invert, and act on vectors rather than being bundled with them —
+// which is why they deserve a distinct compile-time type even though
+// at the substrate level they're just ±1-valued vectors.
+//
+// This file exercises permutations in every position where a primitive
+// type name is accepted: top-level var decl, local var decl, function
+// parameter, and function return type.
+
+permutation NOT_SMELL  = permutation_key("NOT_SMELL");
+permutation NOT_HUNGER = permutation_key("NOT_HUNGER");
+permutation IDENTITY   = identity_permutation();
+
+function permutation ComposeBoth(permutation a, permutation b) {
+    // Permutations compose; the compose call is a builtin the runtime
+    // supplies. The validator only checks the type annotations here.
+    return compose(a, b);
+}
+
+function vector ApplyTwo(vector v, permutation px, permutation py) {
+    // Apply two permutations in sequence. Because the ±1 sign-flip
+    // permutations used for negation-as-permutation are involutive,
+    // applying each of px and py twice would recover v.
+    vector once = permute(px, v);
+    vector twice = permute(py, once);
+    return twice;
+}
