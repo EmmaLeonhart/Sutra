@@ -1,0 +1,219 @@
+"""Command-line entry point for the Akasha compiler/validator.
+
+Usage:
+
+    python -m akasha_compiler FILE [FILE ...]
+    python -m akasha_compiler --json FILE
+    python -m akasha_compiler --summary DIR_OR_FILE [...]
+
+The CLI lexes, parses, and validates each `.ak` file and prints any
+diagnostics in `file:line:col: level: message` form — the same shape
+every major compiler and every editor knows how to parse.
+
+Exit code is 0 if no errors were reported, 1 otherwise.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from typing import List
+
+from . import __version__
+from . import ast_nodes as ast
+from .diagnostics import Diagnostic, DiagnosticLevel
+from .lexer import Lexer
+from .parser import Parser
+from .validator import validate_file, _Walker, _check_pipe_forward
+
+
+def _iter_akasha_files(paths: List[str]) -> List[str]:
+    """Expand a list of files/directories into a flat list of `.ak`
+    files. Non-existent paths are left to the caller to report."""
+    out: List[str] = []
+    for p in paths:
+        if os.path.isdir(p):
+            for root, _, files in os.walk(p):
+                for f in sorted(files):
+                    if f.endswith(".ak"):
+                        out.append(os.path.join(root, f))
+        else:
+            out.append(p)
+    return out
+
+
+def _diag_to_dict(d: Diagnostic) -> dict:
+    return {
+        "file": d.file,
+        "line": d.span.start.line,
+        "column": d.span.start.column,
+        "end_line": d.span.end.line,
+        "end_column": d.span.end.column,
+        "level": d.level.value,
+        "code": d.code,
+        "message": d.message,
+        "hint": d.hint,
+    }
+
+
+def _run_text(paths: List[str], *, summary: bool) -> int:
+    files = _iter_akasha_files(paths)
+    total_errors = 0
+    total_warnings = 0
+    per_file = []
+    for f in files:
+        if not os.path.exists(f):
+            print(f"{f}: error: file not found", file=sys.stderr)
+            total_errors += 1
+            continue
+        bag = validate_file(f)
+        n_err = len(bag.errors)
+        n_warn = len(bag.warnings)
+        total_errors += n_err
+        total_warnings += n_warn
+        per_file.append((f, n_err, n_warn))
+        if not summary:
+            for d in bag:
+                print(d.format())
+    if summary:
+        width = max((len(f) for f, _, _ in per_file), default=0)
+        print(f"{'file'.ljust(width)}  errors  warnings")
+        print("-" * (width + 20))
+        for f, e, w in per_file:
+            print(f"{f.ljust(width)}  {e:6d}  {w:8d}")
+        print("-" * (width + 20))
+        print(f"{'total'.ljust(width)}  {total_errors:6d}  {total_warnings:8d}")
+    else:
+        if total_errors == 0 and total_warnings == 0:
+            print(f"ok: {len(files)} file(s) validated, 0 diagnostics")
+        else:
+            print(
+                f"done: {len(files)} file(s) validated, "
+                f"{total_errors} error(s), {total_warnings} warning(s)"
+            )
+    return 1 if total_errors else 0
+
+
+def _run_json(paths: List[str]) -> int:
+    files = _iter_akasha_files(paths)
+    out = []
+    total_errors = 0
+    for f in files:
+        entry = {"file": f, "diagnostics": []}
+        if not os.path.exists(f):
+            entry["diagnostics"].append(
+                {
+                    "file": f,
+                    "line": 1,
+                    "column": 1,
+                    "end_line": 1,
+                    "end_column": 1,
+                    "level": "error",
+                    "code": "AKA9999",
+                    "message": "file not found",
+                    "hint": None,
+                }
+            )
+            total_errors += 1
+            out.append(entry)
+            continue
+        bag = validate_file(f)
+        for d in bag:
+            entry["diagnostics"].append(_diag_to_dict(d))
+        total_errors += len(bag.errors)
+        out.append(entry)
+    json.dump({"files": out, "version": __version__}, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 1 if total_errors else 0
+
+
+def _run_consistency(paths: List[str]) -> int:
+    """Cross-file class-name casing check.
+
+    For each non-primitive type name that appears across the file set,
+    report every distinct casing and the files it appears in. This
+    flags drift like `animal` vs `Animal` across the repo.
+    """
+    files = _iter_akasha_files(paths)
+    # name_lower -> { casing -> set of files }
+    usages: dict = {}
+    for f in files:
+        if not os.path.exists(f):
+            print(f"{f}: error: file not found", file=sys.stderr)
+            continue
+        with open(f, encoding="utf-8") as fp:
+            src = fp.read()
+        lexer = Lexer(src, file=f)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, file=f, diagnostics=lexer.diagnostics)
+        module = parser.parse_module()
+        walker = _Walker(lexer.diagnostics)
+        # Walk just the declarations to collect type-name usages.
+        for item in module.items:
+            walker.visit(item)
+        for name in walker._class_name_usages:
+            entry = usages.setdefault(name.lower(), {})
+            entry.setdefault(name, set()).add(f)
+
+    drift_count = 0
+    print("Cross-file class-name casing check")
+    print("=" * 60)
+    for lower_name, casings in sorted(usages.items()):
+        if len(casings) < 2:
+            continue
+        drift_count += 1
+        print(f"\n  DRIFT: {lower_name} appears in {len(casings)} casings")
+        for casing in sorted(casings.keys()):
+            file_list = sorted(casings[casing])
+            print(f"    `{casing}`")
+            for f in file_list:
+                print(f"       {f}")
+    if drift_count == 0:
+        print("\n  no cross-file casing drift detected")
+    else:
+        print(f"\n{drift_count} class name(s) with casing drift across the file set")
+    return 1 if drift_count else 0
+
+
+def main(argv: List[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="akashac",
+        description="Validate Akasha (.ak) source files.",
+    )
+    parser.add_argument(
+        "paths",
+        nargs="+",
+        help="Files or directories to validate. Directories are walked recursively.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable diagnostics as JSON. For editors and language servers.",
+    )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Print a per-file summary table instead of individual diagnostics.",
+    )
+    parser.add_argument(
+        "--consistency",
+        action="store_true",
+        help="Cross-file check: report class names that appear in multiple casings across the file set.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"akashac {__version__}",
+    )
+    args = parser.parse_args(argv)
+    if args.json:
+        return _run_json(args.paths)
+    if args.consistency:
+        return _run_consistency(args.paths)
+    return _run_text(args.paths, summary=args.summary)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
