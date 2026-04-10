@@ -1,31 +1,37 @@
 # Akasha TODO
 
-## Next up — declare the VSA builtins in the spec
+## Next up — AST → FlyBrainVSA compilation path
 
-`fly-brain/permutation_conditional.ak` now parses and validates with
-zero diagnostics. The SDK validator is no longer the blocker on the
-fly-brain work. The next piece that would meaningfully move things
-forward is formalizing the VSA builtin signatures in the spec:
+`fly-brain/permutation_conditional.ak` parses and validates with zero
+diagnostics, and the VSA builtins are now formally declared in
+`planning/akasha-spec/21-builtins.md`. The SDK validator is no longer
+the blocker on the fly-brain work. The next piece that would
+meaningfully move things forward is the compilation path from parsed
+`.ak` source to fly-brain runtime calls:
 
-1. **Declare the VSA builtins.** `snap`, `similarity`, `bind`,
-   `unbind`, `bundle`, `permute`, `basis_vector`, `permutation_key`,
-   `identity_permutation`, `argmax_cosine`, `compose`. Give each a
-   signature in terms of existing primitives (`scalar`, `vector`,
-   `permutation`, `fuzzy`). Update `planning/akasha-spec/` —
-   probably a new file `21-builtins.md` or an expansion of
-   `02-operations.md`. Right now the validator is permissive about
-   these — any bareword call is allowed — but once name resolution
-   lands in v0.2, undeclared builtins will start firing diagnostics.
-   Declaring them now heads off a diagnostic avalanche later.
-
-2. **Compilation path: translator from AST to `FlyBrainVSA` calls.**
+1. **Compilation path: translator from AST to `FlyBrainVSA` calls.**
    See the medium-term plan in `fly-brain/STATUS.md`. Walk the AST of
    an `.ak` file and emit Python that constructs vectors, builds the
    prototype table, and runs the decide function. This replaces the
    hand-written `permutation_conditional.py` with compiler output.
+   Staging split: `vector proto_PH = snap(bind(...));` lines run at
+   compile time; the `decide()` function body is runtime. Fixed-frame
+   enforcement should become a compile-time guarantee as part of this.
 
 ## Recently done
 
+- **VSA builtins declared in the spec.** New file
+  `planning/akasha-spec/21-builtins.md` gives formal signatures for
+  every implicit-global VSA function used in the repo's `.ak` code:
+  `bind`, `unbind`, `bundle`, `similarity`, `permute`, `compose`,
+  `basis_vector`, `permutation_key`, `identity_permutation`, `snap`,
+  `argmax_cosine`. Each entry has a signature, semantic description,
+  substrate notes (which tier from `02-operations.md` it belongs to,
+  whether it runs on the mushroom body or in numpy), and cross-refs
+  to the operational prose in `02-operations.md` and the type
+  definitions in `05-type-system.md`. Linked from the spec README.
+  This heads off the diagnostic avalanche that would otherwise hit
+  when v0.2 name resolution lands.
 - **Map types and map literals.** `map<K, V>` is now a primitive
   generic type. The inline literal `{k1: v1, k2: v2, ...}` parses as
   a `MapLiteral` expression in expression position; empty `{}` is
