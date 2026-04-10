@@ -1,0 +1,251 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Akasha",
+  "scopeName": "source.akasha",
+  "fileTypes": ["ak"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#builtins" },
+    { "include": "#declarations" },
+    { "include": "#constants" },
+    { "include": "#numbers" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.documentation.akasha",
+          "match": "///.*$"
+        },
+        {
+          "name": "comment.line.double-slash.akasha",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.line.number-sign.akasha",
+          "match": "#.*$"
+        },
+        {
+          "name": "comment.block.akasha",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": {
+            "0": { "name": "punctuation.definition.comment.akasha" }
+          }
+        }
+      ]
+    },
+
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.interpolated.akasha",
+          "begin": "\\$\"",
+          "end": "\"",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.akasha" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.akasha" }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.akasha",
+              "match": "\\\\."
+            },
+            {
+              "name": "meta.interpolation.akasha",
+              "begin": "\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": { "name": "punctuation.section.embedded.begin.akasha" }
+              },
+              "endCaptures": {
+                "0": { "name": "punctuation.section.embedded.end.akasha" }
+              },
+              "patterns": [
+                { "include": "#keywords" },
+                { "include": "#types" },
+                { "include": "#builtins" },
+                { "include": "#numbers" },
+                { "include": "#operators" },
+                { "include": "#strings" },
+                { "include": "#identifiers" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.akasha",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.akasha",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.akasha",
+          "match": "\\b(if|else|while|for|foreach|in|do|return|try|catch|break|continue)\\b"
+        },
+        {
+          "name": "keyword.declaration.akasha",
+          "match": "\\b(function|method|operator|var|const|static|public|private|implicit)\\b"
+        },
+        {
+          "name": "variable.language.this.akasha",
+          "match": "\\bthis\\b"
+        },
+        {
+          "name": "storage.modifier.akasha",
+          "match": "\\b(new)\\b"
+        }
+      ]
+    },
+
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.akasha",
+          "match": "\\b(scalar|vector|matrix|tuple|string|bool|fuzzy|void)\\b"
+        },
+        {
+          "name": "entity.name.type.akasha",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.akasha",
+          "match": "\\b(embed|defuzzy|unsafeCast|unsafeOverride|snap|similarity|Bundle|Bind|Cosine|Normalize|Blend)\\b"
+        },
+        {
+          "name": "keyword.other.function-prefix.akasha",
+          "match": "\\bfunction\\s*\\.",
+          "captures": {
+            "0": { "name": "keyword.other.function-prefix.akasha" }
+          }
+        }
+      ]
+    },
+
+    "declarations": {
+      "patterns": [
+        {
+          "comment": "function declaration: function <mods>? <type> <name>(",
+          "match": "\\b(function)\\s+(?:public\\s+|private\\s+|static\\s+)*([A-Za-z_][A-Za-z0-9_]*)(?:\\s*<[^>]+>)?\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=[<(])",
+          "captures": {
+            "1": { "name": "keyword.declaration.akasha" },
+            "2": { "name": "support.type.akasha" },
+            "3": { "name": "entity.name.function.akasha" }
+          }
+        },
+        {
+          "comment": "method declaration: method <type> <name>(",
+          "match": "\\b(method)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s*<[^>]+>)?\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=[<(])",
+          "captures": {
+            "1": { "name": "keyword.declaration.akasha" },
+            "2": { "name": "support.type.akasha" },
+            "3": { "name": "entity.name.function.akasha" }
+          }
+        },
+        {
+          "comment": "function call",
+          "match": "([A-Za-z_][A-Za-z0-9_]*)\\s*(?=<[^>]+>\\s*\\(|\\()",
+          "captures": {
+            "1": { "name": "entity.name.function.akasha" }
+          }
+        }
+      ]
+    },
+
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.akasha",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.decimal.akasha",
+          "match": "\\b[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.akasha",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.comparison.akasha",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.akasha",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.assignment.akasha",
+          "match": "=|\\+=|-=|\\*=|/="
+        },
+        {
+          "name": "keyword.operator.arithmetic.akasha",
+          "match": "\\+\\+|--|\\+|-|\\*|/|%"
+        },
+        {
+          "name": "invalid.illegal.pipe-forward.akasha",
+          "match": "\\|>"
+        }
+      ]
+    },
+
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.comma.akasha",
+          "match": ","
+        },
+        {
+          "name": "punctuation.terminator.statement.akasha",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.accessor.akasha",
+          "match": "\\."
+        }
+      ]
+    },
+
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.akasha",
+          "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}
