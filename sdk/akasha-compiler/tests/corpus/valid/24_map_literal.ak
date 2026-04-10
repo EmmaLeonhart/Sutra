@@ -1,0 +1,58 @@
+// Akasha corpus test: `map<K, V>` types and `{k: v, ...}` literals.
+// Map types are a primitive generic container. Values are assigned
+// with inline map literals; lookup uses the postfix subscript
+// (covered in 23_subscript_access.ak). This file exercises the
+// declaration-and-construction side.
+//
+// Exercises:
+//   - `map<K, V>` type in a top-level declaration
+//   - `map<K, V>` type in a local var decl
+//   - empty map literal `{}`
+//   - single-entry map literal
+//   - multi-entry map literal with mixed key/value shapes
+//   - map literal as a function argument
+//   - vector keys (the fly-brain prototype-table shape)
+
+function vector Proto(string label) {
+    return snap(embed(label));
+}
+
+vector proto_PH = Proto("approach");
+vector proto_PF = Proto("ignore");
+vector proto_AH = Proto("search");
+vector proto_AF = Proto("idle");
+
+// Vector-keyed map, the shape used by
+// fly-brain/permutation_conditional.ak to map prototype vectors to
+// behavior names. Keys are expressions, not just identifiers.
+map<vector, string> BEHAVIOR_OF = {
+    proto_PH: "approach",
+    proto_PF: "ignore",
+    proto_AH: "search",
+    proto_AF: "idle"
+};
+
+function string Lookup(vector winner) {
+    return BEHAVIOR_OF[winner];
+}
+
+function void UseMapForms() {
+    // Empty map literal.
+    var none = {};
+
+    // Single-entry literal, string keys.
+    var one = {"only": 1};
+
+    // Multi-entry, string keys, scalar values.
+    var weights = {"approach": 0.9, "ignore": 0.1, "search": 0.5};
+
+    // Local map<K, V> declaration.
+    map<string, scalar> thresholds = {"fire": 0.85, "hold": 0.4};
+
+    // Map literal as a call argument.
+    RegisterBehaviors({"a": 1, "b": 2});
+}
+
+function void RegisterBehaviors(map<string, scalar> table) {
+    return;
+}

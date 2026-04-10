@@ -1,35 +1,58 @@
 # Akasha TODO
 
-## Next up — the two biggest wins for the fly-brain branch
+## Next up — declare the VSA builtins in the spec
 
-If you have one session to spend on Akasha, spend it on these. Both are pure
-`sdk/akasha-compiler/` + `planning/akasha-spec/` work — no runtime changes,
-no fly-brain edits. See `fly-brain/STATUS.md` for the full rationale.
+`fly-brain/permutation_conditional.ak` now parses and validates with
+zero diagnostics. The SDK validator is no longer the blocker on the
+fly-brain work. The next piece that would meaningfully move things
+forward is formalizing the VSA builtin signatures in the spec:
 
-1. **Add `permutation` as a primitive type.** A permutation is a fixed ±1
-   sign-flip mask; at the substrate level it's a vector, but at compile
-   time it deserves its own type because the operations on it are
-   different (compose, invert, act on vectors rather than being bundled
-   with them). Unlocks the negation-as-permutation compilation strategy
-   the fly-brain `if`-tree compiler already relies on. Touch points:
-   `sdk/akasha-compiler/akasha_compiler/lexer.py` (add to
-   `PRIMITIVE_TYPE_NAMES`), validator's `_record_type_usage` PRIMITIVES
-   set, and a spec entry in `planning/akasha-spec/05-type-system.md`.
+1. **Declare the VSA builtins.** `snap`, `similarity`, `bind`,
+   `unbind`, `bundle`, `permute`, `basis_vector`, `permutation_key`,
+   `identity_permutation`, `argmax_cosine`, `compose`. Give each a
+   signature in terms of existing primitives (`scalar`, `vector`,
+   `permutation`, `fuzzy`). Update `planning/akasha-spec/` —
+   probably a new file `21-builtins.md` or an expansion of
+   `02-operations.md`. Right now the validator is permissive about
+   these — any bareword call is allowed — but once name resolution
+   lands in v0.2, undeclared builtins will start firing diagnostics.
+   Declaring them now heads off a diagnostic avalanche later.
 
-2. **Array literals and subscript access.** `[a, b, c]` as an expression
-   and `m[k]` as a postfix. Needed for `argmax_cosine(query, [p1, p2, p3, p4])`
-   and `BEHAVIOR_OF[winner]` in `fly-brain/permutation_conditional.ak`,
-   which the validator currently fires 16 diagnostics on. Touch points:
-   parser's `_parse_primary` (add `[` → array literal) and
-   `_parse_postfix` (add `[` → subscript), plus two new AST node types
-   (`ArrayLiteral`, `Subscript`), plus test-corpus entries under
-   `tests/corpus/valid/` showing the new forms.
+2. **Compilation path: translator from AST to `FlyBrainVSA` calls.**
+   See the medium-term plan in `fly-brain/STATUS.md`. Walk the AST of
+   an `.ak` file and emit Python that constructs vectors, builds the
+   prototype table, and runs the decide function. This replaces the
+   hand-written `permutation_conditional.py` with compiler output.
 
-When both land, re-run `python -m akasha_compiler ../../fly-brain/permutation_conditional.ak`
-and confirm the diagnostic count drops from 16 to near-zero (there will
-still be undeclared-builtin mentions until the spec declares `snap`,
-`similarity`, `bind`, `permute`, etc. — that's a separate short-term
-task documented in `fly-brain/STATUS.md`).
+## Recently done
+
+- **Map types and map literals.** `map<K, V>` is now a primitive
+  generic type. The inline literal `{k1: v1, k2: v2, ...}` parses as
+  a `MapLiteral` expression in expression position; empty `{}` is
+  legal; a bare `{ ... }` at statement position is still always a
+  block, as in C-family languages. Vector-valued keys work, which is
+  what the fly-brain prototype table needs. Spec: extended the
+  "Primitive Types" section in `planning/akasha-spec/05-type-system.md`
+  with a `map<K, V>` entry covering the lookup semantics and the
+  statement-vs-expression disambiguation. Test corpus:
+  `tests/corpus/valid/24_map_literal.ak`; parser unit tests in
+  `tests/test_parser.py`. **Running the validator on
+  `fly-brain/permutation_conditional.ak` now reports 0 diagnostics
+  (down from 46 before the permutation-type work started).**
+- **`permutation` as a primitive type.** Added to `PRIMITIVE_TYPE_NAMES`
+  in the lexer, to the parser's `_PRIMITIVE_TYPES`, and to the
+  validator's `_record_type_usage` PRIMITIVES set. Spec entry added to
+  `planning/akasha-spec/05-type-system.md` documenting the distinction
+  from plain `vector` and why it matters for the compile-to-brain
+  strategy. Test corpus: `tests/corpus/valid/21_permutation_type.ak`.
+- **Array literals and subscript access.** `[a, b, c]` now parses as
+  an `ArrayLiteral` expression (empty `[]` legal; no trailing commas,
+  to match the rest of the grammar). `target[index]` now parses as a
+  `Subscript` postfix, composing cleanly with call/member/subscript
+  chaining. Test corpus:
+  `tests/corpus/valid/22_array_literal.ak` and
+  `tests/corpus/valid/23_subscript_access.ak`; parser unit tests added
+  to `tests/test_parser.py`.
 
 ## Pending Decisions
 
