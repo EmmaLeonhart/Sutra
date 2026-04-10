@@ -26,10 +26,12 @@ The compiler is intentionally liberal where the spec is still open
 forms and flags the clearly-forbidden ones.
 """
 
+__version__ = "0.1.0"
+
 from .diagnostics import Diagnostic, DiagnosticLevel, DiagnosticBag
 from .lexer import Lexer, Token, TokenKind
-
-__version__ = "0.1.0"
+from .parser import Parser
+from .validator import validate_source, validate_file
 
 __all__ = [
     "Diagnostic",
@@ -38,5 +40,8 @@ __all__ = [
     "Lexer",
     "Token",
     "TokenKind",
+    "Parser",
+    "validate_source",
+    "validate_file",
     "__version__",
 ]
