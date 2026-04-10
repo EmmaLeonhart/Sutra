@@ -1,0 +1,38 @@
+// Akasha corpus test: postfix subscript `target[index]`.
+// Subscript access is needed for map lookups (`BEHAVIOR_OF[winner]`)
+// in the fly-brain permutation-conditional compilation strategy, and
+// for integer indexing into array-typed values.
+//
+// Exercises:
+//   - subscript on an identifier
+//   - chained subscript (`a[i][j]`)
+//   - subscript on a call result
+//   - subscript with an arithmetic index
+//   - subscript as a call argument
+//   - subscript on an array literal (`[a, b, c][0]`)
+
+function string LookupBehavior(vector winner) {
+    // Simple identifier subscript. The `behaviors` value is whatever
+    // the runtime binds for the behavior lookup table — the validator
+    // only checks that the expression form is well-formed.
+    return behaviors[winner];
+}
+
+function vector ChainedSubscript(vector query) {
+    // Subscript chains through a call and an integer index.
+    return matrix_rows()[0];
+}
+
+function void AllForms(vector query) {
+    // Subscript with an arithmetic index.
+    var first = prototypes[0 + 1];
+
+    // Nested subscript — `a[i][j]` style.
+    var deep = grid[1][2];
+
+    // Subscript on an array literal.
+    var picked = [embed("a"), embed("b"), embed("c")][0];
+
+    // Subscript result as a call argument.
+    similarity(query, prototypes[0]);
+}
