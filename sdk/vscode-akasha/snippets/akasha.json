@@ -1,0 +1,184 @@
+{
+  "function declaration": {
+    "prefix": "function",
+    "body": [
+      "function ${1:vector} ${2:Name}(${3:vector a}) {",
+      "\t${0:return a;}",
+      "}"
+    ],
+    "description": "Declare a free function. Return type precedes the name (C# style)."
+  },
+  "public static function": {
+    "prefix": "funpub",
+    "body": [
+      "function public static ${1:vector} ${2:Name}(${3:vector a}) {",
+      "\t${0:return a;}",
+      "}"
+    ],
+    "description": "Declare a function with the explicit public static modifier form."
+  },
+  "private function": {
+    "prefix": "funpriv",
+    "body": [
+      "private function ${1:vector} ${2:Helper}(${3:vector v}) {",
+      "\t${0:return v;}",
+      "}"
+    ],
+    "description": "Declare a private helper function."
+  },
+  "method declaration": {
+    "prefix": "method",
+    "body": [
+      "method ${1:string} ${2:GetName}() {",
+      "\treturn this.${3:name};",
+      "}"
+    ],
+    "description": "Declare a method attached to the enclosing object file."
+  },
+  "static method declaration": {
+    "prefix": "smethod",
+    "body": [
+      "static method ${1:Animal} ${2:GetArchetype}() {",
+      "\treturn (${1:Animal}) embed(\"${3:archetype}\");",
+      "}"
+    ],
+    "description": "Declare a static method on the enclosing class."
+  },
+  "operator overload": {
+    "prefix": "operator",
+    "body": [
+      "function operator ${1:+}(${2:vector} a, ${2:vector} b) {",
+      "\treturn ${3:Bundle(a, b)};",
+      "}"
+    ],
+    "description": "Declare an overloaded operator."
+  },
+  "generic function": {
+    "prefix": "generic",
+    "body": [
+      "function ${1:T} ${2:Identity}<${1:T}>(${1:T} value) {",
+      "\treturn value;",
+      "}"
+    ],
+    "description": "Declare a generic function."
+  },
+  "if-else": {
+    "prefix": "if",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2}",
+      "} else {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "if/else block. Condition must be bool or fuzzy."
+  },
+  "else-if": {
+    "prefix": "elif",
+    "body": [
+      "} else if (${1:condition}) {",
+      "\t${0}"
+    ],
+    "description": "else-if branch of an existing if."
+  },
+  "while loop": {
+    "prefix": "while",
+    "body": [
+      "while (${1:condition}) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "while loop."
+  },
+  "for loop": {
+    "prefix": "for",
+    "body": [
+      "for (var ${1:i} = 0; ${1:i} < ${2:Length(items)}; ${1:i}++) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "C-style for loop with an inferred counter."
+  },
+  "foreach loop": {
+    "prefix": "foreach",
+    "body": [
+      "foreach (var ${1:item} in ${2:items}) {",
+      "\t${0}",
+      "}"
+    ],
+    "description": "foreach loop over a tuple or collection."
+  },
+  "do-while loop": {
+    "prefix": "do",
+    "body": [
+      "do {",
+      "\t${0}",
+      "} while (${1:condition});"
+    ],
+    "description": "do-while loop."
+  },
+  "try-catch": {
+    "prefix": "try",
+    "body": [
+      "try {",
+      "\t${1:Cat c = (Cat) a;}",
+      "} catch {",
+      "\t${0:return DefaultCat();}",
+      "}"
+    ],
+    "description": "try/catch block. In Akasha, catch fires when output matches a failure pattern."
+  },
+  "var declaration": {
+    "prefix": "var",
+    "body": ["var ${1:name} = ${2:value};"],
+    "description": "Inferred-type variable declaration."
+  },
+  "const declaration": {
+    "prefix": "const",
+    "body": ["const ${1:name} = ${2:value};"],
+    "description": "Immutable binding with inferred type."
+  },
+  "vector from string": {
+    "prefix": "embed",
+    "body": ["vector ${1:name} = embed(\"${2:text}\");"],
+    "description": "Embed a string into vector space. embed() is a function, not a cast."
+  },
+  "unsafe cast": {
+    "prefix": "unsafe",
+    "body": ["${1:fuzzy} ${2:signal} = unsafeCast<${1:fuzzy}>(${3:value});"],
+    "description": "Force reinterpretation of a value as a different type with no checking."
+  },
+  "defuzzy to bool": {
+    "prefix": "defuzzy",
+    "body": ["bool ${1:ready} = defuzzy(${2:signal});"],
+    "description": "Collapse a fuzzy truth value into a concrete bool via recursive is_true."
+  },
+  "interpolated string": {
+    "prefix": "str",
+    "body": ["$\"${1:label}: {${2:value}}\""],
+    "description": "C#-style interpolated string."
+  },
+  "fuzzy check pattern": {
+    "prefix": "fuzzycheck",
+    "body": [
+      "fuzzy ${1:quality} = unsafeCast<fuzzy>(Cosine(${2:result}, ${3:ExpectedPattern()}));",
+      "if (defuzzy(${1:quality})) {",
+      "\t${4:return $2;}",
+      "} else {",
+      "\t${0:return Fallback($2);}",
+      "}"
+    ],
+    "description": "Standard fuzzy-quality-check-then-branch pattern from the spec."
+  },
+  "top-level main": {
+    "prefix": "main",
+    "body": [
+      "function string Main() {",
+      "\t${1:return \"main\";}",
+      "}",
+      "",
+      "function.Main();"
+    ],
+    "description": "Top-level Main() with the documented execution idiom."
+  }
+}
