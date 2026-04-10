@@ -1,0 +1,27 @@
+// Akasha corpus test: generics.
+// Covers: generic function declaration, generic call, nested generics,
+// multiple type parameters.
+
+// Compile-time generic.
+function T Identity<T>(T value) {
+    return value;
+}
+
+// Two type parameters.
+function T FirstOf<T, U>(T a, U b) {
+    return a;
+}
+
+// Call the generic function with explicit type args.
+function void UseIdentity() {
+    Cat c = (Cat) embed("cat");
+    Cat sameCat = Identity<Cat>(c);
+
+    vector v = embed("dog");
+    vector sameVec = Identity<vector>(v);
+}
+
+// Generic on a class-like return type.
+function List<vector> WrapInList(vector v) {
+    return Singleton<vector>(v);
+}
