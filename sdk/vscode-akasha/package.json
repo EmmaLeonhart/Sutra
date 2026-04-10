@@ -1,0 +1,102 @@
+{
+  "name": "vscode-akasha",
+  "displayName": "Akasha Language",
+  "description": "Syntax highlighting, autocomplete, and error reporting for the Akasha programming language.",
+  "version": "0.1.0",
+  "publisher": "akasha-lang",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
+  "keywords": [
+    "akasha",
+    "vector",
+    "fuzzy",
+    "embedding",
+    "vsa",
+    "hyperdimensional"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:akasha"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "akasha",
+        "aliases": ["Akasha", "akasha"],
+        "extensions": [".ak"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/akasha-icon.svg",
+          "dark": "./images/akasha-icon.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "akasha",
+        "scopeName": "source.akasha",
+        "path": "./syntaxes/akasha.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "akasha",
+        "path": "./snippets/akasha.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Akasha",
+      "properties": {
+        "akasha.compilerPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Command or absolute path to the Python interpreter used to run the akashac compiler."
+        },
+        "akasha.compilerArgs": {
+          "type": "array",
+          "default": ["-m", "akasha_compiler"],
+          "items": { "type": "string" },
+          "description": "Arguments passed to akasha.compilerPath before the file path. Defaults to running `python -m akasha_compiler`."
+        },
+        "akasha.validateOn": {
+          "type": "string",
+          "enum": ["save", "change", "never"],
+          "default": "save",
+          "description": "When to re-run the validator: on every edit, on save only, or never (manual only)."
+        },
+        "akasha.showAkaCodes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the AKA#### diagnostic code in the Problems panel."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "akasha.validateFile",
+        "title": "Akasha: Validate current file"
+      },
+      {
+        "command": "akasha.validateWorkspace",
+        "title": "Akasha: Validate all .ak files in workspace"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0"
+  }
+}
