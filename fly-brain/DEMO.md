@@ -2,7 +2,7 @@
 
 ## What This Proves
 
-S2 is a programming language, not a found pattern. The proof is simple: **same substrate, different code, different outputs.**
+Akasha is a programming language, not a found pattern. The proof is simple: **same substrate, different code, different outputs.**
 
 The fly brain (mushroom body circuit) computes identical fuzzy scores regardless of which program runs. The programmer controls the branching logic. Changing the code changes the behavior. The substrate is general-purpose — it discriminates inputs without imposing policy.
 
@@ -12,7 +12,7 @@ All four programs share the same structure: two nested if-statements over two fu
 
 ### Program A — Natural (biologically sensible)
 
-```s2
+```akasha
 if (defuzzy(has_smell)) {
     if (defuzzy(is_hungry)) { return "approach"; }
     else { return "ignore"; }
@@ -26,7 +26,7 @@ Smell + hungry → approach food. This is what a real fly does.
 
 ### Program B — Inverted smell axis
 
-```s2
+```akasha
 if (!defuzzy(has_smell)) {          // ← one character changed
     if (defuzzy(is_hungry)) { return "approach"; }
     ...
@@ -36,7 +36,7 @@ Absence of smell triggers approach. Biologically absurd — but the code compile
 
 ### Program C — Inverted hunger axis
 
-```s2
+```akasha
 if (defuzzy(has_smell)) {
     if (!defuzzy(is_hungry)) { return "approach"; }  // ← one character changed
     ...
@@ -46,7 +46,7 @@ Approaches when fed, ignores when hungry. The fly brain doesn't object.
 
 ### Program D — Both axes inverted
 
-```s2
+```akasha
 if (!defuzzy(has_smell)) {          // ← changed
     if (!defuzzy(is_hungry)) { return "approach"; }  // ← changed
     ...
@@ -86,20 +86,20 @@ This demo proves programmer agency:
 1. **The substrate is fixed.** The mushroom body computes the same sparse random projection + winner-take-all cleanup regardless of the program.
 2. **The code varies.** Each program is a one-or-two-character change (`!` negation on `defuzzy()` calls).
 3. **The output changes.** Each program produces a completely different behavior mapping.
-4. **The code is the cause.** The only variable between runs is the S2 source code.
+4. **The code is the cause.** The only variable between runs is the Akasha source code.
 
-The fly brain is the CPU. The S2 code is the program. Different programs produce different results on the same hardware. That's what a programming language is.
+The fly brain is the CPU. The Akasha code is the program. Different programs produce different results on the same hardware. That's what a programming language is.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `four_state_conditional.s2` | S2 source code (Program A, the natural/sensible mapping) |
+| `four_state_conditional.ak` | Akasha source code (Program A, the natural/sensible mapping) |
 | `four_state_conditional.py` | Simple demo: runs Program A on the fly brain (4 executions) |
 | `programmer_control_demo.py` | Full proof: runs all 4 programs × 4 inputs = 16 executions |
 | `mushroom_body_model.py` | Brian2 spiking circuit model (the substrate) |
 | `spike_vsa_bridge.py` | Encode/decode between hypervectors and spike patterns |
-| `vsa_operations.py` | FlyBrainVSA class (S2 operations API) |
+| `vsa_operations.py` | FlyBrainVSA class (Akasha operations API) |
 | `METHODOLOGY.md` | Technical details: challenges, solutions, results |
 | `DEMO.md` | This file |
 
