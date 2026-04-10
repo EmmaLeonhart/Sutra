@@ -34,7 +34,7 @@ No metaphor needed. The connectome *is* the weight matrix. Akasha runs on it the
 
 ## The Program
 
-```s2
+```akasha
 // Fly smells vinegar. Approach or avoid?
 // Substrate: Drosophila connectome (olfactory circuit)
 
