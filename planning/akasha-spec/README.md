@@ -17,6 +17,7 @@ Akasha is not a scripting language bolted onto an AI. It is a formal system for 
 - [Runtime Architecture](06-runtime.md) — S1/Akasha dual runtime, MCP server as runtime component
 - [Empirical Initiation](07-empirical-initiation.md) — probing, correction matrices, validation gates, cross-substrate compilation
 - [Abstraction Level](08-abstraction-level.md) — "C-tier" for vector spaces, what the compiler handles vs. what the programmer writes
+- [IDE Architecture](20-ide-architecture.md) — IntelliJ Platform, agent-first authoring, bundled vertical stack, embedding-space visualizer
 
 ### Theoretical Foundations
 - [Lambda Calculus Encoding](09-lambda-calculus.md) — term mapping, substitution problem, de Bruijn indices, Smolensky, Tomkins-Flanagan
