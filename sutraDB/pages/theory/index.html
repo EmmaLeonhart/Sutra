@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="sutraDB Theory">
+  <meta property="og:description" content="Interactive visualizations of the theoretical innovations behind sutraDB: subgraph indexing, HNSW in RDF, SPARQL exit conditions, and traversal optimization.">
+  <meta property="og:url" content="https://sutradb.org/theory/">
+  <meta name="description" content="Explore the database theory behind sutraDB through interactive visualizations. From SIMD-accelerated subgraph indexes to SPARQL exit conditions.">
+  <link rel="canonical" href="https://sutradb.org/theory/">
+    <title>sutraDB Theory</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0a0a0f;
+      color: #d0d0dc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 24px 24px;
+    }
+    .container {
+      max-width: 720px;
+      width: 100%;
+    }
+    .back { display: inline-block; color: #7c8cf8; text-decoration: none; font-size: 0.9rem; margin-bottom: 24px; }
+    .back:hover { text-decoration: underline; }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #e8e8f0;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .tagline {
+      font-size: 1.05rem;
+      color: #8888a0;
+      margin-bottom: 48px;
+      line-height: 1.5;
+    }
+    h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #666880;
+      margin-bottom: 16px;
+    }
+    .section {
+      margin-bottom: 48px;
+    }
+    .card {
+      display: block;
+      padding: 20px 24px;
+      background: #12121a;
+      border: 1px solid #1e1e2a;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .card:hover {
+      border-color: #3a3a50;
+      background: #16161f;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #b0b0cc;
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 0.875rem;
+      color: #707088;
+      line-height: 1.6;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      color: #7c8cf8;
+      background: rgba(124, 140, 248, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      margin-right: 4px;
+    }
+    .card-tag.innovation {
+      color: #34d399;
+      background: rgba(52, 211, 153, 0.1);
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #1e1e2a;
+      margin: 32px 0;
+    }
+    @media (max-width: 480px) {
+      body { padding: 48px 16px; }
+      h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+<nav style="padding:12px 24px;border-bottom:1px solid #1e1e2a;display:flex;align-items:center;gap:24px;font-size:0.9rem;background:#0a0a0f;flex-shrink:0;width:100%;">
+    <a href="../" style="font-weight:700;font-size:1.1em;color:#e8e8f0;text-decoration:none;"><span style="color:#7c8cf8;">Sutra</span>DB</a>
+    <a href="../#download" style="color:#8888a0;text-decoration:none;">Download</a>
+    <a href="../graph-vector/" style="color:#8888a0;text-decoration:none;">Graph+Vector</a>
+    <a href="../sdb-format/" style="color:#8888a0;text-decoration:none;">Architecture</a>
+    <a href="../theory/" style="color:#8888a0;text-decoration:none;">Theory</a>
+    <a href="../codeofethics/" style="color:#8888a0;text-decoration:none;">Code of Ethics</a>
+    <a href="https://github.com/EmmaLeonhart/SutraDB" style="color:#8888a0;text-decoration:none;">GitHub</a>
+</nav>
+
+  <div class="container">
+    <a class="back" href="/">&larr; Home</a>
+    <h1>sutraDB Theory</h1>
+    <p class="tagline">Interactive visualizations of database theory &mdash; from how graph and vector databases work individually, to the innovations that make sutraDB different.</p>
+
+    <div class="section">
+      <h2>Background: How Databases Work</h2>
+      <a class="card" href="/theory/graph-databases/">
+        <div class="card-title">How Graph Databases Work</div>
+        <div class="card-desc">SPARQL traverses RDF triples to answer multi-hop relationship queries. Watch a query find great-grandfathers step by step.</div>
+        <span class="card-tag">RDF</span><span class="card-tag">SPARQL</span>
+      </a>
+      <a class="card" href="/theory/vector-databases/">
+        <div class="card-title">How Vector Databases Work</div>
+        <div class="card-desc">HNSW graph traversal finds nearest neighbors by hopping through hierarchical layers. See greedy search in action.</div>
+        <span class="card-tag">HNSW</span><span class="card-tag">Embeddings</span>
+      </a>
+      <a class="card" href="/theory/hybrid-databases/">
+        <div class="card-title">Traditional Hybrid Databases</div>
+        <div class="card-desc">The clunky handoff when a vector database and graph database are bolted together through JSON documents.</div>
+        <span class="card-tag">System Boundaries</span><span class="card-tag">JSON Handoff</span>
+      </a>
+      <a class="card" href="/theory/sutradb/">
+        <div class="card-title">sutraDB: Unified Vector-Graph</div>
+        <div class="card-desc">Interleaved traversal &mdash; graph hops happen during the vector search, not after it. One graph, zero context switches.</div>
+        <span class="card-tag innovation">sutraDB</span><span class="card-tag">Interleaved Traversal</span>
+      </a>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h2>Innovations</h2>
+      <a class="card" href="/theory/ontochronology/">
+        <div class="card-title">Ontochronology: Time as a Structural Axis</div>
+        <div class="card-desc">Time is not metadata on triples &mdash; it is a first-class index dimension. Query the complete world state at any moment with a single range scan.</div>
+        <span class="card-tag innovation">Novel</span><span class="card-tag">TSPO Index</span><span class="card-tag">World State</span>
+      </a>
+      <a class="card" href="/theory/hnsw-in-rdf/">
+        <div class="card-title">Implementing HNSW in RDF</div>
+        <div class="card-desc">Vectors as typed RDF literals, HNSW neighbors as virtual triples. The vector index becomes the 4th index alongside SPO/POS/OSP, queryable by SPARQL.</div>
+        <span class="card-tag innovation">Novel</span><span class="card-tag">sutra:f32vec</span><span class="card-tag">sutra:hnswNeighbor</span>
+      </a>
+      <a class="card" href="/theory/subgraph-indexing/">
+        <div class="card-title">Subgraph Indexing for SIMD</div>
+        <div class="card-desc">Auto-discover repeated subgraph patterns and flatten them into columnar pseudo-tables. Turns multi-hop joins into SIMD-accelerated column scans.</div>
+        <span class="card-tag innovation">Novel</span><span class="card-tag">Pseudo-Tables</span><span class="card-tag">AVX2</span>
+      </a>
+      <a class="card" href="/theory/traversal-indexing/">
+        <div class="card-title">PageRank Entry Points & Traversal Counters</div>
+        <div class="card-desc">Use PageRank to pick structurally important starting nodes, and runtime traversal counters to materialize adjacency lists for hot areas.</div>
+        <span class="card-tag innovation">Novel</span><span class="card-tag">Adaptive Indexing</span>
+      </a>
+      <a class="card" href="/theory/sparql-exit-conditions/">
+        <div class="card-title">SPARQL Exit Conditions (UNTIL)</div>
+        <div class="card-desc">Extend SPARQL property paths with per-step exit predicates. Terminate traversal early instead of exhaustively scanning the graph.</div>
+        <span class="card-tag innovation">Novel</span><span class="card-tag">SPARQL+</span>
+      </a>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h2>Architecture Deep Dives</h2>
+      <a class="card" href="/theory/four-index-architecture/">
+        <div class="card-title">Four-Index Architecture</div>
+        <div class="card-desc">HNSW as a first-class index type alongside SPO/POS/OSP. The query planner sees all four and picks the best access path.</div>
+        <span class="card-tag">SPO</span><span class="card-tag">POS</span><span class="card-tag">OSP</span><span class="card-tag">HNSW</span>
+      </a>
+      <a class="card" href="/theory/iri-interning/">
+        <div class="card-title">IRI Interning & Content-Addressed RDF-star</div>
+        <div class="card-desc">Every IRI becomes 8 bytes. Quoted triples get deterministic hash IDs. Single-instruction comparison, SIMD-friendly index keys.</div>
+        <span class="card-tag">u64 TermIds</span><span class="card-tag">RDF-star</span>
+      </a>
+      <a class="card" href="/theory/simd-acceleration/">
+        <div class="card-title">SIMD Acceleration</div>
+        <div class="card-desc">AVX2 and SSE intrinsics for vector distance functions (8 f32/cycle) and columnar TermId scanning (4 u64/cycle). And where SIMD doesn't help.</div>
+        <span class="card-tag">AVX2</span><span class="card-tag">SSE</span><span class="card-tag">Distance Functions</span>
+      </a>
+      <a class="card" href="/theory/hnsw-implementation/">
+        <div class="card-title">HNSW Implementation Details</div>
+        <div class="card-desc">Tombstone deletion, multiple entry points, ephemeral rebuild with optional snapshots, and concurrent search design.</div>
+        <span class="card-tag">Tombstones</span><span class="card-tag">Concurrency</span>
+      </a>
+      <a class="card" href="/theory/cost-based-planning/">
+        <div class="card-title">Cost-Based Query Planning</div>
+        <div class="card-desc">Structural heuristic weights, cardinality estimation, predicate pushdown, and how VECTOR_SIMILAR integrates with pattern reordering.</div>
+        <span class="card-tag">Query Planner</span><span class="card-tag">Cardinality</span>
+      </a>
+      <a class="card" href="/theory/pseudo-table-discovery/">
+        <div class="card-title">Pseudo-Table Discovery</div>
+        <div class="card-desc">Statistical significance testing for characteristic sets, segment-level zonemaps, cliff steepness as a data health metric.</div>
+        <span class="card-tag">Zonemaps</span><span class="card-tag">Data Quality</span>
+      </a>
+      <a class="card" href="/theory/vector-sparql-operators/">
+        <div class="card-title">VECTOR_SIMILAR & VECTOR_SCORE</div>
+        <div class="card-desc">Vector similarity search as SPARQL operators that participate in query planning, not a separate API with JSON handoffs.</div>
+        <span class="card-tag">SPARQL+</span><span class="card-tag">HNSW</span>
+      </a>
+      <a class="card" href="/theory/rdf-star-edges/">
+        <div class="card-title">RDF-star Edge Annotation</div>
+        <div class="card-desc">Metadata on edges without reification. Vector embeddings on relationships. Content-addressed quoted triple IDs.</div>
+        <span class="card-tag">RDF-star</span><span class="card-tag">Edge Embeddings</span>
+      </a>
+      <a class="card" href="/theory/client-side-owl/">
+        <div class="card-title">Client-Side OWL Validation</div>
+        <div class="card-desc">Store first, reason second. The database accepts all triples. SDKs validate OWL constraints before insertion.</div>
+        <span class="card-tag">OWL</span><span class="card-tag">SDK</span>
+      </a>
+      <a class="card" href="/theory/health-diagnostics/">
+        <div class="card-title">Health Diagnostics</div>
+        <div class="card-desc">AI-readable health reports with HNSW metrics, pseudo-table coverage, and actionable maintenance recommendations.</div>
+        <span class="card-tag">Agent-First</span><span class="card-tag">Observability</span>
+      </a>
+      <a class="card" href="/theory/rhizomatic-description-framework/">
+        <div class="card-title">Rhizomatic Description Framework</div>
+        <div class="card-desc">RDF as a rhizome: why the Resource Description Framework is accidentally the most Deleuzian data structure ever built. No roots, no hierarchy, just connections.</div>
+        <span class="card-tag">Philosophy</span><span class="card-tag">RDF</span><span class="card-tag">Deleuze</span>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
