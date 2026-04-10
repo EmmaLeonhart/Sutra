@@ -97,6 +97,7 @@ _EXPR_START_TOKENS = {
     TokenKind.IDENT,
     TokenKind.KW_THIS,
     TokenKind.LPAREN,
+    TokenKind.LBRACKET,
     TokenKind.BANG,
     TokenKind.MINUS,
     TokenKind.PLUS,
@@ -106,7 +107,7 @@ _EXPR_START_TOKENS = {
 # identifier but keeps the set around for nicer error messages.
 _PRIMITIVE_TYPES = {
     "scalar", "vector", "matrix", "tuple", "string",
-    "bool", "fuzzy", "void",
+    "bool", "fuzzy", "void", "permutation", "map",
 }
 
 # Keywords that can act as a "special function" in expression position.
@@ -990,6 +991,21 @@ class Parser:
                     span=SourceSpan(start=expr.span.start, end=end_pos),
                 )
                 continue
+            if tok.kind is TokenKind.LBRACKET:
+                # Postfix subscript: `target[index]`. Used for map
+                # lookups and (future) array indexing.
+                self._advance()
+                index = self._parse_expr()
+                close = self._expect(
+                    TokenKind.RBRACKET, "`]` to close subscript"
+                )
+                end = close.span.end if close else self._current_span().end
+                expr = ast.Subscript(
+                    target=expr,
+                    index=index,
+                    span=SourceSpan(start=expr.span.start, end=end),
+                )
+                continue
             if tok.kind in (TokenKind.PLUS_PLUS, TokenKind.MINUS_MINUS):
                 self._advance()
                 expr = ast.PostfixOp(
@@ -1104,6 +1120,10 @@ class Parser:
             return ast.Identifier(name="function", span=tok.span)
         if tok.kind is TokenKind.LPAREN:
             return self._parse_paren_or_cast()
+        if tok.kind is TokenKind.LBRACKET:
+            return self._parse_array_literal()
+        if tok.kind is TokenKind.LBRACE:
+            return self._parse_map_literal()
 
         # Unknown — emit error and return a placeholder identifier so
         # higher-level code keeps making progress.
@@ -1147,6 +1167,71 @@ class Parser:
                 parts=parts,
                 span=SourceSpan(start=start_tok.span.start, end=tok.span.end),
             )
+
+    def _parse_map_literal(self) -> ast.Expr:
+        """Parse `{k1: v1, k2: v2, ...}` — an inline map literal.
+
+        Only called from `_parse_primary`, so we're guaranteed to be
+        in expression position. Block statements are handled by
+        `_parse_statement` before any expression parsing begins, so
+        the only way to reach this helper is from inside an
+        expression context (after `=`, `return`, as a call argument,
+        etc.). An empty map literal `{}` is legal; trailing commas
+        are not, to match the rest of the grammar.
+        """
+        lbrace = self._advance()  # consume {
+        keys: List[ast.Expr] = []
+        values: List[ast.Expr] = []
+        if self._check(TokenKind.RBRACE):
+            close = self._advance()
+            return ast.MapLiteral(
+                keys=keys,
+                values=values,
+                span=SourceSpan(start=lbrace.span.start, end=close.span.end),
+            )
+        while True:
+            key = self._parse_expr()
+            self._expect(TokenKind.COLON, "`:` between map key and value")
+            value = self._parse_expr()
+            keys.append(key)
+            values.append(value)
+            if self._match(TokenKind.COMMA):
+                continue
+            break
+        close = self._expect(TokenKind.RBRACE, "`}` to close map literal")
+        end = close.span.end if close else self._current_span().end
+        return ast.MapLiteral(
+            keys=keys,
+            values=values,
+            span=SourceSpan(start=lbrace.span.start, end=end),
+        )
+
+    def _parse_array_literal(self) -> ast.Expr:
+        """Parse `[elem, elem, ...]` — an inline array literal.
+
+        Called from `_parse_primary` when the current token is `[`.
+        An empty array literal `[]` is legal; trailing commas are not
+        permitted (matches the rest of the expression grammar).
+        """
+        lbracket = self._advance()  # consume [
+        elements: List[ast.Expr] = []
+        if self._check(TokenKind.RBRACKET):
+            close = self._advance()
+            return ast.ArrayLiteral(
+                elements=elements,
+                span=SourceSpan(start=lbracket.span.start, end=close.span.end),
+            )
+        while True:
+            elements.append(self._parse_expr())
+            if self._match(TokenKind.COMMA):
+                continue
+            break
+        close = self._expect(TokenKind.RBRACKET, "`]` to close array literal")
+        end = close.span.end if close else self._current_span().end
+        return ast.ArrayLiteral(
+            elements=elements,
+            span=SourceSpan(start=lbracket.span.start, end=end),
+        )
 
     def _parse_paren_or_cast(self) -> ast.Expr:
         # Save state so we can rewind if the cast attempt fails.
