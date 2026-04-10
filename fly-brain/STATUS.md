@@ -232,19 +232,29 @@ Two conclusions fall out of this:
 Goal: make `permutation_conditional.ak` parse and validate cleanly
 against the formal grammar.
 
-1. **Add `permutation` as a primitive type.** It's a vector at the
-   substrate level (a ±1 sign-flip mask), but it deserves a distinct
-   type at the compile-time layer because the operations on it are
-   different: permutations compose, invert, and act on vectors rather
-   than being bundled with them.
+1. ~~**Add `permutation` as a primitive type.**~~ **Done.** Added to
+   `PRIMITIVE_TYPE_NAMES` in the lexer, the parser's `_PRIMITIVE_TYPES`,
+   and the validator's `_record_type_usage` PRIMITIVES set. Spec entry
+   in `planning/akasha-spec/05-type-system.md` documents the
+   distinction from plain `vector` and why permutations deserve their
+   own type even though they're sign-flip masks at the substrate
+   level. Test corpus:
+   `sdk/akasha-compiler/tests/corpus/valid/21_permutation_type.ak`.
 2. **Specify map types and map literals.** `map<K, V>` as a type,
-   `{k: v, ...}` as a literal, `m[k]` as subscript access. Decide
-   whether keys can be vectors (they have to be for
-   `permutation_conditional.ak` to work — the keys are prototype
-   vectors) and whether the lookup is exact-match or cosine-nearest.
-3. **Specify array/tuple literals.** `[a, b, c]` is an obvious syntax;
-   the spec already has a `tuple` primitive but no way to construct
-   one inline. Pick one.
+   `{k: v, ...}` as a literal. (`m[k]` subscript access already
+   landed, see step 3.) Decide whether keys can be vectors (they have
+   to be for `permutation_conditional.ak` to work — the keys are
+   prototype vectors) and whether the lookup is exact-match or
+   cosine-nearest. **Still outstanding: this is all 25 of the
+   remaining diagnostics on `permutation_conditional.ak`, all on lines
+   60–65.**
+3. ~~**Specify array/tuple literals.**~~ **Done** for array literals
+   and for postfix subscript access. `[a, b, c]` parses as an
+   `ArrayLiteral` expression (empty `[]` is legal), and `target[index]`
+   parses as a `Subscript` postfix. Test corpus:
+   `sdk/akasha-compiler/tests/corpus/valid/22_array_literal.ak` and
+   `.../23_subscript_access.ak`; parser unit tests added to
+   `sdk/akasha-compiler/tests/test_parser.py`.
 4. **Declare the VSA builtins in the spec.** `snap`, `similarity`,
    `bind`, `unbind`, `bundle`, `permute`, `basis_vector`,
    `permutation_key`, `identity_permutation`, `argmax_cosine`. Give
