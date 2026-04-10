@@ -1,15 +1,15 @@
-# Running S2 on a Simulated Fly Brain: Methodology and Results
+# Running Akasha on a Simulated Fly Brain: Methodology and Results
 
 ## What We Did
 
-We implemented a system that executes S2 hyperdimensional programming language operations on a simulated *Drosophila melanogaster* mushroom body circuit. To our knowledge, this is the first time a programming language has been used as a computational substrate on a biological connectome simulation.
+We implemented a system that executes Akasha hyperdimensional programming language operations on a simulated *Drosophila melanogaster* mushroom body circuit. To our knowledge, this is the first time a programming language has been used as a computational substrate on a biological connectome simulation.
 
 The system uses Brian2 (a spiking neural network simulator) to model the fly's olfactory learning circuit, and implements a novel spike-VSA bridge that translates between hypervectors and neural spike patterns.
 
 ## System Architecture
 
 ```
-S2 Code (looks like C#)
+Akasha Code (looks like C#)
     │
     ▼
 FlyBrainVSA (vsa_operations.py)
@@ -187,7 +187,7 @@ score = vsa.similarity(retrieved, odorB)  # = 0.2285
 fly-brain/
 ├── mushroom_body_model.py      # Brian2 spiking circuit model
 ├── spike_vsa_bridge.py         # Encode/decode between vectors and spikes
-├── vsa_operations.py           # FlyBrainVSA class (S2 operations API)
+├── vsa_operations.py           # FlyBrainVSA class (Akasha operations API)
 ├── test_bridge.py              # Phase 1-3 validation gates
 ├── test_vsa_operations.py      # Phase 4 VSA operation tests
 ├── minimal_lif_network.py      # Brian2 smoke test
@@ -212,7 +212,7 @@ python test_vsa_operations.py
 
 ## What This Means
 
-This is a proof of concept that a programming language (S2) can execute meaningful computation on a simulated biological neural circuit. The mushroom body isn't being used as a novelty substrate — it's performing the exact operation it evolved to do (sparse random projection with winner-take-all cleanup), and that operation turns out to be identical to a core VSA primitive (snap-to-nearest).
+This is a proof of concept that a programming language (Akasha) can execute meaningful computation on a simulated biological neural circuit. The mushroom body isn't being used as a novelty substrate — it's performing the exact operation it evolved to do (sparse random projection with winner-take-all cleanup), and that operation turns out to be identical to a core VSA primitive (snap-to-nearest).
 
 The code that runs on the fly brain looks like normal C#-style code. The biological substrate is hidden behind the same abstraction layer that a conventional CPU would be. That's the point of having a language at this level of abstraction.
 
@@ -221,5 +221,5 @@ The code that runs on the fly brain looks like normal C#-style code. The biologi
 1. **Increase input dimensionality** to match KC count for higher bundling capacity
 2. **Use real FlyWire connectome data** instead of random sparse connectivity
 3. **Implement empirical initiation** for the fly brain substrate (same process as for embedding models)
-4. **Connect to S2 compiler** when it's ready
+4. **Connect to Akasha compiler** when it's ready
 5. **Write the paper** — this is a publishable result
