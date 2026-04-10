@@ -1,0 +1,35 @@
+// Akasha corpus test: array literal `[a, b, c]` expressions.
+// Array literals are needed for calls like `argmax_cosine(query, [p1, p2, p3])`
+// where a function takes a list of prototype vectors as an argument.
+//
+// Exercises:
+//   - empty array literal `[]`
+//   - single-element literal `[x]`
+//   - multi-element literal `[a, b, c, d]`
+//   - array literal as a call argument
+//   - array literal assigned to a `var`
+
+function vector ChoosePrototype(vector query) {
+    vector a = embed("approach");
+    vector b = embed("ignore");
+    vector c = embed("search");
+    vector d = embed("idle");
+
+    // Array literal directly as a call argument.
+    return argmax_cosine(query, [a, b, c, d]);
+}
+
+function void UseArrayForms() {
+    // Empty literal.
+    var none = [];
+
+    // Single-element literal.
+    var one = [embed("solo")];
+
+    // Bound to a local — this is the form the MCP tooling will use
+    // when it needs a scratch list of vectors.
+    var prototypes = [embed("cat"), embed("dog"), embed("bird")];
+
+    // Array literal with arithmetic expressions as elements.
+    var sums = [1 + 2, 3 * 4, 5];
+}

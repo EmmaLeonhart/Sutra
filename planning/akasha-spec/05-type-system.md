@@ -1,5 +1,45 @@
 # Type System Considerations
 
+## Primitive Types
+
+Akasha's primitive type set is:
+
+- `scalar` — a real number (float).
+- `vector` — a hypervector in the runtime's substrate dimension. The
+  workhorse type; everything geometric lives here.
+- `matrix` — a rectangular array of scalars, primarily for linear
+  transforms that aren't directly expressible as VSA operations.
+- `tuple` — a fixed-shape heterogeneous product.
+- `string` — a UTF-8 string. Not a vector. String → vector conversion
+  goes through `embed(...)`; there is no implicit cast.
+- `bool` — a crisp boolean. Produced only by `defuzzy(...)` or the
+  unsafe `(bool)` cast on a `fuzzy`.
+- `fuzzy` — a graded truth value in `[0, 1]`. The default result type
+  of similarity checks and the ground state for truth in the language.
+  See `04-defuzzification.md`.
+- `void` — no value, for statement-shaped functions.
+- `permutation` — a fixed sign-flip mask over a `vector`. At the
+  substrate level a permutation is a `vector` of ±1 entries, but it
+  is a distinct compile-time type because the operations on it are
+  different:
+  - Permutations **compose** (`permute(a, permute(b, v)) ==
+    permute(compose(a, b), v)`) and **invert** (`permute(inv(p),
+    permute(p, v)) == v`).
+  - Permutations **act on** vectors via `permute(p, v)`; they are not
+    bundled with them.
+  - A permutation is **involutive** iff it is its own inverse; the
+    common ±1 sign-flip permutations used for negation-as-permutation
+    are involutive by construction.
+
+  The distinction matters for compile-to-brain code: the
+  `permutation_conditional.ak` example under `fly-brain/` compiles
+  source-level `!x` into a permutation-key application on the query
+  vector, which is algebraically equivalent to the original negation
+  because sign-flip permutations distribute over `bind`. Bundling a
+  permutation into a vector the way you'd bundle a feature is always a
+  mistake — the type separation exists to make that mistake a
+  compile-time diagnostic.
+
 ## No Wrong Types, Only Noise
 There are no type errors in Akasha. Binding two unrelated vectors produces a result — it's just semantically meaningless (low similarity to anything useful). The type system is replaced by **similarity checking**: "does this result look like what I expected?"
 
