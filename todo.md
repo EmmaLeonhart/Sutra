@@ -1,33 +1,44 @@
 # Akasha TODO
 
-## Next up — the next biggest win for the fly-brain branch
+## Next up — declare the VSA builtins in the spec
 
-The previous top two wins (permutation primitive type + array literals
-and subscript access) are done. See the "Recently done" section below.
-The one remaining blocker for `fly-brain/permutation_conditional.ak` to
-parse cleanly is map literals:
+`fly-brain/permutation_conditional.ak` now parses and validates with
+zero diagnostics. The SDK validator is no longer the blocker on the
+fly-brain work. The next piece that would meaningfully move things
+forward is formalizing the VSA builtin signatures in the spec:
 
-1. **Map types and map literals.** `map<K, V>` as a type expression,
-   `{k: v, ...}` as an inline literal in expression position, with a
-   disambiguation from block statements (expression position vs.
-   statement position). Needed for the `map<vector, string> BEHAVIOR_OF
-   = { proto_PH: "approach", ... };` table in
-   `fly-brain/permutation_conditional.ak`, which is currently the only
-   remaining source of diagnostics in that file (25 errors, all on
-   lines 60–65). Touch points: parser primary expression (detect `{` in
-   an expression-start context), a new `MapLiteral` AST node, the
-   generic-type parser to accept `map<K, V>`, plus test-corpus entries
-   under `tests/corpus/valid/` showing the new form.
+1. **Declare the VSA builtins.** `snap`, `similarity`, `bind`,
+   `unbind`, `bundle`, `permute`, `basis_vector`, `permutation_key`,
+   `identity_permutation`, `argmax_cosine`, `compose`. Give each a
+   signature in terms of existing primitives (`scalar`, `vector`,
+   `permutation`, `fuzzy`). Update `planning/akasha-spec/` —
+   probably a new file `21-builtins.md` or an expansion of
+   `02-operations.md`. Right now the validator is permissive about
+   these — any bareword call is allowed — but once name resolution
+   lands in v0.2, undeclared builtins will start firing diagnostics.
+   Declaring them now heads off a diagnostic avalanche later.
 
-When it lands, re-run
-`python -m akasha_compiler ../../fly-brain/permutation_conditional.ak`
-and confirm the diagnostic count drops to near-zero (there will still
-be undeclared-builtin mentions until the spec declares `snap`,
-`similarity`, `bind`, `permute`, etc. — that's a separate short-term
-task documented in `fly-brain/STATUS.md`).
+2. **Compilation path: translator from AST to `FlyBrainVSA` calls.**
+   See the medium-term plan in `fly-brain/STATUS.md`. Walk the AST of
+   an `.ak` file and emit Python that constructs vectors, builds the
+   prototype table, and runs the decide function. This replaces the
+   hand-written `permutation_conditional.py` with compiler output.
 
 ## Recently done
 
+- **Map types and map literals.** `map<K, V>` is now a primitive
+  generic type. The inline literal `{k1: v1, k2: v2, ...}` parses as
+  a `MapLiteral` expression in expression position; empty `{}` is
+  legal; a bare `{ ... }` at statement position is still always a
+  block, as in C-family languages. Vector-valued keys work, which is
+  what the fly-brain prototype table needs. Spec: extended the
+  "Primitive Types" section in `planning/akasha-spec/05-type-system.md`
+  with a `map<K, V>` entry covering the lookup semantics and the
+  statement-vs-expression disambiguation. Test corpus:
+  `tests/corpus/valid/24_map_literal.ak`; parser unit tests in
+  `tests/test_parser.py`. **Running the validator on
+  `fly-brain/permutation_conditional.ak` now reports 0 diagnostics
+  (down from 46 before the permutation-type work started).**
 - **`permutation` as a primitive type.** Added to `PRIMITIVE_TYPE_NAMES`
   in the lexer, to the parser's `_PRIMITIVE_TYPES`, and to the
   validator's `_record_type_usage` PRIMITIVES set. Spec entry added to
@@ -41,10 +52,7 @@ task documented in `fly-brain/STATUS.md`).
   chaining. Test corpus:
   `tests/corpus/valid/22_array_literal.ak` and
   `tests/corpus/valid/23_subscript_access.ak`; parser unit tests added
-  to `tests/test_parser.py`. Rerunning the validator on
-  `fly-brain/permutation_conditional.ak` cut the error count from 46
-  to 25; every remaining error is a map-literal issue on lines 60–65,
-  which is the separate follow-up task above.
+  to `tests/test_parser.py`.
 
 ## Pending Decisions
 
