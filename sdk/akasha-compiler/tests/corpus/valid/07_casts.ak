@@ -1,0 +1,42 @@
+// Akasha corpus test: casts and conversions.
+// Covers: safe cast, unsafeCast, unsafeOverride, primitive casts,
+// fuzzy<->bool via defuzzy and (bool) cast.
+
+function void DemonstrateCasts(Animal subject) {
+    // Safe cast — compile-time checked.
+    Cat checked = (Cat) subject;
+
+    // Unsafe cast — force reinterpretation, no checking.
+    Cat forced = unsafeCast<Cat>(subject);
+
+    // Unsafe override at call site — doesn't change the value.
+    vector raw = TakeVector(unsafeOverride(subject));
+
+    // Cast down to primitives.
+    vector asVector = (vector) checked;
+    scalar asScalar = (scalar) 0.5;
+    string asString = (string) checked;
+}
+
+function void FuzzyBoolConversions() {
+    vector cat = embed("cat");
+    vector dog = embed("dog");
+
+    // Turn an arbitrary vector into fuzzy explicitly.
+    fuzzy similarity = unsafeCast<fuzzy>(Cosine(cat, dog));
+
+    // Collapse fuzzy to bool via defuzzy().
+    bool isSimilar = defuzzy(similarity);
+
+    // (bool) on a fuzzy performs defuzzy — it's the one cross-type
+    // cast the spec allows because it's really a recursive is_true.
+    bool alsoSimilar = (bool) similarity;
+
+    // Either form is legal in an `if`.
+    if (isSimilar) {
+        DoThing();
+    }
+    if (similarity) {
+        DoOtherThing();
+    }
+}

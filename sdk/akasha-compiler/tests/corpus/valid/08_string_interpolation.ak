@@ -1,0 +1,26 @@
+// Akasha corpus test: string interpolation.
+// Covers: plain strings, $"..." interpolation, nested expressions
+// inside {}, interpolation at start/end/middle of the string.
+
+function string Report(string name, scalar score) {
+    // Simple interpolation.
+    string simple = $"Cat {name}";
+
+    // Two interpolations.
+    string two = $"Cat '{name}' scored {score}";
+
+    // Interpolation at start and end.
+    string startEnd = $"{name} is {score}";
+
+    // Non-trivial expression inside the interpolation.
+    string computed = $"twice score = {score * 2.0}";
+
+    // Nested function call.
+    string nested = $"embedding = {embed(name)}";
+
+    // Plain string literal, no interpolation.
+    string plain = "no interpolation here";
+
+    // Mix of interpolations and literal parts.
+    return $"[{plain}] cat '{name}' scored {score} (2x = {score * 2.0})";
+}

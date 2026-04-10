@@ -1,0 +1,23 @@
+// Akasha corpus test: logical operators.
+// Covers: &&, ||, !, precedence, short-circuit patterns.
+
+function bool Any(bool a, bool b, bool c) {
+    return a || b || c;
+}
+
+function bool All(bool a, bool b, bool c) {
+    return a && b && c;
+}
+
+function bool Mixed(bool a, bool b, bool c, bool d) {
+    // && binds tighter than ||
+    return a || b && c || d;
+}
+
+function bool NotCombo(bool a, bool b) {
+    return !a && !b;
+}
+
+function bool Parenthesized(bool a, bool b, bool c) {
+    return (a || b) && !c;
+}

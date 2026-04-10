@@ -1,0 +1,31 @@
+// Akasha corpus test: methods.
+// Covers: method declarations, `this`, static methods, desugared calls,
+// dot-chained invocations.
+
+// A file acts as an object declaration. Methods are public and
+// non-static by default.
+method string GetName() {
+    return this.name;
+}
+
+method vector GetEmbedding() {
+    return (vector) this;
+}
+
+// Method with an instance parameter. The first arg of the desugared
+// form is always the implicit `this`.
+method fuzzy SimilarTo(Animal other) {
+    vector self = this.GetEmbedding();
+    vector them = other.GetEmbedding();
+    return unsafeCast<fuzzy>(Cosine(self, them));
+}
+
+// Static method — operates on the class, not an instance.
+static method Animal GetArchetype() {
+    return (Animal) embed("animal");
+}
+
+// Static method that returns a sibling class.
+static method Cat DefaultCat() {
+    return (Cat) embed("default cat");
+}

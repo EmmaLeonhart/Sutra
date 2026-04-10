@@ -1,0 +1,23 @@
+// Akasha corpus test: deeply nested expressions.
+// Covers: function calls inside casts inside interpolations inside
+// function calls. The kind of thing that trips up lookahead-limited
+// parsers.
+
+function string DeepNest(Animal a) {
+    vector ref = embed("reference");
+    vector raw = unsafeCast<fuzzy>(Cosine(embed((string) a), ref));
+    return $"result={(vector) raw}";
+}
+
+function vector DeeplyNestedCalls(vector a, vector b, vector c) {
+    return Normalize(Blend(Bundle(a, b), Bind(c, Normalize(a))));
+}
+
+function fuzzy NestedFuzzy(Animal a, Animal b) {
+    return unsafeCast<fuzzy>(
+        Cosine(
+            Blend(a.GetEmbedding(), b.GetEmbedding()),
+            embed("reference")
+        )
+    );
+}
