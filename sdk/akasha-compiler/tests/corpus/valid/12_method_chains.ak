@@ -1,0 +1,23 @@
+// Akasha corpus test: dot-chained method calls.
+// Covers: method chaining as the alternative to pipe-forward,
+// nested calls as the other alternative.
+
+function string DescribeLong(Animal subject) {
+    // Method chain.
+    return subject.GetEmbedding().Normalize().Describe();
+}
+
+function vector DoublyNormalized(Animal a) {
+    // Chain with intermediate operations.
+    return a.GetEmbedding().Normalize().Scale(2.0).Normalize();
+}
+
+function string ComputeReport(Animal a, Animal b) {
+    // Nested calls — the other legal form.
+    return Describe(Bundle(a.GetEmbedding(), b.GetEmbedding()));
+}
+
+function vector MixedStyle(Animal a, Animal b) {
+    // Mix method chain and nested call.
+    return Blend(a.GetEmbedding().Normalize(), b.GetEmbedding().Normalize());
+}

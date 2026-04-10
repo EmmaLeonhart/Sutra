@@ -1,0 +1,39 @@
+// Akasha corpus test: fly-brain style four-state conditional.
+// Mirrors the fly-brain/four_state_conditional.ak demo — this is the
+// canonical test for fuzzy-axis branching via nested defuzzy calls.
+
+function vector SmellInput() {
+    return embed("vinegar");
+}
+
+function vector HungerState() {
+    return embed("hungry");
+}
+
+function string DecideBehavior() {
+    vector smell = SmellInput();
+    vector hunger = HungerState();
+
+    // Snap encodes through the circuit and cleans up noise.
+    vector smellClean = snap(smell);
+    vector hungerClean = snap(hunger);
+
+    // Fuzzy similarities against reference concepts.
+    fuzzy hasSmell = similarity(smellClean, embed("vinegar"));
+    fuzzy isHungry = similarity(hungerClean, embed("hungry"));
+
+    // Four-state nested defuzzification.
+    if (defuzzy(hasSmell)) {
+        if (defuzzy(isHungry)) {
+            return "approach";
+        } else {
+            return "ignore";
+        }
+    } else {
+        if (defuzzy(isHungry)) {
+            return "search";
+        } else {
+            return "idle";
+        }
+    }
+}
