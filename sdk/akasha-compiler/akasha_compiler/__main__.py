@@ -23,6 +23,7 @@ from typing import List
 
 from . import __version__
 from . import ast_nodes as ast
+from .codegen_flybrain import CodegenNotSupported, translate_module
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
 from .parser import Parser
@@ -177,6 +178,43 @@ def _run_consistency(paths: List[str]) -> int:
     return 1 if drift_count else 0
 
 
+def _run_emit_flybrain(
+    path: str, *, runtime_dim: int, runtime_seed: int, runtime_n_kc: int
+) -> int:
+    """Parse one `.ak` file and emit FlyBrainVSA-targeted Python to stdout.
+
+    Validation runs first: any errors abort the translation with a
+    non-zero exit code, mirroring how a real compiler refuses to lower
+    a broken source file.
+    """
+    if not os.path.exists(path):
+        print(f"{path}: error: file not found", file=sys.stderr)
+        return 1
+    bag = validate_file(path)
+    if bag.errors:
+        for d in bag:
+            print(d.format(), file=sys.stderr)
+        return 1
+    with open(path, encoding="utf-8") as fp:
+        src = fp.read()
+    lexer = Lexer(src, file=path)
+    tokens = lexer.tokenize()
+    parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    try:
+        out = translate_module(
+            module,
+            runtime_dim=runtime_dim,
+            runtime_seed=runtime_seed,
+            runtime_n_kc=runtime_n_kc,
+        )
+    except CodegenNotSupported as exc:
+        print(f"{path}:{exc}", file=sys.stderr)
+        return 1
+    sys.stdout.write(out)
+    return 0
+
+
 def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="akashac",
@@ -203,11 +241,45 @@ def main(argv: List[str] | None = None) -> int:
         help="Cross-file check: report class names that appear in multiple casings across the file set.",
     )
     parser.add_argument(
+        "--emit-flybrain",
+        action="store_true",
+        help=(
+            "Compile the first input file to Python targeting the FlyBrainVSA "
+            "runtime and print it to stdout. V1 scope: the permutation-conditional "
+            "shape from fly-brain/permutation_conditional.ak."
+        ),
+    )
+    parser.add_argument(
+        "--runtime-dim", type=int, default=50,
+        help="Hypervector dimension for the emitted FlyBrainVSA runtime (default 50).",
+    )
+    parser.add_argument(
+        "--runtime-seed", type=int, default=42,
+        help="Random seed for the emitted FlyBrainVSA runtime (default 42).",
+    )
+    parser.add_argument(
+        "--runtime-n-kc", type=int, default=2000,
+        help="Number of Kenyon cells in the emitted mushroom body (default 2000).",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"akashac {__version__}",
     )
     args = parser.parse_args(argv)
+    if args.emit_flybrain:
+        if len(args.paths) != 1:
+            print(
+                "--emit-flybrain takes exactly one .ak source file",
+                file=sys.stderr,
+            )
+            return 2
+        return _run_emit_flybrain(
+            args.paths[0],
+            runtime_dim=args.runtime_dim,
+            runtime_seed=args.runtime_seed,
+            runtime_n_kc=args.runtime_n_kc,
+        )
     if args.json:
         return _run_json(args.paths)
     if args.consistency:
