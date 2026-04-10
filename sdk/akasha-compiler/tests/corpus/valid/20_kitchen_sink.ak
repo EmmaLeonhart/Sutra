@@ -1,0 +1,75 @@
+// Akasha corpus test: kitchen sink.
+// Covers: many features in one file — methods, functions, generics,
+// operators, control flow, casts, interpolation. Meant to exercise
+// whole-file parser stress, not to illustrate good code.
+
+/// Bundle two vectors. Standard VSA superposition.
+function vector Bundle(vector a, vector b) {
+    return a + b;
+}
+
+/// Bind two vectors. Standard VSA role-filler encoding.
+function vector Bind(vector a, vector b) {
+    return a * b;
+}
+
+function operator +(vector a, vector b) {
+    return Bundle(a, b);
+}
+
+function operator *(vector a, vector b) {
+    return Bind(a, b);
+}
+
+/// Compile-time generic identity.
+function T Identity<T>(T value) {
+    return value;
+}
+
+/// A fuzzy-returning helper.
+function fuzzy PetLikeness(Animal subject) {
+    vector s = (vector) subject;
+    vector petMarker = embed("pet");
+    return unsafeCast<fuzzy>(Cosine(s, petMarker));
+}
+
+/// A method attached to an object file.
+method string Describe() {
+    fuzzy signal = PetLikeness(this);
+    if (defuzzy(signal)) {
+        return $"{this.name} is pet-like";
+    } else {
+        return $"{this.name} is not pet-like";
+    }
+}
+
+/// Nested control flow and loops.
+function vector TrainingLoop(tuple examples, vector target) {
+    vector current = target;
+    scalar quality = 0.0;
+    var iter = 0;
+    while (quality < 0.95) {
+        foreach (var example in examples) {
+            current = current + example * target;
+        }
+        for (var i = 0; i < 3; i++) {
+            current = Normalize(current);
+        }
+        do {
+            quality = MeasureQuality(current);
+            iter++;
+        } while (quality < 0.5 && iter < 100);
+        if (iter > 1000) {
+            return current;
+        }
+    }
+    return current;
+}
+
+/// Top-level execution at the bottom of the file.
+vector globalCat = embed("cat");
+vector globalDog = embed("dog");
+fuzzy similarity = unsafeCast<fuzzy>(Cosine(globalCat, globalDog));
+if (similarity) {
+    Print($"cat and dog are similar: {similarity}");
+}
