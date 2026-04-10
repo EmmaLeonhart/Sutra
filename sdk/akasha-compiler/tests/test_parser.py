@@ -303,6 +303,74 @@ class TestExpressions(unittest.TestCase):
         self.assertIsInstance(decl, ast.VarDecl)
         self.assertEqual(decl.type_ref.name, "permutation")
 
+    def test_map_literal_empty(self):
+        module, diag = parse("function void F() { var m = {}; }")
+        self.assertFalse(diag.has_errors())
+        init = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(init, ast.MapLiteral)
+        self.assertEqual(init.keys, [])
+        self.assertEqual(init.values, [])
+
+    def test_map_literal_single_entry(self):
+        module, diag = parse(
+            'function void F() { var m = {"only": 1}; }'
+        )
+        self.assertFalse(diag.has_errors())
+        init = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(init, ast.MapLiteral)
+        self.assertEqual(len(init.keys), 1)
+        self.assertEqual(len(init.values), 1)
+        self.assertIsInstance(init.keys[0], ast.StringLiteral)
+        self.assertIsInstance(init.values[0], ast.IntLiteral)
+
+    def test_map_literal_multi_entry(self):
+        module, diag = parse(
+            'function void F() { var m = {"a": 1, "b": 2, "c": 3}; }'
+        )
+        self.assertFalse(diag.has_errors())
+        init = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(init, ast.MapLiteral)
+        self.assertEqual(len(init.keys), 3)
+        self.assertEqual(len(init.values), 3)
+
+    def test_map_literal_vector_keys(self):
+        # The fly-brain permutation-conditional shape: map<vector, string>
+        # with expression-valued keys.
+        module, diag = parse(
+            'map<vector, string> BEHAVIOR_OF = '
+            '{proto_PH: "approach", proto_AH: "search"};'
+        )
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0]
+        self.assertIsInstance(decl, ast.VarDecl)
+        self.assertEqual(decl.type_ref.name, "map")
+        self.assertEqual(len(decl.type_ref.type_args), 2)
+        self.assertEqual(decl.type_ref.type_args[0].name, "vector")
+        self.assertEqual(decl.type_ref.type_args[1].name, "string")
+        self.assertIsInstance(decl.initializer, ast.MapLiteral)
+        self.assertEqual(len(decl.initializer.keys), 2)
+        self.assertIsInstance(decl.initializer.keys[0], ast.Identifier)
+
+    def test_map_literal_as_call_argument(self):
+        module, diag = parse(
+            'function void F() { Register({"a": 1, "b": 2}); }'
+        )
+        self.assertFalse(diag.has_errors())
+        call = module.items[0].body.statements[0].expr
+        self.assertIsInstance(call, ast.Call)
+        self.assertEqual(len(call.args), 1)
+        self.assertIsInstance(call.args[0], ast.MapLiteral)
+
+    def test_map_literal_subscript_chain(self):
+        # {k: v}[k] — map literal immediately followed by a subscript.
+        module, diag = parse(
+            'function void F() { var x = {"a": 1}["a"]; }'
+        )
+        self.assertFalse(diag.has_errors())
+        init = module.items[0].body.statements[0].initializer
+        self.assertIsInstance(init, ast.Subscript)
+        self.assertIsInstance(init.target, ast.MapLiteral)
+
 
 class TestErrorRecovery(unittest.TestCase):
     def test_missing_semicolon(self):
