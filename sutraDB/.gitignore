@@ -1,0 +1,38 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock
+
+# Java / Maven / Gradle
+**/target/
+**/build/
+*.class
+*.jar
+!**/gradle-wrapper.jar
+!tools/protege-plugin/build-and-install.bat
+.gradle/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Database data directories (binary, not versioned)
+sutra-data/
+sutra-import-data/
+*.sdb
+
+# Claude artifacts
+mnt/
+sutra_error.log
+*.pyc
