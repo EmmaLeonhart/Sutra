@@ -1,0 +1,605 @@
+"""Lexer for the Akasha language.
+
+Produces a flat list of tokens from source text. The lexer is
+intentionally forgiving: unknown characters become `TokenKind.UNKNOWN`
+with a diagnostic attached rather than aborting, so the parser still
+sees a usable stream.
+
+Language features handled:
+
+- Comment forms: `//` line, `/* */` block, `///` doc line, `#` line.
+  Block comments are NOT nested (matches C).
+- String literals: regular `"..."` and interpolated `$"... {expr} ..."`.
+  Interpolated strings become a flat sequence:
+      STRING_INTERP_START  STRING_LIT_CHUNK  INTERP_OPEN
+      ...tokens for expr...
+      INTERP_CLOSE  STRING_LIT_CHUNK  STRING_INTERP_END
+  That lets the parser walk inside `{...}` with the full expression
+  grammar and still know we're inside a string.
+- Numeric literals: integer and decimal; no hex/exponent yet.
+- Identifiers and keywords.
+- Multi-character operators: `==`, `!=`, `<=`, `>=`, `&&`, `||`,
+  `++`, `--`, `+=`, `-=`, `*=`, `/=`, `=>`, `->`, `::`, `|>`.
+  (`|>` is lexed so we can flag it explicitly; the spec forbids it.)
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import List, Optional
+
+from .diagnostics import (
+    DiagnosticBag,
+    SourcePosition,
+    SourceSpan,
+)
+
+
+class TokenKind(Enum):
+    # ---- structural ----
+    LBRACE = auto()          # {
+    RBRACE = auto()          # }
+    LPAREN = auto()          # (
+    RPAREN = auto()          # )
+    LBRACKET = auto()        # [
+    RBRACKET = auto()        # ]
+    SEMICOLON = auto()       # ;
+    COMMA = auto()            # ,
+    DOT = auto()              # .
+    COLON = auto()            # :
+
+    # ---- operators ----
+    PLUS = auto()             # +
+    MINUS = auto()            # -
+    STAR = auto()             # *
+    SLASH = auto()            # /
+    PERCENT = auto()          # %
+    BANG = auto()             # !
+    QUESTION = auto()         # ?
+    ASSIGN = auto()           # =
+    EQ = auto()               # ==
+    NEQ = auto()              # !=
+    LT = auto()               # <
+    GT = auto()               # >
+    LE = auto()               # <=
+    GE = auto()               # >=
+    AND = auto()              # &&
+    OR = auto()               # ||
+    BIT_AND = auto()          # &
+    BIT_OR = auto()           # |
+    BIT_XOR = auto()          # ^
+    PLUS_PLUS = auto()        # ++
+    MINUS_MINUS = auto()      # --
+    PLUS_ASSIGN = auto()      # +=
+    MINUS_ASSIGN = auto()     # -=
+    STAR_ASSIGN = auto()      # *=
+    SLASH_ASSIGN = auto()     # /=
+    ARROW = auto()            # ->
+    FAT_ARROW = auto()        # =>
+    PIPE_FORWARD = auto()     # |>  (spec says: not supported)
+    DOUBLE_COLON = auto()     # ::
+
+    # ---- literals ----
+    INT_LIT = auto()
+    FLOAT_LIT = auto()
+    STRING_LIT = auto()          # plain "..." literal
+    STRING_INTERP_START = auto()  # opening $" of interpolated string
+    STRING_INTERP_END = auto()    # closing " of interpolated string
+    STRING_LIT_CHUNK = auto()     # literal text chunk inside interp string
+    INTERP_OPEN = auto()          # { inside interpolated string
+    INTERP_CLOSE = auto()         # } inside interpolated string
+    TRUE = auto()
+    FALSE = auto()
+
+    # ---- identifiers / keywords ----
+    IDENT = auto()
+    KW_FUNCTION = auto()
+    KW_METHOD = auto()
+    KW_STATIC = auto()
+    KW_PUBLIC = auto()
+    KW_PRIVATE = auto()
+    KW_VAR = auto()
+    KW_CONST = auto()
+    KW_RETURN = auto()
+    KW_IF = auto()
+    KW_ELSE = auto()
+    KW_WHILE = auto()
+    KW_FOR = auto()
+    KW_FOREACH = auto()
+    KW_IN = auto()
+    KW_DO = auto()
+    KW_TRY = auto()
+    KW_CATCH = auto()
+    KW_THIS = auto()
+    KW_OPERATOR = auto()
+    KW_NEW = auto()
+    KW_IMPLICIT = auto()
+
+    # ---- special ----
+    EOF = auto()
+    UNKNOWN = auto()
+
+
+# Keywords that have a dedicated TokenKind.
+KEYWORDS = {
+    "function": TokenKind.KW_FUNCTION,
+    "method": TokenKind.KW_METHOD,
+    "static": TokenKind.KW_STATIC,
+    "public": TokenKind.KW_PUBLIC,
+    "private": TokenKind.KW_PRIVATE,
+    "var": TokenKind.KW_VAR,
+    "const": TokenKind.KW_CONST,
+    "return": TokenKind.KW_RETURN,
+    "if": TokenKind.KW_IF,
+    "else": TokenKind.KW_ELSE,
+    "while": TokenKind.KW_WHILE,
+    "for": TokenKind.KW_FOR,
+    "foreach": TokenKind.KW_FOREACH,
+    "in": TokenKind.KW_IN,
+    "do": TokenKind.KW_DO,
+    "try": TokenKind.KW_TRY,
+    "catch": TokenKind.KW_CATCH,
+    "this": TokenKind.KW_THIS,
+    "operator": TokenKind.KW_OPERATOR,
+    "new": TokenKind.KW_NEW,
+    "implicit": TokenKind.KW_IMPLICIT,
+    "true": TokenKind.TRUE,
+    "false": TokenKind.FALSE,
+}
+
+# Primitive type names. They are ordinary identifiers at the lexer
+# level - the parser treats them as types in type positions.
+PRIMITIVE_TYPE_NAMES = {
+    "scalar",
+    "vector",
+    "matrix",
+    "tuple",
+    "string",
+    "bool",
+    "fuzzy",
+    "void",
+}
+
+# Contextual keywords: identifiers with special meaning in expressions
+# but which are still legal bareword identifiers in other positions.
+CONTEXTUAL_KEYWORDS = {
+    "defuzzy",
+    "embed",
+    "unsafeCast",
+    "unsafeOverride",
+}
+
+
+@dataclass
+class Token:
+    kind: TokenKind
+    lexeme: str
+    span: SourceSpan
+    # For literals: the interpreted value. `value` is a Python object
+    # for ease of later lowering; for now the parser only cares about
+    # it for strings.
+    value: object = None
+
+    def __repr__(self) -> str:  # pragma: no cover - debug aid
+        return f"Token({self.kind.name}, {self.lexeme!r}, {self.span.start})"
+
+
+class Lexer:
+    """Tokenize Akasha source into a flat list.
+
+    Call `tokenize()` and then consume `tokens` and `diagnostics`.
+    """
+
+    def __init__(self, source: str, *, file: Optional[str] = None) -> None:
+        self.source = source
+        self.file = file
+        self.diagnostics = DiagnosticBag(file=file)
+        self.tokens: List[Token] = []
+        self._pos = 0
+        self._line = 1
+        self._col = 1
+        # Stack of open interpolated-string states. Each entry stores
+        # (start_pos, brace_depth_at_interp_open). When we are inside
+        # an interpolation's `{...}`, we count braces so we only return
+        # to string mode on the matching `}`.
+        self._interp_stack: List[int] = []
+
+    # ---- public API -------------------------------------------------------
+
+    def tokenize(self) -> List[Token]:
+        while not self._at_end():
+            if self._interp_stack and self._interp_stack[-1] == 0:
+                # We are inside the literal part of an interpolated
+                # string (not within `{...}`). Continue scanning the
+                # string body.
+                self._scan_interp_body()
+                continue
+            self._scan_token()
+        self._emit(TokenKind.EOF, "", self._pos, self._pos)
+        return self.tokens
+
+    # ---- position bookkeeping --------------------------------------------
+
+    def _at_end(self) -> bool:
+        return self._pos >= len(self.source)
+
+    def _peek(self, offset: int = 0) -> str:
+        idx = self._pos + offset
+        if idx >= len(self.source):
+            return ""
+        return self.source[idx]
+
+    def _advance(self) -> str:
+        ch = self.source[self._pos]
+        self._pos += 1
+        if ch == "\n":
+            self._line += 1
+            self._col = 1
+        else:
+            self._col += 1
+        return ch
+
+    def _position_at(self, offset: int) -> SourcePosition:
+        # Walk from 0 to offset to get accurate line/col. Only called
+        # for token starts/ends on the main path, so we use a cheap
+        # incremental tracker instead: line/col are maintained by
+        # `_advance`. For span starts we snapshot before scanning.
+        raise NotImplementedError("Use _snapshot / _make_span instead")
+
+    def _snapshot(self) -> SourcePosition:
+        return SourcePosition(line=self._line, column=self._col, offset=self._pos)
+
+    def _span(self, start: SourcePosition) -> SourceSpan:
+        return SourceSpan(start=start, end=self._snapshot())
+
+    # ---- token emission ---------------------------------------------------
+
+    def _emit(
+        self,
+        kind: TokenKind,
+        lexeme: str,
+        start_offset: int,
+        end_offset: int,
+        *,
+        value: object = None,
+    ) -> None:
+        # Compute accurate positions from offsets by re-scanning the
+        # known lexeme boundaries using the maintained _line/_col. In
+        # practice the caller already has a SourcePosition snapshot so
+        # we accept that via `_emit_with_span` instead. This helper is
+        # kept for the EOF sentinel only.
+        pos = SourcePosition(line=self._line, column=self._col, offset=end_offset)
+        span = SourceSpan(start=pos, end=pos)
+        self.tokens.append(Token(kind=kind, lexeme=lexeme, span=span, value=value))
+
+    def _emit_tok(
+        self,
+        kind: TokenKind,
+        lexeme: str,
+        start: SourcePosition,
+        *,
+        value: object = None,
+    ) -> None:
+        span = self._span(start)
+        self.tokens.append(Token(kind=kind, lexeme=lexeme, span=span, value=value))
+
+    # ---- main scanner -----------------------------------------------------
+
+    def _scan_token(self) -> None:
+        # Skip whitespace (but not newlines inside counts)
+        while not self._at_end() and self._peek() in " \t\r\n":
+            self._advance()
+        if self._at_end():
+            return
+
+        start = self._snapshot()
+        ch = self._peek()
+
+        # Comments --------------------------------------------------------
+        if ch == "/" and self._peek(1) == "/":
+            self._scan_line_comment()
+            return
+        if ch == "/" and self._peek(1) == "*":
+            self._scan_block_comment(start)
+            return
+        if ch == "#":
+            self._scan_line_comment()
+            return
+
+        # Strings ----------------------------------------------------------
+        if ch == '"':
+            self._scan_plain_string(start)
+            return
+        if ch == "$" and self._peek(1) == '"':
+            self._scan_interp_string_open(start)
+            return
+
+        # Numbers ----------------------------------------------------------
+        if ch.isdigit():
+            self._scan_number(start)
+            return
+
+        # Identifiers / keywords ------------------------------------------
+        if ch == "_" or ch.isalpha():
+            self._scan_ident(start)
+            return
+
+        # Operators & punctuation -----------------------------------------
+        self._scan_operator(start)
+
+    # ---- comments ---------------------------------------------------------
+
+    def _scan_line_comment(self) -> None:
+        while not self._at_end() and self._peek() != "\n":
+            self._advance()
+
+    def _scan_block_comment(self, start: SourcePosition) -> None:
+        # Consume "/*"
+        self._advance()
+        self._advance()
+        while not self._at_end():
+            if self._peek() == "*" and self._peek(1) == "/":
+                self._advance()
+                self._advance()
+                return
+            self._advance()
+        # Unterminated
+        self.diagnostics.error(
+            "unterminated block comment",
+            self._span(start),
+            code="AKA0001",
+            hint="add `*/` to close the comment",
+        )
+
+    # ---- strings ----------------------------------------------------------
+
+    def _scan_plain_string(self, start: SourcePosition) -> None:
+        self._advance()  # opening "
+        buf: List[str] = []
+        while not self._at_end() and self._peek() != '"':
+            ch = self._advance()
+            if ch == "\\":
+                if self._at_end():
+                    break
+                esc = self._advance()
+                buf.append(self._interpret_escape(esc))
+            elif ch == "\n":
+                self.diagnostics.error(
+                    "unterminated string literal (newline before closing quote)",
+                    self._span(start),
+                    code="AKA0002",
+                )
+                break
+            else:
+                buf.append(ch)
+        if not self._at_end() and self._peek() == '"':
+            self._advance()
+        else:
+            self.diagnostics.error(
+                "unterminated string literal",
+                self._span(start),
+                code="AKA0002",
+            )
+        lexeme = self.source[start.offset:self._pos]
+        self._emit_tok(
+            TokenKind.STRING_LIT, lexeme, start, value="".join(buf)
+        )
+
+    def _scan_interp_string_open(self, start: SourcePosition) -> None:
+        # `$"` opens an interpolated string. We emit a STRING_INTERP_START
+        # token and then push a state entry. The main loop will call
+        # `_scan_interp_body` until the string is closed.
+        self._advance()  # $
+        self._advance()  # "
+        self._emit_tok(TokenKind.STRING_INTERP_START, "$\"", start)
+        self._interp_stack.append(0)
+
+    def _scan_interp_body(self) -> None:
+        """Scan inside an interpolated string, outside `{...}` regions."""
+        buf_start = self._snapshot()
+        buf: List[str] = []
+        while not self._at_end():
+            ch = self._peek()
+            if ch == '"':
+                # End of the interpolated string.
+                if buf:
+                    lexeme = self.source[buf_start.offset:self._pos]
+                    self._emit_tok(
+                        TokenKind.STRING_LIT_CHUNK, lexeme, buf_start,
+                        value="".join(buf),
+                    )
+                close_start = self._snapshot()
+                self._advance()
+                self._emit_tok(TokenKind.STRING_INTERP_END, "\"", close_start)
+                self._interp_stack.pop()
+                return
+            if ch == "{":
+                # Emit any pending chunk, then enter interpolation mode.
+                if buf:
+                    lexeme = self.source[buf_start.offset:self._pos]
+                    self._emit_tok(
+                        TokenKind.STRING_LIT_CHUNK, lexeme, buf_start,
+                        value="".join(buf),
+                    )
+                open_start = self._snapshot()
+                self._advance()
+                self._emit_tok(TokenKind.INTERP_OPEN, "{", open_start)
+                # Mark that we are now tracking a nested brace.
+                self._interp_stack[-1] = 1
+                return
+            if ch == "\\":
+                self._advance()
+                if self._at_end():
+                    break
+                esc = self._advance()
+                buf.append(self._interpret_escape(esc))
+                continue
+            if ch == "\n":
+                self.diagnostics.error(
+                    "unterminated interpolated string literal",
+                    self._span(buf_start),
+                    code="AKA0002",
+                )
+                break
+            self._advance()
+            buf.append(ch)
+        # EOF without closing quote.
+        self.diagnostics.error(
+            "unterminated interpolated string literal",
+            self._span(buf_start),
+            code="AKA0002",
+        )
+        # Pop so we don't loop.
+        if self._interp_stack:
+            self._interp_stack.pop()
+
+    def _interpret_escape(self, ch: str) -> str:
+        mapping = {
+            "n": "\n",
+            "t": "\t",
+            "r": "\r",
+            "\\": "\\",
+            "\"": "\"",
+            "'": "'",
+            "0": "\0",
+            "{": "{",
+            "}": "}",
+            "$": "$",
+        }
+        return mapping.get(ch, ch)
+
+    # ---- numbers ----------------------------------------------------------
+
+    def _scan_number(self, start: SourcePosition) -> None:
+        is_float = False
+        while not self._at_end() and self._peek().isdigit():
+            self._advance()
+        if self._peek() == "." and self._peek(1).isdigit():
+            is_float = True
+            self._advance()
+            while not self._at_end() and self._peek().isdigit():
+                self._advance()
+        lexeme = self.source[start.offset:self._pos]
+        if is_float:
+            self._emit_tok(TokenKind.FLOAT_LIT, lexeme, start, value=float(lexeme))
+        else:
+            self._emit_tok(TokenKind.INT_LIT, lexeme, start, value=int(lexeme))
+
+    # ---- identifiers ------------------------------------------------------
+
+    def _scan_ident(self, start: SourcePosition) -> None:
+        while not self._at_end():
+            ch = self._peek()
+            if ch == "_" or ch.isalnum():
+                self._advance()
+            else:
+                break
+        lexeme = self.source[start.offset:self._pos]
+        kind = KEYWORDS.get(lexeme, TokenKind.IDENT)
+        self._emit_tok(kind, lexeme, start)
+
+    # ---- operators --------------------------------------------------------
+
+    def _scan_operator(self, start: SourcePosition) -> None:
+        ch = self._advance()
+        nxt = self._peek()
+
+        # Two-character operators first.
+        two: Optional[TokenKind] = None
+        if ch == "=" and nxt == "=":
+            two = TokenKind.EQ
+        elif ch == "!" and nxt == "=":
+            two = TokenKind.NEQ
+        elif ch == "<" and nxt == "=":
+            two = TokenKind.LE
+        elif ch == ">" and nxt == "=":
+            two = TokenKind.GE
+        elif ch == "&" and nxt == "&":
+            two = TokenKind.AND
+        elif ch == "|" and nxt == "|":
+            two = TokenKind.OR
+        elif ch == "+" and nxt == "+":
+            two = TokenKind.PLUS_PLUS
+        elif ch == "-" and nxt == "-":
+            two = TokenKind.MINUS_MINUS
+        elif ch == "+" and nxt == "=":
+            two = TokenKind.PLUS_ASSIGN
+        elif ch == "-" and nxt == "=":
+            two = TokenKind.MINUS_ASSIGN
+        elif ch == "*" and nxt == "=":
+            two = TokenKind.STAR_ASSIGN
+        elif ch == "/" and nxt == "=":
+            two = TokenKind.SLASH_ASSIGN
+        elif ch == "-" and nxt == ">":
+            two = TokenKind.ARROW
+        elif ch == "=" and nxt == ">":
+            two = TokenKind.FAT_ARROW
+        elif ch == "|" and nxt == ">":
+            two = TokenKind.PIPE_FORWARD
+        elif ch == ":" and nxt == ":":
+            two = TokenKind.DOUBLE_COLON
+
+        if two is not None:
+            self._advance()
+            lex = self.source[start.offset:self._pos]
+            self._emit_tok(two, lex, start)
+            return
+
+        # Single-character operators / punctuation.
+        single = {
+            "{": TokenKind.LBRACE,
+            "}": TokenKind.RBRACE,
+            "(": TokenKind.LPAREN,
+            ")": TokenKind.RPAREN,
+            "[": TokenKind.LBRACKET,
+            "]": TokenKind.RBRACKET,
+            ";": TokenKind.SEMICOLON,
+            ",": TokenKind.COMMA,
+            ".": TokenKind.DOT,
+            ":": TokenKind.COLON,
+            "+": TokenKind.PLUS,
+            "-": TokenKind.MINUS,
+            "*": TokenKind.STAR,
+            "/": TokenKind.SLASH,
+            "%": TokenKind.PERCENT,
+            "!": TokenKind.BANG,
+            "?": TokenKind.QUESTION,
+            "=": TokenKind.ASSIGN,
+            "<": TokenKind.LT,
+            ">": TokenKind.GT,
+            "&": TokenKind.BIT_AND,
+            "|": TokenKind.BIT_OR,
+            "^": TokenKind.BIT_XOR,
+        }
+        kind = single.get(ch)
+        if kind is None:
+            self.diagnostics.error(
+                f"unexpected character {ch!r}",
+                self._span(start),
+                code="AKA0003",
+            )
+            self._emit_tok(TokenKind.UNKNOWN, ch, start)
+            return
+        self._emit_tok(kind, ch, start)
+
+        # Brace counting inside interpolated strings. When we see `{`
+        # or `}` inside a `{ expr }` region of an interpolated string,
+        # we adjust the depth counter. A matching close returns control
+        # to the string body.
+        if self._interp_stack and self._interp_stack[-1] > 0:
+            if kind is TokenKind.LBRACE:
+                self._interp_stack[-1] += 1
+            elif kind is TokenKind.RBRACE:
+                self._interp_stack[-1] -= 1
+                if self._interp_stack[-1] == 0:
+                    # Replace the last-emitted RBRACE with INTERP_CLOSE
+                    # so the parser knows we're back in string mode.
+                    closing = self.tokens.pop()
+                    self.tokens.append(
+                        Token(
+                            kind=TokenKind.INTERP_CLOSE,
+                            lexeme=closing.lexeme,
+                            span=closing.span,
+                        )
+                    )
