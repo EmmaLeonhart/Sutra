@@ -1,0 +1,41 @@
+// Akasha corpus test: arithmetic and numeric literals.
+// Covers: integer and float literals, basic math, precedence.
+
+function scalar Arith() {
+    scalar a = 1;
+    scalar b = 2.0;
+    scalar c = 3.14;
+    scalar d = 0.001;
+
+    scalar sum = a + b + c;
+    scalar product = a * b * c;
+    scalar mixed = a + b * c - d;
+    scalar div = a / b;
+    scalar mod = a % b;
+
+    return sum + product - mixed + div + mod;
+}
+
+function scalar PrecedenceSanity(scalar x, scalar y, scalar z) {
+    // * binds tighter than +
+    scalar p1 = x + y * z;
+    // parens override
+    scalar p2 = (x + y) * z;
+    // unary minus
+    scalar p3 = -x;
+    // unary plus (legal but redundant)
+    scalar p4 = +x;
+    // negation inside a nested expression
+    scalar p5 = -x + y * -z;
+    return p1 + p2 + p3 + p4 + p5;
+}
+
+function bool Compare(scalar a, scalar b) {
+    bool r1 = a < b;
+    bool r2 = a <= b;
+    bool r3 = a > b;
+    bool r4 = a >= b;
+    bool r5 = a == b;
+    bool r6 = a != b;
+    return r1;
+}

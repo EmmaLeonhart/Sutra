@@ -1,0 +1,64 @@
+// Akasha corpus test: control flow.
+// Covers: if/else, else-if, while, for, foreach, do-while, break-free
+// recursive branching.
+
+function string Classify(Animal subject) {
+    fuzzy signal = subject.PetLikelihood();
+    bool isPet = defuzzy(signal);
+    if (isPet) {
+        return "pet";
+    } else {
+        return "not pet";
+    }
+}
+
+// else-if chain.
+function string Tier(scalar score) {
+    if (score < 0.3) {
+        return "low";
+    } else if (score < 0.7) {
+        return "mid";
+    } else {
+        return "high";
+    }
+}
+
+// while.
+function vector Converge(vector start, vector target) {
+    vector current = start;
+    while (defuzzy(unsafeCast<fuzzy>(Cosine(current, target)))) {
+        current = Step(current, target);
+    }
+    return current;
+}
+
+// C-style for.
+function void ForLoop(tuple items) {
+    for (var i = 0; i < Length(items); i++) {
+        vector item = Get(items, i);
+        Process(item);
+    }
+}
+
+// foreach.
+function void ForEachLoop(tuple items) {
+    foreach (var item in items) {
+        Process(item);
+    }
+}
+
+// foreach with explicit element type.
+function void ForEachTyped(tuple items) {
+    foreach (vector item in items) {
+        Process(item);
+    }
+}
+
+// do-while.
+function void DoWhileLoop(tuple items) {
+    scalar quality = 0.0;
+    do {
+        quality = MeasureQuality(items);
+        items = Refine(items);
+    } while (quality < 0.95);
+}

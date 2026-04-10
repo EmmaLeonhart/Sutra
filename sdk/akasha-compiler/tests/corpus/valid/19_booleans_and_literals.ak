@@ -1,0 +1,25 @@
+// Akasha corpus test: boolean literals and other primitives.
+// Covers: true/false literals, mixing with fuzzy, const declarations.
+
+function bool LiteralTrue() {
+    return true;
+}
+
+function bool LiteralFalse() {
+    return false;
+}
+
+function bool LiteralExpression() {
+    return true && false || true;
+}
+
+function void Constants() {
+    const bool AlwaysTrue = true;
+    const bool AlwaysFalse = false;
+    const scalar Pi = 3.14159;
+    const string Greeting = "hello";
+
+    if (AlwaysTrue) {
+        Print(Greeting);
+    }
+}
