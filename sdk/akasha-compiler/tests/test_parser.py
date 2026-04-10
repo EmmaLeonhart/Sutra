@@ -1,0 +1,253 @@
+"""Unit tests for the Akasha parser.
+
+Tests cover the major grammar productions and the specific
+disambiguation rules (cast vs paren, generic vs comparison).
+"""
+
+import unittest
+
+from akasha_compiler import ast_nodes as ast
+from akasha_compiler.lexer import Lexer
+from akasha_compiler.parser import Parser
+
+
+def parse(src):
+    lexer = Lexer(src)
+    tokens = lexer.tokenize()
+    parser = Parser(tokens, diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    return module, lexer.diagnostics
+
+
+class TestTopLevel(unittest.TestCase):
+    def test_empty_file(self):
+        module, diag = parse("")
+        self.assertEqual(len(module.items), 0)
+        self.assertFalse(diag.has_errors())
+
+    def test_single_function(self):
+        module, diag = parse("function void Foo() { return; }")
+        self.assertFalse(diag.has_errors())
+        self.assertEqual(len(module.items), 1)
+        fn = module.items[0]
+        self.assertIsInstance(fn, ast.FunctionDecl)
+        self.assertEqual(fn.name, "Foo")
+        self.assertEqual(fn.return_type.name, "void")
+        self.assertEqual(fn.params, [])
+
+    def test_function_with_params(self):
+        module, diag = parse(
+            "function vector Blend(vector a, vector b) { return a + b; }"
+        )
+        self.assertFalse(diag.has_errors())
+        fn = module.items[0]
+        self.assertEqual(len(fn.params), 2)
+        self.assertEqual(fn.params[0].name, "a")
+        self.assertEqual(fn.params[0].type_ref.name, "vector")
+
+    def test_method(self):
+        module, diag = parse("method string GetName() { return this.name; }")
+        self.assertFalse(diag.has_errors())
+        self.assertIsInstance(module.items[0], ast.MethodDecl)
+
+    def test_static_method(self):
+        module, diag = parse(
+            "static method Animal GetArchetype() { return (Animal) embed(\"animal\"); }"
+        )
+        self.assertFalse(diag.has_errors())
+        m = module.items[0]
+        self.assertIsInstance(m, ast.MethodDecl)
+        self.assertTrue(m.modifiers.is_static)
+
+    def test_operator_decl(self):
+        module, diag = parse("function operator +(vector a, vector b) { return a; }")
+        self.assertFalse(diag.has_errors())
+        fn = module.items[0]
+        self.assertIsInstance(fn, ast.FunctionDecl)
+        self.assertTrue(fn.is_operator)
+
+    def test_generic_function(self):
+        module, diag = parse("function T Identity<T>(T value) { return value; }")
+        self.assertFalse(diag.has_errors())
+        fn = module.items[0]
+        self.assertEqual(fn.type_params, ["T"])
+
+
+class TestDeclarations(unittest.TestCase):
+    def test_var_inferred(self):
+        module, diag = parse("function void F() { var x = 1; }")
+        self.assertFalse(diag.has_errors())
+        fn = module.items[0]
+        decl = fn.body.statements[0]
+        self.assertIsInstance(decl, ast.VarDecl)
+        self.assertTrue(decl.is_var_inferred)
+        self.assertIsNone(decl.type_ref)
+
+    def test_var_with_type_is_error(self):
+        _, diag = parse("function void F() { var vector x = embed(\"cat\"); }")
+        self.assertTrue(diag.has_errors())
+        self.assertTrue(any(d.code == "AKA0103" for d in diag))
+
+    def test_typed_decl(self):
+        module, diag = parse("function void F() { vector x = embed(\"cat\"); }")
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0].body.statements[0]
+        self.assertIsInstance(decl, ast.VarDecl)
+        self.assertFalse(decl.is_var_inferred)
+        self.assertEqual(decl.type_ref.name, "vector")
+
+    def test_const_inferred(self):
+        module, diag = parse("function void F() { const x = 0.5; }")
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0].body.statements[0]
+        self.assertTrue(decl.is_const)
+
+    def test_const_typed(self):
+        module, diag = parse("function void F() { const scalar x = 0.5; }")
+        self.assertFalse(diag.has_errors())
+        decl = module.items[0].body.statements[0]
+        self.assertTrue(decl.is_const)
+        self.assertEqual(decl.type_ref.name, "scalar")
+
+
+class TestControlFlow(unittest.TestCase):
+    def test_if_else(self):
+        module, diag = parse(
+            "function void F(bool x) { if (x) { return; } else { return; } }"
+        )
+        self.assertFalse(diag.has_errors())
+        stmt = module.items[0].body.statements[0]
+        self.assertIsInstance(stmt, ast.IfStmt)
+        self.assertIsNotNone(stmt.else_branch)
+
+    def test_else_if_chain(self):
+        module, diag = parse(
+            "function void F(scalar x) { "
+            "if (x < 0.0) { return; } else if (x > 1.0) { return; } else { return; } "
+            "}"
+        )
+        self.assertFalse(diag.has_errors())
+
+    def test_while(self):
+        module, diag = parse("function void F(bool x) { while (x) { return; } }")
+        self.assertFalse(diag.has_errors())
+
+    def test_for(self):
+        module, diag = parse(
+            "function void F() { for (var i = 0; i < 10; i++) { Process(i); } }"
+        )
+        self.assertFalse(diag.has_errors())
+
+    def test_foreach(self):
+        module, diag = parse(
+            "function void F(tuple t) { foreach (var x in t) { Process(x); } }"
+        )
+        self.assertFalse(diag.has_errors())
+
+    def test_do_while(self):
+        module, diag = parse(
+            "function void F() { do { Process(); } while (true); }"
+        )
+        self.assertFalse(diag.has_errors())
+
+    def test_try_catch(self):
+        module, diag = parse(
+            "function void F(Animal a) { try { Cat c = (Cat) a; } catch { return; } }"
+        )
+        self.assertFalse(diag.has_errors())
+
+
+class TestExpressions(unittest.TestCase):
+    def test_arithmetic_precedence(self):
+        module, diag = parse("function scalar F() { return 1 + 2 * 3; }")
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        # Top-level should be a +, with * on the right side.
+        self.assertIsInstance(ret.value, ast.BinaryOp)
+        self.assertEqual(ret.value.op, "+")
+        self.assertEqual(ret.value.right.op, "*")
+
+    def test_cast_expression(self):
+        module, diag = parse("function vector F(Animal a) { return (vector) a; }")
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        self.assertIsInstance(ret.value, ast.CastExpr)
+        self.assertEqual(ret.value.target_type.name, "vector")
+
+    def test_parenthesized_group(self):
+        module, diag = parse("function scalar F() { return (1 + 2) * 3; }")
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        # Outer should be *, left should be Parenthesized(1+2).
+        self.assertIsInstance(ret.value, ast.BinaryOp)
+        self.assertEqual(ret.value.op, "*")
+        self.assertIsInstance(ret.value.left, ast.Parenthesized)
+
+    def test_generic_call(self):
+        module, diag = parse("function void F(Cat c) { Cat x = Identity<Cat>(c); }")
+        self.assertFalse(diag.has_errors())
+
+    def test_method_chain(self):
+        module, diag = parse("function void F(Animal a) { a.GetEmbedding().Normalize(); }")
+        self.assertFalse(diag.has_errors())
+
+    def test_unsafe_cast(self):
+        module, diag = parse(
+            "function fuzzy F(vector v) { return unsafeCast<fuzzy>(v); }"
+        )
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        self.assertIsInstance(ret.value, ast.UnsafeCastExpr)
+
+    def test_defuzzy(self):
+        module, diag = parse(
+            "function bool F(fuzzy s) { return defuzzy(s); }"
+        )
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        self.assertIsInstance(ret.value, ast.DefuzzyExpr)
+
+    def test_embed(self):
+        module, diag = parse(
+            'function vector F() { return embed("cat"); }'
+        )
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        self.assertIsInstance(ret.value, ast.EmbedExpr)
+
+    def test_interpolated_string(self):
+        module, diag = parse(
+            'function string F(string name) { return $"hello {name}"; }'
+        )
+        self.assertFalse(diag.has_errors())
+        ret = module.items[0].body.statements[0]
+        self.assertIsInstance(ret.value, ast.InterpolatedString)
+
+    def test_function_dot_prefix(self):
+        module, diag = parse(
+            "function void F() { function.Main(); }"
+        )
+        self.assertFalse(diag.has_errors())
+
+
+class TestErrorRecovery(unittest.TestCase):
+    def test_missing_semicolon(self):
+        _, diag = parse("function void F() { var x = 1 return x; }")
+        self.assertTrue(diag.has_errors())
+
+    def test_unclosed_brace(self):
+        _, diag = parse("function void F() { var x = 1;")
+        self.assertTrue(diag.has_errors())
+
+    def test_recovery_continues_to_next_function(self):
+        # Error in first function should not prevent parsing the second.
+        module, diag = parse(
+            "function void F() { var x = 1 }\n"
+            "function void G() { return; }"
+        )
+        self.assertTrue(diag.has_errors())
+        self.assertGreaterEqual(len(module.items), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

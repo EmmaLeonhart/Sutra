@@ -1,0 +1,27 @@
+// Akasha corpus test: all four comment forms.
+
+// C-style single-line comment.
+
+/* C-style block comment.
+   Spans
+   multiple
+   lines. */
+
+/// Doc comment — describes the next declaration.
+function vector DocumentedFunction(vector a) {
+    /// Doc comments can appear before nested declarations too.
+    return a;
+}
+
+# Python-style hash comment.
+function vector HashedComment(vector b) {
+    # This is also a line comment.
+    return b;
+}
+
+/// Doc comment followed immediately by another comment form.
+// Regular line comment right after a doc comment.
+/* Block comment sandwich. */
+function vector Sandwich() {
+    return embed("sandwich"); // Trailing line comment.
+}
