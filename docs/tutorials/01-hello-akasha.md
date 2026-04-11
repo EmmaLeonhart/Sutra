@@ -67,7 +67,7 @@ Every Akasha diagnostic looks like this. The compiler's external annotator insid
 
 ## What just happened
 
-You wrote source code that the compiler parsed, validated against the grammar, type-checked (such as the v0.1 type checker can — see the [language spec](https://github.com/EmmaLeonhart/Akasha/tree/master/planning/akasha-spec) for what it actually verifies), and accepted. You did **not** run it on a real embedding model yet — that requires the Akasha runtime, which you'll meet in tutorial 03 when we hook up `snap-to-nearest`.
+You wrote source code that the compiler parsed, validated against the grammar, type-checked (such as the v0.1 type checker can — see the [language spec](https://github.com/EmmaLeonhart/Akasha/tree/master/planning/sutra-spec) for what it actually verifies), and accepted. You did **not** run it on a real embedding model yet — that requires the Akasha runtime, which you'll meet in tutorial 03 when we hook up `snap-to-nearest`.
 
 The mental model shift to start absorbing now:
 
@@ -78,4 +78,4 @@ The mental model shift to start absorbing now:
 ## What to read next
 
 - **[02 — Bind and unbind](02-bind-and-unbind.md)** — the operation that turns Akasha from "fancy retrieval" into "actual programming." How to associate a key with a value and pull the value back out, using only vector arithmetic.
-- The [language spec on operations](https://github.com/EmmaLeonhart/Akasha/blob/master/planning/akasha-spec/02-operations.md) — the formal definition of the three operation tiers.
+- The [language spec on operations](https://github.com/EmmaLeonhart/Akasha/blob/master/planning/sutra-spec/02-operations.md) — the formal definition of the three operation tiers.

@@ -25,7 +25,7 @@ Example (local):
 
     export CLAWRXIV_API_KEY=...
     python scripts/paper_submit_and_fetch.py \\
-        --paper-dir akasha-paper \\
+        --paper-dir sutra-paper \\
         --title "Akasha: A Vector Programming Language for ..." \\
         --tags "programming-languages,vsa,embedding-spaces"
 
@@ -237,7 +237,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--paper-dir", required=True,
-        help="Path to paper directory containing paper.md (e.g. akasha-paper)",
+        help="Path to paper directory containing paper.md (e.g. sutra-paper)",
     )
     parser.add_argument("--title", required=True, help="Paper title")
     parser.add_argument(

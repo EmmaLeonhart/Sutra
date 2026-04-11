@@ -240,7 +240,7 @@ written). The three substrate-language gaps documented in the
 1. ~~**Add `permutation` as a primitive type.**~~ **Done.** Added to
    `PRIMITIVE_TYPE_NAMES` in the lexer, the parser's `_PRIMITIVE_TYPES`,
    and the validator's `_record_type_usage` PRIMITIVES set. Spec entry
-   in `planning/akasha-spec/05-type-system.md` documents the
+   in `planning/sutra-spec/05-type-system.md` documents the
    distinction from plain `vector` and why permutations deserve their
    own type even though they're sign-flip masks at the substrate
    level. Test corpus:
@@ -268,7 +268,7 @@ add parser/validator support, regression test) are partially
 complete: the parser/validator support landed as part of steps 1–3,
 the regression test passes (0 diagnostics), and the only remaining
 work is formally declaring the builtin signatures in
-`planning/akasha-spec/`. That's now the next thing in `todo.md`.
+`planning/sutra-spec/`. That's now the next thing in `todo.md`.
 4. **Declare the VSA builtins in the spec.** `snap`, `similarity`,
    `bind`, `unbind`, `bundle`, `permute`, `basis_vector`,
    `permutation_key`, `identity_permutation`, `argmax_cosine`. Give
@@ -346,7 +346,7 @@ Rough priority order:
 5. **Paper.** The "first language runtime on a biological connectome"
    story is real and defensible. The q-bio survey in this session
    found no direct precedent. If we want to make that claim
-   citeable, `akasha-paper/paper.md` needs an experiments section
+   citeable, `sutra-paper/paper.md` needs an experiments section
    where the compile-to-brain demo gets written up with numbers,
    ablations, and the fixed-frame discovery called out explicitly.
 
