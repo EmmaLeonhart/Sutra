@@ -12,7 +12,7 @@ hide:
 
 Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *vector operations* that execute inside a pre-trained embedding space — making the execution environment **fundamentally semantic** rather than symbolic. Where silicon arithmetic has no inherent meaning, the geometry of an embedding space *does* — and Sutra is the first programming language designed to exploit that as a first-class computational substrate.
 
-The name comes from the Sanskrit *sūtra* — "thread/rule/aphorism," the word used for Pāṇini's foundational Sanskrit grammar (the earliest formal grammar of any language). The 📜 scroll is the ecosystem's visual branding across the language, the database ([SutraDB](/SutraDB/)), the tooling, and the papers.
+The name comes from the Sanskrit *sūtra* — "thread/rule/aphorism," the word used for Pāṇini's foundational Sanskrit grammar (the earliest formal grammar of any language). The 📜 scroll is the ecosystem's visual branding across the language, the database ([SutraDB](/Sutra/SutraDB/)), the tooling, and the papers.
 
 ---
 
