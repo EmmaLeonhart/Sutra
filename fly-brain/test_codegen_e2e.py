@@ -2,7 +2,7 @@
 mushroom body and matches the expected program A/B/C/D behavior table.
 
 Flow:
-    1. Parse `fly-brain/permutation_conditional.ak` with the Akasha SDK.
+    1. Parse `fly-brain/permutation_conditional.su` with the Akasha SDK.
     2. Run the AST -> FlyBrainVSA translator (codegen_flybrain).
     3. exec() the resulting Python in a private module namespace so the
        compile-time snap() calls fire on a live mushroom body.
@@ -11,7 +11,7 @@ Flow:
        from fly-brain/STATUS.md and fly-brain/DEMO.md.
 
 This is the "compile to brain" pipeline end-to-end, in one file. If it
-passes, the whole path from .ak source through parser, AST, codegen,
+passes, the whole path from .su source through parser, AST, codegen,
 and spiking simulation is working.
 
 Runs locally only — needs Brian2 installed. Not part of the SDK unit
@@ -33,7 +33,7 @@ import types
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, ".."))
 SDK_PATH = os.path.join(REPO_ROOT, "sdk", "akasha-compiler")
-SOURCE_AK = os.path.join(HERE, "permutation_conditional.ak")
+SOURCE_AK = os.path.join(HERE, "permutation_conditional.su")
 
 # Make both the SDK package and the fly-brain helpers (vsa_operations,
 # spike_vsa_bridge) importable.
@@ -61,7 +61,7 @@ EXPECTED = {
 
 
 def compile_from_source():
-    """Parse the .ak file and return the generated Python source string."""
+    """Parse the .su file and return the generated Python source string."""
     with open(SOURCE_AK, encoding="utf-8") as f:
         src = f.read()
     lexer = Lexer(src, file=SOURCE_AK)
@@ -84,13 +84,13 @@ def load_generated_module(py_src: str):
     is a real mushroom-body workload, not a no-op.
     """
     mod = types.ModuleType("_e2e_generated_permutation_conditional")
-    mod.__file__ = "<generated from permutation_conditional.ak>"
+    mod.__file__ = "<generated from permutation_conditional.su>"
     exec(compile(py_src, mod.__file__, "exec"), mod.__dict__)
     return mod
 
 
 def main() -> int:
-    print("E2E: permutation_conditional.ak -> codegen -> mushroom body")
+    print("E2E: permutation_conditional.su -> codegen -> mushroom body")
     print("=" * 72)
     print("Step 1: parse + translate")
     py_src = compile_from_source()

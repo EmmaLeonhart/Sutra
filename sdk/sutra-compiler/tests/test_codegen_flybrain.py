@@ -1,6 +1,6 @@
 """Tests for the AST → FlyBrainVSA translator.
 
-The golden test is that `fly-brain/permutation_conditional.ak` round-trips
+The golden test is that `fly-brain/permutation_conditional.su` round-trips
 cleanly through the translator and produces syntactically valid Python
 whose structure matches the hand-written `permutation_conditional.py`.
 Unsupported constructs must raise `CodegenNotSupported` with a source
@@ -32,7 +32,7 @@ def _parse(src: str, file: str = "<test>"):
 REPO_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..")
 )
-FLY_BRAIN_AK = os.path.join(REPO_ROOT, "fly-brain", "permutation_conditional.ak")
+FLY_BRAIN_AK = os.path.join(REPO_ROOT, "fly-brain", "permutation_conditional.su")
 
 
 class TestPermutationConditional(unittest.TestCase):

@@ -16,7 +16,7 @@ foundation of.
 
 ## What's in v0.1
 
-- **File type + language registration** for `.ak` sources, with a basis-
+- **File type + language registration** for `.su` sources, with a basis-
   vector file icon.
 - **Hand-written lexer** covering all four comment forms (`//`, `/* */`,
   `///`, `#`), plain and interpolated strings, keywords, primitive types,
@@ -31,7 +31,7 @@ foundation of.
   completion with hover-text hints.
 - **Live templates** — every snippet from `sdk/vscode-sutra/snippets/sutra.json`
   ported to an IntelliJ-native live-template bundle, activated inside
-  `.ak` files only.
+  `.su` files only.
 - **External annotator** that runs `python -m sutra_compiler --json` on
   the current file and surfaces the resulting diagnostics (including the
   `AKA####` codes) in the editor and Problems panel.
@@ -66,7 +66,7 @@ later scaffolds:
 - Real Kotlin parser + PSI tree. (v0.1 parses as a flat token run.)
 - Name resolution, type checking, cross-file analysis.
 - Runtime MCP server hosting.
-- The IntelliJ MCP server exposing `.ak` PSI to external agents.
+- The IntelliJ MCP server exposing `.su` PSI to external agents.
 - Embedding-space visualizer pane (3D hyperplane with user-chosen
   composite basis — see
   [`planning/sutra-spec/20-ide-architecture.md`](../../planning/sutra-spec/20-ide-architecture.md)).
@@ -90,7 +90,7 @@ gradle wrapper           # first time only
 ```
 
 The sandbox instance opens with the Sutra plugin installed; drop any
-`.ak` file into it (e.g. `sutra-demo-program.ak` from the repo root) to
+`.su` file into it (e.g. `sutra-demo-program.su` from the repo root) to
 smoke-test highlighting, completion, live templates, and diagnostics.
 
 ## Compiler path configuration
@@ -114,7 +114,7 @@ fallback chain:
 So the default command line is effectively:
 
 ```
-python -m sutra_compiler --json <file>.ak
+python -m sutra_compiler --json <file>.su
 ```
 
 Make sure the `sutra_compiler` package is importable from whichever
@@ -138,12 +138,12 @@ sdk/intellij-sutra/
   src/main/
     kotlin/org/sutra/intellij/
       SutraLanguage.kt              Language singleton
-      SutraFileType.kt              .ak file type + icon
+      SutraFileType.kt              .su file type + icon
       SutraIcons.kt
       SutraTokenType.kt             Base IElementType class
       SutraTokenTypes.kt            Catalog of every leaf token
       SutraLexer.kt                 Hand-written LexerBase subclass
-      SutraFile.kt                  PsiFile for .ak
+      SutraFile.kt                  PsiFile for .su
       SutraParserDefinition.kt      Flat parser (no real grammar yet)
       SutraBraceMatcher.kt          {}, (), [] pairing
       SutraCommenter.kt             Ctrl+/ toggles //
