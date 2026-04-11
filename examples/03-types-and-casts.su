@@ -1,5 +1,5 @@
 /*
-    Akasha Example: Types, Casts, and the Substrate
+    Sutra Example: Types, Casts, and the Substrate
 
     At runtime, everything is vectors. Classes are compile-time.
     The five primitives: scalar, vector, matrix, tuple, string.

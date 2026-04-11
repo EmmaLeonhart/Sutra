@@ -1,6 +1,6 @@
 # Abstraction Level
 
-Akasha sits between assembly and a high-level language — "C-tier" for vector spaces. The programmer is always aware they're in hypervector space but doesn't manage codebooks manually. You think in terms of binding roles to fillers, superposing alternatives, and querying similarity — not in terms of individual float operations or ANN index parameters.
+Sutra sits between assembly and a high-level language — "C-tier" for vector spaces. The programmer is always aware they're in hypervector space but doesn't manage codebooks manually. You think in terms of binding roles to fillers, superposing alternatives, and querying similarity — not in terms of individual float operations or ANN index parameters.
 
 The compiler handles:
 - Empirical initiation (probing the target embedding space, fitting matrices)

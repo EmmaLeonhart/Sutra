@@ -3,13 +3,13 @@
 **Status: design doc, no implementation yet.**
 Companion pane to the embedding-space visualizer described in
 [`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md).
-This is Akasha-specific IDE UX for programs that target the fly-brain
+This is Sutra-specific IDE UX for programs that target the fly-brain
 substrate.
 
 ## Why this exists
 
 The fly-brain work (see [`../fly-brain/STATUS.md`](../fly-brain/STATUS.md))
-gave Akasha an end-to-end path from `.su` source through the compiler's
+gave Sutra an end-to-end path from `.su` source through the compiler's
 `--emit-flybrain` codegen onto a Brian2-simulated mushroom body model,
 with verified correct behavior on the `permutation_conditional.su`
 reference program. That pipeline works, but debugging it today means
@@ -91,7 +91,7 @@ real skeleton.
   it emits to plotly/vispy/k3d out of the box.
 
 **Pros:**
-- The right visual story for the paper: "Akasha programs running on
+- The right visual story for the paper: "Sutra programs running on
   identified neurons in the actual connectome." This is the novelty
   claim the fly-brain chapter of the paper already leans on.
 - The bio audience (connectome labs, Janelia, FlyWire community) will
@@ -128,13 +128,13 @@ fly-brain visualizer slots into them like this:
 
 ### v0.1 — no visualizer (already shipped)
 
-The IntelliJ plugin scaffold under `sdk/intellij-akasha/` does not
+The IntelliJ plugin scaffold under `sdk/intellij-sutra/` does not
 include any visualizer pane. The goal is just to get `.su` files
 highlighted and the compiler wired into the diagnostics path.
 
 ### v0.2 — embedding-space visualizer
 
-First visualizer, covering the general Akasha case. 3D hyperplane with
+First visualizer, covering the general Sutra case. 3D hyperplane with
 user-chosen composite basis vectors, as specified in
 [`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md).
 
@@ -162,7 +162,7 @@ today, and it's a direct upgrade over reading Brian2 arrays.
 
 ### v0.4+ — fly-brain anatomical view (option b)
 
-Research-blocked on the "Akasha units ↔ hemibrain neuron IDs" mapping.
+Research-blocked on the "Sutra units ↔ hemibrain neuron IDs" mapping.
 Gets its own planning sub-doc once the mapping work starts. Builds on
 v0.3 by swapping the graph renderer for a 3D anatomical renderer
 without changing any of the source-to-circuit mapping, MCP surfaces,
@@ -202,7 +202,7 @@ Concretely, the fly-brain pane's MCP surface has to include at least:
   run is obvious; does scrubbing extend to stepping between `.su`
   statements mapped onto the biological time axis?
 - **The mapping as a versioned artifact.** Once the
-  "Akasha units ↔ hemibrain IDs" correspondence exists, is it shipped
+  "Sutra units ↔ hemibrain IDs" correspondence exists, is it shipped
   inside the compiler, inside the plugin, as a data package, or in a
   new `fly-brain-mapping/` repo subtree? The VSA-paper authors will
   have opinions here.
@@ -216,5 +216,5 @@ Concretely, the fly-brain pane's MCP surface has to include at least:
 - [`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md) — parent IDE architecture doc
 - [`../fly-brain/STATUS.md`](../fly-brain/STATUS.md) — current state of the fly-brain substrate
 - [`../fly-brain/DEMO.md`](../fly-brain/DEMO.md) — what the compile-to-brain pipeline actually does today
-- [`../sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`](../sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py) — the AST → FlyBrainVSA translator whose output the visualizer renders
-- [`../sdk/intellij-akasha/`](../sdk/intellij-akasha/) — the IntelliJ plugin scaffold this visualizer slots into
+- [`../sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`](../sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py) — the AST → FlyBrainVSA translator whose output the visualizer renders
+- [`../sdk/intellij-sutra/`](../sdk/intellij-sutra/) — the IntelliJ plugin scaffold this visualizer slots into

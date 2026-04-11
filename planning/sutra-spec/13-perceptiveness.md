@@ -2,7 +2,7 @@
 
 ## The Concept
 
-A novel attention mechanism variant discovered during Akasha design conversations. Standard scaled dot-product attention is:
+A novel attention mechanism variant discovered during Sutra design conversations. Standard scaled dot-product attention is:
 
 ```
 Attention(Q, K, V) = softmax(QK^T / sqrt(d)) V
@@ -55,15 +55,15 @@ The distance of each key from the running mean of all previous keys. This is:
 - **Geometrically meaningful:** Surprisingness is literally "how far is this from what I've seen before?" in embedding space
 - **Causal:** Only looks at preceding keys (compatible with autoregressive models)
 
-## Relevance to Akasha
+## Relevance to Sutra
 
-The perceptiveness parameter is a concrete example of the kind of **tunable fuzzy control knob** that Akasha should support as a first-class construct. In Akasha terms:
+The perceptiveness parameter is a concrete example of the kind of **tunable fuzzy control knob** that Sutra should support as a first-class construct. In Sutra terms:
 
 - It's a parameterized transformation over attention distributions
 - The parameter controls a continuous behavioral spectrum (not a binary switch)
 - The underlying computation is geometric (distance from running mean)
 - It's composable — you could have different a values for different layers, attention heads, or even different parts of a single computation
 
-This is also a proof-of-concept that novel computation can be designed by **thinking geometrically about what attention means** rather than just optimizing benchmarks. Akasha's design philosophy encourages this kind of geometric reasoning about operations.
+This is also a proof-of-concept that novel computation can be designed by **thinking geometrically about what attention means** rather than just optimizing benchmarks. Sutra's design philosophy encourages this kind of geometric reasoning about operations.
 
-**Proposed as inference-time only** — no retraining needed. You can adjust a at runtime to change the model's reasoning strategy, which maps to Akasha's philosophy that runtime behavior should be tunable without recompilation.
+**Proposed as inference-time only** — no retraining needed. You can adjust a at runtime to change the model's reasoning strategy, which maps to Sutra's philosophy that runtime behavior should be tunable without recompilation.

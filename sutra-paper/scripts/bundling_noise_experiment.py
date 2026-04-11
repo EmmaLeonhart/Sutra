@@ -1,7 +1,7 @@
 """
-Akasha Bundling Noise & Recovery Experiment
+Sutra Bundling Noise & Recovery Experiment
 ============================================
-The REAL noise source in Akasha is not chain depth with a single role —
+The REAL noise source in Sutra is not chain depth with a single role —
 that's mathematically exact. The noise comes from BUNDLED structures
 where unbinding one role produces crosstalk from other bound pairs.
 
@@ -235,13 +235,13 @@ def test_codebook_size_effect(fillers, filler_labels):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Akasha Bundling Noise Experiment')
+    parser = argparse.ArgumentParser(description='Sutra Bundling Noise Experiment')
     parser.add_argument('--model', type=str, default='thenlper/gte-large')
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--output', type=str, default=None)
     args = parser.parse_args()
 
-    print(f"Akasha Bundling Noise & Recovery Experiment")
+    print(f"Sutra Bundling Noise & Recovery Experiment")
     print(f"=======================================")
     print(f"Model: {args.model}")
 
