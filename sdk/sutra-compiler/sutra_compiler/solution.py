@@ -1,4 +1,4 @@
-"""Solution and project file parser for the Akasha compiler.
+"""Solution and project file parser for the Sutra compiler.
 
 Formal schema: `planning/akasha-spec/22-solutions.md`. This file is the
 reference Python implementation that the schema document describes — it
@@ -9,14 +9,14 @@ the types defined here.
 Usage:
 
     from pathlib import Path
-    from akasha_compiler.solution import load_solution
+    from sutra_compiler.solution import load_solution
 
     solution = load_solution(Path("embedding-pipeline.aksln"))
     for project in solution.projects_in_build_order:
         print(project.name, project.substrate, project.sources)
 
 Errors are raised as `SolutionError` with a stable `AKA####` code in
-the `AKA2000-AKA2099` range reserved for solution-model errors in the
+the `SUT2000-SUT2099` range reserved for solution-model errors in the
 spec. Callers who want machine-readable output can catch
 `SolutionError` and inspect `err.code`, `err.message`, and
 `err.details`.
@@ -139,19 +139,19 @@ def _read_toml(path: Path) -> dict[str, Any]:
     """Read a TOML file and return its top-level table.
 
     Raises:
-        SolutionError(AKA2001 or AKA2006) on malformed TOML.
+        SolutionError(SUT2001 or SUT2006) on malformed TOML.
     """
     try:
         with path.open("rb") as f:
             return tomllib.load(f)
     except tomllib.TOMLDecodeError as e:
-        code = "AKA2001" if path.suffix == ".aksln" else "AKA2006"
+        code = "SUT2001" if path.suffix == ".aksln" else "SUT2006"
         raise SolutionError(
             code, f"file is not valid TOML: {e}", source_path=path
         ) from e
     except OSError as e:
         raise SolutionError(
-            "AKA2004" if path.suffix == ".aksln" else "AKA2004",
+            "SUT2004" if path.suffix == ".aksln" else "SUT2004",
             f"cannot open file: {e}",
             source_path=path,
         ) from e
@@ -197,7 +197,7 @@ def load_solution(aksln_path: Path) -> Solution:
     aksln_path = aksln_path.resolve()
     if not aksln_path.is_file():
         raise SolutionError(
-            "AKA2004",
+            "SUT2004",
             f"solution file does not exist: {aksln_path}",
             source_path=aksln_path,
         )
@@ -206,22 +206,22 @@ def load_solution(aksln_path: Path) -> Solution:
     solution_table = doc.get("solution")
     if not isinstance(solution_table, dict):
         raise SolutionError(
-            "AKA2002",
+            "SUT2002",
             "solution file is missing the [solution] table",
             source_path=aksln_path,
         )
 
     name = _require_string(
-        solution_table, "name", code="AKA2002", source_path=aksln_path,
+        solution_table, "name", code="SUT2002", source_path=aksln_path,
     )
     akasha_version = _require_string(
         solution_table, "akasha_version",
-        code="AKA2002", source_path=aksln_path,
+        code="SUT2002", source_path=aksln_path,
     )
     description = solution_table.get("description", "")
     if not isinstance(description, str):
         raise SolutionError(
-            "AKA2002",
+            "SUT2002",
             "`solution.description` must be a string",
             source_path=aksln_path,
         )
@@ -229,7 +229,7 @@ def load_solution(aksln_path: Path) -> Solution:
     default_substrate = solution_table.get("default_substrate", "silicon")
     if default_substrate not in VALID_SUBSTRATES:
         raise SolutionError(
-            "AKA2014",
+            "SUT2014",
             f"unknown `solution.default_substrate` value `{default_substrate}`; "
             f"must be one of {sorted(VALID_SUBSTRATES)}",
             source_path=aksln_path,
@@ -240,7 +240,7 @@ def load_solution(aksln_path: Path) -> Solution:
         isinstance(a, str) for a in compiler_args
     ):
         raise SolutionError(
-            "AKA2002",
+            "SUT2002",
             "`solution.compiler_args` must be a list of strings",
             source_path=aksln_path,
         )
@@ -248,7 +248,7 @@ def load_solution(aksln_path: Path) -> Solution:
     project_entries = doc.get("project")
     if not isinstance(project_entries, list) or len(project_entries) == 0:
         raise SolutionError(
-            "AKA2002",
+            "SUT2002",
             "solution file must contain at least one [[project]] entry",
             source_path=aksln_path,
         )
@@ -261,17 +261,17 @@ def load_solution(aksln_path: Path) -> Solution:
     for idx, entry in enumerate(project_entries):
         if not isinstance(entry, dict):
             raise SolutionError(
-                "AKA2002",
+                "SUT2002",
                 f"[[project]] entry #{idx} must be a table",
                 source_path=aksln_path,
             )
         rel_path = _require_string(
-            entry, "path", code="AKA2002", source_path=aksln_path,
+            entry, "path", code="SUT2002", source_path=aksln_path,
         )
         project_dir = (solution_dir / rel_path).resolve()
         if not project_dir.is_dir():
             raise SolutionError(
-                "AKA2004",
+                "SUT2004",
                 f"project path does not exist: {project_dir}",
                 source_path=aksln_path,
                 details={"index": idx, "path": str(project_dir)},
@@ -294,7 +294,7 @@ def load_solution(aksln_path: Path) -> Solution:
     for p in projects_unordered:
         if p.name in projects_by_name:
             raise SolutionError(
-                "AKA2007",
+                "SUT2007",
                 f"two projects in the same solution share the name `{p.name}`",
                 source_path=aksln_path,
             )
@@ -304,14 +304,14 @@ def load_solution(aksln_path: Path) -> Solution:
             target = _find_project_by_dir(projects_unordered, dep.path)
             if target is None:
                 raise SolutionError(
-                    "AKA2013",
+                    "SUT2013",
                     f"project `{p.name}` depends on a project outside the "
                     f"current solution: {dep.path}",
                     source_path=p.akproj_file,
                 )
             if target.name != dep.name:
                 raise SolutionError(
-                    "AKA2008",
+                    "SUT2008",
                     f"dependency key `{dep.name}` in project `{p.name}` "
                     f"does not match target project's declared name "
                     f"`{target.name}`",
@@ -319,7 +319,7 @@ def load_solution(aksln_path: Path) -> Solution:
                 )
             if target.name == p.name:
                 raise SolutionError(
-                    "AKA2012",
+                    "SUT2012",
                     f"project `{p.name}` declares a self-dependency",
                     source_path=p.akproj_file,
                 )
@@ -361,13 +361,13 @@ def _load_project(
         akproj_files = sorted(project_dir.glob("*.akproj"))
         if len(akproj_files) == 0:
             raise SolutionError(
-                "AKA2005",
+                "SUT2005",
                 f"project directory contains no .akproj file: {project_dir}",
                 source_path=aksln_path,
             )
         if len(akproj_files) > 1:
             raise SolutionError(
-                "AKA2005",
+                "SUT2005",
                 f"project directory contains multiple .akproj files; use "
                 f"`akproj = \"name.akproj\"` in the solution's [[project]] "
                 f"entry to disambiguate. Found: "
@@ -378,7 +378,7 @@ def _load_project(
 
     if not akproj_file.is_file():
         raise SolutionError(
-            "AKA2004",
+            "SUT2004",
             f"project file does not exist: {akproj_file}",
             source_path=aksln_path,
         )
@@ -387,29 +387,29 @@ def _load_project(
     project_table = doc.get("project")
     if not isinstance(project_table, dict):
         raise SolutionError(
-            "AKA2007",
+            "SUT2007",
             "project file is missing the [project] table",
             source_path=akproj_file,
         )
 
     name = _require_string(
-        project_table, "name", code="AKA2007", source_path=akproj_file,
+        project_table, "name", code="SUT2007", source_path=akproj_file,
     )
     if not PROJECT_NAME_RE.match(name):
         raise SolutionError(
-            "AKA2007",
+            "SUT2007",
             f"project name `{name}` is not a valid identifier "
             f"(must match {PROJECT_NAME_RE.pattern})",
             source_path=akproj_file,
         )
 
     entry_name = _require_string(
-        project_table, "entry", code="AKA2007", source_path=akproj_file,
+        project_table, "entry", code="SUT2007", source_path=akproj_file,
     )
     entry_path = (project_dir / entry_name).resolve()
     if not entry_path.is_file():
         raise SolutionError(
-            "AKA2009",
+            "SUT2009",
             f"entry file does not exist: {entry_path}",
             source_path=akproj_file,
         )
@@ -422,7 +422,7 @@ def _load_project(
     )
     if substrate not in VALID_SUBSTRATES:
         raise SolutionError(
-            "AKA2014",
+            "SUT2014",
             f"unknown substrate `{substrate}` for project `{name}`; "
             f"must be one of {sorted(VALID_SUBSTRATES)}",
             source_path=akproj_file,
@@ -431,7 +431,7 @@ def _load_project(
     description = project_table.get("description", "")
     if not isinstance(description, str):
         raise SolutionError(
-            "AKA2007",
+            "SUT2007",
             "`project.description` must be a string",
             source_path=akproj_file,
         )
@@ -441,7 +441,7 @@ def _load_project(
         isinstance(a, str) for a in per_project_args
     ):
         raise SolutionError(
-            "AKA2007",
+            "SUT2007",
             "`project.compiler_args` must be a list of strings",
             source_path=akproj_file,
         )
@@ -451,7 +451,7 @@ def _load_project(
     sources_table = project_table.get("sources", {})
     if not isinstance(sources_table, dict):
         raise SolutionError(
-            "AKA2007",
+            "SUT2007",
             "`project.sources` must be a table",
             source_path=akproj_file,
         )
@@ -460,14 +460,14 @@ def _load_project(
     for g in include_globs:
         if not isinstance(g, str):
             raise SolutionError(
-                "AKA2015",
+                "SUT2015",
                 "`project.sources.include` entries must be strings",
                 source_path=akproj_file,
             )
     for g in exclude_globs:
         if not isinstance(g, str):
             raise SolutionError(
-                "AKA2015",
+                "SUT2015",
                 "`project.sources.exclude` entries must be strings",
                 source_path=akproj_file,
             )
@@ -477,7 +477,7 @@ def _load_project(
     deps_table = project_table.get("dependencies", {})
     if not isinstance(deps_table, dict):
         raise SolutionError(
-            "AKA2007",
+            "SUT2007",
             "`project.dependencies` must be a table",
             source_path=akproj_file,
         )
@@ -485,7 +485,7 @@ def _load_project(
     for dep_name, dep_ref in deps_table.items():
         if not isinstance(dep_ref, dict):
             raise SolutionError(
-                "AKA2007",
+                "SUT2007",
                 f"dependency `{dep_name}` must be a table "
                 f"(e.g. `{dep_name} = {{ path = \"../corpus\" }}`)",
                 source_path=akproj_file,
@@ -493,14 +493,14 @@ def _load_project(
         dep_path_str = dep_ref.get("path")
         if not isinstance(dep_path_str, str):
             raise SolutionError(
-                "AKA2007",
+                "SUT2007",
                 f"dependency `{dep_name}` must have a `path` field",
                 source_path=akproj_file,
             )
         dep_path = (project_dir / dep_path_str).resolve()
         if not dep_path.is_dir():
             raise SolutionError(
-                "AKA2010",
+                "SUT2010",
                 f"dependency `{dep_name}` of project `{name}` "
                 f"points to a directory that does not exist: {dep_path}",
                 source_path=akproj_file,
@@ -587,7 +587,7 @@ def _topological_sort(
     if len(ordered) != len(projects):
         remaining = [p.name for p in projects if in_degree[p.name] > 0]
         raise SolutionError(
-            "AKA2011",
+            "SUT2011",
             f"dependency cycle detected among projects: {remaining}",
             source_path=aksln_path,
             details={"cycle": remaining},
@@ -603,14 +603,14 @@ def _topological_sort(
 def _main(argv: Iterable[str] | None = None) -> int:
     """CLI for ad-hoc solution validation.
 
-    Usage: `python -m akasha_compiler.solution <path-to-.aksln>`
+    Usage: `python -m sutra_compiler.solution <path-to-.aksln>`
     """
     import argparse
     import json
     import sys
 
     parser = argparse.ArgumentParser(
-        prog="akasha_compiler.solution",
+        prog="sutra_compiler.solution",
         description="Parse and validate an Akasha solution file.",
     )
     parser.add_argument("aksln", help="Path to the .aksln file")

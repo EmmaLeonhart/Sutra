@@ -6,15 +6,15 @@ errors but that aren't enforced by the pure parser.
 
 Rules implemented in v0.1:
 
-- AKA0103: `var TYPE x` — `var` combined with an explicit type. (The
+- SUT0103: `var TYPE x` — `var` combined with an explicit type. (The
   parser already emits this; the validator doesn't need to re-check.)
-- AKA0110: `|>` pipe-forward operator is not supported in Akasha.
-- AKA0111: `(vector) "string"` (or any primitive-cast applied to a
+- SUT0110: `|>` pipe-forward operator is not supported in Akasha.
+- SUT0111: `(vector) "string"` (or any primitive-cast applied to a
   string literal) — per the spec, string→vector must go through
   `embed(...)`, not a cast.
-- AKA0112: modifiers combined in disallowed ways (e.g. both `public`
+- SUT0112: modifiers combined in disallowed ways (e.g. both `public`
   and `private`).
-- AKA0113: naming drift — the file uses class names in inconsistent
+- SUT0113: naming drift — the file uses class names in inconsistent
   casing (a warning, not an error, because both are currently
   accepted in the example code).
 
@@ -88,7 +88,7 @@ def _check_pipe_forward(tokens, bag: DiagnosticBag) -> None:
             bag.error(
                 "the `|>` pipe-forward operator is not supported in Akasha",
                 tok.span,
-                code="AKA0110",
+                code="SUT0110",
                 hint="use nested calls (`Normalize(Blend(a, b))`) or method chaining (`a.Blend(b).Normalize()`)",
             )
 
@@ -193,14 +193,14 @@ class _Walker:
     # ---- expressions -----------------------------------------------
 
     def visit_CastExpr(self, node: ast.CastExpr) -> None:
-        # AKA0111: (TYPE) "string literal" is not allowed. String ->
+        # SUT0111: (TYPE) "string literal" is not allowed. String ->
         # vector must go through embed(), per the spec.
         if isinstance(node.expr, ast.StringLiteral):
             self.diagnostics.error(
                 f"cannot cast a string literal to `{node.target_type.name}`; "
                 "use `embed(...)` to convert a string into a vector",
                 node.span,
-                code="AKA0111",
+                code="SUT0111",
                 hint="write `embed(\"...\")` instead of `({}) \"...\"`".format(
                     node.target_type.name
                 ),
@@ -228,7 +228,7 @@ class _Walker:
             self.diagnostics.error(
                 "a declaration cannot be both `public` and `private`",
                 span,
-                code="AKA0112",
+                code="SUT0112",
             )
 
     def _record_type_usage(self, type_ref: Optional[ast.TypeRef]) -> None:
@@ -258,13 +258,13 @@ class _Walker:
                 sorted_variants = sorted(variants)
                 joined = ", ".join(f"`{v}`" for v in sorted_variants)
                 # Use a zero-length span at position 1,1 since this is
-                # a file-level concern. The AKA0113 code makes it
+                # a file-level concern. The SUT0113 code makes it
                 # editor-filterable.
                 pos = SourcePosition(line=1, column=1, offset=0)
                 self.diagnostics.warning(
                     f"class name appears in multiple casings in the same file: {joined}",
                     SourceSpan(start=pos, end=pos),
-                    code="AKA0113",
+                    code="SUT0113",
                     hint="pick one casing and use it consistently — the spec "
                          "follows C# naming (PascalCase for class names)",
                 )
