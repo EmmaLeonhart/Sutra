@@ -1,0 +1,40 @@
+# atman.toml — example Sutra workspace file
+#
+# Two-project workspace demonstrating the v1 workspace system.
+# `corpus` declares a static collection of reference vectors;
+# `similarity` depends on `corpus` and exposes cosine-similarity
+# queries against it. Both projects target the silicon substrate
+# (the default), i.e. an LLM embedding space via the `sutra_compiler`
+# reference runtime.
+#
+# The filename is fixed by convention — every Sutra workspace and
+# every Sutra project uses a single file called `atman.toml` at
+# its directory root. There is no workspace-vs-project filename
+# split like the old `.aksln`/`.akproj` era; the parser
+# disambiguates on the top-level table (`[workspace]` vs
+# `[project]`).
+#
+# To load this from Python:
+#     from sutra_compiler.workspace import load_workspace
+#     from pathlib import Path
+#     ws = load_workspace(Path("examples/workspace/atman.toml"))
+#     for p in ws.projects_in_build_order:
+#         print(p.name, p.substrate, [str(s) for s in p.sources])
+#
+# To validate from the command line:
+#     python -m sutra_compiler.workspace examples/workspace/atman.toml
+#
+# The spec for this file format is at
+# planning/sutra-spec/22-workspaces.md.
+
+[workspace]
+name = "embedding-pipeline"
+sutra_version = "0.2"
+description = "Small example workspace: corpus + similarity queries."
+default_substrate = "silicon"
+
+[[workspace.member]]
+path = "corpus"
+
+[[workspace.member]]
+path = "similarity"
