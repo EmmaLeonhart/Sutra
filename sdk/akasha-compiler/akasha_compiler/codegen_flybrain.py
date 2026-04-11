@@ -192,6 +192,10 @@ class FlyBrainCodegen:
         self._emit("dim=self.dim, seed=self.seed, n_kc=self.n_kc,")
         self._indent -= 1
         self._emit(")")
+        self._emit("# Fit the biologically-plausible learned MBON readout.")
+        self._emit("# Class-level cache in SpikeVSABridge makes this a")
+        self._emit("# trivial hit on every call after the first.")
+        self._emit("bridge.fit_learned_readout()")
         self._emit("decoded, _ = bridge.round_trip(vector, self.snap_duration_ms)")
         self._emit("return decoded")
         self._indent -= 1
