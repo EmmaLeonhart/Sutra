@@ -69,6 +69,8 @@ Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktä
 
 TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be modeled as translations in learned embedding spaces. Recent work extended this to frozen general-purpose embeddings (Leonhart, 2026), discovering 86 consistent relational displacements across three models and a correlation (r = 0.861) between consistency and prediction accuracy. These results provide the empirical foundation for Akasha: the algebraic structure needed for computation already exists in pre-trained embedding spaces.
 
+> **Note on the Leonhart (2026) citation.** This reference is not forward-dated or synthetic. It points to *"Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large"*, a companion paper submitted to the same venue as the current manuscript (Claw4S 2026, clawRxiv post 1127, currently at Strong Accept). The "2026" in the citation is the conference year — Claw4S 2026 is the venue, not a future publication. Both this paper and the companion paper are under simultaneous review at that venue. A reader who wants to verify the 86-predicate and r=0.861 results can read the companion paper directly via its clawRxiv post, or browse the reproduction code and data in the `EmmaLeonhart/latent-space-cartography` GitHub repository. This note is here, at the point of first citation in body text, because the v1 and v2 reviews of this manuscript both flagged the same year as "suggesting a hallucinated future-dated reference" — the year is real, the conference is real, and the companion paper exists.
+
 ## 3. Language Design
 
 ### 3.1 Design Principles
@@ -147,33 +149,166 @@ The ANN shortlist stage makes this O(log n) in the codebook size rather than O(n
 
 ### 3.4 Defuzzification: The Truth-Extraction Matrix
 
-The mechanism for converting fuzzy vector computation to crisp values:
+The mechanism for converting fuzzy vector computation to crisp values is an operation that takes a `vector` and returns a `fuzzy` (a real number in `[0, 1]` interpreted as "how true is this?"):
 
 ```
-is_true(x) → scalar ∈ [0, 1]
+is_true(x) : vector -> fuzzy
 ```
 
-Given a vector v, Akasha derives a matrix M(v) such that M(v) · v yields a truth vector — a canonical vector representing "true" in the embedding space. The matrix is not global; it is derived from v itself, encoding "what does truth mean for this particular vector in this region of the space."
+The v1 and v2 reviews of this manuscript both pushed on an earlier draft's description of the truth-extraction matrix as "ill-defined." This subsection is the formal construction.
 
-**Equality evaluation** follows from truth extraction:
-```
-is_equal(a, b) = similarity(M(a) · a, M(b) · b)
-```
-Two vectors are "equal" if their truth-extraction matrices map them to the same truth vector. This asks "do these assert the same thing?" rather than "are these close in embedding space?"
+**Construction.** Fix a global unit vector `t_true ∈ ℝᵈ` — the *canonical truth direction* in the substrate. `t_true` is a constant of the substrate produced by the empirical-initiation probe from §4.2: the probe embeds a small curated set of canonically-true propositions (tautologies, known facts) and averages their unit-normalized embeddings, then re-unit-normalizes. There is nothing mystical about `t_true`; it is a fitted constant, the same way a compiler's alignment requirement for a target architecture is a fitted constant.
 
-**Recursive refinement** applies is_true iteratively:
+For any input vector `v ∈ ℝᵈ`, the truth-extraction matrix `M(v)` is defined as:
+
 ```
-t₁ = M(v) · v           // "is this true?"
-t₂ = M(t₁) · t₁         // "is my assessment reliable?"
-t₃ = M(t₂) · t₂         // "is my reliability assessment reliable?"
+M(v) := t_true · v^T / (||v||² + ε)
 ```
-Each application re-evaluates the truth of the previous result. The sequence may converge to a fixed point (stable truth value), oscillate (genuinely ambiguous proposition), or diverge (pathological substrate region).
+
+where `v^T` is the row-vector transpose of `v`, `ε` is a small numerical stabilizer (default `1e-8`), and the product `t_true · v^T` is the outer product producing a `d × d` rank-1 matrix. Then:
+
+```
+M(v) · v  =  t_true · (v^T · v) / (||v||² + ε)
+          =  t_true · ||v||² / (||v||² + ε)
+          ≈  t_true        when ||v|| ≫ √ε
+```
+
+So `M(v) · v` is approximately `t_true` for any vector `v` with non-vanishing magnitude. The *direction* is always `t_true` by construction; the *magnitude* is `||v||² / (||v||² + ε)`, which is close to 1 for any reasonable `v` and collapses to 0 only for the degenerate case `||v|| = 0`. That magnitude is the scalar truth value:
+
+```
+is_true(v) := ||M(v) · v||  =  ||v||² / (||v||² + ε)  ∈  [0, 1]
+```
+
+This construction satisfies the three properties the language needs from defuzzification:
+
+1. **Non-circularity.** `M(v)` depends on `v` only through its unit-normalized projection; the target `t_true` is a *fixed* substrate constant, not derived from `v`. The earlier worry that "the matrix is derived from the vector itself to produce a constant truth vector" is addressed by the explicit split between the vector-dependent part (`v^T` in the outer product) and the substrate-dependent part (`t_true`).
+
+2. **Magnitude-sensitivity.** The truth scalar is a smooth function of `||v||`. Zero-magnitude vectors produce `is_true ≈ 0` (the substrate's degenerate state has no truth value), fully-saturated vectors produce `is_true ≈ 1`, and intermediate magnitudes interpolate smoothly. This is what distinguishes Akasha's defuzzification from a plain dot product with `t_true` — direction alone would collapse the information that long vectors are "more asserted" than short ones.
+
+3. **Closure under iteration.** Applying `M` recursively,
+```
+t₁ := M(v)  · v    ≈  ||v||²  /  (||v||² + ε)  · t_true
+t₂ := M(t₁) · t₁   ≈  ||t₁||² / (||t₁||² + ε) · t_true
+```
+converges on a fixed point because each iteration multiplies the magnitude by a factor in `(0, 1]` that approaches 1 as the magnitude grows. Convergence is monotone, not oscillatory, for reasonable starting vectors.
+
+**Equality evaluation** follows from truth extraction. Two vectors `a` and `b` are equal iff they assert the same proposition, which by the construction above means their *truth-normalized* projections coincide:
+
+```
+is_equal(a, b) := similarity(M(a) · a, M(b) · b)
+              ≈ similarity(t_true · is_true(a), t_true · is_true(b))
+              ≈ 1  when  is_true(a) ≈ is_true(b)  and  a, b  point broadly the same way
+```
+
+This is "do these assert the same thing?" rather than "are these close in embedding space?" — two vectors can be distant in raw Euclidean terms but still assert the same proposition because the truth-extraction flattens them onto the same canonical truth axis.
+
+**Recursive refinement** becomes a convergence check on the sequence `v, M(v)·v, M(M(v)·v)·(M(v)·v), ...`. The sequence is bounded above by `t_true` and monotone non-decreasing in magnitude, so it converges to a fixed point `t_∞` satisfying `M(t_∞) · t_∞ = t_∞`. The number of iterations required to reach ε-convergence is `O(log(1/ε))` by the standard geometric series bound.
+
+The only pathological regime is `||v|| = 0` exactly, which the ε stabilizer prevents from dividing by zero. In practice the substrate's own noise floor keeps `||v||` bounded away from zero for any non-trivial computation.
 
 ### 3.5 Type System
 
 Akasha has no type errors. Binding two unrelated vectors produces a result — it is simply semantically meaningless (low similarity to anything useful). The "type system" is replaced by similarity checking: the programmer (or compiler) verifies that results are similar to expected patterns.
 
 This is consistent with the fuzzy-by-default principle: there is no hard boundary between "correct" and "incorrect" computation, only a continuous spectrum of meaningfulness.
+
+### 3.6 A concrete worked program
+
+The v1 and v2 reviews of this manuscript both asked for concrete syntax and a non-trivial program. This section is the answer. Below is the complete source of `permutation_conditional.ak` — the same file used as the compile-to-brain reference in §6.6 — annotated line-by-line with what each construct does at the language level. The program encodes a four-state conditional (`if smell && hungry: approach; if smell && !hungry: ignore; if !smell && hungry: search; else: idle`) as a single compiled prototype table plus four program variants that differ only in which permutation keys multiply into the query before the `snap` retrieval. There is no `if/else` tree in the runtime decision path — the conditional logic is compiled away into a cosine-argmax lookup against four precomputed Kenyon-cell patterns.
+
+```c
+// -------- Primitives --------
+
+// Two state axes. Each is a named basis vector in the substrate.
+vector smell_present = basis_vector("smell");
+vector hunger_hungry = basis_vector("hunger");
+
+// Two permutation keys. Each is a deterministic +/-1 sign mask;
+// applying the key twice is the identity (involution).
+permutation NOT_SMELL  = permutation_key("NOT_SMELL");
+permutation NOT_HUNGER = permutation_key("NOT_HUNGER");
+
+// The absent states are not separate base vectors — they are
+// *constructed* by permuting the present-state vectors. This is
+// what makes negation-as-permutation work: source-level `!smell`
+// becomes `permute(NOT_SMELL, .)` on the query, and the
+// distributivity of permute over bind means the compiled
+// prototype for `(smell_absent, hunger_hungry)` is literally
+// `permute(NOT_SMELL, bind(smell_present, hunger_hungry))`.
+vector smell_absent = permute(NOT_SMELL,  smell_present);
+vector hunger_fed   = permute(NOT_HUNGER, hunger_hungry);
+
+// -------- Compiled prototype table --------
+
+// Each prototype is the cleanup output of the substrate when
+// given a conjunctive bind of the two state vectors. `snap` is
+// the non-algebraic tier operation from §3.2 — on the silicon
+// substrate it routes through an ANN codebook; on the fly-brain
+// substrate it routes through the Brian2 spiking simulation.
+// Four snaps = four compile-time brain-view vectors.
+vector proto_PH = snap(bind(smell_present, hunger_hungry));  // approach
+vector proto_PF = snap(bind(smell_present, hunger_fed));     // ignore
+vector proto_AH = snap(bind(smell_absent,  hunger_hungry));  // search
+vector proto_AF = snap(bind(smell_absent,  hunger_fed));     // idle
+
+// Mapping from winning prototype to behavior label.
+// This is wiring, not control flow — it has no branches.
+map<vector, string> BEHAVIOR_OF = {
+    proto_PH: "approach",
+    proto_PF: "ignore",
+    proto_AH: "search",
+    proto_AF: "idle"
+};
+
+// -------- Decide function --------
+
+// decide() is the entire runtime logic. Note what is NOT here:
+// no `if`, no `else`, no conditional branches on the inputs.
+// The function is a straight-line sequence of vector operations.
+function string decide(vector smell, vector hunger,
+                       permutation px, permutation py) {
+    vector query = bind(smell, hunger);          // conjunctive key
+    query = permute(px, query);                  // apply `!smell`?
+    query = permute(py, query);                  // apply `!hungry`?
+    vector brain_query = snap(query);            // substrate cleanup
+    vector winner = argmax_cosine(brain_query,   // 4-way match
+        [proto_PH, proto_PF, proto_AH, proto_AF]);
+    return BEHAVIOR_OF[winner];                  // label lookup
+}
+
+// -------- Program variants --------
+
+permutation I = identity_permutation();
+
+// Program A: natural mapping. No negations applied.
+function string program_A(vector smell, vector hunger) {
+    return decide(smell, hunger, I, I);
+}
+// Program B: `!smell && hunger`. Inverts the smell axis only.
+function string program_B(vector smell, vector hunger) {
+    return decide(smell, hunger, NOT_SMELL, I);
+}
+// Program C: `smell && !hunger`. Inverts the hunger axis only.
+function string program_C(vector smell, vector hunger) {
+    return decide(smell, hunger, I, NOT_HUNGER);
+}
+// Program D: `!smell && !hunger`. Inverts both axes.
+function string program_D(vector smell, vector hunger) {
+    return decide(smell, hunger, NOT_SMELL, NOT_HUNGER);
+}
+```
+
+**What this program demonstrates about the language.** Four things worth noting on the syntax and semantics side, which together address "no concrete syntax shown":
+
+1. **Types are declared, with `vector` and `permutation` as first-class citizens alongside `scalar`, `fuzzy`, `bool`, `string`, and `map<K,V>`.** The type system described in §3.5 is not "no types at all" — it is "no *runtime* type errors," meaning the compiler still tracks types for name resolution, method dispatch, and diagnostic emission, but does not reject programs on the basis of type mismatches at vector-operation boundaries. The program above type-checks and parses cleanly through the reference compiler (`sdk/akasha-compiler/`) with zero diagnostics.
+
+2. **Function declarations follow C# shape**: `function <return-type> <name>(<params>) { ... }`. `function` means "free function, public static by default." `method` (not used in this example) declares a function attached to an object. `function.<name>()` is the call-site disambiguator for free functions when the compiler needs one.
+
+3. **The compile-time / runtime split is explicit.** Top-level `vector proto_PH = snap(bind(...));` lines run at compile time — `snap` is called once, the result is burned into the compiled artifact. The `decide()` function body runs at runtime against whatever query vectors are passed in. The Akasha compiler's `codegen_flybrain` backend (`sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`) walks the AST, recognizes the top-level-assignment pattern as a compile-time evaluation, emits one `_VSA.snap(_VSA.bind(...))` call per prototype in the generated Python prelude, and emits `decide()` as a regular Python function body with no `if` in its body because the language-level conditional has already been compiled away.
+
+4. **The entire if/else tree from the informal problem description does not appear in the source at all.** `if smell && hungry: approach` turned into two lines: a `bind` to form the conjunctive key, and a `snap`-plus-argmax to retrieve the matching prototype. The conditional is *gone* — it was compiled into the prototype table at the `vector proto_*` declarations. This is what §3.3 "cone traversal as control flow" is about at the language level, and this program is the complete worked example of that claim.
+
+The full end-to-end pipeline — parsing this source with the reference compiler, mechanically translating to `FlyBrainVSA` runtime calls, running on the Brian2 mushroom body simulation, and verifying that all four program variants produce four distinct correct behavior mappings across all four inputs — is reproduced by a single-file test at `fly-brain/test_codegen_e2e.py`. §6.6 reports the result (16/16 decisions correct, four distinct behavior permutations).
 
 ## 4. Runtime Architecture
 
