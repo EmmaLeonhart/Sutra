@@ -72,6 +72,20 @@ tasks {
         untilBuild.set(providers.gradleProperty("pluginUntilBuild").get())
     }
 
+    runIde {
+        // Auto-open the repo root as a project on launch. Without this,
+        // the sandbox IntelliJ boots into a blank "Welcome to IntelliJ"
+        // screen and the user has to navigate to the .ak files manually
+        // — which is confusing if you don't know the plugin only activates
+        // when you touch a .ak file. With this, the sandbox opens straight
+        // into the !Claw4S project tree with akasha-demo-program.ak visible
+        // at the root, so "is the plugin working?" is one click away.
+        //
+        // project.rootDir here is sdk/intellij-akasha; parentFile is sdk;
+        // parentFile.parentFile is the repo root.
+        args = listOf(project.rootDir.parentFile.parentFile.absolutePath)
+    }
+
     wrapper {
         gradleVersion = "8.7"
     }
