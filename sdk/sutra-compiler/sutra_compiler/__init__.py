@@ -7,7 +7,7 @@ Scope (v0.1):
     - Full tokenization of Akasha source (all comment forms, string
       interpolation, numeric literals, identifiers, operators).
     - Recursive-descent parser that recognizes the declaration and
-      statement grammar described in planning/akasha-spec and
+      statement grammar described in planning/sutra-spec and
       akasha-syntax-decisions.md.
     - Structural validation: balanced brackets, semicolons where the
       grammar requires them, well-formed declarations and control flow.

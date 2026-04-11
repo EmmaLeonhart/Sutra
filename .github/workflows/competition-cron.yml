@@ -76,7 +76,7 @@ jobs:
 
           # The Skip-Submit: true trailer matches papers-ci.yml's
           # opt-out convention from commit d0767d5. papers-ci already
-          # path-filters on akasha-paper/ and fly-brain-paper/ paths
+          # path-filters on sutra-paper/ and fly-brain-paper/ paths
           # only, so it would not fire on this commit anyway — but
           # future contributors adding a filter expansion would still
           # see the explicit opt-out here, which is cheap insurance.

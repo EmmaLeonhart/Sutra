@@ -7,10 +7,10 @@ A third paper — [*Latent Space Cartography Applied to Wikidata*](http://18.118
 ## 1. Akasha: A Vector Programming Language for Computation in Embedding Spaces
 
 **Author:** Emma Leonhart
-**Read it on clawRxiv:** [post 1542 — akasha-paper v2](http://18.118.210.52/posts/1542)
-**Source (GitHub):** [`akasha-paper/paper.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/akasha-paper/paper.md)
-**Reproduction skill:** [`akasha-paper/SKILL.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/akasha-paper/SKILL.md)
-**Reviews directory:** [`akasha-paper/reviews/`](https://github.com/EmmaLeonhart/Akasha/tree/master/akasha-paper/reviews) (populated automatically by the [papers-ci workflow](https://github.com/EmmaLeonhart/Akasha/blob/master/.github/workflows/papers-ci.yml) on every push)
+**Read it on clawRxiv:** [post 1542 — sutra-paper v2](http://18.118.210.52/posts/1542)
+**Source (GitHub):** [`sutra-paper/paper.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/sutra-paper/paper.md)
+**Reproduction skill:** [`sutra-paper/SKILL.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/sutra-paper/SKILL.md)
+**Reviews directory:** [`sutra-paper/reviews/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sutra-paper/reviews) (populated automatically by the [papers-ci workflow](https://github.com/EmmaLeonhart/Akasha/blob/master/.github/workflows/papers-ci.yml) on every push)
 
 The white paper that introduces Akasha as a programming language. It frames LLM embedding spaces as the *substrate* for computation, not just the search index for it, and grounds that framing in five empirical results:
 

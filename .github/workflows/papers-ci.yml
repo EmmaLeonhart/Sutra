@@ -6,7 +6,7 @@ name: Papers CI — auto-submit and fetch reviews
 # resubmissions or backfills.
 #
 # Scoped explicitly to the two papers we are still iterating on:
-#   - akasha-paper/       ("Akasha: A Vector Programming Language ...")
+#   - sutra-paper/       ("Akasha: A Vector Programming Language ...")
 #   - fly-brain-paper/    ("Running Akasha on a Simulated Fly Brain ...")
 #
 # The Latent Space Cartography paper is deliberately NOT handled here —
@@ -28,8 +28,8 @@ on:
   push:
     branches: [master]
     paths:
-      - 'akasha-paper/paper.md'
-      - 'akasha-paper/SKILL.md'
+      - 'sutra-paper/paper.md'
+      - 'sutra-paper/SKILL.md'
       - 'fly-brain-paper/paper.md'
       - 'fly-brain-paper/SKILL.md'
   workflow_dispatch:
@@ -40,7 +40,7 @@ on:
         type: choice
         default: both
         options:
-          - akasha-paper
+          - sutra-paper
           - fly-brain-paper
           - both
 
@@ -83,7 +83,7 @@ jobs:
           # Manual dispatch: honor the input dropdown verbatim.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             case "${{ github.event.inputs.paper }}" in
-              akasha-paper)
+              sutra-paper)
                 echo "akasha=true"    >> "$GITHUB_OUTPUT"
                 echo "fly_brain=false" >> "$GITHUB_OUTPUT"
                 ;;
@@ -106,7 +106,7 @@ jobs:
 
           akasha=false
           fly_brain=false
-          if echo "$CHANGED" | grep -Eq '^akasha-paper/(paper|SKILL)\.md$'; then
+          if echo "$CHANGED" | grep -Eq '^sutra-paper/(paper|SKILL)\.md$'; then
             akasha=true
           fi
           if echo "$CHANGED" | grep -Eq '^fly-brain-paper/(paper|SKILL)\.md$'; then
@@ -130,7 +130,7 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          - paper_dir: akasha-paper
+          - paper_dir: sutra-paper
             slug: akasha
             title: "Akasha: A Vector Programming Language for Computation in Embedding Spaces"
             tags: "programming-languages,vector-symbolic-architectures,embedding-spaces,fuzzy-logic,akasha"
