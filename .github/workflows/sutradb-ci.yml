@@ -1,0 +1,76 @@
+name: SutraDB CI
+
+run-name: "SutraDB CI: ${{ github.event.head_commit.message || github.event.pull_request.title }}"
+
+# SutraDB was merged into this repo as a subtree under sutraDB/. Its own CI
+# config at sutraDB/.github/workflows/ci.yml is not picked up by GitHub
+# Actions (only .github/workflows/ at the repo root runs). This workflow
+# mirrors the core Rust jobs from SutraDB's CI so the subtree stays
+# testable. Path-filtered to avoid running on unrelated commits.
+#
+# Intentionally omitted from the v1 port:
+#   - fmt auto-commit (dangerous in a subtree; tends to merge-conflict)
+#   - Non-Rust SDK tests (Python/TypeScript/Java/.NET/Go) — add later
+#     if we start depending on them
+#   - Pages / release / benchmarks — out of scope per user instruction
+#     ("We will focus on them before we are actually setting up the site")
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'sutraDB/**'
+      - '.github/workflows/sutradb-ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'sutraDB/**'
+      - '.github/workflows/sutradb-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: sutradb-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: sutraDB
+
+jobs:
+  check:
+    name: SutraDB Rust Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraDB
+      - run: cargo check --workspace
+
+  test:
+    name: SutraDB Rust Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraDB
+      - run: cargo test --workspace
+
+  clippy:
+    name: SutraDB Rust Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraDB
+      - run: cargo clippy --workspace -- -D warnings
