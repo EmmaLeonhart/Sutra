@@ -12,7 +12,7 @@ This is the operation that makes long Akasha computations numerically stable. Wi
 
 ## Why it lives in the non-algebraic tier
 
-Snap is the tier-3 ("non-algebraic / vector-graph") operation in the [three-tier model](https://github.com/EmmaLeonhart/Akasha/blob/master/planning/akasha-spec/02-operations.md). The reason it's in tier 3 is that it requires *infrastructure* the algebraic tier doesn't: an Approximate Nearest Neighbor (ANN) index, typically an HNSW, or a smaller exact-search codebook for tiny problems.
+Snap is the tier-3 ("non-algebraic / vector-graph") operation in the [three-tier model](https://github.com/EmmaLeonhart/Akasha/blob/master/planning/sutra-spec/02-operations.md). The reason it's in tier 3 is that it requires *infrastructure* the algebraic tier doesn't: an Approximate Nearest Neighbor (ANN) index, typically an HNSW, or a smaller exact-search codebook for tiny problems.
 
 Concretely:
 
