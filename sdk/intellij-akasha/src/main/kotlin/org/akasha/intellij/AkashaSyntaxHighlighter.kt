@@ -56,10 +56,17 @@ class AkashaSyntaxHighlighter : SyntaxHighlighterBase() {
 
     companion object {
         // --- Public attribute keys (exposed by the color settings page) ---
+        // All four comment forms default to the same base color
+        // (LINE_COMMENT — green in most themes) so //, ///, /* */, and #
+        // render uniformly. They remain separate TextAttributesKey
+        // instances so users can still rebind them individually in
+        // Settings → Editor → Color Scheme → Akasha if they want
+        // JavaDoc-style distinction later, but the out-of-the-box
+        // experience is "a comment is a comment."
         val LINE_COMMENT     = createTextAttributesKey("AKASHA_LINE_COMMENT", Defaults.LINE_COMMENT)
-        val DOC_COMMENT      = createTextAttributesKey("AKASHA_DOC_COMMENT", Defaults.DOC_COMMENT)
+        val DOC_COMMENT      = createTextAttributesKey("AKASHA_DOC_COMMENT", Defaults.LINE_COMMENT)
         val HASH_COMMENT     = createTextAttributesKey("AKASHA_HASH_COMMENT", Defaults.LINE_COMMENT)
-        val BLOCK_COMMENT    = createTextAttributesKey("AKASHA_BLOCK_COMMENT", Defaults.BLOCK_COMMENT)
+        val BLOCK_COMMENT    = createTextAttributesKey("AKASHA_BLOCK_COMMENT", Defaults.LINE_COMMENT)
 
         val STRING           = createTextAttributesKey("AKASHA_STRING", Defaults.STRING)
         val INTERP_STRING    = createTextAttributesKey("AKASHA_INTERP_STRING", Defaults.STRING)
@@ -67,7 +74,14 @@ class AkashaSyntaxHighlighter : SyntaxHighlighterBase() {
         val BOOLEAN_LITERAL  = createTextAttributesKey("AKASHA_BOOLEAN_LITERAL", Defaults.KEYWORD)
 
         val KEYWORD          = createTextAttributesKey("AKASHA_KEYWORD", Defaults.KEYWORD)
-        val PRIMITIVE_TYPE   = createTextAttributesKey("AKASHA_PRIMITIVE_TYPE", Defaults.KEYWORD)
+        // Primitive types (vector, scalar, permutation, fuzzy, bool, …) are
+        // visually *types*, not keywords. They used to inherit from
+        // Defaults.KEYWORD, which made them the same color as `function` and
+        // `return` — confusing because the user expects `vector` and a
+        // user-defined `Cat` class to look alike. Inheriting from
+        // Defaults.CLASS_NAME (same as TYPE_NAME below) makes `vector` and
+        // `Cat` match out of the box.
+        val PRIMITIVE_TYPE   = createTextAttributesKey("AKASHA_PRIMITIVE_TYPE", Defaults.CLASS_NAME)
         val BUILTIN          = createTextAttributesKey("AKASHA_BUILTIN", Defaults.STATIC_METHOD)
         val TYPE_NAME        = createTextAttributesKey("AKASHA_TYPE_NAME", Defaults.CLASS_NAME)
         val IDENTIFIER       = createTextAttributesKey("AKASHA_IDENTIFIER", Defaults.IDENTIFIER)
