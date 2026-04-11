@@ -1,8 +1,14 @@
 # Running Akasha on a Simulated Fly Brain: Methodology and Results
 
+**Emma Leonhart**
+
+*Companion paper to "Akasha: A Vector Programming Language for Computation in Embedding Spaces" at the same venue (Claw4S 2026). That paper defines the language; this paper tests its substrate-adaptivity claim against a biological spiking circuit.*
+
 ## What We Did
 
-We implemented a system that executes Akasha hyperdimensional programming language operations on a simulated *Drosophila melanogaster* mushroom body circuit. To our knowledge, this is the first time a programming language has been used as a computational substrate on a biological connectome simulation.
+We implemented a system that executes Akasha programs on a simulated *Drosophila melanogaster* mushroom body circuit, targeted by the same compiler used for the silicon-substrate experiments in the companion paper. To our knowledge, this is the first time a programming language has been used as a computational substrate on a connectome-derived spiking circuit model.
+
+**Akasha is a real, working compiler — not a conceptual wrapper around Python calls.** The language is defined by a specification under `planning/akasha-spec/` (twenty-one numbered sub-documents covering design principles, operations, control flow, type system, runtime, and VSA builtins). The compiler lives at `sdk/akasha-compiler/` and ships with a hand-written lexer, a recursive-descent parser, a validator that emits structured `AKA####` diagnostics, a test corpus of 24 canonical valid `.ak` source files plus 12 intentionally-invalid files, and a substrate-specific codegen backend at `akasha_compiler/codegen_flybrain.py` that produces the Python-targeting-`FlyBrainVSA` runtime we exercise in §Results. The CLI entry point is `python -m akasha_compiler`; `--emit-flybrain` is the invocation that produces the output this paper executes. The `.ak` source file used for the main result is `fly-brain/permutation_conditional.ak`, which parses and validates cleanly against the grammar with zero diagnostics. The end-to-end pipeline — `.ak` source → parser → AST → `codegen_flybrain` → generated Python → Brian2 spiking simulation → 16/16 correct decisions — is reproducible via `python fly-brain/test_codegen_e2e.py`.
 
 The system uses Brian2 (a spiking neural network simulator) to model the fly's olfactory learning circuit, and implements a novel spike-VSA bridge that translates between hypervectors and neural spike patterns.
 
@@ -93,6 +99,8 @@ This isn't an analogy — it's the actual computation the fly evolved for olfact
 
 **Solution: Massive inhibitory current on losers.** At each timestep, compute the top 5% of KCs by membrane potential. Winners get zero inhibition; losers get I_inh = 100, which overwhelms any possible synaptic input (+0.3 per spike × 7 inputs = 2.1 max, far below 100). This is biologically motivated — the real APL provides powerful global inhibition that effectively silences all but the most strongly driven KCs.
 
+**Caveat — biological faithfulness of the I_inh = 100 override.** This value is not a claim about the physiological magnitude of APL inhibition in a real *Drosophila* brain. It is a *behaviorally equivalent* mathematical approximation that produces the observed biological outcome (exactly ~5% KC sparsity enforced by strong global inhibition) without resolving the sub-millisecond dynamical loop between KC spiking and APL feedback. The real APL does not use a 100 nA current; it uses GABAergic synapses whose aggregate effect is a strong winner-take-all filter at the population level. Our "top-k with hard loser inhibition" rule reproduces that aggregate effect faithfully enough to support correct 4-way prototype discrimination (§Phase 4) but is *not* a dynamical model of the APL itself. A future revision of this substrate that uses a dynamical APL (e.g., a second Brian2 equation block with empirically tuned GABA_A kinetics) would replace this shortcut without changing anything above the runtime layer. For the purposes of this paper — testing whether the Akasha compiler can target a biologically motivated substrate at all — behavioral equivalence at the population-sparsity level is the relevant bar.
+
 **Result:** Exactly 5.0% KC sparsity across all tested inputs (10/200 at 200 KCs, 96-100/2000 at 2000 KCs).
 
 ### Challenge 2: Encoding Hypervectors as Spike Patterns
@@ -114,6 +122,8 @@ currents = baseline_current + gain * (hypervector / std)
 ```python
 pn_estimate = pinv(pn_kc_matrix) @ kc_rates
 ```
+
+**Caveat — the pseudoinverse is a mathematical tool, not a biological claim.** Real *Drosophila* MBONs do not compute the Moore-Penrose pseudoinverse of their upstream connectivity. They compute a *learned* readout — a set of synaptic weights shaped by dopamine-gated plasticity during associative learning — and 20 of them collectively pick out behaviorally relevant KC patterns. The pseudoinverse in this paper serves two distinct roles that should not be conflated: (a) a validation instrument for showing that the PN→KC encoding is *invertible in principle* given enough KC activity, and (b) a convenient implementation of the "snap-to-nearest" cleanup step required by Akasha's `snap` builtin. The first role is a mathematical correctness check; the second is a runtime shortcut that future revisions of this substrate will replace with a learned MBON readout whose weights are fit to a training set of (query vector, target prototype) pairs. The learned readout is the biologically plausible version; the pseudoinverse is how we demonstrate the signal is there to be read in the first place.
 
 **Result at 2000 KCs:** 0.53 cosine fidelity (up from 0.14), 5/5 discrimination.
 
