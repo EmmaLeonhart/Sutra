@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Sutra — Embedding Space Visualizer</title>
+<style>
+    :root {
+        --sutra-purple: #7c4dff;
+        --sutra-purple-dim: rgba(124, 77, 255, 0.35);
+        --fg: #1f1a33;
+        --bg: #f7f5fc;
+        --muted: #6a6685;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --fg: #e4def0;
+            --bg: #1d1930;
+            --muted: #9892b2;
+        }
+    }
+    html, body {
+        margin: 0; padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 13px;
+        overflow: hidden;
+        height: 100%;
+    }
+    .viz-root {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
+    .viz-header {
+        padding: 12px 16px 4px 16px;
+        border-bottom: 1px solid var(--sutra-purple-dim);
+    }
+    .viz-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        color: var(--sutra-purple);
+    }
+    .viz-subtitle {
+        font-size: 12px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.4;
+    }
+    .viz-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        position: relative;
+    }
+    canvas#scatter {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        display: block;
+    }
+    .viz-footer {
+        padding: 8px 16px;
+        border-top: 1px solid var(--sutra-purple-dim);
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .viz-buttons {
+        display: flex;
+        gap: 6px;
+    }
+    button {
+        font-family: inherit;
+        font-size: 11px;
+        padding: 4px 10px;
+        border: 1px solid var(--sutra-purple-dim);
+        background: transparent;
+        color: var(--fg);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    button:hover { background: var(--sutra-purple); color: #fff; border-color: var(--sutra-purple); }
+    .axis-label {
+        position: absolute;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--muted);
+        pointer-events: none;
+    }
+    .axis-x { bottom: 6px; left: 50%; transform: translateX(-50%); }
+    .axis-y { left: 6px; top: 50%; transform: rotate(-90deg) translateY(-50%); transform-origin: left top; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+    <div class="viz-header">
+        <p class="viz-title">Sutra — Embedding Space</p>
+        <p class="viz-subtitle">
+            2D linear projection onto two user-chosen composite basis vectors.
+            Default projection per <code>20-ide-architecture.md</code>; 3D and UMAP/t-SNE are planned opt-in modes.
+            <em>v0.2 placeholder: ~120 pseudo-random points, no live runtime hook yet.</em>
+        </p>
+    </div>
+    <div class="viz-body">
+        <canvas id="scatter"></canvas>
+        <div class="axis-label axis-x">basis_1 (e.g. <code>embed("king") - embed("man")</code>)</div>
+        <div class="axis-label axis-y">basis_2 (e.g. <code>embed("abstract") - embed("concrete")</code>)</div>
+    </div>
+    <div class="viz-footer">
+        <span id="status">120 points · 2D projection · seed 42</span>
+        <div class="viz-buttons">
+            <button id="reseed">Re-seed</button>
+            <button id="repaint">Repaint</button>
+        </div>
+    </div>
+</div>
+<script>
+/*
+ * Sutra embedding-space visualizer (v0.2 placeholder).
+ *
+ * Draws ~120 pseudo-random points as a 2D scatter in an HTML canvas,
+ * using a seeded LCG so the scene is reproducible. No three.js yet —
+ * pure Canvas 2D keeps the tool window bundle tiny and reliable.
+ * The v0.2 "open the tool window and see something" bar is met by
+ * this placeholder; v0.2.1 will swap it for real data from the MCP
+ * runtime bridge.
+ */
+(function () {
+    "use strict";
+
+    /** @type {HTMLCanvasElement} */
+    const canvas = /** @type {any} */ (document.getElementById("scatter"));
+    const ctx = canvas.getContext("2d");
+
+    const statusEl = document.getElementById("status");
+    const reseedBtn = document.getElementById("reseed");
+    const repaintBtn = document.getElementById("repaint");
+
+    /** Simple seeded LCG so the scene is reproducible. */
+    function rng(seed) {
+        let s = seed >>> 0;
+        return function () {
+            s = (s * 1664525 + 1013904223) >>> 0;
+            return s / 4294967296;
+        };
+    }
+
+    let seed = 42;
+    const pointCount = 120;
+    /** @type {{x: number, y: number, r: number, cat: number}[]} */
+    let points = [];
+
+    function regeneratePoints() {
+        const rand = rng(seed);
+        const newPoints = [];
+        // Three loose clusters so the scene looks like it has some
+        // structure, not just uniform noise — humans read "two or
+        // three clumps" as "the projection is meaningful" even when
+        // the underlying data is synthetic.
+        const centers = [
+            { cx: -0.45, cy:  0.25, col: 0 },
+            { cx:  0.40, cy:  0.10, col: 1 },
+            { cx: -0.05, cy: -0.45, col: 2 },
+        ];
+        for (let i = 0; i < pointCount; i++) {
+            const c = centers[i % centers.length];
+            // 2D Gaussian-ish via sum-of-two-uniforms.
+            const jx = (rand() + rand() - 1) * 0.22;
+            const jy = (rand() + rand() - 1) * 0.22;
+            newPoints.push({
+                x: c.cx + jx,
+                y: c.cy + jy,
+                r: 3 + rand() * 2.5,
+                cat: c.col,
+            });
+        }
+        points = newPoints;
+    }
+
+    function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function draw() {
+        const rect = canvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Subtle grid so the plane is readable.
+        const theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? { grid: "rgba(124, 77, 255, 0.12)", axis: "rgba(124, 77, 255, 0.55)" }
+            : { grid: "rgba(124, 77, 255, 0.18)", axis: "rgba(124, 77, 255, 0.65)" };
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = theme.grid;
+        ctx.beginPath();
+        for (let gx = -1; gx <= 1; gx += 0.2) {
+            const x = (gx + 1) * 0.5 * w;
+            ctx.moveTo(x, 0); ctx.lineTo(x, h);
+        }
+        for (let gy = -1; gy <= 1; gy += 0.2) {
+            const y = (gy + 1) * 0.5 * h;
+            ctx.moveTo(0, y); ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+
+        // Axes through origin.
+        ctx.strokeStyle = theme.axis;
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+        ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+        ctx.stroke();
+
+        // Points. Three categorical colors inside the Sutra purple
+        // family so the clustering structure reads at a glance without
+        // leaving the brand palette.
+        const palette = ["#7c4dff", "#b388ff", "#536dfe"];
+        for (const p of points) {
+            const px = (p.x + 1) * 0.5 * w;
+            const py = (1 - (p.y + 1) * 0.5) * h; // flip y for screen coords
+            ctx.fillStyle = palette[p.cat % palette.length];
+            ctx.beginPath();
+            ctx.arc(px, py, p.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function rerender() {
+        resizeCanvas();
+        draw();
+        statusEl.textContent = `${points.length} points · 2D projection · seed ${seed}`;
+    }
+
+    reseedBtn.addEventListener("click", function () {
+        seed = (seed * 48271 + 7) >>> 0;
+        regeneratePoints();
+        rerender();
+    });
+    repaintBtn.addEventListener("click", rerender);
+    window.addEventListener("resize", rerender);
+
+    regeneratePoints();
+    // First paint runs after layout has settled so the canvas has real
+    // dimensions. requestAnimationFrame is the cheapest way to wait.
+    requestAnimationFrame(rerender);
+})();
+</script>
+</body>
+</html>
