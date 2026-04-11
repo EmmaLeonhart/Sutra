@@ -83,12 +83,24 @@ class FlyBrainVSA:
         Cleanup/discretization through the mushroom body circuit.
 
         Encode the vector as PN currents, run through the spiking
-        circuit (APL enforces winner-take-all sparsity), decode from
-        KC population via pseudoinverse.
+        circuit (APL enforces sparse coding via graded feedback
+        inhibition), decode from KC population via a learned linear
+        readout.
+
+        The decoder is the biologically-plausible learned MBON-style
+        readout (`decode_learned`), not the earlier pseudoinverse
+        shortcut. The learned readout is cached in
+        SpikeVSABridge._learned_readout_cache by
+        (seed, dim, n_kc) so the training cost is paid once per
+        unique parameter tuple and amortized across every snap that
+        follows. See spike_vsa_bridge.py for details on the readout
+        fitting procedure (ridge regression on ~20 training
+        hypervector/KC-pattern pairs).
 
         This is where the biological substrate does real computation.
-        The sparse random projection + WTA inhibition acts as a
-        noise-tolerant cleanup memory.
+        The sparse random projection + graded APL feedback acts as a
+        noise-tolerant cleanup memory, and the learned readout reads
+        out the result without peeking at the connectome.
         """
         # Each snap needs a fresh model (Brian2 is stateful)
         bridge = SpikeVSABridge(
@@ -96,6 +108,10 @@ class FlyBrainVSA:
             n_kc=self.n_kc
         )
         self._snap_count += 1
+
+        # Ensure the learned readout is fit (cheap cache hit after
+        # the first bridge with this parameter tuple).
+        bridge.fit_learned_readout()
 
         decoded, fidelity = bridge.round_trip(vector, self.snap_duration_ms)
         return decoded

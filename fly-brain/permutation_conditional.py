@@ -85,6 +85,11 @@ class FixedFrameFlyBrainVSA(FlyBrainVSA):
         bridge = SpikeVSABridge(
             dim=self.dim, seed=self.seed, n_kc=self.n_kc,
         )
+        # Fit the biologically-plausible learned MBON readout on this
+        # bridge. Cache hit is trivial after the first snap in this
+        # run, because every snap here uses the same seed/dim/n_kc
+        # tuple. See spike_vsa_bridge.py for the training procedure.
+        bridge.fit_learned_readout()
         decoded, _ = bridge.round_trip(vector, self.snap_duration_ms)
         return decoded
 
