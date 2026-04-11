@@ -1,0 +1,201 @@
+name: Papers CI — auto-submit and fetch reviews
+
+# Auto-submit the two currently-maintained papers to clawRxiv whenever
+# their paper.md or SKILL.md is updated on master, and fetch the AI peer
+# review afterward. Manual workflow_dispatch also supported for one-off
+# resubmissions or backfills.
+#
+# Scoped explicitly to the two papers we are still iterating on:
+#   - akasha-paper/       ("Akasha: A Vector Programming Language ...")
+#   - fly-brain-paper/    ("Running Akasha on a Simulated Fly Brain ...")
+#
+# The Latent Space Cartography paper is deliberately NOT handled here —
+# it lives in its own repo (EmmaLeonhart/latent-space-cartography) and
+# is submitted by that repo's CI, not ours.
+#
+# `[skip submit]` in a commit message opts out of auto-submission even if
+# the file path matches. Useful for typo fixes, ref updates, and the CI's
+# own commits (which always include [skip submit] to prevent loops).
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'akasha-paper/paper.md'
+      - 'akasha-paper/SKILL.md'
+      - 'fly-brain-paper/paper.md'
+      - 'fly-brain-paper/SKILL.md'
+  workflow_dispatch:
+    inputs:
+      paper:
+        description: 'Which paper to submit (workflow_dispatch only)'
+        required: true
+        type: choice
+        default: both
+        options:
+          - akasha-paper
+          - fly-brain-paper
+          - both
+
+concurrency:
+  group: papers-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect-changed:
+    name: Detect changed papers
+    runs-on: ubuntu-latest
+    outputs:
+      akasha: ${{ steps.filter.outputs.akasha }}
+      fly_brain: ${{ steps.filter.outputs.fly_brain }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Classify which papers this run covers
+        id: filter
+        run: |
+          set -euo pipefail
+
+          # Honor the [skip submit] opt-out in the push commit message.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if git log -1 --pretty=%B | grep -Fq "[skip submit]"; then
+              echo "Commit message contains [skip submit] — skipping both papers"
+              echo "akasha=false" >> "$GITHUB_OUTPUT"
+              echo "fly_brain=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          # Manual dispatch: honor the input dropdown verbatim.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ github.event.inputs.paper }}" in
+              akasha-paper)
+                echo "akasha=true"    >> "$GITHUB_OUTPUT"
+                echo "fly_brain=false" >> "$GITHUB_OUTPUT"
+                ;;
+              fly-brain-paper)
+                echo "akasha=false"   >> "$GITHUB_OUTPUT"
+                echo "fly_brain=true"  >> "$GITHUB_OUTPUT"
+                ;;
+              both)
+                echo "akasha=true"    >> "$GITHUB_OUTPUT"
+                echo "fly_brain=true"  >> "$GITHUB_OUTPUT"
+                ;;
+            esac
+            exit 0
+          fi
+
+          # Push trigger: diff HEAD~1..HEAD against the two paper paths.
+          CHANGED="$(git diff --name-only HEAD~1 HEAD || true)"
+          echo "changed files:"
+          echo "$CHANGED"
+
+          akasha=false
+          fly_brain=false
+          if echo "$CHANGED" | grep -Eq '^akasha-paper/(paper|SKILL)\.md$'; then
+            akasha=true
+          fi
+          if echo "$CHANGED" | grep -Eq '^fly-brain-paper/(paper|SKILL)\.md$'; then
+            fly_brain=true
+          fi
+          echo "akasha=$akasha"       >> "$GITHUB_OUTPUT"
+          echo "fly_brain=$fly_brain" >> "$GITHUB_OUTPUT"
+
+  submit:
+    name: Submit ${{ matrix.paper_dir }}
+    needs: detect-changed
+    if: needs.detect-changed.outputs.akasha == 'true' || needs.detect-changed.outputs.fly_brain == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # max-parallel: 1 serializes the two paper jobs so their auto-commits
+    # of .post_id and reviews/ don't race each other when both papers
+    # change in the same push.
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - paper_dir: akasha-paper
+            slug: akasha
+            title: "Akasha: A Vector Programming Language for Computation in Embedding Spaces"
+            tags: "programming-languages,vector-symbolic-architectures,embedding-spaces,fuzzy-logic,akasha"
+          - paper_dir: fly-brain-paper
+            slug: fly_brain
+            title: "Running Akasha on a Simulated Fly Brain: Compile-to-Brain for a Vector Programming Language"
+            tags: "programming-languages,vector-symbolic-architectures,connectomics,drosophila,akasha,fly-brain"
+    steps:
+      - name: Skip if this paper did not change
+        id: should_run
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.slug }}" = "akasha" ]; then
+            if [ "${{ needs.detect-changed.outputs.akasha }}" != "true" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          if [ "${{ matrix.slug }}" = "fly_brain" ]; then
+            if [ "${{ needs.detect-changed.outputs.fly_brain }}" != "true" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.should_run.outputs.skip != 'true'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Need full history so the auto-commit can push cleanly.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        if: steps.should_run.outputs.skip != 'true'
+        with:
+          python-version: '3.13'
+
+      - name: Submit to clawRxiv and fetch review
+        if: steps.should_run.outputs.skip != 'true'
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+        run: |
+          python scripts/paper_submit_and_fetch.py \
+            --paper-dir "${{ matrix.paper_dir }}" \
+            --title "${{ matrix.title }}" \
+            --tags "${{ matrix.tags }}" \
+            --poll-seconds 30 \
+            --review-timeout-seconds 600
+
+      - name: Commit updated .post_id and reviews
+        if: steps.should_run.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Only stage the files this job is allowed to touch. This avoids
+          # accidentally committing anything stray that may have landed in
+          # the working tree during the Python run.
+          git add "${{ matrix.paper_dir }}/.post_id" || true
+          git add "${{ matrix.paper_dir }}/reviews/"  || true
+
+          if git diff --cached --quiet; then
+            echo "No .post_id / reviews changes to commit"
+            exit 0
+          fi
+
+          git commit -m "papers-ci: ${{ matrix.paper_dir }} v$(ls ${{ matrix.paper_dir }}/reviews/ 2>/dev/null | grep -c '_review\.json$' || echo 0) submission + review [skip submit]"
+          # Retry push to tolerate the other matrix job (if any) having just
+          # pushed its own commit ahead of us.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push attempt $attempt failed, rebasing and retrying..."
+            git pull --rebase origin master
+          done
+          echo "ERROR: failed to push after 3 retries" >&2
+          exit 1

@@ -1,7 +1,7 @@
 # Can we play Doom on the fly brain?
 
 *A gap analysis, grounded in the specs in `STATUS.md` and
-`METHODOLOGY.md`. Written as a "showing off" piece: the point isn't
+`../fly-brain-paper/paper.md`. Written as a "showing off" piece: the point isn't
 that Doom is close, it's that the blockers are nameable and the
 naming itself is interesting.*
 
@@ -79,7 +79,7 @@ can't express a game tick. This is the first hard blocker.
 
 ### 2. No arithmetic on the substrate
 
-From METHODOLOGY.md and the §3 caveat in STATUS.md: the MB does random projection, not
+From ../fly-brain-paper/paper.md and the §3 caveat in STATUS.md: the MB does random projection, not
 sign-flip multiplication. Bind/unbind/bundle run in numpy, not on the brain. Anything
 involving real numbers — raycasting, fixed-point trig, integer position updates —
 isn't on the substrate at all. Doom's inner loop is arithmetic all the way down.
@@ -137,5 +137,5 @@ Ordered from "next session" to "PhD thesis":
 
 - `STATUS.md` — full state of the fly-brain runtime, including the long-term research
   questions this document leans on
-- `METHODOLOGY.md` — circuit parameters, VSA↔MB structural mapping
+- `../fly-brain-paper/paper.md` — circuit parameters, VSA↔MB structural mapping
 - `DEMO.md` — the two working demos (programmer agency + compile-to-brain)

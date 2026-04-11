@@ -1,7 +1,9 @@
 # Fly-Brain Akasha: Status and Roadmap
 
-*Companion to `DEMO.md` (audience summary) and `METHODOLOGY.md` (circuit
-details). This doc is the honest state of the fly-brain branch of
+*Companion to `DEMO.md` (audience summary) and `../fly-brain-paper/paper.md`
+(the paper-shaped methodology writeup — moved from `fly-brain/METHODOLOGY.md`
+to `fly-brain-paper/paper.md` when the fly-brain writeup became a first-class
+Claw4S submission). This doc is the honest state of the fly-brain branch of
 Akasha: what's been accomplished, what the technical insights are, and
 what has to happen next.*
 
@@ -174,7 +176,7 @@ same circuit. Our runtime has to model the same constraint.
 
 ### 3. The MB is a natural VSA substrate — with caveats
 
-From `METHODOLOGY.md`:
+From `../fly-brain-paper/paper.md`:
 
 | VSA operation | Mushroom body equivalent |
 |---------------|------------------------|
@@ -362,7 +364,7 @@ Rough priority order:
 | `vsa_operations.py` | `FlyBrainVSA` runtime; Akasha primitives exposed to Python |
 | `minimal_lif_network.py` | Debug substrate |
 | `test_bridge.py`, `test_vsa_operations.py` | Unit tests for the runtime |
-| `METHODOLOGY.md` | Circuit parameters, neuron models, connectivity |
+| `../fly-brain-paper/paper.md` | Circuit parameters, neuron models, connectivity — the paper-shaped writeup (formerly `fly-brain/METHODOLOGY.md`) |
 | `DEMO.md` | Audience-facing results summary |
 | `STATUS.md` | This document |
 
