@@ -183,6 +183,8 @@ score = vsa.similarity(retrieved, odorB)  # = 0.2285
 
 ## File Structure
 
+The implementation lives in `fly-brain/`; this paper lives in `fly-brain-paper/`.
+
 ```
 fly-brain/
 ├── mushroom_body_model.py      # Brian2 spiking circuit model
@@ -192,7 +194,12 @@ fly-brain/
 ├── test_vsa_operations.py      # Phase 4 VSA operation tests
 ├── minimal_lif_network.py      # Brian2 smoke test
 ├── requirements.txt            # Python dependencies
-└── METHODOLOGY.md              # This file
+├── STATUS.md                   # Honest running status and technical insights
+├── DEMO.md                     # Audience-facing results summary
+└── DOOM.md                     # "How far are we from playing Doom on this?" writeup
+
+fly-brain-paper/
+└── paper.md                    # This file — the paper-shaped writeup
 ```
 
 ## Reproducibility

@@ -142,7 +142,7 @@ So the source-level `!` compiles to `permute(NOT_KEY, .)`, and "run Program B" c
 | `mushroom_body_model.py` | Brian2 spiking circuit model (the substrate) |
 | `spike_vsa_bridge.py` | Encode/decode between hypervectors and spike patterns |
 | `vsa_operations.py` | FlyBrainVSA class (Akasha operations API) |
-| `METHODOLOGY.md` | Technical details: challenges, solutions, results |
+| `../fly-brain-paper/paper.md` | Technical details: challenges, solutions, results (the paper-shaped writeup, formerly `fly-brain/METHODOLOGY.md`) |
 | `DEMO.md` | This file |
 
 ## Running It
