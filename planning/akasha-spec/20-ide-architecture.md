@@ -2,7 +2,7 @@
 
 Akasha's IDE is not optional tooling. Because the language has long-range semantic dependencies that no single source file can capture (see [06-runtime.md](06-runtime.md)), the IDE is part of the language — the same way TypeScript's type checker is a second interpreter running alongside the code. This document describes the vision for that IDE.
 
-Status: **design only, no implementation yet.**
+Status: **v0.1 scaffold exists under `sdk/intellij-akasha/`.** File type registration, hand-written lexer, syntax highlighter, color settings page, brace matcher, commenter, quote handler, keyword/primitive/builtin completion, live templates ported from the VS Code extension, and an external annotator that shells out to `python -m akasha_compiler --json` are all in place. Everything beyond that — real PSI, MCP servers, visualizers, debugger, solution system — is still design-only.
 
 ## Non-Goal: Generic Editor With Akasha Support
 
@@ -56,7 +56,7 @@ What's bundled:
 | Vector database         | Lightweight embedded DB ("SQLite of vectors")  | Yes               |
 | Embedding model         | Small local model (quantized sentence transformer class) | Yes       |
 | Embedding map / corpus  | Small curated default corpus                   | Yes               |
-| 2D/3D visualizer        | Precomputed UMAP/t-SNE reduction of the default map | Yes          |
+| 3D visualizer           | Linear projection onto user-chosen composite basis, plus optional UMAP/t-SNE | Yes |
 | MCP server              | Local, auto-started by the IDE                 | Yes               |
 | Project system          | Solution-based multi-project layout            | No                |
 
@@ -68,11 +68,33 @@ What's bundled:
 
 ## Embedding-Space Visualizer as a Core Pane
 
-Embedding spaces are mathematically high-dimensional, but humans need a handle on what they are navigating. The IDE ships with a visualizer pane that shows a 2D (or optionally 3D) projection of the current embedding space, with the vectors your code is currently touching highlighted.
+Embedding spaces are mathematically high-dimensional, but humans need a handle on what they are navigating. The IDE ships with a visualizer pane that shows a 3D projection of the current embedding space, with the vectors your code is currently touching highlighted.
 
-Not because the 2D projection is mathematically complete — it obviously isn't — but because seeing where your code is operating in the space is the single most useful debugging affordance for this paradigm. This is genuinely unprecedented as a development experience; no existing IDE has a first-class "here is your computational substrate, rendered" panel.
+Not because the 3D projection is mathematically complete — it obviously isn't — but because seeing where your code is operating in the space is the single most useful debugging affordance for this paradigm. This is genuinely unprecedented as a development experience; no existing IDE has a first-class "here is your computational substrate, rendered" panel.
 
-Default reduction: UMAP or t-SNE against the bundled default map. For user-provided embedding spaces, the IDE precomputes the reduction on first load and caches it.
+### Default projection: 3D hyperplane with user-chosen composite-vector basis
+
+**The default is not UMAP or t-SNE.** It's a linear projection onto three composite vectors the programmer (or an agent) picks. Each axis is itself an Akasha expression — `male - female`, `king - peasant`, or any other bound name — and the visualizer simply renders the dot products. Three dot products per point, trivially redraws at 60fps, degrades gracefully to 2D with two axes.
+
+Why this beats the usual dimensionality-reduction pick:
+
+- **Stable under edits.** UMAP and t-SNE reshuffle whenever points get added or removed, which is disorienting when your code is mutating the space. A linear projection onto user-chosen vectors stays put across edits.
+- **Semantically meaningful.** Picking basis vectors out of the space itself turns the visualizer into a navigable semantic coordinate system you can reason about in the same vocabulary as your code — not just a pretty picture. This matches Akasha's "computation is geometry" pitch.
+- **Composable with code.** The axes are first-class Akasha expressions. Code can reference the visualizer's current basis; the visualizer can bind to names computed by the code. UMAP can't do that — its projection isn't a first-class object.
+- **Agent-visible.** Because the basis is just three vectors, the MCP surface exposes it as three `vector` values plus a `project(vector) -> (x, y, z)` tool. Agents can set the basis, query projected coordinates, and animate between bases the same way humans can.
+- **Cheap.** Two (or three) dot products per point. Matters because JCEF/Swing performance with large point clouds is an open empirical question this design has to survive.
+
+**2D vs 3D.** 3D with three composite vectors is the default because humans navigate 3D spatial scenes well, and the third axis earns its keep. 2D is a supported mode (pick two of the three) for cases where the third basis vector is genuinely absent.
+
+**UMAP and t-SNE remain available** as alternative projections for cluster-structure exploration, but they are *not* the default. Switching projection mode is a dropdown, not a language-level concern.
+
+### Caveat: non-algebraic tier doesn't project linearly
+
+Composite-basis projection works cleanly on the **algebraic tier** (see [02-operations.md](02-operations.md)) — `bind`, `unbind`, `bundle` produce points and the operations between them become visible lines. Non-algebraic results (`snap`, `cone`, `hop`) project fine as points but the *operations* that produced them do not map to straight lines in the chosen basis. The visualizer should surface this distinction — dotted lines for non-algebraic transitions, solid lines for algebraic ones — so users are not misled into reading geometric continuity where none exists.
+
+### Fly-brain visualizer
+
+A second visualizer pane, tuned specifically to the fly-brain substrate, is planned as a tiered deliverable alongside the embedding-space pane. See the dedicated planning doc at [`planning/fly-brain-visualizer.md`](../fly-brain-visualizer.md) for the topological-vs-anatomical split, the hemibrain/FlyWire mapping research it depends on, and the staged v0.1–v0.3 rollout.
 
 ## MCP Architecture: Two Servers, One IDE
 
@@ -155,7 +177,12 @@ The core has to be solid enough that early contributors aren't fighting the lang
 - **Which default embedding model?** Needs to be small, CPU-runnable, and non-normalized (see [19-substrate-candidates.md](19-substrate-candidates.md) for the non-normalization requirement).
 - **How is the solution file structured?** Borrow Visual Studio's `.sln` format, define a new one, or use something like TOML.
 - **What does "stepping through an embedding operation" actually look like?** The debugger UI is clear in the abstract but the concrete stepping model — per vector? per binding? per cone traversal? — needs design.
-- **Can the IntelliJ Platform render the visualizer pane efficiently?** Swing/JCEF performance with large point clouds is an open empirical question.
-- **TextMate grammar as a day-one deliverable?** Lowest-effort win that gives any editor some syntax coloring, buys time before the full IDE is ready.
+- **Can the IntelliJ Platform render the visualizer pane efficiently?** Swing/JCEF performance with large point clouds is still open even for the cheap composite-basis projection. JCEF + three.js is the obvious first experiment; native Swing with a batched renderer is the fallback.
+- **How are the default basis vectors chosen when a programmer hasn't picked one?** Candidates: first three PCA components of the loaded corpus, three curated "semantic anchor" vectors shipped with the default map, or blank until the user picks. The visualizer has to have *something* to render on a cold open.
 - **Agent/human parity enforcement.** How is the "every feature is MCP-accessible" rule mechanically enforced? Code review, automated audit that diffs UI actions against MCP tools, or a test suite that drives the whole IDE via MCP and asserts coverage?
 - **Scaffolding templates.** What's the starter set of `akasha.scaffold` templates for the prototype-build loop — classifier, similarity retriever, cone-traversal demo, fly-brain substrate program?
+
+### Resolved
+
+- **TextMate grammar as a day-one deliverable** → shipped. Lives at `sdk/vscode-akasha/syntaxes/akasha.tmLanguage.json` and is the source the IntelliJ plugin's hand-written lexer was ported from.
+- **Default visualizer projection** → linear projection onto three user-chosen composite basis vectors, not UMAP/t-SNE. See the "Embedding-Space Visualizer" section above.
