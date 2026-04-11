@@ -156,7 +156,7 @@ program variants. Still the north star for the fly-brain paper.
 ### `docs/`
 MkDocs Material source for the Sutra language website. Built by
 `.github/workflows/pages.yml` on every push and deployed to
-`https://emmaleonhart.github.io/Sutralang/`.
+`https://emmaleonhart.github.io/Sutra/`.
 
 - `index.md` — landing page
 - `vision.md` — "the graph-to-vector leap"
