@@ -22,12 +22,14 @@ import java.util.concurrent.TimeUnit
  * JSON shape, the same 1-based → 0-based column conversion, the same AKA####
  * code display.
  *
- * Configuration lives in environment variables for v0.1. A proper
- * Configurable UI lands in v0.2 once the plugin grows its own Settings
- * object.
+ * Configuration is resolved by [AkashaSettings], which implements a
+ * three-step fallback chain:
  *
- *   AKASHA_COMPILER       command to run, default "python"
- *   AKASHA_COMPILER_ARGS  args before the file, default "-m akasha_compiler"
+ *   1. Values set in Settings → Tools → Akasha (persistent state)
+ *   2. Environment variables AKASHA_COMPILER / AKASHA_COMPILER_ARGS
+ *   3. Hardcoded defaults: `python` and `-m akasha_compiler`
+ *
+ * v0.1 users who only set env vars keep working unchanged.
  */
 class AkashaExternalAnnotator : ExternalAnnotator<AkashaExternalAnnotator.Info, AkashaExternalAnnotator.Result>() {
 
@@ -113,9 +115,9 @@ class AkashaExternalAnnotator : ExternalAnnotator<AkashaExternalAnnotator.Info, 
     // ------------------------------------------------------------------
 
     private fun buildCommand(filePath: String): List<String> {
-        val exe = System.getenv("AKASHA_COMPILER")?.takeIf { it.isNotBlank() } ?: "python"
-        val rawArgs = System.getenv("AKASHA_COMPILER_ARGS")?.takeIf { it.isNotBlank() }
-            ?: "-m akasha_compiler"
+        val settings = AkashaSettings.getInstance()
+        val exe = settings.effectiveCompiler()
+        val rawArgs = settings.effectiveCompilerArgs()
         val argv = mutableListOf(exe)
         argv.addAll(rawArgs.trim().split(Regex("\\s+")))
         argv.add("--json")

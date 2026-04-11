@@ -100,5 +100,16 @@
         <liveTemplateContext
             contextId="AKASHA"
             implementation="org.akasha.intellij.AkashaLiveTemplateContext"/>
+
+        <!-- Application-level persistent settings for the compiler path. -->
+        <applicationService
+            serviceImplementation="org.akasha.intellij.AkashaSettings"/>
+
+        <!-- Settings UI under Settings → Tools → Akasha. -->
+        <applicationConfigurable
+            parentId="tools"
+            id="org.akasha.intellij.settings"
+            displayName="Akasha"
+            instance="org.akasha.intellij.AkashaSettingsConfigurable"/>
     </extensions>
 </idea-plugin>

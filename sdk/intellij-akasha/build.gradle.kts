@@ -26,6 +26,12 @@ dependencies {
     // of the reference compiler. IntelliJ bundles a Gson of its own, but
     // declaring our own copy avoids coupling to platform internals.
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // JUnit 4 for the lexer unit tests under src/test/kotlin. The IntelliJ
+    // gradle plugin's test classpath ships JUnit 4 transitively, but
+    // declaring it explicitly makes the dependency clear and the tests
+    // runnable even if the platform dep graph changes.
+    testImplementation("junit:junit:4.13.2")
 }
 
 java {
@@ -55,8 +61,17 @@ tasks {
     }
 
     buildSearchableOptions {
-        // No Configurable UI in v0.1 — skip the expensive searchable-options
-        // generation to keep local builds fast.
-        enabled = false
+        // Searchable-options generation spins up a sandbox IDE to walk
+        // every Configurable; it's slow but gives us "Akasha" hits in the
+        // Settings search box now that AkashaSettingsConfigurable exists.
+        // Turn off again only if CI wall-clock becomes a problem.
+        enabled = true
+    }
+
+    test {
+        // The lexer tests are plain JUnit 4 — nothing platform-y, no
+        // running test application, just token assertions against
+        // AkashaLexer driven directly from unit tests.
+        useJUnit()
     }
 }
