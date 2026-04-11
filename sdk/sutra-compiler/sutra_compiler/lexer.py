@@ -1,4 +1,4 @@
-"""Lexer for the Akasha language.
+"""Lexer for the Sutra language.
 
 Produces a flat list of tokens from source text. The lexer is
 intentionally forgiving: unknown characters become `TokenKind.UNKNOWN`
@@ -200,7 +200,7 @@ class Token:
 
 
 class Lexer:
-    """Tokenize Akasha source into a flat list.
+    """Tokenize Sutra source into a flat list.
 
     Call `tokenize()` and then consume `tokens` and `diagnostics`.
     """

@@ -1,8 +1,8 @@
 """
-Akasha Runtime — Core Vector Programming Language Runtime
+Sutra Runtime — Core Vector Programming Language Runtime
 ==========================================================
 
-This is the execution engine for Akasha programs. It implements:
+This is the execution engine for Sutra programs. It implements:
   - Sign-flip binding/unbinding (proven superior to Hadamard on natural embeddings)
   - Bundling (superposition) with noise tracking
   - Snap-to-nearest (codebook-based error correction)
@@ -34,7 +34,7 @@ if sys.platform == "win32" and not isinstance(sys.stdout, io.TextIOWrapper):
 # ============================================================
 
 class Substrate:
-    """An embedding space that Akasha programs execute on."""
+    """An embedding space that Sutra programs execute on."""
 
     def __init__(self, model_name="mxbai-embed-large"):
         self.model_name = model_name
@@ -121,7 +121,7 @@ def similarity(a, b):
 
 class Codebook:
     """A set of known vectors for snap-to-nearest error correction.
-    This is the Akasha equivalent of a symbol table / cleanup memory."""
+    This is the Sutra equivalent of a symbol table / cleanup memory."""
 
     def __init__(self):
         self.vectors = []
@@ -178,7 +178,7 @@ class Codebook:
         angular spread (cosine threshold). Returns entries that are both
         near the origin AND in the specified direction.
 
-        This is Akasha's non-algebraic branching mechanism."""
+        This is Sutra's non-algebraic branching mechanism."""
         if not self.vectors:
             return []
         mat = self.matrix
@@ -429,12 +429,12 @@ def empirical_initiation(substrate, test_texts=None, verbose=True):
 
 
 # ============================================================
-# Akasha Environment: the runtime state for program execution
+# Sutra Environment: the runtime state for program execution
 # ============================================================
 
 @dataclass
 class S2Env:
-    """Runtime environment for Akasha program execution."""
+    """Runtime environment for Sutra program execution."""
     substrate: Substrate
     codebook: Codebook = field(default_factory=Codebook)
     variables: dict = field(default_factory=dict)
@@ -520,7 +520,7 @@ class S2Env:
 
 
 # ============================================================
-# Convenience: run Akasha operations and print results
+# Convenience: run Sutra operations and print results
 # ============================================================
 
 def demo_header(title):
@@ -530,5 +530,5 @@ def demo_header(title):
 
 
 if __name__ == "__main__":
-    print("Akasha Runtime loaded. Use S2Env to execute programs.")
+    print("Sutra Runtime loaded. Use S2Env to execute programs.")
     print("Run sutra_demos.py for demonstrations.")

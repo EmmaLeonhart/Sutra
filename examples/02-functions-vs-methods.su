@@ -1,5 +1,5 @@
 /*
-    Akasha Example: Functions vs Methods
+    Sutra Example: Functions vs Methods
 
     function = free, public static by default, not attached to anything
     method   = attached to an object, public non-static by default

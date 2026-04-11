@@ -1,8 +1,8 @@
-# Akasha Language Specification (Draft)
+# Sutra Language Specification (Draft)
 
-Akasha is a vector programming language that uses LLM embedding spaces as its computational substrate. Named after the concept of a fundamental substrate or medium pervading all things — the language literally implements deliberate, effortful reasoning by computing in continuous semantic space.
+Sutra is a vector programming language that uses LLM embedding spaces as its computational substrate. Named after the concept of a fundamental substrate or medium pervading all things — the language literally implements deliberate, effortful reasoning by computing in continuous semantic space.
 
-Akasha is not a scripting language bolted onto an AI. It is a formal system for reasoning under uncertainty, closer to Prolog than Python, but operating in continuous rather than discrete space. Code compiles to vector operations that execute inside an embedding space the way conventional code compiles to machine instructions that execute on silicon.
+Sutra is not a scripting language bolted onto an AI. It is a formal system for reasoning under uncertainty, closer to Prolog than Python, but operating in continuous rather than discrete space. Code compiles to vector operations that execute inside an embedding space the way conventional code compiles to machine instructions that execute on silicon.
 
 ## Spec Documents
 
@@ -14,7 +14,7 @@ Akasha is not a scripting language bolted onto an AI. It is a formal system for 
 - [Type System](05-type-system.md) — no wrong types (only noise), mixed-regime spaces, entity resolution
 
 ### Runtime & Compilation
-- [Runtime Architecture](06-runtime.md) — S1/Akasha dual runtime, MCP server as runtime component
+- [Runtime Architecture](06-runtime.md) — S1/Sutra dual runtime, MCP server as runtime component
 - [Empirical Initiation](07-empirical-initiation.md) — probing, correction matrices, validation gates, cross-substrate compilation
 - [Abstraction Level](08-abstraction-level.md) — "C-tier" for vector spaces, what the compiler handles vs. what the programmer writes
 - [IDE Architecture](20-ide-architecture.md) — IntelliJ Platform, agent-first authoring, bundled vertical stack, embedding-space visualizer
@@ -34,4 +34,4 @@ Akasha is not a scripting language bolted onto an AI. It is a formal system for 
 - [Embedding Pathologies](15-embedding-pathologies.md) — mxbai diacritic bug, attention sink mechanism, blast radius
 - [Known Defects](16-known-defects.md) — noise accumulation, iteration, cleanup circularity, permutation question
 - [Open Questions](17-open-questions.md) — syntax, iteration, benchmarks, and everything else unresolved
-- [Compute Savings](18-compute-savings.md) — adjacent benchmarks, the missing FLOPS benchmark, what Akasha needs to prove
+- [Compute Savings](18-compute-savings.md) — adjacent benchmarks, the missing FLOPS benchmark, what Sutra needs to prove

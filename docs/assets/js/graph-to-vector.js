@@ -1,5 +1,5 @@
 /**
- * Akasha — graph-to-linear-algebra interactive demo.
+ * Sutra — graph-to-linear-algebra interactive demo.
  *
  * Self-contained vanilla JS widget that visualizes the same tiny
  * "fly-brain-shaped" network three different ways: as a graph, as an

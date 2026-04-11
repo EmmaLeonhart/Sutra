@@ -2,9 +2,9 @@
 
 ## The Core Idea
 
-Akasha does not assume any embedding space has the right algebraic properties. It **probes and calibrates** at compile time. This is called empirical initiation — the compiler characterizes the target space before generating code for it.
+Sutra does not assume any embedding space has the right algebraic properties. It **probes and calibrates** at compile time. This is called empirical initiation — the compiler characterizes the target space before generating code for it.
 
-The analogy: C compiles differently for x86 and ARM because the instruction sets are different. Akasha compiles differently for mxbai-embed-large and nomic-embed-text because the geometric properties are different. The "instruction set" is the geometry of the target space.
+The analogy: C compiles differently for x86 and ARM because the instruction sets are different. Sutra compiles differently for mxbai-embed-large and nomic-embed-text because the geometric properties are different. The "instruction set" is the geometry of the target space.
 
 ## The Probing Process
 
@@ -22,7 +22,7 @@ Naturally learned embedding spaces are not perfect VSA spaces. The algebraic ope
 - A matrix that projects onto the subspace where unbinding is most accurate
 - A normalization that makes bundling capacity predictable
 
-These matrices are specific to the target embedding model. They are the "compiled" form of Akasha's adaptation to a specific substrate.
+These matrices are specific to the target embedding model. They are the "compiled" form of Sutra's adaptation to a specific substrate.
 
 **Step 3 — Build the mapping file.**
 Output: a binary artifact containing:
@@ -31,7 +31,7 @@ Output: a binary artifact containing:
 - Known pathologies detected during probing (degenerate dimensions, attention sinks)
 - Codebook initialization (if applicable)
 
-This mapping file is the Akasha equivalent of a compiled binary. The same Akasha source code + different mapping files = same program running on different embedding substrates.
+This mapping file is the Sutra equivalent of a compiled binary. The same Sutra source code + different mapping files = same program running on different embedding substrates.
 
 ## What "Same Source, Different Targets" Means
 
@@ -57,7 +57,7 @@ On nomic-embed-text (768-dim):
 - Correction matrix is different (different geometry)
 - No known pathologies
 
-The Akasha source code is identical. The mapping file handles the differences. The programmer writes semantic operations; the compiler generates substrate-specific code.
+The Sutra source code is identical. The mapping file handles the differences. The programmer writes semantic operations; the compiler generates substrate-specific code.
 
 ## Validation Gates
 
@@ -68,4 +68,4 @@ Empirical initiation should include **validation gates** — minimum requirement
 - Bundling capacity: at least N items before SNR drops below usability
 - No catastrophic pathologies detected (attention sinks, degenerate dimensions)
 
-A substrate that fails validation is rejected. The compiler refuses to generate code for it. This is Akasha's equivalent of a platform compatibility check.
+A substrate that fails validation is rejected. The compiler refuses to generate code for it. This is Sutra's equivalent of a platform compatibility check.

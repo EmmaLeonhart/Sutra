@@ -1,5 +1,5 @@
 /*
-    Akasha Example: Control Flow, Loops, and Error Handling
+    Sutra Example: Control Flow, Loops, and Error Handling
 
     Control flow is C#-style. Errors produce garbage vectors.
     Try-catch is if-statement sugar over failure patterns.

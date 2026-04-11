@@ -1,14 +1,14 @@
-# Substrate Candidates for Akasha
+# Substrate Candidates for Sutra
 
 ## Key Requirement: Non-Normalized Embeddings
 
-Akasha requires embedding spaces where **magnitude is meaningful**. This means:
+Sutra requires embedding spaces where **magnitude is meaningful**. This means:
 - Euclidean distance, not cosine similarity, is the primary metric
 - Scalar multiplication must change magnitude (confidence/weight) without losing information
 - Binding strength and bundling count are encoded in vector magnitude
 - The truth-extraction matrix M(v) depends on magnitude information
 
-Normalized embeddings (projected onto the unit sphere) destroy all of this. Cosine similarity = dot product on unit vectors = magnitude is always 1.0 = no information in magnitude. This makes normalized models **useless for Akasha**.
+Normalized embeddings (projected onto the unit sphere) destroy all of this. Cosine similarity = dot product on unit vectors = magnitude is always 1.0 = no information in magnitude. This makes normalized models **useless for Sutra**.
 
 ## Recommended Substrates
 
@@ -27,7 +27,7 @@ Normalized embeddings (projected onto the unit sphere) destroy all of this. Cosi
 - **Why:** Richest substrate available. Recent research ("Disentangling Direction and Magnitude in Transformer Representations", arxiv 2602.11169) proves that direction and magnitude serve *different functional roles*:
   - **Direction** routes attention — angular perturbations damage language modeling loss 42.9x more than magnitude perturbations
   - **Magnitude** modulates processing intensity — magnitude perturbations damage syntactic processing (20.4% vs 1.6% accuracy drop on subject-verb agreement)
-  - This dual-channel information is exactly what Akasha needs
+  - This dual-channel information is exactly what Sutra needs
 - **Tool:** LLM2Vec (McGill NLP) can transform decoder-only LLMs into text encoders. Tested on Llama and Mistral. Output is mean-pooled last hidden states, not normalized.
 - **Cost:** More expensive to compute than dedicated embedding models, but the substrate is richer.
 
@@ -39,7 +39,7 @@ Normalized embeddings (projected onto the unit sphere) destroy all of this. Cosi
 ### Alternative: INSTRUCTOR-XL / INSTRUCTOR-large
 - **Dimensionality:** 768
 - **Normalization:** Default output is NON-NORMALIZED — normalization is opt-in
-- **Why:** Instruction-tunable. You can prefix queries with task descriptions, which could map to Akasha's context-dependent embedding resolution.
+- **Why:** Instruction-tunable. You can prefix queries with task descriptions, which could map to Sutra's context-dependent embedding resolution.
 
 ### Alternative: BGE-large-en-v1.5
 - **Dimensionality:** 1024
@@ -49,18 +49,18 @@ Normalized embeddings (projected onto the unit sphere) destroy all of this. Cosi
 ### Alternative: Jina v3
 - **Dimensionality:** 1024
 - **Normalization:** Explicit code step, easily skipped
-- **Why:** Supports Matryoshka dimensionality reduction (can use 32 to 1024 dims). Interesting for testing Akasha at different substrate resolutions.
+- **Why:** Supports Matryoshka dimensionality reduction (can use 32 to 1024 dims). Interesting for testing Sutra at different substrate resolutions.
 
 ## Models to Avoid
 
 ### OpenAI text-embedding-3 (small/large)
 - API always returns unit vectors. No access to pre-normalization output.
 - Black box — can't inspect or modify the pipeline.
-- **Useless for Akasha.**
+- **Useless for Sutra.**
 
 ### Cohere embed-v3
 - API-only. No normalization control.
-- **Useless for Akasha.**
+- **Useless for Sutra.**
 
 ### mxbai-embed-large
 - Has the documented diacritic attention-sink bug (see [Embedding Pathologies](15-embedding-pathologies.md))
@@ -72,13 +72,13 @@ Normalized embeddings (projected onto the unit sphere) destroy all of this. Cosi
 - Has a `2_Normalize` module baked into the sentence-transformers pipeline that runs inside `forward()`
 - The `normalize_embeddings=False` parameter does NOT override this
 - Workaround exists (reconstruct model without Normalize module) but it's a hack
-- Only 384 dims — low capacity for Akasha
+- Only 384 dims — low capacity for Sutra
 - **Avoid unless necessary.**
 
 ### nGPT (NVIDIA)
 - Explicitly constrains everything to the unit hypersphere
 - Gets 4-20x faster training by normalizing — shows the tradeoff between training efficiency and magnitude information
-- Interesting as a counterpoint but **directly incompatible with Akasha's design**
+- Interesting as a counterpoint but **directly incompatible with Sutra's design**
 
 ## How to Get Non-Normalized Output
 
@@ -111,11 +111,11 @@ embedding = hidden_states.mean(dim=1)       # Mean pooling
 
 ## Relevant Papers
 
-1. **"Disentangling Direction and Magnitude in Transformer Representations"** (arxiv 2602.11169, 2026) — Direction and magnitude serve distinct computational roles. Validates Akasha's need for non-normalized substrates.
+1. **"Disentangling Direction and Magnitude in Transformer Representations"** (arxiv 2602.11169, 2026) — Direction and magnitude serve distinct computational roles. Validates Sutra's need for non-normalized substrates.
 
 2. **"Weber's Law in Transformer Magnitude Representations"** (arxiv 2603.20642) — How transformers encode numerical magnitude, connecting to psychophysical laws.
 
-3. **"Anisotropy Is Inherent to Self-Attention in Transformers"** (arxiv 2401.12143) — Transformer embeddings naturally occupy a narrow cone. Relevant for understanding Akasha's substrate geometry.
+3. **"Anisotropy Is Inherent to Self-Attention in Transformers"** (arxiv 2401.12143) — Transformer embeddings naturally occupy a narrow cone. Relevant for understanding Sutra's substrate geometry.
 
 4. **LLM2Vec** (arxiv 2404.05961) — Method for turning decoder LLMs into text encoders preserving hidden state properties including magnitude.
 
