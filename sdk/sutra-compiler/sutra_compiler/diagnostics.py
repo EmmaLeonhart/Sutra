@@ -1,4 +1,4 @@
-"""Diagnostics for the Akasha compiler.
+"""Diagnostics for the Sutra compiler.
 
 A `Diagnostic` is a single error/warning/info message with enough
 position information that editors (and humans) can point straight at
@@ -50,7 +50,7 @@ class Diagnostic:
     message: str
     span: SourceSpan
     file: Optional[str] = None
-    code: Optional[str] = None  # e.g. "AKA0001"
+    code: Optional[str] = None  # e.g. "SUT0001"
     hint: Optional[str] = None
 
     def format(self, *, color: bool = False) -> str:
