@@ -4,7 +4,7 @@
 
 The 📜 scroll is Sutra's project-wide branding — the Sanskrit *sūtra* is literally a thread/string of aphorisms, the word used for Pāṇini's foundational Sanskrit grammar (the earliest known formal grammar of any language), and the scroll is the physical artifact that grammars like Pāṇini's were recorded on. SutraDB (the database side of the ecosystem) already adopted a scroll favicon on 2026-03-14, so the brands align across the language and the store.
 
-🌐 **Website: <https://emmaleonhart.github.io/Sutralang>** — vision, interactive demos, tutorials, and the papers that ground the language. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml) and deployed automatically on every push. SutraDB's own docs are mounted at [`/SutraDB/`](https://emmaleonhart.github.io/Sutralang/SutraDB/) on the same site — one integrated ecosystem, one domain.
+🌐 **Website: <https://emmaleonhart.github.io/Sutra>** — vision, interactive demos, tutorials, and the papers that ground the language. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml) and deployed automatically on every push. SutraDB's own docs are mounted at [`/SutraDB/`](https://emmaleonhart.github.io/Sutra/SutraDB/) on the same site — one integrated ecosystem, one domain.
 
 Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *vector operations* that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Where silicon arithmetic has no inherent meaning, the geometry of an embedding space *does*. Sutra is the first programming language designed to exploit that as a first-class computational substrate.
 
@@ -25,7 +25,7 @@ The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," th
 | [`planning/sutra-spec/`](planning/sutra-spec/) | The language specification: design principles, operation model, control flow, type system, runtime architecture, lambda calculus encoding, Turing-completeness argument, embedding pathologies, IDE architecture, VSA builtins. |
 | [`planning/`](planning/) | Architecture/strategy docs (sutra pivot, fly-brain architecture, fly-brain visualizer, competition analyses, paper strategy). |
 | [`examples/`](examples/) | Hand-written `.su` source examples — language tour. |
-| [`docs/`](docs/) | Source for the GitHub Pages website at <https://emmaleonhart.github.io/Sutralang>. |
+| [`docs/`](docs/) | Source for the GitHub Pages website at <https://emmaleonhart.github.io/Sutra>. |
 | [`scripts/`](scripts/) | Repo-wide scripts: `paper_submit_and_fetch.py` (clawRxiv submission + review polling), competition analysis fetchers. |
 | [`sutraDB/`](sutraDB/) | The lightweight bundled vector database, brought in as a git subtree. *"SQLite-of-vector-databases"* — embedded, zero-config, optimized for the kinds of queries Sutra emits. |
 | [`chats/`](chats/) | Design conversations and notes. The Sutra vision page on the website is built from `chats/sutra-vision-graph-to-vector-leap.md`. |
@@ -44,7 +44,7 @@ A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a 
 
 ## Three things Sutra can do today
 
-1. **Run programs on LLM embedding spaces.** Sign-flip binding achieves 14/14 correct recoveries at 14 bundled role-filler pairs across GTE-large, BGE-large, and Jina-v2. Sustains 10/10 chained bind-unbind-snap cycles. Multi-hop composition across structures works. See [`sutra-paper/`](sutra-paper/) and the website's [Bind and unbind](https://emmaleonhart.github.io/Sutralang/tutorials/02-bind-and-unbind/) tutorial.
+1. **Run programs on LLM embedding spaces.** Sign-flip binding achieves 14/14 correct recoveries at 14 bundled role-filler pairs across GTE-large, BGE-large, and Jina-v2. Sustains 10/10 chained bind-unbind-snap cycles. Multi-hop composition across structures works. See [`sutra-paper/`](sutra-paper/) and the website's [Bind and unbind](https://emmaleonhart.github.io/Sutra/tutorials/02-bind-and-unbind/) tutorial.
 2. **Compile programs onto a fly brain.** The same compiler targets a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body. 16/16 decisions correct across four program variants × four input conditions. To our knowledge this is the first programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. See [`fly-brain-paper/`](fly-brain-paper/) and [`fly-brain/`](fly-brain/).
 3. **Open up in an IDE.** Run `!editor.bat` from the repo root (Windows) and a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled and the project tree open. Drop a `.su` file into it for highlighting, completion, live templates, and `sutrac` diagnostics.
 
@@ -53,14 +53,14 @@ A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a 
 ## Get started
 
 ```bash
-git clone https://github.com/EmmaLeonhart/Sutralang
+git clone https://github.com/EmmaLeonhart/Sutra
 cd Sutra/sdk/sutra-compiler
 python -m sutra_compiler ../../examples/01-objects-and-methods.su
 ```
 
 That validates one example file with zero diagnostics.
 
-The full reference workflow — vision page, tutorials, interactive widget, papers, and the rest of the docs — is at <https://emmaleonhart.github.io/Sutralang>.
+The full reference workflow — vision page, tutorials, interactive widget, papers, and the rest of the docs — is at <https://emmaleonhart.github.io/Sutra>.
 
 ---
 
