@@ -154,5 +154,20 @@ with Brian2 2.10.1). The last medium-term item in
 
 ## Future Goals
 
-- Get Akasha running on normal hardware first
+- Get Sutra running on normal hardware first
 - Then try running it on a simulated fly brain
+
+## Speculative / not yet committed to
+
+- **OWL → SutraDB extension + Sutra ontology import/editing.** Build out
+  the existing OWL handling so that (a) SutraDB gains a first-class OWL
+  ontology extension (import, query, edit, export), and (b) the Sutra
+  language itself has ontology-aware operations for importing an OWL
+  file and manipulating classes/individuals as vector-substrate objects.
+  Note: **Protégé** may be a more helpful starting point than raw OWL
+  files for organizing ontologies into vectors — it has a rich
+  class/property model and existing editing UI, and its export formats
+  are the obvious bridge into SutraDB. Hesitant about committing to any
+  of this before the Claw4S deadline — it's a scope expansion on top of
+  an already-busy rename and paper-polish cycle. Revisit after the
+  deadline (2026-04-20).
