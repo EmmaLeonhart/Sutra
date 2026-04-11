@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
  * over the current file and surfaces its diagnostics as editor annotations.
  *
  * Mirrors the behavior of `sdk/vscode-sutra/src/extension.ts` — the same
- * JSON shape, the same 1-based → 0-based column conversion, the same AKA####
+ * JSON shape, the same 1-based → 0-based column conversion, the same SUT####
  * code display.
  *
  * Configuration is resolved by [SutraSettings], which implements a
