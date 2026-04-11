@@ -4,4 +4,7 @@ build/
 out/
 *.iml
 .kotlin/
-gradle/wrapper/gradle-wrapper.jar
+# gradle/wrapper/gradle-wrapper.jar is intentionally committed — it's the
+# bootstrap that makes `./gradlew` work on a fresh checkout. Leaving it out
+# forces every new contributor to install Gradle globally first, which
+# defeats the purpose of having a wrapper.
