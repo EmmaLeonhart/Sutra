@@ -7,10 +7,10 @@ Each demo is a self-contained Akasha program that demonstrates a different
 capability of the language.
 
 Usage:
-    python sutra-paper/scripts/akasha_demos.py
-    python sutra-paper/scripts/akasha_demos.py --model gte-large
-    python sutra-paper/scripts/akasha_demos.py --demo associative_memory
-    python sutra-paper/scripts/akasha_demos.py --all-demos
+    python sutra-paper/scripts/sutra_demos.py
+    python sutra-paper/scripts/sutra_demos.py --model gte-large
+    python sutra-paper/scripts/sutra_demos.py --demo associative_memory
+    python sutra-paper/scripts/sutra_demos.py --all-demos
 """
 
 import sys
@@ -28,7 +28,7 @@ if sys.platform == "win32" and not isinstance(sys.stdout, io.TextIOWrapper):
 
 # Import the Akasha runtime
 sys.path.insert(0, str(Path(__file__).parent))
-from akasha_runtime import (
+from sutra_runtime import (
     Substrate, S2Env, Codebook, empirical_initiation,
     bind, unbind, bundle, similarity, cosine_similarity,
     compute_direction, project_away, structured_match,
