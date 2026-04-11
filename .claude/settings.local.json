@@ -241,7 +241,31 @@
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/pages.yml', encoding='utf-8'\\)\\)\")",
       "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('docs/assets/js/graph-to-vector.js','utf8'\\)\\)\")",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.unsafe_load\\(open\\('mkdocs.yml', encoding='utf-8'\\)\\)\")",
-      "Bash(head -15 akasha-paper/reviews/v1_post*.md)"
+      "Bash(head -15 akasha-paper/reviews/v1_post*.md)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" scripts/fetch_all_papers.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" fetch_reviews.py)",
+      "Bash(tasklist //FI \"IMAGENAME eq python.exe\" //FO CSV)",
+      "Bash(tasklist //FI \"IMAGENAME eq curl.exe\" //FO CSV)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" mushroom_body_model.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m unittest discover tests)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m akasha_compiler --summary ../../akasha-demo-program.ak ../../examples ../../fly-brain)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m akasha_compiler.solution ../../examples/solution/embedding-pipeline.aksln)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m unittest tests.test_solution -v)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m akasha_compiler --summary ../../examples/solution)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" fetch_all_papers.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -u fetch_reviews.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" scripts/write_competition_summary.py)",
+      "Bash(mv sdk/akasha-compiler/akasha_compiler/__init__.py sdk/akasha-compiler/akasha_compiler/__init__.py.test)",
+      "Bash(mv sdk/akasha-compiler/akasha_compiler/__init__.py.test sdk/akasha-compiler/akasha_compiler/__init__.py)",
+      "Bash(cp -r sdk/akasha-compiler sdk/sutra-compiler)",
+      "Bash(mv sdk/sutra-compiler/akasha_compiler sdk/sutra-compiler/sutra_compiler)",
+      "Bash(rm -rf sdk/sutra-compiler/sutra_compiler/__pycache__ sdk/sutra-compiler/tests/__pycache__)",
+      "Bash(rm -rf build)",
+      "Bash(mkdir -p src/main/kotlin/org/sutra/intellij/mcp src/main/kotlin/org/sutra/intellij/solution src/main/kotlin/org/sutra/intellij/viz src/test/kotlin/org/sutra/intellij)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m pytest tests/ -q)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m sutra_compiler.workspace examples/workspace/atman.toml)",
+      "Bash(cp -r planning/akasha-spec planning/sutra-spec)",
+      "Bash(cp -r akasha-paper sutra-paper)"
     ]
   }
 }
