@@ -1,9 +1,9 @@
 {
-  "name": "vscode-akasha",
-  "displayName": "Akasha Language",
-  "description": "Syntax highlighting, autocomplete, and error reporting for the Akasha programming language.",
+  "name": "vscode-sutra",
+  "displayName": "Sutra Language",
+  "description": "Syntax highlighting, autocomplete, and error reporting for the Sutra programming language.",
   "version": "0.1.0",
-  "publisher": "akasha-lang",
+  "publisher": "sutra-lang",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -13,7 +13,7 @@
     "Linters"
   ],
   "keywords": [
-    "akasha",
+    "sutra",
     "vector",
     "fuzzy",
     "embedding",
@@ -22,70 +22,70 @@
   ],
   "main": "./out/extension.js",
   "activationEvents": [
-    "onLanguage:akasha"
+    "onLanguage:sutra"
   ],
   "contributes": {
     "languages": [
       {
-        "id": "akasha",
-        "aliases": ["Akasha", "akasha"],
+        "id": "sutra",
+        "aliases": ["Sutra", "sutra"],
         "extensions": [".ak"],
         "configuration": "./language-configuration.json",
         "icon": {
-          "light": "./images/akasha-icon.svg",
-          "dark": "./images/akasha-icon.svg"
+          "light": "./images/sutra-icon.svg",
+          "dark": "./images/sutra-icon.svg"
         }
       }
     ],
     "grammars": [
       {
-        "language": "akasha",
-        "scopeName": "source.akasha",
-        "path": "./syntaxes/akasha.tmLanguage.json"
+        "language": "sutra",
+        "scopeName": "source.sutra",
+        "path": "./syntaxes/sutra.tmLanguage.json"
       }
     ],
     "snippets": [
       {
-        "language": "akasha",
-        "path": "./snippets/akasha.json"
+        "language": "sutra",
+        "path": "./snippets/sutra.json"
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "Akasha",
+      "title": "Sutra",
       "properties": {
-        "akasha.compilerPath": {
+        "sutra.compilerPath": {
           "type": "string",
           "default": "python",
-          "description": "Command or absolute path to the Python interpreter used to run the akashac compiler."
+          "description": "Command or absolute path to the Python interpreter used to run the sutrac compiler."
         },
-        "akasha.compilerArgs": {
+        "sutra.compilerArgs": {
           "type": "array",
-          "default": ["-m", "akasha_compiler"],
+          "default": ["-m", "sutra_compiler"],
           "items": { "type": "string" },
-          "description": "Arguments passed to akasha.compilerPath before the file path. Defaults to running `python -m akasha_compiler`."
+          "description": "Arguments passed to sutra.compilerPath before the file path. Defaults to running `python -m sutra_compiler`."
         },
-        "akasha.validateOn": {
+        "sutra.validateOn": {
           "type": "string",
           "enum": ["save", "change", "never"],
           "default": "save",
           "description": "When to re-run the validator: on every edit, on save only, or never (manual only)."
         },
-        "akasha.showAkaCodes": {
+        "sutra.showDiagnosticCodes": {
           "type": "boolean",
           "default": true,
-          "description": "Show the AKA#### diagnostic code in the Problems panel."
+          "description": "Show the SUT#### diagnostic code in the Problems panel."
         }
       }
     },
     "commands": [
       {
-        "command": "akasha.validateFile",
-        "title": "Akasha: Validate current file"
+        "command": "sutra.validateFile",
+        "title": "Sutra: Validate current file"
       },
       {
-        "command": "akasha.validateWorkspace",
-        "title": "Akasha: Validate all .ak files in workspace"
+        "command": "sutra.validateWorkspace",
+        "title": "Sutra: Validate all .ak files in workspace"
       }
     ]
   },
