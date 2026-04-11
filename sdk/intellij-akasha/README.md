@@ -1,9 +1,11 @@
 # Akasha for IntelliJ Platform
 
-**Status: v0.1 scaffold. Has not been built or opened in a live IDE yet.**
-The first thing you should do is run `gradle wrapper && ./gradlew runIde`
-and fix whatever breaks — this directory is the ground-floor scaffolding,
-not a finished plugin.
+**Status: v0.2 static additions on top of the v0.1 scaffold. Not yet
+built or opened in a live IDE.** The first thing you should do is run
+`gradle wrapper && ./gradlew test && ./gradlew runIde` and fix whatever
+breaks — the scaffold's Kotlin code has not been compiled end-to-end
+because the authoring environment hasn't had the IntelliJ Platform SDK
+available.
 
 This is the reference IDE for **Akasha** — the fuzzy-by-default vector
 programming language whose primitives are hypervectors in embedding space.
@@ -33,6 +35,28 @@ foundation of.
 - **External annotator** that runs `python -m akasha_compiler --json` on
   the current file and surfaces the resulting diagnostics (including the
   `AKA####` codes) in the editor and Problems panel.
+
+## What v0.2 adds on top of v0.1
+
+- **Settings UI** under *Settings → Tools → Akasha*. Replaces the
+  env-var-only v0.1 configuration with a proper `Configurable`. Two
+  fields (compiler executable, compiler args); blank values fall back
+  to `$AKASHA_COMPILER` / `$AKASHA_COMPILER_ARGS`, then to the hardcoded
+  defaults (`python` / `-m akasha_compiler`). v0.1 users who only set
+  env vars keep working unchanged.
+- **Persistent state service** (`AkashaSettings`) holding those fields
+  application-wide so the compiler path survives IDE restarts.
+- **Lexer unit tests** — `src/test/kotlin/org/akasha/intellij/AkashaLexerTest.kt`
+  covers every token category (comments, literals, keywords, primitive
+  types, builtins, operators, brackets, the illegal `|>`) plus a small
+  realistic function snippet as an integration test. Pure JUnit 4, no
+  platform test-application dependency.
+- **MCP surface interface** — `mcp/AkashaMcpSurface.kt` declares the
+  agent-authoring tool methods (`parse`, `check`, `diagnostics`,
+  `scaffold`, `compile`, `run`, `inspect`) named in the spec's
+  "Minimum Agent Workflows" section, plus a loud-failure stub
+  (`AkashaMcpSurfaceStub`). The interface is the stable part; the
+  implementation lands with the real PSI parser in a later revision.
 
 ## What's explicitly *not* in v0.1
 
@@ -71,14 +95,21 @@ smoke-test highlighting, completion, live templates, and diagnostics.
 
 ## Compiler path configuration
 
-`AkashaExternalAnnotator` shells out to the reference compiler. v0.1
-reads configuration from environment variables — a proper Settings UI
-lands in v0.2.
+`AkashaExternalAnnotator` shells out to the reference compiler. Its
+configuration is resolved by `AkashaSettings` through a three-step
+fallback chain:
 
-| Env var                 | Default               | Purpose |
-|-------------------------|-----------------------|---------|
-| `AKASHA_COMPILER`       | `python`              | Executable to invoke |
-| `AKASHA_COMPILER_ARGS`  | `-m akasha_compiler`  | Args before `--json FILE` |
+1. **Settings UI**: *Settings → Tools → Akasha* (v0.2+, persistent across
+   restarts, application scope).
+2. **Environment variables** `AKASHA_COMPILER` / `AKASHA_COMPILER_ARGS`
+   (v0.1 behavior; still supported so old installs keep working).
+3. **Hardcoded defaults**: `python` and `-m akasha_compiler`.
+
+| Source              | Compiler field | Args field         |
+|---------------------|----------------|--------------------|
+| Settings UI (blank) | → env var      | → env var          |
+| Env var (unset)     | → default      | → default          |
+| Default             | `python`       | `-m akasha_compiler` |
 
 So the default command line is effectively:
 
@@ -87,15 +118,15 @@ python -m akasha_compiler --json <file>.ak
 ```
 
 Make sure the `akasha_compiler` package is importable from whichever
-Python interpreter you point the env var at. The easiest way is:
+Python interpreter you point the setting/env var at. The easiest way is:
 
 ```bash
 cd sdk/akasha-compiler
 pip install -e .
 ```
 
-If `python` isn't on PATH, set `AKASHA_COMPILER` to an absolute path
-before launching IntelliJ.
+If `python` isn't on PATH, either set the Settings UI field or set
+`AKASHA_COMPILER` to an absolute path before launching IntelliJ.
 
 ## Project layout
 
@@ -123,10 +154,18 @@ sdk/intellij-akasha/
       AkashaCompletionContributor.kt Keyword / primitive / builtin completion
       AkashaLiveTemplateContext.kt   "AKASHA" context for live templates
       AkashaExternalAnnotator.kt     Runs akashac --json, surfaces diagnostics
+      AkashaSettings.kt              Persistent compiler-path settings (v0.2)
+      AkashaSettingsConfigurable.kt  Settings UI under Tools → Akasha (v0.2)
+      mcp/
+        AkashaMcpSurface.kt          Design-only MCP tool interface (v0.2)
+        AkashaMcpSurfaceStub.kt      Loud-failure stub of the same (v0.2)
     resources/
       META-INF/plugin.xml
       icons/akasha.svg
       liveTemplates/Akasha.xml
+  src/test/
+    kotlin/org/akasha/intellij/
+      AkashaLexerTest.kt             Pure-JUnit 4 lexer tests (v0.2)
 ```
 
 ## Keeping in sync with the rest of the SDK
