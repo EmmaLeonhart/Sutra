@@ -134,10 +134,10 @@ So the source-level `!` compiles to `permute(NOT_KEY, .)`, and "run Program B" c
 
 | File | Purpose |
 |------|---------|
-| `four_state_conditional.ak` | Akasha source code (Program A, the natural/sensible mapping) |
+| `four_state_conditional.su` | Akasha source code (Program A, the natural/sensible mapping) |
 | `four_state_conditional.py` | Simple demo: runs Program A on the fly brain (4 executions) |
 | `programmer_control_demo.py` | Programmer-agency proof: 4 programs × 4 inputs = 16 executions (branching in Python) |
-| `permutation_conditional.ak` | Akasha source showing if/else → associative memory, `!` → permutation key |
+| `permutation_conditional.su` | Akasha source showing if/else → associative memory, `!` → permutation key |
 | `permutation_conditional.py` | Full compile-to-brain demo: 4 programs share one memory, decision runs in the mushroom body |
 | `mushroom_body_model.py` | Brian2 spiking circuit model (the substrate) |
 | `spike_vsa_bridge.py` | Encode/decode between hypervectors and spike patterns |

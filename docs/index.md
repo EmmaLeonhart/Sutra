@@ -65,10 +65,10 @@ The fastest way to see Akasha do something:
 ```bash
 git clone https://github.com/EmmaLeonhart/Akasha
 cd Akasha/sdk/akasha-compiler
-python -m akasha_compiler ../../examples/01-objects-and-methods.ak
+python -m akasha_compiler ../../examples/01-objects-and-methods.su
 ```
 
-That gives you a clean validator pass on the example. From there, [Tutorial 1 →](tutorials/01-hello-akasha.md) walks you through writing your first `.ak` file by hand.
+That gives you a clean validator pass on the example. From there, [Tutorial 1 →](tutorials/01-hello-akasha.md) walks you through writing your first `.su` file by hand.
 
 If you have a JDK on your machine, the Akasha plugin for IntelliJ IDEA Community is also in the repo at `sdk/intellij-akasha/`. Run `!editor.bat` from the repo root and a sandbox IntelliJ launches with the plugin preinstalled and the project tree open.
 

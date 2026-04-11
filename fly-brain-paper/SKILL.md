@@ -14,7 +14,7 @@ This skill reproduces the results from *"Running Akasha on a Simulated Fly Brain
 
 ## What this reproduces
 
-1. **A four-state conditional program compiles end-to-end to the mushroom body.** `fly-brain/permutation_conditional.ak` is parsed and validated by the same Akasha compiler used for the silicon experiments, mechanically translated by a substrate-specific backend (`sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`) into Python calls against the spiking circuit, then executed.
+1. **A four-state conditional program compiles end-to-end to the mushroom body.** `fly-brain/permutation_conditional.su` is parsed and validated by the same Akasha compiler used for the silicon experiments, mechanically translated by a substrate-specific backend (`sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`) into Python calls against the spiking circuit, then executed.
 
 2. **Four program variants × four input conditions = sixteen decisions, all correct.** Each variant differs only by which permutation keys multiply into the query before `snap` runs through the mushroom body — the compiled prototype table is identical across variants. The four variants yield four *distinct* permutations of the underlying behavior mapping (`approach`, `ignore`, `search`, `idle`).
 
@@ -35,7 +35,7 @@ python fly-brain/test_codegen_e2e.py
 ```
 
 This script does the full end-to-end pipeline in one file:
-1. Parses `fly-brain/permutation_conditional.ak` with the Akasha SDK
+1. Parses `fly-brain/permutation_conditional.su` with the Akasha SDK
 2. Runs the AST → FlyBrainVSA translator (`codegen_flybrain.translate_module`)
 3. `exec()`s the generated Python in a private module namespace so the compile-time `snap()` calls fire on a live mushroom body
 4. Calls `program_A`, `program_B`, `program_C`, `program_D` on the four `(smell, hunger)` inputs
@@ -71,13 +71,13 @@ python fly-brain/permutation_conditional.py
 - **`programmer_control_demo.py`**: 4 × 4 = 16 runs; four distinct behavior mappings emerge, driven by source-level `!` negation that still runs in Python. Proves programmer agency: same circuit, different code, different output.
 - **`permutation_conditional.py`**: same 4 × 4 = 16 runs, but the if-tree is gone. The compiled artifact is a single prototype table of four KC-space vectors. Program variants differ only by which permutation keys multiply into the query before `snap`. This is the "compile to brain" result.
 
-## Generating the compiled Python from the `.ak` source
+## Generating the compiled Python from the `.su` source
 
 If you want to watch the codegen step directly:
 
 ```bash
 cd sdk/akasha-compiler
-python -m akasha_compiler --emit-flybrain ../../fly-brain/permutation_conditional.ak > /tmp/generated.py
+python -m akasha_compiler --emit-flybrain ../../fly-brain/permutation_conditional.su > /tmp/generated.py
 ```
 
 The resulting `/tmp/generated.py` is a 93-line Python module targeting `FlyBrainVSA` that you can import and run against the same mushroom-body circuit.
@@ -89,7 +89,7 @@ The resulting `/tmp/generated.py` is a 93-line Python module targeting `FlyBrain
 - **`fly-brain/vsa_operations.py`** — `FlyBrainVSA` class exposing the Akasha VSA primitives (`bind`, `unbind`, `bundle`, `snap`, `similarity`, `permute`, `make_permutation_key`)
 - **`fly-brain/permutation_conditional.{ak,py}`** — the compile-to-brain demo program (source + hand-written reference form)
 - **`fly-brain/test_codegen_e2e.py`** — end-to-end parse-to-brain test
-- **`sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`** — the `.ak` → `FlyBrainVSA`-targeted Python translator
+- **`sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`** — the `.su` → `FlyBrainVSA`-targeted Python translator
 
 ## Limitations stated honestly in the paper
 

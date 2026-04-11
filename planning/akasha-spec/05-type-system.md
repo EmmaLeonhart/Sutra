@@ -32,7 +32,7 @@ Akasha's primitive type set is:
     are involutive by construction.
 
   The distinction matters for compile-to-brain code: the
-  `permutation_conditional.ak` example under `fly-brain/` compiles
+  `permutation_conditional.su` example under `fly-brain/` compiles
   source-level `!x` into a permutation-key application on the query
   vector, which is algebraically equivalent to the original negation
   because sign-flip permutations distribute over `bind`. Bundling a

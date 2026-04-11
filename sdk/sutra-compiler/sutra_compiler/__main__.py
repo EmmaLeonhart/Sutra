@@ -6,7 +6,7 @@ Usage:
     python -m sutra_compiler --json FILE
     python -m sutra_compiler --summary DIR_OR_FILE [...]
 
-The CLI lexes, parses, and validates each `.ak` file and prints any
+The CLI lexes, parses, and validates each `.su` file and prints any
 diagnostics in `file:line:col: level: message` form — the same shape
 every major compiler and every editor knows how to parse.
 
@@ -31,14 +31,14 @@ from .validator import validate_file, _Walker, _check_pipe_forward
 
 
 def _iter_akasha_files(paths: List[str]) -> List[str]:
-    """Expand a list of files/directories into a flat list of `.ak`
+    """Expand a list of files/directories into a flat list of `.su`
     files. Non-existent paths are left to the caller to report."""
     out: List[str] = []
     for p in paths:
         if os.path.isdir(p):
             for root, _, files in os.walk(p):
                 for f in sorted(files):
-                    if f.endswith(".ak"):
+                    if f.endswith(".su"):
                         out.append(os.path.join(root, f))
         else:
             out.append(p)
@@ -181,7 +181,7 @@ def _run_consistency(paths: List[str]) -> int:
 def _run_emit_flybrain(
     path: str, *, runtime_dim: int, runtime_seed: int, runtime_n_kc: int
 ) -> int:
-    """Parse one `.ak` file and emit FlyBrainVSA-targeted Python to stdout.
+    """Parse one `.su` file and emit FlyBrainVSA-targeted Python to stdout.
 
     Validation runs first: any errors abort the translation with a
     non-zero exit code, mirroring how a real compiler refuses to lower
@@ -218,7 +218,7 @@ def _run_emit_flybrain(
 def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="sutrac",
-        description="Validate Akasha (.ak) source files.",
+        description="Validate Sutra (.su) source files.",
     )
     parser.add_argument(
         "paths",
@@ -246,7 +246,7 @@ def main(argv: List[str] | None = None) -> int:
         help=(
             "Compile the first input file to Python targeting the FlyBrainVSA "
             "runtime and print it to stdout. V1 scope: the permutation-conditional "
-            "shape from fly-brain/permutation_conditional.ak."
+            "shape from fly-brain/permutation_conditional.su."
         ),
     )
     parser.add_argument(
@@ -270,7 +270,7 @@ def main(argv: List[str] | None = None) -> int:
     if args.emit_flybrain:
         if len(args.paths) != 1:
             print(
-                "--emit-flybrain takes exactly one .ak source file",
+                "--emit-flybrain takes exactly one .su source file",
                 file=sys.stderr,
             )
             return 2

@@ -177,7 +177,7 @@ async function validateDocument(
 async function validateWorkspace(
     collection: vscode.DiagnosticCollection
 ) {
-    const files = await vscode.workspace.findFiles("**/*.ak");
+    const files = await vscode.workspace.findFiles("**/*.su");
     for (const uri of files) {
         const doc = await vscode.workspace.openTextDocument(uri);
         await validateDocument(doc, collection);
@@ -287,7 +287,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand("sutra.validateWorkspace", async () => {
             await validateWorkspace(diagnostics);
             vscode.window.showInformationMessage(
-                "Sutra: validated all .ak files in the workspace"
+                "Sutra: validated all .su files in the workspace"
             );
         })
     );

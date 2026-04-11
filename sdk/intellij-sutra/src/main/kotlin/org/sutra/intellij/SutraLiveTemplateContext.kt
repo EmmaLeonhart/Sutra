@@ -5,7 +5,7 @@ import com.intellij.codeInsight.template.TemplateContextType
 
 /**
  * Live template context — makes the templates in
- * `resources/liveTemplates/Sutra.xml` available inside `.ak` files.
+ * `resources/liveTemplates/Sutra.xml` available inside `.su` files.
  *
  * The contextId `"SUTRA"` is referenced by every `<context>` entry in
  * the XML bundle and by the `liveTemplateContext` registration in

@@ -15,7 +15,7 @@ What's in this repo, what it's for, and whether it's still useful.
 - `competition-analysis-2026-04-08.md` — Latest competitive landscape assessment
 
 ### `examples/`
-**Akasha syntax examples.** Six `.ak` files demonstrating objects, methods, types, control flow, operators, and executable files.
+**Akasha syntax examples.** Six `.su` files demonstrating objects, methods, types, control flow, operators, and executable files.
 
 ### `many-to-many/`
 **Akasha-adjacent research.** A three-part matching primitive for embedding spaces (directional selection + orthogonal projection + residual similarity). Addresses many-to-many relations that cosine similarity conflates. Perfect precision in 6/9 experiments across 3 datasets x 3 models. The dimensional decomposition approach maps directly to Akasha's "computation is geometry" philosophy.

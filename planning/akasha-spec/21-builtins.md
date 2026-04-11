@@ -29,10 +29,10 @@ diagnostic avalanche — v0.2's name resolver will treat the entries
 below as pre-declared and skip them during the "undefined symbol"
 pass.
 
-All of the builtins here are referenced by at least one `.ak` file
+All of the builtins here are referenced by at least one `.su` file
 in the repo today. The ground truth for what needs to be declared
 is the union of identifiers used in call position across
-`fly-brain/*.ak`, `examples/*.ak`, and `akasha-demo-program.ak`.
+`fly-brain/*.su`, `examples/*.su`, and `sutra-demo-program.su`.
 
 ## Notation
 
@@ -45,7 +45,7 @@ function <return-type> <name>(<param-type> <param-name>, ...);
 
 A trailing `...` in the parameter list denotes a variadic tail of
 the preceding type. `T[]` denotes an array of `T` (see
-`05-type-system.md` and the `22_array_literal.ak` / `23_subscript_access.ak`
+`05-type-system.md` and the `22_array_literal.su` / `23_subscript_access.su`
 test corpus for the array literal and subscript syntax).
 
 ## Algebraic builtins
@@ -187,7 +187,7 @@ Return the identity permutation: `permute(identity_permutation(), v) == v`
 for every `v`. Used as a neutral element when a program variant wants
 to *not* apply a negation to one of its axes — see the Program A /
 Program B / Program C / Program D dispatch in
-`fly-brain/permutation_conditional.ak`.
+`fly-brain/permutation_conditional.su`.
 
 ## Non-algebraic builtins
 
@@ -228,7 +228,7 @@ Return the element of `candidates` with the largest cosine
 similarity to `query`. The biological analogue is "N MBONs compete
 for a winner" when `candidates` is the prototype table from a
 compiled if-tree. The `candidates` argument is an array literal or
-an array-typed variable; see `22_array_literal.ak` for the literal
+an array-typed variable; see `22_array_literal.su` for the literal
 syntax.
 
 Ties are broken by index order. `candidates` must be non-empty —
@@ -259,7 +259,7 @@ v0.2).
   The question of which is canonical at the language level is in
   `17-open-questions.md`.
 - **Map lookup with vector keys.** `BEHAVIOR_OF[winner]` in
-  `permutation_conditional.ak` depends on cosine-nearest semantics
+  `permutation_conditional.su` depends on cosine-nearest semantics
   rather than bit-identical key equality. That's specified in
   `05-type-system.md` §`map<K, V>` as an explicit open question.
 - **Generalized boolean compilation.** `permute` cleanly compiles

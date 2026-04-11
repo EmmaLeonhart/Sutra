@@ -1,5 +1,5 @@
-// Akasha corpus test: fly-brain style four-state conditional.
-// Mirrors the fly-brain/four_state_conditional.ak demo — this is the
+// Sutra corpus test: fly-brain style four-state conditional.
+// Mirrors the fly-brain/four_state_conditional.su demo — this is the
 // canonical test for fuzzy-axis branching via nested defuzzy calls.
 
 function vector SmellInput() {

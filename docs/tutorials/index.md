@@ -2,7 +2,7 @@
 
 A guided walk into Akasha. The tutorials are written in the spirit of the *TypeScript Handbook* — short, runnable, code on the left, explanation on the right. No prior knowledge of Vector Symbolic Architectures, Hyperdimensional Computing, or embedding spaces is assumed; the [vision page](../vision.md) is the only thing you should read first, and only if you have not yet had the *"oh, embeddings are spatial, not graphs"* moment land in your head.
 
-Each tutorial is a single `.ak` file plus a walkthrough explaining what it does and why every line is the way it is.
+Each tutorial is a single `.su` file plus a walkthrough explaining what it does and why every line is the way it is.
 
 ## Order of operations
 

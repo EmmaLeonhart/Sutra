@@ -91,7 +91,7 @@ runs in Python. The MB produces the fuzzy scores; `defuzzy()` collapses
 them; the `if` chain then branches in the host language. Honest, but
 not yet "the whole program on the brain."
 
-### Demo 2 — Compile to brain (`permutation_conditional.py` + `.ak`)
+### Demo 2 — Compile to brain (`permutation_conditional.py` + `.su`)
 
 This is where the really novel work is. The `if/else` tree is
 *compiled away* — the entire conditional is lowered to vector-space
@@ -199,7 +199,7 @@ Neither exists yet.
 ## The language-spec gap (this is what has to happen next)
 
 This is the surprise that fell out of wiring up the SDK validator in
-this same session: **`permutation_conditional.ak` uses several
+this same session: **`permutation_conditional.su` uses several
 constructs that aren't in the Akasha spec.** The validator fires 16
 diagnostics on that one file. Every diagnostic is a real language gap,
 not a bug in the source — the fly-brain work is running ahead of what
@@ -207,7 +207,7 @@ the language formally supports.
 
 Specifically:
 
-| Feature used in `.ak` | Status in spec |
+| Feature used in `.su` | Status in spec |
 |-----------------------|----------------|
 | `permutation` as a type name | Not in the primitive set (`scalar`, `vector`, `matrix`, `tuple`, `string`, `bool`, `fuzzy`, `void`) |
 | `map<vector, string>` type expression | Map types aren't in the spec at all |
@@ -231,7 +231,7 @@ Two conclusions fall out of this:
 
 ### Short term — spec and validator
 
-**Goal achieved.** `permutation_conditional.ak` now parses and
+**Goal achieved.** `permutation_conditional.su` now parses and
 validates cleanly against the formal grammar — the validator reports
 0 diagnostics on it (down from 46 when this section was first
 written). The three substrate-language gaps documented in the
@@ -244,7 +244,7 @@ written). The three substrate-language gaps documented in the
    distinction from plain `vector` and why permutations deserve their
    own type even though they're sign-flip masks at the substrate
    level. Test corpus:
-   `sdk/akasha-compiler/tests/corpus/valid/21_permutation_type.ak`.
+   `sdk/akasha-compiler/tests/corpus/valid/21_permutation_type.su`.
 2. ~~**Specify map types and map literals.**~~ **Done.** `map<K, V>`
    is a primitive generic type; the inline literal `{k1: v1, ...}`
    parses as a `MapLiteral` expression in expression position; empty
@@ -254,13 +254,13 @@ written). The three substrate-language gaps documented in the
    prototype table needs. The lookup semantics for vector keys
    (exact-match vs. cosine-nearest) are documented in the spec as an
    open question tracked in `17-open-questions.md`. Test corpus:
-   `sdk/akasha-compiler/tests/corpus/valid/24_map_literal.ak`.
+   `sdk/akasha-compiler/tests/corpus/valid/24_map_literal.su`.
 3. ~~**Specify array/tuple literals.**~~ **Done** for array literals
    and for postfix subscript access. `[a, b, c]` parses as an
    `ArrayLiteral` expression (empty `[]` is legal), and `target[index]`
    parses as a `Subscript` postfix. Test corpus:
-   `sdk/akasha-compiler/tests/corpus/valid/22_array_literal.ak` and
-   `.../23_subscript_access.ak`; parser unit tests added to
+   `sdk/akasha-compiler/tests/corpus/valid/22_array_literal.su` and
+   `.../23_subscript_access.su`; parser unit tests added to
    `sdk/akasha-compiler/tests/test_parser.py`.
 
 Steps 4–6 of the original short-term plan (declare the VSA builtins,
@@ -281,8 +281,8 @@ work is formally declaring the builtin signatures in
      context).
    - New `Subscript` AST node for `expr[expr]`.
    - Add `permutation` to `_PRIMITIVE_TYPES`.
-6. **Regression test: re-run `akashac --summary` over the repo and
-   confirm `permutation_conditional.ak` now reports zero errors.**
+6. **Regression test: re-run `sutrac --summary` over the repo and
+   confirm `permutation_conditional.su` now reports zero errors.**
 
 Everything in step 5 is a local addition to `sdk/akasha-compiler/`.
 None of it touches runtime behavior — the Python demos keep working
@@ -291,10 +291,10 @@ unchanged.
 ### Medium term — compilation path (1-2 sessions)
 
 Goal: wire the parser output to the actual fly-brain runtime so an
-`.ak` file can be executed, not just validated.
+`.su` file can be executed, not just validated.
 
 1. **Translator from AST to `FlyBrainVSA` calls.** Walk the AST of an
-   `.ak` file and emit Python that constructs vectors, builds the
+   `.su` file and emit Python that constructs vectors, builds the
    prototype table, and runs the decide function. This replaces the
    hand-written `permutation_conditional.py` with compiler output.
 2. **Compile-time vs runtime separation.** The current
@@ -308,7 +308,7 @@ Goal: wire the parser output to the actual fly-brain runtime so an
    `FixedFrameFlyBrainVSA` runtime contract. This is the point where
    the runtime invariant from Technical Insight #2 becomes a
    compile-time guarantee.
-4. **End-to-end: write a new `.ak` file, compile it, run it on the
+4. **End-to-end: write a new `.su` file, compile it, run it on the
    circuit, compare output to `permutation_conditional.py`'s
    hardcoded expected behavior table.** When that round-trips, we
    have a real compile-to-brain pipeline.
@@ -354,9 +354,9 @@ Rough priority order:
 
 | File | Role |
 |------|------|
-| `four_state_conditional.ak` | Canonical 4-state conditional, Program A, runs in `four_state_conditional.py` |
+| `four_state_conditional.su` | Canonical 4-state conditional, Program A, runs in `four_state_conditional.py` |
 | `four_state_conditional.py` | Simplest demo: one program, 4 inputs |
-| `permutation_conditional.ak` | The compile-to-brain source (uses un-spec'd syntax; see "language-spec gap" above) |
+| `permutation_conditional.su` | The compile-to-brain source (uses un-spec'd syntax; see "language-spec gap" above) |
 | `permutation_conditional.py` | Working compiled form, with `FixedFrameFlyBrainVSA` runtime |
 | `programmer_control_demo.py` | 4 programs × 4 inputs, branching in Python, proves programmer agency |
 | `mushroom_body_model.py` | Brian2 LIF circuit, 50/2000/1/20 neurons, 7-PN fan-in |
@@ -380,10 +380,10 @@ python programmer_control_demo.py
 # Compile-to-brain (4 programs × 4 inputs, brain branching)
 python permutation_conditional.py
 
-# Validate the .ak source files against the language grammar
+# Validate the .su source files against the language grammar
 cd ../sdk/akasha-compiler
-python -m akasha_compiler ../../fly-brain/four_state_conditional.ak
-python -m akasha_compiler ../../fly-brain/permutation_conditional.ak  # <- currently fails, see language-spec gap
+python -m akasha_compiler ../../fly-brain/four_state_conditional.su
+python -m akasha_compiler ../../fly-brain/permutation_conditional.su  # <- currently fails, see language-spec gap
 ```
 
 Requires Python 3, Brian2, numpy, scipy. No GPU. Full run under 5

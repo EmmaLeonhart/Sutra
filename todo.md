@@ -16,7 +16,7 @@ After deleting: `git status` should show nothing. If any of these directories st
 ## Next up
 
 The fly-brain compile-to-brain pipeline is now real end-to-end
-(`.ak` → parser → AST → codegen → Brian2 mushroom body → correct
+(`.su` → parser → AST → codegen → Brian2 mushroom body → correct
 program A/B/C/D behavior, 16/16 decisions correct, verified locally
 with Brian2 2.10.1). The last medium-term item in
 `fly-brain/STATUS.md` is closed. What's next, roughly in priority:
@@ -37,10 +37,10 @@ with Brian2 2.10.1). The last medium-term item in
    submission) — only the actual `workflow_dispatch` trigger counts
    as a submission.
 
-2. **Run `akashac` across every `.ak` file in the repo and fix what
+2. **Run `sutrac` across every `.su` file in the repo and fix what
    it reports.** From the Pending Decisions list — the compiler is
    now stable enough to be ground truth. Lint sweep over `examples/`,
-   `akasha-demo-program.ak`, `fly-brain/`, and any other stragglers.
+   `sutra-demo-program.su`, `fly-brain/`, and any other stragglers.
    Resolve class-name casing, builtin usage, structural drift.
 
 3. **Declare the VSA builtin signatures inside the compiler itself.**
@@ -65,13 +65,13 @@ with Brian2 2.10.1). The last medium-term item in
   guarantee (every generated module pins the PN→KC seed via a
   `_FixedFrameFlyBrainVSA` subclass in its prelude). 16 new codegen
   tests, full SDK suite green at 85/85. `fly-brain/test_codegen_e2e.py`
-  is the real end-to-end check: parses `permutation_conditional.ak`,
+  is the real end-to-end check: parses `permutation_conditional.su`,
   translates, execs on a live Brian2 mushroom body, verifies all 16
   decisions match the expected behavior table. Loops and if-stmts
   are intentionally unsupported and fail loudly with source spans.
 - **VSA builtins declared in the spec.** New file
   `planning/akasha-spec/21-builtins.md` gives formal signatures for
-  every implicit-global VSA function used in the repo's `.ak` code:
+  every implicit-global VSA function used in the repo's `.su` code:
   `bind`, `unbind`, `bundle`, `similarity`, `permute`, `compose`,
   `basis_vector`, `permutation_key`, `identity_permutation`, `snap`,
   `argmax_cosine`. Each entry has a signature, semantic description,
@@ -90,31 +90,31 @@ with Brian2 2.10.1). The last medium-term item in
   "Primitive Types" section in `planning/akasha-spec/05-type-system.md`
   with a `map<K, V>` entry covering the lookup semantics and the
   statement-vs-expression disambiguation. Test corpus:
-  `tests/corpus/valid/24_map_literal.ak`; parser unit tests in
+  `tests/corpus/valid/24_map_literal.su`; parser unit tests in
   `tests/test_parser.py`. **Running the validator on
-  `fly-brain/permutation_conditional.ak` now reports 0 diagnostics
+  `fly-brain/permutation_conditional.su` now reports 0 diagnostics
   (down from 46 before the permutation-type work started).**
 - **`permutation` as a primitive type.** Added to `PRIMITIVE_TYPE_NAMES`
   in the lexer, to the parser's `_PRIMITIVE_TYPES`, and to the
   validator's `_record_type_usage` PRIMITIVES set. Spec entry added to
   `planning/akasha-spec/05-type-system.md` documenting the distinction
   from plain `vector` and why it matters for the compile-to-brain
-  strategy. Test corpus: `tests/corpus/valid/21_permutation_type.ak`.
+  strategy. Test corpus: `tests/corpus/valid/21_permutation_type.su`.
 - **Array literals and subscript access.** `[a, b, c]` now parses as
   an `ArrayLiteral` expression (empty `[]` legal; no trailing commas,
   to match the rest of the grammar). `target[index]` now parses as a
   `Subscript` postfix, composing cleanly with call/member/subscript
   chaining. Test corpus:
-  `tests/corpus/valid/22_array_literal.ak` and
-  `tests/corpus/valid/23_subscript_access.ak`; parser unit tests added
+  `tests/corpus/valid/22_array_literal.su` and
+  `tests/corpus/valid/23_subscript_access.su`; parser unit tests added
   to `tests/test_parser.py`.
 
 ## Pending Decisions
 
-- **Run the Akasha code checker (akashac, in sdk/akasha-compiler) over every `.ak` file in the repo
+- **Run the Akasha code checker (sutrac, in sdk/akasha-compiler) over every `.su` file in the repo
   and fix every inconsistency it reports.** The compiler/validator is the ground truth for what
   Akasha code should look like. Once it's stable, run it in lint mode against `examples/`,
-  `akasha-demo-program.ak`, `fly-brain/`, and any `.ak` files generated under `scripts/` or
+  `sutra-demo-program.su`, `fly-brain/`, and any `.su` files generated under `scripts/` or
   elsewhere. Resolve class-name casing, builtin usage, and structural inconsistencies.
 - Decide on anonymous functions. Leaning toward `lambda` keyword. Need to pick exact form.
 - How primitive substrate operations read in source.

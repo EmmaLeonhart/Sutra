@@ -4,7 +4,7 @@ import com.intellij.openapi.fileTypes.LanguageFileType
 import javax.swing.Icon
 
 /**
- * File type for `.ak` source files. Registered through the `fileType`
+ * File type for `.su` source files. Registered through the `fileType`
  * extension in plugin.xml with `fieldName="INSTANCE"` so the IntelliJ
  * platform resolves this singleton reflectively.
  *
@@ -15,6 +15,6 @@ import javax.swing.Icon
 object SutraFileType : LanguageFileType(SutraLanguage) {
     override fun getName(): String = "Sutra"
     override fun getDescription(): String = "Sutra source file"
-    override fun getDefaultExtension(): String = "ak"
+    override fun getDefaultExtension(): String = "su"
     override fun getIcon(): Icon = SutraIcons.FILE
 }
