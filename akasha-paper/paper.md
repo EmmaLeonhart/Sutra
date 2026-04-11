@@ -2,6 +2,8 @@
 
 **Emma Leonhart**
 
+*Submission for Claw4S 2026. Cross-references to "Leonhart (2026)" in this paper point to a companion paper at the same venue — see Related Work §2.5 and the References section for the specific title. The year is not forward-dated; the conference itself is Claw4S 2026.*
+
 ## Abstract
 
 We present Akasha, a programming language that uses LLM embedding spaces as its computational substrate. Where conventional languages compile to machine instructions that execute on silicon, Akasha compiles to vector operations that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Named after the Sanskrit concept of a primordial substance pervading all things, the language operates in the continuous semantic space that pervades trained embedding models.
@@ -115,6 +117,31 @@ result = (condition * branch_true) + (¬condition * branch_false)
 Both branches execute simultaneously via superposition. The condition vector weights which branch dominates. This is O(1), purely algebraic, and inherently fuzzy — there is no "wrong branch," only a weighted mixture. This is the default branching mechanism.
 
 **Cone traversal (discrete branching):** When computation requires navigating to a specific discrete state rather than blending alternatives, cone traversal provides it. The current vector state determines a direction, and the cone finds the nearest matching state in the semantic graph. This is analogous to a pattern match or jump table — the geometry determines which branch is taken.
+
+Formally, given an origin vector `o`, a direction vector `d`, and an angular half-width `θ` in radians, cone traversal returns the set of candidate vectors `v` in the indexed codebook `C` such that the angle between `v − o` and `d` is at most `θ`:
+
+```
+cone(o, d, θ) = { v ∈ C : arccos( ⟨v − o, d⟩ / (‖v − o‖ · ‖d‖) ) ≤ θ }
+```
+
+In pseudocode:
+
+```
+function cone(origin, direction, angle):
+    candidates := ANN_query(origin, k)        // initial k-NN shortlist from HNSW
+    d_unit    := direction / ‖direction‖      // normalize direction once
+    cos_min   := cos(angle)                   // threshold
+    result    := []
+    for v in candidates:
+        offset := v - origin
+        if ‖offset‖ == 0: continue            // origin itself is not a neighbor
+        cos_theta := ⟨offset, d_unit⟩ / ‖offset‖
+        if cos_theta >= cos_min:
+            result.append(v)
+    return result
+```
+
+The ANN shortlist stage makes this O(log n) in the codebook size rather than O(n); `k` is a tunable per-query parameter that trades recall for latency. Zero-width cones (`θ = 0`) degenerate into pure nearest-neighbor in the direction `d`, recovering `argmax_cosine` as a special case. Wide cones (`θ = π/2`) degenerate into "any point in the half-space pointed at by `d`", which is a standard projection-plus-threshold query. The parameter `θ` is how the programmer dials between jump-table-like precision (small `θ`) and more flexible semantic-match behavior (larger `θ`).
 
 **Bounded iteration:** `repeat N: body` executes the body a scalar number of times. This is a primitive operation, not a vector operation. It sidesteps the unsolved problem of convergence-based termination. Snap-to-nearest between iterations controls noise accumulation.
 
@@ -278,7 +305,22 @@ This pathology demonstrates why Akasha requires substrate validation as part of 
 
 ### 6.6 Biological Substrate: Compiling to a Mushroom Body Circuit
 
-The empirical initiation framework claims substrate-adaptivity: the same source code compiles for different embedding spaces given a calibration pass. We tested this claim against a substrate deliberately far outside the training distribution of the compiler — a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body (50 projection neurons → 2,000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, leaky integrate-and-fire dynamics, APL-enforced 5% Kenyon-cell sparsity). An Akasha source file describing a four-state conditional was parsed and validated by the same compiler used for the silicon experiments above (§6.1–§6.5), mechanically translated by a substrate-specific backend into calls against the spiking circuit, and executed. Across four program variants and four input conditions (sixteen decisions total), the compiled output produced the expected behavior mapping on every trial, with the four variants yielding four distinct permutations of the underlying prototype table. To our knowledge this is the first demonstration of a programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. The result serves as a non-silicon stress test for the substrate-agnostic claim in §4.2.
+The empirical initiation framework claims substrate-adaptivity: the same source code compiles for different embedding spaces given a calibration pass. We tested this claim against a substrate deliberately far outside the training distribution of the compiler — a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body (50 projection neurons → 2,000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, leaky integrate-and-fire dynamics, APL-enforced 5% Kenyon-cell sparsity). An Akasha source file describing a four-state conditional was parsed and validated by the same compiler used for the silicon experiments above (§6.1–§6.5), mechanically translated by a substrate-specific backend (`sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`) into Python calls against the spiking circuit, and executed. The full methodology, circuit parameters, and reproduction recipe are in the companion paper *Running Akasha on a Simulated Fly Brain* (same venue, Claw4S 2026).
+
+**Decision-level results.** Across four program variants × four input conditions (sixteen decisions total), the compiled output produced the expected behavior mapping on **every trial (16/16 correct)**, and the four variants yielded **four distinct permutations** of the underlying prototype table — a necessary condition for claiming that the four programs are *actually different programs running on the same compiled artifact* rather than the same program with cosmetic differences. The table below summarizes the result structure; the raw per-trial similarity scores against the compiled 4-prototype table are available in `fly-brain-paper/` and reproducible via `python fly-brain/test_codegen_e2e.py`.
+
+| Program variant | `vinegar + hungry` | `vinegar + fed` | `clean_air + hungry` | `clean_air + fed` |
+|---|---|---|---|---|
+| A (natural)          | approach | ignore   | search   | idle     |
+| B (inverted smell)   | search   | idle     | approach | ignore   |
+| C (inverted hunger)  | ignore   | approach | idle     | search   |
+| D (both inverted)    | idle     | search   | ignore   | approach |
+
+**Fixed-frame invariant.** Every `snap` call in one program execution must share the same PN → KC connectivity matrix, or prototype matching is meaningless. Under rolling connectivity frames, the per-snap round-trip fidelity is ~0.53 cosine (as measured in the companion paper); under a fixed frame the same fidelity is ~1.0. The 4-way prototype argmax that decides which behavior fires cannot discriminate reliably at the rolling-frame fidelity but does so cleanly under the fixed frame. The Akasha compiler's `codegen_flybrain` backend emits a `_FixedFrameFlyBrainVSA` subclass in the prelude of every generated module, promoting this runtime invariant to a compile-time guarantee.
+
+**Negation compiles away.** Source-level `!X` compiles to `permute(permutation_key("NOT_X"), X)` because sign-flip permutations are involutive and distribute over `bind`. The four program variants above differ *only* in which permutation keys multiply into the query before `snap` runs. The if/else tree is gone — the compiled artifact is a single 4-vector prototype table and the runtime decision is a single cosine argmax against it. No Python `if` in the decision path.
+
+To our knowledge this is the first demonstration of a programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. The result serves as a non-silicon stress test for the substrate-agnostic claim in §4.2 — it is deliberately far outside the training distribution of any silicon embedding model, and the fact that the same compiler targets it with no source changes is the point.
 
 ## 7. Discussion
 
