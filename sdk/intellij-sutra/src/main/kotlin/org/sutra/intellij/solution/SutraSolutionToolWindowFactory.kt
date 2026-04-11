@@ -43,7 +43,7 @@ import javax.swing.tree.TreeSelectionModel
  *
  * Double-clicking any node opens the corresponding file in the
  * editor. A project node opens its `.akproj`, a solution node
- * opens its `.aksln`, a source node opens the `.ak` file.
+ * opens its `.aksln`, a source node opens the `.su` file.
  *
  * Out of scope for v1 (explicit v1.1 follow-ups named in the spec):
  * `ProjectOpenProcessor` auto-detect on folder open, source-root
