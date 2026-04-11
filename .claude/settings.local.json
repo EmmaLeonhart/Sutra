@@ -222,7 +222,25 @@
       "Bash(rm fly-brain/_generated_permutation_conditional.py fly-brain/_e2e_codegen_check.py)",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" fly-brain/test_codegen_e2e.py)",
       "Bash(reg query:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(java -version)",
+      "Bash(gradle --version)",
+      "Bash(export JAVA_HOME=\"C:/Program Files/Eclipse Adoptium/jdk-21.0.10.7-hotspot\")",
+      "Bash(cmd //c \"!editor.bat\")",
+      "Bash(tasklist //FI \"IMAGENAME eq java.exe\" //FO CSV)",
+      "Bash(\"C:/Users/Immanuelle/gradle-bootstrap/gradle-8.7/bin/gradle\" --status)",
+      "Bash(wmic process:*)",
+      "Bash(tee /tmp/editor_run.log)",
+      "Bash(tasklist //FI \"IMAGENAME eq cmd.exe\" //FO CSV)",
+      "Bash(head -5 akasha-paper/scripts/*.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/papers-ci.yml', encoding='utf-8'\\)\\)\")",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m py_compile scripts/paper_submit_and_fetch.py)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" scripts/paper_submit_and_fetch.py --help)",
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.safe_load\\(open\\('mkdocs.yml', encoding='utf-8'\\)\\)\")",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/pages.yml', encoding='utf-8'\\)\\)\")",
+      "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('docs/assets/js/graph-to-vector.js','utf8'\\)\\)\")",
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.unsafe_load\\(open\\('mkdocs.yml', encoding='utf-8'\\)\\)\")"
     ]
   }
 }
