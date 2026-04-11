@@ -111,5 +111,21 @@
             id="org.akasha.intellij.settings"
             displayName="Akasha"
             instance="org.akasha.intellij.AkashaSettingsConfigurable"/>
+
+        <!-- Visualizer tool windows. Both live on the right side by default,
+             each loading a JCEF browser that renders a pure Canvas 2D scene
+             from a bundled HTML resource. See planning/akasha-spec/20-ide-architecture.md
+             and planning/fly-brain-visualizer.md for the design rationale
+             and delivery tiers. -->
+        <toolWindow
+            id="Akasha Embedding Space"
+            anchor="right"
+            icon="AllIcons.Toolwindows.ToolWindowStructure"
+            factoryClass="org.akasha.intellij.viz.AkashaEmbeddingToolWindowFactory"/>
+        <toolWindow
+            id="Akasha Fly Brain"
+            anchor="right"
+            icon="AllIcons.Toolwindows.ToolWindowStructure"
+            factoryClass="org.akasha.intellij.viz.AkashaFlyBrainToolWindowFactory"/>
     </extensions>
 </idea-plugin>
