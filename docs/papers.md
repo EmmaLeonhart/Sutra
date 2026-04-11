@@ -8,9 +8,9 @@ A third paper — [*Latent Space Cartography Applied to Wikidata*](http://18.118
 
 **Author:** Emma Leonhart
 **Read it on clawRxiv:** [post 1542 — sutra-paper v2](http://18.118.210.52/posts/1542)
-**Source (GitHub):** [`sutra-paper/paper.md`](https://github.com/EmmaLeonhart/Sutralang/blob/master/sutra-paper/paper.md)
-**Reproduction skill:** [`sutra-paper/SKILL.md`](https://github.com/EmmaLeonhart/Sutralang/blob/master/sutra-paper/SKILL.md)
-**Reviews directory:** [`sutra-paper/reviews/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sutra-paper/reviews) (populated automatically by the [papers-ci workflow](https://github.com/EmmaLeonhart/Sutralang/blob/master/.github/workflows/papers-ci.yml) on every push)
+**Source (GitHub):** [`sutra-paper/paper.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/sutra-paper/paper.md)
+**Reproduction skill:** [`sutra-paper/SKILL.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/sutra-paper/SKILL.md)
+**Reviews directory:** [`sutra-paper/reviews/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sutra-paper/reviews) (populated automatically by the [papers-ci workflow](https://github.com/EmmaLeonhart/Sutra/blob/master/.github/workflows/papers-ci.yml) on every push)
 
 The white paper that introduces Sutra as a programming language. It frames LLM embedding spaces as the *substrate* for computation, not just the search index for it, and grounds that framing in five empirical results:
 
@@ -30,9 +30,9 @@ The paper makes an honest assessment of its own limitations: VSA algebra alone i
 
 **Author:** Emma Leonhart
 **Read it on clawRxiv:** [post 1541 — fly-brain-paper](http://18.118.210.52/posts/1541)
-**Source (GitHub):** [`fly-brain-paper/paper.md`](https://github.com/EmmaLeonhart/Sutralang/blob/master/fly-brain-paper/paper.md)
-**Reproduction skill:** [`fly-brain-paper/SKILL.md`](https://github.com/EmmaLeonhart/Sutralang/blob/master/fly-brain-paper/SKILL.md)
-**Reviews directory:** [`fly-brain-paper/reviews/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/fly-brain-paper/reviews)
+**Source (GitHub):** [`fly-brain-paper/paper.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/fly-brain-paper/paper.md)
+**Reproduction skill:** [`fly-brain-paper/SKILL.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/fly-brain-paper/SKILL.md)
+**Reviews directory:** [`fly-brain-paper/reviews/`](https://github.com/EmmaLeonhart/Sutra/tree/master/fly-brain-paper/reviews)
 
 The compile-to-brain paper. The empirical-initiation framework in the language paper claims *substrate-adaptivity*: the same source code compiles for different embedding spaces given a calibration pass. This paper tests that claim against a substrate deliberately far outside the training distribution of any silicon embedding model — a Brian2 spiking simulation of the mushroom body of the fruit fly.
 
@@ -53,11 +53,11 @@ The paper documents the technical insights honestly:
 
 - **The fixed-frame invariant.** Every `snap` call in one program execution must share the same PN→KC connectivity matrix, or prototype matching fails. Measured fidelity: ~0.53 cosine per-snap under rolling frames vs. 1.0 under fixed frame; 4-way discrimination requires the fixed frame.
 - **Negation as permutation compiles `!` away.** Source-level `!X` compiles cleanly into `permute(NOT_X, X)` because sign-flip permutations are involutive and distribute over `bind`. The `if/else` tree is gone — the runtime decision is a single cosine argmax against a precomputed prototype table.
-- **Loops are intentionally unsupported.** A `while` compilation path probably needs recurrent KC→KC connections that the current circuit doesn't have. Framed as a research question, not a codegen oversight. See [`fly-brain/STATUS.md`](https://github.com/EmmaLeonhart/Sutralang/blob/master/fly-brain/STATUS.md) §Loops.
+- **Loops are intentionally unsupported.** A `while` compilation path probably needs recurrent KC→KC connections that the current circuit doesn't have. Framed as a research question, not a codegen oversight. See [`fly-brain/STATUS.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/fly-brain/STATUS.md) §Loops.
 
 ## How these papers get to clawRxiv
 
-Both papers are published to [clawRxiv](https://clawrxiv.io) automatically by [`.github/workflows/papers-ci.yml`](https://github.com/EmmaLeonhart/Sutralang/blob/master/.github/workflows/papers-ci.yml) on every push to `master` that touches their `paper.md` or `SKILL.md`. The workflow:
+Both papers are published to [clawRxiv](https://clawrxiv.io) automatically by [`.github/workflows/papers-ci.yml`](https://github.com/EmmaLeonhart/Sutra/blob/master/.github/workflows/papers-ci.yml) on every push to `master` that touches their `paper.md` or `SKILL.md`. The workflow:
 
 1. Detects which paper(s) changed via `git diff HEAD~1 HEAD`.
 2. Submits each changed paper to clawRxiv via the `/api/posts` endpoint, using the previous `.post_id` as the supersede target so each push becomes a new version.
@@ -65,6 +65,6 @@ Both papers are published to [clawRxiv](https://clawrxiv.io) automatically by [`
 4. Commits the review (JSON + rendered Markdown) back into the paper's `reviews/` directory.
 5. Pushes that auto-commit back to `master` with `[skip submit]` in the message to prevent infinite loops.
 
-The submission logic lives in [`scripts/paper_submit_and_fetch.py`](https://github.com/EmmaLeonhart/Sutralang/blob/master/scripts/paper_submit_and_fetch.py) so it can be run locally for one-off backfills, and so the workflow YAML stays small.
+The submission logic lives in [`scripts/paper_submit_and_fetch.py`](https://github.com/EmmaLeonhart/Sutra/blob/master/scripts/paper_submit_and_fetch.py) so it can be run locally for one-off backfills, and so the workflow YAML stays small.
 
 This is what "first version out fast" looks like in practice: write a paragraph, push to master, wait a few minutes, get a review committed back into the repo automatically. Iterate.
