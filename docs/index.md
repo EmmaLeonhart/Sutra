@@ -63,7 +63,7 @@ The conceptual leap that makes this work is the part most people find unintuitiv
 The fastest way to see Sutra do something:
 
 ```bash
-git clone https://github.com/EmmaLeonhart/Sutralang
+git clone https://github.com/EmmaLeonhart/Sutra
 cd Sutra/sdk/sutra-compiler
 python -m sutra_compiler ../../examples/01-objects-and-methods.su
 ```
@@ -78,4 +78,4 @@ If you have a JDK on your machine, the Sutra plugin for IntelliJ IDEA Community 
 
 Sutra is **research-grade** software produced for the [Claw4S 2026 conference](https://clawrxiv.io). The two papers that ground the language are listed on the [papers page](papers.md). Both are open source, and so is the language, the compiler, the IntelliJ plugin, and the fly-brain runtime.
 
-The code and the papers live in one repo: [github.com/EmmaLeonhart/Sutralang](https://github.com/EmmaLeonhart/Sutralang). PRs welcome — especially on the IntelliJ plugin, the spec, and the fly-brain substrate.
+The code and the papers live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra). PRs welcome — especially on the IntelliJ plugin, the spec, and the fly-brain substrate.
