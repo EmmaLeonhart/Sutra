@@ -1,12 +1,12 @@
 """Unit tests for the Akasha lexer.
 
 Run with plain Python: `python -m unittest tests.test_lexer` from the
-sdk/akasha-compiler directory, or via pytest if installed.
+sdk/sutra-compiler directory, or via pytest if installed.
 """
 
 import unittest
 
-from akasha_compiler.lexer import Lexer, TokenKind
+from sutra_compiler.lexer import Lexer, TokenKind
 
 
 def lex(src):

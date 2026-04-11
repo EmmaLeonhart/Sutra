@@ -1,4 +1,4 @@
-"""AST node definitions for the Akasha compiler.
+"""AST node definitions for the Sutra compiler.
 
 These are intentionally lean dataclasses. The parser builds them, the
 validator walks them. A more elaborate visitor framework can come later

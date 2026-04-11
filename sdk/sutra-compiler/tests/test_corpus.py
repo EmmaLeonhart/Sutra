@@ -9,7 +9,7 @@ at least one warning).
 import os
 import unittest
 
-from akasha_compiler import validate_file
+from sutra_compiler import validate_file
 
 
 CORPUS_DIR = os.path.join(os.path.dirname(__file__), "corpus")
@@ -63,14 +63,14 @@ class TestInvalidCorpus(unittest.TestCase):
         """Each invalid file should trigger the diagnostic code its
         filename advertises."""
         expected = {
-            "01_var_with_type.ak": "AKA0103",
-            "03_unterminated_string.ak": "AKA0002",
-            "05_pipe_forward.ak": "AKA0110",
-            "06_string_literal_cast.ak": "AKA0111",
-            "07_public_private_conflict.ak": "AKA0112",
-            "09_unterminated_block_comment.ak": "AKA0001",
-            "10_unsafe_cast_missing_type.ak": "AKA0105",
-            "11_casing_drift.ak": "AKA0113",
+            "01_var_with_type.ak": "SUT0103",
+            "03_unterminated_string.ak": "SUT0002",
+            "05_pipe_forward.ak": "SUT0110",
+            "06_string_literal_cast.ak": "SUT0111",
+            "07_public_private_conflict.ak": "SUT0112",
+            "09_unterminated_block_comment.ak": "SUT0001",
+            "10_unsafe_cast_missing_type.ak": "SUT0105",
+            "11_casing_drift.ak": "SUT0113",
         }
         for name, code in expected.items():
             with self.subTest(file=name):
