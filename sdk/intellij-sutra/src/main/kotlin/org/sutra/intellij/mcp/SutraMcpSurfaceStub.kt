@@ -29,10 +29,10 @@ class SutraMcpSurfaceStub : SutraMcpSurface {
         unimplemented("diagnostics", "reachable via SutraExternalAnnotator; needs MCP adapter")
 
     override fun scaffold(template: String, params: Map<String, Any>): Any =
-        unimplemented("scaffold", "needs solution/project system")
+        unimplemented("scaffold", "needs workspace/project system")
 
     override fun compile(projectPath: String): Any =
-        unimplemented("compile", "needs solution/project system and compiler driver")
+        unimplemented("compile", "needs workspace/project system and compiler driver")
 
     override fun run(artifactPath: String, input: Any): Any =
         unimplemented("run", "needs compiler driver and instrumented runtime")

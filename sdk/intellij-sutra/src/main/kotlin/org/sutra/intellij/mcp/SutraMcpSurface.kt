@@ -91,7 +91,7 @@ interface SutraMcpSurface {
     // ------------------------------------------------------------------
 
     /**
-     * Bootstrap a new solution/project skeleton from a template.
+     * Bootstrap a new workspace/project skeleton from a template.
      *
      * `template` is a named starter (e.g. `"classifier"`, `"similarity-retriever"`,
      * `"cone-traversal-demo"`, `"fly-brain-substrate"`) — see the

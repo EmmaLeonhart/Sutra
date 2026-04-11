@@ -1,4 +1,4 @@
-package org.sutra.intellij.solution
+package org.sutra.intellij.workspace
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -14,11 +14,11 @@ import kotlin.io.path.walk
 import kotlin.streams.toList
 
 /**
- * In-memory representation of an Sutra solution, mirroring the
- * Python data classes in `sdk/sutra-compiler/sutra_compiler/solution.py`.
+ * In-memory representation of a Sutra workspace, mirroring the
+ * Python data classes in `sdk/sutra-compiler/sutra_compiler/workspace.py`.
  *
  * Loading is done by shelling out to the reference Python parser
- * via `python -m sutra_compiler.solution --json <path>` and
+ * via `python -m sutra_compiler.workspace --json <path>` and
  * deserializing the JSON output. This is the same
  * shell-out-to-Python pattern [SutraExternalAnnotator] already
  * uses for compiler diagnostics, so it reuses the same interpreter
@@ -27,24 +27,24 @@ import kotlin.streams.toList
  *
  * Why shell out instead of reimplementing the TOML parser in Kotlin:
  *
- *   - Single source of truth for the solution/project schema. If
+ *   - Single source of truth for the workspace/project schema. If
  *     the Python parser ever learns a new field or tightens a
  *     validation rule, the Kotlin side picks it up for free on
  *     the next call.
- *   - The Python parser's error messages (AKA2000-AKA2099 codes)
+ *   - The Python parser's error messages (SUT2000-SUT2099 codes)
  *     are already the spec's reference error set. Reproducing them
  *     in Kotlin would be duplication.
  *   - TOML parsing in Kotlin would require either pulling in a
  *     third-party library (tomlj, ktoml) as a plugin dependency or
  *     writing our own, both of which we can avoid.
  */
-data class SutraSolutionModel(
+data class SutraWorkspaceModel(
     val name: String,
     val sutraVersion: String,
     val description: String,
     val defaultSubstrate: String,
     val compilerArgs: List<String>,
-    val aksFile: Path,
+    val atmanFile: Path,
     val projects: List<SutraProjectModel>,
 ) {
     val projectsByName: Map<String, SutraProjectModel>
@@ -68,37 +68,41 @@ data class SutraProjectDependency(
 )
 
 /**
- * Either [Success] with a parsed [SutraSolutionModel] or [Failure]
+ * Either [Success] with a parsed [SutraWorkspaceModel] or [Failure]
  * with a diagnostic string (typically the first line of the Python
- * parser's stderr, which carries the `AKA####` code).
+ * parser's stderr, which carries the `SUT####` code).
  */
-sealed class SutraSolutionLoadResult {
-    data class Success(val solution: SutraSolutionModel) : SutraSolutionLoadResult()
-    data class Failure(val message: String) : SutraSolutionLoadResult()
+sealed class SutraWorkspaceLoadResult {
+    data class Success(val workspace: SutraWorkspaceModel) : SutraWorkspaceLoadResult()
+    data class Failure(val message: String) : SutraWorkspaceLoadResult()
 }
 
 
 /**
- * Top-level utility for loading a solution file and for scanning a
- * directory to discover one.
+ * Top-level utility for loading a workspace `atman.toml` and for
+ * scanning a directory to discover one.
  */
-object SutraSolutionLoader {
+object SutraWorkspaceLoader {
 
-    private val LOG = Logger.getInstance(SutraSolutionLoader::class.java)
+    private val LOG = Logger.getInstance(SutraWorkspaceLoader::class.java)
 
     /**
-     * Walk `root` looking for the first `.aksln` file and return its
-     * path, or `null` if none was found.
+     * Walk `root` looking for the first `atman.toml` file and return
+     * its path, or `null` if none was found.
      *
      * Only traverses up to a bounded depth so that huge repositories do
      * not cause slow tool-window startup. Three levels is enough to
-     * find a solution file at the root of a typical project layout.
+     * find a workspace file at the root of a typical project layout.
      */
     @OptIn(kotlin.io.path.ExperimentalPathApi::class)
-    fun findSolutionFile(root: Path, maxDepth: Int = 3): Path? {
+    fun findWorkspaceFile(root: Path, maxDepth: Int = 3): Path? {
         if (!root.isDirectory()) return null
+        // Fast path: check the root directly first.
+        val rootAtman = root.resolve("atman.toml")
+        if (rootAtman.isRegularFile()) return rootAtman
+        // Otherwise walk up to maxDepth to find the nearest atman.toml.
         val candidates = root.walk(kotlin.io.path.PathWalkOption.FOLLOW_LINKS)
-            .filter { it.isRegularFile() && it.fileName.toString().endsWith(".aksln") }
+            .filter { it.isRegularFile() && it.fileName.toString() == "atman.toml" }
             .take(1)
             .toList()
         return candidates.firstOrNull()
@@ -106,33 +110,30 @@ object SutraSolutionLoader {
 
     /**
      * Shell out to the Python reference parser and return a Kotlin
-     * data model of the solution, or a [Failure] carrying the first
+     * data model of the workspace, or a [Failure] carrying the first
      * diagnostic line from the parser.
      *
-     * Timeout is 15 seconds by default — solution parsing is pure
+     * Timeout is 15 seconds by default — workspace parsing is pure
      * filesystem + TOML, no network, no heavy computation, so even
-     * a large solution should finish well under that.
+     * a large workspace should finish well under that.
      */
-    fun loadSolution(aksFile: Path, timeoutSeconds: Long = 15): SutraSolutionLoadResult {
+    fun loadWorkspace(atmanFile: Path, timeoutSeconds: Long = 15): SutraWorkspaceLoadResult {
         val settings = SutraSettings.getInstance()
         val exe = settings.effectiveCompiler()
         val rawArgs = settings.effectiveCompilerArgs().trim()
         val argv = mutableListOf(exe)
         if (rawArgs.isNotEmpty()) {
-            // `--no-json` mode does not exist; instead we replace the
-            // module-invocation target so `sutra_compiler.solution` is
-            // the script, not the top-level `sutra_compiler` entry.
             // The rawArgs from settings is typically `-m sutra_compiler`;
-            // we substitute `-m sutra_compiler.solution` to invoke the
-            // solution-specific CLI.
+            // we substitute `-m sutra_compiler.workspace` to invoke the
+            // workspace-specific CLI.
             val substituted = rawArgs.replace(
                 Regex("(^|\\s)-m\\s+sutra_compiler(\\b)"),
-                "$1-m sutra_compiler.solution$2",
+                "$1-m sutra_compiler.workspace$2",
             )
             argv.addAll(substituted.split(Regex("\\s+")))
         }
         argv.add("--json")
-        argv.add(aksFile.toString())
+        argv.add(atmanFile.toString())
 
         return try {
             val process = ProcessBuilder(argv)
@@ -145,22 +146,22 @@ object SutraSolutionLoader {
             val finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
             if (!finished) {
                 process.destroyForcibly()
-                return SutraSolutionLoadResult.Failure(
-                    "solution parser timed out after ${timeoutSeconds}s"
+                return SutraWorkspaceLoadResult.Failure(
+                    "workspace parser timed out after ${timeoutSeconds}s"
                 )
             }
             if (process.exitValue() != 0) {
                 val firstErrLine = stderr.lineSequence().firstOrNull() ?: "unknown error"
-                return SutraSolutionLoadResult.Failure(firstErrLine.trim())
+                return SutraWorkspaceLoadResult.Failure(firstErrLine.trim())
             }
-            SutraSolutionLoadResult.Success(parseJson(stdout, aksFile))
+            SutraWorkspaceLoadResult.Success(parseJson(stdout, atmanFile))
         } catch (e: Exception) {
-            LOG.warn("Failed to invoke solution parser for $aksFile", e)
-            SutraSolutionLoadResult.Failure("failed to invoke solution parser: ${e.message}")
+            LOG.warn("Failed to invoke workspace parser for $atmanFile", e)
+            SutraWorkspaceLoadResult.Failure("failed to invoke workspace parser: ${e.message}")
         }
     }
 
-    private fun parseJson(json: String, aksFile: Path): SutraSolutionModel {
+    private fun parseJson(json: String, atmanFile: Path): SutraWorkspaceModel {
         val root = JsonParser.parseString(json).asJsonObject
         val projects = root.getAsJsonArray("projects").map { elem ->
             val obj = elem.asJsonObject
@@ -181,13 +182,13 @@ object SutraSolutionLoader {
                 },
             )
         }
-        return SutraSolutionModel(
+        return SutraWorkspaceModel(
             name = root.get("name").asString,
             sutraVersion = root.get("sutra_version").asString,
             description = root.optStringOrEmpty("description"),
             defaultSubstrate = root.get("default_substrate").asString,
             compilerArgs = root.getAsJsonArray("compiler_args").map { it.asString },
-            aksFile = aksFile,
+            atmanFile = atmanFile,
             projects = projects,
         )
     }
