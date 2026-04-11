@@ -1,18 +1,5 @@
 # Sutra TODO
 
-## Post-restart filesystem cleanup (orphaned directories from the Akasha → Sutra rename)
-
-During the Akasha → Sutra rename, directory-level renames failed with "Permission denied" because OneDrive and/or File Explorer were holding handles on the old directory trees. The workaround was: `cp -r <old> <new>` + `git rm --cached -r <old>`, which leaves the old directories on disk as filesystem orphans while git sees them as cleanly renamed. After the next computer restart (which releases all the stale handles), delete these old directories from the filesystem manually — they're already gone from git's tracking:
-
-- `sdk/akasha-compiler/` (renamed to `sdk/sutra-compiler/`)
-- `sdk/intellij-akasha/` (renamed to `sdk/intellij-sutra/`)
-- `sdk/vscode-akasha/` (renamed to `sdk/vscode-sutra/`)
-- (more directories will be added here as the rename proceeds)
-
-**These old directories are no longer used by anything — the git index already points at the new paths, Gradle/CI/scripts all reference the new paths, and tests run against the new copies. They're inert leftover files on disk only. Just `rm -rf` them after the restart.**
-
-After deleting: `git status` should show nothing. If any of these directories still exist and still contain files, just `rm -rf` them — git already considers them gone.
-
 ## Next up
 
 The fly-brain compile-to-brain pipeline is now real end-to-end
@@ -21,7 +8,7 @@ program A/B/C/D behavior, 16/16 decisions correct, verified locally
 with Brian2 2.10.1). The last medium-term item in
 `fly-brain/STATUS.md` is closed. What's next, roughly in priority:
 
-1. **Expand the fly-brain experiments section in `akasha-paper/paper.md`.**
+1. **Expand the fly-brain experiments section in `sutra-paper/paper.md`.**
    The first paragraph of §6.6 "Biological Substrate" is already in
    place on remote (commit 285bcfd — 16/16 result, four distinct
    program permutations, reference to the §4.2 substrate-adaptivity
@@ -70,7 +57,7 @@ with Brian2 2.10.1). The last medium-term item in
   decisions match the expected behavior table. Loops and if-stmts
   are intentionally unsupported and fail loudly with source spans.
 - **VSA builtins declared in the spec.** New file
-  `planning/akasha-spec/21-builtins.md` gives formal signatures for
+  `planning/sutra-spec/21-builtins.md` gives formal signatures for
   every implicit-global VSA function used in the repo's `.su` code:
   `bind`, `unbind`, `bundle`, `similarity`, `permute`, `compose`,
   `basis_vector`, `permutation_key`, `identity_permutation`, `snap`,
@@ -87,7 +74,7 @@ with Brian2 2.10.1). The last medium-term item in
   legal; a bare `{ ... }` at statement position is still always a
   block, as in C-family languages. Vector-valued keys work, which is
   what the fly-brain prototype table needs. Spec: extended the
-  "Primitive Types" section in `planning/akasha-spec/05-type-system.md`
+  "Primitive Types" section in `planning/sutra-spec/05-type-system.md`
   with a `map<K, V>` entry covering the lookup semantics and the
   statement-vs-expression disambiguation. Test corpus:
   `tests/corpus/valid/24_map_literal.su`; parser unit tests in
@@ -97,7 +84,7 @@ with Brian2 2.10.1). The last medium-term item in
 - **`permutation` as a primitive type.** Added to `PRIMITIVE_TYPE_NAMES`
   in the lexer, to the parser's `_PRIMITIVE_TYPES`, and to the
   validator's `_record_type_usage` PRIMITIVES set. Spec entry added to
-  `planning/akasha-spec/05-type-system.md` documenting the distinction
+  `planning/sutra-spec/05-type-system.md` documenting the distinction
   from plain `vector` and why it matters for the compile-to-brain
   strategy. Test corpus: `tests/corpus/valid/21_permutation_type.su`.
 - **Array literals and subscript access.** `[a, b, c]` now parses as
