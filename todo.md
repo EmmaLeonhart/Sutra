@@ -8,13 +8,21 @@ program A/B/C/D behavior, 16/16 decisions correct, verified locally
 with Brian2 2.10.1). The last medium-term item in
 `fly-brain/STATUS.md` is closed. What's next, roughly in priority:
 
-1. **Add the fly-brain experiments section to `akasha-paper/paper.md`.**
-   Time-sensitive: Claw4S deadline is 2026-04-20, today is 2026-04-10.
-   The "first language runtime compiled mechanically onto a biological
-   connectome" story is the strongest novelty claim the project has
-   and it isn't in the paper yet. Follow the incremental-changes rule
-   from `CLAUDE.md` — one paragraph / one table at a time, diffs
-   approved before commit, never push without explicit approval.
+1. **Expand the fly-brain experiments section in `akasha-paper/paper.md`.**
+   The first paragraph of §6.6 "Biological Substrate" is already in
+   place on remote (commit 285bcfd — 16/16 result, four distinct
+   program permutations, reference to the §4.2 substrate-adaptivity
+   claim). Next incremental additions, roughly in order: a small
+   summary table of the 16 decisions (program × input), a one-sentence
+   mention of the result in the abstract, a §7.3 update so Future
+   Directions doesn't contradict the new §6.6 empirical claim.
+   Claw4S deadline is 2026-04-20, today is 2026-04-10 — there is
+   room to iterate a few times.
+   Follow the incremental-changes rule from `CLAUDE.md`: one paragraph
+   or one table at a time, diffs approved before commit. Pushing is
+   fine now (submit-papers.yml is manual-only, so push ≠ clawRxiv
+   submission) — only the actual `workflow_dispatch` trigger counts
+   as a submission.
 
 2. **Run `akashac` across every `.ak` file in the repo and fix what
    it reports.** From the Pending Decisions list — the compiler is

@@ -30,8 +30,9 @@ The embedding-mapping FOL discovery work provides the empirical foundation for A
 ## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md and akasha-paper/paper.md)
 - **NEVER rewrite large sections of the paper at once.** One sentence, one paragraph, one table at a time.
 - **ALWAYS show the diff to the user and wait for approval before committing.**
-- **NEVER push without explicit user approval.** Every push triggers a clawRxiv submission.
-- **Why:** A wholesale rewrite turned a Strong Accept into Rejects. With big changes you cannot isolate what the reviewer disliked. Incremental changes only.
+- **Pushing paper commits is fine.** `.github/workflows/submit-papers.yml` is `workflow_dispatch`-only, so pushing paper changes does NOT trigger a clawRxiv submission. Submission is a separate manual step, either via `gh workflow run submit-papers.yml` or the Actions tab in GitHub.
+- **Submission to clawRxiv is its own decision.** Only trigger `submit-papers.yml` after explicit user approval. Every trigger is a new version on clawRxiv, so batch paragraph-level iterations between submissions rather than submitting after every edit.
+- **Why the incremental-edits rule:** A wholesale rewrite turned a Strong Accept into Rejects. With big changes you cannot isolate what the reviewer disliked. Incremental changes only.
 
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
@@ -75,7 +76,7 @@ The embedding-mapping FOL discovery work provides the empirical foundation for A
 - **Reproducible.** Full analysis runs in ~30 minutes on commodity hardware with local Ollama.
 
 ## Submission Target
-Claw4S Conference 2026 (deadline April 5, 2026)
+Claw4S Conference 2026 (deadline **April 20, 2026** — extended from the original April 5 per `planning/competition-analysis-2026-04-09.md`)
 - VSA paper: `VSA-paper/paper.md` + `VSA-paper/SKILL.md`
 - Akasha paper: `akasha-paper/paper.md`
-- Publish to clawRxiv (http://18.118.210.52)
+- Publish to clawRxiv (http://18.118.210.52) via `.github/workflows/submit-papers.yml` (manual `workflow_dispatch`)
