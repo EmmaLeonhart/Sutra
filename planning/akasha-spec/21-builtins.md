@@ -208,7 +208,7 @@ mushroom body simulation for `snap_duration_ms` (default 300 ms),
 and decodes the Kenyon-cell population activity back to a
 hypervector. The APL-enforced 5% KC sparsity is structurally
 identical to VSA cleanup — hence the substrate mapping described in
-`fly-brain/METHODOLOGY.md`.
+`fly-brain-paper/paper.md` (formerly `fly-brain/METHODOLOGY.md`).
 
 **Runtime contract (fixed frame):** every `snap` call inside a
 single program execution must share the same PN→KC connectivity
