@@ -531,4 +531,4 @@ def demo_header(title):
 
 if __name__ == "__main__":
     print("Akasha Runtime loaded. Use S2Env to execute programs.")
-    print("Run akasha_demos.py for demonstrations.")
+    print("Run sutra_demos.py for demonstrations.")

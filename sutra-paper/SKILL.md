@@ -68,13 +68,13 @@ Outputs four files, one per substrate: `bge-large-initiation.json`, `gte-large-i
 
 **End-to-end Akasha demo programs on a live substrate:**
 ```bash
-python sutra-paper/scripts/akasha_demos.py
+python sutra-paper/scripts/sutra_demos.py
 ```
 Runs small Akasha programs against a chosen embedding model (GTE-large by default). Each demo shows the three-tier operation model in action: primitive scaffolding, algebraic VSA operations for the core computation, non-algebraic snap-to-nearest for cleanup.
 
 ## Runtime architecture
 
-`sutra-paper/scripts/akasha_runtime.py` is the reference runtime used by the demos. It is a standalone Python implementation of:
+`sutra-paper/scripts/sutra_runtime.py` is the reference runtime used by the demos. It is a standalone Python implementation of:
 
 - **Primitive tier:** scalars, tuples, bounded iteration
 - **Algebraic tier:** bind (sign-flip and rotation variants), unbind, bundle, similarity, scalar multiply, projection
@@ -84,8 +84,8 @@ It loads an embedding model via `sentence-transformers`, runs the empirical init
 
 ## Dependencies between files
 
-- `sutra-paper/scripts/akasha_runtime.py` — reference runtime (imported by demos)
-- `sutra-paper/scripts/akasha_demos.py` — end-to-end program demos
+- `sutra-paper/scripts/sutra_runtime.py` — reference runtime (imported by demos)
+- `sutra-paper/scripts/sutra_demos.py` — end-to-end program demos
 - `sutra-paper/scripts/binding_alternatives_experiment.py` — §6.2 binding table
 - `sutra-paper/scripts/signflip_deep_test.py` — §6.2 14-role + chained + multi-hop
 - `sutra-paper/scripts/chain_depth_experiment.py` — chain noise characterization
