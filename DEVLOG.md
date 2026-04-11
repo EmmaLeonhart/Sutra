@@ -17,7 +17,7 @@ What remains outside Akasha:
 
 ## 2026-04-08: Akasha Syntax Decisions
 
-Bulk design decisions recorded after extended Claude conversations. Adopted C# as the syntactic baseline: `function`/`method` keywords, `var`/`const`, C# signature shape, all loop forms, string interpolation, generics. Key Akasha-specific decisions: truthiness is geometric (euclidean distance from true/false), errors produce garbage vectors, try-catch is if-statement sugar, classes are user-defined not runtime-special, `fuzzy`-to-`bool` cast performs `defuzzy`. Created 6 example `.ak` files demonstrating the syntax.
+Bulk design decisions recorded after extended Claude conversations. Adopted C# as the syntactic baseline: `function`/`method` keywords, `var`/`const`, C# signature shape, all loop forms, string interpolation, generics. Key Akasha-specific decisions: truthiness is geometric (euclidean distance from true/false), errors produce garbage vectors, try-catch is if-statement sugar, classes are user-defined not runtime-special, `fuzzy`-to-`bool` cast performs `defuzzy`. Created 6 example `.su` files demonstrating the syntax.
 
 ## 2026-04-07: The VSA Reframe Disaster and Recovery
 

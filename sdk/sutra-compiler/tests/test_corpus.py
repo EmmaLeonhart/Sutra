@@ -2,7 +2,7 @@
 
 Walk the tests/corpus/valid/ tree and assert that every file parses
 and validates cleanly. Walk tests/corpus/invalid/ and assert that
-every file produces at least one error (or, for 11_casing_drift.ak,
+every file produces at least one error (or, for 11_casing_drift.su,
 at least one warning).
 """
 
@@ -20,7 +20,7 @@ INVALID_DIR = os.path.join(CORPUS_DIR, "invalid")
 def _ak_files(directory):
     out = []
     for entry in sorted(os.listdir(directory)):
-        if entry.endswith(".ak"):
+        if entry.endswith(".su"):
             out.append(os.path.join(directory, entry))
     return out
 
@@ -40,7 +40,7 @@ class TestValidCorpus(unittest.TestCase):
 
 class TestInvalidCorpus(unittest.TestCase):
     # Files that are expected to trigger only warnings, not errors.
-    WARNING_ONLY = {"11_casing_drift.ak"}
+    WARNING_ONLY = {"11_casing_drift.su"}
 
     def test_every_invalid_file_triggers_a_diagnostic(self):
         for path in _ak_files(INVALID_DIR):
@@ -63,14 +63,14 @@ class TestInvalidCorpus(unittest.TestCase):
         """Each invalid file should trigger the diagnostic code its
         filename advertises."""
         expected = {
-            "01_var_with_type.ak": "SUT0103",
-            "03_unterminated_string.ak": "SUT0002",
-            "05_pipe_forward.ak": "SUT0110",
-            "06_string_literal_cast.ak": "SUT0111",
-            "07_public_private_conflict.ak": "SUT0112",
-            "09_unterminated_block_comment.ak": "SUT0001",
-            "10_unsafe_cast_missing_type.ak": "SUT0105",
-            "11_casing_drift.ak": "SUT0113",
+            "01_var_with_type.su": "SUT0103",
+            "03_unterminated_string.su": "SUT0002",
+            "05_pipe_forward.su": "SUT0110",
+            "06_string_literal_cast.su": "SUT0111",
+            "07_public_private_conflict.su": "SUT0112",
+            "09_unterminated_block_comment.su": "SUT0001",
+            "10_unsafe_cast_missing_type.su": "SUT0105",
+            "11_casing_drift.su": "SUT0113",
         }
         for name, code in expected.items():
             with self.subTest(file=name):

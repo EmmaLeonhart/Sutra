@@ -33,7 +33,7 @@ import javax.swing.SwingConstants
  * What it does NOT do yet (named in the planning doc as later
  * deliverables, explicitly out of scope for v0.3 first cut):
  *   - Live spike feed from a Brian2 run (v0.3 full scope)
- *   - Source-to-circuit mapping (hover a KC, highlight the `.ak` line)
+ *   - Source-to-circuit mapping (hover a KC, highlight the `.su` line)
  *   - Time-scrubbing along a recorded simulation run
  *   - Anatomical view with hemibrain/FlyWire mesh data (v0.4+, research
  *     blocked on the Sutra-unit ↔ hemibrain-neuron-ID mapping)

@@ -93,8 +93,8 @@ It loads an embedding model via `sentence-transformers`, runs the empirical init
 - `akasha-paper/scripts/empirical_initiation.py` — §6.3 cross-substrate validation
 - `akasha-paper/data/` — JSON outputs consumed by the paper's tables
 - `sdk/akasha-compiler/` — the reference Akasha compiler (parser + validator + codegen)
-- `sdk/akasha-compiler/tests/corpus/valid/` — canonical `.ak` source corpus
-- `examples/*.ak` — language tour
+- `sdk/akasha-compiler/tests/corpus/valid/` — canonical `.su` source corpus
+- `examples/*.su` — language tour
 - `fly-brain-paper/` — the §6.6 biological substrate result, its own SKILL.md
 
 ## Limitations and caveats the paper itself states

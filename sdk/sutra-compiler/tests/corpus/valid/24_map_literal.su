@@ -1,7 +1,7 @@
-// Akasha corpus test: `map<K, V>` types and `{k: v, ...}` literals.
+// Sutra corpus test: `map<K, V>` types and `{k: v, ...}` literals.
 // Map types are a primitive generic container. Values are assigned
 // with inline map literals; lookup uses the postfix subscript
-// (covered in 23_subscript_access.ak). This file exercises the
+// (covered in 23_subscript_access.su). This file exercises the
 // declaration-and-construction side.
 //
 // Exercises:
@@ -23,7 +23,7 @@ vector proto_AH = Proto("search");
 vector proto_AF = Proto("idle");
 
 // Vector-keyed map, the shape used by
-// fly-brain/permutation_conditional.ak to map prototype vectors to
+// fly-brain/permutation_conditional.su to map prototype vectors to
 // behavior names. Keys are expressions, not just identifiers.
 map<vector, string> BEHAVIOR_OF = {
     proto_PH: "approach",

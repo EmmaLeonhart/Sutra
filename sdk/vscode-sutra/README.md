@@ -89,7 +89,7 @@ disable and use the `Sutra: Validate current file` command manually.
    (Or just ensure `python -m sutra_compiler` works from your PATH.)
 
 2. In VS Code, open the extension folder and press F5 to launch an
-   Extension Development Host. Any `.ak` file in the host window will
+   Extension Development Host. Any `.su` file in the host window will
    be highlighted and validated.
 
 3. If Python isn't on your PATH or you want a specific interpreter,
@@ -113,8 +113,8 @@ disable and use the `Sutra: Validate current file` command manually.
 
 - **Sutra: Validate current file** — run the validator on the active
   editor and refresh diagnostics.
-- **Sutra: Validate all .ak files in workspace** — walk the workspace
-  and validate every `.ak` file.
+- **Sutra: Validate all .su files in workspace** — walk the workspace
+  and validate every `.su` file.
 
 ## Limitations (v0.1)
 

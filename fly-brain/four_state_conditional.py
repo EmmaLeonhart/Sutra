@@ -1,7 +1,7 @@
 """
 Four-state conditional on fly brain substrate.
 
-Executes the Akasha program in four_state_conditional.ak on a simulated
+Executes the Akasha program in four_state_conditional.su on a simulated
 Drosophila mushroom body circuit. Demonstrates a compiled program with
 two fuzzy axes producing four distinct behavioral states.
 
@@ -98,7 +98,7 @@ def main():
         ("clean_air", "fed",    "idle"),
     ]
 
-    print(f"\nAkasha source: four_state_conditional.ak")
+    print(f"\nAkasha source: four_state_conditional.su")
     print(f"Substrate: mushroom body circuit (Brian2 LIF simulation)")
     print(f"Defuzzification threshold: 0.3\n")
 

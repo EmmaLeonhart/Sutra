@@ -18,11 +18,11 @@ The name comes from the Sanskrit *ākaśa* — the primordial medium that pervad
 | [`fly-brain-paper/`](fly-brain-paper/) | The compile-to-brain paper — *"Running Akasha on a Simulated Fly Brain"*. Same compiler targeting a Brian2 mushroom-body simulation, 16/16 decisions correct across four program variants. |
 | [`fly-brain/`](fly-brain/) | Runtime: Brian2 LIF circuit, hypervector ↔ spike bridge, FlyBrainVSA class, the compile-to-brain demos, the e2e test. |
 | [`sdk/akasha-compiler/`](sdk/akasha-compiler/) | The reference compiler. Hand-written lexer, parser, validator, AST → FlyBrainVSA codegen, JUnit-style test corpus. CLI: `python -m akasha_compiler`. |
-| [`sdk/intellij-akasha/`](sdk/intellij-akasha/) | IntelliJ Platform plugin (v0.2 scaffold). Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `akashac --json`. Build with `./gradlew runIde` or, from the repo root, `!editor.bat`. |
+| [`sdk/intellij-akasha/`](sdk/intellij-akasha/) | IntelliJ Platform plugin (v0.2 scaffold). Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or, from the repo root, `!editor.bat`. |
 | [`sdk/vscode-akasha/`](sdk/vscode-akasha/) | Lighter VS Code extension — TextMate grammar + snippets. The IntelliJ plugin is the reference IDE; this is the convenience option. |
 | [`planning/akasha-spec/`](planning/akasha-spec/) | The language specification: design principles, operation model, control flow, type system, runtime architecture, lambda calculus encoding, Turing-completeness argument, embedding pathologies, IDE architecture, VSA builtins. |
 | [`planning/`](planning/) | Architecture/strategy docs (akasha pivot, fly-brain architecture, fly-brain visualizer, competition analyses, paper strategy). |
-| [`examples/`](examples/) | Hand-written `.ak` source examples — language tour. |
+| [`examples/`](examples/) | Hand-written `.su` source examples — language tour. |
 | [`docs/`](docs/) | Source for the GitHub Pages website at <https://emmaleonhart.github.io/Akasha>. |
 | [`scripts/`](scripts/) | Repo-wide scripts: `paper_submit_and_fetch.py` (clawRxiv submission + review polling), competition analysis fetchers. |
 | [`sutraDB/`](sutraDB/) | The lightweight bundled vector database, brought in as a git subtree. *"SQLite-of-vector-databases"* — embedded, zero-config, optimized for the kinds of queries Akasha emits. |
@@ -44,7 +44,7 @@ A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a 
 
 1. **Run programs on LLM embedding spaces.** Sign-flip binding achieves 14/14 correct recoveries at 14 bundled role-filler pairs across GTE-large, BGE-large, and Jina-v2. Sustains 10/10 chained bind-unbind-snap cycles. Multi-hop composition across structures works. See [`akasha-paper/`](akasha-paper/) and the website's [Bind and unbind](https://emmaleonhart.github.io/Akasha/tutorials/02-bind-and-unbind/) tutorial.
 2. **Compile programs onto a fly brain.** The same compiler targets a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body. 16/16 decisions correct across four program variants × four input conditions. To our knowledge this is the first programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. See [`fly-brain-paper/`](fly-brain-paper/) and [`fly-brain/`](fly-brain/).
-3. **Open up in an IDE.** Run `!editor.bat` from the repo root (Windows) and a sandbox IntelliJ IDEA Community boots with the Akasha plugin preinstalled and the project tree open. Drop a `.ak` file into it for highlighting, completion, live templates, and `akashac` diagnostics.
+3. **Open up in an IDE.** Run `!editor.bat` from the repo root (Windows) and a sandbox IntelliJ IDEA Community boots with the Akasha plugin preinstalled and the project tree open. Drop a `.su` file into it for highlighting, completion, live templates, and `sutrac` diagnostics.
 
 ---
 
@@ -53,7 +53,7 @@ A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a 
 ```bash
 git clone https://github.com/EmmaLeonhart/Akasha
 cd Akasha/sdk/akasha-compiler
-python -m akasha_compiler ../../examples/01-objects-and-methods.ak
+python -m akasha_compiler ../../examples/01-objects-and-methods.su
 ```
 
 That validates one example file with zero diagnostics.

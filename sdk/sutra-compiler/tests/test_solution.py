@@ -54,18 +54,18 @@ path = "similarity"
             _mk(root, "corpus/corpus.akproj", """
 [project]
 name = "corpus"
-entry = "main.ak"
+entry = "main.su"
 """)
-            _mk(root, "corpus/main.ak", "function void Main() { return; }\n")
+            _mk(root, "corpus/main.su", "function void Main() { return; }\n")
             _mk(root, "similarity/similarity.akproj", """
 [project]
 name = "similarity"
-entry = "main.ak"
+entry = "main.su"
 
 [project.dependencies]
 corpus = { path = "../corpus" }
 """)
-            _mk(root, "similarity/main.ak", "function void Main() { return; }\n")
+            _mk(root, "similarity/main.su", "function void Main() { return; }\n")
 
             sln = load_solution(root / "pipe.aksln")
             self.assertEqual(sln.name, "pipe")
@@ -98,10 +98,10 @@ substrate = "fly-brain"
             _mk(root, "a/a.akproj", """
 [project]
 name = "a"
-entry = "main.ak"
+entry = "main.su"
 substrate = "silicon"
 """)
-            _mk(root, "a/main.ak", "function void Main() { return; }\n")
+            _mk(root, "a/main.su", "function void Main() { return; }\n")
 
             sln = load_solution(root / "s.aksln")
             # Solution-level override wins over the .akproj's own substrate.
@@ -122,9 +122,9 @@ path = "p"
             _mk(root, "p/p.akproj", """
 [project]
 name = "p"
-entry = "main.ak"
+entry = "main.su"
 """)
-            _mk(root, "p/main.ak", "function void Main() { return; }\n")
+            _mk(root, "p/main.su", "function void Main() { return; }\n")
 
             sln = load_solution(root / "s.aksln")
             self.assertEqual(sln.projects[0].substrate, "fly-brain")
@@ -210,9 +210,9 @@ akasha_version = "0.2"
 [[project]]
 path = "dup"
 """)
-            _mk(root, "dup/a.akproj", '[project]\nname="a"\nentry="main.ak"\n')
-            _mk(root, "dup/b.akproj", '[project]\nname="b"\nentry="main.ak"\n')
-            _mk(root, "dup/main.ak", "")
+            _mk(root, "dup/a.akproj", '[project]\nname="a"\nentry="main.su"\n')
+            _mk(root, "dup/b.akproj", '[project]\nname="b"\nentry="main.su"\n')
+            _mk(root, "dup/main.su", "")
             self._assert_error("SUT2005", root / "s.aksln")
 
     def test_aka2006_invalid_toml_in_project(self) -> None:
@@ -240,8 +240,8 @@ akasha_version = "0.2"
 [[project]]
 path = "p"
 """)
-            _mk(root, "p/p.akproj", '[project]\nentry="main.ak"\n')
-            _mk(root, "p/main.ak", "")
+            _mk(root, "p/p.akproj", '[project]\nentry="main.su"\n')
+            _mk(root, "p/main.su", "")
             self._assert_error("SUT2007", root / "s.aksln")
 
     def test_aka2008_dependency_name_mismatch(self) -> None:
@@ -261,18 +261,18 @@ path = "similarity"
             _mk(root, "corpus/corpus.akproj", """
 [project]
 name = "actually_different"
-entry = "main.ak"
+entry = "main.su"
 """)
-            _mk(root, "corpus/main.ak", "")
+            _mk(root, "corpus/main.su", "")
             _mk(root, "similarity/similarity.akproj", """
 [project]
 name = "similarity"
-entry = "main.ak"
+entry = "main.su"
 
 [project.dependencies]
 corpus = { path = "../corpus" }
 """)
-            _mk(root, "similarity/main.ak", "")
+            _mk(root, "similarity/main.su", "")
             self._assert_error("SUT2008", root / "s.aksln")
 
     def test_aka2009_entry_file_missing(self) -> None:
@@ -289,7 +289,7 @@ path = "p"
             _mk(root, "p/p.akproj", """
 [project]
 name = "p"
-entry = "does_not_exist.ak"
+entry = "does_not_exist.su"
 """)
             self._assert_error("SUT2009", root / "s.aksln")
 
@@ -307,12 +307,12 @@ path = "p"
             _mk(root, "p/p.akproj", """
 [project]
 name = "p"
-entry = "main.ak"
+entry = "main.su"
 
 [project.dependencies]
 ghost = { path = "../ghost" }
 """)
-            _mk(root, "p/main.ak", "")
+            _mk(root, "p/main.su", "")
             self._assert_error("SUT2010", root / "s.aksln")
 
     def test_aka2011_dependency_cycle(self) -> None:
@@ -332,21 +332,21 @@ path = "b"
             _mk(root, "a/a.akproj", """
 [project]
 name = "a"
-entry = "main.ak"
+entry = "main.su"
 
 [project.dependencies]
 b = { path = "../b" }
 """)
-            _mk(root, "a/main.ak", "")
+            _mk(root, "a/main.su", "")
             _mk(root, "b/b.akproj", """
 [project]
 name = "b"
-entry = "main.ak"
+entry = "main.su"
 
 [project.dependencies]
 a = { path = "../a" }
 """)
-            _mk(root, "b/main.ak", "")
+            _mk(root, "b/main.su", "")
             self._assert_error("SUT2011", root / "s.aksln")
 
     def test_aka2014_unknown_substrate(self) -> None:
@@ -364,9 +364,9 @@ path = "p"
             _mk(root, "p/p.akproj", """
 [project]
 name = "p"
-entry = "main.ak"
+entry = "main.su"
 """)
-            _mk(root, "p/main.ak", "")
+            _mk(root, "p/main.su", "")
             self._assert_error("SUT2014", root / "s.aksln")
 
 
