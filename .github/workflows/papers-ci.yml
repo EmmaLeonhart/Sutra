@@ -6,8 +6,8 @@ name: Papers CI — auto-submit and fetch reviews
 # resubmissions or backfills.
 #
 # Scoped explicitly to the two papers we are still iterating on:
-#   - sutra-paper/       ("Akasha: A Vector Programming Language ...")
-#   - fly-brain-paper/    ("Running Akasha on a Simulated Fly Brain ...")
+#   - sutra-paper/       ("Sutra: A Vector Programming Language ...")
+#   - fly-brain-paper/    ("Running Sutra on a Simulated Fly Brain ...")
 #
 # The Latent Space Cartography paper is deliberately NOT handled here —
 # it lives in its own repo (EmmaLeonhart/latent-space-cartography) and
@@ -53,7 +53,7 @@ jobs:
     name: Detect changed papers
     runs-on: ubuntu-latest
     outputs:
-      akasha: ${{ steps.filter.outputs.akasha }}
+      sutra: ${{ steps.filter.outputs.sutra }}
       fly_brain: ${{ steps.filter.outputs.fly_brain }}
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             if git log -1 --pretty=%B | grep -Eq "^Skip-Submit:[[:space:]]*true$"; then
               echo "Commit has Skip-Submit: true trailer — skipping both papers"
-              echo "akasha=false" >> "$GITHUB_OUTPUT"
+              echo "sutra=false" >> "$GITHUB_OUTPUT"
               echo "fly_brain=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -84,15 +84,15 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             case "${{ github.event.inputs.paper }}" in
               sutra-paper)
-                echo "akasha=true"    >> "$GITHUB_OUTPUT"
+                echo "sutra=true"    >> "$GITHUB_OUTPUT"
                 echo "fly_brain=false" >> "$GITHUB_OUTPUT"
                 ;;
               fly-brain-paper)
-                echo "akasha=false"   >> "$GITHUB_OUTPUT"
+                echo "sutra=false"   >> "$GITHUB_OUTPUT"
                 echo "fly_brain=true"  >> "$GITHUB_OUTPUT"
                 ;;
               both)
-                echo "akasha=true"    >> "$GITHUB_OUTPUT"
+                echo "sutra=true"    >> "$GITHUB_OUTPUT"
                 echo "fly_brain=true"  >> "$GITHUB_OUTPUT"
                 ;;
             esac
@@ -104,21 +104,21 @@ jobs:
           echo "changed files:"
           echo "$CHANGED"
 
-          akasha=false
+          sutra=false
           fly_brain=false
           if echo "$CHANGED" | grep -Eq '^sutra-paper/(paper|SKILL)\.md$'; then
-            akasha=true
+            sutra=true
           fi
           if echo "$CHANGED" | grep -Eq '^fly-brain-paper/(paper|SKILL)\.md$'; then
             fly_brain=true
           fi
-          echo "akasha=$akasha"       >> "$GITHUB_OUTPUT"
+          echo "sutra=$sutra"       >> "$GITHUB_OUTPUT"
           echo "fly_brain=$fly_brain" >> "$GITHUB_OUTPUT"
 
   submit:
     name: Submit ${{ matrix.paper_dir }}
     needs: detect-changed
-    if: needs.detect-changed.outputs.akasha == 'true' || needs.detect-changed.outputs.fly_brain == 'true'
+    if: needs.detect-changed.outputs.sutra == 'true' || needs.detect-changed.outputs.fly_brain == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -131,20 +131,20 @@ jobs:
       matrix:
         include:
           - paper_dir: sutra-paper
-            slug: akasha
-            title: "Akasha: A Vector Programming Language for Computation in Embedding Spaces"
-            tags: "programming-languages,vector-symbolic-architectures,embedding-spaces,fuzzy-logic,akasha"
+            slug: sutra
+            title: "Sutra: A Vector Programming Language for Computation in Embedding Spaces"
+            tags: "programming-languages,vector-symbolic-architectures,embedding-spaces,fuzzy-logic,sutra"
           - paper_dir: fly-brain-paper
             slug: fly_brain
-            title: "Running Akasha on a Simulated Fly Brain: Compile-to-Brain for a Vector Programming Language"
-            tags: "programming-languages,vector-symbolic-architectures,connectomics,drosophila,akasha,fly-brain"
+            title: "Running Sutra on a Simulated Fly Brain: Compile-to-Brain for a Vector Programming Language"
+            tags: "programming-languages,vector-symbolic-architectures,connectomics,drosophila,sutra,fly-brain"
     steps:
       - name: Skip if this paper did not change
         id: should_run
         run: |
           set -euo pipefail
-          if [ "${{ matrix.slug }}" = "akasha" ]; then
-            if [ "${{ needs.detect-changed.outputs.akasha }}" != "true" ]; then
+          if [ "${{ matrix.slug }}" = "sutra" ]; then
+            if [ "${{ needs.detect-changed.outputs.sutra }}" != "true" ]; then
               echo "skip=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi

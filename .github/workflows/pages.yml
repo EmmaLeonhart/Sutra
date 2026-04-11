@@ -1,13 +1,17 @@
 name: Deploy GitHub Pages site
 
-# Builds the Akasha language website with MkDocs Material and deploys
+# Builds the Sutra language website with MkDocs Material and deploys
 # it to GitHub Pages on every push to master that touches the docs
 # tree, the mkdocs config, the README, or the planning specs that the
 # docs reference. Uses the official actions/deploy-pages flow, so the
 # repo's Pages settings need to be set to "Source: GitHub Actions"
 # (Settings → Pages → Build and deployment → Source).
 #
-# Live at: https://emmaleonhart.github.io/Akasha
+# Live at: https://emmaleonhart.github.io/Sutralang
+# (the URL follows the GitHub repository name; rename EmmaLeonhart/Akasha
+#  to EmmaLeonhart/Sutralang on GitHub to switch the published URL. The
+#  workflow itself is repo-name-agnostic and does not need to be edited
+#  when the repo is renamed.)
 
 on:
   push:
