@@ -276,6 +276,10 @@ During the cartographic analysis that grounds Akasha, a previously unreported de
 
 This pathology demonstrates why Akasha requires substrate validation as part of empirical initiation. Notably, mxbai passes all algebraic validation gates — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound but still have silent corruption modes. Akasha's validation must therefore include both algebraic tests and pathology-specific probes.
 
+### 6.6 Biological Substrate: Compiling to a Mushroom Body Circuit
+
+The empirical initiation framework claims substrate-adaptivity: the same source code compiles for different embedding spaces given a calibration pass. We tested this claim against a substrate deliberately far outside the training distribution of the compiler — a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body (50 projection neurons → 2,000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, leaky integrate-and-fire dynamics, APL-enforced 5% Kenyon-cell sparsity). An Akasha source file describing a four-state conditional was parsed and validated by the same compiler used for the silicon experiments above (§6.1–§6.5), mechanically translated by a substrate-specific backend into calls against the spiking circuit, and executed. Across four program variants and four input conditions (sixteen decisions total), the compiled output produced the expected behavior mapping on every trial, with the four variants yielding four distinct permutations of the underlying prototype table. To our knowledge this is the first demonstration of a programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. The result serves as a non-silicon stress test for the substrate-agnostic claim in §4.2.
+
 ## 7. Discussion
 
 ### 7.1 What Akasha Is and Is Not
