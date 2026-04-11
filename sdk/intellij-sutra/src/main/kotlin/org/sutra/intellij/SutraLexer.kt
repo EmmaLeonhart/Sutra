@@ -133,7 +133,7 @@ class SutraLexer : LexerBase() {
             return
         }
 
-        // --- Illegal pipe-forward `|>` (AKA0110) ---
+        // --- Illegal pipe-forward `|>` (SUT0110) ---
         if (c == '|' && tokenStart + 1 < bufferEnd && buffer[tokenStart + 1] == '>') {
             tokenEnd = tokenStart + 2
             tokenType = SutraTokenTypes.PIPE_FORWARD

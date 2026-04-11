@@ -72,7 +72,7 @@ later scaffolds:
   [`planning/sutra-spec/20-ide-architecture.md`](../../planning/sutra-spec/20-ide-architecture.md)).
 - Fly-brain visualizer pane — see
   [`planning/fly-brain-visualizer.md`](../../planning/fly-brain-visualizer.md).
-- Debugger integration, solution/project system, scaffolding templates,
+- Debugger integration, workspace/project system, scaffolding templates,
   bundled vertical stack installer.
 
 ## Building

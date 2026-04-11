@@ -1,4 +1,4 @@
-package org.sutra.intellij.solution
+package org.sutra.intellij.workspace
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
@@ -25,16 +25,16 @@ import javax.swing.tree.TreePath
 import javax.swing.tree.TreeSelectionModel
 
 /**
- * Registers the **Sutra Solution** tool window — the v1 home for the
- * solution/project tree described in `planning/sutra-spec/22-solutions.md`.
+ * Registers the **Sutra Workspace** tool window — the v1 home for the
+ * workspace/project tree described in `planning/sutra-spec/22-workspaces.md`.
  *
  * On creation, the tool window scans the project root for the first
- * `.aksln` file (bounded depth, so it finishes fast even on large
- * repositories), loads the solution by shelling out to the Python
- * reference parser at `sutra_compiler.solution`, and renders the
+ * `atman.toml` file (bounded depth, so it finishes fast even on large
+ * repositories), loads the workspace by shelling out to the Python
+ * reference parser at `sutra_compiler.workspace`, and renders the
  * resulting structure as a `JTree` of:
  *
- *     solution (name, version, substrate)
+ *     workspace (name, version, substrate)
  *     ├── project (name, substrate, dependency summary)
  *     │   ├── source file 1
  *     │   ├── source file 2
@@ -42,16 +42,17 @@ import javax.swing.tree.TreeSelectionModel
  *     └── project ...
  *
  * Double-clicking any node opens the corresponding file in the
- * editor. A project node opens its `.akproj`, a solution node
- * opens its `.aksln`, a source node opens the `.su` file.
+ * editor. A project node opens its own `atman.toml`, the workspace
+ * root node opens the root `atman.toml`, a source node opens the
+ * `.su` file.
  *
  * Out of scope for v1 (explicit v1.1 follow-ups named in the spec):
  * `ProjectOpenProcessor` auto-detect on folder open, source-root
  * configuration via `ModuleRootModificationUtil`, run configurations
  * that wrap `sutrac --emit-flybrain` / similar, and the MCP tool
- * surface for querying the solution from an agent.
+ * surface for querying the workspace from an agent.
  */
-class SutraSolutionToolWindowFactory : ToolWindowFactory {
+class SutraWorkspaceToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val panel = JPanel(BorderLayout())
@@ -61,7 +62,7 @@ class SutraSolutionToolWindowFactory : ToolWindowFactory {
         statusLabel.border = BorderFactory.createEmptyBorder(0, 0, 6, 0)
         panel.add(statusLabel, BorderLayout.NORTH)
 
-        val treeRoot = DefaultMutableTreeNode("Sutra Solution")
+        val treeRoot = DefaultMutableTreeNode("Sutra Workspace")
         val treeModel = DefaultTreeModel(treeRoot)
         val tree = JTree(treeModel)
         tree.selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
@@ -92,35 +93,35 @@ class SutraSolutionToolWindowFactory : ToolWindowFactory {
             val basePath = project.basePath?.let { Path.of(it) }
             if (basePath == null) {
                 SwingUtilities.invokeLater {
-                    statusLabel.text = "Project has no base path — cannot scan for solution"
+                    statusLabel.text = "Project has no base path — cannot scan for workspace"
                 }
                 return@executeOnPooledThread
             }
-            val aksFile = SutraSolutionLoader.findSolutionFile(basePath)
-            if (aksFile == null) {
+            val atmanFile = SutraWorkspaceLoader.findWorkspaceFile(basePath)
+            if (atmanFile == null) {
                 SwingUtilities.invokeLater {
-                    statusLabel.text = "<html>No <code>.aksln</code> file found in this project. " +
-                        "Create one and click the refresh icon on the tool window toolbar " +
-                        "(coming in v1.1) to reload.</html>"
+                    statusLabel.text = "<html>No <code>atman.toml</code> file found in this project. " +
+                        "Create one at the project root and click the refresh icon on the tool " +
+                        "window toolbar (coming in v1.1) to reload.</html>"
                 }
                 return@executeOnPooledThread
             }
-            when (val result = SutraSolutionLoader.loadSolution(aksFile)) {
-                is SutraSolutionLoadResult.Failure -> {
+            when (val result = SutraWorkspaceLoader.loadWorkspace(atmanFile)) {
+                is SutraWorkspaceLoadResult.Failure -> {
                     SwingUtilities.invokeLater {
                         statusLabel.text =
-                            "<html>Failed to load ${aksFile.fileName}: " +
+                            "<html>Failed to load ${atmanFile.fileName}: " +
                             "<code>${escapeHtml(result.message)}</code></html>"
                     }
                 }
-                is SutraSolutionLoadResult.Success -> {
+                is SutraWorkspaceLoadResult.Success -> {
                     SwingUtilities.invokeLater {
                         statusLabel.text =
-                            "<html><b>${escapeHtml(result.solution.name)}</b> " +
-                            "&middot; v${escapeHtml(result.solution.sutraVersion)} " +
+                            "<html><b>${escapeHtml(result.workspace.name)}</b> " +
+                            "&middot; v${escapeHtml(result.workspace.sutraVersion)} " +
                             "&middot; substrate " +
-                            "<code>${escapeHtml(result.solution.defaultSubstrate)}</code></html>"
-                        populateTree(treeRoot, treeModel, result.solution)
+                            "<code>${escapeHtml(result.workspace.defaultSubstrate)}</code></html>"
+                        populateTree(treeRoot, treeModel, result.workspace)
                         tree.expandRow(0)
                         for (i in 0 until tree.rowCount) tree.expandRow(i)
                     }
@@ -132,33 +133,26 @@ class SutraSolutionToolWindowFactory : ToolWindowFactory {
     private fun populateTree(
         root: DefaultMutableTreeNode,
         model: DefaultTreeModel,
-        solution: SutraSolutionModel,
+        workspace: SutraWorkspaceModel,
     ) {
         root.removeAllChildren()
         root.userObject = NodePayload(
-            display = "📦 ${solution.name}",
-            filePath = solution.aksFile,
+            display = "📦 ${workspace.name}",
+            filePath = workspace.atmanFile,
         )
-        for (project in solution.projects) {
+        for (project in workspace.projects) {
             val depSummary = if (project.dependencies.isEmpty()) {
                 ""
             } else {
                 " (depends on: " + project.dependencies.joinToString(", ") { it.name } + ")"
             }
+            // Every project's atman.toml is at a fixed relative path
+            // from the project directory — no discovery needed.
+            val projectAtman = project.path.resolve("atman.toml")
             val projectNode = DefaultMutableTreeNode(
                 NodePayload(
                     display = "📁 ${project.name} [${project.substrate}]$depSummary",
-                    filePath = project.path.resolve(project.name + ".akproj")
-                        .let { candidate ->
-                            // Fall back to the first .akproj in the directory if
-                            // the naming convention `{name}.akproj` does not hold
-                            // (the solution file's `akproj = "..."` override can
-                            // point at an arbitrary filename).
-                            if (candidate.toFile().isFile) candidate
-                            else project.path.toFile().listFiles { f ->
-                                f.isFile && f.name.endsWith(".akproj")
-                            }?.firstOrNull()?.toPath() ?: project.path
-                        },
+                    filePath = projectAtman,
                 )
             )
             for (src in project.sources) {
@@ -205,6 +199,6 @@ class SutraSolutionToolWindowFactory : ToolWindowFactory {
     }
 
     companion object {
-        private val LOG = Logger.getInstance(SutraSolutionToolWindowFactory::class.java)
+        private val LOG = Logger.getInstance(SutraWorkspaceToolWindowFactory::class.java)
     }
 }
