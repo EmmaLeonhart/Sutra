@@ -127,5 +127,36 @@
             anchor="right"
             icon="AllIcons.Toolwindows.ToolWindowStructure"
             factoryClass="org.akasha.intellij.viz.AkashaFlyBrainToolWindowFactory"/>
+
+        <!-- Solution file types. Registered as plain-text so users
+             still get basic editor support even without the bundled
+             TOML plugin. Users who want TOML syntax highlighting can
+             associate these extensions with the TOML file type via
+             Settings - Editor - File Types. See
+             planning/akasha-spec/22-solutions.md for the format spec. -->
+        <fileType
+            name="Akasha Solution"
+            language="TEXT"
+            implementationClass="org.akasha.intellij.solution.AkashaSolutionFileType"
+            fieldName="INSTANCE"
+            extensions="aksln"/>
+        <fileType
+            name="Akasha Project"
+            language="TEXT"
+            implementationClass="org.akasha.intellij.solution.AkashaProjectFileType"
+            fieldName="INSTANCE"
+            extensions="akproj"/>
+
+        <!-- Akasha Solution tool window. Lives on the left by default
+             because it is a project-structure browser, next to the
+             built-in Project view. Scans the project root for a
+             .aksln file and renders the solution structure as a tree
+             of projects and source files, with double-click to open. -->
+        <toolWindow
+            id="Akasha Solution"
+            anchor="left"
+            secondary="true"
+            icon="AllIcons.Toolwindows.ToolWindowModuleDependencies"
+            factoryClass="org.akasha.intellij.solution.AkashaSolutionToolWindowFactory"/>
     </extensions>
 </idea-plugin>
