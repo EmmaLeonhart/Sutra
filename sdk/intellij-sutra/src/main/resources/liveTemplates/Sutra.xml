@@ -1,0 +1,235 @@
+<templateSet group="Sutra">
+
+    <template name="function"
+              value="function $RET$ $NAME$($ARGS$) {&#10;    return $BODY$;&#10;}"
+              description="Free function. Return type precedes the name (C# style)."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="RET" expression="" defaultValue="&quot;vector&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;Name&quot;" alwaysStopAt="true"/>
+        <variable name="ARGS" expression="" defaultValue="&quot;vector a&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="&quot;a&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="funpub"
+              value="function public static $RET$ $NAME$($ARGS$) {&#10;    return $BODY$;&#10;}"
+              description="Public static function — the fully spelled-out form."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="RET" expression="" defaultValue="&quot;vector&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;Name&quot;" alwaysStopAt="true"/>
+        <variable name="ARGS" expression="" defaultValue="&quot;vector a&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="&quot;a&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="funpriv"
+              value="private function $RET$ $NAME$($ARGS$) {&#10;    return $BODY$;&#10;}"
+              description="Private helper function."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="RET" expression="" defaultValue="&quot;vector&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;Helper&quot;" alwaysStopAt="true"/>
+        <variable name="ARGS" expression="" defaultValue="&quot;vector v&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="&quot;v&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="method"
+              value="method $RET$ $NAME$() {&#10;    return this.$FIELD$;&#10;}"
+              description="Method attached to the enclosing object file."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="RET" expression="" defaultValue="&quot;string&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;GetName&quot;" alwaysStopAt="true"/>
+        <variable name="FIELD" expression="" defaultValue="&quot;name&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="smethod"
+              value="static method $TYPE$ $NAME$() {&#10;    return ($TYPE$) embed(&quot;$ARCHE$&quot;);&#10;}"
+              description="Static method — archetype factory pattern."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="TYPE" expression="" defaultValue="&quot;Animal&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;GetArchetype&quot;" alwaysStopAt="true"/>
+        <variable name="ARCHE" expression="" defaultValue="&quot;archetype&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="operator"
+              value="function operator $OP$($TYPE$ a, $TYPE$ b) {&#10;    return $BODY$;&#10;}"
+              description="Operator overload."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="OP" expression="" defaultValue="&quot;+&quot;" alwaysStopAt="true"/>
+        <variable name="TYPE" expression="" defaultValue="&quot;vector&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="&quot;Bundle(a, b)&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="generic"
+              value="function $T$ $NAME$&lt;$T$&gt;($T$ value) {&#10;    return value;&#10;}"
+              description="Generic function."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="T" expression="" defaultValue="&quot;T&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;Identity&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="if"
+              value="if ($COND$) {&#10;    $THEN$&#10;} else {&#10;    $ELSE$&#10;}"
+              description="if/else block — condition must be bool or fuzzy."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="&quot;condition&quot;" alwaysStopAt="true"/>
+        <variable name="THEN" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="ELSE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="elif"
+              value="} else if ($COND$) {&#10;    $BODY$"
+              description="else-if branch of an existing if."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="&quot;condition&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="while"
+              value="while ($COND$) {&#10;    $BODY$&#10;}"
+              description="while loop."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="&quot;condition&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="for"
+              value="for (var $I$ = 0; $I$ &lt; $N$; $I$++) {&#10;    $BODY$&#10;}"
+              description="C-style for loop with an inferred counter."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="I" expression="" defaultValue="&quot;i&quot;" alwaysStopAt="true"/>
+        <variable name="N" expression="" defaultValue="&quot;Length(items)&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="foreach"
+              value="foreach (var $ITEM$ in $COLL$) {&#10;    $BODY$&#10;}"
+              description="foreach loop over a tuple or collection."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="ITEM" expression="" defaultValue="&quot;item&quot;" alwaysStopAt="true"/>
+        <variable name="COLL" expression="" defaultValue="&quot;items&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="do"
+              value="do {&#10;    $BODY$&#10;} while ($COND$);"
+              description="do-while loop."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="COND" expression="" defaultValue="&quot;condition&quot;" alwaysStopAt="true"/>
+        <variable name="BODY" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="try"
+              value="try {&#10;    $TRY$&#10;} catch {&#10;    $CATCH$&#10;}"
+              description="try/catch block — catch fires on failure-pattern match."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="TRY" expression="" defaultValue="&quot;Cat c = (Cat) a;&quot;" alwaysStopAt="true"/>
+        <variable name="CATCH" expression="" defaultValue="&quot;return DefaultCat();&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="var"
+              value="var $NAME$ = $VALUE$;"
+              description="Inferred-type mutable binding."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="&quot;name&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="&quot;value&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="const"
+              value="const $NAME$ = $VALUE$;"
+              description="Immutable binding with inferred type."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="&quot;name&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="&quot;value&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="embed"
+              value="vector $NAME$ = embed(&quot;$TEXT$&quot;);"
+              description="Embed a string into vector space."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="&quot;name&quot;" alwaysStopAt="true"/>
+        <variable name="TEXT" expression="" defaultValue="&quot;text&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="unsafe"
+              value="$TYPE$ $NAME$ = unsafeCast&lt;$TYPE$&gt;($VALUE$);"
+              description="Unsafe cast — reinterpret a value as a different type."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="TYPE" expression="" defaultValue="&quot;fuzzy&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;signal&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="&quot;value&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="defuzzy"
+              value="bool $NAME$ = defuzzy($SIGNAL$);"
+              description="Collapse a fuzzy truth value into a concrete bool."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="&quot;ready&quot;" alwaysStopAt="true"/>
+        <variable name="SIGNAL" expression="" defaultValue="&quot;signal&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="str"
+              value="$&quot;$LABEL$: {$VALUE$}&quot;"
+              description="C#-style interpolated string."
+              toReformat="false"
+              toShortenFQNames="true">
+        <variable name="LABEL" expression="" defaultValue="&quot;label&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="&quot;value&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="fuzzycheck"
+              value="fuzzy $Q$ = unsafeCast&lt;fuzzy&gt;(Cosine($RESULT$, $EXPECTED$));&#10;if (defuzzy($Q$)) {&#10;    return $RESULT$;&#10;} else {&#10;    return Fallback($RESULT$);&#10;}"
+              description="Fuzzy-quality-check-then-branch pattern."
+              toReformat="true"
+              toShortenFQNames="true">
+        <variable name="Q" expression="" defaultValue="&quot;quality&quot;" alwaysStopAt="true"/>
+        <variable name="RESULT" expression="" defaultValue="&quot;result&quot;" alwaysStopAt="true"/>
+        <variable name="EXPECTED" expression="" defaultValue="&quot;ExpectedPattern()&quot;" alwaysStopAt="true"/>
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+    <template name="main"
+              value="function string Main() {&#10;    return &quot;main&quot;;&#10;}&#10;&#10;function.Main();"
+              description="Top-level Main() with the documented execution idiom."
+              toReformat="true"
+              toShortenFQNames="true">
+        <context><option name="SUTRA" value="true"/></context>
+    </template>
+
+</templateSet>

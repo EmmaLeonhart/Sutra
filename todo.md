@@ -5,7 +5,10 @@
 During the Akasha → Sutra rename, directory-level renames failed with "Permission denied" because OneDrive and/or File Explorer were holding handles on the old directory trees. The workaround was: `cp -r <old> <new>` + `git rm --cached -r <old>`, which leaves the old directories on disk as filesystem orphans while git sees them as cleanly renamed. After the next computer restart (which releases all the stale handles), delete these old directories from the filesystem manually — they're already gone from git's tracking:
 
 - `sdk/akasha-compiler/` (renamed to `sdk/sutra-compiler/`)
+- `sdk/intellij-akasha/` (renamed to `sdk/intellij-sutra/`)
 - (more directories will be added here as the rename proceeds)
+
+**These old directories are no longer used by anything — the git index already points at the new paths, Gradle/CI/scripts all reference the new paths, and tests run against the new copies. They're inert leftover files on disk only. Just `rm -rf` them after the restart.**
 
 After deleting: `git status` should show nothing. If any of these directories still exist and still contain files, just `rm -rf` them — git already considers them gone.
 
