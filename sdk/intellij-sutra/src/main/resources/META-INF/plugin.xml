@@ -128,35 +128,21 @@
             icon="AllIcons.Toolwindows.ToolWindowStructure"
             factoryClass="org.sutra.intellij.viz.SutraFlyBrainToolWindowFactory"/>
 
-        <!-- Solution file types. Registered as plain-text so users
-             still get basic editor support even without the bundled
-             TOML plugin. Users who want TOML syntax highlighting can
-             associate these extensions with the TOML file type via
-             Settings - Editor - File Types. See
-             planning/sutra-spec/22-solutions.md for the format spec. -->
-        <fileType
-            name="Sutra Solution"
-            language="TEXT"
-            implementationClass="org.sutra.intellij.solution.SutraSolutionFileType"
-            fieldName="INSTANCE"
-            extensions="aksln"/>
-        <fileType
-            name="Sutra Project"
-            language="TEXT"
-            implementationClass="org.sutra.intellij.solution.SutraProjectFileType"
-            fieldName="INSTANCE"
-            extensions="akproj"/>
-
-        <!-- Sutra Solution tool window. Lives on the left by default
+        <!-- Sutra Workspace tool window. Lives on the left by default
              because it is a project-structure browser, next to the
-             built-in Project view. Scans the project root for a
-             .aksln file and renders the solution structure as a tree
-             of projects and source files, with double-click to open. -->
+             built-in Project view. Scans the project root for an
+             atman.toml file and renders the workspace structure as a
+             tree of projects and source files, with double-click to
+             open. No custom file type registration is needed — the
+             bundled IntelliJ TOML plugin already handles atman.toml
+             as a .toml file, and the workspace tool window
+             disambiguates by filename at scan time. See
+             planning/sutra-spec/22-workspaces.md for the format spec. -->
         <toolWindow
-            id="Sutra Solution"
+            id="Sutra Workspace"
             anchor="left"
             secondary="true"
             icon="AllIcons.Toolwindows.ToolWindowModuleDependencies"
-            factoryClass="org.sutra.intellij.solution.SutraSolutionToolWindowFactory"/>
+            factoryClass="org.sutra.intellij.workspace.SutraWorkspaceToolWindowFactory"/>
     </extensions>
 </idea-plugin>
