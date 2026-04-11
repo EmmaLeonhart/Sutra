@@ -1,4 +1,4 @@
-// Akasha corpus test: boolean literals and other primitives.
+// Sutra corpus test: boolean literals and other primitives.
 // Covers: true/false literals, mixing with fuzzy, const declarations.
 
 function bool LiteralTrue() {

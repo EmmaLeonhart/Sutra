@@ -1,4 +1,4 @@
-"""High-level validator for Akasha source.
+"""High-level validator for Sutra source.
 
 The validator runs after the parser. It walks the AST and emits
 diagnostics for rules that the syntax-decisions document calls out as
@@ -8,7 +8,7 @@ Rules implemented in v0.1:
 
 - SUT0103: `var TYPE x` — `var` combined with an explicit type. (The
   parser already emits this; the validator doesn't need to re-check.)
-- SUT0110: `|>` pipe-forward operator is not supported in Akasha.
+- SUT0110: `|>` pipe-forward operator is not supported in Sutra.
 - SUT0111: `(vector) "string"` (or any primitive-cast applied to a
   string literal) — per the spec, string→vector must go through
   `embed(...)`, not a cast.
@@ -54,7 +54,7 @@ def validate_source(
     *,
     file: Optional[str] = None,
 ) -> DiagnosticBag:
-    """Lex, parse, and validate a string of Akasha source."""
+    """Lex, parse, and validate a string of Sutra source."""
     lexer = Lexer(source, file=file)
     tokens = lexer.tokenize()
     bag = lexer.diagnostics
@@ -80,13 +80,13 @@ def validate_file(path: str) -> DiagnosticBag:
 def _check_pipe_forward(tokens, bag: DiagnosticBag) -> None:
     """Flag any `|>` pipe-forward tokens.
 
-    The spec is explicit: Akasha does not have a pipe operator; use
+    The spec is explicit: Sutra does not have a pipe operator; use
     nested calls or method chaining instead.
     """
     for tok in tokens:
         if tok.kind is TokenKind.PIPE_FORWARD:
             bag.error(
-                "the `|>` pipe-forward operator is not supported in Akasha",
+                "the `|>` pipe-forward operator is not supported in Sutra",
                 tok.span,
                 code="SUT0110",
                 hint="use nested calls (`Normalize(Blend(a, b))`) or method chaining (`a.Blend(b).Normalize()`)",

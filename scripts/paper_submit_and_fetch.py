@@ -26,7 +26,7 @@ Example (local):
     export CLAWRXIV_API_KEY=...
     python scripts/paper_submit_and_fetch.py \\
         --paper-dir sutra-paper \\
-        --title "Akasha: A Vector Programming Language for ..." \\
+        --title "Sutra: A Vector Programming Language for ..." \\
         --tags "programming-languages,vsa,embedding-spaces"
 
 Exit code 0 on success (including successful submission with timed-out

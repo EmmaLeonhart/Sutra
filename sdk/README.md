@@ -1,19 +1,19 @@
-# Akasha SDK
+# Sutra SDK
 
-Language tooling for **Akasha** — the fuzzy-by-default vector
+Language tooling for **Sutra** — the fuzzy-by-default vector
 programming language. This directory contains the compiler/validator
 and the editor integrations that build on it.
 
 ```
 sdk/
-  akasha-compiler/      Python package: lexer, parser, validator, CLI
-    akasha_compiler/
+  sutra-compiler/      Python package: lexer, parser, validator, CLI
+    sutra_compiler/
       lexer.py
       parser.py
       validator.py
       diagnostics.py
       ast_nodes.py
-      __main__.py       CLI entry: `python -m akasha_compiler`
+      __main__.py       CLI entry: `python -m sutra_compiler`
     tests/
       corpus/
         valid/          20 .su files, zero diagnostics expected
@@ -21,40 +21,40 @@ sdk/
       test_lexer.py     22 lexer unit tests
       test_parser.py    25 parser unit tests
       test_corpus.py     8 corpus-walking tests
-  vscode-akasha/        VS Code extension
+  vscode-sutra/        VS Code extension
     package.json
     language-configuration.json
-    syntaxes/akasha.tmLanguage.json
-    snippets/akasha.json
+    syntaxes/sutra.tmLanguage.json
+    snippets/sutra.json
     src/extension.ts
     README.md
-  intellij-akasha/      IntelliJ Platform plugin (the *reference* IDE)
+  intellij-sutra/      IntelliJ Platform plugin (the *reference* IDE)
     build.gradle.kts
     settings.gradle.kts
     gradle.properties
-    src/main/kotlin/org/akasha/intellij/...
+    src/main/kotlin/org/sutra/intellij/...
     src/main/resources/META-INF/plugin.xml
-    src/main/resources/liveTemplates/Akasha.xml
-    src/main/resources/icons/akasha.svg
+    src/main/resources/liveTemplates/Sutra.xml
+    src/main/resources/icons/sutra.svg
     README.md
 ```
 
 The VS Code extension is a community convenience. The **reference**
 development environment, per
 [`planning/sutra-spec/20-ide-architecture.md`](../planning/sutra-spec/20-ide-architecture.md),
-is the IntelliJ plugin under `intellij-akasha/`. All three editor
+is the IntelliJ plugin under `intellij-sutra/`. All three editor
 touchpoints — VS Code, IntelliJ, and direct CLI use — shell out to the
-same `akasha_compiler` Python package as ground truth.
+same `sutra_compiler` Python package as ground truth.
 
 ## Quickstart
 
-### Validate existing Akasha code
+### Validate existing Sutra code
 
 From the repo root:
 
 ```bash
-cd sdk/akasha-compiler
-python -m akasha_compiler ../../sutra-demo-program.su ../../examples ../../fly-brain
+cd sdk/sutra-compiler
+python -m sutra_compiler ../../sutra-demo-program.su ../../examples ../../fly-brain
 ```
 
 This walks every `.su` file under the given paths and reports any
@@ -64,7 +64,7 @@ lexical, syntactic, or semantic issues in the standard
 ### Check cross-file consistency
 
 ```bash
-python -m akasha_compiler --consistency ../../sutra-demo-program.su ../../examples ../../fly-brain
+python -m sutra_compiler --consistency ../../sutra-demo-program.su ../../examples ../../fly-brain
 ```
 
 Reports class names that appear in multiple casings across the file
@@ -74,19 +74,19 @@ exactly the kind of drift we found in the existing repo).
 ### JSON output (for editors / CI)
 
 ```bash
-python -m akasha_compiler --json path/to/file.su
+python -m sutra_compiler --json path/to/file.su
 ```
 
 ### Summary table
 
 ```bash
-python -m akasha_compiler --summary tests/corpus/valid tests/corpus/invalid
+python -m sutra_compiler --summary tests/corpus/valid tests/corpus/invalid
 ```
 
 ### Run the unit tests
 
 ```bash
-cd sdk/akasha-compiler
+cd sdk/sutra-compiler
 python -m unittest discover -s tests -t .
 ```
 
@@ -132,7 +132,7 @@ python -m unittest discover -s tests -t .
 
 ## Solution structures
 
-The Akasha spec mentions C#-esque solution structures as a
+The Sutra spec mentions C#-esque solution structures as a
 *permitted* but optional layout. The v0.1 SDK doesn't know about
 solution files — it operates on individual `.su` sources and
 command-line file lists. A future version will add a `.aksol` or
@@ -159,7 +159,7 @@ by `examples/06-executable-file.su` in the repo root.
 
 The compiler is pure Python stdlib. No build step. No dependencies.
 The VS Code extension uses TypeScript for its small activation
-module — run `npm install && npm run compile` in `vscode-akasha/`
+module — run `npm install && npm run compile` in `vscode-sutra/`
 before pressing F5 to launch an Extension Development Host.
 
-See `vscode-akasha/README.md` for editor-specific setup.
+See `vscode-sutra/README.md` for editor-specific setup.

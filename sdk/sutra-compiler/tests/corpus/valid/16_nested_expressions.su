@@ -1,4 +1,4 @@
-// Akasha corpus test: deeply nested expressions.
+// Sutra corpus test: deeply nested expressions.
 // Covers: function calls inside casts inside interpolations inside
 // function calls. The kind of thing that trips up lookahead-limited
 // parsers.

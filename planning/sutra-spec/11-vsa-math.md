@@ -2,14 +2,14 @@
 
 ## VSA Is Algebra, HDC Is Engineering
 
-A critical distinction that Akasha's documentation must maintain:
+A critical distinction that Sutra's documentation must maintain:
 
 - **Vector Symbolic Architecture (VSA)** is the algebra — the formal mathematical framework defining operations (bind, bundle, similarity) and their properties over high-dimensional vector spaces. It is as rigorous as Boolean algebra or linear algebra.
 - **Hyperdimensional Computing (HDC)** is the engineering application — specific choices about dimensionality (10,000? 100,000?), vector type (binary? bipolar? continuous?), specific tasks (classification? retrieval? reasoning?), hardware implementation.
 
 The relationship is: **Boolean algebra is to digital circuits as VSA is to HDC.** Boolean algebra defines AND, OR, NOT and their properties. Digital circuit design uses those operations to build useful things. VSA defines bind, bundle, similarity and their properties. HDC uses those operations to build useful things.
 
-Akasha operates at the VSA level. Its semantics are defined in terms of algebraic operations. The specific dimensionality, embedding model, and hardware are implementation details handled by empirical initiation.
+Sutra operates at the VSA level. Its semantics are defined in terms of algebraic operations. The specific dimensionality, embedding model, and hardware are implementation details handled by empirical initiation.
 
 ## Concentration of Measure
 
@@ -24,7 +24,7 @@ These properties are **theorems**, not empirical observations. They follow from 
 
 ## The Eight Axioms
 
-Akasha's computational substrate must satisfy the eight axioms of a real vector space. LLM embedding spaces do, because they are subsets of R^n:
+Sutra's computational substrate must satisfy the eight axioms of a real vector space. LLM embedding spaces do, because they are subsets of R^n:
 
 1. **Commutativity of addition:** u + v = v + u
 2. **Associativity of addition:** (u + v) + w = u + (v + w)
@@ -35,13 +35,13 @@ Akasha's computational substrate must satisfy the eight axioms of a real vector 
 7. **Distributivity over vector addition:** a(u + v) = au + av
 8. **Distributivity over scalar addition:** (a + b)v = av + bv
 
-Because Akasha operates in a real vector space, it inherits the **entire toolkit of linear algebra** for free: subspaces, bases, dimension, linear maps, eigendecomposition, projections, orthogonal complements. These are all valid Akasha operations because the substrate satisfies the axioms.
+Because Sutra operates in a real vector space, it inherits the **entire toolkit of linear algebra** for free: subspaces, bases, dimension, linear maps, eigendecomposition, projections, orthogonal complements. These are all valid Sutra operations because the substrate satisfies the axioms.
 
-The abstraction is powerful: Akasha programs work regardless of what the vectors "actually are" — Wikidata entities, English words, protein sequences, user behavior embeddings. If the space satisfies the axioms and passes empirical initiation, Akasha can compute in it.
+The abstraction is powerful: Sutra programs work regardless of what the vectors "actually are" — Wikidata entities, English words, protein sequences, user behavior embeddings. If the space satisfies the axioms and passes empirical initiation, Sutra can compute in it.
 
 ## Embeddings Are Domain-Agnostic
 
-Akasha's vectors should not be conceived as "word embeddings" or "text embeddings." Embeddings are a general technique for mapping **any discrete categorical input** into dense continuous vector space:
+Sutra's vectors should not be conceived as "word embeddings" or "text embeddings." Embeddings are a general technique for mapping **any discrete categorical input** into dense continuous vector space:
 
 - Words and subwords (NLP)
 - User IDs and product IDs (recommender systems)
@@ -52,4 +52,4 @@ Akasha's vectors should not be conceived as "word embeddings" or "text embedding
 
 The embedding matrix is **learned jointly** with the rest of the network — gradients flow back through the model into the embedding weights, shaping how meanings get encoded. This is why embedding spaces have algebraic structure: the training process optimizes for relationships between entities, and those relationships manifest as geometric regularities.
 
-Akasha can in principle operate in any of these embedding spaces. The substrate is not "language" — it's "learned dense representations of structured domains." This broadens Akasha's applicability far beyond NLP.
+Sutra can in principle operate in any of these embedding spaces. The substrate is not "language" — it's "learned dense representations of structured domains." This broadens Sutra's applicability far beyond NLP.

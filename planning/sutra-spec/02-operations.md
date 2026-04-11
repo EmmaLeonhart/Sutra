@@ -1,6 +1,6 @@
 # Operations
 
-Akasha has three tiers of operations, ordered by cost and abstraction level:
+Sutra has three tiers of operations, ordered by cost and abstraction level:
 
 1. **Primitive operations** — scalars, tuples, integer iteration. The scaffolding that isn't vector computation at all.
 2. **Algebraic / VSA operations** — bind, bundle, unbind, similarity, projection. The core vector algebra. O(1), pure math, no infrastructure needed.
@@ -16,7 +16,7 @@ alpha = 0.7
 count = 10
 threshold = 0.85
 ```
-Scalars exist in Akasha but are **not considered vectors**. They are plain numbers used for:
+Scalars exist in Sutra but are **not considered vectors**. They are plain numbers used for:
 - Weighting vectors (scalar multiplication: `alpha * v`)
 - Thresholds for `is_true` defuzzification
 - Loop counters for bounded iteration
@@ -66,7 +66,7 @@ Binding encodes key-value pairs and role-filler structures. The result is **diss
 
 **CRITICAL FINDING:** The traditional VSA binding operation (Hadamard / elementwise product) **fails on natural embedding spaces**. Empirical testing on GTE-large (1024d) shows that bundled structures with Hadamard binding lose all signal at 2+ role-filler pairs — the crosstalk from correlated (non-orthogonal) natural embeddings overwhelms the target.
 
-Akasha uses **sign-flip binding** as its default and **rotation binding** as its high-accuracy alternative:
+Sutra uses **sign-flip binding** as its default and **rotation binding** as its high-accuracy alternative:
 
 #### Sign-Flip Binding (Default)
 ```
@@ -163,7 +163,7 @@ destination = hop(origin, relation)
 ```
 Given a starting vector and a relation type, traverse to connected vectors in the semantic graph. This extends cone traversal with typed edges — not just "what's nearby in this direction" but "what's connected by this specific relationship."
 
-**Cost:** Depends on graph indexing. The graph structure isn't fixed ahead of time — the vector state influences which edges get traversed, which is what gives Akasha the potential for unbounded computation.
+**Cost:** Depends on graph indexing. The graph structure isn't fixed ahead of time — the vector state influences which edges get traversed, which is what gives Sutra the potential for unbounded computation.
 
 ## Summary: Three Tiers
 

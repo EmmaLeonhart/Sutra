@@ -1,4 +1,4 @@
-// Akasha corpus test: dot-chained method calls.
+// Sutra corpus test: dot-chained method calls.
 // Covers: method chaining as the alternative to pipe-forward,
 // nested calls as the other alternative.
 

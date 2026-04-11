@@ -1,15 +1,15 @@
-# Fly-Brain Akasha: Status and Roadmap
+# Fly-Brain Sutra: Status and Roadmap
 
 *Companion to `DEMO.md` (audience summary) and `../fly-brain-paper/paper.md`
 (the paper-shaped methodology writeup — moved from `fly-brain/METHODOLOGY.md`
 to `fly-brain-paper/paper.md` when the fly-brain writeup became a first-class
 Claw4S submission). This doc is the honest state of the fly-brain branch of
-Akasha: what's been accomplished, what the technical insights are, and
+Sutra: what's been accomplished, what the technical insights are, and
 what has to happen next.*
 
 ## TL;DR
 
-We built the first end-to-end pipeline where an Akasha programming
+We built the first end-to-end pipeline where an Sutra programming
 language source file compiles down to operations on a simulated
 biological connectome — the *Drosophila melanogaster* mushroom body
 circuit (50 PNs → 2000 KCs → APL → 20 MBONs, Brian2 spiking model).
@@ -17,7 +17,7 @@ Two working demos prove two distinct claims:
 
 1. **Programmer agency.** `programmer_control_demo.py`: same substrate,
    different code, different output. One-character source diffs flip
-   the entire behavior mapping. This rules out "Akasha is a pattern
+   the entire behavior mapping. This rules out "Sutra is a pattern
    somebody found" and establishes it as a language.
 2. **Compile-to-brain.** `permutation_conditional.py`: the `if/else`
    tree compiles *into* the mushroom body as a prototype table plus
@@ -39,7 +39,7 @@ piece. We captured all three.
 
 ### Runtime (`vsa_operations.py`, `spike_vsa_bridge.py`, `mushroom_body_model.py`)
 
-The Akasha → fly brain execution layer. A `FlyBrainVSA` instance
+The Sutra → fly brain execution layer. A `FlyBrainVSA` instance
 exposes the VSA primitives the language needs:
 
 | Operation | Implementation |
@@ -162,7 +162,7 @@ matching patterns cosine at 1.0, non-matching at 0.3–0.7. Clean 4-way
 separation.
 
 **Why this matters for the language, not just the demo.** Every snap
-in a compiled Akasha program has to share mushroom body connectivity
+in a compiled Sutra program has to share mushroom body connectivity
 or the prototype-matching step is meaningless. That's a runtime
 contract: "during one program execution, there is exactly one MB
 connectivity matrix and every `snap` goes through it." The language
@@ -192,7 +192,7 @@ natural mushroom-body implementation of `bind` (the MB does random
 projection, not sign-flip multiplication), and there's no
 straightforward way to do unbind. The hybrid design (algebra in
 numpy, cleanup in the MB) reflects that honestly. A fully-biological
-Akasha runtime would need a different substrate — or a proposed
+Sutra runtime would need a different substrate — or a proposed
 extension to the MB model that implements binding biologically.
 Neither exists yet.
 
@@ -200,7 +200,7 @@ Neither exists yet.
 
 This is the surprise that fell out of wiring up the SDK validator in
 this same session: **`permutation_conditional.su` uses several
-constructs that aren't in the Akasha spec.** The validator fires 16
+constructs that aren't in the Sutra spec.** The validator fires 16
 diagnostics on that one file. Every diagnostic is a real language gap,
 not a bug in the source — the fly-brain work is running ahead of what
 the language formally supports.
@@ -219,10 +219,10 @@ Specifically:
 Two conclusions fall out of this:
 
 1. **The SDK was worth building.** Without the validator we wouldn't
-   know this — we'd keep writing Akasha-shaped code that doesn't
+   know this — we'd keep writing Sutra-shaped code that doesn't
    actually type-check against any formal grammar. Now we have a
    ground truth and a mechanical way to measure drift.
-2. **The spec needs to catch up before this code is "real" Akasha.**
+2. **The spec needs to catch up before this code is "real" Sutra.**
    Every entry in the table above is a real design decision we've
    been making implicitly. The fly-brain work is the forcing function
    that turns those into explicit questions.
@@ -244,7 +244,7 @@ written). The three substrate-language gaps documented in the
    distinction from plain `vector` and why permutations deserve their
    own type even though they're sign-flip masks at the substrate
    level. Test corpus:
-   `sdk/akasha-compiler/tests/corpus/valid/21_permutation_type.su`.
+   `sdk/sutra-compiler/tests/corpus/valid/21_permutation_type.su`.
 2. ~~**Specify map types and map literals.**~~ **Done.** `map<K, V>`
    is a primitive generic type; the inline literal `{k1: v1, ...}`
    parses as a `MapLiteral` expression in expression position; empty
@@ -254,14 +254,14 @@ written). The three substrate-language gaps documented in the
    prototype table needs. The lookup semantics for vector keys
    (exact-match vs. cosine-nearest) are documented in the spec as an
    open question tracked in `17-open-questions.md`. Test corpus:
-   `sdk/akasha-compiler/tests/corpus/valid/24_map_literal.su`.
+   `sdk/sutra-compiler/tests/corpus/valid/24_map_literal.su`.
 3. ~~**Specify array/tuple literals.**~~ **Done** for array literals
    and for postfix subscript access. `[a, b, c]` parses as an
    `ArrayLiteral` expression (empty `[]` is legal), and `target[index]`
    parses as a `Subscript` postfix. Test corpus:
-   `sdk/akasha-compiler/tests/corpus/valid/22_array_literal.su` and
+   `sdk/sutra-compiler/tests/corpus/valid/22_array_literal.su` and
    `.../23_subscript_access.su`; parser unit tests added to
-   `sdk/akasha-compiler/tests/test_parser.py`.
+   `sdk/sutra-compiler/tests/test_parser.py`.
 
 Steps 4–6 of the original short-term plan (declare the VSA builtins,
 add parser/validator support, regression test) are partially
@@ -284,7 +284,7 @@ work is formally declaring the builtin signatures in
 6. **Regression test: re-run `sutrac --summary` over the repo and
    confirm `permutation_conditional.su` now reports zero errors.**
 
-Everything in step 5 is a local addition to `sdk/akasha-compiler/`.
+Everything in step 5 is a local addition to `sdk/sutra-compiler/`.
 None of it touches runtime behavior — the Python demos keep working
 unchanged.
 
@@ -361,7 +361,7 @@ Rough priority order:
 | `programmer_control_demo.py` | 4 programs × 4 inputs, branching in Python, proves programmer agency |
 | `mushroom_body_model.py` | Brian2 LIF circuit, 50/2000/1/20 neurons, 7-PN fan-in |
 | `spike_vsa_bridge.py` | Hypervector ↔ spike pattern encode/decode |
-| `vsa_operations.py` | `FlyBrainVSA` runtime; Akasha primitives exposed to Python |
+| `vsa_operations.py` | `FlyBrainVSA` runtime; Sutra primitives exposed to Python |
 | `minimal_lif_network.py` | Debug substrate |
 | `test_bridge.py`, `test_vsa_operations.py` | Unit tests for the runtime |
 | `../fly-brain-paper/paper.md` | Circuit parameters, neuron models, connectivity — the paper-shaped writeup (formerly `fly-brain/METHODOLOGY.md`) |
@@ -381,9 +381,9 @@ python programmer_control_demo.py
 python permutation_conditional.py
 
 # Validate the .su source files against the language grammar
-cd ../sdk/akasha-compiler
-python -m akasha_compiler ../../fly-brain/four_state_conditional.su
-python -m akasha_compiler ../../fly-brain/permutation_conditional.su  # <- currently fails, see language-spec gap
+cd ../sdk/sutra-compiler
+python -m sutra_compiler ../../fly-brain/four_state_conditional.su
+python -m sutra_compiler ../../fly-brain/permutation_conditional.su  # <- currently fails, see language-spec gap
 ```
 
 Requires Python 3, Brian2, numpy, scipy. No GPU. Full run under 5
@@ -391,7 +391,7 @@ minutes on commodity hardware.
 
 ## One-line summary
 
-The fly-brain branch of Akasha is the most ambitious part of the
+The fly-brain branch of Sutra is the most ambitious part of the
 project right now, it has the clearest "nothing like this exists"
 novelty story in the q-bio literature, and the thing blocking it from
 becoming a real compile-to-brain pipeline is that the language spec

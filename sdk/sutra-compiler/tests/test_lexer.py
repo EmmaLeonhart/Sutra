@@ -1,4 +1,4 @@
-"""Unit tests for the Akasha lexer.
+"""Unit tests for the Sutra lexer.
 
 Run with plain Python: `python -m unittest tests.test_lexer` from the
 sdk/sutra-compiler directory, or via pytest if installed.

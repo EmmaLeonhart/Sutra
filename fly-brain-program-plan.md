@@ -8,9 +8,9 @@
 
 ## The Idea
 
-Run an Akasha program on the literal Drosophila connectome. The program is an if-statement about smell.
+Run an Sutra program on the literal Drosophila connectome. The program is an if-statement about smell.
 
-The fly's olfactory circuit is already doing what Akasha does: vectors in, hyperdimensional processing, fuzzy-to-discrete collapse out. The connectome gives us the actual wiring — the matrix that transforms smell vectors into behavior. Akasha doesn't simulate the fly brain. It runs *on* it, treating the connectome as the substrate the way it would treat an LLM's embedding space.
+The fly's olfactory circuit is already doing what Sutra does: vectors in, hyperdimensional processing, fuzzy-to-discrete collapse out. The connectome gives us the actual wiring — the matrix that transforms smell vectors into behavior. Sutra doesn't simulate the fly brain. It runs *on* it, treating the connectome as the substrate the way it would treat an LLM's embedding space.
 
 ## The Connectome as Substrate
 
@@ -23,18 +23,18 @@ The olfactory circuit is one of the best-annotated subsystems in all of these da
 
 ### What "Running On It" Means
 
-The connectome is a weighted directed graph. That graph is a matrix. Akasha operations become matrix operations on the connectome's adjacency/weight matrix:
+The connectome is a weighted directed graph. That graph is a matrix. Sutra operations become matrix operations on the connectome's adjacency/weight matrix:
 
 - **`embed()`** = inject an activation pattern at the ORN layer (the "input" to the circuit). Instead of running a string through an LLM, we set activation values on the ~50 ORN types based on known odorant response profiles.
 - **`*` (bind)** = matrix multiply through a connectivity layer. Propagating a signal from ORNs through Projection Neurons to Kenyon Cells *is* binding — the connectome's wiring does the transformation.
 - **`+` (bundle)** = superposition of activation patterns. Multiple smells or multiple features combining into one representation.
 - **`defuzzy()`** = readout from Mushroom Body Output Neurons (MBONs). The MBONs are literally the collapse point — they take the high-dimensional Kenyon Cell representation and produce a low-dimensional approach/avoid signal. That's defuzzification.
 
-No metaphor needed. The connectome *is* the weight matrix. Akasha runs on it the same way it runs on any embedding space, except this one is made of neurons.
+No metaphor needed. The connectome *is* the weight matrix. Sutra runs on it the same way it runs on any embedding space, except this one is made of neurons.
 
 ## The Program
 
-```akasha
+```sutra
 // Fly smells vinegar. Approach or avoid?
 // Substrate: Drosophila connectome (olfactory circuit)
 
@@ -72,14 +72,14 @@ This is a few matrices. The data is public.
 ### 2. ORN Response Profiles
 Known from electrophysiology. The DoOR database (Database of Odorant Responses) has measured responses of each Drosophila ORN type to hundreds of odorants. `embed("vinegar")` becomes a lookup into this data.
 
-### 3. Akasha Substrate Binding
-The mechanism by which Akasha says "use this matrix as your embedding space." Currently Akasha assumes an LLM embedding model. The connectome case would need:
+### 3. Sutra Substrate Binding
+The mechanism by which Sutra says "use this matrix as your embedding space." Currently Sutra assumes an LLM embedding model. The connectome case would need:
 - A way to specify the substrate at program initialization (empirical initiation)
 - Matrix dimensions matching the connectome layers (50 ORNs → ~150 PNs → ~2,000 KCs → ~34 MBONs)
 - `embed()` dispatching to ORN response profiles instead of an LLM
 
 ### 4. Nothing Else
-The program is eight lines. The connectome does the work. Akasha just needs to know which matrices to multiply through.
+The program is eight lines. The connectome does the work. Sutra just needs to know which matrices to multiply through.
 
 ## Why This Matters
 
@@ -89,4 +89,4 @@ This isn't "running AI on a brain" in the hype sense. It's:
 - Doing a real computation (smell classification)
 - That the substrate actually performs in nature (flies decide to approach vinegar)
 
-Akasha claims embedding spaces are computational substrates. The fly connectome is an embedding space (a biological one). If Akasha can run on it, that's not a metaphor — it's a proof of concept that the language's computational model generalizes beyond LLMs to any space where vectors are transformed through learned weight matrices.
+Sutra claims embedding spaces are computational substrates. The fly connectome is an embedding space (a biological one). If Sutra can run on it, that's not a metaphor — it's a proof of concept that the language's computational model generalizes beyond LLMs to any space where vectors are transformed through learned weight matrices.

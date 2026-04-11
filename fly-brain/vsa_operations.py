@@ -7,7 +7,7 @@ Hybrid architecture:
 - similarity: cosine similarity in numpy
 - embed: generate random hypervectors for named concepts
 
-This implements the Akasha language's core operations using the mushroom body
+This implements the Sutra language's core operations using the mushroom body
 circuit as the computational substrate for cleanup/discretization.
 """
 
@@ -17,7 +17,7 @@ from spike_vsa_bridge import SpikeVSABridge, cosine_similarity
 
 class FlyBrainVSA:
     """
-    Akasha VSA operations backed by a simulated fly brain.
+    Sutra VSA operations backed by a simulated fly brain.
 
     Usage:
         vsa = FlyBrainVSA(dim=50)

@@ -1,5 +1,5 @@
 """
-Mushroom body circuit model for Akasha fly brain substrate.
+Mushroom body circuit model for Sutra fly brain substrate.
 
 Architecture:
   - PNs (projection neurons): receive external input

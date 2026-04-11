@@ -1,4 +1,4 @@
-// Akasha corpus test: primitive type declarations.
+// Sutra corpus test: primitive type declarations.
 // Covers: scalar, vector, matrix, tuple, string, bool, fuzzy, void
 // All five primitive types plus bool and fuzzy, plus both var and
 // explicit-type declaration shapes.

@@ -3,7 +3,7 @@
 // four_state_conditional.ak — this file shows the *next* compilation
 // strategy for the same if-tree).
 //
-// This file demonstrates how Akasha compiles an if/else tree into pure
+// This file demonstrates how Sutra compiles an if/else tree into pure
 // vector operations that execute on a biological connectome, with
 // *negation* compiled to a permutation key rather than a Python `not`.
 //

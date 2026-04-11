@@ -2,7 +2,7 @@
 mushroom body and matches the expected program A/B/C/D behavior table.
 
 Flow:
-    1. Parse `fly-brain/permutation_conditional.su` with the Akasha SDK.
+    1. Parse `fly-brain/permutation_conditional.su` with the Sutra SDK.
     2. Run the AST -> FlyBrainVSA translator (codegen_flybrain).
     3. exec() the resulting Python in a private module namespace so the
        compile-time snap() calls fire on a live mushroom body.
@@ -32,7 +32,7 @@ import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, ".."))
-SDK_PATH = os.path.join(REPO_ROOT, "sdk", "akasha-compiler")
+SDK_PATH = os.path.join(REPO_ROOT, "sdk", "sutra-compiler")
 SOURCE_AK = os.path.join(HERE, "permutation_conditional.su")
 
 # Make both the SDK package and the fly-brain helpers (vsa_operations,
@@ -40,9 +40,9 @@ SOURCE_AK = os.path.join(HERE, "permutation_conditional.su")
 sys.path.insert(0, SDK_PATH)
 sys.path.insert(0, HERE)
 
-from akasha_compiler.codegen_flybrain import translate_module  # noqa: E402
-from akasha_compiler.lexer import Lexer  # noqa: E402
-from akasha_compiler.parser import Parser  # noqa: E402
+from sutra_compiler.codegen_flybrain import translate_module  # noqa: E402
+from sutra_compiler.lexer import Lexer  # noqa: E402
+from sutra_compiler.parser import Parser  # noqa: E402
 
 
 INPUT_LABELS = [

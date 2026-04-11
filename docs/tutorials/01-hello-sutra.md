@@ -1,10 +1,10 @@
-# 01 — Hello Akasha
+# 01 — Hello Sutra
 
-The smallest possible Akasha program is a function that returns a vector. There is no `print("hello world")` in Akasha because *strings are not the primary type* — vectors are. So "hello world" in this language means "construct a vector that encodes the string `hello`, then return it." That is exactly what we are going to do.
+The smallest possible Sutra program is a function that returns a vector. There is no `print("hello world")` in Sutra because *strings are not the primary type* — vectors are. So "hello world" in this language means "construct a vector that encodes the string `hello`, then return it." That is exactly what we are going to do.
 
 ## What you'll learn
 
-- Where Akasha files live and what the `.su` extension means
+- Where Sutra files live and what the `.su` extension means
 - How to declare a function with a typed return value
 - How to construct a `vector` from a string with the `embed(...)` builtin
 - How to validate a source file with the reference compiler
@@ -38,17 +38,17 @@ That's the entire program. Five things to notice:
 
 3. **`return`** does what you expect. The returned `vector` is the function's value.
 
-4. **`function.Hello()`** calls `Hello`. The `function.` prefix is a disambiguator: in Akasha, calling `Hello()` could be ambiguous (is it a method on `this`? a free function?), so the language requires the prefix at the call site. Methods on objects are called with `obj.method()`; free functions are called with `function.name()`.
+4. **`function.Hello()`** calls `Hello`. The `function.` prefix is a disambiguator: in Sutra, calling `Hello()` could be ambiguous (is it a method on `this`? a free function?), so the language requires the prefix at the call site. Methods on objects are called with `obj.method()`; free functions are called with `function.name()`.
 
-5. **`function.Main();`** at the top of the file (no `function` keyword in front, just a statement) is how the file becomes a runnable program. Akasha files do not require a `Main` function — you can put any executable statement at the top level and it runs when the file is loaded. By convention, defining and calling a `Main` function gives you a clean entry point if you want one.
+5. **`function.Main();`** at the top of the file (no `function` keyword in front, just a statement) is how the file becomes a runnable program. Sutra files do not require a `Main` function — you can put any executable statement at the top level and it runs when the file is loaded. By convention, defining and calling a `Main` function gives you a clean entry point if you want one.
 
 ## Validate it
 
 The compiler ships as a Python module. From the repo root:
 
 ```bash
-cd sdk/akasha-compiler
-python -m akasha_compiler ../../examples/hello.su
+cd sdk/sutra-compiler
+python -m sutra_compiler ../../examples/hello.su
 ```
 
 If the file is well-formed you should see:
@@ -63,11 +63,11 @@ If you mistype something — say, `vec` instead of `vector`, or forget the semic
 examples/hello.su:3:5: error: AKA0102: expected return type, got `vec`
 ```
 
-Every Akasha diagnostic looks like this. The compiler's external annotator inside the IntelliJ plugin produces the same format and surfaces it in the editor as red squiggles, so the same error message you see on the command line is the one you see in the IDE.
+Every Sutra diagnostic looks like this. The compiler's external annotator inside the IntelliJ plugin produces the same format and surfaces it in the editor as red squiggles, so the same error message you see on the command line is the one you see in the IDE.
 
 ## What just happened
 
-You wrote source code that the compiler parsed, validated against the grammar, type-checked (such as the v0.1 type checker can — see the [language spec](https://github.com/EmmaLeonhart/Akasha/tree/master/planning/sutra-spec) for what it actually verifies), and accepted. You did **not** run it on a real embedding model yet — that requires the Akasha runtime, which you'll meet in tutorial 03 when we hook up `snap-to-nearest`.
+You wrote source code that the compiler parsed, validated against the grammar, type-checked (such as the v0.1 type checker can — see the [language spec](https://github.com/EmmaLeonhart/Sutralang/tree/master/planning/sutra-spec) for what it actually verifies), and accepted. You did **not** run it on a real embedding model yet — that requires the Sutra runtime, which you'll meet in tutorial 03 when we hook up `snap-to-nearest`.
 
 The mental model shift to start absorbing now:
 
@@ -77,5 +77,5 @@ The mental model shift to start absorbing now:
 
 ## What to read next
 
-- **[02 — Bind and unbind](02-bind-and-unbind.md)** — the operation that turns Akasha from "fancy retrieval" into "actual programming." How to associate a key with a value and pull the value back out, using only vector arithmetic.
-- The [language spec on operations](https://github.com/EmmaLeonhart/Akasha/blob/master/planning/sutra-spec/02-operations.md) — the formal definition of the three operation tiers.
+- **[02 — Bind and unbind](02-bind-and-unbind.md)** — the operation that turns Sutra from "fancy retrieval" into "actual programming." How to associate a key with a value and pull the value back out, using only vector arithmetic.
+- The [language spec on operations](https://github.com/EmmaLeonhart/Sutralang/blob/master/planning/sutra-spec/02-operations.md) — the formal definition of the three operation tiers.

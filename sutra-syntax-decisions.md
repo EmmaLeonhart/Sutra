@@ -1,4 +1,4 @@
-# Akasha Syntax Decisions
+# Sutra Syntax Decisions
 
 This is the rolling document for syntax and surface-language decisions. Comparisons and speculation live elsewhere. Decisions recorded here should be treated as the current direction until replaced.
 
@@ -13,12 +13,12 @@ Status: active
 Decision:
 
 - Functions are first-class top-level language constructs.
-- Akasha does not assume functions live inside classes by default.
+- Sutra does not assume functions live inside classes by default.
 - If later grouping constructs exist, they should organize functions rather than own them.
 
 Reasoning:
 
-- This fits the current understanding of Akasha as a serious, compiled, substrate-oriented language rather than an object-model-first language.
+- This fits the current understanding of Sutra as a serious, compiled, substrate-oriented language rather than an object-model-first language.
 - It keeps the language closer to Rust, Scheme, Lisp, Python, and plain functions in TypeScript than to C#'s traditional class-centered shape.
 - It avoids forcing an OOP structure onto a language whose semantics are driven by vector operations and fuzzy reasoning.
 
@@ -40,7 +40,7 @@ Status: active
 
 Decision:
 
-- Akasha uses the keyword `function` to introduce a function declaration.
+- Sutra uses the keyword `function` to introduce a function declaration.
 - The rest of the signature follows C# method shape: return type before name, typed parameters, braces.
 - Surface form: `function vector Add(vector a, vector b) { return a + b; }`
 - Full internal form with modifiers: `function public static scalar operator +(scalar a, scalar b) { return function.add(a, b); }`
@@ -72,19 +72,19 @@ Status: active
 
 Decision:
 
-- Akasha uses TypeScript-style conditional syntax.
+- Sutra uses TypeScript-style conditional syntax.
 - The baseline shape is `if (condition) { ... } else { ... }`.
 - This is a surface-syntax decision, not a final semantic decision about truthiness.
 
 Reasoning:
 
-- This gives Akasha a familiar and readable conditional form.
+- This gives Sutra a familiar and readable conditional form.
 - It preserves explicit braces and keeps branching visually close to C# and TypeScript.
 - It avoids prefix-only conditionals while remaining compatible with fuzzy truth semantics underneath.
 
 Implications:
 
-- Comparison examples should treat the TypeScript conditional form as the default Akasha branch syntax.
+- Comparison examples should treat the TypeScript conditional form as the default Sutra branch syntax.
 - The open issue is how truthiness works, not how the branch keywords and punctuation work.
 
 Open follow-up:
@@ -99,7 +99,7 @@ Status: active
 
 Decision:
 
-- Akasha uses the keyword `return`.
+- Sutra uses the keyword `return`.
 
 Reasoning:
 
@@ -121,18 +121,18 @@ Status: active
 
 Decision:
 
-- Akasha uses TypeScript-style loop syntax for conventional loops.
+- Sutra uses TypeScript-style loop syntax for conventional loops.
 - The baseline loop shape is `while (condition) { ... }`.
 
 Reasoning:
 
 - This keeps looping syntax readable and familiar.
-- It aligns with the same branch-and-block surface style as Akasha conditionals.
+- It aligns with the same branch-and-block surface style as Sutra conditionals.
 - It gives a stable surface form even while loop semantics remain open.
 
 Implications:
 
-- Comparison examples should treat TypeScript-style `while` loops as the current Akasha baseline.
+- Comparison examples should treat TypeScript-style `while` loops as the current Sutra baseline.
 - Semantic questions about convergence, fuzziness, and termination remain open.
 
 Open follow-up:
@@ -146,8 +146,8 @@ Status: active
 
 Decision:
 
-- Akasha has a data type `fuzzy`.
-- Akasha has a data type `bool`.
+- Sutra has a data type `fuzzy`.
+- Sutra has a data type `bool`.
 - `defuzzy(...)` converts a `fuzzy` value into a `bool`.
 - Both `fuzzy` and `bool` are still represented as vectors at the substrate level.
 
@@ -185,8 +185,8 @@ Decision:
 
 Reasoning:
 
-- Akasha does not have conventional runtime class instances. A "class" is a compile-time organizing concept, not a runtime entity.
-- Allowing `if (cat)` would imply that arbitrary values have truthiness, but in Akasha, truth is a geometric property (euclidean distance from true/false vectors), not a type-level coercion.
+- Sutra does not have conventional runtime class instances. A "class" is a compile-time organizing concept, not a runtime entity.
+- Allowing `if (cat)` would imply that arbitrary values have truthiness, but in Sutra, truth is a geometric property (euclidean distance from true/false vectors), not a type-level coercion.
 - If you want to treat an arbitrary vector as a truth value, you must explicitly use an unsafe cast or unsafeOverride to force it into fuzzy/bool space.
 
 Implications:
@@ -201,7 +201,7 @@ Status: active
 
 Decision:
 
-- Akasha supports operator overloading.
+- Sutra supports operator overloading.
 - The syntax follows the `function operator` pattern.
 
 Reasoning:
@@ -228,7 +228,7 @@ Decision:
 
 Reasoning:
 
-- Akasha's substrate is embedding space. True and false are specific vectors in that space.
+- Sutra's substrate is embedding space. True and false are specific vectors in that space.
 - Any vector has some geometric relationship to true/false, but accessing that relationship is an explicit, unsafe operation.
 - This inverts conventional truthiness: instead of the language defining which values are "truthy," the geometry defines it, and the programmer must opt in.
 
@@ -253,7 +253,7 @@ Reasoning:
 
 - This balances ergonomics with explicitness.
 - C# is the direct precedent: `public static implicit operator Vector(Cat c) { ... }` lets `Vector v = cat;` compile, but someone had to write the conversion.
-- Akasha avoids surprise coercions while still allowing convenient call-site syntax.
+- Sutra avoids surprise coercions while still allowing convenient call-site syntax.
 
 Implications:
 
@@ -318,7 +318,7 @@ Decision:
 
 Reasoning:
 
-- Akasha is designed for rapid AI-generated code execution, similar to JavaScript's immediacy.
+- Sutra is designed for rapid AI-generated code execution, similar to JavaScript's immediacy.
 - A half-compilation model is the vision: code can be compiled but can also just run.
 - Namespacing is opt-in structure, not forced by the file system.
 
@@ -380,7 +380,7 @@ Status: active
 
 Decision:
 
-- Akasha uses all C# loop forms: `while`, `for`, `foreach`, `do...while`.
+- Sutra uses all C# loop forms: `while`, `for`, `foreach`, `do...while`.
 - Loop syntax is identical to C#.
 
 #### Error handling: garbage vectors with try-catch as if-statement sugar
@@ -452,7 +452,7 @@ Decision:
 
 Reasoning:
 
-- Casting in Akasha means reinterpretation: the underlying data stays the same, only the compiler's view of it changes. `(Cat) myAnimal` works because `myAnimal` is already a vector at runtime — you're just telling the compiler to treat it as a Cat.
+- Casting in Sutra means reinterpretation: the underlying data stays the same, only the compiler's view of it changes. `(Cat) myAnimal` works because `myAnimal` is already a vector at runtime — you're just telling the compiler to treat it as a Cat.
 - Turning a string into a vector is fundamentally different. It requires running the string through an embedding model — that's a computation with real cost, not a relabeling.
 - Making this explicit prevents a category error in the language's semantics: casts are free, `embed()` is not.
 - Lowercase `embed()` signals it's a language primitive, consistent with `defuzzy()` and `unsafeCast<>()`.

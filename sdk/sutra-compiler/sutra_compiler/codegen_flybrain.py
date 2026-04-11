@@ -1,6 +1,6 @@
 """AST → FlyBrainVSA Python source translator.
 
-This module walks a parsed Akasha `Module` and emits Python source that
+This module walks a parsed Sutra `Module` and emits Python source that
 targets the `FlyBrainVSA` runtime in `fly-brain/vsa_operations.py`. The
 generated code mirrors the shape of the hand-written
 `fly-brain/permutation_conditional.py` but is produced mechanically from
@@ -58,7 +58,7 @@ class CodegenNotSupported(Exception):
 # Builtin name → Python expression template
 # ============================================================
 #
-# Each entry maps an Akasha builtin identifier to a callable that takes
+# Each entry maps an Sutra builtin identifier to a callable that takes
 # the already-translated argument strings and returns the Python
 # expression to emit. Keeping this as a single table means the list of
 # supported builtins is easy to audit against `planning/sutra-spec/21-builtins.md`.
@@ -129,7 +129,7 @@ BUILTINS = {
 
 
 class FlyBrainCodegen:
-    """Stateful walker that emits Python source for one Akasha module.
+    """Stateful walker that emits Python source for one Sutra module.
 
     Instances are single-use — call `translate(module)` and then read
     `.output`. Not thread-safe, not reusable.
@@ -454,7 +454,7 @@ def translate_module(
     runtime_seed: int = 42,
     runtime_n_kc: int = 2000,
 ) -> str:
-    """Translate a parsed Akasha `Module` to a Python source string.
+    """Translate a parsed Sutra `Module` to a Python source string.
 
     Convenience wrapper around `FlyBrainCodegen`. Raises
     `CodegenNotSupported` with a source span for any unsupported node.

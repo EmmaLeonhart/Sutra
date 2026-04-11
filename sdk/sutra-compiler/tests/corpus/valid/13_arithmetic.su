@@ -1,4 +1,4 @@
-// Akasha corpus test: arithmetic and numeric literals.
+// Sutra corpus test: arithmetic and numeric literals.
 // Covers: integer and float literals, basic math, precedence.
 
 function scalar Arith() {
