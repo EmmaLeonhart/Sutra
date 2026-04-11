@@ -45,20 +45,20 @@ The language for this exists, and it's been around since high school: **linear a
 
 The reason it's hard is that the path to embeddings goes *through* the connectionism story (neurons! networks! graphs!) before it lands on the geometric story (vectors! dot products! continuous space!). And the connectionism story is so vivid and so memorable that the geometric story feels like a *demystification* — like you're being told "actually it's not magic, it's just numbers." Which, yes, but the numbers are *spatial coordinates in a high-dimensional manifold*, and that is genuinely beautiful and powerful, and "it's just numbers" undersells it.
 
-Akasha exists to give you a way to *write programs in those coordinates*.
+Sutra exists to give you a way to *write programs in those coordinates*.
 
 ## Once you accept the leap, this is what becomes possible
 
 If meaning is geometry and operations are linear algebra, you can do things you couldn't do with graph databases:
 
 - **Logical inference on frozen embeddings.** The Latent Space Cartography paper demonstrated that frozen general-purpose text embedding models (mxbai-embed-large, nomic-embed-text, all-minilm) encode 30+ relations as consistent vector displacements — relations the models were never trained for. You can do `entity + (capital_of)` and get back a sensible answer. This is *logical inference*, implemented as *vector addition*. Hours of GPU time become microseconds of arithmetic.
-- **A programming language whose ops are O(1) instead of O(n) graph traversals.** Bind, unbind, bundle, similarity — six microseconds per operation on a CPU. The expensive operation in conventional graph databases (the join, the path query, the recursive traversal) doesn't exist in Akasha because there are no edges to traverse. There is just geometry.
-- **The same code running on radically different substrates.** Akasha compiles for LLM embedding spaces, and *also* compiles for a simulated *Drosophila melanogaster* mushroom body — a real biological connectome. Same source file, deliberately different targets. The fact that this works is itself empirical evidence for the geometric view: the math doesn't care whether the underlying neurons are silicon transistors or simulated leaky-integrate-and-fire spiking cells.
-- **A first-class spatial visualizer in the IDE.** Because every value in the program is a coordinate, the debugger can literally *show you* where your program is in semantic space. The IntelliJ-based Akasha IDE has a planned 2D/3D visualizer pane that draws the embedding region the current code is touching. This is impossible in graph-database tools because graphs don't have a coordinate system.
+- **A programming language whose ops are O(1) instead of O(n) graph traversals.** Bind, unbind, bundle, similarity — six microseconds per operation on a CPU. The expensive operation in conventional graph databases (the join, the path query, the recursive traversal) doesn't exist in Sutra because there are no edges to traverse. There is just geometry.
+- **The same code running on radically different substrates.** Sutra compiles for LLM embedding spaces, and *also* compiles for a simulated *Drosophila melanogaster* mushroom body — a real biological connectome. Same source file, deliberately different targets. The fact that this works is itself empirical evidence for the geometric view: the math doesn't care whether the underlying neurons are silicon transistors or simulated leaky-integrate-and-fire spiking cells.
+- **A first-class spatial visualizer in the IDE.** Because every value in the program is a coordinate, the debugger can literally *show you* where your program is in semantic space. The IntelliJ-based Sutra IDE has a planned 2D/3D visualizer pane that draws the embedding region the current code is touching. This is impossible in graph-database tools because graphs don't have a coordinate system.
 
 ## Why "graph database vs. vector space" is the wrong framing
 
-A persistent question this project keeps getting: "is Akasha competing with knowledge graph databases? With vector databases?"
+A persistent question this project keeps getting: "is Sutra competing with knowledge graph databases? With vector databases?"
 
 Neither. Both miss the point.
 
@@ -66,26 +66,26 @@ Neither. Both miss the point.
 
 **Vector databases** are what happens when somebody tries to add similarity search to the existing graph-database mental model. They store vectors, they let you do nearest-neighbor lookups, but the *programming model* around them is still discrete: insert a vector, query for k nearest. There is no operation more sophisticated than "give me the closest matches." A vector database is *infrastructure*, not a *language*.
 
-**Akasha is a language for programs that compute *in* the space.** It uses a vector database (a lightweight bundled one is part of the planned vertical stack), but the programs are not "queries" — they are computations. They construct new vectors that were never stored. They bind keys to values via geometric operations. They run inference loops. They compose. The vector database is the storage backend. The language is the computational primitive layer.
+**Sutra is a language for programs that compute *in* the space.** It uses a vector database (a lightweight bundled one is part of the planned vertical stack), but the programs are not "queries" — they are computations. They construct new vectors that were never stored. They bind keys to values via geometric operations. They run inference loops. They compose. The vector database is the storage backend. The language is the computational primitive layer.
 
-Closest existing analogy: SQL is to a relational database what Akasha is to a vector database. SQL is not "look things up in PostgreSQL" — it is a *language* that *runs computations* over relational data. Akasha is the same thing for embedding spaces. The key difference is that the underlying primitive ("a row" for SQL, "a vector" for Akasha) is *fundamentally different in kind*: one is discrete, one is continuous.
+Closest existing analogy: SQL is to a relational database what Sutra is to a vector database. SQL is not "look things up in PostgreSQL" — it is a *language* that *runs computations* over relational data. Sutra is the same thing for embedding spaces. The key difference is that the underlying primitive ("a row" for SQL, "a vector" for Sutra) is *fundamentally different in kind*: one is discrete, one is continuous.
 
-## The Akasha ecosystem
+## The Sutra ecosystem
 
 The vision the language is part of is bigger than the language itself. The full stack we're building, in rough priority order:
 
-1. **The Akasha language** — compiler, type system, semantics, the `.su` source format. ([SDK in `sdk/akasha-compiler/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sdk/akasha-compiler))
-2. **The Akasha runtime** — the silicon-substrate execution engine. Probes a target embedding space, fits correction matrices, exposes the three-tier operation API. ([`sutra-paper/scripts/akasha_runtime.py`](https://github.com/EmmaLeonhart/Akasha/tree/master/sutra-paper/scripts))
-3. **The Akasha IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer. ([`sdk/intellij-akasha/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sdk/intellij-akasha))
-4. **SutraDB** — the lightweight bundled vector database, brought into this monorepo as a subtree at [`sutraDB/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sutraDB). The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Akasha emits.
-5. **The fly-brain substrate** — a Brian2 spiking simulation of the *Drosophila* mushroom body that the Akasha compiler can also target, used as a stress test of substrate-adaptivity. ([`fly-brain/`](https://github.com/EmmaLeonhart/Akasha/tree/master/fly-brain) + [`fly-brain-paper/`](https://github.com/EmmaLeonhart/Akasha/tree/master/fly-brain-paper))
+1. **The Sutra language** — compiler, type system, semantics, the `.su` source format. ([SDK in `sdk/sutra-compiler/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sdk/sutra-compiler))
+2. **The Sutra runtime** — the silicon-substrate execution engine. Probes a target embedding space, fits correction matrices, exposes the three-tier operation API. ([`sutra-paper/scripts/sutra_runtime.py`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sutra-paper/scripts))
+3. **The Sutra IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer. ([`sdk/intellij-sutra/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sdk/intellij-sutra))
+4. **SutraDB** — the lightweight bundled vector database, brought into this monorepo as a subtree at [`sutraDB/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sutraDB). The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Sutra emits.
+5. **The fly-brain substrate** — a Brian2 spiking simulation of the *Drosophila* mushroom body that the Sutra compiler can also target, used as a stress test of substrate-adaptivity. ([`fly-brain/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/fly-brain) + [`fly-brain-paper/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/fly-brain-paper))
 6. **A bundled vertical stack installer** — one download gives you the language, runtime, IDE, embedded vector database, default embedding model, and a small curated default corpus. Hello-world-without-config is the goal — the same affordance that made SQLite the most-deployed database in the world.
 
-All of it is open source. All of it lives in [github.com/EmmaLeonhart/Akasha](https://github.com/EmmaLeonhart/Akasha).
+All of it is open source. All of it lives in [github.com/EmmaLeonhart/Sutralang](https://github.com/EmmaLeonhart/Sutralang).
 
 ## What to read next
 
-- **[Hello Akasha](tutorials/01-hello-akasha.md)** — write your first `.su` file, run it, see the geometric semantics in action.
+- **[Hello Sutra](tutorials/01-hello-sutra.md)** — write your first `.su` file, run it, see the geometric semantics in action.
 - **[Bind and unbind](tutorials/02-bind-and-unbind.md)** — the operation that makes the spatial view *useful* for real programs. Why Hadamard fails on natural embeddings and why sign-flip binding works.
 - **[Snap-to-nearest](tutorials/03-snap-to-nearest.md)** — the cleanup operation that makes long computations possible. How error correction works in continuous space.
 - **[The papers](papers.md)** — the empirical evidence behind everything on this page.

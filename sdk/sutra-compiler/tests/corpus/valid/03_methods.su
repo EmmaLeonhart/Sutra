@@ -1,4 +1,4 @@
-// Akasha corpus test: methods.
+// Sutra corpus test: methods.
 // Covers: method declarations, `this`, static methods, desugared calls,
 // dot-chained invocations.
 

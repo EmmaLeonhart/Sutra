@@ -1,4 +1,4 @@
-// Akasha corpus test: assignment forms.
+// Sutra corpus test: assignment forms.
 // Covers: =, +=, -=, *=, /=, ++, --, member assignment.
 
 function void Assigns() {

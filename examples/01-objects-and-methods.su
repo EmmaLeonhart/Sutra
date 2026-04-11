@@ -1,9 +1,9 @@
 /*
-    Akasha Example: Objects and Methods
+    Sutra Example: Objects and Methods
 
     Shows the core distinction between functions and methods,
     how methods desugar to static functions, and how objects
-    work in Akasha.
+    work in Sutra.
 */
 
 // ── Object declaration ──────────────────────────────────────

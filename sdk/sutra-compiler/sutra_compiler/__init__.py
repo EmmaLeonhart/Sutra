@@ -1,14 +1,14 @@
-"""Akasha language compiler / validator.
+"""Sutra language compiler / validator.
 
-This package implements the first pass of the Akasha SDK: a lexer,
+This package implements the first pass of the Sutra SDK: a lexer,
 parser, and syntactic validator for `.su` source files.
 
 Scope (v0.1):
-    - Full tokenization of Akasha source (all comment forms, string
+    - Full tokenization of Sutra source (all comment forms, string
       interpolation, numeric literals, identifiers, operators).
     - Recursive-descent parser that recognizes the declaration and
       statement grammar described in planning/sutra-spec and
-      akasha-syntax-decisions.md.
+      sutra-syntax-decisions.md.
     - Structural validation: balanced brackets, semicolons where the
       grammar requires them, well-formed declarations and control flow.
     - A small set of rule checks that the syntax-decisions doc makes

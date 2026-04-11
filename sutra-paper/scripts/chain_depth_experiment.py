@@ -1,5 +1,5 @@
 """
-Akasha Chain Depth & Snap Cost Experiment
+Sutra Chain Depth & Snap Cost Experiment
 ==========================================
 Tests:
 1. How fast does noise accumulate over repeated bind/unbind chains?
@@ -7,7 +7,7 @@ Tests:
 3. Does snap actually recover signal, or is it too late?
 4. What's the optimal snap frequency (every N ops)?
 
-The core question: is snap-to-nearest expensive enough to kill Akasha's efficiency?
+The core question: is snap-to-nearest expensive enough to kill Sutra's efficiency?
 """
 
 import sys
@@ -324,13 +324,13 @@ def test_multi_role_binding(embeddings, labels):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Akasha Chain Depth & Cost Experiment')
+    parser = argparse.ArgumentParser(description='Sutra Chain Depth & Cost Experiment')
     parser.add_argument('--model', type=str, default='thenlper/gte-large')
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--output', type=str, default=None)
     args = parser.parse_args()
 
-    print(f"Akasha Chain Depth & Snap Cost Experiment")
+    print(f"Sutra Chain Depth & Snap Cost Experiment")
     print(f"=====================================")
     print(f"Model:  {args.model}")
     print(f"Device: {args.device}")

@@ -1,9 +1,9 @@
 """
-Akasha Demo Programs — End-to-End Execution on Embedding Substrates
+Sutra Demo Programs — End-to-End Execution on Embedding Substrates
 ====================================================================
 
-These demos show Akasha executing real programs on real embedding spaces.
-Each demo is a self-contained Akasha program that demonstrates a different
+These demos show Sutra executing real programs on real embedding spaces.
+Each demo is a self-contained Sutra program that demonstrates a different
 capability of the language.
 
 Usage:
@@ -26,7 +26,7 @@ if sys.platform == "win32" and not isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
-# Import the Akasha runtime
+# Import the Sutra runtime
 sys.path.insert(0, str(Path(__file__).parent))
 from sutra_runtime import (
     Substrate, S2Env, Codebook, empirical_initiation,
@@ -42,7 +42,7 @@ from sutra_runtime import (
 
 def demo_associative_memory(env):
     """
-    Akasha program: build an associative memory, store role-filler pairs,
+    Sutra program: build an associative memory, store role-filler pairs,
     query by role to retrieve fillers.
 
     This is the fundamental VSA operation: the ability to store and
@@ -102,7 +102,7 @@ def demo_associative_memory(env):
 
 def demo_multi_hop(env):
     """
-    Akasha program: multi-hop reasoning via chained bind/unbind.
+    Sutra program: multi-hop reasoning via chained bind/unbind.
 
     Given:  "Paris is the capital of France"
             "France is in Europe"
@@ -161,7 +161,7 @@ def demo_multi_hop(env):
 
     # Hop 2: Use the snapped result to query fact2
     # We need to find which fact has mid_label as SUBJECT
-    # In a full Akasha program, we'd have a fact store; here we query fact2 directly
+    # In a full Sutra program, we'd have a fact store; here we query fact2 directly
     final = env.unbind(fact2, "OBJECT")
     _, final_label = env.snap(final)
     print(f"  Hop 2: {mid_label} -> '{final_label}' {'OK' if final_label == 'Europe' else 'FAIL'}")
@@ -182,7 +182,7 @@ def demo_multi_hop(env):
 
 def demo_composition(env):
     """
-    Akasha program: compositional structure manipulation.
+    Sutra program: compositional structure manipulation.
 
     Extract a filler from one structure, bind it into a new role
     in a different structure. Tests whether VSA operations compose.
@@ -231,10 +231,10 @@ def demo_composition(env):
 
 def demo_cone_traversal(env):
     """
-    Akasha program: navigate embedding space using cone traversal.
+    Sutra program: navigate embedding space using cone traversal.
 
     Start at a concept, define a direction, find what's "in that direction"
-    in semantic space. This is Akasha's non-algebraic control flow.
+    in semantic space. This is Sutra's non-algebraic control flow.
     """
     demo_header("Demo 4: Cone Traversal (semantic navigation)")
 
@@ -283,7 +283,7 @@ def demo_cone_traversal(env):
 
 def demo_structured_matching(env):
     """
-    Akasha program: structured matching with confounder control.
+    Sutra program: structured matching with confounder control.
 
     Find countries similar to Japan in governance structure,
     while controlling for geographic region (don't just return
@@ -342,7 +342,7 @@ def demo_structured_matching(env):
 
 def demo_truth_extraction(env):
     """
-    Akasha program: fuzzy truth evaluation with recursive sharpening.
+    Sutra program: fuzzy truth evaluation with recursive sharpening.
 
     Given a claim like "Paris is the capital of France", compute
     how true it is by comparing the algebraic result to the expected one.
@@ -411,7 +411,7 @@ ALL_DEMOS = {
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Akasha Demo Programs")
+    parser = argparse.ArgumentParser(description="Sutra Demo Programs")
     parser.add_argument("--model", default="mxbai-embed-large",
                         help="Ollama model to use as substrate")
     parser.add_argument("--demo", choices=list(ALL_DEMOS.keys()),
@@ -425,7 +425,7 @@ def main():
     substrate = Substrate(args.model)
     env = S2Env(substrate=substrate)
 
-    print(f"Akasha Runtime — Substrate: {substrate.model_name}")
+    print(f"Sutra Runtime — Substrate: {substrate.model_name}")
     print(f"{'='*60}")
 
     if not args.skip_initiation:

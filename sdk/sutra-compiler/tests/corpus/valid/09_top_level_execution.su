@@ -1,4 +1,4 @@
-// Akasha corpus test: top-level executable file.
+// Sutra corpus test: top-level executable file.
 // Covers: files that just run — no main(), top-level statements,
 // inline function definitions mixed with top-level code.
 

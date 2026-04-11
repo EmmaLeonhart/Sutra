@@ -1,4 +1,4 @@
-// Akasha corpus test: casts and conversions.
+// Sutra corpus test: casts and conversions.
 // Covers: safe cast, unsafeCast, unsafeOverride, primitive casts,
 // fuzzy<->bool via defuzzy and (bool) cast.
 

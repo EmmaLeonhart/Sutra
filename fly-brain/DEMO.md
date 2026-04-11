@@ -2,7 +2,7 @@
 
 ## What This Proves
 
-Akasha is a programming language, not a found pattern. The proof is simple: **same substrate, different code, different outputs.**
+Sutra is a programming language, not a found pattern. The proof is simple: **same substrate, different code, different outputs.**
 
 The fly brain (mushroom body circuit) computes identical fuzzy scores regardless of which program runs. The programmer controls the branching logic. Changing the code changes the behavior. The substrate is general-purpose — it discriminates inputs without imposing policy.
 
@@ -12,7 +12,7 @@ All four programs share the same structure: two nested if-statements over two fu
 
 ### Program A — Natural (biologically sensible)
 
-```akasha
+```sutra
 if (defuzzy(has_smell)) {
     if (defuzzy(is_hungry)) { return "approach"; }
     else { return "ignore"; }
@@ -26,7 +26,7 @@ Smell + hungry → approach food. This is what a real fly does.
 
 ### Program B — Inverted smell axis
 
-```akasha
+```sutra
 if (!defuzzy(has_smell)) {          // ← one character changed
     if (defuzzy(is_hungry)) { return "approach"; }
     ...
@@ -36,7 +36,7 @@ Absence of smell triggers approach. Biologically absurd — but the code compile
 
 ### Program C — Inverted hunger axis
 
-```akasha
+```sutra
 if (defuzzy(has_smell)) {
     if (!defuzzy(is_hungry)) { return "approach"; }  // ← one character changed
     ...
@@ -46,7 +46,7 @@ Approaches when fed, ignores when hungry. The fly brain doesn't object.
 
 ### Program D — Both axes inverted
 
-```akasha
+```sutra
 if (!defuzzy(has_smell)) {          // ← changed
     if (!defuzzy(is_hungry)) { return "approach"; }  // ← changed
     ...
@@ -86,9 +86,9 @@ This demo proves programmer agency:
 1. **The substrate is fixed.** The mushroom body computes the same sparse random projection + winner-take-all cleanup regardless of the program.
 2. **The code varies.** Each program is a one-or-two-character change (`!` negation on `defuzzy()` calls).
 3. **The output changes.** Each program produces a completely different behavior mapping.
-4. **The code is the cause.** The only variable between runs is the Akasha source code.
+4. **The code is the cause.** The only variable between runs is the Sutra source code.
 
-The fly brain is the CPU. The Akasha code is the program. Different programs produce different results on the same hardware. That's what a programming language is.
+The fly brain is the CPU. The Sutra code is the program. Different programs produce different results on the same hardware. That's what a programming language is.
 
 ## Permutation Conditionals: Compiling The If-Tree Into The Brain
 
@@ -134,14 +134,14 @@ So the source-level `!` compiles to `permute(NOT_KEY, .)`, and "run Program B" c
 
 | File | Purpose |
 |------|---------|
-| `four_state_conditional.su` | Akasha source code (Program A, the natural/sensible mapping) |
+| `four_state_conditional.su` | Sutra source code (Program A, the natural/sensible mapping) |
 | `four_state_conditional.py` | Simple demo: runs Program A on the fly brain (4 executions) |
 | `programmer_control_demo.py` | Programmer-agency proof: 4 programs × 4 inputs = 16 executions (branching in Python) |
-| `permutation_conditional.su` | Akasha source showing if/else → associative memory, `!` → permutation key |
+| `permutation_conditional.su` | Sutra source showing if/else → associative memory, `!` → permutation key |
 | `permutation_conditional.py` | Full compile-to-brain demo: 4 programs share one memory, decision runs in the mushroom body |
 | `mushroom_body_model.py` | Brian2 spiking circuit model (the substrate) |
 | `spike_vsa_bridge.py` | Encode/decode between hypervectors and spike patterns |
-| `vsa_operations.py` | FlyBrainVSA class (Akasha operations API) |
+| `vsa_operations.py` | FlyBrainVSA class (Sutra operations API) |
 | `../fly-brain-paper/paper.md` | Technical details: challenges, solutions, results (the paper-shaped writeup, formerly `fly-brain/METHODOLOGY.md`) |
 | `DEMO.md` | This file |
 

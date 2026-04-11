@@ -1,8 +1,8 @@
-# Running Akasha on a Simulated Fly Brain: Architecture
+# Running Sutra on a Simulated Fly Brain: Architecture
 
 ## Goal
 
-Execute Akasha programs on a simulated *Drosophila* connectome, using biological neural circuits as the computational substrate for VSA operations. The mushroom body is the primary target because it already implements sparse random projection — structurally identical to VSA encoding.
+Execute Sutra programs on a simulated *Drosophila* connectome, using biological neural circuits as the computational substrate for VSA operations. The mushroom body is the primary target because it already implements sparse random projection — structurally identical to VSA encoding.
 
 ## Why This Works (Theoretical Grounding)
 
@@ -18,13 +18,13 @@ The mushroom body output neurons (MBONs) then read out the KC population to driv
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                  Akasha Source Code                   │
+│                  Sutra Source Code                   │
 │         (looks like C#, compiles to VSA ops)         │
 └─────────────────────┬───────────────────────────────┘
                       │ compile
                       ▼
 ┌─────────────────────────────────────────────────────┐
-│            Akasha Compiler + Mapping File             │
+│            Sutra Compiler + Mapping File             │
 │    (empirical initiation against fly brain model)    │
 └─────────────────────┬───────────────────────────────┘
                       │ VSA operation sequence
@@ -97,7 +97,7 @@ This is the novel component. Two directions:
 
 ### 4. Empirical Initiation for Fly Brain Substrate
 
-The Akasha compiler needs a mapping file for the fly brain substrate. This requires:
+The Sutra compiler needs a mapping file for the fly brain substrate. This requires:
 - Probing binding: encode two vectors, run bind operation through the circuit, measure output
 - Probing bundling: encode superposed vectors, check if output is similar to both inputs
 - Characterizing noise: how much signal degrades per operation
@@ -109,7 +109,7 @@ This is conceptually identical to empirical initiation for embedding models, but
 
 The target demo for the paper: associative memory on the mushroom body.
 
-```akasha
+```sutra
 // Encode two odor stimuli as hypervectors
 var odorA = embed("apple");
 var odorB = embed("vinegar");
@@ -128,7 +128,7 @@ var score = similarity(retrieved, odorB);
 // Expected: score > 0.5 (successful retrieval)
 ```
 
-This Akasha code looks like normal C#-style code. But `bind`, `snap`, and `unbind` are executing on the fly brain circuit — bind maps to the KC random projection, snap maps to APL winner-take-all, unbind maps to MBON readout with input masking.
+This Sutra code looks like normal C#-style code. But `bind`, `snap`, and `unbind` are executing on the fly brain circuit — bind maps to the KC random projection, snap maps to APL winner-take-all, unbind maps to MBON readout with input masking.
 
 ## Prerequisites (What We Need Before Building)
 
@@ -136,7 +136,7 @@ This Akasha code looks like normal C#-style code. But `bind`, `snap`, and `unbin
 2. **FlyWire data access:** Register for CAVE/Codex API, download olfactory circuit connectivity
 3. **Brian2 proficiency:** Build a minimal LIF network first, verify it works
 4. **Existing fly brain models:** Check if Shiu et al. (Nature 2024) code is available and reusable
-5. **Akasha compiler state:** The compiler needs to be far enough along to emit VSA operation sequences
+5. **Sutra compiler state:** The compiler needs to be far enough along to emit VSA operation sequences
 
 ## Risk Assessment
 
@@ -146,7 +146,7 @@ This Akasha code looks like normal C#-style code. But `bind`, `snap`, and `unbin
 | Brian2 simulation too slow for iteration | Low | Medium | Use smaller subnetwork; cache simulation results |
 | FlyWire data access issues | Low | Medium | Fallback: use published connectivity matrices from papers |
 | Mushroom body doesn't behave as VSA | Low | High | This would itself be a publishable negative result |
-| Akasha compiler not ready in time | Medium | High | Can demonstrate with manual VSA operations first, add Akasha syntax later |
+| Sutra compiler not ready in time | Medium | High | Can demonstrate with manual VSA operations first, add Sutra syntax later |
 
 ## Timeline (Rough)
 
@@ -154,7 +154,7 @@ This Akasha code looks like normal C#-style code. But `bind`, `snap`, and `unbin
 2. Build minimal olfactory circuit model
 3. Implement encode/decode bridge
 4. Test round-trip fidelity
-5. Run Akasha demo program
+5. Run Sutra demo program
 6. Write up results
 
 ## References

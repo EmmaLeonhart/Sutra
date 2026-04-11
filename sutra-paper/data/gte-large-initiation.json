@@ -16,5 +16,5 @@
   "bundling_avg_cosine_to_random": 0.7677,
   "bundling_capacity": 4,
   "all_gates_pass": true,
-  "notes": "GTE-large produces non-normalized vectors (mag ~19, not ~1). All Akasha algebraic operations work. Binding produces vectors with ~0.13 cosine to inputs (strong encryption). Unbinding recovers targets at 0.85 cosine vs 0.60 random. Bundling capacity ~4 items before SNR degrades."
+  "notes": "GTE-large produces non-normalized vectors (mag ~19, not ~1). All Sutra algebraic operations work. Binding produces vectors with ~0.13 cosine to inputs (strong encryption). Unbinding recovers targets at 0.85 cosine vs 0.60 random. Bundling capacity ~4 items before SNR degrades."
 }

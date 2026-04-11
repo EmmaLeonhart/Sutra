@@ -1,6 +1,6 @@
 # 02 — Bind and unbind
 
-Binding is the operation that makes Akasha a programming language instead of a fancy similarity-search interface. It is how you say *"the agent of this sentence is the cat,"* using nothing but vector arithmetic. Without it, you can only do retrieval. With it, you can do *structured representation*.
+Binding is the operation that makes Sutra a programming language instead of a fancy similarity-search interface. It is how you say *"the agent of this sentence is the cat,"* using nothing but vector arithmetic. Without it, you can only do retrieval. With it, you can do *structured representation*.
 
 ## What you'll learn
 
@@ -49,7 +49,7 @@ The reason is that natural embeddings are **correlated and anisotropic**. The di
 
 ## Sign-flip binding: the fix
 
-Akasha's default binding operation is **sign-flip**. It is one line:
+Sutra's default binding operation is **sign-flip**. It is one line:
 
 ```python
 result = a * np.sign(b)
@@ -63,7 +63,7 @@ Critical properties:
 - **Nearly orthogonal across roles.** Two different role vectors produce two different sign masks, and the masks have ~50% overlap by chance, so binding the same filler under two different roles produces two vectors that are ~0 correlated.
 - **Cheap.** 6.6 microseconds per operation on a CPU. About 4× the cost of Hadamard, but vastly cheaper than rotation binding (321 µs).
 
-The empirical numbers from the [Akasha paper](../papers.md):
+The empirical numbers from the [Sutra paper](../papers.md):
 
 | Method            | Cos at 2 roles | Cos at 7 roles | Snap correct (7) | Cost (µs) |
 |-------------------|---------------:|---------------:|-----------------:|----------:|
@@ -74,7 +74,7 @@ The empirical numbers from the [Akasha paper](../papers.md):
 | FFT correlation   |           0.62 |           0.34 |              7/7 |      67.3 |
 | **Rotation**      |       **0.89** |       **0.80** |          **7/7** |   **321** |
 
-Sign-flip is the best cost/quality tradeoff on natural embeddings. It is Akasha's default for that reason, and rotation binding (`bind_precise`) is available as the high-accuracy alternative when you need it.
+Sign-flip is the best cost/quality tradeoff on natural embeddings. It is Sutra's default for that reason, and rotation binding (`bind_precise`) is available as the high-accuracy alternative when you need it.
 
 ## Sustained computation: 10/10 chained operations
 
@@ -86,7 +86,7 @@ A single bind-unbind pair is not the interesting case. The interesting case is *
 4. Snap-to-nearest to clean up
 5. Use the result as the input to step 1 of the next iteration
 
-Sign-flip binding survives **10/10 cycles** of this on GTE-large with raw cosine staying in the 0.58-0.65 range and snap recovering the exact target every time. This is what makes long-form Akasha programs feasible — you can do real multi-step computation without the signal degrading into noise.
+Sign-flip binding survives **10/10 cycles** of this on GTE-large with raw cosine staying in the 0.58-0.65 range and snap recovering the exact target every time. This is what makes long-form Sutra programs feasible — you can do real multi-step computation without the signal degrading into noise.
 
 The same result holds across substrates: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 10/10 sustained chains. The choice of binding operation matters; the choice of substrate (within reason) does not.
 
@@ -121,4 +121,4 @@ All three extractions — `agent` from `A`, `patient` from `B`, `agent` from `B`
 ## What to read next
 
 - **[03 — Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup operation that makes the chained computation in this tutorial possible. Without snap, the noise from each unbind step accumulates and the signal eventually dies. With snap, you stay locked to the codebook and the loop runs forever.
-- The [Akasha paper](../papers.md) — §6.2 has the full binding alternatives table, the chained-computation result, and the multi-hop composition result.
+- The [Sutra paper](../papers.md) — §6.2 has the full binding alternatives table, the chained-computation result, and the multi-hop composition result.
