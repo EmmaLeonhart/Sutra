@@ -19,7 +19,7 @@ translation unit sees them in its global scope, the same way a C
 program sees `printf` once `<stdio.h>` is included or a Python
 program sees `len` unconditionally.
 
-The current SDK validator (`sdk/akasha-compiler/`) is *permissive*
+The current SDK validator (`sdk/sutra-compiler/`) is *permissive*
 about bareword calls: any identifier in call position is accepted
 without checking that it resolves to a declared function. That will
 change in v0.2 when name resolution lands, at which point undeclared

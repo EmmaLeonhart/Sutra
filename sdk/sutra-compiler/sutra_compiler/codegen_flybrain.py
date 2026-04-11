@@ -61,7 +61,7 @@ class CodegenNotSupported(Exception):
 # Each entry maps an Akasha builtin identifier to a callable that takes
 # the already-translated argument strings and returns the Python
 # expression to emit. Keeping this as a single table means the list of
-# supported builtins is easy to audit against `planning/akasha-spec/21-builtins.md`.
+# supported builtins is easy to audit against `planning/sutra-spec/21-builtins.md`.
 
 def _builtin_basis_vector(args: List[str]) -> str:
     return f"_VSA.embed({args[0]})"

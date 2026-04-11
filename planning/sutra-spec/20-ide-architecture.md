@@ -201,7 +201,7 @@ The core has to be solid enough that early contributors aren't fighting the lang
 
 ### Resolved
 
-- **TextMate grammar as a day-one deliverable** → shipped. Lives at `sdk/vscode-akasha/syntaxes/akasha.tmLanguage.json` and is the source the IntelliJ plugin's hand-written lexer was ported from.
+- **TextMate grammar as a day-one deliverable** → shipped. Lives at `sdk/vscode-sutra/syntaxes/akasha.tmLanguage.json` and is the source the IntelliJ plugin's hand-written lexer was ported from.
 - **Default visualizer projection** → linear projection onto user-chosen composite basis vectors, not UMAP/t-SNE. See the "Embedding-Space Visualizer" section above.
 - **2D vs 3D as the default projection mode** → 2D is the default; 3D is an opt-in mode alongside UMAP/t-SNE in the projection dropdown. See the "2D is the default; 3D is opt-in" sub-bullet for rationale.
 - **Visualizer renderer choice** → JCEF + three.js. Earlier drafts listed this as "the obvious first experiment; native Swing with a batched renderer is the fallback." It's now resolved in favor of JCEF+three.js; the Swing path is only invoked if JCEF is unavailable on a target distribution, and only for 2D mode. See the "Renderer: JCEF + three.js" section for the rationale.

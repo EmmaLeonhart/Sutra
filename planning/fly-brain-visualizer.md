@@ -2,7 +2,7 @@
 
 **Status: design doc, no implementation yet.**
 Companion pane to the embedding-space visualizer described in
-[`akasha-spec/20-ide-architecture.md`](akasha-spec/20-ide-architecture.md).
+[`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md).
 This is Akasha-specific IDE UX for programs that target the fly-brain
 substrate.
 
@@ -136,7 +136,7 @@ highlighted and the compiler wired into the diagnostics path.
 
 First visualizer, covering the general Akasha case. 3D hyperplane with
 user-chosen composite basis vectors, as specified in
-[`akasha-spec/20-ide-architecture.md`](akasha-spec/20-ide-architecture.md).
+[`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md).
 
 ### v0.3 — fly-brain topological view (option a)
 
@@ -213,7 +213,7 @@ Concretely, the fly-brain pane's MCP surface has to include at least:
 
 ## Related
 
-- [`akasha-spec/20-ide-architecture.md`](akasha-spec/20-ide-architecture.md) — parent IDE architecture doc
+- [`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md) — parent IDE architecture doc
 - [`../fly-brain/STATUS.md`](../fly-brain/STATUS.md) — current state of the fly-brain substrate
 - [`../fly-brain/DEMO.md`](../fly-brain/DEMO.md) — what the compile-to-brain pipeline actually does today
 - [`../sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`](../sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py) — the AST → FlyBrainVSA translator whose output the visualizer renders

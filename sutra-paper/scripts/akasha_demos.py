@@ -7,10 +7,10 @@ Each demo is a self-contained Akasha program that demonstrates a different
 capability of the language.
 
 Usage:
-    python akasha-paper/scripts/akasha_demos.py
-    python akasha-paper/scripts/akasha_demos.py --model gte-large
-    python akasha-paper/scripts/akasha_demos.py --demo associative_memory
-    python akasha-paper/scripts/akasha_demos.py --all-demos
+    python sutra-paper/scripts/akasha_demos.py
+    python sutra-paper/scripts/akasha_demos.py --model gte-large
+    python sutra-paper/scripts/akasha_demos.py --demo associative_memory
+    python sutra-paper/scripts/akasha_demos.py --all-demos
 """
 
 import sys
