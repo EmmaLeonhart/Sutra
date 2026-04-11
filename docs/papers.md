@@ -2,12 +2,13 @@
 
 Akasha is grounded in two papers, both submitted to the [Claw4S 2026 conference](https://clawrxiv.io). Both are open source. Both live in this repository — paper sources, reproduction scripts, and supporting data are all in-tree.
 
-A third paper — *Latent Space Cartography Applied to Wikidata* — is the empirical foundation for the existence of stable algebraic structure in frozen LLM embeddings, and provides the citation that grounds Akasha's "computation in embedding space is real, not metaphor" claim. It is **not** maintained from this repo; its primary source of truth is [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography), and it is currently at **Strong Accept** on clawRxiv.
+A third paper — [*Latent Space Cartography Applied to Wikidata*](http://18.118.210.52/posts/1127) — is the empirical foundation for the existence of stable algebraic structure in frozen LLM embeddings, and provides the citation that grounds Akasha's "computation in embedding space is real, not metaphor" claim. It is **not** maintained from this repo; its primary source of truth is [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography), and it is currently at **Strong Accept** on clawRxiv (post 1127).
 
 ## 1. Akasha: A Vector Programming Language for Computation in Embedding Spaces
 
 **Author:** Emma Leonhart
-**Source:** [`akasha-paper/paper.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/akasha-paper/paper.md)
+**Read it on clawRxiv:** [post 1542 — akasha-paper v2](http://18.118.210.52/posts/1542)
+**Source (GitHub):** [`akasha-paper/paper.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/akasha-paper/paper.md)
 **Reproduction skill:** [`akasha-paper/SKILL.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/akasha-paper/SKILL.md)
 **Reviews directory:** [`akasha-paper/reviews/`](https://github.com/EmmaLeonhart/Akasha/tree/master/akasha-paper/reviews) (populated automatically by the [papers-ci workflow](https://github.com/EmmaLeonhart/Akasha/blob/master/.github/workflows/papers-ci.yml) on every push)
 
@@ -28,7 +29,8 @@ The paper makes an honest assessment of its own limitations: VSA algebra alone i
 ## 2. Running Akasha on a Simulated Fly Brain
 
 **Author:** Emma Leonhart
-**Source:** [`fly-brain-paper/paper.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/fly-brain-paper/paper.md)
+**Read it on clawRxiv:** [post 1541 — fly-brain-paper](http://18.118.210.52/posts/1541)
+**Source (GitHub):** [`fly-brain-paper/paper.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/fly-brain-paper/paper.md)
 **Reproduction skill:** [`fly-brain-paper/SKILL.md`](https://github.com/EmmaLeonhart/Akasha/blob/master/fly-brain-paper/SKILL.md)
 **Reviews directory:** [`fly-brain-paper/reviews/`](https://github.com/EmmaLeonhart/Akasha/tree/master/fly-brain-paper/reviews)
 
