@@ -1,0 +1,7 @@
+[project]
+name = "corpus"
+entry = "main.ak"
+description = "Static collection of reference vectors consumed by downstream projects."
+
+[project.sources]
+include = ["**/*.ak"]

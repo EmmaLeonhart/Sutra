@@ -1,0 +1,10 @@
+[project]
+name = "similarity"
+entry = "main.ak"
+description = "Cosine-similarity queries against the corpus project's reference vectors."
+
+[project.sources]
+include = ["**/*.ak"]
+
+[project.dependencies]
+corpus = { path = "../corpus" }
