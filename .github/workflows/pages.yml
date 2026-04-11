@@ -1,0 +1,71 @@
+name: Deploy GitHub Pages site
+
+# Builds the Akasha language website with MkDocs Material and deploys
+# it to GitHub Pages on every push to master that touches the docs
+# tree, the mkdocs config, the README, or the planning specs that the
+# docs reference. Uses the official actions/deploy-pages flow, so the
+# repo's Pages settings need to be set to "Source: GitHub Actions"
+# (Settings → Pages → Build and deployment → Source).
+#
+# Live at: https://emmaleonhart.github.io/Akasha
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'README.md'
+      - 'planning/akasha-spec/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# A single deploy at a time. The "pages" group is the conventional one
+# for the actions/deploy-pages action and lets it serialize cleanly.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build site with MkDocs Material
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install MkDocs Material
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            "mkdocs-material>=9.5.0" \
+            "pymdown-extensions>=10.0" \
+            "mkdocs>=1.6.0"
+
+      - name: Build site
+        run: |
+          mkdocs build --strict --verbose
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
