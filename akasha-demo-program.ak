@@ -11,8 +11,8 @@
     - `var` and `const`
     - overloaded operators like `+` and `*`
     - explicit `fuzzy` -> `bool` collapse through `defuzzy(...)`
-    - safe cast `(cat) animal`
-    - unsafe cast `unsafeCast<cat>(animal)`
+    - safe cast `(Cat) Animal`
+    - unsafe cast `unsafeCast<Cat>(Animal)`
     - unsafe override `unsafeOverride(x)` when the issue is function acceptance
     - TypeScript-style `if (...) { ... } else { ... }`
     - C#-style string interpolation
@@ -45,7 +45,7 @@ function bool Decide(fuzzy signal) {
 
 /// Score an animal-shaped value as "pet-like".
 /// This is intentionally simple; the point is to show syntax, not final semantics.
-function fuzzy ScorePetLikelihood(animal subject) {
+function fuzzy ScorePetLikelihood(Animal subject) {
     vector petMarker = embed("pet");
     vector catMarker = embed("cat");
     vector subjectVector = (vector) subject;
@@ -58,9 +58,9 @@ function fuzzy ScorePetLikelihood(animal subject) {
 }
 
 /// Show the three different acceptance/conversion paths described in the docs.
-function string ExplainCatAccess(animal subject) {
-    cat checkedCat = (cat) subject;
-    cat forcedCat = unsafeCast<cat>(subject);
+function string ExplainCatAccess(Animal subject) {
+    Cat checkedCat = (Cat) subject;
+    Cat forcedCat = unsafeCast<Cat>(subject);
     string summary =
         $"safe={(vector) checkedCat}, unsafe={(vector) forcedCat}, override=available-at-call-site";
 
@@ -68,7 +68,7 @@ function string ExplainCatAccess(animal subject) {
 }
 
 /// Build a human-readable report string.
-function string Describe(animal subject) {
+function string Describe(Animal subject) {
     fuzzy signal = function.ScorePetLikelihood(subject);
     bool petLike = function.Decide(signal);
 
@@ -96,7 +96,7 @@ function string Main() {
 
     // `unsafeOverride(...)` does not cast the value.
     // It tells the receiving site to accept something it would normally reject.
-    animal subject = unsafeOverride(rawSubject);
+    Animal subject = unsafeOverride(rawSubject);
 
     string classification = function.Describe(subject);
     string catAccess = function.ExplainCatAccess(subject);
