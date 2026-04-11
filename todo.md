@@ -6,6 +6,7 @@ During the Akasha → Sutra rename, directory-level renames failed with "Permiss
 
 - `sdk/akasha-compiler/` (renamed to `sdk/sutra-compiler/`)
 - `sdk/intellij-akasha/` (renamed to `sdk/intellij-sutra/`)
+- `sdk/vscode-akasha/` (renamed to `sdk/vscode-sutra/`)
 - (more directories will be added here as the rename proceeds)
 
 **These old directories are no longer used by anything — the git index already points at the new paths, Gradle/CI/scripts all reference the new paths, and tests run against the new copies. They're inert leftover files on disk only. Just `rm -rf` them after the restart.**
