@@ -1,4 +1,13 @@
-# Akasha TODO
+# Sutra TODO
+
+## Post-restart filesystem cleanup (orphaned directories from the Akasha → Sutra rename)
+
+During the Akasha → Sutra rename, directory-level renames failed with "Permission denied" because OneDrive and/or File Explorer were holding handles on the old directory trees. The workaround was: `cp -r <old> <new>` + `git rm --cached -r <old>`, which leaves the old directories on disk as filesystem orphans while git sees them as cleanly renamed. After the next computer restart (which releases all the stale handles), delete these old directories from the filesystem manually — they're already gone from git's tracking:
+
+- `sdk/akasha-compiler/` (renamed to `sdk/sutra-compiler/`)
+- (more directories will be added here as the rename proceeds)
+
+After deleting: `git status` should show nothing. If any of these directories still exist and still contain files, just `rm -rf` them — git already considers them gone.
 
 ## Next up
 

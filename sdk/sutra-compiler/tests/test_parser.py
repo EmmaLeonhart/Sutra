@@ -6,9 +6,9 @@ disambiguation rules (cast vs paren, generic vs comparison).
 
 import unittest
 
-from akasha_compiler import ast_nodes as ast
-from akasha_compiler.lexer import Lexer
-from akasha_compiler.parser import Parser
+from sutra_compiler import ast_nodes as ast
+from sutra_compiler.lexer import Lexer
+from sutra_compiler.parser import Parser
 
 
 def parse(src):
@@ -86,7 +86,7 @@ class TestDeclarations(unittest.TestCase):
     def test_var_with_type_is_error(self):
         _, diag = parse("function void F() { var vector x = embed(\"cat\"); }")
         self.assertTrue(diag.has_errors())
-        self.assertTrue(any(d.code == "AKA0103" for d in diag))
+        self.assertTrue(any(d.code == "SUT0103" for d in diag))
 
     def test_typed_decl(self):
         module, diag = parse("function void F() { vector x = embed(\"cat\"); }")

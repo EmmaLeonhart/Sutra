@@ -362,7 +362,7 @@ class Lexer:
         self.diagnostics.error(
             "unterminated block comment",
             self._span(start),
-            code="AKA0001",
+            code="SUT0001",
             hint="add `*/` to close the comment",
         )
 
@@ -382,7 +382,7 @@ class Lexer:
                 self.diagnostics.error(
                     "unterminated string literal (newline before closing quote)",
                     self._span(start),
-                    code="AKA0002",
+                    code="SUT0002",
                 )
                 break
             else:
@@ -393,7 +393,7 @@ class Lexer:
             self.diagnostics.error(
                 "unterminated string literal",
                 self._span(start),
-                code="AKA0002",
+                code="SUT0002",
             )
         lexeme = self.source[start.offset:self._pos]
         self._emit_tok(
@@ -453,7 +453,7 @@ class Lexer:
                 self.diagnostics.error(
                     "unterminated interpolated string literal",
                     self._span(buf_start),
-                    code="AKA0002",
+                    code="SUT0002",
                 )
                 break
             self._advance()
@@ -462,7 +462,7 @@ class Lexer:
         self.diagnostics.error(
             "unterminated interpolated string literal",
             self._span(buf_start),
-            code="AKA0002",
+            code="SUT0002",
         )
         # Pop so we don't loop.
         if self._interp_stack:
@@ -591,7 +591,7 @@ class Lexer:
             self.diagnostics.error(
                 f"unexpected character {ch!r}",
                 self._span(start),
-                code="AKA0003",
+                code="SUT0003",
             )
             self._emit_tok(TokenKind.UNKNOWN, ch, start)
             return

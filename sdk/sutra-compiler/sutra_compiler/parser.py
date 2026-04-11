@@ -182,7 +182,7 @@ class Parser:
         self.diagnostics.error(
             f"expected {what}, got {self._describe(tok)}",
             tok.span,
-            code="AKA0100",
+            code="SUT0100",
         )
         return None
 
@@ -238,7 +238,7 @@ class Parser:
             self.diagnostics.error(
                 "modifiers (`public`/`private`/`static`) only apply to function and method declarations",
                 tok.span,
-                code="AKA0101",
+                code="SUT0101",
             )
             self._pos = save  # rewind so the next pass sees the same tokens
 
@@ -407,7 +407,7 @@ class Parser:
             self.diagnostics.error(
                 f"`{op_name}` is not an overloadable operator",
                 op_tok.span,
-                code="AKA0102",
+                code="SUT0102",
             )
 
         params = self._parse_param_list()
@@ -641,7 +641,7 @@ class Parser:
             self.diagnostics.error(
                 "`var` cannot be combined with an explicit type",
                 SourceSpan(start=keyword.span.start, end=bad_type.span.end if bad_type else keyword.span.end),
-                code="AKA0103",
+                code="SUT0103",
                 hint="write either `var x = ...;` (inferred) or `TYPE x = ...;` (explicit)",
             )
             type_ref = bad_type
@@ -839,7 +839,7 @@ class Parser:
 
     def _parse_pipe_forward(self) -> ast.Expr:
         # The `|>` operator is explicitly forbidden by the spec. The
-        # validator emits AKA0110 for every occurrence via a token
+        # validator emits SUT0110 for every occurrence via a token
         # walk. We still parse it here as a low-precedence left-assoc
         # binary operator so the rest of the expression parses cleanly
         # and the user only sees the root-cause diagnostic, not a
@@ -1130,7 +1130,7 @@ class Parser:
         self.diagnostics.error(
             f"expected expression, got {self._describe(tok)}",
             tok.span,
-            code="AKA0104",
+            code="SUT0104",
         )
         self._advance()
         return ast.Identifier(name="<error>", span=tok.span)
@@ -1161,7 +1161,7 @@ class Parser:
             self.diagnostics.error(
                 "unterminated interpolated string literal",
                 tok.span,
-                code="AKA0002",
+                code="SUT0002",
             )
             return ast.InterpolatedString(
                 parts=parts,
@@ -1301,7 +1301,7 @@ class Parser:
                 self.diagnostics.error(
                     "`unsafeCast` requires a type argument: `unsafeCast<Type>(value)`",
                     full_span,
-                    code="AKA0105",
+                    code="SUT0105",
                 )
                 return ast.UnsafeCastExpr(
                     target_type=ast.TypeRef(name="<missing>", type_args=[], span=full_span),
