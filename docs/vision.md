@@ -74,14 +74,14 @@ Closest existing analogy: SQL is to a relational database what Sutra is to a vec
 
 The vision the language is part of is bigger than the language itself. The full stack we're building, in rough priority order:
 
-1. **The Sutra language** — compiler, type system, semantics, the `.su` source format. ([SDK in `sdk/sutra-compiler/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sdk/sutra-compiler))
-2. **The Sutra runtime** — the silicon-substrate execution engine. Probes a target embedding space, fits correction matrices, exposes the three-tier operation API. ([`sutra-paper/scripts/sutra_runtime.py`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sutra-paper/scripts))
-3. **The Sutra IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer. ([`sdk/intellij-sutra/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sdk/intellij-sutra))
-4. **SutraDB** — the lightweight bundled vector database, brought into this monorepo as a subtree at [`sutraDB/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/sutraDB). The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Sutra emits.
-5. **The fly-brain substrate** — a Brian2 spiking simulation of the *Drosophila* mushroom body that the Sutra compiler can also target, used as a stress test of substrate-adaptivity. ([`fly-brain/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/fly-brain) + [`fly-brain-paper/`](https://github.com/EmmaLeonhart/Sutralang/tree/master/fly-brain-paper))
+1. **The Sutra language** — compiler, type system, semantics, the `.su` source format. ([SDK in `sdk/sutra-compiler/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sdk/sutra-compiler))
+2. **The Sutra runtime** — the silicon-substrate execution engine. Probes a target embedding space, fits correction matrices, exposes the three-tier operation API. ([`sutra-paper/scripts/sutra_runtime.py`](https://github.com/EmmaLeonhart/Sutra/tree/master/sutra-paper/scripts))
+3. **The Sutra IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer. ([`sdk/intellij-sutra/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sdk/intellij-sutra))
+4. **SutraDB** — the lightweight bundled vector database, brought into this monorepo as a subtree at [`sutraDB/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sutraDB). The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Sutra emits.
+5. **The fly-brain substrate** — a Brian2 spiking simulation of the *Drosophila* mushroom body that the Sutra compiler can also target, used as a stress test of substrate-adaptivity. ([`fly-brain/`](https://github.com/EmmaLeonhart/Sutra/tree/master/fly-brain) + [`fly-brain-paper/`](https://github.com/EmmaLeonhart/Sutra/tree/master/fly-brain-paper))
 6. **A bundled vertical stack installer** — one download gives you the language, runtime, IDE, embedded vector database, default embedding model, and a small curated default corpus. Hello-world-without-config is the goal — the same affordance that made SQLite the most-deployed database in the world.
 
-All of it is open source. All of it lives in [github.com/EmmaLeonhart/Sutralang](https://github.com/EmmaLeonhart/Sutralang).
+All of it is open source. All of it lives in [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).
 
 ## What to read next
 

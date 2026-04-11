@@ -87,8 +87,8 @@ closed whatever was holding the handles.
 
 The GitHub repository itself (`EmmaLeonhart/Akasha` on the remote) has not
 been renamed yet — doing that is a separate manual step in the GitHub UI.
-The planned target name is `EmmaLeonhart/Sutralang` (so GitHub Pages
-serves at `emmaleonhart.github.io/Sutralang/`). Nothing in the workflows
+The planned target name is `EmmaLeonhart/Sutra` (so GitHub Pages
+serves at `emmaleonhart.github.io/Sutra/`). Nothing in the workflows
 depends on the repo name; the Pages site auto-adapts to whatever the
 repo is called.
 
@@ -208,7 +208,7 @@ trailer convention for opt-out.
 site with a vision page, an interactive graph-to-vector widget, three
 tutorials, a papers page, and the deploy workflow. Originally at
 `emmaleonhart.github.io/Akasha` (target after the 2026-04-11 rename:
-`emmaleonhart.github.io/Sutralang`).
+`emmaleonhart.github.io/Sutra`).
 
 **SutraDB merged into `sutraDB/` via git subtree (`16e71d6`).** The
 entire SutraDB codebase (started independently on 2026-03-13 as a
