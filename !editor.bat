@@ -1,10 +1,10 @@
 @echo off
 REM =====================================================================
-REM  !editor.bat  —  Launch the Akasha IntelliJ plugin in a sandbox IDE.
+REM  !editor.bat  —  Launch the Sutra IntelliJ plugin in a sandbox IDE.
 REM
-REM  The Akasha "editor" is not a standalone IDE — it's an IntelliJ
-REM  Platform plugin (sdk\intellij-akasha\). "Opening" it means launching
-REM  IntelliJ IDEA Community in a sandbox with the Akasha plugin
+REM  The Sutra "editor" is not a standalone IDE — it's an IntelliJ
+REM  Platform plugin (sdk\intellij-sutra\). "Opening" it means launching
+REM  IntelliJ IDEA Community in a sandbox with the Sutra plugin
 REM  preinstalled, which is exactly what the gradle task `runIde` does.
 REM
 REM  First run:
@@ -13,7 +13,7 @@ REM      cache under %USERPROFILE%\.gradle\. This takes several minutes
 REM      but only happens once.
 REM    - Compiles the plugin's Kotlin source.
 REM    - Starts a sandbox IntelliJ IDEA Community window with the plugin
-REM      loaded. Drop any .ak file into it (e.g. akasha-demo-program.ak
+REM      loaded. Drop any .su file into it (e.g. sutra-demo-program.su
 REM      from this repo root) to smoke-test highlighting, completion,
 REM      live templates, and diagnostics.
 REM
@@ -21,8 +21,8 @@ REM  Subsequent runs reuse the cached SDK and are fast.
 REM
 REM  Requirements:
 REM    - JDK 17 or newer on PATH (Java 21 is fine).
-REM    - sdk\intellij-akasha\gradlew.bat must exist. If it doesn't yet,
-REM      generate it once from sdk\intellij-akasha with:
+REM    - sdk\intellij-sutra\gradlew.bat must exist. If it doesn't yet,
+REM      generate it once from sdk\intellij-sutra with:
 REM        gradle wrapper
 REM      (which requires a system Gradle install), or copy the wrapper
 REM      from another project. The wrapper is checked into the repo so
@@ -31,7 +31,7 @@ REM =====================================================================
 
 setlocal
 
-set "PLUGIN_DIR=%~dp0sdk\intellij-akasha"
+set "PLUGIN_DIR=%~dp0sdk\intellij-sutra"
 
 if not exist "%PLUGIN_DIR%\gradlew.bat" (
     echo.
