@@ -1,7 +1,7 @@
-# Akasha for VS Code
+# Sutra for VS Code
 
 Syntax highlighting, autocomplete, snippets, and live error reporting for
-the **Akasha** programming language — a fuzzy-by-default vector language
+the **Sutra** programming language — a fuzzy-by-default vector language
 whose primitives are hypervectors in embedding space.
 
 ## Features
@@ -62,31 +62,31 @@ Snippets for the things you type most often:
 
 ### Diagnostics
 
-Run the `akashac` compiler (from `sdk/akasha-compiler`) and surface
+Run the `sutrac` compiler (from `sdk/sutra-compiler`) and surface
 its diagnostics in the Problems panel. Supports every diagnostic code
-the compiler emits (AKA0001..AKA0113 at the time of writing),
+the compiler emits (SUT0001..SUT0113 at the time of writing),
 including:
 
-- `AKA0002` unterminated string literal
-- `AKA0100` missing `;`, missing `)`, unexpected token
-- `AKA0103` `var` combined with an explicit type
-- `AKA0110` the `|>` pipe-forward operator
-- `AKA0111` `(vector) "string"` — use `embed(...)` instead
-- `AKA0112` a declaration marked both `public` and `private`
-- `AKA0113` class name used in multiple casings in one file
+- `SUT0002` unterminated string literal
+- `SUT0100` missing `;`, missing `)`, unexpected token
+- `SUT0103` `var` combined with an explicit type
+- `SUT0110` the `|>` pipe-forward operator
+- `SUT0111` `(vector) "string"` — use `embed(...)` instead
+- `SUT0112` a declaration marked both `public` and `private`
+- `SUT0113` class name used in multiple casings in one file
 
-Diagnostics run on save by default. Set `akasha.validateOn` to
+Diagnostics run on save by default. Set `sutra.validateOn` to
 `change` if you want live feedback on every keystroke, or `never` to
-disable and use the `Akasha: Validate current file` command manually.
+disable and use the `Sutra: Validate current file` command manually.
 
 ## Setup
 
 1. Install the compiler:
    ```
-   cd sdk/akasha-compiler
+   cd sdk/sutra-compiler
    pip install -e .
    ```
-   (Or just ensure `python -m akasha_compiler` works from your PATH.)
+   (Or just ensure `python -m sutra_compiler` works from your PATH.)
 
 2. In VS Code, open the extension folder and press F5 to launch an
    Extension Development Host. Any `.ak` file in the host window will
@@ -96,7 +96,7 @@ disable and use the `Akasha: Validate current file` command manually.
    set it in settings:
    ```json
    {
-     "akasha.compilerPath": "C:\\Python313\\python.exe"
+     "sutra.compilerPath": "C:\\Python313\\python.exe"
    }
    ```
 
@@ -104,16 +104,16 @@ disable and use the `Akasha: Validate current file` command manually.
 
 | Setting                  | Default               | Description |
 |--------------------------|-----------------------|-------------|
-| `akasha.compilerPath`    | `python`              | Python interpreter to invoke |
-| `akasha.compilerArgs`    | `["-m", "akasha_compiler"]` | Arguments before the file path |
-| `akasha.validateOn`      | `save`                | `save`, `change`, or `never` |
-| `akasha.showAkaCodes`    | `true`                | Show AKA#### codes in Problems panel |
+| `sutra.compilerPath`    | `python`              | Python interpreter to invoke |
+| `sutra.compilerArgs`    | `["-m", "sutra_compiler"]` | Arguments before the file path |
+| `sutra.validateOn`      | `save`                | `save`, `change`, or `never` |
+| `sutra.showDiagnosticCodes`    | `true`                | Show SUT#### codes in Problems panel |
 
 ## Commands
 
-- **Akasha: Validate current file** — run the validator on the active
+- **Sutra: Validate current file** — run the validator on the active
   editor and refresh diagnostics.
-- **Akasha: Validate all .ak files in workspace** — walk the workspace
+- **Sutra: Validate all .ak files in workspace** — walk the workspace
   and validate every `.ak` file.
 
 ## Limitations (v0.1)
@@ -127,4 +127,4 @@ disable and use the `Akasha: Validate current file` command manually.
 
 ## License
 
-Same as the rest of the Akasha repository.
+Same as the rest of the Sutra repository.

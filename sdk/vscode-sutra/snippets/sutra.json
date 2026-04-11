@@ -126,7 +126,7 @@
       "\t${0:return DefaultCat();}",
       "}"
     ],
-    "description": "try/catch block. In Akasha, catch fires when output matches a failure pattern."
+    "description": "try/catch block. In Sutra, catch fires when output matches a failure pattern."
   },
   "var declaration": {
     "prefix": "var",
