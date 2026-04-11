@@ -1,6 +1,6 @@
 # Solutions and Projects
 
-A *solution* is a collection of *projects* that compile and run together as a unit. The solution file names the projects; each project file describes one buildable unit of `.ak` source. Solutions are the top level of the Akasha project model — everything else (source files, inter-project dependencies, substrate targeting, compiler flags) hangs off a solution-and-project hierarchy.
+A *solution* is a collection of *projects* that compile and run together as a unit. The solution file names the projects; each project file describes one buildable unit of `.su` source. Solutions are the top level of the Akasha project model — everything else (source files, inter-project dependencies, substrate targeting, compiler flags) hangs off a solution-and-project hierarchy.
 
 The motivation for this layer is laid out in [`20-ide-architecture.md`](20-ide-architecture.md) §"UX Model: Visual Studio, Not Jupyter", specifically the "solution file with multiple projects" bullet. This document is the formal schema for the two file formats it asks for.
 
@@ -45,7 +45,7 @@ path = "visualizations"
 | Field | Type | Meaning |
 |---|---|---|
 | `solution.name` | string | Human-readable name. Also used as the tool-window label in the IDE. |
-| `solution.akasha_version` | string | Minimum Akasha language version the solution needs. Matches the `version` string produced by `akashac --version`. The parser rejects a solution whose `akasha_version` is newer than the installed toolchain. |
+| `solution.akasha_version` | string | Minimum Akasha language version the solution needs. Matches the `version` string produced by `sutrac --version`. The parser rejects a solution whose `akasha_version` is newer than the installed toolchain. |
 | `project` | array of tables | One entry per project in the solution. Each entry has at least a `path`, relative to the `.aksln` file. |
 
 **Optional fields:**
@@ -54,7 +54,7 @@ path = "visualizations"
 |---|---|---|
 | `solution.description` | string | Free-form description, shown in the IDE tool window as hover text on the solution node. |
 | `solution.default_substrate` | string | Default substrate for projects that do not specify one. Must be one of `silicon`, `fly-brain`, `logit`. If omitted, `silicon`. |
-| `solution.compiler_args` | array of strings | Extra arguments passed to `akashac` for every project in the solution. Per-project args (declared in the `.akproj`) are appended after these. |
+| `solution.compiler_args` | array of strings | Extra arguments passed to `sutrac` for every project in the solution. Per-project args (declared in the `.akproj`) are appended after these. |
 
 Each `[[project]]` table may carry overrides that shadow the `.akproj` contents. This lets a solution file temporarily override a property without touching the project file (useful for A/B testing substrates):
 
@@ -73,7 +73,7 @@ A project file lives at the root of a project directory (the directory `solution
 ```toml
 [project]
 name = "similarity"
-entry = "main.ak"
+entry = "main.su"
 ```
 
 **Required fields:**
@@ -81,7 +81,7 @@ entry = "main.ak"
 | Field | Type | Meaning |
 |---|---|---|
 | `project.name` | string | Project identifier, unique within the solution. Must match `^[a-zA-Z_][a-zA-Z0-9_-]*$`. Used as the key in `[project.dependencies]` tables in sibling projects. |
-| `project.entry` | string | Path to the entry-point `.ak` file, relative to the project directory. The compiler starts parsing here. |
+| `project.entry` | string | Path to the entry-point `.su` file, relative to the project directory. The compiler starts parsing here. |
 
 **Optional fields:**
 
@@ -89,8 +89,8 @@ entry = "main.ak"
 |---|---|---|---|
 | `project.substrate` | string | inherited from solution, else `silicon` | Target substrate for this project. One of `silicon`, `fly-brain`, `logit`. |
 | `project.description` | string | `""` | Free-form. Shown as hover text in the IDE. |
-| `project.compiler_args` | array of strings | `[]` | Extra `akashac` args for this project only. Appended after solution-wide args. |
-| `project.sources.include` | array of glob strings | `["**/*.ak"]` | Source file globs relative to the project directory. |
+| `project.compiler_args` | array of strings | `[]` | Extra `sutrac` args for this project only. Appended after solution-wide args. |
+| `project.sources.include` | array of glob strings | `["**/*.su"]` | Source file globs relative to the project directory. |
 | `project.sources.exclude` | array of glob strings | `[]` | Paths to exclude from the include set. |
 | `[project.dependencies]` | table of project-references | empty | See below. |
 
@@ -132,7 +132,7 @@ The parser emits structured errors in the same `AKA####` code space as the rest 
 |---|---|
 | `AKA2001` | Solution file is not valid TOML |
 | `AKA2002` | Solution file is missing a required field (`solution.name`, `solution.akasha_version`, or at least one `[[project]]`) |
-| `AKA2003` | `akasha_version` requires a toolchain newer than the installed `akashac` |
+| `AKA2003` | `akasha_version` requires a toolchain newer than the installed `sutrac` |
 | `AKA2004` | Project path in `[[project]]` does not exist on disk |
 | `AKA2005` | Project directory contains zero or multiple `.akproj` files and the solution entry did not disambiguate via `akproj = "..."` |
 | `AKA2006` | Project file is not valid TOML |
@@ -152,13 +152,13 @@ The reference IntelliJ plugin at `sdk/intellij-akasha/` registers:
 
 1. **`AkashaSolutionFileType`** — claims `.aksln` as a TOML-flavored file type so the bundled IntelliJ TOML support provides highlighting and bracket matching without any extra code on our side.
 2. **`AkashaProjectFileType`** — same for `.akproj`.
-3. **`AkashaSolutionToolWindowFactory`** — a new tool window on the left side of the workspace that scans the open project for the first `.aksln` file at or near the root, parses it via a Kotlin port of `solution.py`'s data model, and renders the solution structure as a `JTree`. Double-clicking a tree node opens the corresponding file in the editor (project nodes open the `.akproj`, source-file nodes open the `.ak` file, the solution node opens the `.aksln`).
+3. **`AkashaSolutionToolWindowFactory`** — a new tool window on the left side of the workspace that scans the open project for the first `.aksln` file at or near the root, parses it via a Kotlin port of `solution.py`'s data model, and renders the solution structure as a `JTree`. Double-clicking a tree node opens the corresponding file in the editor (project nodes open the `.akproj`, source-file nodes open the `.su` file, the solution node opens the `.aksln`).
 
 Out of scope for the v1 plugin integration, explicit v1.1 follow-ups:
 
 - **`ProjectOpenProcessor`** for "open folder → auto-detect solution" behavior. Currently the user opens the folder normally and then clicks the solution tool window. v1.1 will add the auto-open hook so the tool window opens automatically on recognized solutions.
-- **Source root configuration** via `ModuleRootModificationUtil`. The v1 experience relies on the existing `.ak` file-type registration for language features, which works on any `.ak` file regardless of project membership. A proper source-root configuration would improve cross-file navigation and "find usages" across project boundaries.
-- **Run configurations.** A first-class `ConfigurationType` that lets the user right-click a project in the tool window and run `akashac` against it. v1 has no run integration; the user invokes the compiler from the terminal.
+- **Source root configuration** via `ModuleRootModificationUtil`. The v1 experience relies on the existing `.su` file-type registration for language features, which works on any `.su` file regardless of project membership. A proper source-root configuration would improve cross-file navigation and "find usages" across project boundaries.
+- **Run configurations.** A first-class `ConfigurationType` that lets the user right-click a project in the tool window and run `sutrac` against it. v1 has no run integration; the user invokes the compiler from the terminal.
 - **MCP surface.** Once the runtime MCP server from [`20-ide-architecture.md`](20-ide-architecture.md) §"MCP Architecture" ships, the solution model should be exposed as an MCP tool (e.g. `akasha.solution(path)` returns the parsed solution JSON) so agents can query the project structure without going through the UI.
 
 ## Example: a two-project solution
@@ -168,12 +168,12 @@ embedding-pipeline/
 ├── embedding-pipeline.aksln
 ├── corpus/
 │   ├── corpus.akproj
-│   ├── main.ak
-│   └── helpers.ak
+│   ├── main.su
+│   └── helpers.su
 └── similarity/
     ├── similarity.akproj
-    ├── cosine.ak
-    └── main.ak
+    ├── cosine.su
+    └── main.su
 ```
 
 **`embedding-pipeline.aksln`:**
@@ -196,7 +196,7 @@ path = "similarity"
 ```toml
 [project]
 name = "corpus"
-entry = "main.ak"
+entry = "main.su"
 description = "Static corpus of reference vectors used by downstream projects."
 ```
 
@@ -205,7 +205,7 @@ description = "Static corpus of reference vectors used by downstream projects."
 ```toml
 [project]
 name = "similarity"
-entry = "main.ak"
+entry = "main.su"
 description = "Cosine-similarity queries against the reference corpus."
 
 [project.dependencies]

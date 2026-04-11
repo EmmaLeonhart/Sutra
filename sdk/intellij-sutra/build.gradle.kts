@@ -75,10 +75,10 @@ tasks {
     runIde {
         // Auto-open the repo root as a project on launch. Without this,
         // the sandbox IntelliJ boots into a blank "Welcome to IntelliJ"
-        // screen and the user has to navigate to the .ak files manually
+        // screen and the user has to navigate to the .su files manually
         // — which is confusing if you don't know the plugin only activates
-        // when you touch a .ak file. With this, the sandbox opens straight
-        // into the !Claw4S project tree with sutra-demo-program.ak visible
+        // when you touch a .su file. With this, the sandbox opens straight
+        // into the !Claw4S project tree with sutra-demo-program.su visible
         // at the root, so "is the plugin working?" is one click away.
         //
         // project.rootDir here is sdk/intellij-sutra; parentFile is sdk;
