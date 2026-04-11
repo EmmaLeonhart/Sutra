@@ -2,7 +2,7 @@
 
 Language tooling for **Akasha** — the fuzzy-by-default vector
 programming language. This directory contains the compiler/validator
-and the VS Code extension that uses it.
+and the editor integrations that build on it.
 
 ```
 sdk/
@@ -28,7 +28,23 @@ sdk/
     snippets/akasha.json
     src/extension.ts
     README.md
+  intellij-akasha/      IntelliJ Platform plugin (the *reference* IDE)
+    build.gradle.kts
+    settings.gradle.kts
+    gradle.properties
+    src/main/kotlin/org/akasha/intellij/...
+    src/main/resources/META-INF/plugin.xml
+    src/main/resources/liveTemplates/Akasha.xml
+    src/main/resources/icons/akasha.svg
+    README.md
 ```
+
+The VS Code extension is a community convenience. The **reference**
+development environment, per
+[`planning/akasha-spec/20-ide-architecture.md`](../planning/akasha-spec/20-ide-architecture.md),
+is the IntelliJ plugin under `intellij-akasha/`. All three editor
+touchpoints — VS Code, IntelliJ, and direct CLI use — shell out to the
+same `akasha_compiler` Python package as ground truth.
 
 ## Quickstart
 
