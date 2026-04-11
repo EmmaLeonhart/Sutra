@@ -6,13 +6,13 @@ hide:
   - toc
 ---
 
-# Sutra
+# 📜 Sutra
 
 **A vector programming language whose primitives are hypervectors in embedding space.**
 
 Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *vector operations* that execute inside a pre-trained embedding space — making the execution environment **fundamentally semantic** rather than symbolic. Where silicon arithmetic has no inherent meaning, the geometry of an embedding space *does* — and Sutra is the first programming language designed to exploit that as a first-class computational substrate.
 
-The name comes from the Sanskrit *ākaśa* — the primordial medium that pervades all things. The language operates in the continuous semantic space that pervades trained embedding models.
+The name comes from the Sanskrit *sūtra* — "thread/rule/aphorism," the word used for Pāṇini's foundational Sanskrit grammar (the earliest formal grammar of any language). The 📜 scroll is the ecosystem's visual branding across the language, the database ([SutraDB](/SutraDB/)), the tooling, and the papers.
 
 ---
 

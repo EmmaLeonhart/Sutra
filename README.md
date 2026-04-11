@@ -1,12 +1,14 @@
-# Sutra
+# 📜 Sutra
 
 **A vector programming language whose primitives are hypervectors in embedding space.**
 
-🌐 **Website: <https://emmaleonhart.github.io/Sutralang>** — vision, interactive demos, tutorials, and the papers that ground the language. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml) and deployed automatically on every push.
+The 📜 scroll is Sutra's project-wide branding — the Sanskrit *sūtra* is literally a thread/string of aphorisms, the word used for Pāṇini's foundational Sanskrit grammar (the earliest known formal grammar of any language), and the scroll is the physical artifact that grammars like Pāṇini's were recorded on. SutraDB (the database side of the ecosystem) already adopted a scroll favicon on 2026-03-14, so the brands align across the language and the store.
+
+🌐 **Website: <https://emmaleonhart.github.io/Sutralang>** — vision, interactive demos, tutorials, and the papers that ground the language. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml) and deployed automatically on every push. SutraDB's own docs are mounted at [`/SutraDB/`](https://emmaleonhart.github.io/Sutralang/SutraDB/) on the same site — one integrated ecosystem, one domain.
 
 Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *vector operations* that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Where silicon arithmetic has no inherent meaning, the geometry of an embedding space *does*. Sutra is the first programming language designed to exploit that as a first-class computational substrate.
 
-The name comes from the Sanskrit *ākaśa* — the primordial medium that pervades all things. The language operates in the continuous semantic space that pervades trained embedding models.
+The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," the word used for Pāṇini's foundational grammar of Sanskrit. A programming language descended etymologically from the earliest known formal grammar is a better fit than the language's original name (*ākaśa*, "aether/space"), which is preserved throughout `DEVLOG.md` and the `chats/` archive as the earlier identity. The rename happened on 2026-04-11 — see the DEVLOG entry for that date for the full commit-by-commit breakdown.
 
 ---
 
