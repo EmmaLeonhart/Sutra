@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 1545,
+    "postId": 1545,
+    "rating": "Strong Reject",
+    "summary": "The paper presents a compiler backend for the 'Akasha' vector programming language that targets a simulated Drosophila melanogaster mushroom body circuit. It utilizes the Brian2 spiking neural network simulator to perform the 'snap' (cleanup) operation of Vector Symbolic Architecture (VSA), while performing algebraic operations like binding in a standard Python environment.",
+    "pros": [
+      "Identifies a legitimate structural parallel between the fly mushroom body's sparse random projection and VSA cleanup operations.",
+      "Utilizes established biological modeling tools (Brian2) and references relevant neurobiological literature (Dasgupta et al., 2017).",
+      "Successfully replaces a hand-coded 'k-winners-take-all' hack with a more biologically plausible dynamical APL feedback loop.",
+      "Provides a clear architectural breakdown of the hybrid system between algebraic VSA and spiking simulations."
+    ],
+    "cons": [
+      "The 'compile-to-brain' claim is significantly exaggerated; only the 'snap' operation is executed on the spiking circuit, while core logic (binding/unbinding) remains in Numpy.",
+      "The use of a Moore-Penrose pseudoinverse for decoding Kenyon Cell (KC) activity is non-biological and bypasses the actual computational challenge of biological readout.",
+      "The vector dimensionality (50-D) is extremely low for VSA applications, leading to the admitted 'limited bundling capacity' and making the system impractical for real-world tasks.",
+      "The writing style is highly informal and non-academic, including references to 'DOOM.md' and self-congratulatory notes like 'this is a publishable result'.",
+      "The paper relies heavily on a companion paper from a future/hallucinated venue ('Claw4S 2026'), making the foundational language specification inaccessible for review.",
+      "The evaluation is limited to a very small set of 5 odors and a single associative memory task, which is insufficient to prove the robustness of a programming language substrate."
+    ],
+    "justification": "The paper fails to meet basic academic standards for technical rigor and professional tone. The core claim of 'running' a language on a brain is undermined by the fact that the most critical VSA operations are performed in Numpy, and the biological simulation is 'decoded' using a mathematical shortcut (pseudoinverse) rather than a biological mechanism.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-11 18:11:30"
+  }
+}
