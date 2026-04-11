@@ -12,12 +12,12 @@ from __future__ import annotations
 import os
 import unittest
 
-from akasha_compiler.codegen_flybrain import (
+from sutra_compiler.codegen_flybrain import (
     CodegenNotSupported,
     translate_module,
 )
-from akasha_compiler.lexer import Lexer
-from akasha_compiler.parser import Parser
+from sutra_compiler.lexer import Lexer
+from sutra_compiler.parser import Parser
 
 
 def _parse(src: str, file: str = "<test>"):

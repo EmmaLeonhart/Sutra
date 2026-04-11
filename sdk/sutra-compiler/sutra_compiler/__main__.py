@@ -1,10 +1,10 @@
-"""Command-line entry point for the Akasha compiler/validator.
+"""Command-line entry point for the Sutra compiler/validator.
 
 Usage:
 
-    python -m akasha_compiler FILE [FILE ...]
-    python -m akasha_compiler --json FILE
-    python -m akasha_compiler --summary DIR_OR_FILE [...]
+    python -m sutra_compiler FILE [FILE ...]
+    python -m sutra_compiler --json FILE
+    python -m sutra_compiler --summary DIR_OR_FILE [...]
 
 The CLI lexes, parses, and validates each `.ak` file and prints any
 diagnostics in `file:line:col: level: message` form — the same shape
@@ -112,7 +112,7 @@ def _run_json(paths: List[str]) -> int:
                     "end_line": 1,
                     "end_column": 1,
                     "level": "error",
-                    "code": "AKA9999",
+                    "code": "SUT9999",
                     "message": "file not found",
                     "hint": None,
                 }
@@ -217,7 +217,7 @@ def _run_emit_flybrain(
 
 def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="akashac",
+        prog="sutrac",
         description="Validate Akasha (.ak) source files.",
     )
     parser.add_argument(
@@ -264,7 +264,7 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"akashac {__version__}",
+        version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
     if args.emit_flybrain:
