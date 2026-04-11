@@ -4,7 +4,7 @@ This module walks a parsed Akasha `Module` and emits Python source that
 targets the `FlyBrainVSA` runtime in `fly-brain/vsa_operations.py`. The
 generated code mirrors the shape of the hand-written
 `fly-brain/permutation_conditional.py` but is produced mechanically from
-the corresponding `.ak` source — closing the "compile-to-brain" gap
+the corresponding `.su` source — closing the "compile-to-brain" gap
 described in `fly-brain/STATUS.md` §Medium term.
 
 Scope for V1 (deliberately narrow):

@@ -1,7 +1,7 @@
 """Akasha language compiler / validator.
 
 This package implements the first pass of the Akasha SDK: a lexer,
-parser, and syntactic validator for `.ak` source files.
+parser, and syntactic validator for `.su` source files.
 
 Scope (v0.1):
     - Full tokenization of Akasha source (all comment forms, string

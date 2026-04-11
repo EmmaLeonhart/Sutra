@@ -52,7 +52,7 @@ The embedding-mapping FOL discovery work provides the empirical foundation for A
 - **`akasha-paper/`** — Akasha language paper (substrate-comparison experiments)
 - **`planning/akasha-spec/`** — Akasha language specification
 - **`planning/akasha-pivot.md`** — Full pivot design document
-- **`examples/`** — `.ak` example programs
+- **`examples/`** — `.su` example programs
 - **`fly-brain/`** — Akasha running on a literal Drosophila connectome substrate
 
 ## Key Scripts (in `VSA-paper/scripts/`)
