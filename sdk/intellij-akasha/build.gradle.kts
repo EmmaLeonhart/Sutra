@@ -34,14 +34,30 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
+// Toolchain is JDK 21 (the lowest JDK we can reasonably require in this repo,
+// since JDK 17 isn't installed on the reference development machine). Target
+// bytecode is kept at 17 so the compiled plugin still loads on the JetBrains
+// Runtime shipped with IntelliJ IDEA Community 2024.1, which is JBR 17. When
+// we bump the platform version to an IDEA that ships JBR 21, the `release`
+// and `jvmTarget` lines below can be bumped in lockstep.
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(17)
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 intellij {
