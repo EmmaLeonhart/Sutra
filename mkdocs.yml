@@ -1,0 +1,107 @@
+# MkDocs Material configuration for the Akasha language website.
+# Built and deployed by .github/workflows/pages.yml on every push to master
+# that touches docs/, mkdocs.yml, README.md, or planning/akasha-spec/.
+#
+# Live at: https://emmaleonhart.github.io/Akasha
+
+site_name: Akasha
+site_description: A vector programming language whose primitives are hypervectors in embedding space. Compiles to operations on LLM latent spaces, biological connectomes, and other substrate-agnostic targets.
+site_url: https://emmaleonhart.github.io/Akasha
+site_author: Emma Leonhart
+
+repo_url: https://github.com/EmmaLeonhart/Akasha
+repo_name: EmmaLeonhart/Akasha
+edit_uri: edit/master/docs/
+
+# Sites under user.github.io/Repo are served from /Repo/, not the root.
+# This must match the repo name on GitHub Pages or every link breaks.
+docs_dir: docs
+site_dir: _site
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - toc.integrate
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Vision:
+    - The graph-to-vector leap: vision.md
+  - Interactive:
+    - Graph → linear algebra → spatial: interactive/graph-to-linear-algebra.md
+  - Tutorials:
+    - tutorials/index.md
+    - 01 — Hello Akasha: tutorials/01-hello-akasha.md
+    - 02 — Bind and unbind: tutorials/02-bind-and-unbind.md
+    - 03 — Snap-to-nearest: tutorials/03-snap-to-nearest.md
+  - Papers: papers.md
+
+extra_javascript:
+  - assets/js/graph-to-vector.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/EmmaLeonhart/Akasha
+  generator: false
+
+copyright: >
+  &copy; 2026 Emma Leonhart &middot; Open source &middot;
+  <a href="https://github.com/EmmaLeonhart/Akasha">github.com/EmmaLeonhart/Akasha</a>
