@@ -13,9 +13,16 @@ name: Papers CI — auto-submit and fetch reviews
 # it lives in its own repo (EmmaLeonhart/latent-space-cartography) and
 # is submitted by that repo's CI, not ours.
 #
-# `[skip submit]` in a commit message opts out of auto-submission even if
-# the file path matches. Useful for typo fixes, ref updates, and the CI's
-# own commits (which always include [skip submit] to prevent loops).
+# To opt out of auto-submission even when the file path matches, add a
+# `Skip-Submit: true` trailer to the commit message (same shape as
+# `Signed-off-by:` / `Co-Authored-By:`). The papers-ci workflow's own
+# auto-commits always include this trailer to prevent infinite loops.
+#
+# Why a trailer and not `[skip submit]` in the subject: the earlier
+# `[skip submit]` grep was too broad — it matched the literal string
+# anywhere in the message, including prose descriptions of how the
+# skip mechanism works. A trailer is on its own line at the bottom of
+# the commit body, far less likely to collide with unrelated prose.
 
 on:
   push:
@@ -58,10 +65,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Honor the [skip submit] opt-out in the push commit message.
+          # Honor the Skip-Submit: true trailer in the push commit message.
+          # Scoped to its own line at the bottom of the commit body so prose
+          # descriptions can mention the skip mechanism without accidentally
+          # tripping it (the reason the earlier `[skip submit]` check got
+          # triggered by a commit that was describing the feature, not
+          # opting out of it).
           if [ "${{ github.event_name }}" = "push" ]; then
-            if git log -1 --pretty=%B | grep -Fq "[skip submit]"; then
-              echo "Commit message contains [skip submit] — skipping both papers"
+            if git log -1 --pretty=%B | grep -Eq "^Skip-Submit:[[:space:]]*true$"; then
+              echo "Commit has Skip-Submit: true trailer — skipping both papers"
               echo "akasha=false" >> "$GITHUB_OUTPUT"
               echo "fly_brain=false" >> "$GITHUB_OUTPUT"
               exit 0
@@ -162,12 +174,25 @@ jobs:
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
+          # Review polling schedule: check every 15 minutes, keep
+          # trying for up to 3 hours, then give up. The reason the
+          # interval is this long and not every-30-seconds: Gemini 3
+          # Flash reviews on clawRxiv are not latency-predictable —
+          # fly-brain-paper's original run hit a 10-minute ceiling
+          # and missed, but the review was actually ready not long
+          # after. 15 min / 3 h is the schedule the user specified.
+          #
+          # GitHub Actions has a 6-hour default job timeout, so 3 h
+          # of polling still leaves 3 h of headroom per paper job.
+          # max-parallel: 1 above serializes the two paper jobs so
+          # the overall workflow can consume up to 2 * (submit_time
+          # + 3 h) in the worst case — still well within budget.
           python scripts/paper_submit_and_fetch.py \
             --paper-dir "${{ matrix.paper_dir }}" \
             --title "${{ matrix.title }}" \
             --tags "${{ matrix.tags }}" \
-            --poll-seconds 30 \
-            --review-timeout-seconds 600
+            --poll-seconds 900 \
+            --review-timeout-seconds 10800
 
       - name: Commit updated .post_id and reviews
         if: steps.should_run.outputs.skip != 'true'
@@ -187,9 +212,19 @@ jobs:
             exit 0
           fi
 
-          git commit -m "papers-ci: ${{ matrix.paper_dir }} v$(ls ${{ matrix.paper_dir }}/reviews/ 2>/dev/null | grep -c '_review\.json$' || echo 0) submission + review [skip submit]"
-          # Retry push to tolerate the other matrix job (if any) having just
-          # pushed its own commit ahead of us.
+          # Commit with a simple subject and the Skip-Submit trailer to
+          # prevent this commit from re-triggering papers-ci. The earlier
+          # version embedded a version number in the subject via
+          # `ls | grep -c`, which double-fired when grep printed "0" and
+          # exited 1, producing "v0 0" on empty reviews dirs. Dropping
+          # the version number from the subject: it's cosmetic, and the
+          # version is trivially recoverable from `ls reviews/`.
+          git commit -m "papers-ci: ${{ matrix.paper_dir }} submission + review" \
+                     -m "Skip-Submit: true"
+
+          # Retry push to tolerate the other matrix job (if any) having
+          # just pushed its own commit ahead of us. Rebase-and-retry lets
+          # two matrix jobs reconcile without a human having to step in.
           for attempt in 1 2 3; do
             if git push; then
               exit 0
