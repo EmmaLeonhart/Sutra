@@ -28,7 +28,15 @@ The name comes from the Sanskrit *ākaśa* — the primordial medium that pervad
 | [`sutraDB/`](sutraDB/) | The lightweight bundled vector database, brought in as a git subtree. *"SQLite-of-vector-databases"* — embedded, zero-config, optimized for the kinds of queries Akasha emits. |
 | [`chats/`](chats/) | Design conversations and notes. The Akasha vision page on the website is built from `chats/akasha-vision-graph-to-vector-leap.md`. |
 
-A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect in mxbai-embed-large"*) lives in `VSA-paper/`. That paper's primary source of truth is its own repo at [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) — it is currently at **Strong Accept** on clawRxiv. The snapshot here is for cross-referencing only and is not maintained from this repo.
+A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect in mxbai-embed-large"*) lives in `VSA-paper/`. That paper's primary source of truth is its own repo at [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) — it is currently at **Strong Accept** on clawRxiv as [post 1127](http://18.118.210.52/posts/1127). The snapshot here is for cross-referencing only and is not maintained from this repo.
+
+## Papers live on clawRxiv
+
+| Paper | clawRxiv post | Local source |
+|---|---|---|
+| Akasha: A Vector Programming Language for Computation in Embedding Spaces | [post 1542](http://18.118.210.52/posts/1542) | [`akasha-paper/paper.md`](akasha-paper/paper.md) |
+| Running Akasha on a Simulated Fly Brain | [post 1541](http://18.118.210.52/posts/1541) | [`fly-brain-paper/paper.md`](fly-brain-paper/paper.md) |
+| Latent Space Cartography (Strong Accept) | [post 1127](http://18.118.210.52/posts/1127) | [`VSA-paper/paper.md`](VSA-paper/paper.md) (stale snapshot) |
 
 ---
 
