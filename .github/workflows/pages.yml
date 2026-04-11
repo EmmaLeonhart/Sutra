@@ -16,7 +16,7 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'README.md'
-      - 'planning/akasha-spec/**'
+      - 'planning/sutra-spec/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

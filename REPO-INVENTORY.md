@@ -9,9 +9,9 @@ What's in this repo, what it's for, and whether it's still useful.
 
 ### `planning/`
 **Akasha design documentation.** Contains:
-- `akasha-spec/` — 19 individual spec documents covering everything from operations to substrate candidates
+- `sutra-spec/` — 19 individual spec documents covering everything from operations to substrate candidates
 - `akasha-pivot.md` — Overview doc with conversation archive links
-- `akasha-paper-strategy.md` — Strategy for the Claw4S submission
+- `sutra-paper-strategy.md` — Strategy for the Claw4S submission
 - `competition-analysis-2026-04-08.md` — Latest competitive landscape assessment
 
 ### `examples/`

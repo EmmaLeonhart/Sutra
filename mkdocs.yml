@@ -1,6 +1,6 @@
 # MkDocs Material configuration for the Akasha language website.
 # Built and deployed by .github/workflows/pages.yml on every push to master
-# that touches docs/, mkdocs.yml, README.md, or planning/akasha-spec/.
+# that touches docs/, mkdocs.yml, README.md, or planning/sutra-spec/.
 #
 # Live at: https://emmaleonhart.github.io/Akasha
 

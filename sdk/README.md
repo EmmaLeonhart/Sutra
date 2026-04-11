@@ -41,7 +41,7 @@ sdk/
 
 The VS Code extension is a community convenience. The **reference**
 development environment, per
-[`planning/akasha-spec/20-ide-architecture.md`](../planning/akasha-spec/20-ide-architecture.md),
+[`planning/sutra-spec/20-ide-architecture.md`](../planning/sutra-spec/20-ide-architecture.md),
 is the IntelliJ plugin under `intellij-akasha/`. All three editor
 touchpoints — VS Code, IntelliJ, and direct CLI use — shell out to the
 same `akasha_compiler` Python package as ground truth.

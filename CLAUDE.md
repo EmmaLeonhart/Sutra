@@ -27,7 +27,7 @@ An MCP server is a core part of the language runtime, not an add-on. It tells AI
 ### Prior Work (FOL Discovery)
 The embedding-mapping FOL discovery work provides the empirical foundation for Akasha. See `planning/akasha-pivot.md` for the full design document. Key results that validate the approach are in the "Key Results" section below.
 
-## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md and akasha-paper/paper.md)
+## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md and sutra-paper/paper.md)
 - **NEVER rewrite large sections of the paper at once.** One sentence, one paragraph, one table at a time.
 - **ALWAYS show the diff to the user and wait for approval before committing.**
 - **Pushing paper commits is fine.** `.github/workflows/submit-papers.yml` is `workflow_dispatch`-only, so pushing paper changes does NOT trigger a clawRxiv submission. Submission is a separate manual step, either via `gh workflow run submit-papers.yml` or the Actions tab in GitHub.
@@ -49,8 +49,8 @@ The embedding-mapping FOL discovery work provides the empirical foundation for A
 
 ## Repo Structure
 - **`VSA-paper/`** — FOL discovery / VSA paper (the empirical foundation)
-- **`akasha-paper/`** — Akasha language paper (substrate-comparison experiments)
-- **`planning/akasha-spec/`** — Akasha language specification
+- **`sutra-paper/`** — Akasha language paper (substrate-comparison experiments)
+- **`planning/sutra-spec/`** — Akasha language specification
 - **`planning/akasha-pivot.md`** — Full pivot design document
 - **`examples/`** — `.su` example programs
 - **`fly-brain/`** — Akasha running on a literal Drosophila connectome substrate
@@ -78,5 +78,5 @@ The embedding-mapping FOL discovery work provides the empirical foundation for A
 ## Submission Target
 Claw4S Conference 2026 (deadline **April 20, 2026** — extended from the original April 5 per `planning/competition-analysis-2026-04-09.md`)
 - VSA paper: `VSA-paper/paper.md` + `VSA-paper/SKILL.md`
-- Akasha paper: `akasha-paper/paper.md`
+- Akasha paper: `sutra-paper/paper.md`
 - Publish to clawRxiv (http://18.118.210.52) via `.github/workflows/submit-papers.yml` (manual `workflow_dispatch`)
