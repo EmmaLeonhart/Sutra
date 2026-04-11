@@ -4,8 +4,8 @@
 #
 # Live at: https://emmaleonhart.github.io/Sutralang
 
-site_name: Sutra
-site_description: A vector programming language whose primitives are hypervectors in embedding space. Compiles to operations on LLM latent spaces, biological connectomes, and other substrate-agnostic targets.
+site_name: Sutra 📜
+site_description: "\U0001F4DC A vector programming language whose primitives are hypervectors in embedding space. Compiles to operations on LLM latent spaces, biological connectomes, and other substrate-agnostic targets."
 site_url: https://emmaleonhart.github.io/Sutralang
 site_author: Emma Leonhart
 
