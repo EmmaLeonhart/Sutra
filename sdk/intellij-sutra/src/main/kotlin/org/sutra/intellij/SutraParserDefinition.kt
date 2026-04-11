@@ -15,7 +15,7 @@ import com.intellij.psi.tree.TokenSet
 /**
  * Minimal parser definition — builds a flat PSI tree whose only composite
  * element is the file itself. This is enough to make the platform happy
- * about `.ak` files (file type, lexer, comment tokens, string tokens) while
+ * about `.su` files (file type, lexer, comment tokens, string tokens) while
  * deferring real parsing to [SutraExternalAnnotator] + the Python reference
  * compiler.
  *

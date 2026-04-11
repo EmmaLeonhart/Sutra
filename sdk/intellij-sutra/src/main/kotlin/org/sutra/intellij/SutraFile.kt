@@ -5,7 +5,7 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
 
 /**
- * Root [PsiFile] for `.ak` sources. The body is a flat run of tokens from
+ * Root [PsiFile] for `.su` sources. The body is a flat run of tokens from
  * [SutraLexer] wrapped in a single marker by [SutraParserDefinition] —
  * there is no real PSI tree yet.
  */

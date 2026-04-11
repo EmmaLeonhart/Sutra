@@ -4,7 +4,7 @@ The smallest possible Akasha program is a function that returns a vector. There 
 
 ## What you'll learn
 
-- Where Akasha files live and what the `.ak` extension means
+- Where Akasha files live and what the `.su` extension means
 - How to declare a function with a typed return value
 - How to construct a `vector` from a string with the `embed(...)` builtin
 - How to validate a source file with the reference compiler
@@ -12,7 +12,7 @@ The smallest possible Akasha program is a function that returns a vector. There 
 
 ## The program
 
-Create a new file `examples/hello.ak` (or open it from the repo if it already exists):
+Create a new file `examples/hello.su` (or open it from the repo if it already exists):
 
 ```c
 /// Encode the literal string "hello" as a vector in the current
@@ -22,7 +22,7 @@ function vector Hello() {
 }
 
 // Files may execute directly. Calling Main at the top level is
-// how an .ak file becomes a runnable program.
+// how an .su file becomes a runnable program.
 function vector Main() {
     return function.Hello();
 }
@@ -48,7 +48,7 @@ The compiler ships as a Python module. From the repo root:
 
 ```bash
 cd sdk/akasha-compiler
-python -m akasha_compiler ../../examples/hello.ak
+python -m akasha_compiler ../../examples/hello.su
 ```
 
 If the file is well-formed you should see:
@@ -60,7 +60,7 @@ ok: 1 file(s) validated, 0 diagnostics
 If you mistype something — say, `vec` instead of `vector`, or forget the semicolon after `return` — you'll get a structured diagnostic with a stable `AKA####` code, the file path, and a 1-based `line:column`:
 
 ```
-examples/hello.ak:3:5: error: AKA0102: expected return type, got `vec`
+examples/hello.su:3:5: error: AKA0102: expected return type, got `vec`
 ```
 
 Every Akasha diagnostic looks like this. The compiler's external annotator inside the IntelliJ plugin produces the same format and surfaces it in the editor as red squiggles, so the same error message you see on the command line is the one you see in the IDE.

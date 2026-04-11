@@ -9,15 +9,15 @@ substrate.
 ## Why this exists
 
 The fly-brain work (see [`../fly-brain/STATUS.md`](../fly-brain/STATUS.md))
-gave Akasha an end-to-end path from `.ak` source through the compiler's
+gave Akasha an end-to-end path from `.su` source through the compiler's
 `--emit-flybrain` codegen onto a Brian2-simulated mushroom body model,
-with verified correct behavior on the `permutation_conditional.ak`
+with verified correct behavior on the `permutation_conditional.su`
 reference program. That pipeline works, but debugging it today means
 reading Brian2 spike monitor output and eyeballing NumPy arrays.
 
 The IDE can do much better. The reference compiler already knows which
 projection neurons, Kenyon cells, and mushroom body output neurons each
-`.ak` construct maps to; the visualizer's job is to show the programmer
+`.su` construct maps to; the visualizer's job is to show the programmer
 (or an agent) what the compiled substrate is doing while it runs.
 
 This is genuinely novel IDE territory. No existing IDE has a pane that
@@ -38,7 +38,7 @@ before.
 - **KC sparsity**: the ~5% active fraction enforced by APL inhibition
   is the key biological invariant — the viz has to make it visible
   at a glance.
-- **Source-to-circuit mapping**: hover a KC, highlight the `.ak` source
+- **Source-to-circuit mapping**: hover a KC, highlight the `.su` source
   line that compiled to it. Hover a source line, highlight the cells
   that line controls. This is the debugger affordance that makes the
   whole pane worth building.
@@ -61,7 +61,7 @@ force-directed or layered (PN layer → KC layer → MBON layer).
   actually is: 50 PNs + 2000 KCs + 20 MBONs with random seeded
   connectivity. No real-neuron mapping required.
 - Cheap — a graph renderer is well-trodden UI.
-- Directly useful for debugging today's `.ak` → Brian2 pipeline without
+- Directly useful for debugging today's `.su` → Brian2 pipeline without
   any new research prerequisites.
 - Wires cleanly into `codegen_flybrain.py`'s existing output: each
   generated program already knows its connectivity matrix and its
@@ -129,7 +129,7 @@ fly-brain visualizer slots into them like this:
 ### v0.1 — no visualizer (already shipped)
 
 The IntelliJ plugin scaffold under `sdk/intellij-akasha/` does not
-include any visualizer pane. The goal is just to get `.ak` files
+include any visualizer pane. The goal is just to get `.su` files
 highlighted and the compiler wired into the diagnostics path.
 
 ### v0.2 — embedding-space visualizer
@@ -150,14 +150,14 @@ Ships as:
   along the time axis.
 - KC sparsity heatmap overlay.
 - Source-to-circuit mapping driven by span information carried through
-  the compiler — hover an `.ak` line, highlight the generated cells;
+  the compiler — hover an `.su` line, highlight the generated cells;
   hover a cell, highlight the line.
 - Driven by the same MCP surface used for the embedding-space pane,
   so agents can query "which KCs are active right now" and "which
   source line produced KC 412" without a human in the loop.
 
 This is the pragmatic version. It doesn't require any new research,
-it unblocks everyone who wants to debug a `.ak` → brain compilation
+it unblocks everyone who wants to debug a `.su` → brain compilation
 today, and it's a direct upgrade over reading Brian2 arrays.
 
 ### v0.4+ — fly-brain anatomical view (option b)
@@ -199,7 +199,7 @@ Concretely, the fly-brain pane's MCP surface has to include at least:
   native Swing batched renderer? The same question the main visualizer
   pane faces, so the answer should be shared across both panes.
 - **Scrubbing semantics.** Time scrubbing inside a single simulation
-  run is obvious; does scrubbing extend to stepping between `.ak`
+  run is obvious; does scrubbing extend to stepping between `.su`
   statements mapped onto the biological time axis?
 - **The mapping as a versioned artifact.** Once the
   "Akasha units ↔ hemibrain IDs" correspondence exists, is it shipped

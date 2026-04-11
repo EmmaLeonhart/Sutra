@@ -1112,7 +1112,7 @@ class Parser:
             return ast.Identifier(name=tok.lexeme, span=tok.span)
         if tok.kind is TokenKind.KW_FUNCTION and self._peek(1).kind is TokenKind.DOT:
             # The `function.` disambiguation prefix: documented in
-            # examples/02-functions-vs-methods.ak. Resolves an ambiguous
+            # examples/02-functions-vs-methods.su. Resolves an ambiguous
             # bareword call to the free-function namespace. We treat
             # the literal `function` keyword as an identifier in this
             # position so the rest of the postfix chain parses normally.

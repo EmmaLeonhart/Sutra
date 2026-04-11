@@ -29,7 +29,7 @@
       {
         "id": "sutra",
         "aliases": ["Sutra", "sutra"],
-        "extensions": [".ak"],
+        "extensions": [".su"],
         "configuration": "./language-configuration.json",
         "icon": {
           "light": "./images/sutra-icon.svg",
@@ -85,7 +85,7 @@
       },
       {
         "command": "sutra.validateWorkspace",
-        "title": "Sutra: Validate all .ak files in workspace"
+        "title": "Sutra: Validate all .su files in workspace"
       }
     ]
   },

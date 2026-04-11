@@ -74,7 +74,7 @@ Closest existing analogy: SQL is to a relational database what Akasha is to a ve
 
 The vision the language is part of is bigger than the language itself. The full stack we're building, in rough priority order:
 
-1. **The Akasha language** — compiler, type system, semantics, the `.ak` source format. ([SDK in `sdk/akasha-compiler/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sdk/akasha-compiler))
+1. **The Akasha language** — compiler, type system, semantics, the `.su` source format. ([SDK in `sdk/akasha-compiler/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sdk/akasha-compiler))
 2. **The Akasha runtime** — the silicon-substrate execution engine. Probes a target embedding space, fits correction matrices, exposes the three-tier operation API. ([`akasha-paper/scripts/akasha_runtime.py`](https://github.com/EmmaLeonhart/Akasha/tree/master/akasha-paper/scripts))
 3. **The Akasha IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer. ([`sdk/intellij-akasha/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sdk/intellij-akasha))
 4. **SutraDB** — the lightweight bundled vector database, brought into this monorepo as a subtree at [`sutraDB/`](https://github.com/EmmaLeonhart/Akasha/tree/master/sutraDB). The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Akasha emits.
@@ -85,7 +85,7 @@ All of it is open source. All of it lives in [github.com/EmmaLeonhart/Akasha](ht
 
 ## What to read next
 
-- **[Hello Akasha](tutorials/01-hello-akasha.md)** — write your first `.ak` file, run it, see the geometric semantics in action.
+- **[Hello Akasha](tutorials/01-hello-akasha.md)** — write your first `.su` file, run it, see the geometric semantics in action.
 - **[Bind and unbind](tutorials/02-bind-and-unbind.md)** — the operation that makes the spatial view *useful* for real programs. Why Hadamard fails on natural embeddings and why sign-flip binding works.
 - **[Snap-to-nearest](tutorials/03-snap-to-nearest.md)** — the cleanup operation that makes long computations possible. How error correction works in continuous space.
 - **[The papers](papers.md)** — the empirical evidence behind everything on this page.

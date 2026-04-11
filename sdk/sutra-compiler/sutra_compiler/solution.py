@@ -103,7 +103,7 @@ class Project:
     name: str
     path: Path  # absolute path to the project directory
     akproj_file: Path  # absolute path to the `.akproj` file itself
-    entry: Path  # absolute path to the entry-point `.ak` file
+    entry: Path  # absolute path to the entry-point `.su` file
     substrate: str  # one of VALID_SUBSTRATES
     description: str
     compiler_args: list[str]
@@ -455,7 +455,7 @@ def _load_project(
             "`project.sources` must be a table",
             source_path=akproj_file,
         )
-    include_globs = sources_table.get("include", ["**/*.ak"])
+    include_globs = sources_table.get("include", ["**/*.su"])
     exclude_globs = sources_table.get("exclude", [])
     for g in include_globs:
         if not isinstance(g, str):
