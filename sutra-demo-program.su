@@ -1,7 +1,7 @@
 /*
-    Akasha Demo Program
+    Sutra Demo Program
 
-    This file is a small syntax tour based on the current Akasha documentation.
+    This file is a small syntax tour based on the current Sutra documentation.
     It is meant as a readable test program, not as a complete benchmark or
     full language conformance test.
 
@@ -82,7 +82,7 @@ function string Describe(Animal subject) {
 /// Main is just another free function.
 /// Files are allowed to execute directly, so we call it at the bottom.
 function string Main() {
-    const string ProgramName = "Akasha Demo Program";
+    const string ProgramName = "Sutra Demo Program";
 
     // Start with plain vectors. Strings mainly exist for literals and output,
     // so the interesting part is converting them into vector-space values.

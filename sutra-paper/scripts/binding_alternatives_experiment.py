@@ -1,5 +1,5 @@
 """
-Akasha Alternative Binding Operations Experiment
+Sutra Alternative Binding Operations Experiment
 ==================================================
 Hadamard product fails as binding on natural embeddings (too much crosstalk
 in bundled structures). Test alternatives:
@@ -244,7 +244,7 @@ def main():
     parser.add_argument('--output', type=str, default=None)
     args = parser.parse_args()
 
-    print(f"Akasha Alternative Binding Operations Experiment")
+    print(f"Sutra Alternative Binding Operations Experiment")
     print(f"============================================")
     print(f"Model: {args.model}\n")
 

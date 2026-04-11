@@ -1,4 +1,4 @@
-// Akasha corpus test: nested blocks and scoping.
+// Sutra corpus test: nested blocks and scoping.
 // Covers: bare block statements, deeply nested control flow.
 
 function vector NestedBlocks(vector v) {

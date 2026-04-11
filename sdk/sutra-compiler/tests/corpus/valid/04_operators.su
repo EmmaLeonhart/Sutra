@@ -1,4 +1,4 @@
-// Akasha corpus test: operator overloading.
+// Sutra corpus test: operator overloading.
 // Covers: +, *, ==, !=, unary, precedence via nested expressions.
 
 // Standard VSA overloads.

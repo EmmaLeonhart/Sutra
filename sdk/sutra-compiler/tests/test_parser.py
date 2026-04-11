@@ -1,4 +1,4 @@
-"""Unit tests for the Akasha parser.
+"""Unit tests for the Sutra parser.
 
 Tests cover the major grammar productions and the specific
 disambiguation rules (cast vs paren, generic vs comparison).

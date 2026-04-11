@@ -1,4 +1,4 @@
-// Akasha corpus test: try/catch.
+// Sutra corpus test: try/catch.
 // Covers: try block, catch block, nested try, pattern of checking
 // result quality after a risky op.
 

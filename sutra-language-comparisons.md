@@ -1,24 +1,24 @@
-# Akasha Language Comparisons
+# Sutra Language Comparisons
 
-This document is a working reference for designing Akasha syntax. It does not lock decisions by itself. It exists to compare language shapes, syntax tradeoffs, and semantic defaults before we commit to Akasha forms.
+This document is a working reference for designing Sutra syntax. It does not lock decisions by itself. It exists to compare language shapes, syntax tradeoffs, and semantic defaults before we commit to Sutra forms.
 
-## Current Akasha Direction
+## Current Sutra Direction
 
-- Akasha is not aiming to look like a general-purpose scripting language.
-- Akasha functions exist independently rather than living inside classes or modules by default.
-- Akasha uses `function` as the function declaration keyword.
-- Akasha uses TypeScript-style `if (...) { ... } else { ... }` conditionals.
-- Akasha uses `return`.
-- Akasha uses TypeScript-style `while (...) { ... }` looping syntax.
-- Akasha has `fuzzy` and `bool`, and `defuzzy(...)` converts `fuzzy` to `bool`.
+- Sutra is not aiming to look like a general-purpose scripting language.
+- Sutra functions exist independently rather than living inside classes or modules by default.
+- Sutra uses `function` as the function declaration keyword.
+- Sutra uses TypeScript-style `if (...) { ... } else { ... }` conditionals.
+- Sutra uses `return`.
+- Sutra uses TypeScript-style `while (...) { ... }` looping syntax.
+- Sutra has `fuzzy` and `bool`, and `defuzzy(...)` converts `fuzzy` to `bool`.
 - C# remains a primary comparison language because it is the clearest existing baseline for explicit, readable compiled syntax.
-- Akasha should probably sit above assembly and below C# in abstraction level.
-- Akasha has to stay compatible with fuzzy, vector-native semantics rather than pretending values are conventional datatypes.
+- Sutra should probably sit above assembly and below C# in abstraction level.
+- Sutra has to stay compatible with fuzzy, vector-native semantics rather than pretending values are conventional datatypes.
 - Syntax should help with reasoning, not hide the substrate.
 
 ## Quick Comparison Matrix
 
-| Language | General Feel | Function Model | Typical Syntax Pressure | Likely Akasha Takeaway |
+| Language | General Feel | Function Model | Typical Syntax Pressure | Likely Sutra Takeaway |
 | --- | --- | --- | --- | --- |
 | C# | structured, explicit, industrial | functions usually live in classes or types | verbosity, declarations, braces, type surface area | good for readability and names, bad fit for class-centric defaults |
 | TypeScript | JavaScript shape with added structure | free functions exist but module patterns dominate | type annotations, object literals, arrow functions | good reference for tooling-heavy design without full OOP commitment |
@@ -26,17 +26,17 @@ This document is a working reference for designing Akasha syntax. It does not lo
 | Python | readable, indentation-driven | top-level functions are normal | whitespace significance, dynamic ambiguity, runtime-centric feel | good reference for approachable definitions, maybe too soft for substrate-oriented code |
 | Rust | explicit, expression-oriented, systems-minded | free functions are normal; methods are secondary | ownership, types, punctuation density | good model for standalone functions and disciplined syntax |
 | Scheme | tiny core, prefix notation, functional | functions are primary and independent | uniform syntax can hide intent for non-Lisp readers | strong reference for small-core language design |
-| Lisp | homoiconic, macro-friendly, symbolic | functions are independent and central | parentheses dominate surface readability | useful if Akasha needs code-as-structure, risky if readability matters more |
+| Lisp | homoiconic, macro-friendly, symbolic | functions are independent and central | parentheses dominate surface readability | useful if Sutra needs code-as-structure, risky if readability matters more |
 
-## Akasha Decisions Already Made
+## Sutra Decisions Already Made
 
 - Functions exist independently.
 - The function declaration keyword is `function`.
 - Conditionals use TypeScript-style `if (...) { ... } else { ... }`.
-- Akasha uses `return`.
+- Sutra uses `return`.
 - Looping uses TypeScript-style `while (...) { ... }`.
 - `fuzzy` and `bool` are distinct types, and `defuzzy(...)` converts `fuzzy` to `bool`.
-- C# remains a reference baseline for readability, block structure, and declaration clarity even where Akasha diverges from its class model.
+- C# remains a reference baseline for readability, block structure, and declaration clarity even where Sutra diverges from its class model.
 - `if (cat)` is a compilation error — classes do not exist at runtime, branching requires `bool` or `fuzzy`.
 - Truthiness is geometric (euclidean distance from true/false vectors), accessed only via unsafe cast or unsafeOverride.
 - Operators support overloading via `function operator +(vector a, vector b) { ... }`.
@@ -63,7 +63,7 @@ Python, C#, and TypeScript all help in different ways, but not equally.
 - C# has strong readability because it is explicit, consistent, and visually disciplined. Declarations, blocks, and statements tend to have one obvious mainstream form.
 - TypeScript has good ergonomics, but weaker raw readability than C# because it inherits JavaScript's multiplicity of styles: function declarations, arrows, methods, object-literal-heavy code, optional types, and more variation in what "normal" code looks like.
 
-Akasha implication:
+Sutra implication:
 
 - When I say TypeScript is useful, I mostly mean syntax direction and tooling model.
 - When I say C# is a readability baseline, I mean it is the stronger reference for visual discipline and consistency.
@@ -80,21 +80,21 @@ Akasha implication:
 - Good separation between declarations and statements.
 - Reads like a serious compiled language.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Too class-centered for the direction currently on the table.
-- Type declarations communicate things Akasha may not want to pretend it has.
+- Type declarations communicate things Sutra may not want to pretend it has.
 - Property and access-modifier culture adds weight without helping vector semantics.
 
-### Akasha lesson
+### Sutra lesson
 
 Take seriousness and declaration clarity from C#, but not its class-first worldview.
 
 ### Concrete syntax pressure from C#
 
 - C# is still the best mainstream reference for how explicit block-based code should scan.
-- Akasha should keep comparing new syntax sketches against "would this still feel as readable as C#?".
-- Even where Akasha adopts `function` from TypeScript, the desired level of structure is still closer to C# than to JavaScript.
+- Sutra should keep comparing new syntax sketches against "would this still feel as readable as C#?".
+- Even where Sutra adopts `function` from TypeScript, the desired level of structure is still closer to C# than to JavaScript.
 
 ## TypeScript
 
@@ -105,16 +105,16 @@ Take seriousness and declaration clarity from C#, but not its class-first worldv
 - Good balance between readable syntax and modern expression forms.
 - Interfaces show how "soft structure" can still be documented explicitly.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Structural typing assumes conventional data shapes.
 - JavaScript inheritance from the host language brings legacy weirdness.
 - Too many equivalent function styles if copied directly.
 - Raw visual consistency is weaker than C# because the ecosystem tolerates more syntactic variation.
 
-### Akasha lesson
+### Sutra lesson
 
-TypeScript is a good reference for a language where tooling matters, but Akasha should avoid inheriting JavaScript's excess surface area.
+TypeScript is a good reference for a language where tooling matters, but Sutra should avoid inheriting JavaScript's excess surface area.
 
 ## JavaScript
 
@@ -124,13 +124,13 @@ TypeScript is a good reference for a language where tooling matters, but Akasha 
 - First-class function semantics are natural.
 - Modules can stay lightweight.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Surface syntax is too permissive.
 - Multiple declaration forms weaken stylistic consistency.
-- Prototype/object idioms are mostly noise for Akasha.
+- Prototype/object idioms are mostly noise for Sutra.
 
-### Akasha lesson
+### Sutra lesson
 
 Keep function independence, reject permissiveness.
 
@@ -142,15 +142,15 @@ Keep function independence, reject permissiveness.
 - Syntax is approachable.
 - Minimal punctuation can help core ideas stand out.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Indentation significance may be too fragile for a substrate-oriented language.
 - Dynamic "just run it" culture may work against explicit semantic control.
-- Conventional literals and containers imply datatypes Akasha may not want.
+- Conventional literals and containers imply datatypes Sutra may not want.
 
-### Akasha lesson
+### Sutra lesson
 
-Python is a strong readability reference, but Akasha may need more visible structure than indentation alone.
+Python is a strong readability reference, but Sutra may need more visible structure than indentation alone.
 
 ## Rust
 
@@ -161,12 +161,12 @@ Python is a strong readability reference, but Akasha may need more visible struc
 - Expression orientation could map well to vector transformations.
 - Feels compiled and disciplined without needing classes.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Rust's type and ownership machinery is specific to its memory model.
 - Syntax can become visually dense quickly.
 
-### Akasha lesson
+### Sutra lesson
 
 Rust is one of the better mainstream references for "serious language with independent functions."
 
@@ -178,38 +178,38 @@ Rust is one of the better mainstream references for "serious language with indep
 - Functions and composition are central.
 - Very good precedent for building a powerful language from a compact semantic core.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Uniform prefix notation can make different semantic categories look too similar.
 - Readability cost is real for larger codebases if the audience is not already Lisp-native.
 
-### Akasha lesson
+### Sutra lesson
 
-Scheme is a strong conceptual reference for minimalism and function-first design, even if Akasha does not use prefix syntax.
+Scheme is a strong conceptual reference for minimalism and function-first design, even if Sutra does not use prefix syntax.
 
 ## Lisp
 
 ### Useful traits
 
-- Code-as-data is powerful if Akasha ever needs self-transforming programs.
+- Code-as-data is powerful if Sutra ever needs self-transforming programs.
 - Independent functions are completely natural.
 - Symbolic structure is explicit.
 
-### Weak fit for Akasha
+### Weak fit for Sutra
 
 - Surface syntax is polarizing.
 - Homoiconicity may be more power than we need at the start.
 - Parenthesis-heavy syntax may obscure vector-semantic intent for readers.
 
-### Akasha lesson
+### Sutra lesson
 
 Lisp is useful as a reminder that a language can center functions and symbolic composition without classes, but its concrete notation should not be adopted casually.
 
-## Cross-Cutting Syntax Questions For Akasha
+## Cross-Cutting Syntax Questions For Sutra
 
 ## 1. Function Declarations
 
-Because independent functions are already an active decision, the main question is no longer whether Akasha has free functions. The declaration keyword is also decided now: Akasha uses `function`. The remaining question is what the rest of a function definition should look like.
+Because independent functions are already an active decision, the main question is no longer whether Sutra has free functions. The declaration keyword is also decided now: Sutra uses `function`. The remaining question is what the rest of a function definition should look like.
 
 Reference shapes:
 
@@ -221,14 +221,14 @@ Python     def blend(a, b):
 Rust       fn blend(a, b) -> Result { ... }
 Scheme     (define (blend a b) ...)
 Lisp       (defun blend (a b) ...)
-Akasha         function blend(a, b) { ... }
+Sutra         function blend(a, b) { ... }
 ```
 
-Current Akasha implication:
+Current Sutra implication:
 
 - `function` is the active declaration keyword.
 - A declaration keyword is better than relying on punctuation alone.
-- Return-type syntax should stay optional until Akasha has stronger commitments about its type surface.
+- Return-type syntax should stay optional until Sutra has stronger commitments about its type surface.
 
 ## 2. Blocks Versus Indentation
 
@@ -238,13 +238,13 @@ Reference split:
 - Indentation: Python
 - Parenthesized forms: Scheme, Lisp
 
-Early Akasha implication:
+Early Sutra implication:
 
-- Braces are the safest default if Akasha needs explicit, unambiguous structure.
+- Braces are the safest default if Sutra needs explicit, unambiguous structure.
 - Indentation-only syntax is elegant but easier to make fragile.
 - Lisp-style grouping should only be chosen if code-as-structure becomes a core goal.
 
-Current Akasha note:
+Current Sutra note:
 
 - Current syntax decisions already lean hard toward brace-based structure because conditionals and loops now follow TypeScript-style forms.
 
@@ -256,10 +256,10 @@ Reference split:
 - Mixed: TypeScript, Python
 - More expression-heavy: Rust, Scheme, Lisp
 
-Early Akasha implication:
+Early Sutra implication:
 
 - Expression-oriented design may fit vector transformations better than a purely statement-driven model.
-- Akasha probably still needs explicit declaration forms even if most computation is expression-shaped.
+- Sutra probably still needs explicit declaration forms even if most computation is expression-shaped.
 
 ## 4. Typing Surface
 
@@ -269,9 +269,9 @@ Reference split:
 - Light or dynamic surface: JavaScript, Python
 - Semantic minimalism: Scheme, Lisp
 
-Early Akasha implication:
+Early Sutra implication:
 
-- Akasha should be careful not to fake conventional datatypes if the substrate is fundamentally vector-native.
+- Sutra should be careful not to fake conventional datatypes if the substrate is fundamentally vector-native.
 - It may still need lightweight annotation forms for roles such as atomic, predicate, truth-space, transform, or compiled artifact classes.
 
 ## 5. Calling Style
@@ -281,16 +281,16 @@ Reference split:
 - Infix-friendly mainstream syntax: C#, TypeScript, JavaScript, Python, Rust
 - Prefix-only functional syntax: Scheme, Lisp
 
-Early Akasha implication:
+Early Sutra implication:
 
 - Infix syntax is probably better for readability when representing algebraic operations.
 - Prefix forms might still be useful for primitive substrate operations if they need to be unmistakable.
 
-Current Akasha note:
+Current Sutra note:
 
 - Primitive operation call syntax is still unresolved and remains a source of confusion.
 
-## Initial Akasha Lean
+## Initial Sutra Lean
 
 If we stay aligned with the current direction, the strongest influences are probably:
 
@@ -318,7 +318,7 @@ These are intentionally not locked yet:
 - whether return annotations exist
 - whether modules/namespaces are mandatory, optional, or absent
 - whether primitive operations are infix, prefix, or mixed
-- whether Akasha source is expression-first or statement-first
+- whether Sutra source is expression-first or statement-first
 - cast declaration syntax (the rules are decided, the declaration form is not)
 - annotation system for semantic roles
 
@@ -352,14 +352,14 @@ Rust
 items.iter().map(|x| transform(x));
 let op = |a: Vector| -> Vector { transform(a) };
 
-Akasha candidates
+Sutra candidates
 var op = lambda(vector a) { return Transform(a); };
 var op = lambda vector(vector a) { return Transform(a); };
 var op = (vector a) => Transform(a);
 Map(items, lambda(vector x) { return Transform(x); });
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - Leaning toward `lambda` keyword.
 - Open question: does lambda use the same C# signature shape as function declarations?
@@ -384,7 +384,7 @@ Rust
 let result = blend(a, b);
 let mut result = blend(a, b);
 
-Akasha candidates
+Sutra candidates
 var result = Blend(a, b);
 vector result = Blend(a, b);
 let result = Blend(a, b);
@@ -406,7 +406,7 @@ TypeScript
 export function blend(a: Vector, b: Vector): Vector { ... }
 function helper(v: Vector): Vector { ... }
 
-Akasha candidates
+Sutra candidates
 function vector Blend(vector a, vector b) { ... }
 private function vector Helper(vector v) { ... }
 // or: public function, private by default
@@ -425,7 +425,7 @@ let result = signal.transform();
 TypeScript
 const result = signal.transform();
 
-Akasha candidates
+Sutra candidates
 var result = Transform(signal);              // free function only
 var result = signal.Transform();             // dot sugar → Transform(signal)
 var result = signal |> Transform;            // pipe operator
@@ -471,7 +471,7 @@ Lisp
 (defun blend (a b)
   (combine a b))
 
-Akasha current lean
+Sutra current lean
 function blend(a, b) {
     return combine(a, b);
 }
@@ -502,13 +502,13 @@ Lisp
 (let ((pair (bind left right)))
   ...)
 
-Akasha questions to resolve
+Sutra questions to resolve
 let pair = bind(left, right)
 pair = bind(left, right)
 value pair = bind(left, right)
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This is still open.
 - C#, Rust, TypeScript, and Python give the cleanest mainstream references here.
@@ -564,7 +564,7 @@ Lisp
     (activate signal)
     (dampen signal))
 
-Akasha design pressure
+Sutra design pressure
 if (isTrue(signal)) {
     return activate(signal);
 } else {
@@ -572,11 +572,11 @@ if (isTrue(signal)) {
 }
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
-- TypeScript-style `if (...) { ... } else { ... }` is now the active Akasha decision.
+- TypeScript-style `if (...) { ... } else { ... }` is now the active Sutra decision.
 - C# remains one of the clearest readability baselines for branch layout.
-- Because Akasha truth is fuzzy, the key open question is semantic behavior rather than branch punctuation.
+- Because Sutra truth is fuzzy, the key open question is semantic behavior rather than branch punctuation.
 
 ## Example 4: Expression-Oriented Conditional
 
@@ -613,12 +613,12 @@ Lisp
           (dampen signal)))
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - C# and TypeScript show the mainstream compact form.
-- Rust and Python are strong references if Akasha leans expression-oriented.
-- C#/TypeScript/JavaScript ternaries are compact, but they may be too lightweight for early Akasha readability.
-- This is still not an active Akasha decision.
+- Rust and Python are strong references if Sutra leans expression-oriented.
+- C#/TypeScript/JavaScript ternaries are compact, but they may be too lightweight for early Sutra readability.
+- This is still not an active Sutra decision.
 
 ## Example 5: Looping
 
@@ -659,9 +659,9 @@ Lisp
       do (setf state (step state)))
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
-- TypeScript-style `while (...) { ... }` is now the active Akasha surface decision.
+- TypeScript-style `while (...) { ... }` is now the active Sutra surface decision.
 - Iteration semantics are still open at the language-design level.
 - C# remains the readability baseline for explicit loop structure.
 - Scheme's named recursion is a useful reminder that loops do not require dedicated loop syntax.
@@ -670,7 +670,7 @@ Akasha takeaway:
 
 ```text
 C#
-namespace Akasha.Core;
+namespace Sutra.Core;
 
 public static class Basis
 {
@@ -704,11 +704,11 @@ Lisp
 (defun blend (a b) ...)
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - TypeScript and Rust are better references than C# specifically for standalone functions plus optional module structure.
 - C# is still useful as the comparison point for how much grouping syntax is too heavy.
-- Python's file-level grouping model is also worth considering if Akasha stays intentionally small.
+- Python's file-level grouping model is also worth considering if Sutra stays intentionally small.
 
 ## Example 7: Call A Primitive Operation
 
@@ -734,13 +734,13 @@ Scheme
 Lisp
 (setf result (bind left right))
 
-Akasha possible directions
+Sutra possible directions
 result = bind(left, right)
 result = left * right
 result = bind left right
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - If primitive operations are semantically important, a keyword-call form may be clearer than disguising everything as ordinary arithmetic.
 - C# method-call readability is still a useful baseline for these operations even if the semantics differ completely.
@@ -786,11 +786,11 @@ Lisp
     (continue))
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - Early return syntax is straightforward in mainstream forms.
 - C# remains a good baseline for guard-style readability.
-- If Akasha becomes strongly expression-oriented, Rust and Lisp-family languages provide cleaner precedents than C#.
+- If Sutra becomes strongly expression-oriented, Rust and Lisp-family languages provide cleaner precedents than C#.
 
 ## Example 9: Anonymous Function Or Lambda
 
@@ -817,9 +817,9 @@ Lisp
 (mapcar (lambda (x) (transform x)) items)
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
-- Anonymous functions are not yet clearly necessary for Akasha's first pass.
+- Anonymous functions are not yet clearly necessary for Sutra's first pass.
 - If they are added later, TypeScript/Rust/Scheme give better models than C# delegates.
 
 ## Example 10: Truth Testing Versus Equality
@@ -855,16 +855,16 @@ Lisp
 (if (equal candidate target) ...)
 (if (is-true signal) ...)
 
-Akasha design pressure
+Sutra design pressure
 if (similar(candidate, target)) { ... }
 if (isTrue(signal)) { ... }
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
-- Akasha should be explicit about the difference between truth-testing and similarity/equality-like checks.
-- C# is still a good baseline for visibly separating different predicate forms, even though Akasha cannot reuse ordinary `==` semantics directly.
-- Mainstream equality syntax is not a safe direct model if Akasha semantics are vector-native.
+- Sutra should be explicit about the difference between truth-testing and similarity/equality-like checks.
+- C# is still a good baseline for visibly separating different predicate forms, even though Sutra cannot reuse ordinary `==` semantics directly.
+- Mainstream equality syntax is not a safe direct model if Sutra semantics are vector-native.
 - Whether bare truthiness such as `if (cat)` is legal is still unresolved.
 
 ## Example 11: Explicit Return
@@ -891,14 +891,14 @@ result
 Lisp
 result
 
-Akasha current decision
+Sutra current decision
 return result;
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
-- `return` is the active Akasha keyword.
-- The open question is whether Akasha also permits implicit final-expression returns in some contexts.
+- `return` is the active Sutra keyword.
+- The open question is whether Sutra also permits implicit final-expression returns in some contexts.
 
 ## Example 12: Truthiness Versus Explicit Truth Test
 
@@ -933,13 +933,13 @@ Lisp
 (if cat ...)
 (if (is-true cat) ...)
 
-Akasha decision
+Sutra decision
 if (cat) { ... }                 // COMPILATION ERROR — cat is not bool/fuzzy
 if (unsafeCast<fuzzy>(cat)) { ... }  // explicit: treat vector as fuzzy
 if (defuzzy(signal)) { ... }     // explicit: collapse fuzzy to bool
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This is now decided.
 - `if (cat)` is a compilation error because classes do not exist at runtime.
@@ -962,16 +962,16 @@ ready = defuzzy(signal)
 if ready:
     ...
 
-Akasha design pressure
+Sutra design pressure
 var ready = defuzzy(signal);
 if (ready) { ... }
 
 if (defuzzy(signal)) { ... }
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
-- `fuzzy` and `bool` are now distinct concepts in Akasha.
+- `fuzzy` and `bool` are now distinct concepts in Sutra.
 - `defuzzy(...)` is the explicit bridge from fuzzy truth into boolean truth.
 - The open question is whether branching requires explicit defuzzification or can also consume raw `fuzzy` values.
 
@@ -1000,16 +1000,16 @@ Scheme
 Lisp
 ; typically runtime or library specific
 
-Akasha design pressure
+Sutra design pressure
 var feline = (cat) animal;
 var feline = unsafeCast<cat>(animal);
 var feline = unsafeOverride(animal);
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - C# and TypeScript are the clearest reference points here.
-- In Akasha, safe and unsafe forms should look clearly different.
+- In Sutra, safe and unsafe forms should look clearly different.
 - `unsafeOverride(...)` is not the same thing as a cast; it overrides function acceptance rules.
 
 ## Example 15: Unsafe Cast Up To Primitive Base Layer
@@ -1058,7 +1058,7 @@ Scheme
 Lisp
 ; library or runtime specific
 
-Akasha design pressure
+Sutra design pressure
 var v = (vector) value;
 var m = (matrix) value;
 var t = (tuple) value;
@@ -1070,7 +1070,7 @@ var t = unsafeCast<tuple>(value);
 var s = unsafeCast<string>(value);
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This needs explicit syntax design.
 - If these are primitive base classes, casting up to them should look standardized and unmistakable.
@@ -1081,7 +1081,7 @@ Akasha takeaway:
 ## Example 16: Function Call With Safe Cast, Unsafe Cast, And Unsafe Override
 
 ```text
-Akasha sketch
+Sutra sketch
 function getFur(cat c) {
     return c.fur;
 }
@@ -1091,7 +1091,7 @@ getFur(unsafeCast<cat>(animal));
 getFur(unsafeOverride(animal));
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - `(cat) animal` is the safe cast form.
 - `unsafeCast<cat>(animal)` is the explicit unsafe cast form.
@@ -1121,19 +1121,19 @@ Scheme
 Lisp
 ; implementation dependent
 
-Akasha design pressure
+Sutra design pressure
 function operator +(vector a, vector b) { ... }
 function operator *(vector a, vector b) { ... }
 
 // or simply built-in meanings for + and *
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - Operators support overloading. This is now decided.
 - The class system is almost entirely user-defined (not special to the runtime), so operator overloading is straightforward — there is no special machinery needed.
 - C# is the clearest reference for the declaration form.
-- The Akasha form is `function operator +(vector a, vector b) { ... }`.
+- The Sutra form is `function operator +(vector a, vector b) { ... }`.
 
 ## Example 18: Implicit Cast Or Conversion
 
@@ -1151,7 +1151,7 @@ Python
 Rust
 // usually explicit Into/From patterns rather than silent implicit casts
 
-Akasha design pressure
+Sutra design pressure
 vector v = cat;
 var v = cat;
 getVector(cat);
@@ -1160,11 +1160,11 @@ getVector(cat);
 vector v = (vector) cat;
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - Implicit casts are allowed but must be explicitly defined. This is now decided.
 - C# is the strongest direct reference: someone writes `implicit operator Vector(Cat c) { ... }`, then `Vector v = cat;` works.
-- Akasha follows the same principle: no silent coercions without a visible definition, but call sites can be clean.
+- Sutra follows the same principle: no silent coercions without a visible definition, but call sites can be clean.
 - The declaration form for implicit conversions still needs design.
 
 ## Example 19: Defuzzy In A Branch
@@ -1185,7 +1185,7 @@ Python-style explicit pressure
 if defuzzy(signal):
     return proceed()
 
-Akasha design pressure
+Sutra design pressure
 if (defuzzy(signal)) {
     return proceed();
 }
@@ -1195,15 +1195,15 @@ if (signal) {
 }
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This is now one of the most important remaining syntax/semantic decisions.
-- The question is whether Akasha wants explicit defuzzification in control flow, implicit defuzzification, or both.
+- The question is whether Sutra wants explicit defuzzification in control flow, implicit defuzzification, or both.
 
 ## Example 20: Function Parameter Acceptance Pressure
 
 ```text
-Akasha sketch
+Sutra sketch
 function getFur(cat c) {
     return c.fur;
 }
@@ -1213,7 +1213,7 @@ getFur(unsafeCast<cat>(animal));
 getFur(unsafeOverride(animal));
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This shows the distinction between changing the value and overriding the call-site acceptance rule.
 - It is an important comparison point for future argument-checking semantics.
@@ -1242,16 +1242,16 @@ Scheme
 Lisp
 ; usually library specific
 
-Akasha design pressure
+Sutra design pressure
 var x = point.x;
 var x = point::x;
 x = get(point, x);
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This is still open.
-- C#, TypeScript, and Python are the clearest readability references if Akasha exposes field-like access at all.
+- C#, TypeScript, and Python are the clearest readability references if Sutra exposes field-like access at all.
 
 ## Example 22: Type Or Role Annotation
 
@@ -1277,13 +1277,13 @@ Scheme
 Lisp
 ; optional, implementation specific
 
-Akasha design pressure
+Sutra design pressure
 function blend(a: vector, b: vector): vector { ... }
 function blend(a, b) -> vector { ... }
 function blend(a, b) { ... }
 ```
 
-Akasha takeaway:
+Sutra takeaway:
 
 - This remains open.
-- Akasha may want role annotations without pretending it has an ordinary mainstream type system.
+- Sutra may want role annotations without pretending it has an ordinary mainstream type system.

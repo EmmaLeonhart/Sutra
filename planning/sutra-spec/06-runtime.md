@@ -1,12 +1,12 @@
 # Runtime Architecture
 
-## S1/Akasha Dual Runtime
+## S1/Sutra Dual Runtime
 Mirrors the cognitive architecture:
 
 - **S1 layer:** Fast, cached, pattern-matched execution. Lookup tables, precomputed results, memoized operations. Handles the well-trodden paths.
-- **Akasha layer:** Deliberate semantic computation. The actual vector-space reasoning. Handles novel inputs and complex chains.
+- **Sutra layer:** Deliberate semantic computation. The actual vector-space reasoning. Handles novel inputs and complex chains.
 
-Like TypeScript's type checker running alongside JavaScript execution, Akasha's semantic layer runs alongside cached fast-path execution. The S1 cache is populated by Akasha computation — as patterns recur, they graduate from expensive deliberate reasoning to cheap cached lookup.
+Like TypeScript's type checker running alongside JavaScript execution, Sutra's semantic layer runs alongside cached fast-path execution. The S1 cache is populated by Sutra computation — as patterns recur, they graduate from expensive deliberate reasoning to cheap cached lookup.
 
 ## MCP Server as Runtime Component
 The MCP server is not an IDE add-on. It is part of the runtime:
@@ -17,13 +17,13 @@ The MCP server is not an IDE add-on. It is part of the runtime:
 - Handles entity resolution (same surface form → different vectors depending on context)
 
 ## Empirical Initiation (Summary)
-Akasha does not impose algebraic structure on an embedding space. It **discovers** what structure already exists and calibrates to it.
+Sutra does not impose algebraic structure on an embedding space. It **discovers** what structure already exists and calibrates to it.
 
 At compile time, the compiler probes a target embedding model's space:
 1. Tests whether binding/unbinding work reliably (they do in most naturally-learned spaces)
 2. Fits projection matrices that make the space behave like a well-formed VSA
 3. Outputs a mapping file (matrices + lookup tables)
 
-The same Akasha source code compiles differently for different embedding models, like C compiling for x86 vs ARM. The "instruction set" is the geometry of the target space.
+The same Sutra source code compiles differently for different embedding models, like C compiling for x86 vs ARM. The "instruction set" is the geometry of the target space.
 
 See [Empirical Initiation (Expanded)](07-empirical-initiation.md) for full details.

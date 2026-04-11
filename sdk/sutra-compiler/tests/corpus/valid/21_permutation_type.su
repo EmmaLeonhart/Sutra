@@ -1,4 +1,4 @@
-// Akasha corpus test: `permutation` as a primitive type.
+// Sutra corpus test: `permutation` as a primitive type.
 // Permutations are fixed sign-flip masks over vectors. They compose,
 // invert, and act on vectors rather than being bundled with them —
 // which is why they deserve a distinct compile-time type even though

@@ -45,7 +45,7 @@ with Brian2 2.10.1). The last medium-term item in
 ## Recently done
 
 - **AST → FlyBrainVSA translator + `--emit-flybrain` CLI + e2e.**
-  New module `sdk/akasha-compiler/akasha_compiler/codegen_flybrain.py`
+  New module `sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`
   walks a parsed `Module` and emits Python targeting the
   `FlyBrainVSA` runtime. The fixed-frame invariant from
   `fly-brain/STATUS.md` §Technical Insight 2 becomes a compile-time
@@ -98,9 +98,9 @@ with Brian2 2.10.1). The last medium-term item in
 
 ## Pending Decisions
 
-- **Run the Akasha code checker (sutrac, in sdk/akasha-compiler) over every `.su` file in the repo
+- **Run the Sutra code checker (sutrac, in sdk/sutra-compiler) over every `.su` file in the repo
   and fix every inconsistency it reports.** The compiler/validator is the ground truth for what
-  Akasha code should look like. Once it's stable, run it in lint mode against `examples/`,
+  Sutra code should look like. Once it's stable, run it in lint mode against `examples/`,
   `sutra-demo-program.su`, `fly-brain/`, and any `.su` files generated under `scripts/` or
   elsewhere. Resolve class-name casing, builtin usage, and structural inconsistencies.
 - Decide on anonymous functions. Leaning toward `lambda` keyword. Need to pick exact form.
@@ -110,8 +110,8 @@ with Brian2 2.10.1). The last medium-term item in
 - Expression-versus-statement bias.
 - Which access modifiers exist beyond public/static defaults.
 - How the half-compilation / immediate-execution model works.
-- Implement many-to-many as a `hop` non-algebraic function in Akasha.
-- Figure out IO — how Akasha handles input/output.
+- Implement many-to-many as a `hop` non-algebraic function in Sutra.
+- Figure out IO — how Sutra handles input/output.
 
 ## Recently Decided (2026-04-08)
 

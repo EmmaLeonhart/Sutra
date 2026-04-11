@@ -1,4 +1,4 @@
-"""Recursive-descent parser for the Akasha language.
+"""Recursive-descent parser for the Sutra language.
 
 The parser consumes a token stream produced by `Lexer` and builds the
 AST nodes from `ast_nodes`. It does NOT throw on parse errors — it

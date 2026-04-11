@@ -1,5 +1,5 @@
 """
-Akasha Sign-Flip Deep Testing
+Sutra Sign-Flip Deep Testing
 ===========================
 Now that sign-flip binding works, test it thoroughly:
 1. Chained bundled operations (multi-step computation)
@@ -265,7 +265,7 @@ def main():
     parser.add_argument('--cross-substrate', action='store_true', help='Test multiple models')
     args = parser.parse_args()
 
-    print(f"Akasha Sign-Flip Deep Testing")
+    print(f"Sutra Sign-Flip Deep Testing")
     print(f"=========================")
 
     if args.cross_substrate:

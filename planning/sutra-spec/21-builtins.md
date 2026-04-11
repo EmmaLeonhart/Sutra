@@ -1,6 +1,6 @@
 # VSA Builtins
 
-This file declares the formal signatures of Akasha's VSA builtin
+This file declares the formal signatures of Sutra's VSA builtin
 functions. Each entry gives a signature in terms of the primitive
 types from `05-type-system.md`, the semantic behavior, and — where
 relevant — which runtime tier the operation belongs to under
@@ -9,12 +9,12 @@ relevant — which runtime tier the operation belongs to under
 The informal descriptions in `02-operations.md` are the *prose*
 explanation of what these operations do. This file is the *signature*
 declaration: what the parser, name-resolver, and type-checker should
-treat as pre-declared in every Akasha compilation unit.
+treat as pre-declared in every Sutra compilation unit.
 
 ## Status and scope
 
 These functions are **implicit globals**. They do not need to be
-imported or declared at the top of a source file — every Akasha
+imported or declared at the top of a source file — every Sutra
 translation unit sees them in its global scope, the same way a C
 program sees `printf` once `<stdio.h>` is included or a Python
 program sees `len` unconditionally.
@@ -23,7 +23,7 @@ The current SDK validator (`sdk/sutra-compiler/`) is *permissive*
 about bareword calls: any identifier in call position is accepted
 without checking that it resolves to a declared function. That will
 change in v0.2 when name resolution lands, at which point undeclared
-builtins would start firing a diagnostic on every real Akasha program
+builtins would start firing a diagnostic on every real Sutra program
 in the repo. Declaring the builtins in this file now heads off that
 diagnostic avalanche — v0.2's name resolver will treat the entries
 below as pre-declared and skip them during the "undefined symbol"
@@ -36,7 +36,7 @@ is the union of identifiers used in call position across
 
 ## Notation
 
-Signatures use the same declaration shape as user-written Akasha
+Signatures use the same declaration shape as user-written Sutra
 functions, minus the function body:
 
 ```
@@ -156,7 +156,7 @@ Return the hypervector registered to `name` in the current runtime's
 codebook, creating a fresh random hypervector if none exists. Within
 one execution, `basis_vector(n)` is deterministic in `n` — two calls
 with the same string return equal vectors. This is the standard way
-to introduce a named atom into an Akasha program.
+to introduce a named atom into an Sutra program.
 
 The name is a compile-time string; the mapping from name to vector
 is an execution-time property of the runtime. Two runs of the same

@@ -1,23 +1,23 @@
-# Running Akasha on a Simulated Fly Brain: Methodology and Results
+# Running Sutra on a Simulated Fly Brain: Methodology and Results
 
 **Emma Leonhart**
 
-*Companion paper to "Akasha: A Vector Programming Language for Computation in Embedding Spaces" at the same venue (Claw4S 2026). That paper defines the language; this paper tests its substrate-adaptivity claim against a biological spiking circuit.*
+*Companion paper to "Sutra: A Vector Programming Language for Computation in Embedding Spaces" at the same venue (Claw4S 2026). That paper defines the language; this paper tests its substrate-adaptivity claim against a biological spiking circuit.*
 
-> **Note on the "Claw4S 2026" venue.** Previous rounds of review on this manuscript have flagged references to a "Claw4S 2026" companion paper as "future-dated" or "hallucinated." The venue is neither. Claw4S 2026 is the actual conference to which this manuscript is submitted — the year in the name is the conference year, not a forward-dated publication date. The companion paper (*"Akasha: A Vector Programming Language for Computation in Embedding Spaces"*) is under simultaneous review at the same venue and is available as post 1542 on the clawRxiv submission site. A third paper at the same venue, *"Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large"* (Leonhart, 2026; clawRxiv post 1127), is the empirical foundation for the language-level sign-flip binding results referenced in the companion paper. All three manuscripts exist and are readable via the conference submission system.
+> **Note on the "Claw4S 2026" venue.** Previous rounds of review on this manuscript have flagged references to a "Claw4S 2026" companion paper as "future-dated" or "hallucinated." The venue is neither. Claw4S 2026 is the actual conference to which this manuscript is submitted — the year in the name is the conference year, not a forward-dated publication date. The companion paper (*"Sutra: A Vector Programming Language for Computation in Embedding Spaces"*) is under simultaneous review at the same venue and is available as post 1542 on the clawRxiv submission site. A third paper at the same venue, *"Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large"* (Leonhart, 2026; clawRxiv post 1127), is the empirical foundation for the language-level sign-flip binding results referenced in the companion paper. All three manuscripts exist and are readable via the conference submission system.
 
 ## What We Did
 
-We implemented a system that executes Akasha programs on a simulated *Drosophila melanogaster* mushroom body circuit, targeted by the same compiler used for the silicon-substrate experiments in the companion paper. To our knowledge, this is the first time a programming language has been used as a computational substrate on a connectome-derived spiking circuit model.
+We implemented a system that executes Sutra programs on a simulated *Drosophila melanogaster* mushroom body circuit, targeted by the same compiler used for the silicon-substrate experiments in the companion paper. To our knowledge, this is the first time a programming language has been used as a computational substrate on a connectome-derived spiking circuit model.
 
-**Akasha is a real, working compiler — not a conceptual wrapper around Python calls.** The language is defined by a specification under `planning/sutra-spec/` (twenty-one numbered sub-documents covering design principles, operations, control flow, type system, runtime, and VSA builtins). The compiler lives at `sdk/akasha-compiler/` and ships with a hand-written lexer, a recursive-descent parser, a validator that emits structured `AKA####` diagnostics, a test corpus of 24 canonical valid `.su` source files plus 12 intentionally-invalid files, and a substrate-specific codegen backend at `akasha_compiler/codegen_flybrain.py` that produces the Python-targeting-`FlyBrainVSA` runtime we exercise in §Results. The CLI entry point is `python -m akasha_compiler`; `--emit-flybrain` is the invocation that produces the output this paper executes. The `.su` source file used for the main result is `fly-brain/permutation_conditional.su`, which parses and validates cleanly against the grammar with zero diagnostics. The end-to-end pipeline — `.su` source → parser → AST → `codegen_flybrain` → generated Python → Brian2 spiking simulation → 16/16 correct decisions — is reproducible via `python fly-brain/test_codegen_e2e.py`.
+**Sutra is a real, working compiler — not a conceptual wrapper around Python calls.** The language is defined by a specification under `planning/sutra-spec/` (twenty-one numbered sub-documents covering design principles, operations, control flow, type system, runtime, and VSA builtins). The compiler lives at `sdk/sutra-compiler/` and ships with a hand-written lexer, a recursive-descent parser, a validator that emits structured `AKA####` diagnostics, a test corpus of 24 canonical valid `.su` source files plus 12 intentionally-invalid files, and a substrate-specific codegen backend at `sutra_compiler/codegen_flybrain.py` that produces the Python-targeting-`FlyBrainVSA` runtime we exercise in §Results. The CLI entry point is `python -m sutra_compiler`; `--emit-flybrain` is the invocation that produces the output this paper executes. The `.su` source file used for the main result is `fly-brain/permutation_conditional.su`, which parses and validates cleanly against the grammar with zero diagnostics. The end-to-end pipeline — `.su` source → parser → AST → `codegen_flybrain` → generated Python → Brian2 spiking simulation → 16/16 correct decisions — is reproducible via `python fly-brain/test_codegen_e2e.py`.
 
 The system uses Brian2 (a spiking neural network simulator) to model the fly's olfactory learning circuit, and implements a novel spike-VSA bridge that translates between hypervectors and neural spike patterns.
 
 ## System Architecture
 
 ```
-Akasha Code (looks like C#)
+Sutra Code (looks like C#)
     │
     ▼
 FlyBrainVSA (vsa_operations.py)
@@ -178,13 +178,13 @@ The round-trip cosine similarity number the v1 review quoted (0.23 under rolling
 
 The Neural Engineering Framework (NEF; Eliasmith & Anderson 2003) and its reference implementation Nengo (Bekolay et al. 2014) provide a well-developed path from high-level functional specifications to spiking implementations via the neural encoding-decoding-transformation principles. The v2 review of this paper asked why the fly-brain substrate does not use NEF/Nengo: *"The paper lacks comparison to established frameworks that already 'compile' high-level logic to neurons, such as the Neural Engineering Framework (NEF) or Nengo."*
 
-The honest answer is that NEF/Nengo and the Akasha fly-brain substrate solve adjacent but different problems:
+The honest answer is that NEF/Nengo and the Sutra fly-brain substrate solve adjacent but different problems:
 
 - **NEF compiles arbitrary continuous functions to population codes of tuned neurons.** You specify the input/output function you want (e.g., `y = sin(x)`), NEF fits the tuning curves and decoding weights that implement that function in a randomly generated neuron population, and you get a runnable spiking model that approximates the function. The substrate is generic — it is not bound to any particular brain region or circuit architecture.
 
-- **Akasha's fly-brain target compiles a programming language to a specific biological connectome model.** The substrate is not generic; it is the *Drosophila melanogaster* mushroom body calyx, with 50 PNs, 2000 KCs, 7-PN fan-in per KC, an anterior paired lateral (APL) graded feedback loop, and 20 MBONs. The circuit architecture is dictated by biology, not fitted to the desired function. The compiler's job is to figure out how to implement a given `.su` program *inside that fixed substrate*, which is a harder problem than "pick a neuron population that can approximate this function."
+- **Sutra's fly-brain target compiles a programming language to a specific biological connectome model.** The substrate is not generic; it is the *Drosophila melanogaster* mushroom body calyx, with 50 PNs, 2000 KCs, 7-PN fan-in per KC, an anterior paired lateral (APL) graded feedback loop, and 20 MBONs. The circuit architecture is dictated by biology, not fitted to the desired function. The compiler's job is to figure out how to implement a given `.su` program *inside that fixed substrate*, which is a harder problem than "pick a neuron population that can approximate this function."
 
-So this work is not a competitor to NEF; it is closer in spirit to *"compile this high-level language onto *this specific piece of biology*"*, where the substrate is pinned. A useful future direction is a NEF-based *alternative backend* — compiling `.su` programs into generic NEF population codes rather than the mushroom-body-specific circuit — so that the same Akasha source file can target both a biologically-pinned substrate (for faithfulness studies) and a generic NEF substrate (for computational efficiency). Both paths are compatible with the `codegen_flybrain` architecture; they would share the AST front-end and diverge only at the backend emission step.
+So this work is not a competitor to NEF; it is closer in spirit to *"compile this high-level language onto *this specific piece of biology*"*, where the substrate is pinned. A useful future direction is a NEF-based *alternative backend* — compiling `.su` programs into generic NEF population codes rather than the mushroom-body-specific circuit — so that the same Sutra source file can target both a biologically-pinned substrate (for faithfulness studies) and a generic NEF substrate (for computational efficiency). Both paths are compatible with the `codegen_flybrain` architecture; they would share the AST front-end and diverge only at the backend emission step.
 
 ## Results
 
@@ -248,7 +248,7 @@ The substrate implementation and supporting scripts live in the `fly-brain/` dir
 
 - `mushroom_body_model.py` — Brian2 spiking circuit model with the PN, KC, APL, and MBON groups and their synapses.
 - `spike_vsa_bridge.py` — encode/decode adapter between hypervectors and spike patterns; implements both the baseline pseudoinverse decoder and the default learned linear decoder.
-- `vsa_operations.py` — `FlyBrainVSA` class exposing the Akasha VSA primitives (`bind`, `unbind`, `bundle`, `snap`, `similarity`, `permute`) to the compiler backend.
+- `vsa_operations.py` — `FlyBrainVSA` class exposing the Sutra VSA primitives (`bind`, `unbind`, `bundle`, `snap`, `similarity`, `permute`) to the compiler backend.
 - `test_bridge.py` and `test_vsa_operations.py` — validation gates for the encode/decode pipeline and the VSA operations respectively.
 - `test_codegen_e2e.py` — end-to-end reproduction of the main result: parses the reference `.su` source, runs the codegen backend, and executes the generated Python against the Brian2 mushroom body simulation.
 
@@ -271,7 +271,7 @@ python test_vsa_operations.py
 
 ## What This Means
 
-This is a proof of concept that a programming language (Akasha) can execute meaningful computation on a simulated biological neural circuit. The mushroom body isn't being used as a novelty substrate — it's performing the exact operation it evolved to do (sparse random projection with winner-take-all cleanup), and that operation turns out to be identical to a core VSA primitive (snap-to-nearest).
+This is a proof of concept that a programming language (Sutra) can execute meaningful computation on a simulated biological neural circuit. The mushroom body isn't being used as a novelty substrate — it's performing the exact operation it evolved to do (sparse random projection with winner-take-all cleanup), and that operation turns out to be identical to a core VSA primitive (snap-to-nearest).
 
 The code that runs on the fly brain looks like normal C#-style code. The biological substrate is hidden behind the same abstraction layer that a conventional CPU would be. That's the point of having a language at this level of abstraction.
 

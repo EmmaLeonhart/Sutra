@@ -1,14 +1,14 @@
 ---
-name: akasha-language
-description: Reproduce the empirical grounding for "Akasha: A Vector Programming Language for Computation in Embedding Spaces" — sign-flip binding capacity (14/14 on GTE-large/BGE-large/Jina-v2), chained computation (10/10 bind-unbind-snap cycles), multi-hop composition across structures, empirical initiation validation gates across four substrates, and the compile-to-brain extension (see fly-brain-paper/ for details on the biological substrate result).
+name: sutra-language
+description: Reproduce the empirical grounding for "Sutra: A Vector Programming Language for Computation in Embedding Spaces" — sign-flip binding capacity (14/14 on GTE-large/BGE-large/Jina-v2), chained computation (10/10 bind-unbind-snap cycles), multi-hop composition across structures, empirical initiation validation gates across four substrates, and the compile-to-brain extension (see fly-brain-paper/ for details on the biological substrate result).
 allowed-tools: Bash(python *), Bash(pip *)
 ---
 
-# Akasha: A Vector Programming Language
+# Sutra: A Vector Programming Language
 
 **Author: Emma Leonhart**
 
-This skill reproduces the empirical findings underlying *"Akasha: A Vector Programming Language for Computation in Embedding Spaces"* — the paper that frames LLM embedding spaces as the computational substrate for a programming language, rather than merely a retrieval index or a semantic similarity surface.
+This skill reproduces the empirical findings underlying *"Sutra: A Vector Programming Language for Computation in Embedding Spaces"* — the paper that frames LLM embedding spaces as the computational substrate for a programming language, rather than merely a retrieval index or a semantic similarity surface.
 
 **Source:** `sutra-paper/` (this directory), with runtime scripts under `sutra-paper/scripts/`. The biological-substrate result reported in §6.6 is reproduced by the sibling `fly-brain-paper/` skill; see that paper's SKILL.md for the mushroom-body pipeline.
 
@@ -66,11 +66,11 @@ python sutra-paper/scripts/empirical_initiation.py
 ```
 Outputs four files, one per substrate: `bge-large-initiation.json`, `gte-large-initiation.json`, `jina-v2-initiation.json`, `mxbai-large-initiation.json`. Each reports the substrate's binding dissimilarity, unbinding fidelity, bundling capacity, noise characteristics, and pass/fail on the validation gates.
 
-**End-to-end Akasha demo programs on a live substrate:**
+**End-to-end Sutra demo programs on a live substrate:**
 ```bash
 python sutra-paper/scripts/sutra_demos.py
 ```
-Runs small Akasha programs against a chosen embedding model (GTE-large by default). Each demo shows the three-tier operation model in action: primitive scaffolding, algebraic VSA operations for the core computation, non-algebraic snap-to-nearest for cleanup.
+Runs small Sutra programs against a chosen embedding model (GTE-large by default). Each demo shows the three-tier operation model in action: primitive scaffolding, algebraic VSA operations for the core computation, non-algebraic snap-to-nearest for cleanup.
 
 ## Runtime architecture
 
@@ -80,7 +80,7 @@ Runs small Akasha programs against a chosen embedding model (GTE-large by defaul
 - **Algebraic tier:** bind (sign-flip and rotation variants), unbind, bundle, similarity, scalar multiply, projection
 - **Non-algebraic tier:** snap-to-nearest via codebook lookup, cone traversal (directed neighborhood query), graph hop (typed traversal)
 
-It loads an embedding model via `sentence-transformers`, runs the empirical initiation probe to measure the substrate's properties, fits correction matrices if needed, and exposes a Python API for executing Akasha programs. This is *not* the same runtime as the fly-brain compile-to-brain pipeline — that one targets Brian2 spiking neurons, lives in `fly-brain/vsa_operations.py`, and is reproduced by the `fly-brain-paper/` SKILL.
+It loads an embedding model via `sentence-transformers`, runs the empirical initiation probe to measure the substrate's properties, fits correction matrices if needed, and exposes a Python API for executing Sutra programs. This is *not* the same runtime as the fly-brain compile-to-brain pipeline — that one targets Brian2 spiking neurons, lives in `fly-brain/vsa_operations.py`, and is reproduced by the `fly-brain-paper/` SKILL.
 
 ## Dependencies between files
 
@@ -92,14 +92,14 @@ It loads an embedding model via `sentence-transformers`, runs the empirical init
 - `sutra-paper/scripts/bundling_noise_experiment.py` — bundling capacity curves
 - `sutra-paper/scripts/empirical_initiation.py` — §6.3 cross-substrate validation
 - `sutra-paper/data/` — JSON outputs consumed by the paper's tables
-- `sdk/sutra-compiler/` — the reference Akasha compiler (parser + validator + codegen)
+- `sdk/sutra-compiler/` — the reference Sutra compiler (parser + validator + codegen)
 - `sdk/sutra-compiler/tests/corpus/valid/` — canonical `.su` source corpus
 - `examples/*.su` — language tour
 - `fly-brain-paper/` — the §6.6 biological substrate result, its own SKILL.md
 
 ## Limitations and caveats the paper itself states
 
-- **Akasha is not Turing complete on algebra alone.** Fixed dimensionality caps superposition capacity and approximate retrieval introduces compounding errors. The paper argues that VSA algebra + ANN-backed non-algebraic operations + external graph memory is Turing complete, modeled on the CPU + RAM analogy.
+- **Sutra is not Turing complete on algebra alone.** Fixed dimensionality caps superposition capacity and approximate retrieval introduces compounding errors. The paper argues that VSA algebra + ANN-backed non-algebraic operations + external graph memory is Turing complete, modeled on the CPU + RAM analogy.
 - **Bind-precise (rotation) binding is 48× more expensive than sign-flip** (321 µs vs. 6.6 µs) and is only justified when accuracy matters more than speed at >7 bundled roles.
 - **Cone traversal is the expensive tier.** Snap is O(log n) via HNSW, but non-algebraic operations always hit an external index.
 - **Substrates can be algebraically sound and still have silent pathologies** — the mxbai diacritic defect is the canonical example. Validation must include pathology-specific probes beyond pure algebraic fitness.

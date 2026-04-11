@@ -1,7 +1,7 @@
 """
 Programmer control proof: 4 programs × 4 inputs = 16 executions.
 
-Demonstrates that Akasha is a real programming language, not a found pattern.
+Demonstrates that Sutra is a real programming language, not a found pattern.
 The fly brain substrate computes the same fuzzy scores regardless of the
 program. The programmer controls the branching logic — changing the code
 changes the output.
@@ -21,7 +21,7 @@ import numpy as np
 from vsa_operations import FlyBrainVSA
 
 
-# --- Akasha source code for each program variant ---
+# --- Sutra source code for each program variant ---
 
 PROGRAM_SOURCES = {
     "A": """\
@@ -253,7 +253,7 @@ def main():
     print(f"{'=' * 72}")
     print("""
 The fly brain substrate computed identical fuzzy scores for all 16 runs.
-The only variable was the Akasha source code — specifically, the presence or
+The only variable was the Sutra source code — specifically, the presence or
 absence of '!' (negation) on the defuzzy() calls in the if-conditions.
 
 Each one-character code change produced a completely different behavior
@@ -264,8 +264,8 @@ mapping. This proves:
   3. Changing the code changes the output (programmer has agency)
   4. The substrate is general-purpose (it doesn't impose a policy)
 
-This is what makes Akasha a programming language, not a found pattern.
-The fly brain is the CPU. The Akasha code is the program. Different programs
+This is what makes Sutra a programming language, not a found pattern.
+The fly brain is the CPU. The Sutra code is the program. Different programs
 produce different results on the same hardware.""")
 
 

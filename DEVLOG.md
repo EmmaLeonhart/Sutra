@@ -2,22 +2,22 @@
 
 ## 2026-04-09: Repo Cleanup
 
-Audited non-Akasha content and cleaned house:
+Audited non-Sutra content and cleaned house:
 
-- **Deleted `inquisitive-transformer/`** — independent paper (novel attention mechanism with "perceptiveness" parameter). Complete with GPT-2 implementation, 5 experiments, 51 tests, CI. Reported a negative result. Conceptually adjacent to Akasha but separate. Had accumulated junk: saved Claude.ai browser pages (HTML+JS/CSS assets), a Discord DM archive. All removed.
-- **Deleted `many-to-many/Claude.html` + `Claude_files/`** — saved Claude.ai conversation page. The actual many-to-many research (paper, scripts, data) stays — it's Akasha-relevant.
+- **Deleted `inquisitive-transformer/`** — independent paper (novel attention mechanism with "perceptiveness" parameter). Complete with GPT-2 implementation, 5 experiments, 51 tests, CI. Reported a negative result. Conceptually adjacent to Sutra but separate. Had accumulated junk: saved Claude.ai browser pages (HTML+JS/CSS assets), a Discord DM archive. All removed.
+- **Deleted `many-to-many/Claude.html` + `Claude_files/`** — saved Claude.ai conversation page. The actual many-to-many research (paper, scripts, data) stays — it's Sutra-relevant.
 - **Moved `VSA-paper/old/` to `old-stuff/vsa-paper-old/`** — 165 files including old scripts, competition analyses, `redoing-paper/` with deeply nested prototype code (semantic topology, syllogism gap, taxonomic direction experiments, Linnaean hierarchy, word2vec projections). All superseded by the current VSA-paper. Now consolidated with the rest of the archived material.
 - **Purged Discord DM archive from git history** — `inquisitive-transformer/Direct Messages.zip` contained personal Discord DMs (ash_blanc conversation). Removed from all commits via `git filter-repo`.
 
-What remains outside Akasha:
+What remains outside Sutra:
 - `old-stuff/` — all historical/superseded content in one place
-- `many-to-many/` — active Akasha-adjacent research (dimensional decomposition matching primitive)
-- `chats/` — design conversation archive, mostly VSA/Akasha-relevant
-- `VSA-paper/` — locked at Strong Accept, provides empirical foundation for Akasha
+- `many-to-many/` — active Sutra-adjacent research (dimensional decomposition matching primitive)
+- `chats/` — design conversation archive, mostly VSA/Sutra-relevant
+- `VSA-paper/` — locked at Strong Accept, provides empirical foundation for Sutra
 
-## 2026-04-08: Akasha Syntax Decisions
+## 2026-04-08: Sutra Syntax Decisions
 
-Bulk design decisions recorded after extended Claude conversations. Adopted C# as the syntactic baseline: `function`/`method` keywords, `var`/`const`, C# signature shape, all loop forms, string interpolation, generics. Key Akasha-specific decisions: truthiness is geometric (euclidean distance from true/false), errors produce garbage vectors, try-catch is if-statement sugar, classes are user-defined not runtime-special, `fuzzy`-to-`bool` cast performs `defuzzy`. Created 6 example `.su` files demonstrating the syntax.
+Bulk design decisions recorded after extended Claude conversations. Adopted C# as the syntactic baseline: `function`/`method` keywords, `var`/`const`, C# signature shape, all loop forms, string interpolation, generics. Key Sutra-specific decisions: truthiness is geometric (euclidean distance from true/false), errors produce garbage vectors, try-catch is if-statement sugar, classes are user-defined not runtime-special, `fuzzy`-to-`bool` cast performs `defuzzy`. Created 6 example `.su` files demonstrating the syntax.
 
 ## 2026-04-07: The VSA Reframe Disaster and Recovery
 
@@ -70,9 +70,9 @@ Bulk design decisions recorded after extended Claude conversations. Adopted C# a
 4. **Don't trust research agent claims about novelty without verification.** The "nobody has published this" claim was partially wrong.
 5. **Keep the Strong Accept locked.** Future VSA work goes in a separate paper.
 
-## 2026-04-06: Akasha Pivot
+## 2026-04-06: Sutra Pivot
 
-Decided to pivot from FOL discovery to Akasha (originally called S2, after System 2 thinking) — a vector programming language using LLM embedding spaces as computational substrate. The FOL discovery work proved embeddings encode consistent vector arithmetic; Akasha is the next step: programming in them rather than just discovering logic. Created `planning/akasha-pivot.md` with full design document.
+Decided to pivot from FOL discovery to Sutra (originally called S2, after System 2 thinking) — a vector programming language using LLM embedding spaces as computational substrate. The FOL discovery work proved embeddings encode consistent vector arithmetic; Sutra is the next step: programming in them rather than just discovering logic. Created `planning/sutra-pivot.md` with full design document.
 
 Competition analysis showed meta-artist (12 accepted, 2 Strong Accept, likely AI slop — 38 papers in 25 hours) and stepstep_labs (11 accepted, no Strong Accept) as main competitors. Our VSA paper may be the only one with real-world production impact — mxbai developers appeared to be addressing the [UNK] defect we documented.
 

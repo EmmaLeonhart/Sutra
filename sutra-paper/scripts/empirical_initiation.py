@@ -1,7 +1,7 @@
 """
-Akasha Empirical Initiation Prototype
+Sutra Empirical Initiation Prototype
 =======================================
-Tests whether an embedding model's space supports Akasha's algebraic operations
+Tests whether an embedding model's space supports Sutra's algebraic operations
 WITHOUT normalization. Uses Euclidean distance as primary metric.
 
 Tests:
@@ -55,7 +55,7 @@ def euclidean_distance(a, b):
 
 
 def cosine_similarity(a, b):
-    """Cosine similarity (for comparison only — Akasha uses Euclidean)."""
+    """Cosine similarity (for comparison only — Sutra uses Euclidean)."""
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
 
 
@@ -236,7 +236,7 @@ def test_magnitude_distribution(embeddings, labels):
 
     if is_normalized:
         print(f"  WARNING: Vectors appear NORMALIZED (mean ≈ 1.0, std ≈ 0)")
-        print(f"  This substrate is NOT suitable for Akasha")
+        print(f"  This substrate is NOT suitable for Sutra")
     elif has_variation:
         print(f"  GOOD: Magnitude varies — information is preserved")
     else:
@@ -302,14 +302,14 @@ def test_bundling_capacity(embeddings, labels):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Akasha Empirical Initiation')
+    parser = argparse.ArgumentParser(description='Sutra Empirical Initiation')
     parser.add_argument('--model', type=str, default='thenlper/gte-large',
                         help='HuggingFace model name (default: thenlper/gte-large)')
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--output', type=str, default=None, help='Save results to JSON file')
     args = parser.parse_args()
 
-    print(f"Akasha Empirical Initiation")
+    print(f"Sutra Empirical Initiation")
     print(f"=======================")
     print(f"Model:  {args.model}")
     print(f"Device: {args.device}")
@@ -375,7 +375,7 @@ def main():
     print(f"  Bundling capacity:    ~{capacity} items")
 
     all_pass = mag_ok and bind_ok and unbind_ok and bundle_ok
-    print(f"\n  Overall: {'SUBSTRATE APPROVED for Akasha' if all_pass else 'SUBSTRATE REJECTED'}")
+    print(f"\n  Overall: {'SUBSTRATE APPROVED for Sutra' if all_pass else 'SUBSTRATE REJECTED'}")
 
     # Save results
     if args.output:
