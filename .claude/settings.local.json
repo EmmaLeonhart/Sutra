@@ -240,7 +240,8 @@
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.safe_load\\(open\\('mkdocs.yml', encoding='utf-8'\\)\\)\")",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/pages.yml', encoding='utf-8'\\)\\)\")",
       "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('docs/assets/js/graph-to-vector.js','utf8'\\)\\)\")",
-      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.unsafe_load\\(open\\('mkdocs.yml', encoding='utf-8'\\)\\)\")"
+      "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -c \"import yaml; yaml.unsafe_load\\(open\\('mkdocs.yml', encoding='utf-8'\\)\\)\")",
+      "Bash(head -15 akasha-paper/reviews/v1_post*.md)"
     ]
   }
 }
