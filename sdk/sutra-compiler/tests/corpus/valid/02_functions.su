@@ -1,4 +1,4 @@
-// Akasha corpus test: function declarations.
+// Sutra corpus test: function declarations.
 // Covers: public/private, static, nested calls, function.* prefix.
 
 // Default-visibility function.

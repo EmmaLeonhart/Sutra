@@ -1,4 +1,4 @@
-# Akasha Substrate Comparison — Empirical Initiation Results
+# Sutra Substrate Comparison — Empirical Initiation Results
 
 All tests run on 20 diverse English sentences. Euclidean distance as primary metric.
 Non-normalized output (raw mean-pooled last hidden states, no F.normalize).
@@ -25,7 +25,7 @@ Non-normalized output (raw mean-pooled last hidden states, no F.normalize).
 ### Binding Quality
 - All models show strong binding encryption (cosine to inputs drops to 0.08-0.17)
 - GTE-large has the best binding: cosine drops to ~0.13 (most dissimilar from inputs)
-- This is the core operation for Akasha — all substrates support it
+- This is the core operation for Sutra — all substrates support it
 
 ### Unbinding Quality
 - All models recover targets better than random baseline
@@ -35,7 +35,7 @@ Non-normalized output (raw mean-pooled last hidden states, no F.normalize).
 ### Bundling Capacity
 - **All substrates have low capacity (~3-5 items)** before SNR degrades
 - This is much lower than theoretical √d ≈ 32 because natural embeddings are NOT random orthogonal vectors — they share significant structure (anisotropy)
-- Implication: Akasha programs on natural embedding substrates must use snap-to-nearest aggressively
+- Implication: Sutra programs on natural embedding substrates must use snap-to-nearest aggressively
 - Higher capacity would require either (a) higher dimensionality or (b) VSA-trained embeddings
 
 ### mxbai Passes Algebra, Fails Integrity
@@ -43,10 +43,10 @@ Non-normalized output (raw mean-pooled last hidden states, no F.normalize).
 - This proves that validation gates need BOTH algebraic tests AND pathology detection
 - A substrate can be algebraically sound but still have silent corruption modes
 
-## Recommendation for Akasha Paper
+## Recommendation for Sutra Paper
 
 **Primary substrate: GTE-large.** Best binding quality, good magnitude variation, no known pathologies, 1024 dimensions.
 
-**Include comparison table in paper** to show Akasha works across multiple substrates — this validates the empirical initiation concept (same tests, different models, comparable results).
+**Include comparison table in paper** to show Sutra works across multiple substrates — this validates the empirical initiation concept (same tests, different models, comparable results).
 
 **Note the capacity limitation** honestly — ~4 items is real and means snap-to-nearest is load-bearing, not optional. This is a finding, not a weakness — it quantifies something the VSA literature often hand-waves.

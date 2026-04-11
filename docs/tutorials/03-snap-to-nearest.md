@@ -8,11 +8,11 @@ Bind, unbind, and bundle are *approximate* operations. Every time you do an unbi
 
 **Snap-to-nearest** is the cleanup pass. You compare the noisy vector against a *codebook* — a set of known-good vectors (your atoms, your basis vectors, your previously-stored fillers) — and you replace the noisy vector with the *nearest* codebook entry. As long as the noise is smaller than the distance to the second-nearest entry, you recover the right answer exactly. Then you continue computing on the cleaned-up vector and the loop can run indefinitely.
 
-This is the operation that makes long Akasha computations numerically stable. Without it, sustained computation hits the noise floor in a few steps. With it, the [chained-computation result from the paper](../papers.md) holds for 10/10 cycles and the [fly-brain compile-to-brain demo](../papers.md) runs 16/16 decisions correctly because the spiking mushroom body itself acts as a biological snap (winner-take-all sparse activation).
+This is the operation that makes long Sutra computations numerically stable. Without it, sustained computation hits the noise floor in a few steps. With it, the [chained-computation result from the paper](../papers.md) holds for 10/10 cycles and the [fly-brain compile-to-brain demo](../papers.md) runs 16/16 decisions correctly because the spiking mushroom body itself acts as a biological snap (winner-take-all sparse activation).
 
 ## Why it lives in the non-algebraic tier
 
-Snap is the tier-3 ("non-algebraic / vector-graph") operation in the [three-tier model](https://github.com/EmmaLeonhart/Akasha/blob/master/planning/sutra-spec/02-operations.md). The reason it's in tier 3 is that it requires *infrastructure* the algebraic tier doesn't: an Approximate Nearest Neighbor (ANN) index, typically an HNSW, or a smaller exact-search codebook for tiny problems.
+Snap is the tier-3 ("non-algebraic / vector-graph") operation in the [three-tier model](https://github.com/EmmaLeonhart/Sutralang/blob/master/planning/sutra-spec/02-operations.md). The reason it's in tier 3 is that it requires *infrastructure* the algebraic tier doesn't: an Approximate Nearest Neighbor (ANN) index, typically an HNSW, or a smaller exact-search codebook for tiny problems.
 
 Concretely:
 
@@ -37,4 +37,4 @@ A side-by-side code walkthrough (like in tutorial 02), the formal codebook-const
 ## Read next
 
 - The [graph-to-linear-algebra interactive demo](../interactive/graph-to-linear-algebra.md) — a small interactive widget that walks you through the conceptual leap from "neurons in a graph" to "vectors in linear algebra," with a tiny fly-brain-shaped network as the example.
-- The [Akasha paper](../papers.md) — §6.4 has the snap cost numbers, §6.2 has the chained-computation result that depends on snap working.
+- The [Sutra paper](../papers.md) — §6.4 has the snap cost numbers, §6.2 has the chained-computation result that depends on snap working.

@@ -2,7 +2,7 @@
 
 ## Primitive Types
 
-Akasha's primitive type set is:
+Sutra's primitive type set is:
 
 - `scalar` — a real number (float).
 - `vector` — a hypervector in the runtime's substrate dimension. The
@@ -72,7 +72,7 @@ Akasha's primitive type set is:
   avoids a hard ambiguity with block statements.
 
 ## No Wrong Types, Only Noise
-There are no type errors in Akasha. Binding two unrelated vectors produces a result — it's just semantically meaningless (low similarity to anything useful). The type system is replaced by **similarity checking**: "does this result look like what I expected?"
+There are no type errors in Sutra. Binding two unrelated vectors produces a result — it's just semantically meaningless (low similarity to anything useful). The type system is replaced by **similarity checking**: "does this result look like what I expected?"
 
 ## Mixed-Regime Spaces
 Not all dimensions need to be the same kind:
@@ -81,10 +81,10 @@ Not all dimensions need to be the same kind:
 - **Hyperbolic dimensions:** Hierarchical/taxonomic relationships (tree-like)
 - **Euclidean dimensions:** Lateral/analogical relationships (flat)
 
-This is speculative but suggests Akasha's "vector" type could have geometric subtypes reflecting different kinds of semantic structure.
+This is speculative but suggests Sutra's "vector" type could have geometric subtypes reflecting different kinds of semantic structure.
 
 ## Entity Resolution Is Native
-The same symbol in different contexts maps to different vectors. Akasha handles this through context-dependent embedding — entity resolution is part of the runtime, not a preprocessing step. The MCP server maintains context for disambiguation.
+The same symbol in different contexts maps to different vectors. Sutra handles this through context-dependent embedding — entity resolution is part of the runtime, not a preprocessing step. The MCP server maintains context for disambiguation.
 
 ## Computational Complexity
 
@@ -92,7 +92,7 @@ The same symbol in different contexts maps to different vectors. Akasha handles 
 - Algebraic ops (bind, bundle, similarity): O(1) each
 - Non-algebraic ops (snap, cone, hop): O(log n) each
 
-**Algorithm complexity** is separate — just as a CPU transistor switching is O(1) but algorithms built on it can be any complexity class, Akasha programs can have arbitrary complexity built from O(1) and O(log n) primitives.
+**Algorithm complexity** is separate — just as a CPU transistor switching is O(1) but algorithms built on it can be any complexity class, Sutra programs can have arbitrary complexity built from O(1) and O(log n) primitives.
 
 **Capacity limits are real and quantifiable:**
 - Bundling degrades signal-to-noise as items are superposed (geometric consequence of dimensionality)

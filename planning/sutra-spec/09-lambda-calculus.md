@@ -1,6 +1,6 @@
 # Lambda Calculus Encoding
 
-Akasha's computational universality claim rests on the ability to encode lambda calculus in VSA. This document covers how that encoding works, where it strains, and what it means for Akasha.
+Sutra's computational universality claim rests on the ability to encode lambda calculus in VSA. This document covers how that encoding works, where it strains, and what it means for Sutra.
 
 ## The Mapping
 
@@ -65,7 +65,7 @@ Smolensky (1990) provides the theoretical foundation. A variable binding `role:f
 structure = (role_1 ⊗ filler_1) + (role_2 ⊗ filler_2) + ...
 ```
 
-Unbinding is contraction with the role vector. In the exact (infinite-dimensional) case, this recovers the filler perfectly. In the approximate (finite-dimensional) case — which is what VSA and Akasha actually use — it recovers the filler plus noise proportional to the other terms.
+Unbinding is contraction with the role vector. In the exact (infinite-dimensional) case, this recovers the filler perfectly. In the approximate (finite-dimensional) case — which is what VSA and Sutra actually use — it recovers the filler plus noise proportional to the other terms.
 
 The key insight: **the unbinding problem is formally equivalent to the substitution step in beta reduction.** If you can cleanly unbind, you can cleanly substitute. Both are limited by the same noise floor. This connects the practical engineering question (how noisy is unbinding?) to the theoretical question (can VSA compute arbitrary functions?).
 
@@ -80,10 +80,10 @@ The existence proof. Tomkins-Flanagan and Kelly built a **working Lisp 1.5 inter
 
 This is not a theoretical argument — it actually runs. Lambda terms go in, reduced results come out. The catch: it relies heavily on **cleanup memory** (snap-to-nearest) after every reduction step to prevent noise accumulation from destroying the computation. Without cleanup, the interpreter degrades after a few reduction steps.
 
-**What this means for Akasha:** Lambda calculus semantics are implementable in vector space. The price is mandatory periodic cleanup (snap-to-nearest). Pure algebraic computation without cleanup is limited to short chains. This is why snap-to-nearest is a core non-algebraic operation in Akasha, not an optimization — it's load-bearing for any computation deeper than a few steps.
+**What this means for Sutra:** Lambda calculus semantics are implementable in vector space. The price is mandatory periodic cleanup (snap-to-nearest). Pure algebraic computation without cleanup is limited to short chains. This is why snap-to-nearest is a core non-algebraic operation in Sutra, not an optimization — it's load-bearing for any computation deeper than a few steps.
 
-## Implications for Akasha
+## Implications for Sutra
 
 VSA gives you a **memory format** for lambda terms. Lambda calculus gives you the **rewrite rules**. The challenge is making the rewrite rules work inside the memory without unpacking back to symbolic form.
 
-Akasha's position: accept that deep computation requires periodic cleanup (snap-to-nearest), design the language so that cleanup points are explicit and predictable (like memory barriers in concurrent programming), and optimize the algebraic chains between cleanup points for maximum depth before noise becomes problematic.
+Sutra's position: accept that deep computation requires periodic cleanup (snap-to-nearest), design the language so that cleanup points are explicit and predictable (like memory barriers in concurrent programming), and optimize the algebraic chains between cleanup points for maximum depth before noise becomes problematic.

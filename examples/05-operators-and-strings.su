@@ -1,5 +1,5 @@
 /*
-    Akasha Example: Operator Overloading, Strings, and Implicit Casts
+    Sutra Example: Operator Overloading, Strings, and Implicit Casts
 
     Operators are overloadable because the class system is user-defined.
     Strings are a primitive mostly for output.

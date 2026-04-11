@@ -1,4 +1,4 @@
-// Akasha corpus test: logical operators.
+// Sutra corpus test: logical operators.
 // Covers: &&, ||, !, precedence, short-circuit patterns.
 
 function bool Any(bool a, bool b, bool c) {

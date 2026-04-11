@@ -48,14 +48,14 @@ If you ran the demo above, here's what you watched:
 
 This is the moment of the leap. You started with a graph. You said "let me describe this graph as a matrix." You said "let me describe the activation as a vector." You did *one* matrix-vector multiply. **You just propagated the network forward by one step using nothing but linear algebra.** No graph traversal. No edges to walk. No node-by-node logic. Linear algebra. Spatial coordinates. The graph is *gone*.
 
-## Why this matters for Akasha
+## Why this matters for Sutra
 
 If a 6-neuron toy fly brain reduces to one 6×6 matrix-vector multiply, then a 2,000-Kenyon-cell mushroom body reduces to one 2000-dim matrix-vector multiply (or, more precisely, the spiking version that the [fly-brain paper](../papers.md) actually uses). And a 1024-dimensional LLM embedding space reduces to operations on 1024-dimensional vectors. **They are the same kind of math.** The substrate is different — silicon vs. simulated spiking neurons vs. eventually a real connectome — but the *operations* are vector-space operations, and the *programming language* that exposes those operations doesn't need to know which substrate it's running on.
 
-That's Akasha. A language whose primitives are *vectors in some high-dimensional space*, with operations that compose those vectors via linear algebra. The fact that the same source code compiles for an LLM embedding space *and* for a Brian2 fly-brain simulation is not a quirk — it is the *direct consequence* of the leap you just took. Once you accept that "the brain's state is a vector and the brain's dynamics are linear algebra," the substrate stops mattering.
+That's Sutra. A language whose primitives are *vectors in some high-dimensional space*, with operations that compose those vectors via linear algebra. The fact that the same source code compiles for an LLM embedding space *and* for a Brian2 fly-brain simulation is not a quirk — it is the *direct consequence* of the leap you just took. Once you accept that "the brain's state is a vector and the brain's dynamics are linear algebra," the substrate stops mattering.
 
 ## What to read next
 
 - [The vision page](../vision.md) — the prose version of the same argument, with more detail on why this view is so unintuitive at first.
-- [Tutorial 02 — Bind and unbind](../tutorials/02-bind-and-unbind.md) — the operation that turns Akasha from "fancy retrieval" into "actual programming." The geometric way to *associate* one vector with another.
+- [Tutorial 02 — Bind and unbind](../tutorials/02-bind-and-unbind.md) — the operation that turns Sutra from "fancy retrieval" into "actual programming." The geometric way to *associate* one vector with another.
 - [The fly-brain paper](../papers.md) — the real version: 2,000 Kenyon cells, Brian2 spiking simulation, 16/16 decisions correct.

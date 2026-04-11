@@ -1,4 +1,4 @@
-# Akasha: A Vector Programming Language for Computation in Embedding Spaces
+# Sutra: A Vector Programming Language for Computation in Embedding Spaces
 
 **Emma Leonhart**
 
@@ -6,11 +6,11 @@
 
 ## Abstract
 
-We present Akasha, a programming language that uses LLM embedding spaces as its computational substrate. Where conventional languages compile to machine instructions that execute on silicon, Akasha compiles to vector operations that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Named after the Sanskrit concept of a primordial substance pervading all things, the language operates in the continuous semantic space that pervades trained embedding models.
+We present Sutra, a programming language that uses LLM embedding spaces as its computational substrate. Where conventional languages compile to machine instructions that execute on silicon, Sutra compiles to vector operations that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Named after the Sanskrit concept of a primordial substance pervading all things, the language operates in the continuous semantic space that pervades trained embedding models.
 
-Akasha introduces several novel contributions to programming language design. First, a **three-tier operation model**: primitive operations (scalars, tuples, bounded iteration), algebraic VSA operations at O(1) (bind, bundle, unbind, similarity), and non-algebraic vector-graph operations at O(log n) (snap-to-nearest, cone traversal, graph hop) — where all non-algebraic operations are unified by their dependence on approximate nearest neighbor search. Second, **fuzzy-by-default semantics** with opt-in defuzzification via a truth-extraction matrix M(v) derived from the input vector, enabling recursive confidence refinement through repeated application of `is_true`. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
+Sutra introduces several novel contributions to programming language design. First, a **three-tier operation model**: primitive operations (scalars, tuples, bounded iteration), algebraic VSA operations at O(1) (bind, bundle, unbind, similarity), and non-algebraic vector-graph operations at O(log n) (snap-to-nearest, cone traversal, graph hop) — where all non-algebraic operations are unified by their dependence on approximate nearest neighbor search. Second, **fuzzy-by-default semantics** with opt-in defuzzification via a truth-extraction matrix M(v) derived from the input vector, enabling recursive confidence refinement through repeated application of `is_true`. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
 
-The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, 2026). We further demonstrate that the traditional VSA binding operation (Hadamard product) fails on natural embedding spaces due to crosstalk from correlated embeddings, but that **sign-flip binding** — a simple operation that flips filler signs based on role sign patterns — achieves 14-role bundling capacity with correct snap-to-nearest recovery across three substrate models (GTE-large, BGE-large, Jina-v2), sustains 10-step chained computation, and supports multi-hop composition. Akasha is the first programming language designed to exploit this structure directly.
+The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, 2026). We further demonstrate that the traditional VSA binding operation (Hadamard product) fails on natural embedding spaces due to crosstalk from correlated embeddings, but that **sign-flip binding** — a simple operation that flips filler signs based on role sign patterns — achieves 14-role bundling capacity with correct snap-to-nearest recovery across three substrate models (GTE-large, BGE-large, Jina-v2), sustains 10-step chained computation, and supports multi-hop composition. Sutra is the first programming language designed to exploit this structure directly.
 
 ## 1. Introduction
 
@@ -20,14 +20,14 @@ A complementary line of work showed that *frozen*, general-purpose embeddings �
 
 These findings raise a question that the embedding literature has not addressed: if embedding spaces encode consistent algebraic structure, can we *program* in them? Not query them, not probe them, not visualize them — but treat them as the computational substrate for a programming language, the way silicon is the substrate for conventional computation?
 
-Akasha answers this question. It is a programming language where:
+Sutra answers this question. It is a programming language where:
 - **Values** are vectors in a pre-trained embedding space
 - **Operations** are geometric transformations (binding, bundling, projection, similarity)
 - **Truth** is fuzzy by default, with opt-in defuzzification
 - **Control flow** is both algebraic (fuzzy branching via superposition) and geometric (cone traversal through semantic neighborhoods)
 - **Compilation** is substrate-adaptive — the same source code targets different embedding spaces via empirical calibration
 
-Akasha is not an AI-assisted programming tool. It is not a neural network. It is a formal system for *reasoning under uncertainty* — closer to logic programming (Prolog) than to Python, but operating in continuous rather than discrete space. The computational substrate is semantic: operations have meaning in a way that silicon arithmetic does not.
+Sutra is not an AI-assisted programming tool. It is not a neural network. It is a formal system for *reasoning under uncertainty* — closer to logic programming (Prolog) than to Python, but operating in continuous rather than discrete space. The computational substrate is semantic: operations have meaning in a way that silicon arithmetic does not.
 
 ### 1.1 Contributions
 
@@ -35,11 +35,11 @@ Akasha is not an AI-assisted programming tool. It is not a neural network. It is
 
 2. **A truth-extraction matrix mechanism** for defuzzification. Given vector v, a matrix M(v) derived from v maps it to a truth vector: M(v) · v = t. This enables equality evaluation via truth-vector comparison and recursive confidence refinement via iterated application.
 
-3. **Empirical initiation** as a compilation strategy. The Akasha compiler probes a target embedding space, tests algebraic operation fidelity, fits correction matrices, and outputs a substrate-specific mapping file. The same Akasha source code compiles differently for different embedding models, analogous to C compiling for x86 versus ARM.
+3. **Empirical initiation** as a compilation strategy. The Sutra compiler probes a target embedding space, tests algebraic operation fidelity, fits correction matrices, and outputs a substrate-specific mapping file. The same Sutra source code compiles differently for different embedding models, analogous to C compiling for x86 versus ARM.
 
 4. **Cone traversal as a control flow mechanism.** Directed neighborhood queries in embedding space — defined by origin, direction, and angular spread — provide non-algebraic branching that complements the algebraic fuzzy conditional `(condition * branch_true) + (¬condition * branch_false)`.
 
-5. **An honest assessment of Turing completeness.** VSA algebra alone is not Turing-complete due to fixed dimensionality and approximate retrieval. Akasha's position: VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete. The algebra handles local computation; the graph provides unbounded external memory. This is analogous to a CPU (fixed registers) with RAM (unbounded, addressable).
+5. **An honest assessment of Turing completeness.** VSA algebra alone is not Turing-complete due to fixed dimensionality and approximate retrieval. Sutra's position: VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete. The algebra handles local computation; the graph provides unbounded external memory. This is analogous to a CPU (fixed registers) with RAM (unbounded, addressable).
 
 ## 2. Related Work
 
@@ -51,23 +51,23 @@ Tomkins-Flanagan and Kelly demonstrated that VSA can implement a Turing-complete
 
 Smolensky (1990) provided the theoretical foundation with tensor product representations, showing that role-filler binding via tensor products is formally equivalent to the substitution step in beta reduction — connecting the practical engineering of VSA to the theoretical question of computational universality.
 
-Akasha differs from prior VSA work in three ways: (1) it treats VSA as a programming language substrate rather than a computational model, (2) it operates inside *frozen, naturally-learned* embedding spaces rather than spaces designed for VSA, and (3) it formalizes the non-algebraic operations (snap, cone, hop) as first-class language constructs rather than implementation details.
+Sutra differs from prior VSA work in three ways: (1) it treats VSA as a programming language substrate rather than a computational model, (2) it operates inside *frozen, naturally-learned* embedding spaces rather than spaces designed for VSA, and (3) it formalizes the non-algebraic operations (snap, cone, hop) as first-class language constructs rather than implementation details.
 
 ### 2.2 Hyperdimensional Computing
 
-Hyperdimensional Computing (HDC) applies VSA to engineering tasks: classification (Imani et al., 2019), language recognition (Joshi et al., 2016), and robotics (Neubert et al., 2019). HDCC provides a compiler for HDC classification tasks, and libraries like Torchhd and vsapy offer Python interfaces. However, these are classification tools and research libraries — not general-purpose programming languages. The distinction between VSA (the algebra) and HDC (the engineering) parallels Boolean algebra versus digital circuits. Akasha operates at the VSA level.
+Hyperdimensional Computing (HDC) applies VSA to engineering tasks: classification (Imani et al., 2019), language recognition (Joshi et al., 2016), and robotics (Neubert et al., 2019). HDCC provides a compiler for HDC classification tasks, and libraries like Torchhd and vsapy offer Python interfaces. However, these are classification tools and research libraries — not general-purpose programming languages. The distinction between VSA (the algebra) and HDC (the engineering) parallels Boolean algebra versus digital circuits. Sutra operates at the VSA level.
 
 ### 2.3 Probabilistic Programming Languages
 
-Languages like Stan (Carpenter et al., 2017), Pyro (Bingham et al., 2019), and Church (Goodman et al., 2008) integrate probabilistic reasoning into programming. However, they compile to conventional computation — the substrate is silicon, and the probabilistic semantics are layered on top. Akasha's distinction is that the substrate itself is semantic: operations execute in a space where *similarity is geometric distance* and *meaning is position*.
+Languages like Stan (Carpenter et al., 2017), Pyro (Bingham et al., 2019), and Church (Goodman et al., 2008) integrate probabilistic reasoning into programming. However, they compile to conventional computation — the substrate is silicon, and the probabilistic semantics are layered on top. Sutra's distinction is that the substrate itself is semantic: operations execute in a space where *similarity is geometric distance* and *meaning is position*.
 
 ### 2.4 Neurosymbolic Integration
 
-Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktäschel & Riedel, 2017), and DeepProbLog (Manhaeve et al., 2018) integrate logical reasoning with neural computation. These are constructive approaches that build systems combining symbolic logic and neural networks. Akasha is different: it does not combine two paradigms but rather programs directly in the geometric structure that neural networks produce. The embedding space is not an intermediary — it is the execution environment.
+Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktäschel & Riedel, 2017), and DeepProbLog (Manhaeve et al., 2018) integrate logical reasoning with neural computation. These are constructive approaches that build systems combining symbolic logic and neural networks. Sutra is different: it does not combine two paradigms but rather programs directly in the geometric structure that neural networks produce. The embedding space is not an intermediary — it is the execution environment.
 
 ### 2.5 Relational Displacement Analysis
 
-TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be modeled as translations in learned embedding spaces. Recent work extended this to frozen general-purpose embeddings (Leonhart, 2026), discovering 86 consistent relational displacements across three models and a correlation (r = 0.861) between consistency and prediction accuracy. These results provide the empirical foundation for Akasha: the algebraic structure needed for computation already exists in pre-trained embedding spaces.
+TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be modeled as translations in learned embedding spaces. Recent work extended this to frozen general-purpose embeddings (Leonhart, 2026), discovering 86 consistent relational displacements across three models and a correlation (r = 0.861) between consistency and prediction accuracy. These results provide the empirical foundation for Sutra: the algebraic structure needed for computation already exists in pre-trained embedding spaces.
 
 > **Note on the Leonhart (2026) citation.** This reference is not forward-dated or synthetic. It points to *"Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large"*, a companion paper submitted to the same venue as the current manuscript (Claw4S 2026, clawRxiv post 1127, currently at Strong Accept). The "2026" in the citation is the conference year — Claw4S 2026 is the venue, not a future publication. Both this paper and the companion paper are under simultaneous review at that venue. A reader who wants to verify the 86-predicate and r=0.861 results can read the companion paper directly via its clawRxiv post, or browse the reproduction code and data in the `EmmaLeonhart/latent-space-cartography` GitHub repository. This note is here, at the point of first citation in body text, because the v1 and v2 reviews of this manuscript both flagged the same year as "suggesting a hallucinated future-dated reference" — the year is real, the conference is real, and the companion paper exists.
 
@@ -75,7 +75,7 @@ TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be 
 
 ### 3.1 Design Principles
 
-**Fuzzy-by-default.** Every value in Akasha carries implicit uncertainty. Truth is a continuous quantity, not a binary one. This inverts conventional programming languages where crisp logic is the default and probabilistic reasoning is bolted on as a library. The inversion is natural given the substrate: nothing in an embedding space is ever fully true or false.
+**Fuzzy-by-default.** Every value in Sutra carries implicit uncertainty. Truth is a continuous quantity, not a binary one. This inverts conventional programming languages where crisp logic is the default and probabilistic reasoning is bolted on as a library. The inversion is natural given the substrate: nothing in an embedding space is ever fully true or false.
 
 **Vectors as the primary type.** The fundamental data type is the hypervector — a point in the embedding space. Numbers, symbols, and structures are all represented as vectors. There are no "wrong type" errors, only noisy or semantically meaningless results. Equality is replaced by similarity.
 
@@ -83,7 +83,7 @@ TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be 
 
 ### 3.2 Three-Tier Operation Model
 
-Akasha organizes operations into three tiers by cost and abstraction level.
+Sutra organizes operations into three tiers by cost and abstraction level.
 
 **Tier 1: Primitive operations.** Scalars (not vectors — plain numbers for weighting, thresholds, and loop counters), tuples (grouping without superposition), and bounded iteration (`repeat N`). These are conventional computational scaffolding. They exist because not everything in a program is a semantic vector operation.
 
@@ -183,7 +183,7 @@ This construction satisfies the three properties the language needs from defuzzi
 
 1. **Non-circularity.** `M(v)` depends on `v` only through its unit-normalized projection; the target `t_true` is a *fixed* substrate constant, not derived from `v`. The earlier worry that "the matrix is derived from the vector itself to produce a constant truth vector" is addressed by the explicit split between the vector-dependent part (`v^T` in the outer product) and the substrate-dependent part (`t_true`).
 
-2. **Magnitude-sensitivity.** The truth scalar is a smooth function of `||v||`. Zero-magnitude vectors produce `is_true ≈ 0` (the substrate's degenerate state has no truth value), fully-saturated vectors produce `is_true ≈ 1`, and intermediate magnitudes interpolate smoothly. This is what distinguishes Akasha's defuzzification from a plain dot product with `t_true` — direction alone would collapse the information that long vectors are "more asserted" than short ones.
+2. **Magnitude-sensitivity.** The truth scalar is a smooth function of `||v||`. Zero-magnitude vectors produce `is_true ≈ 0` (the substrate's degenerate state has no truth value), fully-saturated vectors produce `is_true ≈ 1`, and intermediate magnitudes interpolate smoothly. This is what distinguishes Sutra's defuzzification from a plain dot product with `t_true` — direction alone would collapse the information that long vectors are "more asserted" than short ones.
 
 3. **Closure under iteration.** Applying `M` recursively,
 ```
@@ -208,7 +208,7 @@ The only pathological regime is `||v|| = 0` exactly, which the ε stabilizer pre
 
 ### 3.5 Type System
 
-Akasha has no type errors. Binding two unrelated vectors produces a result — it is simply semantically meaningless (low similarity to anything useful). The "type system" is replaced by similarity checking: the programmer (or compiler) verifies that results are similar to expected patterns.
+Sutra has no type errors. Binding two unrelated vectors produces a result — it is simply semantically meaningless (low similarity to anything useful). The "type system" is replaced by similarity checking: the programmer (or compiler) verifies that results are similar to expected patterns.
 
 This is consistent with the fuzzy-by-default principle: there is no hard boundary between "correct" and "incorrect" computation, only a continuous spectrum of meaningfulness.
 
@@ -304,7 +304,7 @@ function string program_D(vector smell, vector hunger) {
 
 2. **Function declarations follow C# shape**: `function <return-type> <name>(<params>) { ... }`. `function` means "free function, public static by default." `method` (not used in this example) declares a function attached to an object. `function.<name>()` is the call-site disambiguator for free functions when the compiler needs one.
 
-3. **The compile-time / runtime split is explicit.** Top-level `vector proto_PH = snap(bind(...));` lines run at compile time — `snap` is called once, the result is burned into the compiled artifact. The `decide()` function body runs at runtime against whatever query vectors are passed in. The Akasha compiler's `codegen_flybrain` backend (`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`) walks the AST, recognizes the top-level-assignment pattern as a compile-time evaluation, emits one `_VSA.snap(_VSA.bind(...))` call per prototype in the generated Python prelude, and emits `decide()` as a regular Python function body with no `if` in its body because the language-level conditional has already been compiled away.
+3. **The compile-time / runtime split is explicit.** Top-level `vector proto_PH = snap(bind(...));` lines run at compile time — `snap` is called once, the result is burned into the compiled artifact. The `decide()` function body runs at runtime against whatever query vectors are passed in. The Sutra compiler's `codegen_flybrain` backend (`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`) walks the AST, recognizes the top-level-assignment pattern as a compile-time evaluation, emits one `_VSA.snap(_VSA.bind(...))` call per prototype in the generated Python prelude, and emits `decide()` as a regular Python function body with no `if` in its body because the language-level conditional has already been compiled away.
 
 4. **The entire if/else tree from the informal problem description does not appear in the source at all.** `if smell && hungry: approach` turned into two lines: a `bind` to form the conjunctive key, and a `snap`-plus-argmax to retrieve the matching prototype. The conditional is *gone* — it was compiled into the prototype table at the `vector proto_*` declarations. This is what §3.3 "cone traversal as control flow" is about at the language level, and this program is the complete worked example of that claim.
 
@@ -312,29 +312,29 @@ The full end-to-end pipeline — parsing this source with the reference compiler
 
 ## 4. Runtime Architecture
 
-### 4.1 S1/Akasha Dual Runtime
+### 4.1 S1/Sutra Dual Runtime
 
 The runtime mirrors the cognitive architecture from which the language takes its name:
 
 - **S1 layer:** Fast, cached, pattern-matched execution. Lookup tables, memoized operation results, precomputed common paths. Handles recurring computations.
-- **Akasha layer:** Deliberate semantic computation. The actual vector-space reasoning. Handles novel inputs requiring genuine algebraic and geometric reasoning.
+- **Sutra layer:** Deliberate semantic computation. The actual vector-space reasoning. Handles novel inputs requiring genuine algebraic and geometric reasoning.
 
-As computations recur, their results migrate from Akasha to S1 — from deliberate reasoning to cached lookup. This is analogous to TypeScript's type checker running alongside JavaScript execution: Akasha's semantic layer runs alongside the fast path, providing the context that makes the cached results meaningful.
+As computations recur, their results migrate from Sutra to S1 — from deliberate reasoning to cached lookup. This is analogous to TypeScript's type checker running alongside JavaScript execution: Sutra's semantic layer runs alongside the fast path, providing the context that makes the cached results meaningful.
 
 ### 4.2 Empirical Initiation
 
-Akasha does not assume any embedding space has the right algebraic properties. At compile time, the compiler probes the target space:
+Sutra does not assume any embedding space has the right algebraic properties. At compile time, the compiler probes the target space:
 
 1. **Test algebraic operations.** Generate random vectors. Test binding dissimilarity, unbinding accuracy, bundling capacity. Measure noise characteristics.
 2. **Fit correction matrices.** Projection matrices that improve algebraic fidelity: rotations for binding, subspace projections for unbinding, normalizations for bundling capacity.
 3. **Validate substrate.** Enforce minimum requirements: binding must actually encrypt, unbinding must recover fillers above threshold, no catastrophic pathologies (attention sinks, degenerate dimensions).
 4. **Output mapping file.** A binary artifact containing correction matrices, noise characterization, and codebook initialization. This is the compiled form — same source code + different mapping files = same program on different substrates.
 
-The analogy to conventional compilation is direct: x86 and ARM have different instruction sets but can run the same C program. mxbai-embed-large and nomic-embed-text have different geometric properties but can run the same Akasha program.
+The analogy to conventional compilation is direct: x86 and ARM have different instruction sets but can run the same C program. mxbai-embed-large and nomic-embed-text have different geometric properties but can run the same Sutra program.
 
 ### 4.3 MCP Server as Runtime Component
 
-The MCP (Model Context Protocol) server is not an IDE add-on. It is part of the Akasha runtime, providing:
+The MCP (Model Context Protocol) server is not an IDE add-on. It is part of the Sutra runtime, providing:
 - ANN infrastructure for non-algebraic operations (snap, cone, hop)
 - Codebook management for cleanup memory
 - Entity resolution (context-dependent disambiguation of polysemous vectors)
@@ -346,7 +346,7 @@ The semantic richness of computation in embedding spaces creates dependencies th
 
 ### 5.1 Mathematical Grounding
 
-Akasha's substrate must satisfy the eight axioms of a real vector space (commutativity, associativity, identity, inverse for addition; identity, associativity, two distributivity laws for scalar multiplication). LLM embedding spaces satisfy these trivially as subsets of ℝⁿ. This means Akasha inherits the full toolkit of linear algebra: subspaces, projections, eigendecomposition, orthogonal complements.
+Sutra's substrate must satisfy the eight axioms of a real vector space (commutativity, associativity, identity, inverse for addition; identity, associativity, two distributivity laws for scalar multiplication). LLM embedding spaces satisfy these trivially as subsets of ℝⁿ. This means Sutra inherits the full toolkit of linear algebra: subspaces, projections, eigendecomposition, orthogonal complements.
 
 The deeper mathematical foundation is **concentration of measure** in high-dimensional spaces. In d > 1000 dimensions, randomly sampled vectors are almost certainly nearly orthogonal. This is a theorem, not an empirical observation. It guarantees that thousands of concept vectors can coexist without interference, that bundling (addition) preserves approximate membership for up to √d items, and that binding (Hadamard product) produces vectors approximately orthogonal to both inputs.
 
@@ -354,7 +354,7 @@ The deeper mathematical foundation is **concentration of measure** in high-dimen
 
 Lambda terms encode as trees in superposition. Abstraction `λx.body` becomes `bind(VAR_role, x) + bind(BODY_role, encode(body))`. Application `(f a)` becomes `bind(FUNC_role, encode(f)) + bind(ARG_role, encode(a))`. Reading components back uses unbinding: `unbind(FUNC_role, encode(App(f, a))) ≈ encode(f)`.
 
-The hard part is substitution (beta reduction), which requires modifying a distributed representation without corrupting it — equivalent to the binding problem in cognitive science (Smolensky, 1990). Current approaches require cleanup memory (snap-to-nearest) after each reduction step, which is why Akasha treats snap as a first-class operation.
+The hard part is substitution (beta reduction), which requires modifying a distributed representation without corrupting it — equivalent to the binding problem in cognitive science (Smolensky, 1990). Current approaches require cleanup memory (snap-to-nearest) after each reduction step, which is why Sutra treats snap as a first-class operation.
 
 Tomkins-Flanagan and Kelly's working Lisp interpreter in HRR is the existence proof. Lambda calculus semantics are implementable in vector space. The price is mandatory periodic cleanup — pure algebraic computation without error correction is limited to short chains.
 
@@ -362,9 +362,9 @@ Tomkins-Flanagan and Kelly's working Lisp interpreter in HRR is the existence pr
 
 **The honest position:** VSA algebra alone is not Turing-complete. Fixed dimensionality limits superposition capacity. Approximate retrieval introduces compounding errors. Cleanup memory (snap-to-nearest) patches the error problem but introduces circularity (the codebook must contain the correct answer).
 
-Akasha's Turing completeness claim: **VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete.** The vectors handle local computation (fixed-dimensional but algebraically rich). The graph provides unbounded external memory (the vector state navigates a graph that can grow without bound). This is architecturally identical to a CPU (fixed registers) with RAM (unbounded, addressable memory).
+Sutra's Turing completeness claim: **VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete.** The vectors handle local computation (fixed-dimensional but algebraically rich). The graph provides unbounded external memory (the vector state navigates a graph that can grow without bound). This is architecturally identical to a CPU (fixed registers) with RAM (unbounded, addressable memory).
 
-Flanagan et al. (2024) argue for VSA Turing completeness via Cartesian closed categories. We accept their construction but note that cleanup memory does the heavy lifting — the boundary between "VSA computing" and "lookup table computing" is not formalized in their proof. Akasha makes this boundary explicit: Tier 2 operations are the VSA; Tier 3 operations are the infrastructure that patches the VSA's limitations.
+Flanagan et al. (2024) argue for VSA Turing completeness via Cartesian closed categories. We accept their construction but note that cleanup memory does the heavy lifting — the boundary between "VSA computing" and "lookup table computing" is not formalized in their proof. Sutra makes this boundary explicit: Tier 2 operations are the VSA; Tier 3 operations are the infrastructure that patches the VSA's limitations.
 
 ## 6. Empirical Grounding
 
@@ -372,7 +372,7 @@ Flanagan et al. (2024) argue for VSA Turing completeness via Cartesian closed ca
 
 The foundational empirical result (Leonhart, 2026): relational displacement analysis of mxbai-embed-large (1024-dim), nomic-embed-text (768-dim), and all-minilm (384-dim) using Wikidata triples discovers 86 predicates that manifest as consistent vector displacements, with 30 universal across all three models.
 
-The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the algebraic structure is self-calibrating: internally consistent operations are externally useful. This is the critical empirical validation for Akasha — it demonstrates that the algebraic structure needed for computation already exists in pre-trained, general-purpose embedding spaces without any VSA-specific training.
+The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the algebraic structure is self-calibrating: internally consistent operations are externally useful. This is the critical empirical validation for Sutra — it demonstrates that the algebraic structure needed for computation already exists in pre-trained, general-purpose embedding spaces without any VSA-specific training.
 
 ### 6.2 Binding Operation Selection
 
@@ -391,17 +391,17 @@ We tested six binding operations on GTE-large (1024-dim) by constructing bundled
 
 Hadamard binding fails because natural embeddings are correlated and anisotropic — they share significant structure, so crosstalk from non-orthogonal role vectors overwhelms the target signal. All five alternatives achieve 7/7 correct snap recoveries at 7 bundled roles.
 
-**Sign-flip binding** (`a * sign(role)`) is Akasha's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough for the algebraic tier. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
+**Sign-flip binding** (`a * sign(role)`) is Sutra's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough for the algebraic tier. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
 
 Extended testing of sign-flip binding revealed substantially higher capacity than the initial 7-role test suggested. With a 15-item codebook on GTE-large, sign-flip achieves **14/14 correct snap recoveries** — cosine degrades gracefully from 0.74 at 2 roles to 0.30 at 14 roles, but snap consistently identifies the correct target. This capacity is substrate-agnostic: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 14/14 results.
 
 **Chained computation** — the critical test for sustained reasoning — was tested by repeatedly building 3-role bundled structures, unbinding the target, snapping, and using the result in the next structure. With sign-flip binding: **10/10 steps correct**, with raw cosine stable at 0.58-0.65 throughout the chain. Snap recovers the exact target at every step.
 
-**Multi-hop composition** was tested by extracting a filler from structure A (agent=cat, action=sit), inserting it into a different role in structure B (agent=dog, patient=extracted_cat), then extracting from B. All three extractions (agent from A, patient from B, agent from B) returned the correct filler. This demonstrates that Akasha can perform the fundamental operation required for multi-step inference: move information between structures via unbind-snap-rebind cycles.
+**Multi-hop composition** was tested by extracting a filler from structure A (agent=cat, action=sit), inserting it into a different role in structure B (agent=dog, patient=extracted_cat), then extracting from B. All three extractions (agent from A, patient from B, agent from B) returned the correct filler. This demonstrates that Sutra can perform the fundamental operation required for multi-step inference: move information between structures via unbind-snap-rebind cycles.
 
 ### 6.3 Cross-Substrate Validation
 
-We ran Akasha's empirical initiation validation gates on four non-normalized embedding models. Initial tests used Hadamard binding; sign-flip capacity was tested subsequently on three models:
+We ran Sutra's empirical initiation validation gates on four non-normalized embedding models. Initial tests used Hadamard binding; sign-flip capacity was tested subsequently on three models:
 
 | Model | Dims | Mag Mean | Hadamard Capacity | Sign-Flip Capacity | Approved |
 |-------|------|----------|-------------------|-------------------|----------|
@@ -412,7 +412,7 @@ We ran Akasha's empirical initiation validation gates on four non-normalized emb
 
 *mxbai passes algebraic tests but has a documented diacritic attention-sink pathology (Leonhart, 2026). This demonstrates that validation gates must include both algebraic tests and pathology detection.
 
-The shift from Hadamard to sign-flip binding increases effective capacity by 3-5x across all tested substrates, from ~3-5 roles to 14 roles — the limit of our test set. All four models produce non-normalized vectors (magnitudes 17-26, not 1.0) when accessed via raw transformers without post-processing normalization layers. Akasha requires non-normalized output because magnitude carries information about binding strength and bundling count — Euclidean distance, not cosine similarity, is the primary metric.
+The shift from Hadamard to sign-flip binding increases effective capacity by 3-5x across all tested substrates, from ~3-5 roles to 14 roles — the limit of our test set. All four models produce non-normalized vectors (magnitudes 17-26, not 1.0) when accessed via raw transformers without post-processing normalization layers. Sutra requires non-normalized output because magnitude carries information about binding strength and bundling count — Euclidean distance, not cosine similarity, is the primary metric.
 
 ### 6.4 Operation Cost Analysis
 
@@ -434,13 +434,13 @@ The critical finding: **snap-to-nearest is not the bottleneck**. Even with a 10K
 
 ### 6.5 Substrate Validation: The mxbai Pathology
 
-During the cartographic analysis that grounds Akasha, a previously unreported defect in mxbai-embed-large was discovered: diacritic characters cause catastrophic embedding collapse via attention sink (a high-magnitude key vector dominates the attention mechanism, overwriting all other token representations). Completely unrelated strings containing diacritics produce cosine similarity > 0.95.
+During the cartographic analysis that grounds Sutra, a previously unreported defect in mxbai-embed-large was discovered: diacritic characters cause catastrophic embedding collapse via attention sink (a high-magnitude key vector dominates the attention mechanism, overwriting all other token representations). Completely unrelated strings containing diacritics produce cosine similarity > 0.95.
 
-This pathology demonstrates why Akasha requires substrate validation as part of empirical initiation. Notably, mxbai passes all algebraic validation gates — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound but still have silent corruption modes. Akasha's validation must therefore include both algebraic tests and pathology-specific probes.
+This pathology demonstrates why Sutra requires substrate validation as part of empirical initiation. Notably, mxbai passes all algebraic validation gates — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound but still have silent corruption modes. Sutra's validation must therefore include both algebraic tests and pathology-specific probes.
 
 ### 6.6 Biological Substrate: Compiling to a Mushroom Body Circuit
 
-The empirical initiation framework claims substrate-adaptivity: the same source code compiles for different embedding spaces given a calibration pass. We tested this claim against a substrate deliberately far outside the training distribution of the compiler — a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body (50 projection neurons → 2,000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, leaky integrate-and-fire dynamics, APL-enforced 5% Kenyon-cell sparsity). An Akasha source file describing a four-state conditional was parsed and validated by the same compiler used for the silicon experiments above (§6.1–§6.5), mechanically translated by a substrate-specific backend (`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`) into Python calls against the spiking circuit, and executed. The full methodology, circuit parameters, and reproduction recipe are in the companion paper *Running Akasha on a Simulated Fly Brain* (same venue, Claw4S 2026).
+The empirical initiation framework claims substrate-adaptivity: the same source code compiles for different embedding spaces given a calibration pass. We tested this claim against a substrate deliberately far outside the training distribution of the compiler — a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body (50 projection neurons → 2,000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, leaky integrate-and-fire dynamics, APL-enforced 5% Kenyon-cell sparsity). An Sutra source file describing a four-state conditional was parsed and validated by the same compiler used for the silicon experiments above (§6.1–§6.5), mechanically translated by a substrate-specific backend (`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`) into Python calls against the spiking circuit, and executed. The full methodology, circuit parameters, and reproduction recipe are in the companion paper *Running Sutra on a Simulated Fly Brain* (same venue, Claw4S 2026).
 
 **Decision-level results.** Across four program variants × four input conditions (sixteen decisions total), the compiled output produced the expected behavior mapping on **every trial (16/16 correct)**, and the four variants yielded **four distinct permutations** of the underlying prototype table — a necessary condition for claiming that the four programs are *actually different programs running on the same compiled artifact* rather than the same program with cosmetic differences. The table below summarizes the result structure; the raw per-trial similarity scores against the compiled 4-prototype table are available in `fly-brain-paper/` and reproducible via `python fly-brain/test_codegen_e2e.py`.
 
@@ -451,7 +451,7 @@ The empirical initiation framework claims substrate-adaptivity: the same source 
 | C (inverted hunger)  | ignore   | approach | idle     | search   |
 | D (both inverted)    | idle     | search   | ignore   | approach |
 
-**Fixed-frame invariant.** Every `snap` call in one program execution must share the same PN → KC connectivity matrix, or prototype matching is meaningless. Under rolling connectivity frames, the per-snap round-trip fidelity is ~0.53 cosine (as measured in the companion paper); under a fixed frame the same fidelity is ~1.0. The 4-way prototype argmax that decides which behavior fires cannot discriminate reliably at the rolling-frame fidelity but does so cleanly under the fixed frame. The Akasha compiler's `codegen_flybrain` backend emits a `_FixedFrameFlyBrainVSA` subclass in the prelude of every generated module, promoting this runtime invariant to a compile-time guarantee.
+**Fixed-frame invariant.** Every `snap` call in one program execution must share the same PN → KC connectivity matrix, or prototype matching is meaningless. Under rolling connectivity frames, the per-snap round-trip fidelity is ~0.53 cosine (as measured in the companion paper); under a fixed frame the same fidelity is ~1.0. The 4-way prototype argmax that decides which behavior fires cannot discriminate reliably at the rolling-frame fidelity but does so cleanly under the fixed frame. The Sutra compiler's `codegen_flybrain` backend emits a `_FixedFrameFlyBrainVSA` subclass in the prelude of every generated module, promoting this runtime invariant to a compile-time guarantee.
 
 **Negation compiles away.** Source-level `!X` compiles to `permute(permutation_key("NOT_X"), X)` because sign-flip permutations are involutive and distribute over `bind`. The four program variants above differ *only* in which permutation keys multiply into the query before `snap` runs. The if/else tree is gone — the compiled artifact is a single 4-vector prototype table and the runtime decision is a single cosine argmax against it. No Python `if` in the decision path.
 
@@ -459,37 +459,37 @@ To our knowledge this is the first demonstration of a programming language whose
 
 ## 7. Discussion
 
-### 7.1 What Akasha Is and Is Not
+### 7.1 What Sutra Is and Is Not
 
-Akasha is a formal system for reasoning under uncertainty. It is not a replacement for Python or C++ — it does not handle I/O, graphics, or systems programming. Its domain is *semantic computation*: inference, reasoning, search, and structured manipulation of meaning in vector space.
+Sutra is a formal system for reasoning under uncertainty. It is not a replacement for Python or C++ — it does not handle I/O, graphics, or systems programming. Its domain is *semantic computation*: inference, reasoning, search, and structured manipulation of meaning in vector space.
 
-The closest analogy is Prolog, which provides a fundamentally different computational paradigm (unification and backtracking) for a specific class of problems (logical inference). Akasha provides a different paradigm (geometric operations in continuous semantic space) for a different class of problems (reasoning under uncertainty with learned representations).
+The closest analogy is Prolog, which provides a fundamentally different computational paradigm (unification and backtracking) for a specific class of problems (logical inference). Sutra provides a different paradigm (geometric operations in continuous semantic space) for a different class of problems (reasoning under uncertainty with learned representations).
 
 ### 7.2 Human-AI Collaboration in Language Design
 
-Akasha was designed through extensive human-AI conversation. The human designer brought domain insight — the recognition that embedding spaces could serve as computational substrate, the fuzzy-by-default inversion, the three-tier operation model. The AI collaborator helped formalize these ideas, stress-tested them against the theoretical literature, and identified edge cases and failure modes.
+Sutra was designed through extensive human-AI conversation. The human designer brought domain insight — the recognition that embedding spaces could serve as computational substrate, the fuzzy-by-default inversion, the three-tier operation model. The AI collaborator helped formalize these ideas, stress-tested them against the theoretical literature, and identified edge cases and failure modes.
 
 The design conversations are archived in the project repository. This collaborative process is itself a finding: AI systems can participate meaningfully in the creative, speculative phase of language design — not just code generation, but conceptual architecture.
 
 ### 7.3 Future Directions
 
-**Syntax design.** Akasha's semantics are solidifying but no concrete syntax has been defined. The syntax must make the three operation tiers visually distinct so programmers can immediately see where expensive non-algebraic operations occur.
+**Syntax design.** Sutra's semantics are solidifying but no concrete syntax has been defined. The syntax must make the three operation tiers visually distinct so programmers can immediately see where expensive non-algebraic operations occur.
 
-**JEPA integration.** Akasha naturally connects to Joint Embedding Predictive Architecture (LeCun, 2022). HDC provides algebraic structure; JEPA provides learned prediction. A two-phase training approach (algebraic consistency first, predictive coding second) could produce embedding spaces optimized for Akasha computation.
+**JEPA integration.** Sutra naturally connects to Joint Embedding Predictive Architecture (LeCun, 2022). HDC provides algebraic structure; JEPA provides learned prediction. A two-phase training approach (algebraic consistency first, predictive coding second) could produce embedding spaces optimized for Sutra computation.
 
-**Product manifold embeddings.** Different semantic relationships naturally live in different geometries: hierarchies in hyperbolic space, analogies in Euclidean space, cycles on spheres. A product manifold embedding combining these geometries could give Akasha richer type semantics where the geometry of a subspace determines what operations are natural in it.
+**Product manifold embeddings.** Different semantic relationships naturally live in different geometries: hierarchies in hyperbolic space, analogies in Euclidean space, cycles on spheres. A product manifold embedding combining these geometries could give Sutra richer type semantics where the geometry of a subspace determines what operations are natural in it.
 
 **Implementation and benchmarks.** The most important next step. Candidate benchmark tasks: semantic search with algebraic pre-filtering, compositional multi-hop inference via vector arithmetic, and structured prediction exploiting discovered algebraic regularities.
 
 ## 8. Conclusion
 
-Akasha demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, truth-extraction matrices, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
+Sutra demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, truth-extraction matrices, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
 
 Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves **14/14 correct recoveries** at only 4.4x the cost, sustains **10/10 chained computation steps**, and supports **multi-hop composition** (extract from one structure, insert into another, extract again — all correct). These results hold identically across GTE-large (1024-dim), BGE-large (1024-dim), and Jina-v2 (768-dim), demonstrating substrate-agnostic viability. This finding updates the VSA literature's assumption that Hadamard product is the standard binding choice — on natural embedding spaces, sign-flip binding is strictly superior.
 
 The design makes an honest assessment of its own limitations: VSA algebra alone is not Turing-complete, non-algebraic operations are expensive, noise accumulation requires periodic cleanup, and embedding substrates can have silent pathologies. These limitations are explicitly addressed in the language design rather than hidden.
 
-Akasha is less like a traditional programming language and more like a formal system for reasoning under uncertainty. It occupies a previously empty niche — continuous semantic computation as a programming paradigm — and provides a concrete framework for exploiting the algebraic structure that neural networks produce but that no existing system treats as a first-class computational resource.
+Sutra is less like a traditional programming language and more like a formal system for reasoning under uncertainty. It occupies a previously empty niche — continuous semantic computation as a programming paradigm — and provides a concrete framework for exploiting the algebraic structure that neural networks produce but that no existing system treats as a first-class computational resource.
 
 ## References
 
