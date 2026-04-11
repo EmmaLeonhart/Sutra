@@ -167,9 +167,13 @@ MkDocs Material source for the Sutra language website. Built by
 - `assets/js/graph-to-vector.js` — interactive widget JavaScript
 
 ### `mkdocs.yml`
-MkDocs configuration. Nav includes a `SutraDB: /SutraDB/` entry
-that jumps out of the MkDocs tree to the mounted SutraDB static
-site (copied from `sutraDB/pages/` by the pages workflow).
+MkDocs configuration. Nav includes a `SutraDB: /Sutra/SutraDB/`
+entry that jumps out of the MkDocs tree to the mounted SutraDB
+static site (copied from `sutraDB/pages/` by the pages workflow).
+The full `/Sutra/SutraDB/` path is required because MkDocs treats
+a leading slash as domain-root-absolute, and the GitHub Pages
+site is served at `emmaleonhart.github.io/Sutra/`, so SutraDB
+lives at `/Sutra/SutraDB/`, not `/SutraDB/`.
 
 ---
 
