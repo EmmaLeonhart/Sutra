@@ -33,17 +33,17 @@ The disambiguation happens **before retrieval, inside the same process**. The mo
 
 This is architecturally hard because nearest-neighbor search over a large corpus isn't differentiable in a way that's easy to integrate into a forward pass. Existing work (REALM, RAG-token model, memory-augmented transformers) tackles this but it's genuinely difficult to make efficient. The two-stage pipeline exists partly because it's the tractable approximation.
 
-## How This Maps to Akasha
+## How This Maps to Sutra
 
-Entity resolution is a **core Akasha operation**, not a library function. In embedding space, the same surface form maps to different vectors depending on context. Akasha must handle this natively.
+Entity resolution is a **core Sutra operation**, not a library function. In embedding space, the same surface form maps to different vectors depending on context. Sutra must handle this natively.
 
-The MCP server architecture is Akasha's version of active retrieval during inference:
-- The MCP server holds **semantic context** that the Akasha runtime uses to resolve ambiguous references
+The MCP server architecture is Sutra's version of active retrieval during inference:
+- The MCP server holds **semantic context** that the Sutra runtime uses to resolve ambiguous references
 - Resolution happens in real time during computation, not as a preprocessing step
 - The server maintains a **running model of what entities are in scope** and what they resolve to in the current context
 - This is why the MCP server is part of the runtime, not an add-on — without it, entity resolution would require leaving vector space to do symbolic lookup
 
-The canonicalization endpoint concept maps to a potential Akasha built-in:
+The canonicalization endpoint concept maps to a potential Sutra built-in:
 
 ```
 resolved = canonicalize(ambiguous_vector, context_vector)

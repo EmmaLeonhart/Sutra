@@ -1,4 +1,4 @@
-// Akasha corpus test: kitchen sink.
+// Sutra corpus test: kitchen sink.
 // Covers: many features in one file — methods, functions, generics,
 // operators, control flow, casts, interpolation. Meant to exercise
 // whole-file parser stress, not to illustrate good code.

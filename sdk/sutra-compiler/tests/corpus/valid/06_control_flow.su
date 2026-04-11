@@ -1,4 +1,4 @@
-// Akasha corpus test: control flow.
+// Sutra corpus test: control flow.
 // Covers: if/else, else-if, while, for, foreach, do-while, break-free
 // recursive branching.
 

@@ -8,7 +8,7 @@ name: Deploy GitHub Pages site
 # (Settings → Pages → Build and deployment → Source).
 #
 # Live at: https://emmaleonhart.github.io/Sutralang
-# (the URL follows the GitHub repository name; rename EmmaLeonhart/Akasha
+# (the URL follows the GitHub repository name; rename EmmaLeonhart/Sutra
 #  to EmmaLeonhart/Sutralang on GitHub to switch the published URL. The
 #  workflow itself is repo-name-agnostic and does not need to be edited
 #  when the repo is renamed.)
@@ -21,6 +21,7 @@ on:
       - 'mkdocs.yml'
       - 'README.md'
       - 'planning/sutra-spec/**'
+      - 'sutraDB/pages/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -57,6 +58,35 @@ jobs:
       - name: Build site
         run: |
           mkdocs build --strict --verbose
+
+      - name: Integrate SutraDB static site at /SutraDB/
+        run: |
+          # SutraDB keeps its own static HTML site under sutraDB/pages/
+          # (index.html, style.css, subdirectories for each section).
+          # Mount it at /SutraDB/ on the main Sutra language site so that
+          # https://emmaleonhart.github.io/Sutralang/SutraDB/ serves the
+          # database's own landing page. SutraDB is a core piece of the
+          # Sutra ecosystem — the language programs vectors, the database
+          # stores them — and a single integrated docs site is the least
+          # surprising place for users to find both.
+          #
+          # Caveats:
+          #   - SutraDB's pages may contain absolute hrefs (/...) that
+          #     point at the root of its original standalone site (which
+          #     used to live at sutradb.org / on its own GitHub Pages).
+          #     Those links will need a pass to become relative or to
+          #     prefix /SutraDB/ when encountered. The first deploy will
+          #     surface exactly which links break; fix is follow-up work.
+          #   - sutraDB/pages/CNAME and sitemap.xml are intentionally NOT
+          #     copied — the CNAME binds the site to sutradb.org and the
+          #     sitemap targets that domain. Leaving them out means the
+          #     integrated subsite serves cleanly under the parent
+          #     domain without competing DNS claims.
+          mkdir -p _site/SutraDB
+          rsync -a \
+            --exclude=CNAME \
+            --exclude=sitemap.xml \
+            sutraDB/pages/ _site/SutraDB/
 
       - uses: actions/upload-pages-artifact@v3
         with:

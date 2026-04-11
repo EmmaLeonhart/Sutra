@@ -2,7 +2,7 @@
 
 ## Adjacent Domain Benchmarks
 
-No direct benchmarks exist for "VSA as programming language substrate" because Akasha is novel. But adjacent domains provide reference points for the magnitude of speedups from vectorized symbolic computation:
+No direct benchmarks exist for "VSA as programming language substrate" because Sutra is novel. But adjacent domains provide reference points for the magnitude of speedups from vectorized symbolic computation:
 
 **Vector Chains of Recurrences (VCR):**
 - 2x to 10x speedup over scalar Chains of Recurrences and Intel SVML (Short Vector Math Library)
@@ -17,7 +17,7 @@ No direct benchmarks exist for "VSA as programming language substrate" because A
 - Up to 3.2x computation speedup
 - 2x memory reduction
 - 5x faster code generation
-- This is symbolic computation optimization via structural sharing — relevant because Akasha's VSA encoding of lambda terms is conceptually similar (shared structure via binding)
+- This is symbolic computation optimization via structural sharing — relevant because Sutra's VSA encoding of lambda terms is conceptually similar (shared structure via binding)
 
 **VSA-based ARC-AGI solver:**
 - Outperforms GPT-4 on a subset of ARC benchmarks
@@ -28,13 +28,13 @@ No direct benchmarks exist for "VSA as programming language substrate" because A
 
 There is a surprising gap in the literature: **systematic FLOPS-saved benchmarks for "symbolic simplification before numerical evaluation"** are essentially absent. Everyone knows that simplifying `x * 0` to `0` before evaluating saves a multiply, but nobody has systematically measured how much compute is saved by symbolic preprocessing across a representative workload.
 
-This matters for Akasha because one of Akasha's potential use cases is exactly this: perform algebraic simplification in vector space before executing expensive numerical computation. If the savings are 2x-10x (as VCR and Diospyros suggest), Akasha has a clear practical value proposition beyond its theoretical interest.
+This matters for Sutra because one of Sutra's potential use cases is exactly this: perform algebraic simplification in vector space before executing expensive numerical computation. If the savings are 2x-10x (as VCR and Diospyros suggest), Sutra has a clear practical value proposition beyond its theoretical interest.
 
-## What Akasha Needs to Prove
+## What Sutra Needs to Prove
 
-For Akasha to have a credible compute savings story, it needs benchmarks showing:
+For Sutra to have a credible compute savings story, it needs benchmarks showing:
 1. A task that takes X compute with conventional computation
-2. The same task takes Y compute with Akasha's VSA operations
+2. The same task takes Y compute with Sutra's VSA operations
 3. X/Y > 1, ideally by a significant factor
 4. The comparison is fair (same task, same accuracy, same hardware)
 
