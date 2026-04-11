@@ -19,7 +19,7 @@ Out of scope for v0.1:
     - Type checking
     - Name resolution across files
     - Code generation / runtime lowering
-    - Cross-file solution analysis
+    - Cross-file workspace analysis
 
 The compiler is intentionally liberal where the spec is still open
 (anonymous functions, pipe operator, etc.) - it accepts the documented
