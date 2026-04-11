@@ -1,10 +1,10 @@
 /*
- * Akasha VS Code extension.
+ * Sutra VS Code extension.
  *
  * Three responsibilities:
  *   1. Syntax highlighting is handled by the TextMate grammar in
- *      syntaxes/akasha.tmLanguage.json; no code needed here.
- *   2. Diagnostics from the akashac compiler are run as a child
+ *      syntaxes/sutra.tmLanguage.json; no code needed here.
+ *   2. Diagnostics from the sutrac compiler are run as a child
  *      process and converted into VS Code diagnostics. Uses the
  *      --json output format so we don't have to parse the text form.
  *   3. Completion/hover: a keyword/primitive/builtin completion
@@ -19,8 +19,8 @@ import * as vscode from "vscode";
 // Constants
 // ============================================================
 
-const LANGUAGE_ID = "akasha";
-const DIAGNOSTIC_SOURCE = "akasha";
+const LANGUAGE_ID = "sutra";
+const DIAGNOSTIC_SOURCE = "sutra";
 
 const PRIMITIVE_TYPES = [
     "scalar", "vector", "matrix", "tuple", "string", "bool", "fuzzy", "void",
@@ -50,7 +50,7 @@ const KEYWORD_DOCS: { [key: string]: string } = {
     "unsafeOverride": "At a call site, override the function's type acceptance without changing the value.",
     "fuzzy": "Fuzzy truth type — a continuous-valued vector that can be collapsed to bool via defuzzy.",
     "bool": "Concrete boolean type. Distinct from fuzzy at compile time even though both are vectors at runtime.",
-    "vector": "Hypervector in semantic space. The core Akasha primitive.",
+    "vector": "Hypervector in semantic space. The core Sutra primitive.",
     "scalar": "Plain numeric value. Used for thresholds, loop counters, weights.",
     "matrix": "2D array. Functions are matrices at the substrate level.",
     "tuple": "Grouped values without superposition. Different from bundling.",
@@ -81,9 +81,9 @@ interface CompilerOutput {
 }
 
 function getCompilerCommand(): { cmd: string; args: string[] } {
-    const config = vscode.workspace.getConfiguration("akasha");
+    const config = vscode.workspace.getConfiguration("sutra");
     const cmd = config.get<string>("compilerPath", "python");
-    const args = config.get<string[]>("compilerArgs", ["-m", "akasha_compiler"]);
+    const args = config.get<string[]>("compilerArgs", ["-m", "sutra_compiler"]);
     return { cmd, args };
 }
 
@@ -99,7 +99,7 @@ function runCompiler(filePath: string): Promise<CompilerOutput | null> {
         proc.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
         proc.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
         proc.on("error", (err) => {
-            console.error("akashac spawn error:", err);
+            console.error("sutrac spawn error:", err);
             resolve(null);
         });
         proc.on("close", () => {
@@ -107,7 +107,7 @@ function runCompiler(filePath: string): Promise<CompilerOutput | null> {
                 const parsed = JSON.parse(stdout) as CompilerOutput;
                 resolve(parsed);
             } catch (err) {
-                console.error("akashac returned non-JSON:", stdout, stderr);
+                console.error("sutrac returned non-JSON:", stdout, stderr);
                 resolve(null);
             }
         });
@@ -163,8 +163,8 @@ async function validateDocument(
     if (output === null) {
         return;
     }
-    const config = vscode.workspace.getConfiguration("akasha");
-    const showCodes = config.get<boolean>("showAkaCodes", true);
+    const config = vscode.workspace.getConfiguration("sutra");
+    const showCodes = config.get<boolean>("showDiagnosticCodes", true);
     const diags: vscode.Diagnostic[] = [];
     for (const fileEntry of output.files) {
         for (const d of fileEntry.diagnostics) {
@@ -210,7 +210,7 @@ const completionProvider: vscode.CompletionItemProvider = {
                 makeKeywordCompletion(
                     kw,
                     vscode.CompletionItemKind.Keyword,
-                    "Akasha keyword"
+                    "Sutra keyword"
                 )
             );
         }
@@ -219,7 +219,7 @@ const completionProvider: vscode.CompletionItemProvider = {
                 makeKeywordCompletion(
                     t,
                     vscode.CompletionItemKind.TypeParameter,
-                    "Akasha primitive type"
+                    "Sutra primitive type"
                 )
             );
         }
@@ -228,7 +228,7 @@ const completionProvider: vscode.CompletionItemProvider = {
                 makeKeywordCompletion(
                     b,
                     vscode.CompletionItemKind.Function,
-                    "Akasha built-in"
+                    "Sutra built-in"
                 )
             );
         }
@@ -252,7 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((doc) => {
-            const config = vscode.workspace.getConfiguration("akasha");
+            const config = vscode.workspace.getConfiguration("sutra");
             const mode = config.get<string>("validateOn", "save");
             if (mode === "save" || mode === "change") {
                 void validateDocument(doc, diagnostics);
@@ -261,7 +261,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument((evt) => {
-            const config = vscode.workspace.getConfiguration("akasha");
+            const config = vscode.workspace.getConfiguration("sutra");
             const mode = config.get<string>("validateOn", "save");
             if (mode === "change") {
                 void validateDocument(evt.document, diagnostics);
@@ -269,14 +269,14 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // Validate every already-open Akasha document on activation.
+    // Validate every already-open Sutra document on activation.
     for (const doc of vscode.workspace.textDocuments) {
         void validateDocument(doc, diagnostics);
     }
 
     // Commands.
     context.subscriptions.push(
-        vscode.commands.registerCommand("akasha.validateFile", async () => {
+        vscode.commands.registerCommand("sutra.validateFile", async () => {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
                 await validateDocument(editor.document, diagnostics);
@@ -284,10 +284,10 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
     context.subscriptions.push(
-        vscode.commands.registerCommand("akasha.validateWorkspace", async () => {
+        vscode.commands.registerCommand("sutra.validateWorkspace", async () => {
             await validateWorkspace(diagnostics);
             vscode.window.showInformationMessage(
-                "Akasha: validated all .ak files in the workspace"
+                "Sutra: validated all .ak files in the workspace"
             );
         })
     );
