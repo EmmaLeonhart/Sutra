@@ -93,10 +93,15 @@ nav:
     - 03 — Snap-to-nearest: tutorials/03-snap-to-nearest.md
   - Papers: papers.md
   # SutraDB is the database side of the Sutra ecosystem — the static
-  # HTML site lives under sutraDB/pages/ and is mounted at /SutraDB/
-  # on this Pages deploy by the pages.yml workflow. This nav entry
-  # jumps out of the MkDocs tree to that mounted subsite.
-  - SutraDB: /SutraDB/
+  # HTML site lives under sutraDB/pages/ and is mounted at /Sutra/SutraDB/
+  # on this Pages deploy by the pages.yml workflow (the site is served
+  # at emmaleonhart.github.io/Sutra/, so SutraDB lives one level deeper).
+  # The full /Sutra/SutraDB/ path is required because MkDocs treats a
+  # leading slash as domain-root-absolute, not site-root-absolute, and
+  # emmaleonhart.github.io/SutraDB/ is a different (non-existent) site
+  # entirely. This nav entry jumps out of the MkDocs tree to the mounted
+  # subsite.
+  - SutraDB: /Sutra/SutraDB/
 
 extra_javascript:
   - assets/js/graph-to-vector.js
