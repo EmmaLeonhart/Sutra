@@ -1,14 +1,20 @@
 """
 VSA operations on the fly brain substrate.
 
-Hybrid architecture:
-- bind/unbind/bundle: algebraic operations in numpy (sign-flip binding)
+Brain-native architecture:
+- bind/unbind: sign-flip binding via PN→KC synaptic weight modulation
+  (the sign-flip IS the synaptic weights, the projection IS the circuit)
+- bundle: superposition via summed PN input currents
+  (convergent input — same as a fly smelling multiple odors at once)
 - snap: encode → circuit run → decode (APL provides biological cleanup)
-- similarity: cosine similarity in numpy
+- similarity: KC pattern overlap (Jaccard similarity in brain space)
 - embed: generate random hypervectors for named concepts
 
-This implements the Sutra language's core operations using the mushroom body
-circuit as the computational substrate for cleanup/discretization.
+All core VSA operations route through the spiking circuit.  The mushroom
+body performs the matrix multiplications that VSA algebra requires:
+PN→KC is the random projection, APL enforces sparsity, KC patterns
+are the computational representation.  Weight modulation for binding
+is biologically grounded in neuromodulatory gating (Aso et al. 2014).
 """
 
 import numpy as np
@@ -49,7 +55,26 @@ class FlyBrainVSA:
         self.seed = seed
         self.snap_duration_ms = snap_duration_ms
         self.codebook = {}  # name → hypervector
-        self._snap_count = 0
+        self._op_count = 0
+
+    def _make_bridge(self):
+        """Create a fresh SpikeVSABridge for a circuit operation.
+
+        Each operation needs a fresh Brian2 model (stateful simulator).
+        The learned readout is cached class-level, so the training
+        cost is paid only once.
+        """
+        bridge_kwargs = dict(n_kc=self.n_kc)
+        if self.use_hemibrain:
+            bridge_kwargs['use_hemibrain'] = True
+        bridge = SpikeVSABridge(
+            dim=self.dim, seed=self.seed + self._op_count,
+            **bridge_kwargs
+        )
+        self._op_count += 1
+        n_samples = 80 if self.use_hemibrain else 20
+        bridge.fit_learned_readout(n_samples=n_samples)
+        return bridge
 
     def embed(self, name):
         """Get or create a random hypervector for a named concept."""
@@ -61,36 +86,45 @@ class FlyBrainVSA:
 
     def bind(self, a, b):
         """
-        Sign-flip binding (self-inverse).
+        Sign-flip binding through the spiking circuit.
 
-        Produces a vector dissimilar to both inputs. Encoding key-value
-        pairs and role-filler structures. Done in numpy — this is a
-        pure algebraic operation.
+        The sign-flip is implemented by modulating PN→KC synaptic
+        weights by sign(b), then presenting a as PN input currents.
+        The circuit computes:
+
+            KC_pattern = sparsify(W * diag(sign(b)) @ encode(a))
+
+        The binding happens IN the synapses.  The random projection
+        is the PN→KC wiring.  The sparsification is the APL feedback
+        loop.  All three stages run on the spiking substrate.
         """
-        signs = np.sign(b)
-        signs[signs == 0] = 1
-        return a * signs
+        bridge = self._make_bridge()
+        return bridge.bind_on_brain(a, b, self.snap_duration_ms)
 
     def unbind(self, role, bound):
         """
-        Unbind = bind (sign-flip is self-inverse).
+        Unbind through the spiking circuit (sign-flip is self-inverse).
 
         Given a role vector, extract the approximate filler from a
-        bound structure.
+        bound structure.  Routes through the same synaptic weight
+        modulation as bind.
         """
         return self.bind(role, bound)
 
     def bundle(self, *vectors):
         """
-        Superpose vectors by addition (fuzzy OR).
+        Superpose vectors through the spiking circuit (fuzzy OR).
 
-        The result is similar to all inputs. Signal-to-noise degrades
-        as more items are superposed.
+        Sums the encoded PN currents for all input vectors and presents
+        the combined pattern.  The circuit computes:
+
+            KC_pattern = sparsify(W @ (encode(a) + encode(b) + ...))
+
+        This is exactly what happens when a fly smells multiple odors
+        at once — convergent PN input creates a superposed KC pattern.
         """
-        result = np.zeros(self.dim)
-        for v in vectors:
-            result = result + v
-        return result
+        bridge = self._make_bridge()
+        return bridge.bundle_on_brain(list(vectors), self.snap_duration_ms)
 
     def snap(self, vector):
         """
@@ -116,29 +150,21 @@ class FlyBrainVSA:
         noise-tolerant cleanup memory, and the learned readout reads
         out the result without peeking at the connectome.
         """
-        # Each snap needs a fresh model (Brian2 is stateful)
-        bridge_kwargs = dict(n_kc=self.n_kc)
-        if self.use_hemibrain:
-            bridge_kwargs['use_hemibrain'] = True
-        bridge = SpikeVSABridge(
-            dim=self.dim, seed=self.seed + self._snap_count,
-            **bridge_kwargs
-        )
-        self._snap_count += 1
-
-        # Ensure the learned readout is fit (cheap cache hit after
-        # the first bridge with this parameter tuple).
-        # Hemibrain's higher dimensionality (140-D vs 50-D) needs more
-        # training samples for the ridge regression readout.
-        n_samples = 80 if self.use_hemibrain else 20
-        bridge.fit_learned_readout(n_samples=n_samples)
-
+        bridge = self._make_bridge()
         decoded, fidelity = bridge.round_trip(vector, self.snap_duration_ms)
         return decoded
 
     def similarity(self, a, b):
-        """Cosine similarity between two hypervectors."""
-        return cosine_similarity(a, b)
+        """
+        Similarity via KC pattern overlap on the spiking circuit.
+
+        Encodes each vector, runs the circuit, and computes Jaccard
+        similarity of the binary KC activation patterns.  This measures
+        similarity in the brain's native 1882-D KC space rather than
+        the 140-D PN input space.
+        """
+        bridge = self._make_bridge()
+        return bridge.similarity_on_brain(a, b, self.snap_duration_ms)
 
     def make_permutation_key(self, name):
         """
