@@ -329,33 +329,41 @@ class FlyBrainVSA:
         is_c = self.make_test(concept_vec)
         return float(np.dot(is_c, input_vec))
 
-    def make_permutation_key(self, name):
+    def make_sign_flip_key(self, name):
         """
-        Build an involutory permutation key: a fixed random sign vector.
+        Build an involutory sign-flip key: a fixed random ±1 vector.
 
-        In this sign-flip VSA, a permutation is a pointwise sign pattern.
-        Applying it twice returns the original, so it acts as an involution
-        (s * s = 1). This is the primitive that implements boolean negation
-        at the vector-space level: `not(X) = permute(NOT_KEY, X)`.
+        Applying it twice returns the original (s * s = 1), so it acts as
+        an involution. This is the primitive that implements boolean
+        negation at the vector-space level: `not(X) = sign_flip(NOT_KEY, X)`.
 
-        Keys are deterministic in the name, so `make_permutation_key("NOT")`
-        always returns the same vector for a given VSA instance.
+        Keys are deterministic in the name.
+
+        Note: earlier versions of this code called this a "permutation key"
+        and the op `permute`. That was misleading — the spec
+        (planning/sutra-spec/02-operations.md) defines permutation as a
+        dimension shuffle. What we do here is sign-flip binding, which is
+        just `bind` with a ±1 key. Renamed to match reality.
         """
         key_seed = (hash("permkey:" + name) % (2**31)) ^ self.seed
         return np.random.RandomState(key_seed).choice([-1, 1], size=self.dim).astype(float)
 
-    def permute(self, key, vector):
+    def sign_flip(self, key, vector):
         """
-        Apply a permutation key to a vector.
+        Apply a sign-flip key to a vector: pointwise multiply by ±1 key.
 
-        For sign-flip VSA, permute = pointwise multiply by the sign key.
-        This is an involution: permute(k, permute(k, x)) == x.
+        Involution: sign_flip(k, sign_flip(k, x)) == x.
+        Distributes over binding: sign_flip(k, bind(a, b)) ==
+        bind(sign_flip(k, a), b) == bind(a, sign_flip(k, b)).
 
-        Distributes over binding: permute(k, bind(a, b)) == bind(permute(k, a), b)
-        == bind(a, permute(k, b)). Used to implement boolean negation on
-        conditional queries without Python-side if-statements.
+        Used to implement boolean negation on conditional queries without
+        Python-side if-statements. This is literally `bind` with a ±1 key;
+        the separate name exists for readability at the call site.
         """
         return vector * key
+
+    make_permutation_key = make_sign_flip_key
+    permute = sign_flip
 
     def snap_to_codebook(self, vector):
         """
