@@ -1,0 +1,3 @@
+# Tell GitHub Linguist to recognize .su files as Sutra
+*.su linguist-language=Sutra
+*.su linguist-detectable=true
