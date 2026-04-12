@@ -52,7 +52,7 @@ DEFAULT_KC_FAN_IN = 7
 
 def build_model(seed=42, n_pn=DEFAULT_N_PN, n_kc=DEFAULT_N_KC,
                 n_mbon=DEFAULT_N_MBON, kc_fan_in=DEFAULT_KC_FAN_IN,
-                apl_weight=12.0, apl_tau_ms=5.0):
+                apl_weight=12.0, apl_tau_ms=5.0, use_hemibrain=False):
     """
     Build the mushroom body circuit with a dynamical (non-spiking) APL.
 
@@ -72,12 +72,30 @@ def build_model(seed=42, n_pn=DEFAULT_N_PN, n_kc=DEFAULT_N_KC,
             speed of the feedback loop. Fast (5 ms by default) gives
             tight winner-take-all dynamics; slow values produce
             transient sparsification that fades over tens of ms.
+        use_hemibrain: if True, load real PN→KC connectivity from the
+            Janelia hemibrain v1.2.1 connectome (via hemibrain_loader.py).
+            Overrides n_pn, n_kc, and kc_fan_in with biological values.
+            Requires hemibrain_pn_kc.npz to exist (run hemibrain_loader.py
+            first).
 
     Returns:
         dict with network, neuron groups, monitors, and connectivity matrix
     """
     start_scope()
     rng = np.random.RandomState(seed)
+
+    # --- Load hemibrain connectivity if requested ---
+    if use_hemibrain:
+        from hemibrain_loader import load_cache
+        data = load_cache()
+        if data is None:
+            raise RuntimeError(
+                "hemibrain_pn_kc.npz not found. Run hemibrain_loader.py first "
+                "to download the connectivity matrix from neuPrint."
+            )
+        pn_kc_matrix = data['binary_matrix']  # (n_kc, n_pn)
+        n_kc, n_pn = pn_kc_matrix.shape
+        print(f"Using hemibrain connectivity: {n_pn} PNs → {n_kc} KCs")
 
     # --- LIF equations ---
     lif_eqs = '''
@@ -114,15 +132,24 @@ def build_model(seed=42, n_pn=DEFAULT_N_PN, n_kc=DEFAULT_N_KC,
     MBONs.v = 0
 
     # --- Build PN→KC connectivity matrix ---
-    # Each KC gets exactly kc_fan_in random PNs
-    pn_kc_matrix = np.zeros((n_kc, n_pn), dtype=np.float64)
-    sources = []
-    targets = []
-    for kc_idx in range(n_kc):
-        pn_inputs = rng.choice(n_pn, size=kc_fan_in, replace=False)
-        sources.extend(pn_inputs)
-        targets.extend([kc_idx] * kc_fan_in)
-        pn_kc_matrix[kc_idx, pn_inputs] = 1.0
+    if use_hemibrain:
+        # Real connectivity already loaded above
+        sources = []
+        targets = []
+        for kc_idx in range(n_kc):
+            pn_inputs = np.where(pn_kc_matrix[kc_idx] > 0)[0]
+            sources.extend(pn_inputs)
+            targets.extend([kc_idx] * len(pn_inputs))
+    else:
+        # Random projection with biological fan-in (original behavior)
+        pn_kc_matrix = np.zeros((n_kc, n_pn), dtype=np.float64)
+        sources = []
+        targets = []
+        for kc_idx in range(n_kc):
+            pn_inputs = rng.choice(n_pn, size=kc_fan_in, replace=False)
+            sources.extend(pn_inputs)
+            targets.extend([kc_idx] * kc_fan_in)
+            pn_kc_matrix[kc_idx, pn_inputs] = 1.0
 
     # --- Synapses ---
 
