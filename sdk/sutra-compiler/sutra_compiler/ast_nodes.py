@@ -264,6 +264,25 @@ class ForeachStmt(Stmt):
 
 
 @dataclass
+class LoopStmt(Stmt):
+    """Sutra's unified loop construct.
+
+    Three forms:
+      loop (10) { ... }            → bounded, count is IntLiteral, no index
+      loop (10 as i) { ... }       → bounded with index variable
+      loop (condition) { ... }     → eigenrotation (convergence-based)
+
+    The compiler distinguishes by checking whether `count` is set:
+      - count is not None → bounded loop, unrolls at compile time
+      - count is None → condition-based, compiles to geometric rotation
+    """
+    count: Optional[Expr]           # integer expression for bounded loops, None for while-style
+    index_var: Optional[str]        # 'as i' variable name, None if not used
+    condition: Optional[Expr]       # boolean expression for while-style loops, None for bounded
+    body: Block
+
+
+@dataclass
 class DoWhileStmt(Stmt):
     body: Block
     condition: Expr
