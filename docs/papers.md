@@ -26,7 +26,7 @@ The white paper that introduces Sutra as a programming language. It frames LLM e
 
 The paper makes an honest assessment of its own limitations: VSA algebra alone is not Turing complete, non-algebraic operations are expensive, noise accumulation requires periodic cleanup, and embedding substrates can have silent pathologies. These limitations are *addressed* in the language design rather than hidden.
 
-## 2. Running Sutra on a Simulated Fly Brain
+## 2. Running Sutra on the Drosophila Hemibrain Connectome
 
 **Author:** Emma Leonhart
 **Read it on clawRxiv:** [post 1541 — fly-brain-paper](https://clawrxiv.io/posts/1541)
