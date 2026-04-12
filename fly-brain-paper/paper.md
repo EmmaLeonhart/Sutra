@@ -2,8 +2,6 @@
 
 **Emma Leonhart**
 
-*Companion to "Sutra: A Vector Programming Language for Computation in Embedding Spaces." That paper defines the language; this paper demonstrates that a biological spiking circuit can serve as its execution substrate.*
-
 ## Abstract
 
 We compile programs written in Sutra, a vector programming language, to execute on a spiking neural network model of the *Drosophila melanogaster* mushroom body, wired with real synaptic connectivity from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The system achieves the two primitives required for Turing-complete computation: **conditional branching** (13/16 correct decisions on a four-way conditional program, with all four program permutations discriminated) and **unbounded iteration** (geometric loops via eigenrotation, 3/3 tests passing on the hemibrain substrate). As a demonstration, we run Pong on the hemibrain — a 5×5 game board where the circuit discriminates all 25 positions at 1.000 Jaccard overlap. To our knowledge, this is the first demonstration of a Turing-complete programming language compiled to execute on a connectome-derived biological circuit.
