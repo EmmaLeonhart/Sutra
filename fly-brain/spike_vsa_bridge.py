@@ -375,55 +375,38 @@ class SpikeVSABridge:
     # and similarity are all expressible as operations on that circuit.
     # ------------------------------------------------------------------
 
-    def _modulate_weights(self, sign_vector):
-        """
-        Modulate PN→KC synaptic weights by a sign vector.
-
-        For each PN_i, all outgoing synapses from PN_i get their weight
-        set to +0.3 * sign(sign_vector[i]).  This implements sign-flip
-        binding IN the circuit's synapses: the matrix multiply the
-        circuit computes becomes W @ diag(sign(b)) @ encode(a), which
-        is exactly W @ encode(bind(a, b)).
-
-        Biologically, this corresponds to neuromodulatory gating of
-        synaptic efficacy — dopaminergic or octopaminergic signals that
-        flip excitatory synapses to inhibitory (or suppress them)
-        based on context.  The real fly doesn't do sign-flip binding
-        per se, but synaptic weight modulation is a well-documented
-        biological mechanism (Aso et al. 2014).
-        """
-        syn = self.model['syn_pn_kc']
-        sources = self.model['pn_kc_sources']
-        signs = np.sign(sign_vector)
-        signs[signs == 0] = 1.0
-        # Vectorized: set each synapse's weight based on its source PN
-        syn.w = (0.3 * signs[sources])
-
-    def _reset_weights(self):
-        """Reset all PN→KC weights to the default +0.3."""
-        self.model['syn_pn_kc'].w = 0.3
-
     def bind_on_brain(self, a, b, duration_ms=200, decoder='learned'):
         """
         Bind two hypervectors through the spiking circuit.
 
-        Implementation: modulate PN→KC synaptic weights by sign(b),
-        then present a as PN input currents.  The circuit computes:
+        Implementation: compute the elementwise product a * sign(b) in
+        the PN input space (antennal lobe preprocessing), then present
+        the result as PN currents.  The circuit computes:
 
-            KC_pattern = sparsify(W * diag(sign(b)) @ encode(a))
+            KC_pattern = sparsify(W @ encode(a * sign(b)))
 
-        which is the sign-flip binding of a and b, computed entirely
-        by the spiking substrate (the sign-flip is IN the synapses,
-        the random projection is the PN→KC wiring, the sparsification
-        is the APL feedback loop).
+        The binding happens in the INPUT to the circuit, not by
+        modifying synaptic weights.  This is biologically grounded:
+        the antennal lobe performs lateral transformations on the odor
+        representation before it reaches the mushroom body calyx
+        (Wilson 2013).  The PN→KC synaptic weights remain fixed —
+        they are the connectome wiring, not a mutable parameter.
+
+        The sign-flip operation sign(b) extracts a pseudo-random
+        binary mask from the role vector, which decorrelates the
+        bound representation from both inputs.  This is the same
+        algebraic operation as before, but computed at the right
+        biological stage: sensory preprocessing, not synaptic
+        modification.
 
         Returns:
             decoded hypervector representing bind(a, b)
         """
-        self._modulate_weights(b)
-        currents = self.encode(a)
+        signs = np.sign(b)
+        signs[signs == 0] = 1.0
+        bound_input = a * signs
+        currents = self.encode(bound_input)
         self.run(currents, duration_ms=duration_ms)
-        self._reset_weights()
         if decoder == 'learned':
             return self.decode_learned(duration_ms)
         return self.decode_kc_pinv(duration_ms)
