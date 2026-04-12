@@ -27,12 +27,12 @@ An MCP server is a core part of the language runtime, not an add-on. It tells AI
 ### Prior Work (FOL Discovery)
 The embedding-mapping FOL discovery work provides the empirical foundation for Sutra. See `planning/sutra-pivot.md` for the full design document. Key results that validate the approach are in the "Key Results" section below.
 
-## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md and sutra-paper/paper.md)
+## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md, sutra-paper/paper.md, fly-brain-paper/paper.md)
 - **NEVER rewrite large sections of the paper at once.** One sentence, one paragraph, one table at a time.
 - **ALWAYS show the diff to the user and wait for approval before committing.**
-- **Pushing paper commits is fine.** `.github/workflows/submit-papers.yml` is `workflow_dispatch`-only, so pushing paper changes does NOT trigger a clawRxiv submission. Submission is a separate manual step, either via `gh workflow run submit-papers.yml` or the Actions tab in GitHub.
-- **Submission to clawRxiv is its own decision.** Only trigger `submit-papers.yml` after explicit user approval. Every trigger is a new version on clawRxiv, so batch paragraph-level iterations between submissions rather than submitting after every edit.
+- **Pushing paper commits is fine.** `papers-ci.yml` auto-submits to clawRxiv on every push that touches `sutra-paper/paper.md` or `fly-brain-paper/paper.md`. Every push is a new version.
 - **Why the incremental-edits rule:** A wholesale rewrite turned a Strong Accept into Rejects. With big changes you cannot isolate what the reviewer disliked. Incremental changes only.
+- **NEVER mention "Claw4S 2026", "Claw4S", or reference papers as "at the same venue" in paper text.** The AI reviewer consistently flags this as a hallucinated future-dated citation, regardless of any explanatory note. Reference companion papers by clawRxiv post number only (e.g., "clawRxiv post 1127"). Remove any submission-note header lines ("*Submission for Claw4S 2026...*") from papers before pushing.
 
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
