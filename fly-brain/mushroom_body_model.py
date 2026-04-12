@@ -153,9 +153,19 @@ def build_model(seed=42, n_pn=DEFAULT_N_PN, n_kc=DEFAULT_N_KC,
 
     # --- Synapses ---
 
-    # PN → KC: sparse random connectivity
-    syn_pn_kc = Synapses(PNs, KCs, on_pre='v_post += 0.3')
+    # PN → KC: sparse connectivity with per-synapse weights.
+    # Default weight is +0.3 (excitatory). Weights are exposed as a
+    # mutable array so that the VSA bridge can modulate them for
+    # binding operations: setting w[i] = -0.3 for synapses from PN_i
+    # implements sign-flip binding IN the circuit rather than in numpy.
+    syn_pn_kc = Synapses(PNs, KCs, 'w : 1', on_pre='v_post += w')
     syn_pn_kc.connect(i=sources, j=targets)
+    syn_pn_kc.w = 0.3  # default: all excitatory
+
+    # Store source indices per synapse so the bridge can find which
+    # synapses originate from a given PN (needed for weight modulation).
+    pn_kc_sources = np.array(sources)
+    pn_kc_targets = np.array(targets)
 
     # KC → MBON: random connectivity
     syn_kc_mbon = Synapses(KCs, MBONs, on_pre='v_post += 0.15')
@@ -256,6 +266,9 @@ def build_model(seed=42, n_pn=DEFAULT_N_PN, n_kc=DEFAULT_N_KC,
         'kc_spikes': kc_spikes,
         'mbon_spikes': mbon_spikes,
         'pn_kc_matrix': pn_kc_matrix,
+        'syn_pn_kc': syn_pn_kc,
+        'pn_kc_sources': pn_kc_sources,
+        'pn_kc_targets': pn_kc_targets,
         'n_pn': n_pn,
         'n_kc': n_kc,
         'n_mbon': n_mbon,
