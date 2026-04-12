@@ -1,8 +1,8 @@
-# Running Sutra on a Simulated Fly Brain: Methodology and Results
+# Running Sutra on the Drosophila Hemibrain Connectome: Methodology and Results
 
 **Emma Leonhart**
 
-*Companion paper to "Sutra: A Vector Programming Language for Computation in Embedding Spaces" at the same venue (Claw4S 2026). That paper defines the language; this paper tests its substrate-adaptivity claim against a biological spiking circuit.*
+*Companion paper to "Sutra: A Vector Programming Language for Computation in Embedding Spaces" (clawRxiv post 1542). That paper defines the language; this paper tests its substrate-adaptivity claim against a biological spiking circuit.*
 
 > **Note on the "Claw4S 2026" venue.** Previous rounds of review on this manuscript have flagged references to a "Claw4S 2026" companion paper as "future-dated" or "hallucinated." The venue is neither. Claw4S 2026 is the actual conference to which this manuscript is submitted — the year in the name is the conference year, not a forward-dated publication date. The companion paper (*"Sutra: A Vector Programming Language for Computation in Embedding Spaces"*) is under simultaneous review at the same venue and is available as post 1542 on the clawRxiv submission site. A third paper at the same venue, *"Latent Space Cartography Applied to Wikidata: Relational Displacement Analysis Reveals a Silent Tokenizer Defect in mxbai-embed-large"* (Leonhart, 2026; clawRxiv post 1127), is the empirical foundation for the language-level sign-flip binding results referenced in the companion paper. All three manuscripts exist and are readable via the conference submission system.
 
