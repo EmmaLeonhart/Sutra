@@ -60,10 +60,10 @@ class TestPermutationConditional(unittest.TestCase):
         self.assertIn("smell_present = _VSA.embed('smell')", self.py_src)
         self.assertIn("hunger_hungry = _VSA.embed('hunger')", self.py_src)
         self.assertIn(
-            "NOT_SMELL = _VSA.make_permutation_key('NOT_SMELL')", self.py_src
+            "NOT_SMELL = _VSA.make_sign_flip_key('NOT_SMELL')", self.py_src
         )
         self.assertIn(
-            "NOT_HUNGER = _VSA.make_permutation_key('NOT_HUNGER')", self.py_src
+            "NOT_HUNGER = _VSA.make_sign_flip_key('NOT_HUNGER')", self.py_src
         )
 
     def test_emits_prototype_table_via_snap_bind(self) -> None:
@@ -87,7 +87,7 @@ class TestPermutationConditional(unittest.TestCase):
     def test_decide_function_shape(self) -> None:
         self.assertIn("def decide(smell, hunger, px, py):", self.py_src)
         self.assertIn("query = _VSA.bind(smell, hunger)", self.py_src)
-        self.assertIn("query = _VSA.permute(px, query)", self.py_src)
+        self.assertIn("query = _VSA.sign_flip(px, query)", self.py_src)
         self.assertIn("brain_query = _VSA.snap(query)", self.py_src)
         self.assertIn(
             "winner = _argmax_cosine(brain_query, "

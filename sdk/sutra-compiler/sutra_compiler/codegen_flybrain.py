@@ -75,11 +75,11 @@ def _builtin_basis_vector(args: List[str]) -> str:
 
 
 def _builtin_permutation_key(args: List[str]) -> str:
-    return f"_VSA.make_permutation_key({args[0]})"
+    return f"_VSA.make_sign_flip_key({args[0]})"
 
 
 def _builtin_permute(args: List[str]) -> str:
-    return f"_VSA.permute({args[0]}, {args[1]})"
+    return f"_VSA.sign_flip({args[0]}, {args[1]})"
 
 
 def _builtin_bind(args: List[str]) -> str:
