@@ -9,6 +9,14 @@ Binding is the operation that makes Sutra a programming language instead of a fa
 - How sign-flip binding fixes that with a single sign mask
 - The empirical numbers from the paper: 14/14 correct recoveries on three different embedding models, sustained 10/10 chained computation
 
+## Try it live
+
+Pick a role, a filler, and watch what `bind` produces. The result is a 32-dim vector that looks like neither input — that's the whole point. Then `unbind` recovers approximately the filler. Raise the bundle-depth slider to add more role-filler pairs to the superposition and watch crosstalk grow until `snap` can no longer recover the right atom.
+
+<div id="bind-unbind-widget"></div>
+
+This is the empirical story of the Sutra paper in one widget: bundling is approximate, unbinding introduces crosstalk, and snap-to-nearest is what rescues the computation. The [next tutorial](03-snap-to-nearest.md) is entirely about that snap step.
+
 ## The motivating example
 
 Imagine you want to encode the sentence *"the cat is sitting"* as a single vector. You have the words `cat`, `sit`, `agent`, `action`. The naive thing to do is just bundle them together with `bundle(cat, sit, agent, action)` — but bundling is *commutative* and *associative*. The bundled vector for `(agent=cat, action=sit)` is identical to the bundled vector for `(agent=sit, action=cat)`. You've lost the structure.
