@@ -19,8 +19,9 @@
 - [x] Rotation primitive (`make_rotation`, `rotate_on_brain`)
 - [x] Basic loop test (`test_loop.py`)
 - [x] Validate geometric loop on hemibrain substrate (3/3 PASS)
-- [ ] Compile `while` to rotation + snap + prototype match
-- [ ] Codegen backend support for loops
+- [x] Codegen backend support for loops (while, for, do-while emit Python loops)
+- [x] Geometric loop builtins (make_rotation, compile_prototypes, geometric_loop)
+- [ ] Compile `while` to rotation + snap + prototype match (automatic pattern recognition)
 - [ ] Pong demo using geometric loops (minimum viable game)
 
 ### Phase 2: FlyWire (after loops work)
