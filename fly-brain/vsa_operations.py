@@ -29,9 +29,23 @@ class FlyBrainVSA:
         score = vsa.similarity(retrieved, b)
     """
 
-    def __init__(self, dim=50, n_kc=2000, seed=42, snap_duration_ms=300):
-        self.dim = dim
-        self.n_kc = n_kc
+    def __init__(self, dim=50, n_kc=2000, seed=42, snap_duration_ms=300,
+                 use_hemibrain=False):
+        self.use_hemibrain = use_hemibrain
+        if use_hemibrain:
+            # Auto-detect dimensions from cached hemibrain data
+            from hemibrain_loader import load_cache
+            data = load_cache()
+            if data is None:
+                raise RuntimeError(
+                    "hemibrain_pn_kc.npz not found. Run hemibrain_loader.py first."
+                )
+            n_kc_real, n_pn_real = data['binary_matrix'].shape
+            self.dim = n_pn_real
+            self.n_kc = n_kc_real
+        else:
+            self.dim = dim
+            self.n_kc = n_kc
         self.seed = seed
         self.snap_duration_ms = snap_duration_ms
         self.codebook = {}  # name → hypervector
@@ -103,15 +117,21 @@ class FlyBrainVSA:
         out the result without peeking at the connectome.
         """
         # Each snap needs a fresh model (Brian2 is stateful)
+        bridge_kwargs = dict(n_kc=self.n_kc)
+        if self.use_hemibrain:
+            bridge_kwargs['use_hemibrain'] = True
         bridge = SpikeVSABridge(
             dim=self.dim, seed=self.seed + self._snap_count,
-            n_kc=self.n_kc
+            **bridge_kwargs
         )
         self._snap_count += 1
 
         # Ensure the learned readout is fit (cheap cache hit after
         # the first bridge with this parameter tuple).
-        bridge.fit_learned_readout()
+        # Hemibrain's higher dimensionality (140-D vs 50-D) needs more
+        # training samples for the ridge regression readout.
+        n_samples = 80 if self.use_hemibrain else 20
+        bridge.fit_learned_readout(n_samples=n_samples)
 
         decoded, fidelity = bridge.round_trip(vector, self.snap_duration_ms)
         return decoded
