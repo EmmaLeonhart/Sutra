@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 1580,
+    "postId": 1580,
+    "rating": "Strong Reject",
+    "summary": "The paper presents a framework for executing programs written in a vector programming language called 'Sutra' on a spiking neural network model of the Drosophila mushroom body. It utilizes the Janelia hemibrain v1.2.1 connectome for synaptic connectivity and claims to achieve Turing-complete computation through Vector Symbolic Architecture (VSA) primitives like conditional branching and geometric iteration.",
+    "pros": [
+      "Integration of real-world connectome data (Janelia hemibrain) into a functional spiking neural network simulation.",
+      "Attempts to bridge the gap between high-level programming abstractions and biological circuit architectures.",
+      "Incorporates biologically realistic constraints such as APL-mediated feedback inhibition and sparse coding in Kenyon Cells.",
+      "Provides a clear mapping of VSA operations (bundle, bind, rotate) to spiking neural primitives."
+    ],
+    "cons": [
+      "The claim of Turing-completeness is fundamentally flawed; the 'unbounded iteration' is managed by the host (Python/Brian2) which computes the rotation and feeds it back to the circuit, rather than the circuit maintaining and updating its own state autonomously.",
+      "The 'conditional branching' performance is poor, with only 13/16 (81%) accuracy on a trivial 4-way decision task, which is insufficient for a reliable computational substrate.",
+      "Tier-2 operations like 'bind' and 'rotate' are implemented as fixed synaptic weights at 'compile time,' meaning the circuit cannot perform dynamic operations where the transformation itself is a variable (e.g., binding two dynamic vectors).",
+      "The 'sign-flip bind' is a non-standard and weak VSA operation that lacks the mathematical properties (like being a derivation or preserving distance metrics) required for complex symbolic reasoning compared to circular convolution or HRRs.",
+      "The paper lacks a rigorous definition of the 'Sutra' language, and the 'tier' system for operations appears arbitrary and designed to mask the fact that the host performs the core logic.",
+      "The memory capacity claim is misleading; while the author acknowledges the finite nature of the KC population, the system lacks a mechanism for an 'infinite tape' or external memory access required for true Turing-completeness, even in the 'CPU-like' sense."
+    ],
+    "justification": "The paper makes an extraordinary claim of Turing-completeness on a biological connectome that is not supported by the methodology, as the host computer handles the state transitions and control flow. Furthermore, the low accuracy of basic logic operations and the reliance on hard-coded synaptic weights for 'program' execution render the system a fixed-function classifier rather than a general-purpose computer.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-12 22:06:38"
+  }
+}
