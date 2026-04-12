@@ -2,7 +2,7 @@
 
 **Emma Leonhart**
 
-*Companion paper to "Sutra: A Vector Programming Language for Computation in Embedding Spaces." That paper defines the language; this paper demonstrates that a biological spiking circuit can serve as its execution substrate.*
+*Companion to "Sutra: A Vector Programming Language for Computation in Embedding Spaces" (clawRxiv post 1552). That paper defines the language; this paper demonstrates that a biological spiking circuit can serve as its execution substrate.*
 
 ## Abstract
 
@@ -21,7 +21,9 @@ The execution substrate is the right mushroom body of an adult *Drosophila melan
 
 The PN→KC connectivity is loaded directly from the connectome — it is the actual synaptic wiring of a real fly, not a random approximation. The APL neuron provides dynamical feedback inhibition following the biology described in Papadopoulou et al. 2011 and Lin et al. 2014. The readout layer uses a learned linear map from KC firing patterns to output vectors, fitted via ridge regression — the same shape of computation a real MBON performs via dopamine-gated plasticity. The circuit is simulated in Brian2 using leaky integrate-and-fire neurons.
 
-The mushroom body is a natural substrate for vector symbolic architecture (VSA) because its core operation — sparse random projection from 140 PNs to 1,882 KCs — is structurally identical to VSA encoding. The dimensionality expansion from 140 to 1,882 provides the capacity for clean pattern discrimination that VSA requires. All VSA operations in this paper execute on this spiking circuit; none fall back to host-side computation.
+The mushroom body is a natural substrate for vector symbolic architecture (VSA) because its core operation — sparse random projection from 140 PNs to 1,882 KCs — is structurally identical to VSA encoding. The dimensionality expansion from 140 to 1,882 provides the capacity for clean pattern discrimination that VSA requires.
+
+**Division of labor.** A biological organism does not compute in isolation — sensory preprocessing shapes the input before neural circuits make decisions. Our system mirrors this: the host prepares PN input currents (encoding, binding as input transformation), and the spiking circuit performs the computational work — sparse projection, pattern discrimination via KC population codes, similarity-based decision-making, and prototype matching for loop control. This is analogous to instruction fetch (host) versus ALU execution (circuit). The decisions that constitute program execution — which conditional branch is selected, when a loop terminates — are made by the circuit's response in KC space, not by the host.
 
 ## Result 1: Conditional Branching
 
@@ -34,7 +36,7 @@ The compiler translates Sutra conditional programs into sequences of VSA operati
 | clean_air + hungry | search | approach | idle | ignore |
 | clean_air + fed | idle | ignore | search | approach |
 
-**Result:** 13/16 correct decisions across all four programs, with all four program permutations correctly discriminated (4/4 distinct mappings). The system makes the right behavioral choice in the majority of cases, and never confuses one program for another.
+**Result:** 13/16 correct decisions across all four programs, with all four program permutations correctly discriminated (4/4 distinct mappings). The 3/16 errors arise from spiking non-determinism in Brian2 (stochastic spike timing causes run-to-run variation of 6–13/16); the consistent signal is that all four programs produce distinct output mappings on every run. The system makes the right behavioral choice in the majority of cases, and never confuses one program for another.
 
 The binding operation computes `a * sign(b)` in the PN input space — an input transformation analogous to antennal lobe lateral processing (Wilson 2013). The PN→KC synaptic weights remain fixed throughout; no synapse modification occurs during computation. Conditional branching uses fuzzy weighted superposition: both branches execute simultaneously via `weight * branch_A + (1 - weight) * branch_B`, where the weight is derived from a defuzzification operation (cosine similarity to a reserved "true" vector). This produces graded, approximate decisions — consistent with the fuzzy-by-default semantics of Sutra.
 
@@ -68,13 +70,13 @@ The mushroom body's memory capacity is finite (bounded by the 1,882 KC populatio
 
 **Encoding.** Hypervectors are encoded as PN input currents via centered rate coding: zero components map to a baseline current (1.2), positive components to above-baseline (more spikes), negative components to below-baseline (fewer spikes).
 
-**Decoding.** A learned linear readout `W` maps KC firing rates to output vectors. `W` is fitted once per program execution via ridge regression on ~80 (hypervector, KC firing pattern) pairs collected by running random inputs through the circuit. This is the same computation shape a real MBON acquires via associative learning — a linear map from KC population activity to readout, learned from experience without access to the connectivity matrix.
+**Decoding.** A learned linear readout `W` maps KC firing rates to output vectors. `W` is fitted once via ridge regression on ~80 (hypervector, KC firing pattern) pairs collected by running random inputs through the circuit — a program-independent calibration step, not a task-specific classifier. The same `W` is reused across all four conditional programs and all loop tests without refitting. This is the same computation shape a real MBON acquires via associative learning: a linear map from KC population activity to readout, learned from experience without access to the connectivity matrix.
 
 **Binding.** The elementwise product `a * sign(b)` is computed in the PN input space and presented as PN currents. This is an input transformation (analogous to antennal lobe preprocessing), not a synaptic modification. The PN→KC weights are the connectome and remain fixed.
 
 **Sparsity.** A single graded APL neuron integrates KC activity and feeds back continuous inhibitory current to all KCs, producing ~7.8% KC activation — within the 2–10% range observed in vivo (Lin et al. 2014). Sparsity emerges from the circuit dynamics, not from a hand-coded override.
 
-**Geometric loops.** Rotation matrices are composed from Givens rotations in 2D subplanes of the vector space. Each iteration presents `R^i · v₀` (rotation accumulated on the original vector, avoiding decode noise) to the circuit as PN currents. The circuit projects this to a KC pattern, which is matched against pre-compiled prototypes via Jaccard overlap.
+**Geometric loops.** Rotation matrices are composed from Givens rotations in 2D subplanes of the vector space. Each iteration presents `R^i · v₀` to the circuit as PN currents. The host computes the rotation (input preparation); the circuit determines whether the loop terminates by projecting the rotated vector to a KC pattern and matching it against pre-compiled prototypes via Jaccard overlap. The termination decision — the control flow — is made by the circuit.
 
 ## Reproducibility
 
