@@ -106,6 +106,8 @@ nav:
 
 extra_javascript:
   - assets/js/graph-to-vector.js
+  - assets/js/bind-unbind.js
+  - assets/js/snap-to-nearest.js
 
 extra:
   social:
