@@ -373,7 +373,26 @@ class SpikeVSABridge:
     # instead of in numpy.  The mushroom body IS a matrix multiplier:
     # PN→KC is W @ input, KC→MBON is another linear map.  Bind, bundle,
     # and similarity are all expressible as operations on that circuit.
+    #
+    # KEY INSIGHT: the computational space is the 1882-D KC layer, not
+    # the 140-D PN input layer.  Binding, bundling, and similarity all
+    # operate on the sparse KC binary patterns, where the dimensionality
+    # expansion provides the room for clean decorrelation.  The PN layer
+    # is just the I/O adapter.
     # ------------------------------------------------------------------
+
+    def project_to_kc(self, vector, duration_ms=200):
+        """
+        Project a PN-space hypervector through the circuit to get its
+        KC activation pattern (binary, 1882-D).
+
+        This is the fundamental operation: lift a 140-D input into the
+        brain's native 1882-D sparse code via the connectome wiring
+        and APL feedback.
+        """
+        currents = self.encode(vector)
+        self.run(currents, duration_ms=duration_ms)
+        return self.get_kc_pattern(duration_ms)
 
     def bind_on_brain(self, a, b, duration_ms=200, decoder='learned'):
         """
@@ -392,13 +411,6 @@ class SpikeVSABridge:
         (Wilson 2013).  The PN→KC synaptic weights remain fixed —
         they are the connectome wiring, not a mutable parameter.
 
-        The sign-flip operation sign(b) extracts a pseudo-random
-        binary mask from the role vector, which decorrelates the
-        bound representation from both inputs.  This is the same
-        algebraic operation as before, but computed at the right
-        biological stage: sensory preprocessing, not synaptic
-        modification.
-
         Returns:
             decoded hypervector representing bind(a, b)
         """
@@ -410,6 +422,27 @@ class SpikeVSABridge:
         if decoder == 'learned':
             return self.decode_learned(duration_ms)
         return self.decode_kc_pinv(duration_ms)
+
+    def _decode_from_kc_pattern(self, kc_pattern):
+        """Decode a KC pattern to PN space using the learned readout."""
+        cache_key = self._cache_key()
+        if cache_key not in SpikeVSABridge._learned_readout_cache:
+            self.fit_learned_readout()
+        W = SpikeVSABridge._learned_readout_cache[cache_key]
+        decoded = W.T @ kc_pattern  # (dim, n_kc) @ (n_kc,) = (dim,)
+        # Normalize (same as decode_learned)
+        mean = decoded.mean()
+        std = decoded.std()
+        if std > 1e-10:
+            decoded = (decoded - mean) / std
+        else:
+            decoded = decoded - mean
+        return decoded
+
+    def _decode_from_kc_pattern_pinv(self, kc_pattern):
+        """Decode a KC pattern using pseudoinverse."""
+        pinv = np.linalg.pinv(self.pn_kc_matrix.T)
+        return pinv @ kc_pattern
 
     def bundle_on_brain(self, vectors, duration_ms=200, decoder='learned'):
         """
