@@ -122,6 +122,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     # max-parallel: 1 serializes the two paper jobs so their auto-commits
     # of .post_id and reviews/ don't race each other when both papers
     # change in the same push.
@@ -194,8 +195,10 @@ jobs:
             --poll-seconds 900 \
             --review-timeout-seconds 10800
 
-      - name: Commit updated .post_id and reviews
+      - name: Commit updates on a branch and open PR
         if: steps.should_run.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -212,25 +215,29 @@ jobs:
             exit 0
           fi
 
-          # Commit with a simple subject and the Skip-Submit trailer to
-          # prevent this commit from re-triggering papers-ci. The earlier
-          # version embedded a version number in the subject via
-          # `ls | grep -c`, which double-fired when grep printed "0" and
-          # exited 1, producing "v0 0" on empty reviews dirs. Dropping
-          # the version number from the subject: it's cosmetic, and the
-          # version is trivially recoverable from `ls reviews/`.
+          # Branch + PR flow (replaces the old direct-to-master push).
+          # Rationale: direct pushes from CI to master have been racing
+          # with human commits and occasionally losing data. A PR per run
+          # gives an explicit merge point and keeps the history clean.
+          # Branch name includes the run id so parallel matrix jobs never
+          # collide. Future work: auto-merge via branch protection rule.
+          BRANCH="papers-ci/${{ matrix.paper_dir }}/run-${{ github.run_id }}"
+          git switch -c "$BRANCH"
+
+          # Skip-Submit trailer preserved as defense in depth: if the
+          # PR is ever merged via a rebase that brings this commit to
+          # master, the path filter + trailer both still prevent re-fire.
           git commit -m "papers-ci: ${{ matrix.paper_dir }} submission + review" \
                      -m "Skip-Submit: true"
 
-          # Retry push to tolerate the other matrix job (if any) having
-          # just pushed its own commit ahead of us. Rebase-and-retry lets
-          # two matrix jobs reconcile without a human having to step in.
-          for attempt in 1 2 3; do
-            if git push; then
-              exit 0
-            fi
-            echo "Push attempt $attempt failed, rebasing and retrying..."
-            git pull --rebase origin master
-          done
-          echo "ERROR: failed to push after 3 retries" >&2
-          exit 1
+          git push --set-upstream origin "$BRANCH"
+
+          gh pr create \
+            --base master \
+            --head "$BRANCH" \
+            --title "papers-ci: ${{ matrix.paper_dir }} submission + review" \
+            --body "Automated submission + review fetch for \`${{ matrix.paper_dir }}\` (run ${{ github.run_id }}).
+
+Merge when ready. Contents: updated \`.post_id\` and \`reviews/\` only.
+
+Skip-Submit: true"
