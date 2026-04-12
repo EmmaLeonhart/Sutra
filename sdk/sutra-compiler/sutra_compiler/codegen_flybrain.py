@@ -382,6 +382,12 @@ class FlyBrainCodegen:
             for inner in stmt.statements:
                 self._translate_stmt(inner)
             return
+        if isinstance(stmt, ast.LoopStmt):
+            if stmt.count is not None:
+                self._translate_bounded_loop(stmt)
+            else:
+                self._translate_eigenrotation_loop(stmt)
+            return
         if isinstance(stmt, ast.WhileStmt):
             self._translate_while_as_geometric_loop(stmt)
             return
@@ -392,7 +398,7 @@ class FlyBrainCodegen:
             raise CodegenNotSupported(
                 stmt,
                 f"{type(stmt).__name__} is not yet supported by the fly-brain "
-                "codegen; use while or for loops instead",
+                "codegen; use `loop` instead",
             )
         if isinstance(stmt, ast.IfStmt):
             raise CodegenNotSupported(
@@ -404,6 +410,22 @@ class FlyBrainCodegen:
             stmt, f"unsupported statement: {type(stmt).__name__}"
         )
 
+    # -- loop compilation ---------------------------------------------------
+    #
+    # Sutra's `loop` construct has two forms:
+    #
+    # 1. Bounded:  loop (N) { body }     → unrolled at compile time
+    #              loop (N as i) { body } → unrolled with index
+    #    The body is emitted N times in sequence. No rotation, no
+    #    circuit iteration. Pure compile-time expansion.
+    #
+    # 2. Eigenrotation: loop (condition) { body } → geometric rotation
+    #    Compiles to _VSA.loop() — the brain iterates via rotation
+    #    in vector space with prototype matching for termination.
+    #
+    # The old while/for forms also compile to geometric rotation
+    # (kept for backward compatibility with existing .su files).
+    #
     # -- geometric loop compilation ----------------------------------------
     #
     # Sutra loops compile to geometric rotation on the brain, not to
@@ -420,6 +442,66 @@ class FlyBrainCodegen:
     # This is how the brain counts: N iterations of rotation by angle
     # theta accumulates N*theta total rotation, and the loop terminates
     # when the trajectory enters the target prototype's basin.
+
+    def _translate_bounded_loop(self, stmt: ast.LoopStmt) -> None:
+        """Compile loop (N) { body } — unrolls at compile time.
+
+        The body is emitted N times. No rotation matrix, no circuit
+        iteration. This is syntactic sugar, not eigenrotation.
+
+        loop (N as i) adds an index variable that counts 0..N-1.
+        """
+        count_src = self._translate_expr(stmt.count)
+
+        if stmt.index_var:
+            # loop (N as i) { body } → for i in range(N): body
+            self._emit(f"for {stmt.index_var} in range({count_src}):")
+            self._indent += 1
+            if not stmt.body.statements:
+                self._emit("pass")
+            else:
+                for inner in stmt.body.statements:
+                    self._translate_stmt(inner)
+            self._indent -= 1
+        else:
+            # loop (N) { body } → unroll body N times
+            # For literal integers, actually unroll. For expressions, use range.
+            if isinstance(stmt.count, ast.IntLiteral):
+                n = stmt.count.value
+                for _ in range(n):
+                    for inner in stmt.body.statements:
+                        self._translate_stmt(inner)
+            else:
+                self._emit(f"for _ in range({count_src}):")
+                self._indent += 1
+                if not stmt.body.statements:
+                    self._emit("pass")
+                else:
+                    for inner in stmt.body.statements:
+                        self._translate_stmt(inner)
+                self._indent -= 1
+
+    def _translate_eigenrotation_loop(self, stmt: ast.LoopStmt) -> None:
+        """Compile loop (condition) { body } — eigenrotation on the brain.
+
+        The condition determines the target prototype. The loop body
+        is replaced by a rotation matrix. The brain iterates via
+        _VSA.loop().
+        """
+        lid = self._next_loop_id()
+        state_var = self._extract_loop_state_var(stmt.body)
+        target_expr = self._extract_loop_target(stmt.condition)
+
+        self._emit(f"{lid}_R = _VSA.make_random_rotation("
+                   f"angle=_np.pi / 4, n_planes=20, seed=_VSA.seed)")
+        self._emit(f"{lid}_target = {target_expr}")
+        self._emit(f"{lid}_protos = _VSA.compile_prototypes("
+                   f"{{\"target\": {lid}_target}})")
+        self._emit(f"{lid}_name, {state_var}, {lid}_iters = _VSA.loop(")
+        self._indent += 1
+        self._emit(f"{state_var}, {lid}_R, {lid}_protos,")
+        self._emit(f"target_name=\"target\", max_iters=50)")
+        self._indent -= 1
 
     _loop_counter = 0  # unique names for loop temporaries
 
