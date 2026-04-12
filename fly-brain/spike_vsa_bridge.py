@@ -366,6 +366,143 @@ class SpikeVSABridge:
         fidelity = cosine_similarity(hypervector, decoded)
         return decoded, fidelity
 
+    # ------------------------------------------------------------------
+    # Brain-native VSA operations
+    #
+    # These run the actual VSA algebra through the spiking circuit
+    # instead of in numpy.  The mushroom body IS a matrix multiplier:
+    # PN→KC is W @ input, KC→MBON is another linear map.  Bind, bundle,
+    # and similarity are all expressible as operations on that circuit.
+    # ------------------------------------------------------------------
+
+    def _modulate_weights(self, sign_vector):
+        """
+        Modulate PN→KC synaptic weights by a sign vector.
+
+        For each PN_i, all outgoing synapses from PN_i get their weight
+        set to +0.3 * sign(sign_vector[i]).  This implements sign-flip
+        binding IN the circuit's synapses: the matrix multiply the
+        circuit computes becomes W @ diag(sign(b)) @ encode(a), which
+        is exactly W @ encode(bind(a, b)).
+
+        Biologically, this corresponds to neuromodulatory gating of
+        synaptic efficacy — dopaminergic or octopaminergic signals that
+        flip excitatory synapses to inhibitory (or suppress them)
+        based on context.  The real fly doesn't do sign-flip binding
+        per se, but synaptic weight modulation is a well-documented
+        biological mechanism (Aso et al. 2014).
+        """
+        syn = self.model['syn_pn_kc']
+        sources = self.model['pn_kc_sources']
+        signs = np.sign(sign_vector)
+        signs[signs == 0] = 1.0
+        # Vectorized: set each synapse's weight based on its source PN
+        syn.w = (0.3 * signs[sources])
+
+    def _reset_weights(self):
+        """Reset all PN→KC weights to the default +0.3."""
+        self.model['syn_pn_kc'].w = 0.3
+
+    def bind_on_brain(self, a, b, duration_ms=200, decoder='learned'):
+        """
+        Bind two hypervectors through the spiking circuit.
+
+        Implementation: modulate PN→KC synaptic weights by sign(b),
+        then present a as PN input currents.  The circuit computes:
+
+            KC_pattern = sparsify(W * diag(sign(b)) @ encode(a))
+
+        which is the sign-flip binding of a and b, computed entirely
+        by the spiking substrate (the sign-flip is IN the synapses,
+        the random projection is the PN→KC wiring, the sparsification
+        is the APL feedback loop).
+
+        Returns:
+            decoded hypervector representing bind(a, b)
+        """
+        self._modulate_weights(b)
+        currents = self.encode(a)
+        self.run(currents, duration_ms=duration_ms)
+        self._reset_weights()
+        if decoder == 'learned':
+            return self.decode_learned(duration_ms)
+        return self.decode_kc_pinv(duration_ms)
+
+    def bundle_on_brain(self, vectors, duration_ms=200, decoder='learned'):
+        """
+        Bundle (superpose) multiple hypervectors through the spiking circuit.
+
+        Implementation: sum the encoded PN currents for all input vectors,
+        then present the combined current pattern.  The circuit computes:
+
+            KC_pattern = sparsify(W @ (encode(a) + encode(b) + ...))
+
+        This is exactly what happens when a fly smells multiple odors
+        simultaneously — convergent PN input creates a superposed KC
+        activation pattern.
+
+        Returns:
+            decoded hypervector representing bundle(vectors)
+        """
+        combined_currents = np.zeros(self.n_pn)
+        for v in vectors:
+            combined_currents += self.encode(v)
+        self.run(combined_currents, duration_ms=duration_ms)
+        if decoder == 'learned':
+            return self.decode_learned(duration_ms)
+        return self.decode_kc_pinv(duration_ms)
+
+    def get_kc_pattern(self, duration_ms=None):
+        """
+        Get the binary KC activation pattern from the last run.
+
+        Returns a binary vector of shape (n_kc,): 1 if the KC fired
+        at least once, 0 otherwise.  This is the brain's native
+        representation — the sparse code in KC space.
+        """
+        if duration_ms is None:
+            duration_ms = self._last_duration_ms
+        rates = get_spike_rates(self.model['kc_spikes'], self.n_kc, duration_ms)
+        return (rates > 0).astype(float)
+
+    def similarity_on_brain(self, a, b, duration_ms=200):
+        """
+        Compute similarity between two hypervectors using KC pattern overlap.
+
+        Implementation: encode each vector separately, get the binary
+        KC activation patterns, and compute their overlap (Jaccard
+        similarity).  This measures similarity in the brain's native
+        1882-D KC representation space rather than in the 140-D PN
+        input space.
+
+        Biologically, this is what MBON competition does: two similar
+        odors activate overlapping KC populations, and MBONs that read
+        from those KCs respond similarly.
+
+        Returns:
+            float: similarity score (Jaccard overlap of KC patterns)
+        """
+        # First vector
+        currents_a = self.encode(a)
+        self.run(currents_a, duration_ms=duration_ms)
+        pattern_a = self.get_kc_pattern(duration_ms)
+
+        # Need a fresh circuit for second vector (Brian2 is stateful)
+        self.model = build_model(seed=self.seed, **self.model_kwargs)
+        self.pn_kc_matrix = self.model['pn_kc_matrix']
+
+        # Second vector
+        currents_b = self.encode(b)
+        self.run(currents_b, duration_ms=duration_ms)
+        pattern_b = self.get_kc_pattern(duration_ms)
+
+        # Jaccard similarity: |intersection| / |union|
+        intersection = np.sum(pattern_a * pattern_b)
+        union = np.sum(np.clip(pattern_a + pattern_b, 0, 1))
+        if union < 1e-10:
+            return 0.0
+        return float(intersection / union)
+
 
 def cosine_similarity(a, b):
     """Cosine similarity between two vectors."""
