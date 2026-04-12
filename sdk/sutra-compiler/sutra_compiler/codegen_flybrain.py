@@ -7,7 +7,7 @@ generated code mirrors the shape of the hand-written
 the corresponding `.su` source — closing the "compile-to-brain" gap
 described in `fly-brain/STATUS.md` §Medium term.
 
-Scope for V1 (deliberately narrow):
+Scope for V2:
     - Top-level `VarDecl` with `vector`, `permutation`, or `map<_, _>` type
     - Top-level `FunctionDecl`
     - Inside functions: `VarDecl`, `ReturnStmt`, `ExprStmt` over `Assignment`
@@ -15,12 +15,18 @@ Scope for V1 (deliberately narrow):
       `ArrayLiteral`, `Subscript`, `MapLiteral`, `Parenthesized`
     - Deterministic substrate via `FixedFrameFlyBrainVSA` (fixed-frame
       contract is the "compile-time guarantee" item from the todo.)
+    - `WhileStmt`, `ForStmt`, `DoWhileStmt` — compiled to Python loops
+      where each iteration's VSA operations route through the spiking
+      circuit. Now that all core ops are brain-native (bind in synapses,
+      bundle via summed PN currents, similarity via KC Jaccard), host-
+      runtime iteration is honest: every op is a real circuit pass.
+    - Geometric loop builtins: `make_rotation`, `compile_prototypes`,
+      `geometric_loop` — compile to the rotation + snap + prototype-match
+      loop primitive in `FlyBrainVSA.loop()`.
 
 Anything outside that scope raises `CodegenNotSupported` with the source
 span of the offending node, which is strictly better than silently
-emitting incorrect Python. Loops are *intentionally* unsupported — they
-are the next research question in `fly-brain/STATUS.md`, not a codegen
-oversight.
+emitting incorrect Python.
 """
 
 from __future__ import annotations
@@ -108,6 +114,26 @@ def _builtin_compose(args: List[str]) -> str:
     return f"({args[0]} * {args[1]})"
 
 
+def _builtin_make_rotation(args: List[str]) -> str:
+    # make_rotation(angle, n_planes) → orthogonal matrix
+    if len(args) == 1:
+        return f"_VSA.make_random_rotation(angle={args[0]})"
+    return f"_VSA.make_random_rotation(angle={args[0]}, n_planes={args[1]})"
+
+
+def _builtin_compile_prototypes(args: List[str]) -> str:
+    return f"_VSA.compile_prototypes({args[0]})"
+
+
+def _builtin_geometric_loop(args: List[str]) -> str:
+    # geometric_loop(initial_state, rotation, compiled_prototypes)
+    # Optional 4th arg: target_name
+    if len(args) >= 4:
+        return (f"_VSA.loop({args[0]}, {args[1]}, {args[2]}, "
+                f"target_name={args[3]})")
+    return f"_VSA.loop({args[0]}, {args[1]}, {args[2]})"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -120,6 +146,9 @@ BUILTINS = {
     "snap": (_builtin_snap, 1),
     "argmax_cosine": (_builtin_argmax_cosine, 2),
     "compose": (_builtin_compose, 2),
+    "make_rotation": (_builtin_make_rotation, None),  # 1-2 args
+    "compile_prototypes": (_builtin_compile_prototypes, 1),
+    "geometric_loop": (_builtin_geometric_loop, None),  # 3-4 args
 }
 
 
@@ -352,11 +381,51 @@ class FlyBrainCodegen:
             for inner in stmt.statements:
                 self._translate_stmt(inner)
             return
-        if isinstance(stmt, (ast.WhileStmt, ast.ForStmt, ast.ForeachStmt, ast.DoWhileStmt)):
+        if isinstance(stmt, ast.WhileStmt):
+            cond_src = self._translate_expr(stmt.condition)
+            self._emit(f"while {cond_src}:")
+            self._indent += 1
+            if not stmt.body.statements:
+                self._emit("pass")
+            else:
+                for inner in stmt.body.statements:
+                    self._translate_stmt(inner)
+            self._indent -= 1
+            return
+        if isinstance(stmt, ast.ForStmt):
+            if stmt.init:
+                self._translate_stmt(stmt.init)
+            cond_src = self._translate_expr(stmt.condition) if stmt.condition else "True"
+            self._emit(f"while {cond_src}:")
+            self._indent += 1
+            if not stmt.body.statements:
+                self._emit("pass")
+            else:
+                for inner in stmt.body.statements:
+                    self._translate_stmt(inner)
+            if stmt.step:
+                step_src = self._translate_expr(stmt.step)
+                self._emit(step_src)
+            self._indent -= 1
+            return
+        if isinstance(stmt, ast.DoWhileStmt):
+            self._emit("while True:")
+            self._indent += 1
+            if stmt.body.statements:
+                for inner in stmt.body.statements:
+                    self._translate_stmt(inner)
+            cond_src = self._translate_expr(stmt.condition)
+            self._emit(f"if not ({cond_src}):")
+            self._indent += 1
+            self._emit("break")
+            self._indent -= 1
+            self._indent -= 1
+            return
+        if isinstance(stmt, ast.ForeachStmt):
             raise CodegenNotSupported(
                 stmt,
-                "loops are intentionally unsupported by the V1 fly-brain codegen; "
-                "see fly-brain/STATUS.md §Loops for why",
+                "foreach is not yet supported by the fly-brain codegen; "
+                "use while or for loops instead",
             )
         if isinstance(stmt, ast.IfStmt):
             raise CodegenNotSupported(
