@@ -61,22 +61,12 @@ vision from the design chats was deeper:
   through the circuit and measuring KC pattern overlap. The is_converter is the matrix
   that best predicts whether two inputs activate overlapping KC populations.
 
-#### 3. Pong demo on hemibrain
-Minimum viable game running entirely on the spiking substrate. This is the proof that
-geometric loops + fuzzy conditionals + the hemibrain circuit can do something interactive.
-- **Game state**: ball position (x, y) and paddle position as vectors in the 140-D
-  PN input space. Encode as role-filler bindings: `state = bind(x_role, x_val) + bind(y_role, y_val) + bind(paddle_role, paddle_val)`.
-- **Game logic**: one geometric loop per frame. Each iteration: unbind positions,
-  compute next position (rotation = ball velocity), check boundary conditions via
-  `is_true`, compute paddle action via `conditional`.
-- **I/O**: external input (player paddle movement) modifies the state vector between
-  loop iterations. This is the I/O-driven termination from the original design —
-  the loop runs on the brain, external signals modify the termination landscape.
-- **Rendering**: host-side only. The brain computes game logic; a Python wrapper reads
-  the decoded state vector and draws pixels. The biological substrate handles the
-  computation, not the display.
-- **Success criterion**: ball bounces off walls and paddle, score increments. Doesn't
-  need to be fast or pretty — needs to be *computed by the fly brain*.
+#### 3. Pong demo on hemibrain — DONE
+- [x] V0 (1D bounce): 7-position prototype grid, 6 bounces, overlaps 0.877-1.000
+- [x] V1 (2D + paddle): 5x5 grid (25 prototypes), ALL positions at 1.000 Jaccard,
+      3 paddle hits, 12 bounces, AI paddle tracks ball
+- Key insight: discretize positions into prototypes instead of continuous tracking.
+  Each position compiled as KC pattern; circuit does position detection via Jaccard.
 
 ### Phase 2: FlyWire (after loops work)
 - [ ] Pull full adult Drosophila PN→KC connectivity from FlyWire/codex
