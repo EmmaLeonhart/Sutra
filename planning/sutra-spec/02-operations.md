@@ -39,14 +39,20 @@ Tuples are used for:
 **Currently no linked lists.** Tuples are the primary compound data structure. Linked lists may be added later but are not part of the current design. If you need a sequence, use a tuple or encode it via binding with positional roles.
 
 ### Bounded Iteration
-```
-repeat 10:
-    state = bind(transform, state)
-    state = snap(state)
-```
-Integer-based iteration: do something a fixed number of times. The iteration count is a scalar (an integer), not a vector. This sidesteps the unsolved problem of convergence-based termination — you simply specify how many times to loop.
+```sutra
+loop (10) {
+    state = bind(transform, state);
+    state = snap(state);
+}
 
-This is the most pragmatic iteration primitive. It composes well with snap-to-nearest (clean up noise every N iterations) and is straightforward to reason about. More sophisticated iteration (convergence-based, state-encoded) may be added later but bounded repetition covers the most common case.
+loop (10 as i) {
+    state = bind(steps[i], state);
+    state = snap(state);
+}
+```
+Integer-based iteration: do something a fixed number of times. The iteration count is a scalar (an integer), not a vector. `loop (N)` unrolls to N copies of the body at compile time — no rotation matrix, no circuit iteration, just straight-line code. `loop (N as i)` adds an index variable.
+
+This is the default and preferred loop form. It composes well with snap-to-nearest (clean up noise every N iterations) and is straightforward to reason about. For convergence-based iteration (unbounded), use `loop (condition)` — see [Control Flow](03-control-flow.md) for the eigenrotation semantics.
 
 ## Algebraic / VSA Operations (Core)
 

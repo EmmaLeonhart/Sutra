@@ -109,6 +109,8 @@ class TokenKind(Enum):
     KW_FOREACH = auto()
     KW_IN = auto()
     KW_DO = auto()
+    KW_LOOP = auto()
+    KW_AS = auto()
     KW_TRY = auto()
     KW_CATCH = auto()
     KW_THIS = auto()
@@ -138,6 +140,8 @@ KEYWORDS = {
     "foreach": TokenKind.KW_FOREACH,
     "in": TokenKind.KW_IN,
     "do": TokenKind.KW_DO,
+    "loop": TokenKind.KW_LOOP,
+    "as": TokenKind.KW_AS,
     "try": TokenKind.KW_TRY,
     "catch": TokenKind.KW_CATCH,
     "this": TokenKind.KW_THIS,
