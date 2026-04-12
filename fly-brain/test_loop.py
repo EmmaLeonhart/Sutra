@@ -21,7 +21,7 @@ from vsa_operations import FlyBrainVSA
 from spike_vsa_bridge import cosine_similarity
 
 
-def test_geometric_loop():
+def test_geometric_loop(use_hemibrain=False):
     """
     Place a target N rotation steps away.  The loop should reach it.
     Uses many rotation planes for good vector separation.
@@ -30,20 +30,22 @@ def test_geometric_loop():
     print("TEST: Geometric loop on the fly brain")
     print("=" * 60)
 
-    vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=42, snap_duration_ms=200)
+    vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=42, snap_duration_ms=200,
+                       use_hemibrain=use_hemibrain)
     frame_seed = 42
 
     # Rotation across 20 planes — maximally moves the vector
     R = vsa.make_random_rotation(angle=np.pi / 3, n_planes=20, seed=99)
 
+    dim = vsa.dim
     rng = np.random.RandomState(42)
-    start = rng.randn(50)
+    start = rng.randn(dim)
     start = start / np.linalg.norm(start)
 
     # Target at step 3
     target = np.linalg.matrix_power(R, 3) @ start
 
-    print(f"Start→Target cosine: {cosine_similarity(start, target):.3f}")
+    print(f"Start->Target cosine: {cosine_similarity(start, target):.3f}")
 
     print(f"\nCompiling TARGET prototype (frame_seed={frame_seed})...")
     compiled = vsa.compile_prototypes({'TARGET': target}, frame_seed=frame_seed)
@@ -69,7 +71,7 @@ def test_geometric_loop():
         print(f"FAIL: Did not converge")
 
 
-def test_counting():
+def test_counting(use_hemibrain=False):
     """
     Place prototypes at steps 3, 6, 9.
     Loop targets STEP_3 — should stop at or near iteration 3.
@@ -79,13 +81,15 @@ def test_counting():
     print("TEST: Counting via geometric rotation")
     print("=" * 60)
 
-    vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=77, snap_duration_ms=200)
+    vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=77, snap_duration_ms=200,
+                       use_hemibrain=use_hemibrain)
     frame_seed = 77
+    dim = vsa.dim
 
     R = vsa.make_random_rotation(angle=np.pi / 4, n_planes=20, seed=88)
 
     rng = np.random.RandomState(77)
-    start = rng.randn(50)
+    start = rng.randn(dim)
     start = start / np.linalg.norm(start)
 
     # Prototypes at steps 3 and 6
@@ -96,8 +100,8 @@ def test_counting():
 
     cos_3_6 = cosine_similarity(proto_vecs['THREE'], proto_vecs['SIX'])
     cos_s_3 = cosine_similarity(start, proto_vecs['THREE'])
-    print(f"Start→THREE cosine: {cos_s_3:.3f}")
-    print(f"THREE→SIX cosine:   {cos_3_6:.3f}")
+    print(f"Start->THREE cosine: {cos_s_3:.3f}")
+    print(f"THREE->SIX cosine:   {cos_3_6:.3f}")
 
     print(f"\nCompiling prototypes (frame_seed={frame_seed})...")
     compiled = vsa.compile_prototypes(proto_vecs, frame_seed=frame_seed)
@@ -129,7 +133,7 @@ def test_counting():
         print(f"PASS: Brain counted to ~6 (got {n_iters})")
 
 
-def test_loop_ordering():
+def test_loop_ordering(use_hemibrain=False):
     """
     Verify that prototypes are visited in the correct geometric order.
     Place prototypes at steps 2, 5, 8.  Loop with no specific target.
@@ -139,13 +143,15 @@ def test_loop_ordering():
     print("TEST: Loop visits prototypes in geometric order")
     print("=" * 60)
 
-    vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=55, snap_duration_ms=200)
+    vsa = FlyBrainVSA(dim=50, n_kc=2000, seed=55, snap_duration_ms=200,
+                       use_hemibrain=use_hemibrain)
     frame_seed = 55
+    dim = vsa.dim
 
     R = vsa.make_random_rotation(angle=np.pi / 5, n_planes=20, seed=66)
 
     rng = np.random.RandomState(55)
-    start = rng.randn(50)
+    start = rng.randn(dim)
     start = start / np.linalg.norm(start)
 
     proto_vecs = {
@@ -174,6 +180,9 @@ def test_loop_ordering():
 
 
 if __name__ == '__main__':
-    test_geometric_loop()
-    test_counting()
-    test_loop_ordering()
+    use_hemibrain = '--hemibrain' in sys.argv
+    if use_hemibrain:
+        print("*** HEMIBRAIN MODE ***\n")
+    test_geometric_loop(use_hemibrain=use_hemibrain)
+    test_counting(use_hemibrain=use_hemibrain)
+    test_loop_ordering(use_hemibrain=use_hemibrain)

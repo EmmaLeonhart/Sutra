@@ -18,7 +18,7 @@
 - [x] Brain-native similarity (KC pattern Jaccard overlap)
 - [x] Rotation primitive (`make_rotation`, `rotate_on_brain`)
 - [x] Basic loop test (`test_loop.py`)
-- [ ] Validate geometric loop on hemibrain substrate
+- [x] Validate geometric loop on hemibrain substrate (3/3 PASS)
 - [ ] Compile `while` to rotation + snap + prototype match
 - [ ] Codegen backend support for loops
 - [ ] Pong demo using geometric loops (minimum viable game)
