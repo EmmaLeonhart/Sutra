@@ -105,7 +105,8 @@
       "Read(//c/**)",
       "Read(//tmp/**)",
       "WebSearch",
-      "WebFetch(domain:*)"
+      "WebFetch(domain:*)",
+      "Bash('C:\\\\Users\\\\Immanuelle\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe' -c ':*)"
     ]
   }
 }
