@@ -32,30 +32,3 @@ Thumbs.db
 .env
 .env.local
 
-# SutraDB data
-papers/fol-discovery/sutra-data/
-
-# Regenerable database output (FOL discovery pipeline)
-# Primary model data
-papers/fol-discovery/data/items.json
-papers/fol-discovery/data/embedding_index.json
-papers/fol-discovery/data/triples.nt
-papers/fol-discovery/data/trajectories.ttl
-papers/fol-discovery/data/walk_state.json
-papers/fol-discovery/data/*.npz
-papers/fol-discovery/data/*.npy
-
-# Cross-model experiment data (regenerable, large)
-# Only fol_results.json is kept (small, contains actual results)
-papers/fol-discovery/data-nomic/items.json
-papers/fol-discovery/data-nomic/embedding_index.json
-papers/fol-discovery/data-nomic/triples.nt
-papers/fol-discovery/data-nomic/trajectories.ttl
-papers/fol-discovery/data-nomic/walk_state.json
-papers/fol-discovery/data-nomic/*.npz
-papers/fol-discovery/data-minilm/items.json
-papers/fol-discovery/data-minilm/embedding_index.json
-papers/fol-discovery/data-minilm/triples.nt
-papers/fol-discovery/data-minilm/trajectories.ttl
-papers/fol-discovery/data-minilm/walk_state.json
-papers/fol-discovery/data-minilm/*.npz
