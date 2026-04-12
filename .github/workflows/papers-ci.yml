@@ -58,7 +58,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # Full history so we can diff the entire pushed range
+          # (github.event.before .. github.sha), not just HEAD~1..HEAD.
+          # A push of N commits where the paper lives in commit 1 and a
+          # workflow-only change sits on top would otherwise be missed.
+          fetch-depth: 0
 
       - name: Classify which papers this run covers
         id: filter
@@ -99,8 +103,24 @@ jobs:
             exit 0
           fi
 
-          # Push trigger: diff HEAD~1..HEAD against the two paper paths.
-          CHANGED="$(git diff --name-only HEAD~1 HEAD || true)"
+          # Push trigger: diff the WHOLE pushed range against the two
+          # paper paths, not just HEAD~1..HEAD. The earlier HEAD~1..HEAD
+          # form missed pushes where a paper.md change sat in an earlier
+          # commit with a workflow-only change on top (the "side effect"
+          # after CI fix in 4b7f4ea — abstract rewrite 83e5b94 shipped
+          # without triggering a submission because only the tip of the
+          # push was diffed).
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+          # If this is the first push on a fresh ref, `before` is all zeros.
+          # Fall back to HEAD~1..HEAD in that case to avoid bogus diffs.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "First push on ref — falling back to HEAD~1..HEAD"
+            CHANGED="$(git diff --name-only HEAD~1 HEAD || true)"
+          else
+            echo "Diffing pushed range $BEFORE..$AFTER"
+            CHANGED="$(git diff --name-only "$BEFORE" "$AFTER" || true)"
+          fi
           echo "changed files:"
           echo "$CHANGED"
 
