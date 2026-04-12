@@ -1,5 +1,17 @@
 # Sutra TODO
 
+## Language-design: if-chains vs switch/softmax
+
+**Open design question (user-flagged).** In a fuzzy-by-default VSA language, the canonical `if/elif/elif/else` chain maps badly onto the algebra. Each nested condition multiplies into a running weight product, so by the time you reach the fourth `elif` branch you're blending four fuzzy-multiplicative terms plus a trailing `else` — this is not what the programmer wrote and not what reviewers expect.
+
+The natural algebraic shape for a long conditional chain in this language is a **softmax over a switch**: given cases `c_1 .. c_n` and branches `b_1 .. b_n`, the output is `softmax(sim(state, c_i)) · b_i` — one weighted blend, not a cascade of fuzzy-AND multiplications. This is closer to a cone traversal / pattern-match than to a sequential `if` tree.
+
+Action items (not yet scheduled):
+- Decide whether Sutra should give `if/elif/else` chains a dedicated syntactic form that compiles to the softmax-switch shape, rather than lowering to nested `(cond * branch) + (NOT cond * (next_cond * next_branch + ...))`.
+- Alternatively, add an explicit `switch`/`match` construct with softmax semantics and *document* that `if/elif` should only be used for genuinely-binary branching.
+- Update `planning/sutra-spec/03-control-flow.md` once decided — right now only binary fuzzy branching and cone traversal are specified, no guidance for chains.
+- The `permutation_conditional` demo (currently broken — see `STATUS.md`) is an attempt at 4-way branching via a non-spec mechanism (sign-flip on query); the correct replacement will need to resolve this syntax/semantics gap.
+
 ## Next up
 
 The fly-brain compile-to-brain pipeline is now real end-to-end
