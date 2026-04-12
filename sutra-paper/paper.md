@@ -8,7 +8,7 @@
 
 We present Sutra, a programming language that uses LLM embedding spaces as its computational substrate. Where conventional languages compile to machine instructions that execute on silicon, Sutra compiles to vector operations that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Named after the Sanskrit concept of a primordial substance pervading all things, the language operates in the continuous semantic space that pervades trained embedding models.
 
-Sutra introduces several novel contributions to programming language design. First, a **three-tier operation model**: primitive operations (scalars, tuples, bounded iteration), algebraic VSA operations at O(1) (bind, bundle, unbind, similarity), and non-algebraic vector-graph operations at O(log n) (snap-to-nearest, cone traversal, graph hop) — where all non-algebraic operations are unified by their dependence on approximate nearest neighbor search. Second, **fuzzy-by-default semantics** with opt-in defuzzification via a truth-extraction matrix M(v) derived from the input vector, enabling recursive confidence refinement through repeated application of `is_true`. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
+Sutra introduces several novel contributions to programming language design. First, a **three-tier operation model**: primitive operations (scalars, tuples, bounded iteration), algebraic VSA operations at O(1) (bind, bundle, unbind, similarity), and non-algebraic vector-graph operations at O(log n) (snap-to-nearest, cone traversal, graph hop) — where all non-algebraic operations are unified by their dependence on approximate nearest neighbor search. Second, **fuzzy-by-default semantics** with opt-in defuzzification via `is_true(v) = cos(v, t_true)` — cosine similarity against a substrate-fitted canonical truth direction — enabling confidence-thresholded conditionals and multi-level confidence ladders. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
 
 The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, 2026). We further demonstrate that the traditional VSA binding operation (Hadamard product) fails on natural embedding spaces due to crosstalk from correlated embeddings, but that **sign-flip binding** — a simple operation that flips filler signs based on role sign patterns — achieves 14-role bundling capacity with correct snap-to-nearest recovery across three substrate models (GTE-large, BGE-large, Jina-v2), sustains 10-step chained computation, and supports multi-hop composition. Sutra is the first programming language designed to exploit this structure directly.
 
@@ -33,7 +33,7 @@ Sutra is not an AI-assisted programming tool. It is not a neural network. It is 
 
 1. **A three-tier operation model** that separates primitive scaffolding (scalars, tuples, bounded iteration), algebraic VSA operations at O(1), and non-algebraic vector-graph operations at O(log n). The non-algebraic tier is unified by dependence on approximate nearest neighbor (ANN) infrastructure and serves two roles: error correction (snap-to-nearest) and semantic navigation (cone traversal, graph hop).
 
-2. **A truth-extraction matrix mechanism** for defuzzification. Given vector v, a matrix M(v) derived from v maps it to a truth vector: M(v) · v = t. This enables equality evaluation via truth-vector comparison and recursive confidence refinement via iterated application.
+2. **A cosine-based defuzzification operation** (`is_true`). A fixed rank-1 projection onto a substrate-specific truth direction `t_true` fitted during empirical initiation measures how semantically "true" any vector is: `is_true(v) = cos(v, t_true)`. Equality is cosine similarity; conditional branching is threshold on `is_true`.
 
 3. **Empirical initiation** as a compilation strategy. The Sutra compiler probes a target embedding space, tests algebraic operation fidelity, fits correction matrices, and outputs a substrate-specific mapping file. The same Sutra source code compiles differently for different embedding models, analogous to C compiling for x86 versus ARM.
 
@@ -147,64 +147,54 @@ The ANN shortlist stage makes this O(log n) in the codebook size rather than O(n
 
 **Bounded iteration:** `repeat N: body` executes the body a scalar number of times. This is a primitive operation, not a vector operation. It sidesteps the unsolved problem of convergence-based termination. Snap-to-nearest between iterations controls noise accumulation.
 
-### 3.4 Defuzzification: The Truth-Extraction Matrix
+### 3.4 Defuzzification: `is_true`
 
-The mechanism for converting fuzzy vector computation to crisp values is an operation that takes a `vector` and returns a `fuzzy` (a real number in `[0, 1]` interpreted as "how true is this?"):
+The mechanism for converting fuzzy vector computation to crisp values is an operation that takes a `vector` and returns a `fuzzy` (a real number in `[-1, 1]`, shifted to `[0, 1]` at callsites that require a probability):
 
 ```
 is_true(x) : vector -> fuzzy
 ```
 
-The v1 and v2 reviews of this manuscript both pushed on an earlier draft's description of the truth-extraction matrix as "ill-defined." This subsection is the formal construction.
+**Construction.** Fix a global unit vector `t_true ∈ ℝᵈ` — the *canonical truth direction* in the substrate. `t_true` is a constant produced by the empirical-initiation probe from §4.2: embed a small curated set of canonically-true propositions (tautologies, known facts), take their centroid, and unit-normalize. There is nothing mystical about `t_true`; it is a fitted constant of the substrate.
 
-**Construction.** Fix a global unit vector `t_true ∈ ℝᵈ` — the *canonical truth direction* in the substrate. `t_true` is a constant of the substrate produced by the empirical-initiation probe from §4.2: the probe embeds a small curated set of canonically-true propositions (tautologies, known facts) and averages their unit-normalized embeddings, then re-unit-normalizes. There is nothing mystical about `t_true`; it is a fitted constant, the same way a compiler's alignment requirement for a target architecture is a fitted constant.
-
-For any input vector `v ∈ ℝᵈ`, the truth-extraction matrix `M(v)` is defined as:
+Define the **truth-projection matrix** as the rank-1 outer product of `t_true` with itself:
 
 ```
-M(v) := t_true · v^T / (||v||² + ε)
+M := t_true · t_true^T        (fixed d×d matrix; does not depend on the input vector)
 ```
 
-where `v^T` is the row-vector transpose of `v`, `ε` is a small numerical stabilizer (default `1e-8`), and the product `t_true · v^T` is the outer product producing a `d × d` rank-1 matrix. Then:
+For any input vector `v`, `M · v` projects `v` onto the truth direction:
 
 ```
-M(v) · v  =  t_true · (v^T · v) / (||v||² + ε)
-          =  t_true · ||v||² / (||v||² + ε)
-          ≈  t_true        when ||v|| ≫ √ε
+M · v  =  t_true · (t_true^T · v)  =  (t_true · v) · t_true
 ```
 
-So `M(v) · v` is approximately `t_true` for any vector `v` with non-vanishing magnitude. The *direction* is always `t_true` by construction; the *magnitude* is `||v||² / (||v||² + ε)`, which is close to 1 for any reasonable `v` and collapses to 0 only for the degenerate case `||v|| = 0`. That magnitude is the scalar truth value:
+The scalar `t_true · v = t_true^T · v` is the signed magnitude of `v`'s component along the truth axis. `is_true` normalizes by `||v||` to make the result direction-only, independent of the length of `v`:
 
 ```
-is_true(v) := ||M(v) · v||  =  ||v||² / (||v||² + ε)  ∈  [0, 1]
+is_true(v) :=  (t_true · v) / ||v||  =  cos(v, t_true)   ∈  [-1, 1]
 ```
 
-This construction satisfies the three properties the language needs from defuzzification:
+A vector aligned with `t_true` returns +1; one opposed returns -1; one perpendicular (semantically unrelated to "true") returns 0. Magnitude plays no role: a long vector pointing away from the truth direction is not "more true" than a short one pointing toward it.
 
-1. **Non-circularity.** `M(v)` depends on `v` only through its unit-normalized projection; the target `t_true` is a *fixed* substrate constant, not derived from `v`. The earlier worry that "the matrix is derived from the vector itself to produce a constant truth vector" is addressed by the explicit split between the vector-dependent part (`v^T` in the outer product) and the substrate-dependent part (`t_true`).
-
-2. **Magnitude-sensitivity.** The truth scalar is a smooth function of `||v||`. Zero-magnitude vectors produce `is_true ≈ 0` (the substrate's degenerate state has no truth value), fully-saturated vectors produce `is_true ≈ 1`, and intermediate magnitudes interpolate smoothly. This is what distinguishes Sutra's defuzzification from a plain dot product with `t_true` — direction alone would collapse the information that long vectors are "more asserted" than short ones.
-
-3. **Closure under iteration.** Applying `M` recursively,
-```
-t₁ := M(v)  · v    ≈  ||v||²  /  (||v||² + ε)  · t_true
-t₂ := M(t₁) · t₁   ≈  ||t₁||² / (||t₁||² + ε) · t_true
-```
-converges on a fixed point because each iteration multiplies the magnitude by a factor in `(0, 1]` that approaches 1 as the magnitude grows. Convergence is monotone, not oscillatory, for reasonable starting vectors.
-
-**Equality evaluation** follows from truth extraction. Two vectors `a` and `b` are equal iff they assert the same proposition, which by the construction above means their *truth-normalized* projections coincide:
+**Equality evaluation** uses cosine similarity directly — two vectors assert the same proposition when they agree directionally:
 
 ```
-is_equal(a, b) := similarity(M(a) · a, M(b) · b)
-              ≈ similarity(t_true · is_true(a), t_true · is_true(b))
-              ≈ 1  when  is_true(a) ≈ is_true(b)  and  a, b  point broadly the same way
+is_equal(a, b) := cosine_similarity(a, b)  =  (a · b) / (||a|| · ||b||)
 ```
 
-This is "do these assert the same thing?" rather than "are these close in embedding space?" — two vectors can be distant in raw Euclidean terms but still assert the same proposition because the truth-extraction flattens them onto the same canonical truth axis.
+This is "do these point at the same concept?" rather than "are these numerically close?" Two vectors distant in raw embedding space can still be semantically equal if their directions agree.
 
-**Recursive refinement** becomes a convergence check on the sequence `v, M(v)·v, M(M(v)·v)·(M(v)·v), ...`. The sequence is bounded above by `t_true` and monotone non-decreasing in magnitude, so it converges to a fixed point `t_∞` satisfying `M(t_∞) · t_∞ = t_∞`. The number of iterations required to reach ε-convergence is `O(log(1/ε))` by the standard geometric series bound.
+**Thresholded defuzzification.** For crisp conditionals the compiler introduces a confidence threshold θ (default `0.5`, overridable with the `confidence:` annotation):
 
-The only pathological regime is `||v|| = 0` exactly, which the ε stabilizer prevents from dividing by zero. In practice the substrate's own noise floor keeps `||v||` bounded away from zero for any non-trivial computation.
+```
+if v:              →  if is_true(v) ≥ θ: ...
+if v confidence 0.9: →  if is_true(v) ≥ 0.9: ...
+```
+
+**Recursive refinement** applies `is_true` at decreasing thresholds to implement multi-level confidence gates. Given an initial truth value `s₀ = is_true(v) ∈ [-1,1]`, successive applications against stricter thresholds `θ₁ < θ₂ < ... < θₙ` implement a monotone filter: only vectors that clear every threshold reach the innermost branch. This is the sense in which `is_true` composes: not as a matrix iteration, but as a confidence ladder over the same cosine value.
+
+The only pathological regime is `||v|| = 0` exactly; in practice the substrate's own noise floor keeps `||v||` bounded away from zero for any non-trivial computation.
 
 ### 3.5 Type System
 
@@ -483,7 +473,7 @@ The design conversations are archived in the project repository. This collaborat
 
 ## 8. Conclusion
 
-Sutra demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, truth-extraction matrices, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
+Sutra demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, cosine-based defuzzification, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
 
 Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves **14/14 correct recoveries** at only 4.4x the cost, sustains **10/10 chained computation steps**, and supports **multi-hop composition** (extract from one structure, insert into another, extract again — all correct). These results hold identically across GTE-large (1024-dim), BGE-large (1024-dim), and Jina-v2 (768-dim), demonstrating substrate-agnostic viability. This finding updates the VSA literature's assumption that Hadamard product is the standard binding choice — on natural embedding spaces, sign-flip binding is strictly superior.
 
