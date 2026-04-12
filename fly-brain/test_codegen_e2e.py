@@ -60,7 +60,7 @@ EXPECTED = {
 }
 
 
-def compile_from_source():
+def compile_from_source(use_hemibrain=False):
     """Parse the .su file and return the generated Python source string."""
     with open(SOURCE_AK, encoding="utf-8") as f:
         src = f.read()
@@ -74,7 +74,7 @@ def compile_from_source():
         raise SystemExit(
             "refusing to codegen: source has parser/validator errors"
         )
-    return translate_module(module)
+    return translate_module(module, runtime_use_hemibrain=use_hemibrain)
 
 
 def load_generated_module(py_src: str):
@@ -90,10 +90,17 @@ def load_generated_module(py_src: str):
 
 
 def main() -> int:
-    print("E2E: permutation_conditional.su -> codegen -> mushroom body")
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--hemibrain', action='store_true',
+                    help='Use real hemibrain connectome')
+    args = ap.parse_args()
+
+    substrate = "HEMIBRAIN connectome" if args.hemibrain else "mushroom body"
+    print(f"E2E: permutation_conditional.su -> codegen -> {substrate}")
     print("=" * 72)
     print("Step 1: parse + translate")
-    py_src = compile_from_source()
+    py_src = compile_from_source(use_hemibrain=args.hemibrain)
     print(f"  generated Python: {len(py_src.splitlines())} lines")
 
     print("Step 2: exec generated module (fires compile-time snap calls)")
