@@ -4,7 +4,7 @@
 
 ## Abstract
 
-We compile programs written in Sutra, a vector programming language, to execute on a spiking neural network model of the *Drosophila melanogaster* mushroom body, wired with real synaptic connectivity from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The system achieves the two primitives required for Turing-complete computation: **conditional branching** (13/16 correct decisions on a four-way conditional program, with all four program permutations discriminated) and **unbounded iteration** (geometric loops via eigenrotation, 3/3 tests passing on the hemibrain substrate). As a demonstration, we run Pong on the hemibrain — a 5×5 game board where the circuit discriminates all 25 positions at 1.000 Jaccard overlap. To our knowledge, this is the first demonstration of a Turing-complete programming language compiled to execute on a connectome-derived biological circuit.
+We compile programs written in Sutra, a vector programming language, to execute on a spiking neural network model of the *Drosophila melanogaster* mushroom body, wired with real synaptic connectivity from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The system achieves the two primitives required for Turing-complete computation: **conditional branching** (13/16 correct decisions on a four-way conditional program, with all four program permutations discriminated) and **unbounded iteration** (geometric loops via eigenrotation, 3/3 tests passing on the hemibrain substrate). To our knowledge, this is the first demonstration of a Turing-complete programming language compiled to execute on a connectome-derived biological circuit.
 
 ## The Substrate
 
@@ -51,14 +51,6 @@ Iteration is implemented as geometric rotation in vector space. A loop body is a
 | Ordering | Prototypes at steps 2, 5, 8; no specified target | Hit nearest prototype first |
 
 All prototype compilations and loop iterations share the same PN→KC projection (the fixed-frame invariant), ensuring KC patterns from different iterations are comparable. Nested loops are rotations in orthogonal subspaces — with 140 input dimensions, there is room for up to 70 independent nesting levels.
-
-## Result 3: Pong
-
-As a demonstration that the system can execute interactive programs, we implement Pong on the hemibrain substrate. The game board is discretized into a 5×5 grid of prototype positions, each compiled as a KC pattern. Ball movement is a rotation in vector space; the circuit determines the ball's position at each tick by matching the rotated state vector against compiled prototypes via Jaccard overlap. An AI paddle tracks the ball using cosine similarity in the PN input space.
-
-**Results (V1, 2D with paddle):** 3 paddle hits, 12 wall bounces over 25 ticks. All 25 grid positions matched at 1.000 Jaccard overlap — the circuit discriminates every position on the board perfectly, despite the 25 prototype vectors being non-orthogonal interpolations in 140-D space (adjacent positions share significant overlap in PN input space; the circuit's 140→1,882 expansion and APL sparsification create separable KC codes). The ball oscillates correctly, the paddle tracks and intercepts it, and boundary detection works via prototype matching.
-
-The game logic is computed by the circuit (position detection, boundary matching). The host computes rotations (ball velocity) and renders pixels — the same division of labor as a GPU: the host sets up the frame, the circuit computes the result.
 
 ## Why This Constitutes Turing Completeness
 
