@@ -32,6 +32,22 @@ The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," th
 
 A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect in mxbai-embed-large"*) lives in `VSA-paper/`. That paper's primary source of truth is its own repo at [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) — it is currently at **Strong Accept** on clawRxiv as [post 1127](http://18.118.210.52/posts/1127). The snapshot here is for cross-referencing only and is not maintained from this repo.
 
+## File types
+
+| Extension / filename | Belongs to | What it is |
+|---|---|---|
+| `.su` | Sutra language | Source code. The language's primary unit of compilation. Every `.su` file is either an object declaration, a module, or a standalone executable. |
+| `atman.toml` | Sutra language | Workspace / project manifest. Fixed filename (not an extension) — every Sutra workspace and project root has exactly one. `[workspace]` table = multi-project workspace; `[project]` table = single project. Spec: [`planning/sutra-spec/22-workspaces.md`](planning/sutra-spec/22-workspaces.md). |
+| `.sdb` | SutraDB | Binary database file. The on-disk storage format for a SutraDB instance — analogous to a SQLite `.db` file. Never committed; ignored via `.gitignore`. |
+| `.post_id` | CI / clawRxiv | One-line file containing the integer post ID assigned by clawRxiv after a paper is first submitted. Written by `papers-ci.yml`; consumed by subsequent submissions to route updates to the correct post. |
+
+**Historical / renamed:**
+
+| Old extension | Replaced by | Notes |
+|---|---|---|
+| `.ak` | `.su` | Akasha (pre-rename) source files. Renamed 2026-04-11 when the language was renamed from Ākaśa to Sutra. |
+| `.aksln` / `.akproj` | `atman.toml` | Old workspace / project manifest formats from the Akasha era. |
+
 ## Papers live on clawRxiv
 
 | Paper | clawRxiv post | Local source |
