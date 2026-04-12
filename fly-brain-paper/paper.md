@@ -62,7 +62,7 @@ A computational system is Turing-complete if it can simulate any Turing machine,
 
 3. **Read/write memory** — the ability to store and retrieve intermediate results. The codebook (snap-to-nearest in the KC population) serves as addressable memory, and bind/unbind provide structured read/write access.
 
-The mushroom body's memory capacity is finite (bounded by the 1,882 KC population), as is any physical computer's. The system is Turing-complete in the same sense that a modern CPU is: it implements the necessary computational primitives, with capacity limited only by the physical substrate.
+Strictly speaking, any finite network — including a modern CPU with finite RAM — is a bounded finite-state machine; the ~1,882 KC population gives a concrete state bound here. The claim is that the substrate implements the three primitives required for Turing-equivalent computation, so scaling memory (e.g., to the full FlyWire ~13k KCs, or a neuromorphic substrate with the same motifs) preserves the programming model rather than requiring new machinery. "Turing-complete" is therefore used in the engineering sense standard for physical computers, not as a claim of infinite tape.
 
 ## Methods
 
@@ -79,6 +79,14 @@ The mushroom body's memory capacity is finite (bounded by the 1,882 KC populatio
 ## Reproducibility
 
 All experiments run on commodity hardware (Windows 11, Python 3.13, Brian2 2.10.1) without GPU. The hemibrain connectivity matrix (0.1 MB) is committed to the source repository. The full validation suite executes in under 30 minutes on a single CPU core.
+
+## Honest Limits of the Current Substrate
+
+The tier-2 spiking circuits in `neural_vsa.py` use synthetic weight matrices (the Givens composition for rotation, role-signed synapses for bind) realized as Brian2 LIF populations. A stronger version of the claim — circuits whose weights come directly from real FlyWire v783 neurons — is implemented in `fly-brain/neural_vsa_flywire.py`. The honest finding: a real ALPN→LHLN feedforward projection (685 ALPNs → 517 LHLNs, weights = syn_count × NT-sign from FlyWire) simulates its own linear map faithfully (cos=0.94 vs. numpy W·v reference), but that linear map is **not a rotation** — effective rank 415, condition number ~1e16, column-orthonormality RMS off-diagonal 0.059. It is a compressive non-orthogonal projection, consistent with olfactory biology. This is the deeper point for biomedical deployment: Sutra must compile within the eigenstructure the patient's connectome provides; the rotation matrix R is fixed by anatomy, not chosen by the programmer. The paper's tier-2 rotation result uses a synthetic Givens R to demonstrate the algebra; closing the gap to real-wiring rotation is an open problem gated on finding a connectome motif with adequate near-orthogonality, or distributing the computation over multiple compressive projections.
+
+Other concrete limits. The 140-PN input layer is narrow by VSA standards (typical VSA operates at 1k–10k dimensions); this is likely a contributor to the 13/16 branching accuracy, and the planned KC-space promotion (1,882-D) would widen the operating space by an order of magnitude. The evaluation (16 branching trials, 3 iteration trials) is small and documents proof-of-substrate rather than statistical robustness; a scaled evaluation is straightforward once the substrate is confirmed working. The MBON readout uses ridge regression; replacing it with a dopamine-gated plasticity rule is planned and does not affect the substrate-level claims.
+
+The Sutra language surface, three-tier operation model, and compiler are specified in `planning/sutra-spec/` (canonical files: `02-operations.md`, `03-control-flow.md`, `11-vsa-math.md`) and implemented in `sdk/sutra-compiler/`; the `.su` programs cited here (`permutation_conditional.su` and the loop tests) compile through that pipeline to the fly-brain runtime — it is not an ad-hoc DSL built for this paper.
 
 ## Future Work
 
