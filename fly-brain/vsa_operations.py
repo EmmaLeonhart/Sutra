@@ -1,14 +1,20 @@
 """
 VSA operations on the fly brain substrate.
 
-Hybrid architecture:
-- bind/unbind/bundle: algebraic operations in numpy (sign-flip binding)
+Brain-native architecture:
+- bind/unbind: sign-flip binding via PN→KC synaptic weight modulation
+  (the sign-flip IS the synaptic weights, the projection IS the circuit)
+- bundle: superposition via summed PN input currents
+  (convergent input — same as a fly smelling multiple odors at once)
 - snap: encode → circuit run → decode (APL provides biological cleanup)
-- similarity: cosine similarity in numpy
+- similarity: KC pattern overlap (Jaccard similarity in brain space)
 - embed: generate random hypervectors for named concepts
 
-This implements the Sutra language's core operations using the mushroom body
-circuit as the computational substrate for cleanup/discretization.
+All core VSA operations route through the spiking circuit.  The mushroom
+body performs the matrix multiplications that VSA algebra requires:
+PN→KC is the random projection, APL enforces sparsity, KC patterns
+are the computational representation.  Weight modulation for binding
+is biologically grounded in neuromodulatory gating (Aso et al. 2014).
 """
 
 import numpy as np
@@ -49,7 +55,36 @@ class FlyBrainVSA:
         self.seed = seed
         self.snap_duration_ms = snap_duration_ms
         self.codebook = {}  # name → hypervector
-        self._snap_count = 0
+        self._op_count = 0
+
+    def _make_bridge(self, fixed_seed=None):
+        """Create a fresh SpikeVSABridge for a circuit operation.
+
+        Each operation needs a fresh Brian2 model (stateful simulator).
+        The learned readout is cached class-level, so the training
+        cost is paid only once.
+
+        Args:
+            fixed_seed: if set, use this seed instead of incrementing.
+                All operations that need to compare KC patterns MUST
+                share the same seed (the fixed-frame invariant).
+                Prototype compilation and loops use this.
+        """
+        bridge_kwargs = dict(n_kc=self.n_kc)
+        if self.use_hemibrain:
+            bridge_kwargs['use_hemibrain'] = True
+        if fixed_seed is not None:
+            seed = fixed_seed
+        else:
+            seed = self.seed + self._op_count
+            self._op_count += 1
+        bridge = SpikeVSABridge(
+            dim=self.dim, seed=seed,
+            **bridge_kwargs
+        )
+        n_samples = 80 if self.use_hemibrain else 20
+        bridge.fit_learned_readout(n_samples=n_samples)
+        return bridge
 
     def embed(self, name):
         """Get or create a random hypervector for a named concept."""
@@ -61,36 +96,45 @@ class FlyBrainVSA:
 
     def bind(self, a, b):
         """
-        Sign-flip binding (self-inverse).
+        Sign-flip binding through the spiking circuit.
 
-        Produces a vector dissimilar to both inputs. Encoding key-value
-        pairs and role-filler structures. Done in numpy — this is a
-        pure algebraic operation.
+        The sign-flip is implemented by modulating PN→KC synaptic
+        weights by sign(b), then presenting a as PN input currents.
+        The circuit computes:
+
+            KC_pattern = sparsify(W * diag(sign(b)) @ encode(a))
+
+        The binding happens IN the synapses.  The random projection
+        is the PN→KC wiring.  The sparsification is the APL feedback
+        loop.  All three stages run on the spiking substrate.
         """
-        signs = np.sign(b)
-        signs[signs == 0] = 1
-        return a * signs
+        bridge = self._make_bridge()
+        return bridge.bind_on_brain(a, b, self.snap_duration_ms)
 
     def unbind(self, role, bound):
         """
-        Unbind = bind (sign-flip is self-inverse).
+        Unbind through the spiking circuit (sign-flip is self-inverse).
 
         Given a role vector, extract the approximate filler from a
-        bound structure.
+        bound structure.  Routes through the same synaptic weight
+        modulation as bind.
         """
         return self.bind(role, bound)
 
     def bundle(self, *vectors):
         """
-        Superpose vectors by addition (fuzzy OR).
+        Superpose vectors through the spiking circuit (fuzzy OR).
 
-        The result is similar to all inputs. Signal-to-noise degrades
-        as more items are superposed.
+        Sums the encoded PN currents for all input vectors and presents
+        the combined pattern.  The circuit computes:
+
+            KC_pattern = sparsify(W @ (encode(a) + encode(b) + ...))
+
+        This is exactly what happens when a fly smells multiple odors
+        at once — convergent PN input creates a superposed KC pattern.
         """
-        result = np.zeros(self.dim)
-        for v in vectors:
-            result = result + v
-        return result
+        bridge = self._make_bridge()
+        return bridge.bundle_on_brain(list(vectors), self.snap_duration_ms)
 
     def snap(self, vector):
         """
@@ -116,29 +160,21 @@ class FlyBrainVSA:
         noise-tolerant cleanup memory, and the learned readout reads
         out the result without peeking at the connectome.
         """
-        # Each snap needs a fresh model (Brian2 is stateful)
-        bridge_kwargs = dict(n_kc=self.n_kc)
-        if self.use_hemibrain:
-            bridge_kwargs['use_hemibrain'] = True
-        bridge = SpikeVSABridge(
-            dim=self.dim, seed=self.seed + self._snap_count,
-            **bridge_kwargs
-        )
-        self._snap_count += 1
-
-        # Ensure the learned readout is fit (cheap cache hit after
-        # the first bridge with this parameter tuple).
-        # Hemibrain's higher dimensionality (140-D vs 50-D) needs more
-        # training samples for the ridge regression readout.
-        n_samples = 80 if self.use_hemibrain else 20
-        bridge.fit_learned_readout(n_samples=n_samples)
-
+        bridge = self._make_bridge()
         decoded, fidelity = bridge.round_trip(vector, self.snap_duration_ms)
         return decoded
 
     def similarity(self, a, b):
-        """Cosine similarity between two hypervectors."""
-        return cosine_similarity(a, b)
+        """
+        Similarity via KC pattern overlap on the spiking circuit.
+
+        Encodes each vector, runs the circuit, and computes Jaccard
+        similarity of the binary KC activation patterns.  This measures
+        similarity in the brain's native 1882-D KC space rather than
+        the 140-D PN input space.
+        """
+        bridge = self._make_bridge()
+        return bridge.similarity_on_brain(a, b, self.snap_duration_ms)
 
     def make_permutation_key(self, name):
         """
@@ -182,3 +218,196 @@ class FlyBrainVSA:
         dists = np.linalg.norm(diffs, axis=1)
         best_idx = np.argmin(dists)
         return matrix[best_idx], names[best_idx], float(dists[best_idx])
+
+    # ------------------------------------------------------------------
+    # Geometric loops on the brain
+    #
+    # A loop is a repeated rotation in vector space.  Each iteration
+    # applies a rotation matrix R to the state vector, snaps through
+    # the mushroom body circuit, and checks whether the resulting KC
+    # pattern matches a target prototype.  The rotation traces a
+    # geometric trajectory: v, Rv, R²v, R³v, ...  Combined with
+    # conditional branching (which we already have via permutation
+    # keys), this gives the brain iteration and counting.
+    # ------------------------------------------------------------------
+
+    def make_rotation(self, angle, plane_indices=None, seed=None):
+        """
+        Create a rotation matrix for use in loops.
+
+        Produces a Givens rotation in a 2D plane of the vector space.
+        Each application rotates the state by `angle` radians in that
+        plane, leaving all other dimensions fixed.
+
+        For richer trajectories, compose multiple rotations:
+            R = make_rotation(0.3, (0,1)) @ make_rotation(0.2, (2,3))
+
+        Args:
+            angle: rotation angle in radians
+            plane_indices: tuple (i, j) — which 2D plane to rotate in.
+                If None, picks a random plane deterministically.
+            seed: random seed for plane selection (if plane_indices is None)
+
+        Returns:
+            orthogonal matrix R of shape (dim, dim)
+        """
+        R = np.eye(self.dim)
+        if plane_indices is None:
+            rng = np.random.RandomState(seed or self.seed)
+            i, j = rng.choice(self.dim, size=2, replace=False)
+        else:
+            i, j = plane_indices
+        c, s = np.cos(angle), np.sin(angle)
+        R[i, i] = c
+        R[i, j] = -s
+        R[j, i] = s
+        R[j, j] = c
+        return R
+
+    def make_random_rotation(self, angle, n_planes=1, seed=None):
+        """
+        Create a rotation that acts across multiple random 2D planes.
+
+        More planes = richer trajectory through the vector space.
+        With n_planes=1 the trajectory is a circle; with more planes
+        it becomes a higher-dimensional spiral.
+
+        Args:
+            angle: rotation angle per plane (radians)
+            n_planes: how many independent 2D planes to rotate in
+            seed: random seed for reproducible plane selection
+
+        Returns:
+            orthogonal matrix R of shape (dim, dim)
+        """
+        rng = np.random.RandomState(seed or self.seed)
+        R = np.eye(self.dim)
+        # Pick 2*n_planes distinct dimensions
+        dims = rng.choice(self.dim, size=min(2 * n_planes, self.dim),
+                          replace=False)
+        for p in range(min(n_planes, len(dims) // 2)):
+            i, j = dims[2 * p], dims[2 * p + 1]
+            c, s = np.cos(angle), np.sin(angle)
+            G = np.eye(self.dim)
+            G[i, i] = c
+            G[i, j] = -s
+            G[j, i] = s
+            G[j, j] = c
+            R = G @ R
+        return R
+
+    def compile_prototypes(self, prototype_vectors, frame_seed=None):
+        """
+        Snap prototype vectors through the circuit and store their
+        KC activation patterns.  Used as the target table for loops
+        and for conditional branching.
+
+        The KC patterns are the brain's native representation — sparse
+        binary codes in the 1882-D KC space.  Matching against these
+        patterns is what MBONs do biologically.
+
+        IMPORTANT: all prototypes and the loop that matches against
+        them must share the same PN→KC projection (the fixed-frame
+        invariant).  Pass the same frame_seed to compile_prototypes()
+        and loop().
+
+        Args:
+            prototype_vectors: dict of {name: hypervector}
+            frame_seed: fixed seed for the PN→KC projection.
+                Defaults to self.seed.
+
+        Returns:
+            dict of {name: kc_pattern} — binary arrays in KC space
+        """
+        if frame_seed is None:
+            frame_seed = self.seed
+        compiled = {}
+        for name, vec in prototype_vectors.items():
+            bridge = self._make_bridge(fixed_seed=frame_seed)
+            pattern = bridge.snap_to_kc_pattern(vec, self.snap_duration_ms)
+            compiled[name] = pattern
+        return compiled
+
+    def loop(self, initial_state, rotation, compiled_prototypes,
+             target_name=None, threshold=0.3, max_iters=20,
+             frame_seed=None):
+        """
+        Execute a geometric loop on the brain.
+
+        Each iteration:
+          1. Rotate the state vector by R (geometric step)
+          2. Snap through the mushroom body circuit (project + sparsify)
+          3. Compare the resulting KC pattern against compiled prototypes
+          4. If match found (or target reached), return
+
+        The rotation traces a trajectory: v, Rv, R²v, R³v, ...
+        The circuit projects each rotated state into KC space and the
+        APL sparsification creates discrete basins of attraction.
+        When the trajectory enters a target basin, the loop terminates.
+
+        This is how counting works on the brain: N iterations of
+        rotation by angle θ accumulates Nθ total rotation.  Place
+        target prototypes at known angles and the loop counts to N.
+
+        IMPORTANT: frame_seed must match the seed used in
+        compile_prototypes(), or the KC patterns won't be comparable
+        (the fixed-frame invariant).
+
+        Args:
+            initial_state: starting hypervector
+            rotation: orthogonal matrix R (from make_rotation)
+            compiled_prototypes: dict {name: kc_pattern} from
+                compile_prototypes()
+            target_name: if set, only terminate when this prototype
+                matches.  If None, terminate on any match above
+                threshold.
+            threshold: Jaccard overlap threshold for convergence
+            max_iters: safety limit
+            frame_seed: fixed seed for PN→KC projection.
+                Defaults to self.seed.  Must match compile_prototypes().
+
+        Returns:
+            (matched_name, final_state, num_iterations)
+            matched_name is None if max_iters reached without convergence.
+        """
+        if frame_seed is None:
+            frame_seed = self.seed
+
+        # The rotation accumulates cleanly on the original vector:
+        # iteration i presents R^i @ initial_state to the brain.
+        # Each rotated point is projected fresh through the circuit
+        # (no accumulated decode noise between iterations).
+        #
+        # Biological analogue: the rotation is a sensory transformation
+        # (lateral antennal-lobe processing) applied to the input
+        # before each mushroom-body pass.  The mushroom body sees a
+        # different input each iteration and checks whether it matches
+        # a stored prototype.
+        R_power = np.eye(self.dim)  # R^0 = identity
+        for i in range(max_iters):
+            # 1. Accumulate rotation: R^(i+1)
+            R_power = rotation @ R_power
+            state = R_power @ initial_state
+
+            # 2. Snap through circuit with FIXED frame, get KC pattern
+            bridge = self._make_bridge(fixed_seed=frame_seed)
+            kc_pattern = bridge.snap_to_kc_pattern(state, self.snap_duration_ms)
+
+            # 3. Compare against prototypes (Jaccard overlap in KC space)
+            best_name = None
+            best_overlap = -1.0
+            for name, proto_pattern in compiled_prototypes.items():
+                intersection = np.sum(kc_pattern * proto_pattern)
+                union = np.sum(np.clip(kc_pattern + proto_pattern, 0, 1))
+                overlap = float(intersection / max(union, 1.0))
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_name = name
+
+            # 4. Check convergence
+            if best_overlap >= threshold:
+                if target_name is None or best_name == target_name:
+                    decoded = bridge.decode_learned(self.snap_duration_ms)
+                    return best_name, decoded, i + 1
+
+        return None, state, max_iters
