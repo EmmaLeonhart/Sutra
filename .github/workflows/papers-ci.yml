@@ -7,7 +7,7 @@ name: Papers CI — auto-submit and fetch reviews
 #
 # Scoped explicitly to the two papers we are still iterating on:
 #   - sutra-paper/       ("Sutra: A Vector Programming Language ...")
-#   - fly-brain-paper/    ("Running Sutra on the Drosophila Hemibrain Connectome ...")
+#   - fly-brain-paper/    ("Turing-Complete Computation on the Drosophila Hemibrain Connectome")
 #
 # The Latent Space Cartography paper is deliberately NOT handled here —
 # it lives in its own repo (EmmaLeonhart/latent-space-cartography) and
@@ -136,7 +136,7 @@ jobs:
             tags: "programming-languages,vector-symbolic-architectures,embedding-spaces,fuzzy-logic,sutra"
           - paper_dir: fly-brain-paper
             slug: fly_brain
-            title: "Running Sutra on the Drosophila Hemibrain Connectome: Methodology and Results"
+            title: "Turing-Complete Computation on the Drosophila Hemibrain Connectome"
             tags: "programming-languages,vector-symbolic-architectures,connectomics,drosophila,sutra,fly-brain"
     steps:
       - name: Skip if this paper did not change
