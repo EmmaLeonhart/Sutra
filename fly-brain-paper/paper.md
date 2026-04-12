@@ -327,3 +327,4 @@ Several extensions are clear directions for subsequent revisions of the substrat
 4. **Promote KC-layer codes to the primary hypervector type.** The current bridge exposes `dim=140` as the hypervector type, matching the hemibrain PN input layer; the KC layer at 1882 is where the actual sparse VSA computation happens (see *A note on hypervector dimensionality* above). A future revision would promote the KC-layer code to the primary hypervector type, with the PN-layer adapter demoted to an auxiliary I/O concern.
 5. **Associative learning for the MBON readout.** The learned linear readout described in §Challenge 3 is fit via ridge regression for engineering convenience. A biologically closer revision would replace the ridge fit with a training loop that applies a dopamine-gated learning rule (e.g., the one described in Aso et al. 2014) against a reward schedule, producing weights that trace a plausible learning trajectory rather than an analytical fit.
 
+
