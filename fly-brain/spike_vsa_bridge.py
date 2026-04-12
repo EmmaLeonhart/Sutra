@@ -64,13 +64,15 @@ class SpikeVSABridge:
             dim: hypervector dimensionality (must equal n_pn)
             seed: random seed for reproducible connectivity
             **model_kwargs: passed to build_model (n_kc, apl_weight, etc.)
+                use_hemibrain=True loads real connectome data and overrides
+                dim, n_pn, n_kc with biological values.
         """
         self.dim = dim
         self.seed = seed
         self.model_kwargs = model_kwargs
 
-        # Ensure n_pn matches dim
-        if 'n_pn' not in model_kwargs:
+        # Ensure n_pn matches dim (unless hemibrain overrides both)
+        if 'n_pn' not in model_kwargs and not model_kwargs.get('use_hemibrain'):
             model_kwargs['n_pn'] = dim
 
         # Build the model and extract connectivity
@@ -79,6 +81,10 @@ class SpikeVSABridge:
         self.n_pn = self.model['n_pn']
         self.n_kc = self.model['n_kc']
         self.n_mbon = self.model['n_mbon']
+
+        # When using hemibrain, dim must match the real n_pn
+        if model_kwargs.get('use_hemibrain'):
+            self.dim = self.n_pn
 
         # Precompute pseudoinverse of PN→KC connectivity for the
         # comparison-baseline decoder (decode_kc_pinv).
@@ -186,7 +192,16 @@ class SpikeVSABridge:
         )
 
     def _cache_key(self):
-        """Tuple used to key the learned-readout cache."""
+        """Tuple used to key the learned-readout cache.
+
+        For hemibrain, the PN→KC connectivity is fixed regardless of seed
+        (it's loaded from the .npz file), so we use a constant key to
+        share the trained readout across all snaps. For the random
+        projection, different seeds produce different connectomes, so
+        the seed must be part of the key.
+        """
+        if self.model_kwargs.get('use_hemibrain'):
+            return ('hemibrain', self.dim, self.n_kc)
         return (self.seed, self.dim, self.n_kc)
 
     def fit_learned_readout(self, n_samples=20, duration_ms=200,
