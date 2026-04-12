@@ -6,7 +6,7 @@
 
 ## Abstract
 
-We compile programs written in Sutra, a vector programming language, to execute on a spiking neural network model of the *Drosophila melanogaster* mushroom body, wired with real synaptic connectivity from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The system achieves the two primitives required for Turing-complete computation: **conditional branching** (13/16 correct decisions on a four-way conditional program, with all four program permutations discriminated) and **unbounded iteration** (geometric loops via eigenrotation, 3/3 tests passing on the hemibrain substrate). To our knowledge, this is the first demonstration of a Turing-complete programming language compiled to execute on a connectome-derived biological circuit.
+We compile programs written in Sutra, a vector programming language, to execute on a spiking neural network model of the *Drosophila melanogaster* mushroom body, wired with real synaptic connectivity from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The system achieves the two primitives required for Turing-complete computation: **conditional branching** (13/16 correct decisions on a four-way conditional program, with all four program permutations discriminated) and **unbounded iteration** (geometric loops via eigenrotation, 3/3 tests passing on the hemibrain substrate). As a demonstration, we run Pong on the hemibrain — a 5×5 game board where the circuit discriminates all 25 positions at 1.000 Jaccard overlap. To our knowledge, this is the first demonstration of a Turing-complete programming language compiled to execute on a connectome-derived biological circuit.
 
 ## The Substrate
 
@@ -54,6 +54,14 @@ Iteration is implemented as geometric rotation in vector space. A loop body is a
 
 All prototype compilations and loop iterations share the same PN→KC projection (the fixed-frame invariant), ensuring KC patterns from different iterations are comparable. Nested loops are rotations in orthogonal subspaces — with 140 input dimensions, there is room for up to 70 independent nesting levels.
 
+## Result 3: Pong
+
+As a demonstration that the system can execute interactive programs, we implement Pong on the hemibrain substrate. The game board is discretized into a 5×5 grid of prototype positions, each compiled as a KC pattern. Ball movement is a rotation in vector space; the circuit determines the ball's position at each tick by matching the rotated state vector against compiled prototypes via Jaccard overlap. An AI paddle tracks the ball using cosine similarity in the PN input space.
+
+**Results (V1, 2D with paddle):** 3 paddle hits, 12 wall bounces over 25 ticks. All 25 grid positions matched at 1.000 Jaccard overlap — the circuit discriminates every position on the board perfectly. The ball oscillates correctly, the paddle tracks and intercepts it, and boundary detection works via prototype matching.
+
+The game logic is computed by the circuit (position detection, boundary matching). The host computes rotations (ball velocity) and renders pixels — the same division of labor as a GPU: the host sets up the frame, the circuit computes the result.
+
 ## Why This Constitutes Turing Completeness
 
 A computational system is Turing-complete if it can simulate any Turing machine, given sufficient memory. The standard requirements are:
@@ -84,7 +92,6 @@ All experiments run on commodity hardware (Windows 11, Python 3.13, Brian2 2.10.
 
 ## Future Work
 
-1. **Pong.** A minimum viable game running on the hemibrain substrate, using geometric loops for game logic and I/O-driven termination.
-2. **FlyWire scale.** The Princeton FlyWire connectome (~140,000 neurons) would increase memory capacity from ~300 to ~10,000–15,000 prototypes.
+1. **FlyWire scale.** The Princeton FlyWire connectome (~140,000 neurons) would increase memory capacity from ~300 to ~10,000–15,000 prototypes.
 3. **KC-space promotion.** Moving all operations into the 1,882-D KC space (where binding achieves perfect decorrelation) rather than the 140-D PN I/O layer.
 4. **Biological learning rule.** Replacing ridge regression with dopamine-gated plasticity for the MBON readout.
