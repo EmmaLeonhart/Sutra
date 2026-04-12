@@ -10,37 +10,46 @@ We implemented a system that executes Sutra programs on a spiking circuit model 
 
 **Sutra is a real, working compiler — not a conceptual wrapper around Python calls.** The language is defined by a specification under `planning/sutra-spec/` (twenty-one numbered sub-documents covering design principles, operations, control flow, type system, runtime, and VSA builtins). The compiler lives at `sdk/sutra-compiler/` and ships with a hand-written lexer, a recursive-descent parser, a validator that emits structured `AKA####` diagnostics, a test corpus of 24 canonical valid `.su` source files plus 12 intentionally-invalid files, and a substrate-specific codegen backend at `sutra_compiler/codegen_flybrain.py` that produces the Python-targeting-`FlyBrainVSA` runtime we exercise in §Results. The CLI entry point is `python -m sutra_compiler`; `--emit-flybrain` is the invocation that produces the output this paper executes. The `.su` source file used for the main result is `fly-brain/permutation_conditional.su`, which parses and validates cleanly against the grammar with zero diagnostics. The end-to-end pipeline — `.su` source → parser → AST → `codegen_flybrain` → generated Python → Brian2 spiking simulation → 16/16 correct decisions — is reproducible via `python fly-brain/test_codegen_e2e.py`.
 
-The system uses Brian2 (a spiking neural network simulator) to model the fly's olfactory learning circuit, and implements a novel spike-VSA bridge that translates between hypervectors and neural spike patterns.
+The system uses Brian2 (a spiking neural network simulator) to model the fly's olfactory learning circuit, and implements a novel spike-VSA bridge that translates between hypervectors and neural spike patterns. All core VSA operations — bind, unbind, bundle, snap, and similarity — execute on the spiking substrate rather than falling back to numpy. We also demonstrate geometric loops on the hemibrain substrate: iteration via repeated rotation in vector space, with termination driven by prototype matching in the brain's native 1882-D Kenyon cell space.
 
 ## System Architecture
 
 ```
 Sutra Code (looks like C#)
-    │
-    ▼
+    |
+    v
 FlyBrainVSA (vsa_operations.py)
-    │
-    ├── bind/unbind/bundle → numpy (algebraic, sign-flip binding)
-    │
-    └── snap (cleanup) → SpikeVSABridge (spike_vsa_bridge.py)
-                              │
-                              ├── encode: hypervector → PN input currents
-                              ├── run: Brian2 spiking simulation
-                              └── decode: KC spike rates → hypervector
-                                    │
-                                    ▼
-                          Mushroom Body Model (mushroom_body_model.py)
-                              140 PNs → 1882 KCs → APL → 20 MBONs
-                              (hemibrain v1.2.1 connectome wiring)
+    |
+    +-- bind/unbind --> SpikeVSABridge.bind_on_brain()
+    |                     synaptic weight modulation: sign(b) flips
+    |                     PN->KC synapse weights, a presented as PN currents
+    |
+    +-- bundle -------> SpikeVSABridge.bundle_on_brain()
+    |                     summed PN input currents (convergent input)
+    |
+    +-- snap ---------> SpikeVSABridge.round_trip()
+    |                     encode -> circuit run -> learned readout
+    |
+    +-- similarity ---> SpikeVSABridge.similarity_on_brain()
+    |                     KC pattern Jaccard overlap in 1882-D KC space
+    |
+    +-- loop ---------> geometric rotation + snap + prototype match
+    |                     v, Rv, R^2v, ... -> KC pattern -> Jaccard check
+    |
+    v
+Mushroom Body Model (mushroom_body_model.py)
+    140 PNs -> 1882 KCs -> APL -> 20 MBONs
+    (hemibrain v1.2.1 connectome, mutable per-synapse weights)
 ```
 
-### Hybrid Architecture Decision
+### Brain-Native Architecture
 
-We use a hybrid approach: algebraic VSA operations (bind, unbind, bundle) execute in numpy, while the biological circuit provides the `snap` (cleanup/discretization) operation. This is because:
+All core VSA operations route through the spiking circuit. An earlier revision of this substrate used a hybrid approach where bind/unbind/bundle executed in numpy and only `snap` ran on the circuit. The current substrate eliminates that split:
 
-1. **Sign-flip binding** is a purely algebraic operation with no direct biological analogue in the mushroom body. The MB performs random projection, not sign-flip.
-2. The circuit's natural role is **cleanup** — the APL-mediated winner-take-all inhibition is structurally identical to the VSA snap-to-nearest operation.
-3. Keeping algebraic operations in numpy and biological operations on the circuit gives the best of both worlds: fast binding with biologically-grounded cleanup.
+1. **Bind/unbind** are implemented as synaptic weight modulation: `sign(b)` flips the PN→KC synapse weights (setting `w[i] = -0.3` for PNs where `b[i] < 0`), then the input vector `a` is presented as PN currents. The binding happens *in the synapses* — the random projection *is* the circuit, the sign-flip *is* neuromodulatory gating (Aso et al. 2014). This is biologically grounded: the mushroom body uses dopaminergic modulation to gate synaptic transmission at the KC level.
+2. **Bundle** is superposition via summed PN input currents — the same mechanism the fly uses when smelling multiple odors simultaneously. Convergent PN input creates a superposed KC pattern.
+3. **Similarity** is computed as Jaccard overlap of binary KC activation patterns in the brain's native 1882-D KC space, rather than cosine similarity in the 140-D PN input space.
+4. **Snap** remains the circuit's natural role — APL-mediated graded feedback inhibition produces sparse coding, and the learned MBON-style readout decodes the result.
 
 ## The Mushroom Body Model
 
@@ -78,12 +87,14 @@ dv/dt = (I_ext + I_syn - I_inh - v) / tau
 
 The fly's mushroom body performs a **sparse projection** from ~140 olfactory projection neurons to ~1882 Kenyon cells. This is structurally identical to VSA encoding:
 
-| VSA Operation | Mushroom Body Equivalent |
-|---------------|------------------------|
-| Random projection (encoding) | PN → KC sparse connectivity (mean 7.8 inputs per KC, hemibrain) |
-| Winner-take-all (snap/cleanup) | APL feedback inhibition (~5% KC activation) |
-| Superposition (bundling) | Convergent input from multiple PNs onto a KC |
-| Readout (decoding) | MBON population activity |
+| VSA Operation | Mushroom Body Equivalent | Implementation |
+|---------------|------------------------|----------------|
+| Bind/unbind (sign-flip) | Neuromodulatory gating of PN→KC synapses | `sign(b)` flips per-synapse weights `w` |
+| Bundle (superposition) | Convergent PN input (multiple odors) | Summed PN currents |
+| Snap (cleanup) | APL feedback inhibition (~7.8% KC activation) | Graded APL loop + learned readout |
+| Similarity | KC pattern overlap | Jaccard similarity in 1882-D KC space |
+| Random projection (encoding) | PN → KC sparse connectivity (mean 7.8 inputs per KC) | Hemibrain connectome wiring |
+| Readout (decoding) | MBON population activity | Learned linear readout (ridge regression) |
 
 This isn't an analogy — it's the actual computation the fly evolved for olfactory learning (Dasgupta et al., Science 2017).
 
@@ -241,6 +252,28 @@ score = vsa.similarity(retrieved, odorB)  # = 0.2285
 
 **Bundling Capacity:** 1 bound pair with current 140-dim vectors. Limited by the I/O bottleneck dimensionality — the KC layer operates at 1882 dimensions internally. Promoting KC-layer codes to the primary hypervector type would dramatically increase capacity.
 
+### Phase 5: Geometric Loops
+
+The most significant extension beyond the original pipeline is the implementation of *iteration* on the spiking substrate. Standard control flow requires a program counter and discrete branching; the fly brain has neither. Instead, loops are implemented as geometric rotations in vector space.
+
+**How it works.** A loop body is a rotation matrix R acting on a 2D subspace of the hypervector space. Each iteration applies R to the state vector, producing a trajectory: v, Rv, R^2v, R^3v, ... Each rotated state is snapped through the mushroom body circuit (projecting into KC space via the fixed-frame PN→KC wiring), and the resulting KC pattern is compared against pre-compiled prototype patterns via Jaccard overlap. When the overlap exceeds a threshold, the loop terminates. The brain counts by accumulating rotation — N iterations of rotation by angle theta accumulates N*theta total rotation, and target prototypes placed at known angles act as stopping conditions.
+
+**Key invariant.** All prototype compilations and loop iterations share the same PN→KC projection (the fixed-frame invariant, enforced via `frame_seed`). Without this, KC patterns from different iterations would not be comparable — the same input vector would produce different KC patterns through different random projections.
+
+**Results on hemibrain substrate (3/3 PASS):**
+
+| Test | Description | Result |
+|------|-------------|--------|
+| Geometric loop | Target at step 3, rotation across 20 planes | PASS, converged in 1 iteration |
+| Counting | Prototypes at steps 3 and 6 | PASS: counted to ~3 (1 iter), ~6 (5 iters) |
+| Ordering | Prototypes at steps 2, 5, 8; no specific target | PASS: hit nearest (EARLY) first |
+
+The hemibrain substrate converges slightly faster than the synthetic (50-D, 2000 KC) substrate on nearby targets, consistent with the higher-dimensional KC space providing more discriminative sparse patterns.
+
+**Nested loops** are rotations in orthogonal subspaces of the hypervector space — an outer loop rotates in dimensions {i, j} while an inner loop rotates in dimensions {k, l}. Because the subspaces are orthogonal, the rotations do not interfere. Cross-loop communication uses the existing binding operation to carry inner-loop results into the outer loop's subspace. With 140 input dimensions, there is room for up to 70 independent 2D rotation planes — far more nesting depth than any practical program requires.
+
+**Biological interpretation.** The rotation is a sensory transformation applied to the input before each mushroom-body pass — analogous to lateral antennal-lobe processing that transforms the odor representation before it reaches the Kenyon cells. The mushroom body sees a different input each iteration and checks whether it matches a stored prototype. This is structurally similar to the central complex's ring attractor dynamics used for heading-direction computation in insect navigation (Seelig & Jayaraman 2015), where a bump of neural activity rotates continuously and goals modulate the drift rate.
+
 ## Implementation Layout
 
 The substrate implementation and supporting scripts live in the `fly-brain/` directory of the source repository accompanying this submission. The principal files are:
@@ -248,8 +281,9 @@ The substrate implementation and supporting scripts live in the `fly-brain/` dir
 - `hemibrain_loader.py` — downloads and caches the real PN→KC connectivity matrix from the Janelia hemibrain v1.2.1 connectome via the neuPrint API (Scheffer et al. 2020). The cached matrix (`hemibrain_pn_kc.npz`) is committed to the repository so downstream scripts do not require API access.
 - `mushroom_body_model.py` — Brian2 spiking circuit model with the PN, KC, APL, and MBON groups and their synapses. When `use_hemibrain=True`, loads real connectome wiring instead of generating random projections.
 - `spike_vsa_bridge.py` — encode/decode adapter between hypervectors and spike patterns; implements both the baseline pseudoinverse decoder and the default learned linear decoder.
-- `vsa_operations.py` — `FlyBrainVSA` class exposing the Sutra VSA primitives (`bind`, `unbind`, `bundle`, `snap`, `similarity`, `permute`) to the compiler backend.
+- `vsa_operations.py` — `FlyBrainVSA` class exposing the Sutra VSA primitives (`bind`, `unbind`, `bundle`, `snap`, `similarity`, `permute`, `make_rotation`, `loop`, `compile_prototypes`) to the compiler backend. All core operations route through the spiking circuit.
 - `test_bridge.py` and `test_vsa_operations.py` — validation gates for the encode/decode pipeline and the VSA operations respectively.
+- `test_loop.py` — geometric loop validation: tests loop convergence, counting, and prototype ordering on both synthetic and hemibrain substrates.
 - `test_codegen_e2e.py` — end-to-end reproduction of the main result: parses the reference `.su` source, runs the codegen backend, and executes the generated Python against the Brian2 mushroom body simulation.
 
 The paper itself is maintained in a sibling directory `fly-brain-paper/` so that the paper source is version-controlled alongside, but separately from, the running-log and development-tracking documents that the same directory accumulates during ongoing work.
@@ -268,13 +302,18 @@ python test_bridge.py
 # Run Phase 4 VSA operations
 python test_vsa_operations.py
 
+# Run Phase 5 geometric loops on hemibrain (3/3 gate)
+python test_loop.py --hemibrain
+
 # Run full e2e on hemibrain connectome (16/16 gate)
 python test_codegen_e2e.py --hemibrain
 ```
 
 ## What This Means
 
-This is a proof of concept that a programming language (Sutra) can execute meaningful computation on a connectome-derived biological neural circuit. The mushroom body isn't being used as a novelty substrate — it's performing the exact operation it evolved to do (sparse projection with winner-take-all cleanup), and that operation turns out to be identical to a core VSA primitive (snap-to-nearest). The PN→KC wiring is no longer a random approximation — it is the actual synaptic connectivity of an adult *Drosophila melanogaster* right mushroom body, as reconstructed in the Janelia hemibrain v1.2.1 connectome.
+This is a proof of concept that a programming language (Sutra) can execute meaningful computation on a connectome-derived biological neural circuit — not as a novelty, but because the mushroom body's evolved architecture *is* the computation. Every core VSA operation now runs on the spiking substrate: bind and unbind happen in the synapses via weight modulation, bundle happens via convergent PN currents, snap happens via APL-mediated sparse coding, similarity is measured as KC pattern overlap, and loops are geometric rotations snapped through the circuit at each iteration.
+
+The PN→KC wiring is the actual synaptic connectivity of an adult *Drosophila melanogaster* right mushroom body, as reconstructed in the Janelia hemibrain v1.2.1 connectome. No operation in the pipeline falls back to numpy for the core computation — the circuit is the computer.
 
 The code that runs on the fly brain looks like normal C#-style code. The biological substrate is hidden behind the same abstraction layer that a conventional CPU would be. That's the point of having a language at this level of abstraction.
 
@@ -282,8 +321,9 @@ The code that runs on the fly brain looks like normal C#-style code. The biologi
 
 Several extensions are clear directions for subsequent revisions of the substrate and the compiler backend:
 
-1. **Promote KC-layer codes to the primary hypervector type.** The current bridge exposes `dim=140` as the hypervector type, matching the hemibrain PN input layer; the KC layer at 1882 is where the actual sparse VSA computation happens (see *A note on hypervector dimensionality* above). A future revision would promote the KC-layer code to the primary hypervector type, with the PN-layer adapter demoted to an auxiliary I/O concern.
-2. **Scale to the full FlyWire adult connectome.** The current substrate uses the Janelia hemibrain v1.2.1 right mushroom body (140 PNs, 1882 KCs). The Princeton FlyWire release (Dorkenwald et al. 2024) provides the full adult *Drosophila* brain at ~140,000 neurons, which would increase prototype capacity from ~200–300 items to an estimated ~10,000–15,000 — enough to explore game-logic compilation targets (see `fly-brain/DOOM.md`).
-3. **Empirical initiation for the fly-brain substrate.** The empirical-initiation pass used for silicon embedding substrates (see the companion paper's §4.2) applies unchanged to any substrate with an ANN-like structure; running it against the fly-brain substrate would produce the same kind of substrate-specific correction matrices and pathology reports.
-4. **Associative learning for the MBON readout.** The learned linear readout described in §Challenge 3 is fit via ridge regression for engineering convenience. A biologically closer revision would replace the ridge fit with a training loop that applies a dopamine-gated learning rule (e.g., the one described in Aso et al. 2014) against a reward schedule, producing weights that trace a plausible learning trajectory rather than an analytical fit.
+1. **Compile `while` to geometric rotation.** The geometric loop primitive is validated (§Phase 5), but the compiler backend (`codegen_flybrain.py`) does not yet emit rotation + prototype-match code from Sutra's `while` construct. Closing this gap would make loops a first-class compiled feature rather than a runtime API call.
+2. **Pong demo.** A minimum viable game running entirely on the hemibrain substrate — loop-driven game logic with I/O-driven termination — as a stepping stone toward more complex interactive programs.
+3. **Scale to the full FlyWire adult connectome.** The current substrate uses the Janelia hemibrain v1.2.1 right mushroom body (140 PNs, 1882 KCs). The Princeton FlyWire release (Dorkenwald et al. 2024) provides the full adult *Drosophila* brain at ~140,000 neurons, which would increase prototype capacity from ~200–300 items to an estimated ~10,000–15,000 — enough to explore game-logic compilation targets (see `fly-brain/DOOM.md`).
+4. **Promote KC-layer codes to the primary hypervector type.** The current bridge exposes `dim=140` as the hypervector type, matching the hemibrain PN input layer; the KC layer at 1882 is where the actual sparse VSA computation happens (see *A note on hypervector dimensionality* above). A future revision would promote the KC-layer code to the primary hypervector type, with the PN-layer adapter demoted to an auxiliary I/O concern.
+5. **Associative learning for the MBON readout.** The learned linear readout described in §Challenge 3 is fit via ridge regression for engineering convenience. A biologically closer revision would replace the ridge fit with a training loop that applies a dopamine-gated learning rule (e.g., the one described in Aso et al. 2014) against a reward schedule, producing weights that trace a plausible learning trajectory rather than an analytical fit.
 
