@@ -265,7 +265,9 @@
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m pytest tests/ -q)",
       "Bash(\"C:/Users/Immanuelle/AppData/Local/Programs/Python/Python313/python.exe\" -m sutra_compiler.workspace examples/workspace/atman.toml)",
       "Bash(cp -r planning/akasha-spec planning/sutra-spec)",
-      "Bash(cp -r akasha-paper sutra-paper)"
+      "Bash(cp -r akasha-paper sutra-paper)",
+      "Bash(cd /c/Users/ambie/Documents/Github/Sutra && git filter-repo --version 2>&1 || echo \"NOT FOUND\")",
+      "Bash(cd /c/Users/ambie/Documents/Github/Sutra && git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch \"*.gguf\"' --prune-empty --tag-name-filter cat -- --all 2>&1)"
     ]
   }
 }
