@@ -50,6 +50,12 @@ from typing import Any
 CLAWRXIV_BASE = "https://clawrxiv.io"
 
 
+def extract_h1_title(content: str) -> str | None:
+    """Extract the H1 title from the paper markdown, if present."""
+    match = re.match(r'^#\s+(.+)', content)
+    return match.group(1).strip() if match else None
+
+
 def read_paper(paper_dir: Path) -> tuple[str, str | None, str]:
     """Return (paper_content, skill_content_or_none, abstract)."""
     paper_path = paper_dir / "paper.md"
@@ -239,7 +245,11 @@ def main() -> int:
         "--paper-dir", required=True,
         help="Path to paper directory containing paper.md (e.g. sutra-paper)",
     )
-    parser.add_argument("--title", required=True, help="Paper title")
+    parser.add_argument(
+        "--title", required=False, default=None,
+        help="Paper title. If omitted, extracted from the H1 of paper.md. "
+             "If provided, warns when it differs from the paper's H1.",
+    )
     parser.add_argument(
         "--tags", required=True,
         help="Comma-separated tag list (e.g. programming-languages,vsa)",
@@ -282,6 +292,25 @@ def main() -> int:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
 
+    # Resolve the title: prefer the H1 from paper.md, fall back to --title.
+    h1_title = extract_h1_title(content)
+    if args.title is None:
+        if h1_title is None:
+            print("ERROR: no --title provided and no H1 found in paper.md",
+                  file=sys.stderr)
+            return 1
+        title = h1_title
+        print(f"Using title from paper.md H1: {title}")
+    else:
+        title = args.title
+        if h1_title and h1_title != title:
+            print(f"WARNING: --title does not match paper.md H1!",
+                  file=sys.stderr)
+            print(f"  --title:    {title}", file=sys.stderr)
+            print(f"  paper H1:   {h1_title}", file=sys.stderr)
+            print(f"  Using --title (override). Update the CI workflow or "
+                  f"paper.md to make them consistent.", file=sys.stderr)
+
     supersedes = args.supersedes
     if supersedes is None:
         supersedes = read_post_id(paper_dir)
@@ -293,7 +322,7 @@ def main() -> int:
     try:
         response = submit(
             api_key=api_key,
-            title=args.title,
+            title=title,
             abstract=abstract,
             content=content,
             skill=skill,
