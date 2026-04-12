@@ -122,11 +122,11 @@ def build_primitives(vsa, rng):
     smell_present = rng.randn(vsa.dim)
     hunger_hungry = rng.randn(vsa.dim)
 
-    NOT_SMELL = vsa.make_permutation_key("NOT_SMELL")
-    NOT_HUNGER = vsa.make_permutation_key("NOT_HUNGER")
+    NOT_SMELL = vsa.make_sign_flip_key("NOT_SMELL")
+    NOT_HUNGER = vsa.make_sign_flip_key("NOT_HUNGER")
 
-    smell_absent = vsa.permute(NOT_SMELL, smell_present)
-    hunger_fed = vsa.permute(NOT_HUNGER, hunger_hungry)
+    smell_absent = vsa.sign_flip(NOT_SMELL, smell_present)
+    hunger_fed = vsa.sign_flip(NOT_HUNGER, hunger_hungry)
 
     return {
         "smell_present": smell_present,
@@ -221,12 +221,12 @@ def run_decision(vsa, prototypes, smell_vec, hunger_vec, prims,
     # Query = bind(smell, hunger)
     query = vsa.bind(smell_vec, hunger_vec)
 
-    # Apply permutation keys. A "disabled" key is an all-ones vector,
+    # Apply sign-flip keys. A "disabled" key is an all-ones vector,
     # which is the identity under pointwise multiplication.
     key_smell  = prims["NOT_SMELL"]  if not_smell  else np.ones(vsa.dim)
     key_hunger = prims["NOT_HUNGER"] if not_hunger else np.ones(vsa.dim)
-    query = vsa.permute(key_smell,  query)
-    query = vsa.permute(key_hunger, query)
+    query = vsa.sign_flip(key_smell,  query)
+    query = vsa.sign_flip(key_hunger, query)
 
     # Fly-brain cleanup — the mushroom body produces a brain-view
     # version of the query. This is the biological substrate's actual
