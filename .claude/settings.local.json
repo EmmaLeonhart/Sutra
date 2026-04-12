@@ -267,7 +267,8 @@
       "Bash(cp -r planning/akasha-spec planning/sutra-spec)",
       "Bash(cp -r akasha-paper sutra-paper)",
       "Bash(cd /c/Users/ambie/Documents/Github/Sutra && git filter-repo --version 2>&1 || echo \"NOT FOUND\")",
-      "Bash(cd /c/Users/ambie/Documents/Github/Sutra && git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch \"*.gguf\"' --prune-empty --tag-name-filter cat -- --all 2>&1)"
+      "Bash(cd /c/Users/ambie/Documents/Github/Sutra && git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch \"*.gguf\"' --prune-empty --tag-name-filter cat -- --all 2>&1)",
+      "Bash(cd /c/Users/ambie/Documents/Github/Sutra && git for-each-ref --format=\"%\\(refname\\)\" refs/original/ | xargs -I{} git update-ref -d {} && git reflog expire --expire=now --all && git gc --prune=now --aggressive 2>&1 | tail -5)"
     ]
   }
 }
