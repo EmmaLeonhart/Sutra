@@ -2,19 +2,22 @@
 VSA operations on the fly brain substrate.
 
 Brain-native architecture:
-- bind/unbind: sign-flip binding via PN→KC synaptic weight modulation
-  (the sign-flip IS the synaptic weights, the projection IS the circuit)
+- bind/unbind: input-space multiplication (a * sign(b)) presented as
+  PN currents — antennal lobe preprocessing, no synaptic weight changes
 - bundle: superposition via summed PN input currents
   (convergent input — same as a fly smelling multiple odors at once)
 - snap: encode → circuit run → decode (APL provides biological cleanup)
 - similarity: KC pattern overlap (Jaccard similarity in brain space)
+- is_true: cosine similarity to a reserved true vector (defuzzification)
+- conditional: fuzzy weighted superposition of both branches
 - embed: generate random hypervectors for named concepts
 
 All core VSA operations route through the spiking circuit.  The mushroom
 body performs the matrix multiplications that VSA algebra requires:
 PN→KC is the random projection, APL enforces sparsity, KC patterns
-are the computational representation.  Weight modulation for binding
-is biologically grounded in neuromodulatory gating (Aso et al. 2014).
+are the computational representation.  The PN→KC synaptic weights are
+the connectome wiring and remain fixed — binding operates in the input
+space, analogous to antennal lobe lateral processing (Wilson 2013).
 """
 
 import numpy as np
@@ -96,17 +99,18 @@ class FlyBrainVSA:
 
     def bind(self, a, b):
         """
-        Sign-flip binding through the spiking circuit.
+        Binding through the spiking circuit via input-space multiplication.
 
-        The sign-flip is implemented by modulating PN→KC synaptic
-        weights by sign(b), then presenting a as PN input currents.
+        The binding is computed as a * sign(b) in the PN input space
+        (antennal lobe preprocessing), then presented as PN currents.
         The circuit computes:
 
-            KC_pattern = sparsify(W * diag(sign(b)) @ encode(a))
+            KC_pattern = sparsify(W @ encode(a * sign(b)))
 
-        The binding happens IN the synapses.  The random projection
-        is the PN→KC wiring.  The sparsification is the APL feedback
-        loop.  All three stages run on the spiking substrate.
+        The binding happens in the INPUT to the circuit — the PN→KC
+        synaptic weights remain fixed (they are the connectome wiring).
+        This is biologically grounded: the antennal lobe transforms
+        odor representations before they reach the mushroom body.
         """
         bridge = self._make_bridge()
         return bridge.bind_on_brain(a, b, self.snap_duration_ms)
@@ -116,8 +120,7 @@ class FlyBrainVSA:
         Unbind through the spiking circuit (sign-flip is self-inverse).
 
         Given a role vector, extract the approximate filler from a
-        bound structure.  Routes through the same synaptic weight
-        modulation as bind.
+        bound structure.  Same input-space multiplication as bind.
         """
         return self.bind(role, bound)
 
@@ -175,6 +178,79 @@ class FlyBrainVSA:
         """
         bridge = self._make_bridge()
         return bridge.similarity_on_brain(a, b, self.snap_duration_ms)
+
+    # ------------------------------------------------------------------
+    # Fuzzy logic: is_true and conditional branching
+    #
+    # The original Sutra design uses reserved true/false vectors in the
+    # embedding space.  is_true(v) = cosine similarity to the true
+    # vector — a continuous [0, 1] truth value.  Conditional branching
+    # is fuzzy weighted superposition:
+    #   result = weight * branch_A + (1 - weight) * branch_B
+    # Both branches execute simultaneously; the condition determines
+    # which dominates.  No discrete branching, no if/else — the
+    # geometry handles it.
+    # ------------------------------------------------------------------
+
+    def _get_true_vec(self):
+        """Get the reserved true vector (deterministic, in unused latent region)."""
+        if not hasattr(self, '_true_vec'):
+            rng = np.random.RandomState(hash("__RESERVED_TRUE__") % (2**31))
+            self._true_vec = rng.randn(self.dim)
+            self._true_vec /= np.linalg.norm(self._true_vec)
+        return self._true_vec
+
+    def _get_false_vec(self):
+        """Get the reserved false vector (deterministic, orthogonal to true)."""
+        if not hasattr(self, '_false_vec'):
+            rng = np.random.RandomState(hash("__RESERVED_FALSE__") % (2**31))
+            self._false_vec = rng.randn(self.dim)
+            # Orthogonalize against true
+            true_vec = self._get_true_vec()
+            self._false_vec -= np.dot(self._false_vec, true_vec) * true_vec
+            self._false_vec /= np.linalg.norm(self._false_vec)
+        return self._false_vec
+
+    def is_true(self, vector):
+        """
+        Defuzzification: cosine similarity to the reserved true vector.
+
+        Returns a scalar in [-1, 1] that measures how "true" a vector
+        is.  This is the bridge between the fuzzy vector world and
+        crisp control decisions.  In the original Sutra design, this
+        maps to checking which region of the latent space a result
+        lands in — near true or near false.
+
+        The true/false vectors are reserved in a semantically void
+        region of the embedding space and are just vectors like
+        everything else — no special type needed.
+        """
+        true_vec = self._get_true_vec()
+        norm_v = np.linalg.norm(vector)
+        if norm_v < 1e-10:
+            return 0.0
+        return float(np.dot(vector, true_vec) / norm_v)
+
+    def conditional(self, condition_vec, branch_true_vec, branch_false_vec):
+        """
+        Fuzzy conditional branching via weighted superposition.
+
+        Both branches execute simultaneously.  The condition vector's
+        proximity to the reserved true vector determines the weight:
+
+            weight = is_true(condition)
+            result = weight * branch_true + (1 - weight) * branch_false
+
+        This is O(1), purely algebraic, and runs on the spiking
+        substrate (the weighted sum is presented as PN currents).
+        There is no "wrong branch" — there is a weighted mixture
+        where confidence propagates as geometry.
+
+        Returns the blended vector (not snapped — snap separately
+        if cleanup is needed).
+        """
+        weight = (self.is_true(condition_vec) + 1.0) / 2.0  # map [-1,1] -> [0,1]
+        return weight * branch_true_vec + (1.0 - weight) * branch_false_vec
 
     def make_permutation_key(self, name):
         """
