@@ -47,6 +47,15 @@ The embedding-mapping FOL discovery work provides the empirical foundation for S
 - **Storage:** Flat files (items.json, embeddings.npz, embedding_index.json) + optional SutraDB
 - **Planning docs:** `planning/` directory for design decisions and roadmap
 
+## FlyWire connectome data — storage layout
+The full FlyWire v783 connectome is stored in **two locations on purpose:**
+- **`C:\Users\Immanuelle\flybrain\`** — authoritative copy, **outside this repo**. 14 GB including skeletons and the synapse table. Survives repo rebases, resets, fresh clones.
+- **`fly-brain/flywire_data/`** — working mirror inside the repo, **gitignored**. Only the small essential CSVs (~74 MB total).
+
+**Why both:** This repo is rebased/reset frequently during paper iteration; the in-repo copy can vanish. The external copy is what you trust long-term. On a fresh clone, copy the small files from `C:\Users\Immanuelle\flybrain\` back into `fly-brain/flywire_data/` — instructions also live in `fly-brain/FLYWIRE_SETUP.md` and in `C:\Users\Immanuelle\flybrain\README.md`.
+
+Use `fly-brain/flywire_loader.py` to load the data. It resolves the directory in order: `$FLYWIRE_DATA_DIR` env var → repo mirror → external copy. First run parses CSVs (~3 s), subsequent runs use `flywire_cache.npz` (<1 s).
+
 ## Repo Structure
 - **`VSA-paper/`** — FOL discovery / VSA paper (the empirical foundation)
 - **`sutra-paper/`** — Sutra language paper (substrate-comparison experiments)
