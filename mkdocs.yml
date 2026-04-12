@@ -92,6 +92,7 @@ nav:
     - 02 — Bind and unbind: tutorials/02-bind-and-unbind.md
     - 03 — Snap-to-nearest: tutorials/03-snap-to-nearest.md
   - Papers: papers.md
+  - History: history.md
   # SutraDB is the database side of the Sutra ecosystem — the static
   # HTML site lives under sutraDB/pages/ and is mounted at /Sutra/SutraDB/
   # on this Pages deploy by the pages.yml workflow (the site is served
