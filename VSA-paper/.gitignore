@@ -4,3 +4,4 @@ data-minilm/
 figures/
 __pycache__/
 *.pyc
+*.gguf
