@@ -232,12 +232,20 @@ jobs:
 
           git push --set-upstream origin "$BRANCH"
 
+          # Body written to a file so the YAML block scalar doesn't get
+          # terminated by the blank lines in a heredoc-style --body arg.
+          # (An earlier version inlined a multi-line --body "..." and the
+          # zero-indent blank lines ended the block scalar, producing a
+          # workflow that GitHub accepted but launched with 0 jobs.)
+          printf '%s\n' \
+            "Automated submission + review fetch for \`${{ matrix.paper_dir }}\` (run ${{ github.run_id }})." \
+            "" \
+            "Merge when ready. Contents: updated \`.post_id\` and \`reviews/\` only." \
+            "" \
+            "Skip-Submit: true" > /tmp/pr_body.md
+
           gh pr create \
             --base master \
             --head "$BRANCH" \
             --title "papers-ci: ${{ matrix.paper_dir }} submission + review" \
-            --body "Automated submission + review fetch for \`${{ matrix.paper_dir }}\` (run ${{ github.run_id }}).
-
-Merge when ready. Contents: updated \`.post_id\` and \`reviews/\` only.
-
-Skip-Submit: true"
+            --body-file /tmp/pr_body.md

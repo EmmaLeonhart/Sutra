@@ -18,13 +18,15 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 
 ## Active investigation
 
-**3/16 branching failures are per-program, not statistical.** The "13/16 accuracy" number in the paper has been treated as if the 3 errors were Poisson/run-to-run noise. Smoke run of `scale_eval_conditional.py` (3 runs x 16 trials = 48 trials) shows:
-- Program A: 100% (uses NO NOT keys)
+**The 3/16 failures are architectural, not a bug.** The demo `permutation_conditional.py` uses `sign_flip(NOT_key, query)` to implement semantic negation (flipping "smell" to "no smell" as input to prototype matching). That is not a VSA primitive — a random-pattern sign flip has no principled relationship to semantic NOT, so programs B/C/D (which apply NOT keys) cannot work reliably in this construction. Program A (no NOT keys) hits 100% exactly because it's the only one where the operational meaning matches what the circuit is doing. Scaled eval:
+- Program A: 100% (no NOT keys)
 - Program B: 50% ± 20%
 - Program C: 67% ± 12%
 - Program D: 58% ± 12%
 
-Programs B/C/D all apply at least one NOT permutation key (sign_flip). Program A applies none. The failure pattern is structural to the sign_flip path, not statistical. This reframes the problem entirely: it is debuggable, likely a specific bug in `vsa.sign_flip` or in how NOT keys interact with `snap`. Prior sessions + AI reviewers all misread it as noise. **Do not report accuracy numbers until this is root-caused.**
+**Per spec (`planning/sutra-spec/03-control-flow.md`), the correct conditional branching is:** `result = (condition * branch_true) + (NOT_condition * branch_false)` — fuzzy weighted superposition with both branches executing simultaneously, NOT a permutation trick on the query. Or for discrete "go here OR there" branching, cone traversal. Sign-flip-as-NOT is neither. The permutation_conditional demo is therefore the wrong architecture for the branching result we want to claim. Prior sessions and AI reviewers all read the failures as noise; they're not noise.
+
+**Next action:** rewrite conditional branching to use the spec's fuzzy weighted superposition and/or cone traversal. Do not report accuracy numbers from `permutation_conditional` in the paper at all — it's measuring the wrong thing.
 
 ## CI pipeline state
 
