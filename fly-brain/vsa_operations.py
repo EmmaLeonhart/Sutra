@@ -252,6 +252,83 @@ class FlyBrainVSA:
         weight = (self.is_true(condition_vec) + 1.0) / 2.0  # map [-1,1] -> [0,1]
         return weight * branch_true_vec + (1.0 - weight) * branch_false_vec
 
+    # ------------------------------------------------------------------
+    # is_converter: learned universal test operator
+    #
+    # A single matrix M (dim x dim) that turns any concept vector into
+    # a test operator via multiplication: is_c = M @ c.  Then
+    # dot(is_c, x) ≈ Jaccard(kc_c, kc_x) — the KC overlap that the
+    # mushroom body computes biologically.
+    #
+    # M is learned once from a set of (concept, KC_pattern) pairs
+    # collected by running random vectors through the circuit.  It
+    # encodes the circuit's projection/sparsification behavior as a
+    # single matrix multiplication, making the test operator O(1).
+    # ------------------------------------------------------------------
+
+    def _get_is_converter(self):
+        """Get or learn the is_converter matrix M."""
+        if hasattr(self, '_is_converter_M'):
+            return self._is_converter_M
+
+        # Collect training data: project random vectors through circuit,
+        # record KC patterns, compute pairwise overlaps
+        n_train = max(10, min(20, self.dim // 7))
+        rng = np.random.RandomState(self.seed + 9999)
+        train_vecs = [rng.randn(self.dim) for _ in range(n_train)]
+
+        frame_seed = self.seed
+        kc_pats = []
+        for v in train_vecs:
+            bridge = self._make_bridge(fixed_seed=frame_seed)
+            kc = bridge.project_to_kc(v, self.snap_duration_ms)
+            kc_pats.append(kc)
+
+        # Build training pairs: (concept, input) → KC Jaccard overlap
+        X_outer = []  # outer products
+        Y_overlap = []
+        for i in range(n_train):
+            for j in range(n_train):
+                X_outer.append(np.outer(train_vecs[i], train_vecs[j]).flatten())
+                kc_i, kc_j = kc_pats[i], kc_pats[j]
+                inter = np.sum(kc_i * kc_j)
+                union = np.sum(np.clip(kc_i + kc_j, 0, 1))
+                Y_overlap.append(float(inter / max(union, 1.0)))
+
+        A = np.array(X_outer)
+        y = np.array(Y_overlap)
+
+        # Ridge regression: solve for vec(M)
+        ridge_lambda = 1.0
+        M_flat = np.linalg.solve(A.T @ A + ridge_lambda * np.eye(A.shape[1]),
+                                  A.T @ y)
+        self._is_converter_M = M_flat.reshape(self.dim, self.dim)
+        return self._is_converter_M
+
+    def make_test(self, concept_vec):
+        """
+        Turn a concept vector into a test operator via is_converter.
+
+        is_c = M @ concept
+        dot(is_c, x) ≈ KC_overlap(concept, x)
+
+        The test operator is a vector; applying it to an input is a
+        single dot product.  This is the original Sutra design:
+        everything reduces to matrix multiplication.
+        """
+        M = self._get_is_converter()
+        return M @ concept_vec
+
+    def test_similarity(self, concept_vec, input_vec):
+        """
+        Test how similar input is to concept, using the is_converter.
+
+        Returns a scalar in [0, 1] approximating the KC pattern overlap
+        that the mushroom body would compute.
+        """
+        is_c = self.make_test(concept_vec)
+        return float(np.dot(is_c, input_vec))
+
     def make_permutation_key(self, name):
         """
         Build an involutory permutation key: a fixed random sign vector.
