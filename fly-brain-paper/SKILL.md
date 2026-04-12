@@ -1,14 +1,14 @@
 ---
 name: sutra-fly-brain
-description: Compile and run Sutra programs on a simulated Drosophila mushroom body. Reproduces the result from "Running Sutra on a Simulated Fly Brain" — 4 program variants × 4 inputs = 16/16 decisions correct on a Brian2 spiking LIF model of the mushroom body (50 PNs → 2000 KCs → 1 APL → 20 MBONs), via the AST → FlyBrainVSA codegen pipeline.
+description: Compile and run Sutra programs on a simulated Drosophila mushroom body. Reproduces the result from "Running Sutra on the Drosophila Hemibrain Connectome" — 4 program variants × 4 inputs = 16/16 decisions correct on a Brian2 spiking LIF model of the mushroom body (50 PNs → 2000 KCs → 1 APL → 20 MBONs), via the AST → FlyBrainVSA codegen pipeline.
 allowed-tools: Bash(python *), Bash(pip *)
 ---
 
-# Running Sutra on a Simulated Fly Brain
+# Running Sutra on the Drosophila Hemibrain Connectome
 
 **Author: Emma Leonhart**
 
-This skill reproduces the results from *"Running Sutra on a Simulated Fly Brain: Methodology and Results"* — the first known demonstration of a programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. The target substrate is a Brian2 leaky-integrate-and-fire simulation of the *Drosophila melanogaster* mushroom body: 50 projection neurons → 2000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, with APL-enforced 5% KC sparsity.
+This skill reproduces the results from *"Running Sutra on the Drosophila Hemibrain Connectome: Methodology and Results"* — the first known demonstration of a programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. The target substrate is a Brian2 leaky-integrate-and-fire simulation of the *Drosophila melanogaster* mushroom body: 50 projection neurons → 2000 Kenyon cells → 1 anterior paired lateral neuron → 20 mushroom body output neurons, with APL-enforced 5% KC sparsity.
 
 **Source:** `fly-brain/` (runtime), `fly-brain-paper/` (this paper), `sdk/sutra-compiler/` (the reference compiler used for codegen).
 

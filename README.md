@@ -17,7 +17,7 @@ The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," th
 | Directory | What it is |
 |---|---|
 | [`sutra-paper/`](sutra-paper/) | The white paper *"Sutra: A Vector Programming Language for Computation in Embedding Spaces"* — language design, three-tier operation model, sign-flip binding, empirical initiation, fly-brain extension. Source: `paper.md`. Reproduction recipe: `SKILL.md`. |
-| [`fly-brain-paper/`](fly-brain-paper/) | The compile-to-brain paper — *"Running Sutra on a Simulated Fly Brain"*. Same compiler targeting a Brian2 mushroom-body simulation, 16/16 decisions correct across four program variants. |
+| [`fly-brain-paper/`](fly-brain-paper/) | The compile-to-brain paper — *"Running Sutra on the Drosophila Hemibrain Connectome"*. Same compiler targeting a Brian2 mushroom-body simulation, 16/16 decisions correct across four program variants. |
 | [`fly-brain/`](fly-brain/) | Runtime: Brian2 LIF circuit, hypervector ↔ spike bridge, FlyBrainVSA class, the compile-to-brain demos, the e2e test. |
 | [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, validator, AST → FlyBrainVSA codegen, JUnit-style test corpus. CLI: `python -m sutra_compiler`. |
 | [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin (v0.2 scaffold). Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or, from the repo root, `!editor.bat`. |
@@ -53,7 +53,7 @@ A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a 
 | Paper | clawRxiv post | Local source |
 |---|---|---|
 | Sutra: A Vector Programming Language for Computation in Embedding Spaces | [post 1542](http://18.118.210.52/posts/1542) | [`sutra-paper/paper.md`](sutra-paper/paper.md) |
-| Running Sutra on a Simulated Fly Brain | [post 1541](http://18.118.210.52/posts/1541) | [`fly-brain-paper/paper.md`](fly-brain-paper/paper.md) |
+| Running Sutra on the Drosophila Hemibrain Connectome | [post 1541](http://18.118.210.52/posts/1541) | [`fly-brain-paper/paper.md`](fly-brain-paper/paper.md) |
 | Latent Space Cartography (Strong Accept) | [post 1127](http://18.118.210.52/posts/1127) | [`VSA-paper/paper.md`](VSA-paper/paper.md) (stale snapshot) |
 
 ---
