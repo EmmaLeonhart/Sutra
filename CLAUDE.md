@@ -41,6 +41,19 @@ The embedding-mapping FOL discovery work provides the empirical foundation for S
 - **Keep this file up to date.** Record architectural decisions, conventions, and anything needed to work effectively.
 - **Update README.md regularly.** It should always reflect the current state of the project.
 
+## NO MATH SHORTCUTS (critical — re-read before every experiment)
+The formal specification of every Sutra operation lives in `planning/sutra-spec/`, especially `02-operations.md`, `04-defuzzification.md`, and `11-vsa-math.md`. Before implementing or modifying any operation (bind, unbind, bundle, snap, permute, is_true, rotation, conditional, loop), **read the relevant spec file and match the implementation to it**. If the spec says the operation runs on a substrate, it must actually run on that substrate — not run on numpy and be narrated as "running on the fly brain."
+
+**Shortcut behaviors that are forbidden:**
+- Implementing a "spiking-substrate" operation as a numpy matrix multiply and calling it fly-brain computation. `permute`, `make_rotation`, rotation application in loops, `conditional`, and `is_true` currently do this in `fly-brain/vsa_operations.py` — this is **the exact critique** the fly-brain-paper reviewer rejected us on, and it must be fixed, not papered over.
+- Running a Brian2 simulation, seeing *any* spikes come out, and declaring the operation "working" without comparing the circuit's output against what the spec says the operation must compute (e.g., rotation must produce direction-dependent output — a left-drive and a right-drive profile with correlation > 0.9 is NOT rotation, it's undifferentiated activity).
+- Adjusting bias currents or drive amplitudes until numbers "look biological" without a principled reason grounded in the connectome's actual physiology.
+- Declaring an experiment a success when it only confirms that *something happened*, rather than confirming the specific computational claim the spec defines.
+
+**When you catch yourself shortcutting:** stop, report the honest result (including negative findings), reference the spec, and either fix the implementation to match the spec or update the spec with a justified limitation. Both are acceptable; silently hand-waving is not.
+
+The language specification is load-bearing. It is not aspirational documentation — it is the contract that every operation implementation must satisfy.
+
 ## Architecture and Conventions
 - **Stack:** Python + numpy + rdflib + Ollama (mxbai-embed-large, 1024-dim)
 - **Source data:** Wikidata API + SPARQL endpoint
