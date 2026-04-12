@@ -82,14 +82,18 @@ class FixedFrameFlyBrainVSA(FlyBrainVSA):
     """
 
     def snap(self, vector):
+        bridge_kwargs = dict(n_kc=self.n_kc)
+        if self.use_hemibrain:
+            bridge_kwargs['use_hemibrain'] = True
         bridge = SpikeVSABridge(
-            dim=self.dim, seed=self.seed, n_kc=self.n_kc,
+            dim=self.dim, seed=self.seed, **bridge_kwargs,
         )
         # Fit the biologically-plausible learned MBON readout on this
         # bridge. Cache hit is trivial after the first snap in this
         # run, because every snap here uses the same seed/dim/n_kc
         # tuple. See spike_vsa_bridge.py for the training procedure.
-        bridge.fit_learned_readout()
+        n_samples = 80 if self.use_hemibrain else 20
+        bridge.fit_learned_readout(n_samples=n_samples)
         decoded, _ = bridge.round_trip(vector, self.snap_duration_ms)
         return decoded
 
@@ -239,15 +243,26 @@ def run_decision(vsa, prototypes, smell_vec, hunger_vec, prims,
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--hemibrain', action='store_true',
+                        help='Use real hemibrain connectome instead of random projection')
+    args = parser.parse_args()
+
     print("=" * 72)
     print("PERMUTATION CONDITIONALS ON THE FLY BRAIN")
     print("4 programs × 4 inputs, decision runs inside the mushroom body")
     print("=" * 72)
 
-    print("\nBuilding fly brain substrate (50 PNs → 2000 KCs → APL → 20 MBONs)...")
+    if args.hemibrain:
+        print("\nBuilding fly brain substrate from HEMIBRAIN connectome...")
+        vsa = FixedFrameFlyBrainVSA(seed=42, use_hemibrain=True)
+        print(f"  Real connectome: {vsa.dim} PNs → {vsa.n_kc} KCs → APL → 20 MBONs")
+    else:
+        print("\nBuilding fly brain substrate (50 PNs → 2000 KCs → APL → 20 MBONs)...")
+        vsa = FixedFrameFlyBrainVSA(dim=50, n_kc=2000, seed=42)
     print("Using fixed-frame snap so compile-time prototypes and decision-time")
     print("queries decode through the same PN->KC connectivity.")
-    vsa = FixedFrameFlyBrainVSA(dim=50, n_kc=2000, seed=42)
     rng = np.random.RandomState(vsa.seed)
 
     print("Building VSA primitives (smell/hunger bases + NOT keys)...")
