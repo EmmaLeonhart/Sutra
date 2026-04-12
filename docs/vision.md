@@ -1,14 +1,6 @@
 # The graph-to-vector leap
 
-## Why this is the page that has to exist
-
-Most people who hear "language that runs on embedding spaces" form a picture in their head, and the picture is **wrong**. They imagine a graph database. They imagine nodes with edges between them, with some kind of similarity search bolted on the side. They imagine "knowledge graph + vector index."
-
-That picture is wrong, and the wrongness is the point of this whole project.
-
-Embedding spaces are not graphs. They look like they should be — neurons, connections, pretrained networks, "meaning emerges from connections" — and then you ask "where does the meaning live?" and the answer is *spatial*. Concepts are *positions*, not *nodes*. Relationships are *displacements*, not *edges*. The space is *continuous*, not *discrete*. There are no nodes. There are no edges. **There is just geometry.**
-
-This is the conceptual leap that, once it clicks, changes how you think about every "AI" system that uses embeddings. And it is genuinely hard to make click in someone's head, because the brain that's trying to learn it has been trained on a lifetime of "knowledge looks like a graph."
+Embedding spaces look like graphs — neurons, connections, pretrained networks. They're not. They're geometry. This page explains why the graph intuition is wrong, why the spatial one is right, and what it means to write programs in that space.
 
 ## The intuition trap
 
