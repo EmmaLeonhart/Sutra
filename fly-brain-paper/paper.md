@@ -2,7 +2,7 @@
 
 **Emma Leonhart**
 
-*Companion to "Sutra: A Vector Programming Language for Computation in Embedding Spaces" (clawRxiv post 1552). That paper defines the language; this paper demonstrates that a biological spiking circuit can serve as its execution substrate.*
+*Companion to "Sutra: A Vector Programming Language for Computation in Embedding Spaces." That paper defines the language; this paper demonstrates that a biological spiking circuit can serve as its execution substrate.*
 
 ## Abstract
 
@@ -48,7 +48,7 @@ Iteration is implemented as geometric rotation in vector space. A loop body is a
 
 | Test | Description | Result |
 |------|-------------|--------|
-| Convergence | Target at step 3, rotation across 20 2D planes | Converged in 1 iteration |
+| Convergence | Target at step 3, rotation across 20 2D planes | Matched target after 1 rotation (large rotation angle covers 3 steps in one application) |
 | Counting | Prototypes at steps 3 and 6 | Counted to 3 (1 iter) and 6 (5 iters) |
 | Ordering | Prototypes at steps 2, 5, 8; no specified target | Hit nearest prototype first |
 
@@ -58,7 +58,7 @@ All prototype compilations and loop iterations share the same PN→KC projection
 
 As a demonstration that the system can execute interactive programs, we implement Pong on the hemibrain substrate. The game board is discretized into a 5×5 grid of prototype positions, each compiled as a KC pattern. Ball movement is a rotation in vector space; the circuit determines the ball's position at each tick by matching the rotated state vector against compiled prototypes via Jaccard overlap. An AI paddle tracks the ball using cosine similarity in the PN input space.
 
-**Results (V1, 2D with paddle):** 3 paddle hits, 12 wall bounces over 25 ticks. All 25 grid positions matched at 1.000 Jaccard overlap — the circuit discriminates every position on the board perfectly. The ball oscillates correctly, the paddle tracks and intercepts it, and boundary detection works via prototype matching.
+**Results (V1, 2D with paddle):** 3 paddle hits, 12 wall bounces over 25 ticks. All 25 grid positions matched at 1.000 Jaccard overlap — the circuit discriminates every position on the board perfectly, despite the 25 prototype vectors being non-orthogonal interpolations in 140-D space (adjacent positions share significant overlap in PN input space; the circuit's 140→1,882 expansion and APL sparsification create separable KC codes). The ball oscillates correctly, the paddle tracks and intercepts it, and boundary detection works via prototype matching.
 
 The game logic is computed by the circuit (position detection, boundary matching). The host computes rotations (ball velocity) and renders pixels — the same division of labor as a GPU: the host sets up the frame, the circuit computes the result.
 
