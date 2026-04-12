@@ -66,7 +66,7 @@ class SutraWorkspaceToolWindowFactory : ToolWindowFactory {
         val treeModel = DefaultTreeModel(treeRoot)
         val tree = JTree(treeModel)
         tree.selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
-        tree.rootVisible = true
+        tree.isRootVisible = true
         tree.showsRootHandles = true
 
         tree.addMouseListener(object : MouseAdapter() {
