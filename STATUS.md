@@ -16,6 +16,20 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 - **I/O rate coding** — centered rate encoding of hypervectors as PN currents, linear MBON readout via ridge regression. Works.
 - **Compiler pipeline** — `sdk/sutra-compiler/` emits Python that calls `fly-brain/vsa_operations.py`. `.su` programs (e.g. `permutation_conditional.su`) compile through it.
 
+## Active investigation
+
+**3/16 branching failures are per-program, not statistical.** The "13/16 accuracy" number in the paper has been treated as if the 3 errors were Poisson/run-to-run noise. Smoke run of `scale_eval_conditional.py` (3 runs x 16 trials = 48 trials) shows:
+- Program A: 100% (uses NO NOT keys)
+- Program B: 50% ± 20%
+- Program C: 67% ± 12%
+- Program D: 58% ± 12%
+
+Programs B/C/D all apply at least one NOT permutation key (sign_flip). Program A applies none. The failure pattern is structural to the sign_flip path, not statistical. This reframes the problem entirely: it is debuggable, likely a specific bug in `vsa.sign_flip` or in how NOT keys interact with `snap`. Prior sessions + AI reviewers all misread it as noise. **Do not report accuracy numbers until this is root-caused.**
+
+## CI pipeline state
+
+Recent workflow changes (b3da92e, 1ac0317) migrated papers-CI and competition-cron from direct-to-master push to branch+PR via `gh pr create`. Both workflows now failing at the GitHub Actions infrastructure level (runs complete in 0s with 0 jobs — YAML validates locally but GH rejects). Root cause not yet identified. **Peer reviews likely being lost while CI is broken.** Must be fixed before further paper pushes or we accumulate more lost context.
+
 ## Open / Known Gaps
 
 - **Rotation from real wiring** — ALPN→LHLN is rank 415, cond 1e16, compressive, NOT near-orthogonal. Real-wire R is not a rotation. Only bites `loop(condition)` with data-dependent termination. Open work: find a connectome motif with adequate near-orthogonality, or distribute across multiple projections. `_exploratory_cx_ring_attractor.py` tried CX and got corr 0.97 between left/right drive — not directional.
