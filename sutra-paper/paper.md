@@ -554,3 +554,4 @@ Trouillon, T., et al. (2016). Complex embeddings for simple link prediction. ICM
 Vilnis, L., et al. (2018). Probabilistic embedding of knowledge graphs with box lattice measures. ACL.
 
 Wang, Z., et al. (2014). Knowledge graph embedding by translating on hyperplanes. AAAI.
+
