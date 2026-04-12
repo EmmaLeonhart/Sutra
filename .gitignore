@@ -1,6 +1,9 @@
 # Public FOL discovery — merged via subtree, no longer ignored
 # public-fol-discovery/
 
+# Model weights (large binary files — never commit)
+*.gguf
+
 # Python
 __pycache__/
 *.py[cod]
