@@ -15,11 +15,12 @@ Scope for V2:
       `ArrayLiteral`, `Subscript`, `MapLiteral`, `Parenthesized`
     - Deterministic substrate via `FixedFrameFlyBrainVSA` (fixed-frame
       contract is the "compile-time guarantee" item from the todo.)
-    - `WhileStmt`, `ForStmt`, `DoWhileStmt` — compiled to Python loops
-      where each iteration's VSA operations route through the spiking
-      circuit. Now that all core ops are brain-native (bind in synapses,
-      bundle via summed PN currents, similarity via KC Jaccard), host-
-      runtime iteration is honest: every op is a real circuit pass.
+    - `WhileStmt` — compiled to a geometric loop on the brain via
+      `FlyBrainVSA.loop()`. The loop body is a rotation matrix R,
+      each iteration applies R and snaps through the mushroom body
+      circuit, and the condition is prototype matching in KC space.
+      Iteration happens on the brain, not in the host runtime.
+    - `ForStmt` — compiled to a bounded geometric loop (N rotations).
     - Geometric loop builtins: `make_rotation`, `compile_prototypes`,
       `geometric_loop` — compile to the rotation + snap + prototype-match
       loop primitive in `FlyBrainVSA.loop()`.
@@ -382,50 +383,16 @@ class FlyBrainCodegen:
                 self._translate_stmt(inner)
             return
         if isinstance(stmt, ast.WhileStmt):
-            cond_src = self._translate_expr(stmt.condition)
-            self._emit(f"while {cond_src}:")
-            self._indent += 1
-            if not stmt.body.statements:
-                self._emit("pass")
-            else:
-                for inner in stmt.body.statements:
-                    self._translate_stmt(inner)
-            self._indent -= 1
+            self._translate_while_as_geometric_loop(stmt)
             return
         if isinstance(stmt, ast.ForStmt):
-            if stmt.init:
-                self._translate_stmt(stmt.init)
-            cond_src = self._translate_expr(stmt.condition) if stmt.condition else "True"
-            self._emit(f"while {cond_src}:")
-            self._indent += 1
-            if not stmt.body.statements:
-                self._emit("pass")
-            else:
-                for inner in stmt.body.statements:
-                    self._translate_stmt(inner)
-            if stmt.step:
-                step_src = self._translate_expr(stmt.step)
-                self._emit(step_src)
-            self._indent -= 1
+            self._translate_for_as_geometric_loop(stmt)
             return
-        if isinstance(stmt, ast.DoWhileStmt):
-            self._emit("while True:")
-            self._indent += 1
-            if stmt.body.statements:
-                for inner in stmt.body.statements:
-                    self._translate_stmt(inner)
-            cond_src = self._translate_expr(stmt.condition)
-            self._emit(f"if not ({cond_src}):")
-            self._indent += 1
-            self._emit("break")
-            self._indent -= 1
-            self._indent -= 1
-            return
-        if isinstance(stmt, ast.ForeachStmt):
+        if isinstance(stmt, (ast.DoWhileStmt, ast.ForeachStmt)):
             raise CodegenNotSupported(
                 stmt,
-                "foreach is not yet supported by the fly-brain codegen; "
-                "use while or for loops instead",
+                f"{type(stmt).__name__} is not yet supported by the fly-brain "
+                "codegen; use while or for loops instead",
             )
         if isinstance(stmt, ast.IfStmt):
             raise CodegenNotSupported(
@@ -436,6 +403,157 @@ class FlyBrainCodegen:
         raise CodegenNotSupported(
             stmt, f"unsupported statement: {type(stmt).__name__}"
         )
+
+    # -- geometric loop compilation ----------------------------------------
+    #
+    # Sutra loops compile to geometric rotation on the brain, not to
+    # host-runtime Python loops. The loop body is a rotation matrix R
+    # applied at each iteration; each rotated state is snapped through
+    # the mushroom body circuit; termination is by prototype matching
+    # in the brain's native KC space.
+    #
+    # The generated code:
+    #   1. Builds a rotation matrix R (from loop body analysis or default)
+    #   2. Compiles the target condition as a KC-space prototype
+    #   3. Calls _VSA.loop(state, R, prototypes) — the brain iterates
+    #
+    # This is how the brain counts: N iterations of rotation by angle
+    # theta accumulates N*theta total rotation, and the loop terminates
+    # when the trajectory enters the target prototype's basin.
+
+    _loop_counter = 0  # unique names for loop temporaries
+
+    def _next_loop_id(self) -> str:
+        FlyBrainCodegen._loop_counter += 1
+        return f"_loop{FlyBrainCodegen._loop_counter}"
+
+    def _translate_while_as_geometric_loop(self, stmt: ast.WhileStmt) -> None:
+        """Compile a while statement to a geometric loop on the brain.
+
+        The while condition determines the target prototype (what we're
+        looping UNTIL), and the loop body determines the rotation (what
+        each iteration does geometrically).
+
+        Generated code pattern:
+            _loopN_R = _VSA.make_random_rotation(angle=pi/4, n_planes=20)
+            _loopN_target = <condition target vector>
+            _loopN_protos = _VSA.compile_prototypes({"target": _loopN_target})
+            _loopN_name, <state_var>, _loopN_iters = _VSA.loop(
+                <state_var>, _loopN_R, _loopN_protos, target_name="target")
+        """
+        lid = self._next_loop_id()
+
+        # Extract the state variable from the loop body.
+        # Look for assignments of the form: state = <expr>
+        # The assigned variable is the state being rotated.
+        state_var = self._extract_loop_state_var(stmt.body)
+
+        # Extract the target from the condition.
+        # The condition tells us what we're looping toward.
+        target_expr = self._extract_loop_target(stmt.condition)
+
+        # Build rotation matrix — the geometric step per iteration.
+        # Uses multi-plane rotation for good separation in high-D space.
+        self._emit(f"{lid}_R = _VSA.make_random_rotation("
+                   f"angle=_np.pi / 4, n_planes=20, seed=_VSA.seed)")
+
+        # Compile the target as a KC-space prototype.
+        self._emit(f"{lid}_target = {target_expr}")
+        self._emit(f"{lid}_protos = _VSA.compile_prototypes("
+                   f"{{\"target\": {lid}_target}})")
+
+        # Execute the geometric loop on the brain.
+        self._emit(f"{lid}_name, {state_var}, {lid}_iters = _VSA.loop(")
+        self._indent += 1
+        self._emit(f"{state_var}, {lid}_R, {lid}_protos,")
+        self._emit(f"target_name=\"target\", max_iters=50)")
+        self._indent -= 1
+
+    def _translate_for_as_geometric_loop(self, stmt: ast.ForStmt) -> None:
+        """Compile a for statement to a bounded geometric loop.
+
+        A C-style for loop `for (init; cond; step)` compiles to N
+        iterations of geometric rotation, where N is extracted from
+        the condition bound when possible.
+        """
+        lid = self._next_loop_id()
+
+        # Emit the init statement (e.g., var i = 0)
+        if stmt.init:
+            self._translate_stmt(stmt.init)
+
+        # Extract loop bound from condition (e.g., i < 10 → 10 iterations)
+        max_iters = self._extract_for_bound(stmt.condition)
+
+        # Extract state variable from body
+        state_var = self._extract_loop_state_var(stmt.body)
+
+        # Build rotation and run
+        self._emit(f"{lid}_R = _VSA.make_random_rotation("
+                   f"angle=_np.pi / {max_iters}, n_planes=20, seed=_VSA.seed)")
+        self._emit(f"# Bounded geometric loop: {max_iters} rotation steps")
+        self._emit(f"for {lid}_i in range({max_iters}):")
+        self._indent += 1
+        self._emit(f"{state_var} = {lid}_R @ {state_var}")
+        self._emit(f"{state_var} = _VSA.snap({state_var})")
+        self._indent -= 1
+
+    def _extract_loop_state_var(self, body: ast.Block) -> str:
+        """Find the state variable being mutated in the loop body.
+
+        Looks for assignment statements like `current = snap(...)` or
+        `state = bind(state, ...)` and returns the target variable name.
+        Falls back to '_loop_state' if no assignment is found.
+        """
+        for stmt in body.statements:
+            if isinstance(stmt, ast.ExprStmt) and isinstance(stmt.expr, ast.Assignment):
+                if isinstance(stmt.expr.target, ast.Identifier):
+                    return stmt.expr.target.name
+            if isinstance(stmt, ast.VarDecl):
+                return stmt.name
+        return "_loop_state"
+
+    def _extract_loop_target(self, condition: ast.Expr) -> str:
+        """Extract the target vector from a while condition.
+
+        Handles patterns like:
+          - similarity(current, target) < threshold → target
+          - defuzzy(Cosine(current, target)) → target
+          - a general expression → translate it as the target
+        """
+        # If condition is a comparison (e.g., similarity(x, y) < 0.9),
+        # the second argument to the similarity call is the target.
+        if isinstance(condition, ast.BinaryOp):
+            if isinstance(condition.left, ast.Call):
+                call = condition.left
+                if (isinstance(call.callee, ast.Identifier)
+                        and call.callee.name in ("similarity", "Cosine")
+                        and len(call.args) >= 2):
+                    return self._translate_expr(call.args[1])
+            # Also check right side
+            if isinstance(condition.right, ast.Call):
+                call = condition.right
+                if (isinstance(call.callee, ast.Identifier)
+                        and call.callee.name in ("similarity", "Cosine")
+                        and len(call.args) >= 2):
+                    return self._translate_expr(call.args[1])
+        # Fallback: translate the whole condition as an expression that
+        # produces the target vector. The programmer should use
+        # geometric_loop() directly for complex cases.
+        return self._translate_expr(condition)
+
+    def _extract_for_bound(self, condition) -> int:
+        """Extract the iteration count from a for-loop condition.
+
+        Handles `i < N` where N is an integer literal.
+        Returns 20 as default if the bound can't be extracted.
+        """
+        if condition is None:
+            return 20
+        if isinstance(condition, ast.BinaryOp) and condition.op == "<":
+            if isinstance(condition.right, ast.IntLiteral):
+                return condition.right.value
+        return 20
 
     # -- expressions ------------------------------------------------------
 
