@@ -136,10 +136,12 @@ class FlyBrainCodegen:
     """
 
     def __init__(self, *, runtime_dim: int = 50, runtime_seed: int = 42,
-                 runtime_n_kc: int = 2000) -> None:
+                 runtime_n_kc: int = 2000,
+                 runtime_use_hemibrain: bool = False) -> None:
         self.runtime_dim = runtime_dim
         self.runtime_seed = runtime_seed
         self.runtime_n_kc = runtime_n_kc
+        self.runtime_use_hemibrain = runtime_use_hemibrain
         self._lines: List[str] = []
         self._indent = 0
         # Maps variable names to the *key* type of a map-typed declaration
@@ -187,25 +189,36 @@ class FlyBrainCodegen:
         self._emit()
         self._emit("def snap(self, vector):")
         self._indent += 1
+        if self.runtime_use_hemibrain:
+            self._emit("bridge_kwargs = dict(use_hemibrain=True)")
+        else:
+            self._emit("bridge_kwargs = dict(n_kc=self.n_kc)")
         self._emit("bridge = SpikeVSABridge(")
         self._indent += 1
-        self._emit("dim=self.dim, seed=self.seed, n_kc=self.n_kc,")
+        self._emit("dim=self.dim, seed=self.seed, **bridge_kwargs,")
         self._indent -= 1
         self._emit(")")
         self._emit("# Fit the biologically-plausible learned MBON readout.")
         self._emit("# Class-level cache in SpikeVSABridge makes this a")
         self._emit("# trivial hit on every call after the first.")
-        self._emit("bridge.fit_learned_readout()")
+        n_samples = 80 if self.runtime_use_hemibrain else 20
+        self._emit(f"bridge.fit_learned_readout(n_samples={n_samples})")
         self._emit("decoded, _ = bridge.round_trip(vector, self.snap_duration_ms)")
         self._emit("return decoded")
         self._indent -= 1
         self._indent -= 1
         self._emit()
         self._emit()
-        self._emit(
-            f"_VSA = _FixedFrameFlyBrainVSA(dim={self.runtime_dim}, "
-            f"n_kc={self.runtime_n_kc}, seed={self.runtime_seed})"
-        )
+        if self.runtime_use_hemibrain:
+            self._emit(
+                f"_VSA = _FixedFrameFlyBrainVSA("
+                f"seed={self.runtime_seed}, use_hemibrain=True)"
+            )
+        else:
+            self._emit(
+                f"_VSA = _FixedFrameFlyBrainVSA(dim={self.runtime_dim}, "
+                f"n_kc={self.runtime_n_kc}, seed={self.runtime_seed})"
+            )
         self._emit()
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
@@ -453,6 +466,7 @@ def translate_module(
     runtime_dim: int = 50,
     runtime_seed: int = 42,
     runtime_n_kc: int = 2000,
+    runtime_use_hemibrain: bool = False,
 ) -> str:
     """Translate a parsed Sutra `Module` to a Python source string.
 
@@ -463,5 +477,6 @@ def translate_module(
         runtime_dim=runtime_dim,
         runtime_seed=runtime_seed,
         runtime_n_kc=runtime_n_kc,
+        runtime_use_hemibrain=runtime_use_hemibrain,
     )
     return gen.translate(module)
