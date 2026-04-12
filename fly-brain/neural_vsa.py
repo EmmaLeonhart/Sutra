@@ -207,6 +207,86 @@ def neural_bind(a: np.ndarray, role: np.ndarray, *, seed: int = 0) -> np.ndarray
 
 
 # -------------------------------------------------------------
+# rotation / general linear map
+# -------------------------------------------------------------
+
+def neural_linear_map(M: np.ndarray, v: np.ndarray, *, seed: int = 0) -> np.ndarray:
+    """
+    Compute M @ v as spiking dynamics in Brian2. Works for any real
+    matrix M, including rotation matrices (orthogonal, detM=1) used
+    for eigenrotation loops.
+
+    Each input dimension j is encoded as a Poisson group at rate
+    `_rate_of(v_j)`. Output neuron i receives synapses from every
+    input j with weight `M[i, j] * W_MV` — excitatory if M[i, j] > 0,
+    inhibitory if < 0. The leaky-integrator steady-state voltage at i
+    is (sum_j M[i,j]) * BASELINE*w*tau + GAIN*w*tau * (M @ v)_i, which
+    we invert to recover (M @ v).
+
+    No host-side matmul is performed on v; M is only used to set the
+    pattern of synaptic weights (i.e. the connectome of this particular
+    circuit), which is exactly what a real learned linear transform is
+    in biology: a pattern of synaptic weights.
+    """
+    import brian2 as b2
+    b2.start_scope()
+    b2.seed(seed)
+    d_out, d_in = M.shape
+    assert v.shape == (d_in,)
+
+    in_v = b2.PoissonGroup(d_in, rates=_rate_of(v) * b2.Hz)
+
+    eqs = 'dv/dt = (v_rest - v) / tau : volt'
+    out = b2.NeuronGroup(
+        d_out, eqs, method='exact',
+        namespace={'v_rest': 0*b2.mV, 'tau': TAU_MS*b2.ms},
+    )
+    out.v = 0 * b2.mV
+
+    # Build synapses with per-connection weight. Brian2 lets us store `w`
+    # as a per-synapse variable.
+    syn = b2.Synapses(in_v, out, model='w : volt', on_pre='v_post += w')
+    i_idx, j_idx = np.nonzero(M)          # input dim j, output dim i — note np.nonzero(M) returns (row=out, col=in)
+    out_idx, in_idx = i_idx, j_idx
+    syn.connect(i=in_idx.astype(np.int64), j=out_idx.astype(np.int64))
+    syn.w = (M[out_idx, in_idx] * W_MV) * b2.mV
+
+    mon = b2.StateMonitor(out, 'v', record=True)
+    net = b2.Network(in_v, out, syn, mon)
+    net.run(SIM_MS * b2.ms)
+
+    t_ms = np.asarray(mon.t / b2.ms)
+    mask = t_ms > 100.0
+    mean_v_mV = np.mean(np.asarray(mon.v / b2.mV)[:, mask], axis=1)
+
+    # Baseline per output: (sum_j M[i,j]) * BASELINE * w * tau
+    row_sum = M.sum(axis=1)
+    baseline_mV = row_sum * BASELINE_HZ * W_MV * TAU_MS * 1e-3
+    return (mean_v_mV - baseline_mV) / (GAIN_HZ * W_MV * TAU_MS * 1e-3)
+
+
+def neural_rotate(v: np.ndarray, planes: list, *, seed: int = 0) -> np.ndarray:
+    """
+    Compute R @ v where R is a composition of Givens rotations, on
+    spiking neurons. `planes` is a list of (i, j, angle_rad) triples.
+
+    Builds the explicit rotation matrix R at compile time (this is
+    circuit specification — the pattern of synaptic weights — not the
+    computation itself, just as the PN->KC connectome is specified at
+    compile time by FlyWire), then runs v through the spiking network.
+    """
+    d = len(v)
+    R = np.eye(d, dtype=np.float64)
+    for (i, j, alpha) in planes:
+        G = np.eye(d, dtype=np.float64)
+        c, s = np.cos(alpha), np.sin(alpha)
+        G[i, i] = c; G[j, j] = c
+        G[i, j] = -s; G[j, i] = s
+        R = G @ R
+    return neural_linear_map(R, v, seed=seed)
+
+
+# -------------------------------------------------------------
 # Self-test
 # -------------------------------------------------------------
 
@@ -241,11 +321,37 @@ if __name__ == '__main__':
     sign_match_bind = float((np.sign(ref_bind) == np.sign(got_bind)).mean())
     print(f"  bind:    cos={cos_bind:.3f}  sign_match={sign_match_bind:.2f}")
 
+    # rotation: four Givens rotations in random 2D planes
+    planes = [
+        (0, 1, 0.7), (5, 12, -0.4),
+        (3, 20, 0.9), (8, 25, -1.1),
+    ]
+    # Build reference R the same way neural_rotate does, apply to a.
+    R_ref = np.eye(dim)
+    for (i, j, alpha) in planes:
+        G = np.eye(dim); c, s = np.cos(alpha), np.sin(alpha)
+        G[i, i] = c; G[j, j] = c; G[i, j] = -s; G[j, i] = s
+        R_ref = G @ R_ref
+    ref_rot = R_ref @ a
+    # Rotation accumulates 32*32 synapses worth of Poisson variance, so
+    # give it a longer averaging window than bundle/bind.
+    import brian2 as _b2
+    _save = globals()['SIM_MS']
+    globals()['SIM_MS'] = 1500.0
+    got_rot = neural_rotate(a, planes)
+    globals()['SIM_MS'] = _save
+    cos_rot = float(
+        np.dot(ref_rot, got_rot)
+        / (np.linalg.norm(ref_rot) * np.linalg.norm(got_rot) + 1e-12)
+    )
+    sign_match_rot = float((np.sign(ref_rot) == np.sign(got_rot)).mean())
+    print(f"  rotate:  cos={cos_rot:.3f}  sign_match={sign_match_rot:.2f}")
+
     # Pass criteria: cosine > 0.85 and sign_match > 0.9.
-    # Poisson variance at this rate and window can flip a few dims; that's
-    # fine, snap-to-nearest is downstream exactly to clean up this noise.
     ok_bundle = cos_bundle > 0.85 and sign_match_bundle > 0.9
     ok_bind = cos_bind > 0.85 and sign_match_bind > 0.9
+    ok_rot = cos_rot > 0.85 and sign_match_rot > 0.9
     print()
     print(f"  bundle {'PASS' if ok_bundle else 'FAIL'}")
     print(f"  bind   {'PASS' if ok_bind else 'FAIL'}")
+    print(f"  rotate {'PASS' if ok_rot else 'FAIL'}")
