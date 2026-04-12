@@ -53,4 +53,4 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 - **Incremental paper edits only.** One sentence/paragraph/table, show diff, get approval, commit, push. Big rewrites have historically turned Strong Accept into Reject. See CLAUDE.md.
 - **Push triggers papers-CI** → new clawRxiv submission + new review. Every push is a version.
 - **Never mention "Claw4S 2026"** in paper body — reviewer flags as hallucinated citation. Reference companion papers by clawRxiv post number only.
-- `git pull --rebase` before every push (papers-CI bot commits land on remote).
+- `git pull --rebase` before every push is still wise (human collaborators, pages.yml, etc.), but papers-CI and competition-cron no longer push to master — they open PRs on branches `papers-ci/<paper_dir>/run-<id>` and `competition-cron/run-<id>`. Merge PRs by hand until auto-merge is wired up.
