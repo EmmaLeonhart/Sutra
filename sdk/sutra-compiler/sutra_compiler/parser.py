@@ -553,6 +553,8 @@ class Parser:
             return self._parse_foreach()
         if tok.kind is TokenKind.KW_DO:
             return self._parse_do_while()
+        if tok.kind is TokenKind.KW_LOOP:
+            return self._parse_loop()
         if tok.kind is TokenKind.KW_TRY:
             return self._parse_try()
         if tok.kind is TokenKind.KW_RETURN:
@@ -786,6 +788,53 @@ class Parser:
             body=body,
             condition=cond,
             span=SourceSpan(start=start.start, end=end_span.end),
+        )
+
+    def _parse_loop(self) -> Optional[ast.LoopStmt]:
+        """Parse Sutra's unified loop construct.
+
+        Three forms:
+          loop (10) { ... }            bounded, unrolls at compile time
+          loop (10 as i) { ... }       bounded with index variable
+          loop (expr) { ... }          eigenrotation (condition-based)
+
+        Disambiguation: if the expression inside parens is an integer
+        literal (optionally followed by `as IDENT`), it's bounded.
+        Otherwise it's a condition for eigenrotation.
+        """
+        start = self._current_span()
+        self._advance()  # loop
+        self._expect(TokenKind.LPAREN, "`(` after `loop`")
+
+        # Try to determine if this is a bounded loop (integer literal)
+        # or a condition-based loop (any other expression).
+        count: Optional[ast.Expr] = None
+        index_var: Optional[str] = None
+        condition: Optional[ast.Expr] = None
+
+        expr = self._parse_expr()
+
+        # Check if this is a bounded loop: the expression is an integer
+        # literal, possibly followed by `as identifier`.
+        if isinstance(expr, ast.IntLiteral):
+            count = expr
+            if self._match(TokenKind.KW_AS):
+                name_tok = self._expect(TokenKind.IDENT, "index variable name after `as`")
+                index_var = name_tok.lexeme if name_tok else "_i"
+        else:
+            # Condition-based (eigenrotation) loop.
+            condition = expr
+
+        self._expect(TokenKind.RPAREN, "`)` to close `loop` header")
+        body = self._parse_block()
+        if body is None:
+            return None
+        return ast.LoopStmt(
+            count=count,
+            index_var=index_var,
+            condition=condition,
+            body=body,
+            span=SourceSpan(start=start.start, end=body.span.end),
         )
 
     def _parse_try(self) -> Optional[ast.TryStmt]:

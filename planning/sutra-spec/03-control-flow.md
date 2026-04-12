@@ -126,40 +126,61 @@ The geometric loop has direct biological analogues in insect neuroscience:
 - **The prototype matching** is what MBONs do: compare the current KC pattern against stored patterns from prior associative learning.
 - **The ring attractor** in the insect central complex (Seelig & Jayaraman 2015) implements a continuous rotation for heading-direction computation. A bump of neural activity rotates around a ring of neurons, and goals modulate the drift rate. Geometric loops in Sutra are structurally analogous.
 
-### Compilation
+### Syntax: The `loop` Keyword
 
-In Sutra source code, a `while` loop compiles to a geometric loop:
+Sutra uses a single `loop` keyword for all iteration. The argument inside the parentheses determines which kind of loop it is:
+
+#### Bounded loop: `loop (N)` — unrolls at compile time
 
 ```sutra
-// Source
-while (similarity(current, target) < 0.9) {
+loop (3) {
+    state = snap(bind(transform, state));
+}
+```
+
+The compiler unrolls this to 3 copies of the body. No rotation matrix, no circuit iteration, no eigenrotation. The body is emitted as straight-line code. This is the default, easy, preferred loop — use it whenever you know the count.
+
+#### Bounded loop with index: `loop (N as i)`
+
+```sutra
+loop (10 as i) {
+    state = snap(bind(steps[i], state));
+}
+```
+
+Same as `loop (N)` but provides an index variable `i` counting from 0 to N-1. When N is a literal integer, the compiler unrolls. When N is an expression, it emits a bounded iteration.
+
+#### Eigenrotation loop: `loop (condition)` — the brain iterates
+
+```sutra
+loop (similarity(current, target) < 0.9) {
     current = snap(bind(current, step));
 }
+```
 
-// Compiles to (pseudocode):
+When the argument is a boolean expression (not an integer literal), the compiler emits an eigenrotation loop. This compiles to:
+
+```
 R = make_random_rotation(angle=π/4, n_planes=20)
-prototypes = compile_prototypes({"target": target})  // target → KC pattern
+prototypes = compile_prototypes({"target": target})
 (matched, current, iters) = loop(current, R, prototypes, target="target")
 ```
 
-The condition `similarity(current, target) < 0.9` is compiled as: "loop until the KC pattern matches the prototype compiled from `target`." The loop body is replaced by the rotation matrix R — the body's computational effect is the geometric step.
+The condition `similarity(current, target) < 0.9` is compiled as: "loop until the KC pattern matches the prototype compiled from `target`." The loop body is replaced by the rotation matrix R. The brain iterates via geometric rotation; the host runtime just initiates the `loop()` call.
 
-A `for` loop with a known bound compiles to a bounded rotation:
+**Writing an eigenrotation loop is intentionally harder than a bounded loop.** `loop (10)` is trivial. `loop (condition)` forces you to think about what the convergence target is, because eigenrotation is genuinely more complex — it requires building a rotation matrix, compiling prototypes, and matching in KC space.
 
-```sutra
-// Source
-for (var i = 0; i < N; i++) {
-    state = snap(state);
-}
+### Why One Keyword
 
-// Compiles to:
-R = make_random_rotation(angle=π/N, n_planes=20)
-for i in range(N):
-    state = R @ state
-    state = snap(state)    // each step goes through the circuit
-```
+The `loop` keyword unifies bounded and unbounded iteration under a single construct. The complexity gap is in the argument, not the syntax:
 
-The `foreach` and `do-while` constructs are not yet supported by the fly-brain codegen. Use `while` or `for` instead.
+| Form | Argument | Compilation | Complexity |
+|------|----------|-------------|------------|
+| `loop (10)` | integer literal | unrolls at compile time | trivial |
+| `loop (10 as i)` | integer + binding | unrolls with index | trivial |
+| `loop (expr)` | boolean expression | eigenrotation on brain | requires geometric thinking |
+
+This design makes bounded loops the path of least resistance. You reach for eigenrotation only when you need convergence-based termination — and the syntax makes you state what you're converging *toward*.
 
 ### Explicit Geometric Loop Builtins
 
@@ -181,8 +202,12 @@ These expose the loop primitive directly, without the compiler needing to infer 
 - The prototype table is constructed dynamically
 - The loop geometry matters for the algorithm's correctness
 
+### Legacy `while` and `for`
+
+The C#-style `while (cond) { body }` and `for (init; cond; step) { body }` constructs are still supported by the parser for backward compatibility. Both compile to eigenrotation (geometric loop) on the fly-brain backend. New code should use `loop` instead — it is clearer about the distinction between bounded and convergence-based iteration.
+
 ## What Is NOT Supported
 
 - **Host-runtime iteration** (Python `while` with brain ops inside): this is explicitly rejected. The whole point is that the brain does the iteration via geometric rotation. "Iterate in the host, call snap each step" is cheating — it reduces the biological substrate to a co-processor rather than treating it as the computational medium.
 - **Arbitrary loop bodies as rotations**: not every computation can be expressed as a single rotation matrix. The codegen handles the common case (convergence loops, bounded iteration). For complex loop bodies, use the explicit `geometric_loop` builtins and construct the rotation manually.
-- **Unbounded iteration without prototype matching**: a pure eigenrotation loops forever. Termination requires either a prototype match or a fixed bound. There is no `while (true)` on the brain — every loop must have a geometric termination condition.
+- **Unbounded iteration without prototype matching**: a pure eigenrotation loops forever. Termination requires either a prototype match or a fixed bound. There is no `loop (true)` on the brain — every loop must have a geometric termination condition.
