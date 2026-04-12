@@ -503,6 +503,52 @@ class SpikeVSABridge:
             return 0.0
         return float(intersection / union)
 
+    def rotate_on_brain(self, vector, rotation_matrix, duration_ms=200,
+                        decoder='learned'):
+        """
+        Apply a rotation to a vector and process through the spiking circuit.
+
+        The rotation R is applied at the PN input layer: the circuit
+        receives encode(R @ v) and computes sparsify(W @ encode(R @ v)).
+        This models lateral processing in the antennal lobe — real
+        PNs have lateral connections that transform the odor
+        representation before it reaches the mushroom body calyx.
+
+        The rotation + projection + sparsification pipeline is what
+        makes geometric loops work: each iteration moves the state
+        vector along a trajectory in PN space, and the mushroom body
+        projects each rotated state into a sparse KC code.  The loop
+        terminates when the KC code matches a target prototype.
+
+        Args:
+            vector: input hypervector
+            rotation_matrix: orthogonal matrix R of shape (dim, dim)
+            duration_ms: simulation duration
+            decoder: 'learned' or 'pinv'
+
+        Returns:
+            decoded hypervector representing the rotated + projected state
+        """
+        rotated = rotation_matrix @ vector
+        currents = self.encode(rotated)
+        self.run(currents, duration_ms=duration_ms)
+        if decoder == 'learned':
+            return self.decode_learned(duration_ms)
+        return self.decode_kc_pinv(duration_ms)
+
+    def snap_to_kc_pattern(self, vector, duration_ms=200):
+        """
+        Encode a vector, run through the circuit, return the binary
+        KC activation pattern.  Used for building prototype tables
+        and for convergence checks in loops.
+
+        Returns:
+            binary array of shape (n_kc,) — the brain's native code
+        """
+        currents = self.encode(vector)
+        self.run(currents, duration_ms=duration_ms)
+        return self.get_kc_pattern(duration_ms)
+
 
 def cosine_similarity(a, b):
     """Cosine similarity between two vectors."""
