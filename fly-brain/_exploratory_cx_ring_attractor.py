@@ -1,4 +1,24 @@
 """
+EXPLORATORY — NOT PART OF THE SUTRA SPEC.
+
+Kept for reference; not the substrate for rotation or iteration in
+Sutra. Per planning/sutra-spec/02-operations.md, rotation R is a
+tier-2 algebraic op that runs as host-side linear algebra; only
+tier-3 ops (snap, cone, hop) run on the connectome. The fly-brain
+paper's snap+prototype-match demo already covers tier-3 correctly.
+
+This file was an attempt to push rotation onto a Brian2 spiking
+simulation of the EPG/PEN/PEG/ER central-complex ring attractor in
+response to a reviewer who read our numpy rotation as "cheating."
+That framing was mistaken — the spec's tier split is principled.
+The self-test also showed the circuit did not distinguish left vs
+right drive (corr ~ 0.97), so it isn't currently functional either.
+
+Do not import from production code paths. Left here so the
+investigation isn't lost.
+
+--- original docstring below ---
+
 Central-complex ring-attractor Brian2 model, built from the FlyWire
 v783 connectome.
 
