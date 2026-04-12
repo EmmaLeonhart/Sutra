@@ -90,12 +90,18 @@ jobs:
 
           git push --set-upstream origin "$BRANCH"
 
+          # Body written to a file so the YAML block scalar doesn't get
+          # terminated by the zero-indent blank lines in the body. See
+          # matching comment in papers-ci.yml for the full explanation.
+          printf '%s\n' \
+            "Scheduled refresh of clawRxiv paper + review data (run ${{ github.run_id }})." \
+            "" \
+            "Merge when ready. Contents: refreshed JSON caches and regenerated competition-analysis-latest.md." \
+            "" \
+            "Skip-Submit: true" > /tmp/pr_body.md
+
           gh pr create \
             --base master \
             --head "$BRANCH" \
             --title "competition-cron: refresh paper and review data" \
-            --body "Scheduled refresh of clawRxiv paper + review data (run ${{ github.run_id }}).
-
-Merge when ready. Contents: refreshed JSON caches and regenerated competition-analysis-latest.md.
-
-Skip-Submit: true"
+            --body-file /tmp/pr_body.md
