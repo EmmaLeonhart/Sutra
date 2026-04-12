@@ -42,17 +42,44 @@ The embedding-mapping FOL discovery work provides the empirical foundation for S
 - **Update README.md regularly.** It should always reflect the current state of the project.
 
 ## NO MATH SHORTCUTS (critical — re-read before every experiment)
-The formal specification of every Sutra operation lives in `planning/sutra-spec/`, especially `02-operations.md`, `04-defuzzification.md`, and `11-vsa-math.md`. Before implementing or modifying any operation (bind, unbind, bundle, snap, permute, is_true, rotation, conditional, loop), **read the relevant spec file and match the implementation to it**. If the spec says the operation runs on a substrate, it must actually run on that substrate — not run on numpy and be narrated as "running on the fly brain."
 
-**Shortcut behaviors that are forbidden:**
-- Implementing a "spiking-substrate" operation as a numpy matrix multiply and calling it fly-brain computation. `permute`, `make_rotation`, rotation application in loops, `conditional`, and `is_true` currently do this in `fly-brain/vsa_operations.py` — this is **the exact critique** the fly-brain-paper reviewer rejected us on, and it must be fixed, not papered over.
-- Running a Brian2 simulation, seeing *any* spikes come out, and declaring the operation "working" without comparing the circuit's output against what the spec says the operation must compute (e.g., rotation must produce direction-dependent output — a left-drive and a right-drive profile with correlation > 0.9 is NOT rotation, it's undifferentiated activity).
-- Adjusting bias currents or drive amplitudes until numbers "look biological" without a principled reason grounded in the connectome's actual physiology.
+The formal specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what a reviewer complained about, not what "sounds more biological," not what you guessed. Canonical files:
+
+- `02-operations.md` — the three-tier operation model (primitive / algebraic / non-algebraic) and what each operation must compute
+- `03-control-flow.md` — conditionals and loops, including the precise eigenrotation semantics
+- `04-defuzzification.md` — `is_true` and threshold-based control
+- `11-vsa-math.md` — the eight vector-space axioms and why VSA is algebra
+- `19-substrate-candidates.md` — which substrates are allowed to implement which tier
+
+### The three-tier rule (from 02-operations.md)
+
+Sutra operations are stratified into three tiers with strict substrate rules:
+
+1. **Tier 1 — Primitive:** scalars, tuples, bounded integer iteration. Plain host code. Not vector computation.
+2. **Tier 2 — Algebraic / VSA:** bundle, bind, unbind, similarity, scalar multiply, projection, rotation matrix construction. **O(1), pure math, no infrastructure.** Spec explicitly says: "pure math on vectors." Running these on numpy is correct and spec-compliant. Routing them through a spiking simulation is *more* than the spec requires and doesn't strengthen anything.
+3. **Tier 3 — Non-algebraic / vector-graph:** snap, cone traversal, hop. These are ANN-based and *are* the substrate-level operations. A biological substrate (mushroom body, HNSW, codebook) implements this tier.
+
+**Corollary for the fly-brain paper reviewer critique:** the complaint that "state management, rotation, and binding happen on the host, not the circuit" is objecting to the tier split itself, which is principled per spec — R is tier 2 (algebraic), snap is tier 3 (substrate). The correct response is to cite the tier model, not to force tier-2 operations onto neurons. Moving algebraic operations to spiking simulations to appease a reviewer is the exact kind of shortcut-pretending-to-be-work that this section forbids.
+
+### Eigenrotation loops (from 03-control-flow.md, lines 18–46)
+
+`loop (condition)` compiles to: host computes `state ← R^i · v₀` (pure linear algebra, R is a Givens composition, accumulated on the ORIGINAL `v₀` not on decoded output), substrate computes `P(state)` (KC-pattern projection) and checks Jaccard overlap against a prototype table. **The rotation runs on the host by spec.** The substrate does pattern matching. Anyone who says "rotation should run on neurons" has not read the spec.
+
+### Forbidden shortcut behaviors
+
+- Running a Brian2 simulation, seeing *any* spikes, and declaring an operation "working" without comparing circuit output to what the spec says the op must compute. Example from this session: a CX ring-attractor where left-drive and right-drive produced EPG profiles with correlation 0.969 — that's not rotation, that's undifferentiated activity, and the honest answer is "the circuit does not distinguish direction," not "it ran."
+- Tuning bias currents or drive amplitudes until numbers "look biological" without a principled physiological reason grounded in the specific circuit being modeled.
+- Implementing a spec-defined operation (`permute` shuffles dimensions per `02-operations.md` line 101) as something different (`vector * key` = sign-flip) and leaving it named after the spec operation it doesn't actually implement.
+- Writing code in response to a reviewer before checking whether the reviewer's objection is even aligned with the spec. Read spec first, then decide whether the reviewer has a point or not.
 - Declaring an experiment a success when it only confirms that *something happened*, rather than confirming the specific computational claim the spec defines.
 
-**When you catch yourself shortcutting:** stop, report the honest result (including negative findings), reference the spec, and either fix the implementation to match the spec or update the spec with a justified limitation. Both are acceptable; silently hand-waving is not.
+### When you catch a shortcut
 
-The language specification is load-bearing. It is not aspirational documentation — it is the contract that every operation implementation must satisfy.
+Stop. Report the honest result — including negative findings, including "my intuition was wrong, the spec disagrees." Reference the specific spec file and line. Then either fix the implementation to match the spec, or propose a spec change with justified reasoning. Both are acceptable. Silently hand-waving past a failed validation is not.
+
+### The spec is load-bearing
+
+The specification is not aspirational documentation. It is the contract every operation implementation must satisfy. If the implementation drifts from the spec, **either the implementation is wrong or the spec needs updating** — and the choice between those two has to be made explicitly, with a commit message explaining which way the drift was resolved.
 
 ## Architecture and Conventions
 - **Stack:** Python + numpy + rdflib + Ollama (mxbai-embed-large, 1024-dim)
