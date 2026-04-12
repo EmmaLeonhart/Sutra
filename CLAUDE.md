@@ -1,5 +1,9 @@
 # embedding-mapping → Sutra
 
+## 📍 READ `STATUS.md` FIRST EVERY SESSION
+
+Before any work on this repo, read `STATUS.md` at the repo root. It is the living truth table — what's built, what's open, what's out of scope, and the semantic corrections the user has had to repeat across sessions. CLAUDE.md is rules; STATUS.md is state. On this project (1M-token context burns through fast) you need both.
+
 ## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
 
 **READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
