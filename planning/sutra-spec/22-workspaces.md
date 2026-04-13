@@ -1,5 +1,7 @@
 # Workspaces and Projects
 
+> **Status: planning document for v0.0.1.** The workspace model is not part of v0.0.0. The current reference compiler reads `.su` files directly and ignores `atman.toml`. This document describes the design target for the v0.0.1 cut (roughly two weeks out as of this writing). `sdk/sutra-compiler/sutra_compiler/workspace.py` and `examples/workspace/` exist as scaffolding for that cut, not as a working piece of v0.0.0. See [`25-solution-structure.md`](25-solution-structure.md) for the full versioning story.
+
 A *workspace* is a collection of *projects* that compile and run together as a unit. The workspace file names the projects; each project file describes one buildable unit of `.su` source. Workspaces are the top level of the Sutra project model — everything else (source files, inter-project dependencies, substrate targeting, compiler flags) hangs off a workspace-and-project hierarchy.
 
 The motivation for this layer is laid out in [`20-ide-architecture.md`](20-ide-architecture.md) §"UX Model: Visual Studio, Not Jupyter", specifically the "workspace file with multiple projects" bullet. This document is the formal schema for the `atman.toml` file format it asks for.
