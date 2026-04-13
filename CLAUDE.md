@@ -150,6 +150,54 @@ The specification is not aspirational documentation. It is the contract every op
 - **Storage:** Flat files (items.json, embeddings.npz, embedding_index.json) + optional SutraDB
 - **Planning docs:** `planning/` directory for design decisions and roadmap
 
+## Avoiding `fly-brain/` Python sprawl
+
+This has been a recurring, concrete problem. At audit time (2026-04-13)
+the `fly-brain/` directory held ~33 `.py` files including 10 `real_rotation_*.py`
+variants, multiple `experiment_*.py` files with zero inbound references,
+and `_exploratory_cx_ring_attractor.py` (a negative result that should
+have been in `planning/findings/`). The sprawl caused real losses:
+sessions rediscovered the same dead files over and over, edited the
+wrong variant, and lost time reasoning about which script was "current."
+
+Rules for new Python work under `fly-brain/`:
+
+1. **Do not copy-paste a script to make a variant.** If `real_rotation_epg_loop.py`
+   needs to be tried with Jaccard readout, add a flag or a parameter,
+   do not create `real_rotation_epg_loop_jaccard.py`. The existing
+   `real_rotation_*.py` family is technical debt, not a template to
+   extend. The second-pass cleanup in `STATUS.md` queue item #5
+   consolidates them; do not make that job bigger.
+2. **Exploratory / negative-result scripts go in `planning/findings/`
+   or `planning/exploratory/`**, not in `fly-brain/` with a `_`
+   prefix or a "do not import" docstring. If an experiment doesn't
+   work, the result plus the code both belong under `planning/findings/`
+   per the rules in `planning/findings/README.md`. A living `fly-brain/`
+   file implies "this is used by the paper / the test suite / the
+   substrate" — exploratory code does not meet that bar.
+3. **Every new `.py` in `fly-brain/` gets a docstring-first line that
+   states (a) what it does, (b) what calls it (test file, paper
+   section, CLI entry point, or "standalone experiment — will move to
+   planning/findings/ if not wired up within one session").** A file
+   with no docstring stating its role is the first kind of dead weight
+   the audit catches.
+4. **Before adding a new `test_*.py`, check whether it is discovered
+   by a real test runner.** Several existing `test_*.py` under
+   `fly-brain/` are zero-reference and may not be run by CI at all —
+   they only exist because someone wrote them and moved on. A new
+   test file that nothing runs is worse than no test at all because it
+   rots and lies. If you're adding a test, wire it into the same
+   runner as `sdk/sutra-compiler/tests/` or clearly document the
+   manual invocation.
+5. **When an experiment is closed or superseded, delete the file or
+   move it.** Do not leave it with a "DEPRECATED" comment and hope a
+   future session does the cleanup. `fly-brain/permutation_conditional.{py,su}`
+   sat as "deprecated" for weeks and forced every reviewer of the
+   repo to re-derive which conditional-branching file was current.
+
+This rule-set is what prevents the audit in `STATUS.md` queue item #5
+from becoming a recurring task instead of a one-shot.
+
 ## FlyWire connectome data — storage layout
 The full FlyWire v783 connectome is stored in **two locations on purpose:**
 - **`C:\Users\Immanuelle\flybrain\`** — authoritative copy, **outside this repo**. 14 GB including skeletons and the synapse table. Survives repo rebases, resets, fresh clones.
