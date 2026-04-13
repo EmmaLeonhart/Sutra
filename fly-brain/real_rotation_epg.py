@@ -54,11 +54,25 @@ def build_epg_to_epg(fw) -> np.ndarray:
 
 
 def nearest_rotation(W: np.ndarray) -> tuple[np.ndarray, dict]:
-    """Polar decomposition W = Q P, return Q (orthogonal closest to W)."""
+    """Nearest proper rotation in SO(n) to W (Kabsch-corrected polar
+    decomposition).
+
+    Plain polar decomposition W = Q P via SVD can yield det(Q) = -1
+    (a rotoinversion) depending on W. block_diag composition across
+    motifs then inherits det = (-1)^(# rotoinversion blocks), which is
+    -1 for the paper's 140-D EPG+hDelta Q — a genuine construction bug
+    that capped the spiking cosine readout at target k. Kabsch fix: if
+    det(U V^T) < 0 after the SVD, flip the sign on the last singular
+    direction so the returned Q lives in SO(n). See
+    planning/findings/2026-04-13-140D-spiking-cosine-v2-9-of-10.md.
+    """
     U, s, Vt = np.linalg.svd(W, full_matrices=False)
-    Q = U @ Vt
+    D = np.eye(len(s))
+    if np.linalg.det(U @ Vt) < 0:
+        D[-1, -1] = -1.0
+    Q = U @ D @ Vt
     # Diagnostics
-    P = Vt.T @ np.diag(s) @ Vt  # symmetric psd part
+    P = Vt.T @ D @ np.diag(s) @ Vt  # symmetric psd part, post sign correction
     err_Q = np.linalg.norm(W - Q, "fro")
     norm_W = np.linalg.norm(W, "fro")
     QtQ = Q.T @ Q
