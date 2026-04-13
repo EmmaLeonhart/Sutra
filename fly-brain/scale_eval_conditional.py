@@ -24,12 +24,12 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 import numpy as np
 
 from vsa_operations import FlyBrainVSA
-from permutation_conditional import (
+from fuzzy_conditional import (
     FixedFrameFlyBrainVSA,
     build_primitives,
+    build_behavior_vecs,
     compile_prototypes,
     run_decision,
-    PROGRAM_PERMUTATIONS,
 )
 
 
@@ -45,6 +45,7 @@ def one_run(seed):
     vsa = FixedFrameFlyBrainVSA(seed=seed, use_hemibrain=True)
     rng = np.random.RandomState(seed)
     prims = build_primitives(vsa, rng)
+    behavior_vecs = build_behavior_vecs(vsa, rng)
     prototypes = compile_prototypes(vsa, prims)
     inputs = [
         ("vinegar",   "hungry", prims["smell_present"], prims["hunger_hungry"]),
@@ -57,13 +58,11 @@ def one_run(seed):
     per_program = {}
     mappings = {}
     for prog_id in ["A", "B", "C", "D"]:
-        not_smell, not_hunger = PROGRAM_PERMUTATIONS[prog_id]
         prog_got = []
         prog_correct = 0
         for i, (_, _, s_vec, h_vec) in enumerate(inputs):
-            behavior, _, _ = run_decision(
-                vsa, prototypes, s_vec, h_vec, prims,
-                not_smell, not_hunger,
+            behavior, _, _, _ = run_decision(
+                vsa, prototypes, behavior_vecs, s_vec, h_vec, prog_id,
             )
             exp = EXPECTED[prog_id][i]
             prog_got.append(behavior)
