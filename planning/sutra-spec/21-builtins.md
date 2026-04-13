@@ -2,9 +2,11 @@
 
 This file declares the formal signatures of Sutra's VSA builtin
 functions. Each entry gives a signature in terms of the primitive
-types from `05-type-system.md`, the semantic behavior, and — where
-relevant — which runtime tier the operation belongs to under
-`02-operations.md`.
+types from `05-type-system.md` and the semantic behavior. Every
+builtin is meant to execute on the substrate at runtime; where the
+current fly-brain implementation runs an op on numpy instead, that
+is recorded as a limitation of the implementation, not a property
+of the op.
 
 The informal descriptions in `02-operations.md` are the *prose*
 explanation of what these operations do. This file is the *signature*
@@ -48,15 +50,18 @@ the preceding type. `T[]` denotes an array of `T` (see
 `05-type-system.md` and the `22_array_literal.su` / `23_subscript_access.su`
 test corpus for the array literal and subscript syntax).
 
-## Algebraic builtins
+## Vector builtins
 
-These are the O(1) pure-algebra operations from tier 2 of
-`02-operations.md`. Under the current fly-brain runtime
-(`fly-brain/vsa_operations.py`), they execute in numpy on the host —
-not on the mushroom body substrate — because the MB has no natural
-analogue for sign-flip multiplication. A fully-biological runtime
-would need a different compilation target for these; see
-`19-substrate-candidates.md` and STATUS.md §3 in `fly-brain/`.
+These are the vector operations defined in `02-operations.md`. Each
+is meant to run on the substrate. Under the current fly-brain runtime
+(`fly-brain/vsa_operations.py`), several of them still execute in
+numpy on the host because no substrate mapping has been wired up yet —
+the mushroom body has no natural analogue for sign-flip
+multiplication, and a biological mapping for bind/unbind/bundle
+requires a different circuit than the MB cleanup the runtime
+currently uses. That is a gap to close in the implementation, not a
+spec-sanctioned execution mode. See `19-substrate-candidates.md` and
+STATUS.md §3 in `fly-brain/` for the candidate mappings.
 
 ### `bind`
 
@@ -189,12 +194,11 @@ to *not* apply a negation to one of its axes — see the Program A /
 Program B / Program C / Program D dispatch in
 `fly-brain/permutation_conditional.su`.
 
-## Non-algebraic builtins
+## Substrate-graph builtins
 
-These belong to tier 3 of `02-operations.md`: they require
-substrate-level machinery beyond pure vector algebra. In the
-fly-brain runtime, `snap` is the one builtin that actually executes
-on the mushroom body circuit.
+These are the ANN / vector-graph operations from `02-operations.md`.
+In the fly-brain runtime, `snap` is the one builtin that actually
+executes on the mushroom body circuit end-to-end today.
 
 ### `snap`
 
@@ -238,19 +242,19 @@ v0.2).
 
 ## Summary table
 
-| Name | Signature | Tier | Runs on brain? |
-|------|-----------|------|----------------|
-| `bind` | `vector, vector -> vector` | Algebraic | No (numpy) |
-| `unbind` | `vector, vector -> vector` | Algebraic | No (numpy) |
-| `bundle` | `vector, vector... -> vector` | Algebraic | No (numpy) |
-| `similarity` | `vector, vector -> fuzzy` | Algebraic | No (numpy) |
-| `permute` | `permutation, vector -> vector` | Algebraic | No (numpy) |
-| `compose` | `permutation, permutation -> permutation` | Algebraic | No (numpy) |
-| `basis_vector` | `string -> vector` | Construction | No |
-| `permutation_key` | `string -> permutation` | Construction | No |
-| `identity_permutation` | `() -> permutation` | Construction | No |
-| `snap` | `vector -> vector` | Non-algebraic | **Yes** (MB circuit) |
-| `argmax_cosine` | `vector, vector[] -> vector` | Non-algebraic | No (host cosine argmax) |
+| Name | Signature | Runs on substrate today? |
+|------|-----------|---------------------------|
+| `bind` | `vector, vector -> vector` | No — numpy, gap to close |
+| `unbind` | `vector, vector -> vector` | No — numpy, gap to close |
+| `bundle` | `vector, vector... -> vector` | No — numpy, gap to close |
+| `similarity` | `vector, vector -> fuzzy` | No — numpy, gap to close (monitoring readout also uses numpy, which is allowed) |
+| `permute` | `permutation, vector -> vector` | No — numpy, gap to close |
+| `compose` | `permutation, permutation -> permutation` | Compile-time construction on numpy, allowed |
+| `basis_vector` | `string -> vector` | Compile-time construction, allowed |
+| `permutation_key` | `string -> permutation` | Compile-time construction, allowed |
+| `identity_permutation` | `() -> permutation` | Compile-time construction, allowed |
+| `snap` | `vector -> vector` | **Yes** — MB circuit |
+| `argmax_cosine` | `vector, vector[] -> vector` | No — numpy, gap to close |
 
 ## Open questions tracked elsewhere
 
