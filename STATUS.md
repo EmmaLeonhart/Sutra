@@ -4,9 +4,8 @@
 
 ## Queued work (do in order)
 
-1. **Jaccard-on-KC on composed 713-D Q.** The theory in `planning/sutra-spec/23-loop-readout-theory.md` predicts the bimodal gap is D-independent. Cosine readout collapsed from peak ~0.7 at 51-D to ~0.1 at 713-D (3/5 both). Jaccard should still hit 5/5 at 713-D. Cheapest test of the theory; Q is already built.
-2. **140-D real-wiring Q for full-real-wiring Jaccard.** Close the caveat in `planning/findings/2026-04-13-jaccard-on-KC-5-of-5.md`: construct a 140-D Q as `block_diag(Q_EPG_51, Q_<89-D slice>)` so readout uses the real hemibrain PN→KC instead of `use_hemibrain=False` synthetic wiring. 89-D block: hDelta or LH subset chosen to hit exactly 89 neurons.
-3. **Target-k sweep.** Currently only k=3 counting and k=2/5/8 ordering tested. Try k=5, k=8, k=12 to show Jaccard readout isn't specific to any particular target. Small follow-up after 1 and 2 land.
+1. **140-D real-wiring Q for full-real-wiring Jaccard.** Close the caveat in `planning/findings/2026-04-13-jaccard-on-KC-5-of-5.md`: construct a 140-D Q as `block_diag(Q_EPG_51, Q_<89-D slice>)` so readout uses the real hemibrain PN→KC instead of `use_hemibrain=False` synthetic wiring. 89-D block: hDelta or LH subset chosen to hit exactly 89 neurons.
+2. **Target-k sweep.** Currently only k=3 counting and k=2/5/8 ordering tested. Try k=5, k=8, k=12 to show Jaccard readout isn't specific to any particular target. Small follow-up after 1 lands.
 
 Each item: one commit that both removes its STATUS entry and lands the work. Push after each.
 
