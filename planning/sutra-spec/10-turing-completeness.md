@@ -26,7 +26,7 @@ Flanagan et al. argue that VSA with cleanup memory forms a CCC: bundling gives p
 **What's strained:**
 - **Cleanup memory does the heavy lifting.** The boundary between "the VSA computing" and "the cleanup lookup table computing" is not formalized. If you count the cleanup codebook as part of the VSA, you're arguably just doing symbolic computation with a vector-space cache. If you don't count it, the VSA alone can't sustain computation past a few steps.
 - **Fixed dimensionality vs. unbounded computation.** A Turing machine's tape is unbounded. A VSA vector has fixed dimensionality. Encoding potentially infinite information into a fixed-dimensional space requires either: (a) secretly growing dimensionality (which makes it not a fixed VSA), or (b) accepting hard capacity limits on computation depth/breadth. The CCC argument sidesteps this by not addressing it.
-- **Approximate retrieval vs. exact state transitions.** Turing completeness requires that each computation step produces an exact next state. VSA unbinding produces an approximate result. Over unbounded computation, approximation errors compound to certainty of corruption. Cleanup memory patches this, but cleanup is itself a non-algebraic operation that depends on the codebook being complete — and a complete codebook for arbitrary computation is itself unbounded.
+- **Approximate retrieval vs. exact state transitions.** Turing completeness requires that each computation step produces an exact next state. VSA unbinding produces an approximate result. Over unbounded computation, approximation errors compound to certainty of corruption. Cleanup memory patches this, but cleanup is itself a vector-graph operation that depends on the codebook being complete — and a complete codebook for arbitrary computation is itself unbounded.
 
 **The honest assessment:** VSA is Turing-complete in the same sense that floating-point arithmetic is "real number arithmetic" — it works for all practical purposes within its precision limits, with periodic rounding (cleanup) to stay on track. The theoretical gap between "works for all practical chains we've tested" and "provably computes any Turing-computable function" is real but may not matter for Sutra's purposes.
 
@@ -36,9 +36,9 @@ Flanagan et al. argue that VSA with cleanup memory forms a CCC: bundling gives p
 
 2. **Approximate retrieval.** Unbinding returns the nearest vector, not the exact one. Each operation introduces noise proportional to the other items in the superposition. Over a long chain, errors compound geometrically. Cleanup (snap-to-nearest) resets the error but requires a codebook that contains the correct answer — which presupposes you know what the correct answer is.
 
-## The Non-Algebraic Patch
+## How snap / cone / hop close the gap
 
-This is where Sutra's non-algebraic operations (snap, cone, hop) become load-bearing for the Turing completeness argument:
+This is where Sutra's vector-graph operations (snap, cone, hop) become load-bearing for the Turing completeness argument:
 
 - **Snap-to-nearest** provides error correction, allowing computation chains to extend beyond the algebraic noise limit
 - **Cone traversal** provides conditional branching that isn't limited by superposition capacity
@@ -46,4 +46,4 @@ This is where Sutra's non-algebraic operations (snap, cone, hop) become load-bea
 
 The graph structure isn't fixed ahead of time — the vector state influences which edges get traversed. New nodes and edges can be created during computation. This is the mechanism that patches fixed-dimensionality: the vectors do local computation, the graph provides unbounded external memory. It's analogous to a CPU (fixed registers) with RAM (unbounded, addressable memory).
 
-**Sutra's Turing completeness claim is: VSA algebra + ANN-backed non-algebraic operations + external graph = Turing complete.** The algebra alone is not. This is an honest and architecturally clean position.
+**Sutra's Turing completeness claim is: elementwise vector operations + ANN-backed snap/cone/hop + external graph = Turing complete.** The elementwise operations alone are not. This is an architecturally clean position: the vector math does the local computation, the vector-graph operations do the error correction and unbounded navigation, and the external graph provides unbounded memory.

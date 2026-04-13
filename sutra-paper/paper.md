@@ -8,7 +8,7 @@
 
 We present Sutra, a programming language that uses LLM embedding spaces as its computational substrate. Where conventional languages compile to machine instructions that execute on silicon, Sutra compiles to vector operations that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Named after the Sanskrit concept of a primordial substance pervading all things, the language operates in the continuous semantic space that pervades trained embedding models.
 
-Sutra introduces several novel contributions to programming language design. First, a **three-tier operation model**: primitive operations (scalars, tuples, bounded iteration), algebraic VSA operations at O(1) (bind, bundle, unbind, similarity), and non-algebraic vector-graph operations at O(log n) (snap-to-nearest, cone traversal, graph hop) — where all non-algebraic operations are unified by their dependence on approximate nearest neighbor search. Second, **fuzzy-by-default semantics** with opt-in defuzzification via `is_true(v) = cos(v, t_true)` — cosine similarity against a substrate-fitted canonical truth direction — enabling confidence-thresholded conditionals and multi-level confidence ladders. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
+Sutra introduces several novel contributions to programming language design. First, a clean separation between **program scaffolding** (scalars, tuples, bounded iteration counters — the bookkeeping that surrounds vector work) and **vector operations that run on the substrate** (bind, bundle, unbind, similarity, rotation, snap-to-nearest, cone traversal, graph hop). Every vector operation is a substrate operation: there is no class of op that is allowed to run as host-side arithmetic. Codebook operations (snap, cone, hop) are distinguished only by their extra dependence on a codebook-plus-index structure, not by a different execution class. Second, **fuzzy-by-default semantics** with opt-in defuzzification via `is_true(v) = cos(v, t_true)` — cosine similarity against a substrate-fitted canonical truth direction — enabling confidence-thresholded conditionals and multi-level confidence ladders. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
 
 The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, 2026). We further demonstrate that the traditional VSA binding operation (Hadamard product) fails on natural embedding spaces due to crosstalk from correlated embeddings, but that **sign-flip binding** — a simple operation that flips filler signs based on role sign patterns — achieves 14-role bundling capacity with correct snap-to-nearest recovery across three substrate models (GTE-large, BGE-large, Jina-v2), sustains 10-step chained computation, and supports multi-hop composition. Sutra is the first programming language designed to exploit this structure directly.
 
@@ -31,7 +31,7 @@ Sutra is not an AI-assisted programming tool. It is not a neural network. It is 
 
 ### 1.1 Contributions
 
-1. **A three-tier operation model** that separates primitive scaffolding (scalars, tuples, bounded iteration), algebraic VSA operations at O(1), and non-algebraic vector-graph operations at O(log n). The non-algebraic tier is unified by dependence on approximate nearest neighbor (ANN) infrastructure and serves two roles: error correction (snap-to-nearest) and semantic navigation (cone traversal, graph hop).
+1. **An operation model that keeps scaffolding out of the substrate and puts every vector operation in it.** Scalars, tuples, and bounded iteration counters are bookkeeping — they count and group the vector work around them. Vector operations (bind, bundle, unbind, similarity, rotation, snap-to-nearest, cone traversal, graph hop) all run on the substrate at runtime. Codebook-dependent operations (snap, cone, hop) serve error correction and semantic navigation, but they do not form a separate "host-side" execution class — on the fly-brain substrate snap is the PN→KC+Jaccard path, on an embedding-space substrate it is ANN search.
 
 2. **A cosine-based defuzzification operation** (`is_true`). A fixed rank-1 projection onto a substrate-specific truth direction `t_true` fitted during empirical initiation measures how semantically "true" any vector is: `is_true(v) = cos(v, t_true)`. Equality is cosine similarity; conditional branching is threshold on `is_true`.
 
@@ -81,34 +81,33 @@ TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be 
 
 **Computation is geometry.** Programs navigate and transform regions of semantic space. Operations are similarity queries, projections, rotations, and interpolations. The execution environment is fundamentally semantic: `bind(AGENT, "cat")` produces a vector whose position in space encodes the relationship between the agent role and the concept of cat.
 
-### 3.2 Three-Tier Operation Model
+### 3.2 Operation Model
 
-Sutra organizes operations into three tiers by cost and abstraction level.
+Sutra programs are built out of **scaffolding** and **vector operations**. The two are not a hierarchy; they are different kinds of things in a program text.
 
-**Tier 1: Primitive operations.** Scalars (not vectors — plain numbers for weighting, thresholds, and loop counters), tuples (grouping without superposition), and bounded iteration (`repeat N`). These are conventional computational scaffolding. They exist because not everything in a program is a semantic vector operation.
+**Scaffolding.** Scalars (plain numbers used for weights, thresholds, loop counters), tuples (grouping without superposition), and bounded iteration (`repeat N`). These are the bookkeeping that surrounds vector work. They exist because not everything in a program is a semantic vector operation — you still need integers to count iterations and tuples to name pieces of a compile-time configuration.
 
-**Tier 2: Algebraic / VSA operations (O(1)).** The core vector algebra, operating on fixed-dimensional vectors:
+**Vector operations.** Every one of these runs on the substrate at runtime. There is no class of vector op that is "pure math on the host." Operations that close over fixed-dimensional vectors:
 
 - **Bundle** (addition): Creates superposition. `a + b` is similar to both a and b. Encodes sets and fuzzy disjunction.
-- **Bind** (sign-flip): Creates association. `a * sign(role)` flips signs of the filler based on the role vector, producing a result dissimilar to both inputs. Encodes key-value pairs and role-filler structures. Self-inverse (unbinding = applying the same sign flip). Cost: ~7μs.
-- **Bind-precise** (rotation): High-accuracy alternative. Applies a role-dependent orthogonal rotation `R(role) @ a`. Exact inverse via transpose. Cost: ~320μs. Use when accuracy matters more than speed.
+- **Bind** (sign-flip): Creates association. `a * sign(role)` flips signs of the filler based on the role vector, producing a result dissimilar to both inputs. Encodes key-value pairs and role-filler structures. Self-inverse (unbinding = applying the same sign flip). Cost: ~7μs on the host reference implementation.
+- **Bind-precise** (rotation): High-accuracy alternative. Applies a role-dependent orthogonal rotation `R(role) @ a`. Exact inverse via transpose. Cost: ~320μs on the host reference. Use when accuracy matters more than speed.
 - **Unbind**: For sign-flip binding, unbinding is the same operation. For rotation binding, it is the transpose rotation. Extracts the approximate filler from a bundled structure — approximate because crosstalk from other bundled pairs introduces noise.
 - **Similarity**: Euclidean distance (primary) or dot product. Returns a scalar. The fundamental "how close?" query.
 - **Projection**: Extract the component of a vector along a subspace.
+- **Rotation**: Apply an orthogonal operator `Q` to a vector. On the fly-brain substrate `Q` is realized as synaptic weights of a feedforward spiking network (§6.6, and the companion fly-brain paper).
+
+Operations that close over a codebook (a structured collection of vectors plus an approximate-nearest-neighbor index):
+
+- **Snap-to-nearest** (cleanup/discretization): search against a codebook of known vectors, return the nearest. Error correction — restores a noisy vector to its nearest clean state. Analogous to rounding in floating-point arithmetic. On the fly-brain substrate, snap is the PN→KC projection with APL sparsification plus a Jaccard match on the resulting KC pattern.
+- **Cone traversal**: From an origin point, define a direction and angular spread. Returns vectors within the cone. Many-to-many navigation through the codebook graph.
+- **Graph hop**: Traverse to connected vectors via a specified relation type. Extends cone traversal with typed edges.
+
+Host reference implementations of the codebook operations use an HNSW index; substrate implementations use whatever the substrate provides for sparse pattern matching (PN→KC+Jaccard in the fly brain).
 
 Note: the traditional VSA binding operation (Hadamard / elementwise product) was tested and **fails on natural embedding spaces** — bundled structures lose all signal at 2+ role-filler pairs due to crosstalk from correlated embeddings. Sign-flip binding avoids this by stripping magnitude correlation (Section 6.2).
 
-These operations require no infrastructure beyond the vectors themselves. They are pure math.
-
-**Tier 3: Non-algebraic / vector-graph operations (O(log n)).** These require approximate nearest neighbor (ANN) infrastructure — typically an HNSW index or similar vector database:
-
-- **Snap-to-nearest** (cleanup/discretization): ANN search against a codebook of known vectors. Error correction — restores a noisy vector to its nearest clean state. Analogous to rounding in floating-point arithmetic.
-- **Cone traversal** (directed neighborhood query): From an origin point, define a direction and angular spread. Returns vectors within the cone. Provides non-algebraic branching and many-to-many navigation.
-- **Graph hop** (typed traversal): Traverse to connected vectors via a specified relation type. Extends cone traversal with typed edges.
-
-The unifying characteristic of Tier 3 is ANN dependence. All non-algebraic operations involve some form of nearest-neighbor search over an indexed collection. This is what makes them expensive relative to Tier 2.
-
-The design philosophy: keep computation in Tier 2 (algebraic) as much as possible. Use Tier 1 (primitives) for scaffolding. Rise to Tier 3 (non-algebraic) only for error correction and semantic navigation.
+The design orientation is to keep programs in the vector-operations layer — scaffolding carries the program's counting and grouping, but the computation itself lives in vector operations on the substrate.
 
 ### 3.3 Control Flow
 
@@ -232,7 +231,7 @@ vector hunger_fed   = permute(NOT_HUNGER, hunger_hungry);
 
 // Each prototype is the cleanup output of the substrate when
 // given a conjunctive bind of the two state vectors. `snap` is
-// the non-algebraic tier operation from §3.2 — on the silicon
+// a codebook operation from §3.2 — on the silicon
 // substrate it routes through an ANN codebook; on the fly-brain
 // substrate it routes through the Brian2 spiking simulation.
 // Four snaps = four compile-time brain-view vectors.
@@ -354,7 +353,7 @@ Tomkins-Flanagan and Kelly's working Lisp interpreter in HRR is the existence pr
 
 Sutra's Turing completeness claim: **VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete.** The vectors handle local computation (fixed-dimensional but algebraically rich). The graph provides unbounded external memory (the vector state navigates a graph that can grow without bound). This is architecturally identical to a CPU (fixed registers) with RAM (unbounded, addressable memory).
 
-Flanagan et al. (2024) argue for VSA Turing completeness via Cartesian closed categories. We accept their construction but note that cleanup memory does the heavy lifting — the boundary between "VSA computing" and "lookup table computing" is not formalized in their proof. Sutra makes this boundary explicit: Tier 2 operations are the VSA; Tier 3 operations are the infrastructure that patches the VSA's limitations.
+Flanagan et al. (2024) argue for VSA Turing completeness via Cartesian closed categories. We accept their construction but note that cleanup memory does the heavy lifting — the boundary between "VSA computing" and "lookup table computing" is not formalized in their proof. Sutra makes this boundary explicit: bundle, bind, unbind, similarity, and rotation are the VSA proper; snap, cone, and hop are the codebook infrastructure that compensates for VSA crosstalk and gives the language a way to navigate across discrete semantic states.
 
 ## 6. Empirical Grounding
 
@@ -381,7 +380,7 @@ We tested six binding operations on GTE-large (1024-dim) by constructing bundled
 
 Hadamard binding fails because natural embeddings are correlated and anisotropic — they share significant structure, so crosstalk from non-orthogonal role vectors overwhelms the target signal. All five alternatives achieve 7/7 correct snap recoveries at 7 bundled roles.
 
-**Sign-flip binding** (`a * sign(role)`) is Sutra's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough for the algebraic tier. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
+**Sign-flip binding** (`a * sign(role)`) is Sutra's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough to use pervasively. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
 
 Extended testing of sign-flip binding revealed substantially higher capacity than the initial 7-role test suggested. With a 15-item codebook on GTE-large, sign-flip achieves **14/14 correct snap recoveries** — cosine degrades gracefully from 0.74 at 2 roles to 0.30 at 14 roles, but snap consistently identifies the correct target. This capacity is substrate-agnostic: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 14/14 results.
 
@@ -408,19 +407,19 @@ The shift from Hadamard to sign-flip binding increases effective capacity by 3-5
 
 Benchmarked on GTE-large (1024-dim, CPU):
 
-| Tier | Operation | Cost (μs) | Relative |
+| Kind | Operation | Cost (μs) | Relative |
 |------|-----------|-----------|----------|
-| 2 | Bind (sign-flip) | 6.6 | 1x |
-| 2 | Bundle (addition) | 1.7 | 0.3x |
-| 2 | Unbind (sign-flip) | 7.9 | 1.2x |
-| 2 | Similarity (dot) | 1.6 | 0.2x |
-| 2 | Euclidean distance | 4.6 | 0.7x |
-| 3 | Snap (20 items) | 31.8 | 4.8x |
-| 3 | Snap (1K items) | 3,540 | 536x |
-| 3 | Snap (10K items) | 31,000 | 4,697x |
+| vector | Bind (sign-flip) | 6.6 | 1x |
+| vector | Bundle (addition) | 1.7 | 0.3x |
+| vector | Unbind (sign-flip) | 7.9 | 1.2x |
+| vector | Similarity (dot) | 1.6 | 0.2x |
+| vector | Euclidean distance | 4.6 | 0.7x |
+| codebook | Snap (20 items) | 31.8 | 4.8x |
+| codebook | Snap (1K items) | 3,540 | 536x |
+| codebook | Snap (10K items) | 31,000 | 4,697x |
 | — | Embed one text (LLM) | ~250,000 | ~38,000x |
 
-The critical finding: **snap-to-nearest is not the bottleneck**. Even with a 10K-item codebook, snap (31ms) is 8x cheaper than embedding a single text (250ms). The real cost is the LLM forward pass that produces the embeddings in the first place. Once vectors are in the space, algebraic operations are microsecond-scale and snap is millisecond-scale — both negligible compared to the embedding step.
+The critical finding: **snap-to-nearest is not the bottleneck**. Even with a 10K-item codebook, snap (31ms) is 8x cheaper than embedding a single text (250ms). The real cost is the LLM forward pass that produces the embeddings in the first place. Once vectors are in the space, the fixed-dimensional vector operations are microsecond-scale and codebook-scale snap is millisecond-scale — both negligible compared to the embedding step.
 
 ### 6.5 Substrate Validation: The mxbai Pathology
 
@@ -457,13 +456,13 @@ The closest analogy is Prolog, which provides a fundamentally different computat
 
 ### 7.2 Human-AI Collaboration in Language Design
 
-Sutra was designed through extensive human-AI conversation. The human designer brought domain insight — the recognition that embedding spaces could serve as computational substrate, the fuzzy-by-default inversion, the three-tier operation model. The AI collaborator helped formalize these ideas, stress-tested them against the theoretical literature, and identified edge cases and failure modes.
+Sutra was designed through extensive human-AI conversation. The human designer brought domain insight — the recognition that embedding spaces could serve as computational substrate, the fuzzy-by-default inversion, the scaffolding-vs-vector-operation decomposition. The AI collaborator helped formalize these ideas, stress-tested them against the theoretical literature, and identified edge cases and failure modes.
 
 The design conversations are archived in the project repository. This collaborative process is itself a finding: AI systems can participate meaningfully in the creative, speculative phase of language design — not just code generation, but conceptual architecture.
 
 ### 7.3 Future Directions
 
-**Syntax design.** Sutra's semantics are solidifying but no concrete syntax has been defined. The syntax must make the three operation tiers visually distinct so programmers can immediately see where expensive non-algebraic operations occur.
+**Syntax design.** Sutra's semantics are solidifying but no concrete syntax has been defined. The syntax must make codebook-dependent operations (snap, cone, hop) visually distinct from fixed-dimensional vector operations (bind, bundle, similarity, rotation) so programmers can immediately see where the expensive ANN-backed or PN→KC-backed calls sit.
 
 **JEPA integration.** Sutra naturally connects to Joint Embedding Predictive Architecture (LeCun, 2022). HDC provides algebraic structure; JEPA provides learned prediction. A two-phase training approach (algebraic consistency first, predictive coding second) could produce embedding spaces optimized for Sutra computation.
 
@@ -473,7 +472,7 @@ The design conversations are archived in the project repository. This collaborat
 
 ## 8. Conclusion
 
-Sutra demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — three-tier operations, cosine-based defuzzification, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
+Sutra demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — an all-on-substrate vector-operation set, cosine-based defuzzification, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
 
 Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves **14/14 correct recoveries** at only 4.4x the cost, sustains **10/10 chained computation steps**, and supports **multi-hop composition** (extract from one structure, insert into another, extract again — all correct). These results hold identically across GTE-large (1024-dim), BGE-large (1024-dim), and Jina-v2 (768-dim), demonstrating substrate-agnostic viability. This finding updates the VSA literature's assumption that Hadamard product is the standard binding choice — on natural embedding spaces, sign-flip binding is strictly superior.
 
