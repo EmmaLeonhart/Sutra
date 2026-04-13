@@ -20,7 +20,7 @@ CLAUDE.md rule §"Avoiding `fly-brain/` Python sprawl" is what keeps
 the cleanup from being undone the next time someone reaches for a
 copy-paste variant.
 
-Read this paragraph before treating any tier-tagged item below as
+Read this paragraph before treating any priority-tagged item below as
 truly the next thing to work on.
 
 ## ⚑ Meta-task — keep this file organized
@@ -30,8 +30,8 @@ session queue. The one meta-task that lives here (rather than in
 STATUS.md queued work) is the standing discipline:
 
 - **Keep this `todo.md` organized and consistent with STATUS.md.**
-  Every item below lives under one of the priority tiers. An item
-  without a tier is a bug in this file. When an item is actively
+  Every item below lives under one of the priority levels. An item
+  without a priority level is a bug in this file. When an item is actively
   being worked, it should also appear in STATUS.md's queue — the
   two are meant to agree, with STATUS.md winning for now-work and
   `todo.md` winning for later-work.
@@ -42,7 +42,7 @@ tasks belong — a Claude sandbox session cannot do that audit without
 Brian2 + the hemibrain cache, so it does not belong in the
 long-term-agenda meta section.
 
-## 🗂 Priority tiers
+## 🗂 Priority levels
 
 Everything that follows should be mentally filed under one of:
 
@@ -56,7 +56,7 @@ Everything that follows should be mentally filed under one of:
 - **This year** — should land in 2026, not necessarily tied to a
   deadline. Strategic rather than tactical.
 
-When adding a new item, pick a tier. When closing one, delete the
+When adding a new item, pick a level. When closing one, delete the
 line — do not leave "done ✅" stubs (that's what git log is for).
 
 ## 🗃 High-priority, below fly-brain clutter: audit `chats/` — chats are NOT permanent
@@ -128,8 +128,8 @@ Fly-brain work is the headline experimental pipeline and gets priority
 placement. Lines prefixed with `!` are from the former
 `fly-brain/todo.md` — that file has been deleted and its content lives
 here so there is a single source of truth. The `!` marker survives so
-that grep + visual scan both show provenance. Tier each line as work
-gets picked up.
+that grep + visual scan both show provenance. Assign a priority level
+to each line as work gets picked up.
 
 ## ! Real Connectome Integration
 
@@ -258,7 +258,7 @@ The user has ruled out "paper.md sibling-file conflicts" as the dominant issue b
 - **Geometric loops pass on the real-wiring-derived Q.** 10/10 counting (k=3 and k=6 × 5 seeds) + 5/5 ordering on `real_rotation_epg_loop.py`.
 
 What is *not* done:
-- **Spiking lift to iterated rotation: 3/5 seeds at k=3** (`real_rotation_epg_loop_spiking.py`). Poisson noise flips argmax on seeds where the spectral structure puts `cos(Qv, Q³v)` close to `cos(v, Q²v)`. STATUS.md has the honest framing; paths to improve are longer SIM_MS, sharper-spectrum Q from motifs with more evenly distributed eigenphases, or loop-termination via Jaccard-on-KC (tier-3) which has higher SNR than direct cosine readout. This is queue item #3 in STATUS.md.
+- **Spiking lift to iterated rotation: 3/5 seeds at k=3** (`real_rotation_epg_loop_spiking.py`). Poisson noise flips argmax on seeds where the spectral structure puts `cos(Qv, Q³v)` close to `cos(v, Q²v)`. STATUS.md has the framing; paths to improve are longer SIM_MS, sharper-spectrum Q from motifs with more evenly distributed eigenphases, or loop-termination via Jaccard-on-KC which has higher SNR than direct cosine readout. This is queue item #3 in STATUS.md.
 
 Follow-on scope (tracked separately):
 
@@ -344,11 +344,14 @@ sections moved to `DEVLOG.md` under the 2026-04-13 entry on
 
 ## [Pre-YC] Future Goals
 
-- Get Sutra running on normal hardware first (substrate = numpy on
-  a laptop). Largely true for tier-2 algebraic ops already; the
-  bar is "all operations from `02-operations.md` run on commodity
-  hardware end-to-end without Brian2." Relevant to the YC demo
-  story where the audience does not have a connectome simulator.
+- Get Sutra running on normal hardware first (substrate = a
+  vector-space simulator on a laptop rather than Brian2). The bar
+  is "all operations from `02-operations.md` run on commodity
+  hardware end-to-end." Numpy is fine for the compile/monitor
+  boundary, but every Sutra operation at runtime still runs on the
+  chosen substrate — the laptop substrate is a simpler substrate,
+  not a numpy fallback. Relevant to the YC demo story where the
+  audience does not have a connectome simulator.
 - Then try running it on a simulated fly brain. Partially done via
   the Brian2 hemibrain pipeline — what's missing for this to be a
   *user-facing* goal (vs. an internal experiment) is an installable
@@ -389,7 +392,7 @@ carried in here so there is one todo file. The full historical
 completed list (185 items) lives in git history of the deleted
 `sutraDB/TODO.md` — do not re-materialize it here.
 
-All items below are **[This year]** tier unless noted.
+All items below are **[This year]** priority unless noted.
 
 ## SutraDB — Next Release (v0.3.1): Gradle Migration, MCP Agentic UX, Maven Central
 
