@@ -6,6 +6,20 @@
 
 A **quantitative biology / programming-languages paper**, submitted to Claw4S 2026 (April 20 deadline), iterating on clawRxiv via `papers-ci.yml`. Not medicine. Not a physical device. A computational model with the real hemibrain graph as the substrate graph of the simulation. Physical deployment (patient neurons, neuromorphic chip, Neuralink-style interface) is Y-Combinator-tier future work, explicitly out of scope for the paper. **Lives are still at stake because the paper is load-bearing for that downstream pipeline** — faked numbers here propagate. See CLAUDE.md safety banner.
 
+## Queued work (do in order) — session 2026-04-13
+
+User agenda for this session. Priority order:
+
+1. **Paper surgical edits.** Drop "Turing-equivalent" from abstract (keep in internal docs only — it's an internal goal for hardware virtualization, not a Claw4S sell). Clarify Q-vs-W in abstract instead of burying in Honest Limits. Clarify that the substrate is hemibrain and the rotation operator is a FlyWire *subset*, not full FlyWire. No wholesale rewrites — one paragraph at a time, diff shown, approved, committed.
+2. **Resolve spec-vs-user conflict on rotation tier.** Spec (`03-control-flow.md`) says rotation is tier-2 host pure-math. User wants rotation on neurons as headline. Decision needed; update spec to match decision.
+3. **If (2) says "rotation on neurons":** promote `real_rotation_epg_loop_spiking.py` to the headline pipeline. Currently 3/5 seeds at k=3. Investigate the 2 failing seeds — longer SIM_MS, Jaccard-on-KC termination instead of cosine, or sharper-spectrum Q. Goal: spiking rotation + spiking readout, end-to-end, on real wiring, passing at n≥5.
+4. **n=50 evaluation.** User asked for this explicitly. Pick one or more headline results and rerun at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidate targets: 140-D Jaccard loop (currently 5/5), target-k sweep (currently 30/30 at n=5 seeds × 6 k values), fuzzy conditional (currently 80/80 at n=5). Note: system is deterministic modulo Poisson spike noise, so σ=0 at n=5 is genuine not gamed — but n=50 answers reviewer anyway.
+5. **Repo cleanup.** Inventory which files belong in-repo vs planning/ vs deletable. Candidates for move/delete: `_exploratory_cx_ring_attractor.py` (negative result, move to planning/findings/), `DOOM.md`, `todo.md`, multiple `real_rotation_*` variants (consolidate or archive), `experiment_*.py` (probably planning/findings/), `minimal_lif_network.py` (check if used). Do AFTER paper edits to avoid merge pain on the feature branch.
+6. **Program library expansion.** Reviewer keeps flagging 4 conditional templates + 3 loop-test types as too narrow. Add more `.su` programs that compile through the pipeline.
+7. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional), human plays the other paddle via pygame. `fly-brain/pong_brain.py` has a 326-line scaffold already. Stretch goal for today.
+
+Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
+
 ## Built / Works
 
 - **Tier-3 on real hemibrain wiring** — PN→KC sparse projection, APL-enforced ~7.8% sparsity, Jaccard prototype match. This is genuinely on the connectome.
