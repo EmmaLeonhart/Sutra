@@ -18,7 +18,7 @@ If this brings spiking loop performance up to 5/5, the fix is
 principled (mixed spectrum from multiple biological motifs, no
 tuning of thresholds). If it doesn't, the bottleneck is cosine
 readout SNR rather than spectral structure, and we should move to
-tier-3 Jaccard-on-KC termination.
+KC-Jaccard termination.
 
 Wall clock note: 713x713 synapse matrix is ~500k synapses, much
 larger than the 51x51 EPG case. SIM_MS held at 3000ms for
