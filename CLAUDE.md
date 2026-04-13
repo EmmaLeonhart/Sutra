@@ -28,6 +28,16 @@ Write a finding when the number is interesting, surprising, or likely to be misr
 
 The three planning/ sibling folders partition the work-adjacent writing cleanly: `exploratory/` is things we haven't tried, `open-questions/` is decisions we've avoided making, `findings/` is things we have tried and learned from.
 
+### Extract Claude.ai chat exports in `chats/`
+
+The user frequently has unstructured thinking conversations with Claude on the web (claude.ai) when the task is not code-writing — design sketches, naming discussions, concept explorations. These are cheaper and less heavyweight than Claude Code sessions, but the content is valuable and needs to land in the repo so it can be referenced from future sessions, planning docs, and the paper.
+
+Workflow: the user saves the Claude.ai chat as HTML ("File → Save Page As") into `chats/`. Those HTML files need to be extracted to clean markdown so they are grep-able, diffable, and readable without a browser.
+
+When you see a `chats/*.html` file without a matching `.md` sibling — or when the user says "extract the chat" / "there's a new chat to extract" — run `python scripts/extract_chat.py`. With no args it scans `chats/` and extracts any HTML that lacks a matching markdown file. The script finds the user/assistant message blocks by their claude.ai CSS markers (`font-user-message`, `font-claude-response`), converts to markdown, and writes `chats/<title-slug>.md`. The `.html` file stays in place as the source of truth; the `.md` is the working copy.
+
+Commit both the new `.md` and the `.html` (if untracked). This is a recurring task — treat it like any other working-copy hygiene step.
+
 ## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
 
 **READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
