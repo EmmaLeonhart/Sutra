@@ -220,11 +220,15 @@ Original Sutra conditional design from the design chats:
 
 ---
 
-# Sutra TODO
+## ⚠️ [Pre-Claw4S] FIX THE PAPER CI/CD PIPELINE ⚠️
 
-## 🔧 [This year] GitHub Actions failure modes (diagnosed 2026-04-13, fix deferred)
+**Standing operational problem. User has flagged this across multiple sessions.** `papers-ci.yml` / `competition-cron.yml` / `submit-papers.yml` have chronic failure modes during paper iteration — most visibly merge conflicts and failed runs that cost user time and occasionally lose work. Each attempted fix has introduced new failure modes (see STATUS.md "CI pipeline state" — it has been rewritten repeatedly).
 
-Two distinct chronic failures when papers are iterated fast. Both have plausible easy fixes — none attempted yet because the user deprioritized over rotation/paper work.
+**Status (per user, 2026-04-13):** still urgent — just not "within the hour" urgent — and may be nearly fixed already; check current pipeline state before assuming the diagnosis below is still live. Fixes below are easy in principle and the diagnosis is enough to act on when we do pick it up.
+
+### Diagnosed failure modes (2026-04-13)
+
+Two distinct chronic failures when papers are iterated fast. Both have plausible easy fixes — confirm they still reproduce before re-implementing, since later commits may have closed one or both.
 
 **1. papers-ci HTTP 409 "This paper has already been revised".**
 Happens when two pushes to master land close together. Run A reads `.post_id = 1587`, submits supersede, clawRxiv returns new id 1588, run A updates `.post_id` in-workspace. Run B (triggered by a subsequent push) checks out master before run A's `.post_id` commit merges (it goes through the cron PR flow that sometimes doesn't merge), reads stale `1587`, submits supersede, clawRxiv returns 409 because post 1587 is already superseded by 1588. The workflow exits 1 on the 409 without recovery.
@@ -235,13 +239,9 @@ Side issue (not the cause of 409 but surfaces as a warning): `.github/workflows/
 The cron only `git add`s three specific data files (`competition_analysis_raw.json`, `competition_reviews.json`, `planning/competition-analysis-latest.md`) — it does not touch workflow YAML. But GitHub's push protection appears to fire on the new-branch push because the tree on the new branch contains workflow files, regardless of whether the specific commits in the push modify them. STATUS.md's "CI pipeline state" section already records that `GITHUB_TOKEN` cannot push workflow files regardless of permissions config, and that papers-ci was reverted from branch+PR to direct-master-push for this reason (commit 211bd92). Competition-cron is still on the branch+PR flow and hits the same wall.
 Easy-fix candidate (from user): pull-before-push / refresh-from-remote pattern. Currently the cron rebases ONLY after a push failure (lines 71–77). Doing `git pull --rebase origin master` *before* generating the data + committing would reduce the normal-race failure surface — but note that the specific error above is a permissions rejection, not a non-fast-forward, so rebasing alone may not fix it. The more direct fix is to mirror papers-ci's revert and push directly to master instead of opening a PR on a new branch.
 
-**Decision:** don't sink time into this until the rotation-and-paper work is in a more stable place. Fixes above are easy in principle but the diagnosis above should be enough to act on when we do pick it up.
+### When picking this up
 
-## ⚠️ [Pre-Claw4S] FIX THE PAPER CI/CD PIPELINE ⚠️
-
-**Standing operational problem. User has flagged this across multiple sessions.** `papers-ci.yml` / `competition-cron.yml` / `submit-papers.yml` have chronic failure modes during paper iteration — most visibly merge conflicts and failed runs that cost user time and occasionally lose work. Each attempted fix has introduced new failure modes (see STATUS.md "CI pipeline state" — it has been rewritten repeatedly).
-
-This is NOT something to diagnose from the repo alone. The Actions logs are not available from the Claude environment. When picking this up:
+This is NOT something to diagnose from the repo alone. The Actions logs are not available from the Claude environment.
 
 1. Ask the user to paste the log from a specific failing run, or point at the run URL. Do not guess at causes without logs.
 2. Look at the workflow file that failed (in `.github/workflows/`) alongside the log before proposing a change.
@@ -317,8 +317,10 @@ is closed. What's next, roughly in priority:
    `scripts/fetch_top_papers.py` → update
    `planning/competition-analysis-*.md` with the current landscape.
    Low effort, relevant to paper decisions before the deadline.
-   (Duplicate entry in `## Competition Analysis` below — do not
-   treat as a separate work item.)
+   Note: there are now five daily snapshots (2026-04-08, -09, -11,
+   -11-evening, -11-night) plus `competition-analysis-latest.md`.
+   Before writing another snapshot, decide whether to keep the
+   daily-snapshot habit or collapse to `latest.md` only.
 
 ## Recently done — historical record, not work to do
 
@@ -384,15 +386,6 @@ Language-design open questions. None of these block Claw4S — the
 paper-critical work is in §"Next up" above. Group-tagged `[This year]`
 rather than per-line since they are all of a piece.
 
-- **[Pre-Claw4S]** Run the Sutra code checker (`sutrac`, in
-  `sdk/sutra-compiler`) over every `.su` file in the repo and fix
-  every inconsistency it reports. Same item as §"Next up" #2; listed
-  here because it was flagged as a Pending Decision first. The
-  compiler/validator is the ground truth for what Sutra code should
-  look like; run it in lint mode against `examples/`,
-  `sutra-demo-program.su`, `fly-brain/`, and any `.su` files
-  generated under `scripts/` or elsewhere. Resolve class-name
-  casing, builtin usage, and structural inconsistencies.
 - Decide on anonymous functions. Leaning toward `lambda` keyword.
   Need to pick exact form.
 - How primitive substrate operations read in source.
@@ -426,20 +419,6 @@ rather than per-line since they are all of a piece.
 - Implicit casts allowed but must be explicitly defined
 - `fuzzy` to `bool` cast performs `defuzzy`
 - Class system is user-defined, not runtime-special
-
-## [Pre-Claw4S] Competition Analysis
-
-Duplicate of §"Next up" #4 — kept here because the section existed
-first. Do NOT treat as separate work; one analysis pass closes both.
-
-- Run fresh competition analysis using
-  `scripts/fetch_all_papers.py`, `scripts/fetch_reviews.py`,
-  `scripts/fetch_top_papers.py`.
-- Update `planning/competition-analysis-2026-04-08.md` with current
-  landscape — note: there are now five daily snapshots (2026-04-08,
-  -09, -11, -11-evening, -11-night) plus `competition-analysis-
-  latest.md`. Before writing another snapshot, decide whether to
-  keep the daily-snapshot habit or collapse to `latest.md` only.
 
 ## [Pre-YC] Future Goals
 
