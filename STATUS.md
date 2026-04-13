@@ -16,6 +16,7 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 - **Tier-2 bundle on real FlyWire wiring** (`fly-brain/neural_vsa_flywire.py`) — cos 0.94 vs W·v reference.
 - **I/O rate coding** — centered rate encoding of hypervectors as PN currents, linear MBON readout via ridge regression. Works.
 - **Compiler pipeline** — `sdk/sutra-compiler/` emits Python that calls `fly-brain/vsa_operations.py`. `.su` programs (e.g. `permutation_conditional.su`) compile through it.
+- **End-to-end fuzzy conditional compile** — `fly-brain/fuzzy_conditional.su` → codegen → live MB simulation, 16/16 pass, 4/4 distinct program mappings (`fly-brain/test_codegen_e2e_fuzzy.py`).
 
 ## Conditional branching — FIXED
 
@@ -27,8 +28,8 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 
 ## Queued work (do in order)
 
-1. **Write `fly-brain/fuzzy_conditional.su` + compile through `sdk/sutra-compiler/`.** Paper cites `fuzzy_conditional.py` but there's no matching `.su` source; the end-to-end compile-to-brain chain currently runs only the deprecated `permutation_conditional.su`.
-2. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
+1. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
+2. **Create `planning/open-questions/` directory** (sister to the implicit exploratory-status convention) and seed it with two entries: (a) tier-2 bundle — numpy vs substrate when weights must be preserved (landed as `+` in `fuzzy_conditional.su` to hit 16/16, but this is a real open design question), (b) conditional branching executed on the remote at runtime rather than compiled at host. Wire into `CLAUDE.md` so future sessions know to use the directory.
 
 ## Open / Known Gaps
 
