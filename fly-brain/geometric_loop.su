@@ -9,12 +9,12 @@
 */
 
 // Set up the starting state
-vector start = basis_vector("origin")
+vector start = basis_vector("origin");
 
 // Build a rotation matrix (pi/4 per step, across 20 planes)
-vector R = make_rotation(0.785, 20)
+vector R = make_rotation(0.785, 20);
 
 // Create target prototypes by applying R^3 and R^6 to start
 // (In practice these would be pre-computed target states)
-vector target_three = snap(bind(start, basis_vector("step_three")))
-vector target_six = snap(bind(start, basis_vector("step_six")))
+vector target_three = snap(bind(start, basis_vector("step_three")));
+vector target_six = snap(bind(start, basis_vector("step_six")));
