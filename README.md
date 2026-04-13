@@ -10,6 +10,8 @@ Conventional languages compile to machine instructions that execute on silicon. 
 
 The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," the word used for Pāṇini's foundational grammar of Sanskrit. A programming language descended etymologically from the earliest known formal grammar is a better fit than the language's original name (*ākaśa*, "aether/space"), which is preserved throughout `DEVLOG.md` and the `chats/` archive as the earlier identity. The rename happened on 2026-04-11 — see the DEVLOG entry for that date for the full commit-by-commit breakdown.
 
+📖 **Architectural overview: [`ARCHITECTURE.md`](ARCHITECTURE.md)** — the "under the hood" tour. What Sutra is, what `.su` source looks like, what the compiler does with it, what the emitted code actually runs on (numpy, Brian2 spiking, real connectome), the three-tier operation model, how control flow works, and the VSA math foundations. Also mirrored on the website at [`/architecture/`](https://emmaleonhart.github.io/Sutra/architecture/).
+
 ---
 
 ## What's in this repo
