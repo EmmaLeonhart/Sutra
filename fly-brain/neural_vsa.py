@@ -1,12 +1,13 @@
 """
-Tier-2 VSA operations running as Brian2 spiking dynamics.
+VSA operations (bundle, bind, rotation) running as Brian2 spiking dynamics.
 
 Previously `bundle` and `bind` ran as numpy arithmetic on the host. The
 v15 reviewer (and the user) correctly pointed out that this makes the
 "connectome" framing thin: if the elementwise ops run on the host, the
-circuit is just a pattern matcher. The spec's tier-2-is-pure-math rule
-is convenient but not forced — neurons do elementwise arithmetic all
-the time (EPSP summation for bundle, sign-gated synapses for bind).
+circuit is just a pattern matcher. Per `planning/sutra-spec/02-operations.md`
+every Sutra vector operation runs on the substrate at runtime; neurons
+do elementwise arithmetic all the time (EPSP summation for bundle,
+sign-gated synapses for bind, weighted summation for rotation).
 
 This module implements bundle and sign-flip bind as actual spiking
 circuits. Each vector dimension i corresponds to one output neuron.

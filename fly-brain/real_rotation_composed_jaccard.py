@@ -155,7 +155,7 @@ def main():
 
     print()
     print("=" * 60)
-    print(f"Composed 713-D real-wiring Q + tier-3 Jaccard-on-KC readout:")
+    print(f"Composed 713-D real-wiring Q + KC-Jaccard readout:")
     print(f"  counting k=3: {n_c}/{len(seeds)}")
     print(f"  ordering:     {n_o}/{len(seeds)}")
     print(f"  wall clock:   {time.time() - t0:.0f}s")
