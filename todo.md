@@ -59,6 +59,67 @@ Everything that follows should be mentally filed under one of:
 When adding a new item, pick a tier. When closing one, delete the
 line — do not leave "done ✅" stubs (that's what git log is for).
 
+## 🗃 High-priority, below fly-brain clutter: audit `chats/` — chats are NOT permanent
+
+### Core principle (user direction 2026-04-13)
+
+> *"The chats are not supposed to be permanent; they're supposed to
+> be put in there because the chats are often a bit better at
+> thinking about certain things, but once their stuff is implemented,
+> you just remove them."*
+
+The `chats/` workflow itself stays — it is a legitimate input channel
+(Claude on the web for unstructured design thinking, then HTML → `.md`
+extraction via `scripts/extract_chat.py`, see CLAUDE.md §"Extract
+Claude.ai chat exports"). But individual chats are working notes, not
+archive material. **Once the ideas in a chat have been integrated
+into the spec, planning docs, paper, or code, the chat gets deleted.**
+That cycle has been broken — chats accumulate indefinitely and take
+up repo space.
+
+### What needs doing
+
+For each file under `chats/`:
+
+1. Read the `.md` extraction (the `.html` is just the source).
+2. Identify what idea / decision / sketch the chat contained.
+3. Check whether that content has already been absorbed into the
+   spec (`planning/sutra-spec/`), into a planning doc
+   (`planning/exploratory/`, `planning/open-questions/`,
+   `planning/findings/`), into the paper, or into a CLAUDE.md /
+   STATUS.md / DEVLOG entry.
+4. If absorbed: delete the chat (both `.html` and `.md`). Git history
+   preserves the original.
+5. If not yet absorbed: leave the chat in place but file the
+   integration-task somewhere appropriate (planning doc, todo.md
+   entry, etc.) so it doesn't sit forever.
+
+Optionally produce `chats/AUDIT.md` summarizing decisions so the next
+pass picks up where this one left off — but the `chats/` workflow is
+supposed to be lean enough that an audit doesn't need its own
+permanent record.
+
+### Execution constraint — same as fly-brain cleanup
+
+**Do not attempt this from a Claude Code sandbox session.** Per user
+direction: this needs to be done interactively with the user (or by
+the user directly). The decision "has this idea been absorbed yet?"
+requires judgment about what was a sketch vs. what is committed
+direction, and that's a conversation, not a grep.
+
+A Claude session reading this task and feeling tempted to "just
+delete the chats whose md looks superseded" is in the same failure
+mode as the fly-brain Python-sprawl audit: the static analysis is
+not enough, and a wrong call destroys content the user wanted to
+keep. Surface the queue item, do not execute.
+
+### Priority placement
+
+Slots directly beneath the fly-brain cleanup. Highest-priority item
+in `todo.md` proper, but below the §"current limiting factor"
+meta-blocker above. Should also appear in `STATUS.md` queue when
+actively being worked.
+
 ---
 
 # ! fly-brain (prepended from former `fly-brain/todo.md`)
