@@ -67,6 +67,8 @@ To close the whole caveat for the paper headline: an end-to-end 140-D pipeline w
 
 13. **Strip tier framing from code docstrings.** `fly-brain/neural_vsa.py`, `neural_vsa_flywire.py`, the `real_rotation_*.py` family, `sutra-paper/scripts/*.py`, and `.su` files contain tier annotations in comments and docstrings. Rewrite them to say what each call actually does and where it runs. Same principle: describe the op, don't sort it into a class.
 
+14. **Paper rewrite, triggered by combined pipeline passing.** Once `combined_pipeline.py` (queue item #3) reports n>=5 passing on 140-D spiking rotation + KC-Jaccard readout, rewrite both `fly-brain-paper/paper.md` and `sutra-paper/paper.md` to describe what the pipeline is actually doing. This is the first time the paper can claim "rotation on the connectome" without the numpy-in-runtime caveat — the prose needs to reflect that the headline result is genuinely end-to-end on neurons. Also folds in queue items #11, #12: tier terminology goes away, the old (B) numpy-rotation-plus-readout paragraph is replaced with the combined-pipeline result, the Honest Limits section is rewritten around what remains (SIM_MS cost, decode-noise ceiling, biological W vs Q Frobenius distance).
+
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
 ## Direct-to-master audit (2026-04-13) — what the paralysis episode changed
