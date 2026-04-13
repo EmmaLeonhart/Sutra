@@ -4,6 +4,16 @@
 
 Before any work on this repo, read `STATUS.md` at the repo root. It is the living truth table — what's built, what's open, what's out of scope, and the semantic corrections the user has had to repeat across sessions. CLAUDE.md is rules; STATUS.md is state. On this project (1M-token context burns through fast) you need both.
 
+### The `Queued work` section is the work queue
+
+`STATUS.md` has a `## Queued work (do in order)` section. It is not a wishlist — it is the authoritative ordered queue. Rules:
+
+- When the user asks to queue up multiple items, add them in priority order to `## Queued work` in STATUS.md, then commit + push that change as its own commit before starting any of them. The queue must be visible in the repo history before work begins.
+- When working an item off the queue, each queue item gets **exactly one commit** that both removes the item from STATUS.md and lands the work itself. Do not commit the implementation separately from the STATUS.md edit — the two changes must ship together so the queue and the repo never disagree.
+- Work items in queue order. Do not skip. If an item turns out to be blocked or mis-specified, update STATUS.md to reflect that (still as one commit) and surface it to the user before moving on.
+- When the queue is empty, delete the `## Queued work` section entirely rather than leaving a stub.
+- Push after every queue commit. The point of this protocol is that an outside observer (or a future session on a different machine) can see exactly what's pending and what just landed by reading `git log` + `STATUS.md` alone.
+
 ## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
 
 **READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
