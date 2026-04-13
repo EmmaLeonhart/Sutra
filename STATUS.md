@@ -9,28 +9,20 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 ## Built / Works
 
 - **Tier-3 on real hemibrain wiring** — PN→KC sparse projection, APL-enforced ~7.8% sparsity, Jaccard prototype match. This is genuinely on the connectome.
-- **Conditional branching** — 13/16 on four-way permutation program, 4/4 distinct mappings. Fuzzy weighted superposition works.
+- **Conditional branching** — 16/16 and 80/80 across 5 hemibrain seeds via fuzzy weighted superposition (`fly-brain/fuzzy_conditional.py`). 4/4 distinct program mappings.
 - **Bounded loops `loop[N]`** — unrolled at compile time into flat algebraic expressions. No runtime iteration. No eigenrotation. Works.
 - **Tier-2 bundle/bind/rotate on synthetic-weight spiking circuits** (`fly-brain/neural_vsa.py`) — Brian2 LIF, Givens R as synapse weights. Cos 0.94–0.99 vs numpy reference. Rotation R is chosen by us, not by biology.
 - **Tier-2 bundle on real FlyWire wiring** (`fly-brain/neural_vsa_flywire.py`) — cos 0.94 vs W·v reference.
 - **I/O rate coding** — centered rate encoding of hypervectors as PN currents, linear MBON readout via ridge regression. Works.
 - **Compiler pipeline** — `sdk/sutra-compiler/` emits Python that calls `fly-brain/vsa_operations.py`. `.su` programs (e.g. `permutation_conditional.su`) compile through it.
 
-## Active investigation
+## Conditional branching — FIXED
 
-**The 3/16 failures are architectural, not a bug.** The demo `permutation_conditional.py` uses `sign_flip(NOT_key, query)` to implement semantic negation (flipping "smell" to "no smell" as input to prototype matching). That is not a VSA primitive — a random-pattern sign flip has no principled relationship to semantic NOT, so programs B/C/D (which apply NOT keys) cannot work reliably in this construction. Program A (no NOT keys) hits 100% exactly because it's the only one where the operational meaning matches what the circuit is doing. Scaled eval:
-- Program A: 100% (no NOT keys)
-- Program B: 50% ± 20%
-- Program C: 67% ± 12%
-- Program D: 58% ± 12%
-
-**Per spec (`planning/sutra-spec/03-control-flow.md`), the correct conditional branching is:** `result = (condition * branch_true) + (NOT_condition * branch_false)` — fuzzy weighted superposition with both branches executing simultaneously, NOT a permutation trick on the query. Or for discrete "go here OR there" branching, cone traversal. Sign-flip-as-NOT is neither. The permutation_conditional demo is therefore the wrong architecture for the branching result we want to claim. Prior sessions and AI reviewers all read the failures as noise; they're not noise.
-
-**Next action:** rewrite conditional branching to use the spec's fuzzy weighted superposition and/or cone traversal. Do not report accuracy numbers from `permutation_conditional` in the paper at all — it's measuring the wrong thing.
+**Spec-aligned 4-way fuzzy weighted superposition hits 16/16 on toy substrate and 80/80 across 5 independent seeds on the real hemibrain (100%, σ=0).** New file: `fly-brain/fuzzy_conditional.py`. The deprecated `permutation_conditional.py` used `sign_flip(NOT_key, query)` as semantic NOT — that's a category error (a random ±1 pattern has no relationship to the "other polarity" of a feature axis), which is why Programs B/C/D averaged ~50%. Per spec 03-control-flow.md: `result = Σ w_i · branch_i` with weights from clipped cosine scores against the 4 joint prototypes. 4 programs differ only in the prototype-to-behavior map; decision pipeline is identical.
 
 ## CI pipeline state
 
-Recent workflow changes (b3da92e, 1ac0317) migrated papers-CI and competition-cron from direct-to-master push to branch+PR via `gh pr create`. Both workflows now failing at the GitHub Actions infrastructure level (runs complete in 0s with 0 jobs — YAML validates locally but GH rejects). Root cause not yet identified. **Peer reviews likely being lost while CI is broken.** Must be fixed before further paper pushes or we accumulate more lost context.
+Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR approach failed because `GITHUB_TOKEN` cannot modify workflow files regardless of permissions config. Push-retry-with-rebase loop handles the race conditions that motivated the PR flow. Preserved the `detect-changed` full-push-range fix from bd85ce0. Cron verified working (competition-cron run 24320014564 succeeded).
 
 ## Open / Known Gaps
 
