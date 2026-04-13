@@ -72,6 +72,14 @@ The embedding-mapping FOL discovery work provides the empirical foundation for S
 - **Keep this file up to date.** Record architectural decisions, conventions, and anything needed to work effectively.
 - **Update README.md regularly.** It should always reflect the current state of the project.
 
+## CI/CD IS BROKEN — WE REALLY, REALLY NEED TO FIX IT
+
+The paper-CI pipeline (`papers-ci.yml`, `competition-cron.yml`, `submit-papers.yml`) has chronic, recurring problems — most visibly during paper iteration, where merge conflicts and failed runs eat user time across sessions. The user has flagged this multiple times. It is a real, standing blocker, not background noise.
+
+- **Do not assume the prior session "solved" CI.** STATUS.md's "CI pipeline state" section has been rewritten repeatedly as each attempted fix turned out to have new failure modes.
+- **Do not diagnose CI problems from the repo alone.** The Actions logs are not accessible from this environment. If the user asks to fix CI, ask for the failing run's log (or a specific error message) before proposing a fix. Proposing a diagnosis without logs has led to wrong guesses (e.g. blaming `paper.md` merge conflicts when the real issue was elsewhere).
+- **Pick this up when there is capacity and the user provides logs.** It is not in the active queue in STATUS.md unless the user puts it there. But if the user mentions CI pain, take it seriously — it is the long-running operational problem on this repo.
+
 ## NO MATH SHORTCUTS (critical — re-read before every experiment)
 
 The formal specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what a reviewer complained about, not what "sounds more biological," not what you guessed. Canonical files:
