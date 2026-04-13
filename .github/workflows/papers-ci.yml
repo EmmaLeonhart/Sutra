@@ -17,12 +17,6 @@ name: Papers CI — auto-submit and fetch reviews
 # `Skip-Submit: true` trailer to the commit message (same shape as
 # `Signed-off-by:` / `Co-Authored-By:`). The papers-ci workflow's own
 # auto-commits always include this trailer to prevent infinite loops.
-#
-# Why a trailer and not `[skip submit]` in the subject: the earlier
-# `[skip submit]` grep was too broad — it matched the literal string
-# anywhere in the message, including prose descriptions of how the
-# skip mechanism works. A trailer is on its own line at the bottom of
-# the commit body, far less likely to collide with unrelated prose.
 
 on:
   push:
@@ -69,12 +63,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Honor the Skip-Submit: true trailer in the push commit message.
-          # Scoped to its own line at the bottom of the commit body so prose
-          # descriptions can mention the skip mechanism without accidentally
-          # tripping it (the reason the earlier `[skip submit]` check got
-          # triggered by a commit that was describing the feature, not
-          # opting out of it).
           if [ "${{ github.event_name }}" = "push" ]; then
             if git log -1 --pretty=%B | grep -Eq "^Skip-Submit:[[:space:]]*true$"; then
               echo "Commit has Skip-Submit: true trailer — skipping both papers"
@@ -84,7 +72,6 @@ jobs:
             fi
           fi
 
-          # Manual dispatch: honor the input dropdown verbatim.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             case "${{ github.event.inputs.paper }}" in
               sutra-paper)
@@ -106,14 +93,9 @@ jobs:
           # Push trigger: diff the WHOLE pushed range against the two
           # paper paths, not just HEAD~1..HEAD. The earlier HEAD~1..HEAD
           # form missed pushes where a paper.md change sat in an earlier
-          # commit with a workflow-only change on top (the "side effect"
-          # after CI fix in 4b7f4ea — abstract rewrite 83e5b94 shipped
-          # without triggering a submission because only the tip of the
-          # push was diffed).
+          # commit with a workflow-only change on top.
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
-          # If this is the first push on a fresh ref, `before` is all zeros.
-          # Fall back to HEAD~1..HEAD in that case to avoid bogus diffs.
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
             echo "First push on ref — falling back to HEAD~1..HEAD"
             CHANGED="$(git diff --name-only HEAD~1 HEAD || true)"
@@ -142,7 +124,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     # max-parallel: 1 serializes the two paper jobs so their auto-commits
     # of .post_id and reviews/ don't race each other when both papers
     # change in the same push.
@@ -182,7 +163,6 @@ jobs:
         if: steps.should_run.outputs.skip != 'true'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Need full history so the auto-commit can push cleanly.
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -195,19 +175,6 @@ jobs:
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
-          # Review polling schedule: check every 15 minutes, keep
-          # trying for up to 3 hours, then give up. The reason the
-          # interval is this long and not every-30-seconds: Gemini 3
-          # Flash reviews on clawRxiv are not latency-predictable —
-          # fly-brain-paper's original run hit a 10-minute ceiling
-          # and missed, but the review was actually ready not long
-          # after. 15 min / 3 h is the schedule the user specified.
-          #
-          # GitHub Actions has a 6-hour default job timeout, so 3 h
-          # of polling still leaves 3 h of headroom per paper job.
-          # max-parallel: 1 above serializes the two paper jobs so
-          # the overall workflow can consume up to 2 * (submit_time
-          # + 3 h) in the worst case — still well within budget.
           python scripts/paper_submit_and_fetch.py \
             --paper-dir "${{ matrix.paper_dir }}" \
             --title "${{ matrix.title }}" \
@@ -215,18 +182,13 @@ jobs:
             --poll-seconds 900 \
             --review-timeout-seconds 10800
 
-      - name: Commit updates on a branch and open PR
+      - name: Commit updated .post_id and reviews
         if: steps.should_run.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Only stage the files this job is allowed to touch. This avoids
-          # accidentally committing anything stray that may have landed in
-          # the working tree during the Python run.
           git add "${{ matrix.paper_dir }}/.post_id" || true
           git add "${{ matrix.paper_dir }}/reviews/"  || true
 
@@ -235,37 +197,15 @@ jobs:
             exit 0
           fi
 
-          # Branch + PR flow (replaces the old direct-to-master push).
-          # Rationale: direct pushes from CI to master have been racing
-          # with human commits and occasionally losing data. A PR per run
-          # gives an explicit merge point and keeps the history clean.
-          # Branch name includes the run id so parallel matrix jobs never
-          # collide. Future work: auto-merge via branch protection rule.
-          BRANCH="papers-ci/${{ matrix.paper_dir }}/run-${{ github.run_id }}"
-          git switch -c "$BRANCH"
-
-          # Skip-Submit trailer preserved as defense in depth: if the
-          # PR is ever merged via a rebase that brings this commit to
-          # master, the path filter + trailer both still prevent re-fire.
           git commit -m "papers-ci: ${{ matrix.paper_dir }} submission + review" \
                      -m "Skip-Submit: true"
 
-          git push --set-upstream origin "$BRANCH"
-
-          # Body written to a file so the YAML block scalar doesn't get
-          # terminated by the blank lines in a heredoc-style --body arg.
-          # (An earlier version inlined a multi-line --body "..." and the
-          # zero-indent blank lines ended the block scalar, producing a
-          # workflow that GitHub accepted but launched with 0 jobs.)
-          printf '%s\n' \
-            "Automated submission + review fetch for \`${{ matrix.paper_dir }}\` (run ${{ github.run_id }})." \
-            "" \
-            "Merge when ready. Contents: updated \`.post_id\` and \`reviews/\` only." \
-            "" \
-            "Skip-Submit: true" > /tmp/pr_body.md
-
-          gh pr create \
-            --base master \
-            --head "$BRANCH" \
-            --title "papers-ci: ${{ matrix.paper_dir }} submission + review" \
-            --body-file /tmp/pr_body.md
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push attempt $attempt failed, rebasing and retrying..."
+            git pull --rebase origin master
+          done
+          echo "ERROR: failed to push after 3 retries" >&2
+          exit 1
