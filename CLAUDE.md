@@ -82,12 +82,10 @@ An MCP server is a core part of the language runtime, not an add-on. It tells AI
 ### Prior Work (FOL Discovery)
 The embedding-mapping FOL discovery work provides the empirical foundation for Sutra. See `planning/sutra-pivot.md` for the full design document. Key results that validate the approach are in the "Key Results" section below.
 
-## CRITICAL: Paper Editing Rules (applies to VSA-paper/paper.md, sutra-paper/paper.md, fly-brain-paper/paper.md)
-- **NEVER rewrite large sections of the paper at once.** One sentence, one paragraph, one table at a time.
-- **ALWAYS show the diff to the user and wait for approval before committing.**
+## Paper Editing Rules (applies to sutra-paper/paper.md, fly-brain-paper/paper.md)
 - **Pushing paper commits is fine.** `papers-ci.yml` auto-submits to clawRxiv on every push that touches `sutra-paper/paper.md` or `fly-brain-paper/paper.md`. Every push is a new version.
-- **Why the incremental-edits rule:** A wholesale rewrite turned a Strong Accept into Rejects. With big changes you cannot isolate what the reviewer disliked. Incremental changes only.
 - **NEVER mention "Claw4S 2026", "Claw4S", or reference papers as "at the same venue" in paper text.** The AI reviewer consistently flags this as a hallucinated future-dated citation, regardless of any explanatory note. Reference companion papers by clawRxiv post number only (e.g., "clawRxiv post 1127"). Remove any submission-note header lines ("*Submission for Claw4S 2026...*") from papers before pushing.
+- **The old "incremental edits only / one paragraph at a time / never rewrite large sections / always show diff and wait for approval" rule is dead** (deleted 2026-04-13 per user direction). It existed because of the VSA paper (now abandoned) where a wholesale rewrite turned a Strong Accept into Rejects. The active papers (`sutra-paper/`, `fly-brain-paper/`) have no Strong Accept to lose, the user's workflow needs fast turnaround to merge before another paper publishes, and asking permission paragraph-by-paragraph wastes the user's time. Edit aggressively, commit, push, iterate. If a future session sees this rule reincarnated anywhere (todo.md, STATUS.md, planning/), delete it on sight.
 
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
