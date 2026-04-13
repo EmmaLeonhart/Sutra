@@ -24,6 +24,12 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 
 Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR approach failed because `GITHUB_TOKEN` cannot modify workflow files regardless of permissions config. Push-retry-with-rebase loop handles the race conditions that motivated the PR flow. Preserved the `detect-changed` full-push-range fix from bd85ce0. Cron verified working (competition-cron run 24320014564 succeeded).
 
+## Queued work (do in order)
+
+1. **Scale the loop eval.** Mirror `scale_eval_conditional.py` for the geometric-loop tests — ~5 hemibrain seeds, aggregate stats. Closes the last "small-n" reviewer complaint after the branching fix.
+2. **Write `fly-brain/fuzzy_conditional.su` + compile through `sdk/sutra-compiler/`.** Paper cites `fuzzy_conditional.py` but there's no matching `.su` source; the end-to-end compile-to-brain chain currently runs only the deprecated `permutation_conditional.su`.
+3. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
+
 ## Open / Known Gaps
 
 - **Rotation from real wiring** — ALPN→LHLN is rank 415, cond 1e16, compressive, NOT near-orthogonal. Real-wire R is not a rotation. Only bites `loop(condition)` with data-dependent termination. Open work: find a connectome motif with adequate near-orthogonality, or distribute across multiple projections. `_exploratory_cx_ring_attractor.py` tried CX and got corr 0.97 between left/right drive — not directional.
