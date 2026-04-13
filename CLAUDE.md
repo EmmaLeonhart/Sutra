@@ -20,6 +20,14 @@ When you make a session-level call in place of a principled design decision — 
 
 This is distinct from `planning/exploratory/`: exploratory is a parking lot for ideas; open-questions is for known gaps in the design where the implementation has made a choice the spec doesn't justify. When the question gets resolved, the doc moves out (spec update, code change, or both) rather than sitting here forever.
 
+### Experimental results live in `planning/findings/`
+
+When an experiment produces a result worth keeping — especially a mixed or negative one — write it up as a dated file in `planning/findings/`. Structure is in `planning/findings/README.md`: what was measured, setup, raw numbers, interpretation, implications. The point is that STATUS.md carries the one-line summary and commit messages carry the diff, but the reasoning behind a number (*why* 3/5, *what* would move it, *what* it means for the paper) has nowhere else to live without this layer.
+
+Write a finding when the number is interesting, surprising, or likely to be misread by a future session without context. Don't write one for every green test run — use judgment. Negative and mixed results are the highest priority to capture because they otherwise get papered over in subsequent rounds.
+
+The three planning/ sibling folders partition the work-adjacent writing cleanly: `exploratory/` is things we haven't tried, `open-questions/` is decisions we've avoided making, `findings/` is things we have tried and learned from.
+
 ## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
 
 **READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
