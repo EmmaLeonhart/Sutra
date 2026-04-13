@@ -12,43 +12,19 @@ User agenda for this session. Priority order:
 
 1. **🔴 META-BLOCKER: Fly-brain Python-file sprawl cleanup.**
 
-   ### ⛔ DO NOT ATTEMPT THIS FROM A CLAUDE CODE SESSION ⛔
-
-   This task **must** be executed on Immanuelle's desktop (the
-   machine with Brian2 installed and the 14 GB FlyWire cache at
-   `C:\Users\Immanuelle\flybrain\`). A Claude Code sandbox cannot do
-   it. Specifically:
-
-   - The sandbox has no Brian2, so it cannot run any spiking sim and
-     therefore cannot tell whether a given `real_rotation_*.py` still
-     produces the result its filename / docstring claims.
-   - The sandbox has no FlyWire cache, so it cannot even import the
-     loaders that would let it run those sims.
-   - A grep-only "is this file imported anywhere" audit produces
-     misleading classifications (reverse imports get missed; files
-     that route through a registry look unused; tests that nothing
-     runs look the same as tests that everything runs).
-
-   A previous session correctly did **only** the static, no-execution
-   work — built a reference map, wrote it into the queue item below —
-   and stopped. **Do the same.** If you are reading this in a future
-   Claude Code session and feel tempted to "just delete the
-   zero-reference files," don't. The user has explicitly drawn the
-   line: this is a desktop task. Surface the queue item to the user,
-   note that you cannot do it, move on.
-
-   ### Why this is queue item #1 anyway
-
    User direction (2026-04-13): *"The fly-brain clutter is the
    biggest issue; it is the biggest limiting factor here ... it loads
    up context with bullshit. It's probably the reason why things are
    so slow."* Every other queue item below pays a context-bloat tax
-   until this is done. The cleanup is queue item #1 not because a
-   Claude session will close it, but because closing it makes
-   everything else faster, so it should be the next thing Immanuelle
-   does locally.
+   until this is done.
 
-   ### The actionable set (for the desktop session, not for Claude)
+   (Earlier versions of this note said "do not attempt from a Claude
+   Code session" — that wording confused Claude Code with Claude Cloud
+   containers. Claude Code on the desktop **can** do this; it has
+   access to Brian2 and the FlyWire cache at
+   `C:\Users\Immanuelle\flybrain\`.)
+
+   ### The actionable set
 
    - **Safe anywhere (no execution needed):** Move `_exploratory_cx_ring_attractor.py` to `planning/findings/`. Known-negative result; docstring already says "do not import." A Claude Code session could even do this part — but the user has explicitly asked it not to.
    - **Verify on machine with Brian2 + hemibrain cache, then delete if still zero-reference:** `experiment_{binding,kc_binding,is_converter}.py`, `minimal_lif_network.py`, `test_bridge.py`, `test_loop.py`, `test_vsa_operations.py`.
