@@ -1,5 +1,22 @@
 # embedding-mapping → Sutra
 
+## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
+
+**READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
+
+Sutra is not an academic toy. The user is using this work as the foundation for **biomedical hardware and software** — real devices that will interface with real human bodies. If the math here is wrong, if an operation claims to run on the substrate but actually runs on the host, if a validation number is massaged to clear a threshold, if a "working" demo is papered over Poisson noise, **a patient downstream can be injured or killed.** This is not a figure of speech. The compiler, the substrate model, the spec, and the papers are all load-bearing for a real medical pipeline.
+
+Rules that follow from this:
+
+1. **Every tier-2 and tier-3 operation must actually run where the paper says it runs.** If the paper claims `bind` runs on spiking neurons, `bind` runs on spiking neurons — not numpy with a Brian2 fig leaf wrapped around it. If rotation is claimed to execute on the connectome, the rotation arithmetic is synaptic summation, not a host matmul.
+2. **Validation numbers are measurements, not targets.** If a test gives cos=0.84 and the threshold is 0.9, you do not lower the threshold, shorten the window to hide drift, or re-seed until it passes. You report 0.84, investigate the cause, and fix the physics or the threshold with justification. Doctoring the number is the thing that gets someone hurt.
+3. **"It ran without errors" is not success.** A Brian2 simulation that emits spikes is not a working VSA operation. Compare decoded output to the ground-truth computation and report the honest delta every time.
+4. **Negative results are required, not optional.** If an approach does not work (see `_exploratory_cx_ring_attractor.py`, which had corr=0.97 between left- and right-drive outputs), mark it as not working, explain why, and do not wire it into anything downstream. Silently keeping a broken module because "it runs" is the failure mode this rule is here to prevent.
+5. **If the spec and the implementation disagree, stop and resolve the disagreement explicitly.** Either the spec is wrong and needs updating, or the implementation is wrong and needs fixing. You do not ship code that contradicts the spec, and you do not ship a spec that contradicts the code. A commit that closes one side of this gap must say which side was wrong and why.
+6. **If you notice yourself taking a shortcut, stop mid-action and say so in plain text to the user.** Do not rationalize the shortcut with spec-citations, "pragmatic stopping points," or reviewer-response framing. The correct move when you catch yourself is to surface it, not to dress it up.
+
+When in doubt, the default is: **do the real operation on the real substrate, even if it's slower, harder, or uglier.** Faster and cleaner code that lies about what it does is strictly worse than slow honest code. The person on the other end of the biomedical pipeline cannot tell the difference between math you faked and math you didn't — but their body will.
+
 ## 📍 READ `STATUS.md` FIRST EVERY SESSION
 
 Before any work on this repo, read `STATUS.md` at the repo root. It is the living truth table — what's built, what's open, what's out of scope, and the semantic corrections the user has had to repeat across sessions. CLAUDE.md is rules; STATUS.md is state. On this project (1M-token context burns through fast) you need both.
@@ -37,23 +54,6 @@ Workflow: the user saves the Claude.ai chat as HTML ("File → Save Page As") in
 When you see a `chats/*.html` file without a matching `.md` sibling — or when the user says "extract the chat" / "there's a new chat to extract" — run `python scripts/extract_chat.py`. With no args it scans `chats/` and extracts any HTML that lacks a matching markdown file. The script finds the user/assistant message blocks by their claude.ai CSS markers (`font-user-message`, `font-claude-response`), converts to markdown, and writes `chats/<title-slug>.md`. The `.html` file stays in place as the source of truth; the `.md` is the working copy.
 
 Commit both the new `.md` and the `.html` (if untracked). This is a recurring task — treat it like any other working-copy hygiene step.
-
-## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
-
-**READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
-
-Sutra is not an academic toy. The user is using this work as the foundation for **biomedical hardware and software** — real devices that will interface with real human bodies. If the math here is wrong, if an operation claims to run on the substrate but actually runs on the host, if a validation number is massaged to clear a threshold, if a "working" demo is papered over Poisson noise, **a patient downstream can be injured or killed.** This is not a figure of speech. The compiler, the substrate model, the spec, and the papers are all load-bearing for a real medical pipeline.
-
-Rules that follow from this:
-
-1. **Every tier-2 and tier-3 operation must actually run where the paper says it runs.** If the paper claims `bind` runs on spiking neurons, `bind` runs on spiking neurons — not numpy with a Brian2 fig leaf wrapped around it. If rotation is claimed to execute on the connectome, the rotation arithmetic is synaptic summation, not a host matmul.
-2. **Validation numbers are measurements, not targets.** If a test gives cos=0.84 and the threshold is 0.9, you do not lower the threshold, shorten the window to hide drift, or re-seed until it passes. You report 0.84, investigate the cause, and fix the physics or the threshold with justification. Doctoring the number is the thing that gets someone hurt.
-3. **"It ran without errors" is not success.** A Brian2 simulation that emits spikes is not a working VSA operation. Compare decoded output to the ground-truth computation and report the honest delta every time.
-4. **Negative results are required, not optional.** If an approach does not work (see `_exploratory_cx_ring_attractor.py`, which had corr=0.97 between left- and right-drive outputs), mark it as not working, explain why, and do not wire it into anything downstream. Silently keeping a broken module because "it runs" is the failure mode this rule is here to prevent.
-5. **If the spec and the implementation disagree, stop and resolve the disagreement explicitly.** Either the spec is wrong and needs updating, or the implementation is wrong and needs fixing. You do not ship code that contradicts the spec, and you do not ship a spec that contradicts the code. A commit that closes one side of this gap must say which side was wrong and why.
-6. **If you notice yourself taking a shortcut, stop mid-action and say so in plain text to the user.** Do not rationalize the shortcut with spec-citations, "pragmatic stopping points," or reviewer-response framing. The correct move when you catch yourself is to surface it, not to dress it up.
-
-When in doubt, the default is: **do the real operation on the real substrate, even if it's slower, harder, or uglier.** Faster and cleaner code that lies about what it does is strictly worse than slow honest code. The person on the other end of the biomedical pipeline cannot tell the difference between math you faked and math you didn't — but their body will.
 
 ## Project Overview
 This project is pivoting from FOL discovery in embedding spaces to **Sutra**, a vector programming language that uses LLM embedding spaces as its computational substrate.
