@@ -6,11 +6,11 @@ Syntactic decisions discussed in prose live in [`sutra-syntax-decisions.md`](../
 
 ## Status and versioning
 
-The grammar is **versioned with the language**. The version a given source tree is written against is pinned by the `sutra_version` field of its workspace `atman.toml` — see [`23-loop-readout-theory.md`](23-loop-readout-theory.md)'s sibling doc [`22-workspaces.md`](22-workspaces.md) for the workspace schema and [`25-solution-structure.md`](25-solution-structure.md) for how version pinning propagates through a solution.
+**This document is the v0.0.0 grammar.** Everything in this repo is v0.0.0 source, the reference compiler in `sdk/sutra-compiler/` is the v0.0.0 toolchain, and the grammar below is what that toolchain accepts. Nothing in this document is meant to break existing code — v0.0.0 must keep compiling under the current toolchain, because it is the only toolchain that exists.
 
-**v0.0.0 is special.** It is the pre-formalization placeholder — the version every `.su` file in this repo is *implicitly* written against today, because no solution-level version has been committed to yet. A v0.0.0 tree is a development-only scratch state: the compiler accepts it under a "best effort" mode, the grammar may drift from release to release, and **v0.0.0 is not guaranteed to compile in any future toolchain**. When the grammar is formally cut (v0.1.0 and onward), every solution that wants stable compilation must pin a real `sutra_version` in its `atman.toml`. See [`25-solution-structure.md`](25-solution-structure.md) §"Version pinning and v0.0.0" for the full policy.
+The grammar is **versioned with the language**. The version a given source tree is written against is pinned by the `sutra_version` field of its workspace or project `atman.toml`. See [`22-workspaces.md`](22-workspaces.md) for the workspace schema and [`25-solution-structure.md`](25-solution-structure.md) for how version pinning propagates through a solution — including what "no `atman.toml` ⇒ implicit v0.0.0" means, and what happens to v0.0.0 trees once a stable v0.1.0 exists.
 
-The grammar below describes the **v0.0.0 surface** — i.e. what `sdk/sutra-compiler/` currently parses. Treat it as a snapshot, not a commitment. Breaking changes between v0.0.0 and v0.1.0 are explicitly allowed.
+Treat the grammar below as a snapshot of v0.0.0, not a forward-compatibility commitment. Breaking changes between v0.0.0 and v0.1.0 are explicitly allowed, because the whole point of calling the current state v0.0.0 rather than v0.1 is to keep those breaking changes on the table.
 
 ## Notation
 
