@@ -1,0 +1,127 @@
+// Fuzzy weighted superposition conditionals on the Drosophila mushroom body.
+//
+// Spec-aligned replacement for permutation_conditional.su. Per
+// planning/sutra-spec/03-control-flow.md, the canonical fuzzy branch is:
+//
+//     result = (condition * branch_true) + (NOT_condition * branch_false)
+//
+// generalized 4-way to a weighted sum of all four behavior vectors,
+// indexed by the per-program prototype -> behavior table. No sign-flip
+// as semantic NOT (that construction is a category error — see the
+// deprecation banner on permutation_conditional.py).
+//
+// Compilation contract:
+//   if/elif tree       -> 4-prototype table in the MB's output space
+//   condition strength -> similarity(brain_query, prototype_i)
+//   branch fusion      -> bundle(w_i * behavior_vec_i)
+//   defuzzification    -> argmax_cosine(result, behavior_codebook)
+//   program variants   -> different prototype -> behavior maps on the
+//                         same prototype table
+//
+// Runtime invariant: every snap() shares the MB's PN->KC connectivity
+// (fixed-frame seed), so compile-time prototypes and decision-time
+// queries live in a comparable reconstruction frame.
+
+// --- Primitives ---
+
+// Two state axes, each with two distinct basis vectors. No permutation
+// key linking the two polarities — that was the old approach.
+vector smell_present = basis_vector("smell_present");
+vector smell_absent  = basis_vector("smell_absent");
+vector hunger_hungry = basis_vector("hunger_hungry");
+vector hunger_fed    = basis_vector("hunger_fed");
+
+// --- Behavior codebook (output space) ---
+
+vector b_approach = basis_vector("approach");
+vector b_ignore   = basis_vector("ignore");
+vector b_search   = basis_vector("search");
+vector b_idle     = basis_vector("idle");
+
+// --- Prototype table (4 joint (smell, hunger) conjunctions) ---
+//
+// Each prototype is snap(bind(smell, hunger)) — the brain-view of one
+// joint input. Programs A/B/C/D share this table; only the
+// prototype -> behavior map differs per program.
+vector proto_PH = snap(bind(smell_present, hunger_hungry));
+vector proto_PF = snap(bind(smell_present, hunger_fed));
+vector proto_AH = snap(bind(smell_absent,  hunger_hungry));
+vector proto_AF = snap(bind(smell_absent,  hunger_fed));
+
+// --- Behavior->name lookup (for defuzzification readout) ---
+map<vector, string> BEHAVIOR_NAME = {
+    b_approach: "approach",
+    b_ignore:   "ignore",
+    b_search:   "search",
+    b_idle:     "idle"
+};
+
+// --- Fuzzy weighted superposition helper ---
+//
+// Given a query and a per-program behavior assignment (one behavior
+// vector per prototype), this is the spec's `sum_i w_i · branch_i`
+// with w_i = similarity(brain_query, prototype_i). All four branches
+// execute; defuzzification is argmax cosine against the behavior
+// codebook.
+function string fuzzy_decide(
+    vector smell, vector hunger,
+    vector beh_PH, vector beh_PF, vector beh_AH, vector beh_AF
+) {
+    vector query = bind(smell, hunger);
+    vector brain_query = snap(query);
+
+    // Fuzzy weights: raw cosine similarity against each prototype in
+    // the MB's output space. These are the w_i in the spec formula.
+    scalar w_PH = similarity(brain_query, proto_PH);
+    scalar w_PF = similarity(brain_query, proto_PF);
+    scalar w_AH = similarity(brain_query, proto_AH);
+    scalar w_AF = similarity(brain_query, proto_AF);
+
+    // Weighted superposition: `sum_i w_i * behavior_i`. All four
+    // branches contribute simultaneously, as per the spec's
+    // "both branches execute" semantics, generalized 4-way.
+    //
+    // Spec 02-operations.md: bundle is tier-2 algebraic (pure math).
+    // Using `+` here compiles to numpy addition; routing through the
+    // spiking `bundle_on_brain` sparsifies input currents and would
+    // wash out the scalar weights, which we explicitly do not want.
+    vector result =
+        w_PH * beh_PH +
+        w_PF * beh_PF +
+        w_AH * beh_AH +
+        w_AF * beh_AF;
+
+    // Defuzzify by argmax cosine against the behavior codebook.
+    vector winner = argmax_cosine(result, [b_approach, b_ignore, b_search, b_idle]);
+    return BEHAVIOR_NAME[winner];
+}
+
+// --- Program variants ---
+//
+// Each program is a different prototype->behavior assignment. The
+// decision pipeline (fuzzy_decide) is identical across programs —
+// only the 4-tuple of behavior vectors passed in changes.
+
+function string program_A(vector smell, vector hunger) {
+    // Natural mapping:
+    //   PH -> approach, PF -> ignore, AH -> search, AF -> idle
+    return fuzzy_decide(smell, hunger, b_approach, b_ignore, b_search, b_idle);
+}
+
+function string program_B(vector smell, vector hunger) {
+    // Inverted smell:
+    //   PH -> search, PF -> idle, AH -> approach, AF -> ignore
+    return fuzzy_decide(smell, hunger, b_search, b_idle, b_approach, b_ignore);
+}
+
+function string program_C(vector smell, vector hunger) {
+    // Inverted hunger:
+    //   PH -> ignore, PF -> approach, AH -> idle, AF -> search
+    return fuzzy_decide(smell, hunger, b_ignore, b_approach, b_idle, b_search);
+}
+
+function string program_D(vector smell, vector hunger) {
+    // Both inverted:
+    //   PH -> idle, PF -> search, AH -> ignore, AF -> approach
+    return fuzzy_decide(smell, hunger, b_idle, b_search, b_ignore, b_approach);
+}
