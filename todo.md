@@ -1,7 +1,7 @@
 # main todo
 
 
-implement stuff that failed on https://claude.ai/code/session_01LqR694QJEE8Zvw3fPT2xcQ
+implement stuff that failed on https://github.com/EmmaLeonhart/Sutra/blob/master/dddd
 
 
 
