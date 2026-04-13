@@ -12,6 +12,14 @@ This is NOT something to diagnose from the repo alone. The Actions logs are not 
 
 The user has ruled out "paper.md sibling-file conflicts" as the dominant issue based on prior sessions — don't re-propose it.
 
+## 🔴🔴 TOP PRIORITY: rotation on real connectome wiring
+
+Every geometric loop in the paper uses a synthetic Givens rotation encoded as Brian2 synapse weights. The real hemibrain wiring (ALPN→LHLN rank 415, cond 1e16) is compressive, not orthogonal — cannot act as a rotation directly. User has repeatedly flagged this as the single most important piece of outstanding work; must be attempted, not just documented. Options: find a connectome motif with adequate near-orthogonality (central complex EPG ring, fan-shaped body, distributed projection composition), or distribute R across multiple biologically-plausible projections whose composition is near-orthogonal. Prior CX attempt (`_exploratory_cx_ring_attractor.py`) got corr 0.97 between left/right drive — one datapoint, not the end of the search.
+
+## Lower-priority: conditional branching + loop driver executed on the remote substrate
+
+**NOTE:** conditional branching itself already runs on the MB — snap + Jaccard on KC patterns is the actual decision. What stays on host is a 4-way readout (argmax over the 4 behavior prototypes) and the loop sequencer (call substrate, check termination, iterate). Reviewer v22 conflated the host-side readout with host-side branching; they're different things. This is worth doing eventually — a lateral-inhibition winner-take-all over the 4 behavior prototypes would close the loop — but it is not urgent and is not where the paper's central claim is weak. Full writeup at `planning/open-questions/conditional-branching-on-remote.md`.
+
 ## Language-design: if-chains vs switch/softmax — **DEFERRED**
 
 Full research sketch moved to `planning/exploratory/softmax-conditionals.md`. Short summary: fuzzy `if/elif/elif/else` chains map badly onto the algebra (a cascade of fuzzy-AND products is not what the programmer wrote), so the natural shape is a softmax over a switch — one weighted blend, not a nested chain. User has decided NOT to pursue implementation right now; higher-priority paper work dominates. Revisit after the Claw4S deadline (2026-04-20) or when `permutation_conditional` / `fuzzy_conditional` work reopens the question.
