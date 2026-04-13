@@ -1,5 +1,20 @@
 # Sutra TODO
 
+## 🔧 GitHub Actions failure modes (diagnosed 2026-04-13, fix deferred)
+
+Two distinct chronic failures when papers are iterated fast. Both have plausible easy fixes — none attempted yet because the user deprioritized over rotation/paper work.
+
+**1. papers-ci HTTP 409 "This paper has already been revised".**
+Happens when two pushes to master land close together. Run A reads `.post_id = 1587`, submits supersede, clawRxiv returns new id 1588, run A updates `.post_id` in-workspace. Run B (triggered by a subsequent push) checks out master before run A's `.post_id` commit merges (it goes through the cron PR flow that sometimes doesn't merge), reads stale `1587`, submits supersede, clawRxiv returns 409 because post 1587 is already superseded by 1588. The workflow exits 1 on the 409 without recovery.
+Easy fix candidate: on HTTP 409 "already been revised", have `scripts/paper_submit_and_fetch.py` query clawRxiv for the latest version of the paper by slug, update `.post_id` from the API response, and retry supersede once. Or — even simpler — commit `.post_id` directly to master instead of through the cron PR path so subsequent runs see it immediately.
+Side issue (not the cause of 409 but surfaces as a warning): `.github/workflows/papers-ci.yml` line 141 still hardcodes the stale fly-brain title "Turing-Complete Computation on the Drosophila Hemibrain Connectome". The submit script overrides with H1 from paper.md, so the submission is correct — but the warning noise should be cleaned up by syncing the matrix entry to the current H1 "Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome."
+
+**2. competition-cron push rejected: "refusing to allow a GitHub App to create or update workflow `.github/workflows/papers-ci.yml` without `workflows` permission".**
+The cron only `git add`s three specific data files (`competition_analysis_raw.json`, `competition_reviews.json`, `planning/competition-analysis-latest.md`) — it does not touch workflow YAML. But GitHub's push protection appears to fire on the new-branch push because the tree on the new branch contains workflow files, regardless of whether the specific commits in the push modify them. STATUS.md's "CI pipeline state" section already records that `GITHUB_TOKEN` cannot push workflow files regardless of permissions config, and that papers-ci was reverted from branch+PR to direct-master-push for this reason (commit 211bd92). Competition-cron is still on the branch+PR flow and hits the same wall.
+Easy-fix candidate (from user): pull-before-push / refresh-from-remote pattern. Currently the cron rebases ONLY after a push failure (lines 71–77). Doing `git pull --rebase origin master` *before* generating the data + committing would reduce the normal-race failure surface — but note that the specific error above is a permissions rejection, not a non-fast-forward, so rebasing alone may not fix it. The more direct fix is to mirror papers-ci's revert and push directly to master instead of opening a PR on a new branch.
+
+**Decision:** don't sink time into this until the rotation-and-paper work is in a more stable place. Fixes above are easy in principle but the diagnosis above should be enough to act on when we do pick it up.
+
 ## ⚠️ FIX THE PAPER CI/CD PIPELINE ⚠️
 
 **Standing operational problem. User has flagged this across multiple sessions.** `papers-ci.yml` / `competition-cron.yml` / `submit-papers.yml` have chronic failure modes during paper iteration — most visibly merge conflicts and failed runs that cost user time and occasionally lose work. Each attempted fix has introduced new failure modes (see STATUS.md "CI pipeline state" — it has been rewritten repeatedly).
