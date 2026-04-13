@@ -106,37 +106,43 @@ The paper-CI pipeline (`papers-ci.yml`, `competition-cron.yml`, `submit-papers.y
 
 The formal specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what a reviewer complained about, not what "sounds more biological," not what you guessed. Canonical files:
 
-- `02-operations.md` — the three-tier operation model (primitive / algebraic / non-algebraic) and what each operation must compute
-- `03-control-flow.md` — conditionals and loops, including the precise eigenrotation semantics
+- `02-operations.md` — what each Sutra operation computes
+- `03-control-flow.md` — conditionals and loops, including eigenrotation
 - `04-defuzzification.md` — `is_true` and threshold-based control
 - `11-vsa-math.md` — the eight vector-space axioms and why VSA is algebra
-- `19-substrate-candidates.md` — which substrates are allowed to implement which tier
+- `19-substrate-candidates.md` — which substrates can implement which operations
 
-### The three-tier rule (from 02-operations.md)
+### Every operation runs on the substrate. No exceptions. No tier framing.
 
-Sutra operations are stratified into three tiers with strict substrate rules:
+The primitive / algebraic / non-algebraic (tier-1 / tier-2 / tier-3) stratification is dead, and it is dead on purpose. It is a framing the user has explicitly rejected because it was used across many prior sessions to justify running operations (especially rotation) on numpy at the host. Do not reintroduce it under any name — not "tier 2," not "algebraic tier," not "the O(1) pure-math operations," not "the on-host side of the split." If you catch yourself reaching for a two-class hierarchy to decide where an op runs, stop: that is the attractor.
 
-1. **Tier 1 — Primitive:** scalars, tuples, bounded integer iteration. Plain host code. Not vector computation.
-2. **Tier 2 — Algebraic / VSA:** bundle, bind, unbind, similarity, scalar multiply, projection, rotation matrix construction. **O(1), pure math, no infrastructure.** Spec explicitly says: "pure math on vectors." Running these on numpy is correct and spec-compliant. Routing them through a spiking simulation is *more* than the spec requires and doesn't strengthen anything.
-3. **Tier 3 — Non-algebraic / vector-graph:** snap, cone traversal, hop. These are ANN-based and *are* the substrate-level operations. A biological substrate (mushroom body, HNSW, codebook) implements this tier.
+The rule is flat. Every Sutra operation — bundle, bind, unbind, similarity, scalar multiplication, projection, rotation, snap, cone, hop — executes on the substrate at runtime. Scaffolding (scalars, tuples, bounded iteration) is not a Sutra operation; it is counting and grouping around the vector work. A backend that cannot execute an operation on its substrate must either implement it or refuse to compile programs that use it.
 
-**Corollary for the fly-brain paper reviewer critique:** the complaint that "state management, rotation, and binding happen on the host, not the circuit" is objecting to the tier split itself, which is principled per spec — R is tier 2 (algebraic), snap is tier 3 (substrate). The correct response is to cite the tier model, not to force tier-2 operations onto neurons. Moving algebraic operations to spiking simulations to appease a reviewer is the exact kind of shortcut-pretending-to-be-work that this section forbids.
+### Numpy: compile and monitor only, never runtime
 
-### Eigenrotation loops (from 03-control-flow.md, lines 18–46)
+Numpy has exactly two legitimate roles:
 
-`loop (condition)` compiles to: host computes `state ← R^i · v₀` (pure linear algebra, R is a Givens composition, accumulated on the ORIGINAL `v₀` not on decoded output), substrate computes `P(state)` (KC-pattern projection) and checks Jaccard overlap against a prototype table. **The rotation runs on the host by spec.** The substrate does pattern matching. Anyone who says "rotation should run on neurons" has not read the spec.
+1. **Compilation.** Translating a Sutra program into substrate state — e.g. polar-decomposing a FlyWire weight matrix to get Q, building a codebook, laying out motif blocks, fitting thresholds, handing Q to Brian2 as `syn.w`. Happens before the run.
+2. **Monitoring.** Decoding and viewing substrate output — reading Brian2 membrane voltage, cosine against a reference prototype for reporting, plotting, verification. Happens around the run.
+
+Numpy is **not** allowed as part of the runtime computation itself. `state = Q @ state` inside an iteration loop that is supposed to be eigenrotation on the connectome is the forbidden thing. A numpy result returned as the output of a Sutra operation, with a Brian2 simulation wrapped cosmetically around it, is a lie about what executed. Where a current implementation does this (e.g. `real_rotation_140D_jaccard.py` iterates rotation on numpy), that is a gap to close — and results produced that way must be reported as host-iterated, not as "rotation on the connectome."
+
+### Eigenrotation loops (from 03-control-flow.md)
+
+`loop (condition)` iterates `state ← R · state` on the substrate, projects the state through the substrate's cleanup to a KC pattern, and terminates when the pattern matches a compiled prototype by Jaccard overlap. The rotation runs on the substrate; the match runs on the substrate. Earlier spec language that said rotation could "accumulate on the host as `R^i v₀`" was a rationalization that got baked in when the tier framing was active. It is gone. If an implementation still computes `R^i v₀` on numpy, say so in the result as a limitation.
 
 ### Forbidden shortcut behaviors
 
-- Running a Brian2 simulation, seeing *any* spikes, and declaring an operation "working" without comparing circuit output to what the spec says the op must compute. Example from this session: a CX ring-attractor where left-drive and right-drive produced EPG profiles with correlation 0.969 — that's not rotation, that's undifferentiated activity, and the honest answer is "the circuit does not distinguish direction," not "it ran."
+- Running a Brian2 simulation, seeing *any* spikes, and declaring an operation "working" without comparing circuit output to what the spec says the op must compute. Example: a CX ring-attractor where left-drive and right-drive produced EPG profiles with correlation 0.969 — that's not rotation, that's undifferentiated activity; the result to report is "the circuit does not distinguish direction," not "it ran."
 - Tuning bias currents or drive amplitudes until numbers "look biological" without a principled physiological reason grounded in the specific circuit being modeled.
-- Implementing a spec-defined operation (`permute` shuffles dimensions per `02-operations.md` line 101) as something different (`vector * key` = sign-flip) and leaving it named after the spec operation it doesn't actually implement.
-- Writing code in response to a reviewer before checking whether the reviewer's objection is even aligned with the spec. Read spec first, then decide whether the reviewer has a point or not.
+- Implementing a spec-defined operation (`permute` shuffles dimensions) as something different (`vector * key` = sign-flip) and leaving it named after the spec operation it doesn't actually implement.
+- Writing code in response to a reviewer before checking whether the reviewer's objection aligns with the spec. Read the spec first, then decide whether the reviewer has a point.
 - Declaring an experiment a success when it only confirms that *something happened*, rather than confirming the specific computational claim the spec defines.
+- Writing "algebraic," "pure math," "no infrastructure," "O(1) on the host," or "runs on host by spec" about any Sutra operation. Every one of those phrases has been used to justify runtime host-math and is now rejected framing.
 
 ### When you catch a shortcut
 
-Stop. Report the honest result — including negative findings, including "my intuition was wrong, the spec disagrees." Reference the specific spec file and line. Then either fix the implementation to match the spec, or propose a spec change with justified reasoning. Both are acceptable. Silently hand-waving past a failed validation is not.
+Stop. Report what actually executed, including negative findings. Reference the specific spec file. Then either fix the implementation to match the spec, or propose a spec change with justified reasoning. Both are acceptable. Silently hand-waving past a failed validation is not.
 
 ### The spec is load-bearing
 

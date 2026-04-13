@@ -80,7 +80,7 @@ The existence proof. Tomkins-Flanagan and Kelly built a **working Lisp 1.5 inter
 
 This is not a theoretical argument — it actually runs. Lambda terms go in, reduced results come out. The catch: it relies heavily on **cleanup memory** (snap-to-nearest) after every reduction step to prevent noise accumulation from destroying the computation. Without cleanup, the interpreter degrades after a few reduction steps.
 
-**What this means for Sutra:** Lambda calculus semantics are implementable in vector space. The price is mandatory periodic cleanup (snap-to-nearest). Pure algebraic computation without cleanup is limited to short chains. This is why snap-to-nearest is a core non-algebraic operation in Sutra, not an optimization — it's load-bearing for any computation deeper than a few steps.
+**What this means for Sutra:** Lambda calculus semantics are implementable in vector space. The price is mandatory periodic cleanup (snap-to-nearest). Chains of elementwise vector operations without cleanup are limited to short depths before noise destroys the result. This is why snap-to-nearest is a core Sutra operation, not an optimization — it's load-bearing for any computation deeper than a few steps.
 
 ## Implications for Sutra
 

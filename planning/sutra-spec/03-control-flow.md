@@ -1,14 +1,14 @@
 # Control Flow
 
-## Algebraic Conditionals (Fuzzy Branching)
+## Fuzzy-superposition conditionals
 ```
 result = (condition * branch_true) + (NOT_condition * branch_false)
 ```
-Both branches execute simultaneously via superposition. The condition vector weights which branch dominates the result. Confidence propagates through computation as geometry. This is **O(1)** and purely algebraic.
+Both branches execute simultaneously via superposition. The condition vector weights which branch dominates the result. Confidence propagates through computation as geometry.
 
-This is the default and preferred way to branch. It is inherently fuzzy — both branches contribute to the result proportional to the condition's truth value. There is no "wrong branch" — there is a weighted mixture.
+This is the default and preferred way to branch. It is inherently fuzzy — both branches contribute to the result proportional to the condition's truth value. There is no "wrong branch"; there is a weighted mixture. The scalar multiplications and the bundle both execute on the substrate.
 
-## Cone Traversal (Non-Algebraic Branching)
+## Cone-traversal branching
 When you need discrete navigation — "go here OR there, not a mixture" — cone traversal provides it. The current vector state determines a direction, and the cone finds the appropriate next state in the semantic graph. This is more like a jump table or pattern match than an if/else.
 
 **When to use which:**
@@ -32,18 +32,18 @@ A **geometric loop** is a tuple (v₀, R, T, θ) where:
 Execution proceeds as:
 
 ```
-state ← v₀
+state ← v₀                     (loaded into the substrate)
 for i = 1, 2, 3, ..., max_iters:
-    state ← R^i · v₀           (accumulate rotation on original — no decode noise)
-    kc ← P(state)              (project through substrate, get KC pattern)
+    state ← R · state          (one rotation step on the substrate)
+    kc ← P(state)              (KC pattern via the substrate projection)
     for (name, kc_proto) in T:
-        J ← |kc ∩ kc_proto| / |kc ∪ kc_proto|   (Jaccard overlap)
+        J ← |kc ∩ kc_proto| / |kc ∪ kc_proto|
         if J ≥ θ:
-            return (name, S(state), i)            (converged)
-return (⊥, state, max_iters)                     (did not converge)
+            return (name, S(state), i)
+return (⊥, state, max_iters)
 ```
 
-The trajectory v₀, Rv₀, R²v₀, R³v₀, ... traces a path through V. Each point on the trajectory is projected through the substrate to produce a KC pattern. When that pattern overlaps sufficiently with a target prototype, the loop terminates. **The brain is doing the iteration** — each step is a full circuit pass through the spiking substrate.
+The trajectory v₀, Rv₀, R²v₀, R³v₀, ... traces a path through V. Each rotation step is a full circuit pass through the substrate: on the fly-brain backend, Q enters as synaptic weights and the next state is read from spike rate or membrane voltage. Each point is then projected through the substrate's cleanup to produce a KC pattern. When that pattern overlaps sufficiently with a target prototype, the loop terminates. The substrate does the iteration. Implementations that accumulate `R^i v₀` on the host — whether framed as "no decode noise" or "pure math" — are not running the loop on the substrate; that is a limitation of the implementation to close, and results produced that way must be reported as host-iterated.
 
 ### Key Invariant: Fixed Frame
 
@@ -77,13 +77,9 @@ The **angle** α determines how far the state moves per iteration — larger ang
 - R^i is also orthogonal for all i (composition of rotations is a rotation)
 - The trajectory is periodic with period p = 2π/α for a single-plane rotation
 
-**Rotation accumulates on the original vector**, not on decoded output:
-```
-state_i = R^i · v₀    (NOT R · decode(state_{i-1}))
-```
-This prevents decode noise from accumulating across iterations. Each iteration presents a fresh, noise-free rotated input to the substrate.
+**Counting** works because N applications of rotation by angle α accumulate Nα total rotation. Place a target prototype at the vector reached after N substrate-side rotation steps, and the loop terminates after N iterations. The brain counts by geometric displacement.
 
-**Counting** works because N iterations of rotation by angle α accumulates Nα total rotation. Place a target prototype at the vector R^N · v₀ and the loop terminates after N iterations. The brain counts by geometric displacement.
+Each step feeds the current substrate state back through R on the substrate. Decode noise does accumulate across iterations when the step reads state out of the substrate and back in, and that is a real limit on how many iterations can run before snap-based cleanup (or a lower-noise in-circuit path) is needed. Pre-computing `R^i v₀` on the host to dodge this noise is not an option — it moves the iteration off the substrate, which is what the loop exists to do on the substrate in the first place.
 
 ### Nested Loops
 
