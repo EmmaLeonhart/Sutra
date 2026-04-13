@@ -1,5 +1,7 @@
 # Surface Grammar
 
+> **Status: describes v0.0.0, which is what actually compiles today.** Unlike the solution-structure and workspace docs (which are planning for v0.0.1), this grammar is a snapshot of the surface the reference compiler in `sdk/sutra-compiler/` currently accepts. The intent is to document what exists, not to design something that doesn't. Breaking changes between v0.0.0 and v0.0.1 are explicitly allowed — see §Status and versioning.
+
 This document is the formal grammar for Sutra source files (`.su`). It is the contract between what the programmer writes and what the compiler accepts. The lexer and parser under `sdk/sutra-compiler/sutra_compiler/` are the reference implementation; when this document and the implementation disagree, one of them is wrong and the disagreement must be resolved explicitly (per `CLAUDE.md`).
 
 Syntactic decisions discussed in prose live in [`sutra-syntax-decisions.md`](../../sutra-syntax-decisions.md) at the repo root. This document is the mechanical distillation of those decisions into an EBNF-style grammar the compiler can implement against.
@@ -8,9 +10,11 @@ Syntactic decisions discussed in prose live in [`sutra-syntax-decisions.md`](../
 
 **This document is the v0.0.0 grammar.** Everything in this repo is v0.0.0 source, the reference compiler in `sdk/sutra-compiler/` is the v0.0.0 toolchain, and the grammar below is what that toolchain accepts. Nothing in this document is meant to break existing code — v0.0.0 must keep compiling under the current toolchain, because it is the only toolchain that exists.
 
-The grammar is **versioned with the language**. The version a given source tree is written against is pinned by the `sutra_version` field of its workspace or project `atman.toml`. See [`22-workspaces.md`](22-workspaces.md) for the workspace schema and [`25-solution-structure.md`](25-solution-structure.md) for how version pinning propagates through a solution — including what "no `atman.toml` ⇒ implicit v0.0.0" means, and what happens to v0.0.0 trees once a stable v0.1.0 exists.
+The grammar is **versioned with the language**. The version a given source tree is written against will be pinned by the `sutra_version` field of its workspace or project `atman.toml` starting at v0.0.1. See [`22-workspaces.md`](22-workspaces.md) for the workspace schema and [`25-solution-structure.md`](25-solution-structure.md) for how version pinning propagates through a solution — including what "no `atman.toml` ⇒ implicit v0.0.0" means, and what happens to v0.0.0 trees once a v0.0.1 toolchain exists.
 
-Treat the grammar below as a snapshot of v0.0.0, not a forward-compatibility commitment. Breaking changes between v0.0.0 and v0.1.0 are explicitly allowed, because the whole point of calling the current state v0.0.0 rather than v0.1 is to keep those breaking changes on the table.
+**v0.0.1 does not exist yet.** It is the next planned cut, on the order of two weeks out as of this writing. Until then, v0.0.0 is the only version, and v0.0.0 is extremely permissive for a specific structural reason: the current reference compiler was spaghetti-coded to the architecture of the FlyWire connectome, so the surface and semantics bend around that one substrate. The solution-structure model in [`25-solution-structure.md`](25-solution-structure.md) exists precisely so that v0.0.1 can target other substrates without breaking the v0.0.0 FlyWire-shaped codepath — per-project `substrate` fields in `atman.toml` are how a v0.0.1 solution says "this project targets silicon" or "this project targets logit-space" instead of assuming fly-brain.
+
+Treat the grammar below as a snapshot of v0.0.0, not a forward-compatibility commitment. Breaking changes between v0.0.0 and v0.0.1 are explicitly allowed, because the whole point of calling the current state v0.0.0 rather than v0.0.1 is to keep those breaking changes on the table.
 
 ## Notation
 
@@ -285,4 +289,4 @@ The following have reserved tokens or partial parser support but no defined sema
 - `try`/`catch` failure-pattern matching — parsed; semantics live in the runtime spec.
 - Lambda / anonymous function literals — not yet in the grammar (candidate decision per `sutra-syntax-decisions.md`).
 
-None of these should be expected to survive the v0.1.0 cut unchanged.
+None of these should be expected to survive the v0.0.1 cut unchanged.
