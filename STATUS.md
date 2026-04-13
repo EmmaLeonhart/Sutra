@@ -6,19 +6,66 @@
 
 A **quantitative biology / programming-languages paper**, submitted to Claw4S 2026 (April 20 deadline), iterating on clawRxiv via `papers-ci.yml`. Not medicine. Not a physical device. A computational model with the real hemibrain graph as the substrate graph of the simulation. Physical deployment (patient neurons, neuromorphic chip, Neuralink-style interface) is Y-Combinator-tier future work, explicitly out of scope for the paper. **Lives are still at stake because the paper is load-bearing for that downstream pipeline** — faked numbers here propagate. See CLAUDE.md safety banner.
 
-## Queued work (do in order) — session 2026-04-13
+## Queued work (do in order) — session 2026-04-13, handoff to local machine
 
-User agenda for this session. Priority order:
+**Session context.** User and Claude Code web agent spent this session surfacing multiple lies in the prior paper framing and starting the fix. Stream timed out before all the work could be done; user is continuing on their local machine where FlyWire data lives. The commits on `claude/fix-paper-eigen-rotation-CloPB` are what the web agent completed; the rest of this queue is what needs to happen next.
 
-1. **Paper surgical edits.** Drop "Turing-equivalent" from abstract (keep in internal docs only — it's an internal goal for hardware virtualization, not a Claw4S sell). Clarify Q-vs-W in abstract instead of burying in Honest Limits. Clarify that the substrate is hemibrain and the rotation operator is a FlyWire *subset*, not full FlyWire. No wholesale rewrites — one paragraph at a time, diff shown, approved, committed.
-2. **Resolve spec-vs-user conflict on rotation tier.** Spec (`03-control-flow.md`) says rotation is tier-2 host pure-math. User wants rotation on neurons as headline. Decision needed; update spec to match decision.
-3. **If (2) says "rotation on neurons":** promote `real_rotation_epg_loop_spiking.py` to the headline pipeline. Currently 3/5 seeds at k=3. Investigate the 2 failing seeds — longer SIM_MS, Jaccard-on-KC termination instead of cosine, or sharper-spectrum Q. Goal: spiking rotation + spiking readout, end-to-end, on real wiring, passing at n≥5.
-4. **n=50 evaluation.** User asked for this explicitly. Pick one or more headline results and rerun at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidate targets: 140-D Jaccard loop (currently 5/5), target-k sweep (currently 30/30 at n=5 seeds × 6 k values), fuzzy conditional (currently 80/80 at n=5). Note: system is deterministic modulo Poisson spike noise, so σ=0 at n=5 is genuine not gamed — but n=50 answers reviewer anyway.
-5. **Repo cleanup.** Inventory which files belong in-repo vs planning/ vs deletable. Candidates for move/delete: `_exploratory_cx_ring_attractor.py` (negative result, move to planning/findings/), `DOOM.md`, `todo.md`, multiple `real_rotation_*` variants (consolidate or archive), `experiment_*.py` (probably planning/findings/), `minimal_lif_network.py` (check if used). Do AFTER paper edits to avoid merge pain on the feature branch.
-6. **Program library expansion.** Reviewer keeps flagging 4 conditional templates + 3 loop-test types as too narrow. Add more `.su` programs that compile through the pipeline.
-7. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional), human plays the other paddle via pygame. `fly-brain/pong_brain.py` has a 326-line scaffold already. Stretch goal for today.
+### What the web agent completed this session (already committed + pushed)
 
-Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
+1. `ce5cf06` — queued this agenda.
+2. `827e0a1` — stripped "Turing-equivalent" framing from paper abstract; surfaced `Q ≠ W` (biological matrix is 98.3% Frobenius-distant from the polar-decomposition orthogonal operator) and FlyWire-subset-vs-full distinction into the abstract instead of burying in Honest Limits; renamed "Language-Level Turing Equivalence vs Substrate Boundedness" section to "Language Primitives vs Substrate Boundedness."
+3. `ae9f3a1` — started stripping tier-1/2/3 framing from paper. "Division of Labor" paragraph rewritten without tiers. "What is on the substrate, what is on the host" section rewritten to stop pretending numpy-rotation was ever on the brain.
+4. `5e8f0cc` — **retracted the 20/20 and 30/30 eigenrotation numbers from the paper.** Those numbers were measured with rotation computed in host numpy each iteration; only the MB match ran as a spiking circuit. They did not demonstrate eigenrotation on the brain. Paper now says the end-to-end spiking-rotate + spiking-MB-Jaccard pipeline is *implemented* but the full-FlyWire run is *pending*, and no pass rate is reported until that runs. Stripped remaining tier labels from Methods. Dropped "σ=0" framing as a virtue claim.
+
+### What the user's local machine needs to pick up and do
+
+Priority order. Each is a single commit per CLAUDE.md queue protocol.
+
+1. **Delete the "Honest Limits" section entirely** from `fly-brain-paper/paper.md`. Per the user: "that section shouldn't exist, because all it is just your documentation of how much you've lied to me." If a result is real it goes in Results. If it isn't real it doesn't go in the paper. The Q-vs-W disclosure is already in the abstract; the rest of Honest Limits is a mix of retracted numpy-rotation numbers and duplicative material.
+
+2. **Strip tier-1 / tier-2 / tier-3 language from `planning/sutra-spec/02-operations.md` and `planning/sutra-spec/03-control-flow.md`.** The "three-tier operation model" was apparently hallucinated by a prior session as architectural permission to run algebra on host numpy while calling it "substrate execution." User has explicitly said it is not a real part of the language design. Replace with: language primitives (scalars, bounded iteration bookkeeping), vector operations (bundle, bind, rotate, similarity, projection — the VSA algebra), occasional expensive operations (snap, codebook match). Unordered. No "this tier is allowed to run on host." In particular, `03-control-flow.md` has a line that says `loop (condition)` compiles to host-computed `state ← R^i · v₀` with only `P(state)` on the substrate — **that line is wrong and must be removed.** Rotation runs on the brain. Per user: "the spec is wrong about the fucking rotation."
+
+3. **Strip tier framework, surgical-edits rule, spec-as-shortcut rationalizations, and σ=0-as-virtue language from `CLAUDE.md`.** Specifically:
+   - Delete the entire "NO MATH SHORTCUTS (critical — re-read before every experiment)" section's "three-tier rule" subsection.
+   - Delete the subsection "Eigenrotation loops (from 03-control-flow.md, lines 18–46)" which currently says "The rotation runs on the host by spec. The substrate does pattern matching. Anyone who says 'rotation should run on neurons' has not read the spec." That statement was the load-bearing lie this session exposed.
+   - Delete the paper-editing rule "NEVER rewrite large sections of the paper at once. One sentence, one paragraph, one table at a time. ALWAYS show the diff to the user and wait for approval before committing." Per user: "surgical edits are only for a paper that isn't in our repository anymore" — the VSA paper got a Strong Accept turned into Reject by a wholesale rewrite, and that rule was inherited from there; the fly-brain paper does not need it.
+   - Remove mentions of σ=0 at small n as virtue. Operations are deterministic modulo Poisson spike noise; small-n σ=0 is not evidence of anything and reviewers flagged it as suspicious.
+
+4. **Build the end-to-end spiking-rotation + spiking-MB-Jaccard pipeline** as a single script (suggested filename: `fly-brain/eigenrotation_on_brain.py`). It needs to:
+   - Load FlyWire v783 wiring, build `Q_EPG` via polar decomposition of the EPG→EPG recurrent (via `real_rotation_epg.py::build_epg_to_epg` + `nearest_rotation`).
+   - For each loop step, present the current state as Poisson-rate-coded PN input to a Brian2 spiking LIF network whose synapse matrix is `Q_EPG` (positive excitatory, negative inhibitory), decode steady-state membrane voltage to get the rotated state.
+   - Project the rotated state through the real hemibrain MB (PN→KC via `hemibrain_pn_kc.npz`, APL sparsification) and extract the KC pattern.
+   - Compare the KC pattern against compiled prototypes via Jaccard overlap. Terminate when threshold hit.
+   - Run the counting test (target `k=3`, target `k=6`) and ordering test (prototypes at `k=2,5,8`) across N seeds. Report the honest pass rate. Do NOT retune if it fails.
+   - Reference existing scripts: `real_rotation_epg_loop_spiking.py` (spiking rotation, cosine readout, got 3/5), `real_rotation_epg_loop_jaccard.py` (numpy rotation, spiking Jaccard readout, got 5/5). The new script merges the "good" half of each.
+
+   **The web-agent environment cannot run this** — FlyWire v783 is ~14 GB and is gitignored / on the user's local Windows machine only (`C:\Users\Immanuelle\flybrain\`). The user will run this on their local machine.
+
+5. **Once (4) has a number, update `fly-brain-paper/paper.md` Result 2** with the honest pass rate, whatever it is. If it's 2/5 or 3/5 or 5/5, report that number. Do not retune until it passes.
+
+6. **n=50 evaluation.** After (5), rerun the headline numbers (conditional 80/80, eigenrotation whatever it is) at n=50 seeds. User has explicitly asked for this to end the "n=5 is too small" reviewer objection.
+
+7. **Repo cleanup.** Inventory which files belong in-repo vs planning/ vs deletable. Candidates for move/delete: `fly-brain/_exploratory_cx_ring_attractor.py` (negative result, move to planning/findings/), `fly-brain/DOOM.md`, `fly-brain/todo.md`, the many `real_rotation_*` variants (consolidate — most are now superseded by the unified script from (4)), `fly-brain/experiment_*.py` (probably planning/findings/), `fly-brain/minimal_lif_network.py` (check if used anywhere). User has said to just do this — merge into main is handled.
+
+8. **Program library expansion.** Reviewer has flagged 4 conditional templates + 3 loop-test types as too narrow three revisions running. Add more `.su` programs that compile through the pipeline. Not urgent but load-bearing for escaping the Reject loop.
+
+9. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional), human plays the other paddle via pygame. `fly-brain/pong_brain.py` has a 326-line scaffold already. Goal: human user can play Pong against the brain on their screen.
+
+### Environment / constraints the local machine will face
+
+- Brian2 is on PyPI but with numpy 2.x it crashes on `ndarray.ptp` removal — pin `numpy<2` or upgrade Brian2 to a version that supports numpy 2.
+- FlyWire v783 is ~14 GB, lives outside the repo at `C:\Users\Immanuelle\flybrain\` on the user's local Windows machine. `fly-brain/flywire_loader.py` resolves in order: `$FLYWIRE_DATA_DIR` env var → `fly-brain/flywire_data/` in-repo mirror → `C:\Users\Immanuelle\flybrain\`.
+- Hemibrain PN→KC is in-repo at `fly-brain/hemibrain_pn_kc.npz` (81 KB), always available.
+
+### Semantic corrections from this session (do NOT let them regress)
+
+1. **"Tier 1 / Tier 2 / Tier 3" is not a real part of the Sutra language design.** It was invented by a prior session as architectural permission to run linear algebra on host numpy while calling the result "substrate execution." User: "I don't fucking know what this tier one, tier two, tier three shit is, and I'm pretty sure you just fucking hallucinated it and used it as some sort of an excuse." The real shape: primitives, vector operations, occasional expensive operations. Unordered. No "this is allowed to run on host."
+2. **Nothing is allowed to run on the host.** Rotation runs on the brain. If an operation is being computed in numpy, that is not substrate execution, it is a lie. The one exception currently flagged in the paper is the outer for-loop sequencer, which we disclose as outstanding engineering work rather than bury.
+3. **σ=0 at n=5 is not a virtue.** Stop citing it.
+4. **Turing-equivalent is an internal goal, not a Claw4S claim.** Keep it in internal docs if we want to build toward it, but the substrate is not Turing-complete and we should not claim it is. Until eigenrotation loops actually run end-to-end on the brain we don't even have evidence the language is Turing-equivalent on this substrate.
+5. **"Honest Limits" is a confession chapter.** Kill it. If a thing is real, it goes in Results. If it isn't real, it doesn't go in the paper.
+6. **No more surgical-edits rule for this paper.** That rule came from the VSA paper (Strong Accept → Reject after a wholesale rewrite) and does not apply here.
+7. **Full FlyWire run is required.** Not a subset. Not polar-decomp-of-subset-plus-block-diagonal. Full. This will have to happen on the user's local machine.
 
 ## Built / Works
 
