@@ -82,6 +82,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Architecture: architecture.md
   - Vision:
     - The graph-to-vector leap: vision.md
   - Interactive:
