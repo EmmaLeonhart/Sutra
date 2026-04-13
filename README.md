@@ -32,7 +32,7 @@ The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," th
 | [`sutraDB/`](sutraDB/) | The lightweight bundled vector database, brought in as a git subtree. *"SQLite-of-vector-databases"* — embedded, zero-config, optimized for the kinds of queries Sutra emits. |
 | [`chats/`](chats/) | Design conversations and notes. The Sutra vision page on the website is built from `chats/sutra-vision-graph-to-vector-leap.md`. |
 
-A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect in mxbai-embed-large"*) lives in `VSA-paper/`. That paper's primary source of truth is its own repo at [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) — it is currently at **Strong Accept** on clawRxiv as [post 1127](http://18.118.210.52/posts/1127). The snapshot here is for cross-referencing only and is not maintained from this repo.
+The **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect in mxbai-embed-large"*) — the empirical foundation that motivated the Sutra pivot — lives in its own repo at [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) and as clawRxiv [post 1127](http://18.118.210.52/posts/1127) (Strong Accept). The previous stale snapshot under `VSA-paper/` has been removed from this repo; cite as (Leonhart, 2026) when referenced.
 
 ## File types
 
@@ -56,7 +56,7 @@ A historical snapshot of the **Latent Space Cartography** paper (*"...Reveals a 
 |---|---|---|
 | Sutra: A Vector Programming Language for Computation in Embedding Spaces | [post 1542](http://18.118.210.52/posts/1542) | [`sutra-paper/paper.md`](sutra-paper/paper.md) |
 | Running Sutra on the Drosophila Hemibrain Connectome | [post 1541](http://18.118.210.52/posts/1541) | [`fly-brain-paper/paper.md`](fly-brain-paper/paper.md) |
-| Latent Space Cartography (Strong Accept) | [post 1127](http://18.118.210.52/posts/1127) | [`VSA-paper/paper.md`](VSA-paper/paper.md) (stale snapshot) |
+| Latent Space Cartography (Strong Accept) | [post 1127](http://18.118.210.52/posts/1127) | [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) (separate repo) |
 
 ---
 
