@@ -1,4 +1,14 @@
 """
+DEPRECATED. Use `fuzzy_conditional.py` instead.
+
+This demo uses `sign_flip(NOT_key, query)` as semantic negation. That is
+a category error — a random ±1 key has no principled relationship to the
+"other polarity" of a continuous feature axis — and it is why programs
+B/C/D averaged ~50% correct across 20 seeds on hemibrain while program A
+hit 100%. The spec (`planning/sutra-spec/03-control-flow.md`) prescribes
+fuzzy weighted superposition: `result = Σ w_i · branch_i`. Kept on disk
+as the failure record only; not imported by anything current.
+
 Permutation-based conditionals on the fly brain substrate.
 
 This is the follow-up to `programmer_control_demo.py`. Where that demo ran
