@@ -14,6 +14,12 @@ Before any work on this repo, read `STATUS.md` at the repo root. It is the livin
 - When the queue is empty, delete the `## Queued work` section entirely rather than leaving a stub.
 - Push after every queue commit. The point of this protocol is that an outside observer (or a future session on a different machine) can see exactly what's pending and what just landed by reading `git log` + `STATUS.md` alone.
 
+### Open design questions live in `planning/open-questions/`
+
+When you make a session-level call in place of a principled design decision — e.g. "I used numpy `+` here instead of `bundle()` because bundle didn't preserve weights" — that is an open design question, not a resolved answer. Write it up as a doc in `planning/open-questions/` (sister to `planning/exploratory/`). Each doc: what the question is, what we currently do, why the current choice has force, why the alternative has force, what we'd need to decide to close it. See `planning/open-questions/README.md` for rules.
+
+This is distinct from `planning/exploratory/`: exploratory is a parking lot for ideas; open-questions is for known gaps in the design where the implementation has made a choice the spec doesn't justify. When the question gets resolved, the doc moves out (spec update, code change, or both) rather than sitting here forever.
+
 ## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
 
 **READ THIS BEFORE TOUCHING ANY CODE OR WRITING ANY PAPER PROSE.**
