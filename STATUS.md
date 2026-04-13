@@ -14,11 +14,30 @@ User agenda for this session. Priority order:
 2. **Resolve spec-vs-user conflict on rotation tier.** Spec (`03-control-flow.md`) says rotation is tier-2 host pure-math. User wants rotation on neurons as headline. Decision needed; update spec to match decision.
 3. **If (2) says "rotation on neurons":** promote `real_rotation_epg_loop_spiking.py` to the headline pipeline. Currently 3/5 seeds at k=3. Investigate the 2 failing seeds — longer SIM_MS, Jaccard-on-KC termination instead of cosine, or sharper-spectrum Q. Goal: spiking rotation + spiking readout, end-to-end, on real wiring, passing at n≥5.
 4. **n=50 evaluation.** User asked for this explicitly. Pick one or more headline results and rerun at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidate targets: 140-D Jaccard loop (currently 5/5), target-k sweep (currently 30/30 at n=5 seeds × 6 k values), fuzzy conditional (currently 80/80 at n=5). Note: system is deterministic modulo Poisson spike noise, so σ=0 at n=5 is genuine not gamed — but n=50 answers reviewer anyway.
-5. **Repo cleanup.** Inventory which files belong in-repo vs planning/ vs deletable. Candidates for move/delete: `_exploratory_cx_ring_attractor.py` (negative result, move to planning/findings/), `DOOM.md`, `todo.md`, multiple `real_rotation_*` variants (consolidate or archive), `experiment_*.py` (probably planning/findings/), `minimal_lif_network.py` (check if used). Do AFTER paper edits to avoid merge pain on the feature branch.
+5. **Repo cleanup — second pass.** First pass (2026-04-13, committed directly to master during a paralysis-era Claude Desktop session, see "Direct-to-master audit" section below) deleted: root `ARCHITECTURE.md` duplicate, `REPO-INVENTORY.md`, `planning/akasha-{pivot,paper-strategy}.md`, `fly-brain/{DOOM,DEMO,STATUS}.md`, `fly-brain/real_rotation_epg_output.txt`, deprecated `fly-brain/permutation_conditional.{py,su}`, `chats/... Claude_files/` browser-save sidecar. Second pass still owed: `_exploratory_cx_ring_attractor.py` (move to `planning/findings/`), `experiment_{binding,kc_binding,is_converter}.py` (zero references), `minimal_lif_network.py` (zero references), `four_state_conditional.{py,su}` (only self-references), `programmer_control_demo.py` (superseded by codegen-e2e tests), and the ~10 `real_rotation_*.py` sprawl (consolidate or archive with a manifest). This is item #1 of the meta-tasks at the top of `todo.md` and needs to happen before more `fly-brain/` code lands.
 6. **Program library expansion.** Reviewer keeps flagging 4 conditional templates + 3 loop-test types as too narrow. Add more `.su` programs that compile through the pipeline.
 7. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional), human plays the other paddle via pygame. `fly-brain/pong_brain.py` has a 326-line scaffold already. Stretch goal for today.
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
+
+## Direct-to-master audit (2026-04-13) — what the paralysis episode changed
+
+A prior Claude Desktop session experienced repeated API timeouts while running a repo-content audit (transcript preserved in `dddd` at the repo root, itself queued for deletion once this section is read in a fresh session). During that paralysis the session committed directly to master while all other work it had been doing was routed through PRs. This mismatch is the exact pattern that produces "session reads the wrong source of truth" bugs. The resulting commits on master:
+
+- `7e4c04c` deleted root `ARCHITECTURE.md` (byte-identical to `docs/architecture.md`, duplicated-doc risk).
+- `863dd28` deleted `REPO-INVENTORY.md` (referenced `old-stuff/` and `inquisitive-transformer/` dirs that do not exist — pure stale narrator).
+- `0e62b19` deleted `planning/akasha-{pivot,paper-strategy}.md` (pre-Sutra-rename, superseded by spec + DEVLOG).
+- `9131247` deleted `fly-brain/{DOOM,DEMO,STATUS}.md` and the stray `real_rotation_epg_output.txt`. Note that `fly-brain/STATUS.md` is gone — the repo has exactly **one** STATUS.md (this file) from here on.
+- `f3a3ea3` deleted the deprecated `fly-brain/permutation_conditional.{py,su}` (replaced by `fuzzy_conditional.{py,su}` months ago; the old files only survived as "deprecated" warnings in the former `fly-brain/STATUS.md`).
+- `49fe4c7` deleted the `chats/... Claude_files/` browser-save sidecar directory (8 MB CSS/JS junk, extracted `.md` already present and was the real source).
+
+This session (2026-04-13, branch `claude/complete-todo-md-RBGYu`) finished the other half of the audit that the paralyzed session never got to:
+
+- Consolidated `fly-brain/todo.md` and `sutraDB/TODO.md` into root `todo.md` (one file instead of three — per the "multiple parallel narrators" critique in the audit transcript). Fly-brain content prepended with `!` markers; SutraDB content appended as the lower-priority tail.
+- Added meta-tasks at the top of `todo.md`: (a) audit the `fly-brain/` Python sprawl, (b) keep `todo.md` organized under an explicit priority-tier scheme (Immediate / Pre-Claw4S / Pre-YC / This year).
+- Wrote `planning/merge-help.md` covering the PR/merge workflow on this repo specifically — why direct-master vs branch+PR matters here, why `GITHUB_TOKEN` cannot push workflow changes, and a recovery playbook for the "committed to the wrong branch" case that caused this episode.
+
+Do **not** reconstitute the deleted files. If something was deleted that should not have been, restore from git history with an explicit commit that names the file and says why. Silent resurrection is the failure mode.
 
 ## Built / Works
 
@@ -98,3 +117,5 @@ Concrete work that is worth doing but not ordered into the queue. Different from
 - **Push triggers papers-CI** → new clawRxiv submission + new review. Every push is a version.
 - **Never mention "Claw4S 2026"** in paper body — reviewer flags as hallucinated citation. Reference companion papers by clawRxiv post number only.
 - `git pull --rebase` before every push is still wise (human collaborators, pages.yml, etc.), but papers-CI and competition-cron no longer push to master — they open PRs on branches `papers-ci/<paper_dir>/run-<id>` and `competition-cron/run-<id>`. Merge PRs by hand until auto-merge is wired up.
+- **Merge / PR guidance: `planning/merge-help.md`.** Consult before opening PRs, after CI rejections, or when recovering from a mis-targeted commit. Includes the recovery playbook for the "committed to master but meant a branch" case that produced the 2026-04-13 paralysis episode.
+- **There is exactly one todo.md** (repo root) and exactly one STATUS.md (this file). `fly-brain/todo.md` and `sutraDB/TODO.md` have been consolidated into the root `todo.md`; do not recreate them. STATUS.md = active queue; todo.md = long-term agenda. If the two disagree, STATUS.md wins for now-work and todo.md wins for later-work.
