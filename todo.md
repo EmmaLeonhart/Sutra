@@ -353,3 +353,141 @@ Currently parked:
   of this before the Claw4S deadline — it's a scope expansion on top of
   an already-busy rename and paper-polish cycle. Revisit after the
   deadline (2026-04-20).
+
+---
+
+# SutraDB (appended from former `sutraDB/TODO.md`) — lower priority
+
+**Not as important as the Sutra-language / fly-brain work above**, per
+user direction during the 2026-04-13 audit. SutraDB is a companion
+Rust triplestore (own crate layout, own CLAUDE.md in `sutraDB/`) and
+is already 228/249 items complete. Items below are the open slice,
+carried in here so there is one todo file. The full historical
+completed list (185 items) lives in git history of the deleted
+`sutraDB/TODO.md` — do not re-materialize it here.
+
+All items below are **[This year]** tier unless noted.
+
+## SutraDB — Next Release (v0.3.1): Gradle Migration, MCP Agentic UX, Maven Central
+
+Merge the Gradle migration (local) and MCP agentic UX work (claude.ai
+remote session) then cut v0.3.1.
+
+### SutraDB — Release Checklist
+- [ ] Merge Gradle migration + Maven Central publishing setup (local
+  commits).
+- [ ] Bump version to 0.3.1 in `sdks/java/build.gradle.kts` and all
+  other SDK configs.
+- [ ] Set up Maven Central secrets: `MAVEN_USERNAME`, `MAVEN_TOKEN`,
+  `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`.
+- [ ] Generate GPG key and upload public key to keyserver.
+- [ ] Tag `v0.3.1` and push to trigger publish workflow.
+- [ ] Verify `io.github.emmaleonhart:sutradb:0.3.1` appears on Maven
+  Central.
+
+### SutraDB — Java/Kotlin SDK — Maven Central Ready
+SDK is functionally complete (3 classes, ~400 LOC). Build migrated from
+Maven to Gradle (Kotlin DSL). Open:
+- [ ] Integration test: start SutraDB, insert triples, query, verify
+  round-trip.
+- [ ] OWL validation (match Python SDK: domain/range/subclass/
+  disjoint/equivalent).
+- [ ] Connection retry logic with configurable timeouts.
+- [ ] First publish to Maven Central.
+
+## SutraDB — Future Versions
+
+### AI Agent Installer (remaining)
+- [ ] End-to-end test: fresh install → insert → query → verify.
+- [ ] Serverless mode testing (no `--serve`, just create the `.sdb`).
+- [ ] Agent-consumable structured output (JSON mode for programmatic
+  setup).
+
+### HNSW Traversal via SPARQL Property Paths
+- [ ] Greedy descent + beam search semantics from graph structure and
+  property path evaluation.
+- [ ] Test: `sutra:hnswNeighbor+` produces correct ANN results.
+
+### Predicate-Based Exit Conditions (UNTIL)
+- [ ] Design UNTIL syntax for exit conditions on property path
+  traversal.
+- [ ] Per-step predicate evaluation during traversal (not post-filter).
+- [ ] Backtracking interaction (exit on one branch doesn't kill others).
+- [ ] Ordered traversal (exit conditions require defined traversal
+  order).
+- [ ] HNSW-specific exit: "no closer neighbor found" (local optimality
+  termination).
+- [ ] Test: ordered traversal with UNTIL produces correct early
+  termination.
+
+### Cost-Based Query Planning (remaining)
+- [ ] HNSW as access path: planner chooses "HNSW index scan" vs "SPO
+  triple scan" based on cost.
+- [ ] Adaptive execution: observe intermediate result sizes at runtime,
+  reorder mid-query.
+
+### Background Maintenance Cycle
+- [ ] Low-usage detection heuristic (query rate below threshold for N
+  seconds).
+- [ ] Background HNSW rebuild: fresh graph from current vectors, old
+  graph serves queries until swap.
+- [ ] Atomic swap: replace old HNSW with rebuilt one.
+- [ ] Background pseudo-table rediscovery and rebuild.
+
+### Pseudo-Tables (remaining)
+- [ ] Invalidation tracking: flag stale rows when interior nodes
+  change, rebuild during maintenance cycle.
+- [ ] Update query planner to recognize multi-pattern SPARQL queries
+  that match a subgraph pseudo-table.
+
+### Database Health Dashboard (remaining)
+- [ ] Query performance metrics: per-pattern latency percentiles,
+  planner decision accuracy.
+- [ ] `sutra health --json` mode for programmatic agent consumption.
+- [ ] Iterate CLI health output format based on real agent usage.
+- [ ] Sutra Studio health dashboard as Flutter landing page: overall
+  status, per-index cards, action buttons.
+
+### SDK Publishing
+- [ ] Python SDK → PyPI.
+- [ ] TypeScript SDK → npm.
+- [ ] Rust SDK → crates.io.
+- [ ] C# SDK → NuGet.
+- [ ] Go SDK → tag for Go modules.
+
+### Sutra Studio — remaining
+- [ ] Remote Studio access: connect Studio to a remote SutraDB over the
+  network.
+- [ ] Dart FFI bindings: replace HTTP client with direct
+  `sutra_ffi.dll` calls.
+- [ ] Studio-embedded MCP server: start MCP on background thread from
+  within Studio.
+- [ ] Flutter graph view: remaining `browse.html` parity.
+- [ ] Long-term: absorb core Protege functionality.
+
+### Query Language Wrappers
+- [ ] Cypher → SPARQL transpiler: MATCH/WHERE/RETURN mapped to SPARQL
+  patterns.
+- [ ] GQL (ISO 39075) → SPARQL transpiler: ISO standard graph query
+  language mapped to SPARQL.
+- [ ] Query validation: reject constructs that can't map to the RDF
+  data model.
+
+### Premium Tier — deferred until paying customers
+RBAC, encryption at rest, TLS, audit logging, replication, clustering
+/ sharding, multi-tenancy, connection pooling.
+
+## SutraDB — Reference Architectures
+
+| System | Why |
+|--------|-----|
+| [Qdrant](https://github.com/qdrant/qdrant) | HNSW impl, visited pools, normalize-at-insert |
+| [Oxigraph](https://github.com/oxigraph/oxigraph) | RDF storage, SPO/POS/OSP, SPARQL pipeline |
+| [DataFusion](https://github.com/apache/datafusion) | Cost-based planning, join ordering, vectorized execution |
+| [DuckDB](https://github.com/duckdb/duckdb) | Columnar analytics, zonemap pruning, join ordering |
+| [GlueSQL](https://github.com/gluesql/gluesql) | Small readable query engine |
+| [Limbo](https://github.com/tursodatabase/limbo) | Rust SQLite reimpl, storage ideas |
+| [Materialize](https://github.com/MaterializeInc/materialize) | Streaming SQL on Differential Dataflow |
+
+SutraDB benchmark baseline table lives in `sutraDB/benchmarks/LATEST.md`
+and `sutraDB/benchmarks/HISTORY.md`; do not duplicate it here.
