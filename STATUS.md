@@ -26,10 +26,6 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 
 Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR approach failed because `GITHUB_TOKEN` cannot modify workflow files regardless of permissions config. Push-retry-with-rebase loop handles the race conditions that motivated the PR flow. Preserved the `detect-changed` full-push-range fix from bd85ce0. Cron verified working (competition-cron run 24320014564 succeeded).
 
-## Queued work (do in order)
-
-1. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
-
 ## Open / Known Gaps
 
 - **Rotation from real wiring** — ALPN→LHLN is rank 415, cond 1e16, compressive, NOT near-orthogonal. Real-wire R is not a rotation. Only bites `loop(condition)` with data-dependent termination. Open work: find a connectome motif with adequate near-orthogonality, or distribute across multiple projections. `_exploratory_cx_ring_attractor.py` tried CX and got corr 0.97 between left/right drive — not directional.
