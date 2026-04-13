@@ -34,6 +34,12 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 - **Eval size** — 16 branching trials, 3 iteration trials. Proof-of-substrate, not statistical robustness.
 - **Biological learning rule** — MBON readout is ridge regression, not dopamine-gated plasticity. Planned.
 
+## Backlog (not urgent, pick up after paper)
+
+Concrete work that is worth doing but not ordered into the queue. Different from `## Open / Known Gaps` (those are limitations of the current approach) and from `planning/open-questions/` (those are design decisions that need resolving before acting). Backlog items are ready to implement, just not yet prioritized.
+
+- **Codegen V1 feature coverage** — lint sweep on 2026-04-12 found 7/13 `.su` files compile fine, 6/13 hit `CodegenNotSupported` on method decls / operator decls / `EmbedExpr` / `DefuzzyExpr` / `UnsafeCastExpr`. Paper-cited programs all compile; illustrative examples don't. Cheap wins: lower `EmbedExpr` → `basis_vector(name)`; lower `DefuzzyExpr` → `_VSA.is_true(...)` (needs matching runtime method). See `planning/open-questions/codegen-v1-feature-coverage.md` for the full breakdown and decision points.
+
 ## Out of Scope (don't touch unless user opens it)
 
 - Physical deployment, in-vivo execution, neuromorphic hardware bridge, BCI interface design.
