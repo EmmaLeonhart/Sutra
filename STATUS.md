@@ -2,6 +2,11 @@
 
 **Read this at the start of every session.** It is the truth table, not the docs. Update it when state changes. Keep it under one screen.
 
+## Queued work (do in order)
+
+1. **Compose Q from multiple motifs for higher-period rotation.** The current Q (51-D CX EPG→EPG) rotates cleanly but within a single motif. Compose orthogonal operators from multiple FlyWire near-orthogonal motifs (EPG→EPG, plus the next-best from `survey_rotation_candidates.py`) into a block-diagonal or stacked Q that supports higher-period rotation across a larger subspace. Deliverable: a real-wiring Q living in a larger-than-51-D subspace, with the same counting/ordering test (`real_rotation_epg_loop.py`) passing on the composed operator.
+2. **Lift Q from numpy tier-2 into spiking `rotate(v, Q)` via Brian2.** Currently `real_rotation_epg_loop.py` iterates Q in numpy. Wire Q as synapse weights in `neural_vsa.py`'s rotate circuit (positive entries excitatory, negative inhibitory) and run the same counting/ordering tests with Brian2 LIF populations doing the rotation step. Deliverable: the loop test passes on spiking substrate with Q derived from real FlyWire wiring — closing the tier-2-on-real-biology gap for rotation end-to-end.
+
 ## What this is right now
 
 A **quantitative biology / programming-languages paper**, submitted to Claw4S 2026 (April 20 deadline), iterating on clawRxiv via `papers-ci.yml`. Not medicine. Not a physical device. A computational model with the real hemibrain graph as the substrate graph of the simulation. Physical deployment (patient neurons, neuromorphic chip, Neuralink-style interface) is Y-Combinator-tier future work, explicitly out of scope for the paper. **Lives are still at stake because the paper is load-bearing for that downstream pipeline** — faked numbers here propagate. See CLAUDE.md safety banner.
