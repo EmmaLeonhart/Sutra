@@ -1,5 +1,7 @@
 # Workspaces and Projects
 
+> **Status: planning document for v0.0.1.** The workspace model is not part of v0.0.0. The current reference compiler reads `.su` files directly and ignores `atman.toml`. This document describes the design target for the v0.0.1 cut (roughly two weeks out as of this writing). `sdk/sutra-compiler/sutra_compiler/workspace.py` and `examples/workspace/` exist as scaffolding for that cut, not as a working piece of v0.0.0. See [`25-solution-structure.md`](25-solution-structure.md) for the full versioning story.
+
 A *workspace* is a collection of *projects* that compile and run together as a unit. The workspace file names the projects; each project file describes one buildable unit of `.su` source. Workspaces are the top level of the Sutra project model — everything else (source files, inter-project dependencies, substrate targeting, compiler flags) hangs off a workspace-and-project hierarchy.
 
 The motivation for this layer is laid out in [`20-ide-architecture.md`](20-ide-architecture.md) §"UX Model: Visual Studio, Not Jupyter", specifically the "workspace file with multiple projects" bullet. This document is the formal schema for the `atman.toml` file format it asks for.
@@ -45,7 +47,7 @@ path = "visualizations"
 | Field | Type | Meaning |
 |---|---|---|
 | `workspace.name` | string | Human-readable name. Also used as the tool-window label in the IDE. |
-| `workspace.sutra_version` | string | Minimum Sutra language version the workspace needs. Matches the `version` string produced by `sutrac --version`. The parser rejects a workspace whose `sutra_version` is newer than the installed toolchain. |
+| `workspace.sutra_version` | string | Minimum Sutra language version the workspace needs. Matches the `version` string produced by `sutrac --version`. The parser rejects a workspace whose `sutra_version` is newer than the installed toolchain. A workspace with no `sutra_version`, or a tree with no `atman.toml` at all, is treated as v0.0.0 — the pre-formalization development version that today's reference compiler accepts unconditionally but that a post-v0.1.0 toolchain will only accept in opt-in development mode. See [`25-solution-structure.md`](25-solution-structure.md) §"Version pinning and v0.0.0" for the full policy. |
 | `workspace.member` | array of tables | One entry per member project in the workspace. Each entry has at least a `path`, relative to the workspace `atman.toml`. |
 
 **Optional fields:**
