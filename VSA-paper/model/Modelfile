@@ -1,3 +1,0 @@
-FROM ./mxbai-embed-large-v1.gguf
-TEMPLATE {{ .Prompt }}
-PARAMETER num_ctx 512
