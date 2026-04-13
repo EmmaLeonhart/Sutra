@@ -1,11 +1,52 @@
-# main todo
+# Sutra — consolidated TODO
 
+This file is the long-term agenda. `STATUS.md` at the repo root is the
+active session queue — if the two disagree, STATUS.md wins for what is
+being worked on *now*, and this file wins for what needs doing
+*eventually*. Do not re-split this into per-subdirectory todo files.
+See the meta-tasks below.
 
-implement stuff that failed on https://github.com/EmmaLeonhart/Sutra/blob/master/dddd
+## ⚑ Meta-tasks (must happen before anything else in this file is reliable)
 
+These are the tasks that keep this file from becoming its own problem
+again. Until they are done, treat every section below as provisional.
 
-write a new status.md so that claude desktop can properly parse the large amount of changes that occurred during its paralysis
-(it was committing directly to master everything else was pull requests)
+1. **Audit the Python-file sprawl under `fly-brain/`.** There are ~10
+   `real_rotation_*.py` variants, multiple `experiment_*.py` files with
+   no references, `_exploratory_cx_ring_attractor.py` that is a
+   known-negative result that should be in `planning/findings/`, and
+   supporting scripts whose status is unclear. Need a manifest in
+   `fly-brain/` that says, for every `.py` file: what it is, whether
+   it's active / archived / deletable, and what references it. Then
+   execute the cleanup. This is chronic — sessions re-discover the
+   sprawl repeatedly and lose time.
+2. **Keep this todo.md organized and consistent with STATUS.md.**
+   Adopt the priority tiers below. Every item in sections 3+ should
+   live under one of those tiers. An item without a tier is a bug in
+   this file. Also: CLAUDE.md should grow a short rule about how
+   `fly-brain/` `.py` files are created, named, and retired — the
+   audit in (1) is a one-shot; the rule is what prevents recurrence.
+   (User note: writing the CLAUDE.md rule is not urgent — surface it
+   here so a future session picks it up.)
+
+## 🗂 Priority tiers
+
+Everything that follows should be mentally filed under one of:
+
+- **Immediate** — do right now / this session. Usually mirrored in
+  `STATUS.md` queued work.
+- **Pre-Claw4S (deadline 2026-04-20)** — must land before the
+  science-conference submission closes. Paper-critical.
+- **Pre-Y-Combinator pitch** — must land before the YC pitch (no
+  fixed date yet; assume "a few months"). Story-critical for the
+  commercial pitch, not the academic paper.
+- **This year** — should land in 2026, not necessarily tied to a
+  deadline. Strategic rather than tactical.
+
+When adding a new item, pick a tier. When closing one, delete the
+line — do not leave "done ✅" stubs (that's what git log is for).
+
+---
 
 # Sutra TODO
 
