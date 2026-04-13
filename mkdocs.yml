@@ -82,7 +82,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Architecture: architecture.md
+  - What is Sutra?: what-is-sutra.md
   - Vision:
     - The graph-to-vector leap: vision.md
   - Interactive:
