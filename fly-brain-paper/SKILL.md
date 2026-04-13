@@ -51,25 +51,16 @@ GATE: PASS
 
 ## Per-demo reproduction
 
-If you want to run the individual demos instead of the e2e wrapper:
+Use the e2e test wrapper. Prior standalone demos (`four_state_conditional.py`, `programmer_control_demo.py`, `permutation_conditional.py`) were removed as superseded during the 2026-04-13 fly-brain sprawl cleanup — the `test_codegen_e2e*` files cover the same pipeline end-to-end from `.su` source through codegen to the live MB simulation.
 
 ```bash
-# Simplest: 1 program, 4 inputs, no programmer-control story yet
-python fly-brain/four_state_conditional.py
-
-# Programmer agency proof: 4 programs × 4 inputs, if/else still in Python
-python fly-brain/programmer_control_demo.py
-
-# Compile-to-brain: 4 programs × 4 inputs, the if-tree compiles away
-# into a prototype table + permutation-keyed query rewrites
-python fly-brain/permutation_conditional.py
+python sdk/sutra-compiler/test_codegen_e2e.py
+python sdk/sutra-compiler/test_codegen_e2e_fuzzy.py
 ```
 
 ## What you should see
 
-- **`four_state_conditional.py`**: four input conditions mapped to four behavior labels through one pass of the mushroom body per input. This is the smallest demo and only exists to show the circuit runs at all.
-- **`programmer_control_demo.py`**: 4 × 4 = 16 runs; four distinct behavior mappings emerge, driven by source-level `!` negation that still runs in Python. Proves programmer agency: same circuit, different code, different output.
-- **`permutation_conditional.py`**: same 4 × 4 = 16 runs, but the if-tree is gone. The compiled artifact is a single prototype table of four KC-space vectors. Program variants differ only by which permutation keys multiply into the query before `snap`. This is the "compile to brain" result.
+- **`test_codegen_e2e_fuzzy.py`**: compiles `fly-brain/fuzzy_conditional.su` through the pipeline and runs the resulting program against the live MB simulation. 16/16 pass across 4 program variants × 4 input conditions, with four distinct behavior mappings emerging from one-character `!` edits at the source level. This is the combined "programmer agency + compile-to-brain" result.
 
 ## Generating the compiled Python from the `.su` source
 
