@@ -1,6 +1,6 @@
 # Open Questions
 
-- **Syntax:** Semantics are solidifying but no concrete syntax yet. The syntax needs to make algebraic vs. non-algebraic operations visually distinct so programmers can see where the expensive ops are.
+- **Syntax:** Semantics are solidifying but no concrete syntax yet. The syntax needs to make elementwise vector operations visually distinct from vector-graph operations (snap, cone, hop) so programmers can see where the expensive ops are.
 - **Iteration:** Which approach (unrolling, convergence, state encoding) works best? Likely task-dependent — may need all three as options.
 - **`is_true` fixed-point behavior:** Converge, oscillate, or tunable? Needs formal analysis and empirical testing.
 - **Mixed-regime dimensions:** How to express geometric heterogeneity (hyperbolic, Euclidean, spherical) in source code? This may require a richer type system than "everything is a vector."
