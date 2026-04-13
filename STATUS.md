@@ -43,6 +43,11 @@ Longer-term / lower-priority:
 - **Eval size** — branching now 80/80 across 5 seeds, loops 20/20 across 5 seeds. Reviewer's residual objection is program-*template* variety (4 conditional templates, 3 loop-test types), which seeds don't buy. Open whether this matters — the paper is a primitive demonstration, not a program-library survey.
 - **Biological learning rule** — MBON readout is ridge regression, not dopamine-gated plasticity. Planned, not urgent.
 
+## Strategic notes
+
+- **Conditional branching fully on the MB is likely paper-worthy in its own right.** `fuzzy_conditional.py` running 80/80 σ=0 on hemibrain — with the branching decision (snap + Jaccard prototype match) executed entirely on the substrate — is a standalone contribution. Probably not enough to *win* Claw4S on its own, but genuinely career-building. If the combined primitives paper doesn't land, a narrower branching-on-connectome paper is a credible fallback.
+- **Reviewer v22 conflated readout with branching.** The host Python code does (a) read which of 4 behavior prototypes won a 4-way max, and (b) drive the outer loop iteration. Only (b) is real "control flow on host." (a) is readout — every biological system has readout. This distinction should be explicit in the next paper revision.
+
 ## Backlog (not urgent, pick up after paper)
 
 Concrete work that is worth doing but not ordered into the queue. Different from `## Open / Known Gaps` (those are limitations of the current approach) and from `planning/open-questions/` (those are design decisions that need resolving before acting). Backlog items are ready to implement, just not yet prioritized.
