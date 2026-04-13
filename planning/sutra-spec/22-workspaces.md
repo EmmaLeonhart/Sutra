@@ -45,7 +45,7 @@ path = "visualizations"
 | Field | Type | Meaning |
 |---|---|---|
 | `workspace.name` | string | Human-readable name. Also used as the tool-window label in the IDE. |
-| `workspace.sutra_version` | string | Minimum Sutra language version the workspace needs. Matches the `version` string produced by `sutrac --version`. The parser rejects a workspace whose `sutra_version` is newer than the installed toolchain. |
+| `workspace.sutra_version` | string | Minimum Sutra language version the workspace needs. Matches the `version` string produced by `sutrac --version`. The parser rejects a workspace whose `sutra_version` is newer than the installed toolchain. A workspace with no `sutra_version`, or a tree with no `atman.toml` at all, is treated as v0.0.0 — a development-only placeholder that is not guaranteed to compile in any future toolchain. See [`25-solution-structure.md`](25-solution-structure.md) §"Version pinning and v0.0.0" for the full policy. |
 | `workspace.member` | array of tables | One entry per member project in the workspace. Each entry has at least a `path`, relative to the workspace `atman.toml`. |
 
 **Optional fields:**
