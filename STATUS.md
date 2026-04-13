@@ -11,6 +11,7 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 - **Tier-3 on real hemibrain wiring** — PN→KC sparse projection, APL-enforced ~7.8% sparsity, Jaccard prototype match. This is genuinely on the connectome.
 - **Conditional branching** — 16/16 and 80/80 across 5 hemibrain seeds via fuzzy weighted superposition (`fly-brain/fuzzy_conditional.py`). 4/4 distinct program mappings.
 - **Bounded loops `loop[N]`** — unrolled at compile time into flat algebraic expressions. No runtime iteration. No eigenrotation. Works.
+- **Eigenrotation loops (scaled eval)** — 20/20 across 5 hemibrain seeds (`fly-brain/scale_eval_loop.py`): convergence@3, counting to 3, counting to 6, ordering-first-EARLY all 5/5. Convergence iters σ=0.
 - **Tier-2 bundle/bind/rotate on synthetic-weight spiking circuits** (`fly-brain/neural_vsa.py`) — Brian2 LIF, Givens R as synapse weights. Cos 0.94–0.99 vs numpy reference. Rotation R is chosen by us, not by biology.
 - **Tier-2 bundle on real FlyWire wiring** (`fly-brain/neural_vsa_flywire.py`) — cos 0.94 vs W·v reference.
 - **I/O rate coding** — centered rate encoding of hypervectors as PN currents, linear MBON readout via ridge regression. Works.
@@ -26,9 +27,8 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 
 ## Queued work (do in order)
 
-1. **Scale the loop eval.** Mirror `scale_eval_conditional.py` for the geometric-loop tests — ~5 hemibrain seeds, aggregate stats. Closes the last "small-n" reviewer complaint after the branching fix.
-2. **Write `fly-brain/fuzzy_conditional.su` + compile through `sdk/sutra-compiler/`.** Paper cites `fuzzy_conditional.py` but there's no matching `.su` source; the end-to-end compile-to-brain chain currently runs only the deprecated `permutation_conditional.su`.
-3. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
+1. **Write `fly-brain/fuzzy_conditional.su` + compile through `sdk/sutra-compiler/`.** Paper cites `fuzzy_conditional.py` but there's no matching `.su` source; the end-to-end compile-to-brain chain currently runs only the deprecated `permutation_conditional.su`.
+2. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
 
 ## Open / Known Gaps
 
