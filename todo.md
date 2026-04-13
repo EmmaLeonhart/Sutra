@@ -1,3 +1,12 @@
+# main todo
+
+
+implement stuff that failed on https://claude.ai/code/session_01LqR694QJEE8Zvw3fPT2xcQ
+
+
+
+
+
 # Sutra TODO
 
 ## 🔧 GitHub Actions failure modes (diagnosed 2026-04-13, fix deferred)
