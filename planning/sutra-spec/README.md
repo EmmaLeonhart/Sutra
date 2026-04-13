@@ -8,7 +8,7 @@ Sutra is not a scripting language bolted onto an AI. It is a formal system for r
 
 ### Core Language
 - [Design Principles](01-design-principles.md) — fuzzy-by-default, vectors as only type, computation is geometry
-- [Operations](02-operations.md) — three-tier model: primitive, algebraic/VSA, non-algebraic/vector-graph
+- [Operations](02-operations.md) — scaffolding (scalars, tuples, bounded iteration) and the vector operations (bundle, bind, unbind, similarity, scale, project, rotate, snap, cone, hop) that run on the substrate
 - [Control Flow](03-control-flow.md) — fuzzy branching, cone traversal, iteration
 - [Defuzzification](04-defuzzification.md) — `is_true` and recursive confidence extraction
 - [Type System](05-type-system.md) — no wrong types (only noise), mixed-regime spaces, entity resolution
@@ -16,7 +16,7 @@ Sutra is not a scripting language bolted onto an AI. It is a formal system for r
 ### Runtime & Compilation
 - [Runtime Architecture](06-runtime.md) — S1/Sutra dual runtime, MCP server as runtime component
 - [Empirical Initiation](07-empirical-initiation.md) — probing, correction matrices, validation gates, cross-substrate compilation
-- [Abstraction Level](08-abstraction-level.md) — "C-tier" for vector spaces, what the compiler handles vs. what the programmer writes
+- [Abstraction Level](08-abstraction-level.md) — Sutra's level of abstraction, what the compiler handles vs. what the programmer writes
 - [IDE Architecture](20-ide-architecture.md) — IntelliJ Platform, agent-first authoring, bundled vertical stack, embedding-space visualizer
 - [VSA Builtins](21-builtins.md) — formal signatures for the implicit-global VSA functions (`snap`, `bind`, `permute`, ...)
 - [Workspaces](22-workspaces.md) — `atman.toml` schema for workspace and project files *(planning for v0.0.1)*
@@ -25,7 +25,7 @@ Sutra is not a scripting language bolted onto an AI. It is a formal system for r
 
 ### Theoretical Foundations
 - [Lambda Calculus Encoding](09-lambda-calculus.md) — term mapping, substitution problem, de Bruijn indices, Smolensky, Tomkins-Flanagan
-- [Turing Completeness](10-turing-completeness.md) — CCC argument, what was proven, two obstacles, non-algebraic patch
+- [Turing Completeness](10-turing-completeness.md) — CCC argument, what was proven, two obstacles, how snap/cone/hop close the gap
 - [VSA Mathematical Grounding](11-vsa-math.md) — VSA vs HDC, concentration of measure, eight axioms, domain-agnostic embeddings
 
 ### Extensions & Research

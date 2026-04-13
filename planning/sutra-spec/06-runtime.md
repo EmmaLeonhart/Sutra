@@ -12,7 +12,7 @@ Like TypeScript's type checker running alongside JavaScript execution, Sutra's s
 The MCP server is not an IDE add-on. It is part of the runtime:
 - Resolves long-range semantic dependencies that no single file can capture
 - Holds the semantic context that makes fuzzy vector operations meaningful
-- Provides the ANN infrastructure for non-algebraic operations (snap, cone, hop)
+- Provides the ANN infrastructure for the vector-graph operations (snap, cone, hop)
 - Manages the codebook / cleanup memory
 - Handles entity resolution (same surface form → different vectors depending on context)
 
