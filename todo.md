@@ -6,39 +6,24 @@ being worked on *now*, and this file wins for what needs doing
 *eventually*. Do not re-split this into per-subdirectory todo files.
 See the meta-tasks below.
 
-## ⚑ Meta-tasks (must happen before anything else in this file is reliable)
+## ⚑ Meta-task — keep this file organized
 
-These are the tasks that keep this file from becoming its own problem
-again. Until they are done, treat every section below as provisional.
+This file's job is the long-term agenda. `STATUS.md` owns the active
+session queue. The one meta-task that lives here (rather than in
+STATUS.md queued work) is the standing discipline:
 
-1. **Audit the Python-file sprawl under `fly-brain/`.** There are ~10
-   `real_rotation_*.py` variants, multiple `experiment_*.py` files with
-   no references, `_exploratory_cx_ring_attractor.py` that is a
-   known-negative result that should be in `planning/findings/`, and
-   supporting scripts whose status is unclear. Need a manifest in
-   `fly-brain/` that says, for every `.py` file: what it is, whether
-   it's active / archived / deletable, and what references it. Then
-   execute the cleanup. This is chronic — sessions re-discover the
-   sprawl repeatedly and lose time.
-   **⚠ Execution constraint — do NOT let a Claude Code-on-the-web
-   session attempt this.** The audit needs to distinguish "imported
-   somewhere" from "actually still produces the result it claims to"
-   (Brian2 spiking sims with the real hemibrain cache), and the
-   remote Claude sandbox has neither Brian2 nor the 14 GB FlyWire
-   data. A grep-based reference audit without execution is
-   misleading — it would e.g. flag `hemibrain_loader.py` as
-   unreferenced because reverse-imports are easy to miss. Do this
-   from a local machine (Immanuelle's workstation with the
-   `C:\Users\Immanuelle\flybrain\` cache) or a remote-control
-   session where the real data + runtime are available.
-2. **Keep this todo.md organized and consistent with STATUS.md.**
-   Adopt the priority tiers below. Every item in sections 3+ should
-   live under one of those tiers. An item without a tier is a bug in
-   this file. Also: CLAUDE.md should grow a short rule about how
-   `fly-brain/` `.py` files are created, named, and retired — the
-   audit in (1) is a one-shot; the rule is what prevents recurrence.
-   (User note: writing the CLAUDE.md rule is not urgent — surface it
-   here so a future session picks it up.)
+- **Keep this `todo.md` organized and consistent with STATUS.md.**
+  Every item below lives under one of the priority tiers. An item
+  without a tier is a bug in this file. When an item is actively
+  being worked, it should also appear in STATUS.md's queue — the
+  two are meant to agree, with STATUS.md winning for now-work and
+  `todo.md` winning for later-work.
+
+The former meta-task #1 (audit the `fly-brain/` Python-file sprawl)
+has been moved to `STATUS.md` queued work where active on-machine
+tasks belong — a Claude sandbox session cannot do that audit without
+Brian2 + the hemibrain cache, so it does not belong in the
+long-term-agenda meta section.
 
 ## 🗂 Priority tiers
 
