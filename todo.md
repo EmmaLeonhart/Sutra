@@ -262,7 +262,7 @@ What is *not* done:
 
 Follow-on scope (tracked separately):
 
-1. **[Pre-Claw4S] Paper language has drifted — the paper undersells itself.** The paper is still using outdated architectural descriptions from earlier documentation (when we only had synthetic Givens on numpy) instead of describing what the repo actually does now (Q from polar decomposition of real FlyWire weights, composed to 713-D, passing all tier-2 tests on real-wiring-derived rotation). This is the *specific* kind of doc-vs-implementation drift the CLAUDE.md safety banner calls out: "If the spec and the implementation disagree, stop and resolve the disagreement explicitly." Action: read `sutra-paper/paper.md` and `fly-brain-paper/paper.md` critically against STATUS.md's "Open / Known Gaps" summary of the rotation work, and flag every passage that describes the old numpy/synthetic-Givens state of the world as if it were current. Do *not* silently rewrite those passages — surface them one at a time, diff approved, per CLAUDE.md's incremental-paper-edit rule.
+1. **[Pre-Claw4S] Paper language has drifted — the paper undersells itself.** *(Status 2026-04-13: largely fixed for `fly-brain-paper/paper.md` — restructured §Result 2 / §The Substrate / §Methods Geometric loops / §Honest Limits to lead with the resolved 140-D real-wiring Q + real hemibrain PN→KC + KC-Jaccard pipeline = 30/30 target-k sweep, demote synthetic Givens / cosine readout / ALPN→LHLN to wrong-discriminator baselines. `sutra-paper/paper.md` still needs the same pass.)* The doc-vs-implementation drift was the *specific* kind CLAUDE.md's safety banner calls out: "If the spec and the implementation disagree, stop and resolve the disagreement explicitly." Action for `sutra-paper/`: read against STATUS.md's "Open / Known Gaps" summary, flag every passage that describes the old synthetic-Givens-on-numpy state of the world as if current, and rewrite aggressively. The old "incremental edits / one paragraph at a time / wait for approval" rule is dead per CLAUDE.md (deleted 2026-04-13) — edit at whatever granularity actually fixes the paper.
 2. **[Pre-Claw4S] Close the spiking lift.** 3/5 → 5/5 on `real_rotation_epg_loop_spiking.py`. This is STATUS.md queue item #3 and is where the real open work actually lives.
 3. **[This year] Continue the rotation candidate search.** Prior CX attempt (`_exploratory_cx_ring_attractor.py`) got corr 0.97 between left/right drive outputs — a known-negative that correctly lives in that file with a "do not import" docstring. More motif exploration, fan-shaped body, distributed composition, etc. is open-ended but less urgent now that we have a working operator.
 
@@ -291,13 +291,11 @@ is closed. What's next, roughly in priority:
    summary table of the 16 decisions (program × input), a one-sentence
    mention of the result in the abstract, a §7.3 update so Future
    Directions doesn't contradict the new §6.6 empirical claim.
-   Claw4S deadline is 2026-04-20, today is 2026-04-10 — there is
-   room to iterate a few times.
-   Follow the incremental-changes rule from `CLAUDE.md`: one paragraph
-   or one table at a time, diffs approved before commit. Pushing is
-   fine now (submit-papers.yml is manual-only, so push ≠ clawRxiv
-   submission) — only the actual `workflow_dispatch` trigger counts
-   as a submission.
+   Claw4S deadline is 2026-04-20 — there is room to iterate.
+   Edit aggressively (the old incremental-changes rule was deleted from
+   CLAUDE.md on 2026-04-13). Pushing is fine — `papers-ci.yml`
+   auto-submits to clawRxiv on every push that touches `paper.md`, so
+   each push is a new clawRxiv version.
 
 2. **[Pre-Claw4S] Run `sutrac` across every `.su` file in the repo
    and fix what it reports.** From the Pending Decisions list — the
