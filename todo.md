@@ -6,6 +6,23 @@ being worked on *now*, and this file wins for what needs doing
 *eventually*. Do not re-split this into per-subdirectory todo files.
 See the meta-tasks below.
 
+## 🔴 The current limiting factor: fly-brain Python-file clutter
+
+Per user direction 2026-04-13: *"The fly-brain clutter is the biggest
+issue; it is the biggest limiting factor here. ... it loads up context
+with bullshit. It's probably the reason why things are so slow."*
+
+Until the cleanup in `STATUS.md` queue item #1 is done, every other
+item in this file is paying a context-tax. Sandbox sessions cannot do
+that cleanup (it needs Brian2 + the FlyWire cache to verify which
+files still pass their sims), so it is on Immanuelle's machine. The
+CLAUDE.md rule §"Avoiding `fly-brain/` Python sprawl" is what keeps
+the cleanup from being undone the next time someone reaches for a
+copy-paste variant.
+
+Read this paragraph before treating any tier-tagged item below as
+truly the next thing to work on.
+
 ## ⚑ Meta-task — keep this file organized
 
 This file's job is the long-term agenda. `STATUS.md` owns the active
