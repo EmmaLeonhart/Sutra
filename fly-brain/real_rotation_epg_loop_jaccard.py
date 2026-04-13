@@ -1,5 +1,5 @@
 """
-Tier-3 Jaccard-on-KC termination test for real-wiring EPG rotation.
+Jaccard-on-KC termination test for real-wiring EPG rotation.
 
 Hypothesis: the 3/5 spiking result with cosine readout
 (`real_rotation_epg_loop_spiking.py`) and the 3/5 composed result
@@ -12,12 +12,14 @@ a compiled prototype should suppress Gaussian cosine noise — the MB's
 `scale_eval_loop.py` already shows 20/20 convergence at SIM_MS=200ms
 with synthetic Givens R.
 
-If this brings real-wiring EPG to 5/5, the end-to-end story is:
-- Rotation operator: polar decomposition of real FlyWire EPG->EPG (tier 2)
-- Rotation step: host numpy matmul (tier 2, spec-compliant)
-- Termination readout: hemibrain MB Jaccard overlap (tier 3, spiking)
-
-This is the spec-aligned architecture. No tier boundaries violated.
+If this brings real-wiring EPG to 5/5, the pipeline has:
+- Rotation operator: polar decomposition of real FlyWire EPG->EPG
+- Rotation step: host numpy matmul (NOT substrate-compliant per the
+  current spec — numpy at runtime is forbidden for vector ops, only
+  compile+monitor are allowed. This file measures the readout in
+  isolation, so the rotation half's substrate non-compliance is a
+  known caveat, not a resolved question.)
+- Termination readout: hemibrain MB Jaccard overlap (substrate, spiking)
 
 Dimension: EPG Q is 51-D. The initial attempt embedded Q in the 140-D
 hemibrain PN vector as block_diag(Q, I_89), but that failed immediately:
@@ -31,7 +33,7 @@ provide.
 So we drop hemibrain and run `FlyBrainVSA(dim=51, use_hemibrain=False)`:
 Q fills the whole PN space, and the PN->KC projection is random (2000
 KCs, 10% sparsity) instead of the real hemibrain wiring. Real wiring
-for rotation (tier 2), synthetic spiking circuit for readout (tier 3).
+for rotation (numpy), synthetic spiking circuit for readout.
 This is strictly weaker than "both sides real" but isolates the
 question of whether KC-Jaccard readout breaks the Poisson SNR problem.
 """
@@ -141,7 +143,7 @@ def main():
                       # target at lenient thresholds
 
     # Counting k=3
-    print(f"Counting to k=3 (tier-3 Jaccard readout, {len(seeds)} seeds, "
+    print(f"Counting to k=3 (KC-Jaccard readout, {len(seeds)} seeds, "
           f"threshold={threshold})")
     t0 = time.time()
     count_results = []
@@ -173,7 +175,7 @@ def main():
     print(f"  ORDERING: {n_pass_o}/{len(seeds)}\n")
 
     print("=" * 60)
-    print(f"Real-wiring EPG Q + tier-3 Jaccard-on-KC readout:")
+    print(f"Real-wiring EPG Q + KC-Jaccard readout:")
     print(f"  counting k=3: {n_pass_c}/{len(seeds)}")
     print(f"  ordering:     {n_pass_o}/{len(seeds)}")
     print(f"  wall clock:   {time.time() - t0:.0f}s")

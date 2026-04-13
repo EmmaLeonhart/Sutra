@@ -14,7 +14,7 @@ loop's rotation operator even though it is 51x51 and derived from the
 central-complex recurrent wiring rather than an arbitrary Givens
 composition.
 
-This is a tier-2 rotation test in the 51-D EPG subspace. It does not
+This is a numpy rotation test in the 51-D EPG subspace. It does not
 run through the mushroom-body spiking circuit; that integration is a
 later step. The point here is to verify that real-wiring-derived Q
 supports the three geometric-loop patterns at all.

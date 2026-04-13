@@ -144,25 +144,28 @@ interpolator, which it is not. The empirical gap between the two
 readouts (3/5 vs 5/5) is the cost of using the wrong substrate
 operation.
 
-This is also the reason *both* tiers (tier-2 algebra and tier-3
-substrate) are needed. Tier-2 (`R^k · v_0`) is clean linear algebra
-and can run on any orthogonal matrix, including a real FlyWire `Q`.
-Tier-3 (MB Jaccard) is categorical — match / no-match — and
-inherently substrate-level. Trying to merge them (e.g. "run the
-rotation on neurons and read out the rotation result via cosine") is
-the configuration that empirically fails.
+Rotation and MB Jaccard are separate operations playing separate
+roles. Rotation is an orthogonal operator applied to the state;
+MB Jaccard is a categorical match / no-match on a sparse KC
+pattern. Both execute on the substrate. "Run the rotation on
+neurons and read out the rotation result via cosine" is the
+configuration that empirically fails — not because cosine readout
+is an unwanted extra, but because cosine is the wrong readout for
+a substrate whose native output is a sparse binary pattern.
 
 ## Consequences for the spec
 
 The following are prescribed, not optional, for `loop (condition)`:
 
-1. The state trajectory `R^k v_0` may be computed on the host (tier-2
-   algebraic per `02-operations.md`). Running it on the substrate is
-   not incorrect but not required; the pass rate does not depend on
-   where the rotation runs, only on where the readout runs.
-2. The termination check **must** route through a sparse KC
-   projection (tier-3). Direct cosine comparison of decoded state to
-   prototype is non-spec-compliant and degrades with dimension.
+1. The rotation step `state ← R · state` runs on the substrate.
+   Current implementations that iterate `R^k v_0` on the host are a
+   limitation of those implementations to close, not a sanctioned
+   execution path. Results produced via host iteration must be
+   reported as host-iterated, with the gap called out.
+2. The termination check routes through a sparse KC projection.
+   Direct cosine comparison of decoded state to prototype is wrong —
+   it uses the substrate as a linear interpolator and degrades with
+   dimension.
 3. The match threshold should be picked from the observed bimodal
    distribution of the particular `R`, not copied from a default. For
    operators with ring-attractor-clustered spectra (like EPG), the
@@ -191,7 +194,7 @@ The following are prescribed, not optional, for `loop (condition)`:
 - Cosine-readout baseline: `planning/findings/2026-04-13-spiking-Q-rotation-3-of-5.md`
 - Cosine collapse with D: `planning/findings/2026-04-13-composed-Q-spiking-3-of-5.md`
 - Spec for `loop (condition)`: `planning/sutra-spec/03-control-flow.md`
-- Tier model: `planning/sutra-spec/02-operations.md`
+- Operation definitions: `planning/sutra-spec/02-operations.md`
 - Substrate architecture: `planning/sutra-spec/19-substrate-candidates.md`
 - Implementation: `fly-brain/real_rotation_epg_loop_jaccard.py`,
   `fly-brain/vsa_operations.py` (`FlyBrainVSA.loop`,
