@@ -4,8 +4,7 @@
 
 ## Queued work (do in order)
 
-1. **140-D real-wiring Q for full-real-wiring Jaccard.** Close the caveat in `planning/findings/2026-04-13-jaccard-on-KC-5-of-5.md`: construct a 140-D Q as `block_diag(Q_EPG_51, Q_<89-D slice>)` so readout uses the real hemibrain PN→KC instead of `use_hemibrain=False` synthetic wiring. 89-D block: hDelta or LH subset chosen to hit exactly 89 neurons.
-2. **Target-k sweep.** Currently only k=3 counting and k=2/5/8 ordering tested. Try k=5, k=8, k=12 to show Jaccard readout isn't specific to any particular target. Small follow-up after 1 lands.
+1. **Target-k sweep.** Currently only k=3 counting and k=2/5/8 ordering tested. Try k=5, k=8, k=12 to show Jaccard readout isn't specific to any particular target.
 
 Each item: one commit that both removes its STATUS entry and lands the work. Push after each.
 
