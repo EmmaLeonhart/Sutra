@@ -104,15 +104,15 @@ Rationale:
 - **2D-default keeps the performance risk manageable.** The point-cloud performance worry that originally motivated the Swing fallback is mostly a 3D concern. With 2D as the default the orthographic WebGL path handles large clouds comfortably, and 3D mode is opt-in for users who accept the cost.
 - **Degrades gracefully.** JCEF is bundled with most IntelliJ Platform distributions on Windows, macOS, and Linux. On the rare distributions where JCEF isn't available, the pane can fall back to a Swing scatter plot for 2D mode (a batched renderer for the 3D fallback remains out of scope until we have a reason to build it).
 
-Native Swing with a batched renderer is no longer the fallback of record — it's only invoked if JCEF turns out to be unavailable on a target distribution, and only for 2D mode. A prototyping spike with a realistic point cloud (target: 10k–20k algebraic-tier vectors plus a few hundred highlighted) is the next concrete step before the pane graduates from "planned" to "under construction."
+Native Swing with a batched renderer is no longer the fallback of record — it's only invoked if JCEF turns out to be unavailable on a target distribution, and only for 2D mode. A prototyping spike with a realistic point cloud (target: 10k–20k vectors plus a few hundred highlighted) is the next concrete step before the pane graduates from "planned" to "under construction."
 
-### Caveat: non-algebraic tier doesn't project linearly
+### Caveat: snap / cone / hop don't project linearly
 
-Composite-basis projection works cleanly on the **algebraic tier** (see [02-operations.md](02-operations.md)) — `bind`, `unbind`, `bundle` produce points and the operations between them become visible lines. Non-algebraic results (`snap`, `cone`, `hop`) project fine as points but the *operations* that produced them do not map to straight lines in the chosen basis. The visualizer should surface this distinction — dotted lines for non-algebraic transitions, solid lines for algebraic ones — so users are not misled into reading geometric continuity where none exists.
+Composite-basis projection works cleanly on elementwise vector operations (see [02-operations.md](02-operations.md)) — `bind`, `unbind`, `bundle` produce points and the operations between them become visible lines. Vector-graph results (`snap`, `cone`, `hop`) project fine as points but the *operations* that produced them do not map to straight lines in the chosen basis. The visualizer should surface this distinction — dotted lines for vector-graph transitions, solid lines for elementwise transitions — so users are not misled into reading geometric continuity where none exists.
 
 ### Fly-brain visualizer
 
-A second visualizer pane, tuned specifically to the fly-brain substrate, is planned as a tiered deliverable alongside the embedding-space pane. See the dedicated planning doc at [`planning/fly-brain-visualizer.md`](../fly-brain-visualizer.md) for the topological-vs-anatomical split, the hemibrain/FlyWire mapping research it depends on, and the staged v0.1–v0.3 rollout.
+A second visualizer pane, tuned specifically to the fly-brain substrate, is planned as a staged deliverable alongside the embedding-space pane. See the dedicated planning doc at [`planning/fly-brain-visualizer.md`](../fly-brain-visualizer.md) for the topological-vs-anatomical split, the hemibrain/FlyWire mapping research it depends on, and the staged v0.1–v0.3 rollout.
 
 ## MCP Architecture: Two Servers, One IDE
 
@@ -165,7 +165,7 @@ These two loops together are the minimum viable contract for agent authoring. Un
 The Sutra runtime MCP server, hosted inside the IDE, specifically:
 
 - Resolves long-range semantic dependencies for the code currently being edited
-- Provides ANN lookups against the local vector database for non-algebraic operations (snap, cone, hop)
+- Provides ANN lookups against the local vector database for vector-graph operations (snap, cone, hop)
 - Feeds the visualizer pane with "what's near the vector under the cursor"
 - Handles entity resolution — when the same surface form maps to different vectors depending on context, the IDE needs to *know*, and the MCP server is how it knows
 - Exposes the probing results from empirical initiation as structured diagnostics
