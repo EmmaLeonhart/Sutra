@@ -10,15 +10,16 @@ Sutra recognizes three levels of structure, in increasing order of formality:
 
 ### 1. Loose `.su` files (no `atman.toml`)
 
-A directory containing one or more `.su` files with **no `atman.toml` anywhere up the tree** is a *loose source tree*. The compiler will try to read it in "development mode" — the same thing you get when you point `sutrac` at a single file from the command line.
+A directory containing one or more `.su` files with **no `atman.toml` anywhere up the tree** is a *loose source tree*. The reference compiler reads it in "development mode" — the same thing you get when you point `sutrac` at a single file from the command line.
 
 In development mode:
 
 - There is no workspace, no project, no dependency graph.
 - Source files cannot depend on each other across project boundaries (because there are no projects).
 - The language version is implicitly **v0.0.0** — see §"Version pinning and v0.0.0" below.
+- This is the working mode right now. Once v0.1.0 is cut, running a post-v0.1.0 toolchain over a loose tree requires an explicit `--dev` opt-in.
 
-This is the only shape that currently exists in this repo. Everything under `examples/`, `fly-brain/`, and `sutra-demo-program.su` is loose `.su` source at v0.0.0.
+This is the only shape that currently exists in this repo. Everything under `examples/`, `fly-brain/`, `sutraDB/`, and `sutra-demo-program.su` is loose `.su` source at v0.0.0, and the reference compiler compiles it.
 
 ### 2. Single-project solution
 
@@ -54,37 +55,37 @@ Every compiling Sutra solution pins a language version via the `sutra_version` f
 
 ### What each version class means
 
-| `sutra_version` | Status | Compilation |
-|---|---|---|
-| (no `atman.toml`) | v0.0.0 implicit | development mode only; may stop compiling in any future toolchain |
-| `"0.0.0"` | explicit v0.0.0 | same as above, with the version made explicit |
-| `"0.1.0"` and onward | stable release | compiler honors the grammar and standard library as shipped for that version |
-| newer than installed toolchain | error | compiler rejects the solution with diagnostic `SUT2003` |
+| `sutra_version` | Status | Compilation under today's toolchain | Compilation once v0.1.0+ exists |
+|---|---|---|---|
+| (no `atman.toml`) | v0.0.0 implicit | accepted (this is the entire repo today) | development mode only, opt-in; may stop working at any future release |
+| `"0.0.0"` | explicit v0.0.0 | accepted; same grammar | same as above, with the version made explicit |
+| `"0.1.0"` and onward | stable release | not yet defined — v0.1.0 is unreleased | compiler honors the grammar and standard library as shipped for that version |
+| newer than installed toolchain | error | rejected with diagnostic `SUT2003` | rejected with diagnostic `SUT2003` |
 
 ### Why v0.0.0 is special
 
-**v0.0.0 is a development-only placeholder version.** It is the label the compiler applies when it has no information about what version a source tree was written for. It exists to let the current repo (where the grammar is still being shaken out) have something meaningful to call the status quo, rather than pretending it is already at v0.1.
+**v0.0.0 is the pre-formalization development version.** It is the label the compiler applies when it has no information about what version a source tree was written for. It exists to let the current repo — where the grammar is still being shaken out — have something meaningful to call the status quo rather than pretending it is already at v0.1.
 
-The contract around v0.0.0:
+**Everything in this repo is v0.0.0 today.** Every `.su` file under `examples/`, `fly-brain/`, `sutraDB/`, `sutra-demo-program.su`, and anywhere else in this tree is v0.0.0 source. The reference compiler in `sdk/sutra-compiler/` must keep accepting v0.0.0 — it *is* the v0.0.0 toolchain. The grammar in [`24-grammar.md`](24-grammar.md) is the v0.0.0 grammar. Nothing in this policy is meant to break the code that already runs.
 
-1. **v0.0.0 cannot normally compile at all.** The compiler's default posture toward a v0.0.0 source tree is to refuse to build it and emit a diagnostic directing the user to pin a real version. A best-effort development mode exists (see §"Development mode" below) but it is opt-in, not the default.
-2. **v0.0.0 is not guaranteed to survive any future grammar change.** Breaking changes between v0.0.0 and v0.1.0 are explicitly allowed. Anything that worked at v0.0.0 may stop working at v0.1.0 without a deprecation window.
+The contract around v0.0.0 is about what happens **after v0.1.0 is cut**, not about today:
+
+1. **v0.0.0 cannot normally compile under a post-v0.1.0 toolchain.** Once v0.1.0 ships, a stable `sutrac` will refuse to build a v0.0.0 source tree by default and will direct the user to pin a real version. A best-effort development mode (see §"Development mode" below) keeps the v0.0.0 path alive as opt-in behavior, but it stops being the default the moment there is a stable alternative to fall back on.
+2. **v0.0.0 is not guaranteed to survive any future grammar change.** Breaking changes between v0.0.0 and v0.1.0 are explicitly allowed. Anything that works at v0.0.0 may stop working at v0.1.0 without a deprecation window.
 3. **v0.0.0 will not always be supported.** At some point after v0.1.0 is cut the compiler will drop the development-mode path entirely. Solutions still on v0.0.0 at that point will have to be migrated.
-4. **Do not ship v0.0.0 code to anyone else.** Any solution you expect a second person, a CI pipeline, or a downstream dependency to consume **must** pin a real `sutra_version` in its `atman.toml`.
+4. **Do not ship v0.0.0 code to anyone who expects a stable build.** Any solution you expect a second person, a CI pipeline, or a downstream dependency to consume once v0.1.0 exists **must** pin a real `sutra_version` in its `atman.toml`.
 
-Rule of thumb: **if you want the compiler to care whether your code is correct, give it an `atman.toml` with a real version.** v0.0.0 is for scratch work that the author is prepared to throw away.
+Rule of thumb: **today, v0.0.0 works; tomorrow, v0.0.0 is the explicit "I have not pinned a version" signal.** The grammar document this policy references is the v0.0.0 grammar, and it compiles.
 
 ### Development mode
 
-Because v0.0.0 is where the language actually lives right now, the compiler provides a **development mode** for loose `.su` files and explicit-v0.0.0 solutions. Development mode:
+Because v0.0.0 is where the language actually lives right now, the compiler provides (or will provide, once there is something to gate against) a **development mode** for loose `.su` files and explicit-v0.0.0 solutions. Development mode:
 
 - Accepts the grammar as currently implemented in `sdk/sutra-compiler/` with no version gate.
 - Emits a warning on every run, prefixed with the file path, reminding the user that the source is at v0.0.0.
 - Does **not** promise that the same input will be accepted in any future toolchain.
 
-Development mode is enabled by an explicit `--dev` flag or `SUTRA_DEV_MODE=1` in the environment; the default behavior of `sutrac` against a v0.0.0 tree is to refuse to compile and print a diagnostic pointing the user at this document.
-
-This compiler behavior is not yet implemented in `sdk/sutra-compiler/`; the current reference compiler parses v0.0.0 source unconditionally because there is no alternative. The policy described here is the target behavior for when v0.1.0 is cut. Until then, the reference compiler effectively runs in development mode at all times, and every `.su` file in this repo is v0.0.0.
+Until v0.1.0 is cut, development mode *is* the compiler. The `sdk/sutra-compiler/` reference toolchain parses v0.0.0 source unconditionally, which is correct — there is no stable version to fall back to yet. Once v0.1.0 exists, development mode will become opt-in via an explicit `--dev` flag or `SUTRA_DEV_MODE=1` environment variable, and the default behavior against a v0.0.0 tree will be to refuse with a diagnostic pointing here. Implementing that gate is a v0.1.0 task, not a v0.0.0 task.
 
 ## File conventions
 
@@ -140,9 +141,9 @@ The compiler is invoked at the solution root:
 
 - **Workspace solution:** `sutrac path/to/workspace/atman.toml`. The workspace loader resolves the member projects, topologically sorts them, and compiles each in order. See `sdk/sutra-compiler/sutra_compiler/workspace.py`.
 - **Single-project solution:** `sutrac path/to/project/atman.toml`. Same pipeline, single project.
-- **Loose file (development mode):** `sutrac --dev path/to/file.su`. Only legal at v0.0.0; produces a warning on every invocation. Without `--dev`, v0.1.0+ toolchains reject loose files.
+- **Loose file:** `sutrac path/to/file.su`. Today this just runs; once v0.1.0 exists, the post-v0.1.0 toolchain will require `--dev` for this form and will label it development mode.
 
-The reference compiler currently implements the workspace entry point (`python -m sutra_compiler.workspace path/to/atman.toml`) and a single-file entry point. The `--dev` gate is not yet wired up; every invocation today is effectively development mode.
+The reference compiler currently implements the workspace entry point (`python -m sutra_compiler.workspace path/to/atman.toml`) and a single-file entry point, both accepting v0.0.0 source. The `--dev` gate and the v0.0.0-refusal diagnostic are v0.1.0-cut tasks, not v0.0.0 tasks — wiring them in now would break every existing file in the repo.
 
 ## Relationship to other docs
 
