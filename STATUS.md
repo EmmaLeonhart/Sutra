@@ -29,7 +29,6 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 ## Queued work (do in order)
 
 1. **Sutrac lint sweep across `.su` files.** Run `sutrac` over `examples/`, `fly-brain/`, `sutra-demo-program.su`; fix class-casing, builtin usage, structural drift reported.
-2. **Create `planning/open-questions/` directory** (sister to the implicit exploratory-status convention) and seed it with two entries: (a) tier-2 bundle — numpy vs substrate when weights must be preserved (landed as `+` in `fuzzy_conditional.su` to hit 16/16, but this is a real open design question), (b) conditional branching executed on the remote at runtime rather than compiled at host. Wire into `CLAUDE.md` so future sessions know to use the directory.
 
 ## Open / Known Gaps
 
