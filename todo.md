@@ -1,16 +1,20 @@
 # Sutra TODO
 
-## Language-design: if-chains vs switch/softmax
+## ⚠️ FIX THE PAPER CI/CD PIPELINE ⚠️
 
-**Open design question (user-flagged).** In a fuzzy-by-default VSA language, the canonical `if/elif/elif/else` chain maps badly onto the algebra. Each nested condition multiplies into a running weight product, so by the time you reach the fourth `elif` branch you're blending four fuzzy-multiplicative terms plus a trailing `else` — this is not what the programmer wrote and not what reviewers expect.
+**Standing operational problem. User has flagged this across multiple sessions.** `papers-ci.yml` / `competition-cron.yml` / `submit-papers.yml` have chronic failure modes during paper iteration — most visibly merge conflicts and failed runs that cost user time and occasionally lose work. Each attempted fix has introduced new failure modes (see STATUS.md "CI pipeline state" — it has been rewritten repeatedly).
 
-The natural algebraic shape for a long conditional chain in this language is a **softmax over a switch**: given cases `c_1 .. c_n` and branches `b_1 .. b_n`, the output is `softmax(sim(state, c_i)) · b_i` — one weighted blend, not a cascade of fuzzy-AND multiplications. This is closer to a cone traversal / pattern-match than to a sequential `if` tree.
+This is NOT something to diagnose from the repo alone. The Actions logs are not available from the Claude environment. When picking this up:
 
-Action items (not yet scheduled):
-- Decide whether Sutra should give `if/elif/else` chains a dedicated syntactic form that compiles to the softmax-switch shape, rather than lowering to nested `(cond * branch) + (NOT cond * (next_cond * next_branch + ...))`.
-- Alternatively, add an explicit `switch`/`match` construct with softmax semantics and *document* that `if/elif` should only be used for genuinely-binary branching.
-- Update `planning/sutra-spec/03-control-flow.md` once decided — right now only binary fuzzy branching and cone traversal are specified, no guidance for chains.
-- The `permutation_conditional` demo (currently broken — see `STATUS.md`) is an attempt at 4-way branching via a non-spec mechanism (sign-flip on query); the correct replacement will need to resolve this syntax/semantics gap.
+1. Ask the user to paste the log from a specific failing run, or point at the run URL. Do not guess at causes without logs.
+2. Look at the workflow file that failed (in `.github/workflows/`) alongside the log before proposing a change.
+3. Consider whether the fix belongs in the workflow YAML, in the paper-submission script, or in upstream hygiene (branch protection, rebase cadence, etc.) — it is not always the YAML.
+
+The user has ruled out "paper.md sibling-file conflicts" as the dominant issue based on prior sessions — don't re-propose it.
+
+## Language-design: if-chains vs switch/softmax — **DEFERRED**
+
+Full research sketch moved to `planning/exploratory/softmax-conditionals.md`. Short summary: fuzzy `if/elif/elif/else` chains map badly onto the algebra (a cascade of fuzzy-AND products is not what the programmer wrote), so the natural shape is a softmax over a switch — one weighted blend, not a nested chain. User has decided NOT to pursue implementation right now; higher-priority paper work dominates. Revisit after the Claw4S deadline (2026-04-20) or when `permutation_conditional` / `fuzzy_conditional` work reopens the question.
 
 ## Next up
 
@@ -155,6 +159,14 @@ with Brian2 2.10.1). The last medium-term item in
 
 - Get Sutra running on normal hardware first
 - Then try running it on a simulated fly brain
+
+## Exploratory / parked research
+
+Long-form research sketches for things we might want to do later live in `planning/exploratory/`. These are **not commitments** — they are parking spots so ideas don't rot in a Slack message or a session transcript. Pick them up after the Claw4S deadline (2026-04-20) or when priorities shift.
+
+Currently parked:
+- `planning/exploratory/softmax-conditionals.md` — fuzzy conditional branching as softmax over named cases, vs. classic if/elif chains. User's stated vision: make crisp conditionals harder to write than softmax switches, so programmers cannot accidentally treat Sutra conditionals as C#/TS conditionals.
+- `planning/exploratory/karpathy-llm-wiki.md` — Andrej Karpathy's "LLM wiki" concept. User interest is in its context-management angle (relevant to Sutra's long-range-dependency / MCP-as-runtime model). Needs web research before we know if there is anything Sutra-shaped to borrow.
 
 ## Speculative / not yet committed to
 
