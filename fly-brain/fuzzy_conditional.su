@@ -81,10 +81,14 @@ function string fuzzy_decide(
     // branches contribute simultaneously, as per the spec's
     // "both branches execute" semantics, generalized 4-way.
     //
-    // Spec 02-operations.md: bundle is tier-2 algebraic (pure math).
-    // Using `+` here compiles to numpy addition; routing through the
-    // spiking `bundle_on_brain` sparsifies input currents and would
-    // wash out the scalar weights, which we explicitly do not want.
+    // Spec 02-operations.md: bundle runs on the substrate as EPSP
+    // summation. Using `+` here currently compiles to numpy addition
+    // — a substrate-compliance gap tracked in STATUS.md and the
+    // open-questions folder. Routing through the spiking
+    // `bundle_on_brain` sparsifies input currents and washes out the
+    // scalar weights; fixing that without losing weight fidelity is
+    // part of the outstanding substrate-compliance work, not something
+    // this file resolves.
     vector result =
         w_PH * beh_PH +
         w_PF * beh_PF +
