@@ -17,9 +17,8 @@ Remaining queue, priority order:
 3. **`sutra-paper/paper.md` rewrite parity.** fly-brain-paper was restructured today around two-pipeline framing; sutra-paper still needs the same pass.
 4. **Program library expansion.** Reviewer flags 4 conditional templates + 3 loop-test types as narrow. Add more `.su` programs that compile through the pipeline.
 5. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
-6. **Auto-reject PRs while a GitHub Action is running.** Document in `planning/merge-help.md`, ideally enforce via pre-merge check.
-7. **Formal Sutra grammar, appended to STATUS.md.** EBNF/BNF for the current surface syntax (`loop`, `gate`, `select`, bind/bundle/etc.).
-8. **Repo-wide `audit.md` at root.** General audit of all directories: is each needed for the two papers.
+6. **Formal Sutra grammar, appended to STATUS.md.** EBNF/BNF for the current surface syntax (`loop`, `gate`, `select`, bind/bundle/etc.).
+7. **Repo-wide `audit.md` at root.** General audit of all directories: is each needed for the two papers.
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
