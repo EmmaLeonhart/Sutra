@@ -16,3 +16,4 @@ Live design questions that we know we need to answer eventually, but haven't. Di
 
 - `tier2-bundle-substrate-vs-algebra.md` — does `bundle(...)` run on the substrate or stay algebraic? The spec says tier-2 is pure math, the implementation routes through `bundle_on_brain`, and one concrete case (fuzzy_conditional) breaks unless we bypass the substrate. Unresolved.
 - `conditional-branching-on-remote.md` — conditional branching currently decides at host Python time (the outer `argmax_cosine` call). What would it mean for the branch decision itself to execute on the substrate, not just the prototype matching that feeds it? Unresolved.
+- `codegen-v1-feature-coverage.md` — the fly-brain codegen refuses methods, operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`. Paper-relevant programs all compile; several examples don't. Which gaps should V1 close? Unresolved.
