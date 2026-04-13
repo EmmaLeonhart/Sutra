@@ -28,9 +28,9 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 
 ## Open / Known Gaps
 
-Currently active top-priority gap:
+Currently active top-priority gap (real progress 2026-04-12):
 
-- **Rotation from real wiring** 🔴🔴 — ALPN→LHLN is rank 415, cond 1e16, compressive, NOT near-orthogonal. Real-wire R is not a rotation. Paper loops use synthetic Givens R. User has repeatedly flagged this as the single most important piece of outstanding work. Must be attempted, not just documented. In-progress: survey connectome motifs for adequate near-orthogonality.
+- **Rotation from real wiring** 🟡 **FIRST POSITIVE RESULT** — surveyed 11 FlyWire motifs (`fly-brain/survey_rotation_candidates.py`). Winner: **CX EPG→EPG recurrent, 51 neurons, effective rank 49, off-diagonal fraction 0.508** — an order of magnitude closer to orthogonal than ALPN→LHLN. Polar decomposition (`fly-brain/real_rotation_epg.py`) yields Q = nearest orthogonal matrix to the real biological W, with Q^T Q = I to 1e-14, det Q = +1, norm preservation to machine precision. Adjacent-step cos ≈ -0.33 (eigenvalues on the unit circle at non-trivial angles), states are angularly distinct across iterations. Caveat: biological W is 98.3% Frobenius-distance from Q — the orthogonal operator is derived from W's SVD subspace, not equal to W. Honest framing: "rotation operator within the 51-D subspace spanned by the EPG recurrent projection, derived via polar decomposition from the real FlyWire weights." Not "the biology IS the rotation" — but not synthetic Givens either. Next: wire Q into a geometric loop test and measure whether it iterates cleanly for Sutra's `loop(condition)`.
 
 Lower priority (still open, not blocking):
 
