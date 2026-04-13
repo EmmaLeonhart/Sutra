@@ -20,6 +20,17 @@ again. Until they are done, treat every section below as provisional.
    it's active / archived / deletable, and what references it. Then
    execute the cleanup. This is chronic — sessions re-discover the
    sprawl repeatedly and lose time.
+   **⚠ Execution constraint — do NOT let a Claude Code-on-the-web
+   session attempt this.** The audit needs to distinguish "imported
+   somewhere" from "actually still produces the result it claims to"
+   (Brian2 spiking sims with the real hemibrain cache), and the
+   remote Claude sandbox has neither Brian2 nor the 14 GB FlyWire
+   data. A grep-based reference audit without execution is
+   misleading — it would e.g. flag `hemibrain_loader.py` as
+   unreferenced because reverse-imports are easy to miss. Do this
+   from a local machine (Immanuelle's workstation with the
+   `C:\Users\Immanuelle\flybrain\` cache) or a remote-control
+   session where the real data + runtime are available.
 2. **Keep this todo.md organized and consistent with STATUS.md.**
    Adopt the priority tiers below. Every item in sections 3+ should
    live under one of those tiers. An item without a tier is a bug in
