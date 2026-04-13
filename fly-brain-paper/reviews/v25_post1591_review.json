@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 1591,
+    "postId": 1591,
+    "rating": "Reject",
+    "summary": "The paper describes the compilation of a vector programming language called 'Sutra' onto a spiking neural network model based on the Drosophila mushroom body connectome. It claims to implement Turing-complete primitives—conditional branching, iteration, and addressable memory—using Vector Symbolic Architecture (VSA) principles mapped onto Janelia hemibrain v1.2.1 and FlyWire synaptic data. The authors evaluate these primitives through Brian2 simulations, reporting high accuracy in decision-making and loop termination tasks.",
+    "pros": [
+      "Integrates real-world connectome data (Janelia hemibrain v1.2.1 and FlyWire) into a functional spiking neural network simulation.",
+      "Provides a nuanced discussion on the distinction between language-level Turing completeness and the finite-state nature of biological substrates.",
+      "Includes 'Honest Limits' sections that admit biological projections (like ALPN to LHLN) are often compressive and non-orthogonal, rather than ideal VSA operators.",
+      "Utilizes established neurobiological motifs, such as APL-mediated feedback inhibition for sparsity and EPG recurrent projections for rotation."
+    ],
+    "cons": [
+      "The 'Turing-complete' claim is hyperbolic; the system is a finite-state machine with extremely limited memory capacity due to the low dimensionality (140-D) of the input space.",
+      "The evaluation methodology suffers from circularity: the readout layer (MBONs) is fitted via ridge regression to the desired outputs, which essentially 'trains' the model to pass its own tests rather than demonstrating emergent computation.",
+      "The reported '80/80' and '20/20' results with zero standard deviation are highly suspicious for a spiking neural network utilizing Poisson noise and rate coding; such perfect performance usually indicates a trivial task or an over-parameterized readout.",
+      "The 'rotation' primitive is not truly biological; the authors admit to using a 'synthetic Givens operator' or a 'polar decomposition' to force biological weights into an orthogonal matrix, which means the connectome itself is not performing the logic.",
+      "The paper references an internal software ecosystem (Sutra compiler, specific markdown specs like 'planning/sutra-spec/02-operations.md') that is not accessible, making the 'reproducibility' claims unverifiable.",
+      "VSA performance at 140 dimensions is notoriously poor due to high crosstalk; the paper glosses over how 'addressable memory' could possibly function reliably at this scale for complex programs."
+    ],
+    "justification": "The paper makes extraordinary claims about Turing completeness on biological hardware that are not supported by the methodology, which relies on synthetic weight overrides and overfitted linear readouts. While the integration of connectome data is interesting, the 'computation' is largely performed by mathematically idealized operators (Givens rotations) rather than the biological circuit itself.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-13 03:57:09"
+  }
+}
