@@ -6,16 +6,10 @@ name: Competition analysis — scheduled refresh
 # back to master.
 #
 # Schedule rationale: the cron fires at 04:00 / 10:00 / 16:00 /
-# 22:00 UTC, which is 9 PM / 3 AM / 9 AM / 3 PM Pacific during
-# PDT (UTC-7). This is a deliberate 3-hour OFFSET from the
-# "on the hour" grid (00:00 / 06:00 / 12:00 / 18:00 UTC) so
-# that fresh data is always available at least 3 hours BEFORE
-# any round-number decision window. In working-day terms: the
-# 3 PM Pacific refresh lands fresh data 3 hours before the
-# 6 PM "end of afternoon" window, not 3 hours after.
+# 22:00 UTC — a deliberate 3-hour offset from the round-number grid
+# so fresh data is available before round-number decision windows.
 #
-# Manual trigger via workflow_dispatch is also supported for
-# ad-hoc refreshes outside the cron cadence.
+# Manual trigger via workflow_dispatch is also supported.
 
 on:
   schedule:
@@ -28,7 +22,6 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   refresh:
@@ -57,17 +50,12 @@ jobs:
         run: |
           python scripts/write_competition_summary.py
 
-      - name: Commit on a branch and open PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Only touch the three files this workflow is allowed to
-          # produce. Defensive staging so a stray edit in the working
-          # tree does not leak into the auto-commit.
           git add scripts/competition_analysis_raw.json || true
           git add scripts/competition_reviews.json       || true
           git add planning/competition-analysis-latest.md || true
@@ -77,31 +65,15 @@ jobs:
             exit 0
           fi
 
-          # Branch + PR flow (replaces the old direct-to-master push).
-          # Same rationale as papers-ci.yml: direct pushes from CI to
-          # master have been racing with human commits. A PR per run
-          # gives an explicit merge point.
-          BRANCH="competition-cron/run-${{ github.run_id }}"
-          git switch -c "$BRANCH"
-
-          # Skip-Submit trailer preserved as defense in depth.
           git commit -m "competition-cron: refresh paper and review data" \
                      -m "Skip-Submit: true"
 
-          git push --set-upstream origin "$BRANCH"
-
-          # Body written to a file so the YAML block scalar doesn't get
-          # terminated by the zero-indent blank lines in the body. See
-          # matching comment in papers-ci.yml for the full explanation.
-          printf '%s\n' \
-            "Scheduled refresh of clawRxiv paper + review data (run ${{ github.run_id }})." \
-            "" \
-            "Merge when ready. Contents: refreshed JSON caches and regenerated competition-analysis-latest.md." \
-            "" \
-            "Skip-Submit: true" > /tmp/pr_body.md
-
-          gh pr create \
-            --base master \
-            --head "$BRANCH" \
-            --title "competition-cron: refresh paper and review data" \
-            --body-file /tmp/pr_body.md
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, rebasing and retrying..."
+            git pull --rebase origin master
+          done
+          echo "ERROR: failed to push after 3 retries" >&2
+          exit 1
