@@ -11,7 +11,7 @@ Rules that follow from this:
 1. **Every tier-2 and tier-3 operation must actually run where the paper says it runs.** If the paper claims `bind` runs on spiking neurons, `bind` runs on spiking neurons — not numpy with a Brian2 fig leaf wrapped around it. If rotation is claimed to execute on the connectome, the rotation arithmetic is synaptic summation, not a host matmul.
 2. **Validation numbers are measurements, not targets.** If a test gives cos=0.84 and the threshold is 0.9, you do not lower the threshold, shorten the window to hide drift, or re-seed until it passes. You report 0.84, investigate the cause, and fix the physics or the threshold with justification. Doctoring the number is the thing that gets someone hurt.
 3. **"It ran without errors" is not success.** A Brian2 simulation that emits spikes is not a working VSA operation. Compare decoded output to the ground-truth computation and report the honest delta every time.
-4. **Negative results are required, not optional.** If an approach does not work (see `_exploratory_cx_ring_attractor.py`, which had corr=0.97 between left- and right-drive outputs), mark it as not working, explain why, and do not wire it into anything downstream. Silently keeping a broken module because "it runs" is the failure mode this rule is here to prevent.
+4. **Negative results are required, not optional.** If an approach does not work (see `planning/findings/2026-04-13-cx-ring-attractor-no-direction-discrimination.md`, which had corr=0.97 between left- and right-drive outputs), mark it as not working, explain why, and do not wire it into anything downstream. Silently keeping a broken module because "it runs" is the failure mode this rule is here to prevent.
 5. **If the spec and the implementation disagree, stop and resolve the disagreement explicitly.** Either the spec is wrong and needs updating, or the implementation is wrong and needs fixing. You do not ship code that contradicts the spec, and you do not ship a spec that contradicts the code. A commit that closes one side of this gap must say which side was wrong and why.
 6. **If you notice yourself taking a shortcut, stop mid-action and say so in plain text to the user.** Do not rationalize the shortcut with spec-citations, "pragmatic stopping points," or reviewer-response framing. The correct move when you catch yourself is to surface it, not to dress it up.
 
@@ -157,15 +157,30 @@ and `_exploratory_cx_ring_attractor.py` (a negative result that should
 have been in `planning/findings/`). The sprawl caused real losses:
 sessions rediscovered the same dead files over and over, edited the
 wrong variant, and lost time reasoning about which script was "current."
+The 2026-04-13 cleanup pass dropped `fly-brain/` from 33 to 15 `.py`
+files without losing any paper-backing result — the evidence that
+most of those files were duplicates accumulated over time, not
+distinct contributions.
 
-Rules for new Python work under `fly-brain/`:
+**The underlying pattern:** sessions reach for "create a new file"
+when they should reach for "edit the existing file." A new variant
+feels safe (doesn't break the old one), but the graveyard of stale
+variants is exactly what the sprawl-tax runs on. Edit in place;
+use git to preserve the old state if needed. The `real_rotation_*.py`
+family and the `experiment_*.py` family are both artifacts of this
+failure mode — each was a copy-paste branch that should have been a
+flag or a parameter on the original.
+
+Rules for new Python work under `fly-brain/` (and anywhere else in
+the repo — this generalizes):
 
 1. **Do not copy-paste a script to make a variant.** If `real_rotation_epg_loop.py`
    needs to be tried with Jaccard readout, add a flag or a parameter,
    do not create `real_rotation_epg_loop_jaccard.py`. The existing
    `real_rotation_*.py` family is technical debt, not a template to
-   extend. The second-pass cleanup in `STATUS.md` queue item #5
-   consolidates them; do not make that job bigger.
+   extend — consult `fly-brain/ROTATION-MANIFEST.md` before adding a
+   new rotation file, and if you do add one, update the manifest in
+   the same commit.
 2. **Exploratory / negative-result scripts go in `planning/findings/`
    or `planning/exploratory/`**, not in `fly-brain/` with a `_`
    prefix or a "do not import" docstring. If an experiment doesn't
@@ -193,8 +208,8 @@ Rules for new Python work under `fly-brain/`:
    sat as "deprecated" for weeks and forced every reviewer of the
    repo to re-derive which conditional-branching file was current.
 
-This rule-set is what prevents the audit in `STATUS.md` queue item #5
-from becoming a recurring task instead of a one-shot.
+This rule-set is what prevents the 2026-04-13 cleanup from becoming
+a recurring task instead of a one-shot.
 
 ## FlyWire connectome data — storage layout
 The full FlyWire v783 connectome is stored in **two locations on purpose:**
