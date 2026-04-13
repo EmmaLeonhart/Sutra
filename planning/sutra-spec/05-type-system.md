@@ -89,8 +89,8 @@ The same symbol in different contexts maps to different vectors. Sutra handles t
 ## Computational Complexity
 
 **Machine-level operations:**
-- Algebraic ops (bind, bundle, similarity): O(1) each
-- Non-algebraic ops (snap, cone, hop): O(log n) each
+- Elementwise vector ops (bind, bundle, similarity, scalar mul, projection, rotation): O(d) in the substrate's native representation, reported as O(1) in the programmer-facing cost model since d is fixed per program
+- Vector-graph ops (snap, cone, hop): O(log n) each, where n is codebook or index size
 
 **Algorithm complexity** is separate — just as a CPU transistor switching is O(1) but algorithms built on it can be any complexity class, Sutra programs can have arbitrary complexity built from O(1) and O(log n) primitives.
 
