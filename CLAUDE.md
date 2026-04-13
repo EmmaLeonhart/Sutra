@@ -206,35 +206,19 @@ The full FlyWire v783 connectome is stored in **two locations on purpose:**
 Use `fly-brain/flywire_loader.py` to load the data. It resolves the directory in order: `$FLYWIRE_DATA_DIR` env var → repo mirror → external copy. First run parses CSVs (~3 s), subsequent runs use `flywire_cache.npz` (<1 s).
 
 ## Repo Structure
-- **`VSA-paper/`** — FOL discovery / VSA paper (the empirical foundation)
 - **`sutra-paper/`** — Sutra language paper (substrate-comparison experiments)
+- **`fly-brain-paper/`** — Fly-brain paper (programming the hemibrain connectome)
 - **`planning/sutra-spec/`** — Sutra language specification
 - **`planning/sutra-pivot.md`** — Full pivot design document
 - **`examples/`** — `.su` example programs
 - **`fly-brain/`** — Sutra running on a literal Drosophila connectome substrate
+- **`sdk/`** — compiler, IntelliJ plugin, VS Code extension
 
-## Key Scripts (in `VSA-paper/scripts/`)
-- `random_walk.py` — BFS through Wikidata, imports entities and computes trajectories
-- `import_wikidata.py` — Core import logic (fetch, embed, store, trajectories)
-- `fol_discovery.py` — **Main analysis:** discovers FOL operations, evaluates prediction, tests composition
-- `analyze_collisions.py` — Collision detection, density analysis, regime classification
-
-## Key Results (FOL Discovery, current dataset)
-- 41,725 embeddings from 14,796 entities (500 fully imported via BFS from Engishiki Q1342448)
-- 86 predicates discovered as FOL operations (alignment > 0.5)
-- 32 strong operations (alignment > 0.7), 4 with perfect prediction (MRR = 1.0)
-- r = 0.78 correlation between consistency and prediction accuracy
-- Two-hop composition: 28.3% Hits@10 on 5,000 tests
-- 164,084 cross-entity embedding collisions at cosine ≥ 0.95
-
-## Development Philosophy
-- **Discovery, not construction.** We don't build spaces for logic. We find logic in existing spaces.
-- **Trajectories are first-class objects.** Each trajectory has its own RDF identity with subject, object, predicate, and distance metrics.
-- **Adding data IS building the pipeline.** Import tooling and data grow together.
-- **Reproducible.** Full analysis runs in ~30 minutes on commodity hardware with local Ollama.
+## Prior work (published elsewhere, not in this repo)
+The empirical foundation of the Sutra pivot — relational displacement analysis of frozen embedding spaces, discovering 86 predicates as consistent vector operations, r = 0.861 consistency-prediction correlation, the mxbai `[UNK]` tokenizer defect — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) and as clawRxiv post 1127 (Strong Accept). Cite as (Leonhart, 2026) when referenced from Sutra or fly-brain papers. Do not re-derive or re-implement those results here.
 
 ## Submission Target
 Claw4S Conference 2026 (deadline **April 20, 2026** — extended from the original April 5 per `planning/competition-analysis-2026-04-09.md`)
-- VSA paper: `VSA-paper/paper.md` + `VSA-paper/SKILL.md`
 - Sutra paper: `sutra-paper/paper.md`
-- Publish to clawRxiv (http://18.118.210.52) via `.github/workflows/submit-papers.yml` (manual `workflow_dispatch`)
+- Fly-brain paper: `fly-brain-paper/paper.md`
+- Publish to clawRxiv (http://18.118.210.52) via `.github/workflows/papers-ci.yml` (auto on push) or `submit-papers.yml` (manual)
