@@ -10,60 +10,68 @@ A **quantitative biology / programming-languages paper**, submitted to Claw4S 20
 
 User agenda for this session. Priority order:
 
-1. **🔴 META-BLOCKER: Fly-brain Python-file sprawl cleanup.**
+1. **Paper edits.** Edit aggressively — the old "no wholesale rewrites / one paragraph at a time / diff shown, approved, committed" rule was deleted from CLAUDE.md on 2026-04-13 (it was specific to the abandoned VSA paper). For `fly-brain-paper/paper.md` the 2026-04-13 restructure already led the body sections (§Result 2, §The Substrate, §Methods Geometric loops, §Honest Limits) with the resolved 140-D real-wiring Q + real hemibrain PN→KC + KC-Jaccard pipeline (30/30 sweep) and demoted synthetic-Givens / cosine-readout / ALPN→LHLN to wrong-discriminator baselines. `sutra-paper/paper.md` still needs the same pass.
+2. **Rotation-on-substrate resolution: DONE in spec.** Earlier spec language (`03-control-flow.md`, `02-operations.md`) described rotation as an on-host operation via the tier-2 framing. That framing is retired repo-wide (commit 313e11b). The new rule: every Sutra operation, rotation included, runs on the substrate at runtime; numpy is allowed only for compilation (building Q from FlyWire W) and monitoring (reading Brian2 voltage back for reporting). Remaining work moves to the implementation side — see item #3 and the numpy-in-results inventory below.
+3. **Combined pipeline: built, measured, does not pass (0/5).** Script is `fly-brain/combined_pipeline.py`. Spiking rotation via `neural_linear_map` (Q as Brian2 synapse weights, state decoded from membrane voltage, SIM_MS = 3000 ms) chained to real hemibrain PN→KC Jaccard readout at 140-D. Result: 0/5 counting at k=3, 0/5 ordering. Peak Jaccard at target = 0.27–0.38, indistinguishable from off-target (0.11–0.26). No bimodal separation. Full write-up: `planning/findings/2026-04-13-combined-pipeline-0-of-5.md`.
 
-   ### ⛔ DO NOT ATTEMPT THIS FROM A CLAUDE CODE SESSION ⛔
+   Root cause: the mushroom body is an anti-correlator by design (sparse PN→KC with APL specifically decorrelates similar inputs). Poisson decode noise on the spiking-rotated state is large enough that the rotated state's KC mask is a *different* sparse pattern than the prototype's, not a noisy version of it. Jaccard tolerates noise *within* a mask; it cannot rescue noise that changes *which* mask the substrate lands on. The two halves work in isolation but composing them multiplies failures.
 
-   This task **must** be executed on Immanuelle's desktop (the
-   machine with Brian2 installed and the 14 GB FlyWire cache at
-   `C:\Users\Immanuelle\flybrain\`). A Claude Code sandbox cannot do
-   it. Specifically:
+   Consequences:
+   - The numpy-iterated 140-D pipeline (`real_rotation_140D_jaccard.py`) is still the only pipeline that achieves the paper's loop-test numbers. **Do not delete it** (earlier delete list below is superseded).
+   - The paper's §Honest Limits retraction about the numpy `Q@v` gap remains accurate. Queue item #14 (paper rewrite on combined-pipeline pass) does not trigger.
+   - Open work: either (a) much longer SIM_MS with amortization, (b) a substrate-side cleanup step between rotation and PN→KC that pulls the state back onto the prototype before sparsification, or (c) a rotation substrate whose output is sparse directly. None of these is queued yet — this is the thing the combined-pipeline attempt uncovered.
 
-   - The sandbox has no Brian2, so it cannot run any spiking sim and
-     therefore cannot tell whether a given `real_rotation_*.py` still
-     produces the result its filename / docstring claims.
-   - The sandbox has no FlyWire cache, so it cannot even import the
-     loaders that would let it run those sims.
-   - A grep-only "is this file imported anywhere" audit produces
-     misleading classifications (reverse imports get missed; files
-     that route through a registry look unused; tests that nothing
-     runs look the same as tests that everything runs).
+   Historical files-to-delete list (superseded — do **not** act on this; kept for session traceability):
+   - `real_rotation_epg_loop.py` (numpy rotation + cosine, redundant)
+   - `real_rotation_composed.py` (same)
+   - `real_rotation_epg_loop_jaccard.py` (numpy rotation + Jaccard, subsumed by 140-D)
+   - `real_rotation_composed_jaccard.py` (same)
+   - `real_rotation_140D_jaccard.py` (numpy rotation, superseded by spiking version)
+   - `real_rotation_140D_jaccard_ksweep.py` (rerun k-sweep against the new pipeline instead)
+   - `real_rotation_epg_loop_spiking.py` (51-D spiking rotation + cosine; mechanism lives in `neural_vsa.py`)
+   - `real_rotation_composed_spiking.py` (same at 713-D)
+   - `real_rotation_epg.py`, `survey_rotation_candidates.py` (exploratory Q-construction; keep the construction logic inside the combined script, retire the standalone files)
+   - `ROTATION-MANIFEST.md` (describes the sprawl; dies with it)
 
-   A previous session correctly did **only** the static, no-execution
-   work — built a reference map, wrote it into the queue item below —
-   and stopped. **Do the same.** If you are reading this in a future
-   Claude Code session and feel tempted to "just delete the
-   zero-reference files," don't. The user has explicitly drawn the
-   line: this is a desktop task. Surface the queue item to the user,
-   note that you cannot do it, move on.
+   Load-bearing primitives that stay:
+   - `neural_vsa.py` — hosts `neural_linear_map`, the spiking-rotation primitive
+   - `vsa_operations.py` — hosts the PN→KC Jaccard path, the spiking-readout primitive
+   - `fuzzy_conditional.py` — separate result (conditional branching), not rotation
 
-   ### Why this is queue item #1 anyway
+   **Terminology for future sessions reading this: "readout" means the measurement that converts substrate output (membrane voltage, spike pattern) into a decision about termination or match.** Cosine readout = decode voltage to a float vector and take cosine with a reference; noisy, not substrate-native. KC-Jaccard readout = project state through the sparse PN→KC coding on the hemibrain and Jaccard-compare the binary KC pattern; substrate-native, matches what the fly's mushroom body actually does.
+4. **n=50 evaluation.** User asked for this explicitly. Pick one or more headline results and rerun at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidate targets: 140-D Jaccard loop (currently 5/5), target-k sweep (currently 30/30 at n=5 seeds × 6 k values), fuzzy conditional (currently 80/80 at n=5). Note: system is deterministic modulo Poisson spike noise, so σ=0 at n=5 is genuine not gamed — but n=50 answers reviewer anyway.
+5. **Doc-vs-implementation drift in the paper.** The paper still describes rotation as if we were doing synthetic-Givens-on-numpy when we are actually running polar-decomposed Q from real FlyWire weights composed to 713-D. Per CLAUDE.md "the spec and the implementation must not disagree." Action: read both papers critically against the "Open / Known Gaps" rotation summary below; flag every passage that describes the old state of the world. Surface one passage at a time per the incremental-edits rule. (Was buried inside the rotation queue item; promoted to its own item because the user named it explicitly.)
+6. **Program library expansion.** Reviewer keeps flagging 4 conditional templates + 3 loop-test types as too narrow. Add more `.su` programs that compile through the pipeline.
+7. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional), human plays the other paddle via pygame. `fly-brain/pong_brain.py` has a 326-line scaffold already. Stretch goal.
+8. **Auto-reject PRs while a GitHub Action is running.** User direction 2026-04-13. Document in repo workflow notes (likely `planning/merge-help.md`) and ideally enforce via a pre-merge check. Prevents the race that caused the 2026-04-13 paralysis episode where branch+PR state kept diverging while CI was running.
+9. **Formal Sutra grammar, appended to STATUS.md.** User direction 2026-04-13: "I want a formal specification of sutra... this means grammar... grammar is appended to statusmd." Write the EBNF/BNF for the current surface syntax (`loop`, `gate`, `select`, `if/else`-rejected, bind/bundle/etc.) and append as a new bottom section of this file.
+10. **Repo-wide `audit.md` at root.** User direction 2026-04-13: general audit of all directories, is each one needed for the two papers, write up as `audit.md` at repo root.
+11. **Paper pass on rotation claims.** Line 80 of `fly-brain-paper/paper.md` was retracted on 2026-04-13 (the "no numpy `state = Q @ v` in the run path" claim was false for the 140-D Jaccard pipeline, because `vsa_operations.loop` does numpy `R @ v`). The paper now labels (A) spiking-rotation 3/5 pipeline vs (B) numpy-rotation-plus-KC-Jaccard 5/5+30/30 pipeline. Paper prose still uses "tier-2 / tier-3" in multiple places; that terminology is retired (commit 313e11b) and the text needs to be rewritten to describe each operation directly by what it does and where it runs. Still owed: an end-to-end (C) pipeline where *both* rotation application and KC-Jaccard readout run on the substrate at 140-D, which would retire the numpy-in-runtime caveat entirely. This is the concrete follow-on to queue item #3.
 
-   User direction (2026-04-13): *"The fly-brain clutter is the
-   biggest issue; it is the biggest limiting factor here ... it loads
-   up context with bullshit. It's probably the reason why things are
-   so slow."* Every other queue item below pays a context-bloat tax
-   until this is done. The cleanup is queue item #1 not because a
-   Claude session will close it, but because closing it makes
-   everything else faster, so it should be the next thing Immanuelle
-   does locally.
+## Where numpy currently lives in runtime results (inventory to close)
 
-   ### The actionable set (for the desktop session, not for Claude)
+Numpy at runtime is a limitation of the current implementation, not a spec-sanctioned execution mode. The allowed uses are compilation (building substrate state before the run) and monitoring (reading results out). Everywhere else is a gap to close. Current state:
 
-   - **Safe anywhere (no execution needed):** Move `_exploratory_cx_ring_attractor.py` to `planning/findings/`. Known-negative result; docstring already says "do not import." A Claude Code session could even do this part — but the user has explicitly asked it not to.
-   - **Verify on machine with Brian2 + hemibrain cache, then delete if still zero-reference:** `experiment_{binding,kc_binding,is_converter}.py`, `minimal_lif_network.py`, `test_bridge.py`, `test_loop.py`, `test_vsa_operations.py`.
-   - **Verify and delete if truly superseded:** `four_state_conditional.{py,su}` (self-references only), `programmer_control_demo.py` (STATUS/queue note says superseded by codegen-e2e tests).
-   - **Consolidate or archive** the ~10 `real_rotation_*.py` sprawl behind a `fly-brain/ROTATION-MANIFEST.md` that says which variant is active, which is historical, and which results each produced. "Open / Known Gaps" below names `real_rotation_epg_loop_spiking.py` as the active candidate.
+- **`real_rotation_140D_jaccard.py` — headline paper result (B).** Rotation step `state = Q @ state` runs in numpy inside the iteration loop. The KC-Jaccard readout is on the connectome; the rotation is not. Result reported as "5/5 real-wiring rotation + KC-Jaccard" in the paper is mixed: readout on substrate, rotation on host.
+- **`real_rotation_140D_jaccard_ksweep.py` — 30/30 k-sweep.** Same caveat: rotation is numpy, readout is substrate.
+- **`real_rotation_epg_loop.py`, `real_rotation_composed.py`, `real_rotation_epg_loop_jaccard.py`, `real_rotation_composed_jaccard.py`.** Rotation is numpy `Q @ state` at runtime. These are cosine-readout / Jaccard-readout variants that isolate other axes; they are not "rotation on neurons" results.
+- **`vsa_operations.py` (`FlyBrainVSA.loop` and friends).** The loop driver iterates rotation via numpy matmul. The snap/Jaccard match side genuinely goes through the MB spiking circuit. This is the runtime that the compiled `.su` programs currently run against — so every `.su` eigenrotation result carries the numpy-rotation caveat until the driver is replaced.
+- **Builtins in `fly-brain/vsa_operations.py`: bind, unbind, bundle, similarity, permute, argmax_cosine.** All numpy at runtime. Allowed uses (sign-flip construction at compile time, cosine reporting after the run) are fine; the dispatches that sit inside `.su` execution are gaps to close.
 
-   Executing this closes the long-running "Python-file sprawl under `fly-brain/`" problem that sessions have re-discovered repeatedly. The rule added to CLAUDE.md (§"Avoiding `fly-brain/` Python sprawl") is what prevents recurrence — read it before adding any new `.py` under `fly-brain/`.
+Running without the numpy-at-runtime caveat today:
 
-2. **Paper edits.** Edit aggressively — the old "no wholesale rewrites / one paragraph at a time / diff shown, approved, committed" rule was deleted from CLAUDE.md on 2026-04-13 (it was specific to the abandoned VSA paper). For `fly-brain-paper/paper.md` the 2026-04-13 restructure already led the body sections (§Result 2, §The Substrate, §Methods Geometric loops, §Honest Limits) with the resolved 140-D real-wiring Q + real hemibrain PN→KC + KC-Jaccard pipeline (30/30 sweep) and demoted synthetic-Givens / cosine-readout / ALPN→LHLN to wrong-discriminator baselines. `sutra-paper/paper.md` still needs the same pass.
-3. **Resolve spec-vs-user conflict on rotation tier.** Spec (`03-control-flow.md`) says rotation is tier-2 host pure-math. User wants rotation on neurons as headline. Decision needed; update spec to match decision.
-4. **If (3) says "rotation on neurons":** promote `real_rotation_epg_loop_spiking.py` to the headline pipeline. Currently 3/5 seeds at k=3. Investigate the 2 failing seeds — longer SIM_MS, Jaccard-on-KC termination instead of cosine, or sharper-spectrum Q. Goal: spiking rotation + spiking readout, end-to-end, on real wiring, passing at n≥5.
-5. **n=50 evaluation.** User asked for this explicitly. Pick one or more headline results and rerun at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidate targets: 140-D Jaccard loop (currently 5/5), target-k sweep (currently 30/30 at n=5 seeds × 6 k values), fuzzy conditional (currently 80/80 at n=5). Note: system is deterministic modulo Poisson spike noise, so σ=0 at n=5 is genuine not gamed — but n=50 answers reviewer anyway.
-6. **Doc-vs-implementation drift in the paper.** The paper still describes rotation as if we were doing synthetic-Givens-on-numpy when we are actually running polar-decomposed Q from real FlyWire weights composed to 713-D. Per CLAUDE.md "the spec and the implementation must not disagree." Action: read both papers critically against the "Open / Known Gaps" rotation summary below; flag every passage that describes the old state of the world. Surface one passage at a time per the incremental-edits rule. (Was buried inside the rotation queue item; promoted to its own item because the user named it explicitly.)
-7. **Program library expansion.** Reviewer keeps flagging 4 conditional templates + 3 loop-test types as too narrow. Add more `.su` programs that compile through the pipeline.
-8. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional), human plays the other paddle via pygame. `fly-brain/pong_brain.py` has a 326-line scaffold already. Stretch goal.
+- **`real_rotation_epg_loop_spiking.py` — 51-D spiking rotation.** `neural_linear_map` lays Q down as Brian2 synapse weights and reads the next state from membrane voltage. Rotation is genuinely on neurons. 3/5 seeds at k=3. Poisson-noise ceiling on the cosine readout — not a broken rotation.
+- **`real_rotation_composed_spiking.py` — 713-D composed spiking rotation.** Same mechanism at 713-D. 3/5 seeds.
+- **`snap` everywhere it appears.** Projection neurons → Kenyon cells → APL on Brian2, genuinely on the substrate.
+- **Fuzzy conditional (`fuzzy_conditional.py`).** The Jaccard prototype match runs on the MB circuit. The final 4-way argmax over prototype scores runs in numpy; that is on the close-the-gap list (see item #5 of "Pinned semantic corrections" and `planning/open-questions/conditional-branching-on-remote.md`).
+
+To close the whole caveat for the paper headline: an end-to-end 140-D pipeline with spiking rotation (via `neural_linear_map` at 140-D) plus spiking KC-Jaccard readout, with the seed count raised to address the reviewer's n-too-small objection. That is queue item #3.
+
+12. **Strip tier framing from paper prose.** Both `fly-brain-paper/paper.md` and `sutra-paper/paper.md` still describe rotation, bundle, bind, etc. using tier-2 / tier-3 language, "pure math on vectors," "runs on the host by spec," and similar framings that are now retired. Rewrite each occurrence to describe the operation directly by what it does and, for results, where the computation actually ran (substrate or numpy). Requires a manual pass, not a text replacement — the two-class structure goes away rather than being renamed.
+
+13. **Strip tier framing from code docstrings.** `fly-brain/neural_vsa.py`, `neural_vsa_flywire.py`, the `real_rotation_*.py` family, `sutra-paper/scripts/*.py`, and `.su` files contain tier annotations in comments and docstrings. Rewrite them to say what each call actually does and where it runs. Same principle: describe the op, don't sort it into a class.
+
+14. **Paper rewrite, triggered by combined pipeline passing.** Once `combined_pipeline.py` (queue item #3) reports n>=5 passing on 140-D spiking rotation + KC-Jaccard readout, rewrite both `fly-brain-paper/paper.md` and `sutra-paper/paper.md` to describe what the pipeline is actually doing. This is the first time the paper can claim "rotation on the connectome" without the numpy-in-runtime caveat — the prose needs to reflect that the headline result is genuinely end-to-end on neurons. Also folds in queue items #11, #12: tier terminology goes away, the old (B) numpy-rotation-plus-readout paragraph is replaced with the combined-pipeline result, the Honest Limits section is rewritten around what remains (SIM_MS cost, decode-noise ceiling, biological W vs Q Frobenius distance).
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
@@ -81,19 +89,19 @@ A prior Claude Desktop session experienced repeated API timeouts while running a
 This session (2026-04-13, branch `claude/complete-todo-md-RBGYu`) finished the other half of the audit that the paralyzed session never got to:
 
 - Consolidated `fly-brain/todo.md` and `sutraDB/TODO.md` into root `todo.md` (one file instead of three — per the "multiple parallel narrators" critique in the audit transcript). Fly-brain content prepended with `!` markers; SutraDB content appended as the lower-priority tail.
-- Added meta-tasks at the top of `todo.md`: (a) audit the `fly-brain/` Python sprawl, (b) keep `todo.md` organized under an explicit priority-tier scheme (Immediate / Pre-Claw4S / Pre-YC / This year).
+- Added meta-tasks at the top of `todo.md`: (a) audit the `fly-brain/` Python sprawl, (b) keep `todo.md` organized under an explicit priority scheme (Immediate / Pre-Claw4S / Pre-YC / This year).
 - Wrote `planning/merge-help.md` covering the PR/merge workflow on this repo specifically — why direct-master vs branch+PR matters here, why `GITHUB_TOKEN` cannot push workflow changes, and a recovery playbook for the "committed to the wrong branch" case that caused this episode.
 
 Do **not** reconstitute the deleted files. If something was deleted that should not have been, restore from git history with an explicit commit that names the file and says why. Silent resurrection is the failure mode.
 
 ## Built / Works
 
-- **Tier-3 on real hemibrain wiring** — PN→KC sparse projection, APL-enforced ~7.8% sparsity, Jaccard prototype match. This is genuinely on the connectome.
+- **Snap / MB Jaccard on real hemibrain wiring** — PN→KC sparse projection, APL-enforced ~7.8% sparsity, Jaccard prototype match. This is genuinely on the connectome.
 - **Conditional branching** — 16/16 and 80/80 across 5 hemibrain seeds via fuzzy weighted superposition (`fly-brain/fuzzy_conditional.py`). 4/4 distinct program mappings.
 - **Bounded loops `loop[N]`** — unrolled at compile time into flat algebraic expressions. No runtime iteration. No eigenrotation. Works.
 - **Eigenrotation loops (scaled eval)** — 20/20 across 5 hemibrain seeds (`fly-brain/scale_eval_loop.py`): convergence@3, counting to 3, counting to 6, ordering-first-EARLY all 5/5. Convergence iters σ=0.
-- **Tier-2 bundle/bind/rotate on synthetic-weight spiking circuits** (`fly-brain/neural_vsa.py`) — Brian2 LIF, Givens R as synapse weights. Cos 0.94–0.99 vs numpy reference. Rotation R is chosen by us, not by biology.
-- **Tier-2 bundle on real FlyWire wiring** (`fly-brain/neural_vsa_flywire.py`) — cos 0.94 vs W·v reference.
+- **Bundle / bind / rotate on synthetic-weight spiking circuits** (`fly-brain/neural_vsa.py`) — Brian2 LIF, Givens R as synapse weights. Cos 0.94–0.99 vs numpy reference (numpy used as the monitoring reference, not the runtime). Rotation R is chosen by us, not by biology.
+- **Bundle on real FlyWire wiring** (`fly-brain/neural_vsa_flywire.py`) — cos 0.94 vs W·v reference.
 - **I/O rate coding** — centered rate encoding of hypervectors as PN currents, linear MBON readout via ridge regression. Works.
 - **Compiler pipeline** — `sdk/sutra-compiler/` emits Python that calls `fly-brain/vsa_operations.py`. `.su` programs (e.g. `permutation_conditional.su`) compile through it.
 - **End-to-end fuzzy conditional compile** — `fly-brain/fuzzy_conditional.su` → codegen → live MB simulation, 16/16 pass, 4/4 distinct program mappings (`fly-brain/test_codegen_e2e_fuzzy.py`).
@@ -110,7 +118,7 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 
 Currently active top-priority gap (real progress 2026-04-12):
 
-- **Rotation from real wiring** 🟢 **COMPOSED ACROSS 4 MOTIFS, 713-D** — surveyed 11 FlyWire motifs (`fly-brain/survey_rotation_candidates.py`). Winner: **CX EPG→EPG recurrent, 51 neurons, effective rank 49, off-diagonal fraction 0.508** — an order of magnitude closer to orthogonal than ALPN→LHLN. Polar decomposition (`fly-brain/real_rotation_epg.py`) yields Q = nearest orthogonal matrix to the real biological W, with Q^T Q = I to 1e-14, det Q = +1, norm preservation to machine precision. Geometric loop test on Q (`fly-brain/real_rotation_epg_loop.py`) passes **10/10 counting (k=3 and k=6 × 5 seeds) + 5/5 ordering (EARLY first at k=2)** — Q iterates cleanly and the `loop(condition)` pattern works on real-wiring-derived rotation. Composing Q block-diagonally from 4 near-orthogonal FlyWire motifs (EPG→EPG, LH→LH, FB vDelta→vDelta, FB hDelta→hDelta) scales cleanly to **713 dimensions with orthogonality residual 5.34e-14** (`fly-brain/real_rotation_composed.py`), passing 10/10 counting + 5/5 ordering at every composition stage (51-D, 167-D, 524-D, 713-D). Spiking lift (`fly-brain/real_rotation_epg_loop_spiking.py`) iterates Q through Brian2 LIF `rotate(v, Q)` (51 Poisson inputs → 51 LIF outputs via Q-weighted synapse matrix) at SIM_MS=3000ms per step and hits **3/5 seeds argmax_k=3 at target k=3** — the honest result is: iterated spiking rotation accumulates Poisson noise, and for seeds where the numpy cos between state_1 and Q³·v₀ is already close to cos between state_3 and Q³·v₀ (a spectral-structure artifact of EPG Q — `cos(Q v, Q³ v) = cos(v, Q² v)` which can be large if Q² has eigenvalues near 1), the spike noise flips argmax. The numpy equivalent is 10/10 because Q is orthogonal at machine precision. Paths to improve: longer SIM_MS, sharper-spectrum Q composed from motifs with more evenly distributed eigenphases, or loop-termination via Jaccard-on-KC (tier-3) which has higher SNR than direct cosine readout. Caveat: biological W is 98.3% Frobenius-distance from Q — the orthogonal operator is derived from W's SVD subspace, not equal to W. Also: this test runs tier-2 in 51-D EPG space, not through the MB spiking circuit — that integration (compose Q with PN→KC, or run a 51-D KC-free geometric loop end-to-end with spiking tier-2 `rotate(v, Q)`) is the next step. Honest framing: "rotation operator within the 51-D subspace spanned by the EPG recurrent projection, derived via polar decomposition from the real FlyWire weights." Not "the biology IS the rotation" — but not synthetic Givens either, and the loop compiles.
+- **Rotation from real wiring** 🟢 **COMPOSED ACROSS 4 MOTIFS, 713-D** — surveyed 11 FlyWire motifs (`fly-brain/survey_rotation_candidates.py`). Winner: **CX EPG→EPG recurrent, 51 neurons, effective rank 49, off-diagonal fraction 0.508** — an order of magnitude closer to orthogonal than ALPN→LHLN. Polar decomposition (`fly-brain/real_rotation_epg.py`) yields Q = nearest orthogonal matrix to the real biological W, with Q^T Q = I to 1e-14, det Q = +1, norm preservation to machine precision. Geometric loop test on Q (`fly-brain/real_rotation_epg_loop.py`) passes **10/10 counting (k=3 and k=6 × 5 seeds) + 5/5 ordering (EARLY first at k=2)** — Q iterates cleanly and the `loop(condition)` pattern works on real-wiring-derived rotation. Composing Q block-diagonally from 4 near-orthogonal FlyWire motifs (EPG→EPG, LH→LH, FB vDelta→vDelta, FB hDelta→hDelta) scales cleanly to **713 dimensions with orthogonality residual 5.34e-14** (`fly-brain/real_rotation_composed.py`), passing 10/10 counting + 5/5 ordering at every composition stage (51-D, 167-D, 524-D, 713-D). Spiking lift (`fly-brain/real_rotation_epg_loop_spiking.py`) iterates Q through Brian2 LIF `rotate(v, Q)` (51 Poisson inputs → 51 LIF outputs via Q-weighted synapse matrix) at SIM_MS=3000ms per step and hits **3/5 seeds argmax_k=3 at target k=3** — the honest result is: iterated spiking rotation accumulates Poisson noise, and for seeds where the numpy cos between state_1 and Q³·v₀ is already close to cos between state_3 and Q³·v₀ (a spectral-structure artifact of EPG Q — `cos(Q v, Q³ v) = cos(v, Q² v)` which can be large if Q² has eigenvalues near 1), the spike noise flips argmax. The numpy equivalent is 10/10 because Q is orthogonal at machine precision. Paths to improve: longer SIM_MS, sharper-spectrum Q composed from motifs with more evenly distributed eigenphases, or loop-termination via Jaccard-on-KC which has higher SNR than direct cosine readout. Caveat: biological W is 98.3% Frobenius-distance from Q — the orthogonal operator is derived from W's SVD subspace, not equal to W. Also: this test runs rotation in 51-D EPG space, not through the MB spiking circuit — integrating the two (compose Q with PN→KC, or run a 51-D KC-free geometric loop end-to-end with spiking `rotate(v, Q)`) is the next step. Honest framing: "rotation operator within the 51-D subspace spanned by the EPG recurrent projection, derived via polar decomposition from the real FlyWire weights." Not "the biology IS the rotation" — but not synthetic Givens either, and the loop compiles.
 
 Lower priority (still open, not blocking):
 

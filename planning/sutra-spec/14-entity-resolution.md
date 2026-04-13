@@ -49,4 +49,4 @@ The canonicalization endpoint concept maps to a potential Sutra built-in:
 resolved = canonicalize(ambiguous_vector, context_vector)
 ```
 
-This would be a non-algebraic operation (it requires ANN lookup against an entity codebook, informed by context) but a very commonly needed one — more common than cone traversal or graph hop.
+This would be a vector-graph operation (it requires ANN lookup against an entity codebook, informed by context) but a very commonly needed one — more common than cone traversal or graph hop.
