@@ -12,7 +12,29 @@ User agenda for this session. Priority order:
 
 1. **Paper edits.** Edit aggressively — the old "no wholesale rewrites / one paragraph at a time / diff shown, approved, committed" rule was deleted from CLAUDE.md on 2026-04-13 (it was specific to the abandoned VSA paper). For `fly-brain-paper/paper.md` the 2026-04-13 restructure already led the body sections (§Result 2, §The Substrate, §Methods Geometric loops, §Honest Limits) with the resolved 140-D real-wiring Q + real hemibrain PN→KC + KC-Jaccard pipeline (30/30 sweep) and demoted synthetic-Givens / cosine-readout / ALPN→LHLN to wrong-discriminator baselines. `sutra-paper/paper.md` still needs the same pass.
 2. **Rotation-on-substrate resolution: DONE in spec.** Earlier spec language (`03-control-flow.md`, `02-operations.md`) described rotation as an on-host operation via the tier-2 framing. That framing is retired repo-wide (commit 313e11b). The new rule: every Sutra operation, rotation included, runs on the substrate at runtime; numpy is allowed only for compilation (building Q from FlyWire W) and monitoring (reading Brian2 voltage back for reporting). Remaining work moves to the implementation side — see item #3 and the numpy-in-results inventory below.
-3. **If (2) says "rotation on neurons":** promote `real_rotation_epg_loop_spiking.py` to the headline pipeline. Currently 3/5 seeds at k=3. Investigate the 2 failing seeds — longer SIM_MS, Jaccard-on-KC termination instead of cosine, or sharper-spectrum Q. Goal: spiking rotation + spiking readout, end-to-end, on real wiring, passing at n≥5.
+3. **Combined pipeline: spiking rotation at 140-D + KC-Jaccard readout, end-to-end.** This is the headline fix. Two working pieces already exist in the repo but have never been wired together at the same dimension:
+   - Spiking rotation via `neural_linear_map` in `neural_vsa.py` — Q enters as Brian2 synapse weights, the next state is read from membrane voltage. Demonstrated at 51-D EPG (`real_rotation_epg_loop_spiking.py`, 3/5 seeds) and 713-D composed (`real_rotation_composed_spiking.py`, 3/5 seeds). Rotation is genuinely on neurons. The 3/5 number is a cosine-readout ceiling — the voltage decode is noisy.
+   - KC-Jaccard readout on the real hemibrain — project state through PN→KC with APL-enforced sparsity, compare the binary KC pattern against a compiled prototype by Jaccard overlap. Demonstrated at 140-D (EPG 51 + hDelta 89, matching hemibrain PN count) in `real_rotation_140D_jaccard.py`, 5/5 + 30/30 across target-k sweep. Readout is substrate-native. Rotation in this pipeline is numpy — that is the caveat to close.
+   Combined pipeline: build the 140-D Q (already done — lives inside `real_rotation_140D_jaccard.py`), feed it through `neural_linear_map` for each iteration so rotation is on spiking neurons, then push the decoded state through the PN→KC Jaccard check for termination. Both pieces on the substrate, no numpy in the runtime loop. Write it as a single script. Expected effect: the Jaccard readout is sharper than cosine, so the 3/5 Poisson-noise ceiling should lift. Run at n≥5 seeds from the start.
+
+   Files to delete once the combined pipeline works at n≥5:
+   - `real_rotation_epg_loop.py` (numpy rotation + cosine, redundant)
+   - `real_rotation_composed.py` (same)
+   - `real_rotation_epg_loop_jaccard.py` (numpy rotation + Jaccard, subsumed by 140-D)
+   - `real_rotation_composed_jaccard.py` (same)
+   - `real_rotation_140D_jaccard.py` (numpy rotation, superseded by spiking version)
+   - `real_rotation_140D_jaccard_ksweep.py` (rerun k-sweep against the new pipeline instead)
+   - `real_rotation_epg_loop_spiking.py` (51-D spiking rotation + cosine; mechanism lives in `neural_vsa.py`)
+   - `real_rotation_composed_spiking.py` (same at 713-D)
+   - `real_rotation_epg.py`, `survey_rotation_candidates.py` (exploratory Q-construction; keep the construction logic inside the combined script, retire the standalone files)
+   - `ROTATION-MANIFEST.md` (describes the sprawl; dies with it)
+
+   Load-bearing primitives that stay:
+   - `neural_vsa.py` — hosts `neural_linear_map`, the spiking-rotation primitive
+   - `vsa_operations.py` — hosts the PN→KC Jaccard path, the spiking-readout primitive
+   - `fuzzy_conditional.py` — separate result (conditional branching), not rotation
+
+   **Terminology for future sessions reading this: "readout" means the measurement that converts substrate output (membrane voltage, spike pattern) into a decision about termination or match.** Cosine readout = decode voltage to a float vector and take cosine with a reference; noisy, not substrate-native. KC-Jaccard readout = project state through the sparse PN→KC coding on the hemibrain and Jaccard-compare the binary KC pattern; substrate-native, matches what the fly's mushroom body actually does.
 4. **n=50 evaluation.** User asked for this explicitly. Pick one or more headline results and rerun at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidate targets: 140-D Jaccard loop (currently 5/5), target-k sweep (currently 30/30 at n=5 seeds × 6 k values), fuzzy conditional (currently 80/80 at n=5). Note: system is deterministic modulo Poisson spike noise, so σ=0 at n=5 is genuine not gamed — but n=50 answers reviewer anyway.
 5. **Doc-vs-implementation drift in the paper.** The paper still describes rotation as if we were doing synthetic-Givens-on-numpy when we are actually running polar-decomposed Q from real FlyWire weights composed to 713-D. Per CLAUDE.md "the spec and the implementation must not disagree." Action: read both papers critically against the "Open / Known Gaps" rotation summary below; flag every passage that describes the old state of the world. Surface one passage at a time per the incremental-edits rule. (Was buried inside the rotation queue item; promoted to its own item because the user named it explicitly.)
 6. **Program library expansion.** Reviewer keeps flagging 4 conditional templates + 3 loop-test types as too narrow. Add more `.su` programs that compile through the pipeline.
