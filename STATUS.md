@@ -28,11 +28,20 @@ Reverted from branch+PR to direct-master-push (commit 211bd92). The branch+PR ap
 
 ## Open / Known Gaps
 
-- **Rotation from real wiring** — ALPN→LHLN is rank 415, cond 1e16, compressive, NOT near-orthogonal. Real-wire R is not a rotation. Only bites `loop(condition)` with data-dependent termination. Open work: find a connectome motif with adequate near-orthogonality, or distribute across multiple projections. `_exploratory_cx_ring_attractor.py` tried CX and got corr 0.97 between left/right drive — not directional.
+Currently active top-priority gap:
+
+- **Rotation from real wiring** 🔴🔴 — ALPN→LHLN is rank 415, cond 1e16, compressive, NOT near-orthogonal. Real-wire R is not a rotation. Paper loops use synthetic Givens R. User has repeatedly flagged this as the single most important piece of outstanding work. Must be attempted, not just documented. In-progress: survey connectome motifs for adequate near-orthogonality.
+
+Lower priority (still open, not blocking):
+
+- **Conditional branching on remote substrate** — the final argmax over 4 behavior candidates and the outer loop sequencer run in host Python. Note: this is NOT the conditional branching itself; branching (choosing which of 4 prototypes matches the query) already runs on the MB via Jaccard on KC patterns. The host's job is a small 4-way readout and loop driver. Reviewer v22 conflated readout-on-host with branching-on-host; they are different. Design doc kept in `planning/open-questions/conditional-branching-on-remote.md` for when/if we want fully-autonomous execution, but not urgent.
+
+Longer-term / lower-priority:
+
 - **Intrinsic temporal dynamics** — the `for i in range(max_iters)` that threads ops together runs in host Python. No substrate-intrinsic trajectory yet. (User: don't need to address for this paper.)
-- **Dimensionality** — 140-PN I/O is narrow vs standard VSA (1k–10k). Likely contributor to 13/16 branching accuracy. KC-promotion to 1,882-D is planned.
-- **Eval size** — 16 branching trials, 3 iteration trials. Proof-of-substrate, not statistical robustness.
-- **Biological learning rule** — MBON readout is ridge regression, not dopamine-gated plasticity. Planned.
+- **Dimensionality** — 140-PN I/O is narrow vs standard VSA (1k–10k). Real limitation; KC-promotion to 1,882-D is planned but not urgent.
+- **Eval size** — branching now 80/80 across 5 seeds, loops 20/20 across 5 seeds. Reviewer's residual objection is program-*template* variety (4 conditional templates, 3 loop-test types), which seeds don't buy. Open whether this matters — the paper is a primitive demonstration, not a program-library survey.
+- **Biological learning rule** — MBON readout is ridge regression, not dopamine-gated plasticity. Planned, not urgent.
 
 ## Backlog (not urgent, pick up after paper)
 
