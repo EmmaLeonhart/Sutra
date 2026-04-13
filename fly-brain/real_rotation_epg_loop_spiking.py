@@ -1,7 +1,7 @@
 """
 Geometric loop driven by real-wiring Q through Brian2 spiking rotate.
 
-Queue item 2 (STATUS.md): lift the Q loop test from numpy tier-2
+Queue item 2 (STATUS.md): lift the Q loop test from numpy rotation
 (real_rotation_epg_loop.py) into actual spiking dynamics. Each loop
 step evolves v_{k+1} = Q @ v_k as a Brian2 LIF population using
 neural_linear_map from neural_vsa.py — Q becomes a 51x51 pattern of

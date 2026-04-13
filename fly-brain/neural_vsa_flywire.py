@@ -1,5 +1,5 @@
 """
-Tier-2 VSA operations (bundle, bind, rotate) backed by REAL FlyWire v783
+VSA operations (bundle, bind, rotate) backed by REAL FlyWire v783
 connectivity. Sister module to neural_vsa.py, which used synthetic
 one-to-one synapse matrices and arbitrary weights.
 
@@ -454,7 +454,7 @@ def _sign_match(x, y):
 
 def main():
     print("="*70)
-    print("FlyWire-backed tier-2 VSA operations — self-test")
+    print("FlyWire-backed VSA operations — self-test")
     print("="*70)
     print()
     print("Loading FlyWire substrate...")
