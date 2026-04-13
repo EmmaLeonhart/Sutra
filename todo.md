@@ -5,7 +5,7 @@ implement stuff that failed on https://github.com/EmmaLeonhart/Sutra/blob/master
 
 
 write a new status.md so that claude desktop can properly parse the large amount of changes that occurred during its paralysis
-
+(it was committing directly to master everything else was pull requests)
 
 # Sutra TODO
 
