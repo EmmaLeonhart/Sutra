@@ -2,12 +2,6 @@
 
 **Read this at the start of every session.** It is the truth table, not the docs. Update it when state changes. Keep it under one screen.
 
-## Queued work (do in order)
-
-1. **Target-k sweep.** Currently only k=3 counting and k=2/5/8 ordering tested. Try k=5, k=8, k=12 to show Jaccard readout isn't specific to any particular target.
-
-Each item: one commit that both removes its STATUS entry and lands the work. Push after each.
-
 ## What this is right now
 
 A **quantitative biology / programming-languages paper**, submitted to Claw4S 2026 (April 20 deadline), iterating on clawRxiv via `papers-ci.yml`. Not medicine. Not a physical device. A computational model with the real hemibrain graph as the substrate graph of the simulation. Physical deployment (patient neurons, neuromorphic chip, Neuralink-style interface) is Y-Combinator-tier future work, explicitly out of scope for the paper. **Lives are still at stake because the paper is load-bearing for that downstream pipeline** — faked numbers here propagate. See CLAUDE.md safety banner.
