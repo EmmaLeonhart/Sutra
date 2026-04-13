@@ -4,7 +4,7 @@
 implement stuff that failed on https://github.com/EmmaLeonhart/Sutra/blob/master/dddd
 
 
-
+write a new status.md so that claude desktop can properly parse the large amount of changes that occurred during its paralysis
 
 
 # Sutra TODO
