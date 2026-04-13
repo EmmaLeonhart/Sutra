@@ -48,6 +48,104 @@ line — do not leave "done ✅" stubs (that's what git log is for).
 
 ---
 
+# ! fly-brain (prepended from former `fly-brain/todo.md`)
+
+Fly-brain work is the headline experimental pipeline and gets priority
+placement. Lines prefixed with `!` are from the former
+`fly-brain/todo.md` — that file has been deleted and its content lives
+here so there is a single source of truth. The `!` marker survives so
+that grep + visual scan both show provenance. Tier each line as work
+gets picked up.
+
+## ! Real Connectome Integration
+
+### ! Phase 1: Hemibrain — DONE
+(reference only; retained so the Phase-1.6 items below have context)
+
+### ! Phase 1.5: Geometric Loops — MOSTLY DONE
+- [ ] **[Pre-Claw4S]** Compile `while` to rotation + snap + prototype
+  match (automatic pattern recognition) — last open item in this
+  phase per former `fly-brain/todo.md`.
+
+### ! Phase 1.6: Strengthen & Explore — TODO
+
+Try each of these sequentially. If one doesn't pan out quickly, move
+on to the next.
+
+#### ! 1. Strengthen binding signal (12/16 → higher) — [Pre-Claw4S]
+The move from synaptic weight flipping to input-space binding
+(`a * sign(b)` as PN currents) is biologically correct but produces a
+weaker decorrelation signal. The old approach created true inhibition
+(negative synapse weights); the new approach only reduces excitation
+(lower PN current). Ideas to try:
+- **Silence negative PNs entirely**: set currents to 0 for PNs where
+  `a * sign(b) < 0` instead of encoding them as below-baseline. Sparser,
+  more contrastive input pattern — closer to what the fly does when
+  some glomeruli are actively suppressed.
+- **Two-pass binding**: present `a` and `sign(b)` in sequential circuit
+  passes, let the circuit's temporal dynamics compute the conjunction.
+  Biologically grounded in sequential-odor presentations.
+- **Increase encoding gain**: raise the gain from 0.6 so the sign-flip
+  component dominates the baseline. Simple parameter tuning.
+- **Learned binding matrix**: train a matrix mapping `(a, b) → bound`
+  using the circuit's own KC patterns as training signal
+  (`is_converter`-style).
+
+#### ! 2. Implement `is_converter` matrices — [Pre-YC]
+Original Sutra conditional design from the design chats:
+- **is_converter**: a single learned matrix that transforms any concept
+  vector into a test operator (matrix). `is_dog = is_converter * dog`
+  produces a matrix that, when applied to an input, maps it toward the
+  reserved true/false region.
+- **Universal test operator**: one `is_converter` works for ALL
+  concepts. Strong empirical claim, needs validation on fly substrate.
+- **Everything is multiplication**: `is_dog * input → near true or
+  near false`. Test, conditional, transformation — all matrix
+  multiplication; compiler can fold/fuse aggressively.
+- **How to train it**: collect (concept, input, true/false) triples
+  by running pairs through the circuit and measuring KC pattern
+  overlap; `is_converter` is the matrix that best predicts whether
+  two inputs activate overlapping KC populations.
+
+#### ! 3. Pong demo on hemibrain — DONE
+- V0 (1D bounce): 7-position prototype grid, 6 bounces, overlaps
+  0.877–1.000.
+- V1 (2D + paddle): 5×5 grid (25 prototypes), ALL positions at 1.000
+  Jaccard, 3 paddle hits, 12 bounces, AI paddle tracks ball.
+- Key insight: discretize positions into prototypes rather than
+  continuous tracking; each position compiled as a KC pattern, circuit
+  does position detection via Jaccard.
+
+### ! Phase 2: FlyWire (after loops work) — [Pre-YC]
+- [ ] Pull full adult Drosophila PN→KC connectivity from FlyWire/codex.
+- [ ] Scale model to FlyWire dimensions (~140k neurons).
+- [ ] Benchmark: prototype capacity at FlyWire scale (~10k-15k items).
+- [ ] Run Doom on FlyWire-scale substrate (DOOM milestone ladder —
+  note: the old `DOOM.md` was deleted in the 2026-04-13 audit; the
+  ladder itself is folded into §Phase 3 below and tracked in
+  STATUS.md strategic notes).
+
+### ! Phase 3: Doom on FlyWire — [Pre-YC]
+- [ ] Loop compilation via geometric rotation (NOT recurrent KC→KC).
+- [ ] 1D integer arithmetic on substrate.
+- [ ] Pong demo (minimum viable game on fly brain). *(Partial — see
+  Phase 1.6 item 3; GUI version and full 2-player still open;
+  `fly-brain/pong_brain.py` has a 326-line scaffold.)*
+- [ ] General boolean composition (`&&`, `||`).
+- [ ] Fixed-point arithmetic compilation.
+- [ ] Doom logic-only with host rendering.
+
+## ! Tooling
+
+### ! IntelliJ Sutra Plugin — [This year]
+- [ ] Diagnose why `!editor.bat` fails (likely JAVA_HOME or Gradle
+  daemon issue).
+- [ ] Get `sdk/intellij-sutra` `runIde` task working.
+- [ ] Test `.su` file syntax highlighting in sandbox IDE.
+- [ ] Verify code completion and live templates work.
+
+---
+
 # Sutra TODO
 
 ## 🔧 GitHub Actions failure modes (diagnosed 2026-04-13, fix deferred)
