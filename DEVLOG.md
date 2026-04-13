@@ -15,6 +15,95 @@ current layout looks the way it does.
 
 ---
 
+## 2026-04-13: Recent compiler/codegen items + 2026-04-08 syntax decisions folded in from todo.md
+
+Folded out of `todo.md`'s former §"Recently done" and §"Recently Decided
+(2026-04-08)" sections so the working todo file stops carrying closed work.
+Both sections were tagged as "historical record, not work to do" — the
+contents land here verbatim under a single dated entry.
+
+### Recently done (compiler / codegen / spec, ~early-to-mid April 2026)
+
+- **AST → FlyBrainVSA translator + `--emit-flybrain` CLI + e2e.**
+  New module `sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`
+  walks a parsed `Module` and emits Python targeting the
+  `FlyBrainVSA` runtime. The fixed-frame invariant from
+  `fly-brain/STATUS.md` §Technical Insight 2 becomes a compile-time
+  guarantee (every generated module pins the PN→KC seed via a
+  `_FixedFrameFlyBrainVSA` subclass in its prelude). 16 new codegen
+  tests, full SDK suite green at 85/85. `fly-brain/test_codegen_e2e.py`
+  is the real end-to-end check: parses `permutation_conditional.su`,
+  translates, execs on a live Brian2 mushroom body, verifies all 16
+  decisions match the expected behavior table. Loops and if-stmts
+  are intentionally unsupported and fail loudly with source spans.
+- **VSA builtins declared in the spec.** New file
+  `planning/sutra-spec/21-builtins.md` gives formal signatures for
+  every implicit-global VSA function used in the repo's `.su` code:
+  `bind`, `unbind`, `bundle`, `similarity`, `permute`, `compose`,
+  `basis_vector`, `permutation_key`, `identity_permutation`, `snap`,
+  `argmax_cosine`. Each entry has a signature, semantic description,
+  substrate notes (which tier from `02-operations.md` it belongs to,
+  whether it runs on the mushroom body or in numpy), and cross-refs
+  to the operational prose in `02-operations.md` and the type
+  definitions in `05-type-system.md`. Linked from the spec README.
+  This heads off the diagnostic avalanche that would otherwise hit
+  when v0.2 name resolution lands.
+- **Map types and map literals.** `map<K, V>` is now a primitive
+  generic type. The inline literal `{k1: v1, k2: v2, ...}` parses as
+  a `MapLiteral` expression in expression position; empty `{}` is
+  legal; a bare `{ ... }` at statement position is still always a
+  block, as in C-family languages. Vector-valued keys work, which is
+  what the fly-brain prototype table needs. Spec: extended the
+  "Primitive Types" section in `planning/sutra-spec/05-type-system.md`
+  with a `map<K, V>` entry covering the lookup semantics and the
+  statement-vs-expression disambiguation. Test corpus:
+  `tests/corpus/valid/24_map_literal.su`; parser unit tests in
+  `tests/test_parser.py`. **Running the validator on
+  `fly-brain/permutation_conditional.su` now reports 0 diagnostics
+  (down from 46 before the permutation-type work started).**
+- **`permutation` as a primitive type.** Added to `PRIMITIVE_TYPE_NAMES`
+  in the lexer, to the parser's `_PRIMITIVE_TYPES`, and to the
+  validator's `_record_type_usage` PRIMITIVES set. Spec entry added to
+  `planning/sutra-spec/05-type-system.md` documenting the distinction
+  from plain `vector` and why it matters for the compile-to-brain
+  strategy. Test corpus: `tests/corpus/valid/21_permutation_type.su`.
+- **Array literals and subscript access.** `[a, b, c]` now parses as
+  an `ArrayLiteral` expression (empty `[]` legal; no trailing commas,
+  to match the rest of the grammar). `target[index]` now parses as a
+  `Subscript` postfix, composing cleanly with call/member/subscript
+  chaining. Test corpus:
+  `tests/corpus/valid/22_array_literal.su` and
+  `tests/corpus/valid/23_subscript_access.su`; parser unit tests added
+  to `tests/test_parser.py`.
+
+### Recently decided — language-design calls from 2026-04-08
+
+These decisions had been carried as a "Recently Decided" stub in `todo.md`
+since the 2026-04-08 syntax-decisions session; landing them here so the
+todo file stops carrying historical record.
+
+- Function declarations: C# signature shape with `function` keyword
+- `function` = free function (public static default). `method` = attached to object (public non-static default).
+- Methods desugar to static functions: `Adam.getCat()` → `human.getCat(Adam)`
+- Full internal form: `function public static scalar operator +(scalar a, scalar b) { ... }`
+- `function.` prefix is for calling (disambiguation), not declaration
+- `var` for mutable, `const` for immutable (C#-style)
+- Files do not imply namespaces. Code can just execute. Solution structures optional.
+- All C# loop forms: while, for, foreach, do...while
+- Errors produce garbage vectors. Try-catch is if-statement sugar.
+- C#-style string interpolation: `$"Result: {result}"`
+- All comment forms allowed: //, /* */, ///, #
+- C#-style generics (compile-time only)
+- No pipe operator. Nested calls + dot chaining via methods.
+- `if (cat)` is a compilation error — classes don't exist at runtime
+- Truthiness is geometric — euclidean distance from true/false, accessed via unsafe cast only
+- Operators support overloading
+- Implicit casts allowed but must be explicitly defined
+- `fuzzy` to `bool` cast performs `defuzzy`
+- Class system is user-defined, not runtime-special
+
+---
+
 ## 2026-04-11: The Akasha → Sutra rename
 
 The language and everything around it was renamed from **Akasha** to
