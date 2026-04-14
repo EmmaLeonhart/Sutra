@@ -4,6 +4,10 @@
 Lean — tracks what's left to do. Finished work lives in `git log` and
 `planning/findings/`.
 
+## Meta Instructions
+
+quickly execute through the things in this document in order and remove them as you do so. Unforunately contrary to expectations, claude has not been clearely through this document like expected, and it is as a bit cruddy. We have a working queue that might just be entirely done, and we have the scope thing at the end of this document which is the real pivot direction. Most of the stuff in this document is likely outdated because Claude was not clearing it like expected.
+
 ## What this is
 
 Quantitative biology / PL paper, submitted to Claw4S 2026 (April 20
@@ -108,3 +112,6 @@ Related: `planning/open-questions/project-kind-connectome-vs-embedding.md` is th
 - Spec: `planning/sutra-spec/{02-operations,03-control-flow,04-defuzzification,11-vsa-math,19-substrate-candidates}.md`.
 - Findings: `planning/findings/` (dated, per CLAUDE.md).
 - Open design questions: `planning/open-questions/`.
+
+## Final thing to do
+- Read through this file "claw4s-scope.md" and it explains exactly what we are limiting our scope to doing
