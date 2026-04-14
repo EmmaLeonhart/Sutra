@@ -17,6 +17,21 @@ Rules that follow from this:
 
 When in doubt, the default is: **do the real operation on the real substrate, even if it's slower, harder, or uglier.** Faster and cleaner code that lies about what it does is strictly worse than slow honest code. The person on the other end of the biomedical pipeline cannot tell the difference between math you faked and math you didn't — but their body will.
 
+## The real substrate is the Shiu whole-brain LIF model
+
+From 2026-04-13 forward, the canonical substrate for this project is the **Shiu et al. 2024 whole-brain LIF model** (138,639 AlphaLIF neurons, 15,091,983 synapses, real FlyWire v783 W as the sparse connectivity matrix, Shiu's calibrated parameters). It lives at `C:/Users/Immanuelle/shiu-fly-brain` and runs on PyTorch CUDA via `run_pytorch.py`.
+
+Every Sutra operation gets tried on this substrate, persistently, from scratch when needed. The small hemibrain MB (140 PN → 1,882 KC) was useful scaffolding and backs §Result 1 of the paper, but the Shiu model is the real thing — it reproduces ground-truth fly spike activity at 91% accuracy, and if an operation doesn't work there, it doesn't work on a real connectome.
+
+Rules:
+
+1. **Default target for any new operation test is the Shiu model**, not the hemibrain MB. If a test isn't runnable on Shiu (e.g. it requires MB-specific circuitry), say so explicitly and justify the smaller substrate.
+2. **Be persistent.** A first attempt that returns zero recurrence or a collapsed state is a data point, not a verdict. Try different protocols (drive rate, window length, drive targets, readout — cosine vs snap vs Jaccard vs bump-centroid). Record each as a finding; the negative results compound into a map of what the substrate does and doesn't implement.
+3. **Start from scratch when needed.** If an existing `fly-brain/*.py` script encodes assumptions that turned out wrong (e.g. polar-decomposition `Q` as "rotation on the connectome"), don't patch around them — write a new script that exercises the operation directly against Shiu with no inherited premise.
+4. **Every operation gets its turn on Shiu.** Bundle, bind, unbind, similarity, snap, permute, rotate, cone, hop, scalar multiplication, projection. Some already have Shiu results (bundle cos=0.97, snap 15/16, EPG rotation negative). The rest get scripts. The result — positive, negative, or marginal — is the honest paper contribution.
+
+This is a policy shift. Prior sessions treated the hemibrain MB as the primary surface because it was fast; from now on the MB is a secondary surface and Shiu is primary.
+
 ## 📍 READ `STATUS.md` FIRST EVERY SESSION
 
 Before any work on this repo, read `STATUS.md` at the repo root. It is the living truth table — what's built, what's open, what's out of scope, and the semantic corrections the user has had to repeat across sessions. CLAUDE.md is rules; STATUS.md is state. On this project (1M-token context burns through fast) you need both.
