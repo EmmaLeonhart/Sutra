@@ -1,0 +1,65 @@
+// Three-way fuzzy weighted superposition on the Drosophila mushroom body.
+//
+// Companion to fuzzy_conditional.su — same fuzzy-branch pattern from
+// planning/sutra-spec/03-control-flow.md, but over a 3-prototype table
+// instead of 4. Exercises the case where the prototype count is not a
+// power of two (reviewer flag: original library had only 2^n branching).
+//
+// Compilation contract matches fuzzy_conditional.su:
+//   similarities         -> w_i = similarity(brain_query, proto_i)
+//   branch fusion        -> sum_i (w_i * behavior_i)
+//   defuzzification      -> argmax_cosine over the 3-behavior codebook
+
+vector cue_salt  = basis_vector("cue_salt");
+vector cue_sweet = basis_vector("cue_sweet");
+vector cue_none  = basis_vector("cue_none");
+
+vector b_extend = basis_vector("extend");
+vector b_retract = basis_vector("retract");
+vector b_hold    = basis_vector("hold");
+
+vector proto_S = snap(cue_salt);
+vector proto_W = snap(cue_sweet);
+vector proto_N = snap(cue_none);
+
+map<vector, string> BEHAVIOR_NAME = {
+    b_extend:  "extend",
+    b_retract: "retract",
+    b_hold:    "hold"
+};
+
+function string three_way_decide(
+    vector cue,
+    vector beh_S, vector beh_W, vector beh_N
+) {
+    vector brain_query = snap(cue);
+
+    scalar w_S = similarity(brain_query, proto_S);
+    scalar w_W = similarity(brain_query, proto_W);
+    scalar w_N = similarity(brain_query, proto_N);
+
+    vector result =
+        w_S * beh_S +
+        w_W * beh_W +
+        w_N * beh_N;
+
+    vector winner = argmax_cosine(result, [b_extend, b_retract, b_hold]);
+    return BEHAVIOR_NAME[winner];
+}
+
+function string program_proboscis(vector cue) {
+    // Natural mapping: salt -> extend (feed), sweet -> retract (reject
+    // would be odd for a fly, but this is an abstract program),
+    // none -> hold.
+    return three_way_decide(cue, b_extend, b_retract, b_hold);
+}
+
+function string program_inverted(vector cue) {
+    // Reversed polarity across all three prototypes.
+    return three_way_decide(cue, b_retract, b_extend, b_hold);
+}
+
+function string program_silent(vector cue) {
+    // Only the cue_none prototype drives non-hold behavior.
+    return three_way_decide(cue, b_hold, b_hold, b_extend);
+}
