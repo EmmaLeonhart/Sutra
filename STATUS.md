@@ -13,14 +13,6 @@ for the paper but the paper is load-bearing for a downstream biomedical
 pipeline — **faked numbers here propagate to lives**. See CLAUDE.md
 safety banner.
 
-## Queued work (do in order)
-
-1. **Pong with GUI.** `fly-brain/pong_brain.py` is a 326-line scaffold.
-   Stretch goal.
-
-Each queue item lands as **one commit** that both removes it here and
-lands the work. Push after every commit.
-
 ## Open gaps (limitations, not queue items)
 
 - **Conditional branching on remote substrate.** Final argmax over 4
