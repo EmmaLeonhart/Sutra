@@ -15,12 +15,7 @@ safety banner.
 
 ## Queued work (do in order)
 
-1. **Community detection on the giant SCC.** Louvain or Leiden on the
-   135,403-neuron giant-SCC subgraph of real W to find densely-
-   connected modules that may be dynamically isolable even though
-   graph-connected to the rest. Seeds iteration-on-real-W research
-   per the Q2 SCC-search follow-up.
-2. **Window sweep on Shiu conditional.** Extend the 100 ms default
+1. **Window sweep on Shiu conditional.** Extend the 100 ms default
    to 200/300/500 ms on `shiu_conditional.py --n-runs 10` to see
    whether the ~3% error (5/160 at 100 ms) closes with integration
    time. If yes, paper gets 100% on Shiu; if no, finding + caveat.
