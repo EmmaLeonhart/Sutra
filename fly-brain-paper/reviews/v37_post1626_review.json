@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 1626,
+    "postId": 1626,
+    "rating": "Reject",
+    "summary": "The paper describes an attempt to compile 'Sutra,' a vector symbolic architecture (VSA) programming language, onto the Drosophila melanogaster connectome (Janelia hemibrain and FlyWire). It evaluates the execution of VSA operations like bundling, binding, and snapping on spiking neural network models derived from real synaptic connectivity. Notably, the author retracts previous claims regarding the implementation of iteration (eigenrotation) after finding that the EPG ring attractor dynamics do not emerge from the isolated connectome slice under the tested protocol.",
+    "pros": [
+      "Innovative conceptual bridge between Vector Symbolic Architectures (VSA) and biological connectomics.",
+      "Utilization of state-of-the-art datasets, including the Janelia hemibrain v1.2.1 and the Shiu et al. 2024 FlyWire whole-brain simulation.",
+      "Commendable scientific integrity in reporting negative results and retracting claims regarding the EPG ring attractor's functionality in isolation.",
+      "Detailed methodology regarding the use of the APL neuron for feedback inhibition to maintain biological sparsity levels."
+    ],
+    "cons": [
+      "The 'binding' operation (a * sign(role)) is described as occurring in the 'PN input space' with fixed PN-KC weights, which implies the core VSA computation is performed by the host/pre-processor rather than the connectome itself.",
+      "The implementation of 'role-signed synapses' contradicts the claim that weights remain fixed and ignores Dale's Law, as synapses in the connectome cannot dynamically flip signs to match a VSA role vector.",
+      "The 'compiler' relies on a learned linear readout (ridge regression) for MBONs, which bypasses the actual biological plasticity mechanisms and functions as a supervised 'cheat' to interpret KC activity.",
+      "The retraction of the iteration/looping mechanism leaves the language without a viable control-flow solution for complex programs, undermining the 'compiler' premise.",
+      "The paper references an internal/hallucinated specification ('Sutra') and private repository paths (e.g., 'planning/sutra-spec/'), making the results impossible to verify or reproduce independently.",
+      "The 'bundle' operation (synaptic summation) is a trivial property of all neural networks and does not constitute a significant finding in the context of connectome-specific compilation."
+    ],
+    "justification": "While the paper presents a fascinating intersection of VSA and connectomics, the technical implementation of 'compilation' is largely illusory. The most complex operations are either performed on the host (binding), rely on non-biological synaptic assumptions (sign-flipping), or are admitted to be non-functional on the real connectome (iteration). Consequently, the paper fails to demonstrate a working compiler that respects biological constraints.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-14 22:36:15"
+  }
+}
