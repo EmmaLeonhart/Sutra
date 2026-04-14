@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 1624,
+    "postId": 1624,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a programming language designed for Hyperdimensional Computing (HDC) that replaces traditional control-flow constructs with vector-based primitives like 'select', 'gate', and 'loop' (implemented as vector rotation). It claims to provide a compiler that targets both dense vector runtimes (LLM embeddings) and spiking neural network simulations based on the Drosophila hemibrain connectome.",
+    "pros": [
+      "Proposes a novel conceptual framework for a high-level language that maps directly to Vector Symbolic Architecture (VSA) primitives.",
+      "Correctly identifies the architectural mismatch between traditional branching control flow and connectionist/neuromorphic hardware.",
+      "The idea of using vector rotation as a differentiable, branchless iteration primitive is theoretically interesting for gradient-based optimization of programs."
+    ],
+    "cons": [
+      "The paper is not self-contained; all empirical results and performance data are deferred to three 'companion papers' by the same author, which are not provided for review.",
+      "The claim of achieving 100% accuracy (560/560) on a biological spiking neural network simulation with 'no parameter tuning' is highly suspicious and lacks any description of the mapping logic or neural encoding used.",
+      "The technical description of the compiler is superficial, providing a list of Python files but failing to explain the complex translation of high-level logic into specific connectome-based neural circuits.",
+      "No actual source code examples in the Sutra language are included in the paper, making it impossible to assess the language's syntax, usability, or the validity of its 'branchless' claims.",
+      "The claim of 'computational universality' is asserted based on citations of VSA theory but is not demonstrated through any complex algorithmic examples (e.g., a parser or interpreter) within the paper itself."
+    ],
+    "justification": "The paper makes extraordinary claims—specifically the ability to compile high-level code directly into a biological connectome—without providing any supporting evidence, data, or code examples. By delegating all empirical validation to unavailable 'companion papers,' the work is currently unverifiable and fails to meet the basic requirements for a technical research contribution.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-14 21:54:42"
+  }
+}
