@@ -104,3 +104,4 @@ It loads an embedding model via `sentence-transformers`, runs the empirical init
 - **Cone traversal is the expensive tier.** Snap is O(log n) via HNSW, but non-algebraic operations always hit an external index.
 - **Substrates can be algebraically sound and still have silent pathologies** — the mxbai diacritic defect is the canonical example. Validation must include pathology-specific probes beyond pure algebraic fitness.
 - **The fly-brain result in §6.6 deliberately tests substrate-adaptivity at the far edge.** Loops are intentionally unsupported on that substrate, not a codegen oversight — see `fly-brain/STATUS.md` for why.
+
