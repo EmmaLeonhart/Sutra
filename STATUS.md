@@ -13,16 +13,6 @@ for the paper but the paper is load-bearing for a downstream biomedical
 pipeline — **faked numbers here propagate to lives**. See CLAUDE.md
 safety banner.
 
-## Queued work (do in order)
-
-1. **Window sweep on Shiu conditional.** Extend the 100 ms default
-   to 200/300/500 ms on `shiu_conditional.py --n-runs 10` to see
-   whether the ~3% error (5/160 at 100 ms) closes with integration
-   time. If yes, paper gets 100% on Shiu; if no, finding + caveat.
-
-Each queue item lands as **one commit** that both removes it here and
-lands the work. Push after every commit.
-
 ## Open gaps (limitations, not queue items)
 
 - **Conditional branching on remote substrate.** Final argmax over 4

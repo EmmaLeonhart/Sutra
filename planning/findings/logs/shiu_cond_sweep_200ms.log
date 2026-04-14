@@ -1,0 +1,62 @@
+sim_ms: 200.0, num_steps: 2000
+device: cuda
+weights: torch.Size([138639, 138639]), nnz=15091983 (2.0s)
+
+=== run 1/10 (seed base 30000) ===
+  compiled 4 proto + 4 behavior codebooks in 17.3s
+  proto codebook: off-diag cos mean 0.000, max 0.001
+  16 scenarios in 41.5s; correct 16/16
+
+=== run 2/10 (seed base 31000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.3s
+  proto codebook: off-diag cos mean 0.002, max 0.009
+  16 scenarios in 40.5s; correct 16/16
+
+=== run 3/10 (seed base 32000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.2s
+  proto codebook: off-diag cos mean 0.004, max 0.012
+  16 scenarios in 40.9s; correct 16/16
+
+=== run 4/10 (seed base 33000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.3s
+  proto codebook: off-diag cos mean 0.003, max 0.011
+  16 scenarios in 40.7s; correct 15/16
+
+=== run 5/10 (seed base 34000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.3s
+  proto codebook: off-diag cos mean 0.003, max 0.009
+  16 scenarios in 40.6s; correct 16/16
+
+=== run 6/10 (seed base 35000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.0s
+  proto codebook: off-diag cos mean 0.008, max 0.015
+  16 scenarios in 40.4s; correct 16/16
+
+=== run 7/10 (seed base 36000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.3s
+  proto codebook: off-diag cos mean 0.002, max 0.010
+  16 scenarios in 40.7s; correct 16/16
+
+=== run 8/10 (seed base 37000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.3s
+  proto codebook: off-diag cos mean 0.158, max 0.938
+  16 scenarios in 40.8s; correct 13/16
+
+=== run 9/10 (seed base 38000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.3s
+  proto codebook: off-diag cos mean 0.000, max 0.000
+  16 scenarios in 40.7s; correct 16/16
+
+=== run 10/10 (seed base 39000) ===
+  compiled 4 proto + 4 behavior codebooks in 16.0s
+  proto codebook: off-diag cos mean 0.000, max 0.001
+  16 scenarios in 40.5s; correct 16/16
+
+=== AGGREGATE (n=10) ===
+  overall: 156/160 (97.5%)
+  per-run acc: mean 0.975, std 0.057
+  per-program:
+    A: 39/40 (97.5%)
+    B: 39/40 (97.5%)
+    C: 39/40 (97.5%)
+    D: 39/40 (97.5%)

@@ -54,7 +54,7 @@ WT_DIR = SHIU_REPO / "data"
 N_NEURONS = 138639
 POP_SIZE = 40
 DRIVE_RATE_HZ = 200.0
-T_SIM_MS = 100.0
+T_SIM_MS = 100.0  # overridable via --sim-ms
 NUM_STEPS = int(T_SIM_MS / DT)
 
 PROTOTYPES = ["PH", "PF", "AH", "AF"]  # (present/absent) × (hungry/fed)
@@ -117,7 +117,12 @@ def pick_populations(rng, n_pops, pop_size, used=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n-runs", type=int, default=3)
+    ap.add_argument("--sim-ms", type=float, default=T_SIM_MS)
     args = ap.parse_args()
+
+    global NUM_STEPS
+    NUM_STEPS = int(args.sim_ms / DT)
+    print(f"sim_ms: {args.sim_ms}, num_steps: {NUM_STEPS}")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"device: {device}")
