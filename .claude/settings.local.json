@@ -115,7 +115,9 @@
       "Bash(jobs -l)",
       "Bash(tee /tmp/n50_conditional.log)",
       "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 3)",
-      "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 10)"
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 10)",
+      "WebFetch(domain:alphaxiv.org)",
+      "WebFetch(domain:arxiv.org)"
     ]
   }
 }
