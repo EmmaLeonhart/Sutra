@@ -109,3 +109,4 @@ The Sutra language surface, operation model, and compiler are specified in `plan
 1. **Iteration via the broader CX ring subnetwork.** Driving EPGs through their biological inputs (PEN1/PEN2 heading velocity, ER sensory drive) on the full Shiu substrate, with Δ7-mediated long-range inhibition shaping the bump dynamics, is the biologically correct way to recruit the ring attractor and is the primary open problem for iteration on real W. The negative EPG-only result in §Result 3 is the evidence that the narrower polar-decomposition approach does not suffice.
 2. **Scale the snap codebook.** Capacity scaling on the Shiu substrate — how many prototypes can be discriminated before random-overlap collisions dominate — is measurable with the existing harness and has not yet been swept.
 3. **Biological learning rule.** Replacing ridge regression with dopamine-gated plasticity for the MBON readout in §Result 1.
+

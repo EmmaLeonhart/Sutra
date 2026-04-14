@@ -95,3 +95,4 @@ The resulting `/tmp/generated.py` is a 93-line Python module targeting `FlyBrain
 2. `fly-brain/STATUS.md` — honest running status, technical insights (fixed-frame invariant, negation-as-permutation, MB-as-VSA-substrate caveats)
 3. `fly-brain/DEMO.md` — audience-facing summary of the programmer-agency result
 4. `fly-brain/DOOM.md` — gap analysis writeup: "how far are we from playing Doom on this?"
+
