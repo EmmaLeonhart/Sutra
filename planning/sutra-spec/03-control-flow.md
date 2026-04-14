@@ -1,5 +1,7 @@
 # Control Flow
 
+> **Superseded headline framing:** `26-select-and-gate.md` is the canonical statement of what control flow is in Sutra — the thesis that Sutra *has no control flow* and that `select` (softmax-weighted, fuzzy, no defuzz) and `gate` (defuzzifies, commits direction) are the only two control primitives. This file (§03) retains the operational detail for eigenrotation loops and the fuzzy-superposition conditional, which under §26's framing are the implementation realizations of `gate` and `select` respectively. Read §26 first for the framing; read §03 for the mechanics.
+
 ## Fuzzy-superposition conditionals
 ```
 result = (condition * branch_true) + (NOT_condition * branch_false)
