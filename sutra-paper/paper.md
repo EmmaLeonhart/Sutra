@@ -121,14 +121,7 @@ This is a worked example of why substrate validation must include both algebraic
 
 The headline result is narrow and strong: sign-flip binding is a working binding operation on frozen LLM embedding spaces at 14-role capacity across three independent models, at a cost (6.6μs) that makes it usable as a primitive in any system that has the embeddings on hand. The textbook VSA binding (Hadamard product) does not work in this setting. This is a small empirical correction to an assumption the VSA literature inherited from working with hand-designed hypervector spaces.
 
-What this paper does *not* claim:
-
-- It does not propose a programming language. The operation set characterized here is the precondition for one, but a language requires control flow, defuzzification, type discipline, and a runtime — none of which are tested here.
-- It does not claim Turing completeness or any universality property. The 14-role capacity and 10-step chain are upper bounds of the test set, not theoretical limits.
-- It does not claim substrate-agnosticism beyond the four models tested. Three of the four work; the fourth has a documented defect.
-- It does not transfer to spiking neural substrates or to connectome-derived circuits. The operations measured here all run on the host against real-valued embedding vectors. Spiking-substrate work is reported separately in the companion paper.
-
-What the paper does establish, and what we believe is worth publishing on its own: a small, reproducible, substrate-portable operation set for VSA-style computation on frozen LLM embeddings, with the specific binding choice (sign-flip) that makes it work, validated on three real embedding models and one pathological one, with operation costs measured. This is the empirical foundation any subsequent work in this area can build on.
+The paper establishes a small, reproducible, substrate-portable operation set for VSA-style computation on frozen LLM embeddings, with the specific binding choice (sign-flip) that makes it work, validated on three real embedding models with operation costs measured. This is the empirical foundation for systems that compose computation over naturally-learned embedding spaces, including the Sutra programming language (Leonhart, *Sutra: A Control-Flow-Free Programming Language for Hyperdimensional Computing*), whose numpy backend compiles to exactly this operation set.
 
 ## 5. Conclusion
 

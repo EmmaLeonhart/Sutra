@@ -26,6 +26,8 @@ on:
       - 'sutra-paper/SKILL.md'
       - 'fly-brain-paper/paper.md'
       - 'fly-brain-paper/SKILL.md'
+      - 'language-paper/paper.md'
+      - 'language-paper/SKILL.md'
   workflow_dispatch:
     inputs:
       paper:
@@ -36,7 +38,8 @@ on:
         options:
           - sutra-paper
           - fly-brain-paper
-          - both
+          - language-paper
+          - all
 
 concurrency:
   group: papers-ci-${{ github.ref }}
@@ -49,6 +52,7 @@ jobs:
     outputs:
       sutra: ${{ steps.filter.outputs.sutra }}
       fly_brain: ${{ steps.filter.outputs.fly_brain }}
+      language: ${{ steps.filter.outputs.language }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,9 +69,10 @@ jobs:
 
           if [ "${{ github.event_name }}" = "push" ]; then
             if git log -1 --pretty=%B | grep -Eq "^Skip-Submit:[[:space:]]*true$"; then
-              echo "Commit has Skip-Submit: true trailer — skipping both papers"
+              echo "Commit has Skip-Submit: true trailer — skipping all papers"
               echo "sutra=false" >> "$GITHUB_OUTPUT"
               echo "fly_brain=false" >> "$GITHUB_OUTPUT"
+              echo "language=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
@@ -75,16 +80,24 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             case "${{ github.event.inputs.paper }}" in
               sutra-paper)
-                echo "sutra=true"    >> "$GITHUB_OUTPUT"
+                echo "sutra=true"      >> "$GITHUB_OUTPUT"
                 echo "fly_brain=false" >> "$GITHUB_OUTPUT"
+                echo "language=false"  >> "$GITHUB_OUTPUT"
                 ;;
               fly-brain-paper)
-                echo "sutra=false"   >> "$GITHUB_OUTPUT"
+                echo "sutra=false"     >> "$GITHUB_OUTPUT"
                 echo "fly_brain=true"  >> "$GITHUB_OUTPUT"
+                echo "language=false"  >> "$GITHUB_OUTPUT"
                 ;;
-              both)
-                echo "sutra=true"    >> "$GITHUB_OUTPUT"
+              language-paper)
+                echo "sutra=false"     >> "$GITHUB_OUTPUT"
+                echo "fly_brain=false" >> "$GITHUB_OUTPUT"
+                echo "language=true"   >> "$GITHUB_OUTPUT"
+                ;;
+              all)
+                echo "sutra=true"      >> "$GITHUB_OUTPUT"
                 echo "fly_brain=true"  >> "$GITHUB_OUTPUT"
+                echo "language=true"   >> "$GITHUB_OUTPUT"
                 ;;
             esac
             exit 0
@@ -108,19 +121,24 @@ jobs:
 
           sutra=false
           fly_brain=false
+          language=false
           if echo "$CHANGED" | grep -Eq '^sutra-paper/(paper|SKILL)\.md$'; then
             sutra=true
           fi
           if echo "$CHANGED" | grep -Eq '^fly-brain-paper/(paper|SKILL)\.md$'; then
             fly_brain=true
           fi
-          echo "sutra=$sutra"       >> "$GITHUB_OUTPUT"
+          if echo "$CHANGED" | grep -Eq '^language-paper/(paper|SKILL)\.md$'; then
+            language=true
+          fi
+          echo "sutra=$sutra"         >> "$GITHUB_OUTPUT"
           echo "fly_brain=$fly_brain" >> "$GITHUB_OUTPUT"
+          echo "language=$language"   >> "$GITHUB_OUTPUT"
 
   submit:
     name: Submit ${{ matrix.paper_dir }}
     needs: detect-changed
-    if: needs.detect-changed.outputs.sutra == 'true' || needs.detect-changed.outputs.fly_brain == 'true'
+    if: needs.detect-changed.outputs.sutra == 'true' || needs.detect-changed.outputs.fly_brain == 'true' || needs.detect-changed.outputs.language == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -140,6 +158,10 @@ jobs:
             slug: fly_brain
             title: "Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome"
             tags: "programming-languages,vector-symbolic-architectures,connectomics,drosophila,sutra,fly-brain"
+          - paper_dir: language-paper
+            slug: language
+            title: "Sutra: A Control-Flow-Free Programming Language for Hyperdimensional Computing"
+            tags: "programming-languages,vector-symbolic-architectures,hyperdimensional-computing,compilers,sutra"
     steps:
       - name: Skip if this paper did not change
         id: should_run
@@ -153,6 +175,12 @@ jobs:
           fi
           if [ "${{ matrix.slug }}" = "fly_brain" ]; then
             if [ "${{ needs.detect-changed.outputs.fly_brain }}" != "true" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          if [ "${{ matrix.slug }}" = "language" ]; then
+            if [ "${{ needs.detect-changed.outputs.language }}" != "true" ]; then
               echo "skip=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
