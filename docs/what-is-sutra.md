@@ -76,6 +76,25 @@ The same compiled program is designed to run on different substrates without you
 
 Switching between these is a single setting, not a rewrite. The long-term target — out of scope for the current research papers but guiding the design — is living neurons and neuromorphic hardware whose wiring has been specified to match a connectome.
 
+## Sutra has no control flow
+
+This is the part that is worth stating flatly, because it takes a while to sink in:
+
+**Sutra has no `if`, no `else`, no `while`, no `for`, no `switch`, no jump, no return-address stack.** There are only two control primitives:
+
+- **`select`** — "which process should I apply to this?" — is a softmax-weighted blend of continuous options. All branches execute, the weights decide how much of each one ends up in the output, the trajectory never stops.
+- **`gate`** — "I am now in a different mode" — defuzzifies a condition and commits the trajectory to one regime or another. Used for loop exit and for crossing boundaries where continued fuzzy blending would be meaningless.
+
+Everything that a conventional language does with branches and jumps is absorbed into geometry. A conditional is a weighted sum. A loop is a rotation that keeps moving. A loop exit is a gate that opens on a trajectory state, not a predicate that stops the flow.
+
+The consequences are the reason it matters:
+
+- **GPU-native and connectionist-native.** Everything is a matmul, a sum, or a cosine. No branch predictor, no divergent warps, no call stack — which is exactly the shape a GPU or a spiking neural circuit wants.
+- **End-to-end differentiable.** The operations that normally break backpropagation (discrete branches, `if` predicates, `while` condition tests) are not in the language. A Sutra program minus the final defuzzification step is a composition of differentiable operations, which means gradients flow through an entire program the way they do through a neural network layer — an unusual property for a programming language to have.
+- **Decompilable in principle.** Because the primitives are geometric rather than symbolic, a trained connectionist system can in principle be characterized as a specific composition of Sutra primitives. This is an interpretability story, not a universal claim, but it is a story no conventional programming language can tell about a neural network.
+
+This is also the cost: Sutra is not a portable general-purpose language. You do not write a web server in it, or a GUI event loop, or a filesystem walker. What you write in it is a narrow, substrate-resident program — a conditional, a pattern lookup, a bounded trajectory — running natively on whichever connectionist substrate you are compiling for.
+
 ## Why bother?
 
 Three things fall out of designing a language this way:
