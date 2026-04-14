@@ -67,6 +67,8 @@ Direct EPG-to-EPG synapses are sparse in FlyWire v783; the biological ring-attra
 
 **We retract the prior eigenrotation-on-connectome claim.** Implementing `loop (condition)` on the broader Δ7+PEN+EPG+R subnetwork is a research-scope program (stimulate EPGs via PEN inputs, let Δ7 inhibition shape the dynamics, read bump position over time) that we are actively pursuing but do not report as a current result.
 
+**Isolated small loops are not graph-present in real W.** A strongly-connected-component analysis of the 138,639² signed W (`fly-brain/shiu_scc_search.py`) finds 2,624 SCCs — one giant component of 135,403 neurons containing the CX, MB, AL, and inter-region recurrence, and only 5 SCCs in the 10–500 size range that might serve as isolated loop substrates. All 5 small SCCs are R1-6 photoreceptor modules in the optic lobe, with no EPG / Δ7 / PEN / ER membership. The CX ring-attractor components are all inside the giant SCC, which means their closed-loop dynamics compete at run-time with feedback from the whole rest of the connectome — a structural explanation of why direct EPG drive did not sustain a bump. Isolable loops for Sutra `loop (condition)` must therefore be identified *within* the giant SCC by dynamics-aware metrics (community detection, effective time-constant separation), not by graph SCC alone. Full analysis: `planning/findings/2026-04-13-shiu-scc-search.md`.
+
 ## Language Primitives vs Substrate Boundedness
 
 Two claims need to be cleanly separated, because conflating them is what drives most of the skepticism around connectionist "general-purpose computation" results.
