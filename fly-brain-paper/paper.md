@@ -64,7 +64,17 @@ At the k-sweep k ∈ {1, 2, 3, 5, 8, 12} × 5 seeds (`loop_140D_spiking_cosine_k
 |---|---|---|---|---|---|---|
 | PASS | 5/5 | 5/5 | 4/5 | 0/5 | 0/5 | 0/5 |
 
-**Total: 14/30.** The substrate has a practical k-ceiling around 3. Poisson decode noise accumulates multiplicatively across iterations — after k≈4 steps the noise floor exceeds the cosine separation to the target prototype, and argmax stops landing on the target (`planning/findings/2026-04-13-140D-spiking-cosine-ksweep-14-of-30.md`). Longer SIM_MS would raise the ceiling at proportional wall-clock cost; not measured here.
+**Total: 14/30 at SIM_MS=3000ms.** The substrate has a practical k-ceiling around 3 *at this integration window*. Poisson decode noise accumulates multiplicatively across iterations — after k≈4 steps the noise floor exceeds the cosine separation to the target prototype, and argmax stops landing on the target (`planning/findings/2026-04-13-140D-spiking-cosine-ksweep-14-of-30.md`).
+
+The ceiling is not structural: it moves with SIM_MS. Extending the Brian2 window to 6000 ms and 12000 ms (`loop_140D_spiking_cosine_simms_sweep.py`, n=3 seeds per cell):
+
+| SIM_MS | k=3 | k=5 | k=8 |
+|---|---|---|---|
+| 3000 ms | 2/3 | 0/3 | 0/3 |
+| 6000 ms | 3/3 | 3/3 | 1/3 |
+| 12000 ms | 3/3 | 3/3 | 2/3 |
+
+Doubling SIM_MS lifts k=5 from 0/3 to 3/3; quadrupling lifts k=8 from 0/3 to 2/3. The failure modes also change shape — at 3000 ms k=8 errors collapse to the low-k noise floor (argmax ∈ {1,2,4}); at 12000 ms the single k=8 failure undershoots to k=6, a near-miss that is the signature of SNR-limited discrimination between adjacent trajectory peaks rather than representational failure. Consistent with Poisson √SIM_MS SNR scaling (`planning/findings/2026-04-13-140D-spiking-cosine-simms-sweep.md`). Pipeline A trades wall-clock for reachable k linearly; the 14/30 number is a budget, not a structural indictment.
 
 ### Pipeline B: MB-Jaccard readout (numpy rotation + real hemibrain MB)
 
