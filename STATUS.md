@@ -15,13 +15,7 @@ safety banner.
 
 ## Queued work (do in order)
 
-1. **Test conditional branching on the Shiu substrate.** §Result 1's
-   560/560 result is on the small hemibrain MB (140 PN → 1,882 KC).
-   Rerun the fuzzy-weighted-superposition conditional on the real
-   138,639-neuron Shiu LIF with real FlyWire v783 W. If it works,
-   that's a substantial paper upgrade (conditional branching on real
-   whole-brain connectome). If it doesn't, finding + caveat in paper.
-2. **SutraDB SCC search for loop substrates.** Run strongly-connected-
+1. **SutraDB SCC search for loop substrates.** Run strongly-connected-
    component analysis on the Shiu W (signed sparse 138,639²) via
    SutraDB graph query or scipy.sparse.csgraph. Filter by size
    (10–500), edge-weight uniformity, low external in-degree. Cross-
