@@ -80,6 +80,27 @@ safety banner.
   and `sutraDB/TODO.md` are consolidated in; do not recreate them.
   STATUS = now-work, todo = long-term agenda.
 
+## Under reassessment: is the fly-brain substrate holding us back?
+
+Forcing every Sutra operation onto the Shiu / FlyWire substrate may be
+costing more than it's worth. The recent results fit a pattern — bundle
+and snap work, rotation doesn't loop, bind role-discrimination fails,
+conditional branching is gated by random-codebook collisions on a
+specific seed — and each negative is defensible individually but the
+aggregate is starting to look like "we keep hitting limits of this
+particular anatomy" rather than "we're characterizing a general
+computational substrate." A more general connectionist-computing
+framing (substrate = any compiled population with arbitrary
+connectivity, fly-brain as one instance among several) may be the
+better story for both papers and for the YC pitch. User has more to
+say on this — flagging here so the thread is visible, not kicking off
+any work yet.
+
+Related: `planning/open-questions/project-kind-connectome-vs-embedding.md`
+already proposes splitting the target axis at the manifest level; the
+reassessment here is whether "connectome" should even be the default
+target or whether general-connectionist should subsume it.
+
 ## Pointers
 
 - Formal Sutra grammar (EBNF): `planning/sutra-spec/grammar.md`.
