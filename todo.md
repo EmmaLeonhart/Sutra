@@ -344,6 +344,18 @@ sections moved to `DEVLOG.md` under the 2026-04-13 entry on
 
 ## [Pre-YC] Future Goals
 
+- **Split project kinds: connectome-target vs embedding-space-target.**
+  A Sutra project compiles to one of two qualitatively different
+  substrates — initial nerve state on a fixed W (connectome, biological,
+  spatial-in-hardware) or trajectories over a learned manifold
+  (embedding space, commodity-hardware, spatial-in-semantics). Tooling
+  doesn't yet make the choice explicit; there's no `sutra-project.toml`,
+  no `sutra new --target ...`, and no IDE "new project" flow. Design
+  doc: `planning/open-questions/project-kind-connectome-vs-embedding.md`.
+  Unblocks the YC demo (which cannot run on a connectome) and cleans up
+  the todo/stdlib/examples split that's currently implicit. Do this
+  **before the YC pitch** — likely the single largest piece of
+  YC-shaped work in this file.
 - Get Sutra running on normal hardware first (substrate = a
   vector-space simulator on a laptop rather than Brian2). The bar
   is "all operations from `02-operations.md` run on commodity
