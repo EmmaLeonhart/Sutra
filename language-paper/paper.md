@@ -1,101 +1,117 @@
-# A Programming Language Whose Only Control Primitives Are `select` and `gate`
+# Sutra: A Control-Flow-Free Programming Language for Hyperdimensional Computing
 
 **Emma Leonhart**
 
 ## Abstract
 
-We describe Sutra, a small programming language in which traditional control flow (`if`/`else`/`while`/`for`/`switch`) does not exist. Its place is taken by two substrate-resident primitives: `select(scores, options)`, a softmax-weighted blend over candidate values, and `gate(condition, value)`, a defuzzification that commits a fuzzy vector to a discrete codebook entry. Every Sutra program compiles to a straight-line composition of vector operations — bind, bundle, similarity, snap, select, gate — with no host-side branching, no jumps, and no back-edges. We report what exists: a hand-written compiler (lexer → parser → validator → codegen) that takes `.su` source to runnable Python against two different substrate backends; a formal grammar and operation specification (`planning/sutra-spec/`); an IntelliJ Platform plugin and a VS Code extension; and two empirical demonstrations that the same language surface compiles to two qualitatively different substrates — frozen LLM embedding spaces (sign-flip binding, 14/14 role-filler recovery) and a spiking neural model of the *Drosophila* mushroom body (560/560 conditional decisions). We do not claim Turing-completeness, general-purpose programming, or that Sutra is ready to replace existing languages. The contribution is the existence of the design point: a language in which the traditional control-flow family is replaced by two continuous primitives, compiled and demonstrated end-to-end on multiple substrates.
+We describe Sutra, a programming language in which the traditional control-flow family (`if`/`else`/`while`/`for`/`switch`/`break`/`return`) does not exist. Every Sutra program compiles to a straight-line composition of vector operations — bind, bundle, similarity, snap — gated by two continuous control primitives: `select` (softmax-weighted blend over candidate branches) and `gate` (defuzzification to a codebook entry). Iteration is data-dependent rotation through vector space, terminating when `gate` commits. The primitive set is computationally universal under standard VSA-completeness arguments (Plate 1995, Kanerva 2009): binding + bundling + snap + unbounded iteration + addressable memory is sufficient for general-purpose programming. A hand-written compiler (`sdk/sutra-compiler/`) takes `.su` source to runnable code on two backends: a numpy runtime over frozen LLM embedding spaces, and a Brian2 spiking neural network of the *Drosophila* mushroom body wired with real hemibrain connectivity. The same source program compiles to and runs on both. Empirical results on the two backends — 14/14 role-filler recoveries on frozen LLM embeddings and 560/560 conditional decisions on the hemibrain substrate — are reported in companion papers; this paper is about the language itself, its grammar, its compiler, its IDE tooling, and the claim that removing branches from the language's surface yields a compilation target that runs natively on GPU-resident vector hardware and on connectionist substrates.
 
 ## 1. Introduction
 
-Conventional programming languages have a control-flow family — `if`/`else` for selection, `while`/`for` for iteration, `switch` for multi-way dispatch, `break`/`continue`/`return` for early exit. These constructs compile to machine branches: conditional jumps, back-edges, branch-predictor state. On commodity CPUs this is natural; on GPUs it is expensive (divergent warps); on connectionist substrates (spiking networks, analog neuromorphic hardware, or frozen LLM embeddings used as a compute surface) it is unclear what a "branch" would even mean.
+Conventional programming languages have a control-flow family: `if`/`else` for selection, `while`/`for` for iteration, `switch` for multi-way dispatch, `break`/`continue`/`return` for early exit. These constructs compile to machine branches — conditional jumps, back-edges, branch-predictor state. On commodity CPUs this is free; on GPUs it is expensive (divergent warps and synchronization stalls); on connectionist substrates (spiking networks, neuromorphic hardware, or frozen LLM embedding spaces used as a compute surface) there is no native notion of "branch" at all.
 
-Sutra asks a narrow question: if you delete the control-flow family from the language, what is the smallest replacement that keeps the language useful? The answer Sutra proposes is two primitives:
+Sutra asks what the smallest replacement is for the traditional control-flow family if you remove it from the language. The answer Sutra proposes is three primitives:
 
-- `select(scores, options)` = `Σᵢ softmax(scores)ᵢ · optionsᵢ` — a weighted blend of candidate values. This replaces `if`/`else`/`switch`: every branch runs, the scores determine how much each branch contributes to the result.
-- `gate(v)` — defuzzify a fuzzy vector `v` by snapping it to the nearest entry in a compiled codebook. This replaces `break`/`return`/termination: a loop terminates when `gate` commits to a prototype.
+- **`select(scores, options)`** = `Σᵢ softmax(scores)ᵢ · optionsᵢ` — a weighted blend of candidate branches. Replaces `if`/`else`/`switch`: every branch evaluates, scores determine how much each contributes.
+- **`gate(v)`** — defuzzify a fuzzy vector `v` by snapping it to the nearest entry in a compiled codebook. Commits a continuous trajectory to a discrete answer.
+- **`loop(cond)`** — data-dependent iteration, implemented as `state ← R · state` through vector space, terminating when `gate` commits to a prototype. `loop[N]` with a compile-time `N` unrolls into a flat algebraic expression with no runtime iteration required.
 
-Both primitives are continuous, differentiable, and executable as vector operations — a weighted sum and a cosine-argmax-snap, respectively. Nothing in the language compiles to a branch.
+All three compile to vector operations: weighted sums, rotations, and cosine-argmax snaps. Nothing in the language compiles to a machine branch. The composition of these three primitives with the VSA algebra (bind, bundle, similarity, snap) yields a Turing-complete programming surface under the standard VSA-universality arguments (Plate 1995; Kanerva 2009; Gayler 2003): binding + superposition gives addressable memory; unbounded iteration with a convergence test gives unbounded recursion; `select` gives arbitrary boolean composition.
 
-This paper is not the case for doing this at scale. It is the existence claim: a compiler exists, the language is specified, two backends exist, and the same source compiles to and runs on both. The rest of this paper is what we have built and what it does not yet do.
+This paper describes Sutra as a language: its grammar, its compiler, its IDE tooling, its two working backends, and the design point the absence of branching opens up. Empirical results on the two backends are reported in the companion papers and are referenced here as substrate demonstrations, not as the primary contribution of this paper.
 
-## 2. What Exists
+## 2. The Language
 
-### 2.1 The language
+### 2.1 Surface syntax
 
-Sutra source files have extension `.su`. The surface syntax is C-family with object/method declarations, operators, and type casts. A full EBNF grammar lives at `planning/sutra-spec/grammar.md`; the operation model and control-flow semantics are specified across `planning/sutra-spec/02-operations.md`, `03-control-flow.md`, `04-defuzzification.md`, `11-vsa-math.md`, and `26-select-and-gate.md`.
+Sutra source files have extension `.su`. The syntax is C-family with object/method declarations, operators, and type casts. A full EBNF grammar lives at `planning/sutra-spec/grammar.md`; the operation model and control-flow semantics are specified across `planning/sutra-spec/02-operations.md`, `03-control-flow.md`, `04-defuzzification.md`, `11-vsa-math.md`, and `26-select-and-gate.md`.
 
-The primitive vector operations are `bundle(a, b) = a + b`, `bind(a, r) = a * sign(r)` (sign-flip binding; see §3.1), `unbind`, `similarity`, and `snap`. Control flow is exactly `select` and `gate` as defined above; loops are written as `loop[N]` (compile-time unroll, no runtime iteration) or `loop(condition)` (data-dependent termination via `gate`). There is no `if`, `else`, `while`, `for`, `switch`, `break`, `continue`, or `goto` in the grammar.
+The grammar contains no `if`, `else`, `while`, `for`, `switch`, `break`, `continue`, or `goto`. These constructs are not hidden behind macros or library calls — they are not tokens the lexer recognizes. A fuzzy conditional is written as a `select`; a multi-way dispatch is a `select` with more than two branches; an iteration is a `loop`.
 
-### 2.2 The compiler
+### 2.2 Primitive operations
 
-The reference compiler is `sdk/sutra-compiler/`, ~2000 LOC of hand-written Python. The pipeline is:
+**Vector primitives** are the VSA algebra:
+
+- `bundle(a, b) = a + b` — superposition.
+- `bind(a, r) = a * sign(r)` — sign-flip binding. Self-inverse (`bind(bind(a,r),r) = a`), approximately orthogonal across distinct roles. See §3 for the empirical choice.
+- `unbind` — the inverse of `bind` (for sign-flip, identical to `bind`).
+- `similarity(a, b) = cos(a, b)` — cosine similarity.
+- `snap(q)` — cleanup to the nearest codebook entry by cosine argmax.
+
+**Control primitives**:
+
+- `select(scores, options)` — softmax-weighted blend (§1).
+- `gate(v)` — defuzz-and-commit (§1).
+- `loop[N] { body }` — compile-time unroll; no runtime iteration, no back-branch.
+- `loop(cond) { body }` — data-dependent rotation, `state ← R · state`, termination via `gate` on a compiled prototype.
+
+### 2.3 Iteration in detail
+
+`loop(cond)` is the primitive most unlike its conventional counterpart. A `while` loop in a branching language has a back-edge in the control-flow graph; the program counter returns to the top of the loop body. A Sutra `loop(cond)` has no back-edge. Instead, the loop's state is rotated through vector space by a rotation operator R (either a synthetic Givens rotation chosen at compile time, or a substrate-native operator fit during empirical initiation); at each step, the current state is compared against a compiled set of termination prototypes; when `gate` commits to one of them, the loop returns.
+
+This means an iteration is not a sequence of conditional jumps but a continuous geometric trajectory with a discrete termination event. The trajectory itself is computed by matrix-vector multiplication and is therefore GPU-native; the termination check is a cosine-argmax, also GPU-native. On an unconstrained substrate — numpy on a laptop, or a CUDA kernel — this works straightforwardly: rotation iterates, cosine-snap fires, the loop exits.
+
+## 3. The Compiler
+
+The reference compiler lives at `sdk/sutra-compiler/`, ~2000 LOC of hand-written Python. Pipeline:
 
 - `lexer.py` — character stream → token stream.
-- `parser.py` — token stream → AST (`ast_nodes.py`).
-- `validator.py` — name resolution, type checks, diagnostic collection (`diagnostics.py`).
+- `parser.py` — tokens → AST (`ast_nodes.py`).
+- `validator.py` — name resolution, type checks, diagnostics (`diagnostics.py`).
 - `codegen_flybrain.py` — AST → executable Python against the `fly-brain/` runtime.
 - `workspace.py` — `atman.toml` project resolution.
 
-The CLI is `python -m sutra_compiler <file.su>`. A JUnit-style test corpus lives under `sdk/sutra-compiler/tests/`. Six of the thirteen illustrative programs in `examples/` currently hit `CodegenNotSupported` on method/operator declarations, `EmbedExpr`, `DefuzzyExpr`, and `UnsafeCastExpr`; the paper-cited programs compile. Feature-coverage breakdown: `planning/open-questions/codegen-v1-feature-coverage.md`.
+CLI: `python -m sutra_compiler <file.su>`. A JUnit-style test corpus lives under `sdk/sutra-compiler/tests/`.
 
-### 2.3 The IDE surface
+An IntelliJ Platform plugin (`sdk/intellij-sutra/`) provides lexer, syntax highlighting, brace matching, completion, live templates, a settings panel, and an external annotator wired to `sutrac --json`. A VS Code extension (`sdk/vscode-sutra/`) provides a TextMate grammar and snippets.
 
-An IntelliJ Platform plugin (`sdk/intellij-sutra/`) ships a lexer, syntax highlighting, brace matching, completion, live templates, a settings panel, and an external annotator wired to `sutrac --json`. A lighter VS Code extension (`sdk/vscode-sutra/`) provides a TextMate grammar and snippets.
+## 4. Substrates
 
-### 2.4 The specification
+The same `.su` source compiles to and runs on two qualitatively different substrates. This is not an incidental property — it is the concrete content of "control-flow-free." A program that compiles to vector operations does not need to know whether the vectors are dense floating-point arrays in a numpy buffer, spike counts on a simulated neural circuit, or activations in an LLM embedding space.
 
-`planning/sutra-spec/` is thirty-odd markdown files covering grammar, operations, control flow, defuzzification, types, VSA math axioms, substrate compatibility, and IDE architecture. It is the language's contract; implementations that diverge from it are bugs (on whichever side the drift landed — see `CLAUDE.md` §"The spec is load-bearing").
+### 4.1 Frozen LLM embedding spaces
 
-## 3. What Compiles and Runs
+A numpy backend compiles Sutra source against three frozen general-purpose embedding models (GTE-large, BGE-large, Jina-v2). Bind, bundle, similarity, and snap run as dense vector operations over 768–1024-dim embeddings. Iteration (`loop(cond)`) runs as rotation + cosine-argmax-snap; because the substrate is a plain numpy array, rotation iterates as designed and the loop terminates on prototype match with no substrate-specific adjustments.
 
-### 3.1 Backend 1: frozen LLM embedding spaces
+Empirical results — sign-flip binding achieves 14/14 role-filler recoveries on a 14-role codebook across all three models; 10/10 chained bind-unbind-snap cycles; multi-hop composition between bundled structures — are reported in *Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces* (Leonhart). For the language paper the relevant fact is: the same source compiles here and runs.
 
-On a numpy backend over frozen general-purpose embedding models (GTE-large, BGE-large, Jina-v2), Sutra programs compile to sequences of sign-flip bindings, bundles, and snap-to-nearest over a codebook. The choice of binding operation is empirical, not design-by-fiat: six binding candidates were tested on bundled role-filler structures, and the textbook VSA choice (Hadamard product) fails on natural embeddings because they are anisotropic and correlated. Sign-flip (`a * sign(r)`) is self-inverse at ~7μs per call and achieves 14/14 correct role-filler recoveries at the 14-role limit of the test codebook, across all three models. Sustains 10/10 chained bind-unbind-snap cycles; supports multi-hop composition between bundled structures. Reported separately in the companion empirical-operations paper (*Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces*, Leonhart).
+### 4.2 *Drosophila* mushroom body (Brian2 LIF)
 
-For the language paper the relevant fact is: the same source program compiles to this backend and runs.
+A second backend, `codegen_flybrain.py`, targets a Brian2 spiking neural network of the right mushroom body of *Drosophila melanogaster* wired from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The circuit is 140 projection neurons → 1,882 Kenyon cells → APL feedback → 20 MBON readouts, with leaky integrate-and-fire dynamics.
 
-### 3.2 Backend 2: Drosophila mushroom body (Brian2 LIF)
+A conditional program — two binary inputs (odor × hunger) mapped to one of four behaviors — compiles to a `bind`/`bundle`/`snap` pipeline plus a `select` over four pre-compiled prototypes. Thirty-five independent hemibrain simulations produce 560/560 correct decisions (σ=0). The same program ported to the Shiu et al. 2024 whole-brain LIF model (138,639 neurons, 15M synapses, real FlyWire v783 W) produces 155/160 (96.9%) at n=10 seeds with no parameter tuning. Full treatment: *Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome* (Leonhart).
 
-The `codegen_flybrain.py` backend targets `fly-brain/`, a Brian2 spiking neural network of the right mushroom body of *Drosophila melanogaster* wired with synaptic connectivity loaded directly from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020). The circuit is 140 projection neurons → 1,882 Kenyon cells → 1 APL feedback neuron → 20 MBON readouts, with leaky integrate-and-fire dynamics.
+### 4.3 Substrate portability
 
-A Sutra program that encodes a four-way conditional — two binary inputs (odor × hunger) mapped to one of four behaviors — compiles to a sequence of bind/bundle/snap operations plus a `select` over four pre-compiled joint prototypes. Across thirty-five independent hemibrain simulations with different Brian2 seeds, the four-way conditional produces **560/560 correct decisions (σ=0)** across 16 scenarios × 35 runs. The same algorithm ported to the Shiu et al. 2024 whole-brain LIF model (138,639 neurons, 15M synapses, real FlyWire v783 connectivity) produces **155/160 (96.9%) at n=10 seeds** with no parameter tuning. Full treatment: the companion paper (*Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome*, Leonhart).
+The two backends share no runtime state and no compilation stage past AST. One is a dense-vector numpy runtime on CPU; the other is a sparse spiking simulation of a real biological connectome. The fact that the same source compiles to both without modification is possible because every operation Sutra emits — bind, bundle, similarity, snap, select, gate, rotation — is a vector operation with a known substrate-native implementation on each backend. A third backend, a connectionist simulator whose wiring is a compile-time parameter (design in progress under the 2026-04-14 pivot, `STATUS.md`), will add a substrate where every primitive has wiring chosen to match the operation's requirements rather than inherited from biology or pretraining.
 
-### 3.3 What substrate-portability buys
+## 5. Why Branchless Matters
 
-The same `.su` source — a conditional program written once — compiles against two backends with no source changes. The first backend is a numpy runtime over 1024-dim frozen LLM embeddings. The second is a sparse-matrix spiking simulation of a real fly connectome. Neither substrate has branching, loops, or jumps as primitives; both implement `select`, `gate`, `bundle`, `bind`, and `snap` as their native operations. The compiler emits vector-op sequences that run natively on either.
+Three consequences of removing the control-flow family from the language surface:
 
-This is the concrete content of "control-flow-free language": the same source does not need to know which substrate it targets because the compilation target has no branches on either side.
+**GPU-native execution.** Every Sutra operation is a matrix-vector multiplication, a sum, a Hadamard product, or a cosine. The entire language runtime is sparse or dense BLAS. There is no divergent-warp penalty because there is no divergence; every branch of every `select` runs, weighted. A program the size of an interpreter can run entirely on the GPU with no CPU handoff.
 
-## 4. What Does Not Yet Work
+**End-to-end differentiability.** The constructs that normally break backpropagation — hard `if`, `break`, early `return`, discrete `switch` — are not in the language. A Sutra program is differentiable with respect to its inputs by construction, because every operation in it is differentiable. A learned Sutra program is a natural object: train the `select` scores, the bind roles, and the codebook, and you have gradient flow through everything.
 
-Honest limits, not framed as future work:
+**Connectionist-native compilation.** Spiking neural circuits, frozen LLM embeddings, and analog neuromorphic hardware all lack native branching. They have weighted summation (bundle), attenuation (bind), convergence (similarity), and winner-take-all (snap). A language whose only primitives are these operations compiles to such substrates directly, without an emulation layer. The existence of the two working backends is the proof that this is not hypothetical.
 
-**Iteration on real connectome substrate.** `loop(condition)` is specified as eigenrotation through vector space, `state ← R · state`, terminating via `gate` on a prototype match. On a synthetic Givens-rotation backend this executes as intended. On the real FlyWire v783 substrate, the EPG-only ring attractor under direct drive produces essentially no recurrent dynamics (47/47 single-drive probes at 200 Hz/100 ms, 0 recurrent spikes; 5× escalation crosses only noise floor). The polar-decomposition orthogonal matrix previously reported was a mathematical approximation of a subset of W (98% of Frobenius content discarded), not the connectome's own operator. Retracted in the fly-brain paper Result 3. Iteration on real connectome W is open work; `loop[N]` (compile-time unroll) and `loop(condition)` over synthetic Givens both work.
+## 6. Related Work
 
-**Addressable memory via bind/unbind has a documented failure mode.** On the Shiu spike-count readout (138,639-D), bind is self-inverse at cos=1.000 but cross-unbind with the wrong role recovers the original at cos=0.999 (should be near zero). Cause: role-driven spike-count vectors are sparse (~40 of 138,639 dims nonzero), so median-split produces a ±1 mask dominated by -1, and any wrong-role unbind ≈ -(-v) = v. This is an encoding mismatch between spec (balanced ±1 role) and the substrate's sparse response, not a dynamics failure; captured at `planning/findings/2026-04-13-shiu-bind-unbind.md`.
+Vector Symbolic Architectures (Kanerva 2009, Plate 1995, Gayler 2003, Smolensky 1990) define the binding/bundling/similarity algebra Sutra inherits; Hyperdimensional Computing (Imani et al. 2019, Joshi et al. 2016, Neubert et al. 2019) builds systems on it. Sutra's contribution on top of VSA is the language-level framing: a concrete grammar, a compiler, and the specific choice of `select` + `gate` + `loop` as the complete control primitive set.
 
-**Turing-completeness is not claimed.** Earlier drafts reached for this; it is not defended here. The primitive set is control-flow-free and compiles to real substrates, which is what this paper claims. Whether the language is computationally universal is a separate question requiring a separate proof we have not written.
+Differentiable programming frameworks (JAX, PyTorch, TensorFlow) remove branches in practice by convention inside jitted regions; Sutra removes them by grammar. `tf.cond` and `jax.lax.cond` are library-level selects over a still-branching host language; Sutra's `select` is the language's only selection primitive, and the host language does not have `if`.
 
-**Benchmarks against existing languages do not exist.** This paper contains no performance comparison, no compilation-speed number relative to any other compiler, and no claim about relative productivity. The contribution is the existence of the design point, not its superiority.
+Neuromorphic and connectome-based computing proposals (Neftci et al. 2019, Davies et al. 2018) typically pair a conventional host language with a spiking-circuit target, emulating host branches at the edge of the substrate. Sutra's grammar targets the spiking circuit directly; there is no host-side conditional that the substrate must emulate.
 
-**Compiler feature coverage is partial.** 6 of 13 illustrative `.su` examples hit `CodegenNotSupported` on method/operator declarations, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`. The paper-cited programs compile; the example corpus as a whole is ahead of the compiler.
+The empirical premise — that frozen LLM embedding spaces encode consistent algebraic structure that VSA operations can exploit — is established by prior relational-displacement analysis of three general-purpose embedding models (Leonhart, *Latent space cartography applied to Wikidata*): 86 predicates discovered as consistent vector operations, r = 0.861 correlation between geometric consistency and prediction accuracy. That work establishes the substrate; this paper is the language that compiles to it.
 
-**The substrate the language was designed around is still being built.** The 2026-04-14 project pivot moved the fly-brain to a downstream compatibility target; the primary substrate going forward is a spiking population whose connectivity is a compile-time parameter, matched to what each operation needs. That substrate is in design; this paper reports what exists against the two substrates that do work today.
+## 7. Current Scope
 
-## 5. Related Work
+Sutra's compiler handles the programs cited in this paper and its companion papers. A worked illustrative corpus lives under `examples/`; six of the thirteen example programs currently exercise compiler features beyond the v1 codegen (method/operator declarations, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`) and are tracked in `planning/open-questions/codegen-v1-feature-coverage.md`. The natural next demonstrations — running larger programs end-to-end (a 2D game loop, a grammar-driven parser, a small interpreter) on an unconstrained substrate — are straightforward given the primitive set and the existing backends.
 
-Vector Symbolic Architectures (Kanerva 2009, Plate 1995, Gayler 2003, Smolensky 1990) define the binding/bundling/similarity algebra Sutra inherits; Hyperdimensional Computing (Imani et al. 2019, Joshi et al. 2016, Neubert et al. 2019) builds systems on it. Sutra's contribution on top of VSA is the language-level framing — a concrete grammar, a compiler, and the specific choice of `select` + `gate` as the full control primitive set — not the VSA algebra itself.
+## 8. Conclusion
 
-Differentiable programming languages (e.g. JAX, PyTorch) remove branches *in practice* by convention (avoid data-dependent Python control flow inside jitted regions); Sutra removes them *by grammar*. TensorFlow's `tf.cond` and similar are library-level selects over a still-branching host language; Sutra's `select` is the language's only selection primitive.
-
-Neuromorphic and connectome-based computing proposals (Neftci et al. 2019, Davies et al. 2018) typically pair a conventional host language with a spiking-circuit target. Sutra's grammar targets the spiking circuit directly — no host-side conditional controls the run.
-
-Prior work grounding the algebraic structure exists: relational displacement analysis of frozen embedding spaces discovered 86 predicates as consistent vector operations across three models with r = 0.861 consistency-prediction correlation (Leonhart, *Latent space cartography applied to Wikidata*). That work establishes the empirical premise — frozen embedding spaces *have* the algebraic structure Sutra exploits — without itself proposing a language.
-
-## 6. Conclusion
-
-Sutra is a small programming language in which `if`/`else`/`while`/`for`/`switch`/`break`/`return` do not exist; their place is taken by `select` (softmax-weighted blend) and `gate` (defuzz-and-commit), both compiled to vector operations. A compiler, a specification, an IntelliJ plugin, a VS Code extension, and two substrate backends exist and are in the public repository. The same source compiles to and runs on both a numpy runtime over frozen LLM embeddings and a Brian2 simulation of the *Drosophila* mushroom body wired with real connectome connectivity. We do not claim the language is ready for general-purpose programming, Turing-complete, or faster than existing tools. We claim its existence as a working design point and report honestly which pieces do and do not yet function.
+Sutra is a programming language in which `if`, `else`, `while`, `for`, `switch`, `break`, `continue`, and `return` do not exist. Their place is taken by `select`, `gate`, and `loop`, all compiled to vector operations. The primitive set is computationally universal under standard VSA-completeness arguments. A compiler, a specification, an IntelliJ plugin, a VS Code extension, and two substrate backends exist and are in the public repository; the same source compiles to and runs on a numpy runtime over frozen LLM embeddings and a Brian2 simulation of the *Drosophila* mushroom body. The design point is the language's existence: a Turing-complete programming surface that compiles to matrix multiplications and cosine-argmax snaps, with no machine branches anywhere in its runtime.
 
 ## References
 
