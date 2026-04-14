@@ -15,11 +15,7 @@ safety banner.
 
 ## Queued work (do in order)
 
-1. **n=50 evaluation.** Rerun one or more headline results at n=50
-   seeds to kill the "n=5 is too small" reviewer thread. Candidates:
-   140-D Jaccard loop, target-k sweep, fuzzy conditional, substrate-only
-   v2. A fuzzy-conditional n=50 run is currently in progress this session.
-2. **Pong with GUI.** `fly-brain/pong_brain.py` is a 326-line scaffold.
+1. **Pong with GUI.** `fly-brain/pong_brain.py` is a 326-line scaffold.
    Stretch goal.
 
 Each queue item lands as **one commit** that both removes it here and
