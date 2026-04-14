@@ -142,3 +142,4 @@ Scheffer, L. K., et al. (2020). A connectome and analysis of the adult Drosophil
 Shiu, P. K., et al. (2024). A Drosophila computational brain model reveals sensorimotor processing. Nature.
 
 Smolensky, P. (1990). Tensor product variable binding and the representation of symbolic structures in connectionist systems. Artificial Intelligence.
+
