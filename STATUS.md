@@ -80,26 +80,27 @@ safety banner.
   and `sutraDB/TODO.md` are consolidated in; do not recreate them.
   STATUS = now-work, todo = long-term agenda.
 
-## Under reassessment: is the fly-brain substrate holding us back?
+## Pivot (2026-04-14): build our own connectionist computer, treat fly-brain as a downstream target
 
-Forcing every Sutra operation onto the Shiu / FlyWire substrate may be
-costing more than it's worth. The recent results fit a pattern — bundle
-and snap work, rotation doesn't loop, bind role-discrimination fails,
-conditional branching is gated by random-codebook collisions on a
-specific seed — and each negative is defensible individually but the
-aggregate is starting to look like "we keep hitting limits of this
-particular anatomy" rather than "we're characterizing a general
-computational substrate." A more general connectionist-computing
-framing (substrate = any compiled population with arbitrary
-connectivity, fly-brain as one instance among several) may be the
-better story for both papers and for the YC pitch. User has more to
-say on this — flagging here so the thread is visible, not kicking off
-any work yet.
+Decision after a hard look at the project state with the user:
 
-Related: `planning/open-questions/project-kind-connectome-vs-embedding.md`
-already proposes splitting the target axis at the manifest level; the
-reassessment here is whether "connectome" should even be the default
-target or whether general-connectionist should subsume it.
+**The fly-brain was the wrong primary substrate.** It is an *edge-computing* problem — a fixed anatomy with non-negotiable wiring — and we were attempting it before establishing what the operations even look like on an *ideal* substrate. The negative results we kept hitting (rotation doesn't loop on EPG-only W, bind doesn't role-discriminate, conditional branching gated by random-seed codebook collisions) read in retrospect as "this particular anatomy is restrictive," not "VSA on connectomes doesn't work." We could not tell those apart because we did not have an unconstrained substrate to compare against.
+
+**The new primary substrate: a connectionist computer of our own design.** A spiking population (LIF or similar) where we choose the connectivity to match what each Sutra operation needs. This is still connectionist (still no traditional control flow, still substrate-resident operations, still GPU-runnable as sparse matmuls), but the wiring is a *parameter*, not a constraint. If sign-flip binding needs a particular topology to discriminate roles, we wire it that way. If `loop (cond)` needs a working ring attractor, we instantiate a Δ7+PEN+EPG+R-equivalent without arguing about whether FlyWire's actual EPG slice rings.
+
+**Fly-brain becomes a downstream target, not the primary one.** Once we know what an operation needs in an ideal substrate, mapping that requirement onto the fly connectome is a separate (interesting, possibly hard, possibly impossible) compatibility question. "Run Sutra on a fly brain" is then the same kind of claim as "run C on a 6502" — empirical, scoped, and not load-bearing for the language. The fly-brain failures we've collected are useful data for that mapping, not refutations of the language.
+
+**What the language actually is.** Sutra is a control-flow-free programming language whose programs compile to substrate-resident vector operations: bind, bundle, similarity, snap, plus `select` (softmax-weighted blend) and `gate` (defuzz + commit) as the only control primitives. With the substrate under our control, this is plausibly *Turing-complete on a GPU with no CPU branching* — every primitive is a matmul, sum, or cosine. That is a defensible technical claim, distinct from the AGI/fly-brain framing that has been overclaimed. Whether it's *novel* (people have built control-flow-free GPU compute before) is a literature question we haven't audited yet.
+
+**Concrete consequences:**
+
+1. The paper currently in `sutra-paper/` has been retitled and trimmed to its actual contribution: an empirical characterization of which VSA operations work on frozen LLM embeddings (sign-flip binding 14/14, etc.). It is not the language paper. It is the embedding-operations paper. Any future "language paper" should be written separately, against the connectionist-computer-of-our-own-design substrate, once that substrate exists.
+2. `fly-brain-paper/` should be similarly trimmed to what it can defend honestly — bundle + snap + conditional-branching on real FlyWire W — and stop reaching for "Sutra on a connectome." Edits not yet made; flagged.
+3. Forcing operations onto Shiu (the policy in CLAUDE.md "The real substrate is the Shiu whole-brain LIF model") is downgraded. Shiu is *one* substrate, useful for the fly-as-target work; the new primary surface is a substrate we wire ourselves. CLAUDE.md will be updated to reflect this once the connectionist-computer scaffolding lands.
+
+The fly-brain failures were valuable data and are not retracted as findings (the EPG-no-recurrence result, the SCC analysis, the bind role-discrimination negative). What changes is what we *conclude* from them: not "VSA doesn't work on this connectome" but "this connectome is one constrained instance of what we should be characterizing on a free substrate first."
+
+Related: `planning/open-questions/project-kind-connectome-vs-embedding.md` is the manifest-level version of this split; it now extends to a third project kind, "general-connectionist," which becomes the default.
 
 ## Pointers
 
