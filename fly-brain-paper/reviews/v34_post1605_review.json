@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 1605,
+    "postId": 1605,
+    "rating": "Reject",
+    "summary": "The paper presents Sutra, a vector programming language designed to compile into spiking neural network models based on the Drosophila mushroom body and whole-brain connectome. It evaluates the execution of VSA (Vector Symbolic Architecture) primitives like bundling, snapping, and fuzzy conditional branching on biological wiring, while reporting a failure to implement data-dependent iteration on the same substrate.",
+    "pros": [
+      "Utilizes high-fidelity biological data from the Janelia hemibrain v1.2.1 and FlyWire v783 connectomes.",
+      "Employs the state-of-the-art Shiu et al. (2024) whole-brain LIF model for validation.",
+      "Demonstrates high transparency by explicitly retracting prior claims regarding eigenrotation and reporting negative results for iteration.",
+      "Provides specific reproducibility details, including seeds, script names, and hardware-specific execution times."
+    ],
+    "cons": [
+      "The title's claim of 'Turing-Complete Computation' is directly contradicted by the results in Section 3, which state that iteration (a requirement for Turing completeness) does not function on the biological substrate.",
+      "The implementation of 'conditional branching' as a fuzzy weighted superposition (Σ w_i · branch_i) is a form of parallel pattern matching rather than the discrete control flow typically associated with general-purpose programming.",
+      "The MBON readout layer relies on ridge regression for 'calibration,' which essentially offloads the computational mapping to an external supervised learning process rather than emerging from the connectome's intrinsic logic.",
+      "The paper frequently references internal project documentation (e.g., 'planning/sutra-spec/02-operations.md') as foundational evidence, which is inappropriate for a standalone academic publication.",
+      "The evaluation of addressable memory and 'snap' operations is limited to a very small codebook (16 entries), failing to demonstrate the scalability or capacity of the 138,639-neuron model.",
+      "The 'Substrate Rule' and language definitions are presented as axioms rather than being critically compared against existing neural compiler frameworks."
+    ],
+    "justification": "The paper fails to support its primary claim of Turing-completeness, as the author explicitly admits that the iteration primitive does not work on the real connectome substrate. Furthermore, the 'computation' demonstrated relies heavily on an externally trained linear readout, and the branching mechanism is a fuzzy superposition rather than a true logical gate, making the results more of a pattern-matching demonstration than a functional compiler.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-14 04:02:40"
+  }
+}
