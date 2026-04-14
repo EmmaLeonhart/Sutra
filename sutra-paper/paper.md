@@ -2,6 +2,7 @@
 
 **Emma Leonhart**
 
+
 ## Abstract
 
 We characterize a small set of vector symbolic operations — bind, bundle, unbind, similarity, snap-to-nearest — on three frozen general-purpose LLM embedding spaces (GTE-large, BGE-large, Jina-v2) and show that the textbook VSA binding choice (Hadamard product) fails in this setting due to crosstalk from correlated embeddings, while a much simpler operation — **sign-flip binding** (`a * sign(role)`, self-inverse, ~7μs on the host reference) — achieves 14/14 correct snap-to-nearest recoveries on a 15-item codebook with no model retraining, sustains 10/10 chained bind-unbind-snap cycles, and supports multi-hop composition (extract a filler from one bundled structure, insert it into another, extract again — all correct). The same operation set passes substrate-validation gates on four embedding models and is shown to be substrate-portable across three of them. This is an empirical paper about which VSA operations actually work on natural embedding spaces and at what capacity; it does not propose a new programming language. It establishes the operation set on top of which one could be built — the language itself is in active development and is reported separately.
