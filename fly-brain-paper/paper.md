@@ -69,31 +69,16 @@ Direct EPG-to-EPG synapses are sparse in FlyWire v783; the biological ring-attra
 
 **Isolated small loops are not graph-present in real W.** A strongly-connected-component analysis of the 138,639² signed W (`fly-brain/shiu_scc_search.py`) finds 2,624 SCCs — one giant component of 135,403 neurons containing the CX, MB, AL, and inter-region recurrence, and only 5 SCCs in the 10–500 size range that might serve as isolated loop substrates. All 5 small SCCs are R1-6 photoreceptor modules in the optic lobe, with no EPG / Δ7 / PEN / ER membership. The CX ring-attractor components are all inside the giant SCC, which means their closed-loop dynamics compete at run-time with feedback from the whole rest of the connectome — a structural explanation of why direct EPG drive did not sustain a bump. Isolable loops for Sutra `loop (condition)` must therefore be identified *within* the giant SCC by dynamics-aware metrics (community detection, effective time-constant separation), not by graph SCC alone. Full analysis: `planning/findings/2026-04-13-shiu-scc-search.md`.
 
-## Language Primitives vs Substrate Boundedness
+## What Runs Where
 
-Two claims need to be cleanly separated, because conflating them is what drives most of the skepticism around connectionist "general-purpose computation" results.
+The four operations tested in this paper execute as follows:
 
-**Claim 1 (the language): Sutra provides the primitive set needed for general-purpose programming.** Conditional branching on computed state, unbounded data-dependent iteration, and addressable read/write memory are the operations every general-purpose language needs; Sutra defines all three (see `planning/sutra-spec/02-operations.md`, `03-control-flow.md`, `04-defuzzification.md`) and a compiler (`sdk/sutra-compiler/`) emits real code for them. This claim is about the *language*, not the hardware — the same way C supports general-purpose computation irrespective of whether you run it on a 486 or an ARM Cortex-M0.
+1. **Conditional branching — on the substrate.** `snap(bind(smell, hunger))` → cosine similarity against the four joint-input prototypes, in KC space on the hemibrain MB and in 138,639-D spike-count space on the Shiu whole-brain LIF. The host-side `argmax` over four scalar scores is a readout, not branching.
+2. **Bundle — on the substrate on real FlyWire W.** Native convergent drive reproduces `A + B` at cos = 0.97 on the Shiu model (§Result 2). No host arithmetic.
+3. **Snap — on the substrate on real FlyWire W.** 15/16 correct retrievals on a 16-entry random codebook against the 138,639-D spike-count vector (§Result 2).
+4. **Iteration (eigenrotation) — not a current on-connectome result.** See §Result 3 for the negative test and the retraction of prior polar-decomposition numbers.
 
-**Claim 2 (the substrate): this specific 140-D fly mushroom body is a bounded finite-state machine.** So is every physical computer ever built. The relevant question is whether the finite bound is load-bearing against the primitive set — and for the programs we compile here (4-way conditionals, small-integer loops, small key-value stores), it is not. Scaling to the full ~130k-neuron FlyWire circuit, chaining mushroom bodies, or deploying on a neuromorphic substrate with the same motifs is an engineering extension of the same primitive set, not a new mechanism.
-
-The paper below is about Claim 1. We demonstrate that each of Sutra's three primitives compiles to operations executing on the real hemibrain connectome — not that an individual fly brain is itself a universal computer. That language-vs-substrate distinction is the same one anyone writing a compiler lives with every day.
-
-The three primitives required:
-
-1. **Conditional branching** — decisions gated on computed state. Demonstrated in §Result 1: four permutation programs, each realized on the substrate via fuzzy weighted superposition (`result = Σ w_i · branch_i`) per `planning/sutra-spec/03-control-flow.md`. The branch selection is made by KC-space similarity, not a host-side test. 80/80 across five independent hemibrain runs, σ=0.
-
-2. **Unbounded iteration** — repeat computation an arbitrary number of times with data-dependent termination. Specified in `planning/sutra-spec/03-control-flow.md` as eigenrotation through vector space with KC-space prototype match termination. `loop (N)` with a literal N unrolls at compile time into a flat algebraic expression (no runtime iteration required) and compiles through the bundle/bind/snap primitives demonstrated above. `loop (condition)` with data-dependent termination requires eigenrotation on the substrate, and §Result 3 reports that the EPG ring attractor on real W does not engage under direct drive at the protocols we tested. We do not claim iteration as a working primitive on real W at this time; it compiles in the language and executes under the synthetic-Givens rotation baseline retained in the repo, but the on-connectome realization is open work.
-
-3. **Read/write addressable memory** — store, retrieve, and *address* intermediate state. The codebook + bind/unbind gives us this. A hypervector `record = bind(k₁, v₁) + bind(k₂, v₂) + ... + bind(k_n, v_n)` superposes n key–value slots in a single D-dimensional vector. Reading slot i — "what is the value bound to key k_i?" — is `unbind(record, k_i)`, which for sign-flip binding is self-inverse: `sign(k_i) * record ≈ v_i + crosstalk_from_other_slots`. The crosstalk is suppressed by `snap` to the nearest codebook entry, so the readout returns the clean stored `v_i`. Writing to slot i is `record' = record + bind(k_i, v_i_new) - bind(k_i, v_i_old)` — again all realized as vector operations on the substrate. This is addressable memory in the VSA sense (Plate 1995, Kanerva 2009), not a static lookup: any key can be used to index, keys and values are themselves vectors in the same space, and the memory is composable with other ops.
-
-**What is on the substrate, what is on the host.** We separate these cleanly because the paper's value depends on it, and because past iterations of this work did hide host arithmetic behind architectural labels. We do not do that here.
-
-1. **Conditional branching — on the substrate.** The four-way decision that routes (smell, hunger) to one of four behaviors is `snap(bind(smell, hunger))` → Jaccard similarity against the four joint-input prototypes, entirely in KC space. The branch that "fires" is the prototype with the highest KC-pattern overlap. No host-side test selects the branch. What the host does after the circuit finishes is a four-way `argmax` over four scalar scores — a readout, not branching. Readout is trivially not on the substrate the same way reading a CPU register onto a monitor is trivially not on the CPU; every biological system has readout.
-
-2. **Bundle and snap — on the substrate on real FlyWire W.** See §Result 2. Bundle reproduces `W·(a+b) ≈ W·a + W·b` on the real 138,639-neuron Shiu LIF model at cos=0.97; snap retrieves 15/16 on disjoint random codebook entries. Both operations run as the substrate's own dynamics — Poisson drive in, spike counts out — with no host-side arithmetic in the runtime path.
-
-3. **Rotation — not a current on-connectome result.** See §Result 3. The EPG-only slice of real W does not carry ring dynamics at the protocols we tested, and the polar-decomposition `Q` we previously cited is a mathematical approximation of a subset of real W (98% of Frobenius content discarded), not the connectome's own operator. We retract the prior eigenrotation-on-connectome numbers and move iteration on real W to future work.
+Scaffolding around these operations (scalars, tuples, the argmax readout, the four-program prototype-to-behavior table) runs on the host. Every vector operation in the runtime path either executes on the substrate or is marked as not yet substrate-realized.
 
 ## In-Repo Specification and Compiler
 
@@ -137,7 +122,6 @@ The Sutra language surface, operation model, and compiler are specified in `plan
 
 ## Future Work
 
-1. **Iteration via the broader CX ring subnetwork.** Implement `loop (condition)` by driving EPGs through their biological inputs (PEN1/PEN2 heading velocity, ER sensory drive) on the full Shiu substrate, with Δ7-mediated long-range inhibition shaping the bump dynamics. This is the biologically correct way to recruit the ring attractor and is the primary open problem for iteration on real W. The negative EPG-only result in §Result 3 is the evidence that the narrower polar-decomposition approach does not suffice.
+1. **Iteration via the broader CX ring subnetwork.** Driving EPGs through their biological inputs (PEN1/PEN2 heading velocity, ER sensory drive) on the full Shiu substrate, with Δ7-mediated long-range inhibition shaping the bump dynamics, is the biologically correct way to recruit the ring attractor and is the primary open problem for iteration on real W. The negative EPG-only result in §Result 3 is the evidence that the narrower polar-decomposition approach does not suffice.
 2. **Scale the snap codebook.** Capacity scaling on the Shiu substrate — how many prototypes can be discriminated before random-overlap collisions dominate — is measurable with the existing harness and has not yet been swept.
 3. **Biological learning rule.** Replacing ridge regression with dopamine-gated plasticity for the MBON readout in §Result 1.
-4. **Physical deployment.** Stimulating real neurons at prescribed sites rather than simulating them is out of scope for this paper.
