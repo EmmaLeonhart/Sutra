@@ -134,8 +134,8 @@ jobs:
         include:
           - paper_dir: sutra-paper
             slug: sutra
-            title: "Sutra: A Vector Programming Language for Computation in Embedding Spaces"
-            tags: "programming-languages,vector-symbolic-architectures,embedding-spaces,fuzzy-logic,sutra"
+            title: "Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces"
+            tags: "vector-symbolic-architectures,embedding-spaces,binding-operations,empirical"
           - paper_dir: fly-brain-paper
             slug: fly_brain
             title: "Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome"
