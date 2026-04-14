@@ -14,11 +14,9 @@ Remaining queue, priority order:
 
 1. **Push substrate-only k-ceiling above 3.** Pipeline A hits a hard ceiling at k≈3 because 140-D Poisson decode noise accumulates multiplicatively across iterations. Candidates: (a) longer SIM_MS (scales wall clock linearly), (b) KC-space promotion so rotation operates at ~1,882-D instead of 140-D, (c) substrate-side cleanup between rotation steps. Closing the gap between pipeline A (14/30) and pipeline B (30/30) while keeping rotation on the substrate is the primary open problem for indefinite-termination loops.
 2. **n=50 evaluation.** Rerun one or more headline results at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidates: 140-D Jaccard loop (5/5), target-k sweep (30/30), fuzzy conditional (80/80), substrate-only v2 (9/10).
-3. **`sutra-paper/paper.md` rewrite parity.** fly-brain-paper was restructured today around two-pipeline framing; sutra-paper still needs the same pass.
-4. **Program library expansion.** Reviewer flags 4 conditional templates + 3 loop-test types as narrow. Add more `.su` programs that compile through the pipeline.
-5. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
-6. **Formal Sutra grammar, appended to STATUS.md.** EBNF/BNF for the current surface syntax (`loop`, `gate`, `select`, bind/bundle/etc.).
-7. **Repo-wide `audit.md` at root.** General audit of all directories: is each needed for the two papers.
+3. **Program library expansion.** Reviewer flags 4 conditional templates + 3 loop-test types as narrow. Add more `.su` programs that compile through the pipeline.
+4. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
+5. **Repo-wide `audit.md` at root.** General audit of all directories: is each needed for the two papers.
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
@@ -119,3 +117,94 @@ Concrete work that is worth doing but not ordered into the queue. Different from
 - `git pull --rebase` before every push is still wise (human collaborators, pages.yml, etc.), but papers-CI and competition-cron no longer push to master — they open PRs on branches `papers-ci/<paper_dir>/run-<id>` and `competition-cron/run-<id>`. Merge PRs by hand until auto-merge is wired up.
 - **Merge / PR guidance: `planning/merge-help.md`.** Consult before opening PRs, after CI rejections, or when recovering from a mis-targeted commit. Includes the recovery playbook for the "committed to master but meant a branch" case that produced the 2026-04-13 paralysis episode.
 - **There is exactly one todo.md** (repo root) and exactly one STATUS.md (this file). `fly-brain/todo.md` and `sutraDB/TODO.md` have been consolidated into the root `todo.md`; do not recreate them. STATUS.md = active queue; todo.md = long-term agenda. If the two disagree, STATUS.md wins for now-work and todo.md wins for later-work.
+
+## Formal Sutra grammar (EBNF)
+
+Derived from `sdk/sutra-compiler/sutra_compiler/lexer.py` + `parser.py`, reconstructed 2026-04-13. Authoritative source is the parser; this is a readable summary.
+
+```ebnf
+(* Module structure *)
+module          = { top_level } EOF ;
+top_level       = function_decl | method_decl | operator_decl ;
+modifiers       = { "public" | "private" | "static" | "implicit" } ;
+
+function_decl   = modifiers "function" IDENT [ type_params ] param_list
+                  [ ":" type ] block ;
+method_decl     = modifiers "method" IDENT [ type_params ] param_list
+                  [ ":" type ] block ;
+operator_decl   = modifiers "operator" operator_symbol [ type_params ]
+                  param_list [ ":" type ] block ;
+type_params     = "<" IDENT { "," IDENT } ">" ;
+param_list      = "(" [ param { "," param } ] ")" ;
+param           = IDENT ":" type ;
+type            = IDENT [ "<" type { "," type } ">" ] ;
+
+(* Statements *)
+block           = "{" { statement } "}" ;
+statement       = var_decl | if_stmt | while_stmt | for_stmt
+                | foreach_stmt | do_while_stmt | loop_stmt
+                | try_stmt | return_stmt | expr_stmt ;
+
+var_decl        = ( "var" | "const" ) IDENT [ ":" type ]
+                  [ "=" expr ] ";" ;
+if_stmt         = "if" "(" expr ")" block [ "else" ( if_stmt | block ) ] ;
+while_stmt      = "while" "(" expr ")" block ;
+for_stmt        = "for" "(" [ var_decl | expr_stmt ] ";"
+                  [ expr ] ";" [ expr ] ")" block ;
+foreach_stmt    = "foreach" "(" IDENT "in" expr ")" block ;
+do_while_stmt   = "do" block "while" "(" expr ")" ";" ;
+try_stmt        = "try" block "catch" block ;
+return_stmt     = "return" [ expr ] ";" ;
+expr_stmt       = expr ";" ;
+
+(* The core Sutra iteration construct *)
+loop_stmt       = "loop" "(" loop_header ")" block ;
+loop_header     = INT_LIT [ "as" IDENT ]   (* bounded: unrolled at compile time *)
+                | expr ;                    (* condition-based: eigenrotation *)
+
+(* Expressions — precedence from low to high *)
+expr            = pipe_forward ;
+pipe_forward    = assignment { "|>" assignment } ;
+assignment      = logical_or [ ( "=" | "+=" | "-=" | "*=" | "/=" ) assignment ] ;
+logical_or      = logical_and { "||" logical_and } ;
+logical_and     = equality { "&&" equality } ;
+equality        = comparison { ( "==" | "!=" ) comparison } ;
+comparison      = additive { ( "<" | ">" | "<=" | ">=" ) additive } ;
+additive        = multiplicative { ( "+" | "-" ) multiplicative } ;
+multiplicative  = unary { ( "*" | "/" | "%" ) unary } ;
+unary           = [ "!" | "-" | "++" | "--" ] postfix ;
+postfix         = primary { "." IDENT | "(" arg_list ")"
+                          | "<" type_args ">" "(" arg_list ")"
+                          | "[" expr "]" | "++" | "--" | "as" type } ;
+
+primary         = INT_LIT | FLOAT_LIT | STRING_LIT | interp_string
+                | "true" | "false" | "this"
+                | IDENT | special_call | map_literal | array_literal
+                | "(" expr ")" ;
+
+special_call    = ( "unsafeCast" | "unsafeOverride"
+                  | "defuzzy" | "embed" )
+                  [ "<" type { "," type } ">" ] "(" expr ")" ;
+map_literal     = "{" [ map_entry { "," map_entry } ] "}" ;
+map_entry       = ( IDENT | STRING_LIT ) ":" expr ;
+array_literal   = "[" [ expr { "," expr } ] "]" ;
+interp_string   = "$\"" { STRING_LIT_CHUNK | "{" expr "}" } "\"" ;
+
+arg_list        = [ expr { "," expr } ] ;
+type_args       = type { "," type } ;
+operator_symbol = "+" | "-" | "*" | "/" | "==" | "<" | ">" | "<=" | ">="
+                | "[]" | "[]=" ;
+
+(* Reserved keywords (from lexer KEYWORDS table) *)
+(* function method static public private var const return
+   if else while for foreach in do loop as try catch this
+   operator new implicit true false                           *)
+```
+
+**Notes on the grammar.**
+
+- `loop` is the only iteration construct that Sutra *semantically* distinguishes between a bounded (compile-time unrolled) form and a condition-based (eigenrotation on the substrate) form. `while`, `for`, `foreach`, `do_while` are host-side iteration; they compile to scaffolding, not to substrate eigenrotation.
+- Sutra has no dedicated `bind`, `bundle`, `snap`, `similarity`, etc. keywords. These are ordinary functions in the runtime — calls written with regular `IDENT "(" arg_list ")"` syntax. The special-call production only covers the four forms (`unsafeCast`, `unsafeOverride`, `defuzzy`, `embed`) that need compiler-internal AST nodes rather than regular function dispatch.
+- `if`/`else` is present in the grammar but is *host-side* control flow. Sutra programs that need substrate-side branching use fuzzy weighted superposition (spec §03) expressed as ordinary function calls, not an `if`-tree. The compiler does not reject `if` — it emits host Python `if`, same as any other scaffolding construct.
+- `defuzzy(expr)` is the opt-in defuzzification marker (spec §04), lowered to `_VSA.is_true(...)` when the runtime supports it. `embed(expr)` is the string-to-vector primitive for codebook construction.
+- The surface syntax is C-family: braces, semicolons, `==`/`!=`, dot-access, postfix `++`/`--`. This is deliberate — the novel semantics live in the runtime (fuzzy-by-default, vector operations on the substrate), not in the syntax.
