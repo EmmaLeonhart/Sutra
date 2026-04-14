@@ -13,8 +13,7 @@ Session 2026-04-13 shipped: (1) the two-pipeline restructure — fly-brain-paper
 Remaining queue, priority order:
 
 1. **n=50 evaluation.** Rerun one or more headline results at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidates: 140-D Jaccard loop (5/5), target-k sweep (30/30), fuzzy conditional (80/80), substrate-only v2 (9/10).
-2. **Stale codegen tests.** `sdk/sutra-compiler/tests/test_codegen_flybrain.py` has 12 failing tests — it targets the deleted `permutation_conditional.su` and asserts on deprecated `sign_flip(NOT_X, X)` semantic-NOT codegen that CLAUDE.md explicitly rejects. Either retarget at `fuzzy_conditional.su` or delete the file outright. Stale narrator per CLAUDE.md.
-3. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
+2. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
