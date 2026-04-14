@@ -1,14 +1,12 @@
-# Sutra: A Vector Programming Language for Computation in Embedding Spaces
+# Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces
 
 **Emma Leonhart**
 
 ## Abstract
 
-We present Sutra, a programming language that uses LLM embedding spaces as its computational substrate. Where conventional languages compile to machine instructions that execute on silicon, Sutra compiles to vector operations that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Named after the Sanskrit concept of a primordial substance pervading all things, the language operates in the continuous semantic space that pervades trained embedding models.
+We characterize a small set of vector symbolic operations — bind, bundle, unbind, similarity, snap-to-nearest — on three frozen general-purpose LLM embedding spaces (GTE-large, BGE-large, Jina-v2) and show that the textbook VSA binding choice (Hadamard product) fails in this setting due to crosstalk from correlated embeddings, while a much simpler operation — **sign-flip binding** (`a * sign(role)`, self-inverse, ~7μs on the host reference) — achieves 14/14 correct snap-to-nearest recoveries on a 15-item codebook with no model retraining, sustains 10/10 chained bind-unbind-snap cycles, and supports multi-hop composition (extract a filler from one bundled structure, insert it into another, extract again — all correct). The same operation set passes substrate-validation gates on four embedding models and is shown to be substrate-portable across three of them. This is an empirical paper about which VSA operations actually work on natural embedding spaces and at what capacity; it does not propose a new programming language. It establishes the operation set on top of which one could be built — the language itself is in active development and is reported separately.
 
-Sutra introduces several novel contributions to programming language design. First, a clean separation between **program scaffolding** (scalars, tuples, bounded iteration counters — the bookkeeping that surrounds vector work) and **vector operations that run on the substrate** (bind, bundle, unbind, similarity, rotation, snap-to-nearest, cone traversal, graph hop). Every vector operation is a substrate operation: there is no class of op that is allowed to run as host-side arithmetic. Codebook operations (snap, cone, hop) are distinguished only by their extra dependence on a codebook-plus-index structure, not by a different execution class. Second, **fuzzy-by-default semantics** with opt-in defuzzification via `is_true(v) = cos(v, t_true)` — cosine similarity against a substrate-fitted canonical truth direction — enabling confidence-thresholded conditionals and multi-level confidence ladders. Third, **empirical initiation** — the compiler probes a target embedding space, fits correction matrices, and outputs a substrate-specific mapping, allowing the same source code to compile for different embedding models like C compiling for different architectures. Fourth, **cone traversal as control flow** — directed neighborhood queries in embedding space serve as a branching mechanism complementary to algebraic fuzzy conditionals.
-
-The language design is grounded in empirical findings from relational displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, *Latent space cartography applied to Wikidata*). We further demonstrate that the traditional VSA binding operation (Hadamard product) fails on natural embedding spaces due to crosstalk from correlated embeddings, but that **sign-flip binding** — a simple operation that flips filler signs based on role sign patterns — achieves 14-role bundling capacity with correct snap-to-nearest recovery across three substrate models (GTE-large, BGE-large, Jina-v2), sustains 10-step chained computation, and supports multi-hop composition. Sutra is the first programming language designed to exploit this structure directly.
+The work is grounded in prior relational-displacement analysis of frozen embeddings: 86 predicates discovered as consistent vector operations across three embedding models, with r = 0.861 correlation between geometric consistency and prediction accuracy (Leonhart, *Latent space cartography applied to Wikidata*).
 
 ## 1. Introduction
 
@@ -16,356 +14,49 @@ That embedding spaces encode relational structure as vector arithmetic has been 
 
 A complementary line of work showed that *frozen*, general-purpose embeddings — models not specifically trained for relational reasoning — also encode consistent vector arithmetic. Recent cartographic analysis of three general-purpose embedding models discovered 86 predicates that manifest as consistent displacement vectors, with 30 universal across all three models (Leonhart, *Latent space cartography applied to Wikidata*). The correlation between geometric consistency and prediction accuracy (r = 0.861) is self-calibrating: the structure's internal consistency predicts its external utility.
 
-These findings raise a question that the embedding literature has not addressed: if embedding spaces encode consistent algebraic structure, can we *program* in them? Not query them, not probe them, not visualize them — but treat them as the computational substrate for a programming language, the way silicon is the substrate for conventional computation?
+If general-purpose embedding spaces encode consistent algebraic structure, the next empirical question is which Vector Symbolic Architecture (VSA) operations actually compose over that structure — and at what capacity. The textbook VSA binding choice (Hadamard product) was developed for spaces designed for VSA (random hypervectors with controlled correlation statistics). Frozen LLM embeddings are not such spaces: they are anisotropic, correlated, and shaped by the unrelated objective of next-token or contrastive prediction. Whether the standard VSA operation set transfers to them is an empirical question that has not been addressed.
 
-Sutra answers this question. It is a programming language where:
-- **Values** are vectors in a pre-trained embedding space
-- **Operations** are geometric transformations (binding, bundling, projection, similarity)
-- **Truth** is fuzzy by default, with opt-in defuzzification
-- **Control flow** is both algebraic (fuzzy branching via superposition) and geometric (cone traversal through semantic neighborhoods)
-- **Compilation** is substrate-adaptive — the same source code targets different embedding spaces via empirical calibration
-
-Sutra is not an AI-assisted programming tool. It is not a neural network. It is a formal system for *reasoning under uncertainty* — closer to logic programming (Prolog) than to Python, but operating in continuous rather than discrete space. The computational substrate is semantic: operations have meaning in a way that silicon arithmetic does not.
+This paper reports that test. We hold the operation interface fixed (bundle, bind, unbind, snap-to-nearest, similarity) and vary the binding implementation across six candidates on bundled role-filler structures, then run the surviving operation through chained-computation and multi-hop-composition stress tests on three independent embedding models. The scope of the paper is exactly this: which VSA operations work, on which substrates, at what capacity. We do not propose a programming language here, and the language work in active development is reported separately.
 
 ### 1.1 Contributions
 
-1. **An operation model that keeps scaffolding out of the substrate and puts every vector operation in it.** Scalars, tuples, and bounded iteration counters are bookkeeping — they count and group the vector work around them. Vector operations (bind, bundle, unbind, similarity, rotation, snap-to-nearest, cone traversal, graph hop) all run on the substrate at runtime. Codebook-dependent operations (snap, cone, hop) serve error correction and semantic navigation, but they do not form a separate "host-side" execution class — on the fly-brain substrate snap is the PN→KC+Jaccard path, on an embedding-space substrate it is ANN search.
+1. **An empirical characterization of which VSA operations work on natural embedding spaces.** We test six binding operations (Hadamard, sign-flip, permutation, circular convolution, FFT correlation, rotation) on bundled role-filler structures of 1–7 pairs. Hadamard — the textbook VSA choice — fails (2/7 correct snap recoveries at 7 roles); five alternatives succeed.
 
-2. **A cosine-based defuzzification operation** (`is_true`). A fixed rank-1 projection onto a substrate-specific truth direction `t_true` fitted during empirical initiation measures how semantically "true" any vector is: `is_true(v) = cos(v, t_true)`. Equality is cosine similarity; conditional branching is threshold on `is_true`.
+2. **Sign-flip binding as a substrate-portable choice.** `a * sign(role)` is self-inverse, ~7μs on the host reference, achieves 14/14 snap recoveries at the 14-role limit of our test set, sustains 10/10 chained bind-unbind-snap cycles, and supports multi-hop composition. The result is identical on three independent embedding models (GTE-large, BGE-large, Jina-v2).
 
-3. **Empirical initiation** as a compilation strategy. The Sutra compiler probes a target embedding space, tests algebraic operation fidelity, fits correction matrices, and outputs a substrate-specific mapping file. The same Sutra source code compiles differently for different embedding models, analogous to C compiling for x86 versus ARM.
+3. **Substrate-validation gates including pathology detection.** A documented attention-sink defect in mxbai-embed-large (diacritic characters cause cosine > 0.95 between unrelated strings) passes algebraic gates but fails as a deployment substrate. We report this as a worked example of why algebraic validation alone is insufficient.
 
-4. **Cone traversal as a control flow mechanism.** Directed neighborhood queries in embedding space — defined by origin, direction, and angular spread — provide non-algebraic branching that complements the algebraic fuzzy conditional `(condition * branch_true) + (¬condition * branch_false)`.
-
-5. **An honest assessment of Turing completeness.** VSA algebra alone is not Turing-complete due to fixed dimensionality and approximate retrieval. Sutra's position: VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete. The algebra handles local computation; the graph provides unbounded external memory. This is analogous to a CPU (fixed registers) with RAM (unbounded, addressable).
+4. **An operation cost analysis** showing that snap-to-nearest is not the bottleneck on these substrates — even at a 10K-item codebook, snap is 8× cheaper than producing one embedding. The substrate-side cost of VSA-style computation on frozen embeddings is dominated by the LLM forward pass that produces the vectors in the first place, not by the algebra over them.
 
 ## 2. Related Work
 
 ### 2.1 Vector Symbolic Architectures
 
-Vector Symbolic Architecture (VSA) is a family of algebraic frameworks for computing with high-dimensional vectors (Kanerva, 2009; Plate, 1995; Gayler, 2003). The core operations — binding (elementwise multiplication), bundling (addition), and similarity (dot product) — define an algebra over hypervectors that can represent and manipulate structured symbolic information.
+Vector Symbolic Architecture (VSA) is a family of algebraic frameworks for computing with high-dimensional vectors (Kanerva, 2009; Plate, 1995; Gayler, 2003). The core operations — binding (elementwise multiplication), bundling (addition), and similarity (dot product) — define an algebra over hypervectors that can represent and manipulate structured symbolic information. The standard VSA development assumes hypervectors drawn from a controlled random distribution; the present work asks what happens when the vectors are instead drawn from a frozen LLM embedding space, which is anisotropic and correlated.
 
-Tomkins-Flanagan and Kelly demonstrated that VSA can implement a Turing-complete Lisp 1.5 interpreter using Holographic Reduced Representations, with cleanup memory providing the error correction necessary for sustained computation. Flanagan et al. (2024) formalized this via Cartesian closed categories, arguing that VSA with cleanup memory satisfies the Curry-Howard-Lambek correspondence.
-
-Smolensky (1990) provided the theoretical foundation with tensor product representations, showing that role-filler binding via tensor products is formally equivalent to the substitution step in beta reduction — connecting the practical engineering of VSA to the theoretical question of computational universality.
-
-Sutra differs from prior VSA work in three ways: (1) it treats VSA as a programming language substrate rather than a computational model, (2) it operates inside *frozen, naturally-learned* embedding spaces rather than spaces designed for VSA, and (3) it formalizes the non-algebraic operations (snap, cone, hop) as first-class language constructs rather than implementation details.
+Smolensky (1990) provided the theoretical foundation with tensor product representations, showing that role-filler binding via tensor products is formally equivalent to the substitution step in beta reduction. The relevance of this work to the present paper is that role-filler binding is the operation our six-way comparison varies; the substrate change (LLM embeddings rather than random hypervectors) is what we measure.
 
 ### 2.2 Hyperdimensional Computing
 
-Hyperdimensional Computing (HDC) applies VSA to engineering tasks: classification (Imani et al., 2019), language recognition (Joshi et al., 2016), and robotics (Neubert et al., 2019). HDCC provides a compiler for HDC classification tasks, and libraries like Torchhd and vsapy offer Python interfaces. However, these are classification tools and research libraries — not general-purpose programming languages. The distinction between VSA (the algebra) and HDC (the engineering) parallels Boolean algebra versus digital circuits. Sutra operates at the VSA level.
+Hyperdimensional Computing (HDC) applies VSA to engineering tasks: classification (Imani et al., 2019), language recognition (Joshi et al., 2016), and robotics (Neubert et al., 2019). Libraries like Torchhd and vsapy provide HDC implementations on hand-designed hypervector spaces. The present paper differs in substrate, not in algebra: we test the same operation set on naturally-learned embedding spaces, which require a different binding choice.
 
-### 2.3 Probabilistic Programming Languages
+### 2.3 Relational Displacement Analysis
 
-Languages like Stan (Carpenter et al., 2017), Pyro (Bingham et al., 2019), and Church (Goodman et al., 2008) integrate probabilistic reasoning into programming. However, they compile to conventional computation — the substrate is silicon, and the probabilistic semantics are layered on top. Sutra's distinction is that the substrate itself is semantic: operations execute in a space where *similarity is geometric distance* and *meaning is position*.
+TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be modeled as translations in learned embedding spaces. Recent work extended this to frozen general-purpose embeddings (Leonhart, *Latent space cartography applied to Wikidata*), discovering 86 consistent relational displacements across three models and a correlation (r = 0.861) between consistency and prediction accuracy. That work establishes the algebraic structure exists in these spaces; the present paper asks which compositional operations successfully exploit it.
 
-### 2.4 Neurosymbolic Integration
+## 3. Empirical Results
 
-Logic Tensor Networks (Serafini & Garcez, 2016), Neural Theorem Provers (Rocktäschel & Riedel, 2017), and DeepProbLog (Manhaeve et al., 2018) integrate logical reasoning with neural computation. These are constructive approaches that build systems combining symbolic logic and neural networks. Sutra is different: it does not combine two paradigms but rather programs directly in the geometric structure that neural networks produce. The embedding space is not an intermediary — it is the execution environment.
+### 3.1 Algebraic Structure in Frozen Embeddings
 
-### 2.5 Relational Displacement Analysis
+The foundational empirical result (Leonhart, *Latent space cartography applied to Wikidata*): relational displacement analysis of three general-purpose embedding models — nomic-embed-text (768-dim), all-minilm (384-dim), and mxbai-embed-large (1024-dim) — using Wikidata triples discovers 86 predicates that manifest as consistent vector displacements, with 30 universal across all three models. The mxbai model is included in this baseline as a known-pathological case (see §3.5); the algebraic structure reported here was independently reproduced on the other two models.
 
-TransE (Bordes et al., 2013) demonstrated that knowledge graph relations can be modeled as translations in learned embedding spaces. Recent work extended this to frozen general-purpose embeddings (Leonhart, *Latent space cartography applied to Wikidata*), discovering 86 consistent relational displacements across three models and a correlation (r = 0.861) between consistency and prediction accuracy. These results provide the empirical foundation for Sutra: the algebraic structure needed for computation already exists in pre-trained embedding spaces.
+The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the algebraic structure is self-calibrating: internally consistent operations are externally useful. This establishes that the algebraic structure needed for VSA-style composition exists in pre-trained, general-purpose embedding spaces without any VSA-specific training — the precondition for the remainder of the paper.
 
-## 3. Language Design
+### 3.2 Binding Operation Selection
 
-### 3.1 Design Principles
+The traditional VSA binding operation (Hadamard / elementwise product) **fails on natural embedding spaces** when multiple role-filler pairs are bundled.
 
-**Fuzzy-by-default.** Every value in Sutra carries implicit uncertainty. Truth is a continuous quantity, not a binary one. This inverts conventional programming languages where crisp logic is the default and probabilistic reasoning is bolted on as a library. The inversion is natural given the substrate: nothing in an embedding space is ever fully true or false.
-
-**Vectors as the primary type.** The fundamental data type is the hypervector — a point in the embedding space. Numbers, symbols, and structures are all represented as vectors. There are no "wrong type" errors, only noisy or semantically meaningless results. Equality is replaced by similarity.
-
-**Computation is geometry.** Programs navigate and transform regions of semantic space. Operations are similarity queries, projections, rotations, and interpolations. The execution environment is fundamentally semantic: `bind(AGENT, "cat")` produces a vector whose position in space encodes the relationship between the agent role and the concept of cat.
-
-### 3.2 Operation Model
-
-Sutra programs are built out of **scaffolding** and **vector operations**. The two are not a hierarchy; they are different kinds of things in a program text.
-
-**Scaffolding.** Scalars (plain numbers used for weights, thresholds, loop counters), tuples (grouping without superposition), and bounded iteration (`repeat N`). These are the bookkeeping that surrounds vector work. They exist because not everything in a program is a semantic vector operation — you still need integers to count iterations and tuples to name pieces of a compile-time configuration.
-
-**Vector operations.** Every one of these runs on the substrate at runtime. There is no class of vector op that is "pure math on the host." Operations that close over fixed-dimensional vectors:
-
-- **Bundle** (addition): Creates superposition. `a + b` is similar to both a and b. Encodes sets and fuzzy disjunction.
-- **Bind** (sign-flip): Creates association. `a * sign(role)` flips signs of the filler based on the role vector, producing a result dissimilar to both inputs. Encodes key-value pairs and role-filler structures. Self-inverse (unbinding = applying the same sign flip). Cost: ~7μs on the host reference implementation.
-- **Bind-precise** (rotation): High-accuracy alternative. Applies a role-dependent orthogonal rotation `R(role) @ a`. Exact inverse via transpose. Cost: ~320μs on the host reference. Use when accuracy matters more than speed.
-- **Unbind**: For sign-flip binding, unbinding is the same operation. For rotation binding, it is the transpose rotation. Extracts the approximate filler from a bundled structure — approximate because crosstalk from other bundled pairs introduces noise.
-- **Similarity**: Euclidean distance (primary) or dot product. Returns a scalar. The fundamental "how close?" query.
-- **Projection**: Extract the component of a vector along a subspace.
-- **Rotation**: Apply an orthogonal operator `Q` to a vector. On the fly-brain substrate `Q` is realized as synaptic weights of a feedforward spiking network (§6.6, and the companion fly-brain paper).
-
-Operations that close over a codebook (a structured collection of vectors plus an approximate-nearest-neighbor index):
-
-- **Snap-to-nearest** (cleanup/discretization): search against a codebook of known vectors, return the nearest. Error correction — restores a noisy vector to its nearest clean state. Analogous to rounding in floating-point arithmetic. On the fly-brain substrate, snap is the PN→KC projection with APL sparsification plus a Jaccard match on the resulting KC pattern.
-- **Cone traversal**: From an origin point, define a direction and angular spread. Returns vectors within the cone. Many-to-many navigation through the codebook graph.
-- **Graph hop**: Traverse to connected vectors via a specified relation type. Extends cone traversal with typed edges.
-
-Host reference implementations of the codebook operations use an HNSW index; substrate implementations use whatever the substrate provides for sparse pattern matching (PN→KC+Jaccard in the fly brain).
-
-Note: the traditional VSA binding operation (Hadamard / elementwise product) was tested and **fails on natural embedding spaces** — bundled structures lose all signal at 2+ role-filler pairs due to crosstalk from correlated embeddings. Sign-flip binding avoids this by stripping magnitude correlation (Section 6.2).
-
-The design orientation is to keep programs in the vector-operations layer — scaffolding carries the program's counting and grouping, but the computation itself lives in vector operations on the substrate.
-
-### 3.3 Control Flow
-
-**Algebraic branching (fuzzy conditional):**
-```
-result = (condition * branch_true) + (¬condition * branch_false)
-```
-Both branches execute simultaneously via superposition. The condition vector weights which branch dominates. This is O(1), purely algebraic, and inherently fuzzy — there is no "wrong branch," only a weighted mixture. This is the default branching mechanism.
-
-**Fuzzy-weighted superposition is conditional branching, not pattern matching.** The distinction matters because the two can look superficially alike: in both, a query is compared against a codebook and the result is a chosen output. In pattern matching, the comparison is offline — a lookup table picks a discrete answer by hard argmax, and the substrate merely stores the table. In fuzzy-weighted superposition the comparison executes *on the substrate* and the substrate's own dynamics produce the answer: the cosine-weight vector `w_i = relu(cos(query, proto_i))` is computed by the substrate; each branch's output is driven into the substrate simultaneously at rates proportional to `w_i`; and the superposed output is read back by cosine against a behavior codebook. The substrate itself performs the blend. If the substrate were replaced with a lookup table, the fuzzy weights would collapse to a one-hot indicator and the output would be identical to any `w_i` ≥ 0.5 — that collapse *is* the difference between branching and matching. Equivalently: a jump table executes one arm, a fuzzy conditional executes all of them with substrate-determined weights and returns their weighted sum. Both conditional semantics coexist in Sutra — fuzzy superposition is the algebraic default (§3.3, here) and cone traversal below is the non-algebraic discrete branch — but they are not interchangeable, and the former is what runs on every Sutra substrate when `if` appears in source.
-
-**Cone traversal (discrete branching):** When computation requires navigating to a specific discrete state rather than blending alternatives, cone traversal provides it. The current vector state determines a direction, and the cone finds the nearest matching state in the semantic graph. This is analogous to a pattern match or jump table — the geometry determines which branch is taken.
-
-Formally, given an origin vector `o`, a direction vector `d`, and an angular half-width `θ` in radians, cone traversal returns the set of candidate vectors `v` in the indexed codebook `C` such that the angle between `v − o` and `d` is at most `θ`:
-
-```
-cone(o, d, θ) = { v ∈ C : arccos( ⟨v − o, d⟩ / (‖v − o‖ · ‖d‖) ) ≤ θ }
-```
-
-In pseudocode:
-
-```
-function cone(origin, direction, angle):
-    candidates := ANN_query(origin, k)        // initial k-NN shortlist from HNSW
-    d_unit    := direction / ‖direction‖      // normalize direction once
-    cos_min   := cos(angle)                   // threshold
-    result    := []
-    for v in candidates:
-        offset := v - origin
-        if ‖offset‖ == 0: continue            // origin itself is not a neighbor
-        cos_theta := ⟨offset, d_unit⟩ / ‖offset‖
-        if cos_theta >= cos_min:
-            result.append(v)
-    return result
-```
-
-The ANN shortlist stage makes this O(log n) in the codebook size rather than O(n); `k` is a tunable per-query parameter that trades recall for latency. Zero-width cones (`θ = 0`) degenerate into pure nearest-neighbor in the direction `d`, recovering `argmax_cosine` as a special case. Wide cones (`θ = π/2`) degenerate into "any point in the half-space pointed at by `d`", which is a standard projection-plus-threshold query. The parameter `θ` is how the programmer dials between jump-table-like precision (small `θ`) and more flexible semantic-match behavior (larger `θ`).
-
-**Bounded iteration:** `repeat N: body` executes the body a scalar number of times. This is a primitive operation, not a vector operation. It sidesteps the unsolved problem of convergence-based termination. Snap-to-nearest between iterations controls noise accumulation.
-
-### 3.4 Defuzzification: `is_true`
-
-The mechanism for converting fuzzy vector computation to crisp values is an operation that takes a `vector` and returns a `fuzzy` (a real number in `[-1, 1]`, shifted to `[0, 1]` at callsites that require a probability):
-
-```
-is_true(x) : vector -> fuzzy
-```
-
-**Construction.** Fix a global unit vector `t_true ∈ ℝᵈ` — the *canonical truth direction* in the substrate. `t_true` is fit during empirical initiation (§4.2) by embedding a curated set of canonically-true propositions on the target substrate, taking the centroid, and unit-normalizing. There is nothing mystical about `t_true`: it is a single unit constant, and `is_true` is one rank-1 projection against it.
-
-Define the **truth-projection matrix** as the rank-1 outer product of `t_true` with itself:
-
-```
-M := t_true · t_true^T        (fixed d×d matrix; does not depend on the input vector)
-```
-
-For any input vector `v`, `M · v` projects `v` onto the truth direction:
-
-```
-M · v  =  t_true · (t_true^T · v)  =  (t_true · v) · t_true
-```
-
-The scalar `t_true · v = t_true^T · v` is the signed magnitude of `v`'s component along the truth axis. `is_true` normalizes by `||v||` to make the result direction-only, independent of the length of `v`:
-
-```
-is_true(v) :=  (t_true · v) / ||v||  =  cos(v, t_true)   ∈  [-1, 1]
-```
-
-A vector aligned with `t_true` returns +1; one opposed returns -1; one perpendicular (semantically unrelated to "true") returns 0. Magnitude plays no role: a long vector pointing away from the truth direction is not "more true" than a short one pointing toward it.
-
-**Equality evaluation** uses cosine similarity directly — two vectors assert the same proposition when they agree directionally:
-
-```
-is_equal(a, b) := cosine_similarity(a, b)  =  (a · b) / (||a|| · ||b||)
-```
-
-This is "do these point at the same concept?" rather than "are these numerically close?" Two vectors distant in raw embedding space can still be semantically equal if their directions agree.
-
-**Thresholded defuzzification.** For crisp conditionals the compiler introduces a confidence threshold θ (default `0.5`, overridable with the `confidence:` annotation):
-
-```
-if v:              →  if is_true(v) ≥ θ: ...
-if v confidence 0.9: →  if is_true(v) ≥ 0.9: ...
-```
-
-**Recursive refinement** applies `is_true` at decreasing thresholds to implement multi-level confidence gates. Given an initial truth value `s₀ = is_true(v) ∈ [-1,1]`, successive applications against stricter thresholds `θ₁ < θ₂ < ... < θₙ` implement a monotone filter: only vectors that clear every threshold reach the innermost branch. This is the sense in which `is_true` composes: not as a matrix iteration, but as a confidence ladder over the same cosine value.
-
-The only pathological regime is `||v|| = 0` exactly; in practice the substrate's own noise floor keeps `||v||` bounded away from zero for any non-trivial computation.
-
-### 3.5 Type System
-
-Sutra has no type errors. Binding two unrelated vectors produces a result — it is simply semantically meaningless (low similarity to anything useful). The "type system" is replaced by similarity checking: the programmer (or compiler) verifies that results are similar to expected patterns.
-
-This is consistent with the fuzzy-by-default principle: there is no hard boundary between "correct" and "incorrect" computation, only a continuous spectrum of meaningfulness.
-
-### 3.6 A concrete worked program
-
-The v1 and v2 reviews of this manuscript both asked for concrete syntax and a non-trivial program. This section is the answer. Below is the complete source of `permutation_conditional.su` — the same file used as the compile-to-brain reference in §6.6 — annotated line-by-line with what each construct does at the language level. The program encodes a four-state conditional (`if smell && hungry: approach; if smell && !hungry: ignore; if !smell && hungry: search; else: idle`) as a single compiled prototype table plus four program variants that differ only in which permutation keys multiply into the query before the `snap` retrieval. There is no `if/else` tree in the runtime decision path — the conditional logic is compiled away into a cosine-argmax lookup against four precomputed Kenyon-cell patterns.
-
-```c
-// -------- Primitives --------
-
-// Two state axes. Each is a named basis vector in the substrate.
-vector smell_present = basis_vector("smell");
-vector hunger_hungry = basis_vector("hunger");
-
-// Two permutation keys. Each is a deterministic +/-1 sign mask;
-// applying the key twice is the identity (involution).
-permutation NOT_SMELL  = permutation_key("NOT_SMELL");
-permutation NOT_HUNGER = permutation_key("NOT_HUNGER");
-
-// The absent states are not separate base vectors — they are
-// *constructed* by permuting the present-state vectors. This is
-// what makes negation-as-permutation work: source-level `!smell`
-// becomes `permute(NOT_SMELL, .)` on the query, and the
-// distributivity of permute over bind means the compiled
-// prototype for `(smell_absent, hunger_hungry)` is literally
-// `permute(NOT_SMELL, bind(smell_present, hunger_hungry))`.
-vector smell_absent = permute(NOT_SMELL,  smell_present);
-vector hunger_fed   = permute(NOT_HUNGER, hunger_hungry);
-
-// -------- Compiled prototype table --------
-
-// Each prototype is the cleanup output of the substrate when
-// given a conjunctive bind of the two state vectors. `snap` is
-// a codebook operation from §3.2 — on the silicon
-// substrate it routes through an ANN codebook; on the fly-brain
-// substrate it routes through the Brian2 spiking simulation.
-// Four snaps = four compile-time brain-view vectors.
-vector proto_PH = snap(bind(smell_present, hunger_hungry));  // approach
-vector proto_PF = snap(bind(smell_present, hunger_fed));     // ignore
-vector proto_AH = snap(bind(smell_absent,  hunger_hungry));  // search
-vector proto_AF = snap(bind(smell_absent,  hunger_fed));     // idle
-
-// Mapping from winning prototype to behavior label.
-// This is wiring, not control flow — it has no branches.
-map<vector, string> BEHAVIOR_OF = {
-    proto_PH: "approach",
-    proto_PF: "ignore",
-    proto_AH: "search",
-    proto_AF: "idle"
-};
-
-// -------- Decide function --------
-
-// decide() is the entire runtime logic. Note what is NOT here:
-// no `if`, no `else`, no conditional branches on the inputs.
-// The function is a straight-line sequence of vector operations.
-function string decide(vector smell, vector hunger,
-                       permutation px, permutation py) {
-    vector query = bind(smell, hunger);          // conjunctive key
-    query = permute(px, query);                  // apply `!smell`?
-    query = permute(py, query);                  // apply `!hungry`?
-    vector brain_query = snap(query);            // substrate cleanup
-    vector winner = argmax_cosine(brain_query,   // 4-way match
-        [proto_PH, proto_PF, proto_AH, proto_AF]);
-    return BEHAVIOR_OF[winner];                  // label lookup
-}
-
-// -------- Program variants --------
-
-permutation I = identity_permutation();
-
-// Program A: natural mapping. No negations applied.
-function string program_A(vector smell, vector hunger) {
-    return decide(smell, hunger, I, I);
-}
-// Program B: `!smell && hunger`. Inverts the smell axis only.
-function string program_B(vector smell, vector hunger) {
-    return decide(smell, hunger, NOT_SMELL, I);
-}
-// Program C: `smell && !hunger`. Inverts the hunger axis only.
-function string program_C(vector smell, vector hunger) {
-    return decide(smell, hunger, I, NOT_HUNGER);
-}
-// Program D: `!smell && !hunger`. Inverts both axes.
-function string program_D(vector smell, vector hunger) {
-    return decide(smell, hunger, NOT_SMELL, NOT_HUNGER);
-}
-```
-
-**What this program demonstrates about the language.** Four things worth noting on the syntax and semantics side, which together address "no concrete syntax shown":
-
-1. **Types are declared, with `vector` and `permutation` as first-class citizens alongside `scalar`, `fuzzy`, `bool`, `string`, and `map<K,V>`.** The type system described in §3.5 is not "no types at all" — it is "no *runtime* type errors," meaning the compiler still tracks types for name resolution, method dispatch, and diagnostic emission, but does not reject programs on the basis of type mismatches at vector-operation boundaries. The program above type-checks and parses cleanly through the reference compiler (`sdk/sutra-compiler/`) with zero diagnostics.
-
-2. **Function declarations follow C# shape**: `function <return-type> <name>(<params>) { ... }`. `function` means "free function, public static by default." `method` (not used in this example) declares a function attached to an object. `function.<name>()` is the call-site disambiguator for free functions when the compiler needs one.
-
-3. **The compile-time / runtime split is explicit.** Top-level `vector proto_PH = snap(bind(...));` lines run at compile time — `snap` is called once, the result is burned into the compiled artifact. The `decide()` function body runs at runtime against whatever query vectors are passed in. The Sutra compiler's `codegen_flybrain` backend (`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`) walks the AST, recognizes the top-level-assignment pattern as a compile-time evaluation, emits one `_VSA.snap(_VSA.bind(...))` call per prototype in the generated Python prelude, and emits `decide()` as a regular Python function body with no `if` in its body because the language-level conditional has already been compiled away.
-
-4. **The entire if/else tree from the informal problem description does not appear in the source at all.** `if smell && hungry: approach` turned into two lines: a `bind` to form the conjunctive key, and a `snap`-plus-argmax to retrieve the matching prototype. The conditional is *gone* — it was compiled into the prototype table at the `vector proto_*` declarations. This is what §3.3 "cone traversal as control flow" is about at the language level, and this program is the complete worked example of that claim.
-
-The full end-to-end pipeline — parsing this source with the reference compiler, mechanically translating to `FlyBrainVSA` runtime calls, running on the Brian2 mushroom body simulation, and verifying that all four program variants produce four distinct correct behavior mappings across all four inputs — is reproduced by a single-file test at `fly-brain/test_codegen_e2e.py`. §6.6 reports the result (16/16 decisions correct, four distinct behavior permutations).
-
-## 4. Runtime Architecture
-
-### 4.1 S1/Sutra Dual Runtime
-
-The runtime mirrors the cognitive architecture from which the language takes its name:
-
-- **S1 layer:** Fast, cached, pattern-matched execution. Lookup tables, memoized operation results, precomputed common paths. Handles recurring computations.
-- **Sutra layer:** Deliberate semantic computation. The actual vector-space reasoning. Handles novel inputs requiring genuine algebraic and geometric reasoning.
-
-As computations recur, their results migrate from Sutra to S1 — from deliberate reasoning to cached lookup. This is analogous to TypeScript's type checker running alongside JavaScript execution: Sutra's semantic layer runs alongside the fast path, providing the context that makes the cached results meaningful.
-
-### 4.2 Empirical Initiation
-
-Sutra does not assume any embedding space has the right algebraic properties. At compile time, the compiler probes the target space:
-
-1. **Test algebraic operations.** Generate random vectors. Test binding dissimilarity, unbinding accuracy, bundling capacity. Measure noise characteristics.
-2. **Fit correction matrices.** Projection matrices that improve algebraic fidelity: rotations for binding, subspace projections for unbinding, normalizations for bundling capacity.
-3. **Validate substrate.** Enforce minimum requirements: binding must actually encrypt, unbinding must recover fillers above threshold, no catastrophic pathologies (attention sinks, degenerate dimensions).
-4. **Output mapping file.** A binary artifact containing correction matrices, noise characterization, and codebook initialization. This is the compiled form — same source code + different mapping files = same program on different substrates.
-
-The analogy to conventional compilation is direct: x86 and ARM have different instruction sets but can run the same C program. mxbai-embed-large and nomic-embed-text have different geometric properties but can run the same Sutra program.
-
-### 4.3 MCP Server as Runtime Component
-
-The MCP (Model Context Protocol) server is not an IDE add-on. It is part of the Sutra runtime, providing:
-- ANN infrastructure for non-algebraic operations (snap, cone, hop)
-- Codebook management for cleanup memory
-- Entity resolution (context-dependent disambiguation of polysemous vectors)
-- Long-range semantic dependency resolution
-
-The semantic richness of computation in embedding spaces creates dependencies that span beyond any single file or function. The MCP server holds the semantic context that makes these dependencies resolvable — analogous to a type server resolving types across a large codebase, but for semantic relationships rather than syntactic types.
-
-## 5. Theoretical Foundations
-
-### 5.1 Mathematical Grounding
-
-Sutra's substrate must satisfy the eight axioms of a real vector space (commutativity, associativity, identity, inverse for addition; identity, associativity, two distributivity laws for scalar multiplication). LLM embedding spaces satisfy these trivially as subsets of ℝⁿ. This means Sutra inherits the full toolkit of linear algebra: subspaces, projections, eigendecomposition, orthogonal complements.
-
-The deeper mathematical foundation is **concentration of measure** in high-dimensional spaces. In d > 1000 dimensions, randomly sampled vectors are almost certainly nearly orthogonal. This is a theorem, not an empirical observation. It guarantees that thousands of concept vectors can coexist without interference, that bundling (addition) preserves approximate membership for up to √d items, and that binding (Hadamard product) produces vectors approximately orthogonal to both inputs.
-
-### 5.2 Lambda Calculus Encoding
-
-Lambda terms encode as trees in superposition. Abstraction `λx.body` becomes `bind(VAR_role, x) + bind(BODY_role, encode(body))`. Application `(f a)` becomes `bind(FUNC_role, encode(f)) + bind(ARG_role, encode(a))`. Reading components back uses unbinding: `unbind(FUNC_role, encode(App(f, a))) ≈ encode(f)`.
-
-The hard part is substitution (beta reduction), which requires modifying a distributed representation without corrupting it — equivalent to the binding problem in cognitive science (Smolensky, 1990). Current approaches require cleanup memory (snap-to-nearest) after each reduction step, which is why Sutra treats snap as a first-class operation.
-
-Tomkins-Flanagan and Kelly's working Lisp interpreter in HRR is the existence proof. Lambda calculus semantics are implementable in vector space. The price is mandatory periodic cleanup — pure algebraic computation without error correction is limited to short chains.
-
-### 5.3 Turing Completeness
-
-**The honest position:** VSA algebra alone is not Turing-complete. Fixed dimensionality limits superposition capacity. Approximate retrieval introduces compounding errors. Cleanup memory (snap-to-nearest) patches the error problem but introduces circularity (the codebook must contain the correct answer).
-
-Sutra's Turing completeness claim: **VSA algebra + ANN-backed non-algebraic operations + external graph memory = Turing complete.** The vectors handle local computation (fixed-dimensional but algebraically rich). The graph provides unbounded external memory (the vector state navigates a graph that can grow without bound). This is architecturally identical to a CPU (fixed registers) with RAM (unbounded, addressable memory).
-
-Flanagan et al. (2024) argue for VSA Turing completeness via Cartesian closed categories. We accept their construction but note that cleanup memory does the heavy lifting — the boundary between "VSA computing" and "lookup table computing" is not formalized in their proof. Sutra makes this boundary explicit: bundle, bind, unbind, similarity, and rotation are the VSA proper; snap, cone, and hop are the codebook infrastructure that compensates for VSA crosstalk and gives the language a way to navigate across discrete semantic states.
-
-## 6. Empirical Grounding
-
-### 6.1 Algebraic Structure in Frozen Embeddings
-
-The foundational empirical result (Leonhart, *Latent space cartography applied to Wikidata*): relational displacement analysis of three general-purpose embedding models — nomic-embed-text (768-dim), all-minilm (384-dim), and mxbai-embed-large (1024-dim) — using Wikidata triples discovers 86 predicates that manifest as consistent vector displacements, with 30 universal across all three models. The mxbai model is included in this baseline as a known-pathological case (see §6.5); the algebraic structure reported here was independently reproduced on the other two models.
-
-The correlation between geometric consistency and prediction accuracy (r = 0.861, 95% CI [0.773, 0.926]) means the algebraic structure is self-calibrating: internally consistent operations are externally useful. This is the critical empirical validation for Sutra — it demonstrates that the algebraic structure needed for computation already exists in pre-trained, general-purpose embedding spaces without any VSA-specific training.
-
-### 6.2 Binding Operation Selection
-
-A critical empirical finding: the traditional VSA binding operation (Hadamard / elementwise product) **fails on natural embedding spaces** when multiple role-filler pairs are bundled.
-
-We tested six binding operations on GTE-large (1024-dim) by constructing bundled structures with 1-7 role-filler pairs, then attempting to recover a target filler via unbinding and snap-to-nearest against a 20-item codebook. Results:
+We tested six binding operations on GTE-large (1024-dim) by constructing bundled structures with 1–7 role-filler pairs, then attempting to recover a target filler via unbinding and snap-to-nearest against a 20-item codebook. Results:
 
 | Method | Cos at 2 roles | Cos at 7 roles | Snap correct (7) | Cost (μs) |
 |--------|---------------|---------------|-------------------|-----------|
@@ -378,145 +69,85 @@ We tested six binding operations on GTE-large (1024-dim) by constructing bundled
 
 Hadamard binding fails because natural embeddings are correlated and anisotropic — they share significant structure, so crosstalk from non-orthogonal role vectors overwhelms the target signal. All five alternatives achieve 7/7 correct snap recoveries at 7 bundled roles.
 
-**Sign-flip binding** (`a * sign(role)`) is Sutra's default: it strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4x Hadamard), it is cheap enough to use pervasively. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
+**Sign-flip binding** (`a * sign(role)`) strips magnitude correlation, leaving a pseudo-random binary mask that is self-inverse and nearly orthogonal across roles. At 6.6μs (4.4× Hadamard), it is cheap enough to use pervasively. **Rotation binding** (`R(role) @ a`) is the high-accuracy alternative at 321μs, maintaining 0.80 cosine similarity to the target even at 7 bundled roles.
 
-Extended testing of sign-flip binding revealed substantially higher capacity than the initial 7-role test suggested. With a 15-item codebook on GTE-large, sign-flip achieves **14/14 correct snap recoveries** — cosine degrades gracefully from 0.74 at 2 roles to 0.30 at 14 roles, but snap consistently identifies the correct target. This capacity is substrate-agnostic: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 14/14 results.
+Extended testing of sign-flip binding revealed substantially higher capacity than the initial 7-role test suggested. With a 15-item codebook on GTE-large, sign-flip achieves **14/14 correct snap recoveries** — cosine degrades gracefully from 0.74 at 2 roles to 0.30 at 14 roles, but snap consistently identifies the correct target. This capacity is substrate-portable: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 14/14 results.
 
-**Chained computation** — the critical test for sustained reasoning — was tested by repeatedly building 3-role bundled structures, unbinding the target, snapping, and using the result in the next structure. With sign-flip binding: **10/10 steps correct**, with raw cosine stable at 0.58-0.65 throughout the chain. Snap recovers the exact target at every step.
+**Chained computation** — the test for sustained reasoning — was run by repeatedly building 3-role bundled structures, unbinding the target, snapping, and using the result in the next structure. With sign-flip binding: **10/10 steps correct**, with raw cosine stable at 0.58–0.65 throughout the chain. Snap recovers the exact target at every step.
 
-**Multi-hop composition** was tested by extracting a filler from structure A (agent=cat, action=sit), inserting it into a different role in structure B (agent=dog, patient=extracted_cat), then extracting from B. All three extractions (agent from A, patient from B, agent from B) returned the correct filler. This demonstrates that Sutra can perform the fundamental operation required for multi-step inference: move information between structures via unbind-snap-rebind cycles.
+**Multi-hop composition** was run by extracting a filler from structure A (agent=cat, action=sit), inserting it into a different role in structure B (agent=dog, patient=extracted_cat), then extracting from B. All three extractions (agent from A, patient from B, agent from B) returned the correct filler, demonstrating that information can be moved between bundled structures via unbind-snap-rebind cycles without loss.
 
-### 6.3 Cross-Substrate Validation
+### 3.3 Cross-Substrate Validation
 
-We ran Sutra's empirical initiation validation gates on four non-normalized embedding models. Initial tests used Hadamard binding; sign-flip capacity was tested subsequently on three models:
+We ran substrate-validation gates on four non-normalized embedding models. Initial tests used Hadamard binding; sign-flip capacity was tested subsequently on three models:
 
 | Model | Dims | Mag Mean | Hadamard Capacity | Sign-Flip Capacity | Approved |
 |-------|------|----------|-------------------|-------------------|----------|
 | GTE-large | 1024 | 19.08 | ~4 | **14** | Yes |
 | BGE-large-en-v1.5 | 1024 | 17.29 | ~4 | **14** | Yes |
 | Jina-v2-base-en | 768 | 26.43 | ~3 | **14** | Yes |
-| mxbai-embed-large | 1024 | 17.38 | ~5 | (not tested)* | Yes* |
+| mxbai-embed-large | 1024 | 17.38 | ~5 | (not tested)* | No* |
 
-*mxbai passes algebraic tests but has a documented diacritic attention-sink pathology (Leonhart, *Latent space cartography applied to Wikidata*). This demonstrates that validation gates must include both algebraic tests and pathology detection — Sutra treats mxbai as a known-broken baseline and does not deploy programs against it.
+*mxbai passes algebraic tests but has a documented diacritic attention-sink pathology (Leonhart, *Latent space cartography applied to Wikidata*) — see §3.5. We treat it as a known-broken baseline and do not deploy operations against it.
 
-The shift from Hadamard to sign-flip binding increases effective capacity by 3-5x across all tested substrates, from ~3-5 roles to 14 roles — the limit of our test set. All four models produce non-normalized vectors (magnitudes 17-26, not 1.0) when accessed via raw transformers without post-processing normalization layers. Sutra requires non-normalized output because magnitude carries information about binding strength and bundling count — Euclidean distance, not cosine similarity, is the primary metric.
+The shift from Hadamard to sign-flip binding increases effective capacity by 3–5× across all tested substrates, from ~3–5 roles to 14 roles — the limit of our test set. All four models produce non-normalized vectors (magnitudes 17–26, not 1.0) when accessed via raw transformers without post-processing normalization layers. Non-normalized output matters for VSA-style operation: magnitude carries information about binding strength and bundling count, and Euclidean distance, not cosine similarity, becomes the natural metric.
 
-### 6.4 Operation Cost Analysis
+### 3.4 Operation Cost Analysis
 
 Benchmarked on GTE-large (1024-dim, CPU):
 
 | Kind | Operation | Cost (μs) | Relative |
 |------|-----------|-----------|----------|
-| vector | Bind (sign-flip) | 6.6 | 1x |
-| vector | Bundle (addition) | 1.7 | 0.3x |
-| vector | Unbind (sign-flip) | 7.9 | 1.2x |
-| vector | Similarity (dot) | 1.6 | 0.2x |
-| vector | Euclidean distance | 4.6 | 0.7x |
-| codebook | Snap (20 items) | 31.8 | 4.8x |
-| codebook | Snap (1K items) | 3,540 | 536x |
-| codebook | Snap (10K items) | 31,000 | 4,697x |
-| — | Embed one text (LLM) | ~250,000 | ~38,000x |
+| vector | Bind (sign-flip) | 6.6 | 1× |
+| vector | Bundle (addition) | 1.7 | 0.3× |
+| vector | Unbind (sign-flip) | 7.9 | 1.2× |
+| vector | Similarity (dot) | 1.6 | 0.2× |
+| vector | Euclidean distance | 4.6 | 0.7× |
+| codebook | Snap (20 items) | 31.8 | 4.8× |
+| codebook | Snap (1K items) | 3,540 | 536× |
+| codebook | Snap (10K items) | 31,000 | 4,697× |
+| — | Embed one text (LLM) | ~250,000 | ~38,000× |
 
-The critical finding: **snap-to-nearest is not the bottleneck**. Even with a 10K-item codebook, snap (31ms) is 8x cheaper than embedding a single text (250ms). The real cost is the LLM forward pass that produces the embeddings in the first place. Once vectors are in the space, the fixed-dimensional vector operations are microsecond-scale and codebook-scale snap is millisecond-scale — both negligible compared to the embedding step.
+The headline finding: **snap-to-nearest is not the bottleneck**. Even with a 10K-item codebook, snap (31ms) is 8× cheaper than embedding a single text (250ms). The dominant cost in any system that produces and then composes embeddings is the LLM forward pass that produces the vectors in the first place. Once vectors are in the space, the fixed-dimensional vector operations are microsecond-scale and codebook-scale snap is millisecond-scale — both negligible compared to the embedding step. Practically, this means VSA-style composition over frozen embeddings is essentially free relative to the cost of generating those embeddings.
 
-### 6.5 Substrate Validation: The mxbai Pathology
+### 3.5 Substrate Validation: The mxbai Pathology
 
-During the cartographic analysis that grounds Sutra, a previously unreported defect in mxbai-embed-large was discovered: diacritic characters cause catastrophic embedding collapse via attention sink (a high-magnitude key vector dominates the attention mechanism, overwriting all other token representations). Completely unrelated strings containing diacritics produce cosine similarity > 0.95.
+During the cartographic analysis that grounds this paper, a previously unreported defect in mxbai-embed-large was characterized: diacritic characters cause catastrophic embedding collapse via attention sink (a high-magnitude key vector dominates the attention mechanism, overwriting all other token representations). Completely unrelated strings containing diacritics produce cosine similarity > 0.95.
 
-This pathology demonstrates why Sutra requires substrate validation as part of empirical initiation. Notably, mxbai passes all algebraic validation gates — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound but still have silent corruption modes. Sutra's validation must therefore include both algebraic tests and pathology-specific probes.
+This is a worked example of why substrate validation must include both algebraic tests and pathology probes. mxbai passes all algebraic validation gates above — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound and still have silent corruption modes. We treat mxbai as a known-broken baseline included only for comparison; the deployment-worthy substrates in this paper are GTE-large, BGE-large, and Jina-v2.
 
-### 6.6 Biological Substrate: Compiling to a Spiking Connectome Circuit
+## 4. Discussion
 
-The empirical initiation framework claims substrate-adaptivity: the same source code compiles for different embedding spaces given a calibration pass. We tested this claim against a substrate deliberately far outside the training distribution of the compiler — a leaky integrate-and-fire spiking simulation of the *Drosophila melanogaster* central brain wired with real synaptic connectivity from the FlyWire v783 connectome (Shiu et al. 2024 whole-brain LIF, 138,639 neurons, 15,091,983 synapses, 91% prediction accuracy against ground-truth fly spike activity). A Sutra source file describing a four-state conditional was parsed and validated by the same compiler used for the silicon experiments above (§6.1–§6.5), mechanically translated by a substrate-specific backend (`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`) into PyTorch calls against the spiking circuit, and executed. Full methodology, circuit parameters, and reproduction recipe are in the companion paper *Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome* (Leonhart).
+The headline result is narrow and strong: sign-flip binding is a working binding operation on frozen LLM embedding spaces at 14-role capacity across three independent models, at a cost (6.6μs) that makes it usable as a primitive in any system that has the embeddings on hand. The textbook VSA binding (Hadamard product) does not work in this setting. This is a small empirical correction to an assumption the VSA literature inherited from working with hand-designed hypervector spaces.
 
-**Decision-level results.** Across four program variants × four input conditions on the full real connectome substrate (Shiu whole-brain LIF, n=10 seeds), the compiled output produced the expected behavior on **155/160 decisions (96.9%)** with no parameter tuning. The five-decision residual is structural codebook collision on bad random seeds (off-diagonal cosine ≥ 0.94 between prototype populations on those seeds); a window-extension sweep at 200/300/500 ms confirms the residual is collision-driven and does not close with longer integration. The four variants yield four distinct permutations of the underlying prototype table — a necessary condition for claiming that the four programs are *actually different programs running on the same compiled artifact* rather than the same program with cosmetic differences. Reproducible via `python fly-brain/shiu_conditional.py --n-runs 10`.
+What this paper does *not* claim:
 
-| Program variant | `vinegar + hungry` | `vinegar + fed` | `clean_air + hungry` | `clean_air + fed` |
-|---|---|---|---|---|
-| A (natural)          | approach | ignore   | search   | idle     |
-| B (inverted smell)   | search   | idle     | approach | ignore   |
-| C (inverted hunger)  | ignore   | approach | idle     | search   |
-| D (both inverted)    | idle     | search   | ignore   | approach |
+- It does not propose a programming language. The operation set characterized here is the precondition for one, but a language requires control flow, defuzzification, type discipline, and a runtime — none of which are tested here.
+- It does not claim Turing completeness or any universality property. The 14-role capacity and 10-step chain are upper bounds of the test set, not theoretical limits.
+- It does not claim substrate-agnosticism beyond the four models tested. Three of the four work; the fourth has a documented defect.
+- It does not transfer to spiking neural substrates or to connectome-derived circuits. The operations measured here all run on the host against real-valued embedding vectors. Spiking-substrate work is reported separately in the companion paper.
 
-**Branching compiles to fuzzy weighted superposition.** Per `planning/sutra-spec/26-select-and-gate.md`, a Sutra conditional compiles to `result = Σ w_i · branch_i` where `w_i` are clipped cosine scores of the snapped query against pre-compiled joint prototypes. All branches execute simultaneously on the substrate, realized as simultaneous Poisson driving of all four behavior populations at rates `w_i · 200 Hz`; the prototype-matching circuit determines the weights; argmax over a behavior codebook defuzzifies. The four program variants share the same prototype table and decision pipeline — they differ only in the prototype-to-behavior map (a compile-time lookup). There is no host-side `if` in the decision path; the branch that fires is determined by spike-count similarity in the substrate's response space. This is the first Sutra control-flow operation measured on the full real connectome.
+What the paper does establish, and what we believe is worth publishing on its own: a small, reproducible, substrate-portable operation set for VSA-style computation on frozen LLM embeddings, with the specific binding choice (sign-flip) that makes it work, validated on three real embedding models and one pathological one, with operation costs measured. This is the empirical foundation any subsequent work in this area can build on.
 
-**Iteration on the connectome remains open.** The companion paper reports a negative result for `loop (condition)` on the EPG ring of FlyWire v783: direct EPG drive at 200 Hz / 100 ms produced zero recurrent EPG spikes across all 47 EPGs, and a 5× drive / 5× window escalation crossed only the noise floor. The biological ring-attractor dynamics live in the broader Δ7+PEN+EPG+R subnetwork rather than in the EPG-only slice, and recruiting that subnetwork for Sutra iteration is open research-scope work. Earlier drafts of this paper reported iteration via a polar-decomposition nearest-orthogonal matrix `Q` derived from a 140-D subset of W; that operator achieved `‖W − Q‖_F / ‖W‖_F = 0.983`, discarding 98% of the subset's Frobenius content to achieve orthogonality, and is not the connectome's own dynamics. We retract the eigenrotation-on-connectome claim and refer the reader to the companion paper's Result 3 for the negative measurement.
+## 5. Conclusion
 
-To our knowledge this is the first demonstration of a programming language whose conditional-branching semantics compile mechanically onto a real connectome-derived spiking substrate. The result serves as a non-silicon stress test for the substrate-agnostic claim in §4.2 — the substrate is deliberately far outside the training distribution of any silicon embedding model, and the fact that the same compiler targets it with no source changes is the point. Unbounded data-dependent iteration on this substrate is not yet demonstrated, and §6.6 reports only the operations we have measured running.
-
-## 7. Discussion
-
-### 7.1 What Sutra Is and Is Not
-
-Sutra is a formal system for reasoning under uncertainty. It is not a replacement for Python or C++ — it does not handle I/O, graphics, or systems programming. Its domain is *semantic computation*: inference, reasoning, search, and structured manipulation of meaning in vector space.
-
-The closest analogy is Prolog, which provides a fundamentally different computational paradigm (unification and backtracking) for a specific class of problems (logical inference). Sutra provides a different paradigm (geometric operations in continuous semantic space) for a different class of problems (reasoning under uncertainty with learned representations).
-
-### 7.2 Human-AI Collaboration in Language Design
-
-Sutra was designed through extensive human-AI conversation. The human designer brought domain insight — the recognition that embedding spaces could serve as computational substrate, the fuzzy-by-default inversion, the scaffolding-vs-vector-operation decomposition. The AI collaborator helped formalize these ideas, stress-tested them against the theoretical literature, and identified edge cases and failure modes.
-
-The design conversations are archived in the project repository. This collaborative process is itself a finding: AI systems can participate meaningfully in the creative, speculative phase of language design — not just code generation, but conceptual architecture.
-
-### 7.3 Future Directions
-
-**Syntax design.** Sutra's semantics are solidifying but no concrete syntax has been defined. The syntax must make codebook-dependent operations (snap, cone, hop) visually distinct from fixed-dimensional vector operations (bind, bundle, similarity, rotation) so programmers can immediately see where the expensive ANN-backed or PN→KC-backed calls sit.
-
-**JEPA integration.** Sutra naturally connects to Joint Embedding Predictive Architecture (LeCun, 2022). HDC provides algebraic structure; JEPA provides learned prediction. A two-phase training approach (algebraic consistency first, predictive coding second) could produce embedding spaces optimized for Sutra computation.
-
-**Product manifold embeddings.** Different semantic relationships naturally live in different geometries: hierarchies in hyperbolic space, analogies in Euclidean space, cycles on spheres. A product manifold embedding combining these geometries could give Sutra richer type semantics where the geometry of a subspace determines what operations are natural in it.
-
-**Implementation and benchmarks.** The most important next step. Candidate benchmark tasks: semantic search with algebraic pre-filtering, compositional multi-hop inference via vector arithmetic, and structured prediction exploiting discovered algebraic regularities.
-
-## 8. Conclusion
-
-Sutra demonstrates that LLM embedding spaces can serve as a computational substrate for a programming language, not just a lookup table for similarity search. The language's novel contributions — an all-on-substrate vector-operation set, cosine-based defuzzification, empirical initiation, cone traversal as control flow — are grounded in empirical evidence that frozen embedding spaces encode consistent algebraic structure.
-
-Empirical testing on four embedding models revealed a critical finding: the traditional VSA binding operation (Hadamard product) fails on natural embeddings, but sign-flip binding achieves **14/14 correct recoveries** at only 4.4x the cost, sustains **10/10 chained computation steps**, and supports **multi-hop composition** (extract from one structure, insert into another, extract again — all correct). These results hold identically across GTE-large (1024-dim), BGE-large (1024-dim), and Jina-v2 (768-dim), demonstrating substrate-agnostic viability. This finding updates the VSA literature's assumption that Hadamard product is the standard binding choice — on natural embedding spaces, sign-flip binding is strictly superior.
-
-The design makes an honest assessment of its own limitations: VSA algebra alone is not Turing-complete, non-algebraic operations are expensive, noise accumulation requires periodic cleanup, and embedding substrates can have silent pathologies. These limitations are explicitly addressed in the language design rather than hidden.
-
-Sutra is less like a traditional programming language and more like a formal system for reasoning under uncertainty. It occupies a previously empty niche — continuous semantic computation as a programming paradigm — and provides a concrete framework for exploiting the algebraic structure that neural networks produce but that no existing system treats as a first-class computational resource.
+Six binding operations were tested on bundled role-filler structures over three frozen LLM embedding spaces. Hadamard product, the textbook VSA binding choice, fails (2/7 correct at 7 roles). Sign-flip binding, the cheapest of the working alternatives, achieves 14/14 correct snap recoveries on a 15-item codebook, sustains 10/10 chained computation steps, and supports multi-hop composition between bundled structures. The result is identical on GTE-large, BGE-large, and Jina-v2, and substrate-validation surfaces a documented attention-sink defect in mxbai-embed-large that algebraic gates alone do not catch. Snap-to-nearest, often suspected as the cost bottleneck for VSA-style systems, is shown to be 8× cheaper than producing a single embedding even on a 10K-item codebook. Together these results characterize a small, substrate-portable operation set for VSA-style composition on naturally-learned embedding spaces.
 
 ## References
 
-Bingham, E., et al. (2019). Pyro: Deep universal probabilistic programming. JMLR.
-
 Bordes, A., et al. (2013). Translating embeddings for modeling multi-relational data. NeurIPS.
 
-Carpenter, B., et al. (2017). Stan: A probabilistic programming language. Journal of Statistical Software.
-
-Conneau, A., et al. (2018). What you can cram into a single $&!#* vector. ACL.
-
-Ethayarajh, K., et al. (2019). Towards understanding linear word analogies. ACL.
-
-Flanagan, N., et al. (2024). Hey Pentti, we did it! VSA Turing completeness via Cartesian closed categories.
-
 Gayler, R. W. (2003). Vector symbolic architectures answer Jackendoff's challenges for cognitive neuroscience. ICCS.
-
-Goodman, N. D., et al. (2008). Church: a language for generative models. UAI.
-
-Hewitt, J., & Manning, C. D. (2019). A structural probe for finding syntax in word representations. NAACL.
 
 Imani, M., et al. (2019). A framework for HD computing. ReConFig.
 
 Joshi, A., et al. (2016). Language recognition using random indexing. arXiv.
 
-Kahneman, D. (2011). Thinking, Fast and Slow. Farrar, Straus and Giroux.
-
 Kanerva, P. (2009). Hyperdimensional computing: An introduction to computing in distributed representation. Cognitive Computation.
 
 Kazemi, S. M., & Poole, D. (2018). Simple embedding for link prediction in knowledge graphs. NeurIPS.
 
-LeCun, Y. (2022). A path towards autonomous machine intelligence. OpenReview.
-
 Leonhart, E. Latent space cartography applied to Wikidata: Relational displacement analysis reveals a silent tokenizer defect in mxbai-embed-large.
-
-Linzen, T. (2016). Issues in evaluating semantic spaces using word analogies. RepEval Workshop.
-
-Liu, Y., et al. (2019). Latent space cartography: Visual analysis of vector space embeddings. Computer Graphics Forum.
-
-Manhaeve, R., et al. (2018). DeepProbLog: Neural probabilistic logic programming. NeurIPS.
 
 Mikolov, T., et al. (2013). Efficient estimation of word representations in vector space. ICLR Workshop.
 
@@ -524,21 +155,8 @@ Neubert, P., et al. (2019). An introduction to hyperdimensional computing for ro
 
 Plate, T. A. (1995). Holographic reduced representations. IEEE Transactions on Neural Networks.
 
-Rocktäschel, T., & Riedel, S. (2017). End-to-end differentiable proving. NeurIPS.
-
-Rogers, A., et al. (2017). Too many problems of analogical reasoning with word vectors. *SEM.
-
-Schluter, N. (2018). The word analogy testing caveat. NAACL.
-
-Serafini, L., & Garcez, A. d. (2016). Logic tensor networks. arXiv.
-
 Smolensky, P. (1990). Tensor product variable binding and the representation of symbolic structures in connectionist systems. Artificial Intelligence.
 
 Sun, Z., et al. (2019). RotatE: Knowledge graph embedding by relational rotation in complex space. ICLR.
 
-Trouillon, T., et al. (2016). Complex embeddings for simple link prediction. ICML.
-
-Vilnis, L., et al. (2018). Probabilistic embedding of knowledge graphs with box lattice measures. ACL.
-
 Wang, Z., et al. (2014). Knowledge graph embedding by translating on hyperplanes. AAAI.
-
