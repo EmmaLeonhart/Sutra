@@ -14,8 +14,7 @@ Remaining queue, priority order:
 
 1. **Push substrate-only k-ceiling above 3.** Pipeline A hits a hard ceiling at k≈3 because 140-D Poisson decode noise accumulates multiplicatively across iterations. Candidates: (a) longer SIM_MS (scales wall clock linearly), (b) KC-space promotion so rotation operates at ~1,882-D instead of 140-D, (c) substrate-side cleanup between rotation steps. Closing the gap between pipeline A (14/30) and pipeline B (30/30) while keeping rotation on the substrate is the primary open problem for indefinite-termination loops.
 2. **n=50 evaluation.** Rerun one or more headline results at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidates: 140-D Jaccard loop (5/5), target-k sweep (30/30), fuzzy conditional (80/80), substrate-only v2 (9/10).
-3. **Program library expansion.** Reviewer flags 4 conditional templates + 3 loop-test types as narrow. Add more `.su` programs that compile through the pipeline.
-4. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
+3. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
