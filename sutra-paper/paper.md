@@ -154,3 +154,4 @@ Smolensky, P. (1990). Tensor product variable binding and the representation of 
 Sun, Z., et al. (2019). RotatE: Knowledge graph embedding by relational rotation in complex space. ICLR.
 
 Wang, Z., et al. (2014). Knowledge graph embedding by translating on hyperplanes. AAAI.
+
