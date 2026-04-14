@@ -16,7 +16,6 @@ Remaining queue, priority order:
 2. **n=50 evaluation.** Rerun one or more headline results at n=50 seeds to kill the "n=5 is too small" reviewer thread. Candidates: 140-D Jaccard loop (5/5), target-k sweep (30/30), fuzzy conditional (80/80), substrate-only v2 (9/10).
 3. **Program library expansion.** Reviewer flags 4 conditional templates + 3 loop-test types as narrow. Add more `.su` programs that compile through the pipeline.
 4. **Pong with GUI.** Brain hosts game logic (ball physics = rotation, boundary = prototype match, AI paddle = fuzzy conditional). `fly-brain/pong_brain.py` has a 326-line scaffold. Stretch goal.
-5. **Repo-wide `audit.md` at root.** General audit of all directories: is each needed for the two papers.
 
 Tasks land one commit each per CLAUDE.md queue protocol. Commit both the STATUS.md removal and the implementation together.
 
