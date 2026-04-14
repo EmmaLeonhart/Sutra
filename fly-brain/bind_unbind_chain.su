@@ -1,0 +1,59 @@
+// Role-filler retrieval via a bind chain on the mushroom body.
+//
+// Demonstrates that bind/unbind compose: a structured record is built
+// from (role, filler) pairs bundled into one vector, and the original
+// filler for each role is recovered by unbinding with that role's key.
+//
+// Pattern (VSA standard, cf. planning/sutra-spec/02-operations.md):
+//     record = bundle( bind(r1, f1), bind(r2, f2), bind(r3, f3) )
+//     recovered = snap( unbind(r_i, record) )
+//     argmax_cosine(recovered, fillers) == f_i
+//
+// The snap() after unbind is the cleanup memory step — unbind produces
+// a noisy vector near f_i in superposition space; snap projects back
+// to the MB's KC subspace and picks out the nearest basis filler.
+
+vector role_color   = basis_vector("role_color");
+vector role_shape   = basis_vector("role_shape");
+vector role_size    = basis_vector("role_size");
+
+vector fill_red    = basis_vector("fill_red");
+vector fill_blue   = basis_vector("fill_blue");
+vector fill_green  = basis_vector("fill_green");
+vector fill_square = basis_vector("fill_square");
+vector fill_circle = basis_vector("fill_circle");
+vector fill_small  = basis_vector("fill_small");
+vector fill_large  = basis_vector("fill_large");
+
+function vector build_record(vector color, vector shape, vector size) {
+    return bundle(
+        bind(role_color, color),
+        bind(role_shape, shape),
+        bind(role_size,  size)
+    );
+}
+
+function vector recover(vector record, vector role) {
+    return snap(unbind(role, record));
+}
+
+function vector query_color(vector record) {
+    return argmax_cosine(
+        recover(record, role_color),
+        [fill_red, fill_blue, fill_green]
+    );
+}
+
+function vector query_shape(vector record) {
+    return argmax_cosine(
+        recover(record, role_shape),
+        [fill_square, fill_circle]
+    );
+}
+
+function vector query_size(vector record) {
+    return argmax_cosine(
+        recover(record, role_size),
+        [fill_small, fill_large]
+    );
+}
