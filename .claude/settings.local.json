@@ -110,7 +110,10 @@
       "WebFetch(domain:18.118.210.52)",
       "Bash(./gradlew.bat runIde:*)",
       "Bash(JAVA_HOME=\"/c/Program Files/Eclipse Adoptium/jdk-21.0.10.7-hotspot\" ./gradlew.bat runIde)",
-      "Bash(tee /tmp/ksweep_out.log)"
+      "Bash(tee /tmp/ksweep_out.log)",
+      "Bash(tee /tmp/simms_sweep.log)",
+      "Bash(jobs -l)",
+      "Bash(tee /tmp/n50_conditional.log)"
     ]
   }
 }
