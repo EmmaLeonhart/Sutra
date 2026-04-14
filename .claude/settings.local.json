@@ -113,7 +113,9 @@
       "Bash(tee /tmp/ksweep_out.log)",
       "Bash(tee /tmp/simms_sweep.log)",
       "Bash(jobs -l)",
-      "Bash(tee /tmp/n50_conditional.log)"
+      "Bash(tee /tmp/n50_conditional.log)",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 3)",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 10)"
     ]
   }
 }
