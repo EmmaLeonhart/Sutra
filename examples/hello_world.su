@@ -1,0 +1,34 @@
+// Hello world — the minimal Sutra program.
+//
+// Traditional Hello World is IO-heavy: `print("Hello, world")`. Sutra
+// programs don't print; they live inside the vector space. The
+// equivalent minimal shape is "embed the greeting, then retrieve it
+// from a codebook by similarity." The only escape from the vector
+// monad is the final name lookup — the same way a Haskell program's
+// IO is the thin edge where values leave the pure world.
+//
+// This is also the smallest demonstration that the compiler + runtime
+// are real: source -> matrix ops -> named output.
+
+// The greeting, as a vector in the space.
+vector greeting = basis_vector("hello_world");
+
+// A small codebook of candidate phrases.
+vector v_hello    = basis_vector("hello_world");
+vector v_goodbye  = basis_vector("goodbye");
+vector v_question = basis_vector("are_you_there");
+
+map<vector, string> PHRASE_NAME = {
+    v_hello:    "hello world",
+    v_goodbye:  "goodbye",
+    v_question: "are you there"
+};
+
+// `say` is the whole program: identify `greeting` against the codebook
+// by cosine similarity and return its name. No control flow, no IO
+// inside the language — the name lookup at the end is the single
+// bridge back to the host string world.
+function string say() {
+    vector winner = argmax_cosine(greeting, [v_hello, v_goodbye, v_question]);
+    return PHRASE_NAME[winner];
+}
