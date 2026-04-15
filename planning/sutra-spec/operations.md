@@ -26,6 +26,20 @@ The user's position: **cosine similarity is overused**, and
 settled. The tradeoffs depend on what the substrate gives you
 cheaply and what the rest of the language ends up needing.
 
+## Backend-specific availability
+
+> **NOTE — drift flagged 2026-04-15 (consistency audit):** The
+> numpy backend (`codegen_numpy.py`) **rejects `snap()` at codegen
+> time** — the pure-numpy demo substrate has no cleanup circuit,
+> so programs that need `snap` target the fly-brain backend
+> instead. The spec lists `snap` as a primitive without qualifying
+> this, which is technically accurate for the language but misses
+> that primitive availability is per-backend. Whether this is a
+> gap that needs to be closed by giving the numpy backend a real
+> `snap` (e.g. argmax-cosine against a codebook) or acknowledged
+> in the spec as a known substrate restriction is an open
+> question.
+
 ## `select` is not a primitive vector operation
 
 `select` is the conditional-branching mechanism, which is a different
