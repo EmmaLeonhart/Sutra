@@ -167,7 +167,7 @@ Total: 23/23. The outputs are not stochastic — the seed is fixed (`seed=42`, `
 
 We attempted to compile Sutra programs onto a biological spiking substrate. The target was a Brian2 leaky integrate-and-fire simulation of the right mushroom body of *Drosophila melanogaster*, wired from the Janelia hemibrain v1.2.1 connectome (Scheffer et al. 2020): 140 projection neurons → 1,882 Kenyon cells → APL feedback → 20 MBON readouts. A second target was the Shiu et al. 2024 whole-brain LIF model (138,639 neurons, 15 million synapses, real FlyWire v783 connectivity).
 
-Parts of the attempt succeeded. A 4-way fuzzy conditional written as a `select` over four pre-compiled Kenyon-cell prototypes produces decisions on the hemibrain simulator that match a reference table for a specific compilation of one program (results in `fly-brain-paper/`). Bundle and snap operate on spiking substrates with accuracy reported in the same companion.
+Some isolated operations transferred. Bundle and snap executed on the spiking substrate with the accuracy reported in the companion `fly-brain-paper/`, and a 4-way fuzzy conditional was hand-compiled onto Kenyon-cell prototypes for a single program. We report these as isolated results rather than a working backend — they do not compose into a general compilation path from arbitrary `.su` source to a spiking run.
 
 Parts did not. Most concretely: `loop(cond)` as specified in §2.3 requires a rotation operator R such that iterated application `state ← R · state` traces a trajectory through vector space. On a synthetic Givens rotation matrix this works. On the actual FlyWire weight matrix — used as `R` as the fly-brain codegen would need — iterated application produces a compressive projection, not a rotation: states collapse rather than traverse, and the gate never fires on the intended prototype. A central-complex EPG ring-attractor slice, which anatomically should implement directional rotation, fails to discriminate direction on the real connectivity (see `planning/findings/` under the dated negative-result entries). The conclusion we carry is that the connectome-as-substrate direction is a research program — one that needs dedicated substrate-compilation infrastructure (prototype fitting, anatomy-aware rotation discovery, alternative iteration primitives) which is outside the scope of a language paper.
 
@@ -191,7 +191,7 @@ Differentiable programming frameworks (JAX, PyTorch, TensorFlow) remove branches
 
 Neuromorphic and connectome-based computing proposals (Davies et al. 2018, Neftci et al. 2019) typically pair a conventional host language with a spiking-circuit target, emulating host branches at the edge of the substrate. Sutra's grammar targets the spiking-circuit style of computation directly; §5 reports the realities of the mapping when the substrate is a real connectome.
 
-The empirical premise — that frozen LLM embedding spaces encode consistent algebraic structure that VSA operations can exploit — is established by prior relational-displacement analysis of three general-purpose embedding models (Leonhart, *Latent space cartography applied to Wikidata*): 86 predicates discovered as consistent vector operations, r = 0.861 correlation between geometric consistency and prediction accuracy.
+The empirical premise — that frozen LLM embedding spaces encode consistent algebraic structure that VSA operations can exploit — is established by prior relational-displacement analysis of three general-purpose embedding models (Leonhart 2026, *Latent space cartography applied to Wikidata*): 86 predicates discovered as consistent vector operations, r = 0.861 correlation between geometric consistency and prediction accuracy. The numpy runtime used in the demonstrations does not depend on that result — it runs on fresh random vectors — but the substrate-extension direction does.
 
 ## 8. Limitations
 
@@ -233,11 +233,11 @@ Imani, M., et al. (2019). A framework for HD computing. ReConFig.
 
 Kanerva, P. (2009). Hyperdimensional computing: An introduction to computing in distributed representation. Cognitive Computation.
 
-Leonhart, E. *Latent space cartography applied to Wikidata: Relational displacement analysis reveals a silent tokenizer defect in mxbai-embed-large.*
+Leonhart, E. (2026). *Latent space cartography applied to Wikidata: Relational displacement analysis reveals a silent tokenizer defect in mxbai-embed-large.* Preprint.
 
-Leonhart, E. *Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces.*
+Leonhart, E. (2026). *Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces.* Preprint.
 
-Leonhart, E. *Compiling a Vector Programming Language to the Drosophila Hemibrain Connectome.*
+Leonhart, E. (2026). *Running Sutra on the Drosophila Hemibrain Connectome.* Preprint.
 
 Neftci, E. O., Mostafa, H., & Zenke, F. (2019). Surrogate gradient learning in spiking neural networks. IEEE Signal Processing Magazine.
 
