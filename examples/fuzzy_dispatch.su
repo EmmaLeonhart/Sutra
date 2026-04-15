@@ -83,3 +83,7 @@ function string dispatch(vector query) {
 
     return describe(result);
 }
+
+function string main() {
+    return dispatch(q_weather);
+}

@@ -86,3 +86,7 @@ function string program_D(vector smell, vector hunger) {
     // PH->idle, PF->search, AH->ignore, AF->approach
     return fuzzy_decide(smell, hunger, b_idle, b_search, b_ignore, b_approach);
 }
+
+function string main() {
+    return program_A(smell_present, hunger_hungry);
+}
