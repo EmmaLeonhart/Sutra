@@ -120,7 +120,13 @@
       "WebFetch(domain:arxiv.org)",
       "Bash(PYTHONIOENCODING=utf-8 python -m sutra_compiler --emit-numpy ../../examples/role_filler_record.su)",
       "Bash(PYTHONIOENCODING=utf-8 python -m sutra_compiler --emit-numpy ../../examples/fuzzy_branching.su)",
-      "Bash(PYTHONIOENCODING=utf-8 python examples/_smoke_test.py)"
+      "Bash(PYTHONIOENCODING=utf-8 python examples/_smoke_test.py)",
+      "Bash(ls sdk/intellij-sutra/src/main/kotlin/)",
+      "Bash(ls sdk/intellij-sutra/src/main/resources/META-INF/)",
+      "Bash(PYTHONPATH=sdk/sutra-compiler python -m sutra_compiler --help)",
+      "Bash(PYTHONPATH=sdk/sutra-compiler python -m sutra_compiler --run examples/hello_world.su)",
+      "Bash(PYTHONPATH=sdk/sutra-compiler PYTHONIOENCODING=utf-8 python -m sutra_compiler --run examples/hello_world.su)",
+      "Bash(PYTHONIOENCODING=utf-8 python -m sutra_compiler --run ../../examples/hello_world.su)"
     ]
   }
 }
