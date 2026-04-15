@@ -4,11 +4,29 @@
 
 ## Queued work (do in order)
 
-Seven new demonstration programs, each a `.su` file in `examples/` with expected-output wired into `examples/_smoke_test.py`. Each is reachable with the current primitive set (bundle / bind / unbind / argmax_cosine / map edge). Every item gets exactly one commit that both removes it from this queue and lands the demo + smoke test wiring. Full design rationale: `planning/exploratory/demo-program-queue.md`.
+Strategic frame: **Sutra ecosystem > Claw4S.** Anthropic Fellowship (Apr 26) is the goal. Claw4S (Apr 20) is a side-benefit if the language paper happens to be in shape. Every queue item below serves the ecosystem.
 
-1. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
+### Language paper (`language-paper/paper.md`) — recurring v1–v5 reject reasons, all cheap
 
-**Hard stop:** if by end of Apr 17 the paper isn't in a submittable state, drop the Claw4S push (per `claw4s-scope.md`). Fellows Apr 26 is higher priority. Runtime is already past the hard-stop gate — two examples run end-to-end.
+1. **Reword self-citations.** Drop the "Leonhart (2026)" form that the AI reviewer keeps flagging as hallucinated future-dated. Use descriptive titles only ("Leonhart, *Latent space cartography…*"); never name a venue or year.
+2. **Drop `gate` from §2/§3, present `select` / `select else` / single-option threshold per the new spec §26.** Reviewers v1, v2, v4 still list both as primitives. The §26 change just landed; the paper has to match.
+3. **Add a `loop(cond)` example to the demo set.** The paper defines `loop(cond)` but never exercises it; `examples/` should have something looping. The compiler already supports it — should be straightforward.
+4. **Demonstrate Turing-completeness instead of asserting it.** One Rule-110-shaped snippet, or a counter-in-`loop(cond)`, in the paper text plus `examples/`.
+
+### Sutra paper (`sutra-paper/paper.md`)
+
+5. **Same self-citation reword.** 10-minute fix; same recurring complaint.
+6. **Expand evaluation using Wikidata.** Mirror the approach the old VSA paper (in a separate repo, do not edit here) used: pull a structured Wikidata corpus and evaluate the sign-flip binding / VSA ops at meaningful scale. Replaces the "10/10 chained steps is statistically insignificant" complaint that recurs across v1–v14.
+
+### Fly-brain paper (`fly-brain-paper/paper.md`)
+
+7. **Re-implement the §6.6 if-statement on the real Shiu fly brain** (the canonical substrate per CLAUDE.md, `C:/Users/Immanuelle/shiu-fly-brain`). The MB-only "if-statement" the paper claimed in §6.6 doesn't actually run on the connectome the way the paper implies — re-do it on Shiu so the headline result is honest. Once it works on Shiu, retitle/scope the paper around that single result and drop the rest.
+
+### Concurrency (harder, but do not skip)
+
+8. **Concurrency design.** Real work on a language, not a one-line note. Open-question doc is updated with "two or more paths through the vector space" framing; the next step is a concrete sketch in `planning/sutra-spec/` and an example program. Not in scope for Apr 26 unless the earlier items finish quickly.
+
+**Hard stop:** if by end of Apr 17 the language paper isn't in submittable state, drop the Claw4S push. The Fellowship pitch (Apr 26) is the actual goal.
 
 ## Pinned semantic corrections (I keep dropping these)
 
