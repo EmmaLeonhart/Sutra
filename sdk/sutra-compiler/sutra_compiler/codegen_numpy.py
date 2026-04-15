@@ -149,6 +149,8 @@ class NumpyCodegen(FlyBrainCodegen):
         self._indent -= 1
         self._emit()
         self._emit()
+        self._emit_select_helper()
+        self._emit()
         self._emit("def _vector_map_lookup(pairs, key):")
         self._indent += 1
         self._emit('"""Identity-first lookup for vector-keyed maps, cosine fallback."""')
