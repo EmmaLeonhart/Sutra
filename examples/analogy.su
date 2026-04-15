@@ -1,0 +1,51 @@
+// Analogical pair memory — VSA version of "A is to B as C is to ?".
+//
+// Under sign-flip binding there is no group-theoretic "relation
+// vector" the way HRR has one, but the analogical shape reduces to
+// associative pair lookup: store (A, B) pairs as bind(A, B) in a
+// single bundled memory vector, query by unbinding A to recover
+// B. Each stored pair is a "known analog"; an unbind at query time
+// answers "given this new input, what plays the role B played?".
+//
+// Concrete setting: five (capital, country) pairs. Query a capital,
+// recover the country. The entire memory is one 256-dim vector; all
+// five associations coexist in superposition.
+
+vector paris  = basis_vector("paris");
+vector france = basis_vector("france");
+
+vector tokyo  = basis_vector("tokyo");
+vector japan  = basis_vector("japan");
+
+vector london = basis_vector("london");
+vector uk     = basis_vector("uk");
+
+vector rome   = basis_vector("rome");
+vector italy  = basis_vector("italy");
+
+vector cairo  = basis_vector("cairo");
+vector egypt  = basis_vector("egypt");
+
+map<vector, string> COUNTRY_NAME = {
+    france: "france",
+    japan:  "japan",
+    uk:     "uk",
+    italy:  "italy",
+    egypt:  "egypt"
+};
+
+// Bundled memory: five (capital, country) bindings superposed.
+vector memory = bundle(
+    bind(paris,  france),
+    bind(tokyo,  japan),
+    bind(london, uk),
+    bind(rome,   italy),
+    bind(cairo,  egypt)
+);
+
+// Query: given a capital, recover the country.
+function string country_of(vector city) {
+    vector recovered = unbind(city, memory);
+    vector winner = argmax_cosine(recovered, [france, japan, uk, italy, egypt]);
+    return COUNTRY_NAME[winner];
+}
