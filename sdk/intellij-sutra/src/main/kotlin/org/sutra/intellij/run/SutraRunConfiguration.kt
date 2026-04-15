@@ -44,6 +44,16 @@ class SutraRunConfiguration(
         val baseArgs = splitArgs(settings.effectiveCompilerArgs())
         val cwd = workingDirectory.ifBlank { project.basePath ?: File(script).parent ?: "." }
 
+        // Prepend sdk/sutra-compiler to PYTHONPATH so `python -m
+        // sutra_compiler` resolves without a global install. Falls back to
+        // the project basePath / cwd if the standard layout isn't there.
+        val projectRoot = project.basePath ?: cwd
+        val compilerSrc = File(projectRoot, "sdk/sutra-compiler")
+        val extraPath = if (compilerSrc.isDirectory) compilerSrc.absolutePath else null
+        val existingPy = System.getenv("PYTHONPATH")
+        val pythonPath = listOfNotNull(extraPath, existingPy?.takeIf { it.isNotBlank() })
+            .joinToString(File.pathSeparator)
+
         return object : CommandLineState(env) {
             override fun startProcess(): ProcessHandler {
                 val cmd = GeneralCommandLine(exe)
@@ -52,6 +62,9 @@ class SutraRunConfiguration(
                     .withWorkDirectory(cwd)
                     .withCharset(Charsets.UTF_8)
                     .withEnvironment("PYTHONIOENCODING", "utf-8")
+                if (pythonPath.isNotEmpty()) {
+                    cmd.withEnvironment("PYTHONPATH", pythonPath)
+                }
                 val handler = KillableColoredProcessHandler(cmd)
                 ProcessTerminatedListener.attach(handler)
                 return handler
