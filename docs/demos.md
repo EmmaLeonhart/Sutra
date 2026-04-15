@@ -35,6 +35,7 @@ Across the ten programs, the operations exercised are:
 - `unbind(role, bound)` — inverse of `bind` (same operation — sign-flip is self-inverse)
 - `similarity(a, b)` — cosine similarity
 - `argmax_cosine(query, [candidates])` — cleanup to nearest codebook entry
+- `select([scores], [options])` — softmax-weighted superposition (the spec's named conditional-branching primitive; see `planning/sutra-spec/26-select-and-gate.md`)
 - Scalar-vector multiplication and vector addition (for weighted superposition)
 - `map<vector, string>` edge lookup (the single escape from the pure region)
 
