@@ -118,6 +118,20 @@ not a grep. Surface, do not execute, from a sandbox session.
 
 ## [Pre-YC] Future Goals
 
+- **Pick the `else_score` formula in `select(...) else fallback`.** Spec
+  §26 currently pencils in `s_else = 0` as the working default — the
+  user has flagged this as discouraged because a constant baseline does
+  not measure "how unlike any of the named options the input is," which
+  is what the else clause is supposed to capture. Plausible
+  alternatives: `1 - max(scores)`, `-logsumexp(scores)`, or a
+  substrate-computed novelty score. Decision needs a demo that actually
+  exercises `select … else` semantics so the trade-offs are concrete.
+  When the formula changes, update `planning/sutra-spec/26-select-and-gate.md`
+  ("What this document does not settle" §1) and any backend that has
+  started implementing `select … else`. Also fold a corresponding grammar
+  change into `24-grammar.{ebnf,md}` (the `select(...) else fallback`
+  production is not in the grammar yet — added at the spec level
+  2026-04-15, still TBD in the grammar).
 - **Split project kinds: connectome-target vs embedding-space-target vs
   general-connectionist.** A Sutra project compiles to one of three
   qualitatively different substrates. Design doc:
