@@ -1,0 +1,75 @@
+// Nearest-phrase retrieval at realistic codebook scale.
+//
+// Generalizes hello_world.su from 3 candidate phrases to 20. The
+// retrieval is the same shape (argmax_cosine against a codebook),
+// but the scale tests whether random-basis vectors stay cleanly
+// separable as the codebook grows. At dim=256, 20 random basis
+// vectors have pairwise cosine ~= 0 (concentration of measure);
+// argmax should still pick the right phrase even when the query is
+// a *noisy superposition* of the target phrase and a small bit of
+// a distractor.
+//
+// Two test scenarios:
+//   1. Clean retrieval: query = phrase itself -> argmax returns it.
+//   2. Noisy retrieval: query = target + 0.2 * distractor -> target
+//      still wins, demonstrating the margin afforded by dim=256.
+
+vector p01 = basis_vector("the_quick_brown_fox");
+vector p02 = basis_vector("hello_world");
+vector p03 = basis_vector("goodbye_cruel_world");
+vector p04 = basis_vector("how_are_you_today");
+vector p05 = basis_vector("what_is_your_name");
+vector p06 = basis_vector("i_am_fine_thanks");
+vector p07 = basis_vector("please_and_thank_you");
+vector p08 = basis_vector("can_you_help_me");
+vector p09 = basis_vector("see_you_tomorrow");
+vector p10 = basis_vector("have_a_nice_day");
+vector p11 = basis_vector("good_morning_friend");
+vector p12 = basis_vector("good_night_sleep_well");
+vector p13 = basis_vector("lets_get_coffee");
+vector p14 = basis_vector("whats_for_dinner");
+vector p15 = basis_vector("turn_on_the_lights");
+vector p16 = basis_vector("play_some_music");
+vector p17 = basis_vector("set_an_alarm");
+vector p18 = basis_vector("tell_me_a_joke");
+vector p19 = basis_vector("remind_me_later");
+vector p20 = basis_vector("whats_the_weather");
+
+map<vector, string> PHRASE_NAME = {
+    p01: "the quick brown fox",
+    p02: "hello world",
+    p03: "goodbye cruel world",
+    p04: "how are you today",
+    p05: "what is your name",
+    p06: "i am fine thanks",
+    p07: "please and thank you",
+    p08: "can you help me",
+    p09: "see you tomorrow",
+    p10: "have a nice day",
+    p11: "good morning friend",
+    p12: "good night sleep well",
+    p13: "lets get coffee",
+    p14: "whats for dinner",
+    p15: "turn on the lights",
+    p16: "play some music",
+    p17: "set an alarm",
+    p18: "tell me a joke",
+    p19: "remind me later",
+    p20: "whats the weather"
+};
+
+// Clean retrieval.
+function string nearest(vector query) {
+    vector winner = argmax_cosine(query,
+        [p01, p02, p03, p04, p05, p06, p07, p08, p09, p10,
+         p11, p12, p13, p14, p15, p16, p17, p18, p19, p20]);
+    return PHRASE_NAME[winner];
+}
+
+// Retrieval from a noisy query: target + alpha * distractor.
+// Demonstrates that the margin in dim=256 is large enough for
+// small cross-talk to not flip the argmax.
+function string nearest_noisy(vector target, vector distractor) {
+    vector query = target + 0.2 * distractor;
+    return nearest(query);
+}
