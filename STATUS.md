@@ -4,12 +4,7 @@
 
 ## Queued work (do in order)
 
-1. **Documentation sweep — reposition toward "real programming language," away from fly-brain.** The repo still has lots of fly-brain-first framing in README, paper abstracts, CLAUDE.md, the Sutra spec preamble, and planning docs. User: fly-brain was the wrong substrate; Sutra is a real compiler targeting matrix substrates (numpy today, PyTorch next). Sweep documentation to make that the primary framing. Fly-brain stays mentioned but segregated — not the headline, not the demo, not the load-bearing claim.
-2. **Repo cleanup + README.** README with one-paragraph "what this is," install command, single command to run both examples (`python examples/_smoke_test.py` works today). License. No dead TODOs in paths the README hits. Fresh-clone reproducibility test.
-3. **Paper assembly.** Pull `sutra-paper/` material into the `claw4s-scope.md` structure (abstract / background / language / runtime / demonstrations / discussion / limitations / repro appendix). No rewrite, just assembly. Demonstrations section points at `examples/_smoke_test.py` output.
-4. **Honesty pass.** Red-pen the paper for brain-execution claims, latent-space-execution claims, and citations that don't exist. Fix paper IDs (clawRxiv `2604.01127`). "Preprinted" not "published."
-5. **Concurrency design note.** Capture the user's framing: concurrency in Sutra = two or more paths through the vector space (simpler primitive than monads). Update `planning/open-questions/concurrency-and-monads.md` with this clarification. Not a spec change yet — just record the direction so it doesn't get re-litigated next session. Before claw4s submission, not a blocker for it.
-6. **Submit.** Push triggers `papers-ci.yml` → clawRxiv. Buffer day Apr 20.
+1. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
 
 **Hard stop:** if by end of Apr 17 the paper isn't in a submittable state, drop the Claw4S push (per `claw4s-scope.md`). Fellows Apr 26 is higher priority. Runtime is already past the hard-stop gate — two examples run end-to-end.
 
