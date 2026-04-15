@@ -32,19 +32,23 @@ Rules:
 
 This is a policy shift. Prior sessions treated the hemibrain MB as the primary surface because it was fast; from now on the MB is a secondary surface and Shiu is primary.
 
-## 📍 READ `STATUS.md` FIRST EVERY SESSION
+## 📍 READ `STATUS.md` AND `claw4s-scope.md` FIRST EVERY SESSION
 
-Before any work on this repo, read `STATUS.md` at the repo root. It is the living truth table — what's built, what's open, what's out of scope, and the semantic corrections the user has had to repeat across sessions. CLAUDE.md is rules; STATUS.md is state. On this project (1M-token context burns through fast) you need both.
+Before any work on this repo, read both:
 
-### The `Queued work` section is the work queue
+- **`STATUS.md`** — the **work queue**. Not a state snapshot, not a truth table, not a changelog. It is a list of open items to do. **When you finish an item, you DELETE it from STATUS.md.** Completed work lives in `git log` and `planning/findings/`, never as an accumulating section in STATUS.md. If STATUS.md is bloated with "done" items or long-winded narrative, that is a bug — prune it.
+- **`claw4s-scope.md`** — the **strategic direction**. What we're actually building toward, what's in scope, what's out. STATUS.md items should serve this scope; if one doesn't, question it.
 
-`STATUS.md` has a `## Queued work (do in order)` section. It is not a wishlist — it is the authoritative ordered queue. Rules:
+CLAUDE.md is rules. `claw4s-scope.md` is direction. STATUS.md is the live queue against that direction. On this project (1M-token context burns through fast) you need all three but they each do a different job — keep them lean and do not let STATUS.md drift back into being a dumping ground for session state.
 
-- When the user asks to queue up multiple items, add them in priority order to `## Queued work` in STATUS.md, then commit + push that change as its own commit before starting any of them. The queue must be visible in the repo history before work begins.
-- When working an item off the queue, each queue item gets **exactly one commit** that both removes the item from STATUS.md and lands the work itself. Do not commit the implementation separately from the STATUS.md edit — the two changes must ship together so the queue and the repo never disagree.
-- Work items in queue order. Do not skip. If an item turns out to be blocked or mis-specified, update STATUS.md to reflect that (still as one commit) and surface it to the user before moving on.
-- When the queue is empty, delete the `## Queued work` section entirely rather than leaving a stub.
-- Push after every queue commit. The point of this protocol is that an outside observer (or a future session on a different machine) can see exactly what's pending and what just landed by reading `git log` + `STATUS.md` alone.
+### STATUS.md queue discipline
+
+- Items are added in priority order. When the user queues multiple items, commit + push the STATUS.md change as its own commit before starting any of them.
+- **When working an item off the queue, each item gets exactly one commit that both removes it from STATUS.md and lands the work.** The queue entry disappears in the same commit as the implementation. No "done" markers, no strikethrough, no "✅ completed" lines — it's gone from the file.
+- Work items in queue order. If one is blocked or mis-specified, update STATUS.md to reflect that (still one commit) and surface it to the user before moving on.
+- When the queue is empty, STATUS.md can be nearly empty (a pointer to `claw4s-scope.md` plus any pinned semantic corrections is fine). Do not leave stub sections.
+- Push after every queue commit. An outside observer should be able to read `git log` + current `STATUS.md` and know exactly what's pending and what just landed.
+- Strategic direction, long-term agenda, "what the project is about" — none of that goes in STATUS.md. It goes in `claw4s-scope.md` or (for long-term, post-submission) `todo.md`.
 
 ### Open design questions live in `planning/open-questions/`
 
