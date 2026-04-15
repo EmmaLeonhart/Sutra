@@ -23,7 +23,9 @@ from typing import List
 
 from . import __version__
 from . import ast_nodes as ast
-from .codegen_flybrain import CodegenNotSupported, translate_module
+from .codegen_flybrain import CodegenNotSupported
+from .codegen_flybrain import translate_module as translate_flybrain
+from .codegen_numpy import translate_module as translate_numpy
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
 from .parser import Parser
@@ -178,23 +180,18 @@ def _run_consistency(paths: List[str]) -> int:
     return 1 if drift_count else 0
 
 
-def _run_emit_flybrain(
-    path: str, *, runtime_dim: int, runtime_seed: int, runtime_n_kc: int
-) -> int:
-    """Parse one `.su` file and emit FlyBrainVSA-targeted Python to stdout.
-
-    Validation runs first: any errors abort the translation with a
-    non-zero exit code, mirroring how a real compiler refuses to lower
-    a broken source file.
-    """
+def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
+                       runtime_seed: int, runtime_n_kc: int) -> str | None:
+    """Validate + parse + codegen one .su file. Returns generated Python
+    source, or None on failure (diagnostics already printed)."""
     if not os.path.exists(path):
         print(f"{path}: error: file not found", file=sys.stderr)
-        return 1
+        return None
     bag = validate_file(path)
     if bag.errors:
         for d in bag:
             print(d.format(), file=sys.stderr)
-        return 1
+        return None
     with open(path, encoding="utf-8") as fp:
         src = fp.read()
     lexer = Lexer(src, file=path)
@@ -202,14 +199,48 @@ def _run_emit_flybrain(
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
     try:
-        out = translate_module(
-            module,
-            runtime_dim=runtime_dim,
-            runtime_seed=runtime_seed,
+        if backend == "numpy":
+            return translate_numpy(
+                module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+            )
+        return translate_flybrain(
+            module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
             runtime_n_kc=runtime_n_kc,
         )
     except CodegenNotSupported as exc:
         print(f"{path}:{exc}", file=sys.stderr)
+        return None
+
+
+def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
+    """Compile a .su file with the numpy backend and exec the generated
+    module. A `main()` function in the module, if present, is called and
+    its return value is printed; otherwise the module's top-level prints
+    carry the output."""
+    import types
+    py_src = _compile_to_python(
+        path, "numpy", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        runtime_n_kc=0,
+    )
+    if py_src is None:
+        return 1
+    mod = types.ModuleType("_sutra_run")
+    mod.__file__ = f"<generated from {path}>"
+    exec(compile(py_src, mod.__file__, "exec"), mod.__dict__)
+    if hasattr(mod, "main") and callable(mod.main):
+        result = mod.main()
+        if result is not None:
+            print(result)
+    return 0
+
+
+def _run_emit(path: str, backend: str, *, runtime_dim: int, runtime_seed: int,
+              runtime_n_kc: int) -> int:
+    out = _compile_to_python(
+        path, backend, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        runtime_n_kc=runtime_n_kc,
+    )
+    if out is None:
         return 1
     sys.stdout.write(out)
     return 0
@@ -245,8 +276,25 @@ def main(argv: List[str] | None = None) -> int:
         action="store_true",
         help=(
             "Compile the first input file to Python targeting the FlyBrainVSA "
-            "runtime and print it to stdout. V1 scope: the permutation-conditional "
-            "shape from fly-brain/permutation_conditional.su."
+            "runtime and print it to stdout. Fly-brain-only work — the demo "
+            "path is --emit-numpy."
+        ),
+    )
+    parser.add_argument(
+        "--emit-numpy",
+        action="store_true",
+        help=(
+            "Compile the first input file to self-contained numpy Python and "
+            "print it to stdout. This is the demo-path backend: no fly-brain "
+            "imports, no spiking simulator, ops run as plain matrix operations."
+        ),
+    )
+    parser.add_argument(
+        "--run",
+        action="store_true",
+        help=(
+            "Compile and execute the first input file (numpy backend) in one "
+            "step. Captures and prints whatever the generated module prints."
         ),
     )
     parser.add_argument(
@@ -267,15 +315,22 @@ def main(argv: List[str] | None = None) -> int:
         version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
-    if args.emit_flybrain:
+    if args.emit_flybrain or args.emit_numpy or args.run:
         if len(args.paths) != 1:
             print(
-                "--emit-flybrain takes exactly one .su source file",
+                "--emit-*/--run takes exactly one .su source file",
                 file=sys.stderr,
             )
             return 2
-        return _run_emit_flybrain(
-            args.paths[0],
+        backend = "flybrain" if args.emit_flybrain else "numpy"
+        if args.run:
+            return _run_execute(
+                args.paths[0],
+                runtime_dim=args.runtime_dim,
+                runtime_seed=args.runtime_seed,
+            )
+        return _run_emit(
+            args.paths[0], backend,
             runtime_dim=args.runtime_dim,
             runtime_seed=args.runtime_seed,
             runtime_n_kc=args.runtime_n_kc,
