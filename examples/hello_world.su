@@ -33,3 +33,10 @@ function string say() {
     vector winner = argmax_cosine(greeting, [v_hello, v_goodbye, v_question]);
     return PHRASE_NAME[winner];
 }
+
+// Entry point. `python -m sutra_compiler --run examples/hello_world.su`
+// (and the IDE's gutter play button) invoke `main()` and print its
+// return value.
+function string main() {
+    return say();
+}

@@ -144,5 +144,17 @@
             secondary="true"
             icon="AllIcons.Toolwindows.ToolWindowModuleDependencies"
             factoryClass="org.sutra.intellij.workspace.SutraWorkspaceToolWindowFactory"/>
+
+        <!-- Run support: `function string main()` is the entry point. The
+             gutter icon on `main` and right-click "Run" both build a
+             SutraRunConfiguration that shells the reference compiler with
+             the run flag. See SutraRunConfiguration.kt. -->
+        <configurationType
+            implementation="org.sutra.intellij.run.SutraRunConfigurationType"/>
+        <runConfigurationProducer
+            implementation="org.sutra.intellij.run.SutraRunConfigurationProducer"/>
+        <runLineMarkerContributor
+            language="Sutra"
+            implementationClass="org.sutra.intellij.run.SutraRunLineMarkerContributor"/>
     </extensions>
 </idea-plugin>
