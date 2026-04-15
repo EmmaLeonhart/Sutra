@@ -4,8 +4,7 @@
 
 ## Queued work (do in order)
 
-1. **Inventory the runtime.** What exists today that takes a `.su` program → matrix ops → output? Identify the gap to "executes two example programs end-to-end on GPU or CPU." Write the inventory as a short doc under `planning/` so the gap is explicit, not vibes.
-2. **Pick the two example programs.** They must exercise non-trivial features (branching-without-branching, fixed-point / recursion, something that shows zero-control-flow isn't a toy restriction). Write them in `examples/` as `.su` sources with expected output committed alongside.
+1. **Pick the two example programs.** Example 1 is `fly-brain/fuzzy_conditional.su` (already compiles; has reference outputs in `test_codegen_e2e_fuzzy.py` — extract to a committed golden file). Example 2 TBD: must exercise something distinct from example 1 (candidates in `planning/runtime-inventory-2026-04-14.md` §Decisions). Write sources + expected outputs under `examples/` (or surface the fly-brain file there).
 3. **Codegen V1 carryover: close feature gaps needed by the two examples.** 6/13 illustrative `.su` files currently hit `CodegenNotSupported` (method/operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`). Only fix the ones the two chosen examples actually need — do not try to clear all 6. Breakdown: `planning/open-questions/codegen-v1-feature-coverage.md`.
 4. **End-to-end run: example 1.** Source → matrix ops → output, matching the expected output committed in step 2.
 5. **End-to-end run: example 2.** Same.
