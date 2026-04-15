@@ -339,6 +339,38 @@ def run_sequence() -> bool:
     return correct == total
 
 
+def run_loop_rotation() -> bool:
+    path = os.path.join(HERE, "loop_rotation.su")
+    mod = compile_to_module(path)
+    # Haar-random rotation from a fixed seed; the trajectory is
+    # deterministic but spec-agnostic about which codebook entry each
+    # start ends up nearest to. Pin whatever the fixed seed produces —
+    # the demo is about the loop(cond) + snap mechanics, not about
+    # "loop converges to dog."
+    expected = {
+        "cat":    "bird",
+        "dog":    "cat",
+        "bird":   "bird",
+        "fish":   "cat",
+        "rabbit": "fish",
+    }
+    print("=" * 72)
+    print("Example 10: loop_rotation.su (eigenrotation + snap terminal commit)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for start_name, exp in expected.items():
+        start_vec = getattr(mod, f"v_{start_name}")
+        got = mod.wander_then_snap(start_vec)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  wander_then_snap(v_{start_name:<6}) expected={exp:<6} got={got:<6} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} loop+snap results match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -359,8 +391,10 @@ def main() -> int:
     print()
     ok9 = run_sequence()
     print()
+    ok10 = run_loop_rotation()
+    print()
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10]):
         print("PASS")
         return 0
     print("FAIL")
