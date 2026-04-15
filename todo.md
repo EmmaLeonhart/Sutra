@@ -118,6 +118,32 @@ not a grep. Surface, do not execute, from a sandbox session.
 
 ## [Pre-YC] Future Goals
 
+- **Pick the multi-option `select` firing threshold.** Single-option
+  `select` has a 0.5 default with a clean justification (softmax-of-one-
+  vs-not is a probability distribution, and 0.5 is its natural decision
+  boundary — see §26 "Single-option `select`"). For a `select` over
+  k > 1 options the equivalent rule is unresolved. Candidates: winning
+  weight exceeds `1/k + δ`; winning weight exceeds runner-up by a
+  margin; absolute threshold (no clean softmax justification at k > 1);
+  or no firing threshold at all (downstream consumers decide). Decision
+  needs a multi-option demo where firing/not-firing matters. Logged as
+  open question in §26 "What this document does not settle" §3.
+- **Revisit the single-option `select` default threshold (0.5).** Picked
+  provisionally over 0.9. If a real demo shows 0.5 lets too much fire,
+  raise it. Either way, log the rationale in §26 alongside the
+  decision.
+- **IntelliJ / VS Code: inline interpretation hints for `select`,
+  `is_true`, and other Sutra-specific constructs.** Modeled on the way
+  Visual Studio shows git-blame author/commit hints inline against the
+  code. The Sutra version would surface "this `select` will polarize
+  with default threshold 0.5 and fire if `is_true(score) ≥ 0.5`",
+  "this `is_true` polarizes the fuzzy state but does not binarize it",
+  etc. — small, dismissable, contextual annotations that explain how
+  the language interprets the code at the cursor. Helps onboard
+  readers who don't yet have the spec in their head. Should hook into
+  the LSP / MCP layer that already holds the semantic context (S1
+  side of the dual runtime). Lives alongside the existing IDE work in
+  `sdk/`.
 - **Pick the `else_score` formula in `select(...) else fallback`.** Spec
   §26 currently pencils in `s_else = 0` as the working default — the
   user has flagged this as discouraged because a constant baseline does
