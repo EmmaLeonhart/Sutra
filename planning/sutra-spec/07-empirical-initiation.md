@@ -37,10 +37,14 @@ This mapping file is the Sutra equivalent of a compiled binary. The same Sutra s
 
 A concrete example:
 
-```ak
-result = bind(AGENT_role, "cat") + bind(ACTION_role, "sit") + bind(LOCATION_role, "mat")
-agent = unbind(AGENT_role, result)
-# agent ≈ embedding("cat")
+```su
+vector result = bundle(
+    bind(AGENT_role,    embed("cat")),
+    bind(ACTION_role,   embed("sit")),
+    bind(LOCATION_role, embed("mat"))
+);
+vector agent = unbind(AGENT_role, result);
+// agent ~= embed("cat")
 ```
 
 On mxbai-embed-large (1024-dim):
