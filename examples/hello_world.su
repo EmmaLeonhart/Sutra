@@ -1,11 +1,12 @@
 // Hello world — the minimal Sutra program.
 //
 // Traditional Hello World is IO-heavy: `print("Hello, world")`. Sutra
-// programs don't print; they live inside the vector space. The
-// equivalent minimal shape is "embed the greeting, then retrieve it
-// from a codebook by similarity." The only escape from the vector
-// monad is the final name lookup — the same way a Haskell program's
-// IO is the thin edge where values leave the pure world.
+// is a purely functional vector-space language — there is no print,
+// no IO primitive, no side effect a function body can invoke. Every
+// computation is a deterministic vector-to-vector map. The only
+// escape from the pure region is the final name lookup at the edge,
+// which is the thin boundary where values leave the language the way
+// Haskell programs surface results from an otherwise pure body.
 //
 // This is also the smallest demonstration that the compiler + runtime
 // are real: source -> matrix ops -> named output.
