@@ -37,11 +37,10 @@ lives here.
   (intertwined with the sign-flip revisit item in `todo.md`).
 - Whether other primitives deserve first-class status (rotation,
   projection, scalar multiplication).
-- **DRIFT:** numpy backend rejects `snap()`; primitive
-  availability is per-backend. Is this a spec clarification
-  (primitives are not uniformly available) or a backend gap
-  (numpy needs a real snap)? (Flagged 2026-04-15 in consistency
-  audit.)
+- Should `snap` and `argmax_cosine` unify under a single name that
+  lowers per-substrate, or stay distinct? (`snap` is not called in
+  `examples/*.su`; the demo-path cleanup primitive is
+  `argmax_cosine`.)
 
 ## Equality and defuzzification — `equality-and-defuzzification.md`
 
@@ -64,15 +63,10 @@ lives here.
 
 ## Program structure — `program-structure.md`
 
-- **DRIFT:** Spec says `meru.toml`; compiler + examples use
-  `atman.toml`. Is this a rename-in-progress, or did the user
-  mean the existing `atman.toml` by the new name? (Flagged
-  2026-04-15 in consistency audit.)
-- **DRIFT:** Spec says "entry point is `main`"; actual surface
-  syntax is `function string main() { ... }`. Grammar spec
-  missing. (Flagged 2026-04-15 in consistency audit.)
-- `meru.toml` / `atman.toml` schema (required / optional fields,
-  defaults).
+- Formal grammar for function declarations and the rest of the
+  surface syntax (`function <return-type> name(...) { ... }` is
+  observed in examples but not yet formalized in a `grammar.md`).
+- `atman.toml` schema (required / optional fields, defaults).
 - How substrate incompatibility is detected and reported.
 - Per-file import system vs whole-project compilation.
 - Project directory layout.
