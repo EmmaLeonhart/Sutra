@@ -15,6 +15,15 @@ to ground truth for surface syntax than the deprecated spec was.
 There is not a hidden second layer of file organization: it is
 `.su` source + the project manifest described below.
 
+> **NOTE — drift flagged 2026-04-15 (consistency audit):** The
+> existing `.su` files declare main as `function string main()
+> { ... }` (see `examples/hello_world.su`, `examples/06-executable-
+> file.su`). The spec says "the entry point is the `main`
+> function" without being more specific than that. The `function`
+> keyword, return-type prefix, and brace-delimited body are
+> compiler-accepted surface syntax that the spec has not yet
+> formalized; noted for a future `grammar.md` section.
+
 ## `meru.toml` — project manifest
 
 Each Sutra **project / solution** carries a `meru.toml` file
@@ -23,6 +32,16 @@ configuration the project needs. This file exists because Sutra
 programs are **not fully architecture-independent** — which
 substrate a program runs on affects what primitives are available
 and how they perform.
+
+> **NOTE — drift flagged 2026-04-15 (consistency audit):** The
+> current compiler (`sdk/sutra-compiler/sutra_compiler/workspace.py`)
+> and every workspace example under `examples/workspace/` use the
+> filename `atman.toml`, not `meru.toml`. The user stated
+> `meru.toml` on 2026-04-15. Either (a) the filename is being
+> renamed atman → meru and the compiler + examples need to be
+> updated, or (b) the user meant the existing `atman.toml` by
+> the new name. The audit cannot resolve this without user input;
+> listed in `open-questions.md`.
 
 The manifest records things like:
 
