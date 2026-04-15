@@ -73,3 +73,7 @@ function string nearest_noisy(vector target, vector distractor) {
     vector query = target + 0.2 * distractor;
     return nearest(query);
 }
+
+function string main() {
+    return nearest_noisy(p02, p05);
+}

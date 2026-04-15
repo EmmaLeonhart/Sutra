@@ -88,3 +88,7 @@ function string decode_at(vector record, vector position) {
 function scalar seq_similarity(vector a_seq, vector b_seq) {
     return similarity(a_seq, b_seq);
 }
+
+function string main() {
+    return decode_at(seq_fox, pos_3);
+}
