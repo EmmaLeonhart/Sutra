@@ -8,16 +8,15 @@ Strategic frame: **Sutra ecosystem > Claw4S.** Anthropic Fellowship (Apr 26) is 
 
 ### Paper revisions first (cheap, paper-CI auto-submits each push)
 
-1. **Add a `loop(cond)` example to the demo set.** Output a snapped answer via `argmax_cosine` (per user's "should be outputting a snapped answer with the argmax cosine, as we typically do"). Spec note in the paper that snap is one possible terminal commit, not the only one.
-2. **Demonstrate Turing-completeness instead of asserting it.** One Rule-110-shaped snippet, or a counter-in-`loop(cond)`, in the paper text plus `examples/`.
-3. **Sutra paper (`sutra-paper/paper.md`) — same self-citation reword.** 10-minute fix; same recurring complaint.
-4. **Sutra paper — expand evaluation using Wikidata.** Mirror the approach the old VSA paper (in a separate repo, do not edit here) used: pull a structured Wikidata corpus and evaluate the sign-flip binding / VSA ops at meaningful scale. Replaces the "10/10 chained steps is statistically insignificant" complaint that recurs across v1–v14.
-5. **Fly-brain paper — re-implement the §6.6 if-statement on the real Shiu fly brain** (the canonical substrate per CLAUDE.md, `C:/Users/Immanuelle/shiu-fly-brain`). The MB-only "if-statement" the paper claimed in §6.6 doesn't actually run on the connectome the way the paper implies — re-do it on Shiu so the headline result is honest. Once it works on Shiu, retitle/scope the paper around that single result and drop the rest.
+1. **Demonstrate Turing-completeness instead of asserting it.** One Rule-110-shaped snippet, or a counter-in-`loop(cond)`, in the paper text plus `examples/`.
+2. **Sutra paper (`sutra-paper/paper.md`) — same self-citation reword.** 10-minute fix; same recurring complaint.
+3. **Sutra paper — expand evaluation using Wikidata.** Mirror the approach the old VSA paper (in a separate repo, do not edit here) used: pull a structured Wikidata corpus and evaluate the sign-flip binding / VSA ops at meaningful scale. Replaces the "10/10 chained steps is statistically insignificant" complaint that recurs across v1–v14.
+4. **Fly-brain paper — re-implement the §6.6 if-statement on the real Shiu fly brain** (the canonical substrate per CLAUDE.md, `C:/Users/Immanuelle/shiu-fly-brain`). The MB-only "if-statement" the paper claimed in §6.6 doesn't actually run on the connectome the way the paper implies — re-do it on Shiu so the headline result is honest. Once it works on Shiu, retitle/scope the paper around that single result and drop the rest.
 
 ### Then rebuild the spec from scratch
 
-6. **Build a new `planning/sutra-spec/` from scratch, in the user's framing.** The deprecated spec (`planning/sutra-spec-deprecated/`) was largely Claude inventing structure without checking — see `planning/sutra-spec/README.md` "meta-failure" section. Process: Claude does NOT write into the new spec from scratch. Instead, each section starts as a question to the user; Claude writes down the user's answer in the user's framing; gaps go to `planning/open-questions/` rather than being filled with plausible defaults. Concurrency (item 8) is the natural first section to draft because it's already an open question with user-articulated framing ("two or more paths through the vector space").
-7. **Concurrency design as the first new spec section.** Concrete sketch in `planning/sutra-spec/` plus an example program that demonstrates the design. Real work on a language, not a one-line note.
+5. **Build a new `planning/sutra-spec/` from scratch, in the user's framing.** The deprecated spec (`planning/sutra-spec-deprecated/`) was largely Claude inventing structure without checking — see `planning/sutra-spec/README.md` "meta-failure" section. Process: Claude does NOT write into the new spec from scratch. Instead, each section starts as a question to the user; Claude writes down the user's answer in the user's framing; gaps go to `planning/open-questions/` rather than being filled with plausible defaults. Concurrency (item 8) is the natural first section to draft because it's already an open question with user-articulated framing ("two or more paths through the vector space").
+6. **Concurrency design as the first new spec section.** Concrete sketch in `planning/sutra-spec/` plus an example program that demonstrates the design. Real work on a language, not a one-line note.
 
 **Hard stop:** if by end of Apr 17 the language paper isn't in submittable state, drop the Claw4S push. The Fellowship pitch (Apr 26) is the actual goal.
 
