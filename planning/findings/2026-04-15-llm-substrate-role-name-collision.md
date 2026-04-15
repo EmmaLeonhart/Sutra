@@ -67,6 +67,25 @@ added to `examples/todo.md`.
   attention-sink defect per CLAUDE.md).
 - Default dim: 768 (the LLM's native dim, not 256).
 
+## Scope: other examples affected by the same mechanism
+
+Re-running the full smoke test after the LLM wiring landed, `fuzzy_dispatch.su`
+also dropped from 4/4 → 1/4 (only `timer` matches; `weather`, `music`,
+and `cancel` all snap to the wrong dispatch). Same mechanism:
+`fuzzy_dispatch` builds role-keyed records and queries by unbinding
+with role vectors that are embedded by name. When those role names
+are semantically related (`lookup`, `start`, `stop`) the LLM places
+them in a tight cluster and sign-flip unbind can't separate them.
+
+So as of 2026-04-15, under the LLM substrate:
+- **Pass on LLM:** `hello_world`, `fuzzy_branching`, `role_filler_record`,
+  `classifier`, `analogy`, `knowledge_graph`, `predicate_lookup`,
+  `nearest_phrase`, `loop_rotation`, `counter_loop` (9/11 examples).
+- **Fail on LLM but pass on seeded RNG:** `sequence`, `fuzzy_dispatch`
+  (both failures are structural-role-name collisions, the same class).
+
+A `role("name")` primitive (todo.md #7) would fix both in one shot.
+
 ## What did not get committed
 
 - A fix for `sequence.su`. The example genuinely does not work on the
