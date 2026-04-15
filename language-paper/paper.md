@@ -28,7 +28,7 @@ The contribution of this paper is the language itself plus a compiler and runtim
 
 ### 2.1 Surface syntax
 
-Sutra source files have extension `.su`. The syntax is C-family: type-annotated declarations, function definitions, method calls, arithmetic operators. A full EBNF grammar lives at `planning/sutra-spec/grammar.md`; the operation model and control-flow semantics are specified across `planning/sutra-spec/02-operations.md`, `03-control-flow.md`, `04-defuzzification.md`, `11-vsa-math.md`, and `26-select-and-gate.md`.
+Sutra source files have extension `.su`. The syntax is C-family: type-annotated declarations, function definitions, method calls, arithmetic operators. A full EBNF grammar lives at `planning/sutra-spec/24-grammar.ebnf`; the operation model and control-flow semantics are specified across `planning/sutra-spec/02-operations.md`, `03-control-flow.md`, `04-defuzzification.md`, `11-vsa-math.md`, and `26-select-and-gate.md`.
 
 The grammar contains no `if`, `else`, `while`, `for`, `switch`, `break`, `continue`, or `goto`. These constructs are not hidden behind macros or library calls — they are not tokens the lexer recognizes. A fuzzy conditional is written as a `select` (§4.2 shows one); a multi-way dispatch is a `select` with more than two branches; an iteration is a `loop`.
 
