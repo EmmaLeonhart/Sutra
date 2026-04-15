@@ -35,6 +35,20 @@ def compile_to_module(src_path: str) -> types.ModuleType:
     return mod
 
 
+def run_hello_world() -> bool:
+    path = os.path.join(HERE, "hello_world.su")
+    mod = compile_to_module(path)
+    print("=" * 72)
+    print("Example 0: hello_world.su (embed + retrieve — the minimal program)")
+    print("=" * 72)
+    got = mod.say()
+    exp = "hello world"
+    mark = "OK" if got == exp else "FAIL"
+    print(f"  say() expected={exp!r} got={got!r} {mark}")
+    print()
+    return got == exp
+
+
 def run_fuzzy_branching() -> bool:
     path = os.path.join(HERE, "fuzzy_branching.su")
     mod = compile_to_module(path)
@@ -106,12 +120,13 @@ def run_role_filler() -> bool:
 
 
 def main() -> int:
+    ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
     print()
     ok2 = run_role_filler()
     print()
     print("=" * 72)
-    if ok1 and ok2:
+    if ok0 and ok1 and ok2:
         print("PASS")
         return 0
     print("FAIL")
