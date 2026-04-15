@@ -30,7 +30,7 @@ A workspace file is the top of the hierarchy. It enumerates the member projects,
 ```toml
 [workspace]
 name = "embedding-pipeline"
-sutra_version = "0.2"
+sutra_version = "0.0.1"
 
 [[workspace.member]]
 path = "corpus"
@@ -182,7 +182,7 @@ embedding-pipeline/
 ```toml
 [workspace]
 name = "embedding-pipeline"
-sutra_version = "0.2"
+sutra_version = "0.0.1"
 default_substrate = "silicon"
 
 [[workspace.member]]
