@@ -31,12 +31,12 @@ class NumpyCodegen(FlyBrainCodegen):
     map lookup, loop unrolling) is inherited unchanged.
     """
 
-    # Frozen-LLM substrate. The embed() method tries Ollama with this
-    # model first; if Ollama isn't available, it falls back to seeded
-    # random vectors so demos still run on a fresh clone with no extra
-    # services. Default model: nomic-embed-text (768-dim). Avoid
-    # mxbai-embed-large per CLAUDE.md — it has a documented attention-
-    # sink defect on diacritics and is treated as known-broken baseline.
+    # Frozen-LLM substrate. The numpy backend runs on frozen LLM
+    # embeddings via Ollama — no random-vector fallback. If Ollama is
+    # unavailable or the model is missing, compiled programs raise.
+    # Default model: nomic-embed-text (768-dim). Avoid mxbai-embed-large
+    # per CLAUDE.md — it has a documented attention-sink defect on
+    # diacritics and is treated as a known-broken baseline.
     DEFAULT_LLM_MODEL = "nomic-embed-text"
     DEFAULT_LLM_DIM = 768
 
@@ -129,13 +129,15 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("self.seed = seed")
         self._emit("self.llm_model = llm_model")
         self._emit("self._codebook = {}")
-        self._emit("self._llm_ok = None  # tri-state: None=untried, True=working, False=fell back")
         self._indent -= 1
         self._emit()
-        self._emit("def _ollama_embed(self, name):")
+        self._emit("def embed(self, name):")
         self._indent += 1
-        self._emit('"""Try the frozen LLM via Ollama. Returns numpy vec or None on failure."""')
-        self._emit("try:")
+        self._emit('"""Frozen-LLM embedding via Ollama. No random fallback.')
+        self._emit("If Ollama is unavailable or the model is missing, this raises.")
+        self._emit("The numpy backend is defined as running on frozen LLM embeddings;")
+        self._emit('a random-vector fallback is not Sutra."""')
+        self._emit("if name not in self._codebook:")
         self._indent += 1
         self._emit("import ollama")
         self._emit("r = ollama.embed(model=self.llm_model, input=name)")
@@ -160,49 +162,6 @@ class NumpyCodegen(FlyBrainCodegen):
         self._indent -= 1
         self._emit("n = _np.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")
-        self._indent -= 1
-        self._emit("return v")
-        self._indent -= 1
-        self._emit("except Exception:")
-        self._indent += 1
-        self._emit("return None")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit()
-        self._emit("def _seeded_embed(self, name):")
-        self._indent += 1
-        self._emit('"""Fallback when Ollama is unavailable: deterministic seeded RNG."""')
-        self._emit("h = hash(name) & 0x7fffffff")
-        self._emit("rng = _np.random.RandomState((self.seed ^ h) & 0x7fffffff)")
-        self._emit("v = rng.randn(self.dim)")
-        self._emit("return v / _np.linalg.norm(v)")
-        self._indent -= 1
-        self._emit()
-        self._emit("def embed(self, name):")
-        self._indent += 1
-        self._emit("if name not in self._codebook:")
-        self._indent += 1
-        self._emit("# Try LLM once; if it works, keep using it. If it fails, stick with RNG.")
-        self._emit("if self._llm_ok is None:")
-        self._indent += 1
-        self._emit("v = self._ollama_embed(name)")
-        self._emit("self._llm_ok = v is not None")
-        self._emit("if not self._llm_ok:")
-        self._indent += 1
-        self._emit("import sys")
-        self._emit("print(f'[sutra] Ollama unavailable for model {self.llm_model!r}; '")
-        self._emit("      f'falling back to seeded random vectors.', file=sys.stderr)")
-        self._emit("v = self._seeded_embed(name)")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("elif self._llm_ok:")
-        self._indent += 1
-        self._emit("v = self._ollama_embed(name)")
-        self._emit("if v is None: v = self._seeded_embed(name)")
-        self._indent -= 1
-        self._emit("else:")
-        self._indent += 1
-        self._emit("v = self._seeded_embed(name)")
         self._indent -= 1
         self._emit("self._codebook[name] = v")
         self._indent -= 1
