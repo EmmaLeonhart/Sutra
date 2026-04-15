@@ -8,10 +8,8 @@ Strategic frame: **Sutra ecosystem > Claw4S.** Anthropic Fellowship (Apr 26) is 
 
 ### Language paper (`language-paper/paper.md`) — recurring v1–v5 reject reasons, all cheap
 
-1. **Reword self-citations.** Drop the "Leonhart (2026)" form that the AI reviewer keeps flagging as hallucinated future-dated. Use descriptive titles only ("Leonhart, *Latent space cartography…*"); never name a venue or year.
-2. **Drop `gate` from §2/§3, present `select` / `select else` / single-option threshold per the new spec §26.** Reviewers v1, v2, v4 still list both as primitives. The §26 change just landed; the paper has to match.
-3. **Add a `loop(cond)` example to the demo set.** The paper defines `loop(cond)` but never exercises it; `examples/` should have something looping. The compiler already supports it — should be straightforward.
-4. **Demonstrate Turing-completeness instead of asserting it.** One Rule-110-shaped snippet, or a counter-in-`loop(cond)`, in the paper text plus `examples/`.
+1. **Add a `loop(cond)` example to the demo set.** The paper defines `loop(cond)` but never exercises it; `examples/` should have something looping. Note: the numpy backend's eigenrotation translator currently emits calls to fly-brain-only methods (`_VSA.make_random_rotation`, `_VSA.compile_prototypes`, `_VSA.loop`) — needs either an override in `NumpyCodegen._translate_eigenrotation_loop` or new methods on `_NumpyVSA`. Honest scope: do this for real, not a fake demo.
+2. **Demonstrate Turing-completeness instead of asserting it.** One Rule-110-shaped snippet, or a counter-in-`loop(cond)`, in the paper text plus `examples/`.
 
 ### Sutra paper (`sutra-paper/paper.md`)
 
