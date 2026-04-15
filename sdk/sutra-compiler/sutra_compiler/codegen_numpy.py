@@ -65,6 +65,42 @@ class NumpyCodegen(FlyBrainCodegen):
         "geometric_loop",
     })
 
+    def _translate_eigenrotation_loop(self, stmt):
+        """Eigenrotation on the numpy substrate.
+
+        Differences from fly-brain:
+        - Haar-random orthogonal matrix (fly-brain's uniform-angle
+          Givens gives a tight periodic orbit that never explores).
+        - Threshold is parsed from the condition (the numeric literal
+          side of `similarity(state, target) < T`). Fly-brain uses a
+          fixed 0.3 because matching is KC-pattern Jaccard; numpy
+          matches on raw cosine, which has a very different scale.
+        """
+        from . import ast_nodes as ast
+        lid = self._next_loop_id()
+        state_var = self._extract_loop_state_var(stmt.body)
+        target_expr = self._extract_loop_target(stmt.condition)
+
+        threshold = 0.9
+        cond = stmt.condition
+        if isinstance(cond, ast.BinaryOp):
+            for side in (cond.left, cond.right):
+                if isinstance(side, ast.FloatLiteral):
+                    threshold = side.value
+                elif isinstance(side, ast.IntLiteral):
+                    threshold = float(side.value)
+
+        self._emit(f"{lid}_R = _VSA.make_random_rotation("
+                   f"angle=1.0, n_planes=_VSA.dim // 2, seed=_VSA.seed)")
+        self._emit(f"{lid}_target = {target_expr}")
+        self._emit(f"{lid}_protos = _VSA.compile_prototypes("
+                   f"{{\"target\": {lid}_target}})")
+        self._emit(f"{lid}_name, {state_var}, {lid}_iters = _VSA.loop(")
+        self._indent += 1
+        self._emit(f"{state_var}, {lid}_R, {lid}_protos,")
+        self._emit(f"target_name=\"target\", threshold={threshold}, max_iters=500)")
+        self._indent -= 1
+
     def _translate_call(self, call: ast.Call) -> str:
         callee = call.callee
         if isinstance(callee, ast.Identifier):
@@ -201,6 +237,66 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("return 0.0")
         self._indent -= 1
         self._emit("return float(_np.dot(a, b) / (na * nb))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
+        self._indent += 1
+        self._emit('"""Haar-random rotation, scaled so its largest eigenphase ~= angle.')
+        self._emit('')
+        self._emit('Uniform-angle Givens composition makes every plane orbit at the')
+        self._emit('same frequency, so any trajectory is near-periodic and never')
+        self._emit('explores the hypersphere. A Haar-random orthogonal matrix has a')
+        self._emit('spectrum of eigenphases and produces quasi-periodic trajectories')
+        self._emit('that actually sample the sphere. `angle` and `n_planes` are kept')
+        self._emit('in the signature for API compatibility with the fly-brain VSA.')
+        self._emit('"""')
+        self._emit("rng = _np.random.RandomState(seed if seed is not None else self.seed)")
+        self._emit("A = rng.randn(self.dim, self.dim)")
+        self._emit("Q, _ = _np.linalg.qr(A)")
+        self._emit("# Fractional matrix power via eigendecomposition so the caller")
+        self._emit("# can still dial rotation magnitude via `angle`. Q^(angle/pi)")
+        self._emit("# interpolates between identity (angle=0) and full Q (angle=pi).")
+        self._emit("w, V = _np.linalg.eig(Q)")
+        self._emit("phases = _np.angle(w) * (angle / _np.pi)")
+        self._emit("R = (V * _np.exp(1j * phases)) @ _np.linalg.inv(V)")
+        self._emit("return _np.real(R)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def compile_prototypes(self, prototype_vectors, frame_seed=None):")
+        self._indent += 1
+        self._emit('"""Pass-through on the numpy substrate: no KC sparsification here."""')
+        self._emit("return dict(prototype_vectors)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def loop(self, initial_state, rotation, compiled_prototypes,")
+        self._indent += 1
+        self._emit("target_name=None, threshold=0.5, max_iters=50, frame_seed=None):")
+        self._emit('"""Eigenrotation: iterate state <- R @ state until match."""')
+        self._emit("state = initial_state.copy()")
+        self._emit("for iters in range(1, max_iters + 1):")
+        self._indent += 1
+        self._emit("state = rotation @ state")
+        self._emit("n = _np.linalg.norm(state)")
+        self._emit("if n > 0: state = state / n")
+        self._emit("best_name, best_score = None, -1.0")
+        self._emit("for nm, proto in compiled_prototypes.items():")
+        self._indent += 1
+        self._emit("s = self.similarity(state, proto)")
+        self._emit("if s > best_score:")
+        self._indent += 1
+        self._emit("best_score = s; best_name = nm")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("if target_name is not None and best_name == target_name and best_score >= threshold:")
+        self._indent += 1
+        self._emit("return best_name, state, iters")
+        self._indent -= 1
+        self._emit("if target_name is None and best_score >= threshold:")
+        self._indent += 1
+        self._emit("return best_name, state, iters")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return best_name, state, max_iters")
         self._indent -= 1
         self._indent -= 1
         self._emit()
