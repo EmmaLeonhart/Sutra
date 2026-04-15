@@ -6,15 +6,14 @@
 
 Seven new demonstration programs, each a `.su` file in `examples/` with expected-output wired into `examples/_smoke_test.py`. Each is reachable with the current primitive set (bundle / bind / unbind / argmax_cosine / map edge). Every item gets exactly one commit that both removes it from this queue and lands the demo + smoke test wiring. Full design rationale: `planning/exploratory/demo-program-queue.md`.
 
-1. **Classifier.** Bundle prototype vectors per class, `argmax_cosine` to classify novel inputs. Generalization of `fuzzy_branching.su` from 4 hand-coded behaviors to N trained/averaged prototypes. File: `examples/classifier.su`.
-2. **Analogy solver.** `A:B :: C:?` as `unbind(bind(B, unbind(A, C)))` resolved into a codebook. Textbook VSA, direct fit on current primitives. File: `examples/analogy.su`.
-3. **Flat knowledge graph (triples).** Bundle triples `bind(subject, bind(predicate, object))`; query by unbinding two of three (subject+predicate → object, subject+object → predicate, etc.). Generalization of `role_filler_record.su`. File: `examples/knowledge_graph.su`.
-4. **Predicate/relation lookup.** A specific shape of (3) — given a predicate and a subject, retrieve all objects that participated in that triple. Exercises compositional decode. File: `examples/predicate_lookup.su`.
-5. **Fuzzy dispatch (N-way).** Multi-way `select` with each branch firing a bound record rather than a scalar behavior. Generalization of the 4-way fuzzy-branching demo to N, with structured (bundled) result. File: `examples/fuzzy_dispatch.su`.
-6. **Nearest-phrase / spell-correct.** Larger codebook of phrases, embed input, `argmax_cosine`. Scales `hello_world.su` from 3 candidates to a realistic lookup table. File: `examples/nearest_phrase.su`.
-7. **Sequence encoder.** Position-bound bundle `Σᵢ bind(pos_i, token_i)`; decode token at position, compare sequences by cosine. First demo that treats a vector as a *sequence* rather than a *record* or a *state*. File: `examples/sequence.su`.
+1. **Analogy solver.** `A:B :: C:?` as `unbind(bind(B, unbind(A, C)))` resolved into a codebook. File: `examples/analogy.su`.
+2. **Flat knowledge graph (triples).** Bundle triples `bind(subject, bind(predicate, object))`; query by unbinding two of three. File: `examples/knowledge_graph.su`.
+3. **Predicate/relation lookup.** A specific shape of (2) — given a predicate and a subject, retrieve all objects that participated in that triple. File: `examples/predicate_lookup.su`.
+4. **Fuzzy dispatch (N-way).** Multi-way `select` with each branch firing a bound record rather than a scalar behavior. File: `examples/fuzzy_dispatch.su`.
+5. **Nearest-phrase / spell-correct.** Larger codebook of phrases, embed input, `argmax_cosine`. File: `examples/nearest_phrase.su`.
+6. **Sequence encoder.** Position-bound bundle `Σᵢ bind(pos_i, token_i)`; decode token at position. File: `examples/sequence.su`.
 
-8. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
+7. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
 
 **Hard stop:** if by end of Apr 17 the paper isn't in a submittable state, drop the Claw4S push (per `claw4s-scope.md`). Fellows Apr 26 is higher priority. Runtime is already past the hard-stop gate — two examples run end-to-end.
 
