@@ -143,6 +143,8 @@ Kazemi, S. M., & Poole, D. (2018). Simple embedding for link prediction in knowl
 
 Leonhart, E. Latent space cartography applied to Wikidata: Relational displacement analysis reveals a silent tokenizer defect in mxbai-embed-large.
 
+Leonhart, E. Sutra: A Control-Flow-Free Programming Language for Hyperdimensional Computing.
+
 Mikolov, T., et al. (2013). Efficient estimation of word representations in vector space. ICLR Workshop.
 
 Neubert, P., et al. (2019). An introduction to hyperdimensional computing for robotics. KI.
