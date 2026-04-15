@@ -264,6 +264,51 @@ def run_fuzzy_dispatch() -> bool:
     return correct == total
 
 
+def run_nearest_phrase() -> bool:
+    path = os.path.join(HERE, "nearest_phrase.su")
+    mod = compile_to_module(path)
+    phrase_pairs = [
+        (f"p{i:02d}", getattr(mod, f"p{i:02d}"), mod.PHRASE_NAME)
+        for i in range(1, 21)
+    ]
+    expected_clean = [
+        "the quick brown fox", "hello world", "goodbye cruel world",
+        "how are you today", "what is your name", "i am fine thanks",
+        "please and thank you", "can you help me", "see you tomorrow",
+        "have a nice day", "good morning friend", "good night sleep well",
+        "lets get coffee", "whats for dinner", "turn on the lights",
+        "play some music", "set an alarm", "tell me a joke",
+        "remind me later", "whats the weather",
+    ]
+    noisy_tests = [
+        (mod.p02, mod.p05, "hello world"),
+        (mod.p16, mod.p01, "play some music"),
+        (mod.p20, mod.p13, "whats the weather"),
+        (mod.p17, mod.p09, "set an alarm"),
+        (mod.p11, mod.p18, "good morning friend"),
+    ]
+    print("=" * 72)
+    print("Example 8: nearest_phrase.su (20-phrase codebook, clean + noisy)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for (lbl, v, _), exp in zip(phrase_pairs, expected_clean):
+        got = mod.nearest(v)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  nearest({lbl}) expected={exp:<22} got={got:<22} {mark}")
+        total += 1
+        correct += got == exp
+    for t, d, exp in noisy_tests:
+        got = mod.nearest_noisy(t, d)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  nearest_noisy(...)       expected={exp:<22} got={got:<22} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} retrievals match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -280,8 +325,10 @@ def main() -> int:
     print()
     ok7 = run_fuzzy_dispatch()
     print()
+    ok8 = run_nearest_phrase()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5 and ok6 and ok7:
+    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5 and ok6 and ok7 and ok8:
         print("PASS")
         return 0
     print("FAIL")
