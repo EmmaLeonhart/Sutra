@@ -239,6 +239,31 @@ def run_predicate_lookup() -> bool:
     return correct == total
 
 
+def run_fuzzy_dispatch() -> bool:
+    path = os.path.join(HERE, "fuzzy_dispatch.su")
+    mod = compile_to_module(path)
+    tests = [
+        ("weather", mod.q_weather, "lookup:weather"),
+        ("music",   mod.q_music,   "start:music"),
+        ("timer",   mod.q_timer,   "start:timer"),
+        ("cancel",  mod.q_cancel,  "stop:alarm"),
+    ]
+    print("=" * 72)
+    print("Example 7: fuzzy_dispatch.su (N-way dispatch, structured records)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for lbl, q, exp in tests:
+        got = mod.dispatch(q)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  dispatch({lbl:<7}) expected={exp:<16} got={got:<16} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} dispatches match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -253,8 +278,10 @@ def main() -> int:
     print()
     ok6 = run_predicate_lookup()
     print()
+    ok7 = run_fuzzy_dispatch()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5 and ok6:
+    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5 and ok6 and ok7:
         print("PASS")
         return 0
     print("FAIL")
