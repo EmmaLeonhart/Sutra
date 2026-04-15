@@ -6,8 +6,7 @@
 
 Seven new demonstration programs, each a `.su` file in `examples/` with expected-output wired into `examples/_smoke_test.py`. Each is reachable with the current primitive set (bundle / bind / unbind / argmax_cosine / map edge). Every item gets exactly one commit that both removes it from this queue and lands the demo + smoke test wiring. Full design rationale: `planning/exploratory/demo-program-queue.md`.
 
-1. **Fuzzy dispatch (N-way).** Multi-way `select` with each branch firing a bound record rather than a scalar behavior. File: `examples/fuzzy_dispatch.su`.
-2. **Nearest-phrase / spell-correct.** Larger codebook of phrases, embed input, `argmax_cosine`. File: `examples/nearest_phrase.su`.
+1. **Nearest-phrase / spell-correct.** Larger codebook of phrases, embed input, `argmax_cosine`. File: `examples/nearest_phrase.su`.
 3. **Sequence encoder.** Position-bound bundle `Σᵢ bind(pos_i, token_i)`; decode token at position. File: `examples/sequence.su`.
 
 4. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
