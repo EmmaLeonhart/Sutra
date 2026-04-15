@@ -17,6 +17,29 @@ When adding an item, pick a level. When closing one, delete the line.
 
 ---
 
+## [Pre-Claw4S] Address sign-flip in the language (HIGH PRIORITY)
+
+User flagged 2026-04-15: "I'm confused about how the sign flipping ended
+up coming back into the language, since I don't think it was supposed to
+be back in the language." Sign-flip (`a * sign(role)`) is still the
+binding operation everywhere — `bind` in both `codegen_numpy` and
+`codegen_flybrain` compiles to it, and it's the headline of
+`sutra-paper/`. What got deprecated in `8ee161f` was only the
+*paper framing* of conditional branching (now "fuzzy weighted
+superposition"), not the op itself.
+
+User direction: keep it in for now, but revisit this properly. Decide
+whether `bind` should actually be sign-flip (current state, keep as-is
+and make sure the spec + papers + CLAUDE.md pinned-corrections are
+all consistent and the user agrees) OR should be replaced by a
+different binding primitive (circular conv, Hadamard on centered
+vectors, rotation, something else) — which would be a language-level
+change touching both codegens, both papers, and every example that
+uses `bind`/`unbind`.
+
+Cannot be resolved without user input on "what should `bind` compile
+to." Not a Claude-decides thing. Surface at next spec session.
+
 ## [Pre-Claw4S] Paper scope catch-up after the 2026-04-14 pivot
 
 The embedding paper (`sutra-paper/paper.md`, retitled *"Sign-Flip Binding and
