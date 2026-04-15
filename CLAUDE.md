@@ -75,12 +75,15 @@ When you see a `chats/*.html` file without a matching `.md` sibling — or when 
 Commit both the new `.md` and the `.html` (if untracked). This is a recurring task — treat it like any other working-copy hygiene step.
 
 ## Project Overview
-This project is pivoting from FOL discovery in embedding spaces to **Sutra**, a vector programming language that uses LLM embedding spaces as its computational substrate.
+
+**Sutra is a real, purely functional programming language with a working compiler and a pure-numpy matrix runtime.** That is the headline, and the repo as of 2026-04-14 matches the headline: `.su` source parses, validates, compiles to self-contained Python, and executes; three demonstration programs (hello world, fuzzy branching, role-filler record) run end-to-end with 23/23 outputs correct. The demo path has zero fly-brain imports. PyTorch/GPU is the next refactor target, not a dependency of anything today.
+
+**Fly-brain is not the language's substrate.** The `fly-brain/` directory contains an attempted compile-to-connectome backend (Brian2 spiking simulation of the *Drosophila* mushroom body). That attempt produced interesting negative findings — the real FlyWire weight matrix does not function as a rotation operator, EPG ring-attractor circuits did not discriminate direction on real connectivity, etc. — which are documented and published under their own paper in `fly-brain-paper/`. It is a separate experimental target, not the primary runtime. Prior sessions repeatedly told the user "the fly-brain stuff works" when it did not; this framing is a corrective against that failure mode. If in doubt: the demo is numpy; fly-brain is segregated.
 
 ### The Sutra Pivot
-The FOL discovery work proved that embedding spaces encode consistent vector arithmetic (86 predicates as FOL operations, r=0.78 consistency-prediction correlation). Sutra is the next step: instead of just *discovering* logic in embedding spaces, we *program* in them.
+The FOL discovery work proved that embedding spaces encode consistent vector arithmetic (86 predicates as FOL operations, r=0.78 consistency-prediction correlation) — see the `latent-space-cartography` repo. Sutra was the next step: instead of just *discovering* logic in embedding spaces, *program* in them. That pivot produced the language, grammar, compiler, and runtime described above. Embedding spaces remain a plausible future substrate (the sign-flip binding work in `sutra-paper/` characterizes them) but are not the default — the numpy backend runs on fresh random vectors.
 
-**Sutra** is named after the Sanskrit concept of ākaśa — the fundamental space or aether through which all things exist and connect. The language operates in the same continuous, all-encompassing medium that the name evokes. Where the akashic records encode all knowledge in a non-physical plane, Sutra encodes computation in embedding space.
+**Sutra** is named after the Sanskrit *sūtra* — thread/rule/aphorism, the word used for Pāṇini's foundational Sanskrit grammar.
 
 ### Sutra Core Design
 - **Fuzzy-by-default.** Everything operates on fuzzy logic. Uncertainty is the ground truth; precision is the special case. This inverts how most languages work — normally you have crisp logic and bolt on probabilistic stuff as a library.
