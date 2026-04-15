@@ -6,9 +6,7 @@
 
 Seven new demonstration programs, each a `.su` file in `examples/` with expected-output wired into `examples/_smoke_test.py`. Each is reachable with the current primitive set (bundle / bind / unbind / argmax_cosine / map edge). Every item gets exactly one commit that both removes it from this queue and lands the demo + smoke test wiring. Full design rationale: `planning/exploratory/demo-program-queue.md`.
 
-1. **Sequence encoder.** Position-bound bundle `Σᵢ bind(pos_i, token_i)`; decode token at position. File: `examples/sequence.su`.
-
-2. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
+1. **Concurrency spec-adjacent note.** Open-question doc is updated with "two or more paths through the vector space" framing. Consider a short sketch in `planning/sutra-spec/` if/when a concrete program needs it. Not a blocker.
 
 **Hard stop:** if by end of Apr 17 the paper isn't in a submittable state, drop the Claw4S push (per `claw4s-scope.md`). Fellows Apr 26 is higher priority. Runtime is already past the hard-stop gate — two examples run end-to-end.
 
