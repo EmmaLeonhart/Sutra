@@ -1,0 +1,88 @@
+// Fuzzy weighted superposition conditionals — branches-without-branching.
+//
+// Per spec 03-control-flow.md, the canonical fuzzy 2-way conditional is
+//
+//     result = (cond * branch_true) + (NOT_cond * branch_false)
+//
+// generalized here to a 4-way weighted sum over a prototype table.
+// No if/else, no control flow. All four branches contribute
+// simultaneously; defuzzification is argmax cosine against a codebook
+// of behavior vectors.
+//
+// Substrate: pure numpy matrix operations. No fly-brain, no spiking,
+// no snap. The demo path for the language.
+
+// --- State axes ---
+vector smell_present = basis_vector("smell_present");
+vector smell_absent  = basis_vector("smell_absent");
+vector hunger_hungry = basis_vector("hunger_hungry");
+vector hunger_fed    = basis_vector("hunger_fed");
+
+// --- Behavior codebook ---
+vector b_approach = basis_vector("approach");
+vector b_ignore   = basis_vector("ignore");
+vector b_search   = basis_vector("search");
+vector b_idle     = basis_vector("idle");
+
+// --- Prototype table: 4 joint (smell, hunger) conjunctions ---
+//
+// Unlike the fly-brain variant, we do NOT snap these — no cleanup
+// circuit on this substrate. The prototype is the raw bind()ed vector.
+vector proto_PH = bind(smell_present, hunger_hungry);
+vector proto_PF = bind(smell_present, hunger_fed);
+vector proto_AH = bind(smell_absent,  hunger_hungry);
+vector proto_AF = bind(smell_absent,  hunger_fed);
+
+map<vector, string> BEHAVIOR_NAME = {
+    b_approach: "approach",
+    b_ignore:   "ignore",
+    b_search:   "search",
+    b_idle:     "idle"
+};
+
+// Weighted superposition of all four branches.
+function string fuzzy_decide(
+    vector smell, vector hunger,
+    vector beh_PH, vector beh_PF, vector beh_AH, vector beh_AF
+) {
+    vector query = bind(smell, hunger);
+
+    scalar w_PH = similarity(query, proto_PH);
+    scalar w_PF = similarity(query, proto_PF);
+    scalar w_AH = similarity(query, proto_AH);
+    scalar w_AF = similarity(query, proto_AF);
+
+    // Weighted superposition. All four branches execute; none is
+    // selected by control flow.
+    vector result =
+        w_PH * beh_PH +
+        w_PF * beh_PF +
+        w_AH * beh_AH +
+        w_AF * beh_AF;
+
+    // Defuzzify: argmax cosine against the behavior codebook.
+    vector winner = argmax_cosine(result, [b_approach, b_ignore, b_search, b_idle]);
+    return BEHAVIOR_NAME[winner];
+}
+
+// --- Program variants: same decide pipeline, different behavior maps ---
+
+function string program_A(vector smell, vector hunger) {
+    // PH->approach, PF->ignore, AH->search, AF->idle
+    return fuzzy_decide(smell, hunger, b_approach, b_ignore, b_search, b_idle);
+}
+
+function string program_B(vector smell, vector hunger) {
+    // PH->search, PF->idle, AH->approach, AF->ignore
+    return fuzzy_decide(smell, hunger, b_search, b_idle, b_approach, b_ignore);
+}
+
+function string program_C(vector smell, vector hunger) {
+    // PH->ignore, PF->approach, AH->idle, AF->search
+    return fuzzy_decide(smell, hunger, b_ignore, b_approach, b_idle, b_search);
+}
+
+function string program_D(vector smell, vector hunger) {
+    // PH->idle, PF->search, AH->ignore, AF->approach
+    return fuzzy_decide(smell, hunger, b_idle, b_search, b_ignore, b_approach);
+}

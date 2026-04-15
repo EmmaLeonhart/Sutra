@@ -1,0 +1,9 @@
+record = make_record(alice, red, circle)
+decode_field(record, r_name)  -> alice
+decode_field(record, r_color) -> red
+decode_field(record, r_shape) -> circle
+
+record = make_record(bob, blue, square)
+decode_field(record, r_name)  -> bob
+decode_field(record, r_color) -> blue
+decode_field(record, r_shape) -> square

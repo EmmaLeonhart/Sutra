@@ -4,16 +4,13 @@
 
 ## Queued work (do in order)
 
-1. **Pick the two example programs.** Example 1 is `fly-brain/fuzzy_conditional.su` (already compiles; has reference outputs in `test_codegen_e2e_fuzzy.py` — extract to a committed golden file). Example 2 TBD: must exercise something distinct from example 1 (candidates in `planning/runtime-inventory-2026-04-14.md` §Decisions). Write sources + expected outputs under `examples/` (or surface the fly-brain file there).
-3. **Codegen V1 carryover: close feature gaps needed by the two examples.** 6/13 illustrative `.su` files currently hit `CodegenNotSupported` (method/operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`). Only fix the ones the two chosen examples actually need — do not try to clear all 6. Breakdown: `planning/open-questions/codegen-v1-feature-coverage.md`.
-4. **End-to-end run: example 1.** Source → matrix ops → output, matching the expected output committed in step 2.
-5. **End-to-end run: example 2.** Same.
-6. **Repo cleanup.** README with one-paragraph "what this is," install command, single command to run both examples. License file. No dead TODOs in paths the README hits. Fresh-clone reproducibility test.
-7. **Paper assembly.** Pull from existing `sutra-paper/` material into the claw4s-scope structure (abstract / background / language / runtime / demonstrations / discussion / limitations / reproducibility appendix). No rewrite, just assembly.
-8. **Honesty pass.** Red-pen the paper for any claim of brain execution, latent-space execution, or citations that don't exist. Fix paper IDs (clawRxiv `2604.01127`). "Preprinted" not "published."
-9. **Submit.** Push triggers `papers-ci.yml` → clawRxiv. Buffer day Apr 20.
+1. **Documentation sweep — reposition toward "real programming language," away from fly-brain.** The repo still has lots of fly-brain-first framing in README, paper abstracts, CLAUDE.md, the Sutra spec preamble, and planning docs. User: fly-brain was the wrong substrate; Sutra is a real compiler targeting matrix substrates (numpy today, PyTorch next). Sweep documentation to make that the primary framing. Fly-brain stays mentioned but segregated — not the headline, not the demo, not the load-bearing claim.
+2. **Repo cleanup + README.** README with one-paragraph "what this is," install command, single command to run both examples (`python examples/_smoke_test.py` works today). License. No dead TODOs in paths the README hits. Fresh-clone reproducibility test.
+3. **Paper assembly.** Pull `sutra-paper/` material into the `claw4s-scope.md` structure (abstract / background / language / runtime / demonstrations / discussion / limitations / repro appendix). No rewrite, just assembly. Demonstrations section points at `examples/_smoke_test.py` output.
+4. **Honesty pass.** Red-pen the paper for brain-execution claims, latent-space-execution claims, and citations that don't exist. Fix paper IDs (clawRxiv `2604.01127`). "Preprinted" not "published."
+5. **Submit.** Push triggers `papers-ci.yml` → clawRxiv. Buffer day Apr 20.
 
-**Hard stop:** if by end of Apr 17 the runtime isn't executing at least one example end-to-end, stop pushing for Claw4S (per `claw4s-scope.md`). Fellows application Apr 26 is higher priority.
+**Hard stop:** if by end of Apr 17 the paper isn't in a submittable state, drop the Claw4S push (per `claw4s-scope.md`). Fellows Apr 26 is higher priority. Runtime is already past the hard-stop gate — two examples run end-to-end.
 
 ## Pinned semantic corrections (I keep dropping these)
 
@@ -23,6 +20,7 @@
    - Synthetic R (Givens) as Brian2 synapse weights → works.
    - Real FlyWire weight matrix AS the rotation → does not rotate (compressive projection). Paper must say which every time.
 4. **Permute → sign_flip rename.** The op does `a * sign(role)`, not dimension permutation. Spec's `permute` means shuffle. Aliases preserved.
+5. **Numpy is the demo substrate. Fly-brain is segregated.** The compiler has two backends: `codegen_numpy.py` (demo path, self-contained, no fly-brain imports) and `codegen_flybrain.py` (fly-brain-specific work, not the demo). PyTorch/GPU is a future refactor target.
 
 ## Pointers
 
