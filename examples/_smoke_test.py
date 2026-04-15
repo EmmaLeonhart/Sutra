@@ -201,6 +201,44 @@ def run_knowledge_graph() -> bool:
     return correct == total
 
 
+def run_predicate_lookup() -> bool:
+    path = os.path.join(HERE, "predicate_lookup.su")
+    mod = compile_to_module(path)
+    objs = [
+        ("cats",     mod.cats),
+        ("dogs",     mod.dogs),
+        ("fish",     mod.fish),
+        ("birds",    mod.birds),
+        ("hamsters", mod.hamsters),
+    ]
+    queries = [
+        ("alice", mod.alice, {"cats", "dogs"}),
+        ("bob",   mod.bob,   {"fish", "birds"}),
+        ("carol", mod.carol, {"hamsters"}),
+    ]
+    print("=" * 72)
+    print("Example 6: predicate_lookup.su (multi-object superposition)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for subj_lbl, subj, members in queries:
+        scores = {o_lbl: mod.fits(subj, mod.likes, o) for o_lbl, o in objs}
+        min_member = min(scores[m] for m in members)
+        max_nonmember = max(s for k, s in scores.items() if k not in members)
+        ok = min_member > max_nonmember
+        mark = "OK" if ok else "FAIL"
+        member_str = "+".join(sorted(members))
+        print(
+            f"  {subj_lbl:<5} likes {member_str:<14} "
+            f"min_member={min_member:+.3f} max_nonmember={max_nonmember:+.3f} {mark}"
+        )
+        total += 1
+        correct += ok
+    print()
+    print(f"{correct}/{total} queries separate members from non-members")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -213,8 +251,10 @@ def main() -> int:
     print()
     ok5 = run_knowledge_graph()
     print()
+    ok6 = run_predicate_lookup()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5:
+    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5 and ok6:
         print("PASS")
         return 0
     print("FAIL")

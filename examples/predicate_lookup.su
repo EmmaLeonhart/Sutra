@@ -1,0 +1,54 @@
+// Predicate lookup with multi-object superposition.
+//
+// Specialization of the knowledge-graph demo to the case where the
+// same (subject, predicate) key appears with multiple objects. Under
+// VSA superposition, the unbound result is a *sum* of all matching
+// objects, so each member object has non-trivial cosine similarity
+// to the recovered vector while non-members have near-zero cosine.
+//
+// Graph:
+//   alice likes cats
+//   alice likes dogs        <- alice likes two things
+//   bob   likes fish
+//   bob   likes birds       <- bob likes two things
+//   carol likes hamsters
+//
+// Query (alice, likes) should recover a superposition of cats + dogs;
+// similarity to cats and dogs is HIGH, similarity to fish/birds/
+// hamsters is LOW.
+//
+// The demo returns the similarity score between the recovered vector
+// and a candidate object — the smoke test checks the ordering
+// (members rank above non-members).
+
+// --- Subjects ---
+vector alice = basis_vector("alice");
+vector bob   = basis_vector("bob");
+vector carol = basis_vector("carol");
+
+// --- Predicate ---
+vector likes = basis_vector("likes");
+
+// --- Objects ---
+vector cats     = basis_vector("cats");
+vector dogs     = basis_vector("dogs");
+vector fish     = basis_vector("fish");
+vector birds    = basis_vector("birds");
+vector hamsters = basis_vector("hamsters");
+
+// --- Graph: five triples, bundled. Two (subject, predicate) keys
+// have multiple objects. ---
+vector graph = bundle(
+    bind(cats,     bind(alice, likes)),
+    bind(dogs,     bind(alice, likes)),
+    bind(fish,     bind(bob,   likes)),
+    bind(birds,    bind(bob,   likes)),
+    bind(hamsters, bind(carol, likes))
+);
+
+// Score how well (subject, predicate) implies object — cosine
+// similarity of the recovered bundle to the candidate object.
+function scalar fits(vector subject, vector predicate, vector object) {
+    vector recovered = unbind(predicate, unbind(subject, graph));
+    return similarity(recovered, object);
+}
