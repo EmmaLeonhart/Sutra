@@ -1,40 +1,63 @@
-# Sutra Language Specification (Draft)
+# Sutra spec — under construction
 
-Sutra is a vector programming language that uses LLM embedding spaces as its computational substrate. Named after the concept of a fundamental substrate or medium pervading all things — the language literally implements deliberate, effortful reasoning by computing in continuous semantic space.
+This directory is intentionally empty. The previous spec (29 files,
+plus an EBNF grammar) lives at `planning/sutra-spec-deprecated/`.
+**Do not cite it as authoritative.** It accumulated across many
+sessions, much of it written aggressively into the spec without first
+checking against the user's vision, and as of 2026-04-15 the user has
+flagged that the deprecated docs do not match what Sutra is supposed
+to be.
 
-Sutra is not a scripting language bolted onto an AI. It is a formal system for reasoning under uncertainty, closer to Prolog than Python, but operating in continuous rather than discrete space. Code compiles to vector operations that execute inside an embedding space the way conventional code compiles to machine instructions that execute on silicon.
+## Why deprecate
 
-## Spec Documents
+Concrete problems with the deprecated spec:
 
-### Core Language
-- [Design Principles](01-design-principles.md) — fuzzy-by-default, vectors as only type, computation is geometry
-- [Operations](02-operations.md) — scaffolding (scalars, tuples, bounded iteration) and the vector operations (bundle, bind, unbind, similarity, scale, project, rotate, snap, cone, hop) that run on the substrate
-- [Control Flow](03-control-flow.md) — fuzzy branching, cone traversal, iteration
-- [Defuzzification](04-defuzzification.md) — `is_true` and recursive confidence extraction
-- [Type System](05-type-system.md) — no wrong types (only noise), mixed-regime spaces, entity resolution
+- **`snap` was promoted to a universal terminal commit** in §02 and
+  in language-paper §1/§2.2. The user's actual position is that snap
+  is one possible commit a program *may* choose; many programs
+  output raw vectors, logits, or fuzzy results.
+- **`bool` was specified as a crisp boolean** until 2026-04-15. The
+  user's actual position is that `bool` is a subclass of `fuzzy`,
+  carries a defuzzification counter as compile-time metadata, and
+  exists to drive method overloading — there is no crisp boolean in
+  Sutra.
+- **`gate` was specified as a second branching primitive** until
+  2026-04-15. The user dropped it; `select` is the one branching
+  primitive (single-option / multi-option / `else`-clause forms).
+- **The numpy backend was documented as if it embedded with a frozen
+  LLM** when in fact it draws fresh random unit vectors per name. The
+  user's actual position is that the numpy backend should be backed
+  by a frozen LLM (the same one the embedding paper uses).
+- **Many smaller drifts** across the 29 files. Each individual edit
+  looked reasonable at the time; the cumulative drift produced a doc
+  the user does not endorse.
 
-### Runtime & Compilation
-- [Runtime Architecture](06-runtime.md) — S1/Sutra dual runtime, MCP server as runtime component
-- [Empirical Initiation](07-empirical-initiation.md) — probing, correction matrices, validation gates, cross-substrate compilation
-- [Abstraction Level](08-abstraction-level.md) — Sutra's level of abstraction, what the compiler handles vs. what the programmer writes
-- [IDE Architecture](20-ide-architecture.md) — IntelliJ Platform, agent-first authoring, bundled vertical stack, embedding-space visualizer
-- [VSA Builtins](21-builtins.md) — formal signatures for the implicit-global VSA functions (`snap`, `bind`, `permute`, ...)
-- [Workspaces](22-workspaces.md) — `atman.toml` schema for workspace and project files *(planning for v0.0.1)*
-- [Surface Grammar](24-grammar.md) — formal EBNF for `.su` source files *(describes v0.0.0 as shipping)*
-- [Solution Structure](25-solution-structure.md) — how workspaces, projects, and loose files fit together; version pinning and the v0.0.0 policy *(planning for v0.0.1)*
+## What this directory will become
 
-### Theoretical Foundations
-- [Lambda Calculus Encoding](09-lambda-calculus.md) — term mapping, substitution problem, de Bruijn indices, Smolensky, Tomkins-Flanagan
-- [Turing Completeness](10-turing-completeness.md) — CCC argument, what was proven, two obstacles, how snap/cone/hop close the gap
-- [VSA Mathematical Grounding](11-vsa-math.md) — VSA vs HDC, concentration of measure, eight axioms, domain-agnostic embeddings
+A fresh, smaller spec, written incrementally, only after the user
+has expressed a position on each part. Sessions writing here should
+**not** translate the deprecated spec forward — that just relaunders
+the drift. Treat the deprecated dir as "what we used to think,"
+useful as historical context and as a list of questions the new spec
+will need to answer, but not as source material to copy.
 
-### Extensions & Research
-- [JEPA Hybrid Architecture](12-jepa-hybrid.md) — two-phase training, mixed-regime latent spaces, staged commitment, product manifolds
-- [Perceptiveness Parameter](13-perceptiveness.md) — novel attention mechanism, geometric surprisingness, 2D behavioral space
-- [Entity Resolution](14-entity-resolution.md) — fidelity mismatch, canonicalization endpoint, active retrieval during inference
+## What papers should do in the meantime
 
-### Risks & Status
-- [Embedding Pathologies](15-embedding-pathologies.md) — mxbai diacritic bug, attention sink mechanism, blast radius
-- [Known Defects](16-known-defects.md) — noise accumulation, iteration, cleanup circularity, permutation question
-- [Open Questions](17-open-questions.md) — syntax, iteration, benchmarks, and everything else unresolved
-- [Compute Savings](18-compute-savings.md) — adjacent benchmarks, the missing FLOPS benchmark, what Sutra needs to prove
+- The language paper (`language-paper/paper.md`) and the embedding
+  paper (`sutra-paper/paper.md`) and the fly-brain paper
+  (`fly-brain-paper/paper.md`) should describe what the
+  implementation actually does, not what the deprecated spec says.
+  When in doubt, look at `examples/`, the compiler, and the actual
+  results — those are ground truth right now, not the deprecated
+  spec.
+- Any cross-reference in a paper to `planning/sutra-spec/*.md` should
+  be removed or rewritten to cite the implementation directly.
+
+## Pointers while the new spec is being built
+
+- Code is the source of truth: `sdk/sutra-compiler/`, `examples/`.
+- Open design questions: `planning/open-questions/`.
+- Things tried, with results: `planning/findings/`.
+- Things parked but not closed: `planning/exploratory/`.
+- Hardwired assumptions in the demo path: `examples/todo.md`.
+- Deprecated spec (read-only reference): `planning/sutra-spec-deprecated/`.
