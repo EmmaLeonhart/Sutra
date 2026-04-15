@@ -122,6 +122,7 @@ class SutraCompletionContributor : CompletionContributor() {
             "permutation_key" to "Allocate a fresh permutation key.",
             "identity_permutation" to "The identity permutation (no rotation).",
             "argmax_cosine" to "Argmax over a codebook by cosine similarity.",
+            "select" to "Softmax-weighted superposition: select(scores, options) -> vector.",
         )
     }
 }

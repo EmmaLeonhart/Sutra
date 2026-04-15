@@ -219,7 +219,7 @@ class SutraLexer : LexerBase() {
             // VSA builtin signatures from planning/sutra-spec/21-builtins.md
             "bind", "unbind", "bundle", "permute", "compose",
             "basis_vector", "permutation_key", "identity_permutation",
-            "argmax_cosine",
+            "argmax_cosine", "select",
         )
 
         private val BOOLEAN_LITERALS: Set<String> = setOf("true", "false")
