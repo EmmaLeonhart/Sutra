@@ -12,11 +12,27 @@ Sutra's primitive type set is:
 - `tuple` — a fixed-shape heterogeneous product.
 - `string` — a UTF-8 string. Not a vector. String → vector conversion
   goes through `embed(...)`; there is no implicit cast.
-- `bool` — a crisp boolean. Produced only by `defuzzy(...)` or the
-  unsafe `(bool)` cast on a `fuzzy`.
 - `fuzzy` — a graded truth value in `[0, 1]`. The default result type
   of similarity checks and the ground state for truth in the language.
   See `04-defuzzification.md`.
+- `bool` — **a subclass of `fuzzy`, NOT a crisp boolean.** Sutra has
+  no crisp booleans. `bool` is a labeling type that signals "this
+  value has been substantially defuzzified" — it is still a fuzzy in
+  `[0, 1]`, still differentiable, still consumable as a vector. The
+  label exists so that multiple-dispatch / overloaded methods can
+  treat a substantially-polarized fuzzy differently from a fresh one
+  (e.g. a function may have one body for `fuzzy` and another for
+  `bool`, doing different things with a value the programmer has
+  already committed to polarizing). A `bool` carries an integer
+  **defuzzification counter** recording how many `is_true` /
+  `defuzzify` iterations it has accumulated. The counter is
+  compile-time metadata (see "Vector classes carry compile-time
+  memory" below). Produced by `defuzzify(...)` (default 10 iters) or
+  by an explicit `(bool)` annotation on a fuzzy result.
+
+  *Open:* whether `bool` is a fully nominal subclass or just a
+  refinement type / phantom-typed `fuzzy`. The behavior described
+  above is what matters; the meta-typing story is a follow-on.
 - `void` — no value, for statement-shaped functions.
 - `permutation` — a fixed sign-flip mask over a `vector`. At the
   substrate level a permutation is a `vector` of ±1 entries, but it
