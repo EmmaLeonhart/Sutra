@@ -2,7 +2,9 @@
 
 This document supersedes `03-control-flow.md` for the control-flow model. `03-control-flow.md` remains as historical/implementation context for eigenrotation loops; the present document is the canonical statement of what control flow is in Sutra.
 
-> **2026-04-15 spec move.** This document previously described two control-flow primitives, `select` and `gate`. `gate` is dropped. `select` (with an optional `else` clause) is the one branching primitive. The reasoning: `gate` was a defuzz-then-commit construct, and defuzzification in Sutra is a differentiable matrix polarization, not a non-differentiable commit — so the work `gate` was doing collapses into `select`. There is no separate "commit" primitive, no backprop discontinuity at a branch, and no second name to learn. See "What this supersedes" below for the migration of prior `gate`-shaped uses.
+> **2026-04-15 spec move.** This document previously described two control-flow primitives, `select` and `gate`. `gate` is dropped. `select` (with an optional `else` clause) is the one branching primitive.
+>
+> The reasoning rests on a correction about what defuzzification does in Sutra. `is_true` does **not** turn a fuzzy state into a crisp 0/1. It *polarizes* the state — sharpens it along a target axis while keeping it fuzzy. The output of `is_true` is still a fuzzy quantity, still differentiable, still consumable by downstream operations as geometry. There is no commit step, no binarization, no point at which the gradient breaks. So the work `gate` was doing — preserving differentiability across a "regime change" — was solving a problem that does not exist, and `select` (which is also pure polarization plus weighted sum) absorbs everything `gate` was for. See "What this supersedes" below for the migration of prior `gate`-shaped uses.
 
 ## The thesis
 
@@ -17,7 +19,7 @@ There are no branches, no jumps, no stop-and-test loop heads, no return-address 
 The consequences follow from the premise, not the other way around:
 
 1. **GPU-native and connectionist-native execution.** Everything is a matmul, a sum, or a cosine. No branch predictor, no divergent warps, no tail-call stack — which is exactly the shape a GPU or a connectionist substrate wants.
-2. **End-to-end differentiable.** The usual things that break backprop (discrete branches, `if` predicates, `while` condition tests) are not in the language. A Sutra program — including its defuzzification step — is a composition of differentiable operations, because defuzzification is itself a differentiable matrix polarization (see `04-defuzzification.md` and the note below).
+2. **End-to-end differentiable.** The usual things that break backprop (discrete branches, `if` predicates, `while` condition tests) are not in the language. A Sutra program — including its defuzzification step — is a composition of differentiable operations, because defuzzification is a polarization of the fuzzy state, not a binarization of it (see `04-defuzzification.md` and the note above). The substrate state stays fuzzy through `is_true`; what changes is how concentrated the mass is along the target axis.
 3. **Decompilable from connectionist systems, at least in principle.** Because the language primitives are geometric rather than symbolic, a trained connectionist system can, in principle, be characterized as a specific composition of Sutra primitives — the same way a compiled binary can be decompiled to a specific C program modulo naming. This is an interpretability claim, not a universal one.
 
 The cost of this premise is that Sutra is not a portable general-purpose language. You do not write a GUI event loop in it. You do not write `os.walk`. What you write in it is a narrow, useful, substrate-resident program — a conditional, a lookup, a bounded trajectory — on whatever connectionist substrate is available.
@@ -43,6 +45,23 @@ return sum_i w_i * options_i
 - **Total weight is 1 across the k options.** A single `select` block has an *implicit blank else* — there is no leftover mass routed elsewhere.
 - **Commutative up to labeling.** `select([s₁, s₂], [a, b]) = select([s₂, s₁], [b, a])` — the correspondence of scores to options is the only thing that matters.
 
+### Single-option `select` — the if-statement form
+
+```
+select([score], [option]) -> vector[d]    // with an implicit fuzzy threshold
+
+t = is_true(score)              // polarized fuzzy truth in [0, 1]
+return t * option               // weight the option by the polarized truth
+```
+
+A `select` with a single option is the closest thing Sutra has to an `if`. There is one named option and an implicit blank else (mass that doesn't go to the option just doesn't appear in the output — total mass is `t`, not 1). The fuzzy truth `t` is what determines how strongly the option fires.
+
+For a single-option `select` to count as "true enough to fire" in a downstream context that wants a yes/no readout, the polarized truth must clear a **threshold**. The threshold is configurable; the **default is 0.5**. The justification: a one-option softmax is `softmax([s, ¬s])` — the option's weight against its own negation — so the natural cutoff is the 50% point of that two-way distribution.
+
+The 0.5 default is provisional, not principled. The two candidate defaults considered were 0.9 (high-confidence "this is true") and 0.5 (probability-distribution midpoint). 0.5 wins for now because softmax is the canonical normalizer and a softmax-of-one-thing-vs-not-that-thing is just a probability, where 0.5 is the natural decision boundary. If a future demo shows that 0.5 lets too much through, the default moves; the threshold is a tunable parameter on the call regardless.
+
+The threshold is a polarization parameter, not a binarization parameter — clearing it does not turn the option on as a 1; it means "the polarized truth is sharp enough that downstream consumers can treat the output as a definite answer." The output of `select` is still a fuzzy vector; the threshold only governs whether downstream readouts that *want* a discrete answer are willing to commit. (For loop exits in particular, the readout layer compares `is_true(match-to-prototype)` against this threshold to decide whether to leave the loop regime.)
+
 ### `select(scores, options) else fallback` — softmax with a "none of the above" sink
 
 ```
@@ -63,7 +82,7 @@ return sum_i w_i * options_i  +  w_{k+1} * fallback
 
 The earlier version of this document defined a second primitive, `gate`, whose job was to defuzzify a condition via `is_true` and commit the trajectory to one regime or the other. That job is now done by `select` for two reasons:
 
-1. **Defuzzification is a differentiable matrix polarization, not a non-differentiable commit.** What `is_true` does is sharpen the substrate state along a target axis (see `04-defuzzification.md`). The output is still a vector; backprop still flows through it; subsequent operations can still consume a near-binary state without a discrete branch. So a "commit primitive" was solving a problem (loss of gradient at the branch) that no longer exists.
+1. **Defuzzification is a differentiable matrix polarization, not a binarization.** What `is_true` does is sharpen the substrate state along a target axis (see `04-defuzzification.md`). The output is still a fuzzy vector; backprop still flows through it; subsequent operations consume a polarized fuzzy state, not a 0/1. So a "commit primitive" was solving a problem (loss of gradient at the branch) that does not exist — there is no commit, and there is no branch.
 2. **A loop exit is just a `select` whose options are "stay in the loop body" and "leave with the current state," with scores that depend on the trajectory's match to a target prototype.** The trajectory always keeps moving; the readout shifts from one option to the other as the match grows. There is no stop-and-test, just as there was not under `gate` — but there is also no second primitive name to learn.
 
 The state-change framing that motivated `gate` is preserved by convention rather than by syntax: when a programmer writes a `select` whose options are qualitatively different regimes (one continues the current computation, one moves to a different mode), readers should treat it as a regime transition. The compiler does not warn on this; the programmer is expected to mean what they wrote.
@@ -89,6 +108,7 @@ The grammar (`24-grammar.ebnf`, `24-grammar.md`) currently has a `select`-shaped
 
 1. **The `else_score` formula in `select(...) else fallback`.** The current working default is **a fixed bias of `0`** — `s_else = 0`, so the else option only wins when every real score is negative. This is a placeholder. The user has flagged it as discouraged because it is not clear what `s_else = 0` actually *means*: a constant baseline does not measure "how unlike any of the named options the input is," which is what the else clause is supposed to capture. Plausible alternatives include `1 - max(scores)`, `-logsumexp(scores)`, or a substrate-computed novelty score. The choice has to be made before any production demo relies on `select … else` semantics. Tracked in `todo.md` under "Pre-Y-Combinator pitch."
 2. **Threshold semantics in loop-exit `select`s.** Whether the exit score is a compile-time constant, a runtime vector, or something the substrate discovers (e.g., the trajectory naturally settling into a basin) is unresolved. The existing §3.4 defuzzification has compile-time θ; eigenrotation-loop exits may want runtime θ for interesting cases.
+3. **Threshold semantics in multi-option `select`.** A single-option `select` has a clear default (0.5, see "Single-option `select`" above). What the corresponding "fires / doesn't fire" semantics are for a `select` over k > 1 options is not obvious. Candidates: (a) require the winning option's softmax weight to exceed `1/k + δ`; (b) require the winning weight to exceed the runner-up by some margin; (c) require the winning weight to exceed an absolute threshold (the natural generalization of the single-option case, but the "natural cutoff" argument from softmax-against-negation does not carry over); (d) define no firing threshold at all and let downstream consumers decide. Tracked in `todo.md`.
 3. **Differentiability across the polarization.** `is_true` is a matrix polarization and is differentiable in the standard sense, but the gradient is sharp near the polarization axis. Whether a temperature schedule, a Gumbel relaxation, or just plain backprop is sufficient is an open implementation question.
 4. **Decompilation of trained connectionist systems into Sutra.** Asserted as a consequence of no-control-flow above; not formalized here. A separate exploratory doc in `planning/exploratory/` is the right place for that thesis — this spec is not the place to overclaim it.
 5. **Relationship to the existing `is_true` threshold conditional.** Now that there is no `gate`, the §3.4 "thresholded defuzzification" is just a use of `is_true` as input to a `select`. The naming question (deprecate the threshold-conditional name, or keep it as syntactic sugar) is deferred.
