@@ -1,0 +1,48 @@
+// Prototype classifier — bundle several examples per class, classify
+// novel inputs by argmax cosine against the bundled prototypes.
+//
+// Generalizes fuzzy_branching.su: instead of hand-coding one basis
+// vector per class, each class prototype is the *bundled superposition*
+// of several example vectors. This is the first demo that exercises
+// bundle's averaging property — the class prototype concentrates
+// along the shared direction of its examples and averages out the
+// per-example noise.
+//
+// Three classes (fruit, vehicle, tool), three examples each.
+// Six test inputs: three "held-out" examples (not in the training
+// bundle) per class, two per class plus a near-miss.
+//
+// No control flow. Training is a compile-time bundle; inference is
+// a single argmax_cosine.
+
+// --- Training examples for class "fruit" ---
+vector fruit_apple  = basis_vector("fruit_apple");
+vector fruit_pear   = basis_vector("fruit_pear");
+vector fruit_mango  = basis_vector("fruit_mango");
+
+// --- Training examples for class "vehicle" ---
+vector veh_car      = basis_vector("veh_car");
+vector veh_truck    = basis_vector("veh_truck");
+vector veh_bike     = basis_vector("veh_bike");
+
+// --- Training examples for class "tool" ---
+vector tool_hammer  = basis_vector("tool_hammer");
+vector tool_saw     = basis_vector("tool_saw");
+vector tool_drill   = basis_vector("tool_drill");
+
+// --- Class prototypes by bundling ---
+vector proto_fruit   = bundle(fruit_apple,  fruit_pear,  fruit_mango);
+vector proto_vehicle = bundle(veh_car,      veh_truck,   veh_bike);
+vector proto_tool    = bundle(tool_hammer,  tool_saw,    tool_drill);
+
+map<vector, string> CLASS_NAME = {
+    proto_fruit:   "fruit",
+    proto_vehicle: "vehicle",
+    proto_tool:    "tool"
+};
+
+// --- Classify: argmax_cosine against the three prototypes ---
+function string classify(vector input) {
+    vector winner = argmax_cosine(input, [proto_fruit, proto_vehicle, proto_tool]);
+    return CLASS_NAME[winner];
+}
