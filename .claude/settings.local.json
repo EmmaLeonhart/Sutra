@@ -117,7 +117,10 @@
       "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 3)",
       "Bash(KMP_DUPLICATE_LIB_OK=TRUE \"C:/Users/Immanuelle/anaconda3/envs/brain-fly/python.exe\" fly-brain/shiu_conditional.py --n-runs 10)",
       "WebFetch(domain:alphaxiv.org)",
-      "WebFetch(domain:arxiv.org)"
+      "WebFetch(domain:arxiv.org)",
+      "Bash(PYTHONIOENCODING=utf-8 python -m sutra_compiler --emit-numpy ../../examples/role_filler_record.su)",
+      "Bash(PYTHONIOENCODING=utf-8 python -m sutra_compiler --emit-numpy ../../examples/fuzzy_branching.su)",
+      "Bash(PYTHONIOENCODING=utf-8 python examples/_smoke_test.py)"
     ]
   }
 }
