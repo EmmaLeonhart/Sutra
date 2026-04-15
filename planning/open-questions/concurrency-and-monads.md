@@ -6,6 +6,12 @@ Captured 2026-04-14 from a user observation, not yet a design decision.
 
 > I'm thinking that a lot of concurrency will involve two different timings. I think that it's essentially monadic in its nature, or I think monads are a thing to use, but I'm not sure how.
 
+Follow-up, 2026-04-14:
+
+> For concurrency I envision just two or more paths through the vector space.
+
+The follow-up is the load-bearing one. The user's working mental model is geometric, not type-theoretic: concurrency is multiple simultaneous trajectories in the same embedding space, not effectful descriptions to be sequenced by a runtime. Monads were the first frame reached for; "two or more paths" is the frame the user actually wants. This downgrades the monad framing from "likely" to "one possible implementation strategy among several" — and upgrades simpler path/trajectory primitives (parallel branches that eventually rendezvous, futures over vector values) to the default design direction.
+
 ## The observation, unpacked
 
 Sutra is purely functional today — every function is a deterministic vector-to-vector map, and the single escape from the pure region is the final name lookup at the program's edge. This is structurally the same property that makes Haskell's IO-free core pure. In Haskell, monads are the machinery that smuggle effects (IO, state, nondeterminism, concurrency) into a pure language without breaking referential transparency: a value of type `IO a` is not an action; it is a *description* of an action that the runtime executes.
