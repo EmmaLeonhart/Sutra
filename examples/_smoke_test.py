@@ -149,6 +149,32 @@ def run_classifier() -> bool:
     return correct == total
 
 
+def run_analogy() -> bool:
+    path = os.path.join(HERE, "analogy.su")
+    mod = compile_to_module(path)
+    tests = [
+        ("paris",  mod.paris,  "france"),
+        ("tokyo",  mod.tokyo,  "japan"),
+        ("london", mod.london, "uk"),
+        ("rome",   mod.rome,   "italy"),
+        ("cairo",  mod.cairo,  "egypt"),
+    ]
+    print("=" * 72)
+    print("Example 4: analogy.su (associative pair memory: capital -> country)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for lbl, v, exp in tests:
+        got = mod.country_of(v)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  country_of({lbl:<6}) expected={exp:<8} got={got:<8} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} recalls match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -157,8 +183,10 @@ def main() -> int:
     print()
     ok3 = run_classifier()
     print()
+    ok4 = run_analogy()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2 and ok3:
+    if ok0 and ok1 and ok2 and ok3 and ok4:
         print("PASS")
         return 0
     print("FAIL")
