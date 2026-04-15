@@ -46,3 +46,7 @@ function string classify(vector input) {
     vector winner = argmax_cosine(input, [proto_fruit, proto_vehicle, proto_tool]);
     return CLASS_NAME[winner];
 }
+
+function string main() {
+    return classify(fruit_apple);
+}
