@@ -1,10 +1,20 @@
 # Sutra — Work Queue
 
-**This file is a queue, not a state snapshot.** When an item is done, delete it. Finished work lives in `git log` and `planning/findings/`. Strategic direction lives in `claw4s-scope.md` — read that first for what we're building toward.
+**This file is a queue, not a state snapshot.** When an item is done, delete it. Finished work lives in `git log` and `planning/findings/`. Strategic direction lives in `claw4s-scope.md`.
 
 ## Queued work (do in order)
 
-_Empty — pull the next target from `claw4s-scope.md`'s Apr 14–20 timeline._
+1. **Inventory the runtime.** What exists today that takes a `.su` program → matrix ops → output? Identify the gap to "executes two example programs end-to-end on GPU or CPU." Write the inventory as a short doc under `planning/` so the gap is explicit, not vibes.
+2. **Pick the two example programs.** They must exercise non-trivial features (branching-without-branching, fixed-point / recursion, something that shows zero-control-flow isn't a toy restriction). Write them in `examples/` as `.su` sources with expected output committed alongside.
+3. **Codegen V1 carryover: close feature gaps needed by the two examples.** 6/13 illustrative `.su` files currently hit `CodegenNotSupported` (method/operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`). Only fix the ones the two chosen examples actually need — do not try to clear all 6. Breakdown: `planning/open-questions/codegen-v1-feature-coverage.md`.
+4. **End-to-end run: example 1.** Source → matrix ops → output, matching the expected output committed in step 2.
+5. **End-to-end run: example 2.** Same.
+6. **Repo cleanup.** README with one-paragraph "what this is," install command, single command to run both examples. License file. No dead TODOs in paths the README hits. Fresh-clone reproducibility test.
+7. **Paper assembly.** Pull from existing `sutra-paper/` material into the claw4s-scope structure (abstract / background / language / runtime / demonstrations / discussion / limitations / reproducibility appendix). No rewrite, just assembly.
+8. **Honesty pass.** Red-pen the paper for any claim of brain execution, latent-space execution, or citations that don't exist. Fix paper IDs (clawRxiv `2604.01127`). "Preprinted" not "published."
+9. **Submit.** Push triggers `papers-ci.yml` → clawRxiv. Buffer day Apr 20.
+
+**Hard stop:** if by end of Apr 17 the runtime isn't executing at least one example end-to-end, stop pushing for Claw4S (per `claw4s-scope.md`). Fellows application Apr 26 is higher priority.
 
 ## Pinned semantic corrections (I keep dropping these)
 
