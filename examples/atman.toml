@@ -1,0 +1,43 @@
+# atman.toml — manifest for the `examples/` directory.
+#
+# This directory is a loose collection of demonstration programs
+# rather than a single project with one entry point. `entry` is set
+# to `hello_world.su` as the canonical "run this first" example;
+# the other `.su` files are additional demos executed individually
+# by `_smoke_test.py`.
+#
+# Substrate: silicon (the numpy backend in `sutra_compiler`). At
+# runtime, `embed("string")` calls a frozen LLM via Ollama. See
+# `sdk/sutra-compiler/sutra_compiler/codegen_numpy.py` for the
+# reference implementation.
+
+[project]
+name = "sutra-examples"
+entry = "hello_world.su"
+substrate = "silicon"
+description = "Demonstration Sutra programs for the silicon (numpy + frozen LLM) backend."
+
+[project.sources]
+include = ["**/*.su"]
+
+# Embedding configuration. These fields are read by the numpy
+# codegen's `embed()` builtin; a different LLM or dimension here
+# changes what `embed("cat")` evaluates to at runtime.
+#
+# - `provider`: how the embedding is fetched. `ollama` means a
+#   local Ollama daemon exposing the given model.
+# - `model`: the frozen LLM. nomic-embed-text is the default
+#   because mxbai-embed-large has a documented attention-sink
+#   defect on diacritics and is treated by this project as a
+#   known-broken baseline (see CLAUDE.md).
+# - `dim`: output dimensionality of the embedding. nomic-embed-text
+#   is 768-dim natively. The numpy backend truncates or pads to
+#   this value.
+# - `mean_center`: whether to subtract a corpus mean from each
+#   embedding before use. Required for nomic-embed-text to avoid a
+#   dominant mean-direction artifact.
+[project.embedding]
+provider = "ollama"
+model = "nomic-embed-text"
+dim = 768
+mean_center = true
