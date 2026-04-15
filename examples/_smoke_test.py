@@ -309,6 +309,36 @@ def run_nearest_phrase() -> bool:
     return correct == total
 
 
+def run_sequence() -> bool:
+    path = os.path.join(HERE, "sequence.su")
+    mod = compile_to_module(path)
+    positions = [mod.pos_0, mod.pos_1, mod.pos_2, mod.pos_3, mod.pos_4]
+    fox_exp = ["the", "quick", "brown", "fox", "jumps"]
+    dog_exp = ["a", "lazy", "brown", "dog", "sleeps"]
+    print("=" * 72)
+    print("Example 9: sequence.su (position-bound bundle, 2 x 5-token sequences)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for name, seq, exp in [("seq_fox", mod.seq_fox, fox_exp), ("seq_dog", mod.seq_dog, dog_exp)]:
+        for i, p in enumerate(positions):
+            got = mod.decode_at(seq, p)
+            mark = "OK" if got == exp[i] else "FAIL"
+            print(f"  decode_at({name}, pos_{i}) expected={exp[i]:<8} got={got:<8} {mark}")
+            total += 1
+            correct += got == exp[i]
+    sim_ff = mod.seq_similarity(mod.seq_fox, mod.seq_fox)
+    sim_fd = mod.seq_similarity(mod.seq_fox, mod.seq_dog)
+    sim_ok = sim_ff > 0.99 and 0.0 < sim_fd < 0.5
+    mark = "OK" if sim_ok else "FAIL"
+    print(f"  sim(fox,fox)={sim_ff:+.3f}  sim(fox,dog)={sim_fd:+.3f}  (expect self~=1.0, disjoint-with-shared-pos2 in (0, 0.5)) {mark}")
+    total += 1
+    correct += sim_ok
+    print()
+    print(f"{correct}/{total} sequence checks match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -327,8 +357,10 @@ def main() -> int:
     print()
     ok8 = run_nearest_phrase()
     print()
+    ok9 = run_sequence()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5 and ok6 and ok7 and ok8:
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9]):
         print("PASS")
         return 0
     print("FAIL")

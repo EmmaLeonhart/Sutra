@@ -1,0 +1,90 @@
+// Sequence encoding via position-bound bundle.
+//
+// A sequence of tokens is stored as one flat vector:
+//
+//   encode(seq) = bundle(bind(token_0, pos_0),
+//                        bind(token_1, pos_1),
+//                        ...,
+//                        bind(token_N-1, pos_N-1))
+//
+// Decoding the token at position i:
+//
+//   decode_at(record, pos_i) = argmax_cosine(
+//       unbind(pos_i, record),
+//       token_codebook)
+//
+// Under sign-flip the *filler* (first argument to bind) retains its
+// real-valued magnitude pattern; the *role* (second argument) only
+// contributes its sign. Here the token is the filler and the
+// position is the role, so unbinding by position recovers the token.
+//
+// Two sequences share a single token codebook. Each is encoded into
+// a 256-dim vector and decoded position by position. This is the
+// first Sutra demo that treats a vector as an *ordered sequence*
+// rather than a record or a state.
+
+// --- Positions ---
+vector pos_0 = basis_vector("pos_0");
+vector pos_1 = basis_vector("pos_1");
+vector pos_2 = basis_vector("pos_2");
+vector pos_3 = basis_vector("pos_3");
+vector pos_4 = basis_vector("pos_4");
+
+// --- Token codebook ---
+vector the     = basis_vector("tok_the");
+vector quick   = basis_vector("tok_quick");
+vector brown   = basis_vector("tok_brown");
+vector fox     = basis_vector("tok_fox");
+vector jumps   = basis_vector("tok_jumps");
+vector lazy    = basis_vector("tok_lazy");
+vector dog     = basis_vector("tok_dog");
+vector over    = basis_vector("tok_over");
+vector a       = basis_vector("tok_a");
+vector sleeps  = basis_vector("tok_sleeps");
+
+map<vector, string> TOKEN_NAME = {
+    the:    "the",
+    quick:  "quick",
+    brown:  "brown",
+    fox:    "fox",
+    jumps:  "jumps",
+    lazy:   "lazy",
+    dog:    "dog",
+    over:   "over",
+    a:      "a",
+    sleeps: "sleeps"
+};
+
+// --- Two encoded sequences ---
+// "the quick brown fox jumps"
+vector seq_fox = bundle(
+    bind(the,   pos_0),
+    bind(quick, pos_1),
+    bind(brown, pos_2),
+    bind(fox,   pos_3),
+    bind(jumps, pos_4)
+);
+
+// "a lazy brown dog sleeps"
+vector seq_dog = bundle(
+    bind(a,     pos_0),
+    bind(lazy,  pos_1),
+    bind(brown, pos_2),
+    bind(dog,   pos_3),
+    bind(sleeps, pos_4)
+);
+
+// Decode the token at a given position.
+function string decode_at(vector record, vector position) {
+    vector recovered = unbind(position, record);
+    vector winner = argmax_cosine(recovered,
+        [the, quick, brown, fox, jumps, lazy, dog, over, a, sleeps]);
+    return TOKEN_NAME[winner];
+}
+
+// How similar are two sequence encodings? (Sequences sharing tokens
+// at the same positions will have high cosine; disjoint sequences
+// will have low cosine.)
+function scalar seq_similarity(vector a_seq, vector b_seq) {
+    return similarity(a_seq, b_seq);
+}
