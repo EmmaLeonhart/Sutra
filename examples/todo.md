@@ -86,11 +86,79 @@ name. Worth either (a) routing `snap` through `argmax_cosine` on
 numpy, or (b) being explicit in the paper that `snap` is a fly-brain-
 specific name and the demo path uses `argmax_cosine`.
 
+### 4. "Every class is a vector (or matrix)" — clarify
+
+The user has stated as a working position that essentially every class
+in Sutra is a vector, and matrices are "really more like functions."
+This is a strong claim that the spec does not yet carry. Concretely:
+
+- `scalar`, `vector`, `tuple`, `string`, `fuzzy`, `bool`,
+  `permutation`, `void` are all listed in `05-type-system.md` as
+  primitive types. Most are vector-shaped under the hood (a fuzzy is
+  a polarized vector, a bool is a polarized vector with a counter, a
+  permutation is a ±1 vector). `string` and `void` are the obvious
+  exceptions.
+- Matrices in this framing are functions on the vector substrate, not
+  data containers. That matches the way `is_true` is specified
+  (`M(v) * v = t`) and the way rotations are specified (R is a
+  matrix, but its job is to act on state).
+- **Open:** is the spec's primitive-type list correct as-is, or does
+  it need a refactor that says "everything is a vector, with
+  type-level labels carrying additional structure"? The labels
+  (fuzzy / bool / permutation) are doing the work of enabling
+  multiple-dispatch / method-overloading; the underlying data is
+  always a vector.
+
+### 5. Vector classes carry compile-time memory
+
+Vectors aren't just their value — they also carry a record of which
+operations have been applied to them. The `bool` defuzzification
+counter (issue above) is one example; the same mechanism applies to
+other vector subclasses. This is **compile-time metadata**, not
+runtime side effects. It gives the *illusion* of side effects without
+actually being effects:
+
+- You CANNOT write `if defuzzification_counter == 10 { ... }` —
+  that's a runtime branch on metadata, which Sutra doesn't allow.
+- You CAN write a function that "normalizes" the defuzzification
+  counter to 10 — that is a compile-time, fully-differentiable
+  transformation that exists only in the compiler's view of the
+  program.
+
+This is important enough that it should probably get a dedicated spec
+section (a candidate `27-compile-time-vector-memory.md`) once the
+user has thought more about it. For now, recording it here so we
+don't lose the framing.
+
+### 6. Switch the numpy backend to a real frozen LLM
+
+The current numpy backend hardwires fresh random vectors per name
+(seed=42, hash-based). The user has flagged this as iffy and noted
+that a real frozen LLM is what we should be using — most likely the
+same model the embedding paper characterizes. This would:
+
+- Make the demo programs actually rely on semantic geometry
+  (analogies, similarity-by-meaning) rather than seeded RNG
+  collisions.
+- Unify the demo substrate with the embedding paper's substrate, so
+  the language paper and the embedding paper are pointing at the
+  same compute surface.
+- Cost: one frozen-LLM forward pass per `embed("...")`, cached. Not
+  free, but cheap on a laptop.
+
+Open: which model. The embedding paper uses one specific frozen LLM;
+the user has flagged that picking *any* embedding model is a
+constraint we should declare in the spec rather than leave implicit.
+
 ## Items that should move to `STATUS.md` when prioritized
 
 - Document the hardwired embedding-model assumption in the paper's
   Limitations section.
-- Resolve the output-semantics framing (issue 1 above) before the next
+- Switch the numpy backend from random vectors to the embedding
+  paper's frozen LLM (issue 6).
+- Resolve the output-semantics framing (issue 1) before the next
   paper push.
 - Decide whether to expose `snap` on the numpy substrate or to
   formally split the builtin set by backend.
+- Pick a spec home for the compile-time-vector-memory model
+  (issue 5) and the "everything is a vector" framing (issue 4).
