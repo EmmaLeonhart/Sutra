@@ -53,7 +53,7 @@ embedding-pipeline/
     └── main.su
 ```
 
-`examples/workspace/` is the reference example. It is v0.0.1 scaffolding in a v0.0.0 repo — the `sutra_version = "0.2"` string in that file is an artifact of earlier draft work and should be ignored; the actual first version that honors the schema will be v0.0.1.
+`examples/workspace/` is the reference example. It is v0.0.1 scaffolding in a v0.0.0 repo — example `atman.toml` files should pin `sutra_version = "0.0.1"`, which is the first version that honors the schema.
 
 ## Version pinning and v0.0.0
 

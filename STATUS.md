@@ -21,7 +21,7 @@
 ## Pointers
 
 - Strategic scope & Apr 20 build list: `claw4s-scope.md`.
-- Formal Sutra grammar (EBNF): `planning/sutra-spec/grammar.md`.
+- Formal Sutra grammar (EBNF): `planning/sutra-spec/24-grammar.ebnf` (prose wrapper: `24-grammar.md`).
 - Spec: `planning/sutra-spec/{02-operations,03-control-flow,04-defuzzification,11-vsa-math,19-substrate-candidates}.md`.
 - Findings (dated): `planning/findings/`.
 - Open design questions: `planning/open-questions/`.
