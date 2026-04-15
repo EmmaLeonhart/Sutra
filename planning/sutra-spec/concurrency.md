@@ -1,9 +1,8 @@
 # Concurrency
 
 Status: first section of the rebuilt spec. Written strictly from what
-the user has stated, not from Claude-invented structure. Gaps are not
-filled with plausible defaults — they are pointed at
-`planning/open-questions/` and wait for the user to close them.
+the user has stated, not from Claude-invented structure. Open questions
+stay inline in this file — the spec can have open questions.
 
 ## User's position
 
@@ -96,33 +95,63 @@ the design target.
 That is the extent of what is committed. Everything below is an open
 question.
 
-## Open questions (not filled in here)
+## Open questions
 
-Each of these is a concrete gap that the spec deliberately does not
-fill. When the user resolves one, it moves into this section and the
-open-question entry is removed.
+The spec can have open questions inline. These are concrete gaps we
+are working out — not filled with defaults.
 
 - **Surface syntax.** What does a concurrent program look like in
-  source? `parallel { ... } { ... }`? A `path` keyword? A pair of
-  functions evaluated under a combinator? Nothing has been decided.
-- **Rendezvous.** When two paths need to agree on a final answer, how
-  is that agreement expressed? Bundle? Snap against a shared codebook?
-  Some new primitive? Not decided.
-- **Path identity.** Is a "path" a first-class value in the language
-  (can it be passed, stored, returned) or purely a construct of the
-  runtime? Not decided.
+  source? `parallel { ... } { ... }`? A `split` keyword? A `path`
+  keyword? A pair of functions evaluated under a combinator? Not
+  decided.
+- **Convergence test.** A split ends when paths agree on "a common
+  thing." What is that operationally? Cosine similarity above a
+  threshold? `snap` to the same codebook entry? Bit-identical value?
+  Not decided.
+- **Result of the region.** When convergence fires, what does the
+  concurrent region return? The shared vector itself? A bundle of
+  both paths? The first arriving path? Not decided.
+- **Path identity.** Is a "path" a first-class value (passable,
+  storable, returnable) or purely a runtime construct? Not decided.
 - **Typing.** Does a concurrent computation have a distinct type from
   a single-path computation, or is concurrency transparent at the
   value level? Not decided.
-- **Scheduling / ordering.** The user named "two different timings" as
-  the shape. How is the timing difference expressed — by the program,
-  by the substrate, by the runtime? Not decided.
+- **Scheduling / ordering.** The user named "two different timings"
+  as the shape. How is the timing difference expressed — by the
+  program, by the substrate, by the runtime? Not decided.
 - **Failure and partial results.** If one path diverges or never
   terminates, what is the semantics of the whole program? Not decided.
 
-The master open-question document for this topic remains
-`planning/open-questions/concurrency-and-monads.md`. Items above are
-pointers into it; they are not answered here.
+The spec-wide index of open questions (across all sections, not just
+this one) lives at `planning/sutra-spec/open-questions.md`.
+
+## Prior art surveyed 2026-04-15
+
+Mainstream concurrency primitives the user compared against, with
+what each maps to:
+
+- **Go goroutines + channels** — split via `go`, rendezvous via
+  receiving from a shared channel. Both paths must complete; no
+  convergence-on-value.
+- **Haskell `async` + `STM`** — `waitBoth` joins both paths;
+  `retry`-based STM can approximate "commit when paths agree."
+- **JS `Promise.all` / `Promise.race`** — `all` waits for both,
+  `race` takes the first. Purely time-based, no agreement check.
+- **Erlang actors** — isolated processes, mailbox rendezvous.
+
+None of these has "terminate when paths converge on a common value"
+as the primary termination rule. That piece would be Sutra-specific.
+A sketch in that shape:
+
+```
+split {
+    path a: slow_reasoning(query)
+    path b: fast_heuristic(query)
+} until similar(a, b, threshold=0.9)
+```
+
+Not adopted — parked here as a candidate while the convergence-test
+and result-of-region questions are still open.
 
 ## Why this section is small
 
