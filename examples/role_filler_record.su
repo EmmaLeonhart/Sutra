@@ -50,3 +50,8 @@ function string decode_field(vector record, vector role) {
     );
     return FILLER_NAME[winner];
 }
+
+function string main() {
+    vector rec = make_record(f_alice, f_red, f_circle);
+    return decode_field(rec, r_color);
+}
