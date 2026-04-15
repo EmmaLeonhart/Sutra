@@ -1,0 +1,52 @@
+// Role-filler records via VSA bind/bundle/unbind — the textbook
+// demonstration that a flat vector can represent a structured record
+// with zero control flow at decode time.
+//
+// Encoding:  record = bundle(bind(role_i, filler_i)) for i = 1..3
+// Decoding:  filler_i_hat = unbind(record, role_i)
+//            name         = argmax_cosine(filler_i_hat, codebook)
+//
+// Four queries are issued against one record. Each query is a single
+// unbind + argmax — no branches, no dispatch, no sequential logic in
+// the program text. Substrate: numpy matrix ops on CPU.
+
+// --- Roles ---
+vector r_name  = basis_vector("role_name");
+vector r_color = basis_vector("role_color");
+vector r_shape = basis_vector("role_shape");
+
+// --- Filler codebook ---
+vector f_alice   = basis_vector("filler_alice");
+vector f_bob     = basis_vector("filler_bob");
+vector f_red     = basis_vector("filler_red");
+vector f_blue    = basis_vector("filler_blue");
+vector f_circle  = basis_vector("filler_circle");
+vector f_square  = basis_vector("filler_square");
+
+map<vector, string> FILLER_NAME = {
+    f_alice:  "alice",
+    f_bob:    "bob",
+    f_red:    "red",
+    f_blue:   "blue",
+    f_circle: "circle",
+    f_square: "square"
+};
+
+// --- Encode a record as a single vector ---
+function vector make_record(vector name, vector color, vector shape) {
+    return bundle(
+        bind(r_name,  name),
+        bind(r_color, color),
+        bind(r_shape, shape)
+    );
+}
+
+// --- Decode one field: unbind by role, argmax against the codebook ---
+function string decode_field(vector record, vector role) {
+    vector recovered = unbind(record, role);
+    vector winner = argmax_cosine(
+        recovered,
+        [f_alice, f_bob, f_red, f_blue, f_circle, f_square]
+    );
+    return FILLER_NAME[winner];
+}
