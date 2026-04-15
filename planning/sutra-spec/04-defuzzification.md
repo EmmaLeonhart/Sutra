@@ -1,15 +1,22 @@
-# Defuzzification: `is_true`
+# Defuzzification: `is_true` and `defuzzify`
 
 ```
-is_true(x)           → scalar in [0, 1]
-is_true(is_true(x))  → refined confidence
+is_true(x)               → fuzzy in [0, 1]            // one-shot polarization
+defuzzify(x)             → fuzzy in [0, 1]            // default = 10 iterations
+defuzzify(x, iters)      → fuzzy in [0, 1]            // explicit iteration count
 ```
 
-The mechanism for extracting crisp answers from fuzzy computation. `is_true` takes a vector and returns a truth value (similarity to a reference "true" vector, or magnitude, or some learned function).
+The mechanism for *polarizing* fuzzy computation. **Defuzzification never returns a crisp 0/1.** It sharpens the fuzzy state along a target axis — concentrating the mass — while keeping the result a fuzzy quantity that is still a vector and still differentiable. There is no "extract a crisp answer" step in Sutra. Downstream consumers that want a definite answer compare the polarized fuzzy against a threshold (default 0.5 per §26 single-option `select`); the threshold is a *consumer* choice, not a property of the polarization.
 
-Recursive application (`is_true(is_true(x))`) allows dialing in confidence at arbitrary granularity. Open design question: does this converge toward 1.0 (certainty attractor), oscillate, or have more complex fixed-point behavior? The answer likely depends on the operator definition and may itself be a tunable parameter.
+`is_true(x)` does one polarization step. `defuzzify(x)` is the user-facing entry point — it iterates `is_true` ten times by default, which is "a lot of polarization" in the sense that the fuzzy mass is sharply concentrated, but the output is still fuzzy. `defuzzify(x, iters)` gives explicit control. `defuzzify(x, 1) == is_true(x)`.
 
-This is a first-class language concern, not a library afterthought. "How true is this?" is always a valid question in Sutra.
+The mechanism is the same in both cases: a **matrix derived from the vector itself** (see "The Truth-Extraction Matrix" below) is repeatedly applied. Each application polarizes more; none binarizes.
+
+> **Recurring correction:** Earlier versions of this spec described `is_true` as "extracting crisp answers." That framing is wrong and has caused repeated confusion. The output of `is_true` and `defuzzify` is a fuzzy quantity. Polarization ≠ binarization. The §26 spec move (dropping `gate` for `select` / `select else`) depends on this — there is no commit primitive in Sutra because defuzzification is differentiable, and it is differentiable because the output stays fuzzy.
+
+Open design question: does iterated polarization converge toward 1.0 (certainty attractor), oscillate, or have more complex fixed-point behavior? The answer likely depends on the operator definition and may itself be a tunable parameter. The 10-iteration default is provisional — chosen because it is "a lot" without committing to a specific convergence model.
+
+This is a first-class language concern, not a library afterthought. "How polarized is this?" is always a valid question in Sutra.
 
 ## The Truth-Extraction Matrix
 
