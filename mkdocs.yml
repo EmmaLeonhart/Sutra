@@ -92,6 +92,7 @@ nav:
     - 01 — Hello Sutra: tutorials/01-hello-sutra.md
     - 02 — Bind and unbind: tutorials/02-bind-and-unbind.md
     - 03 — Snap-to-nearest: tutorials/03-snap-to-nearest.md
+  - Demos: demos.md
   - Papers: papers.md
   - History: history.md
   # SutraDB is the database side of the Sutra ecosystem — the static
