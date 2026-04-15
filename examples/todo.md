@@ -150,6 +150,25 @@ Open: which model. The embedding paper uses one specific frozen LLM;
 the user has flagged that picking *any* embedding model is a
 constraint we should declare in the spec rather than leave implicit.
 
+### 7. `role(name)` as a separate primitive from `embed(name)`
+
+When the substrate is a frozen LLM, `embed("pos_0")` and
+`embed("pos_1")` return near-identical vectors (lexically similar
+inputs → similar outputs). That's fatal for structural roles: VSA
+binding requires roles to be near-orthogonal. See
+`planning/findings/2026-04-15-llm-substrate-role-name-collision.md` —
+`sequence.su` drops from 11/11 to 3/11 under the LLM for exactly this
+reason.
+
+The split that works is: content from the LLM (semantic), roles from a
+seeded RNG (structural, near-orthogonal). `sutra-paper/scripts/sutra_runtime.py`
+already does this via `EmbeddingSubstrate.random_roles()`. Sutra needs
+a `role("name")` primitive distinct from `embed("name")` so programs
+can say explicitly which they want, substrate-independent.
+
+**Open:** spec the primitive, add to the compiler, rewrite `sequence.su`
+to use it, re-run smoke test expecting 11/11.
+
 ## Items that should move to `STATUS.md` when prioritized
 
 - Document the hardwired embedding-model assumption in the paper's
