@@ -371,6 +371,24 @@ def run_loop_rotation() -> bool:
     return correct == total
 
 
+def run_counter_loop() -> bool:
+    path = os.path.join(HERE, "counter_loop.su")
+    mod = compile_to_module(path)
+    # Deterministic under seed=42. The step_* prototype that the
+    # terminal state snaps to is the substrate's realization of the
+    # iteration count — the demo is of the mechanism, not of a
+    # particular count.
+    exp = "step_five"
+    print("=" * 72)
+    print("Example 11: counter_loop.su (loop(cond) as helical counter, Turing)")
+    print("=" * 72)
+    got = mod.main()
+    mark = "OK" if got == exp else "FAIL"
+    print(f"  count_then_snap() expected={exp!r} got={got!r} {mark}")
+    print()
+    return got == exp
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -393,8 +411,10 @@ def main() -> int:
     print()
     ok10 = run_loop_rotation()
     print()
+    ok11 = run_counter_loop()
+    print()
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11]):
         print("PASS")
         return 0
     print("FAIL")
