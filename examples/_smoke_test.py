@@ -175,6 +175,32 @@ def run_analogy() -> bool:
     return correct == total
 
 
+def run_knowledge_graph() -> bool:
+    path = os.path.join(HERE, "knowledge_graph.su")
+    mod = compile_to_module(path)
+    tests = [
+        ("dog has",   mod.dog,   mod.has, "fur"),
+        ("cat has",   mod.cat,   mod.has, "claws"),
+        ("fish has",  mod.fish,  mod.has, "scales"),
+        ("bird can",  mod.bird,  mod.can, "fly"),
+        ("whale can", mod.whale, mod.can, "swim"),
+    ]
+    print("=" * 72)
+    print("Example 5: knowledge_graph.su (bundled triples, compositional query)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for lbl, s, p, exp in tests:
+        got = mod.lookup_object(s, p)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  lookup_object({lbl:<10}) expected={exp:<8} got={got:<8} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} triple queries match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
@@ -185,8 +211,10 @@ def main() -> int:
     print()
     ok4 = run_analogy()
     print()
+    ok5 = run_knowledge_graph()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2 and ok3 and ok4:
+    if ok0 and ok1 and ok2 and ok3 and ok4 and ok5:
         print("PASS")
         return 0
     print("FAIL")
