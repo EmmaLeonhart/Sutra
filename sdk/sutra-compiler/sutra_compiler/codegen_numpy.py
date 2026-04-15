@@ -31,9 +31,22 @@ class NumpyCodegen(FlyBrainCodegen):
     map lookup, loop unrolling) is inherited unchanged.
     """
 
-    def __init__(self, *, runtime_dim: int = 256, runtime_seed: int = 42) -> None:
-        # Larger default dim than fly-brain (50) — numpy is cheap and
-        # higher dim gives cleaner bind/unbind separation.
+    # Frozen-LLM substrate. The embed() method tries Ollama with this
+    # model first; if Ollama isn't available, it falls back to seeded
+    # random vectors so demos still run on a fresh clone with no extra
+    # services. Default model: nomic-embed-text (768-dim). Avoid
+    # mxbai-embed-large per CLAUDE.md — it has a documented attention-
+    # sink defect on diacritics and is treated as known-broken baseline.
+    DEFAULT_LLM_MODEL = "nomic-embed-text"
+    DEFAULT_LLM_DIM = 768
+
+    def __init__(self, *, runtime_dim: int | None = None,
+                 runtime_seed: int = 42,
+                 llm_model: str | None = None) -> None:
+        self._llm_model = llm_model if llm_model is not None else self.DEFAULT_LLM_MODEL
+        # If using LLM default, dim is the LLM's; otherwise allow override.
+        if runtime_dim is None:
+            runtime_dim = self.DEFAULT_LLM_DIM
         super().__init__(
             runtime_dim=runtime_dim,
             runtime_seed=runtime_seed,
@@ -72,23 +85,89 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit("class _NumpyVSA:")
         self._indent += 1
-        self._emit('"""Pure-numpy VSA runtime. Sign-flip binding, normalized bundle."""')
+        self._emit('"""Frozen-LLM-backed VSA runtime. Sign-flip binding, normalized bundle."""')
         self._emit()
-        self._emit("def __init__(self, dim, seed):")
+        self._emit("def __init__(self, dim, seed, llm_model):")
         self._indent += 1
         self._emit("self.dim = dim")
         self._emit("self.seed = seed")
+        self._emit("self.llm_model = llm_model")
         self._emit("self._codebook = {}")
+        self._emit("self._llm_ok = None  # tri-state: None=untried, True=working, False=fell back")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _ollama_embed(self, name):")
+        self._indent += 1
+        self._emit('"""Try the frozen LLM via Ollama. Returns numpy vec or None on failure."""')
+        self._emit("try:")
+        self._indent += 1
+        self._emit("import ollama")
+        self._emit("r = ollama.embed(model=self.llm_model, input=name)")
+        self._emit("v = _np.array(r['embeddings'][0], dtype=_np.float64)")
+        self._emit("# Mean-center: sign-flip binding assumes zero-mean vectors.")
+        self._emit("# Raw LLM embeddings cluster in a cone (all-positive-ish), which")
+        self._emit("# collapses sign(role) to a near-constant pattern and destroys")
+        self._emit("# role-filler separation. Centering restores the algebra.")
+        self._emit("v = v - _np.mean(v)")
+        self._emit("n = _np.linalg.norm(v)")
+        self._emit("if n > 0: v = v / n")
+        self._emit("# Truncate or pad to self.dim if the LLM dim differs.")
+        self._emit("if v.shape[0] != self.dim:")
+        self._indent += 1
+        self._emit("if v.shape[0] > self.dim:")
+        self._indent += 1
+        self._emit("v = v[:self.dim]")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])")
+        self._indent -= 1
+        self._emit("n = _np.linalg.norm(v)")
+        self._emit("if n > 0: v = v / n")
+        self._indent -= 1
+        self._emit("return v")
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("return None")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit()
+        self._emit("def _seeded_embed(self, name):")
+        self._indent += 1
+        self._emit('"""Fallback when Ollama is unavailable: deterministic seeded RNG."""')
+        self._emit("h = hash(name) & 0x7fffffff")
+        self._emit("rng = _np.random.RandomState((self.seed ^ h) & 0x7fffffff)")
+        self._emit("v = rng.randn(self.dim)")
+        self._emit("return v / _np.linalg.norm(v)")
         self._indent -= 1
         self._emit()
         self._emit("def embed(self, name):")
         self._indent += 1
         self._emit("if name not in self._codebook:")
         self._indent += 1
-        self._emit("h = hash(name) & 0x7fffffff")
-        self._emit("rng = _np.random.RandomState((self.seed ^ h) & 0x7fffffff)")
-        self._emit("v = rng.randn(self.dim)")
-        self._emit("v = v / _np.linalg.norm(v)")
+        self._emit("# Try LLM once; if it works, keep using it. If it fails, stick with RNG.")
+        self._emit("if self._llm_ok is None:")
+        self._indent += 1
+        self._emit("v = self._ollama_embed(name)")
+        self._emit("self._llm_ok = v is not None")
+        self._emit("if not self._llm_ok:")
+        self._indent += 1
+        self._emit("import sys")
+        self._emit("print(f'[sutra] Ollama unavailable for model {self.llm_model!r}; '")
+        self._emit("      f'falling back to seeded random vectors.', file=sys.stderr)")
+        self._emit("v = self._seeded_embed(name)")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("elif self._llm_ok:")
+        self._indent += 1
+        self._emit("v = self._ollama_embed(name)")
+        self._emit("if v is None: v = self._seeded_embed(name)")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("v = self._seeded_embed(name)")
+        self._indent -= 1
         self._emit("self._codebook[name] = v")
         self._indent -= 1
         self._emit("return self._codebook[name].copy()")
@@ -127,7 +206,8 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit()
         self._emit(
-            f"_VSA = _NumpyVSA(dim={self.runtime_dim}, seed={self.runtime_seed})"
+            f"_VSA = _NumpyVSA(dim={self.runtime_dim}, seed={self.runtime_seed}, "
+            f"llm_model={self._llm_model!r})"
         )
         self._emit()
         self._emit()
