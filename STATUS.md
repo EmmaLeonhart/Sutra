@@ -8,12 +8,10 @@ Strategic frame: **Sutra ecosystem > Claw4S.** Anthropic Fellowship (Apr 26) is 
 
 ### Paper revisions first (cheap, paper-CI auto-submits each push)
 
-1. **Fly-brain paper — re-implement the §6.6 if-statement on the real Shiu fly brain** (the canonical substrate per CLAUDE.md, `C:/Users/Immanuelle/shiu-fly-brain`). The MB-only "if-statement" the paper claimed in §6.6 doesn't actually run on the connectome the way the paper implies — re-do it on Shiu so the headline result is honest. Once it works on Shiu, retitle/scope the paper around that single result and drop the rest.
-
 ### Then rebuild the spec from scratch
 
-2. **Build a new `planning/sutra-spec/` from scratch, in the user's framing.** The deprecated spec (`planning/sutra-spec-deprecated/`) was largely Claude inventing structure without checking — see `planning/sutra-spec/README.md` "meta-failure" section. Process: Claude does NOT write into the new spec from scratch. Instead, each section starts as a question to the user; Claude writes down the user's answer in the user's framing; gaps go to `planning/open-questions/` rather than being filled with plausible defaults. Concurrency (item 3) is the natural first section to draft because it's already an open question with user-articulated framing ("two or more paths through the vector space").
-3. **Concurrency design as the first new spec section.** Concrete sketch in `planning/sutra-spec/` plus an example program that demonstrates the design. Real work on a language, not a one-line note.
+1. **Build a new `planning/sutra-spec/` from scratch, in the user's framing.** The deprecated spec (`planning/sutra-spec-deprecated/`) was largely Claude inventing structure without checking — see `planning/sutra-spec/README.md` "meta-failure" section. Process: Claude does NOT write into the new spec from scratch. Instead, each section starts as a question to the user; Claude writes down the user's answer in the user's framing; gaps go to `planning/open-questions/` rather than being filled with plausible defaults. Concurrency (item 2) is the natural first section to draft because it's already an open question with user-articulated framing ("two or more paths through the vector space").
+2. **Concurrency design as the first new spec section.** Concrete sketch in `planning/sutra-spec/` plus an example program that demonstrates the design. Real work on a language, not a one-line note.
 
 **Hard stop:** if by end of Apr 17 the language paper isn't in submittable state, drop the Claw4S push. The Fellowship pitch (Apr 26) is the actual goal.
 
