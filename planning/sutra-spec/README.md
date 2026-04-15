@@ -80,10 +80,23 @@ will need to answer, but not as source material to copy.
 - Any cross-reference in a paper to `planning/sutra-spec/*.md` should
   be removed or rewritten to cite the implementation directly.
 
+## Conventions for the new spec
+
+- **Files are named by topic, not numbered.** `concurrency.md`, not
+  `01-concurrency.md`. Numbering creates a false linear ordering and
+  every section-reorder invalidates cross-references.
+- **Open questions are allowed inline in each section.** Spec sections
+  do not have to be closed before they land — writing down what the
+  user has said, with the remaining gaps explicit, is a valid state.
+- **The spec-wide index of open questions lives at `open-questions.md`**
+  in this directory. When a section acquires or resolves an open
+  question, update that file in the same commit.
+
 ## Pointers while the new spec is being built
 
 - Code is the source of truth: `sdk/sutra-compiler/`, `examples/`.
-- Open design questions: `planning/open-questions/`.
+- Spec-wide open-question index: `planning/sutra-spec/open-questions.md`.
+- Long-form design dossiers: `planning/open-questions/`.
 - Things tried, with results: `planning/findings/`.
 - Things parked but not closed: `planning/exploratory/`.
 - Hardwired assumptions in the demo path: `examples/todo.md`.
