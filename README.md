@@ -6,13 +6,15 @@ The 📜 scroll is Sutra's project-wide branding — the Sanskrit *sūtra* is li
 
 🌐 **Website: <https://emmaleonhart.github.io/Sutra>** — vision, interactive demos, tutorials, and the papers that ground the language. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml) and deployed automatically on every push. SutraDB's own docs are mounted at [`/SutraDB/`](https://emmaleonhart.github.io/Sutra/SutraDB/) on the same site — one integrated ecosystem, one domain.
 
-Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *vector operations* that execute inside a pre-trained embedding space — making the execution environment fundamentally semantic rather than symbolic. Where silicon arithmetic has no inherent meaning, the geometry of an embedding space *does*. Sutra is the first programming language designed to exploit that as a first-class computational substrate.
+**Sutra is a purely functional programming language whose values are hypervectors and whose programs compile to straight-line matrix operations.** There is no `print`, no IO primitive, no side effect a function body can invoke — every computation is a deterministic vector-to-vector map, and the only escape from the pure region is a final name lookup at the program's edge. This is the same structural property that makes a Haskell program "partial" in the sense that values leave the pure body only at the IO boundary.
 
-**Sutra has no control flow.** Every branch is a continuous weighted blend (`select`, softmax over options), every loop is a geometric rotation that keeps moving, and every loop exit is a gate on a defuzzified trajectory state — not a jump, not a back-branch, not a stop-check-test. Two primitives (`select` and `gate`) replace the entire `if`/`else`/`while`/`for`/`switch` family. The consequences are the pitch: **GPU-native and connectionist-native execution** (no branch predictor, no divergent warps — everything is a matmul, a sum, or a cosine), **end-to-end differentiable** (the things that normally break backprop are not in the language), and **decompilable in principle** from trained connectionist systems (the primitives are geometric, so a trained system can be characterized as a composition of them). See [`planning/sutra-spec/26-select-and-gate.md`](planning/sutra-spec/26-select-and-gate.md) for the canonical framing.
+**Sutra has no control flow.** Every branch is a continuous weighted blend (`select`, softmax over options), every loop is a geometric rotation, and every loop exit is a gate on a defuzzified trajectory state — not a jump, not a back-branch. Two primitives (`select` and `gate`) replace the entire `if`/`else`/`while`/`for`/`switch` family. Because nothing compiles to a machine branch, programs lower to sequences of matmuls, sums, and cosines — which makes the compilation target **GPU-native** in principle (no branch predictor, no divergent warps) and **end-to-end differentiable** (the things that normally break backprop are not in the language). See [`planning/sutra-spec/26-select-and-gate.md`](planning/sutra-spec/26-select-and-gate.md) for the canonical framing.
+
+The working runtime today is **pure numpy on CPU** (`sdk/sutra-compiler/sutra_compiler/codegen_numpy.py`). The same compiler pipeline admits a PyTorch/GPU backend as a refactor target — the generated code is already matrix-only, so the port is mechanical. A separate experimental backend targets a *Drosophila* mushroom-body spiking simulator; that work lives in [`fly-brain/`](fly-brain/) and its own paper, and is not the language's substrate or the primary demo.
 
 The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," the word used for Pāṇini's foundational grammar of Sanskrit. A programming language descended etymologically from the earliest known formal grammar is a better fit than the language's original name (*ākaśa*, "aether/space"), which is preserved throughout `DEVLOG.md` and the `chats/` archive as the earlier identity. The rename happened on 2026-04-11 — see the DEVLOG entry for that date for the full commit-by-commit breakdown.
 
-📖 **Architectural overview: [`ARCHITECTURE.md`](ARCHITECTURE.md)** — the "under the hood" tour. What Sutra is, what `.su` source looks like, what the compiler does with it, what the emitted code actually runs on (numpy, Brian2 spiking, real connectome), the three-tier operation model, how control flow works, and the VSA math foundations. Also mirrored on the website at [`/architecture/`](https://emmaleonhart.github.io/Sutra/architecture/).
+📖 **Architectural overview: [`ARCHITECTURE.md`](ARCHITECTURE.md)** — what Sutra is, what `.su` source looks like, what the compiler does with it, what the emitted code runs on. Also mirrored on the website at [`/architecture/`](https://emmaleonhart.github.io/Sutra/architecture/).
 
 ---
 
@@ -20,10 +22,11 @@ The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," th
 
 | Directory | What it is |
 |---|---|
-| [`sutra-paper/`](sutra-paper/) | The **embedding-operations paper**: *"Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces"*. Empirical characterization of which VSA operations work on natural embeddings and at what capacity (sign-flip binding 14/14 across GTE/BGE/Jina, etc.). Despite the directory name this is not the Sutra language paper — the language paper is on hold pending the connectionist-computer substrate work; see STATUS.md. Source: `paper.md`. |
-| [`fly-brain-paper/`](fly-brain-paper/) | The compile-to-brain paper — *"Running Sutra on the Drosophila Hemibrain Connectome"*. Same compiler targeting a Brian2 mushroom-body simulation, 16/16 decisions correct across four program variants. |
-| [`fly-brain/`](fly-brain/) | Runtime: Brian2 LIF circuit, hypervector ↔ spike bridge, FlyBrainVSA class, the compile-to-brain demos, the e2e test. |
-| [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, validator, AST → FlyBrainVSA codegen, JUnit-style test corpus. CLI: `python -m sutra_compiler`. |
+| [`language-paper/`](language-paper/) | The **Sutra language paper**: *"Sutra: A Control-Flow-Free Programming Language for Hyperdimensional Computing"*. The language, the compiler, the numpy runtime, the three demo programs. Source: `paper.md`. |
+| [`sutra-paper/`](sutra-paper/) | The **embedding-operations paper**: *"Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces"*. Empirical characterization of which VSA operations work on natural LLM embeddings (sign-flip binding 14/14 across GTE/BGE/Jina). Establishes the operation set; does not propose a language. Source: `paper.md`. |
+| [`fly-brain-paper/`](fly-brain-paper/) | Separate experimental paper — *"Running Sutra on the Drosophila Hemibrain Connectome"*. Sign-flip binding + fuzzy branching executed on a Brian2 mushroom-body spiking simulator. An alternative substrate for the operation set, not the language's primary runtime. |
+| [`fly-brain/`](fly-brain/) | Runtime for the fly-brain paper: Brian2 LIF circuit, hypervector ↔ spike bridge, `FlyBrainVSA` class. Segregated from the language's demo path. |
+| [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, validator, two codegen backends: `codegen_numpy.py` (demo path, self-contained matrix ops) and `codegen_flybrain.py` (fly-brain-specific). CLI: `python -m sutra_compiler`. |
 | [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin (v0.2 scaffold). Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or, from the repo root, `!editor.bat`. |
 | [`sdk/vscode-sutra/`](sdk/vscode-sutra/) | Lighter VS Code extension — TextMate grammar + snippets. The IntelliJ plugin is the reference IDE; this is the convenience option. |
 | [`planning/sutra-spec/`](planning/sutra-spec/) | The language specification: design principles, operation model, control flow, type system, runtime architecture, lambda calculus encoding, Turing-completeness argument, embedding pathologies, IDE architecture, VSA builtins. |
@@ -54,19 +57,22 @@ The **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect i
 
 ## Papers live on clawRxiv
 
-| Paper | clawRxiv post | Local source |
-|---|---|---|
-| Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces | [post 1542](http://18.118.210.52/posts/1542) | [`sutra-paper/paper.md`](sutra-paper/paper.md) |
-| Running Sutra on the Drosophila Hemibrain Connectome | [post 1541](http://18.118.210.52/posts/1541) | [`fly-brain-paper/paper.md`](fly-brain-paper/paper.md) |
-| Latent Space Cartography (Strong Accept) | [post 1127](http://18.118.210.52/posts/1127) | [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) (separate repo) |
+| Paper | Local source |
+|---|---|
+| Sutra: A Control-Flow-Free Programming Language for Hyperdimensional Computing | [`language-paper/paper.md`](language-paper/paper.md) |
+| Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces | [`sutra-paper/paper.md`](sutra-paper/paper.md) |
+| Running Sutra on the Drosophila Hemibrain Connectome | [`fly-brain-paper/paper.md`](fly-brain-paper/paper.md) |
+| Latent Space Cartography (Strong Accept, clawRxiv [post 1127](http://18.118.210.52/posts/1127)) | [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) (separate repo) |
 
 ---
 
-## Three things Sutra can do today
+## Three programs that run today
 
-1. **Run programs on LLM embedding spaces.** Sign-flip binding achieves 14/14 correct recoveries at 14 bundled role-filler pairs across GTE-large, BGE-large, and Jina-v2. Sustains 10/10 chained bind-unbind-snap cycles. Multi-hop composition across structures works. See [`sutra-paper/`](sutra-paper/) and the website's [Bind and unbind](https://emmaleonhart.github.io/Sutra/tutorials/02-bind-and-unbind/) tutorial.
-2. **Compile programs onto a fly brain.** The same compiler targets a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body. 16/16 decisions correct across four program variants × four input conditions. To our knowledge this is the first programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate. See [`fly-brain-paper/`](fly-brain-paper/) and [`fly-brain/`](fly-brain/).
-3. **Open up in an IDE.** Run `!editor.bat` from the repo root (Windows) and a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled and the project tree open. Drop a `.su` file into it for highlighting, completion, live templates, and `sutrac` diagnostics.
+The demo path — source through the numpy backend to named output. All three run under `python examples/_smoke_test.py`; 23/23 outputs match the committed reference.
+
+1. **[`examples/hello_world.su`](examples/hello_world.su)** — the minimal program. Embed a greeting, retrieve it from a codebook by cosine similarity. No control flow; the single escape from the pure region is the final name lookup.
+2. **[`examples/fuzzy_branching.su`](examples/fuzzy_branching.su)** — branches without branching. A 4-way fuzzy conditional encoded as a weighted superposition (`Σ wᵢ · behaviorᵢ`) with `wᵢ = similarity(query, prototypeᵢ)`. Four program variants × four inputs = 16 decisions, all correct.
+3. **[`examples/role_filler_record.su`](examples/role_filler_record.su)** — structured records as flat vectors. `record = bundle(bind(role_i, filler_i))`; `decode_field(record, role) = argmax_cosine(unbind(record, role), codebook)`. Textbook VSA demonstration with zero control flow at decode time.
 
 ---
 
@@ -74,11 +80,19 @@ The **Latent Space Cartography** paper (*"...Reveals a Silent Tokenizer Defect i
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
-cd Sutra/sdk/sutra-compiler
-python -m sutra_compiler ../../examples/01-objects-and-methods.su
+cd Sutra
+python examples/_smoke_test.py
 ```
 
-That validates one example file with zero diagnostics.
+One command, no setup beyond numpy. Expected output: `PASS` and 23 individual `OK` lines. The runner compiles each `.su` source through `sdk/sutra-compiler` to self-contained Python and executes it.
+
+To see the generated Python for any example:
+
+```bash
+PYTHONIOENCODING=utf-8 python -m sutra_compiler --emit-numpy examples/hello_world.su
+```
+
+You can also open the repo in an IDE with syntax support: run `!editor.bat` from the repo root (Windows) and a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled.
 
 The full reference workflow — vision page, tutorials, interactive widget, papers, and the rest of the docs — is at <https://emmaleonhart.github.io/Sutra>.
 
