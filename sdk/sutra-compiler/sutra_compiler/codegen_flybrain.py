@@ -110,6 +110,14 @@ def _builtin_argmax_cosine(args: List[str]) -> str:
     return f"_argmax_cosine({args[0]}, {args[1]})"
 
 
+def _builtin_select(args: List[str]) -> str:
+    # Spec: planning/sutra-spec/26-select-and-gate.md.
+    # `select(scores, options)` is softmax-weighted superposition — the
+    # named conditional-branching primitive. No defuzz; the result is a
+    # vector usable as the input to further operations.
+    return f"_select_softmax({args[0]}, {args[1]})"
+
+
 def _builtin_compose(args: List[str]) -> str:
     # Composition of two sign-flip permutations is pointwise multiply.
     return f"({args[0]} * {args[1]})"
@@ -146,6 +154,7 @@ BUILTINS = {
     "similarity": (_builtin_similarity, 2),
     "snap": (_builtin_snap, 1),
     "argmax_cosine": (_builtin_argmax_cosine, 2),
+    "select": (_builtin_select, 2),
     "compose": (_builtin_compose, 2),
     "make_rotation": (_builtin_make_rotation, None),  # 1-2 args
     "compile_prototypes": (_builtin_compile_prototypes, 1),
@@ -190,6 +199,21 @@ class FlyBrainCodegen:
     @property
     def output(self) -> str:
         return "\n".join(self._lines) + "\n"
+
+    def _emit_select_helper(self) -> None:
+        """Emit `_select_softmax(scores, options)` — the runtime for the
+        spec-level `select` primitive (planning/sutra-spec/26-select-and-gate.md).
+        Softmax weights, weighted sum of option vectors, no defuzz."""
+        self._emit("def _select_softmax(scores, options):")
+        self._indent += 1
+        self._emit('"""Softmax-weighted superposition of option vectors."""')
+        self._emit("s = _np.asarray(scores, dtype=float)")
+        self._emit("s = s - _np.max(s)")
+        self._emit("w = _np.exp(s)")
+        self._emit("w = w / _np.sum(w)")
+        self._emit("opts = _np.asarray(options, dtype=float)")
+        self._emit("return (w[:, None] * opts).sum(axis=0)")
+        self._indent -= 1
 
     # -- public entry point -----------------------------------------------
 
@@ -268,6 +292,8 @@ class FlyBrainCodegen:
         self._emit("return best")
         self._indent -= 1
         self._emit()
+        self._emit()
+        self._emit_select_helper()
         self._emit()
         self._emit("def _vector_map_lookup(pairs, key):")
         self._indent += 1

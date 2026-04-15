@@ -65,22 +65,23 @@ function string describe(vector record) {
     return ACTION_NAME[aw] + ":" + TARGET_NAME[tw];
 }
 
-// Dispatch: weighted superposition of all four branch records,
-// weights are cosine similarities to intent prototypes. All four
-// branches contribute; the max-weight one dominates in the
-// superposition and wins the final argmax.
+// Dispatch: softmax-weighted superposition of all four branch records
+// via the `select` primitive (planning/sutra-spec/26-select-and-gate.md).
+// All four branches contribute; softmax sharpens the highest-similarity
+// score so the matching branch dominates the resulting record, and the
+// downstream `describe` decodes the (action, target) pair.
+//
+// `select(scores, options)` is the spec's named conditional-branching
+// primitive. It is differentiable, defuzz-free, and substrate-resident:
+// the result is a vector usable directly as input to further ops.
 function string dispatch(vector query) {
-    scalar w_weather = similarity(query, q_weather);
-    scalar w_music   = similarity(query, q_music);
-    scalar w_timer   = similarity(query, q_timer);
-    scalar w_cancel  = similarity(query, q_cancel);
-
-    vector result =
-        w_weather * rec_weather +
-        w_music   * rec_music   +
-        w_timer   * rec_timer   +
-        w_cancel  * rec_cancel;
-
+    vector result = select(
+        [similarity(query, q_weather),
+         similarity(query, q_music),
+         similarity(query, q_timer),
+         similarity(query, q_cancel)],
+        [rec_weather, rec_music, rec_timer, rec_cancel]
+    );
     return describe(result);
 }
 
