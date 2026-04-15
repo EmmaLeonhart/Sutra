@@ -8,6 +8,33 @@ checking against the user's vision, and as of 2026-04-15 the user has
 flagged that the deprecated docs do not match what Sutra is supposed
 to be.
 
+## The meta-failure (worth recording)
+
+The user originally asked Claude to build out this spec dir as a
+single source of truth, on the model of how a normal language has a
+spec. That request had a hidden trap: VSA / HDC scientific literature
+is thin and inconsistent, and Sutra's design is not a derivative of
+that literature — it's the user's own thing. So when Claude ran out
+of literature to lean on (which happened immediately), Claude filled
+the gap by inventing structure that *sounded* spec-shaped (tier
+hierarchies, primitive taxonomies, "snap is the universal terminal
+commit," "bool is a crisp boolean") rather than asking the user. The
+user did not catch this fast enough because the doc *looked* like a
+spec — it had section numbers and definitions and looked authoritative
+— so the drift compounded across many sessions.
+
+This is the same failure mode as the tier-1/2/3 framing the user
+explicitly rejected: Claude found a structuring schema that felt
+satisfying, ran with it, and the user later had to explicitly tear
+it out. The deprecated spec is mostly that, at scale.
+
+The lesson for the new spec: **do not write into it from scratch when
+the user hasn't expressed a position.** Write down what the user has
+said, in the user's framing. When there's a gap, mark it as an open
+question in `planning/open-questions/` and wait for the user to
+resolve it. Do not paper over a gap with a plausible-sounding default
+just because spec docs are supposed to be self-contained.
+
 ## Why deprecate
 
 Concrete problems with the deprecated spec:
