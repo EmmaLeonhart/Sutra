@@ -1,0 +1,85 @@
+// N-way fuzzy dispatch with *structured* branch results.
+//
+// fuzzy_branching.su picks one of 4 scalar behaviors. This demo
+// generalizes: each branch's result is a role-filler record
+// (action, target) rather than a single vector. The dispatch produces
+// a weighted superposition of records, and the caller decodes both
+// fields from the winning record with separate unbinds.
+//
+// Four intents:
+//   "weather today"   -> action=lookup, target=weather
+//   "play jazz"       -> action=start,  target=music
+//   "set timer 5min"  -> action=start,  target=timer
+//   "cancel alarm"    -> action=stop,   target=alarm
+//
+// The decoder returns a string describing what was extracted from
+// the winning record. No control flow — dispatch is a weighted sum
+// across all four branches, argmax is at the final codebook lookup.
+
+// --- Intent prototypes (the "query" side) ---
+vector q_weather = basis_vector("q_weather");
+vector q_music   = basis_vector("q_music");
+vector q_timer   = basis_vector("q_timer");
+vector q_cancel  = basis_vector("q_cancel");
+
+// --- Roles ---
+vector r_action = basis_vector("r_action");
+vector r_target = basis_vector("r_target");
+
+// --- Action codebook ---
+vector a_lookup = basis_vector("a_lookup");
+vector a_start  = basis_vector("a_start");
+vector a_stop   = basis_vector("a_stop");
+
+// --- Target codebook ---
+vector t_weather = basis_vector("t_weather");
+vector t_music   = basis_vector("t_music");
+vector t_timer   = basis_vector("t_timer");
+vector t_alarm   = basis_vector("t_alarm");
+
+map<vector, string> ACTION_NAME = {
+    a_lookup: "lookup",
+    a_start:  "start",
+    a_stop:   "stop"
+};
+
+map<vector, string> TARGET_NAME = {
+    t_weather: "weather",
+    t_music:   "music",
+    t_timer:   "timer",
+    t_alarm:   "alarm"
+};
+
+// --- Branch records: (action, target) bundled via role-filler. ---
+vector rec_weather = bundle(bind(r_action, a_lookup), bind(r_target, t_weather));
+vector rec_music   = bundle(bind(r_action, a_start),  bind(r_target, t_music));
+vector rec_timer   = bundle(bind(r_action, a_start),  bind(r_target, t_timer));
+vector rec_cancel  = bundle(bind(r_action, a_stop),   bind(r_target, t_alarm));
+
+// Decode a dispatched record into "action:target" string.
+function string describe(vector record) {
+    vector a = unbind(r_action, record);
+    vector t = unbind(r_target, record);
+    vector aw = argmax_cosine(a, [a_lookup, a_start, a_stop]);
+    vector tw = argmax_cosine(t, [t_weather, t_music, t_timer, t_alarm]);
+    return ACTION_NAME[aw] + ":" + TARGET_NAME[tw];
+}
+
+// Dispatch: weighted superposition of all four branch records,
+// weights are cosine similarities to intent prototypes. All four
+// branches contribute; the max-weight one dominates in the
+// superposition and wins the final argmax.
+function string dispatch(vector query) {
+    scalar w_weather = similarity(query, q_weather);
+    scalar w_music   = similarity(query, q_music);
+    scalar w_timer   = similarity(query, q_timer);
+    scalar w_cancel  = similarity(query, q_cancel);
+
+    vector result =
+        w_weather * rec_weather +
+        w_music   * rec_music   +
+        w_timer   * rec_timer   +
+        w_cancel  * rec_cancel;
+
+    return describe(result);
+}
