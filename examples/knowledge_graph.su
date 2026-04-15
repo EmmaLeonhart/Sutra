@@ -1,0 +1,64 @@
+// Flat knowledge graph — (subject, predicate, object) triples bundled
+// into one memory vector, queried compositionally via bind/unbind.
+//
+// Encoding for sign-flip binding:
+//
+//   triple(s, p, o) = bind(o, bind(s, p))
+//                   = o * sign(s) * sign(p)
+//
+// The object is the "filler" (retains its real-valued magnitude
+// pattern); s and p contribute only their sign patterns. This
+// ordering matters under sign-flip because the filler has to be the
+// first argument — sign-flip loses magnitude on whichever argument
+// it takes the sign of.
+//
+// Query (given s and p, recover o):
+//
+//   recovered = unbind(p, unbind(s, memory))
+//             = memory * sign(s) * sign(p)
+//
+// Five animal/property triples, bundled into a single 256-dim memory.
+// Five queries recover each object by its (subject, predicate) key.
+
+// --- Subjects (animals) ---
+vector dog   = basis_vector("dog");
+vector cat   = basis_vector("cat");
+vector fish  = basis_vector("fish");
+vector bird  = basis_vector("bird");
+vector whale = basis_vector("whale");
+
+// --- Predicates ---
+vector has = basis_vector("has");
+vector can = basis_vector("can");
+
+// --- Objects ---
+vector fur    = basis_vector("fur");
+vector claws  = basis_vector("claws");
+vector scales = basis_vector("scales");
+vector fly    = basis_vector("fly");
+vector swim   = basis_vector("swim");
+
+map<vector, string> OBJECT_NAME = {
+    fur:    "fur",
+    claws:  "claws",
+    scales: "scales",
+    fly:    "fly",
+    swim:   "swim"
+};
+
+// --- Bundled graph memory ---
+// Each triple: bind(o, bind(s, p)) under sign-flip.
+vector graph = bundle(
+    bind(fur,    bind(dog,   has)),
+    bind(claws,  bind(cat,   has)),
+    bind(scales, bind(fish,  has)),
+    bind(fly,    bind(bird,  can)),
+    bind(swim,   bind(whale, can))
+);
+
+// Query: given (subject, predicate), recover the object.
+function string lookup_object(vector subject, vector predicate) {
+    vector recovered = unbind(predicate, unbind(subject, graph));
+    vector winner = argmax_cosine(recovered, [fur, claws, scales, fly, swim]);
+    return OBJECT_NAME[winner];
+}
