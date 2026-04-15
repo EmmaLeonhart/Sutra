@@ -119,14 +119,46 @@ def run_role_filler() -> bool:
     return correct == total
 
 
+def run_classifier() -> bool:
+    path = os.path.join(HERE, "classifier.su")
+    mod = compile_to_module(path)
+    tests = [
+        ("fruit_apple", mod.fruit_apple, "fruit"),
+        ("fruit_pear",  mod.fruit_pear,  "fruit"),
+        ("fruit_mango", mod.fruit_mango, "fruit"),
+        ("veh_car",     mod.veh_car,     "vehicle"),
+        ("veh_truck",   mod.veh_truck,   "vehicle"),
+        ("veh_bike",    mod.veh_bike,    "vehicle"),
+        ("tool_hammer", mod.tool_hammer, "tool"),
+        ("tool_saw",    mod.tool_saw,    "tool"),
+        ("tool_drill",  mod.tool_drill,  "tool"),
+    ]
+    print("=" * 72)
+    print("Example 3: classifier.su (bundled prototype classifier)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for label, vec, exp in tests:
+        got = mod.classify(vec)
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  classify({label:<12}) expected={exp:<8} got={got:<8} {mark}")
+        total += 1
+        correct += got == exp
+    print()
+    print(f"{correct}/{total} classifications match expected")
+    return correct == total
+
+
 def main() -> int:
     ok0 = run_hello_world()
     ok1 = run_fuzzy_branching()
     print()
     ok2 = run_role_filler()
     print()
+    ok3 = run_classifier()
+    print()
     print("=" * 72)
-    if ok0 and ok1 and ok2:
+    if ok0 and ok1 and ok2 and ok3:
         print("PASS")
         return 0
     print("FAIL")
