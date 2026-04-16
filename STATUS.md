@@ -22,11 +22,13 @@ Strategic frame: **Sutra ecosystem > Claw4S.** Anthropic Fellowship (Apr 26) is 
 3. **"Rotation on neurons" has two meanings. Don't conflate:**
    - Synthetic R (Givens) as Brian2 synapse weights → works.
    - Real FlyWire weight matrix AS the rotation → does not rotate (compressive projection). Paper must say which every time.
-4. **Permute → sign_flip rename.** The op does `a * sign(role)`, not dimension permutation. Aliases preserved.
-5. **Numpy is the demo substrate. Fly-brain is segregated.** Two backends: `codegen_numpy.py` (demo path, self-contained, no fly-brain imports) and `codegen_flybrain.py` (fly-brain-specific work, not the demo). PyTorch/GPU is a future refactor target.
-6. **Defuzzification polarizes, never binarizes.** `is_true` and `defuzzify` keep the result fuzzy and differentiable. No commit primitive exists; `select` does all branching. Don't reintroduce `gate`.
-7. **`bool` is a subclass of `fuzzy`, not crisp.** Carries a defuzz counter as compile-time metadata. Drives method overloading.
-8. **Naming heads-up:** `sutra-paper/` is the embedding paper. `language-paper/` is the Sutra-language paper. Legacy from akasha → sutra rename.
+4. **Roles are learned matrices; `bind` is `R @ filler`.** Not random vectors (HRR), not sign-flip (`a * sign(role)`). A role in Sutra is a matrix fit to the substrate — "object of a sentence" is the matrix fit on (sentence_emb, object_emb) pairs; `is_cat` is the matrix fit on (thing_emb, is_cat_label) pairs. Unifies with `is_cat` and defuzz matrices. Empirical grounding: cartography's 86-predicate displacement finding (r=0.861) is the rank-0 special case. Full-matrix generalization for sentence-level roles is not yet verified in nomic — open experiment. See `planning/sutra-spec/operations.md` §"Roles are matrices."
+5. **Sign-flip binding is rejected.** The current `bind` in both codegens compiles to `a * sign(role)` as a historical artifact, not a design choice. Treat as pending removal. `sutra-paper/` is still titled *"Sign-Flip Binding…"* — retitling + refounding is queued in `todo.md`.
+6. **Permute → sign_flip rename.** The deprecated op name `permute` aliased to sign-flip; now that sign-flip itself is rejected, both names are tombstones.
+7. **Numpy is the demo substrate. Fly-brain is segregated.** Two backends: `codegen_numpy.py` (demo path, self-contained, no fly-brain imports) and `codegen_flybrain.py` (fly-brain-specific work, not the demo). PyTorch/GPU is a future refactor target.
+8. **Defuzzification polarizes, never binarizes.** `is_true` and `defuzzify` keep the result fuzzy and differentiable. No commit primitive exists; `select` does all branching. Don't reintroduce `gate`.
+9. **`bool` is a subclass of `fuzzy`, not crisp.** Carries a defuzz counter as compile-time metadata. Drives method overloading.
+10. **Naming heads-up:** `sutra-paper/` is the embedding paper. `language-paper/` is the Sutra-language paper. Legacy from akasha → sutra rename.
 
 ## Pointers
 
