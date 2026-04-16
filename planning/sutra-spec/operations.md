@@ -3,8 +3,8 @@
 The primitive vector operations used across the `.su` examples and
 accepted by the compiler are:
 
-- **`bind`** — combine two vectors into a role-filler pair.
-- **`unbind`** — recover a filler given a role (inverse of `bind`).
+- **`bind`** — apply a role to a filler, producing a tagged vector.
+- **`unbind`** — invert `bind` given the role.
 - **`bundle`** — superpose multiple vectors into a single vector.
 - **`similarity`** — score how close two vectors are.
 - **`embed`** — map a string literal to a vector via the substrate's
@@ -14,8 +14,89 @@ accepted by the compiler are:
   This is the numpy-backend form of "clean up to the nearest known
   prototype."
 
-What each one computes in detail is spec work still to be done; this
-section records what is known from example usage and user statements.
+## Roles are matrices; `bind` is matrix-vector multiplication
+
+A **role** in Sutra is a matrix, not a vector. Binding a filler to a
+role is the matrix acting on the filler:
+
+```
+bind(filler, R) = R @ filler
+unbind(record, R) = R⁻¹ @ record
+```
+
+A record built from multiple role-filler pairs is the sum of the
+bound results, and unbinding extracts one filler approximately:
+
+```
+record = R_name @ f_alice + R_color @ f_red + R_shape @ f_circle
+R_name⁻¹ @ record
+   = f_alice + (R_name⁻¹ R_color) @ f_red + (R_name⁻¹ R_shape) @ f_circle
+  ≈ f_alice   (if the cross-terms decorrelate into noise)
+```
+
+This framing is consistent with the rest of the spec. Equality is
+already specified as a matrix operation (`is_cat @ x` in
+`equality-and-defuzzification.md`); defuzzification is already
+specified as a matrix operation (`types.md`). Roles being matrices
+means a large fraction of Sutra's first-class objects are matrices
+in the same sense — a uniform design rather than three different
+algebras glued together.
+
+### Roles are learned from the substrate, not random
+
+The VSA literature treats roles as random vectors (HRR uses random
+Gaussians; MAP uses random binary/ternary; classic circular-
+convolution bind is the circulant matrix of such a random vector).
+**Sutra does not.** A role matrix is **learned** from the embedding
+substrate. "Object of a sentence" is the matrix you get by fitting
+a linear map on `(sentence_embedding, object_embedding)` pairs;
+"capital of" is the matrix you get by fitting on
+`(city_embedding, country_embedding)` pairs; `is_cat` is the
+matrix you get by fitting on `(thing_embedding, is_that_cat_label)`
+pairs.
+
+This is a meaningful departure from VSA tradition:
+
+- HRR: roles are random; bind is circular convolution over vectors.
+  Roles are semantically empty.
+- MAP / sparse VSA: roles are random binary/ternary patterns.
+  Again semantically empty.
+- **Sutra:** roles are matrices fit to the corpus. Each role
+  matrix carries real semantic content.
+
+### Empirical grounding and honest gap
+
+The empirical basis is the relational-displacement finding
+(Leonhart, *Latent space cartography applied to Wikidata*): 86
+predicates realized as consistent displacement vectors across
+three embedding models, r = 0.861 between geometric consistency
+and held-out prediction accuracy. A displacement is the rank-0
+(translation-only) special case of a role matrix, so the prior
+result proves that the **simplest** form of learned role lives in
+LLM embedding spaces with measurable consistency.
+
+**What the prior work does not prove:** that the full-matrix
+generalization — sentence-level semantic roles like "object of a
+sentence" — also admits clean, consistent learned matrices in a
+given embedding space. That is a plausible extrapolation, not a
+settled result. `planning/findings/` should carry the result of
+actually fitting such a matrix on nomic-embed-text (or whichever
+substrate the program targets) before the spec commits to
+"learned role matrices" as reliable across all role types.
+
+### What `bind` is *not*
+
+- **Not sign-flip.** `a * sign(role)` is the current implementation
+  in `codegen_numpy` and `codegen_flybrain`, and it is explicitly
+  rejected (2026-04-15). It does not match the matrix-for-a-role
+  framing — a sign vector is a diagonal ±1 matrix, the degenerate
+  form. And it fails empirically: `examples/sequence.su` scores
+  `sim(fox, dog) = 0.939` on nomic when disjoint sequences should
+  score below 0.5.
+- **Not circular convolution unless the role is learned as a
+  circulant.** HRR is the special case "role matrix is the
+  circulant of a random vector." Sutra does not restrict to
+  circulants, and does not use random roles.
 
 ## Similarity
 
@@ -69,14 +150,19 @@ lives in `control-flow.md`, not here.
 - Which similarity operation does Sutra adopt as its default? Dot,
   cosine, normalized dot, or something else? Is it substrate-
   dependent (e.g. whichever the backend can give cheaply)?
-- **`bind` is unresolved.** The current implementation across both
-  codegens is sign-flip (`a * sign(role)`), but the user has
-  explicitly rejected this as the intended `bind` (2026-04-15:
-  "we're not supposed to be using it"). A replacement has not been
-  chosen — candidates include circular convolution, Hadamard on
-  centered vectors, rotation-based binding, or tensor-product.
-  Tracked in `todo.md`; the spec should not treat sign-flip as
-  definitional. `unbind` is whatever inverts the chosen `bind`.
+- How are role matrices actually fit at compile time? Least-squares
+  regression on `(input_emb, target_emb)` pairs is the obvious
+  starting point, but the substrate may constrain this (rank, PSD,
+  orthogonality). Tracked as a follow-up to the matrix-framing
+  position above.
+- Do role matrices need to be orthogonal (so `R⁻¹ = Rᵀ` is cheap
+  and the inverse is well-conditioned), or is arbitrary-matrix
+  tolerated as long as the fit is stable? Probably substrate-
+  dependent.
+- Do "clean" learned role matrices exist for sentence-level roles
+  (object, subject, agent) in nomic-embed-text? Open empirical
+  question — to be answered by a finding in `planning/findings/`
+  before the spec hardens.
 - What does `bundle` compute exactly? Elementwise sum is the
   operational default; whether it should be a weighted sum, a
   sum-then-normalize, or a substrate-specific superposition is
