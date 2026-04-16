@@ -40,6 +40,51 @@ polarization steps it has been through.
 `is_true` is the operation that performs this polarization. It can
 be applied repeatedly; each application increments the counter.
 
+## The undersymbolic realm — where `true` and `false` live
+
+LLM embedding spaces are **anisotropic**: natural-language content
+concentrates in a cone (or a narrow manifold) that occupies only a
+small fraction of the full d-dimensional space. The rest of the
+space — directions roughly orthogonal to the content cone — is
+**sparsely populated**: no natural word or sentence embeds near
+those directions. The user's earlier working name for this
+region is the **undersymbolic realm**.
+
+This empty region is a resource, not a problem. Sutra uses it for
+structural markers that **should not collide with any natural
+concept**:
+
+- **`v_true` and `v_false`** live outside the populated cone.
+  If `v_true` were just `embed("true")`, it would be close to
+  "yes", "correct", "affirmative", "right", and a thousand other
+  content-bearing words — every one of which would contaminate the
+  truth-axis with its own semantic baggage. Putting `v_true` in
+  an uninhabited direction keeps the polarization axis clean.
+- **Arbitrary synthetic points** (identity markers for role
+  matrices, sentinels for "no answer," structural separators) get
+  the same treatment: assign them a direction no natural embedding
+  occupies, and they stay uncontaminated.
+
+Mechanically, this means Sutra does **not** use `embed("true")` for
+`v_true`. The runtime (or the empirical-initiation phase) should
+**characterize which directions are empty in the target substrate**
+and mint synthetic points there. Concretely, candidates for finding
+empty directions include:
+
+- Principal components with small eigenvalues in a corpus-wide
+  embedding covariance matrix — directions LLM content does not
+  span.
+- Random unit vectors followed by projecting out the content
+  subspace (approximated by the top-k principal components of a
+  sample corpus).
+- Explicitly orthogonalizing synthetic points against each other
+  and against a reference corpus of natural embeddings.
+
+Defuzzification toward `v_true` and `v_false` is then polarization
+along an axis that is empirically empty in the substrate — the
+"is this true" question doesn't get confounded by "is this
+reminiscent of the word 'true'."
+
 ## Open questions
 
 - What is the exact construction of the "is-X" matrix? Is it a
