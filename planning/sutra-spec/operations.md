@@ -69,10 +69,18 @@ lives in `control-flow.md`, not here.
 - Which similarity operation does Sutra adopt as its default? Dot,
   cosine, normalized dot, or something else? Is it substrate-
   dependent (e.g. whichever the backend can give cheaply)?
-- What does each of `bind`, `bundle`, `unbind` compute exactly? The
-  current implementations are sign-flip-based (see high-priority
-  item in `todo.md` — the user has flagged that the sign-flip-as-
-  `bind` status should be revisited with user input).
+- **`bind` is unresolved.** The current implementation across both
+  codegens is sign-flip (`a * sign(role)`), but the user has
+  explicitly rejected this as the intended `bind` (2026-04-15:
+  "we're not supposed to be using it"). A replacement has not been
+  chosen — candidates include circular convolution, Hadamard on
+  centered vectors, rotation-based binding, or tensor-product.
+  Tracked in `todo.md`; the spec should not treat sign-flip as
+  definitional. `unbind` is whatever inverts the chosen `bind`.
+- What does `bundle` compute exactly? Elementwise sum is the
+  operational default; whether it should be a weighted sum, a
+  sum-then-normalize, or a substrate-specific superposition is
+  still open.
 - Are there other primitive operations that deserve first-class
   status (e.g. rotation, projection, scalar multiplication)?
 - Should `snap` and `argmax_cosine` unify under a single name that
