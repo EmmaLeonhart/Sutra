@@ -66,23 +66,44 @@ This is a meaningful departure from VSA tradition:
 
 ### Empirical grounding and honest gap
 
-The empirical basis is the relational-displacement finding
-(Leonhart, *Latent space cartography applied to Wikidata*): 86
-predicates realized as consistent displacement vectors across
-three embedding models, r = 0.861 between geometric consistency
-and held-out prediction accuracy. A displacement is the rank-0
-(translation-only) special case of a role matrix, so the prior
-result proves that the **simplest** form of learned role lives in
-LLM embedding spaces with measurable consistency.
+Two prior papers are load-bearing here and **must not be conflated**.
+Naming is treacherous; the user's terminology:
 
-**What the prior work does not prove:** that the full-matrix
-generalization — sentence-level semantic roles like "object of a
-sentence" — also admits clean, consistent learned matrices in a
-given embedding space. That is a plausible extrapolation, not a
-settled result. `planning/findings/` should carry the result of
-actually fitting such a matrix on nomic-embed-text (or whichever
-substrate the program targets) before the spec commits to
-"learned role matrices" as reliable across all role types.
+- **"VSA paper" = "latent space cartography paper"** — published
+  elsewhere (`EmmaLeonhart/latent-space-cartography`), clawRxiv
+  post 1127. Found 86 predicates as consistent **displacement
+  vectors** across three embedding models, r = 0.861 between
+  geometric consistency and held-out prediction accuracy. A
+  displacement is the rank-0 (translation-only) special case of
+  a role matrix. This paper establishes that the **simplest** form
+  of learned role lives in LLM embedding spaces with measurable
+  consistency. It also identified the mxbai diacritic defect.
+
+- **"sutra paper" = "embedding paper"** — `sutra-paper/` in this
+  repo. Tested sign-flip binding vs alternatives on GTE-large,
+  BGE-large, Jina-v2, and mxbai. Roles here were **random
+  vectors**, not learned. Sign-flip achieved 3–5× capacity vs
+  Hadamard. This paper builds on the cartography result but does
+  **not** extend it to full learned matrices; it uses the spaces
+  as generic VSA substrates.
+
+**What neither paper proves:** that the full-matrix generalization
+— sentence-level semantic roles like "object of a sentence" —
+admits clean, consistent learned matrices in any given embedding
+space. That is a plausible extrapolation from cartography's
+rank-0 result, not a settled finding. See
+`planning/findings/2026-04-15-nomic-object-matrix-identity-wins.md`
+for the first attempt and its (confounded, data-starved) null
+result.
+
+**Substrate coverage gap:** the current demo path runs on
+**nomic-embed-text**, which appears in neither paper. mxbai is
+known-broken (diacritic attention sink); GTE / BGE / Jina-v2 passed
+the paper's validation gates; nomic's status is unknown. Before
+interpreting a failure on nomic (e.g. `examples/sequence.su` scoring
+`sim(fox, dog) = 0.939`) as a failure of the Sutra operation, the
+substrate itself should be validated — otherwise we are attributing
+a substrate defect to the language.
 
 ### What `bind` is *not*
 
