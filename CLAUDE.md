@@ -8,7 +8,7 @@ Sutra is not an academic toy. The user is using this work as the foundation for 
 
 Rules that follow from this:
 
-1. **Every tier-2 and tier-3 operation must actually run where the paper says it runs.** If the paper claims `bind` runs on spiking neurons, `bind` runs on spiking neurons — not numpy with a Brian2 fig leaf wrapped around it. If rotation is claimed to execute on the connectome, the rotation arithmetic is synaptic summation, not a host matmul.
+1. **Every Sutra operation must actually run where the paper says it runs.** If the paper claims `bind` runs on spiking neurons, `bind` runs on spiking neurons — not numpy with a Brian2 fig leaf wrapped around it. If rotation is claimed to execute on the connectome, the rotation arithmetic is synaptic summation, not a host matmul. (The old "tier-2 / tier-3" framing this rule used to invoke is explicitly rejected — see the "No tier framing" section below.)
 2. **Validation numbers are measurements, not targets.** If a test gives cos=0.84 and the threshold is 0.9, you do not lower the threshold, shorten the window to hide drift, or re-seed until it passes. You report 0.84, investigate the cause, and fix the physics or the threshold with justification. Doctoring the number is the thing that gets someone hurt.
 3. **"It ran without errors" is not success.** A Brian2 simulation that emits spikes is not a working VSA operation. Compare decoded output to the ground-truth computation and report the honest delta every time.
 4. **Negative results are required, not optional.** If an approach does not work (see `planning/findings/2026-04-13-cx-ring-attractor-no-direction-discrimination.md`, which had corr=0.97 between left- and right-drive outputs), mark it as not working, explain why, and do not wire it into anything downstream. Silently keeping a broken module because "it runs" is the failure mode this rule is here to prevent.
@@ -81,7 +81,9 @@ Commit both the new `.md` and the `.html` (if untracked). This is a recurring ta
 **Fly-brain is not the language's substrate.** The `fly-brain/` directory contains an attempted compile-to-connectome backend (Brian2 spiking simulation of the *Drosophila* mushroom body). That attempt produced interesting negative findings — the real FlyWire weight matrix does not function as a rotation operator, EPG ring-attractor circuits did not discriminate direction on real connectivity, etc. — which are documented and published under their own paper in `fly-brain-paper/`. It is a separate experimental target, not the primary runtime. Prior sessions repeatedly told the user "the fly-brain stuff works" when it did not; this framing is a corrective against that failure mode. If in doubt: the demo is numpy; fly-brain is segregated.
 
 ### The Sutra Pivot
-The FOL discovery work proved that embedding spaces encode consistent vector arithmetic (86 predicates as FOL operations, r=0.78 consistency-prediction correlation) — see the `latent-space-cartography` repo. Sutra was the next step: instead of just *discovering* logic in embedding spaces, *program* in them. That pivot produced the language, grammar, compiler, and runtime described above. Embedding spaces remain a plausible future substrate (the sign-flip binding work in `sutra-paper/` characterizes them) but are not the default — the numpy backend runs on fresh random vectors.
+Prior relational-displacement work on frozen embedding spaces — published externally in the `latent-space-cartography` repo — is the empirical foundation. **Do not quote specific numerical claims about that paper from this file; verify against the paper itself.** Earlier versions of this CLAUDE.md contained two different r-values for the same result and two incompatible descriptions of the mxbai pathology, which I (Claude) propagated into papers and spec prose as if they were verified. They were not. Treat any specific number ("86 predicates," any r-value, any "Strong Accept" claim) as unverified until you read the paper in `EmmaLeonhart/latent-space-cartography`.
+
+Sutra is the next step beyond that prior work: instead of just *discovering* relational structure in embedding spaces, *program* in them. The language, grammar, compiler, and runtime exist; `.su` source parses, validates, compiles to Python, runs on a pure-numpy backend. The numpy backend currently draws fresh random vectors — hooking it to a frozen LLM (nomic-embed-text, 768-d, mean-centered) is in-progress.
 
 **Sutra** is named after the Sanskrit *sūtra* — thread/rule/aphorism, the word used for Pāṇini's foundational Sanskrit grammar.
 
@@ -101,14 +103,14 @@ Most "AI-assisted" languages still compile to conventional computation. Sutra us
 ### Tooling Architecture
 An MCP server is a core part of the language runtime, not an add-on. It tells AI where actual things are, resolving the long-range dependencies that would otherwise require guesswork. The tooling *becomes* part of the language runtime in a meaningful way.
 
-### Prior Work (FOL Discovery)
-The embedding-mapping FOL discovery work provides the empirical foundation for Sutra. See `planning/sutra-pivot.md` for the full design document. Key results that validate the approach are in the "Key Results" section below.
+### Prior work: relational displacements in frozen embedding spaces
+The prior relational-displacement work (published in the external `latent-space-cartography` repo — see the "Prior work" section at the bottom of this file) is the empirical foundation for Sutra. See `planning/sutra-pivot.md` for the full design document. Do not quote specific numerical claims about that paper from memory; verify against the paper itself.
 
 ## Paper Editing Rules (applies to sutra-paper/paper.md, fly-brain-paper/paper.md)
-- **Pushing paper commits is fine.** `papers-ci.yml` auto-submits to clawRxiv on every push that touches `sutra-paper/paper.md` or `fly-brain-paper/paper.md`. Every push is a new version.
-- **NEVER mention the publication venue inside the paper text — not "Claw4S 2026", not "Claw4S", not "clawRxiv", not "at the same venue", not clawRxiv post numbers.** The AI reviewer consistently flags any venue/post-number reference as a hallucinated citation, regardless of context or explanatory note. Earlier guidance to "reference companion papers by clawRxiv post number" was wrong — that change made the next review call clawRxiv itself hallucinated. Cite companion or prior work by author + descriptive title only ("Leonhart, *Latent space cartography…*"); the venue is metadata of the submission, not content of the paper. Remove any submission-note header lines from papers before pushing.
-- **NEVER propose mxbai-embed-large as a substrate for new work in either paper.** The model has a documented attention-sink defect on diacritics (see the latent-space-cartography work) and is treated by this project as a known-broken baseline, cited only to flag the pathology. New design intent (e.g. fitting `t_true` to a centroid) targets working substrates, not mxbai.
-- **The old "incremental edits only / one paragraph at a time / never rewrite large sections / always show diff and wait for approval" rule is dead** (deleted 2026-04-13 per user direction). It existed because of the VSA paper (now abandoned) where a wholesale rewrite turned a Strong Accept into Rejects. The active papers (`sutra-paper/`, `fly-brain-paper/`) have no Strong Accept to lose, the user's workflow needs fast turnaround to merge before another paper publishes, and asking permission paragraph-by-paragraph wastes the user's time. Edit aggressively, commit, push, iterate. If a future session sees this rule reincarnated anywhere (todo.md, STATUS.md, planning/), delete it on sight.
+- **Pushing paper commits is fine.** `papers-ci.yml` auto-submits on every push that touches `sutra-paper/paper.md` or `fly-brain-paper/paper.md`. Every push is a new version.
+- **Do not mention the publication venue or post numbers inside paper text.** Reviewers flag year-based citations and venue/post-number references as hallucinated. Cite companion or prior work by author + descriptive title only (e.g. "Leonhart, *Latent space cartography…*"). **Do not use `(Leonhart, 2026)` or any year-based citation for the prior work — it reads as future-dated.**
+- **mxbai-embed-large is a non-normalized embedding model** and appears in prior experiments. Earlier versions of this file claimed it had either an `[UNK]` tokenizer defect or a diacritic attention-sink defect — the two claims contradicted each other and **neither is verified in this session**. Do not assert either pathology as fact in papers or spec prose until you read the cartography paper directly.
+- **Edit papers aggressively when needed; commit, push, iterate.** An older rule requiring paragraph-by-paragraph approval is dead.
 
 ## Workflow Rules
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
@@ -127,13 +129,15 @@ The paper-CI pipeline (`papers-ci.yml`, `competition-cron.yml`, `submit-papers.y
 
 ## NO MATH SHORTCUTS (critical — re-read before every experiment)
 
-The formal specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what a reviewer complained about, not what "sounds more biological," not what you guessed. Canonical files:
+The specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what a reviewer complained about, not what "sounds more biological," not what you guessed. The old numbered spec (`02-operations.md` etc.) was deprecated on 2026-04-15 for containing Claude-invented content that didn't match the user's vision. The current un-numbered spec is under active rewrite; see `planning/sutra-spec/README.md`. Current canonical files:
 
-- `02-operations.md` — what each Sutra operation computes
-- `03-control-flow.md` — conditionals and loops, including eigenrotation
-- `04-defuzzification.md` — `is_true` and threshold-based control
-- `11-vsa-math.md` — the eight vector-space axioms and why VSA is algebra
-- `19-substrate-candidates.md` — which substrates can implement which operations
+- `vision.md` — how Sutra inverts VSA's random-role premise
+- `operations.md` — what each Sutra operation computes
+- `binding.md` — semantic vs non-semantic binding (both matrix-based)
+- `control-flow.md` — conditionals and loops
+- `equality-and-defuzzification.md` — `is_true`, the undersymbolic realm
+- `types.md`, `program-structure.md`, `concurrency.md`
+- `open-questions.md` — index of unresolved spec decisions
 
 ### Every operation runs on the substrate. No exceptions. No tier framing.
 
@@ -150,7 +154,7 @@ Numpy has exactly two legitimate roles:
 
 Numpy is **not** allowed as part of the runtime computation itself. `state = Q @ state` inside an iteration loop that is supposed to be eigenrotation on the connectome is the forbidden thing. A numpy result returned as the output of a Sutra operation, with a Brian2 simulation wrapped cosmetically around it, is a lie about what executed. Where a current implementation does this (e.g. `real_rotation_140D_jaccard.py` iterates rotation on numpy), that is a gap to close — and results produced that way must be reported as host-iterated, not as "rotation on the connectome."
 
-### Eigenrotation loops (from 03-control-flow.md)
+### Eigenrotation loops (from control-flow.md)
 
 `loop (condition)` iterates `state ← R · state` on the substrate, projects the state through the substrate's cleanup to a KC pattern, and terminates when the pattern matches a compiled prototype by Jaccard overlap. The rotation runs on the substrate; the match runs on the substrate. Earlier spec language that said rotation could "accumulate on the host as `R^i v₀`" was a rationalization that got baked in when the tier framing was active. It is gone. If an implementation still computes `R^i v₀` on numpy, say so in the result as a limitation.
 
@@ -172,10 +176,9 @@ Stop. Report what actually executed, including negative findings. Reference the 
 The specification is not aspirational documentation. It is the contract every operation implementation must satisfy. If the implementation drifts from the spec, **either the implementation is wrong or the spec needs updating** — and the choice between those two has to be made explicitly, with a commit message explaining which way the drift was resolved.
 
 ## Architecture and Conventions
-- **Stack:** Python + numpy + rdflib + Ollama (mxbai-embed-large, 1024-dim)
-- **Source data:** Wikidata API + SPARQL endpoint
-- **Storage:** Flat files (items.json, embeddings.npz, embedding_index.json) + optional SutraDB
-- **Planning docs:** `planning/` directory for design decisions and roadmap
+- **Stack:** Python + numpy + Ollama. The demo numpy backend currently uses `nomic-embed-text` (768-d, mean-centered); see `sdk/sutra-compiler/sutra_compiler/codegen_numpy.py` for the authoritative embedding config.
+- **Source data:** Wikidata API + SPARQL endpoint (for prior cartography work); Sutra itself does not require Wikidata.
+- **Planning docs:** `planning/` directory for design decisions and roadmap.
 
 ## Avoiding `fly-brain/` Python sprawl
 
@@ -259,7 +262,7 @@ Use `fly-brain/flywire_loader.py` to load the data. It resolves the directory in
 - **`sdk/`** — compiler, IntelliJ plugin, VS Code extension
 
 ## Prior work (published elsewhere, not in this repo)
-The empirical foundation of the Sutra pivot — relational displacement analysis of frozen embedding spaces, discovering 86 predicates as consistent vector operations, r = 0.861 consistency-prediction correlation, the mxbai `[UNK]` tokenizer defect — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography) and as clawRxiv post 1127 (Strong Accept). Cite as (Leonhart, 2026) when referenced from Sutra or fly-brain papers. Do not re-derive or re-implement those results here.
+The empirical foundation of the Sutra pivot is the relational-displacement analysis of frozen embedding spaces, published in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography). **Verify any specific claim about that paper against the paper itself.** Previous revisions of this section contained contradictory numbers and contradictory pathology descriptions; they have been stripped rather than reconciled-by-guessing. If you need specific numbers for a paper edit or a spec statement, either read the cartography paper directly (the sibling repo is not present locally — ask the user or pull it) or state the claim as "prior work showed displacement vectors exist in frozen embedding spaces" without numbers. Do not re-derive or re-implement those results here. Cite by author + descriptive title only (e.g. "Leonhart, *Latent space cartography…*"); do not use year-based citation, venue, or post number.
 
 ## Submission Target
 Claw4S Conference 2026 (deadline **April 20, 2026** — extended from the original April 5 per `planning/competition-analysis-2026-04-09.md`)
