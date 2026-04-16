@@ -17,28 +17,42 @@ When adding an item, pick a level. When closing one, delete the line.
 
 ---
 
-## [Pre-Claw4S] Address sign-flip in the language (HIGH PRIORITY)
+## [Pre-Claw4S] Remove sign-flip as the `bind` operation (HIGH PRIORITY)
 
-User flagged 2026-04-15: "I'm confused about how the sign flipping ended
-up coming back into the language, since I don't think it was supposed to
-be back in the language." Sign-flip (`a * sign(role)`) is still the
-binding operation everywhere — `bind` in both `codegen_numpy` and
-`codegen_flybrain` compiles to it, and it's the headline of
-`sutra-paper/`. What got deprecated in `8ee161f` was only the
-*paper framing* of conditional branching (now "fuzzy weighted
-superposition"), not the op itself.
+User direction 2026-04-15: "Yeah the sign flip is a thing I didn't
+like. Tbh no clue what it even is supposed to be but we're not
+supposed to be using it." The earlier uncertainty ("keep it in for
+now, revisit") has collapsed into a clear rejection — sign-flip
+(`a * sign(role)`) is not the intended `bind`.
 
-User direction: keep it in for now, but revisit this properly. Decide
-whether `bind` should actually be sign-flip (current state, keep as-is
-and make sure the spec + papers + CLAUDE.md pinned-corrections are
-all consistent and the user agrees) OR should be replaced by a
-different binding primitive (circular conv, Hadamard on centered
-vectors, rotation, something else) — which would be a language-level
-change touching both codegens, both papers, and every example that
-uses `bind`/`unbind`.
+Current state of the damage:
+- `codegen_numpy` and `codegen_flybrain` both lower `bind` to
+  sign-flip. `unbind` is `bind` again (self-inverse).
+- `sutra-paper/` is titled *"Sign-Flip Binding and Vector Symbolic
+  Operations on Frozen LLM Embedding Spaces"* — the entire paper is
+  built on defending sign-flip.
+- The spec (`planning/sutra-spec/operations.md`) flags sign-flip
+  as "current implementation" with an open question attached.
+- Empirical evidence against it: `examples/sequence.su` scores
+  sim(fox,dog)=0.939 on nomic (should be <0.5) — position-bound
+  bundles do not decorrelate enough under sign-flip.
 
-Cannot be resolved without user input on "what should `bind` compile
-to." Not a Claude-decides thing. Surface at next spec session.
+Open: what should `bind` actually be? Candidates: circular
+convolution (classic HRR), Hadamard product on centered vectors,
+rotation-based binding, tensor-product (with a cleanup step to
+stay in the same dimensional space), something else. **This is a
+user decision, not a Claude-decides thing.** Surface at next spec
+session.
+
+Downstream consequences once a replacement is chosen:
+- Both codegens need a new `bind` implementation.
+- `sutra-paper/` retitles and refounds — the sign-flip paper
+  becomes either obsolete or a methodological negative result
+  ("we tried sign-flip, it doesn't decorrelate enough on LLM
+  embeddings; here's what works instead").
+- Every example that uses `bind`/`unbind` re-tests on the new op.
+- Spec `operations.md` moves `bind` from "unresolved, current impl
+  is sign-flip" to a concrete definition.
 
 ## [Pre-Claw4S] Paper scope catch-up after the 2026-04-14 pivot
 
