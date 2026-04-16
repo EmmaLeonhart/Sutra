@@ -16,53 +16,17 @@ accepted by the compiler are:
 
 ## Roles are matrices; `bind` is matrix-vector multiplication
 
-A **role** in Sutra is a matrix, not a vector. Binding a filler to a
-role is the matrix acting on the filler:
+See `binding.md` for the detailed spec. Summary: every `bind` in
+Sutra is matrix-vector multiplication, and the role matrix `R`
+comes in two kinds — **semantic** (learned from corpus, carries
+meaning) and **non-semantic** (arbitrary, structural only).
 
-```
-bind(filler, R) = R @ filler
-unbind(record, R) = R⁻¹ @ record
-```
-
-A record built from multiple role-filler pairs is the sum of the
-bound results, and unbinding extracts one filler approximately:
-
-```
-record = R_name @ f_alice + R_color @ f_red + R_shape @ f_circle
-R_name⁻¹ @ record
-   = f_alice + (R_name⁻¹ R_color) @ f_red + (R_name⁻¹ R_shape) @ f_circle
-  ≈ f_alice   (if the cross-terms decorrelate into noise)
-```
-
-This framing is consistent with the rest of the spec. Equality is
-already specified as a matrix operation (`is_cat @ x` in
-`equality-and-defuzzification.md`); defuzzification is already
-specified as a matrix operation (`types.md`). Roles being matrices
-means a large fraction of Sutra's first-class objects are matrices
-in the same sense — a uniform design rather than three different
-algebras glued together.
-
-### Roles are learned from the substrate, not random
-
-The VSA literature treats roles as random vectors (HRR uses random
-Gaussians; MAP uses random binary/ternary; classic circular-
-convolution bind is the circulant matrix of such a random vector).
-**Sutra does not.** A role matrix is **learned** from the embedding
-substrate. "Object of a sentence" is the matrix you get by fitting
-a linear map on `(sentence_embedding, object_embedding)` pairs;
-"capital of" is the matrix you get by fitting on
-`(city_embedding, country_embedding)` pairs; `is_cat` is the
-matrix you get by fitting on `(thing_embedding, is_that_cat_label)`
-pairs.
-
-This is a meaningful departure from VSA tradition:
-
-- HRR: roles are random; bind is circular convolution over vectors.
-  Roles are semantically empty.
-- MAP / sparse VSA: roles are random binary/ternary patterns.
-  Again semantically empty.
-- **Sutra:** roles are matrices fit to the corpus. Each role
-  matrix carries real semantic content.
+The semantic case is the point of the language; see `vision.md`
+for the framing ("Sutra inverts VSA's random-role premise").
+Non-semantic bindings — classical VSA random roles, sign-flip,
+permutation, random orthogonal rotations — are valid infrastructure
+but not the interesting part. Sign-flip specifically is a diagonal
+±1 matrix, the degenerate case of non-semantic binding.
 
 ### Empirical grounding and honest gap
 
