@@ -234,6 +234,104 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
     return 0
 
 
+def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
+             output_html: str | None = None) -> int:
+    """Compile, execute with tracing, and output a 3D visualization HTML.
+
+    Strategy: inject a tracing shim into the generated Python source that
+    wraps every _NumpyVSA method. This way tracing is active from the
+    first embed() call during module-level init.
+    """
+    import types
+    from .trace import SutraTracer
+
+    py_src = _compile_to_python(
+        path, "numpy", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        runtime_n_kc=0,
+    )
+    if py_src is None:
+        return 1
+
+    program_name = os.path.basename(path)
+    tracer = SutraTracer(program_name)
+
+    # Inject tracing shim: after the _VSA = _NumpyVSA(...) line,
+    # wrap every method with a tracing version.
+    shim = '''
+# ── Tracing shim (injected by --run-viz) ──
+_orig_embed = _VSA.embed
+_orig_bind = _VSA.bind
+_orig_unbind = _VSA.unbind
+_orig_bundle = _VSA.bundle
+
+def _traced_embed(name):
+    v = _orig_embed(name)
+    _tracer.record_vector(name, v, "basis")
+    return v
+
+def _traced_bind(a, b):
+    result = _orig_bind(a, b)
+    _tracer.record_op("bind", [a, b], result)
+    return result
+
+def _traced_unbind(role, bound):
+    result = _orig_unbind(role, bound)
+    _tracer.record_op("unbind", [role, bound], result)
+    return result
+
+def _traced_bundle(*vectors):
+    result = _orig_bundle(*vectors)
+    _tracer.record_op("bundle", list(vectors), result)
+    return result
+
+_VSA.embed = _traced_embed
+_VSA.bind = _traced_bind
+_VSA.unbind = _traced_unbind
+_VSA.bundle = _traced_bundle
+# ── End tracing shim ──
+'''
+    # Find the _VSA = _NumpyVSA(...) line and inject after it
+    lines = py_src.split('\n')
+    inject_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith('_VSA = _NumpyVSA('):
+            inject_idx = i + 1
+            break
+
+    if inject_idx is None:
+        print("warning: could not find _VSA init line for tracing", file=sys.stderr)
+        inject_idx = len(lines)
+
+    lines.insert(inject_idx, shim)
+    traced_src = '\n'.join(lines)
+
+    # Execute with tracer in the namespace
+    ns = {"_tracer": tracer}
+    exec(compile(traced_src, f"<traced {path}>", "exec"), ns)
+
+    # Run main if it exists
+    if "main" in ns and callable(ns["main"]):
+        result = ns["main"]()
+        if result is not None:
+            print(result)
+
+    # Generate output HTML
+    if output_html is None:
+        output_html = os.path.splitext(path)[0] + "_viz.html"
+
+    html = tracer.to_html()
+    with open(output_html, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"\n3D visualization written to: {output_html}", file=sys.stderr)
+
+    # Also write trace JSON for the VS Code extension
+    trace_json = os.path.splitext(path)[0] + "_trace.json"
+    with open(trace_json, "w", encoding="utf-8") as f:
+        f.write(tracer.to_json())
+
+    return 0
+
+
 def _run_emit(path: str, backend: str, *, runtime_dim: int, runtime_seed: int,
               runtime_n_kc: int) -> int:
     out = _compile_to_python(
@@ -298,6 +396,14 @@ def main(argv: List[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--run-viz",
+        action="store_true",
+        help=(
+            "Compile and execute with tracing, then generate a standalone "
+            "Three.js 3D visualization HTML alongside the program output."
+        ),
+    )
+    parser.add_argument(
         "--runtime-dim", type=int, default=50,
         help="Hypervector dimension for the emitted FlyBrainVSA runtime (default 50).",
     )
@@ -315,14 +421,20 @@ def main(argv: List[str] | None = None) -> int:
         version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
-    if args.emit_flybrain or args.emit_numpy or args.run:
+    if args.emit_flybrain or args.emit_numpy or args.run or args.run_viz:
         if len(args.paths) != 1:
             print(
-                "--emit-*/--run takes exactly one .su source file",
+                "--emit-*/--run/--run-viz takes exactly one .su source file",
                 file=sys.stderr,
             )
             return 2
         backend = "flybrain" if args.emit_flybrain else "numpy"
+        if args.run_viz:
+            return _run_viz(
+                args.paths[0],
+                runtime_dim=args.runtime_dim,
+                runtime_seed=args.runtime_seed,
+            )
         if args.run:
             return _run_execute(
                 args.paths[0],

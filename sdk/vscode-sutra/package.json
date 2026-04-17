@@ -86,6 +86,10 @@
       {
         "command": "sutra.validateWorkspace",
         "title": "Sutra: Validate all .su files in workspace"
+      },
+      {
+        "command": "sutra.runVisualize",
+        "title": "Sutra: Run & Visualize 3D"
       }
     ]
   },
