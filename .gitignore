@@ -37,5 +37,9 @@ fly-brain/flywire_data/
 fly-brain/flywire_full.npz
 
 
+# Generated 3D visualizations (--run-viz output)
+*_viz.html
+*_trace.json
+
 # MkDocs build output
 _site/

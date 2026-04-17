@@ -292,6 +292,65 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // Run & Visualize command.
+    context.subscriptions.push(
+        vscode.commands.registerCommand("sutra.runVisualize", async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.languageId !== LANGUAGE_ID) {
+                vscode.window.showWarningMessage("Open a .su file first.");
+                return;
+            }
+            const filePath = editor.document.uri.fsPath;
+            const { cmd, args } = getCompilerCommand();
+            const fullArgs = [...args, "--run-viz", filePath];
+
+            // Show output channel for program results
+            const output = vscode.window.createOutputChannel("Sutra");
+            output.show(true);
+            output.appendLine(`Running: ${cmd} ${fullArgs.join(" ")}`);
+
+            const proc = cp.spawn(cmd, fullArgs, {
+                cwd: path.dirname(filePath),
+            });
+            let stdout = "";
+            let stderr = "";
+            proc.stdout.on("data", (chunk) => {
+                const text = chunk.toString();
+                stdout += text;
+                output.append(text);
+            });
+            proc.stderr.on("data", (chunk) => {
+                const text = chunk.toString();
+                stderr += text;
+                output.append(text);
+            });
+            proc.on("error", (err) => {
+                output.appendLine(`Error: ${err.message}`);
+            });
+            proc.on("close", (code) => {
+                if (code !== 0) {
+                    output.appendLine(`\nCompiler exited with code ${code}`);
+                    return;
+                }
+                // Read the trace JSON and open the webview
+                const traceJsonPath = filePath.replace(/\.su$/, "_trace.json");
+                const fs = require("fs") as typeof import("fs");
+                try {
+                    const traceData = fs.readFileSync(traceJsonPath, "utf-8");
+                    const trace = JSON.parse(traceData);
+                    openVisualizerPanel(context, trace, path.basename(filePath));
+                } catch (err: any) {
+                    output.appendLine(`Could not read trace: ${err.message}`);
+                    // Fall back to opening the HTML file in the browser
+                    const htmlPath = filePath.replace(/\.su$/, "_viz.html");
+                    if (fs.existsSync(htmlPath)) {
+                        vscode.env.openExternal(vscode.Uri.file(htmlPath));
+                    }
+                }
+            });
+        })
+    );
+
     // Completion provider.
     context.subscriptions.push(
         vscode.languages.registerCompletionItemProvider(
@@ -301,6 +360,42 @@ export function activate(context: vscode.ExtensionContext) {
             ..."abcdefghijklmnopqrstuvwxyz".split("")
         )
     );
+}
+
+// ============================================================
+// 3D Visualizer Webview
+// ============================================================
+
+function openVisualizerPanel(
+    context: vscode.ExtensionContext,
+    trace: any,
+    programName: string
+) {
+    const panel = vscode.window.createWebviewPanel(
+        "sutraVisualizer",
+        `Sutra 3D — ${programName}`,
+        vscode.ViewColumn.Beside,
+        {
+            enableScripts: true,
+            retainContextWhenHidden: true,
+        }
+    );
+
+    // Read the visualizer HTML template
+    const fs = require("fs") as typeof import("fs");
+    const templatePath = path.join(
+        context.extensionPath, "media", "visualizer.html"
+    );
+    let html = fs.readFileSync(templatePath, "utf-8");
+
+    // Inject trace data before the module script
+    const inject = `<script>window.SUTRA_TRACE_DATA = ${JSON.stringify(trace)};</script>`;
+    html = html.replace(
+        '<script type="module">',
+        inject + '\n<script type="module">'
+    );
+
+    panel.webview.html = html;
 }
 
 export function deactivate() {
