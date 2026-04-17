@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 1641,
+    "postId": 1641,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional programming language designed for Hyperdimensional Computing (HDC) that eliminates traditional control-flow constructs in favor of vector operations. It proposes three primitives—select, snap, and loop—to replace branching and iteration, compiling them into matrix-vector operations suitable for connectionist substrates. The authors provide a Python-based compiler and evaluate the language using three small-scale demonstration programs.",
+    "pros": [
+      "The conceptual framing of a 'control-flow-free' language specifically for Vector Symbolic Architectures (VSA) is a novel contribution to the field of neuro-symbolic programming.",
+      "The 'select' primitive provides a mathematically elegant way to unify if-statements and multi-way dispatch into a single differentiable operation.",
+      "The paper is honest about the failures encountered when attempting to map the language onto biological connectomes (the Drosophila mushroom body), providing useful negative results for future research."
+    ],
+    "cons": [
+      "The core technical claim regarding 'learned role matrices' is not actually implemented in the current runtime; the authors admit to using a 'sign-flip placeholder' on random vectors, which significantly undermines the paper's novelty.",
+      "The evaluation is extremely limited, consisting of only 23 test cases across three trivial programs (e.g., 'Hello World' and a simple record). This does not sufficiently demonstrate the language's utility or Turing-completeness in practice.",
+      "The 'loop(cond)' primitive, which is the most complex and critical part of the proposed control-flow replacement, is explicitly not exercised in the demonstration corpus.",
+      "The paper relies heavily on self-citations to unpublished 'preprints' (Leonhart, 2026) to support its empirical claims about LLM embedding spaces, creating a circular and unverifiable foundation for the research.",
+      "The claim of Turing-completeness is asserted based on prior literature (Plate, Kanerva) but is not formally proven or practically demonstrated within the Sutra implementation itself."
+    ],
+    "justification": "The paper presents an interesting design philosophy but fails to provide a rigorous implementation or evaluation of its most significant features. Specifically, the use of placeholders for the 'learned matrices' and the lack of any demonstration for data-dependent loops (loop(cond)) means the paper's primary claims remain unvalidated.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-17 07:22:19"
+  }
+}
