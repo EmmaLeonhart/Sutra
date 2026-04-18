@@ -153,15 +153,32 @@ def fetch_pairs(predicate: str, n: int) -> list[tuple[str, str]]:
 
 
 _embed_cache: dict[str, np.ndarray] = {}
+_st_model = None
+_model_name = "nomic-embed-text"
 
 
-def embed(text: str, model: str = "nomic-embed-text") -> np.ndarray:
-    """Embed via Ollama. Mean-center + L2-normalize."""
+def set_model(name: str):
+    global _model_name, _st_model, _embed_cache
+    _model_name = name
+    _st_model = None
+    _embed_cache = {}
+
+
+def embed(text: str) -> np.ndarray:
+    """Embed via Ollama (for nomic-*) or sentence-transformers (for others).
+    Mean-center + L2-normalize."""
     if text in _embed_cache:
         return _embed_cache[text]
-    import ollama
-    r = ollama.embed(model=model, input=text)
-    v = np.array(r["embeddings"][0], dtype=np.float64)
+    if _model_name.startswith("nomic") or _model_name.startswith("mxbai"):
+        import ollama
+        r = ollama.embed(model=_model_name, input=text)
+        v = np.array(r["embeddings"][0], dtype=np.float64)
+    else:
+        global _st_model
+        if _st_model is None:
+            from sentence_transformers import SentenceTransformer
+            _st_model = SentenceTransformer(_model_name)
+        v = _st_model.encode(text, convert_to_numpy=True).astype(np.float64)
     v = v - v.mean()
     n = np.linalg.norm(v)
     if n > 0:
@@ -328,7 +345,13 @@ def main():
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--predicates", nargs="*", default=None)
     ap.add_argument("--configs", nargs="*", default=None)
+    ap.add_argument("--model", default="nomic-embed-text",
+                    help="Embedding model. nomic-* or mxbai-* → Ollama; "
+                         "otherwise sentence-transformers (e.g. thenlper/gte-large).")
+    ap.add_argument("--out", default=None, help="Output JSON path.")
     args = ap.parse_args()
+    set_model(args.model)
+    print(f"Model: {args.model}")
 
     preds = args.predicates or list(PREDICATES.keys())
     configs = args.configs or CONFIGS
@@ -369,7 +392,9 @@ def main():
 
         all_results[pred] = pred_results
 
-    out_path = Path(__file__).parent / "learned_matrix_templates_results.json"
+    out_path = Path(args.out) if args.out else (
+        Path(__file__).parent / "learned_matrix_templates_results.json"
+    )
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(all_results, f, indent=2, ensure_ascii=False)
     print(f"\nResults saved to {out_path}")
