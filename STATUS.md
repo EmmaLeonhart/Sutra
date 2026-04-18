@@ -8,10 +8,10 @@ Strategic frame: **one last Hail Mary for the papers, low-stress.** User is not 
 
 ### Hail-Mary experiment queue (autonomous, minimal user input)
 
-1. **Learned matrices on a second substrate (GTE-large or BGE-large).** Nomic ruled out under two setups (bare names, sentence templates — both null, see `planning/findings/2026-04-17-wikidata-learned-matrix-templates-null.md`). Install sentence-transformers, run the same Wikidata + templates eval on GTE-large (1024-dim), report honest numbers. If it also nulls, the learned-matrix direction is substrate-independent-null on short Wikidata labels and the language paper's "placeholder binding" limitation stands. If it works, that's the new headline.
-2. **Longer-text variant on nomic.** Embed Wikipedia lead paragraphs or Wikidata descriptions per entity rather than labels. Cartography paper's positive result used longer text; the null here may be a label-length artifact.
-3. **Fly-brain: remaining library operations on Shiu substrate.** Bundle (cos=0.97) and snap (15/16) already measured on Shiu. Need unbind, sign-flip-bind, and a direct rotation attempt reported per-op with honest numbers, under the same harness as `shiu_conditional.py`. Budget one script per op. Negative results go in `planning/findings/`.
-4. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
+1. **Longer-text variant on nomic.** Embed Wikipedia lead paragraphs or Wikidata descriptions per entity rather than labels. Cartography paper's positive result used longer text; the nomic null may be a label-length artifact. (GTE-large already tested — see `planning/findings/2026-04-17-gte-large-learned-matrix-positive.md`: 87% on continent-of, 76% on located-in-country, positive lift over identity + mean_object. Substrate matters.)
+2. **Fly-brain: remaining library operations on Shiu substrate.** Bundle (cos=0.97) and snap (15/16) already measured on Shiu. Need unbind, sign-flip-bind, and a direct rotation attempt reported per-op with honest numbers, under the same harness as `shiu_conditional.py`. Budget one script per op. Negative results go in `planning/findings/`.
+3. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
+4. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result. Let papers-ci resubmit. (Do this after item 1 lands so nomic is either confirmed-null or also-works.)
 
 ### Strategic spec/language work (deferred — not the Hail Mary)
 
