@@ -8,10 +8,15 @@ Strategic frame: **one last Hail Mary for the papers, low-stress.** User is not 
 
 ### Hail-Mary experiment queue (autonomous, minimal user input)
 
-1. **Longer-text variant on nomic.** Embed Wikipedia lead paragraphs or Wikidata descriptions per entity rather than labels. Cartography paper's positive result used longer text; the nomic null may be a label-length artifact. (GTE-large already tested — see `planning/findings/2026-04-17-gte-large-learned-matrix-positive.md`: 87% on continent-of, 76% on located-in-country, positive lift over identity + mean_object. Substrate matters.)
-2. **Fly-brain: remaining library operations on Shiu substrate.** Bundle (cos=0.97) and snap (15/16) already measured on Shiu. Need unbind, sign-flip-bind, and a direct rotation attempt reported per-op with honest numbers, under the same harness as `shiu_conditional.py`. Budget one script per op. Negative results go in `planning/findings/`.
-3. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
-4. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result. Let papers-ci resubmit. (Do this after item 1 lands so nomic is either confirmed-null or also-works.)
+1. **Fly-brain: remaining library operations on Shiu substrate.** Bundle (cos=0.97) and snap (15/16) already measured on Shiu. Need unbind, sign-flip-bind, and a direct rotation attempt reported per-op with honest numbers, under the same harness as `shiu_conditional.py`. Budget one script per op. Negative results go in `planning/findings/`.
+2. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
+3. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result (continent-of 87%, located-in-country 76% via ridge-0.1 on GTE-large). Frame nomic as a worked null counter-example, not a missing feature. Let papers-ci resubmit.
+
+Substrate evals now complete (done — see findings): GTE-large works
+(`2026-04-17-gte-large-learned-matrix-positive.md`), nomic is null
+across three text variants (`2026-04-17-wikidata-learned-matrix-null.md`,
+`2026-04-17-wikidata-learned-matrix-templates-null.md`,
+`2026-04-18-nomic-description-text-still-null.md`).
 
 ### Strategic spec/language work (deferred — not the Hail Mary)
 
