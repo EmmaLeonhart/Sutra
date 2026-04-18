@@ -128,7 +128,8 @@
       "Bash(PYTHONPATH=sdk/sutra-compiler PYTHONIOENCODING=utf-8 python -m sutra_compiler --run examples/hello_world.su)",
       "Bash(PYTHONIOENCODING=utf-8 python -m sutra_compiler --run ../../examples/hello_world.su)",
       "Bash(PYTHONPATH=sdk/sutra-compiler PYTHONIOENCODING=utf-8 python -m sutra_compiler --run examples/fuzzy_dispatch.su)",
-      "Bash(snap)"
+      "Bash(snap)",
+      "Bash(./gradlew.bat compileKotlin)"
     ]
   }
 }
