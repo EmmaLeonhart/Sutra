@@ -195,15 +195,15 @@ Differentiable programming frameworks (JAX, PyTorch, TensorFlow) remove branches
 
 Neuromorphic and connectome-based computing proposals (Davies et al. 2018, Neftci et al. 2019) typically pair a conventional host language with a spiking-circuit target, emulating host branches at the edge of the substrate. Sutra's grammar targets the spiking-circuit style of computation directly; §5 reports the realities of the mapping when the substrate is a real connectome.
 
-The empirical premise — that frozen LLM embedding spaces encode consistent algebraic structure that VSA operations can exploit — is established by prior relational-displacement analysis of three general-purpose embedding models (Leonhart, *Latent space cartography applied to Wikidata*): 86 predicates discovered as consistent vector operations, r = 0.861 correlation between geometric consistency and prediction accuracy. Those displacements are translations — the rank-0 special case of the full learned-matrix binding Sutra targets. The numpy runtime used in the demonstrations does not depend on that result — it runs on fresh random vectors — but the learned-matrix binding direction does: each role matrix generalizes a displacement vector to a full linear operator, capturing non-translational relational structure that displacement-only models miss.
+The empirical premise — that frozen LLM embedding spaces encode consistent algebraic structure that VSA operations can exploit — is grounded in prior relational-displacement analysis of general-purpose embedding models (Leonhart, *Latent space cartography applied to Wikidata*), which found that a non-trivial set of relational predicates manifest as consistent displacement vectors across models. Those displacements are translations — the rank-0 special case of the full learned-matrix binding Sutra targets. The numpy runtime used in the demonstrations does not depend on that result — it runs on fresh random vectors under a non-semantic binding placeholder — but the learned-matrix binding direction does: each role matrix generalizes a displacement vector to a full linear operator, capturing non-translational relational structure that displacement-only models miss.
 
 ## 8. Limitations
 
 - **The runtime is numpy-on-CPU.** We claim the compilation surface admits GPU execution. We do not demonstrate GPU execution.
-- **The demonstration corpus is small.** Three programs, 23 decisions. We have not run a 2D game loop, a parser, or an interpreter — each is a natural next demonstration given the primitive set. The companion empirical papers stress-test the underlying VSA operations more extensively (14/14 role-filler recoveries on a 14-role codebook, etc., Leonhart) but those are substrate-characterization results, not language-level demonstrations.
+- **The demonstration corpus is small.** Three programs, 23 decisions. We have not run a 2D game loop, a parser, or an interpreter — each is a natural next demonstration given the primitive set.
 - **`loop(cond)` is implemented but not exercised in the demonstrations.** The three demo programs are straight-line plus `loop[N]`-shaped unrolls. A data-dependent `loop(cond)` demo is future work.
 - **The connectome substrate is an open research question.** §5 reports the attempt and the specific structural failures (FlyWire-as-rotation, EPG direction-discrimination). A dedicated library for compiling to biological connectivity is plausible but unbuilt.
-- **We do not claim peer review.** This paper is a preprint; the citations to companion work are also preprints on the same preprint service.
+- **Current runtime uses a placeholder binding.** The numpy runtime implements a non-semantic binding (a simple per-dimension sign operation on random vectors) rather than the learned matrix operators described in §3. Fitting and evaluating learned role matrices against relational data is the design target; this paper reports the language surface, compiler, and demo runtime that exist today. The substrate-characterization needed to move bind from placeholder to learned matrix is future work.
 
 ## 9. Conclusion
 
@@ -238,10 +238,6 @@ Imani, M., et al. (2019). A framework for HD computing. ReConFig.
 Kanerva, P. (2009). Hyperdimensional computing: An introduction to computing in distributed representation. Cognitive Computation.
 
 Leonhart, E. *Latent space cartography applied to Wikidata: Relational displacement analysis reveals a silent tokenizer defect in mxbai-embed-large.* Preprint.
-
-Leonhart, E. *Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces.* Preprint. (Companion empirical paper characterizing VSA operations on frozen embeddings; the sign-flip binding tested there is the placeholder used in Sutra's current demo runtime.)
-
-Leonhart, E. *Running Sutra on the Drosophila Hemibrain Connectome.* Preprint.
 
 Neftci, E. O., Mostafa, H., & Zenke, F. (2019). Surrogate gradient learning in spiking neural networks. IEEE Signal Processing Magazine.
 

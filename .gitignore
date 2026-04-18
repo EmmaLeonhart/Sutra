@@ -43,3 +43,6 @@ fly-brain/flywire_full.npz
 
 # MkDocs build output
 _site/
+
+# Browser-saved HTML asset folders (from chats/)
+chats/*_files/
