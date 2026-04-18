@@ -13,7 +13,7 @@ The work is grounded in prior relational-displacement analysis of frozen embeddi
 
 That embedding spaces encode relational structure as vector arithmetic has been known since `king - man + woman ≈ queen` (Mikolov et al., 2013). The knowledge graph embedding literature formalized this: TransE models relations as translations (Bordes et al., 2013), RotatE as rotations (Sun et al., 2019), and subsequent work characterized exactly which relation types admit which geometric representations (Wang et al., 2014; Kazemi & Poole, 2018).
 
-A complementary line of work showed that *frozen*, general-purpose embeddings — models not specifically trained for relational reasoning — also encode consistent vector arithmetic. Recent cartographic analysis of three general-purpose embedding models discovered 86 predicates that manifest as consistent displacement vectors, with 30 universal across all three models (Leonhart, *Latent space cartography applied to Wikidata*). The correlation between geometric consistency and prediction accuracy (r = 0.861) is self-calibrating: the structure's internal consistency predicts its external utility.
+A complementary line of work showed that *frozen*, general-purpose embeddings — models not specifically trained for relational reasoning — also encode consistent vector arithmetic. Recent cartographic analysis of general-purpose embedding models (Leonhart, *Latent space cartography applied to Wikidata*) identified predicates that manifest as consistent displacement vectors across models, with a subset universal across the models tested, and reported that geometric consistency of a displacement tracks its prediction accuracy — a self-calibrating property in which the structure's internal consistency predicts its external utility.
 
 If general-purpose embedding spaces encode consistent algebraic structure, the next empirical question is which Vector Symbolic Architecture (VSA) operations actually compose over that structure — and at what capacity. The textbook VSA binding choice (Hadamard product) was developed for spaces designed for VSA (random hypervectors with controlled correlation statistics). Frozen LLM embeddings are not such spaces: they are anisotropic, correlated, and shaped by the unrelated objective of next-token or contrastive prediction. Whether the standard VSA operation set transfers to them is an empirical question that has not been addressed.
 
@@ -25,7 +25,7 @@ This paper reports that test. We hold the operation interface fixed (bundle, bin
 
 2. **Sign-flip binding as a substrate-portable choice.** `a * sign(role)` is self-inverse, ~7μs on the host reference, achieves 14/14 snap recoveries at the 14-role limit of our test set, sustains 10/10 chained bind-unbind-snap cycles, and supports multi-hop composition. The result is identical on three independent embedding models (GTE-large, BGE-large, Jina-v2).
 
-3. **Substrate-validation gates including pathology detection.** A documented attention-sink defect in mxbai-embed-large (diacritic characters cause cosine > 0.95 between unrelated strings) passes algebraic gates but fails as a deployment substrate. We report this as a worked example of why algebraic validation alone is insufficient.
+3. **Substrate-validation gates including pathology detection.** A documented substrate-level defect in mxbai-embed-large, in which unrelated strings return cosine similarity > 0.95, passes algebraic gates but fails as a deployment substrate. We report this as a worked example of why algebraic validation alone is insufficient.
 
 4. **An operation cost analysis** showing that snap-to-nearest is not the bottleneck on these substrates — even at a 10K-item codebook, snap is 8× cheaper than producing one embedding. The substrate-side cost of VSA-style computation on frozen embeddings is dominated by the LLM forward pass that produces the vectors in the first place, not by the algebra over them.
 
@@ -105,7 +105,7 @@ We ran substrate-validation gates on four non-normalized embedding models. Initi
 | Jina-v2-base-en | 768 | 26.43 | ~3 | **14** | Yes |
 | mxbai-embed-large | 1024 | 17.38 | ~5 | (not tested)* | No* |
 
-*mxbai passes algebraic tests but has a documented diacritic attention-sink pathology (Leonhart, *Latent space cartography applied to Wikidata*) — see §3.5. We treat it as a known-broken baseline and do not deploy operations against it.
+*mxbai-embed-large passes the algebraic binding tests reported in this section but exhibits a substrate-level pathology (unrelated strings returning cosine > 0.95) documented in the prior cartography analysis (Leonhart, *Latent space cartography applied to Wikidata*); see §3.5. We treat it as a known-broken deployment substrate and do not evaluate downstream operations against it.
 
 The shift from Hadamard to sign-flip binding increases effective capacity by 3–5× across all tested substrates, from ~3–5 roles to 14 roles — the limit of our test set. All four models produce non-normalized vectors (magnitudes 17–26, not 1.0) when accessed via raw transformers without post-processing normalization layers. Non-normalized output matters for VSA-style operation: magnitude carries information about binding strength and bundling count, and Euclidean distance, not cosine similarity, becomes the natural metric.
 
@@ -129,9 +129,9 @@ The headline finding: **snap-to-nearest is not the bottleneck**. Even with a 10K
 
 ### 3.5 Substrate Validation: The mxbai Pathology
 
-During the cartographic analysis that grounds this paper, a previously unreported defect in mxbai-embed-large was characterized: diacritic characters cause catastrophic embedding collapse via attention sink (a high-magnitude key vector dominates the attention mechanism, overwriting all other token representations). Completely unrelated strings containing diacritics produce cosine similarity > 0.95.
+During the cartographic analysis that grounds this paper, a substrate-level defect in mxbai-embed-large was characterized: completely unrelated strings can produce cosine similarity > 0.95, indicating a silent corruption of the embedding output. The specific mechanism is documented in the cartography paper; what matters here is that the defect is undetectable from algebraic probes on clean inputs alone.
 
-This is a worked example of why substrate validation must include both algebraic tests and pathology probes. mxbai passes all algebraic validation gates above — the diacritic bug is an attention-mechanism pathology, not an algebraic one. A substrate can be algebraically sound and still have silent corruption modes. We treat mxbai as a known-broken baseline included only for comparison; the deployment-worthy substrates in this paper are GTE-large, BGE-large, and Jina-v2.
+This is a worked example of why substrate validation must include both algebraic tests and pathology probes. mxbai passes all algebraic validation gates above — the pathology is not algebraic. A substrate can be algebraically sound and still have silent corruption modes. We treat mxbai as a known-broken baseline included only for comparison; the deployment-worthy substrates in this paper are GTE-large, BGE-large, and Jina-v2.
 
 ## 4. Discussion
 
@@ -141,7 +141,7 @@ The paper establishes a small, reproducible, substrate-portable operation set fo
 
 ## 5. Conclusion
 
-Six binding operations were tested on bundled role-filler structures over three frozen LLM embedding spaces. Hadamard product, the textbook VSA binding choice, fails (2/7 correct at 7 roles). Sign-flip binding, the cheapest of the working alternatives, achieves 14/14 correct snap recoveries on a 15-item codebook, sustains 10/10 chained computation steps, and supports multi-hop composition between bundled structures. The result is identical on GTE-large, BGE-large, and Jina-v2, and substrate-validation surfaces a documented attention-sink defect in mxbai-embed-large that algebraic gates alone do not catch. Snap-to-nearest, often suspected as the cost bottleneck for VSA-style systems, is shown to be 8× cheaper than producing a single embedding even on a 10K-item codebook. Together these results characterize a small, substrate-portable operation set for VSA-style composition on naturally-learned embedding spaces.
+Six binding operations were tested on bundled role-filler structures over three frozen LLM embedding spaces. Hadamard product, the textbook VSA binding choice, fails (2/7 correct at 7 roles). Sign-flip binding, the cheapest of the working alternatives, achieves 14/14 correct snap recoveries on a 15-item codebook, sustains 10/10 chained computation steps, and supports multi-hop composition between bundled structures. The result is identical on GTE-large, BGE-large, and Jina-v2, and substrate-validation surfaces a documented substrate-level defect in mxbai-embed-large that algebraic gates alone do not catch. Snap-to-nearest, often suspected as the cost bottleneck for VSA-style systems, is shown to be 8× cheaper than producing a single embedding even on a 10K-item codebook. Together these results characterize a small, substrate-portable operation set for VSA-style composition on naturally-learned embedding spaces.
 
 ## References
 
