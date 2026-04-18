@@ -8,7 +8,7 @@ Strategic frame: **one last Hail Mary for the papers, low-stress.** User is not 
 
 ### Hail-Mary experiment queue (autonomous, minimal user input)
 
-1. **Patch many-to-many paper with precise metric language.** The paper's "9/9 MRR improvements" claim over-promises on a saturated metric (all methods tie at 1.0). Replace with MAP framing (8/9 full-over-naive, 9/9 full-over-ctrl) or P@k framing (4/9 perfect vs 0/9 baselines). See `2026-04-18-many-to-many-cold-replication.md`.
+Queue is empty. All original Hail-Mary items and follow-ons resolved; see findings index below. Push any further paper iteration through `claw4s-scope.md` or a new queue item before starting it.
 
 Done — see findings:
 - GTE-large works (`2026-04-17-gte-large-learned-matrix-positive.md`).
