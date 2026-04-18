@@ -50,11 +50,13 @@ USER_AGENT = "sutra-learned-matrix-templates/1.0 (immanuelleleonhart@gmail.com)"
 PREDICATES = {
     "capital-of": {
         "query": """
-        SELECT ?sLabel ?oLabel WHERE {
+        SELECT ?sLabel ?oLabel ?sDesc ?oDesc WHERE {
           ?s wdt:P31/wdt:P279* wd:Q6256 .
           ?s wdt:P36 ?o .
           ?s rdfs:label ?sLabel . FILTER(LANG(?sLabel) = "en") .
           ?o rdfs:label ?oLabel . FILTER(LANG(?oLabel) = "en") .
+          OPTIONAL { ?s schema:description ?sDesc . FILTER(LANG(?sDesc) = "en") }
+          OPTIONAL { ?o schema:description ?oDesc . FILTER(LANG(?oDesc) = "en") }
         } LIMIT {n}
         """,
         "desc": "country -> capital city",
@@ -65,12 +67,14 @@ PREDICATES = {
     },
     "country-of-citizenship": {
         "query": """
-        SELECT ?sLabel ?oLabel WHERE {
+        SELECT ?sLabel ?oLabel ?sDesc ?oDesc WHERE {
           ?s wdt:P31 wd:Q5 .
           ?s wdt:P27 ?o .
           ?s rdfs:label ?sLabel . FILTER(LANG(?sLabel) = "en") .
           ?o rdfs:label ?oLabel . FILTER(LANG(?oLabel) = "en") .
           ?s wikibase:sitelinks ?sl . FILTER(?sl > 20) .
+          OPTIONAL { ?s schema:description ?sDesc . FILTER(LANG(?sDesc) = "en") }
+          OPTIONAL { ?o schema:description ?oDesc . FILTER(LANG(?oDesc) = "en") }
         } LIMIT {n}
         """,
         "desc": "person -> country of citizenship",
@@ -81,11 +85,13 @@ PREDICATES = {
     },
     "located-in-country": {
         "query": """
-        SELECT ?sLabel ?oLabel WHERE {
+        SELECT ?sLabel ?oLabel ?sDesc ?oDesc WHERE {
           ?s wdt:P31/wdt:P279* wd:Q515 .
           ?s wdt:P17 ?o .
           ?s rdfs:label ?sLabel . FILTER(LANG(?sLabel) = "en") .
           ?o rdfs:label ?oLabel . FILTER(LANG(?oLabel) = "en") .
+          OPTIONAL { ?s schema:description ?sDesc . FILTER(LANG(?sDesc) = "en") }
+          OPTIONAL { ?o schema:description ?oDesc . FILTER(LANG(?oDesc) = "en") }
         } LIMIT {n}
         """,
         "desc": "city -> country it is in",
@@ -96,12 +102,14 @@ PREDICATES = {
     },
     "author-of": {
         "query": """
-        SELECT ?sLabel ?oLabel WHERE {
+        SELECT ?sLabel ?oLabel ?sDesc ?oDesc WHERE {
           ?o wdt:P31/wdt:P279* wd:Q7725634 .
           ?o wdt:P50 ?s .
           ?s rdfs:label ?sLabel . FILTER(LANG(?sLabel) = "en") .
           ?o rdfs:label ?oLabel . FILTER(LANG(?oLabel) = "en") .
           ?o wikibase:sitelinks ?sl . FILTER(?sl > 10) .
+          OPTIONAL { ?s schema:description ?sDesc . FILTER(LANG(?sDesc) = "en") }
+          OPTIONAL { ?o schema:description ?oDesc . FILTER(LANG(?oDesc) = "en") }
         } LIMIT {n}
         """,
         "desc": "author -> literary work",
@@ -113,11 +121,13 @@ PREDICATES = {
     "continent-of": {
         # Continent is only 7 classes — well-separated, good low-entropy case.
         "query": """
-        SELECT DISTINCT ?sLabel ?oLabel WHERE {
+        SELECT DISTINCT ?sLabel ?oLabel ?sDesc ?oDesc WHERE {
           ?s wdt:P31/wdt:P279* wd:Q6256 .
           ?s wdt:P30 ?o .
           ?s rdfs:label ?sLabel . FILTER(LANG(?sLabel) = "en") .
           ?o rdfs:label ?oLabel . FILTER(LANG(?oLabel) = "en") .
+          OPTIONAL { ?s schema:description ?sDesc . FILTER(LANG(?sDesc) = "en") }
+          OPTIONAL { ?o schema:description ?oDesc . FILTER(LANG(?oDesc) = "en") }
         } LIMIT {n}
         """,
         "desc": "country -> continent",
@@ -128,10 +138,14 @@ PREDICATES = {
     },
 }
 
-CONFIGS = ["bare", "typed", "rich", "relational"]
+# `descr` config: use the Wikidata description of the subject (typically a
+# short phrase like "capital and largest city of France") instead of the
+# bare label. Falls back to `bare` subject text if no description exists.
+CONFIGS = ["bare", "typed", "rich", "relational", "descr"]
 
 
-def fetch_pairs(predicate: str, n: int) -> list[tuple[str, str]]:
+def fetch_pairs(predicate: str, n: int) -> list[dict]:
+    """Returns list of {'s': str, 'o': str, 's_desc': str|None, 'o_desc': str|None}."""
     q = PREDICATES[predicate]["query"].replace("{n}", str(n))
     r = requests.get(
         WIKIDATA_SPARQL,
@@ -146,9 +160,15 @@ def fetch_pairs(predicate: str, n: int) -> list[tuple[str, str]]:
         s = b["sLabel"]["value"]
         o = b["oLabel"]["value"]
         key = (s, o)
-        if key not in seen:
-            seen.add(key)
-            pairs.append((s, o))
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append({
+            "s": s,
+            "o": o,
+            "s_desc": b.get("sDesc", {}).get("value"),
+            "o_desc": b.get("oDesc", {}).get("value"),
+        })
     return pairs
 
 
@@ -187,8 +207,15 @@ def embed(text: str) -> np.ndarray:
     return v
 
 
-def subject_text(predicate: str, s: str, config: str) -> str:
+def subject_text(predicate: str, pair: dict | str, config: str) -> str:
+    """Accepts either a dict (with s/s_desc) or a bare string (legacy/EXAMPLE)."""
     p = PREDICATES[predicate]
+    if isinstance(pair, str):
+        s = pair
+        s_desc = None
+    else:
+        s = pair["s"]
+        s_desc = pair.get("s_desc")
     if config == "bare":
         return s
     if config == "typed":
@@ -197,11 +224,19 @@ def subject_text(predicate: str, s: str, config: str) -> str:
         return p["s_template_rich"].format(s=s)
     if config == "relational":
         return p["s_template_relational"].format(s=s)
+    if config == "descr":
+        # Wikidata description as the subject text, or fall back to bare.
+        if s_desc:
+            return f"{s}: {s_desc}"
+        return s
     raise ValueError(config)
 
 
-def object_text(predicate: str, o: str) -> str:
-    return PREDICATES[predicate]["o_template"].format(o=o)
+def object_text(predicate: str, pair: dict | str) -> str:
+    """Object text is always the bare label for codebook consistency."""
+    if isinstance(pair, str):
+        return PREDICATES[predicate]["o_template"].format(o=pair)
+    return PREDICATES[predicate]["o_template"].format(o=pair["o"])
 
 
 def fit_displacement(S_train, O_train):
@@ -250,18 +285,19 @@ def evaluate(pred, O_test, codebook, obj_idx):
 
 
 def run_config(predicate, pairs, config, n_folds=5):
-    """Run all matrix methods under one text configuration."""
+    """Run all matrix methods under one text configuration.
+    pairs is a list of dicts with s/o/s_desc/o_desc."""
     print(f"    [{config}] embedding...", end="", flush=True)
     t0 = time.time()
-    S = np.array([embed(subject_text(predicate, s, config)) for s, _ in pairs])
-    O = np.array([embed(object_text(predicate, o)) for _, o in pairs])
+    S = np.array([embed(subject_text(predicate, p, config)) for p in pairs])
+    O = np.array([embed(object_text(predicate, p)) for p in pairs])
     print(f" done in {time.time()-t0:.1f}s", flush=True)
 
-    # Codebook: unique OBJECT TEXTS (always embedded the same way)
-    unique_objs = list(dict.fromkeys(o for _, o in pairs))
+    # Codebook: unique OBJECT TEXTS (always embedded the same way, from label)
+    unique_objs = list(dict.fromkeys(p["o"] for p in pairs))
     codebook = np.array([embed(object_text(predicate, o)) for o in unique_objs])
     obj_to_idx = {o: i for i, o in enumerate(unique_objs)}
-    obj_idx_all = [obj_to_idx[o] for _, o in pairs]
+    obj_idx_all = [obj_to_idx[p["o"]] for p in pairs]
 
     n = len(pairs)
     indices = np.arange(n)

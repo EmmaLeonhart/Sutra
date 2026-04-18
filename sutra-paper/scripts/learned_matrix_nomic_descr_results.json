@@ -1,0 +1,467 @@
+{
+  "capital-of": {
+    "n_pairs": 130,
+    "configs": {
+      "bare": {
+        "identity": {
+          "mean_cos": 0.9633,
+          "top1": 0.0231,
+          "mean_rank": 58.76
+        },
+        "mean_object": {
+          "mean_cos": 0.9853,
+          "top1": 0.0077,
+          "mean_rank": 62.46
+        },
+        "displacement": {
+          "mean_cos": 0.9646,
+          "top1": 0.0231,
+          "mean_rank": 58.46
+        },
+        "procrustes": {
+          "mean_cos": 0.961,
+          "top1": 0.0077,
+          "mean_rank": 59.51
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9854,
+          "top1": 0.0077,
+          "mean_rank": 62.48
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9848,
+          "top1": 0.0077,
+          "mean_rank": 62.92
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9854,
+          "top1": 0.0077,
+          "mean_rank": 62.48
+        },
+        "random": {
+          "mean_cos": -0.0068,
+          "top1": 0.0077,
+          "mean_rank": 63.44
+        },
+        "_codebook_size": 126,
+        "_chance": 0.0079
+      },
+      "descr": {
+        "identity": {
+          "mean_cos": 0.6232,
+          "top1": 0.0154,
+          "mean_rank": 65.86
+        },
+        "mean_object": {
+          "mean_cos": 0.9853,
+          "top1": 0.0077,
+          "mean_rank": 62.46
+        },
+        "displacement": {
+          "mean_cos": 0.8742,
+          "top1": 0.0077,
+          "mean_rank": 62.43
+        },
+        "procrustes": {
+          "mean_cos": 0.8484,
+          "top1": 0.0077,
+          "mean_rank": 55.48
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9852,
+          "top1": 0.0077,
+          "mean_rank": 62.46
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9834,
+          "top1": 0.0077,
+          "mean_rank": 62.08
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9852,
+          "top1": 0.0077,
+          "mean_rank": 62.46
+        },
+        "random": {
+          "mean_cos": -0.0095,
+          "top1": 0.0154,
+          "mean_rank": 60.68
+        },
+        "_codebook_size": 126,
+        "_chance": 0.0079
+      }
+    }
+  },
+  "country-of-citizenship": {
+    "n_pairs": 200,
+    "configs": {
+      "bare": {
+        "identity": {
+          "mean_cos": 0.9506,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "mean_object": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "displacement": {
+          "mean_cos": 0.9898,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "procrustes": {
+          "mean_cos": 0.9893,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "ridge_1.0": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "ridge_0.1": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "lowrank_30": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "random": {
+          "mean_cos": 0.0007,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "_codebook_size": 1,
+        "_chance": 1.0
+      },
+      "descr": {
+        "identity": {
+          "mean_cos": 0.6049,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "mean_object": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "displacement": {
+          "mean_cos": 0.8424,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "procrustes": {
+          "mean_cos": 0.7683,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "ridge_1.0": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "ridge_0.1": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "lowrank_30": {
+          "mean_cos": 1.0,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "random": {
+          "mean_cos": 0.008,
+          "top1": 1.0,
+          "mean_rank": 1.0
+        },
+        "_codebook_size": 1,
+        "_chance": 1.0
+      }
+    }
+  },
+  "located-in-country": {
+    "n_pairs": 197,
+    "configs": {
+      "bare": {
+        "identity": {
+          "mean_cos": 0.8964,
+          "top1": 0.0051,
+          "mean_rank": 7.91
+        },
+        "mean_object": {
+          "mean_cos": 0.9949,
+          "top1": 0.4051,
+          "mean_rank": 3.34
+        },
+        "displacement": {
+          "mean_cos": 0.9469,
+          "top1": 0.2051,
+          "mean_rank": 4.83
+        },
+        "procrustes": {
+          "mean_cos": 0.9477,
+          "top1": 0.4103,
+          "mean_rank": 3.36
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9952,
+          "top1": 0.3897,
+          "mean_rank": 3.36
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9952,
+          "top1": 0.4051,
+          "mean_rank": 3.34
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9952,
+          "top1": 0.3897,
+          "mean_rank": 3.36
+        },
+        "random": {
+          "mean_cos": 0.0055,
+          "top1": 0.0872,
+          "mean_rank": 6.57
+        },
+        "_codebook_size": 21,
+        "_chance": 0.0476
+      },
+      "descr": {
+        "identity": {
+          "mean_cos": 0.6584,
+          "top1": 0.0102,
+          "mean_rank": 9.64
+        },
+        "mean_object": {
+          "mean_cos": 0.9949,
+          "top1": 0.4051,
+          "mean_rank": 3.34
+        },
+        "displacement": {
+          "mean_cos": 0.8763,
+          "top1": 0.4,
+          "mean_rank": 3.34
+        },
+        "procrustes": {
+          "mean_cos": 0.8428,
+          "top1": 0.4,
+          "mean_rank": 3.83
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9951,
+          "top1": 0.3949,
+          "mean_rank": 3.35
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9949,
+          "top1": 0.3949,
+          "mean_rank": 3.39
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9951,
+          "top1": 0.3949,
+          "mean_rank": 3.35
+        },
+        "random": {
+          "mean_cos": 0.0095,
+          "top1": 0.1692,
+          "mean_rank": 5.86
+        },
+        "_codebook_size": 21,
+        "_chance": 0.0476
+      }
+    }
+  },
+  "author-of": {
+    "n_pairs": 196,
+    "configs": {
+      "bare": {
+        "identity": {
+          "mean_cos": 0.8839,
+          "top1": 0.0051,
+          "mean_rank": 85.37
+        },
+        "mean_object": {
+          "mean_cos": 0.9107,
+          "top1": 0.0051,
+          "mean_rank": 84.31
+        },
+        "displacement": {
+          "mean_cos": 0.8877,
+          "top1": 0.0051,
+          "mean_rank": 85.53
+        },
+        "procrustes": {
+          "mean_cos": 0.8911,
+          "top1": 0.0051,
+          "mean_rank": 83.17
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9104,
+          "top1": 0.0051,
+          "mean_rank": 83.95
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9094,
+          "top1": 0.0051,
+          "mean_rank": 83.44
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9104,
+          "top1": 0.0051,
+          "mean_rank": 83.95
+        },
+        "random": {
+          "mean_cos": -0.004,
+          "top1": 0.0102,
+          "mean_rank": 81.46
+        },
+        "_codebook_size": 169,
+        "_chance": 0.0059
+      },
+      "descr": {
+        "identity": {
+          "mean_cos": 0.5495,
+          "top1": 0.0,
+          "mean_rank": 85.18
+        },
+        "mean_object": {
+          "mean_cos": 0.9107,
+          "top1": 0.0051,
+          "mean_rank": 84.31
+        },
+        "displacement": {
+          "mean_cos": 0.7694,
+          "top1": 0.0051,
+          "mean_rank": 84.19
+        },
+        "procrustes": {
+          "mean_cos": 0.7581,
+          "top1": 0.0205,
+          "mean_rank": 72.6
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9097,
+          "top1": 0.0051,
+          "mean_rank": 83.03
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9002,
+          "top1": 0.0154,
+          "mean_rank": 82.11
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9097,
+          "top1": 0.0051,
+          "mean_rank": 83.03
+        },
+        "random": {
+          "mean_cos": -0.0102,
+          "top1": 0.0,
+          "mean_rank": 88.52
+        },
+        "_codebook_size": 169,
+        "_chance": 0.0059
+      }
+    }
+  },
+  "continent-of": {
+    "n_pairs": 200,
+    "configs": {
+      "bare": {
+        "identity": {
+          "mean_cos": 0.9549,
+          "top1": 0.015,
+          "mean_rank": 3.91
+        },
+        "mean_object": {
+          "mean_cos": 0.994,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "displacement": {
+          "mean_cos": 0.9596,
+          "top1": 0.015,
+          "mean_rank": 3.85
+        },
+        "procrustes": {
+          "mean_cos": 0.9609,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.994,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9939,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "lowrank_30": {
+          "mean_cos": 0.994,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "random": {
+          "mean_cos": 0.0044,
+          "top1": 0.01,
+          "mean_rank": 4.22
+        },
+        "_codebook_size": 7,
+        "_chance": 0.1429
+      },
+      "descr": {
+        "identity": {
+          "mean_cos": 0.6151,
+          "top1": 0.015,
+          "mean_rank": 4.28
+        },
+        "mean_object": {
+          "mean_cos": 0.994,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "displacement": {
+          "mean_cos": 0.8715,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "procrustes": {
+          "mean_cos": 0.8347,
+          "top1": 0.04,
+          "mean_rank": 3.85
+        },
+        "ridge_1.0": {
+          "mean_cos": 0.9942,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "ridge_0.1": {
+          "mean_cos": 0.9935,
+          "top1": 0.03,
+          "mean_rank": 3.33
+        },
+        "lowrank_30": {
+          "mean_cos": 0.9942,
+          "top1": 0.01,
+          "mean_rank": 3.42
+        },
+        "random": {
+          "mean_cos": 0.0136,
+          "top1": 0.02,
+          "mean_rank": 4.16
+        },
+        "_codebook_size": 7,
+        "_chance": 0.1429
+      }
+    }
+  }
+}
