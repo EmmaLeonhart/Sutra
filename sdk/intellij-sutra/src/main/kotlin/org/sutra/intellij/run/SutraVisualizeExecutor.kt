@@ -29,4 +29,5 @@ class SutraVisualizeExecutor : Executor() {
     override fun getId(): String = EXECUTOR_ID
     override fun getStartActionText(): String = "Run with 3D Visualization"
     override fun getContextActionId(): String = "SutraRunVisualize"
+    override fun getHelpId(): String? = null
 }
