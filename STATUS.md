@@ -8,15 +8,23 @@ Strategic frame: **one last Hail Mary for the papers, low-stress.** User is not 
 
 ### Hail-Mary experiment queue (autonomous, minimal user input)
 
-1. **Fly-brain: remaining library operations on Shiu substrate.** Bundle (cos=0.97) and snap (15/16) already measured on Shiu. Need unbind, sign-flip-bind, and a direct rotation attempt reported per-op with honest numbers, under the same harness as `shiu_conditional.py`. Budget one script per op. Negative results go in `planning/findings/`.
-2. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
-3. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result (continent-of 87%, located-in-country 76% via ridge-0.1 on GTE-large). Frame nomic as a worked null counter-example, not a missing feature. Let papers-ci resubmit.
+1. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
+2. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result (continent-of 87%, located-in-country 76% via ridge-0.1 on GTE-large). Frame nomic as a worked null counter-example, not a missing feature. Let papers-ci resubmit.
 
-Substrate evals now complete (done — see findings): GTE-large works
-(`2026-04-17-gte-large-learned-matrix-positive.md`), nomic is null
-across three text variants (`2026-04-17-wikidata-learned-matrix-null.md`,
-`2026-04-17-wikidata-learned-matrix-templates-null.md`,
-`2026-04-18-nomic-description-text-still-null.md`).
+Done — see findings:
+- GTE-large works (`2026-04-17-gte-large-learned-matrix-positive.md`).
+- Nomic null across three text variants
+  (`2026-04-17-wikidata-learned-matrix-null.md`,
+  `2026-04-17-wikidata-learned-matrix-templates-null.md`,
+  `2026-04-18-nomic-description-text-still-null.md`).
+- Shiu library-op queue resolved: bundle (`2026-04-13-shiu-bundle-linear.md`),
+  snap (`2026-04-13-shiu-snap-15-of-16.md`), bind/unbind median-split
+  (`2026-04-13-shiu-bind-unbind.md`), bind/unbind top-k balanced
+  (`2026-04-18-shiu-bind-topk-mask-also-fails.md`), rotation generic
+  (`2026-04-13-shiu-rotate-collapses.md`), rotation CX-restricted
+  (`2026-04-13-shiu-cx-no-recurrence.md`). Summary: bundle + snap
+  + fuzzy conditional work on real W; bind/unbind and rotation do not
+  under any tried encoding. Paper scope already restricted accordingly.
 
 ### Strategic spec/language work (deferred — not the Hail Mary)
 
