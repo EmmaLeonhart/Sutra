@@ -12,6 +12,7 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.GenericProgramRunner
+import com.intellij.execution.runners.RunContentBuilder
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
@@ -97,7 +98,8 @@ class SutraVisualizeRunner : GenericProgramRunner<RunnerSettings>() {
             }
         }
 
-        return vizState.execute(env.executor, this)
+        val executionResult = vizState.execute(env.executor, this) ?: return null
+        return RunContentBuilder(executionResult, env).showRunContent(env.contentToReuse)
     }
 
     private fun loadTraceIntoToolWindow(env: ExecutionEnvironment, traceFile: File) {
