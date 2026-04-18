@@ -148,12 +148,7 @@
         <!-- Run support: `function string main()` is the entry point. The
              gutter icon on `main` and right-click "Run" both build a
              SutraRunConfiguration that shells the reference compiler with
-             the run flag. See SutraRunConfiguration.kt.
-
-             Two run modes:
-               1. Run (standard) — `--run`, output in the Run console
-               2. Visualize — `--run-viz`, output in Run console + 3D trace
-                  loaded into the Sutra Embedding Space JCEF tool window -->
+             the run flag. See SutraRunConfiguration.kt. -->
         <configurationType
             implementation="org.sutra.intellij.run.SutraRunConfigurationType"/>
         <runConfigurationProducer
@@ -161,15 +156,5 @@
         <runLineMarkerContributor
             language="Sutra"
             implementationClass="org.sutra.intellij.run.SutraRunLineMarkerContributor"/>
-
-        <!-- Custom "Visualize" executor — adds a second gutter action and
-             toolbar button alongside the standard Run executor. -->
-        <executor
-            implementation="org.sutra.intellij.run.SutraVisualizeExecutor"/>
-
-        <!-- Program runner for the Visualize executor. Runs --run-viz and
-             loads the trace JSON into the JCEF embedding space tool window. -->
-        <programRunner
-            implementation="org.sutra.intellij.run.SutraVisualizeRunner"/>
     </extensions>
 </idea-plugin>
