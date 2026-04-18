@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sutra — 3D Vector Space</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0b1a; color: #e4def0; font-family: "Inter", -apple-system, sans-serif; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    #overlay {
+        position: absolute; top: 0; left: 0; right: 0;
+        padding: 12px 16px;
+        background: linear-gradient(180deg, rgba(13,11,26,0.9) 0%, rgba(13,11,26,0) 100%);
+        pointer-events: none; z-index: 10;
+    }
+    #overlay h1 { font-size: 14px; font-weight: 600; color: #7c4dff; margin-bottom: 4px; }
+    #overlay p { font-size: 11px; color: #9892b2; line-height: 1.4; }
+    #controls {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        padding: 10px 16px;
+        background: linear-gradient(0deg, rgba(13,11,26,0.95) 0%, rgba(13,11,26,0) 100%);
+        display: flex; align-items: center; gap: 12px; z-index: 10;
+    }
+    #controls button {
+        font-family: inherit; font-size: 11px; padding: 5px 14px;
+        border: 1px solid rgba(124,77,255,0.4); background: rgba(124,77,255,0.15);
+        color: #e4def0; border-radius: 4px; cursor: pointer;
+    }
+    #controls button:hover { background: #7c4dff; border-color: #7c4dff; }
+    #controls .slider-group { display: flex; align-items: center; gap: 6px; }
+    #controls label { font-size: 11px; color: #9892b2; }
+    #controls input[type=range] { width: 120px; accent-color: #7c4dff; }
+    #tooltip {
+        position: absolute; display: none; padding: 6px 10px;
+        background: rgba(29,25,48,0.95); border: 1px solid rgba(124,77,255,0.5);
+        border-radius: 4px; font-size: 11px; color: #e4def0;
+        pointer-events: none; z-index: 20; white-space: pre;
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+    }
+    #legend {
+        position: absolute; top: 60px; right: 16px;
+        background: rgba(13,11,26,0.85); border: 1px solid rgba(124,77,255,0.3);
+        border-radius: 4px; padding: 8px 12px; z-index: 10; font-size: 11px;
+    }
+    #legend .entry { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+    #legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+    #step-info {
+        font-size: 11px; color: #b388ff; min-width: 100px;
+    }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<div id="overlay">
+    <h1 id="program-title">Sutra — Vector Space</h1>
+    <p id="program-info">Drag to orbit · Scroll to zoom · Hover for labels</p>
+</div>
+
+<div id="legend">
+    <div class="entry"><div class="dot" style="background:#7c4dff"></div> basis</div>
+    <div class="entry"><div class="dot" style="background:#ff4081"></div> bind</div>
+    <div class="entry"><div class="dot" style="background:#00e676"></div> bundle</div>
+    <div class="entry"><div class="dot" style="background:#ffab40"></div> unbind</div>
+    <div class="entry"><div class="dot" style="background:#40c4ff"></div> result</div>
+    <div class="entry"><div class="dot" style="background:#9892b2"></div> other</div>
+</div>
+
+<div id="tooltip"></div>
+
+<div id="controls">
+    <button id="btn-play">▶ Play</button>
+    <button id="btn-reset">↺ Reset</button>
+    <div class="slider-group">
+        <label>Speed</label>
+        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1"/>
+    </div>
+    <div class="slider-group">
+        <label>Size</label>
+        <input type="range" id="size" min="0.5" max="3" step="0.1" value="1"/>
+    </div>
+    <span id="step-info">Step 0 / 0</span>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Trace data (injected by the runtime) ────────────────────
+// SUTRA_TRACE_DATA is set by the VS Code extension via postMessage,
+// or embedded directly when generating standalone HTML.
+let TRACE = window.SUTRA_TRACE_DATA || { vectors: [], operations: [], program: "" };
+
+const TYPE_COLORS = {
+    basis:   0x7c4dff,
+    bind:    0xff4081,
+    bundle:  0x00e676,
+    unbind:  0xffab40,
+    result:  0x40c4ff,
+    snap:    0x40c4ff,
+    select:  0x40c4ff,
+    other:   0x9892b2,
+};
+
+// ── Scene setup ──────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0b1a);
+scene.fog = new THREE.FogExp2(0x0d0b1a, 0.015);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(8, 6, 12);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+
+// ── Lighting ─────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x443366, 0.6));
+const dirLight = new THREE.DirectionalLight(0x7c4dff, 0.8);
+dirLight.position.set(5, 10, 7);
+scene.add(dirLight);
+
+// ── Grid + axes ──────────────────────────────────────────────
+const gridHelper = new THREE.GridHelper(20, 20, 0x2a2245, 0x1a1630);
+scene.add(gridHelper);
+
+function makeAxis(dir, color, len) {
+    const pts = [new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(len)];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color, opacity: 0.6, transparent: true });
+    return new THREE.Line(geo, mat);
+}
+scene.add(makeAxis(new THREE.Vector3(1,0,0), 0xff4444, 10));
+scene.add(makeAxis(new THREE.Vector3(0,1,0), 0x44ff44, 10));
+scene.add(makeAxis(new THREE.Vector3(0,0,1), 0x4444ff, 10));
+
+// ── Particle pool ────────────────────────────────────────────
+const spheres = [];
+const labels = [];         // CSS2D labels stored as sprites
+const edgeLines = [];
+let currentStep = 0;
+let playing = false;
+let lastStepTime = 0;
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+const stepInfo = document.getElementById('step-info');
+
+function colorForType(type) {
+    return TYPE_COLORS[type] || TYPE_COLORS.other;
+}
+
+function createSphere(vec, sizeMultiplier) {
+    const sz = 0.15 * sizeMultiplier;
+    const geo = new THREE.SphereGeometry(sz, 16, 16);
+    const mat = new THREE.MeshPhongMaterial({
+        color: colorForType(vec.type),
+        emissive: colorForType(vec.type),
+        emissiveIntensity: 0.3,
+        transparent: true,
+        opacity: 0
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(vec.pos[0], vec.pos[1], vec.pos[2]);
+    mesh.userData = vec;
+    mesh.scale.set(0.01, 0.01, 0.01);
+    scene.add(mesh);
+    return mesh;
+}
+
+function createEdge(from, to, color) {
+    const pts = [
+        new THREE.Vector3(from[0], from[1], from[2]),
+        new THREE.Vector3(to[0], to[1], to[2])
+    ];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({
+        color, opacity: 0, transparent: true
+    });
+    const line = new THREE.Line(geo, mat);
+    scene.add(line);
+    return line;
+}
+
+// ── Build scene from trace ───────────────────────────────────
+function buildScene(trace) {
+    // Clear old
+    spheres.forEach(s => scene.remove(s));
+    edgeLines.forEach(l => scene.remove(l));
+    spheres.length = 0;
+    edgeLines.length = 0;
+    currentStep = 0;
+
+    const sizeVal = parseFloat(document.getElementById('size').value);
+
+    for (const vec of trace.vectors) {
+        const s = createSphere(vec, sizeVal);
+        spheres.push(s);
+    }
+
+    // Edges for operations (input → output)
+    for (const op of trace.operations) {
+        const outVec = trace.vectors[op.output];
+        if (!outVec) continue;
+        const c = colorForType(op.type);
+        for (const inIdx of op.inputs) {
+            const inVec = trace.vectors[inIdx];
+            if (!inVec) continue;
+            const line = createEdge(inVec.pos, outVec.pos, c);
+            line.userData = { step: op.step };
+            edgeLines.push(line);
+        }
+    }
+
+    if (trace.program) {
+        document.getElementById('program-title').textContent = `Sutra — ${trace.program}`;
+    }
+    stepInfo.textContent = `Step 0 / ${trace.vectors.length}`;
+}
+
+// ── Animation: reveal vectors step by step ───────────────────
+function revealUpTo(step) {
+    const sizeVal = parseFloat(document.getElementById('size').value);
+    for (let i = 0; i < spheres.length; i++) {
+        const s = spheres[i];
+        const vec = s.userData;
+        if (vec.step <= step) {
+            // Animate in
+            const t = Math.min(1, (step - vec.step + 1) * 0.5);
+            const scale = t * sizeVal;
+            s.scale.set(scale, scale, scale);
+            s.material.opacity = Math.min(1, t);
+        } else {
+            s.scale.set(0.01, 0.01, 0.01);
+            s.material.opacity = 0;
+        }
+    }
+    for (const line of edgeLines) {
+        line.material.opacity = (line.userData.step <= step) ? 0.4 : 0;
+    }
+    stepInfo.textContent = `Step ${step} / ${TRACE.vectors.length}`;
+}
+
+// ── Controls ─────────────────────────────────────────────────
+document.getElementById('btn-play').addEventListener('click', () => {
+    playing = !playing;
+    document.getElementById('btn-play').textContent = playing ? '⏸ Pause' : '▶ Play';
+    if (playing && currentStep >= TRACE.vectors.length) currentStep = 0;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+    currentStep = 0;
+    playing = false;
+    document.getElementById('btn-play').textContent = '▶ Play';
+    revealUpTo(0);
+});
+
+document.getElementById('size').addEventListener('input', () => {
+    revealUpTo(currentStep);
+});
+
+// ── Tooltip on hover ─────────────────────────────────────────
+canvas.addEventListener('mousemove', (e) => {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(spheres);
+    if (hits.length > 0) {
+        const vec = hits[0].object.userData;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top = (e.clientY + 12) + 'px';
+        let text = `${vec.name}\ntype: ${vec.type}\nstep: ${vec.step}`;
+        if (vec.similarity !== undefined) text += `\ncos: ${vec.similarity.toFixed(4)}`;
+        tooltip.textContent = text;
+        controls.autoRotate = false;
+    } else {
+        tooltip.style.display = 'none';
+        controls.autoRotate = true;
+    }
+});
+
+// ── Resize ───────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── Render loop ──────────────────────────────────────────────
+function animate(time) {
+    requestAnimationFrame(animate);
+
+    if (playing) {
+        const speed = parseFloat(document.getElementById('speed').value);
+        const interval = 500 / speed;
+        if (time - lastStepTime > interval) {
+            lastStepTime = time;
+            if (currentStep < TRACE.vectors.length) {
+                currentStep++;
+                revealUpTo(currentStep);
+            } else {
+                playing = false;
+                document.getElementById('btn-play').textContent = '▶ Play';
+            }
+        }
+    }
+
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+// ── Message handler (from VS Code webview) ───────────────────
+window.addEventListener('message', (event) => {
+    const msg = event.data;
+    if (msg.type === 'trace') {
+        TRACE = msg.trace;
+        window.SUTRA_TRACE_DATA = TRACE;
+        buildScene(TRACE);
+        // Auto-play
+        playing = true;
+        document.getElementById('btn-play').textContent = '⏸ Pause';
+    }
+});
+
+// ── Init ─────────────────────────────────────────────────────
+if (TRACE.vectors.length > 0) {
+    buildScene(TRACE);
+}
+animate(0);
+
+// Signal ready to VS Code
+if (window.acquireVsCodeApi) {
+    const vscode = acquireVsCodeApi();
+    vscode.postMessage({ type: 'ready' });
+}
+</script>
+</body>
+</html>

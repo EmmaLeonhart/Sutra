@@ -8,10 +8,12 @@ import com.intellij.psi.util.elementType
 import org.sutra.intellij.SutraTokenTypes
 
 /**
- * Puts a gutter ▶ icon next to `function ... main(...)` declarations so
- * one click runs the current .su file via [SutraRunConfigurationProducer].
- * Matches a leaf IDENTIFIER with text "main" whose nearest preceding
- * non-trivia keyword is `function`.
+ * Puts gutter icons next to `function ... main(...)` declarations:
+ *   - ▶ Run — standard execution via `--run`
+ *   - ▶ Visualize — execution with 3D trace via `--run-viz`
+ *
+ * Both actions create the same [SutraRunConfiguration]; the runner
+ * dispatches on the executor to choose `--run` vs `--run-viz`.
  */
 class SutraRunLineMarkerContributor : RunLineMarkerContributor() {
     override fun getInfo(element: PsiElement): Info? {
@@ -19,6 +21,9 @@ class SutraRunLineMarkerContributor : RunLineMarkerContributor() {
         if (element.elementType != SutraTokenTypes.IDENTIFIER) return null
         if (element.text != "main") return null
         if (!precededByFunctionKeyword(element)) return null
+        // ExecutorAction.getActions(0) returns actions for ALL registered
+        // executors (Run, Debug, and our custom Visualize). The gutter
+        // popup will show both "Run" and "Run with 3D Visualization".
         val actions = ExecutorAction.getActions(0)
         return Info(
             com.intellij.icons.AllIcons.RunConfigurations.TestState.Run,
