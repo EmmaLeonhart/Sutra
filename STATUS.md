@@ -4,16 +4,21 @@
 
 ## Queued work (do in order)
 
-Strategic frame: **Sutra ecosystem > Claw4S.** Anthropic Fellowship (Apr 26) is the goal. Claw4S (Apr 20) is a side-benefit if the language paper happens to be in shape. Every queue item below serves the ecosystem.
+Strategic frame: **one last Hail Mary for the papers, low-stress.** User is not heavily invested; the goal is to run the straightforward experiments that should already be in the papers, non-defensively describe the results (positive or null), and let CI resubmit. No iteration cycles on reviewer responses — that is what accumulated the scar tissue in the first place. Anthropic Fellowship (Apr 26) is the real goal; Claw4S (Apr 20) is side-benefit only.
 
-### Paper revisions first (cheap, paper-CI auto-submits each push)
+### Hail-Mary experiment queue (autonomous, minimal user input)
 
-### Then rebuild the spec from scratch
+1. **Learned matrices on a second substrate (GTE-large or BGE-large).** Nomic ruled out under two setups (bare names, sentence templates — both null, see `planning/findings/2026-04-17-wikidata-learned-matrix-templates-null.md`). Install sentence-transformers, run the same Wikidata + templates eval on GTE-large (1024-dim), report honest numbers. If it also nulls, the learned-matrix direction is substrate-independent-null on short Wikidata labels and the language paper's "placeholder binding" limitation stands. If it works, that's the new headline.
+2. **Longer-text variant on nomic.** Embed Wikipedia lead paragraphs or Wikidata descriptions per entity rather than labels. Cartography paper's positive result used longer text; the null here may be a label-length artifact.
+3. **Fly-brain: remaining library operations on Shiu substrate.** Bundle (cos=0.97) and snap (15/16) already measured on Shiu. Need unbind, sign-flip-bind, and a direct rotation attempt reported per-op with honest numbers, under the same harness as `shiu_conditional.py`. Budget one script per op. Negative results go in `planning/findings/`.
+4. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
 
-1. **Build a new `planning/sutra-spec/` from scratch, in the user's framing.** The deprecated spec (`planning/sutra-spec-deprecated/`) was largely Claude inventing structure without checking — see `planning/sutra-spec/README.md` "meta-failure" section. Process: Claude does NOT write into the new spec from scratch. Instead, each section starts as a question to the user; Claude writes down the user's answer in the user's framing; gaps go to `planning/open-questions/` rather than being filled with plausible defaults. Concurrency (item 2) is the natural first section to draft because it's already an open question with user-articulated framing ("two or more paths through the vector space").
-2. **Concurrency design as the first new spec section.** Concrete sketch in `planning/sutra-spec/` plus an example program that demonstrates the design. Real work on a language, not a one-line note.
+### Strategic spec/language work (deferred — not the Hail Mary)
 
-**Hard stop:** if by end of Apr 17 the language paper isn't in submittable state, drop the Claw4S push. The Fellowship pitch (Apr 26) is the actual goal.
+5. **Build a new `planning/sutra-spec/` from scratch, in the user's framing.** Deferred until after the Apr 20 window. The deprecated spec (`planning/sutra-spec-deprecated/`) was largely Claude inventing structure. Process: each section starts as a question to the user; Claude writes down the user's framing; gaps go to `planning/open-questions/`.
+6. **Concurrency design as the first new spec section.** Concrete sketch plus example program. Real language work.
+
+**Hard stop:** if by end of Apr 19 the papers aren't in submittable state, drop the Claw4S push entirely. Fellowship pitch (Apr 26) is the real goal.
 
 ## Pinned semantic corrections (I keep dropping these)
 
