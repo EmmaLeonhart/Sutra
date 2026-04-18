@@ -89,19 +89,45 @@ def cos(a, b):
     return 0.0 if (na == 0 or nb == 0) else float(np.dot(a, b) / (na * nb))
 
 
-def role_sign_from_spikes(role_response):
-    """Convert a spike-count vector into a balanced ±1 mask via median split.
-    Dimensions with above-median response get +1, below-median get -1.
-    Substrate-derived, not synthetic random."""
-    thr = np.median(role_response)
-    sign = np.where(role_response > thr, 1.0, -1.0)
-    # Re-center to strict balance if ties produce imbalance
-    return sign.astype(np.float32)
+def role_sign_from_spikes(role_response, method="median", rng=None):
+    """Convert a spike-count vector into a balanced ±1 mask.
+
+    Methods:
+      'median' — above-median → +1, below → -1 (fails on sparse Shiu
+                responses; see 2026-04-13-shiu-bind-unbind.md).
+      'topk'  — take the top-k responding dims as +1, a matched random
+                 sample of zero-response dims as -1, rest as 0 (masked
+                 out of the bind). Balanced by construction.
+    """
+    if method == "median":
+        thr = np.median(role_response)
+        return np.where(role_response > thr, 1.0, -1.0).astype(np.float32)
+    if method == "topk":
+        assert rng is not None
+        # +1 population: top-K responding dims (nonzero spikes).
+        # -1 population: K random dims drawn from the zero-response pool.
+        nonzero_idx = np.where(role_response > 0)[0]
+        zero_idx = np.where(role_response == 0)[0]
+        k = min(len(nonzero_idx), 60)
+        # Top-k by spike count among nonzero dims
+        top_idx = nonzero_idx[np.argsort(-role_response[nonzero_idx])[:k]]
+        neg_idx = rng.choice(zero_idx, size=k, replace=False)
+        sign = np.zeros_like(role_response, dtype=np.float32)
+        sign[top_idx] = 1.0
+        sign[neg_idx] = -1.0
+        return sign
+    raise ValueError(method)
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--role-method", choices=["median", "topk"], default="median")
+    args = ap.parse_args()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"device: {device}")
+    print(f"role-method: {args.role_method}")
 
     t0 = perf_counter()
     weights = get_weights(CONN_PATH, COMP_PATH, WT_DIR, csr=True).to(device)
@@ -137,10 +163,12 @@ def main():
     t = perf_counter()
     for i, pop in enumerate(role_pops):
         r = run_once(model, build_rates(pop), seed=50000+i, device=device)
-        sign = role_sign_from_spikes(r)
+        sign = role_sign_from_spikes(r, method=args.role_method, rng=rng)
         role_signs.append(sign)
         n_pos = int((sign > 0).sum())
-        print(f"  role r{i}: +1 dims = {n_pos}, -1 dims = {N_NEURONS - n_pos}")
+        n_neg = int((sign < 0).sum())
+        print(f"  role r{i}: +1 dims = {n_pos}, -1 dims = {n_neg}, "
+              f"masked (0) = {N_NEURONS - n_pos - n_neg}")
     print(f"  3 role signs compiled in {perf_counter()-t:.1f}s")
 
     # ---- BIND + UNBIND TESTS ----
