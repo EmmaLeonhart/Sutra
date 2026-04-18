@@ -1,274 +1,69 @@
 [
   {
     "predicate": "capital-of",
-    "n_pairs": 167,
-    "codebook_size": 157,
+    "n_pairs": 152,
+    "codebook_size": 138,
     "methods": {
       "identity": {
-        "mean_cos": 0.9604,
-        "top1": 0.6061,
-        "mean_rank": 27.39,
-        "chance_top1": 0.0064
+        "mean_cos": 0.9665,
+        "top1": 0.0067,
+        "mean_rank": 111.92,
+        "chance_top1": 0.0072
       },
       "mean_object": {
-        "mean_cos": 0.9833,
-        "top1": 0.8303,
-        "mean_rank": 24.74,
-        "chance_top1": 0.0064
-      },
-      "displacement": {
-        "mean_cos": 0.9622,
-        "top1": 0.6061,
-        "mean_rank": 27.04,
-        "chance_top1": 0.0064
-      },
-      "procrustes": {
-        "mean_cos": 0.9571,
-        "top1": 0.5939,
-        "mean_rank": 29.94,
-        "chance_top1": 0.0064
-      },
-      "ridge_1.0": {
-        "mean_cos": 0.9832,
-        "top1": 0.8303,
-        "mean_rank": 24.72,
-        "chance_top1": 0.0064
-      },
-      "ridge_0.1": {
-        "mean_cos": 0.9819,
-        "top1": 0.8243,
-        "mean_rank": 24.73,
-        "chance_top1": 0.0064
-      },
-      "lowrank_10": {
-        "mean_cos": 0.9832,
-        "top1": 0.8303,
-        "mean_rank": 24.72,
-        "chance_top1": 0.0064
-      },
-      "lowrank_30": {
-        "mean_cos": 0.9832,
-        "top1": 0.8303,
-        "mean_rank": 24.72,
-        "chance_top1": 0.0064
-      },
-      "lowrank_50": {
-        "mean_cos": 0.9832,
-        "top1": 0.8303,
-        "mean_rank": 24.72,
-        "chance_top1": 0.0064
-      },
-      "random_gaussian": {
-        "mean_cos": -0.0081,
-        "top1": 0.0242,
-        "mean_rank": 46.84,
-        "chance_top1": 0.0064
-      }
-    }
-  },
-  {
-    "predicate": "country-of-citizenship",
-    "n_pairs": 200,
-    "codebook_size": 1,
-    "methods": {
-      "identity": {
-        "mean_cos": 0.9482,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "mean_object": {
-        "mean_cos": 1.0,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "displacement": {
-        "mean_cos": 0.9902,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "procrustes": {
-        "mean_cos": 0.9897,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "ridge_1.0": {
-        "mean_cos": 1.0,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "ridge_0.1": {
-        "mean_cos": 1.0,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "lowrank_10": {
-        "mean_cos": 1.0,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "lowrank_30": {
-        "mean_cos": 1.0,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "lowrank_50": {
-        "mean_cos": 1.0,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      },
-      "random_gaussian": {
-        "mean_cos": 0.0013,
-        "top1": 1.0,
-        "mean_rank": 1.0,
-        "chance_top1": 1.0
-      }
-    }
-  },
-  {
-    "predicate": "located-in-country",
-    "n_pairs": 196,
-    "codebook_size": 15,
-    "methods": {
-      "identity": {
-        "mean_cos": 0.8895,
-        "top1": 0.0051,
-        "mean_rank": 11.92,
-        "chance_top1": 0.0667
-      },
-      "mean_object": {
-        "mean_cos": 0.9985,
-        "top1": 0.0308,
-        "mean_rank": 8.92,
-        "chance_top1": 0.0667
-      },
-      "displacement": {
-        "mean_cos": 0.9301,
-        "top1": 0.0205,
-        "mean_rank": 9.89,
-        "chance_top1": 0.0667
-      },
-      "procrustes": {
-        "mean_cos": 0.922,
-        "top1": 0.0205,
-        "mean_rank": 9.43,
-        "chance_top1": 0.0667
-      },
-      "ridge_1.0": {
-        "mean_cos": 0.9985,
-        "top1": 0.0205,
-        "mean_rank": 8.99,
-        "chance_top1": 0.0667
-      },
-      "ridge_0.1": {
-        "mean_cos": 0.9984,
-        "top1": 0.0205,
-        "mean_rank": 9.05,
-        "chance_top1": 0.0667
-      },
-      "lowrank_10": {
-        "mean_cos": 0.9985,
-        "top1": 0.0154,
-        "mean_rank": 9.03,
-        "chance_top1": 0.0667
-      },
-      "lowrank_30": {
-        "mean_cos": 0.9985,
-        "top1": 0.0205,
-        "mean_rank": 8.99,
-        "chance_top1": 0.0667
-      },
-      "lowrank_50": {
-        "mean_cos": 0.9985,
+        "mean_cos": 0.9871,
         "top1": 0.0,
-        "mean_rank": 9.15,
-        "chance_top1": 0.0667
-      },
-      "random_gaussian": {
-        "mean_cos": -0.0039,
-        "top1": 0.0,
-        "mean_rank": 10.35,
-        "chance_top1": 0.0667
-      }
-    }
-  },
-  {
-    "predicate": "author-of",
-    "n_pairs": 198,
-    "codebook_size": 147,
-    "methods": {
-      "identity": {
-        "mean_cos": 0.8978,
-        "top1": 0.241,
-        "mean_rank": 69.61,
-        "chance_top1": 0.0068
-      },
-      "mean_object": {
-        "mean_cos": 0.9205,
-        "top1": 0.2462,
-        "mean_rank": 67.67,
-        "chance_top1": 0.0068
+        "mean_rank": 114.93,
+        "chance_top1": 0.0072
       },
       "displacement": {
-        "mean_cos": 0.9012,
-        "top1": 0.241,
-        "mean_rank": 68.26,
-        "chance_top1": 0.0068
+        "mean_cos": 0.9676,
+        "top1": 0.0067,
+        "mean_rank": 111.67,
+        "chance_top1": 0.0072
       },
       "procrustes": {
-        "mean_cos": 0.9034,
-        "top1": 0.2616,
-        "mean_rank": 66.63,
-        "chance_top1": 0.0068
+        "mean_cos": 0.9637,
+        "top1": 0.0,
+        "mean_rank": 112.24,
+        "chance_top1": 0.0072
       },
       "ridge_1.0": {
-        "mean_cos": 0.9204,
-        "top1": 0.2462,
-        "mean_rank": 67.92,
-        "chance_top1": 0.0068
+        "mean_cos": 0.987,
+        "top1": 0.0,
+        "mean_rank": 114.93,
+        "chance_top1": 0.0072
       },
       "ridge_0.1": {
-        "mean_cos": 0.9194,
-        "top1": 0.2513,
-        "mean_rank": 67.41,
-        "chance_top1": 0.0068
+        "mean_cos": 0.9855,
+        "top1": 0.0,
+        "mean_rank": 114.92,
+        "chance_top1": 0.0072
       },
       "lowrank_10": {
-        "mean_cos": 0.9204,
-        "top1": 0.2462,
-        "mean_rank": 67.92,
-        "chance_top1": 0.0068
+        "mean_cos": 0.987,
+        "top1": 0.0,
+        "mean_rank": 114.93,
+        "chance_top1": 0.0072
       },
       "lowrank_30": {
-        "mean_cos": 0.9204,
-        "top1": 0.2462,
-        "mean_rank": 67.92,
-        "chance_top1": 0.0068
+        "mean_cos": 0.987,
+        "top1": 0.0,
+        "mean_rank": 114.93,
+        "chance_top1": 0.0072
       },
       "lowrank_50": {
-        "mean_cos": 0.9204,
-        "top1": 0.2462,
-        "mean_rank": 67.92,
-        "chance_top1": 0.0068
+        "mean_cos": 0.987,
+        "top1": 0.0,
+        "mean_rank": 114.93,
+        "chance_top1": 0.0072
       },
       "random_gaussian": {
-        "mean_cos": 0.0001,
-        "top1": 0.0154,
-        "mean_rank": 76.13,
-        "chance_top1": 0.0068
+        "mean_cos": -0.0041,
+        "top1": 0.0067,
+        "mean_rank": 119.69,
+        "chance_top1": 0.0072
       }
     }
-  },
-  {
-    "predicate": "instance-of",
-    "error": "504 Server Error: Gateway Timeout for url: https://query.wikidata.org/sparql?query=%0A++++++++SELECT+%3FsLabel+%3FoLabel+WHERE+%7B%0A++++++++++%3Fs+wdt%3AP31+%3Fo+.%0A++++++++++%3Fs+rdfs%3Alabel+%3FsLabel+.+FILTER%28LANG%28%3FsLabel%29+%3D+%22en%22%29+.%0A++++++++++%3Fo+rdfs%3Alabel+%3FoLabel+.+FILTER%28LANG%28%3FoLabel%29+%3D+%22en%22%29+.%0A++++++++++%3Fs+wikibase%3Asitelinks+%3Fsl+.+FILTER%28%3Fsl+%3E+30%29+.%0A++++++++%7D+LIMIT+200%0A++++++++&format=json"
   }
 ]
