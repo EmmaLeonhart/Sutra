@@ -8,8 +8,8 @@ Strategic frame: **one last Hail Mary for the papers, low-stress.** User is not 
 
 ### Hail-Mary experiment queue (autonomous, minimal user input)
 
-1. **Many-to-many paper: replicate + extend.** User flagged the paper already got reviewer pushback. Re-run the 9/9 comparison on a cold sample (fresh Wikidata pull, fresh embeddings) to verify. Don't iterate on reviewer response — just re-run, report.
-2. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result (continent-of 87%, located-in-country 76% via ridge-0.1 on GTE-large). Frame nomic as a worked null counter-example, not a missing feature. Let papers-ci resubmit.
+1. **Patch language paper with the GTE-large numbers.** Non-defensive: replace the "placeholder binding" limitation with the actual positive result (continent-of 87%, located-in-country 76% via ridge-0.1 on GTE-large). Frame nomic as a worked null counter-example, not a missing feature. Let papers-ci resubmit.
+2. **Patch many-to-many paper with precise metric language.** The paper's "9/9 MRR improvements" claim over-promises on a saturated metric (all methods tie at 1.0). Replace with MAP framing (8/9 full-over-naive, 9/9 full-over-ctrl) or P@k framing (4/9 perfect vs 0/9 baselines). See `2026-04-18-many-to-many-cold-replication.md`.
 
 Done — see findings:
 - GTE-large works (`2026-04-17-gte-large-learned-matrix-positive.md`).
@@ -25,6 +25,12 @@ Done — see findings:
   (`2026-04-13-shiu-cx-no-recurrence.md`). Summary: bundle + snap
   + fuzzy conditional work on real W; bind/unbind and rotation do not
   under any tried encoding. Paper scope already restricted accordingly.
+- Many-to-many cold replication
+  (`2026-04-18-many-to-many-cold-replication.md`): re-ran the 3×3
+  experiment grid. Under MRR all methods tie at 1.0 (saturated).
+  Under MAP full structured beats naive 8/9 (one 0.4pt regression
+  on all-minilm/Animals), beats ctrl-only 9/9. Paper's "9/9" claim
+  survives with metric-precision rewording (queued above).
 
 ### Strategic spec/language work (deferred — not the Hail Mary)
 
