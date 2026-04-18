@@ -151,9 +151,10 @@
              the run flag. See SutraRunConfiguration.kt.
 
              Two run modes:
-               1. Run (standard) — `--run`, output in the Run console
-               2. Visualize — `--run-viz`, output in Run console + 3D trace
-                  loaded into the Sutra Embedding Space JCEF tool window -->
+               1. Run (standard): `run` flag, output in the Run console.
+               2. Visualize: `run-viz` flag, output in Run console plus 3D
+                  trace loaded into the Sutra Embedding Space JCEF tool
+                  window. -->
         <configurationType
             implementation="org.sutra.intellij.run.SutraRunConfigurationType"/>
         <runConfigurationProducer
@@ -167,8 +168,9 @@
         <executor
             implementation="org.sutra.intellij.run.SutraVisualizeExecutor"/>
 
-        <!-- Program runner for the Visualize executor. Runs --run-viz and
-             loads the trace JSON into the JCEF embedding space tool window. -->
+        <!-- Program runner for the Visualize executor. Shells the compiler
+             with the run-viz flag and loads the trace JSON into the JCEF
+             embedding space tool window. -->
         <programRunner
             implementation="org.sutra.intellij.run.SutraVisualizeRunner"/>
     </extensions>
