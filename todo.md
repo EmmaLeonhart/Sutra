@@ -8,118 +8,104 @@ being worked on *now*, and this file wins for what needs doing
 ## 🗂 Priority levels
 
 - **Immediate** — do right now / this session. Usually mirrored in `STATUS.md`.
-- **Pre-Claw4S (deadline 2026-04-20)** — must land before the science-conference
-  submission closes.
+- **Pre-Anthropic-grant-app (~2026-04-29)** — user's next external deadline;
+  items here should land before that.
 - **Pre-Y-Combinator pitch** — must land before the YC pitch (no fixed date).
 - **This year** — should land in 2026, not necessarily tied to a deadline.
 
 When adding an item, pick a level. When closing one, delete the line.
 
+Note: the "Pre-Claw4S" priority level (deadline 2026-04-20) was retired
+on 2026-04-20 when the papers/submission layer was removed from the
+repo. Items that used to live under it have either been completed
+(sign-flip removal → rotation binding, 2026-04-22) or no longer apply
+(paper-scope maintenance) or moved to findings (substrate design work
+is now ongoing under `planning/findings/` rather than deadline-driven).
+
 ---
 
-## [Pre-Claw4S] Remove sign-flip as the `bind` operation (HIGH PRIORITY)
+## [Pre-Anthropic-grant-app] Rotation-hashmap capacity + Monte-Carlo exploration
 
-User direction 2026-04-15: "Yeah the sign flip is a thing I didn't
-like. Tbh no clue what it even is supposed to be but we're not
-supposed to be using it." The earlier uncertainty ("keep it in for
-now, revisit") has collapsed into a clear rejection — sign-flip
-(`a * sign(role)`) is not the intended `bind`.
+The rotation-hashmap library-pattern prototype landed 2026-04-22
+(5/5 exact-lookup on nomic; `examples/_rotation_hashmap_test.py`).
+Two follow-ups flagged during that work:
 
-Current state of the damage:
-- `codegen_numpy` and `codegen_flybrain` both lower `bind` to
-  sign-flip. `unbind` is `bind` again (self-inverse).
-- `sutra-paper/` is titled *"Sign-Flip Binding and Vector Symbolic
-  Operations on Frozen LLM Embedding Spaces"* — the entire paper is
-  built on defending sign-flip.
-- The spec (`planning/sutra-spec/operations.md`) flags sign-flip
-  as "current implementation" with an open question attached.
-- Empirical evidence against it: `examples/sequence.su` scores
-  sim(fox,dog)=0.939 on nomic (should be <0.5) — position-bound
-  bundles do not decorrelate enough under sign-flip.
+- [ ] **Capacity experiment.** Design doc is
+  `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`;
+  five concrete experiments, not yet run. Produces a findings doc
+  with the capacity curve.
+- [ ] **Monte-Carlo attractor search.** `examples/_king_queen_attractor_search.py`
+  (partial WIP, 2026-04-22) is meant to run N trials perturbing the
+  naive-analogy vector and reporting the distribution of attractors
+  that v0 snaps to. The first draft used full Haar rotations and was
+  too slow; the cheap O(d) "rotate toward a random unit direction"
+  replacement is sketched but not validated. Finish the harness and
+  run the sweep across embedding models (see next item).
 
-Open: what should `bind` actually be? Candidates: circular
-convolution (classic HRR), Hadamard product on centered vectors,
-rotation-based binding, tensor-product (with a cleanup step to
-stay in the same dimensional space), something else. **This is a
-user decision, not a Claude-decides thing.** Surface at next spec
-session.
+## [Pre-Anthropic-grant-app] Per-program embedding-space override
 
-Downstream consequences once a replacement is chosen:
-- Both codegens need a new `bind` implementation.
-- `sutra-paper/` retitles and refounds — the sign-flip paper
-  becomes either obsolete or a methodological negative result
-  ("we tried sign-flip, it doesn't decorrelate enough on LLM
-  embeddings; here's what works instead").
-- Every example that uses `bind`/`unbind` re-tests on the new op.
-- Spec `operations.md` moves `bind` from "unresolved, current impl
-  is sign-flip" to a concrete definition.
+User direction 2026-04-22: *"programmes should be able to have their
+native embedding space [declared] at the beginning of them as an
+override thing so that we could have a bunch of different test
+programmes that show it in different vector spaces."*
 
-## [Pre-Claw4S] Paper scope catch-up after the 2026-04-14 pivot
+Current state: `NumpyCodegen.__init__` already accepts `llm_model=...`
+as a kwarg, but there's no source-level way to set it — the codegen is
+invoked with default args by `examples/_smoke_test.py`.
 
-The embedding paper (`sutra-paper/paper.md`, retitled *"Sign-Flip Binding and
-Vector Symbolic Operations on Frozen LLM Embedding Spaces"*) and the fly-brain
-paper (`fly-brain-paper/paper.md`) have both been trimmed to their actually
-defensible contribution. Open work from that pivot:
+Minimum scope:
+- [ ] Define the directive syntax. Leaning toward a magic first-line
+  comment (`// @embedding: mxbai-embed-large`) that the test harness
+  parses pre-compile; zero parser/compiler changes.
+- [ ] Update `examples/_smoke_test.py` and the analogy harness to
+  respect the directive.
+- [ ] Write 3+ test programs that sweep the embedding models available
+  locally (`nomic-embed-text`, `mxbai-embed-large`, `all-minilm`)
+  over the same analogy task. Compare winners + margins.
 
-- [ ] Re-read both papers end-to-end once the dust settles and flag any
-  remaining passage that implies the paper is about "the Sutra language" or
-  that the fly-brain is a general-purpose computational substrate. The pivot
-  (STATUS.md §"Pivot (2026-04-14)") is explicit: the language paper is on hold
-  pending the connectionist-computer-of-our-own-design substrate work; the
-  embedding paper is the empirical-operations paper; the fly-brain paper is
-  the compile-to-connectome paper. Neither current paper is the language
-  paper.
-- [ ] Decide whether the `sutra-paper/` directory name is load-bearing. It
-  is now misleading (the paper is the embedding paper). Renaming forces
-  CI matrix + `.post_id` fixup — not urgent while the title is correct in
-  the matrix and the H1.
+Longer scope (later):
+- [ ] Source-level declaration (not a comment) — a `embedding_space`
+  pragma the parser recognizes. Decide after seeing how the magic-
+  comment version is used in practice.
 
-## [Pre-Claw4S] Build the connectionist-computer-of-our-own-design substrate
+## [Pre-Anthropic-grant-app] Learned-matrix binding
 
-Per the 2026-04-14 pivot, the new primary substrate is a spiking population
-(LIF or similar) whose wiring is a *parameter* matching what each Sutra
-operation needs — not the fly connectome (which is now a downstream
-compatibility target). Open work:
+Deferred from the 2026-04-22 rotation-binding pass (user priority —
+grant app first). When picked up:
 
-- [ ] Sketch what each of Sutra's primitives (`bundle`, `bind`, `unbind`,
-  `similarity`, `snap`, `select`, `gate`) needs from an ideal substrate.
-  The fly-brain negatives (EPG no-recurrence, bind role-discrimination)
-  are data for this — they tell us what wiring would have made the op
-  work. File the sketch under `planning/open-questions/ideal-substrate-per-op.md`.
-- [ ] Stand up a minimal spiking simulator where connectivity is
-  parameter-controlled. Decide: Brian2, a sparse PyTorch LIF, or lift the
-  Shiu runtime pattern to arbitrary W.
-- [ ] Run each Sutra op on that substrate with a principled wiring; report
-  results as findings under `planning/findings/`.
+- [ ] Add a matrix-fitting step at compile time. A `role X =
+  learned_from(data)` declaration reads `(input, output)` embedding
+  pairs and fits R via lstsq (or Procrustes, or low-rank —
+  substrate-dependent).
+- [ ] Wire the `role` surface syntax into the parser. STATUS.md item
+  3's decision (Candidate B: `role` / `var`) is resolved at the spec
+  level but not implemented in `sdk/sutra-compiler/`.
+- [ ] Emit `R @ filler` runtime for semantic roles; `R.T @ record`
+  for unbind (or precomputed pinv for non-orthogonal R).
+- [ ] A new demo that exercises learned-matrix bind end-to-end (e.g.
+  a `located_in_country` program using cartography-style displacement
+  data).
 
-## [Pre-Claw4S] sutrac hygiene
+## [Pre-Anthropic-grant-app] Extended state vector + canonical truth axis
 
-- [ ] Run `python -m sutra_compiler` across every `.su` file in the repo
-  and fix whatever it reports. The compiler is stable enough to be ground
-  truth; lint sweep over `examples/`, `fly-brain/`, and any stragglers.
+The 2026-04-21 design (semantic + synthetic subspaces) is committed at
+the spec level (`planning/sutra-spec/binding.md`, `vision.md`). The
+2026-04-22 rotation-binding implementation DELIBERATELY did not
+implement the extended-state-vector split — rotation acts in the same
+768-d subspace as sign-flip did, for prototyping speed. Upgrading to
+the dedicated-synthetic-subspace design is follow-on work:
 
-## [Pre-Claw4S] Competition landscape
-
-- [ ] Re-run `scripts/fetch_all_papers.py` / `fetch_reviews.py` /
-  `fetch_top_papers.py` and update `planning/competition-analysis-latest.md`
-  with the current landscape. Decide whether to keep daily snapshots or
-  collapse to `latest.md`.
-
-## [Pre-Claw4S] CI/CD pipeline reliability
-
-Standing operational problem — `papers-ci.yml` / `competition-cron.yml` /
-`submit-papers.yml` have chronic failure modes during fast paper iteration.
-Do **not** diagnose from the repo alone; Actions logs are not available to
-the Claude environment. When picking this up, ask the user for a specific
-failing run's log or URL before proposing a fix. Prior guesses (e.g. "it's
-paper.md merge conflicts") have been wrong.
-
-Known-plausible fixes when logs confirm them:
-- papers-ci HTTP 409 "already revised" on close-together pushes — have
-  `scripts/paper_submit_and_fetch.py` query clawRxiv for the latest version
-  by slug, update `.post_id`, and retry.
-- competition-cron push rejected for workflows permission — mirror papers-ci's
-  revert to direct-master-push instead of the branch+PR flow.
+- [ ] Decide synthetic-subspace budget (fixed at language level,
+  per-program, or dynamic).
+- [ ] Extend the embedding pipeline so embedded vectors are
+  `[semantic | zeros]` in the new block-diagonal layout.
+- [ ] Move rotation binding to use 2D Givens planes in the synthetic
+  subspace with compiler-allocated plane indices per variable/slot.
+- [ ] Reserve one synthetic axis as the canonical truth axis.
+  Implement `is_true` / defuzzification as projection onto it.
+- [ ] Re-run smoke tests on the new layout; document any changes in
+  capacity / cross-talk characteristics against the 2026-04-22
+  prototype baseline.
 
 ## [This year] Language-design open questions
 
