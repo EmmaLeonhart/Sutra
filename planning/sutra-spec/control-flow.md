@@ -126,16 +126,29 @@ already works.
 
 Test: `sdk/sutra-compiler/tests/corpus/valid/do_while.su`.
 
-### `foreach`, `try-catch` — parsed but rejected
+### `foreach` over compile-time-known collections (2026-04-22)
 
-The parser accepts `foreach (x in xs) { … }` and `try { … } catch { … }`.
-Neither has codegen support; both fail at compile time with
-"not yet supported."
+`foreach (TYPE x in [a, b, c]) { body }` unrolls at compile
+time — one body emission per element, with the loop variable
+bound to the element's translated source. User direction: start
+with the compile-time-known case; dynamic foreach (over a named
+collection or a runtime expression) is a compile-time error
+pending the dynamic-foreach design (see todo.md).
 
-These are parser features without implementations. If a `.su`
-program uses one, it fails to compile. The parser support exists
-so the surface syntax is reserved rather than co-opted for
-something else.
+The iterable must be an `ArrayLiteral` (`[a, b, c]` in source).
+Anything else raises a compile-time `CodegenNotSupported` with
+guidance pointing at the array-literal form or manual unrolling.
+
+Test: `sdk/sutra-compiler/tests/corpus/valid/foreach_literal.su`.
+
+### `try-catch` — parsed but rejected
+
+The parser accepts `try { … } catch { … }`. The codegen rejects
+it — there is no raise / throw primitive in Sutra today, so
+"what would catch catch" is an unresolved design question rather
+than a missing implementation. Parser support exists so the
+surface syntax is reserved; the feature itself is parked in
+`todo.md` as a longer-term item.
 
 ## `return`
 

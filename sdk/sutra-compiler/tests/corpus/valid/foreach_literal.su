@@ -1,0 +1,25 @@
+// foreach over a compile-time-known array literal unrolls at
+// compile time. One body emission per element, with the loop
+// variable bound to the element's source. User direction
+// 2026-04-22.
+//
+// Dynamic foreach (over a named collection or an expression
+// computed at runtime) is a compile-time error and future
+// work; see todo.md.
+
+vector v_cat = basis_vector("cat");
+vector v_dog = basis_vector("dog");
+vector v_bird = basis_vector("bird");
+
+function vector bundle_all() {
+    vector acc = basis_vector("zero");
+    foreach (vector x in [v_cat, v_dog, v_bird]) {
+        acc = bundle(acc, x);
+    }
+    return acc;
+}
+
+function string main() {
+    vector result = bundle_all();
+    return "ok";
+}
