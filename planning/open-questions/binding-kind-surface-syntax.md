@@ -1,4 +1,11 @@
-# Open question: Surface syntax for binding-kind choice
+# ~~Open question~~ → RESOLVED: Surface syntax for binding-kind choice
+
+> **Status: Resolved 2026-04-21.** Candidate B chosen — `role` for
+> semantic bindings, `var` for rotation-bound storage. The chosen
+> syntax is now spec in `planning/sutra-spec/binding.md` §"Surface
+> syntax." This doc is retained for the decision rationale (candidate
+> comparison, recommendation write-up) until the
+> `planning/open-questions/` maintenance pass prunes resolved entries.
 
 ## The question
 

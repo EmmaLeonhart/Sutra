@@ -286,15 +286,25 @@ claim, the following specific priors need to be checked:
   closer to novel as a programming-language construct, but the
   continuous-space analog of counter-based iteration has touched
   points in neural computation literature that should be checked.
-- **TransE vs. VSA** — TransE (Bordes et al. 2013) is from the
-  knowledge-graph-embedding community; relations as translations
-  `h + r ≈ t`, trained with a margin loss on triples. VSA is a
-  distinct lineage (Plate 1995, Kanerva) with different primitives
-  and different goals. Sutra's displacement-vector foundation is
-  closer to VSA than to TransE despite surface similarity. Earlier
-  confusion between the two has drawn reviewer objections; papers
-  on this work should explicitly situate Sutra in the VSA tradition
-  and distinguish from TransE at the framing level.
+- **TransE and VSA are the same thing in different dress.** TransE
+  (Bordes et al. 2013, from the knowledge-graph-embedding
+  community) models relations as translations `h + r ≈ t` — which
+  is literally the **rank-0 case of Sutra's learned-matrix binding**
+  (displacement = translation-only role matrix). VSA's learned-
+  matrix generalization (and Sutra's three-step arc from
+  displacement to consolidated canonical displacements to full role
+  matrices) extends this to arbitrary linear role operators. The
+  academic separation of TransE and VSA is **sociological, not
+  technical** — different journals, different conferences,
+  different vocabulary, but the underlying operator view of
+  relations is shared. Sutra's contribution is partly the explicit
+  unification: the three-step arc spans from TransE territory
+  (step 1, displacements) to full-matrix VSA territory (step 3),
+  treating them as endpoints of the same design space. Papers on
+  this work should name this unification as a contribution,
+  citing both TransE and VSA as prior art, rather than framing
+  Sutra as "in one tradition but not the other" — the tradition
+  split itself is what Sutra is trying to dissolve.
 
 The working assumption until this audit happens is that **most
 individual moves here have priors in some VSA or adjacent tradition**
