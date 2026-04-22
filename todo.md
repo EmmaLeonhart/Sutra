@@ -34,38 +34,45 @@ Two follow-ups flagged during that work:
   `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`;
   five concrete experiments, not yet run. Produces a findings doc
   with the capacity curve.
-- [ ] **Monte-Carlo attractor search (real version).** User
-  clarification 2026-04-22: this is NOT just "perturb v0 and snap to
-  the nearest codebook entry" — that's random-rotation-plus-nearest-
-  neighbor and is captured by the WIP placeholder script
-  `examples/_king_queen_attractor_search.py`. The real Monte Carlo
-  attractor search requires an MLP trained as an attractor function:
-  iterating `x ← f(x)` pulls x into basins whose fixed points are the
-  codebook vectors (or learned attractor points), and Monte Carlo
-  samples many trajectories starting from v0 + noise to characterize
-  the basin distribution. Work required:
-    1. Design the MLP architecture and training objective. Hopfield-
-       style energy minimization is one option; supervised training
-       toward codebook attractors is another. Needs a literature
-       sweep (Krotov/Hopfield modern Hopfield, Ramsauer et al. 2020,
-       related attractor-network work).
-    2. Train the MLP on the codebook (initially on just the 14 royal/
-       family words; later on a richer vocabulary).
-    3. Verify the codebook entries are fixed points (`f(cat) ≈ cat`)
-       and that basin boundaries are sensible.
-    4. Run the Monte Carlo sweep: from v0 = king - man + woman,
-       perturb with noise, iterate f to convergence, record which
-       attractor the trajectory lands in.
-    5. Compare across substrates (this plus the per-program embedding
-       override item below = a real cross-substrate attractor-quality
-       benchmark).
-  **User direction 2026-04-22: do this before the Anthropic grant
-  app (~2026-04-29) but not today.** It's a real priority for the
-  application window; it's just not a same-day item. Sequence after
-  the smaller pre-app items (embedding override, learned-matrix
-  bind, rotation-binding capacity characterization). The WIP
-  placeholder script at `examples/_king_queen_attractor_search.py`
-  stays to capture the name; do not confuse it for the real thing.
+- [x] ~~Monte-Carlo attractor search (first-pass, nomic only).~~
+  **DONE 2026-04-22** (commit TBD). User revised timing: "do it
+  today, nomic only, since nomic is the best substrate we have."
+  `examples/_king_queen_mlp_attractor.py` trains a 2-layer tanh
+  MLP `f(x) = x + r(x)` with 14 codebook vectors as fixed points,
+  iterates from v0 = king - man + woman, and runs a 4-noise-level
+  Monte-Carlo basin sweep. Key finding: **queen is the attractor
+  basin for v0 on nomic, but the boundary with king is proximal**
+  — 0.05 noise flips 1 in 5 trajectories to king, 0.15 noise is
+  near coin-flip. Written up in
+  `planning/findings/2026-04-22-mlp-attractor-king-queen-nomic.md`.
+  The older placeholder at `examples/_king_queen_attractor_search.py`
+  (random-rotation-plus-nearest-neighbor, not attractor dynamics)
+  stays as a fragility-check tool but is NOT the real attractor
+  search.
+
+- [ ] **Cross-substrate attractor comparison.** Follow-on to the
+  2026-04-22 single-substrate result. Train separate MLPs on
+  nomic, mxbai, and minilm codebooks. Compare: does v0 land in
+  queen's basin on nomic only, or does the MLP "rescue" queen on
+  the weaker substrates too? The cross-substrate sweep
+  (`_king_queen_multi_substrate.py`) showed mxbai and minilm fail
+  naive analogy — the interesting question is whether attractor
+  dynamics can recover the right answer anyway. Likely a
+  pre-Anthropic-grant-app item (not today).
+
+- [ ] **Larger-codebook attractor.** 14 words is proof-of-mechanism.
+  Scaling to thousands of codebook entries (a real concept-memory
+  for a working agent-style program) is the next scaling step.
+  Capacity characterization as a function of codebook size +
+  MLP size would land alongside.
+
+- [ ] **Attractor-MLP as a Sutra language builtin.** Currently the
+  attractor is only accessible from Python. A language-level
+  declaration like `attractor M = learn_attractor(codebook);`
+  with a matching iteration op would let `.su` programs use
+  attractor dynamics natively. Sequence after learned-matrix
+  binding lands (which uses related machinery — fit a matrix at
+  compile time).
 
 ## [Pre-Anthropic-grant-app] Per-program embedding-space override
 
