@@ -1,0 +1,53 @@
+// @embedding: all-minilm
+//
+// Same capital-country analogy as analogy_mxbai.su, but on the
+// smallest locally-installed embedding model (all-minilm, 384-dim).
+// Much less capacity than nomic (768) or mxbai (1024); the question
+// is whether 5 bundled bindings + rotation binding still has room to
+// discriminate.
+//
+// Together with analogy.su (nomic default) and analogy_mxbai.su, this
+// file is part of the per-substrate analogy sweep. Side-by-side
+// results in the smoke test tell us which substrates handle the
+// capital-country compositional pattern cleanly and which fold.
+
+vector paris  = basis_vector("paris");
+vector france = basis_vector("france");
+
+vector tokyo  = basis_vector("tokyo");
+vector japan  = basis_vector("japan");
+
+vector london = basis_vector("london");
+vector uk     = basis_vector("uk");
+
+vector rome   = basis_vector("rome");
+vector italy  = basis_vector("italy");
+
+vector cairo  = basis_vector("cairo");
+vector egypt  = basis_vector("egypt");
+
+map<vector, string> COUNTRY_NAME = {
+    france: "france",
+    japan:  "japan",
+    uk:     "uk",
+    italy:  "italy",
+    egypt:  "egypt"
+};
+
+vector memory = bundle(
+    bind(paris,  france),
+    bind(tokyo,  japan),
+    bind(london, uk),
+    bind(rome,   italy),
+    bind(cairo,  egypt)
+);
+
+function string country_of(vector city) {
+    vector recovered = unbind(city, memory);
+    vector winner = argmax_cosine(recovered, [france, japan, uk, italy, egypt]);
+    return COUNTRY_NAME[winner];
+}
+
+function string main() {
+    return country_of(paris);
+}
