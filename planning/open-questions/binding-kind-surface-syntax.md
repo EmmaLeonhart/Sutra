@@ -147,3 +147,38 @@ allows the same role in two kinds, which is probably incoherent.
   compatible) or are ported.
 - This doc moves out of `open-questions/` — it becomes part of the
   spec.
+
+## Re-evaluation needed — 2026-04-21
+
+This doc was written when the two binding kinds under consideration
+were **sign-flip** (structural) and **learned-matrix** (semantic).
+The design has since moved on: sign-flip is retired, and the two
+kinds are now **rotation binding** (structural, acting in a
+synthetic subspace with 2D-Givens-plane-per-slot allocation) and
+**learned-matrix binding** (semantic, acting in the real embedding
+subspace). See `planning/findings/2026-04-21-extended-state-and-
+rotation-binding.md`.
+
+The candidates below still mostly apply, but the words change:
+"structural" now means rotation binding, not sign-flip. Candidates
+A and B (keyword prefix, different keyword) still work if you pick
+the right word. Candidate D (`role<semantic>` / `role<structural>`
+or `role<rotation>`) may fit even better than before — rotation is
+a cleaner type-parameter story than sign-flip was. Candidate C
+(inferred from RHS) depends on how rotation-bound variables are
+*declared* rather than on how sign-flip handles were declared;
+whether that changes the evaluation is open.
+
+This re-evaluation is STATUS.md queue item 3. Do it alongside the
+doc-reversal pass (item 1) and the capacity experiment (item 2).
+
+## Prior-art audit pending
+
+The surface-syntax choice itself is a language-design decision that
+doesn't strongly overlap with VSA literature — most VSA work has
+one kind of binding and no user-facing language. The relevant
+priors are from type-system design (Haskell type classes, Rust
+traits, OCaml modules, Scala implicits), and a sweep of those
+before publishing the language spec is on the todo list. Dev-level
+work proceeds without the audit; publication-level framing waits
+for it.
