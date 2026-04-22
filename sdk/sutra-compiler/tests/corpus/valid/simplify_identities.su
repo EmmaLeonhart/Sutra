@@ -1,0 +1,29 @@
+// Exercises the AST simplification pass (2026-04-22).
+//
+// bundle(v) with a single argument folds to v.
+// bundle(bundle(a, b), c, bundle(d)) flattens to bundle(a, b, c, d).
+// Both are algebraic identities — the simplified program is
+// indistinguishable from the written form at runtime.
+//
+// Implementation: sdk/sutra-compiler/sutra_compiler/simplify.py runs
+// between parse and codegen; this corpus file confirms the rewrites
+// don't introduce parse/validate errors.
+
+vector v_a = basis_vector("a");
+vector v_b = basis_vector("b");
+vector v_c = basis_vector("c");
+vector v_d = basis_vector("d");
+
+function vector bundle_of_one() {
+    // Simplifies to `return v_a;`
+    return bundle(v_a);
+}
+
+function vector nested_bundle() {
+    // Simplifies to `return bundle(v_a, v_b, v_c, v_d);`
+    return bundle(bundle(v_a, v_b), v_c, bundle(v_d));
+}
+
+function vector main() {
+    return bundle_of_one();
+}
