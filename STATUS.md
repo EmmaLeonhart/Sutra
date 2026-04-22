@@ -36,12 +36,30 @@ pick up next.
 
 2. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
-   **Gated on scheduled parallel evaluation** (the last remaining
-   piece of formula simplification in todo.md). Without parallel
-   scheduling, GPU emits many small kernel launches which is slower
-   than CPU on small programs. AST simplification + batched Ollama
-   pre-fetch landed 2026-04-22 evening; the compute-side parallel
-   scheduling is what still blocks this.
+   The compile-side prerequisites for the port landed 2026-04-22:
+   - Algebraic simplifier rewrites (bundle/compose flattening,
+     similarity-of-self, unbind/bind and bind/unbind inverses,
+     displacement-of-self → zero, zero-absorption in + / − / bundle).
+   - Vectorized `argmax_cosine` and vector-map-lookup — one stacked
+     matmul instead of N sequential `_VSA.similarity` calls. Same
+     shape torch/CUDA wants.
+   - Fused `bundle_of_binds` — when every arg to `bundle(...)` is a
+     `bind(...)` call (the role-filler-record pattern), the codegen
+     emits a single runtime call that does the N binds as one batched
+     einsum over (N, d, d) Q-stack × (N, d) filler-stack. O(N) kernel
+     launches collapse to O(1).
+   - Runtime embedding disk cache (`~/.cache/sutra/embeddings/
+     <model>-d<dim>.npz`). Second run is offline.
+
+   **What still blocks the port:** actually writing the pytorch
+   backend (mechanical — swap `_np` for `_torch`, keep the fused
+   shapes). Generalized ANF + dep analysis is NOT done — only the
+   `bundle(bind,bind,...)` pattern is currently fused; other
+   potentially-independent sequences (e.g. `bundle(bind(r,f), c,
+   bind(r2,f2))`) still emit sequentially. For the three demo
+   programs (hello_world, fuzzy_branching, role_filler_record) the
+   fused shapes cover the hot path; larger programs may hit the
+   sequential fallback and want broader dep analysis.
 
 ## Deferred (see `todo.md`)
 
