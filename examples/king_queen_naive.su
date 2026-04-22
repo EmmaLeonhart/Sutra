@@ -1,0 +1,81 @@
+// The classic "king - man + woman = queen" analogy, run directly on
+// the frozen LLM embedding substrate (nomic-embed-text via Ollama,
+// mean-centered). Tests what the naive vector-arithmetic analogy
+// formula actually returns.
+//
+// Hypothesis: on most modern embedding substrates, the naive result
+//   argmax_cosine(king - man + woman, candidates)
+// returns KING back, not queen. The input vector (king) has a larger
+// cosine with the result than queen does, because king dominates
+// the arithmetic. This is a well-known failure mode of the
+// word2vec-style analogy formula: published analogy benchmarks work
+// around it by *excluding the input vectors from the candidate pool*
+// (see Rogers et al. 2017, "The (too many) problems of analogical
+// reasoning with word vectors"). Without that exclusion, the
+// arithmetic is dominated by the starting point.
+//
+// This program runs the analogy WITHOUT exclusion and reports the
+// winner. Companion program `king_queen_attractor.su` (Python
+// harness) runs a Monte-Carlo attractor search over the same starting
+// point to see what different approach the substrate will prefer.
+
+// --- Input words ---
+vector king   = basis_vector("king");
+vector man    = basis_vector("man");
+vector woman  = basis_vector("woman");
+vector queen  = basis_vector("queen");
+
+// --- Distractor codebook ---
+// A small codebook containing the four input-relevant words plus
+// distractors. The candidates are all royal/family/gender-adjacent so
+// the argmax has to actually choose between semantically-close
+// options.
+vector prince    = basis_vector("prince");
+vector princess  = basis_vector("princess");
+vector boy       = basis_vector("boy");
+vector girl      = basis_vector("girl");
+vector ruler     = basis_vector("ruler");
+vector monarch   = basis_vector("monarch");
+vector husband   = basis_vector("husband");
+vector wife      = basis_vector("wife");
+vector father    = basis_vector("father");
+vector mother    = basis_vector("mother");
+
+map<vector, string> WORD = {
+    king:     "king",
+    queen:    "queen",
+    man:      "man",
+    woman:    "woman",
+    prince:   "prince",
+    princess: "princess",
+    boy:      "boy",
+    girl:     "girl",
+    ruler:    "ruler",
+    monarch:  "monarch",
+    husband:  "husband",
+    wife:     "wife",
+    father:   "father",
+    mother:   "mother"
+};
+
+// --- The analogy: king - man + woman ---
+// Expressed as bundle(displacement(king, man), woman):
+//   displacement(king, man) = king - man
+//   bundle(..., woman)      = (king - man) + woman (normalized)
+vector analogy = bundle(displacement(king, man), woman);
+
+// --- Return the top-match word, with all inputs included in the
+// candidate pool. This is the honest version — no exclusion — and
+// is the case the naive formula typically fails on.
+function string naive_analogy() {
+    vector winner = argmax_cosine(
+        analogy,
+        [king, queen, man, woman, prince, princess, boy, girl,
+         ruler, monarch, husband, wife, father, mother]
+    );
+    return WORD[winner];
+}
+
+function string main() {
+    return naive_analogy();
+}
