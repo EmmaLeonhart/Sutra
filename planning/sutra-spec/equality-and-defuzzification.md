@@ -21,6 +21,26 @@ This is the reason many Sutra functions compile to matrices (see
 `types.md` — "Functions and matrices"). An "is-X" predicate is
 literally a matrix, and its output lands on the truth axis.
 
+## Canonical axes in the synthetic subspace
+
+The synthetic subspace hosts **canonical axes** — dimensions
+designated by the language rather than allocated per-program. Two
+are committed as of 2026-04-22:
+
+- **Truth axis** (antipodal, detail below).
+- **Number axis** — a single dimension, going up, that scalar /
+  integer / float / number-typed values live on. See
+  `types.md` §"The number axis and the integer class" for the
+  type-level commitment. The user's framing (2026-04-22 evening):
+  "everything is a float in this language because everything is a
+  vector" — the number axis is where those floats sit, and the
+  `int` class is a compile-time tag on values that should behave
+  integer-like (augmented assignment first; future compile-time
+  integer-specific checks ride on the same tag).
+
+More canonical axes may be designated later (enum, position, time)
+as the extended-state-vector implementation matures.
+
 ## The canonical truth axis
 
 Truth has its own **canonical axis** in the synthetic subspace of

@@ -451,13 +451,17 @@ class FlyBrainCodegen:
         if isinstance(stmt, ast.ExprStmt):
             expr = stmt.expr
             if isinstance(expr, ast.Assignment):
-                if expr.op != "=":
-                    raise CodegenNotSupported(
-                        stmt, f"compound assignment `{expr.op}` not supported"
-                    )
+                # 2026-04-22: compound assignment (+=, -=, *=, /=) is
+                # emitted directly to Python. Python's semantics match
+                # Sutra's for scalars (float) and for numpy vectors (in-
+                # place). The user's number-axis + integer-class design
+                # makes augmented assignment a first-class operation on
+                # scalars; emitting Python's native form is the direct
+                # implementation. `=` is the simple case that always
+                # worked.
                 target_src = self._translate_expr(expr.target)
                 value_src = self._translate_expr(expr.value)
-                self._emit(f"{target_src} = {value_src}")
+                self._emit(f"{target_src} {expr.op} {value_src}")
                 return
             self._emit(self._translate_expr(expr))
             return
