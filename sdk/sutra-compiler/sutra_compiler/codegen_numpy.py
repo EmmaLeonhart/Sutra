@@ -47,6 +47,11 @@ class NumpyCodegen(FlyBrainCodegen):
         # If using LLM default, dim is the LLM's; otherwise allow override.
         if runtime_dim is None:
             runtime_dim = self.DEFAULT_LLM_DIM
+        # List of strings that appear in `basis_vector("...")` calls,
+        # populated by translate_module() between simplify and codegen.
+        # The codegen emits a batched Ollama pre-fetch at module init
+        # to replace N sequential HTTP round-trips with one call.
+        self._prefetch_strings: list[str] = []
         super().__init__(
             runtime_dim=runtime_dim,
             runtime_seed=runtime_seed,
@@ -179,6 +184,46 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("self._codebook[name] = v")
         self._indent -= 1
         self._emit("return self._codebook[name].copy()")
+        self._indent -= 1
+        self._emit()
+        self._emit("def embed_batch(self, names):")
+        self._indent += 1
+        self._emit('"""Batched Ollama embed: one HTTP round-trip for many names.')
+        self._emit('')
+        self._emit("Populates self._codebook for every name in `names` that isn't")
+        self._emit("already cached. Subsequent embed(name) calls hit the cache in")
+        self._emit("memory with no network round-trip. Replaces N sequential")
+        self._emit("embed() calls at module init with one batched call; real")
+        self._emit("wall-clock win on programs with many basis_vector strings.")
+        self._emit('"""')
+        self._emit("missing = [n for n in names if n not in self._codebook]")
+        self._emit("if not missing:")
+        self._indent += 1
+        self._emit("return")
+        self._indent -= 1
+        self._emit("import ollama")
+        self._emit("r = ollama.embed(model=self.llm_model, input=missing)")
+        self._emit("for i, name in enumerate(missing):")
+        self._indent += 1
+        self._emit("v = _np.array(r['embeddings'][i], dtype=_np.float64)")
+        self._emit("v = v - _np.mean(v)")
+        self._emit("n = _np.linalg.norm(v)")
+        self._emit("if n > 0: v = v / n")
+        self._emit("if v.shape[0] != self.dim:")
+        self._indent += 1
+        self._emit("if v.shape[0] > self.dim:")
+        self._indent += 1
+        self._emit("v = v[:self.dim]")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])")
+        self._indent -= 1
+        self._emit("n = _np.linalg.norm(v)")
+        self._emit("if n > 0: v = v / n")
+        self._indent -= 1
+        self._emit("self._codebook[name] = v")
+        self._indent -= 1
         self._indent -= 1
         self._emit()
         self._emit("def _role_hash(self, role_vec):")
@@ -378,6 +423,11 @@ class NumpyCodegen(FlyBrainCodegen):
             f"_VSA = _NumpyVSA(dim={self.runtime_dim}, seed={self.runtime_seed}, "
             f"llm_model={self._llm_model!r})"
         )
+        # Batched pre-fetch of every basis_vector("...") string argument
+        # the program uses. One Ollama round-trip instead of N sequential
+        # ones. Collected by the simplify pass (see translate_module).
+        if self._prefetch_strings:
+            self._emit(f"_VSA.embed_batch({self._prefetch_strings!r})")
         self._emit()
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
@@ -426,5 +476,19 @@ class NumpyCodegen(FlyBrainCodegen):
 
 
 def translate_module(module: ast.Module, **kwargs) -> str:
-    """Translate a parsed Sutra module to self-contained numpy Python."""
-    return NumpyCodegen(**kwargs).translate(module)
+    """Translate a parsed Sutra module to self-contained numpy Python.
+
+    Runs the simplification pass over the AST before handing to the
+    codegen so identity rewrites (bundle(v) -> v, bundle flattening)
+    happen in source-to-source form rather than in the emitted
+    Python. Also collects every `basis_vector("...")` string literal
+    so the codegen can emit a batched Ollama pre-fetch at module init
+    (N HTTP round-trips collapse into one batched embed call).
+    These are prerequisites for the PyTorch/GPU backend port.
+    """
+    from .simplify import simplify_module, collect_basis_vector_strings
+    simplify_module(module)
+    strings = collect_basis_vector_strings(module)
+    cg = NumpyCodegen(**kwargs)
+    cg._prefetch_strings = strings
+    return cg.translate(module)
