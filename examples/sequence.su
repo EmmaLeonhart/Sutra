@@ -58,20 +58,20 @@ map<vector, string> TOKEN_NAME = {
 // --- Two encoded sequences ---
 // "the quick brown fox jumps"
 vector seq_fox = bundle(
-    bind(the,   pos_0),
-    bind(quick, pos_1),
-    bind(brown, pos_2),
-    bind(fox,   pos_3),
-    bind(jumps, pos_4)
+    bind(pos_0, the),
+    bind(pos_1, quick),
+    bind(pos_2, brown),
+    bind(pos_3, fox),
+    bind(pos_4, jumps)
 );
 
 // "a lazy brown dog sleeps"
 vector seq_dog = bundle(
-    bind(a,     pos_0),
-    bind(lazy,  pos_1),
-    bind(brown, pos_2),
-    bind(dog,   pos_3),
-    bind(sleeps, pos_4)
+    bind(pos_0, a),
+    bind(pos_1, lazy),
+    bind(pos_2, brown),
+    bind(pos_3, dog),
+    bind(pos_4, sleeps)
 );
 
 // Decode the token at a given position.
