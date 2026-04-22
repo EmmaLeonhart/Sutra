@@ -12,27 +12,12 @@ import sys
 import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(HERE, ".."))
-SDK_PATH = os.path.join(REPO_ROOT, "sdk", "sutra-compiler")
-sys.path.insert(0, SDK_PATH)
+sys.path.insert(0, HERE)
 
-from sutra_compiler.codegen_numpy import translate_module  # noqa: E402
-from sutra_compiler.lexer import Lexer  # noqa: E402
-from sutra_compiler.parser import Parser  # noqa: E402
-
-
-def compile_to_module(src_path: str) -> types.ModuleType:
-    with open(src_path, encoding="utf-8") as f:
-        src = f.read()
-    lexer = Lexer(src, file=src_path)
-    tokens = lexer.tokenize()
-    parser = Parser(tokens, file=src_path, diagnostics=lexer.diagnostics)
-    module = parser.parse_module()
-    py_src = translate_module(module)
-    mod = types.ModuleType(os.path.basename(src_path))
-    mod.__file__ = f"<generated from {src_path}>"
-    exec(compile(py_src, mod.__file__, "exec"), mod.__dict__)
-    return mod
+# Shared compile helper reads `// @embedding: <model>` directives from
+# the top of each .su file; absent a directive, the codegen defaults
+# (nomic-embed-text, 768-dim) apply. See examples/_su_harness.py.
+from _su_harness import compile_to_module  # noqa: E402
 
 
 def run_hello_world() -> bool:
