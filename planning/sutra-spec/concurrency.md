@@ -125,28 +125,44 @@ explicit is a fallback / override for cases where the compiler's
 automatic analysis can't figure out the parallelism or the
 programmer wants it visibly forced.
 
-### What stays explicit
+### What stays explicit (2026-04-22 afternoon narrowing)
 
-Explicit syntax is still needed for shapes the compiler's algebraic
-simplification won't automatically find:
+User direction: *"the only concurrencies that need to be explicit
+that I can think of now"* are two shapes. The earlier draft of this
+section listed more candidates (forced-parallelism-for-tuning,
+convergence-terminated splits); those are demoted to "parked, no
+user position yet" — they're not blocking anything the language
+needs to express today.
 
-- **Monte Carlo / independent trial runs.** N trajectories of an
-  attractor iteration from `v0 + noise[i]` are not algebraically
-  equivalent to a single expression; the compiler has no reason to
-  unroll them into parallel evaluations. The programmer has to say
-  "run this N times in parallel." The MLP attractor search above is
-  this shape.
-- **Forced parallelism for performance tuning.** When the
-  programmer knows two operations are independent and wants to
-  guarantee parallel execution regardless of what the compiler's
-  analysis decides.
-- **Convergence-terminated concurrency.** Two paths that should
-  terminate when they reach a common value. The compiler can't
-  infer "run until you agree" from pure algebraic structure.
+The two shapes the explicit mode must cover:
 
-The specific surface form of the explicit primitive (`parallel` /
-`split` / `path` / something else) remains open, but it is now
-scoped as a *fallback* mode, not the default.
+1. **Concurrent looping.** `loop` today is a single trajectory —
+   `loop[N]` unrolls at compile time to a bounded iteration,
+   `loop(cond)` iterates on the substrate until a data-dependent
+   termination. A concurrent form would run N independent
+   trajectories in parallel, collecting results into an indexed
+   structure. This is not algebraically derivable from the
+   straight-line `loop` expression; the compiler has no reason to
+   split a single loop into N parallel loops unless the programmer
+   says so. Surface syntax TBD (probably an extension of `loop`
+   rather than a new keyword, matching the "explicit only when
+   needed" framing).
+
+2. **MLP attractor search.** N independent trajectories through a
+   trained attractor function, starting from `v0 + noise[i]`, each
+   iterated until convergence to a fixed point, collected as a
+   basin distribution. This is the concrete use case driving the
+   whole concurrency design (see §"First concrete use case"
+   below). The mechanism is currently hand-rolled in Python
+   (`examples/_king_queen_mlp_attractor.py`); native Sutra support
+   for this shape is the benchmark the concurrency primitive has to
+   meet.
+
+Everything not in those two shapes is expected to come out of the
+compiler's algebraic simplification without new syntax. If another
+shape turns out to need explicit handling later, it joins the list;
+the list is closed-by-design to what has a concrete use case, not
+open-by-default for plausible future needs.
 
 ## Open questions
 

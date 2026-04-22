@@ -44,15 +44,10 @@ pick up next.
    user-driven rewrites. Ongoing work across sessions, not a single
    task.
 
-3. **Concurrency spec section.** A concrete sketch with an example
-   `.su` program. Genuinely open design question — see
-   `planning/sutra-spec/concurrency.md` and
-   `planning/open-questions/concurrency-and-monads.md`.
-
-4. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
+3. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
-   Do this only after items 2-3 are settled so the spec being
-   targeted is stable.
+   Do this only after item 2 is settled so the spec being targeted
+   is stable.
 
 ## Deferred (see `todo.md`)
 
