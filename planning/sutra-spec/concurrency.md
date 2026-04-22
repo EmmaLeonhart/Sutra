@@ -116,32 +116,44 @@ These are algebraic properties of a pure vector-space language — the
 *license* to do formula simplification and schedule concurrency is
 real, but the compiler has to be taught to exercise it.
 
-### Implementation status is behind the design (2026-04-22 evening)
+### Implementation status (2026-04-22 evening)
 
-**The "implicit concurrency via formula simplification" claim is a
-design target, not a current implementation.** As of 2026-04-22:
+Formula simplification and I/O parallelism landed this session;
+the remaining piece is scheduled parallel evaluation of
+independent compute sub-expressions. Current state:
 
-- The codegen emits straight-line Python that matches the AST
-  directly. `bundle(bind(r1, f1), bind(r2, f2))` becomes
-  `_VSA.bundle(_VSA.bind(r1, f1), _VSA.bind(r2, f2))` — two binds
-  one after another, sequentially.
-- There is no algebraic rewriting pass, no identity simplification
-  (e.g. `bundle(v)` with one arg doesn't fold to `v`), no constant
-  folding, no scheduling analysis.
-- `loop[N]` with literal N unrolls at compile time — that's one
-  small compile-time expansion, not algebraic simplification of
-  the body.
-- Parallelism that happens at runtime comes from numpy / BLAS at
-  the library level (single-op SIMD + threaded matmul), not from
-  Sutra-compiler awareness of independent sub-expressions.
+- **AST simplification pass** (`sdk/sutra-compiler/sutra_compiler/
+  simplify.py`) runs between parse and codegen. Active rewrites:
+  - `bundle(v)` (single argument) folds to `v`.
+  - `bundle(bundle(a, b), c, bundle(d))` flattens to
+    `bundle(a, b, c, d)`.
+  - `displacement(a, a)` is detected structurally for simple
+    identifiers (left as pass-through since the numpy runtime
+    computes `a - a = 0` directly; a zero-vector constructor
+    would be a real win but requires spec work).
+  The simplification pass is the compile-time half of "formula
+  simplification"; additional rewrites are trivial to add as
+  they're identified.
+- **Batched Ollama pre-fetch**. The simplify pass collects every
+  unique string that appears as a `basis_vector("…")` argument;
+  the codegen emits a single batched `_VSA.embed_batch([...])`
+  call at module init. One Ollama round-trip instead of N
+  sequential ones. Measured **2.93× end-to-end speedup** on
+  `examples/nearest_phrase.su` (20 basis_vector strings) —
+  175 ms batched vs. 512 ms sequential per compile+run.
+- **Scheduled parallel evaluation of independent compute
+  sub-expressions.** This is the remaining piece. Today the
+  codegen emits straight-line Python for `bundle(bind(r1, f1),
+  bind(r2, f2))` (two binds one after another); a future pass
+  would detect the independence, dispatch the two binds to a
+  thread pool, and await results. Blocked on deciding when to
+  dispatch (small ops are slower with thread overhead than
+  inline). Not a correctness issue; programs produce identical
+  results either way. Tracked in `todo.md`.
 
-The design commitment is that the language *licenses* implicit
-concurrency — a pure vector-space compiler is *allowed* to do
-formula simplification without changing program semantics. The
-implementation work to actually do the rewriting + scheduling is
-tracked in `todo.md`. Until it lands, "implicit concurrency" is a
-claim about what programs will get when the compiler matures, not
-about what they get today.
+The design commitment stands: the language licenses the compiler
+to do formula simplification. Two of the three pieces are now
+implemented; the third is queued.
 
 An earlier version of this section (2026-04-22 morning) committed
 to explicit fork-join syntax as the *primary* mode ("explicit fork
