@@ -36,7 +36,14 @@ are committed as of 2026-04-22:
   vector" — the number axis is where those floats sit, and the
   `int` class is a compile-time tag on values that should behave
   integer-like (augmented assignment first; future compile-time
-  integer-specific checks ride on the same tag).
+  integer-specific checks ride on the same tag). **Axis is
+  reserved for integer-class values** — *"integers are the only
+  thing that ever enters this space unless an LLM embedding goes
+  there"*. No Sutra bind / bundle / rotation / learned-matrix
+  operation emits a nonzero number-axis coordinate; the only
+  leakage source is an LLM embedding's accidental projection,
+  which is negligible in practice because the synthetic subspace
+  is structurally orthogonal to the semantic subspace.
 
 More canonical axes may be designated later (enum, position, time)
 as the extended-state-vector implementation matures.
