@@ -43,11 +43,11 @@ lives here.
 
 ## Binding — `binding.md`
 
-- **Surface syntax for binding-kind choice** — how does a `.su`
-  program distinguish a semantic (learned-matrix) role from a
-  structural (sign-flip) role at declaration? See
-  `planning/open-questions/binding-kind-surface-syntax.md` for
-  candidates A–E and tradeoffs. Blocks STATUS.md queue item 1.
+- ~~**Surface syntax for binding-kind choice**~~ — **resolved
+  2026-04-21**. `role` for semantic bindings, `var` for rotation-
+  bound storage. Now in `planning/sutra-spec/binding.md` §"Surface
+  syntax." Decision rationale retained at
+  `planning/open-questions/binding-kind-surface-syntax.md`.
 - Which fitting procedure for semantic role matrices (lstsq,
   ridge, Procrustes, low-rank).
 - Whether learned matrices need to be orthogonal for clean
