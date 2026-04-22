@@ -107,11 +107,30 @@ Programs that want bounded iteration should prefer `loop[N]`
 (unrolls cleanly); `while` and `for` work but lower to the same
 eigenrotation as `loop(cond)` and carry the same caveats.
 
-### `do-while`, `foreach`, `try-catch` — parsed but rejected
+### `do-while` — desugars to `body; while (cond) { body }` (2026-04-22)
 
-The parser accepts `do { … } while(…)`, `foreach (x in xs) { … }`,
-and `try { … } catch { … }`. None of them have codegen support;
-all three fail at compile time with "not yet supported."
+`do { body } while (cond)` lowers by executing `body` once
+unconditionally, then entering a `while (cond) { body }` that
+lowers via the existing `WhileStmt → eigenrotation-loop` path.
+User direction: "decompose to a single iteration, followed by a
+while loop of it." Implementation in
+`codegen_flybrain.py::_translate_stmt` branches on `DoWhileStmt`
+and synthesizes the `WhileStmt` AST node internally.
+
+This matches classical do-while semantics (body always runs at
+least once). It also means do-while's body inherits the while-
+half's eigenrotation semantics: the second-and-subsequent
+iterations are eigenrotation on the substrate, not re-executions
+of the written body. That's consistent with how Sutra's `while`
+already works.
+
+Test: `sdk/sutra-compiler/tests/corpus/valid/do_while.su`.
+
+### `foreach`, `try-catch` — parsed but rejected
+
+The parser accepts `foreach (x in xs) { … }` and `try { … } catch { … }`.
+Neither has codegen support; both fail at compile time with
+"not yet supported."
 
 These are parser features without implementations. If a `.su`
 program uses one, it fails to compile. The parser support exists
