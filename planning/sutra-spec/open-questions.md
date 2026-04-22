@@ -84,10 +84,12 @@ lives here.
   random today; substrate-specific / per-site alternatives?).
 - Whether `loop(cond)` can terminate on non-similarity conditions.
 - Fate of parsed-but-rejected control forms: `if/else` (design-
-  rejected, use `select`), `foreach` / `try-catch` (unimplemented
-  — keep as reserved syntax, remove, or implement?). `do-while`
-  was in this list until 2026-04-22 when it was implemented by
-  desugaring to body + while.
+  rejected, use `select`), `try-catch` (unimplemented — see
+  todo.md). `do-while` was in this list until 2026-04-22 when it
+  was implemented by desugaring to body + while. `foreach` over
+  a compile-time-known array literal was also implemented on
+  2026-04-22; the dynamic-foreach case (named collections,
+  runtime-computed iterables) remains future work in todo.md.
 
 ## Program structure — `program-structure.md`
 
