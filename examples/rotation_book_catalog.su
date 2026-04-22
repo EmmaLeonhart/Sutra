@@ -1,0 +1,128 @@
+// A slightly larger rotation-binding demo: a catalog of books, each
+// encoded as a (title, author, genre, year) record. Tests rotation
+// binding with 4 bundled fields rather than 3 — the regime where
+// capacity starts mattering.
+//
+// The catalog stores four book records. Each record is
+//
+//   bundle(bind(r_title, title_v),
+//          bind(r_author, author_v),
+//          bind(r_genre, genre_v),
+//          bind(r_year, year_v))
+//
+// Retrieval: given a stored record and any role, recover the filler
+// for that field. The codebook has 16 entries (4 options per field),
+// so argmax-cosine has to discriminate noise from real signal across
+// a non-trivial codebook.
+//
+// Substrate: nomic-embed-text via Ollama. Role vectors come from
+// structured names ("role_title", etc.) that embed into distinct
+// directions; filler vectors come from their actual English labels.
+// The semantic content of the filler embeddings is what the record
+// has to preserve through the bundle-and-retrieve cycle.
+
+// --- Roles (field keys) ---
+vector r_title  = basis_vector("role_title");
+vector r_author = basis_vector("role_author");
+vector r_genre  = basis_vector("role_genre");
+vector r_year   = basis_vector("role_year");
+
+// --- Fillers: titles. Short proper-noun titles cluster in the
+// nomic-embed-text substrate (they all land in roughly the same region
+// of the space), so we use short descriptive titles that embed into
+// more distinctive directions.
+vector t_dune       = basis_vector("a desert-planet novel about spice and prophecy");
+vector t_foundation = basis_vector("a galactic-empire novel about predicting the fall");
+vector t_neuromancer = basis_vector("a novel about cyberspace hackers and AI");
+vector t_hyperion   = basis_vector("a novel about pilgrims on a doomed world");
+
+// --- Fillers: authors. Same substrate issue with proper nouns — use
+// author descriptors instead of bare names to give each a distinct
+// semantic direction.
+vector a_herbert  = basis_vector("author of the Dune series, died 1986");
+vector a_asimov   = basis_vector("prolific science writer, author of the Foundation saga");
+vector a_gibson   = basis_vector("Canadian-American author who coined cyberspace");
+vector a_simmons  = basis_vector("author of the Hyperion Cantos");
+
+// --- Fillers: genres ---
+vector g_space    = basis_vector("space opera");
+vector g_robotic  = basis_vector("robotic science fiction");
+vector g_cyber    = basis_vector("cyberpunk");
+vector g_literary = basis_vector("literary science fiction");
+
+// --- Fillers: years ---
+vector y_1965 = basis_vector("1965");
+vector y_1951 = basis_vector("1951");
+vector y_1984 = basis_vector("1984");
+vector y_1989 = basis_vector("1989");
+
+// --- Codebook for argmax decode (per-field) ---
+map<vector, string> TITLE_NAME = {
+    t_dune:       "Dune",
+    t_foundation: "Foundation",
+    t_neuromancer: "Neuromancer",
+    t_hyperion:   "Hyperion"
+};
+map<vector, string> AUTHOR_NAME = {
+    a_herbert: "Herbert",
+    a_asimov:  "Asimov",
+    a_gibson:  "Gibson",
+    a_simmons: "Simmons"
+};
+map<vector, string> GENRE_NAME = {
+    g_space:    "space-opera",
+    g_robotic:  "robotic-sf",
+    g_cyber:    "cyberpunk",
+    g_literary: "literary-sf"
+};
+map<vector, string> YEAR_NAME = {
+    y_1965: "1965",
+    y_1951: "1951",
+    y_1984: "1984",
+    y_1989: "1989"
+};
+
+// --- Encode a book as a 4-field rotation-bound record ---
+function vector make_book(vector title, vector author, vector genre, vector year) {
+    return bundle(
+        bind(r_title,  title),
+        bind(r_author, author),
+        bind(r_genre,  genre),
+        bind(r_year,   year)
+    );
+}
+
+// --- Decoders (one per field) ---
+function string decode_title(vector record) {
+    vector rec = unbind(r_title, record);
+    vector w = argmax_cosine(rec, [t_dune, t_foundation, t_neuromancer, t_hyperion]);
+    return TITLE_NAME[w];
+}
+
+function string decode_author(vector record) {
+    vector rec = unbind(r_author, record);
+    vector w = argmax_cosine(rec, [a_herbert, a_asimov, a_gibson, a_simmons]);
+    return AUTHOR_NAME[w];
+}
+
+function string decode_genre(vector record) {
+    vector rec = unbind(r_genre, record);
+    vector w = argmax_cosine(rec, [g_space, g_robotic, g_cyber, g_literary]);
+    return GENRE_NAME[w];
+}
+
+function string decode_year(vector record) {
+    vector rec = unbind(r_year, record);
+    vector w = argmax_cosine(rec, [y_1965, y_1951, y_1984, y_1989]);
+    return YEAR_NAME[w];
+}
+
+// --- Four book records, pre-built at module load ---
+vector book_dune       = make_book(t_dune,       a_herbert, g_space,    y_1965);
+vector book_foundation = make_book(t_foundation, a_asimov,  g_robotic,  y_1951);
+vector book_neuromancer = make_book(t_neuromancer, a_gibson, g_cyber,   y_1984);
+vector book_hyperion   = make_book(t_hyperion,   a_simmons, g_literary, y_1989);
+
+function string main() {
+    return decode_author(book_neuromancer);
+}
