@@ -278,6 +278,152 @@ class TestArithmeticConstantFolding(unittest.TestCase):
         self.assertEqual(ret.value, 7)
 
 
+class TestZeroVectorAbsorptionInBindUnbind(unittest.TestCase):
+    def test_bind_of_zero_absorbs(self):
+        # bind(role, zero_vector()) → zero_vector(). Q @ 0 = 0 for any
+        # orthogonal Q, so the result is zero regardless of role.
+        m = _parse(
+            "vector r = basis_vector(\"r\");\n"
+            "function vector main() { return bind(r, zero_vector()); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Call)
+        self.assertEqual(ret.callee.name, "zero_vector")
+        self.assertEqual(len(ret.args), 0)
+
+    def test_unbind_of_zero_absorbs(self):
+        # unbind(role, zero_vector()) → zero_vector(). Q^T @ 0 = 0.
+        m = _parse(
+            "vector r = basis_vector(\"r\");\n"
+            "function vector main() { return unbind(r, zero_vector()); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Call)
+        self.assertEqual(ret.callee.name, "zero_vector")
+
+    def test_bind_of_nonzero_filler_unchanged(self):
+        m = _parse(
+            "vector r = basis_vector(\"r\");\n"
+            "vector f = basis_vector(\"f\");\n"
+            "function vector main() { return bind(r, f); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Call)
+        self.assertEqual(ret.callee.name, "bind")
+
+
+class TestComposeWithIdentity(unittest.TestCase):
+    def test_compose_with_leading_identity_drops(self):
+        # compose(identity_permutation(), x) → x.
+        m = _parse(
+            "vector x = basis_vector(\"x\");\n"
+            "function vector main() { return compose(identity_permutation(), x); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Identifier)
+        self.assertEqual(ret.name, "x")
+
+    def test_compose_with_trailing_identity_drops(self):
+        # compose(x, identity_permutation()) → x.
+        m = _parse(
+            "vector x = basis_vector(\"x\");\n"
+            "function vector main() { return compose(x, identity_permutation()); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Identifier)
+        self.assertEqual(ret.name, "x")
+
+    def test_compose_all_identities_collapse_to_identity(self):
+        m = _parse(
+            "function vector main() { "
+            "return compose(identity_permutation(), identity_permutation()); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Call)
+        self.assertEqual(ret.callee.name, "identity_permutation")
+
+    def test_compose_two_non_identity_unchanged(self):
+        m = _parse(
+            "vector x = basis_vector(\"x\");\n"
+            "vector y = basis_vector(\"y\");\n"
+            "function vector main() { return compose(x, y); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Call)
+        self.assertEqual(ret.callee.name, "compose")
+        self.assertEqual(len(ret.args), 2)
+
+
+class TestArgmaxCosineSingleCandidate(unittest.TestCase):
+    def test_single_candidate_argmax_is_the_candidate(self):
+        # argmax_cosine(v, [x]) → x. Only one option, no choice to make.
+        m = _parse(
+            "vector v = basis_vector(\"v\");\n"
+            "vector x = basis_vector(\"x\");\n"
+            "function vector main() { return argmax_cosine(v, [x]); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Identifier)
+        self.assertEqual(ret.name, "x")
+
+    def test_multiple_candidate_argmax_unchanged(self):
+        m = _parse(
+            "vector v = basis_vector(\"v\");\n"
+            "vector x = basis_vector(\"x\");\n"
+            "vector y = basis_vector(\"y\");\n"
+            "function vector main() { return argmax_cosine(v, [x, y]); }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Call)
+        self.assertEqual(ret.callee.name, "argmax_cosine")
+
+
+class TestSubscriptOfArrayLiteral(unittest.TestCase):
+    def test_positive_index_picks_element(self):
+        m = _parse(
+            "vector a = basis_vector(\"a\");\n"
+            "vector b = basis_vector(\"b\");\n"
+            "vector c = basis_vector(\"c\");\n"
+            "function vector main() { return [a, b, c][1]; }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Identifier)
+        self.assertEqual(ret.name, "b")
+
+    def test_zero_index_picks_first(self):
+        m = _parse(
+            "vector a = basis_vector(\"a\");\n"
+            "vector b = basis_vector(\"b\");\n"
+            "function vector main() { return [a, b][0]; }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Identifier)
+        self.assertEqual(ret.name, "a")
+
+    def test_out_of_range_unchanged(self):
+        # Out-of-range indices are left unsimplified so the runtime
+        # IndexError surfaces as a real diagnostic. The rewrite would
+        # otherwise mask a real bug in the program.
+        m = _parse(
+            "vector a = basis_vector(\"a\");\n"
+            "function vector main() { return [a][5]; }"
+        )
+        simplify_module(m)
+        ret = _main_return_expr(m)
+        self.assertIsInstance(ret, ast.Subscript)
+
+
 class TestBasisVectorCollection(unittest.TestCase):
     def test_collects_in_source_order(self):
         m = _parse(

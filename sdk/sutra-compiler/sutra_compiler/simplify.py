@@ -65,6 +65,33 @@ a soundness-preserving structural match. No approximate rewrites.
     `x / 1` → `x` for scalar literal operands. Applied to IntLiteral
     and FloatLiteral.
 
+12. **bind of zero_vector() absorbs.** `bind(role, zero_vector())`
+    → `zero_vector()`. Q @ 0 = 0 for any orthogonal Q. Independent
+    of role. Enables cascading: rule 5's `displacement(a, a)` →
+    zero can propagate through bind, and rule 6 then drops it from
+    an enclosing bundle.
+
+13. **unbind of zero_vector() absorbs.** `unbind(role,
+    zero_vector())` → `zero_vector()`. Q^T @ 0 = 0 by the same
+    argument.
+
+14. **compose with identity_permutation drops.**
+    `compose(identity_permutation(), x)` → `x` and
+    `compose(x, identity_permutation())` → `x`. `identity_permutation()`
+    is the all-ones vector; pointwise multiply by all-ones is the
+    identity. If all args are identities, the result is
+    `identity_permutation()` itself.
+
+15. **argmax_cosine of single-candidate list.** `argmax_cosine(v,
+    [x])` → `x`. Only fires when the candidates are a compile-time
+    `ArrayLiteral` with exactly one element.
+
+16. **Subscript of ArrayLiteral with literal int index.** `[a, b,
+    c][1]` → `b`. Compile-time array indexing. Negative indices
+    are handled Python-style; out-of-range indices are left
+    unsimplified so the runtime IndexError surfaces as a real
+    diagnostic.
+
 ### Rewrites NOT applied (documented non-rewrites)
 
 - `bundle(x, x)` → `x` (NOT applied). `bundle` normalizes to unit
@@ -436,6 +463,17 @@ def _simplify_expr(expr):
     if isinstance(expr, ast.Subscript):
         expr.target = _simplify_expr(expr.target)
         expr.index = _simplify_expr(expr.index)
+        # Rule 16: Subscript of an ArrayLiteral with a literal int index
+        # → the indexed element. Compile-time array indexing. Out-of-
+        # range indices are left unsimplified (the runtime IndexError
+        # is honest; silent truncation would hide a program bug).
+        # Negative indices are handled in Python style (-1 → last).
+        if (isinstance(expr.target, ast.ArrayLiteral)
+                and isinstance(expr.index, ast.IntLiteral)):
+            elements = expr.target.elements
+            idx = expr.index.value
+            if -len(elements) <= idx < len(elements):
+                return elements[idx]
         return expr
 
     if isinstance(expr, ast.MemberAccess):
@@ -566,7 +604,59 @@ def _rewrite_call(call: ast.Call):
                 and _structurally_equal(call.args[0], inner.args[0])):
             return inner.args[1]
 
+    # Rule 12: bind(role, zero_vector()) → zero_vector().
+    # Q @ 0 = 0 for any orthogonal Q. The rotation of the zero vector is
+    # the zero vector. Independent of role.
+    if (name == "bind" and len(call.args) == 2
+            and _is_zero_vector_call(call.args[1])):
+        return _mk_zero_vector(call.span)
+
+    # Rule 13: unbind(role, zero_vector()) → zero_vector().
+    # Q^T @ 0 = 0 by the same argument. Independent of role.
+    if (name == "unbind" and len(call.args) == 2
+            and _is_zero_vector_call(call.args[1])):
+        return _mk_zero_vector(call.span)
+
+    # Rule 14: compose with identity_permutation() on either side →
+    # drop the identity. compose is elementwise multiply on sign-flip
+    # keys, so multiplying by the all-ones vector is the identity.
+    # Works after rule 3 has flattened nested composes.
+    if name == "compose" and len(call.args) >= 2:
+        non_identity = [
+            a for a in call.args if not _is_call_named(a, "identity_permutation", arity=0)
+        ]
+        if len(non_identity) != len(call.args):
+            if not non_identity:
+                # compose(identity, identity, ...) is identity itself.
+                return _mk_identity_permutation(call.span)
+            if len(non_identity) == 1:
+                # compose(x, identity) → x; compose(identity, x) → x.
+                return non_identity[0]
+            call.args = non_identity
+
+    # Rule 15: argmax_cosine(query, [single]) → single.
+    # Single-candidate argmax has no choice; the literal element is the
+    # result regardless of the query. Only fires when the candidates
+    # are an ArrayLiteral with exactly one element (structural match
+    # against the compile-time shape).
+    if name == "argmax_cosine" and len(call.args) == 2:
+        candidates = call.args[1]
+        if (isinstance(candidates, ast.ArrayLiteral)
+                and len(candidates.elements) == 1):
+            return candidates.elements[0]
+
     return call
+
+
+def _mk_identity_permutation(span):
+    """Synthesize an `identity_permutation()` call for rule 14's empty
+    compose case."""
+    return ast.Call(
+        callee=ast.Identifier(name="identity_permutation", span=span),
+        type_args=[],
+        args=[],
+        span=span,
+    )
 
 
 # ---------------------------------------------------------------------------
