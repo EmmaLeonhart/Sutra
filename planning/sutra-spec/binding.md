@@ -224,6 +224,74 @@ with different source-level markers. The exact surface syntax is
 an open question — see
 `planning/open-questions/binding-kind-surface-syntax.md`.
 
+## Surface syntax
+
+The binding kind is chosen at **declaration time**, with two
+distinct declaration keywords — one for each kind:
+
+```
+// Semantic binding — role matrix fit from corpus data
+role capital_of    = learned_from("cities_and_countries.tsv");
+role object_of     = learned_from("sentence_object_pairs.tsv");
+role is_cat        = learned_from("thing_is_cat_labels.tsv");
+
+// Rotation binding — opaque variable storage in the synthetic subspace
+var x         : vector;                    // unassigned (zero state)
+var name      : vector = embed("Alice");   // initialized
+var flag      : fuzzy  = +0.7;             // fuzzy scalar on the truth axis
+var[16] slots : vector;                    // array of 16 rotation slots
+```
+
+**Why two keywords.** `role` and `var` do different jobs, and the
+source-level distinction reflects that directly:
+
+- **`role`** declares a semantic-subspace binding operator. The RHS
+  produces a learned matrix (typically via `learned_from(...)` with
+  training data). Roles carry meaning; they're the Sutra-distinctive
+  innovation. `role` is reserved for this usage.
+- **`var`** declares a rotation-bound slot in the synthetic subspace.
+  The compiler allocates a 2D Givens rotation plane to the slot. A
+  `var` is the familiar variable from imperative languages — you can
+  read from it, assign to it, and the assignment is a pure rotation
+  on the state vector (Sutra stays functional). `var[N]` allocates
+  an array of N slots.
+
+Compiler semantics:
+
+- A `role R = learned_from(data);` declaration triggers the
+  **empirical-initiation phase**: the compiler reads `data`, fits
+  the matrix, and stores it. The matrix is fixed at runtime.
+- A `var x : T` declaration **allocates** a 2D rotation plane in
+  the synthetic subspace. If the synthetic subspace budget is
+  exceeded, the compiler errors.
+- A `var x = expr;` initialized declaration evaluates `expr`,
+  projects into the synthetic subspace, and stores at `x`'s slot.
+- Reading `x` applies `R^{-i_x}` to the state and extracts the
+  stored content (or projects onto the truth axis for fuzzy/bool
+  types).
+- The canonical axes (truth, and any future canonical axes for
+  other data types) are **language-level constants, not user
+  declarations**. They don't need their own keyword; they just
+  exist as part of the synthetic subspace layout.
+
+Usage at bind sites stays uniform — a single `bind(X, filler)`
+call compiles to the right operation based on how `X` was declared:
+
+```
+bind(capital_of, paris)   // learned matrix @ paris_emb (semantic subspace)
+bind(x, v)                // rotation into x's slot (synthetic subspace)
+```
+
+The compiler checks the kind from the declaration and emits the
+correct primitive. Mixing a `role` into a call site where a `var`
+is expected (or vice versa) is a compile-time type error.
+
+See `planning/open-questions/binding-kind-surface-syntax.md` for
+the history of this decision — five candidates were considered and
+Candidate B (`role` / `var`) was chosen on 2026-04-21 for
+pedagogical clarity (`var` reads the same in every imperative
+language; `role` is the one new term readers need to learn).
+
 ## Unbinding
 
 For a semantic role matrix `R` learned by regression, `R⁻¹` may

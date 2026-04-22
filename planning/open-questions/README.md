@@ -14,7 +14,7 @@ Live design questions that we know we need to answer eventually, but haven't. Di
 
 ## Current contents
 
-- `binding-kind-surface-syntax.md` — how does a `.su` program distinguish a semantic (learned-matrix) role from a structural (sign-flip) role at declaration? Candidates A–E laid out; decision pending. Blocks STATUS.md queue item 1 (learned-matrix bind).
+- `binding-kind-surface-syntax.md` — **resolved 2026-04-21**. Candidate B chosen: `role` for semantic, `var` for rotation-bound. Syntax is now spec in `planning/sutra-spec/binding.md`. Doc retained for decision rationale until the next resolved-entry pruning pass.
 - `concurrency-and-monads.md` — the concurrency model is sketched in `planning/sutra-spec/concurrency.md` but the monad/effect structure isn't settled.
 - `project-kind-connectome-vs-embedding.md` — the `fly-brain/` substrate and the numpy/embedding substrate have structurally different answers to some of the same spec questions. What's the right way to type or tag which substrate a program targets?
 - `tier2-bundle-substrate-vs-algebra.md` — does `bundle(...)` run on the substrate or stay algebraic? The spec says tier-2 is pure math, the implementation routes through `bundle_on_brain`, and one concrete case (fuzzy_conditional) breaks unless we bypass the substrate. Unresolved. *(Note: tier framing is rejected per CLAUDE.md; this doc's terminology needs a rewrite separate from the question it raises.)*
