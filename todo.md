@@ -268,47 +268,41 @@ not a grep. Surface, do not execute, from a sandbox session.
   computer work above is the path here). Numpy allowed only at the
   compile/monitor boundary, never at runtime.
 
-## [This year] Formula simplification (compiler pass)
+## [This year] Formula simplification — remaining pieces
 
-The concurrency spec's "implicit by default" framing assumes the
-compiler does algebraic rewriting to expose independent sub-
-expressions for parallel evaluation. As of 2026-04-22, **the
-compiler does not do this**. It emits straight-line Python that
-matches the AST directly; parallelism at runtime comes from
-numpy/BLAS at the library level, not from Sutra-compiler awareness
-of expression independence.
+AST simplification pass + batched Ollama pre-fetch landed
+2026-04-22 (sdk/sutra-compiler/sutra_compiler/simplify.py,
+codegen_numpy embed_batch). 2.93× measured speedup on
+nearest_phrase.su. Remaining pieces:
 
-Until this pass lands, the "implicit concurrency" claim is a
-design target, not a current capability. See
-`planning/sutra-spec/concurrency.md` §"Implementation status is
-behind the design" for the honest statement.
-
-The pass would need to do at least:
-
-- [ ] **Algebraic rewriting** — identify independent sub-
-  expressions in the AST and schedule them for parallel
-  evaluation. `bundle(bind(r1, f1), bind(r2, f2))` is the
-  smallest illustrative case — two independent bind calls that
-  could run concurrently.
-- [ ] **Identity simplification** — `bundle(v)` (one arg) folds
-  to `v`; `displacement(a, a)` folds to zero; other obvious
-  algebraic identities. Low-hanging rewriting that shrinks the
-  emitted code.
-- [ ] **Constant folding** — expressions over values known at
-  compile time (e.g. `bundle(basis_vector("x"), basis_vector("y"))`
-  when the embedding is stable) can be evaluated once and cached.
-  Not trivial because `basis_vector` depends on the substrate
-  (Ollama), but the compiler could do substrate-aware folding.
-- [ ] **Scheduling.** Once independent sub-expressions are
-  identified, the emitted code needs to actually run them in
-  parallel — via Python's `concurrent.futures`, via numpy's
-  threading, or via a dedicated runtime scheduler.
-
-None of this blocks correctness. Sutra programs execute today; they
-just execute more sequentially than the language's algebraic
-structure licenses. When this pass lands, the "implicit concurrency"
-framing in `concurrency.md` becomes honest about current
-implementation rather than aspirational.
+- [x] ~~Identity simplification~~ — `bundle(v) → v`, bundle
+  flattening. Done in simplify.py.
+- [x] ~~Batched Ollama pre-fetch~~ — `basis_vector(...)` strings
+  collected at compile time, one batched embed call at module
+  init instead of N sequential HTTP round-trips. Done.
+- [ ] **Additional algebraic rewrites.** The obvious ones —
+  `displacement(a, a) → zero_vector()` (needs a spec'd zero-vector
+  constructor), `bind(role, unbind(role, x)) → x` when the role
+  isn't in the bundle, identity elimination — land trivially as
+  one-line rewrites in simplify.py as they're identified.
+- [ ] **Constant folding** over `basis_vector("literal string")`
+  at compile time, with results cached to disk so repeated
+  compiles don't re-hit Ollama. Substrate-aware (the cache key is
+  `(model, dim, string)`).
+- [ ] **Scheduled parallel evaluation of independent compute
+  sub-expressions.** The real remaining piece. `bundle(bind(r1,
+  f1), bind(r2, f2))` today emits straight-line sequential Python;
+  a future pass would detect the independence of the two binds
+  and dispatch them to a thread pool (numpy releases the GIL so
+  threads actually parallelize). The open design question is
+  *when* to dispatch — thread overhead dominates for small ops.
+  Heuristic: operations over large vectors or with expensive
+  substrate calls (Ollama, MLP inference) get parallelized;
+  cheap pure-numpy ops stay inline. Blocks PyTorch/GPU backend
+  (task #14 in the task tool) because GPU kernel launches have
+  the same "many small launches is slower than one big one"
+  structure — without this, the GPU backend is slower than the
+  CPU backend on small programs.
 
 ## [This year] Control-flow completion
 
