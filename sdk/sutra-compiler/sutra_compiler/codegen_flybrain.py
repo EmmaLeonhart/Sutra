@@ -493,10 +493,30 @@ class FlyBrainCodegen:
             self._translate_while_as_geometric_loop(synthesized_while)
             return
         if isinstance(stmt, ast.ForeachStmt):
+            # `foreach (x in [a, b, c]) { body }` unrolls at compile time
+            # — one body emission per element, with the loop variable
+            # bound to each element's translated source. User direction
+            # 2026-04-22: compile-time-known collections only; anything
+            # else (e.g. a non-literal expression in the iterable
+            # position) is a compile-time error pending the dynamic-
+            # foreach design (see todo.md).
+            if isinstance(stmt.iterable, ast.ArrayLiteral):
+                for element_expr in stmt.iterable.elements:
+                    element_src = self._translate_expr(element_expr)
+                    self._emit(f"{stmt.var_name} = {element_src}")
+                    for inner in stmt.body.statements:
+                        self._translate_stmt(inner)
+                return
             raise CodegenNotSupported(
                 stmt,
-                f"{type(stmt).__name__} is not yet supported by the fly-brain "
-                "codegen; use `loop` instead",
+                f"`foreach` is only supported over compile-time-known "
+                f"collections (array literals like `[a, b, c]`). The "
+                f"iterable here is a "
+                f"{type(stmt.iterable).__name__}, which would require "
+                f"runtime iteration. Dynamic `foreach` over named "
+                f"collections or computed expressions is future work — "
+                f"see todo.md. Rewrite as `foreach (x in [a, b, c]) "
+                f"{{ ... }}` or unroll by hand.",
             )
         if isinstance(stmt, ast.IfStmt):
             raise CodegenNotSupported(
