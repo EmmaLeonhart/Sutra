@@ -304,6 +304,42 @@ nearest_phrase.su. Remaining pieces:
   structure — without this, the GPU backend is slower than the
   CPU backend on small programs.
 
+## [This year] Integer class — follow-on work
+
+The integer class landed as a compile-time tag on 2026-04-22
+(augmented assignment works; `var n : int = 0; n += 1;` compiles
+and runs). The canonical number axis in the synthetic subspace is
+spec'd (see `planning/sutra-spec/types.md` §"The number axis and
+the integer class" and
+`planning/sutra-spec/equality-and-defuzzification.md` §"Canonical
+axes in the synthetic subspace").
+
+What landed:
+- [x] ~~Augmented assignment~~ — `+=`, `-=`, `*=`, `/=` emit
+  Python's native compound assign. Done.
+- [x] ~~Spec commitment to the number axis~~ — documented
+  alongside the truth axis. Done.
+
+Follow-on work for a future pass:
+- [ ] **Compile-time integer-specific checks.** Overflow bounds,
+  mod-N wrap semantics, division by constant zero, etc. Today
+  `var n : int` is a float at runtime with no checks; an integer-
+  class compile-time pass could catch obvious mistakes.
+- [ ] **Range-typed integers** — `int<0..N>` for loop indices,
+  slot indexing into `var[N] slots : vector`, etc. Natural fit
+  with the extended-state-vector design's rotation-slot allocation
+  (each rotation plane is indexed by an int in a known range).
+- [ ] **Type propagation through expressions.** Currently
+  `var x : int = 3; var y = x + 1;` leaves y untyped (Python-
+  duck-typed at runtime). A type-propagation pass would infer
+  that y is also int-classed, which enables the checks above
+  and sharpens IDE surface.
+- [ ] **Float class as a separate tag.** The user's framing says
+  "doubles have it to some extent too, but [integers] please it
+  more." Making `float` / `double` a distinct compile-time tag
+  alongside `int` would unlock float-specific behaviors (e.g.
+  explicit precision, NaN / inf handling). Not urgent.
+
 ## [This year] Control-flow completion
 
 - [ ] **Dynamic `foreach`.** Today (2026-04-22) `foreach` unrolls
