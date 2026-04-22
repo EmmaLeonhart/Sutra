@@ -21,15 +21,25 @@ pick up next.
 
 ## Queued work
 
-1. **Implement `role` / `var` declaration syntax in the parser.**
-   Candidate B from the 2026-04-21 session: `role X =
-   learned_from(...)` for semantic bindings, `var X : vector;` for
-   rotation-bound storage, `var[N] slots : vector;` for arrays.
-   Decision is spec-committed
-   (`planning/sutra-spec/binding.md` §"Surface syntax"). The parser
-   and codegen haven't been extended yet. Existing `.su` demos still
-   declare roles as `vector r_name = basis_vector(...)`; migration
-   to `var r_name : vector` comes with this work.
+1. **Richer embedding-space declaration: main() argument + atman.toml
+   + default, in precedence order.** User direction 2026-04-22: the
+   magic `// @embedding: <model>` directive that landed as STATUS #1
+   earlier today is the minimum viable version; the fuller design is:
+   - **`main(embedding_space: string)`** — passed as an argument to
+     the program's entry point, overrides everything else at runtime.
+   - **`atman.toml`** — project-level default substrate declared in
+     the existing config file (one already lives at
+     `examples/atman.toml`). If no runtime argument is passed, use
+     this.
+   - **Hardcoded default** — if neither a main() argument nor an
+     atman.toml entry declares a substrate, use nomic-embed-text +
+     768-dim (the CLAUDE.md default).
+   Decide whether the `// @embedding` directive stays as a third
+   source of override (file-level, above main() argument or between
+   atman.toml and main()) or gets retired once the toml + main-arg
+   path exists. Probably: keep directive as "file-level override for
+   this one program" and atman.toml as project default. Either way,
+   document the precedence clearly so programs are reproducible.
 
 2. **Capacity experiment for rotation binding.** Design doc at
    `planning/findings/2026-04-21-rotation-binding-capacity-experiment-
@@ -65,7 +75,7 @@ pick up next.
 
 6. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
-   Do this only after items 1-3 are settled so the spec being
+   Do this only after items 2-3 are settled so the spec being
    targeted is stable.
 
 ## Deferred (see `todo.md`)

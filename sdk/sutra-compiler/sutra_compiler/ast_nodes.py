@@ -314,13 +314,37 @@ class Param(Node):
 
 @dataclass
 class VarDecl(Stmt):
-    """`var x = ...;`, `const x = ...;`, or `TYPE x = ...;`"""
+    """`var x = ...;`, `const x = ...;`, `TYPE x = ...;`, `var x : TYPE;`,
+    `var[N] x : TYPE;`, or `role x = ...;`.
+
+    The 2026-04-22 extensions (colon-syntax, array-slot form, role-
+    declaration form) all ride on the same node type with additional
+    flags:
+
+    - `is_role`: this is a semantic role binding. `role X = expr;`
+      produces a value that semantically should be treated as a
+      learned matrix operator; today it behaves identically to
+      `vector X = expr;` (no learned_from yet — see STATUS.md
+      "Deferred" section). When learned-matrix binding lands, the
+      is_role flag is what tells the codegen to emit the matrix-fit
+      path.
+    - `is_var_colon`: declared via `var X : TYPE` (the new
+      rotation-bound form, with optional initializer). Uninitialized
+      form allocates a zero value of the given type — this is the
+      "var as storage slot" semantics from the surface-syntax decision.
+    - `array_size`: if non-None, this is a `var[N] X : TYPE` array
+      declaration allocating N slots. Semantics still pending; today
+      the codegen just treats it as a Python list of N zero-values.
+    """
 
     is_const: bool
-    is_var_inferred: bool       # true if declared with `var`
+    is_var_inferred: bool       # true if declared with `var` (inferred)
     type_ref: Optional[TypeRef]  # None only if is_var_inferred is True
     name: str
     initializer: Optional[Expr]
+    is_role: bool = False
+    is_var_colon: bool = False
+    array_size: Optional[int] = None
 
 
 @dataclass
