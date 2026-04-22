@@ -273,36 +273,42 @@ not a grep. Surface, do not execute, from a sandbox session.
 AST simplification pass + batched Ollama pre-fetch landed
 2026-04-22 (sdk/sutra-compiler/sutra_compiler/simplify.py,
 codegen_numpy embed_batch). 2.93× measured speedup on
-nearest_phrase.su. Remaining pieces:
+nearest_phrase.su. Later the same day, aggressive simplifier
+expansion + fused bundle-of-binds + disk cache landed (see
+commit on `claude/enable-gpu-support-rczYD`). Remaining pieces:
 
 - [x] ~~Identity simplification~~ — `bundle(v) → v`, bundle
   flattening. Done in simplify.py.
 - [x] ~~Batched Ollama pre-fetch~~ — `basis_vector(...)` strings
   collected at compile time, one batched embed call at module
   init instead of N sequential HTTP round-trips. Done.
-- [ ] **Additional algebraic rewrites.** The obvious ones —
-  `displacement(a, a) → zero_vector()` (needs a spec'd zero-vector
-  constructor), `bind(role, unbind(role, x)) → x` when the role
-  isn't in the bundle, identity elimination — land trivially as
-  one-line rewrites in simplify.py as they're identified.
-- [ ] **Constant folding** over `basis_vector("literal string")`
-  at compile time, with results cached to disk so repeated
-  compiles don't re-hit Ollama. Substrate-aware (the cache key is
-  `(model, dim, string)`).
-- [ ] **Scheduled parallel evaluation of independent compute
-  sub-expressions.** The real remaining piece. `bundle(bind(r1,
-  f1), bind(r2, f2))` today emits straight-line sequential Python;
-  a future pass would detect the independence of the two binds
-  and dispatch them to a thread pool (numpy releases the GIL so
-  threads actually parallelize). The open design question is
-  *when* to dispatch — thread overhead dominates for small ops.
-  Heuristic: operations over large vectors or with expensive
-  substrate calls (Ollama, MLP inference) get parallelized;
-  cheap pure-numpy ops stay inline. Blocks PyTorch/GPU backend
-  (task #14 in the task tool) because GPU kernel launches have
-  the same "many small launches is slower than one big one"
-  structure — without this, the GPU backend is slower than the
-  CPU backend on small programs.
+- [x] ~~Additional algebraic rewrites.~~ `displacement(a, a) →
+  zero_vector()`, `unbind(R, bind(R, x)) → x`, `bind(R, unbind(R,
+  x)) → x`, `similarity(a, a) → 1.0`, compose flattening,
+  zero-absorption in + / − / bundle, arithmetic constant folding
+  (x+0, x*1, x*0, x/1). All in `simplify.py`; covered by
+  `tests/test_simplify.py`.
+- [x] ~~Basis-vector on-disk cache.~~ Runtime cache at
+  `~/.cache/sutra/embeddings/<model>-d<dim>.npz`. First run fetches
+  from Ollama + writes atomically; second run loads from disk with
+  zero Ollama calls. (Compile-time inlining — emitting embedded
+  numpy literals directly into the generated module — is a further
+  optimization; the runtime cache captures the value for now.)
+- [x] ~~Scheduled parallel evaluation (fused dispatch).~~ Scoped
+  to the two patterns that cover the demo programs:
+  - `bundle(bind(r1,f1), ..., bind(rN,fN))` → fused runtime
+    primitive `_VSA.bundle_of_binds(...)` doing one batched einsum
+    over stacked rotations + stacked fillers. Replaces N sequential
+    binds + an N-arg bundle with one op. On GPU, this collapses
+    O(N) kernel launches into O(1).
+  - `argmax_cosine(q, [a,b,c,...])` → stacked-candidate matmul +
+    argmax. One numpy call instead of a Python for-loop.
+  **Not done:** generalized ANF + dep-graph scheduling for
+  arbitrary independent sub-expressions (e.g. `bundle(bind(r,f), c,
+  bind(r2,f2))` still emits sequentially because one arg isn't a
+  bind). For the three demos the targeted fusion is sufficient;
+  larger programs would benefit from the general pass. Deferred
+  until it has a concrete demo driving it.
 
 ## [This year] Integer class — follow-on work
 
