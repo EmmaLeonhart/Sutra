@@ -36,8 +36,12 @@ pick up next.
 
 2. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
-   Spec is stable enough now (2026-04-22 rebuild pass) that this
-   unblocks.
+   **Gated on scheduled parallel evaluation** (the last remaining
+   piece of formula simplification in todo.md). Without parallel
+   scheduling, GPU emits many small kernel launches which is slower
+   than CPU on small programs. AST simplification + batched Ollama
+   pre-fetch landed 2026-04-22 evening; the compute-side parallel
+   scheduling is what still blocks this.
 
 ## Deferred (see `todo.md`)
 
