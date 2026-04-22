@@ -477,7 +477,22 @@ class FlyBrainCodegen:
         if isinstance(stmt, ast.ForStmt):
             self._translate_for_as_geometric_loop(stmt)
             return
-        if isinstance(stmt, (ast.DoWhileStmt, ast.ForeachStmt)):
+        if isinstance(stmt, ast.DoWhileStmt):
+            # `do { body } while (cond)` desugars to the body executed
+            # once, followed by a `while (cond) { body }`. User direction
+            # 2026-04-22: "decompose to a single iteration, followed by
+            # a while loop of it." The while half then lowers to the
+            # same eigenrotation-loop machinery ForStmt / WhileStmt use.
+            for inner in stmt.body.statements:
+                self._translate_stmt(inner)
+            synthesized_while = ast.WhileStmt(
+                condition=stmt.condition,
+                body=stmt.body,
+                span=stmt.span,
+            )
+            self._translate_while_as_geometric_loop(synthesized_while)
+            return
+        if isinstance(stmt, ast.ForeachStmt):
             raise CodegenNotSupported(
                 stmt,
                 f"{type(stmt).__name__} is not yet supported by the fly-brain "
