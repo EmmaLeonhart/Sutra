@@ -196,6 +196,11 @@ class FlyBrainCodegen:
         # so subscript expressions know whether to use the identity-based
         # vector-map helper or a plain dict lookup.
         self._map_key_type: dict[str, str] = {}
+        # Set of variable names declared with type `dict<K, V>`. A dict
+        # in Sutra is a rotation-hashmap — subscript access (d[k])
+        # dispatches to _VSA.hashmap_get, assignment (d[k] = v)
+        # dispatches to _VSA.hashmap_set (functional update).
+        self._dict_declared: set[str] = set()
 
     # -- emission helpers -------------------------------------------------
 
@@ -356,6 +361,15 @@ class FlyBrainCodegen:
         if decl.type_ref is not None and decl.type_ref.name == "map":
             if len(decl.type_ref.type_args) >= 1:
                 self._map_key_type[decl.name] = decl.type_ref.type_args[0].name
+        # Track dict<K, V> declarations so that d[k] / d[k] = v
+        # dispatch to the rotation-hashmap runtime.
+        if decl.type_ref is not None and decl.type_ref.name == "dict":
+            self._dict_declared.add(decl.name)
+            # Uninitialized `dict<K, V> d;` emits `d = _VSA.hashmap_new()`.
+            # Initialized form falls through to the initializer translation.
+            if decl.initializer is None:
+                self._emit(f"{decl.name} = _VSA.hashmap_new()")
+                return
 
         # `var x : TYPE;` without an initializer — the rotation-bound
         # storage-slot form from the 2026-04-21 surface-syntax decision
@@ -451,6 +465,28 @@ class FlyBrainCodegen:
         if isinstance(stmt, ast.ExprStmt):
             expr = stmt.expr
             if isinstance(expr, ast.Assignment):
+                # dict[key] = value dispatches to the rotation-hashmap
+                # runtime's functional-update form (hashmap_set returns
+                # a new accumulator). Only simple `=` is supported on
+                # dict subscripts — compound assignment (`d[k] += v`) is
+                # not yet specified.
+                if (isinstance(expr.target, ast.Subscript)
+                        and isinstance(expr.target.target, ast.Identifier)
+                        and expr.target.target.name in self._dict_declared):
+                    if expr.op != "=":
+                        raise CodegenNotSupported(
+                            stmt,
+                            f"compound assignment on a dict subscript "
+                            f"(`{expr.op}`) is not yet supported",
+                        )
+                    dict_name = expr.target.target.name
+                    key_src = self._translate_expr(expr.target.index)
+                    value_src = self._translate_expr(expr.value)
+                    self._emit(
+                        f"{dict_name} = _VSA.hashmap_set({dict_name}, "
+                        f"{key_src}, {value_src})"
+                    )
+                    return
                 # 2026-04-22: compound assignment (+=, -=, *=, /=) is
                 # emitted directly to Python. Python's semantics match
                 # Sutra's for scalars (float) and for numpy vectors (in-
@@ -793,6 +829,10 @@ class FlyBrainCodegen:
         if isinstance(expr, ast.Subscript):
             target_src = self._translate_expr(expr.target)
             index_src = self._translate_expr(expr.index)
+            # dict<K, V> subscripts route through the rotation-hashmap.
+            if (isinstance(expr.target, ast.Identifier)
+                    and expr.target.name in self._dict_declared):
+                return f"_VSA.hashmap_get({target_src}, {index_src})"
             # Vector-keyed map lookups route through the identity-first helper.
             if (isinstance(expr.target, ast.Identifier)
                     and self._map_key_type.get(expr.target.name) == "vector"):
