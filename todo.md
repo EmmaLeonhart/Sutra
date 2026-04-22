@@ -100,6 +100,51 @@ Longer scope (later):
   pragma the parser recognizes. Decide after seeing how the magic-
   comment version is used in practice.
 
+## [Pre-Anthropic-grant-app] Concurrency — only the cases that need explicit handling
+
+User direction 2026-04-22 (afternoon): concurrency is implicit by
+default in Sutra because the language's functional algebraic nature
+already gives the compiler license to evaluate independent sub-
+expressions in parallel via formula simplification. **An explicit
+syntax is only needed for the cases where the compiler can't derive
+the parallelism algebraically**. Moved from STATUS.md to this
+pre-grant-app section — the item's scope has shrunk substantially
+because most of what used to be "concurrency work" is now "things
+the compiler already does."
+
+The shapes that still need explicit handling:
+
+- [ ] **Concurrent looping.** `loop` today is a single trajectory
+  (bounded unroll for `loop[N]`, eigenrotation for `loop(cond)`).
+  A concurrent form would run N independent trajectories in
+  parallel. Surface syntax TBD — probably an extension of existing
+  `loop` rather than a new keyword, given the user's "implicit
+  except where needed" framing.
+
+- [ ] **MLP attractor search.** N independent trajectories through
+  an attractor MLP, each from `v0 + noise[i]`, each iterated until
+  its fixed point, collected as a basin distribution. This is the
+  first-class concrete use case driving the concurrency work (see
+  `planning/findings/2026-04-22-mlp-attractor-king-queen-nomic.md`).
+  Currently hand-rolled in Python; the pre-grant-app work lets the
+  language express it natively.
+
+Deferred sub-questions (from the original 2026-04-14/15 open-
+question doc; the user has not expressed a position on these and
+they don't block the two shapes above):
+
+- Convergence test formula — cosine threshold? snap identity?
+  Both-finished as a fallback?
+- Timing mismatch — return-fast-cancel-slow vs. wait-both.
+- External concurrency (parallel Ollama calls) — probably just
+  compiler-does-it given the "implicit by default" framing, but
+  I/O error modes may force a more explicit treatment.
+
+Source-of-truth for the design: `planning/sutra-spec/concurrency.md`
+(implicit-by-default, with explicit as fallback).
+`planning/open-questions/concurrency-and-monads.md` (monad framing
+was considered and demoted).
+
 ## [Pre-Anthropic-grant-app] Learned-matrix binding
 
 Deferred from the 2026-04-22 rotation-binding pass (user priority —
