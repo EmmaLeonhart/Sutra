@@ -61,6 +61,27 @@ values live on. All numeric types share this axis. Everything in
 Sutra is a float at runtime because everything is a vector; the
 number axis is where those scalar floats sit.
 
+**What lives on the number axis.** User direction, 2026-04-22:
+*"integers are the only thing that ever enters this space unless
+an LLM embedding goes there."* The axis is reserved, by design,
+for integer-class values. Every Sutra-produced operation that
+touches the number axis is a scalar arithmetic operation on an
+`int`-classed value — no bind / bundle / rotation / learned-
+matrix operation is specified to emit a nonzero number-axis
+coordinate. The only thing that can leak onto the axis from
+outside is an LLM embedding that happens to have nonzero
+coordinate on that specific synthetic dimension; that's
+incidental, not a design feature, and is expected to be
+negligible in practice since embeddings live in the semantic
+subspace and the synthetic subspace is structurally orthogonal.
+
+This is the same cleanliness guarantee the truth axis carries
+(see `equality-and-defuzzification.md` §"The canonical truth
+axis"): because the synthetic subspace is orthogonal to the
+semantic subspace by construction, the axis stays clean — it
+doesn't accumulate noise from semantic operations elsewhere in
+the program.
+
 The **integer class** is a compile-time tag, parallel to `bool`'s
 defuzz counter: it marks values that should behave integer-like.
 Its primary role is to make *augmented assignment* (`+=`, `-=`,
