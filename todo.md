@@ -59,9 +59,13 @@ Two follow-ups flagged during that work:
     5. Compare across substrates (this plus the per-program embedding
        override item below = a real cross-substrate attractor-quality
        benchmark).
-  This is a substantial item and is not expected to land before the
-  Anthropic grant app. The WIP placeholder script stays to capture
-  the name; do not confuse it for the real thing.
+  **User direction 2026-04-22: do this before the Anthropic grant
+  app (~2026-04-29) but not today.** It's a real priority for the
+  application window; it's just not a same-day item. Sequence after
+  the smaller pre-app items (embedding override, learned-matrix
+  bind, rotation-binding capacity characterization). The WIP
+  placeholder script at `examples/_king_queen_attractor_search.py`
+  stays to capture the name; do not confuse it for the real thing.
 
 ## [Pre-Anthropic-grant-app] Per-program embedding-space override
 
