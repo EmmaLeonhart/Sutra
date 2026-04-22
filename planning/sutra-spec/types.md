@@ -47,9 +47,46 @@ Three base types at the bottom of the user-framed hierarchy:
   parameter and return types (`function string main()`),
   `basis_vector(string) → vector`, and as values in `map<V, string>`
   lookup tables.
-- **`int`**, **`number`** — numeric types. The compiler treats
-  them as Python numbers; there's no distinction between `int`
-  and `scalar` at the runtime level today.
+- **`int`**, **`number`**, **`scalar`** — numeric types. All live
+  on the canonical *number axis* of the synthetic subspace (see
+  §"The number axis and the integer class" below). At runtime
+  they are all Python floats; the distinction between them is
+  compile-time metadata.
+
+### The number axis and the integer class
+
+User direction 2026-04-22 (evening): the synthetic subspace gets
+a canonical *number axis* — one dimension, going up, that scalar
+values live on. All numeric types share this axis. Everything in
+Sutra is a float at runtime because everything is a vector; the
+number axis is where those scalar floats sit.
+
+The **integer class** is a compile-time tag, parallel to `bool`'s
+defuzz counter: it marks values that should behave integer-like.
+Its primary role is to make *augmented assignment* (`+=`, `-=`,
+`*=`, `/=`) first-class. `var n : int = 0; n += 1; n += 1;` is
+the canonical integer-style iteration pattern and is what turns
+Sutra into "something of a convention" — a programming language
+that looks like programmers expect while the underlying substrate
+is still vector math.
+
+As of 2026-04-22, augmented assignment works on any scalar-typed
+target. The codegen emits Python's native `target op= value` form,
+which has identical semantics for Python floats (what scalars are
+today) and numpy arrays (what `var x : vector += y` would be,
+though vector-valued compound assignment isn't really the use case).
+
+Future work on the integer class (tracked in `todo.md`):
+- Compile-time integer-specific checks (overflow bounds, mod-N
+  wrap semantics, etc.).
+- Range-typed integers (`int<0..N>`) for loop indices and slot
+  ranges.
+- The distinction between `int` and `float` / `number` as
+  propagated type metadata through expressions.
+
+`scalar` and `number` remain available as "numeric type, class
+unspecified" when the program doesn't need the integer class's
+extra behavior.
 
 ### `map<K, V>`
 
