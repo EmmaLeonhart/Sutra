@@ -1,74 +1,149 @@
 # Control flow
 
-## `select` — the branching primitive
+This section describes what the compiler actually accepts and how it
+lowers each construct, as of 2026-04-22. Where a construct is parsed
+but rejected at codegen, that's called out explicitly — several
+familiar control-flow keywords are in this category.
+
+## Branching
+
+### `select` — the only runtime branching primitive
 
 `select` is the main conditional-branching primitive in Sutra.
-Single-option `select`, multi-option `select`, and `select ... else
-fallback` are the three forms. Semantically `select` is fuzzy
-weighted superposition over the named options rather than a
-discrete `if`.
+Single-option `select`, multi-option `select`, and
+`select ... else fallback` are the three forms. Semantically
+`select` is fuzzy weighted superposition over the named options
+rather than a discrete `if`. The result is a vector that is the
+softmax-weighted sum of the options; it can be passed to further
+operations.
 
 `select` is not a primitive vector operation (bind/bundle/…); it is
 a separate kind of thing — control flow.
 
+### `if` / `else` is parsed but rejected at codegen
+
+The lexer has `KW_IF` / `KW_ELSE` tokens and the parser accepts the
+usual `if (cond) { then } else { else }` form. **But the fly-brain
+codegen rejects them** (`codegen_flybrain.py`, around line 487):
+"if/else is not supported by the V1 fly-brain codegen — the whole
+point is to compile it away into a prototype-table lookup." The
+numpy codegen inherits the rejection.
+
+So in practice: if a `.su` program contains an `if` statement, it
+fails to compile with a clear error. Programs that need branching
+rewrite to `select`:
+
+- Fuzzy weighted superposition over several options:
+  `examples/fuzzy_branching.su` (2-dimensional conditional over
+  smell × hunger).
+- Hard-dispatch-looking code:
+  `examples/fuzzy_dispatch.su` (N-way `select` over weighted
+  scores).
+
+This is a design commitment, not a missing feature. If you want
+"if," you write `select` with two options.
+
 ## Loops
 
-There is more than one loop form in Sutra. They split along whether
-the loop can be unrolled at compile time:
+The language has several loop surface forms. All of them compile to
+one of two underlying mechanisms: **compile-time unroll** (bounded,
+known iteration count) or **eigenrotation** (data-dependent
+termination on the substrate).
 
-### `loop[N]` — unrolling loop
+### `loop[N]` — bounded, unrolls at compile time
 
-A loop with a known compile-time iteration count unrolls. Zero
-runtime iteration, zero eigenrotation. The compiler emits the body
-`N` times.
+`loop (N) { body }` or `loop (N as i) { body }` where `N` is an
+integer literal unrolls at compile time. Zero runtime iteration,
+zero eigenrotation — the compiler emits the body `N` times, with
+the index variable `i` substituted with `0, 1, …, N-1` in each
+iteration if the `as i` form is used.
 
-### for-each loop — also unrolls
+If `N` is a non-literal expression, the codegen currently emits a
+Python `for _ in range(N)` loop around the body (no unrolling).
+That's a compile-time choice, not a runtime eigenrotation — the
+substrate doesn't see any rotation in this case.
 
-A for-each over a compile-time-known collection unrolls the same
-way. Since collections in Sutra are compile-time objects (tuples,
-lists that collapse to tuples), the iteration count is known at
-compile time and the loop body is emitted once per element.
+### `loop(cond)` — data-dependent, eigenrotation on the substrate
 
-### C-style iteration loop — `i = 1; ++; until 10`
+When the loop's termination is data-dependent (`loop (cond)` where
+`cond` is not an integer literal), the codegen lowers to an
+**eigenrotation loop on the substrate**. The compiler:
 
-You can write a loop that looks like a traditional iterating loop
-(C# / C / Java style — `for (i = 1; i < 10; ++i)` shape). When the
-bounds are compile-time-known, this becomes **the same much
-simpler form as `loop[N]`** — it unrolls. The loop counter `i` is
-compile-time metadata, not a runtime variable.
+1. Extracts the target vector from the condition — the shape
+   `similarity(state, target_expr) < threshold` is recognized and
+   `target_expr` is pulled out (`_extract_loop_target` in
+   `codegen_flybrain.py`).
+2. Emits a Haar-random orthogonal rotation `R` seeded by the
+   runtime seed.
+3. Iterates `state ← R · state` on the substrate, snapping against
+   a compiled prototype table at each step.
+4. Terminates when the snapped prototype matches the target within
+   the threshold, or when `max_iters` is hit.
 
-### `loop(condition)` — eigenrotation
+The numpy backend uses threshold 0.9 as the default termination
+gate; the fly-brain backend uses 0.3 because matching is on KC
+patterns (Jaccard, different scale).
 
-When a loop **cannot** be unrolled — the termination is data-
-dependent, you do not know at compile time how many steps it takes
-— the loop works by **eigenrotation**. The loop state rotates
-through the vector space on each step, the substrate evaluates the
-termination condition, and the loop exits when the condition fires.
+Demo programs: `examples/loop_rotation.su`,
+`examples/counter_loop.su`, `examples/concept_search.su`. All pass
+under the current rotation-binding runtime.
 
-There is no while-loop keyword; this data-dependent form is
-`loop(condition)`, not `while(condition)`.
+### `while` and `for` — also eigenrotation
 
-## Not a while loop
+Surprisingly, `while (cond) { body }` and C-style
+`for (init; cond; step) { body }` are both parsed AND both compile
+to eigenrotation loops — **not** to Python-style host-runtime
+loops. The codegen extracts a target (for `while`) or an iteration
+bound (for `for`) and lowers to the same substrate machinery as
+`loop(cond)`.
 
-The user has not adopted a `while` keyword for Sutra. What would
-be a while loop in another language is either (a) an unrolling
-iteration loop if bounds are known, or (b) `loop(condition)` via
-eigenrotation if they aren't.
+This is design-intentional: Sutra runs computation on the
+substrate, not on the host. A `for` that compiled to a Python
+`for` loop would mean the loop counter lives on the host — which
+CLAUDE.md explicitly rejects ("the 'counter' for `loop(condition)`
+IS the angular position on the helix R^i·v₀ in the substrate").
+
+Programs that want bounded iteration should prefer `loop[N]`
+(unrolls cleanly); `while` and `for` work but lower to the same
+eigenrotation as `loop(cond)` and carry the same caveats.
+
+### `do-while`, `foreach`, `try-catch` — parsed but rejected
+
+The parser accepts `do { … } while(…)`, `foreach (x in xs) { … }`,
+and `try { … } catch { … }`. None of them have codegen support;
+all three fail at compile time with "not yet supported."
+
+These are parser features without implementations. If a `.su`
+program uses one, it fails to compile. The parser support exists
+so the surface syntax is reserved rather than co-opted for
+something else.
+
+## `return`
+
+Functions can return a value (`return expr;`) or nothing
+(`return;`). Both parse and both codegen. The return type in the
+function signature is a convention, not a check — the compiler
+doesn't verify that the returned expression's type matches the
+declared return type.
 
 ## Open questions
 
-- Exact semantics of multi-option `select`'s firing threshold and
-  of `select ... else` when all named options are low. (Already
-  tracked in `todo.md`; carrying forward.)
-- Does the C-style iteration loop need its own surface syntax, or
-  can every such program be written as `loop[N]` or a for-each?
-- When the compiler cannot prove a loop's iteration count is
-  compile-time-known, does it silently fall back to
-  `loop(condition)`, or does it error and force the programmer to
-  write `loop(condition)` explicitly?
-- What is the exact rotation operator used for `loop(condition)`
-  eigenrotation? Haar-random? A substrate-specific operator? Per
-  loop site or per program?
-- Can `loop(condition)` exit on something other than a vector-
-  similarity check (e.g. a bool crossing a threshold, a counter
-  hitting a ceiling)? If so, which of those are first-class?
+- **Exact semantics of multi-option `select`'s firing threshold**
+  and of `select ... else` when all named options are low. (Tracked
+  in `todo.md`.)
+- **When `loop[N]` can't be unrolled** (non-literal N), current
+  codegen silently emits a host-Python `for _ in range(N)`. Is
+  that acceptable (it's a counter on the host), or should the
+  compiler error and force `loop(cond)`? Open.
+- **Rotation operator for `loop(cond)`** — currently Haar-random,
+  seeded by runtime seed. Is that always right, or should the
+  operator be substrate-specific / per-loop-site?
+- **Non-similarity loop conditions.** `loop(cond)` currently
+  expects `similarity(state, target) < threshold`. Can a bool
+  crossing a threshold or a counter hitting a ceiling terminate a
+  loop, and do those need their own lowering paths?
+- **Decide fate of parser-only features.** `do-while`, `foreach`,
+  `try-catch`, `if/else`: should they stay parsed-but-rejected (to
+  reserve the surface syntax), get removed entirely, or get
+  implemented? `if/else` is design-rejected (use `select`); the
+  others are just unimplemented. Flag in a future pass.
