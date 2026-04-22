@@ -34,20 +34,10 @@ pick up next.
    scope). Deferred here as a substantial piece; lands alongside
    learned-matrix binding in the pre-grant-app queue per todo.md.
 
-2. **Rebuild `planning/sutra-spec/` from scratch in the user's
-   framing.** Process: each spec section starts as a question posed
-   to the user; Claude writes down the user's framing; gaps go to
-   `planning/open-questions/`. The `binding.md`, `vision.md`, and
-   `equality-and-defuzzification.md` rewrites from 2026-04-21 are
-   partial progress; `concurrency.md`, `control-flow.md`,
-   `operations.md`, `program-structure.md`, `types.md` still need
-   user-driven rewrites. Ongoing work across sessions, not a single
-   task.
-
-3. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
+2. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
-   Do this only after item 2 is settled so the spec being targeted
-   is stable.
+   Spec is stable enough now (2026-04-22 rebuild pass) that this
+   unblocks.
 
 ## Deferred (see `todo.md`)
 
