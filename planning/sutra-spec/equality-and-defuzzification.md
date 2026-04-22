@@ -9,66 +9,96 @@ a matrix-mediated operation:
    "is-this-thing" test.
 2. To test whether `x` equals `cat`, you use that function on `cat`
    to get the **`is_cat` matrix**, then multiply that matrix by `x`.
-3. The result is a truth-valued vector (fuzzy / bool) that says
-   how much `x` is `cat`.
+3. The result is a scalar on the canonical truth axis — how much
+   `x` is `cat`, read as a fuzzy truth value.
 
-So "x == cat" is not a single scalar comparison — it's the function-
-of-vector → matrix → matrix-vector-product pipeline. `is_cat` is
-itself a reusable object; once you have it, you can apply it to
-many candidate `x`s.
+So "x == cat" is not a single scalar comparison — it's the
+function-of-vector → matrix → matrix-vector-product pipeline.
+`is_cat` is itself a reusable object; once you have it, you can
+apply it to many candidate `x`s.
 
 This is the reason many Sutra functions compile to matrices (see
 `types.md` — "Functions and matrices"). An "is-X" predicate is
-literally a matrix.
+literally a matrix, and its output lands on the truth axis.
+
+## The canonical truth axis
+
+Truth has its own **canonical axis** in the synthetic subspace of
+the extended state vector (see `binding.md` for the extended-state
+design). The axis is antipodal:
+
+- `true = +1` along the truth axis.
+- `false = -1` along the truth axis.
+- Fuzzy values are the continuous range between.
+
+Because the synthetic subspace is **structurally orthogonal** to
+the semantic subspace, every semantic vector has zero projection
+onto the truth axis by construction. Semantic content is
+**decorrelated from truth by construction, not by learned
+statistics** — nothing "looks more true" because of what it means.
+
+A boolean or fuzzy value in Sutra is a scalar on the truth axis.
+Multiple boolean variables don't share the axis directly — each
+boolean is stored at its own rotation-bound variable slot in the
+synthetic subspace, and *the value at that slot is the scalar on
+the truth axis*. So `bool a; bool b` gets two separate rotation
+slots; reading `a` de-rotates out of its slot and projects onto
+the truth axis for the scalar.
+
+Fuzzy logic operations (`and`, `or`, `not`, t-norms) act on the
+truth-axis scalar directly. `not` is negation along the axis.
+`and` and `or` are standard fuzzy t-norms / t-conorms applied to
+the scalars.
 
 ## Defuzzification
 
-Defuzzification is also a matrix operation. The user's working
-picture: a **defuzz matrix** exists such that multiplying a fuzzy
-value by it produces a defuzzified-by-a-certain-amount version of
-that fuzzy. Repeated application drives a fuzzy value toward a
-bool, and the compile-time defuzz counter on `bool` tracks how
-many rounds it has been through.
+Defuzzification is a matrix operation that **polarizes** a fuzzy
+truth scalar toward `+1` (true) or `-1` (false) along the truth
+axis. The user's working picture: a **defuzz matrix** exists such
+that multiplying a fuzzy value by it produces a defuzzified-by-a-
+certain-amount version of that fuzzy. Repeated application drives
+a fuzzy value toward a bool, and the compile-time defuzz counter
+on `bool` tracks how many rounds it has been through.
 
-The rule: defuzzification **polarizes** — it sharpens a fuzzy value
-along a target axis — but it **does not binarize**. The output is
-still fuzzy, still differentiable, still a vector. A value that has
-been defuzzified "fully" is not a crisp 0/1; it is a bool
-(subclass of fuzzy) with the defuzz counter recording how many
-polarization steps it has been through.
+The rule: defuzzification **polarizes** — it sharpens a fuzzy
+value along the truth axis — but it **does not binarize**. The
+output is still fuzzy, still differentiable, still a scalar (not
+a crisp 0/1). A value that has been defuzzified "fully" is a
+`bool` (subclass of `fuzzy`) with the defuzz counter recording how
+many polarization steps it has been through.
 
-`is_true` is the operation that performs this polarization. It can
-be applied repeatedly; each application increments the counter.
+`is_true` is the operation that performs this polarization. It
+can be applied repeatedly; each application increments the counter.
 
-## The undersymbolic realm — where `true` and `false` live
+## Alternative: undersymbolic-realm placement on substrates without a synthetic subspace
+
+The canonical-truth-axis design depends on the substrate supporting
+an appended synthetic subspace — a handful of extra dimensions
+reserved for computational state, orthogonal by construction to
+the semantic content. This works naturally for numpy / embedding-
+vector substrates: you just allocate a longer vector.
+
+Some substrates cannot append dimensions cheaply. The fly-brain
+Shiu whole-brain LIF model, for instance, has a fixed neuron
+population with no spare "computational" neurons reserved for
+synthetic axes. For substrates like these, the **undersymbolic
+realm** approach is the fallback:
 
 LLM embedding spaces are **anisotropic**: natural-language content
-concentrates in a cone (or a narrow manifold) that occupies only a
-small fraction of the full d-dimensional space. The rest of the
+concentrates in a cone (or a narrow manifold) that occupies only
+a small fraction of the full d-dimensional space. The rest of the
 space — directions roughly orthogonal to the content cone — is
 **sparsely populated**: no natural word or sentence embeds near
-those directions. The user's earlier working name for this
-region is the **undersymbolic realm**.
+those directions. The user's earlier working name for this region
+is the **undersymbolic realm**.
 
-This empty region is a resource, not a problem. Sutra uses it for
-structural markers that **should not collide with any natural
-concept**:
+This empty region is a resource, not a problem. On substrates
+without a dedicated synthetic subspace, Sutra uses it for
+structural markers that should not collide with any natural
+concept — truth axis, variable-slot rotations, identity sentinels.
 
-- **`v_true` and `v_false`** live outside the populated cone.
-  If `v_true` were just `embed("true")`, it would be close to
-  "yes", "correct", "affirmative", "right", and a thousand other
-  content-bearing words — every one of which would contaminate the
-  truth-axis with its own semantic baggage. Putting `v_true` in
-  an uninhabited direction keeps the polarization axis clean.
-- **Arbitrary synthetic points** (identity markers for role
-  matrices, sentinels for "no answer," structural separators) get
-  the same treatment: assign them a direction no natural embedding
-  occupies, and they stay uncontaminated.
-
-Mechanically, this means Sutra does **not** use `embed("true")` for
-`v_true`. The runtime (or the empirical-initiation phase) should
-**characterize which directions are empty in the target substrate**
-and mint synthetic points there. Concretely, candidates for finding
+Mechanically, this means Sutra does **not** use `embed("true")`
+for the truth direction on such substrates. Candidates for finding
 empty directions include:
 
 - Principal components with small eigenvalues in a corpus-wide
@@ -80,10 +110,15 @@ empty directions include:
 - Explicitly orthogonalizing synthetic points against each other
   and against a reference corpus of natural embeddings.
 
-Defuzzification toward `v_true` and `v_false` is then polarization
-along an axis that is empirically empty in the substrate — the
-"is this true" question doesn't get confounded by "is this
-reminiscent of the word 'true'."
+On substrates where the undersymbolic-realm approach applies, the
+truth axis becomes an empirical rather than constructed direction —
+the canonical-axis commitment is relaxed, and the compiler picks a
+direction that is empirically empty in the substrate.
+
+The default substrate (numpy + frozen LLM + appended synthetic
+subspace) uses the constructed approach. The undersymbolic-realm
+approach is the substrate-specific fallback for constrained
+targets.
 
 ## Open questions
 
@@ -91,12 +126,22 @@ reminiscent of the word 'true'."
   single canonical function per type, or user-definable per
   predicate?
 - What is the exact construction of the defuzz matrix? Is it
-  substrate-dependent?
-- Does the defuzz counter have a ceiling (after N defuzz steps the
-  value is in a distinguished state)? Or is it open-ended?
+  substrate-dependent? Does it act specifically on the truth axis
+  or does it involve the whole state vector?
+- Does the defuzz counter have a ceiling (after N defuzz steps
+  the value is in a distinguished state)? Or is it open-ended?
 - Is `is_true` the only defuzzification primitive, or are there
   others (e.g. `is_false`, `is_near`, `is_in`)?
-- Equality as matrix multiplication gives a truth-vector. Is that
-  vector itself a `fuzzy`, a `bool`, or something else in the
-  type system? (Presumably `fuzzy` if no defuzz has been applied,
-  `bool` if one has — but this needs to be stated.)
+- Equality as matrix multiplication produces a truth-axis scalar.
+  Is that scalar typed as `fuzzy` until defuzz is applied, at
+  which point it becomes `bool` (with defuzz counter ≥ 1)? The
+  type flow needs to be spelled out.
+- On substrates using the undersymbolic-realm fallback (no
+  appended synthetic subspace), how stable is the "empty direction"
+  against shifts in the corpus over time? If the substrate's
+  underlying embedding drifts, does the truth axis need to be
+  re-derived?
+- **Canonical-axis inventory beyond truth.** The synthetic subspace
+  can host other canonical axes (integer, enum, position, time) for
+  native support of other data types through VSA. Which of these
+  are committed, and on what timeline?
