@@ -19,15 +19,30 @@ and unbinding by one role matrix approximately recovers the matching
 filler (cross-terms decorrelate into noise when the role matrices
 and/or the fillers are close to orthogonal in the relevant sense).
 
-## Two kinds of binding
+## Kinds of binding
 
-The role matrix `R` comes in two kinds. Programs use both.
+The role matrix `R` comes in multiple kinds. Two are currently
+populated — **semantic** (learned-matrix) and **structural**
+(sign-flip and its generalizations). They are not interchangeable
+and they are not ranked: each is good at a job the other is bad at.
+Programs use whichever kind fits the job, and the surface syntax
+must make the choice visible at role-declaration time.
+
+The family is open. Other kinds (sparse-code bindings, attention-
+style, hybrid) may be added as Sutra matures; the commitment of the
+language is that binding is a *family of operations distinguished by
+kind*, not a single operation.
 
 ### Semantic binding (learned matrices)
 
-`R` is **learned from corpus data** and corresponds to a real semantic
-relation. These are the Sutra-distinctive bindings — the whole point
-of the language is that programs operate with them.
+`R` is **learned from corpus data** and corresponds to a real
+semantic relation. Use this kind when the role *means something* —
+when the bind expresses a logical or relational claim about the
+filler in the substrate.
+
+These are the Sutra-distinctive bindings. The whole innovation story
+of the language — displacement → consolidation → full role matrix —
+runs on this kind.
 
 Examples:
 
@@ -60,50 +75,84 @@ role is the open empirical question — see
 for the first attempt and its (confounded, data-starved) null
 result.
 
-### Non-semantic binding (arbitrary matrices)
+### Structural binding (sign-flip and other non-semantic matrices)
 
-`R` is **arbitrary** and carries no semantic content. Used where you
-just need a key that decorrelates — structural markers, positions in
-a sequence, identity sentinels, bundling slots that don't correspond
-to any real relation.
+`R` **carries no semantic content**. The role is a handle, not a
+meaning. Use this kind for **opaque variable storage**: stashing a
+filler under a label and retrieving it exactly later, where the
+role↔filler relationship is not supposed to mean anything. This is
+what dictionary keys, record fields, stack slots, and named
+variables look like when expressed as bind.
 
-Classical VSA's random roles are non-semantic bindings in this sense.
-Sign-flip binding (`a * sign(role)` = a diagonal ±1 matrix) is a
-non-semantic binding. Random orthogonal rotations, random Gaussian
-matrices, permutation matrices — all non-semantic.
+The canonical instance is **sign-flip binding**:
+
+```
+bind_signflip(filler, role) = filler * sign(role)
+```
+
+where `sign(role)` is a ±1 pattern indexed by the role name. A
+diagonal ±1 matrix is the degenerate structural case of a role
+matrix. Sign-flip is cheap, exactly self-inverse, and
+commutative-friendly — which is exactly why it's the right default
+for storage-and-retrieval. The job is: "let me get my X back, given
+the name I stored it under." Semantic machinery would be noise here.
+
+Other structural bindings exist — random orthogonal rotations,
+permutation matrices, random Gaussian matrices, classical VSA's
+random HRR roles — but sign-flip is Sutra's preferred structural
+binding for most storage cases. HRR-style random roles remain
+available where decorrelation of arbitrarily many keys is needed and
+the ±1 family is too coarse.
+
+**Sign-flip is not a placeholder for learned-matrix bind.** It is
+the right answer when you want a handle, not a meaning. Trying to
+use it for logical relations (where the role *should* mean
+something) is a type error in program design; trying to use
+learned-matrix bind for opaque storage is overkill and less clean.
+Pick by use case.
 
 Non-semantic keys should live in empty regions of the substrate's
 embedding space ("the undersymbolic realm," see
 `equality-and-defuzzification.md`) so they do not contaminate
 semantic structure. If a non-semantic key collided with a real
 content direction, every record built with it would pick up noise
-in that direction. So the runtime (or empirical-initiation phase)
-mints non-semantic keys in directions no natural embedding occupies
-— low-eigenvalue PCA directions, random directions with the content
-subspace projected out, or explicitly-orthogonalized synthetic
-points.
+in that direction. The empirical-initiation phase mints non-semantic
+keys in directions no natural embedding occupies — low-eigenvalue
+PCA directions, random directions with the content subspace
+projected out, or explicitly-orthogonalized synthetic points. For
+sign-flip specifically, the keys are ±1 patterns rather than
+embedded points, and the undersymbolic-realm concern shows up as
+"the sign pattern should not be correlated with any semantic
+content direction."
 
 ### Why the distinction matters
 
-Conventional VSA (HRR, MAP, BSC, HDC) uses only non-semantic roles,
-by design: random vectors were chosen *precisely because* they
-carry no semantic content, and all of VSA's composition properties
-assume near-orthogonality from random statistics. Sutra inverts
-this — the interesting binding is semantic, and non-semantic binding
-is just infrastructure. See `vision.md` for the framing.
+Sutra's contribution relative to classical VSA is the **existence of
+semantic binding**. HRR/MAP/BSC/HDC uses only non-semantic (random)
+roles by design — their composition properties depend on random
+near-orthogonality. Sutra adds a whole new binding kind whose role
+matrices carry real semantic structure, fitted from the substrate.
+See `vision.md` for that framing.
 
-Practically:
+But adding the semantic kind does not retire the structural kind.
+They are **different tools for different jobs**:
 
-- Default to semantic binding when writing a program. If you're
-  binding "the object of this sentence" to a filler, you want the
-  learned object-role matrix, not a random role.
-- Use non-semantic binding when you need a structural slot that
-  carries no meaning of its own (e.g. positions in an unordered
-  collection, temporary sentinels, keys in a hash-like lookup).
-- The compiler can in principle detect the distinction: named
-  semantic roles resolve to learned matrices from a library;
-  anonymous or numerically-indexed slots resolve to non-semantic
-  matrices minted in the undersymbolic realm.
+- **Logical / relational operations** → semantic (learned-matrix)
+  bind. If you're expressing "X is the object of sentence S" or "Y
+  is located in country Z," the role should mean something, and a
+  learned matrix is what makes that work.
+- **Opaque variable storage** → structural (sign-flip) bind. If
+  you're storing a value under a handle and only need exact
+  retrieval later — the "give me my X back" use case — sign-flip
+  is the sharper tool. You don't want a learned matrix smearing the
+  value through semantic space.
+
+Programs choose the binding kind explicitly at role declaration.
+The compiler does not try to guess from context: a sign-flip role
+and a learned-matrix role are different declarations with different
+source-level markers. The exact surface syntax is an open question
+(see `planning/open-questions/` when the doc exists) but the
+commitment is that **the choice is visible to the programmer**.
 
 ## Unbinding
 
@@ -119,11 +168,13 @@ acceptable. Candidate handlings:
 - **Arbitrary roles.** `R⁻¹ = pinv(R)` at compile time; the runtime
   just applies the precomputed inverse.
 
-For non-semantic bindings, the inverse is definitional: sign-flip
-is self-inverse (`sign(role)` squared is all-ones); permutation
-inverts by permuting back; random orthogonal matrices invert via
-transpose; random Gaussian matrices invert via matrix inverse
-(expensive and noisy).
+For structural bindings, the inverse is definitional: sign-flip is
+self-inverse (`sign(role)` squared is all-ones), which is one of
+the reasons it's the preferred default for opaque storage —
+retrieval is a rebind with the same role. Permutation inverts by
+permuting back; random orthogonal matrices invert via transpose;
+random Gaussian matrices invert via matrix inverse (expensive and
+noisy).
 
 ## `bundle`
 
@@ -146,14 +197,24 @@ default is not yet fixed.
 
 ## Open questions specific to binding
 
+- **Surface syntax for binding-kind choice.** How does a `.su`
+  program distinguish a sign-flip role from a learned-matrix role
+  at declaration? Candidates: explicit keyword (`role foo semantic`
+  vs. `role foo structural`), inferred from presence/absence of
+  training-data declaration, type-annotation style. Must be visible
+  and obvious to the programmer. Open.
 - Which fitting procedure for semantic role matrices? Lstsq is the
   default; ridge, Procrustes, and low-rank alternatives are likely
   needed depending on substrate data/dimension ratios.
 - Do learned matrices need to be orthogonal for clean unbinding?
   Substrate-dependent.
 - Which empirical-space directions qualify as "undersymbolic" for
-  non-semantic key placement? Low-eigenvalue PCA is the default;
+  structural key placement? Low-eigenvalue PCA is the default;
   whether other constructions are better is open.
 - Are there roles that are genuinely non-linear (and so cannot be
   captured as a matrix)? The spec currently assumes linearity; some
   roles may require quadratic or attention-style operations.
+- Are there other binding kinds worth populating beyond semantic
+  and structural? Sparse-code bindings, attention-style bindings,
+  hybrid kinds — the family is declared open, but no concrete third
+  kind is specified yet.
