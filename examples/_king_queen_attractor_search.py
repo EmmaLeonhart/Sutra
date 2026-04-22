@@ -1,15 +1,26 @@
-"""Monte-Carlo attractor search over the king - man + woman analogy.
+"""Random-rotation Monte Carlo over the king - man + woman analogy.
 
-STATUS 2026-04-22: WIP / DEFERRED. The cross-substrate sweep
-(_king_queen_multi_substrate.py) answered the primary question
-(which substrates give queen vs. which give king / woman under naive
-arithmetic); Monte-Carlo is now about characterizing *robustness*
-of the winning answer under perturbation. Per user priority,
-deferred past the Anthropic grant app (~2026-04-29). See todo.md.
+STATUS 2026-04-22: MISNAMED + DEFERRED. User clarification after
+first draft: a real "Monte Carlo ATTRACTOR search" requires an MLP
+trained as an attractor function — iterating f(x) pulls x into
+codebook-defined basins, and Monte Carlo samples trajectories through
+that learned attractor landscape. This script does NOT do that. What
+this script does is much weaker: add Haar-style noise to v0 and snap
+to the nearest codebook entry. It's "random-rotation + nearest-
+neighbor", not "attractor search." No learning, no basin dynamics.
 
-This script is runnable but hasn't been validated end-to-end on the
-O(d) `perturb_on_sphere` replacement for the old make_small_rotation.
-Expected behavior when it runs cleanly:
+The real thing is substantial work (train an MLP with codebook words
+as fixed points, validate basin boundaries, iterate from v0 into a
+basin, sample with noise). Deferred past the Anthropic grant app per
+user priority. See todo.md for the full thing.
+
+This script is left in place as a WIP / placeholder for the robustness
+question: even without the MLP attractor, the random-rotation-Monte-
+Carlo does tell you how stable the naive-analogy winner is under
+small perturbations. That's a weaker version of what the attractor
+MC would tell you, but it's still useful as a quick fragility check.
+Before running, reread the script header — do not confuse this for
+the real attractor search.
 
 Companion to `king_queen_naive.su`. The naive .su program runs
 argmax_cosine(king - man + woman, candidates) and returns the

@@ -34,13 +34,34 @@ Two follow-ups flagged during that work:
   `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`;
   five concrete experiments, not yet run. Produces a findings doc
   with the capacity curve.
-- [ ] **Monte-Carlo attractor search.** `examples/_king_queen_attractor_search.py`
-  (partial WIP, 2026-04-22) is meant to run N trials perturbing the
-  naive-analogy vector and reporting the distribution of attractors
-  that v0 snaps to. The first draft used full Haar rotations and was
-  too slow; the cheap O(d) "rotate toward a random unit direction"
-  replacement is sketched but not validated. Finish the harness and
-  run the sweep across embedding models (see next item).
+- [ ] **Monte-Carlo attractor search (real version).** User
+  clarification 2026-04-22: this is NOT just "perturb v0 and snap to
+  the nearest codebook entry" — that's random-rotation-plus-nearest-
+  neighbor and is captured by the WIP placeholder script
+  `examples/_king_queen_attractor_search.py`. The real Monte Carlo
+  attractor search requires an MLP trained as an attractor function:
+  iterating `x ← f(x)` pulls x into basins whose fixed points are the
+  codebook vectors (or learned attractor points), and Monte Carlo
+  samples many trajectories starting from v0 + noise to characterize
+  the basin distribution. Work required:
+    1. Design the MLP architecture and training objective. Hopfield-
+       style energy minimization is one option; supervised training
+       toward codebook attractors is another. Needs a literature
+       sweep (Krotov/Hopfield modern Hopfield, Ramsauer et al. 2020,
+       related attractor-network work).
+    2. Train the MLP on the codebook (initially on just the 14 royal/
+       family words; later on a richer vocabulary).
+    3. Verify the codebook entries are fixed points (`f(cat) ≈ cat`)
+       and that basin boundaries are sensible.
+    4. Run the Monte Carlo sweep: from v0 = king - man + woman,
+       perturb with noise, iterate f to convergence, record which
+       attractor the trajectory lands in.
+    5. Compare across substrates (this plus the per-program embedding
+       override item below = a real cross-substrate attractor-quality
+       benchmark).
+  This is a substantial item and is not expected to land before the
+  Anthropic grant app. The WIP placeholder script stays to capture
+  the name; do not confuse it for the real thing.
 
 ## [Pre-Anthropic-grant-app] Per-program embedding-space override
 
