@@ -41,17 +41,7 @@ pick up next.
    this one program" and atman.toml as project default. Either way,
    document the precedence clearly so programs are reproducible.
 
-2. **Capacity experiment for rotation binding.** Design doc at
-   `planning/findings/2026-04-21-rotation-binding-capacity-experiment-
-   design.md` with five concrete experiments. Not yet run. Partial
-   real-world characterization exists in
-   `planning/findings/2026-04-22-rotation-binding-prototype-results.md`
-   — rotation binding passes 10 of 12 smoke tests on the frozen LLM
-   substrate; two partial regressions (`fuzzy_dispatch` 1/4,
-   `sequence` 10/11) look like capacity effects the full experiment
-   would characterize.
-
-3. **Rebuild `planning/sutra-spec/` from scratch in the user's
+2. **Rebuild `planning/sutra-spec/` from scratch in the user's
    framing.** Process: each spec section starts as a question posed
    to the user; Claude writes down the user's framing; gaps go to
    `planning/open-questions/`. The `binding.md`, `vision.md`, and
@@ -61,19 +51,19 @@ pick up next.
    user-driven rewrites. Ongoing work across sessions, not a single
    task.
 
-4. **Concurrency spec section.** A concrete sketch with an example
+3. **Concurrency spec section.** A concrete sketch with an example
    `.su` program. Genuinely open design question — see
    `planning/sutra-spec/concurrency.md` and
    `planning/open-questions/concurrency-and-monads.md`.
 
-5. **Demonstrate `loop(cond)` end-to-end.** The compiler implements
+4. **Demonstrate `loop(cond)` end-to-end.** The compiler implements
    data-dependent iteration but only `examples/loop_rotation.su` and
    `counter_loop.su` exercise it. Writing a more substantial `.su`
    program that uses `loop(cond)` with a genuine data-dependent
    termination condition would prove out the part of the language
    that `loop[N]` doesn't.
 
-6. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
+5. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
    Do this only after items 2-3 are settled so the spec being
    targeted is stable.
