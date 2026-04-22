@@ -61,50 +61,71 @@ previous:
 The sutra paper is supposed to be about steps 2 and 3. The language
 itself is what you build on top of step 3.
 
-## Binding is a family, with (at least) two populated kinds
+## Binding has two kinds, acting on different subspaces of the state
 
-Every `bind` operation in Sutra is matrix-vector multiplication:
-`bind(filler, R) = R @ filler`. The matrix `R` comes in multiple
-kinds — two are currently populated, and the family is open to more.
-Sutra programs pick the kind that fits the job:
+Program state in Sutra is a **single extended vector** with two
+structurally-separated subspaces:
+
+```
+state = [ semantic_dims | synthetic_dims ]
+```
+
+The **semantic subspace** is the real embedding dimensions of the
+chosen frozen-LLM substrate (768 for nomic, 1024 for GTE-large,
+etc.). It carries meaning. The **synthetic subspace** is a small
+number of additional dimensions appended by the compiler; it carries
+computational/symbolic state (variable slots, array positions,
+truth, other data-type axes).
+
+The two subspaces are **structurally orthogonal** — operations in
+one cannot contaminate the other. This is what makes the two
+binding kinds cleanly separable:
 
 - **Semantic binding** — `R` is *learned* from corpus data and
-  corresponds to a real semantic relation. Inverting it recovers a
-  meaningful decomposition. These are the role matrices above:
-  "object of," "capital of," `is_cat`, verb-role, subject-role, etc.
-  Use this kind when the role *means something* — when the bind is
-  expressing a logical or relational claim. This is the innovation
-  Sutra is built around; the three-step research arc runs on it.
-- **Structural binding** — `R` carries no semantic content. The
-  role is a handle, not a meaning. Use this kind for **opaque
-  variable storage** — stashing a filler under a label and
-  retrieving it exactly later, where the role↔filler relationship
-  is not supposed to mean anything. Sign-flip binding
-  (`filler * sign(role)`, a diagonal ±1 matrix) is the canonical
-  instance; classical VSA random roles, random orthogonal
-  rotations, and permutations also live here. Sign-flip is cheap,
-  exactly self-inverse, and commutative-friendly — which is why
-  it's the right default for the storage-and-retrieval case. A
-  learned-matrix bind would be the wrong tool here, smearing the
-  stored value through semantic space.
+  acts in the semantic subspace. Inverting it recovers a meaningful
+  decomposition. These are the role matrices from the three-step
+  arc: "object of," "capital of," `is_cat`, verb-role, etc. Use
+  this kind when the role *means something* — when the bind
+  expresses a logical or relational claim. This is the innovation
+  Sutra is built around.
+- **Rotation binding** — `R^i` acts in the synthetic subspace on
+  an allocated 2D rotation plane per variable / array position /
+  slot. Roles are handles or ordinals, not meanings. Use this kind
+  for opaque variable storage, array indexing, and reversible
+  imperative-style assignment. Because each slot gets its own
+  orthogonal 2D plane, cross-talk between slots is zero by
+  construction (not statistical). Variable assignment `x = v` is
+  a pure rotation of the state vector; Sutra stays functional.
 
-The two kinds do different jobs. Trying to use structural binding
-where a logical relation is meant is a type error in program design;
-trying to use semantic binding for opaque storage is overkill. The
+Earlier versions of this spec used sign-flip binding
+(`filler * sign(role)`, diagonal ±1) as the structural-storage
+kind. As of 2026-04-21 sign-flip is retired in favor of rotation
+binding in the synthetic subspace: rotation gives zero cross-talk
+by construction (vs. sign-flip's 1/√d statistical noise), supports
+ordered/sequential structure (sign-flip cannot), and provides
+natural reversibility for imperative-style state changes. See
+`planning/findings/2026-04-21-extended-state-and-rotation-binding.md`
+and `binding.md` for the design detail.
+
+The two kinds do different jobs. Trying to use rotation binding
+where a logical relation is meant is a type error in program
+design; trying to use semantic binding for variable storage is
+overkill and smears the stored value through semantic space. The
 spec's `binding.md` specifies the kinds in full; `operations.md`
 specifies what each operation on each kind computes.
 
-Structural keys should live in empty regions of the substrate's
-embedding space — the "undersymbolic realm" documented in
-`equality-and-defuzzification.md`. If a structural key collided
-with a real content direction, it would contaminate every structure
-built with it. So the runtime mints structural markers in directions
-no natural embedding occupies (low-eigenvalue PCA directions, or
-random directions projected out of the content subspace). For
-sign-flip specifically, the key is a ±1 pattern and the
-undersymbolic concern shows up as "the sign pattern should not
-correlate with any semantic content direction." This keeps the two
-kinds cleanly separated.
+The synthetic subspace also hosts **canonical axes** — dimensions
+designated by the language itself rather than allocated
+per-program. Currently committed: a **truth axis** (`true = +1`,
+`false = -1`, fuzzy values continuous between). Because the truth
+axis is in the synthetic subspace and the semantic subspace is
+structurally orthogonal to it, every semantic vector has zero
+projection onto the truth axis by construction. Semantic content
+is structurally decorrelated from truth — nothing "looks more
+true" because of what it means. Other canonical axes (integer,
+enum, position, time) are candidates for future data-type support
+through VSA. See `equality-and-defuzzification.md` for how truth,
+defuzzification, and fuzzy composition work on this axis.
 
 ## Objects track which learned matrices bound their fields
 
@@ -155,22 +176,24 @@ are semantic.
   fits cleanly; it treats "does this role admit a clean learned
   matrix?" as an empirical question to be answered substrate by
   substrate.
-- **Not a rejection of sign-flip binding.** Sign-flip is the
-  canonical structural binding — a diagonal ±1 matrix — and it's
-  positively good for the job it's for (opaque variable storage,
-  exact retrieval by handle). It is not a placeholder or tolerated
-  infrastructure; it is a first-class binding kind. What Sutra
-  rejects is *using sign-flip where a logical/semantic relation is
-  meant*, because then the bind silently strips the meaning from
-  the role.
+- **Not built around sign-flip binding.** Sign-flip
+  (`filler * sign(role)`, diagonal ±1 matrix) was an earlier
+  structural-storage kind; it has been retired in favor of
+  rotation binding in a dedicated synthetic subspace, which
+  strictly dominates it (zero cross-talk by construction, ordered
+  structure, reversibility, natural fit for imperative-style
+  state). Sign-flip remains as a legacy implementation detail in
+  `codegen_numpy.py` pending migration; it is not the design
+  going forward.
 
 ## Why this matters for the papers
 
 - `sutra-paper/` should be reorganized around the three-step arc.
-  Headline: learned matrices in frozen embedding spaces. Structural
-  binding (sign-flip and friends) is a second, non-headline kind
-  with its own legitimate uses (opaque variable storage); mention
-  it, but don't make it the contribution.
+  Headline: learned matrices in frozen embedding spaces. Rotation
+  binding in a synthetic subspace is the second (non-headline) kind
+  with its own legitimate uses (opaque variable storage, array
+  indexing, reversible imperative state); mention it, but don't
+  make it the contribution.
 - `fly-brain-paper/` is on target. It demonstrates that a compiled
   Sutra program — a four-way conditional — executes on a whole-brain
   LIF model wired from the FlyWire connectome, with no host-side
