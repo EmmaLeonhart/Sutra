@@ -268,6 +268,48 @@ not a grep. Surface, do not execute, from a sandbox session.
   computer work above is the path here). Numpy allowed only at the
   compile/monitor boundary, never at runtime.
 
+## [This year] Formula simplification (compiler pass)
+
+The concurrency spec's "implicit by default" framing assumes the
+compiler does algebraic rewriting to expose independent sub-
+expressions for parallel evaluation. As of 2026-04-22, **the
+compiler does not do this**. It emits straight-line Python that
+matches the AST directly; parallelism at runtime comes from
+numpy/BLAS at the library level, not from Sutra-compiler awareness
+of expression independence.
+
+Until this pass lands, the "implicit concurrency" claim is a
+design target, not a current capability. See
+`planning/sutra-spec/concurrency.md` §"Implementation status is
+behind the design" for the honest statement.
+
+The pass would need to do at least:
+
+- [ ] **Algebraic rewriting** — identify independent sub-
+  expressions in the AST and schedule them for parallel
+  evaluation. `bundle(bind(r1, f1), bind(r2, f2))` is the
+  smallest illustrative case — two independent bind calls that
+  could run concurrently.
+- [ ] **Identity simplification** — `bundle(v)` (one arg) folds
+  to `v`; `displacement(a, a)` folds to zero; other obvious
+  algebraic identities. Low-hanging rewriting that shrinks the
+  emitted code.
+- [ ] **Constant folding** — expressions over values known at
+  compile time (e.g. `bundle(basis_vector("x"), basis_vector("y"))`
+  when the embedding is stable) can be evaluated once and cached.
+  Not trivial because `basis_vector` depends on the substrate
+  (Ollama), but the compiler could do substrate-aware folding.
+- [ ] **Scheduling.** Once independent sub-expressions are
+  identified, the emitted code needs to actually run them in
+  parallel — via Python's `concurrent.futures`, via numpy's
+  threading, or via a dedicated runtime scheduler.
+
+None of this blocks correctness. Sutra programs execute today; they
+just execute more sequentially than the language's algebraic
+structure licenses. When this pass lands, the "implicit concurrency"
+framing in `concurrency.md` becomes honest about current
+implementation rather than aspirational.
+
 ## [This year] Control-flow completion
 
 - [ ] **Dynamic `foreach`.** Today (2026-04-22) `foreach` unrolls
