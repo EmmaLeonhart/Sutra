@@ -234,6 +234,58 @@ commitments, just parking spots. Currently parked:
 
 ## [This year] Speculative
 
+- **Sutra-embedded-in-Python (`@sutra` decorator + import hook).**
+  Longer-term interoperability path per
+  `chats/python-vs-dedicated-languages-for-hyperdimensional-computing.md`.
+  User vision (chat, 2026-04-22): a Python function decorated with
+  `@sutra` has a Python signature (types at the boundary become the
+  FFI contract) but a body written in Sutra syntax. Example:
+
+      @sutra
+      def greet(name: str) -> str:
+          vector v_name = basis_vector(name);
+          vector winner = argmax_cosine(v_name, [v_hello, v_goodbye]);
+          return PHRASE_NAME[winner];
+
+  The `def` line is the FFI; strings and numpy arrays cross cleanly;
+  the body can only use pure Sutra ops (no imperative mutation,
+  which the compiler enforces). Mechanism options: an import hook
+  that preprocesses `.py` files before Python sees them, or
+  explicit `sutra.compile(fn)` / `sutra.run("""...""")` calls for a
+  less magical version. PHP-in-HTML is the prior-art analogy —
+  host language is declarative scaffolding, embedded language is
+  the active computation, demarcation is meaningful not cosmetic.
+
+  Why this matters: adoption. HDC researchers live in Python; their
+  vectors live next to datasets and pipelines. A Sutra that ships
+  as a PyPI library with `@sutra`-decorated functions lets them
+  write real Sutra programs without leaving their existing
+  environment. The segregation (imperative Python handles I/O,
+  functional Sutra handles vector computation) is a *feature*, not
+  a compromise.
+
+  Scope sketch:
+  1. PyPI package (`pip install sutra`) that wraps the existing
+     `sdk/sutra-compiler`.
+  2. `@sutra` decorator that marks a function for Sutra compilation.
+     The Python-visible function becomes a thin wrapper that
+     marshals args in, executes the compiled Sutra body, and
+     marshals return values out.
+  3. Import-hook or AST-preprocessing so the Python parser doesn't
+     choke on Sutra syntax in the decorated body. A compilation
+     step that runs before Python sees the file is the simplest
+     path; import hooks are the seamless path.
+  4. Type marshalling: `str → vector` via `basis_vector`, `numpy
+     array → vector` pass-through, `vector → str` via codebook
+     lookup or caller-supplied serializer.
+  5. IDE support for the dual-layer file. VSCode's embedded-language
+     mechanism (CSS-in-JS precedent) is designed for this pattern
+     but is non-trivial to wire up for a new outer+inner language
+     pair.
+
+  See `chats/python-vs-dedicated-languages-for-hyperdimensional-computing.md`
+  for the full design discussion.
+
 - **OWL → SutraDB extension + Sutra ontology import/editing.** Build out
   OWL handling so SutraDB gains a first-class ontology extension and Sutra
   gains ontology-aware operations. Protégé may be a more helpful starting
