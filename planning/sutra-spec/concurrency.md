@@ -95,22 +95,84 @@ the design target.
 That is the extent of what is committed. Everything below is an open
 question.
 
+## Concurrency is implicit by default (2026-04-22)
+
+Revised user position, 2026-04-22:
+
+> We already have concurrency implicitly anyways, so my view is that
+> since I already implicitly implemented concurrency, an explicit
+> implementation is only needed if something goes wrong.
+>
+> Eventually the compiler just will do concurrency, a lot of
+> concurrency stuff is just working via formula simplification.
+
+**Implicit-by-default is the spec's direction.** Sutra's functional
+algebraic nature gives the compiler license to evaluate independent
+sub-expressions in parallel without any programmer-visible syntax.
+`bundle(bind(r1, f1), bind(r2, f2))` has two independent binds; the
+runtime evaluates them in parallel. `argmax_cosine(v, [c1, c2, c3])`
+is N independent cosines; evaluated in parallel. These are algebraic
+properties of a pure vector-space language, not concurrency features
+added on top. "Formula simplification" is the mechanism — the
+compiler rewrites expressions into forms that expose parallel
+opportunities.
+
+An earlier version of this section (2026-04-22 morning) committed
+to explicit fork-join syntax as the *primary* mode ("explicit fork
+syntax right now... for development do it explicitly"). That
+framing was revised the same afternoon: implicit is primary,
+explicit is a fallback / override for cases where the compiler's
+automatic analysis can't figure out the parallelism or the
+programmer wants it visibly forced.
+
+### What stays explicit
+
+Explicit syntax is still needed for shapes the compiler's algebraic
+simplification won't automatically find:
+
+- **Monte Carlo / independent trial runs.** N trajectories of an
+  attractor iteration from `v0 + noise[i]` are not algebraically
+  equivalent to a single expression; the compiler has no reason to
+  unroll them into parallel evaluations. The programmer has to say
+  "run this N times in parallel." The MLP attractor search above is
+  this shape.
+- **Forced parallelism for performance tuning.** When the
+  programmer knows two operations are independent and wants to
+  guarantee parallel execution regardless of what the compiler's
+  analysis decides.
+- **Convergence-terminated concurrency.** Two paths that should
+  terminate when they reach a common value. The compiler can't
+  infer "run until you agree" from pure algebraic structure.
+
+The specific surface form of the explicit primitive (`parallel` /
+`split` / `path` / something else) remains open, but it is now
+scoped as a *fallback* mode, not the default.
+
 ## Open questions
 
 The spec can have open questions inline. These are concrete gaps we
 are working out — not filled with defaults.
 
-- **Surface syntax.** What does a concurrent program look like in
-  source? `parallel { ... } { ... }`? A `split` keyword? A `path`
-  keyword? A pair of functions evaluated under a combinator? Not
-  decided.
+- **Explicit-mode surface syntax.** When the programmer does need
+  to force parallelism (Monte Carlo trials, convergence-terminated
+  splits), what does the keyword / construct look like? Still open
+  within the explicit-fork-join family.
 - **Convergence test.** A split ends when paths agree on "a common
   thing." What is that operationally? Cosine similarity above a
   threshold? `snap` to the same codebook entry? Bit-identical value?
   Not decided.
-- **Result of the region.** When convergence fires, what does the
-  concurrent region return? The shared vector itself? A bundle of
-  both paths? The first arriving path? Not decided.
+- **Result of the region.** When the explicit concurrent region
+  finishes, what does it return? **User direction 2026-04-22 (weak,
+  partial):** *rotation-bound array*. Each path's result lands in
+  an indexed slot of a `var[N] slots : vector` array — the same
+  rotation-binding slot machinery from the role/var declaration
+  syntax. Merge is "collect into an ordered N-slot structure,"
+  not "combine into a single vector." The MLP attractor MC's
+  histogram-over-attractors result fits this shape: N paths, N
+  slots, each slot holds the attractor that path landed in. User
+  flagged this as provisional ("might be more stuff to do at some
+  point") — other shapes (single-vector merges, first-arrival
+  returns) are deferred rather than rejected.
 - **Path identity.** Is a "path" a first-class value (passable,
   storable, returnable) or purely a runtime construct? Not decided.
 - **Typing.** Does a concurrent computation have a distinct type from
@@ -152,6 +214,69 @@ split {
 
 Not adopted — parked here as a candidate while the convergence-test
 and result-of-region questions are still open.
+
+## First concrete use case — MLP attractor search (2026-04-22)
+
+The abstract framing above ("multiple paths through the vector
+space, converging on a common thing") was drafted 2026-04-14/15
+without a program that required it — the earlier `concurrency-and-
+monads.md` open-question doc explicitly flagged "a concrete use
+case that forces the issue" as a prerequisite to closing this
+section. As of 2026-04-22, we have one.
+
+The **MLP-backed Monte Carlo attractor search**
+(`examples/_king_queen_mlp_attractor.py`, writeup in
+`planning/findings/2026-04-22-mlp-attractor-king-queen-nomic.md`)
+is the first real instance of the shape this section describes:
+
+- **N trajectories starting from `v0 + noise[i]` for i in 1..N** are
+  N *paths through the vector space*, in the exact geometric sense
+  committed above.
+- **Each path iterates `x ← f(x)` under the same trained MLP**
+  independently. No shared mutable state, no cross-path
+  coordination — the concurrency is in the multiplicity of paths,
+  not in communication between them.
+- **Each path terminates when it reaches a fixed point**
+  (`||f(x) - x|| < ε`, or equivalently when the snap to the nearest
+  codebook entry stabilizes). Different paths terminate at
+  different iterations and converge on *different* attractors,
+  depending on basin geometry at the starting point.
+- **The result of the region is the basin distribution** — a
+  histogram over which attractor each path landed in. Not "the
+  shared vector" (paths typically do NOT converge on the same
+  attractor), not "the first arrival" (all paths are counted).
+
+This is currently hand-rolled in Python — the language does not
+express it natively yet. When Sutra gets a concurrency surface
+primitive, this use case is the concrete benchmark: the primitive
+must be expressive enough to write the MLP attractor MC as a
+native Sutra program, not as Python around a compiled fragment.
+
+The open questions above get sharper when read against this case:
+
+- **Convergence test.** For attractors the natural rule is
+  `||f(x) - x|| < ε` (fixed-point reached) or `snap(x)` stable
+  across k iterations. Either fits the "paths reach a common
+  thing" framing; the "common thing" is a codebook attractor rather
+  than an identical value.
+- **Result of the region.** For attractor MC, the result is the
+  *set/histogram* of attractors hit across paths. Not the shared
+  vector the 2026-04-14/15 framing imagined. This is worth
+  reconciling: "convergence on a common thing" at the path level
+  can coexist with "distribution over common things" at the
+  region level — each path converges to one attractor, the region
+  collects which attractor each path picked.
+- **Path identity.** For MC, paths are indexed by trial. Not
+  first-class values; transient. This specific use case does not
+  need paths to be passable / storable / returnable, which
+  downgrades that open question for attractor-style concurrency
+  (it may still matter for other shapes).
+
+Nothing above is adopted as a design commitment — this is a
+pointer from the abstract framing to a concrete program, to make
+sure the two line up before the surface syntax is picked. The
+2026-04-22 `_king_queen_mlp_attractor.py` and its findings doc
+are the source of truth for what the mechanism actually does.
 
 ## Why this section is small
 
