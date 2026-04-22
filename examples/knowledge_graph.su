@@ -1,23 +1,22 @@
 // Flat knowledge graph — (subject, predicate, object) triples bundled
 // into one memory vector, queried compositionally via bind/unbind.
 //
-// Encoding for sign-flip binding:
+// Encoding for rotation binding (role-first throughout):
 //
-//   triple(s, p, o) = bind(o, bind(s, p))
-//                   = o * sign(s) * sign(p)
+//   triple(s, p, o) = bind(s, bind(p, o))
+//                   = Q_s @ Q_p @ o
 //
-// The object is the "filler" (retains its real-valued magnitude
-// pattern); s and p contribute only their sign patterns. This
-// ordering matters under sign-flip because the filler has to be the
-// first argument — sign-flip loses magnitude on whichever argument
-// it takes the sign of.
+// Role-first means the first argument of bind is the key (seeds the
+// rotation), the second is the filler (gets rotated). Nested bind
+// composes rotations: outer key s, inner key p; retrieval applies
+// the inverses in reverse order (Q_p^T then Q_s^T).
 //
 // Query (given s and p, recover o):
 //
 //   recovered = unbind(p, unbind(s, memory))
-//             = memory * sign(s) * sign(p)
+//             = Q_p^T @ Q_s^T @ memory
 //
-// Five animal/property triples, bundled into a single 256-dim memory.
+// Five animal/property triples, bundled into a single memory vector.
 // Five queries recover each object by its (subject, predicate) key.
 
 // --- Subjects (animals) ---
@@ -47,13 +46,14 @@ map<vector, string> OBJECT_NAME = {
 };
 
 // --- Bundled graph memory ---
-// Each triple: bind(o, bind(s, p)) under sign-flip.
+// Each triple: bind(s, bind(p, o)) under rotation binding (role-first).
+// Outer role = subject, inner role = predicate, innermost value = object.
 vector graph = bundle(
-    bind(fur,    bind(dog,   has)),
-    bind(claws,  bind(cat,   has)),
-    bind(scales, bind(fish,  has)),
-    bind(fly,    bind(bird,  can)),
-    bind(swim,   bind(whale, can))
+    bind(dog,   bind(has, fur)),
+    bind(cat,   bind(has, claws)),
+    bind(fish,  bind(has, scales)),
+    bind(bird,  bind(can, fly)),
+    bind(whale, bind(can, swim))
 );
 
 // Query: given (subject, predicate), recover the object.
