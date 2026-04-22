@@ -268,6 +268,30 @@ not a grep. Surface, do not execute, from a sandbox session.
   computer work above is the path here). Numpy allowed only at the
   compile/monitor boundary, never at runtime.
 
+## [This year] Control-flow completion
+
+- [ ] **Dynamic `foreach`.** Today (2026-04-22) `foreach` unrolls
+  over a compile-time-known array literal `[a, b, c]` only.
+  Anything else — a named variable, an expression returning a
+  collection — is a compile-time error. The dynamic case requires
+  deciding what "runtime iteration over a Sutra collection"
+  actually looks like: is a named collection a compile-time tuple
+  that the compiler can still unroll (if the initializer is an
+  array literal)? Is there a runtime collection type whose
+  iteration order is meaningful? How does the loop-body lower —
+  as a host `for` (counters on the host, rejected by the CLAUDE.md
+  rule), as an eigenrotation-indexed loop, as something else?
+  Deferred pending a concrete use case.
+
+- [ ] **`try-catch`.** Parser accepts it; codegen rejects. Sutra
+  has no `raise` / `throw` primitive, so "what does a catch
+  catch" is the open question — not just an implementation gap.
+  Candidates: substrate-level errors (Ollama down, rotation
+  produced NaN), user-level errors via a hypothetical `raise`
+  primitive, fuzzy-threshold failures (a `select` where nothing
+  fired). None have been designed. Park until a real use case
+  pushes one of these forward.
+
 ## [This year] Exploratory / parked
 
 Long-form research sketches live in `planning/exploratory/` — not
