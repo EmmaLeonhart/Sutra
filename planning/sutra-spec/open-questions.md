@@ -84,9 +84,10 @@ lives here.
   random today; substrate-specific / per-site alternatives?).
 - Whether `loop(cond)` can terminate on non-similarity conditions.
 - Fate of parsed-but-rejected control forms: `if/else` (design-
-  rejected, use `select`), `do-while` / `foreach` / `try-catch`
-  (unimplemented — keep as reserved syntax, remove, or
-  implement?).
+  rejected, use `select`), `foreach` / `try-catch` (unimplemented
+  — keep as reserved syntax, remove, or implement?). `do-while`
+  was in this list until 2026-04-22 when it was implemented by
+  desugaring to body + while.
 
 ## Program structure — `program-structure.md`
 
