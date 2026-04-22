@@ -21,21 +21,9 @@ pick up next.
 
 ## Queued work
 
-1. **Per-program embedding-space override.** User direction
-   2026-04-22: `.su` programs should be able to declare their target
-   embedding model at the top so different test programs can sweep
-   different vector spaces. Minimal scope: magic first-line comment
-   (`// @embedding: mxbai-embed-large`) that the test harness
-   (`examples/_smoke_test.py` and siblings) parses pre-compile and
-   passes through to `NumpyCodegen(llm_model=...)`. Zero parser/
-   compiler changes. Write 3+ test programs that sweep
-   `nomic-embed-text`, `mxbai-embed-large`, `all-minilm` over the
-   same task and compare results. (A first cross-substrate harness
-   already exists: `examples/_king_queen_multi_substrate.py`.)
-
-2. **Implement `role` / `var` declaration syntax in the parser.**
-   STATUS 3 from the 2026-04-21 session chose Candidate B: `role X
-   = learned_from(...)` for semantic bindings, `var X : vector;` for
+1. **Implement `role` / `var` declaration syntax in the parser.**
+   Candidate B from the 2026-04-21 session: `role X =
+   learned_from(...)` for semantic bindings, `var X : vector;` for
    rotation-bound storage, `var[N] slots : vector;` for arrays.
    Decision is spec-committed
    (`planning/sutra-spec/binding.md` §"Surface syntax"). The parser
@@ -43,7 +31,7 @@ pick up next.
    declare roles as `vector r_name = basis_vector(...)`; migration
    to `var r_name : vector` comes with this work.
 
-3. **Capacity experiment for rotation binding.** Design doc at
+2. **Capacity experiment for rotation binding.** Design doc at
    `planning/findings/2026-04-21-rotation-binding-capacity-experiment-
    design.md` with five concrete experiments. Not yet run. Partial
    real-world characterization exists in
@@ -53,7 +41,7 @@ pick up next.
    `sequence` 10/11) look like capacity effects the full experiment
    would characterize.
 
-4. **Rebuild `planning/sutra-spec/` from scratch in the user's
+3. **Rebuild `planning/sutra-spec/` from scratch in the user's
    framing.** Process: each spec section starts as a question posed
    to the user; Claude writes down the user's framing; gaps go to
    `planning/open-questions/`. The `binding.md`, `vision.md`, and
@@ -63,24 +51,22 @@ pick up next.
    user-driven rewrites. Ongoing work across sessions, not a single
    task.
 
-5. **Concurrency spec section.** A concrete sketch with an example
+4. **Concurrency spec section.** A concrete sketch with an example
    `.su` program. Genuinely open design question — see
    `planning/sutra-spec/concurrency.md` and
    `planning/open-questions/concurrency-and-monads.md`.
 
-6. **Demonstrate `loop(cond)` end-to-end.** The compiler implements
+5. **Demonstrate `loop(cond)` end-to-end.** The compiler implements
    data-dependent iteration but only `examples/loop_rotation.su` and
    `counter_loop.su` exercise it. Writing a more substantial `.su`
    program that uses `loop(cond)` with a genuine data-dependent
    termination condition would prove out the part of the language
-   that `loop[N]` doesn't. (Both existing examples pass 5/5 on
-   rotation binding, so the machinery works.)
+   that `loop[N]` doesn't.
 
-7. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
+6. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
-   The port is a mechanical refactor of the code-emission layer, not
-   a rewrite. Do this only after items 1-4 are settled so the spec
-   being targeted is stable.
+   Do this only after items 1-3 are settled so the spec being
+   targeted is stable.
 
 ## Deferred (see `todo.md`)
 
