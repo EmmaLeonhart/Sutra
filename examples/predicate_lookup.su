@@ -38,12 +38,16 @@ vector hamsters = basis_vector("hamsters");
 
 // --- Graph: five triples, bundled. Two (subject, predicate) keys
 // have multiple objects. ---
+// Role-first nested bind: bind(subject, bind(predicate, object)).
+// Under rotation binding, this composes Q_subject @ Q_predicate @ object;
+// retrieval with unbind(predicate, unbind(subject, graph)) applies
+// the inverses in reverse order to recover object.
 vector graph = bundle(
-    bind(cats,     bind(alice, likes)),
-    bind(dogs,     bind(alice, likes)),
-    bind(fish,     bind(bob,   likes)),
-    bind(birds,    bind(bob,   likes)),
-    bind(hamsters, bind(carol, likes))
+    bind(alice, bind(likes, cats)),
+    bind(alice, bind(likes, dogs)),
+    bind(bob,   bind(likes, fish)),
+    bind(bob,   bind(likes, birds)),
+    bind(carol, bind(likes, hamsters))
 );
 
 // Score how well (subject, predicate) implies object — cosine
