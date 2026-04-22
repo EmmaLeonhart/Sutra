@@ -38,7 +38,15 @@ Nothing. The compiler emits straight-line numpy; there is no concurrency primiti
 
 ## What we'd need to decide to close this
 
-1. A concrete use case that forces the issue — a program we want to write that *requires* concurrency and can't be expressed in the straight-line model. Without one, this stays speculative.
+1. ~~A concrete use case that forces the issue.~~ **Found 2026-04-22:**
+   the MLP-backed Monte Carlo attractor search
+   (`examples/_king_queen_mlp_attractor.py`, writeup in
+   `planning/findings/2026-04-22-mlp-attractor-king-queen-nomic.md`)
+   runs N trajectories through an attractor MLP and collects the
+   basin distribution across paths. Currently hand-rolled in Python;
+   the language doesn't express it natively yet. See
+   `planning/sutra-spec/concurrency.md` §"First concrete use case"
+   for how this maps onto the spec's abstract framing.
 2. Whether Sutra's type system will grow enough machinery (effect types, typeclasses, or something equivalent) to express monads properly, or whether a simpler primitive-set approach fits better.
 3. Whether "bind" as a name can be safely overloaded or whether the concurrency story needs a different word entirely.
 
