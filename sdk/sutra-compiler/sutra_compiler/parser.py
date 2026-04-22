@@ -561,6 +561,13 @@ class Parser:
             return self._parse_return()
         if tok.kind in (TokenKind.KW_VAR, TokenKind.KW_CONST):
             return self._parse_var_or_const()
+        # Contextual `role` keyword: at statement-start, `role IDENT = ...`
+        # is a role declaration; elsewhere `role` is a normal identifier.
+        # We look for IDENT("role") IDENT ASSIGN to disambiguate.
+        if (tok.kind is TokenKind.IDENT and tok.lexeme == "role"
+                and self._peek(1).kind is TokenKind.IDENT
+                and self._peek(2).kind is TokenKind.ASSIGN):
+            return self._parse_var_or_const()
         # Nested function/method declarations aren't explicitly
         # forbidden; delegate to top-level handling if encountered.
         if tok.kind is TokenKind.KW_FUNCTION:
@@ -627,24 +634,50 @@ class Parser:
 
     def _parse_var_or_const(self) -> Optional[ast.VarDecl]:
         start = self._current_span()
-        keyword = self._advance()  # var or const
+        keyword = self._advance()  # var, const, or IDENT("role")
         is_const = keyword.kind is TokenKind.KW_CONST
+        # `role` is a contextual keyword — the lexer emits IDENT for it,
+        # and the parser dispatched us here when it saw IDENT("role")
+        # followed by IDENT + ASSIGN (a role declaration pattern).
+        is_role = (keyword.kind is TokenKind.IDENT
+                   and keyword.lexeme == "role")
+        is_var = keyword.kind is TokenKind.KW_VAR
+
+        # `var[N] x : TYPE;` — array form for rotation-bound storage
+        # slots (Candidate B from the 2026-04-21 surface-syntax
+        # decision). The bracket-size must be an integer literal;
+        # dynamic sizing would need a separate syntax.
+        array_size: Optional[int] = None
+        if is_var and self._check(TokenKind.LBRACKET):
+            self._advance()  # [
+            size_tok = self._expect(TokenKind.INT_LIT, "array size (integer literal)")
+            if size_tok is not None:
+                try:
+                    array_size = int(size_tok.lexeme)
+                except ValueError:
+                    array_size = None
+            self._expect(TokenKind.RBRACKET, "`]` after array size")
 
         # `const TYPE x = ...` is legal. `var TYPE x` is explicitly
         # forbidden; we still parse it and emit an error so the rest of
         # the file can be validated.
         type_ref: Optional[ast.TypeRef] = None
-        is_var_inferred = not is_const  # `var` is always inferred
+        is_var_inferred = is_var  # `var` is inferred unless colon-typed
         if is_const and self._peek().kind is TokenKind.IDENT and self._peek(1).kind is TokenKind.IDENT:
             type_ref = self._parse_type()
-        elif not is_const and self._peek().kind is TokenKind.IDENT and self._peek(1).kind is TokenKind.IDENT:
+        elif is_var and self._peek().kind is TokenKind.IDENT and self._peek(1).kind is TokenKind.IDENT:
             # `var TYPE x` — illegal per the syntax-decisions doc.
+            # Note: `var x : TYPE` is legal (handled below after the
+            # name); this branch catches the no-colon form only.
             bad_type = self._parse_type()
             self.diagnostics.error(
-                "`var` cannot be combined with an explicit type",
+                "`var` cannot be combined with a space-separated type; "
+                "use colon syntax instead (`var x : TYPE`)",
                 SourceSpan(start=keyword.span.start, end=bad_type.span.end if bad_type else keyword.span.end),
                 code="SUT0103",
-                hint="write either `var x = ...;` (inferred) or `TYPE x = ...;` (explicit)",
+                hint="write either `var x = ...;` (inferred), "
+                     "`var x : TYPE;` (explicit slot), or "
+                     "`TYPE x = ...;` (classic typed declaration)",
             )
             type_ref = bad_type
             is_var_inferred = False
@@ -653,9 +686,37 @@ class Parser:
         if name_tok is None:
             self._skip_to_statement_boundary()
             return None
+
+        # `var x : TYPE` — the rotation-bound colon syntax from Candidate B.
+        # Only valid on var (not const, not role). role is always inferred
+        # from the RHS for now; the learned_from/semantic-role side of the
+        # type system comes with the deferred learned-matrix work.
+        is_var_colon = False
+        if is_var and self._match(TokenKind.COLON):
+            parsed_type = self._parse_type()
+            if parsed_type is not None:
+                type_ref = parsed_type
+                is_var_colon = True
+                is_var_inferred = False
+
         init: Optional[ast.Expr] = None
         if self._match(TokenKind.ASSIGN):
             init = self._parse_expr()
+
+        # `role x` always needs an initializer — a role without a
+        # binding source is semantically empty (unlike `var x : T`
+        # which allocates a zero slot).
+        if is_role and init is None:
+            self.diagnostics.error(
+                "`role` declaration needs an initializer (e.g. "
+                "`role capital_of = learned_from(...)`). "
+                "Uninitialized roles are not meaningful in Sutra — use "
+                "`var x : TYPE;` for an empty slot instead.",
+                SourceSpan(start=keyword.span.start, end=self._current_span().end),
+                code="SUT0104",
+                hint="add `= <expr>` to the role declaration",
+            )
+
         end = self._expect(TokenKind.SEMICOLON, "`;` after declaration")
         end_span = end.span if end else self._current_span()
         return ast.VarDecl(
@@ -665,6 +726,9 @@ class Parser:
             name=name_tok.lexeme,
             initializer=init,
             span=SourceSpan(start=start.start, end=end_span.end),
+            is_role=is_role,
+            is_var_colon=is_var_colon,
+            array_size=array_size,
         )
 
     def _parse_if(self) -> Optional[ast.IfStmt]:

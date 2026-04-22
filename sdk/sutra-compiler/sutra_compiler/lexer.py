@@ -101,6 +101,7 @@ class TokenKind(Enum):
     KW_PRIVATE = auto()
     KW_VAR = auto()
     KW_CONST = auto()
+    KW_ROLE = auto()
     KW_RETURN = auto()
     KW_IF = auto()
     KW_ELSE = auto()
@@ -132,6 +133,10 @@ KEYWORDS = {
     "private": TokenKind.KW_PRIVATE,
     "var": TokenKind.KW_VAR,
     "const": TokenKind.KW_CONST,
+    # "role" is a CONTEXTUAL keyword — not in the lexer's hard-keyword
+    # map so `vector role` parameters and `role` identifiers keep
+    # parsing. The parser recognizes `role X = ...;` at statement-start
+    # by checking the IDENT lexeme + lookahead. See parser.py.
     "return": TokenKind.KW_RETURN,
     "if": TokenKind.KW_IF,
     "else": TokenKind.KW_ELSE,
