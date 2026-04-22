@@ -147,6 +147,96 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("# Generating a 768x768 Haar rotation is O(d^3); caching makes")
         self._emit("# repeated bind/unbind with the same role O(d^2) lookup + matmul.")
         self._emit("self._rot_cache = {}")
+        self._emit("# On-disk embedding cache. Second-and-later runs load every")
+        self._emit("# previously-seen basis_vector(...) string from disk instead of")
+        self._emit("# hitting Ollama. Cache is keyed by (model, dim) so changing")
+        self._emit("# either invalidates cleanly (different cache file).")
+        self._emit("import os as _os")
+        self._emit("self._cache_dir = _os.path.join(")
+        self._indent += 1
+        self._emit("_os.environ.get('XDG_CACHE_HOME', _os.path.expanduser('~/.cache')),")
+        self._emit("'sutra', 'embeddings')")
+        self._indent -= 1
+        self._emit("_os.makedirs(self._cache_dir, exist_ok=True)")
+        self._emit("# Sanitize model name for use as filename.")
+        self._emit("_safe_model = llm_model.replace('/', '_').replace(':', '_')")
+        self._emit("self._cache_path = _os.path.join(")
+        self._indent += 1
+        self._emit("self._cache_dir, f'{_safe_model}-d{dim}.npz')")
+        self._indent -= 1
+        self._emit("self._load_disk_cache()")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _load_disk_cache(self):")
+        self._indent += 1
+        self._emit('"""Populate self._codebook from the on-disk embedding cache.')
+        self._emit('')
+        self._emit("Tolerant of a missing or corrupt cache file — a failed load")
+        self._emit("leaves self._codebook empty and lets Ollama fetches repopulate")
+        self._emit("it. The cache is performance, not correctness.")
+        self._emit('"""')
+        self._emit("import os as _os")
+        self._emit("if not _os.path.exists(self._cache_path):")
+        self._indent += 1
+        self._emit("return")
+        self._indent -= 1
+        self._emit("try:")
+        self._indent += 1
+        self._emit("with _np.load(self._cache_path, allow_pickle=False) as data:")
+        self._indent += 1
+        self._emit("for key in data.files:")
+        self._indent += 1
+        self._emit("self._codebook[key] = data[key].astype(_np.float64)")
+        self._indent -= 1
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("# Corrupt cache: ignore and let Ollama repopulate.")
+        self._emit("self._codebook = {}")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit()
+        self._emit("def _write_disk_cache(self):")
+        self._indent += 1
+        self._emit('"""Persist self._codebook atomically to disk.')
+        self._emit('')
+        self._emit("Writes to a tempfile then renames, so a partial write (crash,")
+        self._emit("SIGKILL) leaves the old cache intact rather than corrupted.")
+        self._emit("Called whenever embed / embed_batch fetches new vectors so")
+        self._emit("subsequent runs hit the cache on module init.")
+        self._emit('"""')
+        self._emit("import os as _os, tempfile as _tempfile")
+        self._emit("if not self._codebook:")
+        self._indent += 1
+        self._emit("return")
+        self._indent -= 1
+        self._emit("fd, tmp = _tempfile.mkstemp(")
+        self._indent += 1
+        self._emit("dir=self._cache_dir, prefix='.tmp-', suffix='.npz')")
+        self._indent -= 1
+        self._emit("_os.close(fd)")
+        self._emit("try:")
+        self._indent += 1
+        self._emit("_np.savez(tmp, **self._codebook)")
+        self._emit("# _np.savez writes tmp.npz, but tempfile handed us tmp ending")
+        self._emit("# in .npz already — reconcile: savez appends .npz only if the")
+        self._emit("# path does not already end in .npz. Python tempfile gives us")
+        self._emit("# a .npz path, so savez leaves it as-is.")
+        self._emit("_os.replace(tmp, self._cache_path)")
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("# Cache-write failure is non-fatal. Remove the tmp and continue.")
+        self._emit("try:")
+        self._indent += 1
+        self._emit("_os.unlink(tmp)")
+        self._indent -= 1
+        self._emit("except OSError:")
+        self._indent += 1
+        self._emit("pass")
+        self._indent -= 1
+        self._indent -= 1
         self._indent -= 1
         self._emit()
         self._emit("def embed(self, name):")
@@ -182,6 +272,7 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("if n > 0: v = v / n")
         self._indent -= 1
         self._emit("self._codebook[name] = v")
+        self._emit("self._write_disk_cache()")
         self._indent -= 1
         self._emit("return self._codebook[name].copy()")
         self._indent -= 1
@@ -224,6 +315,8 @@ class NumpyCodegen(FlyBrainCodegen):
         self._indent -= 1
         self._emit("self._codebook[name] = v")
         self._indent -= 1
+        self._emit("# One batched write after all fetches in this call.")
+        self._emit("self._write_disk_cache()")
         self._indent -= 1
         self._emit()
         self._emit("def _role_hash(self, role_vec):")
@@ -291,6 +384,52 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("def bundle(self, *vectors):")
         self._indent += 1
         self._emit("s = _np.sum(vectors, axis=0)")
+        self._emit("n = _np.linalg.norm(s)")
+        self._emit("return s / n if n > 0 else s")
+        self._indent -= 1
+        self._emit()
+        self._emit("def zero_vector(self):")
+        self._indent += 1
+        self._emit('"""Zero vector in the runtime dim.')
+        self._emit('')
+        self._emit("Emitted by the simplifier for identities that resolve to zero")
+        self._emit("(e.g. displacement(a, a) → zero, bundle(zero_vector()) absorbed).")
+        self._emit("Also the starting accumulator for hashmap_new; kept as its own")
+        self._emit("method so future substrates can override (e.g. a connectome")
+        self._emit("backend's no-spike state instead of numeric zero).")
+        self._emit('"""')
+        self._emit("return _np.zeros(self.dim, dtype=_np.float64)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def bundle_of_binds(self, *role_filler_pairs):")
+        self._indent += 1
+        self._emit('"""Fused bind+sum+normalize over N role-filler pairs.')
+        self._emit('')
+        self._emit("Emitted by the compiler when every arg to bundle() is itself")
+        self._emit("a bind() call. The N binds are independent (no shared state),")
+        self._emit("so executing them as a batch instead of sequentially is")
+        self._emit("correct and ~Nx faster on GPU-class hardware.")
+        self._emit("")
+        self._emit("numpy implementation: stack the per-role rotation matrices")
+        self._emit("into (N, d, d), stack fillers into (N, d), batched einsum")
+        self._emit("for the bind, sum over N, normalize. Same result as sequential")
+        self._emit("bind+sum+normalize, in a single einsum + reduce.")
+        self._emit("")
+        self._emit("This is the independence-structure case the PyTorch/GPU")
+        self._emit("backend was gated on per STATUS.md — the fused form collapses")
+        self._emit("N small kernel launches into O(1) big ones.")
+        self._emit('"""')
+        self._emit("if not role_filler_pairs:")
+        self._indent += 1
+        self._emit("return self.zero_vector()")
+        self._indent -= 1
+        self._emit("roles = [rf[0] for rf in role_filler_pairs]")
+        self._emit("fillers = [rf[1] for rf in role_filler_pairs]")
+        self._emit("Q_stack = _np.stack([self._rotation_for(r) for r in roles])  # (N, d, d)")
+        self._emit("F_stack = _np.stack([_np.asarray(f, dtype=_np.float64) for f in fillers])  # (N, d)")
+        self._emit("# Batched bind: element-i is Q_i @ f_i; shape (N, d).")
+        self._emit("bound = _np.einsum('nij,nj->ni', Q_stack, F_stack)")
+        self._emit("s = bound.sum(axis=0)")
         self._emit("n = _np.linalg.norm(s)")
         self._emit("return s / n if n > 0 else s")
         self._indent -= 1
@@ -432,19 +571,30 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
         self._indent += 1
-        self._emit('"""Candidate with the largest cosine similarity to query."""')
-        self._emit("best = None")
-        self._emit("best_score = float('-inf')")
-        self._emit("for c in candidates:")
+        self._emit('"""Candidate with the largest cosine similarity to query.')
+        self._emit('')
+        self._emit("Vectorized: stacks `candidates` into a (N, d) matrix and")
+        self._emit("computes all N cosines in a single matmul. Equivalent to the")
+        self._emit("old Python for-loop over _VSA.similarity, but ~Nx faster on")
+        self._emit("CPU and the shape the PyTorch/GPU backend will reuse without")
+        self._emit("any further rewriting. N small-kernel launches becomes 1 big one.")
+        self._emit('"""')
+        self._emit("if not candidates:")
         self._indent += 1
-        self._emit("s = _VSA.similarity(query, c)")
-        self._emit("if s > best_score:")
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("M = _np.stack([_np.asarray(c, dtype=_np.float64) for c in candidates])")
+        self._emit("q = _np.asarray(query, dtype=_np.float64)")
+        self._emit("row_norms = _np.linalg.norm(M, axis=1)")
+        self._emit("q_norm = _np.linalg.norm(q)")
+        self._emit("if q_norm == 0:")
         self._indent += 1
-        self._emit("best_score = s")
-        self._emit("best = c")
+        self._emit("return candidates[0]")
         self._indent -= 1
-        self._indent -= 1
-        self._emit("return best")
+        self._emit("safe_rn = _np.where(row_norms > 0, row_norms, 1.0)")
+        self._emit("scores = (M @ q) / (safe_rn * q_norm)")
+        self._emit("scores = _np.where(row_norms > 0, scores, -_np.inf)")
+        self._emit("return candidates[int(_np.argmax(scores))]")
         self._indent -= 1
         self._emit()
         self._emit()
@@ -452,7 +602,11 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit("def _vector_map_lookup(pairs, key):")
         self._indent += 1
-        self._emit('"""Identity-first lookup for vector-keyed maps, cosine fallback."""')
+        self._emit('"""Identity-first lookup for vector-keyed maps, cosine fallback.')
+        self._emit('')
+        self._emit("Identity-hit short-circuits before any matmul (the common case")
+        self._emit("for literal vector keys). The cosine fallback stacks and matmuls.")
+        self._emit('"""')
         self._emit("for k, v in pairs:")
         self._indent += 1
         self._emit("if k is key:")
@@ -460,18 +614,22 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("return v")
         self._indent -= 1
         self._indent -= 1
-        self._emit("best_v = None")
-        self._emit("best_score = float('-inf')")
-        self._emit("for k, v in pairs:")
+        self._emit("if not pairs:")
         self._indent += 1
-        self._emit("s = _VSA.similarity(key, k)")
-        self._emit("if s > best_score:")
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("keys = _np.stack([_np.asarray(k, dtype=_np.float64) for k, _ in pairs])")
+        self._emit("q = _np.asarray(key, dtype=_np.float64)")
+        self._emit("row_norms = _np.linalg.norm(keys, axis=1)")
+        self._emit("q_norm = _np.linalg.norm(q)")
+        self._emit("if q_norm == 0:")
         self._indent += 1
-        self._emit("best_score = s")
-        self._emit("best_v = v")
+        self._emit("return pairs[0][1]")
         self._indent -= 1
-        self._indent -= 1
-        self._emit("return best_v")
+        self._emit("safe_rn = _np.where(row_norms > 0, row_norms, 1.0)")
+        self._emit("scores = (keys @ q) / (safe_rn * q_norm)")
+        self._emit("scores = _np.where(row_norms > 0, scores, -_np.inf)")
+        self._emit("return pairs[int(_np.argmax(scores))][1]")
         self._indent -= 1
 
 
