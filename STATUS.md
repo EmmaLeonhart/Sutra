@@ -21,25 +21,18 @@ pick up next.
 
 ## Queued work
 
-1. **Richer embedding-space declaration: main() argument + atman.toml
-   + default, in precedence order.** User direction 2026-04-22: the
-   magic `// @embedding: <model>` directive that landed as STATUS #1
-   earlier today is the minimum viable version; the fuller design is:
-   - **`main(embedding_space: string)`** — passed as an argument to
-     the program's entry point, overrides everything else at runtime.
-   - **`atman.toml`** — project-level default substrate declared in
-     the existing config file (one already lives at
-     `examples/atman.toml`). If no runtime argument is passed, use
-     this.
-   - **Hardcoded default** — if neither a main() argument nor an
-     atman.toml entry declares a substrate, use nomic-embed-text +
-     768-dim (the CLAUDE.md default).
-   Decide whether the `// @embedding` directive stays as a third
-   source of override (file-level, above main() argument or between
-   atman.toml and main()) or gets retired once the toml + main-arg
-   path exists. Probably: keep directive as "file-level override for
-   this one program" and atman.toml as project default. Either way,
-   document the precedence clearly so programs are reproducible.
+1. **`main(embedding_space: string)` runtime override.** Partial
+   progress on STATUS's old #1: file-level (`// @embedding`) and
+   project-level (`atman.toml` `[project.embedding]`) substrate
+   declarations both land in the harness 2026-04-22. What remains
+   is the third layer — a .su-language-level `main(embedding_space:
+   string)` form that passes the substrate as a main() argument and
+   overrides both file and project declarations at runtime. Requires
+   parser changes (main signature validation, typed string params)
+   and runtime rework (lazy _VSA initialization so main's argument
+   can pick the substrate before any `embed()` happens at module
+   scope). Deferred here as a substantial piece; lands alongside
+   learned-matrix binding in the pre-grant-app queue per todo.md.
 
 2. **Rebuild `planning/sutra-spec/` from scratch in the user's
    framing.** Process: each spec section starts as a question posed
