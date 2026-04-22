@@ -109,13 +109,39 @@ Revised user position, 2026-04-22:
 **Implicit-by-default is the spec's direction.** Sutra's functional
 algebraic nature gives the compiler license to evaluate independent
 sub-expressions in parallel without any programmer-visible syntax.
-`bundle(bind(r1, f1), bind(r2, f2))` has two independent binds; the
-runtime evaluates them in parallel. `argmax_cosine(v, [c1, c2, c3])`
-is N independent cosines; evaluated in parallel. These are algebraic
-properties of a pure vector-space language, not concurrency features
-added on top. "Formula simplification" is the mechanism — the
-compiler rewrites expressions into forms that expose parallel
-opportunities.
+`bundle(bind(r1, f1), bind(r2, f2))` has two independent binds that a
+sufficiently-smart compiler could evaluate in parallel;
+`argmax_cosine(v, [c1, c2, c3])` is N independent cosines likewise.
+These are algebraic properties of a pure vector-space language — the
+*license* to do formula simplification and schedule concurrency is
+real, but the compiler has to be taught to exercise it.
+
+### Implementation status is behind the design (2026-04-22 evening)
+
+**The "implicit concurrency via formula simplification" claim is a
+design target, not a current implementation.** As of 2026-04-22:
+
+- The codegen emits straight-line Python that matches the AST
+  directly. `bundle(bind(r1, f1), bind(r2, f2))` becomes
+  `_VSA.bundle(_VSA.bind(r1, f1), _VSA.bind(r2, f2))` — two binds
+  one after another, sequentially.
+- There is no algebraic rewriting pass, no identity simplification
+  (e.g. `bundle(v)` with one arg doesn't fold to `v`), no constant
+  folding, no scheduling analysis.
+- `loop[N]` with literal N unrolls at compile time — that's one
+  small compile-time expansion, not algebraic simplification of
+  the body.
+- Parallelism that happens at runtime comes from numpy / BLAS at
+  the library level (single-op SIMD + threaded matmul), not from
+  Sutra-compiler awareness of independent sub-expressions.
+
+The design commitment is that the language *licenses* implicit
+concurrency — a pure vector-space compiler is *allowed* to do
+formula simplification without changing program semantics. The
+implementation work to actually do the rewriting + scheduling is
+tracked in `todo.md`. Until it lands, "implicit concurrency" is a
+claim about what programs will get when the compiler matures, not
+about what they get today.
 
 An earlier version of this section (2026-04-22 morning) committed
 to explicit fork-join syntax as the *primary* mode ("explicit fork
@@ -123,7 +149,9 @@ syntax right now... for development do it explicitly"). That
 framing was revised the same afternoon: implicit is primary,
 explicit is a fallback / override for cases where the compiler's
 automatic analysis can't figure out the parallelism or the
-programmer wants it visibly forced.
+programmer wants it visibly forced. The 2026-04-22 evening
+addition (above) narrows that further: "implicit is primary"
+describes the design, not the current compiler.
 
 ### What stays explicit (2026-04-22 afternoon narrowing)
 
