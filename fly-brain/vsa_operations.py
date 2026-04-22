@@ -97,6 +97,39 @@ class FlyBrainVSA:
             self.codebook[name] = np.random.RandomState(name_seed).randn(self.dim)
         return self.codebook[name].copy()
 
+    def zero_vector(self):
+        """Zero vector in the runtime dimension.
+
+        Produced by the simplifier for `displacement(a, a)` and related
+        identities. Kept as a substrate-level method so connectome
+        backends can override (e.g. "no-spike state" instead of a
+        literal numeric zero).
+        """
+        return np.zeros(self.dim)
+
+    def bundle_of_binds(self, *role_filler_pairs):
+        """Fused `bundle(bind(r1,f1), ..., bind(rN,fN))`.
+
+        The compiler emits this when every arg to a bundle is itself a
+        bind call — the role-filler-record pattern. The three binds are
+        independent, so they can execute as one batched operation
+        instead of N sequential ones. On the GPU backend this collapses
+        O(N) kernel launches into O(1) — the primary reason PyTorch/GPU
+        was gated on "scheduled parallel evaluation" in STATUS.md.
+
+        The numpy-level implementation is sequential-sum-then-normalize,
+        which is equivalent to bind+bundle but fuses the intermediate.
+        Subclasses with batched hardware (GPU, connectome) override to
+        execute in parallel.
+        """
+        if not role_filler_pairs:
+            return self.zero_vector()
+        s = np.zeros(self.dim)
+        for role, filler in role_filler_pairs:
+            s = s + self.bind(role, filler)
+        n = np.linalg.norm(s)
+        return s / n if n > 0 else s
+
     def bind(self, a, b):
         """
         Binding through the spiking circuit via input-space multiplication.
