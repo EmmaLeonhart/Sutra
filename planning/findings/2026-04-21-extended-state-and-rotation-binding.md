@@ -244,6 +244,67 @@ measure recovery accuracy vs capacity.
    at a rotation slot) get its truth scalar extracted at a `select`
    dispatch site?
 
+## Prior-art audit pending
+
+VSA is a small field (roughly a dozen active researchers) and
+dev-velocity matters, so no serious literature sweep has been done
+before writing this note. Before any of this becomes a publication
+claim, the following specific priors need to be checked:
+
+- **Rotation as a binding operator** — Plate's HRR uses circular
+  convolution, which is rotation in the Fourier domain. Frady &
+  Sommer's *fractional power encoding* uses continuous-valued
+  rotation for position codes. Eliasmith's Semantic Pointer
+  Architecture (Neural Engineering Framework, Nengo) uses rotation
+  for some bindings. The specific "one 2D Givens plane per
+  variable slot, zero cross-talk by construction" allocation may be
+  novel, but the underlying idea is not.
+- **Extended state with dedicated symbolic dimensions** — VSA
+  literature has "role space" vs. "filler space" separations.
+  Neural-symbolic integration (Rocktäschel, Garcez, etc.) routinely
+  concatenates learned symbolic dimensions onto base embeddings.
+  Kanerva's SDM has some of this flavor. The specific subspace-
+  orthogonality-by-construction framing used here may be closer to
+  novel but builds on an existing pattern.
+- **Canonical truth axis with structural semantic/truth
+  decorrelation** — fuzzy logic generally has designated membership
+  scalars, and representation-learning routinely reserves
+  dimensions for specific features. The structural-subspace-
+  orthogonality argument (truth orthogonal to semantic content by
+  construction of the subspaces, not by learned decorrelation) is
+  less clearly located in prior work but has not been searched for.
+- **Variable assignment as a rotation on state** — touches
+  reversible computing (Bennett, Fredkin), some quantum-circuit-
+  inspired classical frameworks, and various academic reversible-
+  programming languages (Janus, etc.). The VSA-specific framing
+  where assignment is a rotation on an extended embedding state
+  vector hasn't been located in a direct prior, but the underlying
+  reversible-computing tradition is established.
+- **Rotation-binding-based eigenrotation loops** — Sutra's
+  `loop(cond)` compiles iteration to rotation in the substrate
+  (`state ← R · state` terminating on prototype match). This is
+  closer to novel as a programming-language construct, but the
+  continuous-space analog of counter-based iteration has touched
+  points in neural computation literature that should be checked.
+- **TransE vs. VSA** — TransE (Bordes et al. 2013) is from the
+  knowledge-graph-embedding community; relations as translations
+  `h + r ≈ t`, trained with a margin loss on triples. VSA is a
+  distinct lineage (Plate 1995, Kanerva) with different primitives
+  and different goals. Sutra's displacement-vector foundation is
+  closer to VSA than to TransE despite surface similarity. Earlier
+  confusion between the two has drawn reviewer objections; papers
+  on this work should explicitly situate Sutra in the VSA tradition
+  and distinguish from TransE at the framing level.
+
+The working assumption until this audit happens is that **most
+individual moves here have priors in some VSA or adjacent tradition**
+but the *combination* (functional language with extended state
+vector, rotation binding in a dedicated synthetic subspace,
+canonical truth axis, learned-matrix semantic binding all in one
+compiler-backed design) is what Sutra contributes. Dev proceeds at
+dev pace; the audit happens before publication, not before the next
+commit.
+
 ## Pedagogical note
 
 Rotation is conceptually heavier than sign-flip. A reader new to
