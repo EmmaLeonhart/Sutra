@@ -3,7 +3,7 @@
 // with zero control flow at decode time.
 //
 // Encoding:  record = bundle(bind(role_i, filler_i)) for i = 1..3
-// Decoding:  filler_i_hat = unbind(record, role_i)
+// Decoding:  filler_i_hat = unbind(role_i, record)
 //            name         = argmax_cosine(filler_i_hat, codebook)
 //
 // Four queries are issued against one record. Each query is a single
@@ -43,7 +43,7 @@ function vector make_record(vector name, vector color, vector shape) {
 
 // --- Decode one field: unbind by role, argmax against the codebook ---
 function string decode_field(vector record, vector role) {
-    vector recovered = unbind(record, role);
+    vector recovered = unbind(role, record);
     vector winner = argmax_cosine(
         recovered,
         [f_alice, f_bob, f_red, f_blue, f_circle, f_square]
