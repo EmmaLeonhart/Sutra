@@ -356,6 +356,36 @@ def run_loop_rotation() -> bool:
     return correct == total
 
 
+def run_concept_search() -> bool:
+    path = os.path.join(HERE, "concept_search.su")
+    mod = compile_to_module(path)
+    # Deterministic under the fixed Haar-rotation seed in the codegen;
+    # these pins are whatever the seeded trajectory produces. The
+    # demo is about loop(cond) taking different iteration counts for
+    # different starts, not about a particular codebook winner.
+    expected = {
+        "from_dog":    "insect",
+        "from_spider": "insect",
+        "from_insect": "cow",
+        "from_bird":   "insect",
+        "from_snake":  "insect",
+    }
+    print("=" * 72)
+    print("Example 12: concept_search.su (loop(cond) with richer codebook)")
+    print("=" * 72)
+    total = 0
+    correct = 0
+    for fn_name, exp in expected.items():
+        got = getattr(mod, fn_name)()
+        mark = "OK" if got == exp else "FAIL"
+        print(f"  {fn_name:<14} expected={exp:<8} got={got:<8} {mark}")
+        total += 1
+        correct += int(got == exp)
+    print()
+    print(f"{correct}/{total} concept searches match expected")
+    return correct == total
+
+
 def run_counter_loop() -> bool:
     path = os.path.join(HERE, "counter_loop.su")
     mod = compile_to_module(path)
@@ -398,8 +428,10 @@ def main() -> int:
     print()
     ok11 = run_counter_loop()
     print()
+    ok12 = run_concept_search()
+    print()
     print("=" * 72)
-    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11]):
+    if all([ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11, ok12]):
         print("PASS")
         return 0
     print("FAIL")
