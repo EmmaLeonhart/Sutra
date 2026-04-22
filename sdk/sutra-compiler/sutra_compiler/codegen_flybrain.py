@@ -94,6 +94,14 @@ def _builtin_bundle(args: List[str]) -> str:
     return f"_VSA.bundle({', '.join(args)})"
 
 
+def _builtin_displacement(args: List[str]) -> str:
+    # displacement(a, b) = a - b  (vector subtraction).
+    # Matches the cartography-paper primitive: a displacement is the
+    # rank-0 case of a learned role matrix. king - man + woman is
+    # expressed as bundle(displacement(king, man), woman).
+    return f"({args[0]} - {args[1]})"
+
+
 def _builtin_similarity(args: List[str]) -> str:
     return f"_VSA.similarity({args[0]}, {args[1]})"
 
@@ -151,6 +159,7 @@ BUILTINS = {
     "bind": (_builtin_bind, 2),
     "unbind": (_builtin_unbind, 2),
     "bundle": (_builtin_bundle, None),   # variadic, at least 1
+    "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
     "snap": (_builtin_snap, 1),
     "argmax_cosine": (_builtin_argmax_cosine, 2),
