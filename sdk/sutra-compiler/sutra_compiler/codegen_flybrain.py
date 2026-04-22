@@ -42,6 +42,17 @@ from . import ast_nodes as ast
 # ============================================================
 
 
+def _is_bind_call(expr) -> bool:
+    """Match a direct `bind(role, filler)` Call — used by the fused
+    bundle-of-binds lowering in `_translate_call`. Does not match
+    `_VSA.bind(...)` via MemberAccess (those don't appear in .su source).
+    """
+    return (isinstance(expr, ast.Call)
+            and isinstance(expr.callee, ast.Identifier)
+            and expr.callee.name == "bind"
+            and len(expr.args) == 2)
+
+
 class CodegenNotSupported(Exception):
     """Raised when the translator hits an AST node it cannot lower.
 
@@ -92,6 +103,14 @@ def _builtin_unbind(args: List[str]) -> str:
 
 def _builtin_bundle(args: List[str]) -> str:
     return f"_VSA.bundle({', '.join(args)})"
+
+
+def _builtin_zero_vector(args: List[str]) -> str:
+    # Zero vector in the runtime's d-dim substrate. Produced by the
+    # simplifier for `displacement(a, a)` and as an absorption element
+    # for bundle/addition. Not yet user-callable from .su, but the
+    # builtin path is ready for it.
+    return "_VSA.zero_vector()"
 
 
 def _builtin_displacement(args: List[str]) -> str:
@@ -159,6 +178,7 @@ BUILTINS = {
     "bind": (_builtin_bind, 2),
     "unbind": (_builtin_unbind, 2),
     "bundle": (_builtin_bundle, None),   # variadic, at least 1
+    "zero_vector": (_builtin_zero_vector, 0),
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
     "snap": (_builtin_snap, 1),
@@ -291,19 +311,32 @@ class FlyBrainCodegen:
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
         self._indent += 1
-        self._emit('"""Return the candidate with the largest cosine similarity to query."""')
-        self._emit("best = None")
-        self._emit("best_score = float('-inf')")
-        self._emit("for c in candidates:")
+        self._emit('"""Candidate with the largest cosine similarity to query.')
+        self._emit('')
+        self._emit("Vectorized: stacks `candidates` into a (N, d) matrix and")
+        self._emit("computes all N cosines in a single matmul. Equivalent to the")
+        self._emit("old Python for-loop over _VSA.similarity, but ~Nx faster on")
+        self._emit("CPU and the shape the PyTorch/GPU backend will reuse without")
+        self._emit("any further rewriting. N small-kernel launches becomes 1 big one.")
+        self._emit('"""')
+        self._emit("if not candidates:")
         self._indent += 1
-        self._emit("s = _VSA.similarity(query, c)")
-        self._emit("if s > best_score:")
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("M = _np.stack([_np.asarray(c, dtype=_np.float64) for c in candidates])")
+        self._emit("q = _np.asarray(query, dtype=_np.float64)")
+        self._emit("row_norms = _np.linalg.norm(M, axis=1)")
+        self._emit("q_norm = _np.linalg.norm(q)")
+        self._emit("if q_norm == 0:")
         self._indent += 1
-        self._emit("best_score = s")
-        self._emit("best = c")
+        self._emit("return candidates[0]")
         self._indent -= 1
-        self._indent -= 1
-        self._emit("return best")
+        self._emit("# Guard zero-norm rows so division doesn't emit a warning and")
+        self._emit("# the cosine for a zero candidate is 0, matching _VSA.similarity.")
+        self._emit("safe_rn = _np.where(row_norms > 0, row_norms, 1.0)")
+        self._emit("scores = (M @ q) / (safe_rn * q_norm)")
+        self._emit("scores = _np.where(row_norms > 0, scores, -_np.inf)")
+        self._emit("return candidates[int(_np.argmax(scores))]")
         self._indent -= 1
         self._emit()
         self._emit()
@@ -311,7 +344,13 @@ class FlyBrainCodegen:
         self._emit()
         self._emit("def _vector_map_lookup(pairs, key):")
         self._indent += 1
-        self._emit('"""Identity-first lookup for vector-keyed maps, cosine fallback."""')
+        self._emit('"""Identity-first lookup for vector-keyed maps, cosine fallback.')
+        self._emit('')
+        self._emit("Vectorized fallback: the cosine-nearest path stacks the key")
+        self._emit("vectors into one matrix and matmuls, matching the shape")
+        self._emit("_argmax_cosine uses. Identity-hit short-circuits before any")
+        self._emit("matmul, which is the common case for literal vector keys.")
+        self._emit('"""')
         self._emit("for k, v in pairs:")
         self._indent += 1
         self._emit("if k is key:")
@@ -319,18 +358,22 @@ class FlyBrainCodegen:
         self._emit("return v")
         self._indent -= 1
         self._indent -= 1
-        self._emit("best_v = None")
-        self._emit("best_score = float('-inf')")
-        self._emit("for k, v in pairs:")
+        self._emit("if not pairs:")
         self._indent += 1
-        self._emit("s = _VSA.similarity(key, k)")
-        self._emit("if s > best_score:")
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("keys = _np.stack([_np.asarray(k, dtype=_np.float64) for k, _ in pairs])")
+        self._emit("q = _np.asarray(key, dtype=_np.float64)")
+        self._emit("row_norms = _np.linalg.norm(keys, axis=1)")
+        self._emit("q_norm = _np.linalg.norm(q)")
+        self._emit("if q_norm == 0:")
         self._indent += 1
-        self._emit("best_score = s")
-        self._emit("best_v = v")
+        self._emit("return pairs[0][1]")
         self._indent -= 1
-        self._indent -= 1
-        self._emit("return best_v")
+        self._emit("safe_rn = _np.where(row_norms > 0, row_norms, 1.0)")
+        self._emit("scores = (keys @ q) / (safe_rn * q_norm)")
+        self._emit("scores = _np.where(row_norms > 0, scores, -_np.inf)")
+        self._emit("return pairs[int(_np.argmax(scores))][1]")
         self._indent -= 1
 
     # -- top level --------------------------------------------------------
@@ -865,6 +908,24 @@ class FlyBrainCodegen:
         callee = call.callee
         if isinstance(callee, ast.Identifier):
             name = callee.name
+            # Fused bundle-of-binds: `bundle(bind(r1,f1), ..., bind(rN,fN))`
+            # where every argument is a literal bind call. Emit the runtime's
+            # `bundle_of_binds` primitive so the rotation stack + batched
+            # matmul + sum can execute as three kernels (GPU) or one numpy
+            # einsum (CPU), instead of N separate bind calls plus an N-arg
+            # bundle. This is the independence structure of a role-filler
+            # record: every (role, filler) pair is completely independent of
+            # the others. Matches the 2026-04-22 "PyTorch/GPU gated on
+            # scheduled parallel evaluation" item from STATUS.md.
+            if (name == "bundle"
+                    and len(call.args) >= 2
+                    and all(_is_bind_call(a) for a in call.args)):
+                pair_srcs = []
+                for bind_call in call.args:
+                    role_src = self._translate_expr(bind_call.args[0])
+                    filler_src = self._translate_expr(bind_call.args[1])
+                    pair_srcs.append(f"({role_src}, {filler_src})")
+                return f"_VSA.bundle_of_binds({', '.join(pair_srcs)})"
             if name in BUILTINS:
                 emitter, arity = BUILTINS[name]
                 if arity is not None and len(call.args) != arity:
