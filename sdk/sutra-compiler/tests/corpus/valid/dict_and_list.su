@@ -1,0 +1,44 @@
+// dict and list as first-class collection types (2026-04-22).
+//
+// dict<K, V> is a rotation-hashmap: declaration calls hashmap_new,
+// subscript get dispatches to hashmap_get, subscript assign
+// dispatches to hashmap_set. dict lives on the rotation-hashmap
+// runtime that landed 2026-04-22 morning.
+//
+// list<T> is the compile-time-dynamic collection type — a Python
+// list under the hood, with the length determined by the
+// initializer's element count.
+//
+// Per user direction 2026-04-22 evening: these are the familiar
+// TypeScript/C#/Python collection types, available as surface
+// syntax even though they compile to Sutra-specific mechanisms.
+// The `class` framing (bool, int, dict, list) is that classes
+// exist only at compile time and enforce that illegal operations
+// aren't performed on values.
+
+vector v_cat = basis_vector("cat");
+vector v_dog = basis_vector("dog");
+vector v_whiskers = basis_vector("whiskers");
+vector v_bark = basis_vector("bark");
+
+function vector dict_demo() {
+    // Empty dict, add two entries, retrieve one.
+    dict<vector, vector> concept_memory;
+    concept_memory[v_cat] = v_whiskers;
+    concept_memory[v_dog] = v_bark;
+    return concept_memory[v_cat];
+}
+
+function int list_demo() {
+    // list<T> from a literal — Python list under the hood.
+    list<int> items = [10, 20, 30];
+    var total : int = 0;
+    foreach (int x in [10, 20, 30]) {
+        total += x;
+    }
+    return total;
+}
+
+function string main() {
+    return "ok";
+}
