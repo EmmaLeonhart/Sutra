@@ -356,9 +356,43 @@ class FlyBrainCodegen:
         if decl.type_ref is not None and decl.type_ref.name == "map":
             if len(decl.type_ref.type_args) >= 1:
                 self._map_key_type[decl.name] = decl.type_ref.type_args[0].name
+
+        # `var x : TYPE;` without an initializer — the rotation-bound
+        # storage-slot form from the 2026-04-21 surface-syntax decision
+        # (Candidate B: role/var). Emit a zero-valued slot of the
+        # declared type. `var[N] x : TYPE;` emits a Python list of N
+        # zero slots.
+        if decl.initializer is None and decl.is_var_colon:
+            type_name = decl.type_ref.name if decl.type_ref is not None else "vector"
+            # Vector types get a zero d-dim array per slot.
+            if type_name == "vector":
+                if decl.array_size is not None:
+                    self._emit(
+                        f"{decl.name} = [_np.zeros(_VSA.dim) "
+                        f"for _ in range({decl.array_size})]"
+                    )
+                else:
+                    self._emit(f"{decl.name} = _np.zeros(_VSA.dim)")
+                return
+            # Fuzzy / bool are (per spec target) scalars on the canonical
+            # truth axis. Until the truth-axis runtime lands, use a plain
+            # float zero as the placeholder. Changes to an axis-projection
+            # read when the extended-state-vector work finishes.
+            if type_name in ("fuzzy", "bool", "int", "scalar", "number"):
+                if decl.array_size is not None:
+                    self._emit(f"{decl.name} = [0.0] * {decl.array_size}")
+                else:
+                    self._emit(f"{decl.name} = 0.0")
+                return
+            # Unknown colon-typed slot — fall through to the uninitialized
+            # error below with a clearer message.
+
         if decl.initializer is None:
             raise CodegenNotSupported(
-                decl, f"uninitialized declaration `{decl.name}` not supported"
+                decl,
+                f"uninitialized declaration `{decl.name}` is only supported "
+                f"for `var x : TYPE;` with TYPE in (vector, fuzzy, bool, "
+                f"int, scalar). Add an initializer or use a supported type."
             )
         init_src = self._translate_expr(decl.initializer, map_key_type=(
             decl.type_ref.type_args[0].name
@@ -367,6 +401,20 @@ class FlyBrainCodegen:
             and len(decl.type_ref.type_args) >= 1
             else None
         ))
+        # `role x = expr;` for now emits identical code to `vector x = expr;`.
+        # When learned-matrix binding lands (STATUS "Deferred"), the is_role
+        # flag will switch this branch to emit the matrix-fit path instead.
+        # `var[N] x = expr;` with an initializer would need a
+        # broadcast-or-replicate semantics that is not yet specified;
+        # reject for now so the spec work lands before the codegen does.
+        if decl.array_size is not None and decl.initializer is not None:
+            raise CodegenNotSupported(
+                decl,
+                f"`var[{decl.array_size}] {decl.name} = ...;` initialized "
+                "array declarations are not yet specified. Use "
+                f"`var[{decl.array_size}] {decl.name} : TYPE;` for a "
+                "zero-initialized slot array."
+            )
         self._emit(f"{decl.name} = {init_src}")
 
     def _translate_function_decl(self, decl: ast.FunctionDecl) -> None:
