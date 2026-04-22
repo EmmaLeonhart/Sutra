@@ -88,9 +88,9 @@ Future work on the integer class (tracked in `todo.md`):
 unspecified" when the program doesn't need the integer class's
 extra behavior.
 
-### `map<K, V>`
+### `map<K, V>` — compile-time literal-initialized lookup table
 
-A two-parameter generic map type. Used extensively in demos for
+Two-parameter generic map type. Used extensively in demos for
 codebook-name lookup tables:
 
     map<vector, string> PHRASE_NAME = {
@@ -103,6 +103,75 @@ dispatch correctly: vector-keyed maps use an identity-first
 comparison (`is` check) with cosine-similarity fallback; other
 key types use ordinary dict lookup. See
 `codegen_flybrain.py::_vector_map_lookup`.
+
+Maps are **compile-time-initialized constants**. For runtime
+key-value storage, use `dict` (below).
+
+### `dict<K, V>` — runtime rotation-hashmap
+
+`dict<K, V>` is the runtime-writable key-value store. It compiles
+to a rotation-hashmap: a bundled-accumulator vector where each
+entry is a rotation-binding of a value under its key's hash
+(see `binding.md` §"Rotation binding"). Subscript access routes
+through the runtime's `hashmap_get` / `hashmap_set`:
+
+    dict<vector, vector> concept_memory;
+    concept_memory[v_cat] = v_whiskers;
+    concept_memory[v_dog] = v_bark;
+    vector looked_up = concept_memory[v_cat];
+
+- **Declaration** (`dict<K, V> d;`) emits `d = _VSA.hashmap_new()`
+  — an empty accumulator. Initialized form `dict<K, V> d = ...;`
+  is not yet specified (a literal-initialized `dict` would need
+  its own syntax separate from `map`'s literal form).
+- **Subscript read** (`d[k]`) dispatches to
+  `_VSA.hashmap_get(d, k)`.
+- **Subscript write** (`d[k] = v`) dispatches to
+  `d = _VSA.hashmap_set(d, k, v)` — functional update; the name
+  is rebound to the new accumulator.
+- **Compound assignment** on a dict subscript (`d[k] += v`) is
+  not yet specified; rejected at codegen.
+
+The rotation-hashmap mechanism gives dict soft-lookup potential
+(noisy-key retrieval) when the hash is made continuous; the
+current prototype uses a bit-hash of the key bytes, so only
+exact-key lookup works. Soft-lookup is future work per
+`planning/open-questions/rotation-hashmap-as-language-feature.md`.
+
+### `list<T>` — compile-time-dynamic collection
+
+`list<T>` is the familiar Python/TypeScript list — a collection
+of T values whose length is known at compile time (either set
+explicitly or inferred from an initializer literal). Today it
+compiles to a Python list:
+
+    list<int> items = [10, 20, 30];
+    foreach (int x in [10, 20, 30]) {
+        total += x;
+    }
+
+Two declaration shapes (per user direction 2026-04-22 evening):
+
+- **Compile-time dynamic**: `list<T> xs = [a, b, c];` — length
+  determined by the initializer. The compiler knows the length
+  at compile time; the runtime representation is a Python list.
+- **Set memory allocation**: `list<T>[N] xs;` — fixed-size
+  declared up front. Parses the same way as `var[N] xs : T`
+  today; which surface form is preferred is an open question.
+
+Subscript access, iteration, and common list operations work
+via Python under the hood. Append at runtime is not a first-class
+operation yet — the point of `list` in Sutra is compile-time
+dynamism, not runtime-unbounded growth (that would require
+substrate-level reallocation semantics not yet designed).
+
+### `array<T, N>` (future — currently spelled `var[N] x : T`)
+
+Fixed-size array of N elements of type T. Today spelled
+`var[N] x : T` per the Candidate B surface-syntax decision. The
+`array<T, N>` generic surface form may be added later for
+TypeScript/C# familiarity; both desugar to the same underlying
+Python list.
 
 ## Declaration forms
 
@@ -169,6 +238,47 @@ at the codegen level; the `is_role` flag on the AST node is
 metadata reserved for the deferred **learned-matrix binding**
 path (when `role X = learned_from(data);` lands, the flag will
 trigger matrix-fitting at compile time).
+
+## Classes exist — but only at compile time (2026-04-22)
+
+User direction 2026-04-22 evening:
+
+> Classes exist and are decently well defined, but classes only
+> exist at compile time and they only exist so you do not do an
+> illegal operation on them.
+
+A **class** in Sutra is a compile-time tag that carries
+enforcement rules — constraints on what operations are allowed
+on values of that class. Classes do not exist at runtime; they
+leave no runtime representation. Their whole point is to catch
+illegal uses before the program runs.
+
+Classes currently in the language:
+
+- **`bool`** — compile-time defuzz counter, compile-time check
+  that you're not treating a fuzzy as crisp.
+- **`int`** — compile-time tag that enables augmented assignment
+  and will enable integer-specific checks (bounds, mod-N, etc.)
+  as those land.
+- **`dict`**, **`list`** — compile-time collection classes that
+  will eventually enforce element-type consistency and
+  operation-legality (e.g. "you can't subscript a list with a
+  string" if that's a rule we want).
+- **`role`** — compile-time marker for semantic-binding declarations
+  (distinct from rotation-bound `var`). Today a stub flag on
+  VarDecl awaiting the learned-matrix binding implementation.
+
+The TypeScript/C#/Python comparison the user uses: all the
+conventional collection and scalar types should be available in
+the source, even if they don't work exactly like their equivalents
+in those languages. The class tags are what make the surface
+syntax familiar while the underlying execution is Sutra-specific
+(vector-space for scalars, rotation-hashmap for dict, etc.).
+
+A class does not imply a vtable, runtime dispatch, or any heap
+representation. It is a compile-time assertion: "this value is
+of class X, so the compiler should reject operations that
+aren't defined for X."
 
 ## Type checking — there isn't any
 
