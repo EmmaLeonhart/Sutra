@@ -1,158 +1,156 @@
 # Primitive operations
 
-The primitive vector operations used across the `.su` examples and
-accepted by the compiler are:
+The primitive operations the compiler recognizes as builtins are
+listed below. The BUILTINS table in
+`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py` is the
+authoritative list; this section describes what each does and
+which backends support it.
 
-- **`bind`** — apply a role to a filler, producing a tagged vector.
-- **`unbind`** — invert `bind` given the role.
-- **`bundle`** — superpose multiple vectors into a single vector.
-- **`similarity`** — score how close two vectors are.
-- **`embed`** — map a string literal to a vector via the substrate's
-  embedding function.
-- **`argmax_cosine`** — given a vector and a codebook of vectors,
-  return the codebook entry whose cosine similarity is highest.
-  This is the numpy-backend form of "clean up to the nearest known
-  prototype."
+## The builtin set (as of 2026-04-22)
 
-## Roles are matrices; `bind` is matrix-vector multiplication
+| Op | Arity | Purpose | Numpy backend | Fly-brain backend |
+|---|---|---|---|---|
+| `basis_vector` | 1 | String → vector via the substrate's embedder | ✓ (Ollama) | ✓ (MB prototype) |
+| `bind` | 2 | Rotation binding: `Q_role @ filler` | ✓ | ✓ |
+| `unbind` | 2 | Inverse rotation: `Q_role^T @ record` | ✓ | ✓ |
+| `bundle` | variadic ≥ 1 | Superposition: `sum(vs) / norm(sum(vs))` | ✓ | ✓ |
+| `displacement` | 2 | Vector subtraction: `a - b` | ✓ | ✓ |
+| `similarity` | 2 | Cosine similarity | ✓ | ✓ |
+| `argmax_cosine` | 2 | Cleanup: nearest codebook entry by cosine | ✓ | ✓ |
+| `select` | 2 | Softmax-weighted superposition over named options | ✓ | ✓ |
+| `compose` | 2 | Pointwise multiply (sign-flip permutation composition) | ✓ | ✓ |
+| `permute` | 2 | Sign-flip permutation (legacy; see below) | ✓ | ✓ |
+| `permutation_key` | 1 | Sign-flip key derivation | ✓ | ✓ |
+| `identity_permutation` | 0 | `ones(d)` sign-flip identity | ✓ | ✓ |
+| `snap` | 1 | Cleanup against a real attractor circuit | ✗ rejected | ✓ |
+| `make_rotation` | 1–2 | Build a Haar-random rotation matrix | ✗ rejected | ✓ |
+| `compile_prototypes` | 1 | Compile a codebook to MB KC patterns | ✗ rejected | ✓ |
+| `geometric_loop` | 3–4 | Eigenrotation loop with prototype matching | ✗ rejected | ✓ |
 
-See `binding.md` for the detailed spec. Summary: every `bind` in
-Sutra is matrix-vector multiplication, and the role matrix `R`
-comes in two kinds — **semantic** (learned from corpus, carries
-meaning) and **non-semantic** (arbitrary, structural only).
+The numpy backend rejects four builtins because they require a
+real attractor / cleanup circuit (mushroom-body spiking model)
+that the pure-numpy substrate doesn't have. Programs that use
+them must target the fly-brain backend.
 
-The semantic case is the point of the language; see `vision.md`
-for the framing ("Sutra inverts VSA's random-role premise").
-Non-semantic bindings — classical VSA random roles, sign-flip,
-permutation, random orthogonal rotations — are valid infrastructure
-but not the interesting part. Sign-flip specifically is a diagonal
-±1 matrix, the degenerate case of non-semantic binding.
+## Binding (semantic + rotation)
 
-### Empirical grounding and honest gap
+Spec detail for `bind`/`unbind` is in `binding.md`. Summary:
 
-Two prior papers are load-bearing here and **must not be conflated**.
-Naming is treacherous; the user's terminology:
+- Two binding kinds: **semantic** (learned-matrix, `R @ filler`
+  where R is fit from corpus data — deferred implementation) and
+  **rotation** (role-seeded Haar-random orthogonal, currently the
+  implementation of `bind` on both backends).
+- **Sign-flip binding is retired** as the runtime mechanism (as
+  of 2026-04-22). The `permute` / `permutation_key` /
+  `identity_permutation` / `compose` builtins are retained as
+  legacy sign-flip operations for programs that specifically want
+  non-semantic ±1 diagonal matrices, but new code uses `bind` /
+  `unbind` and gets rotation binding.
+- The argument convention is **role-first**: `bind(role, filler)`
+  and `unbind(role, record)`. Four of the existing `.su` demos
+  were migrated to this convention in the 2026-04-22 pass.
 
-- **"VSA paper" = "latent space cartography paper"** — published
-  elsewhere (`EmmaLeonhart/latent-space-cartography`), clawRxiv
-  post 1127. Found 86 predicates as consistent **displacement
-  vectors** across three embedding models, r = 0.861 between
-  geometric consistency and held-out prediction accuracy. A
-  displacement is the rank-0 (translation-only) special case of
-  a role matrix. This paper establishes that the **simplest** form
-  of learned role lives in LLM embedding spaces with measurable
-  consistency. It also identified the mxbai diacritic defect.
+## `displacement(a, b) = a - b`
 
-- **"sutra paper" = "embedding paper"** — `sutra-paper/` in this
-  repo. Tested sign-flip binding vs alternatives on GTE-large,
-  BGE-large, Jina-v2, and mxbai. Roles here were **random
-  vectors**, not learned. Sign-flip achieved 3–5× capacity vs
-  Hadamard. This paper builds on the cartography result but does
-  **not** extend it to full learned matrices; it uses the spaces
-  as generic VSA substrates.
+Vector subtraction. Added 2026-04-22 as a builtin because bare `-`
+on vectors is not supported by the operator path (binary operators
+pass through to Python unchanged, and Python's `-` on numpy arrays
+is elementwise — which happens to be what we want, but the
+operator path doesn't carry the vector-type knowledge for the
+subtraction to be spec-visible).
 
-**What neither paper proves:** that the full-matrix generalization
-— sentence-level semantic roles like "object of a sentence" —
-admits clean, consistent learned matrices in any given embedding
-space. That is a plausible extrapolation from cartography's
-rank-0 result, not a settled finding. See
-`planning/findings/2026-04-15-nomic-object-matrix-identity-wins.md`
-for the first attempt and its (confounded, data-starved) null
-result.
+Named "displacement" because the cartography work's rank-0 learned
+role matrix IS a displacement vector: `R @ v = v + d`. The
+rank-0 case of Sutra's semantic binding is exactly `displacement`
+applied symmetrically. The name is on-brand rather than ad-hoc.
 
-**Substrate coverage gap:** the current demo path runs on
-**nomic-embed-text**, which appears in neither paper. mxbai is
-known-broken (diacritic attention sink); GTE / BGE / Jina-v2 passed
-the paper's validation gates; nomic's status is unknown. Before
-interpreting a failure on nomic (e.g. `examples/sequence.su` scoring
-`sim(fox, dog) = 0.939`) as a failure of the Sutra operation, the
-substrate itself should be validated — otherwise we are attributing
-a substrate defect to the language.
+Used primarily for analogy-style formulas like
+`bundle(displacement(king, man), woman)` (see
+`examples/king_queen_naive.su`).
 
-### What `bind` is *not*
+## `bundle(v1, v2, ...)` — superposition
 
-- **Not sign-flip.** `a * sign(role)` is the current implementation
-  in `codegen_numpy` and `codegen_flybrain`, and it is explicitly
-  rejected (2026-04-15). It does not match the matrix-for-a-role
-  framing — a sign vector is a diagonal ±1 matrix, the degenerate
-  form. And it fails empirically: `examples/sequence.su` scores
-  `sim(fox, dog) = 0.939` on nomic when disjoint sequences should
-  score below 0.5.
-- **Not circular convolution unless the role is learned as a
-  circulant.** HRR is the special case "role matrix is the
-  circulant of a random vector." Sutra does not restrict to
-  circulants, and does not use random roles.
+Sum + normalize. The current implementation returns
+`sum(vs) / norm(sum(vs))`. Whether normalization is part of the
+operation's semantics or a post-hoc convenience is one of the
+open questions below.
 
-## Similarity
+## `similarity(a, b)` — cosine by default
 
-Similarity is "something we just kind of get" — it falls out of the
-vector space rather than being a specially-designed operation. Three
-concrete candidates exist:
-
-1. **Dot product** — raw.
-2. **Cosine similarity** — normalized.
-3. **Normalized dot product** — different from cosine in detail.
-
-The user's position: **cosine similarity is overused**, and
-**normalized dot product might be the one Sutra should prefer**. Not
-settled. The tradeoffs depend on what the substrate gives you
-cheaply and what the rest of the language ends up needing.
-
-## `embed` and the substrate
-
-`embed("string")` is the bridge from source literals to vectors. On
-the numpy backend this calls the frozen LLM (nomic-embed-text, 768
-dims, mean-centered) at runtime. Different substrates implement
-`embed` differently — a fly-brain substrate maps a string to a KC
-pattern via the mushroom body, for example. `embed` is therefore a
-Sutra operation whose semantics depend on the substrate, but whose
-*role* in a program (string-literal → vector) is fixed.
+Current implementation: cosine similarity, `dot(a, b) / (|a||b|)`.
+The user's earlier framing flagged "cosine might be overused" and
+suggested normalized-dot as a candidate alternative; that's an
+open question not yet settled. The substrate-level operation
+available cheaply may dominate the choice eventually.
 
 ## `argmax_cosine` vs `snap`
 
-Earlier spec drafts listed `snap` as a primitive. `snap` is not
-called anywhere in `examples/*.su`; the demo-path operation for
-"clean up to the nearest known prototype" is `argmax_cosine(vec,
-codebook)`. `snap` remains meaningful as a name for the same
-conceptual operation on a substrate that has a real cleanup circuit
-(e.g. a Hopfield-like attractor), but the numpy demo substrate does
-not have one, so the callable primitive surfaced to Sutra programs
-on that backend is `argmax_cosine`.
+- `argmax_cosine(query, codebook)` — returns the codebook entry
+  with the highest cosine similarity to the query. Pure-numpy
+  operation, always available, what the demo path uses.
+- `snap(v)` — symbolic "cleanup to the nearest attractor" on a
+  substrate that actually has one (MB cleanup circuit on
+  fly-brain). Rejected on the numpy backend.
 
-Whether the language should expose a single name (`snap`) that
-lowers to `argmax_cosine` on numpy and to the real cleanup circuit
-on a connectome substrate, or whether the two should stay as
-distinct names, is an open question.
+Whether the language should expose a single name that lowers
+differently per substrate (so a program written with `snap` runs
+on numpy by mapping `snap` to `argmax_cosine`) or keep the two
+distinct is an open question.
 
-## `select` is not a primitive vector operation
+## `select` is branching, not a vector op
 
-`select` is the conditional-branching mechanism, which is a different
-kind of thing from bind/bundle/unbind/similarity. Spec for `select`
-lives in `control-flow.md`, not here.
+`select(scores, options)` is the softmax-weighted-superposition
+branching primitive. Spec for it lives in `control-flow.md`.
+
+## Binary operators
+
+Binary operators (`+`, `-`, `*`, `/`, `==`, `!=`, `<`, `>`, `<=`,
+`>=`, `&&`, `||`) in `.su` source pass through to Python unchanged
+in both codegens. This means:
+
+- `a + b` on strings is Python string concatenation (used in
+  `examples/fuzzy_dispatch.su`).
+- `a + b` on two numpy vectors is elementwise addition (works,
+  but not a spec-blessed operation — use `bundle` for the
+  vector-sum semantics).
+- `a - b` on two vectors is elementwise subtraction (works, but
+  use `displacement(a, b)` for the semantic operation).
+- `!` (unary not) is not supported — rewrite as an appropriate
+  `permute` or `displacement` expression.
+
+The "pass-through" nature of binary operators is an implementation
+shortcut, not a design statement. A future pass should decide
+which operators are spec operations (and with what semantics per
+type) vs. which are Python artifacts.
 
 ## Open questions
 
-- Which similarity operation does Sutra adopt as its default? Dot,
-  cosine, normalized dot, or something else? Is it substrate-
-  dependent (e.g. whichever the backend can give cheaply)?
-- How are role matrices actually fit at compile time? Least-squares
-  regression on `(input_emb, target_emb)` pairs is the obvious
-  starting point, but the substrate may constrain this (rank, PSD,
-  orthogonality). Tracked as a follow-up to the matrix-framing
-  position above.
-- Do role matrices need to be orthogonal (so `R⁻¹ = Rᵀ` is cheap
-  and the inverse is well-conditioned), or is arbitrary-matrix
-  tolerated as long as the fit is stable? Probably substrate-
-  dependent.
-- Do "clean" learned role matrices exist for sentence-level roles
-  (object, subject, agent) in nomic-embed-text? Open empirical
-  question — to be answered by a finding in `planning/findings/`
-  before the spec hardens.
-- What does `bundle` compute exactly? Elementwise sum is the
-  operational default; whether it should be a weighted sum, a
-  sum-then-normalize, or a substrate-specific superposition is
-  still open.
-- Are there other primitive operations that deserve first-class
-  status (e.g. rotation, projection, scalar multiplication)?
-- Should `snap` and `argmax_cosine` unify under a single name that
-  lowers differently per substrate, or stay distinct?
+- **Default similarity.** Cosine, dot, normalized dot, or
+  substrate-dependent. Still open.
+- **`bundle` semantics.** Straight sum? Sum-then-normalize?
+  Weighted sum? Substrate-specific superposition?
+- **`snap` vs. `argmax_cosine` unification.** One name with
+  backend-dispatched lowering, or stay distinct?
+- **Semantic-role matrix fitting.** When `role X =
+  learned_from(data)` lands (deferred, see STATUS.md /
+  todo.md), what fitting procedure — lstsq, ridge, Procrustes,
+  low-rank? Substrate-dependent.
+- **Vector binary operators.** Are elementwise `+` / `-` / `*`
+  on two vectors spec operations, or are `bundle` /
+  `displacement` / a hypothetical scale the only blessed paths?
+- **Additional primitives.** Rotation (as a first-class op),
+  projection, scalar multiplication. Not in BUILTINS today; the
+  algebraic simplification a compiler would need for implicit
+  concurrency might pull one or more of these in.
+
+## Prior-art pointer
+
+The cartography work (Leonhart, *Latent space cartography applied
+to Wikidata* — sibling repo `EmmaLeonhart/latent-space-cartography`)
+showed that the rank-0 case of a learned role matrix (a
+displacement vector) lives consistently across multiple frozen LLM
+embedding spaces. That empirical result is the foundation for
+Sutra's semantic-binding commitment. Specific numbers from that
+work — predicate counts, correlation values — should be cited
+from the cartography source itself rather than quoted here (see
+CLAUDE.md note on prior-work claims).
