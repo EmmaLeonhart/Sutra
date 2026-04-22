@@ -33,14 +33,31 @@ lives here.
 
 - Which similarity operation is the Sutra default (dot, cosine,
   normalized dot, substrate-dependent).
-- Exact semantics of `bind`, `bundle`, `unbind`, `snap`
-  (intertwined with the sign-flip revisit item in `todo.md`).
+- Exact semantics of `bind`, `bundle`, `unbind`, `snap`.
 - Whether other primitives deserve first-class status (rotation,
   projection, scalar multiplication).
 - Should `snap` and `argmax_cosine` unify under a single name that
   lowers per-substrate, or stay distinct? (`snap` is not called in
   `examples/*.su`; the demo-path cleanup primitive is
   `argmax_cosine`.)
+
+## Binding — `binding.md`
+
+- **Surface syntax for binding-kind choice** — how does a `.su`
+  program distinguish a semantic (learned-matrix) role from a
+  structural (sign-flip) role at declaration? See
+  `planning/open-questions/binding-kind-surface-syntax.md` for
+  candidates A–E and tradeoffs. Blocks STATUS.md queue item 1.
+- Which fitting procedure for semantic role matrices (lstsq,
+  ridge, Procrustes, low-rank).
+- Whether learned matrices need to be orthogonal for clean
+  unbinding.
+- Which empirical-space directions qualify as "undersymbolic" for
+  structural key placement.
+- Whether there are roles that are genuinely non-linear (and so
+  cannot be captured as a matrix).
+- Whether there are other binding kinds worth populating beyond
+  semantic and structural (sparse-code, attention-style, hybrid).
 
 ## Equality and defuzzification — `equality-and-defuzzification.md`
 
