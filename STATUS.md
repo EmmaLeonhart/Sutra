@@ -49,14 +49,7 @@ pick up next.
    `planning/sutra-spec/concurrency.md` and
    `planning/open-questions/concurrency-and-monads.md`.
 
-4. **Demonstrate `loop(cond)` end-to-end.** The compiler implements
-   data-dependent iteration but only `examples/loop_rotation.su` and
-   `counter_loop.su` exercise it. Writing a more substantial `.su`
-   program that uses `loop(cond)` with a genuine data-dependent
-   termination condition would prove out the part of the language
-   that `loop[N]` doesn't.
-
-5. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
+4. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
    sums, and cosines — every operation has a trivial GPU equivalent.
    Do this only after items 2-3 are settled so the spec being
    targeted is stable.
