@@ -183,6 +183,8 @@ PRIMITIVE_TYPE_NAMES = {
     "void",
     "permutation",
     "map",
+    "char",
+    "int",
 }
 
 # Contextual keywords: identifiers with special meaning in expressions
