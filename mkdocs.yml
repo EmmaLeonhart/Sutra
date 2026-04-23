@@ -71,7 +71,14 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      # Mermaid fenced blocks for diagrams. Declaring this custom
+      # fence is what enables Material for MkDocs' built-in mermaid
+      # rendering — used on the primitive-classes page.
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -83,6 +90,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - What is Sutra?: what-is-sutra.md
+  - Primitive classes: primitive-classes.md
   - Vision:
     - The graph-to-vector leap: vision.md
   - Interactive:
