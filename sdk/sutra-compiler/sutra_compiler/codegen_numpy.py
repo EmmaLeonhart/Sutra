@@ -88,6 +88,10 @@ class NumpyCodegen(FlyBrainCodegen):
         "geometric_loop",
     })
 
+    def _char_literal_src(self, expr: ast.CharLiteral) -> str:
+        """Lower `'a'` to a runtime make_char call with the code point."""
+        return f"_VSA.make_char({int(expr.value)})"
+
     def _translate_eigenrotation_loop(self, stmt):
         """Eigenrotation on the numpy substrate.
 
@@ -624,9 +628,16 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("#")
         self._emit("# Pinning the allocation to named class attributes so the layout")
         self._emit("# is legible at runtime and from the REPL.")
+        self._emit("#")
+        self._emit("# synthetic[3] is the character-vs-int discriminator. A char")
+        self._emit("# literal 'a' stores the code point at AXIS_REAL and sets this")
+        self._emit("# flag to 1.0; a plain int leaves it at 0.0. Both types share")
+        self._emit("# the number-axis representation — the flag is the only")
+        self._emit("# runtime difference between `int 97` and `char 'a'`.")
         self._emit("AXIS_REAL = 0")
         self._emit("AXIS_IMAG = 1")
         self._emit("AXIS_TRUTH = 2")
+        self._emit("AXIS_CHAR_FLAG = 3")
         self._emit()
         self._emit("def real(self, v):")
         self._indent += 1
@@ -691,6 +702,29 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("v = _np.zeros(self.dim, dtype=_np.float64)")
         self._emit("v[self.semantic_dim + self.AXIS_TRUTH] = float(t)")
         self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_char(self, codepoint):")
+        self._indent += 1
+        self._emit('"""Extended-state vector for a character literal.')
+        self._emit('')
+        self._emit("Unicode code point at synthetic[AXIS_REAL] (same slot as")
+        self._emit("int/float); synthetic[AXIS_CHAR_FLAG] set to 1.0 to")
+        self._emit("distinguish `'a'` (97 with flag) from `97` (97 without).")
+        self._emit("Arithmetic on chars works the same as on ints — both")
+        self._emit("live on the number axis. Downstream code that cares")
+        self._emit("about the distinction can read the flag via `is_char`.")
+        self._emit('"""')
+        self._emit("v = _np.zeros(self.dim, dtype=_np.float64)")
+        self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(codepoint)")
+        self._emit("v[self.semantic_dim + self.AXIS_CHAR_FLAG] = 1.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def is_char(self, v):")
+        self._indent += 1
+        self._emit('"""True iff v was produced as a character literal."""')
+        self._emit("return bool(v[self.semantic_dim + self.AXIS_CHAR_FLAG] >= 0.5)")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")

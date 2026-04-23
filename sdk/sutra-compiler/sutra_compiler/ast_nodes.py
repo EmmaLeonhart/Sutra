@@ -66,6 +66,14 @@ class StringLiteral(Expr):
 
 
 @dataclass
+class CharLiteral(Expr):
+    # The Unicode code point. Runtime representation is a number-axis
+    # scalar (synthetic[AXIS_REAL] = code point) plus a char-flag bit
+    # on synthetic[AXIS_CHAR_FLAG] distinguishing chars from plain ints.
+    value: int
+
+
+@dataclass
 class BoolLiteral(Expr):
     value: bool
 
