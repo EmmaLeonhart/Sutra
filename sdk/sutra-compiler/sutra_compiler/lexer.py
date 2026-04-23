@@ -83,6 +83,7 @@ class TokenKind(Enum):
     # ---- literals ----
     INT_LIT = auto()
     FLOAT_LIT = auto()
+    IMAG_LIT = auto()            # imaginary-unit suffix: 5i, 3.14i
     CHAR_LIT = auto()            # single-quoted char literal 'a'
     STRING_LIT = auto()          # plain "..." literal
     STRING_INTERP_START = auto()  # opening $" of interpolated string
@@ -583,6 +584,22 @@ class Lexer:
             self._advance()
             while not self._at_end() and self._peek().isdigit():
                 self._advance()
+        # Imaginary-unit suffix: `5i`, `3.14i`. Only binds when the
+        # character AFTER the `i` is not an identifier continuation —
+        # so `5i` → IMAG_LIT(5) but `5index` → INT_LIT(5) + IDENT("index")
+        # and the bare variable name `i` still lexes as IDENT. Same
+        # disambiguation pattern as numeric suffixes in Rust / C#.
+        if self._peek() == "i":
+            nxt = self._peek(1)
+            if nxt == "" or not (nxt.isalnum() or nxt == "_"):
+                self._advance()  # consume the `i`
+                lexeme = self.source[start.offset:self._pos]
+                # Magnitude is the numeric part without the trailing `i`.
+                magnitude = float(lexeme[:-1])
+                self._emit_tok(
+                    TokenKind.IMAG_LIT, lexeme, start, value=magnitude
+                )
+                return
         lexeme = self.source[start.offset:self._pos]
         if is_float:
             self._emit_tok(TokenKind.FLOAT_LIT, lexeme, start, value=float(lexeme))
