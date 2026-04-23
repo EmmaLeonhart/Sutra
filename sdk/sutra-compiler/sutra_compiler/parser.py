@@ -109,6 +109,7 @@ _EXPR_START_TOKENS = {
 _PRIMITIVE_TYPES = {
     "scalar", "vector", "matrix", "tuple", "string",
     "bool", "fuzzy", "void", "permutation", "map",
+    "char", "int",
 }
 
 # Keywords that can act as a "special function" in expression position.

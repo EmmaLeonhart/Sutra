@@ -140,8 +140,70 @@ def simplify_module(module: ast.Module) -> ast.Module:
     return module
 
 
+def _auto_embed_var_decl_init(decl: ast.VarDecl) -> None:
+    """Type-directed rewrite of StringLiteral initializers.
+
+    Per the 2026-04-23 literals design:
+
+    - `vector v = "foo"` — the string is implicitly embedded. We wrap
+      it in `EmbedExpr` so the codegen emits `_VSA.embed("foo")`.
+    - `char c = "c"` — the string must be exactly one character; we
+      rewrite it to a `CharLiteral`. A longer string is a type error
+      the validator will catch separately; for now we leave longer
+      strings in place so the program still parses (codegen will
+      diagnose).
+    - `var x = "foo"` (untyped) — defaults to embed. User direction
+      was clear: "var x = 'x' will default embed". The programmer
+      writes `var x : string = "foo"` or `string x = "foo"` to keep
+      the string as a string.
+    - `string x = "foo"` — untouched. Explicit string type keeps the
+      string.
+
+    Only the literal case — `StringLiteral` — is rewritten. Non-literal
+    RHS expressions (e.g. `vector v = lookup_name();`) are left to
+    whatever the normal expression-typing story produces.
+    """
+    if decl.initializer is None:
+        return
+    if not isinstance(decl.initializer, ast.StringLiteral):
+        return
+    s_lit: ast.StringLiteral = decl.initializer
+    type_name = decl.type_ref.name if decl.type_ref is not None else None
+
+    # `string x = "foo"` — explicit string, no rewrite.
+    if type_name == "string":
+        return
+
+    # `char c = "c"` — fold to CharLiteral at compile time.
+    if type_name == "char":
+        if len(s_lit.value) == 1:
+            decl.initializer = ast.CharLiteral(
+                value=ord(s_lit.value), span=s_lit.span,
+            )
+        # Length != 1 is left alone; the validator / codegen will
+        # complain when a string hits a `char` context.
+        return
+
+    # `vector v = "foo"` OR `var v = "foo"` (untyped) — implicit embed.
+    if type_name == "vector" or decl.is_var_inferred:
+        decl.initializer = ast.EmbedExpr(expr=s_lit, span=s_lit.span)
+        return
+
+    # Other typed contexts (int, float, fuzzy, etc.) — don't rewrite.
+    # Fuzzy-with-StringLiteral is a type error the validator catches;
+    # int/float with a string is a cast the validator catches too.
+
+
 def collect_basis_vector_strings(module: ast.Module) -> list[str]:
-    """Return every string literal appearing as a `basis_vector(...)` arg.
+    """Return every string literal that will be embedded at runtime.
+
+    Covers two sources:
+    - `basis_vector("name")` — explicit source-level basis_vector call
+      with a string literal argument.
+    - `embed(<StringLiteral>)` — the `EmbedExpr` AST node, which the
+      auto-embed pass inserts in type-directed contexts (`vector v =
+      "foo"`, untyped `var x = "foo"`, etc.) and which may also be
+      written explicitly.
 
     Used by the codegen to emit a batched Ollama pre-fetch at module
     init: N sequential HTTP round-trips collapse into a single batched
@@ -151,18 +213,23 @@ def collect_basis_vector_strings(module: ast.Module) -> list[str]:
     seen: set[str] = set()
     collected: list[str] = []
 
+    def record(s: str) -> None:
+        if s not in seen:
+            seen.add(s)
+            collected.append(s)
+
     def visit(node) -> None:
         if node is None:
             return
         if isinstance(node, ast.Call):
             if _is_basis_vector_literal_call(node):
-                s = node.args[0].value  # type: ignore[attr-defined]
-                if s not in seen:
-                    seen.add(s)
-                    collected.append(s)
+                record(node.args[0].value)  # type: ignore[attr-defined]
             visit(node.callee)
             for a in node.args:
                 visit(a)
+            return
+        if isinstance(node, ast.EmbedExpr) and isinstance(node.expr, ast.StringLiteral):
+            record(node.expr.value)
             return
         for child in _children(node):
             visit(child)
@@ -354,6 +421,7 @@ def _simplify_top_level(decl) -> None:
     if isinstance(decl, ast.FunctionDecl):
         _simplify_block(decl.body)
     elif isinstance(decl, ast.VarDecl):
+        _auto_embed_var_decl_init(decl)
         if decl.initializer is not None:
             decl.initializer = _simplify_expr(decl.initializer)
 
@@ -365,6 +433,7 @@ def _simplify_block(block: ast.Block) -> None:
 
 def _simplify_stmt(stmt) -> None:
     if isinstance(stmt, ast.VarDecl):
+        _auto_embed_var_decl_init(stmt)
         if stmt.initializer is not None:
             stmt.initializer = _simplify_expr(stmt.initializer)
         return
