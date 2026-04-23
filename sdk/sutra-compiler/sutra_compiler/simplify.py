@@ -518,6 +518,14 @@ def _simplify_expr(expr):
 
     if isinstance(expr, ast.UnaryOp):
         expr.operand = _simplify_expr(expr.operand)
+        # Unary minus on an imaginary literal folds at compile time
+        # (`-5i` → ImaginaryLiteral(-5)). Unary plus is a no-op.
+        if expr.op == "-" and isinstance(expr.operand, ast.ImaginaryLiteral):
+            return ast.ImaginaryLiteral(
+                value=-expr.operand.value, span=expr.span,
+            )
+        if expr.op == "+" and isinstance(expr.operand, ast.ImaginaryLiteral):
+            return expr.operand
         return expr
 
     if isinstance(expr, ast.ArrayLiteral):
@@ -588,7 +596,8 @@ def _simplify_expr(expr):
         expr.parts = new_parts
         return expr
 
-    # Identifier, IntLiteral, FloatLiteral, CharLiteral, StringLiteral, BoolLiteral, UnknownLiteral,
+    # Identifier, IntLiteral, FloatLiteral, CharLiteral, StringLiteral,
+    # BoolLiteral, UnknownLiteral, ImaginaryLiteral, ComplexLiteral —
     # ThisExpr — no simplification.
     return expr
 
@@ -750,6 +759,17 @@ def _rewrite_binary(expr: ast.BinaryOp):
             return left
         # zero - x is not x, so no rewrite on the left side of subtract.
 
+    # Complex-literal folding: `re ± im·i` at compile time. Turns the
+    # two-literal expression into a single ComplexLiteral so the
+    # codegen emits one _VSA.make_complex(re, im) allocation instead
+    # of a vector-add over two partial literals. Handles int+imag,
+    # float+imag, imag+int, imag+float, and the four subtraction
+    # variants. Imag+imag collapses to a single ImaginaryLiteral.
+    if op in ("+", "-"):
+        folded = _fold_complex_literal(left, right, op, expr.span)
+        if folded is not None:
+            return folded
+
     # Rule 11: numeric constant folding for scalar literals.
     l_num = _numeric_value(left)
     r_num = _numeric_value(right)
@@ -786,4 +806,36 @@ def _numeric_value(expr):
         return expr.value
     if isinstance(expr, ast.FloatLiteral):
         return expr.value
+    return None
+
+
+def _fold_complex_literal(left, right, op: str, span):
+    """Compile-time fold of `re ± im·i` into a single ComplexLiteral.
+
+    Recognises the four pairings (number ± imag, imag ± number) and
+    the imag ± imag case. Returns the folded node or None if the
+    operands don't form a complex-literal pattern.
+    """
+    assert op in ("+", "-")
+    sign = 1.0 if op == "+" else -1.0
+    l_num = _numeric_value(left)
+    r_num = _numeric_value(right)
+    l_is_imag = isinstance(left, ast.ImaginaryLiteral)
+    r_is_imag = isinstance(right, ast.ImaginaryLiteral)
+
+    # number ± imag → Complex(number, ±imag)
+    if l_num is not None and r_is_imag:
+        return ast.ComplexLiteral(
+            re=float(l_num), im=sign * float(right.value), span=span,
+        )
+    # imag ± number → Complex(±number, imag)  (because `5i - 3 = -3 + 5i`)
+    if l_is_imag and r_num is not None:
+        return ast.ComplexLiteral(
+            re=sign * float(r_num), im=float(left.value), span=span,
+        )
+    # imag ± imag → ImaginaryLiteral(sum/diff).
+    if l_is_imag and r_is_imag:
+        return ast.ImaginaryLiteral(
+            value=float(left.value) + sign * float(right.value), span=span,
+        )
     return None

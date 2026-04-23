@@ -926,6 +926,31 @@ class FlyBrainCodegen:
             "(no truth-axis runtime); use the numpy or pytorch backend",
         )
 
+    def _imaginary_literal_src(self, expr: ast.ImaginaryLiteral) -> str:
+        """Override point for `5i`-style imaginary literals.
+
+        Same extended-state-vector dependency as the truth-axis and
+        char literals. Base refuses; numpy / pytorch override to emit
+        `_VSA.make_complex(0.0, magnitude)`.
+        """
+        raise CodegenNotSupported(
+            expr,
+            "imaginary literals are not supported on the fly-brain backend "
+            "(no complex-plane runtime); use the numpy or pytorch backend",
+        )
+
+    def _complex_literal_src(self, expr: ast.ComplexLiteral) -> str:
+        """Override point for fold-produced `ComplexLiteral(re, im)` nodes.
+
+        Only produced by the simplifier folding `N + Mi` / `N - Mi`
+        patterns. Base refuses; numpy / pytorch override.
+        """
+        raise CodegenNotSupported(
+            expr,
+            "complex literals are not supported on the fly-brain backend "
+            "(no complex-plane runtime); use the numpy or pytorch backend",
+        )
+
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
         if isinstance(expr, ast.StringLiteral):
             return repr(expr.value)
@@ -935,6 +960,10 @@ class FlyBrainCodegen:
             return repr(expr.value)
         if isinstance(expr, ast.CharLiteral):
             return self._char_literal_src(expr)
+        if isinstance(expr, ast.ImaginaryLiteral):
+            return self._imaginary_literal_src(expr)
+        if isinstance(expr, ast.ComplexLiteral):
+            return self._complex_literal_src(expr)
         if isinstance(expr, ast.BoolLiteral):
             return "True" if expr.value else "False"
         if isinstance(expr, ast.UnknownLiteral):
