@@ -102,6 +102,13 @@ class NumpyCodegen(FlyBrainCodegen):
         inner_src = self._translate_expr(expr.expr)
         return f"_VSA.embed({inner_src})"
 
+    # Three-valued fuzzy (Łukasiewicz Ł₃). `trit` is the canonical
+    # name; `luk` is an alias that honors Łukasiewicz directly. Both
+    # resolve to the same storage and the same literal-coercion
+    # behavior as `fuzzy`; the distinguishing runtime op is
+    # defuzzify_trit, not the storage layout.
+    _TRIT_TYPE_NAMES = frozenset({"trit", "luk"})
+
     def _fuzzy_literal_init_src(self, decl: ast.VarDecl) -> str | None:
         """Compile-time fold of `fuzzy x = <literal>` to make_truth(value).
 
@@ -116,15 +123,27 @@ class NumpyCodegen(FlyBrainCodegen):
         so `fuzzy x = -0.3` works. Only triggers for literal initializers
         — non-literal RHS expressions (e.g. `fuzzy x = compute()`) fall
         through to normal codegen.
+
+        `trit x = 0.7` and `luk x = 0.7` use the same fold but emit
+        `make_trit` — same storage, different compile-time tag. The
+        three-valued distinguishing behavior lives in defuzzify_trit,
+        not here.
         """
         if decl.initializer is None:
             return None
-        if decl.type_ref is None or decl.type_ref.name != "fuzzy":
+        if decl.type_ref is None:
+            return None
+        type_name = decl.type_ref.name
+        if type_name == "fuzzy":
+            ctor = "make_truth"
+        elif type_name in self._TRIT_TYPE_NAMES:
+            ctor = "make_trit"
+        else:
             return None
         scalar = self._fuzzy_constant_scalar(decl.initializer)
         if scalar is None:
             return None
-        return f"_VSA.make_truth({scalar!r})"
+        return f"_VSA.{ctor}({scalar!r})"
 
     def _fuzzy_constant_scalar(self, expr: ast.Expr) -> float | None:
         """Fold a literal expression to a single fuzzy-axis scalar.
@@ -781,6 +800,51 @@ class NumpyCodegen(FlyBrainCodegen):
         self._indent += 1
         self._emit('"""True iff v was produced as a character literal."""')
         self._emit("return bool(v[self.semantic_dim + self.AXIS_CHAR_FLAG] >= 0.5)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_trit(self, t):")
+        self._indent += 1
+        self._emit('"""Three-valued fuzzy (Łukasiewicz Ł₃) allocated on the truth axis.')
+        self._emit('')
+        self._emit("Shares storage with `make_truth` — a trit is a truth-axis")
+        self._emit("scalar, same as a fuzzy. The difference is compile-time: trit")
+        self._emit("values polarize to {-1, 0, +1} under `defuzzify_trit`, whereas")
+        self._emit("fuzzy values polarize to {-1, +1}. Use `trit` when the")
+        self._emit('"explicitly neutral" case is a first-class meaning you want')
+        self._emit("the defuzzifier to preserve, rather than collapse to a pole.")
+        self._emit('"""')
+        self._emit("return self.make_truth(t)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def defuzzify_trit(self, v, iters=10, beta=2.0):")
+        self._indent += 1
+        self._emit('"""Three-way differentiable polarizer toward {-1, 0, +1}.')
+        self._emit('')
+        self._emit("Softmax over exp(-β · (x - pole)²) with poles at -1, 0, +1;")
+        self._emit("output is the weighted-mean position. As β grows the weight")
+        self._emit("concentrates on the nearest pole, so iterating with β doubling")
+        self._emit("each pass sharpens toward a pole without ever binarizing. The")
+        self._emit("output stays in [-1, +1] and differentiable — no hard commit.")
+        self._emit('')
+        self._emit("Semantic mirror of the binary `defuzzify` but with the neutral")
+        self._emit("point preserved as a first-class attractor. A trit near zero")
+        self._emit("stays near zero; a trit biased toward one of the poles sharpens")
+        self._emit("toward that pole.")
+        self._emit('"""')
+        self._emit("x = float(v[self.semantic_dim + self.AXIS_TRUTH])")
+        self._emit("b = float(beta)")
+        self._emit("for _ in range(int(iters)):")
+        self._indent += 1
+        self._emit("w_neg = _np.exp(-b * (x + 1.0) ** 2)")
+        self._emit("w_zero = _np.exp(-b * x ** 2)")
+        self._emit("w_pos = _np.exp(-b * (x - 1.0) ** 2)")
+        self._emit("s = w_neg + w_zero + w_pos")
+        self._emit("x = float((-w_neg + w_pos) / s)")
+        self._emit("b *= 2.0")
+        self._indent -= 1
+        self._emit("out = v.copy()")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = x")
+        self._emit("return out")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
