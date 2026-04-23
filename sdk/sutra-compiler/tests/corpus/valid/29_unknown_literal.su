@@ -1,0 +1,34 @@
+// Sutra corpus test: the `unknown` literal.
+//
+// `unknown` is the neutral point on the truth axis — 0.0 between
+// true (+1) and false (-1). Parallels `true` and `false` as a
+// keyword-literal, but names the third pole of Łukasiewicz Ł₃
+// logic instead of a binary pole.
+//
+// Lowers to `_VSA.make_truth(0.0)` directly, or to
+// `_VSA.make_trit(0.0)` inside a trit/luk-typed declaration (via
+// the _fuzzy_literal_init_src fold) for emitted-source readability.
+//
+// Semantically this is what a programmer writes when they mean
+// "explicit neutrality" rather than the arithmetic 0 — see
+// planning/open-questions/zero-as-explicit-neutrality.md.
+
+function trit TritNeutral() {
+    trit t = unknown;
+    return t;
+}
+
+function fuzzy FuzzyNeutral() {
+    fuzzy f = unknown;
+    return f;
+}
+
+function luk LukNeutral() {
+    luk u = unknown;
+    return u;
+}
+
+// Bare `unknown` as an expression — no type context to fold into.
+function trit BareUnknown() {
+    return unknown;
+}

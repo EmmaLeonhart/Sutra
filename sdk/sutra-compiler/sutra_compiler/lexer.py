@@ -92,6 +92,7 @@ class TokenKind(Enum):
     INTERP_CLOSE = auto()         # } inside interpolated string
     TRUE = auto()
     FALSE = auto()
+    KW_UNKNOWN = auto()         # the `unknown` literal — truth-axis neutral
 
     # ---- identifiers / keywords ----
     IDENT = auto()
@@ -156,6 +157,10 @@ KEYWORDS = {
     "implicit": TokenKind.KW_IMPLICIT,
     "true": TokenKind.TRUE,
     "false": TokenKind.FALSE,
+    # `unknown` — the neutral point on the truth axis (0.0 between
+    # true and false). The first-class value for Łukasiewicz Ł₃ and
+    # a readability win over `trit t = 0`.
+    "unknown": TokenKind.KW_UNKNOWN,
 }
 
 # Primitive type names. They are ordinary identifiers at the lexer

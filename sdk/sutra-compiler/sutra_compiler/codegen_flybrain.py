@@ -912,6 +912,20 @@ class FlyBrainCodegen:
             "(no number-axis runtime); use the numpy or pytorch backend",
         )
 
+    def _unknown_literal_src(self, expr: ast.UnknownLiteral) -> str:
+        """Override point for the `unknown` keyword — truth-axis neutral.
+
+        Same story as char: the truth-axis representation lives on
+        the extended-state-vector runtime, which is numpy / pytorch
+        only. Base refuses; numpy and pytorch override to emit
+        `_VSA.make_truth(0.0)`.
+        """
+        raise CodegenNotSupported(
+            expr,
+            "`unknown` is not supported on the fly-brain backend "
+            "(no truth-axis runtime); use the numpy or pytorch backend",
+        )
+
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
         if isinstance(expr, ast.StringLiteral):
             return repr(expr.value)
@@ -923,6 +937,8 @@ class FlyBrainCodegen:
             return self._char_literal_src(expr)
         if isinstance(expr, ast.BoolLiteral):
             return "True" if expr.value else "False"
+        if isinstance(expr, ast.UnknownLiteral):
+            return self._unknown_literal_src(expr)
         if isinstance(expr, ast.Identifier):
             return expr.name
         if isinstance(expr, ast.Parenthesized):
