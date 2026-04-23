@@ -98,6 +98,29 @@ class _NumpyVSA:
             except OSError:
                 pass
 
+    def _postprocess_embedding(self, v):
+        # Mean-center + unit-normalize + pad/truncate to self.dim + renorm.
+        # Shared by embed() and embed_batch(); both need byte-identical
+        # post-processing so single vs batched fetches produce the same
+        # codebook entries.
+        #
+        # Mean-center: rotation binding assumes zero-mean vectors.
+        # Raw LLM embeddings cluster in a cone (all-positive-ish), which
+        # collapses sign-based operations to a near-constant pattern and
+        # destroys role-filler separation. Centering restores the algebra.
+        v = v - _np.mean(v)
+        n = _np.linalg.norm(v)
+        if n > 0: v = v / n
+        # Truncate or pad to self.dim if the LLM dim differs.
+        if v.shape[0] != self.dim:
+            if v.shape[0] > self.dim:
+                v = v[:self.dim]
+            else:
+                v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])
+            n = _np.linalg.norm(v)
+            if n > 0: v = v / n
+        return v
+
     def embed(self, name):
         """Frozen-LLM embedding via Ollama. No random fallback.
         If Ollama is unavailable or the model is missing, this raises.
@@ -107,22 +130,7 @@ class _NumpyVSA:
             import ollama
             r = ollama.embed(model=self.llm_model, input=name)
             v = _np.array(r['embeddings'][0], dtype=_np.float64)
-            # Mean-center: sign-flip binding assumes zero-mean vectors.
-            # Raw LLM embeddings cluster in a cone (all-positive-ish), which
-            # collapses sign(role) to a near-constant pattern and destroys
-            # role-filler separation. Centering restores the algebra.
-            v = v - _np.mean(v)
-            n = _np.linalg.norm(v)
-            if n > 0: v = v / n
-            # Truncate or pad to self.dim if the LLM dim differs.
-            if v.shape[0] != self.dim:
-                if v.shape[0] > self.dim:
-                    v = v[:self.dim]
-                else:
-                    v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])
-                n = _np.linalg.norm(v)
-                if n > 0: v = v / n
-            self._codebook[name] = v
+            self._codebook[name] = self._postprocess_embedding(v)
             self._write_disk_cache()
         return self._codebook[name].copy()
 
@@ -142,17 +150,7 @@ class _NumpyVSA:
         r = ollama.embed(model=self.llm_model, input=missing)
         for i, name in enumerate(missing):
             v = _np.array(r['embeddings'][i], dtype=_np.float64)
-            v = v - _np.mean(v)
-            n = _np.linalg.norm(v)
-            if n > 0: v = v / n
-            if v.shape[0] != self.dim:
-                if v.shape[0] > self.dim:
-                    v = v[:self.dim]
-                else:
-                    v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])
-                n = _np.linalg.norm(v)
-                if n > 0: v = v / n
-            self._codebook[name] = v
+            self._codebook[name] = self._postprocess_embedding(v)
         # One batched write after all fetches in this call.
         self._write_disk_cache()
 
@@ -351,27 +349,34 @@ class _NumpyVSA:
 
 
 
-def _argmax_cosine(query, candidates):
-    """Candidate with the largest cosine similarity to query.
+def _argmax_cosine_idx(M, q):
+    """Index in M of the row most cosine-similar to q.
 
-    Vectorized: stacks `candidates` into a (N, d) matrix and
-    computes all N cosines in a single matmul. Equivalent to the
-    old Python for-loop over _VSA.similarity, but ~Nx faster on
-    CPU and the shape the PyTorch/GPU backend will reuse without
-    any further rewriting. N small-kernel launches becomes 1 big one.
+    Returns None if q is the zero vector (caller decides the
+    fallback — first candidate for _argmax_cosine, first pair's
+    value for _vector_map_lookup).
+
+    This is the shape the PyTorch/GPU backend reuses without any
+    further rewriting: N small-kernel launches becomes 1 big one.
     """
+    row_norms = _np.linalg.norm(M, axis=1)
+    q_norm = _np.linalg.norm(q)
+    if q_norm == 0:
+        return None
+    safe_rn = _np.where(row_norms > 0, row_norms, 1.0)
+    scores = (M @ q) / (safe_rn * q_norm)
+    scores = _np.where(row_norms > 0, scores, -_np.inf)
+    return int(_np.argmax(scores))
+
+
+def _argmax_cosine(query, candidates):
+    """Candidate with the largest cosine similarity to query."""
     if not candidates:
         return None
     M = _np.stack([_np.asarray(c, dtype=_np.float64) for c in candidates])
     q = _np.asarray(query, dtype=_np.float64)
-    row_norms = _np.linalg.norm(M, axis=1)
-    q_norm = _np.linalg.norm(q)
-    if q_norm == 0:
-        return candidates[0]
-    safe_rn = _np.where(row_norms > 0, row_norms, 1.0)
-    scores = (M @ q) / (safe_rn * q_norm)
-    scores = _np.where(row_norms > 0, scores, -_np.inf)
-    return candidates[int(_np.argmax(scores))]
+    idx = _argmax_cosine_idx(M, q)
+    return candidates[0] if idx is None else candidates[idx]
 
 
 def _select_softmax(scores, options):
@@ -383,24 +388,20 @@ def _select_softmax(scores, options):
     opts = _np.asarray(options, dtype=float)
     return (w[:, None] * opts).sum(axis=0)
 
+
 def _vector_map_lookup(pairs, key):
     """Identity-first lookup for vector-keyed maps, cosine fallback.
 
     Identity-hit short-circuits before any matmul (the common case
-    for literal vector keys). The cosine fallback stacks and matmuls.
+    for literal vector keys). The cosine fallback stacks and matmuls
+    through the shared _argmax_cosine_idx helper.
     """
     for k, v in pairs:
         if k is key:
             return v
     if not pairs:
         return None
-    keys = _np.stack([_np.asarray(k, dtype=_np.float64) for k, _ in pairs])
+    M = _np.stack([_np.asarray(k, dtype=_np.float64) for k, _ in pairs])
     q = _np.asarray(key, dtype=_np.float64)
-    row_norms = _np.linalg.norm(keys, axis=1)
-    q_norm = _np.linalg.norm(q)
-    if q_norm == 0:
-        return pairs[0][1]
-    safe_rn = _np.where(row_norms > 0, row_norms, 1.0)
-    scores = (keys @ q) / (safe_rn * q_norm)
-    scores = _np.where(row_norms > 0, scores, -_np.inf)
-    return pairs[int(_np.argmax(scores))][1]
+    idx = _argmax_cosine_idx(M, q)
+    return pairs[0][1] if idx is None else pairs[idx][1]
