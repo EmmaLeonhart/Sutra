@@ -118,6 +118,20 @@ class NumpyCodegen(FlyBrainCodegen):
         """Lower `5i` to `_VSA.make_complex(0.0, 5.0)`."""
         return f"_VSA.make_complex(0.0, {float(expr.value)!r})"
 
+    def _bool_literal_src(self, expr: ast.BoolLiteral) -> str:
+        """Lower `true` / `false` to truth-axis vectors unconditionally.
+
+        The base class emits Python `True` / `False`; numpy overrides
+        so the entire demo-path runtime operates on vectors, not on
+        Python bools. This is the prerequisite for the logical
+        operators being pure vector arithmetic — if `true` is a
+        Python bool there's no vector to operate on.
+
+        `true`  → _VSA.make_truth( 1.0)
+        `false` → _VSA.make_truth(-1.0)
+        """
+        return f"_VSA.make_truth({1.0 if expr.value else -1.0!r})"
+
     def _logical_op_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
         """Lower `&&` / `||` to _VSA.logical_and / logical_or.
@@ -938,81 +952,66 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        self._emit("# ---- Logical operators on truth-axis values ----")
+        self._emit("# ---- Logical operators — pure vector arithmetic ----")
         self._emit("#")
-        self._emit("# Zadeh fuzzy logic — `and` = min, `or` = max, `not` = negate")
-        self._emit("# on the truth axis. These generalize Python's boolean")
-        self._emit("# operators so they work uniformly on bool / fuzzy / trit /")
-        self._emit("# truth-axis-vector inputs. For pure-bool inputs (both sides")
-        self._emit("# Python bool), returns a Python bool — preserving how")
-        self._emit("# boolean-only code behaves. For any truth-axis-vector input,")
-        self._emit("# returns a truth-axis vector with the folded truth scalar.")
+        self._emit("# Zadeh fuzzy logic implemented as element-wise vector math.")
+        self._emit("# min / max expressed in pure arithmetic so there is NO")
+        self._emit("# scalar extraction from the truth axis at runtime — the")
+        self._emit("# operation is substrate-native vector algebra:")
         self._emit("#")
-        self._emit("# Unlike JavaScript / TypeScript / C# `&&` / `||`, these do")
-        self._emit("# NOT short-circuit — both sides are always evaluated,")
-        self._emit("# because min / max can't be decided from one side alone for")
-        self._emit("# fuzzy values.")
+        self._emit("#   min(a, b) = (a + b - |a - b|) / 2     componentwise")
+        self._emit("#   max(a, b) = (a + b + |a - b|) / 2     componentwise")
+        self._emit("#   not(x)    = -x                         componentwise")
+        self._emit("#")
+        self._emit("# `true` and `false` are vectors too — the _bool_literal_src")
+        self._emit("# override emits make_truth(±1) for bool literals, so the")
+        self._emit("# entire numpy demo path is vector-native. There is no")
+        self._emit("# Python-bool path masquerading as truth-axis logic.")
+        self._emit("#")
+        self._emit("# If a caller passes a Python scalar (int/float/bool) we")
+        self._emit("# coerce via make_truth at the edge. That coercion is")
+        self._emit("# compile-time-equivalent input construction, not runtime")
+        self._emit("# scalar arithmetic hiding in the op.")
+        self._emit("#")
+        self._emit("# Unlike JavaScript / TypeScript / C#, these do NOT short-")
+        self._emit("# circuit — min / max need both sides.")
         self._emit()
-        self._emit("def _truth_scalar(self, x):")
+        self._emit("def _as_truth_vector(self, x):")
         self._indent += 1
-        self._emit('"""Normalize a truth-axis value to a scalar in [-1, +1].')
-        self._emit('')
-        self._emit("Python bool → +1/-1. Python int/float → passed through.")
-        self._emit("Numpy array → the truth-axis coordinate.")
+        self._emit('"""Return x as a vector. Already-a-vector passes through;')
+        self._emit("a Python scalar / bool is lifted to make_truth(scalar).")
         self._emit('"""')
-        self._emit("if isinstance(x, bool):")
-        self._indent += 1
-        self._emit("return 1.0 if x else -1.0")
-        self._indent -= 1
         self._emit("if isinstance(x, _np.ndarray):")
         self._indent += 1
-        self._emit("return float(x[self.semantic_dim + self.AXIS_TRUTH])")
+        self._emit("return x")
         self._indent -= 1
-        self._emit("return float(x)")
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if x else -1.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(float(x))")
         self._indent -= 1
         self._emit()
         self._emit("def logical_and(self, a, b):")
         self._indent += 1
-        self._emit('"""Fuzzy t-norm — Zadeh min on truth axis. Bool-preserving."""')
-        self._emit("if isinstance(a, bool) and isinstance(b, bool):")
-        self._indent += 1
-        self._emit("return a and b")
-        self._indent -= 1
-        self._emit("return self.make_truth(min(self._truth_scalar(a), "
-                   "self._truth_scalar(b)))")
+        self._emit('"""Zadeh t-norm as pure vector arithmetic: (a+b - |a-b|)/2."""')
+        self._emit("av = self._as_truth_vector(a)")
+        self._emit("bv = self._as_truth_vector(b)")
+        self._emit("return (av + bv - _np.abs(av - bv)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def logical_or(self, a, b):")
         self._indent += 1
-        self._emit('"""Fuzzy t-conorm — Zadeh max on truth axis. Bool-preserving."""')
-        self._emit("if isinstance(a, bool) and isinstance(b, bool):")
-        self._indent += 1
-        self._emit("return a or b")
-        self._indent -= 1
-        self._emit("return self.make_truth(max(self._truth_scalar(a), "
-                   "self._truth_scalar(b)))")
+        self._emit('"""Zadeh t-conorm as pure vector arithmetic: (a+b + |a-b|)/2."""')
+        self._emit("av = self._as_truth_vector(a)")
+        self._emit("bv = self._as_truth_vector(b)")
+        self._emit("return (av + bv + _np.abs(av - bv)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def logical_not(self, x):")
         self._indent += 1
-        self._emit('"""Negation on truth axis — multiplication by -1.')
-        self._emit('')
-        self._emit("Bool-preserving: `!true` → False, `!false` → True.")
-        self._emit("For truth-axis vectors, flips just the truth coordinate")
-        self._emit("(not the whole vector — other axes retain their values).")
-        self._emit('"""')
-        self._emit("if isinstance(x, bool):")
-        self._indent += 1
-        self._emit("return not x")
-        self._indent -= 1
-        self._emit("if isinstance(x, _np.ndarray):")
-        self._indent += 1
-        self._emit("out = x.copy()")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = "
-                   "-out[self.semantic_dim + self.AXIS_TRUTH]")
-        self._emit("return out")
-        self._indent -= 1
-        self._emit("return self.make_truth(-self._truth_scalar(x))")
+        self._emit('"""Negation as pure scalar-by-vector multiplication: -x."""')
+        self._emit("return -self._as_truth_vector(x)")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
