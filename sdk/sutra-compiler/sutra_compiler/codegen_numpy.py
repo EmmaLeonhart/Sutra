@@ -92,6 +92,16 @@ class NumpyCodegen(FlyBrainCodegen):
         """Lower `'a'` to a runtime make_char call with the code point."""
         return f"_VSA.make_char({int(expr.value)})"
 
+    def _embed_expr_src(self, expr: ast.EmbedExpr) -> str:
+        """Lower `embed(<inner>)` to a _VSA.embed runtime call.
+
+        Covers both explicit `embed("foo")` source-level calls and
+        implicit wrappings inserted by `_auto_embed_var_decl_init`
+        (`vector v = "foo"` → `vector v = embed("foo")`).
+        """
+        inner_src = self._translate_expr(expr.expr)
+        return f"_VSA.embed({inner_src})"
+
     def _fuzzy_literal_init_src(self, decl: ast.VarDecl) -> str | None:
         """Compile-time fold of `fuzzy x = <literal>` to make_truth(value).
 
