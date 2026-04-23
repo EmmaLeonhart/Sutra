@@ -135,6 +135,43 @@ The ontology is a *structural* commitment, not a semantic one. The structure is:
 
 ---
 
+## Emerging classes: the inverse of OOP
+
+Before getting to user-defined classes, the conceptual move that makes Sutra's ontology different from every object-oriented type system:
+
+> **In traditional OOP, the programmer creates classes, and data is made to conform to them.**
+>
+> **In Sutra, classes already exist in the embedding model's latent space, and the programmer organizes, names, and refines the structure that is already there.**
+
+The frozen LLM (or vision model, or molecular model) has, by the time Sutra gets to it, already processed a vast amount of data and arranged its output space so that similar things cluster together. There is already a region of the space where "cats" live — kittens, whiskers, purring, feline-ness — geometrically grouped. There is already a region where "anger" lives, where "iron" lives, where "ascending chord progression" lives. The clustering *is not something the Sutra program invents.* It's the structure the embedding model carries into the program from its training.
+
+The programmer's job — what `class` declarations are *for* in this language — is not to make new things exist. It's to:
+
+1. **Name** a region of space that already has coherence. "Here is where the cats are; call this `Cat`."
+2. **Carve** the region more precisely than the raw model's clustering. "Within the cat region, this sub-cluster is `HouseCat`; this other one is `WildCat`." The model may or may not have made this distinction on its own; the programmer's declaration is a commitment to treat the sub-regions separately.
+3. **Connect** regions to each other through roles and relations. "A `HouseCat` stands in the `pet_of` relation to a `Human`." The relation is itself a learned transformation between the regions.
+4. **Override** the model's default behavior on a region when it's wrong. "The model thinks `tomato` is closer to `fruit` than to `vegetable`, but for our purposes, this application treats it as `vegetable`." This is where the override semantics come in.
+
+The steps go from *discover* to *organize* to *refine*. The programmer is curating a pre-existing map, not drawing one on a blank page.
+
+### Why this matters practically
+
+Three consequences of this inversion that keep coming up:
+
+- **You can query the ontology before you've written any class.** "Which embedding is closer to `"apple"` — `"fruit"` or `"car"`?" is a meaningful question before any `Fruit` or `Vehicle` class exists. The embedding space already has the answer.
+- **Classes can be *wrong* in a way traditional OOP classes cannot.** An OOP `Dog` class is correct by fiat — whatever fields and methods you put on it is what `Dog` means for your program. A Sutra `Dog` class makes a claim about *where in the embedding space `Dog` sits*, and that claim can disagree with the model's own clustering, or with another model's, or with reality. Classes have truth conditions.
+- **Class boundaries are probabilistic, not discrete.** A value is a `HouseCat` to some degree (by similarity to the class's prototype vector), not absolutely. The `instanceof` question is a fuzzy value on the truth axis — it defuzzifies to a three-valued answer `{yes, no, unknown}` rather than a Boolean.
+
+This is why we called the top-level structure an **ontology** and not a type hierarchy. A type hierarchy organizes code. An ontology organizes *what exists* — and in Sutra the "what exists" is the pre-existing geometric structure of a trained model's latent space.
+
+### The connection to OWL and knowledge representation
+
+This framing isn't invented here. It's the same move the semantic-web community made with RDF and OWL in the early 2000s: define ontologies that describe real-world categories and their relationships, rather than program-internal classes that describe code structure. The difference is that OWL ontologies assert categorical facts in a symbolic logic (closed-world or open-world, triple-based), while Sutra's ontology asserts *geometric* facts in a frozen model's embedding space. The logical operations still exist (all the fuzzy-logic machinery works on ontology queries), but the substrate is continuous rather than symbolic.
+
+A Sutra program is, in a real sense, a small ontology *about* a large embedded ontology. The small one is the code you write; the large one is the model's learned latent space. Sutra's class declarations are the glue.
+
+---
+
 ## User-defined classes
 
 A Sutra program can define its own classes that inherit from `vector` or from any existing class. A class declaration is essentially a statement about which axes of the vector carry meaning for values of that class, plus any operators the class overrides.
