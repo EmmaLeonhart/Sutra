@@ -100,6 +100,34 @@ Longer scope (later):
   pragma the parser recognizes. Decide after seeing how the magic-
   comment version is used in practice.
 
+## [Pre-YC] `main(embedding_space: string)` compile-time override
+
+User direction 2026-04-23: *"the runtime override, honestly, it
+wouldn't be at runtime; it would be at compile time"* and *"both of
+those things go after the anthropic application."* Moved from
+STATUS.md (where it was erroneously framed as runtime override) to
+this post-Anthropic-grant-app bucket.
+
+File-level (`// @embedding`) and project-level (`atman.toml`
+`[project.embedding]`) declarations landed 2026-04-22. What remains
+is the third layer — a `.su`-language-level way to set the
+embedding substrate from inside source code itself, so a test
+program can declare its own substrate without a harness-level hint.
+
+Scope:
+- [ ] Pick the source-level syntax. Candidates: a
+  `main(embedding_space: string)` signature that the compiler reads
+  at compile time (NOT passed as a runtime arg — the codegen bakes
+  it into the `_NumpyVSA` constructor); or an explicit
+  `embedding_space "nomic-embed-text";` pragma at the top of the
+  file. Either way the substrate resolves before any `embed()` call
+  is compiled, so no runtime lazy-init.
+- [ ] Wire the chosen syntax into the parser and have
+  `NumpyCodegen.__init__` accept the resolved model.
+- [ ] Make sure file-level and project-level declarations still
+  override correctly when the source-level form is also present.
+  Precedence order is source > file > project > compiler default.
+
 ## [Pre-Anthropic-grant-app] Concurrency — only the cases that need explicit handling
 
 User direction 2026-04-22 (afternoon): concurrency is implicit by

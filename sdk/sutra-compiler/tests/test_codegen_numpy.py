@@ -175,9 +175,12 @@ class TestEmbeddingDiskCache(unittest.TestCase):
     def test_cache_path_uses_model_and_dim(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
         py = _compile(src)
-        # Filename template for cache entries — (model, dim) keyed so
-        # changing either produces a different file.
-        self.assertIn("f'{_safe_model}-d{dim}.npz'", py)
+        # Filename template for cache entries — (model, total dim) keyed
+        # so changing either produces a different file. Uses `self.dim`
+        # (= semantic_dim + synthetic_dim after the 2026-04-23 extended-
+        # state-vector change), so extending or shrinking the synthetic
+        # block invalidates the cache automatically.
+        self.assertIn("f'{_safe_model}-d{self.dim}.npz'", py)
 
     def test_embed_writes_back_to_disk(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
@@ -207,6 +210,56 @@ class TestEmbeddingDiskCache(unittest.TestCase):
         # Corrupt cache must not crash module init.
         self.assertIn("except Exception:", py)
         self.assertIn("self._codebook = {}", py)
+
+
+class TestExtendedStateVector(unittest.TestCase):
+    """Runtime vectors are `[semantic (semantic_dim) | synthetic (synthetic_dim)]`.
+    The synthetic block is reserved computational space that starts at zero
+    and is preserved by the block-diagonal rotation used for bind/unbind.
+    Design doc: planning/findings/2026-04-21-extended-state-and-rotation-binding.md.
+    """
+
+    def test_vsa_constructed_with_both_subspaces(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        # The instantiation site names both subspaces explicitly — so a
+        # reader of the generated code can see the split without reading
+        # the runtime class. Defaults: nomic semantic=768, synthetic=100.
+        self.assertIn("semantic_dim=768", py)
+        self.assertIn("synthetic_dim=100", py)
+
+    def test_runtime_class_carries_both_dims(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        # _NumpyVSA stores semantic_dim and synthetic_dim separately; the
+        # total dim is their sum.
+        self.assertIn("self.semantic_dim = semantic_dim", py)
+        self.assertIn("self.synthetic_dim = synthetic_dim", py)
+        self.assertIn("self.dim = semantic_dim + synthetic_dim", py)
+
+    def test_embed_emits_synthetic_zero_block(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        # The critical invariant: embed() appends `_np.zeros(self.synthetic_dim)`
+        # to the semantic block, so every embedded vector has zeros in its
+        # synthetic tail.
+        self.assertIn(
+            "v = _np.concatenate([v, _np.zeros(self.synthetic_dim)])", py
+        )
+
+    def test_rotation_is_block_diagonal(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        # _rotation_for draws a Haar rotation over the semantic block and
+        # places it inside an identity of the full dim. Bind/unbind therefore
+        # leave the synthetic block fixed.
+        self.assertIn(
+            "A = rng.randn(self.semantic_dim, self.semantic_dim)", py
+        )
+        self.assertIn("Q = _np.eye(self.dim, dtype=_np.float64)", py)
+        self.assertIn(
+            "Q[:self.semantic_dim, :self.semantic_dim] = Q_sem", py
+        )
 
 
 def _strip_runtime(py: str) -> str:
