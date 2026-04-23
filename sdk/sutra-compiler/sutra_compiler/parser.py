@@ -112,8 +112,8 @@ _PRIMITIVE_TYPES = {
     "scalar", "vector", "matrix", "tuple", "string",
     "bool", "fuzzy", "void", "permutation", "map",
     "char", "int",
-    # trit = three-valued fuzzy (Łukasiewicz Ł₃). luk is an alias.
-    "trit", "luk",
+    # trit = three-valued fuzzy (three-way polarizer in defuzz).
+    "trit",
     # complex — real/imag pair on synthetic axes 0, 1.
     "complex",
 }

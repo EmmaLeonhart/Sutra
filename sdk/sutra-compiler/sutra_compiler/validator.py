@@ -183,12 +183,12 @@ class _Walker:
             self._record_type_usage(node.type_ref)
         if node.initializer is not None:
             self.visit(node.initializer)
-        # Fuzzy / trit / luk literals live on the truth axis which the
+        # Fuzzy / trit literals live on the truth axis which the
         # spec defines over [-1, +1]. A literal outside that range is
         # almost always a mistake; warn (not error) so existing programs
         # don't break while the rule beds in.
         if (node.type_ref is not None
-                and node.type_ref.name in ("fuzzy", "trit", "luk")
+                and node.type_ref.name in ("fuzzy", "trit")
                 and node.initializer is not None):
             value = _fuzzy_literal_constant(node.initializer)
             if value is not None and (value < -1.0 or value > 1.0):
