@@ -44,6 +44,28 @@ from .lexer import Lexer, TokenKind
 from .parser import Parser
 
 
+def _fuzzy_literal_constant(expr: ast.Expr) -> Optional[float]:
+    """Fold a literal (possibly with unary +/-) to a single scalar.
+
+    Returns None for anything needing runtime evaluation. Used to
+    range-check fuzzy-typed literal initializers.
+    """
+    if isinstance(expr, ast.FloatLiteral):
+        return float(expr.value)
+    if isinstance(expr, ast.IntLiteral):
+        return float(expr.value)
+    if isinstance(expr, ast.BoolLiteral):
+        return 1.0 if expr.value else -1.0
+    if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
+        inner = _fuzzy_literal_constant(expr.operand)
+        if inner is None:
+            return None
+        return -inner if expr.op == "-" else inner
+    if isinstance(expr, ast.Parenthesized):
+        return _fuzzy_literal_constant(expr.inner)
+    return None
+
+
 # ============================================================
 # Public entry points
 # ============================================================
@@ -159,6 +181,23 @@ class _Walker:
             self._record_type_usage(node.type_ref)
         if node.initializer is not None:
             self.visit(node.initializer)
+        # Fuzzy literals live on the truth axis which the spec defines
+        # over [-1, +1]. A literal outside that range is almost always
+        # a mistake; warn (not error) so existing programs don't break
+        # while the rule beds in.
+        if (node.type_ref is not None
+                and node.type_ref.name == "fuzzy"
+                and node.initializer is not None):
+            value = _fuzzy_literal_constant(node.initializer)
+            if value is not None and (value < -1.0 or value > 1.0):
+                self.diagnostics.warning(
+                    f"fuzzy literal {value!r} is outside [-1, +1] — the truth "
+                    "axis saturates at ±1. Did you mean a different type?",
+                    node.span,
+                    code="SUT0120",
+                    hint="use a `scalar` for unbounded values, or clamp the "
+                         "literal into [-1, +1]",
+                )
 
     def visit_Param(self, node: ast.Param) -> None:
         self._record_type_usage(node.type_ref)
