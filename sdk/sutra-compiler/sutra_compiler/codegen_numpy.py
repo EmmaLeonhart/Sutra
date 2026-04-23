@@ -39,21 +39,39 @@ class NumpyCodegen(FlyBrainCodegen):
     # diacritics and is treated as a known-broken baseline.
     DEFAULT_LLM_MODEL = "nomic-embed-text"
     DEFAULT_LLM_DIM = 768
+    # Extended-state-vector layout: runtime vectors are
+    # `[semantic (n) | synthetic (SYNTHETIC_DIM)]`. The synthetic block
+    # is reserved computational/symbolic space. Initial `embed()` output
+    # has zeros in the synthetic block; rotation bind is block-diagonal
+    # (Haar in the semantic block, identity in the synthetic block) so
+    # the synthetic block stays zero-preserved until something explicitly
+    # writes to it. Per user direction 2026-04-23 — spec finding at
+    # planning/findings/2026-04-21-extended-state-and-rotation-binding.md.
+    DEFAULT_SYNTHETIC_DIM = 100
 
     def __init__(self, *, runtime_dim: int | None = None,
                  runtime_seed: int = 42,
-                 llm_model: str | None = None) -> None:
+                 llm_model: str | None = None,
+                 synthetic_dim: int | None = None) -> None:
         self._llm_model = llm_model if llm_model is not None else self.DEFAULT_LLM_MODEL
-        # If using LLM default, dim is the LLM's; otherwise allow override.
+        # `runtime_dim` now names the SEMANTIC subspace size (the block
+        # the LLM fills). Synthetic dims are appended on top. Total
+        # runtime vector size = semantic + synthetic, stored on the
+        # parent as `runtime_dim` so downstream plumbing (prelude's
+        # `dim=...` literal, hemibrain wiring if ever re-enabled) sees
+        # the full extended state.
         if runtime_dim is None:
             runtime_dim = self.DEFAULT_LLM_DIM
+        self._semantic_dim = runtime_dim
+        self._synthetic_dim = (synthetic_dim if synthetic_dim is not None
+                               else self.DEFAULT_SYNTHETIC_DIM)
         # List of strings that appear in `basis_vector("...")` calls,
         # populated by translate_module() between simplify and codegen.
         # The codegen emits a batched Ollama pre-fetch at module init
         # to replace N sequential HTTP round-trips with one call.
         self._prefetch_strings: list[str] = []
         super().__init__(
-            runtime_dim=runtime_dim,
+            runtime_dim=self._semantic_dim + self._synthetic_dim,
             runtime_seed=runtime_seed,
             runtime_n_kc=0,
             runtime_use_hemibrain=False,
@@ -128,18 +146,27 @@ class NumpyCodegen(FlyBrainCodegen):
         self._indent += 1
         self._emit('"""Frozen-LLM-backed VSA runtime. Rotation binding, normalized bundle.')
         self._emit('')
+        self._emit('State vectors carry an extended layout: each vector is')
+        self._emit('`[semantic (semantic_dim) | synthetic (synthetic_dim)]`. The')
+        self._emit('semantic block is filled by `embed()` from the frozen LLM; the')
+        self._emit('synthetic block is reserved computational/symbolic space that')
+        self._emit('starts zero and is touched only by operations that explicitly')
+        self._emit('write to it. See')
+        self._emit('planning/findings/2026-04-21-extended-state-and-rotation-binding.md.')
+        self._emit('')
         self._emit('Bind is role-seeded Haar-random orthogonal rotation applied to')
         self._emit('filler: bind(filler, role) = Q_role @ filler, with Q_role cached')
-        self._emit('by role-vector hash. Unbind is the transpose. See')
-        self._emit('planning/findings/2026-04-22-rotation-binding-prototype-design.md')
-        self._emit('for the compromise this prototype takes (rotation in the same')
-        self._emit('768-d semantic subspace as sign-flip did, not in a dedicated')
-        self._emit('synthetic subspace — so cross-talk stays 1/sqrt(d) statistical).')
+        self._emit('by role-vector hash. The rotation is block-diagonal — Haar in')
+        self._emit('the semantic block, identity in the synthetic block — so rotation')
+        self._emit('acts only on semantic content and the synthetic block is')
+        self._emit('preserved through bind/unbind. Unbind is the transpose.')
         self._emit('"""')
         self._emit()
-        self._emit("def __init__(self, dim, seed, llm_model):")
+        self._emit("def __init__(self, semantic_dim, synthetic_dim, seed, llm_model):")
         self._indent += 1
-        self._emit("self.dim = dim")
+        self._emit("self.semantic_dim = semantic_dim")
+        self._emit("self.synthetic_dim = synthetic_dim")
+        self._emit("self.dim = semantic_dim + synthetic_dim")
         self._emit("self.seed = seed")
         self._emit("self.llm_model = llm_model")
         self._emit("self._codebook = {}")
@@ -162,7 +189,7 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("_safe_model = llm_model.replace('/', '_').replace(':', '_')")
         self._emit("self._cache_path = _os.path.join(")
         self._indent += 1
-        self._emit("self._cache_dir, f'{_safe_model}-d{dim}.npz')")
+        self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}.npz')")
         self._indent -= 1
         self._emit("self._load_disk_cache()")
         self._indent -= 1
@@ -244,33 +271,38 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit('"""Frozen-LLM embedding via Ollama. No random fallback.')
         self._emit("If Ollama is unavailable or the model is missing, this raises.")
         self._emit("The numpy backend is defined as running on frozen LLM embeddings;")
-        self._emit('a random-vector fallback is not Sutra."""')
+        self._emit("a random-vector fallback is not Sutra.")
+        self._emit("")
+        self._emit("Output is the extended-state-vector layout:")
+        self._emit("`[semantic (semantic_dim) | zeros (synthetic_dim)]`. The semantic")
+        self._emit("block is the LLM embedding (truncated or zero-padded to")
+        self._emit("semantic_dim as needed); the synthetic block is reserved and")
+        self._emit('starts at zero."""')
         self._emit("if name not in self._codebook:")
         self._indent += 1
         self._emit("import ollama")
         self._emit("r = ollama.embed(model=self.llm_model, input=name)")
         self._emit("v = _np.array(r['embeddings'][0], dtype=_np.float64)")
-        self._emit("# Mean-center: sign-flip binding assumes zero-mean vectors.")
-        self._emit("# Raw LLM embeddings cluster in a cone (all-positive-ish), which")
-        self._emit("# collapses sign(role) to a near-constant pattern and destroys")
-        self._emit("# role-filler separation. Centering restores the algebra.")
+        self._emit("# Mean-center. Raw LLM embeddings cluster in a cone (all-")
+        self._emit("# positive-ish); centering keeps rotation/bind algebra")
+        self._emit("# well-behaved.")
         self._emit("v = v - _np.mean(v)")
         self._emit("n = _np.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")
-        self._emit("# Truncate or pad to self.dim if the LLM dim differs.")
-        self._emit("if v.shape[0] != self.dim:")
+        self._emit("# Fit the LLM output to the semantic block. Truncate if the")
+        self._emit("# LLM is wider than semantic_dim, zero-pad if narrower.")
+        self._emit("if v.shape[0] > self.semantic_dim:")
         self._indent += 1
-        self._emit("if v.shape[0] > self.dim:")
-        self._indent += 1
-        self._emit("v = v[:self.dim]")
+        self._emit("v = v[:self.semantic_dim]")
         self._indent -= 1
-        self._emit("else:")
+        self._emit("elif v.shape[0] < self.semantic_dim:")
         self._indent += 1
-        self._emit("v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])")
+        self._emit("v = _np.concatenate([v, _np.zeros(self.semantic_dim - v.shape[0])])")
         self._indent -= 1
+        self._emit("# Append the synthetic block — reserved, starts zero.")
+        self._emit("v = _np.concatenate([v, _np.zeros(self.synthetic_dim)])")
         self._emit("n = _np.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")
-        self._indent -= 1
         self._emit("self._codebook[name] = v")
         self._emit("self._write_disk_cache()")
         self._indent -= 1
@@ -300,19 +332,19 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("v = v - _np.mean(v)")
         self._emit("n = _np.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")
-        self._emit("if v.shape[0] != self.dim:")
+        self._emit("# Fit to the semantic block, then append the zero-initialized")
+        self._emit("# synthetic block. Same layout as embed().")
+        self._emit("if v.shape[0] > self.semantic_dim:")
         self._indent += 1
-        self._emit("if v.shape[0] > self.dim:")
-        self._indent += 1
-        self._emit("v = v[:self.dim]")
+        self._emit("v = v[:self.semantic_dim]")
         self._indent -= 1
-        self._emit("else:")
+        self._emit("elif v.shape[0] < self.semantic_dim:")
         self._indent += 1
-        self._emit("v = _np.concatenate([v, _np.zeros(self.dim - v.shape[0])])")
+        self._emit("v = _np.concatenate([v, _np.zeros(self.semantic_dim - v.shape[0])])")
         self._indent -= 1
+        self._emit("v = _np.concatenate([v, _np.zeros(self.synthetic_dim)])")
         self._emit("n = _np.linalg.norm(v)")
         self._emit("if n > 0: v = v / n")
-        self._indent -= 1
         self._emit("self._codebook[name] = v")
         self._indent -= 1
         self._emit("# One batched write after all fetches in this call.")
@@ -336,9 +368,16 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit("def _rotation_for(self, role_vec):")
         self._indent += 1
-        self._emit('"""Haar-random orthogonal matrix seeded by the role vector.')
+        self._emit('"""Block-diagonal Haar-random orthogonal matrix seeded by the role.')
         self._emit('')
-        self._emit("Uses QR decomposition of a random matrix (standard Haar draw).")
+        self._emit("Haar-uniform in the semantic block (top-left semantic_dim x")
+        self._emit("semantic_dim), identity in the synthetic block (bottom-right")
+        self._emit("synthetic_dim x synthetic_dim). Bind and unbind therefore rotate")
+        self._emit("only the semantic content and leave the synthetic block fixed —")
+        self._emit("which is what the extended-state-vector design requires: the")
+        self._emit("synthetic block is reserved for computational/symbolic state and")
+        self._emit("rotation bind must not mix semantic content into it.")
+        self._emit('')
         self._emit("Cached per role-hash so the same role always produces the same")
         self._emit("rotation — required for bind/unbind round-trip.")
         self._emit('"""')
@@ -346,13 +385,16 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("if key not in self._rot_cache:")
         self._indent += 1
         self._emit("rng = _np.random.RandomState(key)")
-        self._emit("A = rng.randn(self.dim, self.dim)")
-        self._emit("Q, _R = _np.linalg.qr(A)")
+        self._emit("A = rng.randn(self.semantic_dim, self.semantic_dim)")
+        self._emit("Q_sem, _R = _np.linalg.qr(A)")
         self._emit("# Flip sign of rows where R's diagonal was negative, so the QR")
         self._emit("# output is Haar-uniform rather than biased by the QR sign.")
         self._emit("d = _np.sign(_np.diag(_R))")
         self._emit("d[d == 0] = 1.0")
-        self._emit("Q = Q * d")
+        self._emit("Q_sem = Q_sem * d")
+        self._emit("# Block-diagonal: Q_sem on the semantic block, identity elsewhere.")
+        self._emit("Q = _np.eye(self.dim, dtype=_np.float64)")
+        self._emit("Q[:self.semantic_dim, :self.semantic_dim] = Q_sem")
         self._emit("self._rot_cache[key] = Q")
         self._indent -= 1
         self._emit("return self._rot_cache[key]")
@@ -498,7 +540,12 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
-        self._emit('"""Haar-random rotation, scaled so its largest eigenphase ~= angle.')
+        self._emit('"""Block-diagonal Haar rotation, scaled so its largest eigenphase ~= angle.')
+        self._emit('')
+        self._emit('Haar-uniform in the semantic block, identity in the synthetic')
+        self._emit('block — matches the binding-rotation layout so eigenrotation')
+        self._emit('loops walk the semantic subspace while the synthetic subspace')
+        self._emit('stays untouched.')
         self._emit('')
         self._emit('Uniform-angle Givens composition makes every plane orbit at the')
         self._emit('same frequency, so any trajectory is near-periodic and never')
@@ -508,15 +555,17 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit('in the signature for API compatibility with the fly-brain VSA.')
         self._emit('"""')
         self._emit("rng = _np.random.RandomState(seed if seed is not None else self.seed)")
-        self._emit("A = rng.randn(self.dim, self.dim)")
-        self._emit("Q, _ = _np.linalg.qr(A)")
+        self._emit("A = rng.randn(self.semantic_dim, self.semantic_dim)")
+        self._emit("Q_sem, _ = _np.linalg.qr(A)")
         self._emit("# Fractional matrix power via eigendecomposition so the caller")
         self._emit("# can still dial rotation magnitude via `angle`. Q^(angle/pi)")
         self._emit("# interpolates between identity (angle=0) and full Q (angle=pi).")
-        self._emit("w, V = _np.linalg.eig(Q)")
+        self._emit("w, V = _np.linalg.eig(Q_sem)")
         self._emit("phases = _np.angle(w) * (angle / _np.pi)")
-        self._emit("R = (V * _np.exp(1j * phases)) @ _np.linalg.inv(V)")
-        self._emit("return _np.real(R)")
+        self._emit("R_sem = _np.real((V * _np.exp(1j * phases)) @ _np.linalg.inv(V))")
+        self._emit("R = _np.eye(self.dim, dtype=_np.float64)")
+        self._emit("R[:self.semantic_dim, :self.semantic_dim] = R_sem")
+        self._emit("return R")
         self._indent -= 1
         self._emit()
         self._emit("def compile_prototypes(self, prototype_vectors, frame_seed=None):")
@@ -559,7 +608,10 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit()
         self._emit(
-            f"_VSA = _NumpyVSA(dim={self.runtime_dim}, seed={self.runtime_seed}, "
+            f"_VSA = _NumpyVSA("
+            f"semantic_dim={self._semantic_dim}, "
+            f"synthetic_dim={self._synthetic_dim}, "
+            f"seed={self.runtime_seed}, "
             f"llm_model={self._llm_model!r})"
         )
         # Batched pre-fetch of every basis_vector("...") string argument
