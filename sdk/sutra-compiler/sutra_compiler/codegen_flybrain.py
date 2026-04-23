@@ -485,15 +485,15 @@ class FlyBrainCodegen:
                     self._emit(f"{decl.name} = _np.zeros(_VSA.dim)")
                 return
             # Fuzzy / bool / trit / complex are (per spec target) scalars
-            # on canonical axes. `trit` / `luk` default to 0 —
-            # "explicit neutrality," the first-class unknown value of
-            # Ł₃. `complex` defaults to 0+0i — the origin of the plane.
+            # on canonical axes. `trit` defaults to 0 — "explicit
+            # neutrality," the first-class neutral on the truth axis.
+            # `complex` defaults to 0+0i — the origin of the plane.
             # Until the full runtime lands for these in every backend,
             # use a plain float zero as the placeholder; the numpy /
             # pytorch backends' make_truth / make_complex paths are
             # used by initialized declarations.
             if type_name in ("fuzzy", "bool", "int", "scalar", "number",
-                             "trit", "luk", "complex"):
+                             "trit", "complex"):
                 if decl.array_size is not None:
                     self._emit(f"{decl.name} = [0.0] * {decl.array_size}")
                 else:
