@@ -1,0 +1,59 @@
+// Sutra corpus test: defuzzy(x).
+//
+// defuzzify takes a value of any type and projects it onto the truth
+// axis via matrix multiplication (zeroing every non-truth axis), then
+// iterates `f = f == true` N=10 times. The iteration is defined
+// operationally — under cosine-equality on a truth-axis vector it
+// snaps to ±1 in one pass, or stays at 0 if the truth coordinate is
+// exactly zero (the zero-norm guard in eq).
+//
+// Output is always a truth-axis vector (a three-valued bool):
+//   positive truth input → true
+//   negative truth input → false
+//   zero truth input     → unknown
+//
+// Inputs that don't live on the truth axis (int, semantic vector,
+// char, etc.) project to truth=0, so defuzzifying them always gives
+// unknown. This is what makes `defuzzy(int 5)` coherent — there's no
+// truth content to extract, so the neutral is the honest answer.
+
+function bool FromPositiveFuzzy() {
+    fuzzy f = 0.7;
+    return defuzzy(f);
+}
+
+function bool FromNegativeFuzzy() {
+    fuzzy f = -0.3;
+    return defuzzy(f);
+}
+
+function bool FromUnknown() {
+    fuzzy f = unknown;
+    return defuzzy(f);
+}
+
+function bool FromBoolTrue() {
+    return defuzzy(true);
+}
+
+function bool FromBoolFalse() {
+    return defuzzy(false);
+}
+
+// Non-truth-axis inputs project to unknown.
+function bool FromInt() {
+    int i = 5;
+    return defuzzy(i);
+}
+
+function bool FromSemanticVector() {
+    vector v = "cat";
+    return defuzzy(v);
+}
+
+// Equality produces a truth-axis fuzzy, which defuzzifies cleanly.
+function bool FromEquality() {
+    vector a = "cat";
+    vector b = "cat";
+    return defuzzy(a == b);
+}
