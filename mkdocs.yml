@@ -97,6 +97,7 @@ nav:
     - The graph-to-vector leap: vision.md
   - Interactive:
     - Graph → linear algebra → spatial: interactive/graph-to-linear-algebra.md
+    - Fuzzy logic explorer: interactive/fuzzy-logic.md
   - Tutorials:
     - tutorials/index.md
     - 01 — Hello Sutra: tutorials/01-hello-sutra.md
@@ -120,6 +121,7 @@ extra_javascript:
   - assets/js/graph-to-vector.js
   - assets/js/bind-unbind.js
   - assets/js/snap-to-nearest.js
+  - assets/js/fuzzy-logic.js
 
 extra:
   social:
