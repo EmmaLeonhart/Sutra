@@ -878,6 +878,24 @@ class BaseCodegen:
             "numpy / pytorch backend",
         )
 
+    def _equality_src(self, expr: ast.BinaryOp, op: str,
+                      left_src: str, right_src: str) -> str:
+        """Override point for `==` / `!=` on vectors.
+
+        Base refuses — naive Python `a == b` on numpy arrays returns
+        an element-wise boolean array which then explodes with
+        'ambiguous truth value' when used in any boolean context.
+        The spec-aligned lowering is cosine-similarity projected onto
+        the truth axis, which requires the extended-state runtime.
+        Numpy / pytorch override.
+        """
+        raise CodegenNotSupported(
+            expr,
+            f"source-level `{'==' if op == 'eq' else '!='}` on vectors "
+            "is not supported by this backend; the spec-aligned lowering "
+            "is cosine-similarity on the truth axis (numpy / pytorch only)",
+        )
+
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
         if isinstance(expr, ast.StringLiteral):
             return repr(expr.value)
@@ -940,6 +958,15 @@ class BaseCodegen:
                 return self._logical_op_src(expr, "and", left, right)
             if expr.op == "||":
                 return self._logical_op_src(expr, "or", left, right)
+            # Vector equality / inequality — cosine similarity projected
+            # onto the truth axis. `a == b` returns a truth-axis vector
+            # (a fuzzy), not a Python bool. Hook dispatched so backends
+            # without a truth-axis runtime can refuse instead of emitting
+            # Python == which does the wrong thing on numpy arrays.
+            if expr.op == "==":
+                return self._equality_src(expr, "eq", left, right)
+            if expr.op == "!=":
+                return self._equality_src(expr, "neq", left, right)
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":
