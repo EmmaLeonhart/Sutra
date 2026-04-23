@@ -186,6 +186,42 @@ See the open-questions doc [*No null in Sutra*](https://github.com/EmmaLeonhart/
 
 ---
 
+## Functional completeness and factorable logic
+
+The three primitives `!`, `&&`, `||` are in Lagrange polynomial form
+on the three-valued grid `{-1, 0, +1}`:
+
+```
+!a       = -a
+a && b   = (a + b + ab − a² − b² + a²b²) / 2
+a || b   = (a + b − ab + a² + b² − a²b²) / 2
+```
+
+These three are **functionally complete** — every other logical
+connective can be expressed as a composition. And because everything
+is polynomial arithmetic, compositions symbolically collapse to
+simpler polynomials. Two standard cases reduce surprisingly far:
+
+```
+xor(a, b) = (a && !b) || (!a && b)   =   -a · b
+iff(a, b) = (a → b) && (b → a)       =    a · b
+```
+
+On a signed truth scale where `-1 = false`, `0 = unknown`, `+1 = true`,
+"the two values disagree" is exactly the negative product of their
+signs, and "they agree" is the positive product. Four levels of
+primitive composition collapse to a single multiplication.
+
+Full derivation and polynomial forms for all eight standard
+connectives (AND, OR, NOT, NAND, NOR, XOR, IFF, →) live in
+[`planning/findings/2026-04-23-logic-gate-polynomial-forms.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-logic-gate-polynomial-forms.md).
+The corpus test
+[`tests/corpus/valid/35_derived_logic.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/tests/corpus/valid/35_derived_logic.su)
+writes each derived connective in Sutra as a composition of the
+primitives and checks the three-valued truth tables.
+
+---
+
 ## Consequences of the same-data-different-tag structure
 
 Some things that follow from this hierarchy and are worth internalizing:
