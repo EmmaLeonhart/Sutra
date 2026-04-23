@@ -125,6 +125,20 @@ through VSA):
 - Time or sequence-position axis.
 - Probability / confidence axis separate from truth.
 
+**Allocation intuition (user, 2026-04-23):** *"we're probably going
+to be able to have all n of the [dimensions] as a constant step. If
+I was just going to allocate these things, we probably have it, so
+it's like the first dimension there is the integer dimension, and
+then we'd have the ones for the rotations and various other things."*
+Concrete reading: synthetic axis 0 is the integer axis, subsequent
+axes are reserved in order for rotation planes and other canonical
+uses, and the allocation is a fixed constant layout known at compile
+time — not learned, not per-program variable. Pins down the earlier
+"designated, not learned" commitment with specific ordering. Not yet
+committed in the implementation — the first pass only reserves the
+100 synthetic dimensions without allocating which axis does what
+(that's follow-on).
+
 The commitment is that canonical axes are **designated, not learned**.
 The compiler and spec know their layout; two runs of the same program
 get identical canonical-axis placement. No corpus data is involved.

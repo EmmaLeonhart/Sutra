@@ -21,22 +21,39 @@ pick up next.
 
 ## Queued work
 
-1. **`main(embedding_space: string)` runtime override.** Partial
-   progress on STATUS's old #1: file-level (`// @embedding`) and
-   project-level (`atman.toml` `[project.embedding]`) substrate
-   declarations both land in the harness 2026-04-22. What remains
-   is the third layer — a .su-language-level `main(embedding_space:
-   string)` form that passes the substrate as a main() argument and
-   overrides both file and project declarations at runtime. Requires
-   parser changes (main signature validation, typed string params)
-   and runtime rework (lazy _VSA initialization so main's argument
-   can pick the substrate before any `embed()` happens at module
-   scope). Deferred here as a substantial piece; lands alongside
-   learned-matrix binding in the pre-grant-app queue per todo.md.
+1. **Extended state vector — reserve 100 synthetic dimensions.**
+   User direction 2026-04-23: *"just have it so that there are 100
+   dimensions... we have n semantic dimensions, and then we have
+   100 programming dimensions. The 100 programming dimensions are
+   not ones that we're all going to be using, but we're essentially
+   reserving them in all of our working stuff for the stuff that
+   we actually need. That's just simple."*
 
-2. **PyTorch/GPU backend.** `codegen_numpy.py` compiles to matmuls,
-   sums, and cosines — every operation has a trivial GPU equivalent.
-   The compile-side prerequisites for the port landed 2026-04-22:
+   Minimum scope for this pass: runtime dim becomes
+   `semantic_dim + 100` everywhere. `embed()` produces
+   `[semantic | zeros]`. Rotation bind acts block-diagonally —
+   Q_semantic in the top-left, identity in the synthetic block —
+   so the synthetic 100 stays reserved (zero-preserved) until
+   something explicitly uses it. All three demo programs
+   (hello_world, fuzzy_branching, role_filler_record) must still
+   pass. Full test suite must stay green.
+
+   Out of scope for this pass (follow-ons in todo.md):
+   - Moving rotation binding into the synthetic subspace (per-slot
+     2D Givens planes).
+   - Designating the canonical truth axis in the synthetic subspace
+     + wiring `is_true` / defuzzification to project onto it.
+   - Per-variable synthetic-axis allocation at compile time.
+
+   The "reserve the space first" step is a prerequisite for the
+   PyTorch/GPU backend and for the follow-ons above — everything
+   downstream assumes the state is already extended.
+
+2. **PyTorch/GPU backend.** Sequenced after item 1 — the torch port
+   must run on the extended state, not the pre-extension 768-d.
+   `codegen_numpy.py` compiles to matmuls, sums, and cosines — every
+   operation has a trivial GPU equivalent. The compile-side
+   prerequisites landed 2026-04-22:
    - Algebraic simplifier rewrites (bundle/compose flattening,
      similarity-of-self, unbind/bind and bind/unbind inverses,
      displacement-of-self → zero, zero-absorption in + / − / bundle).
@@ -51,9 +68,9 @@ pick up next.
    - Runtime embedding disk cache (`~/.cache/sutra/embeddings/
      <model>-d<dim>.npz`). Second run is offline.
 
-   **What still blocks the port:** actually writing the pytorch
-   backend (mechanical — swap `_np` for `_torch`, keep the fused
-   shapes). Generalized ANF + dep analysis is NOT done — only the
+   **What still blocks the port:** item 1 first, then the mechanical
+   torch rewrite (swap `_np` for `_torch`, keep the fused shapes).
+   Generalized ANF + dep analysis is NOT done — only the
    `bundle(bind,bind,...)` pattern is currently fused; other
    potentially-independent sequences (e.g. `bundle(bind(r,f), c,
    bind(r2,f2))`) still emit sequentially. For the three demo
@@ -66,6 +83,14 @@ pick up next.
 These are real commitments but not "next active session" work. Kept
 here as pointers so they don't fall off the radar:
 
+- **`main(embedding_space: string)` compile-time override.** Partial
+  progress: file-level (`// @embedding`) and project-level
+  (`atman.toml` `[project.embedding]`) substrate declarations both
+  land in the harness 2026-04-22. The third layer — declaring the
+  substrate from inside `.su` source itself — is a compile-time
+  concern (not runtime as earlier framed) and sequenced post-
+  Anthropic-grant-app per user direction 2026-04-23. Full scope
+  in `todo.md`.
 - **Learned-matrix binding** (pre-Anthropic-grant-app): `role X =
   learned_from(data)` fits a matrix at compile time; `bind` for
   semantic roles becomes `R @ filler`. Deferred from 2026-04-22 per
@@ -79,11 +104,6 @@ here as pointers so they don't fall off the radar:
   `examples/_king_queen_attractor_search.py` is random-rotation-
   plus-nearest-neighbor — NOT the real attractor search; keep for
   the fragility-check use case only.
-- **Extended state vector** (`[semantic | synthetic]` with canonical
-  truth axis in the synthetic subspace) — structural target for the
-  language. Currently deferred because the 2026-04-22 rotation-
-  binding prototype runs in the 768-d semantic subspace instead.
-  Move after learned-matrix binding lands.
 
 ## Pinned semantic corrections (I keep dropping these)
 
