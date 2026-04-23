@@ -519,7 +519,7 @@ def _simplify_expr(expr):
         expr.parts = new_parts
         return expr
 
-    # Identifier, IntLiteral, FloatLiteral, StringLiteral, BoolLiteral,
+    # Identifier, IntLiteral, FloatLiteral, CharLiteral, StringLiteral, BoolLiteral,
     # ThisExpr — no simplification.
     return expr
 
