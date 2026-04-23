@@ -658,6 +658,34 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("raise TypeError(f'cannot coerce {type(x).__name__} to a tensor for comparison')")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Defuzzification — torch version ----")
+        self._emit()
+        self._emit("def _truth_projector(self):")
+        self._indent += 1
+        self._emit('"""Diagonal dim×dim projector onto truth axis. Cached tensor."""')
+        self._emit("if not hasattr(self, '_truth_proj_cache') or self._truth_proj_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("idx = self.semantic_dim + self.AXIS_TRUTH")
+        self._emit("M[idx, idx] = 1.0")
+        self._emit("self._truth_proj_cache = M")
+        self._indent -= 1
+        self._emit("return self._truth_proj_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def defuzzify(self, x, iters=10):")
+        self._indent += 1
+        self._emit('"""Project onto truth axis via matmul, then iterate eq(., true)."""')
+        self._emit("av = self._as_any_vector(x)")
+        self._emit("t = self._truth_projector() @ av")
+        self._emit("true_vec = self.make_truth(1.0)")
+        self._emit("for _ in range(int(iters)):")
+        self._indent += 1
+        self._emit("t = self.eq(t, true_vec)")
+        self._indent -= 1
+        self._emit("return t")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
         self._emit('"""Block-diagonal Haar rotation, scaled by fractional power.')

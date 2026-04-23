@@ -976,6 +976,8 @@ class BaseCodegen:
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
         if isinstance(expr, ast.EmbedExpr):
             return self._embed_expr_src(expr)
+        if isinstance(expr, ast.DefuzzyExpr):
+            return self._defuzzy_expr_src(expr)
         raise CodegenNotSupported(
             expr, f"unsupported expression: {type(expr).__name__}"
         )
@@ -991,6 +993,21 @@ class BaseCodegen:
             expr,
             "embed(...) is not supported on the fly-brain backend; "
             "use the numpy or pytorch backend",
+        )
+
+    def _defuzzy_expr_src(self, expr: ast.DefuzzyExpr) -> str:
+        """Override point for `defuzzy(<expr>)` lowering.
+
+        Fly-brain refuses — no truth-axis runtime to project onto.
+        Numpy / pytorch override to emit `_VSA.defuzzify(<inner>)`
+        which matmul-projects onto the truth axis then iterates
+        `eq(., true)` N times (default 10, matching the user's
+        stated semantics).
+        """
+        raise CodegenNotSupported(
+            expr,
+            "defuzzy(...) is not supported on the fly-brain backend "
+            "(no truth-axis runtime); use the numpy or pytorch backend",
         )
 
     def _translate_call(self, call: ast.Call) -> str:
