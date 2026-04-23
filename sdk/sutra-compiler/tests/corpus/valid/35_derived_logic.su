@@ -27,7 +27,8 @@ function fuzzy Nor(fuzzy a, fuzzy b) {
 
 // Material implication: a → b = !a || b.
 // Equivalent to "if a then b". False only when premise is true and
-// conclusion is false. Unknown propagates through Łukasiewicz rules.
+// conclusion is false. Unknown propagates per Kleene K₃ rules — in
+// particular U → U = U (not T, which would be the Łukasiewicz move).
 function fuzzy Implies(fuzzy a, fuzzy b) {
     return !a || b;
 }

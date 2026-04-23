@@ -71,7 +71,9 @@ graph LR
     classDef neu fill:#ffb74d,color:#311b92,stroke:#f57c00
 ```
 
-The full `3 × 3` AND and OR tables match Łukasiewicz's `Ł₃` three-valued logic exactly. `true && unknown` is `unknown`. `false && unknown` is `false` (a false premise collapses the conjunction). `unknown || unknown` stays `unknown`.
+The full `3 × 3` AND and OR tables match **Kleene's K₃** (strong three-valued logic) exactly. `true && unknown` is `unknown`. `false && unknown` is `false` (a false premise collapses the conjunction regardless of what the other side is). `unknown || unknown` stays `unknown`.
+
+Kleene's K₃ and Łukasiewicz's Ł₃ agree on AND and OR, but they differ on implication: Łukasiewicz has `U → U = T` (a metaphysical move to preserve identity of propositions about future contingents), while Kleene has `U → U = U` (a computational reading of "U" as "undefined / unknown truth value"). Sutra's derived implication `a → b = !a || b` follows Kleene — our "unknown" is an epistemic gap, not a metaphysical indeterminacy.
 
 ### Continuous behavior
 
