@@ -932,6 +932,40 @@ class BaseCodegen:
             return self._is_complex_expr(expr.operand)
         return False
 
+    _TRUTH_TYPES = frozenset({"bool", "fuzzy", "trit"})
+
+    def _is_truth_expr(self, expr: ast.Expr) -> bool:
+        """True iff expr is provably a truth-axis value at compile time.
+
+        Used by `<` / `>` / `<=` / `>=` dispatch so comparisons route
+        through the polynomial form when operands are truth-family,
+        and fall back to Python scalar comparison for plain numbers.
+        Conservative: bool literals, unknown, truth-typed identifiers,
+        and the output of logical / comparison / equality operators
+        all count.
+        """
+        if isinstance(expr, (ast.BoolLiteral, ast.UnknownLiteral)):
+            return True
+        if isinstance(expr, ast.Identifier):
+            return self._var_type.get(expr.name) in self._TRUTH_TYPES
+        if isinstance(expr, ast.Parenthesized):
+            return self._is_truth_expr(expr.inner)
+        # Logical / comparison / equality ops all return truth-axis
+        # values, so an expression built from them is truth-typed too.
+        if isinstance(expr, ast.BinaryOp):
+            if expr.op in ("&&", "||", "==", "!=", "<", ">", "<=", ">="):
+                return True
+            # Pass-through through arithmetic on truth-axis operands
+            # (rare, but `fuzzy_a - fuzzy_b` is a truth-axis vector).
+            if expr.op in ("+", "-"):
+                return (self._is_truth_expr(expr.left)
+                        or self._is_truth_expr(expr.right))
+        if isinstance(expr, ast.UnaryOp) and expr.op == "!":
+            return True
+        if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
+            return self._is_truth_expr(expr.operand)
+        return False
+
     def _complex_mul_src(self, expr: ast.BinaryOp,
                         left_src: str, right_src: str) -> str:
         """Override point for `complex * anything` / `anything * complex`.
@@ -944,6 +978,21 @@ class BaseCodegen:
             expr,
             "complex multiplication is not supported by this backend "
             "(no real/imag-axis runtime); use the numpy or pytorch backend",
+        )
+
+    def _comparison_src(self, expr: ast.BinaryOp, op: str,
+                        left_src: str, right_src: str) -> str:
+        """Override point for `<` / `>` / `<=` / `>=` on truth-axis values.
+
+        `op` is `gt` or `lt` — `>=` maps to `gt` and `<=` to `lt` on
+        the fuzzy truth axis (ties are unknown in both strict and
+        non-strict forms). Base refuses — the polynomial comparison
+        needs the truth-axis runtime which lives on numpy / pytorch.
+        """
+        raise CodegenNotSupported(
+            expr,
+            f"ordered comparison `{expr.op}` on truth-axis values is not "
+            "supported by this backend; use the numpy or pytorch backend",
         )
 
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
@@ -1027,6 +1076,18 @@ class BaseCodegen:
             if expr.op == "*" and (self._is_complex_expr(expr.left)
                                    or self._is_complex_expr(expr.right)):
                 return self._complex_mul_src(expr, left, right)
+            # Ordered comparison on the truth axis — dispatches to the
+            # polynomial form (a - b)(2 + ab)/2 when at least one
+            # operand is provably truth-family (bool / fuzzy / trit or
+            # a comparison / logical expression that produced one).
+            # Int / float comparisons stay on Python's scalar fast path.
+            # On the fuzzy scale `>` and `>=` produce the same polynomial
+            # (ties are unknown either way); same for `<` vs `<=`.
+            if expr.op in (">", ">=", "<", "<="):
+                if (self._is_truth_expr(expr.left)
+                        or self._is_truth_expr(expr.right)):
+                    op_name = "gt" if expr.op in (">", ">=") else "lt"
+                    return self._comparison_src(expr, op_name, left, right)
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":

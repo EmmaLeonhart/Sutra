@@ -1,0 +1,62 @@
+// Sutra corpus test: ordered comparison on the truth axis.
+//
+// `>` and `<` on truth-family values (bool / fuzzy / trit) use a
+// Lagrange-derived polynomial that's exact on the three-valued
+// grid and smooth everywhere off-grid:
+//
+//   gt(a, b) = (a - b) * (2 + ab) / 2
+//   lt(a, b) = -gt(a, b)
+//
+// On the fuzzy truth axis, strict and non-strict forms coincide:
+// ties (a == b) produce 0 (unknown) in both `>` and `>=`, since a
+// continuous truth value can't strictly exceed itself. So `>=`
+// emits the same polynomial as `>`, and `<=` the same as `<`.
+//
+// Scalar comparisons (int / float, not on the truth axis) stay on
+// Python's scalar fast path — no type-directed dispatch fires
+// unless at least one operand is provably truth-family.
+
+// Three-valued grid cases — each should produce one of {-1, 0, +1}.
+function fuzzy TrueGtFalse() {
+    return true > false;          // +1
+}
+
+function fuzzy FalseGtTrue() {
+    return false > true;          // -1
+}
+
+function fuzzy TrueGtTrue() {
+    return true > true;           // 0 — ties are unknown
+}
+
+function fuzzy TrueGtUnknown() {
+    return true > unknown;        // +1
+}
+
+function fuzzy UnknownGtFalse() {
+    return unknown > false;       // +1
+}
+
+function fuzzy UnknownGtUnknown() {
+    return unknown > unknown;     // 0
+}
+
+// Continuous fuzzy case — polynomial gives a smooth interpolation
+// rather than an exact ±1. Direction is always correct.
+function fuzzy FuzzyOrder() {
+    fuzzy a = 0.7;
+    fuzzy b = 0.3;
+    return a > b;                 // positive (a is more true than b)
+}
+
+// `>=` same polynomial as `>` on the fuzzy scale — ties unknown.
+function fuzzy TrueGeTrue() {
+    return true >= true;          // 0 (same as TrueGtTrue)
+}
+
+// `<` is the negation.
+function fuzzy FuzzyLess() {
+    fuzzy a = 0.7;
+    fuzzy b = 0.3;
+    return a < b;                 // negative
+}

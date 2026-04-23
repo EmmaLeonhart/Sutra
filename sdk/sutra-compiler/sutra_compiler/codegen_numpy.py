@@ -194,6 +194,18 @@ class NumpyCodegen(BaseCodegen):
         """
         return f"_VSA.complex_mul({left_src}, {right_src})"
 
+    def _comparison_src(self, expr: ast.BinaryOp, op: str,
+                        left_src: str, right_src: str) -> str:
+        """Lower truth-axis `<` / `>` / `<=` / `>=` to _VSA.gt / _VSA.lt.
+
+        The runtime implements gt(a, b) = (a-b)(2+ab)/2 — a
+        Lagrange-derived polynomial that's exact on the three-valued
+        grid and smooth everywhere. lt is the negation. Both produce
+        truth-axis vectors consumable by downstream logical ops.
+        """
+        assert op in ("gt", "lt")
+        return f"_VSA.{op}({left_src}, {right_src})"
+
     def _complex_literal_src(self, expr: ast.ComplexLiteral) -> str:
         """Lower the folded `N + Mi` form to `_VSA.make_complex(N, M)`."""
         return f"_VSA.make_complex({float(expr.re)!r}, {float(expr.im)!r})"
@@ -1109,6 +1121,34 @@ class NumpyCodegen(BaseCodegen):
         self._indent += 1
         self._emit('"""Negation as pure scalar-by-vector multiplication: -x."""')
         self._emit("return -self._as_truth_vector(x)")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- Ordered comparison on the truth axis ----")
+        self._emit("#")
+        self._emit("# gt(a, b) = (a - b) * (2 + ab) / 2")
+        self._emit("#")
+        self._emit("# Lagrange-derived polynomial on the three-valued grid")
+        self._emit("# {-1, 0, +1}², with ties mapping to 0 (unknown) — a")
+        self._emit("# continuous truth value can't strictly exceed itself.")
+        self._emit("# Degree 3, smooth everywhere (no absolute value), fully")
+        self._emit("# differentiable: ∂gt/∂a = (2 + 2ab - b²) / 2.")
+        self._emit("#")
+        self._emit("# lt is the negation. On the fuzzy truth axis `>` and `>=`")
+        self._emit("# coincide (ties are unknown in both) so `ge` emits the")
+        self._emit("# same polynomial as `gt`, and `le` the same as `lt`.")
+        self._emit()
+        self._emit("def gt(self, a, b):")
+        self._indent += 1
+        self._emit('"""a > b — polynomial ordered comparison on the truth axis."""')
+        self._emit("av = self._as_truth_vector(a)")
+        self._emit("bv = self._as_truth_vector(b)")
+        self._emit("return (av - bv) * (2.0 + av * bv) * 0.5")
+        self._indent -= 1
+        self._emit()
+        self._emit("def lt(self, a, b):")
+        self._indent += 1
+        self._emit('"""a < b — negation of gt."""')
+        self._emit("return -self.gt(a, b)")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Equality and inequality — vector cosine similarity ----")
