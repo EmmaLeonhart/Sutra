@@ -114,6 +114,8 @@ _PRIMITIVE_TYPES = {
     "char", "int",
     # trit = three-valued fuzzy (Łukasiewicz Ł₃). luk is an alias.
     "trit", "luk",
+    # complex — real/imag pair on synthetic axes 0, 1.
+    "complex",
 }
 
 # Keywords that can act as a "special function" in expression position.
