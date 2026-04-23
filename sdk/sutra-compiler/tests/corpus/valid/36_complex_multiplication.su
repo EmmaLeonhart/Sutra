@@ -1,0 +1,69 @@
+// Sutra corpus test: proper complex multiplication.
+//
+// Before this commit, `complex * complex` emitted Python's `a * b`
+// which on numpy arrays does element-wise multiply — giving
+// (r1·r2, i1·i2) instead of the correct complex product
+// (r1·r2 − i1·i2, r1·i2 + i1·r2). Now the BinaryOp('*') codegen
+// dispatches to _VSA.complex_mul when either operand is provably
+// a complex-plane value at compile time.
+//
+// Why this is efficient: Sutra's complex numbers live in a 2D
+// subspace of the full 868-dim extended-state vector. A full d×d
+// matmul of the "complex-multiplication matrix" would be O(d²)
+// wasted work on d−2 zero axes. complex_mul reads the four relevant
+// (re, im) scalars, computes the 2D product directly, and emits a
+// fresh make_complex vector. Constant time.
+//
+// Scalar coercion is handled at the runtime edge: int / float
+// operands get auto-promoted via make_real, so mixed expressions
+// like `4 * (2+3i)` and `(2+3i) * 4` both work without caller
+// coercion.
+
+// The classic (5+5i)(3+2i) = 5 + 25i case.
+function complex Classic() {
+    complex a = 5 + 5i;
+    complex b = 3 + 2i;
+    return a * b;
+}
+
+// Real-only inputs reduce correctly: imag parts are zero,
+// so only the r1·r2 term survives.
+function complex RealOnly() {
+    complex a = 7;
+    complex b = 4;
+    return a * b;  // 28 + 0i
+}
+
+// Pure-imaginary squared equals negative-real.
+function complex PureImag() {
+    complex a = 5i;
+    complex b = 3i;
+    return a * b;  // -15 + 0i
+}
+
+// Mixed: complex times int literal uses scalar promotion.
+function complex ComplexTimesReal() {
+    complex a = 2 + 3i;
+    return a * 4;  // 8 + 12i
+}
+
+function complex RealTimesComplex() {
+    complex a = 2 + 3i;
+    return 4 * a;  // 8 + 12i
+}
+
+// Complex times a pure-imaginary literal — the literal picks up
+// the complex-dispatch rule because ImaginaryLiteral counts as
+// complex at compile time.
+function complex ComplexTimesImag() {
+    complex a = 2 + 3i;
+    return a * 2i;  // -6 + 4i
+}
+
+// Complex addition still works (vector addition on real/imag
+// axes = componentwise complex addition by construction).
+function complex Addition() {
+    complex a = 5 + 5i;
+    complex b = 3 + 2i;
+    return a + b;  // 8 + 7i
+}
