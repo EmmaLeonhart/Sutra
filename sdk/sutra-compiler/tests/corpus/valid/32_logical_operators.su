@@ -1,0 +1,62 @@
+// Sutra corpus test: logical operators on truth-axis values.
+//
+// `&&`, `||`, `!` operate on the truth axis. Zadeh fuzzy logic:
+//
+//   !x   = x * -1  (multiplication by -1 on the truth axis)
+//   a && b = min(a_truth, b_truth)
+//   a || b = max(a_truth, b_truth)
+//
+// For pure-bool inputs the runtime preserves Python bool semantics
+// (so `true && false` returns Python False, not a vector). For any
+// truth-axis input (fuzzy, trit, or a vector carrying a truth
+// coordinate), the result is a truth-axis vector with the folded
+// min / max / negation.
+//
+// Unlike C# / JavaScript / TypeScript `&&` and `||`, these do NOT
+// short-circuit. min and max can't be decided from one side alone
+// for fuzzy values, so both sides are always evaluated.
+
+function bool BoolAnd() {
+    return true && false;
+}
+
+function bool BoolOr() {
+    return true || false;
+}
+
+function bool BoolNot() {
+    return !true;
+}
+
+function fuzzy FuzzyAnd() {
+    fuzzy a = 0.7;
+    fuzzy b = 0.3;
+    return a && b;
+}
+
+function fuzzy FuzzyOr() {
+    fuzzy a = 0.7;
+    fuzzy b = 0.3;
+    return a || b;
+}
+
+function fuzzy FuzzyNot() {
+    fuzzy a = 0.5;
+    return !a;
+}
+
+// Trit cases — the neutral point is preserved under AND/OR.
+function trit TritAndWithNeutral() {
+    trit a = true;
+    return a && unknown;
+}
+
+function trit TritOrWithNeutral() {
+    trit a = false;
+    return a || unknown;
+}
+
+function trit TritNotNeutral() {
+    trit a = unknown;
+    return !a;
+}
