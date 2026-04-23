@@ -21,36 +21,11 @@ pick up next.
 
 ## Queued work
 
-1. **Extended state vector — reserve 100 synthetic dimensions.**
-   User direction 2026-04-23: *"just have it so that there are 100
-   dimensions... we have n semantic dimensions, and then we have
-   100 programming dimensions. The 100 programming dimensions are
-   not ones that we're all going to be using, but we're essentially
-   reserving them in all of our working stuff for the stuff that
-   we actually need. That's just simple."*
-
-   Minimum scope for this pass: runtime dim becomes
-   `semantic_dim + 100` everywhere. `embed()` produces
-   `[semantic | zeros]`. Rotation bind acts block-diagonally —
-   Q_semantic in the top-left, identity in the synthetic block —
-   so the synthetic 100 stays reserved (zero-preserved) until
-   something explicitly uses it. All three demo programs
-   (hello_world, fuzzy_branching, role_filler_record) must still
-   pass. Full test suite must stay green.
-
-   Out of scope for this pass (follow-ons in todo.md):
-   - Moving rotation binding into the synthetic subspace (per-slot
-     2D Givens planes).
-   - Designating the canonical truth axis in the synthetic subspace
-     + wiring `is_true` / defuzzification to project onto it.
-   - Per-variable synthetic-axis allocation at compile time.
-
-   The "reserve the space first" step is a prerequisite for the
-   PyTorch/GPU backend and for the follow-ons above — everything
-   downstream assumes the state is already extended.
-
-2. **PyTorch/GPU backend.** Sequenced after item 1 — the torch port
-   must run on the extended state, not the pre-extension 768-d.
+1. **PyTorch/GPU backend.** Extended state vector landed
+   e1ccbbe (2026-04-23) — runtime vectors are now `[semantic (n) |
+   synthetic (100)]` with block-diagonal rotation preserving the
+   synthetic zero block through bind/unbind. The torch port
+   therefore runs on the extended state, not the pre-extension 768-d.
    `codegen_numpy.py` compiles to matmuls, sums, and cosines — every
    operation has a trivial GPU equivalent. The compile-side
    prerequisites landed 2026-04-22:
@@ -68,8 +43,9 @@ pick up next.
    - Runtime embedding disk cache (`~/.cache/sutra/embeddings/
      <model>-d<dim>.npz`). Second run is offline.
 
-   **What still blocks the port:** item 1 first, then the mechanical
-   torch rewrite (swap `_np` for `_torch`, keep the fused shapes).
+   **What still blocks the port:** the mechanical torch rewrite —
+   swap `_np` for `_torch`, keep the fused shapes, keep the block-
+   diagonal rotation construction from the extended-state work.
    Generalized ANF + dep analysis is NOT done — only the
    `bundle(bind,bind,...)` pattern is currently fused; other
    potentially-independent sequences (e.g. `bundle(bind(r,f), c,
