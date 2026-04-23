@@ -193,12 +193,11 @@ PRIMITIVE_TYPE_NAMES = {
     "map",
     "char",
     "int",
-    # Three-valued fuzzy (Łukasiewicz Ł₃). Same truth-axis storage
-    # as `fuzzy`; the difference is compile-time tagging + the
-    # three-way polarizer in defuzzification. `luk` is the alias
-    # that honors the name directly.
+    # Three-valued primitive class. Same truth-axis storage as
+    # `fuzzy`; the difference is compile-time tagging + the
+    # three-way polarizer in defuzzification, which preserves the
+    # neutral point instead of collapsing it.
     "trit",
-    "luk",
     # Complex numbers — real+imaginary pair on synthetic[AXIS_REAL]
     # and synthetic[AXIS_IMAG]. Every numeric value is implicitly
     # on the complex plane; the `complex` type tag is compile-time

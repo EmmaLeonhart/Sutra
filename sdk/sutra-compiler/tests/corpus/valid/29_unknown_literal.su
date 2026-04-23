@@ -2,11 +2,11 @@
 //
 // `unknown` is the neutral point on the truth axis — 0.0 between
 // true (+1) and false (-1). Parallels `true` and `false` as a
-// keyword-literal, but names the third pole of Łukasiewicz Ł₃
-// logic instead of a binary pole.
+// keyword-literal, but names the neutral third value rather than
+// a binary pole. `unk` is a short alias.
 //
 // Lowers to `_VSA.make_truth(0.0)` directly, or to
-// `_VSA.make_trit(0.0)` inside a trit/luk-typed declaration (via
+// `_VSA.make_trit(0.0)` inside a trit-typed declaration (via
 // the _fuzzy_literal_init_src fold) for emitted-source readability.
 //
 // Semantically this is what a programmer writes when they mean
@@ -23,8 +23,8 @@ function fuzzy FuzzyNeutral() {
     return f;
 }
 
-function luk LukNeutral() {
-    luk u = unknown;
+function trit ShortAlias() {
+    trit u = unk;
     return u;
 }
 
