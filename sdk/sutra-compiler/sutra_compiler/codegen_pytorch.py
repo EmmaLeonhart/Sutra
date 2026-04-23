@@ -127,11 +127,12 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit('"""')
         self._emit()
         self._emit("# Canonical synthetic-axis allocation — real, imag, truth at")
-        self._emit("# synthetic[0..2]. Mirrored from _NumpyVSA so the two runtimes")
-        self._emit("# agree bit-for-bit on layout.")
+        self._emit("# synthetic[0..2], char-flag at synthetic[3]. Mirrored from")
+        self._emit("# _NumpyVSA so the two runtimes agree bit-for-bit on layout.")
         self._emit("AXIS_REAL = 0")
         self._emit("AXIS_IMAG = 1")
         self._emit("AXIS_TRUTH = 2")
+        self._emit("AXIS_CHAR_FLAG = 3")
         self._emit()
         self._emit("def __init__(self, semantic_dim, synthetic_dim, seed, llm_model):")
         self._indent += 1
@@ -522,6 +523,21 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._emit("v[self.semantic_dim + self.AXIS_TRUTH] = float(t)")
         self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_char(self, codepoint):")
+        self._indent += 1
+        self._emit('"""Character literal: code point at AXIS_REAL, flag at AXIS_CHAR_FLAG."""')
+        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(codepoint)")
+        self._emit("v[self.semantic_dim + self.AXIS_CHAR_FLAG] = 1.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def is_char(self, v):")
+        self._indent += 1
+        self._emit('"""True iff v was produced as a character literal."""')
+        self._emit("return bool(v[self.semantic_dim + self.AXIS_CHAR_FLAG].item() >= 0.5)")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
