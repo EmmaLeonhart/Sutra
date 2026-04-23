@@ -1,0 +1,39 @@
+// Sutra corpus test: functional completeness of {&&, ||, !}.
+//
+// With min/max/negate as our three primitives (in their polynomial
+// Lagrange form), every other fuzzy / three-valued-logic connective
+// can be built as a composition. This file defines the classical
+// derived connectives explicitly — XOR, NAND, NOR, implication,
+// biconditional — and the runtime test harness verifies each
+// against its three-valued truth table.
+
+// Exclusive OR: true when exactly one side is true.
+// Identity: xor(a, b) = (a && !b) || (!a && b)
+function fuzzy Xor(fuzzy a, fuzzy b) {
+    return (a && !b) || (!a && b);
+}
+
+// NAND — the classical functionally-complete connective all on its own.
+// Identity: nand(a, b) = !(a && b)
+function fuzzy Nand(fuzzy a, fuzzy b) {
+    return !(a && b);
+}
+
+// NOR — the other single-connective functionally-complete form.
+// Identity: nor(a, b) = !(a || b)
+function fuzzy Nor(fuzzy a, fuzzy b) {
+    return !(a || b);
+}
+
+// Material implication: a → b = !a || b.
+// Equivalent to "if a then b". False only when premise is true and
+// conclusion is false. Unknown propagates through Łukasiewicz rules.
+function fuzzy Implies(fuzzy a, fuzzy b) {
+    return !a || b;
+}
+
+// Biconditional — true when both sides have the same truth value.
+// Identity: a ↔ b = (a → b) && (b → a)
+function fuzzy Iff(fuzzy a, fuzzy b) {
+    return (!a || b) && (!b || a);
+}
