@@ -540,6 +540,32 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return bool(v[self.semantic_dim + self.AXIS_CHAR_FLAG].item() >= 0.5)")
         self._indent -= 1
         self._emit()
+        self._emit("def make_trit(self, t):")
+        self._indent += 1
+        self._emit('"""Three-valued fuzzy (Łukasiewicz Ł₃) — aliases make_truth."""')
+        self._emit("return self.make_truth(t)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def defuzzify_trit(self, v, iters=10, beta=2.0):")
+        self._indent += 1
+        self._emit('"""Three-way polarizer toward {-1, 0, +1} — torch version."""')
+        self._emit("x = float(v[self.semantic_dim + self.AXIS_TRUTH].item())")
+        self._emit("b = float(beta)")
+        self._emit("for _ in range(int(iters)):")
+        self._indent += 1
+        self._emit("import math as _math")
+        self._emit("w_neg = _math.exp(-b * (x + 1.0) ** 2)")
+        self._emit("w_zero = _math.exp(-b * x ** 2)")
+        self._emit("w_pos = _math.exp(-b * (x - 1.0) ** 2)")
+        self._emit("s = w_neg + w_zero + w_pos")
+        self._emit("x = (-w_neg + w_pos) / s")
+        self._emit("b *= 2.0")
+        self._indent -= 1
+        self._emit("out = v.clone()")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = float(x)")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
         self._emit('"""Block-diagonal Haar rotation, scaled by fractional power.')

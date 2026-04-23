@@ -185,6 +185,12 @@ PRIMITIVE_TYPE_NAMES = {
     "map",
     "char",
     "int",
+    # Three-valued fuzzy (Łukasiewicz Ł₃). Same truth-axis storage
+    # as `fuzzy`; the difference is compile-time tagging + the
+    # three-way polarizer in defuzzification. `luk` is the alias
+    # that honors the name directly.
+    "trit",
+    "luk",
 }
 
 # Contextual keywords: identifiers with special meaning in expressions
