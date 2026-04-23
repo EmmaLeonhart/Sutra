@@ -427,6 +427,22 @@ class FlyBrainCodegen:
 
     # -- declarations -----------------------------------------------------
 
+    def _fuzzy_literal_init_src(self, decl: ast.VarDecl) -> str | None:
+        """Hook: emit a fuzzy-typed var decl whose initializer is a literal.
+
+        Per 2026-04-23 design, `fuzzy x = 0.7;` is conceptually
+        `fuzzy x = true * 0.7;` — a truth-axis vector scaled by 0.7.
+        The scalar-times-true folds at compile time to a single
+        vector allocation on the truth axis. Backends that have a
+        truth-axis runtime override this to emit `_VSA.make_truth(v)`.
+
+        Returns the full assignment RHS string (e.g.
+        `"_VSA.make_truth(0.7)"`) if the rewrite applies, or None to
+        fall through to the default codegen path. Base returns None —
+        fly-brain has no truth-axis runtime yet.
+        """
+        return None
+
     def _translate_var_decl(self, decl: ast.VarDecl, *, at_top_level: bool) -> None:
         # Track map<K, V> declarations so that a later subscript on this
         # name can dispatch to the right lookup helper.
@@ -442,6 +458,14 @@ class FlyBrainCodegen:
             if decl.initializer is None:
                 self._emit(f"{decl.name} = _VSA.hashmap_new()")
                 return
+
+        # Implicit fuzzy typing — `fuzzy x = 0.7;` compiles to a truth-axis
+        # vector per the 2026-04-23 literals design. The backend hook
+        # decides whether this applies and what RHS to emit.
+        fuzzy_src = self._fuzzy_literal_init_src(decl)
+        if fuzzy_src is not None:
+            self._emit(f"{decl.name} = {fuzzy_src}")
+            return
 
         # `var x : TYPE;` without an initializer — the rotation-bound
         # storage-slot form from the 2026-04-21 surface-syntax decision

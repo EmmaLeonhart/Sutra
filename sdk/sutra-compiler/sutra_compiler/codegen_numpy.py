@@ -92,6 +92,52 @@ class NumpyCodegen(FlyBrainCodegen):
         """Lower `'a'` to a runtime make_char call with the code point."""
         return f"_VSA.make_char({int(expr.value)})"
 
+    def _fuzzy_literal_init_src(self, decl: ast.VarDecl) -> str | None:
+        """Compile-time fold of `fuzzy x = <literal>` to make_truth(value).
+
+        `fuzzy x = 0.7` is the 2026-04-23 design's implicit form for
+        `fuzzy x = true * 0.7` — a truth-axis vector scaled by 0.7. Since
+        `true` lives at +1 on the truth axis, this reduces at compile
+        time to a direct `_VSA.make_truth(0.7)` allocation with no
+        runtime scalar multiplication.
+
+        Bool literals use the truth-axis polarity: `true` → +1.0,
+        `false` → -1.0. Unary `-` on a numeric literal is folded too
+        so `fuzzy x = -0.3` works. Only triggers for literal initializers
+        — non-literal RHS expressions (e.g. `fuzzy x = compute()`) fall
+        through to normal codegen.
+        """
+        if decl.initializer is None:
+            return None
+        if decl.type_ref is None or decl.type_ref.name != "fuzzy":
+            return None
+        scalar = self._fuzzy_constant_scalar(decl.initializer)
+        if scalar is None:
+            return None
+        return f"_VSA.make_truth({scalar!r})"
+
+    def _fuzzy_constant_scalar(self, expr: ast.Expr) -> float | None:
+        """Fold a literal expression to a single fuzzy-axis scalar.
+
+        Accepts int/float/bool literals and unary `-` on same. Returns
+        None for anything that needs runtime evaluation.
+        """
+        if isinstance(expr, ast.FloatLiteral):
+            return float(expr.value)
+        if isinstance(expr, ast.IntLiteral):
+            return float(expr.value)
+        if isinstance(expr, ast.BoolLiteral):
+            return 1.0 if expr.value else -1.0
+        if isinstance(expr, ast.UnaryOp) and expr.op == "-":
+            inner = self._fuzzy_constant_scalar(expr.operand)
+            if inner is not None:
+                return -inner
+        if isinstance(expr, ast.UnaryOp) and expr.op == "+":
+            return self._fuzzy_constant_scalar(expr.operand)
+        if isinstance(expr, ast.Parenthesized):
+            return self._fuzzy_constant_scalar(expr.inner)
+        return None
+
     def _translate_eigenrotation_loop(self, stmt):
         """Eigenrotation on the numpy substrate.
 
