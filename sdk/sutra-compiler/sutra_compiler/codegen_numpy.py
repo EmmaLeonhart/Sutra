@@ -4,14 +4,17 @@ This is the demo-path backend. It emits self-contained Python modules
 that depend only on numpy — no fly-brain imports, no spiking simulator,
 no learned MBON readouts. VSA ops run as plain matrix operations on CPU.
 
-The fly-brain backend (`codegen_flybrain.py`) stays for fly-brain-only
-work. The demo path (what the paper points at, what fresh clones run)
-goes through this file.
+Inherits the backend-agnostic AST walker from `BaseCodegen` in
+`codegen_base.py` (so it shares expression / statement / call / loop
+translators with the fly-brain backend WITHOUT depending on it). This
+backend overrides the prelude, a handful of literal-lowering hooks
+(`_char_literal_src`, `_embed_expr_src`, `_bool_literal_src`,
+`_logical_op_src`, `_logical_not_src`, etc.), and the `_fuzzy_literal_init_src`
+compile-time fold so truth-axis / complex / char literals resolve
+against this backend's `_NumpyVSA` runtime.
 
-Design is a thin subclass of `FlyBrainCodegen`: the translator logic for
-expressions, statements, loops, declarations is identical — only the
-prelude changes. `snap` is not supported here (the demo substrate has no
-cleanup circuit; programs that need `snap` should target the fly-brain
+`snap` is not supported here (the demo substrate has no cleanup
+circuit; programs that need `snap` should target the fly-brain
 backend).
 """
 
@@ -20,10 +23,10 @@ from __future__ import annotations
 from typing import List
 
 from . import ast_nodes as ast
-from .codegen_flybrain import FlyBrainCodegen, CodegenNotSupported
+from .codegen_base import BaseCodegen, CodegenNotSupported
 
 
-class NumpyCodegen(FlyBrainCodegen):
+class NumpyCodegen(BaseCodegen):
     """Emits a self-contained numpy-only module.
 
     Overrides the prelude and rejects `snap()` at codegen time. Everything
