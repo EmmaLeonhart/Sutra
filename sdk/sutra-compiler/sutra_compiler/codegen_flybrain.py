@@ -952,6 +952,37 @@ class FlyBrainCodegen:
             "(no complex-plane runtime); use the numpy or pytorch backend",
         )
 
+    def _logical_op_src(self, expr: ast.BinaryOp, op: str,
+                        left_src: str, right_src: str) -> str:
+        """Override point for `&&` and `||` on truth-axis values.
+
+        Base fly-brain backend has no truth-axis runtime, so the
+        Zadeh-min / max semantics can't be honored. Emitting a
+        silent Python `and`/`or` fallback would be wrong for fuzzy
+        operands (CLAUDE.md §"NO MATH SHORTCUTS"). Refuse — numpy /
+        pytorch override and implement properly.
+        """
+        raise CodegenNotSupported(
+            expr,
+            f"logical `{op}` is not supported on the fly-brain backend "
+            "(no truth-axis runtime); use the numpy or pytorch backend",
+        )
+
+    def _logical_not_src(self, expr: ast.UnaryOp, operand_src: str) -> str:
+        """Override point for `!` (logical not) on truth-axis values.
+
+        Base fly-brain refuses — the spec-aligned lowering is
+        truth-axis negation, which requires the extended-state
+        runtime that only numpy / pytorch implement. (The earlier
+        permutation-based NOT was retired as a category error.)
+        """
+        raise CodegenNotSupported(
+            expr,
+            "source-level `!` is not yet lowered by the V1 codegen; "
+            "the spec-aligned lowering is truth-axis negation on the "
+            "numpy / pytorch backend",
+        )
+
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
         if isinstance(expr, ast.StringLiteral):
             return repr(expr.value)
@@ -1006,14 +1037,18 @@ class FlyBrainCodegen:
         if isinstance(expr, ast.BinaryOp):
             left = self._translate_expr(expr.left)
             right = self._translate_expr(expr.right)
+            # Logical operators dispatch through the substrate so they
+            # work uniformly on bool / fuzzy / trit / truth-axis-vector
+            # inputs. Zadeh fuzzy logic — min for AND, max for OR — on
+            # the truth axis. See _logical_op_src for the override hook.
+            if expr.op == "&&":
+                return self._logical_op_src(expr, "and", left, right)
+            if expr.op == "||":
+                return self._logical_op_src(expr, "or", left, right)
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":
-                raise CodegenNotSupported(
-                    expr,
-                    "source-level `!` is not yet lowered by the V1 codegen; rewrite "
-                    "as an explicit permutation-key application using `permute(NOT_X, .)`",
-                )
+                return self._logical_not_src(expr, self._translate_expr(expr.operand))
             return f"({expr.op}{self._translate_expr(expr.operand)})"
         if isinstance(expr, ast.MemberAccess):
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
