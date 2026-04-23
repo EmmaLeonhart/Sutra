@@ -114,14 +114,18 @@ class TestVectorizedArgmaxCosine(unittest.TestCase):
 
     def test_vector_map_lookup_vectorized_fallback(self):
         # Maps with vector keys get _vector_map_lookup; the cosine
-        # fallback path must also be vectorized.
+        # fallback path must also be vectorized. The fallback stacks
+        # the pair keys into M and delegates to the shared
+        # _argmax_cosine_idx helper — so the matmul + argmax happens
+        # in one place regardless of which site calls it.
         src = "function vector main() { return basis_vector(\"x\"); }\n"
         py = _compile(src)
         self.assertIn(
-            "keys = _np.stack([_np.asarray(k, dtype=_np.float64) "
+            "M = _np.stack([_np.asarray(k, dtype=_np.float64) "
             "for k, _ in pairs])", py
         )
-        self.assertIn("scores = (keys @ q) / (safe_rn * q_norm)", py)
+        self.assertIn("def _argmax_cosine_idx(M, q):", py)
+        self.assertIn("scores = (M @ q) / (safe_rn * q_norm)", py)
 
 
 class TestZeroVectorThroughSimplifier(unittest.TestCase):
