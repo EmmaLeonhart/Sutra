@@ -26,6 +26,7 @@ from . import ast_nodes as ast
 from .codegen_flybrain import CodegenNotSupported
 from .codegen_flybrain import translate_module as translate_flybrain
 from .codegen_numpy import translate_module as translate_numpy
+from .codegen_pytorch import translate_module as translate_pytorch
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
 from .parser import Parser
@@ -201,6 +202,10 @@ def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
     try:
         if backend == "numpy":
             return translate_numpy(
+                module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+            )
+        if backend == "pytorch":
+            return translate_pytorch(
                 module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
             )
         return translate_flybrain(
@@ -388,6 +393,17 @@ def main(argv: List[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--emit-pytorch",
+        action="store_true",
+        help=(
+            "Compile the first input file to self-contained torch Python and "
+            "print it to stdout. Picks CUDA at module init if available; "
+            "falls back to CPU otherwise. Same algebra as --emit-numpy but on "
+            "tensors so the fused bundle_of_binds / argmax_cosine shapes hit "
+            "GPU as one big kernel each."
+        ),
+    )
+    parser.add_argument(
         "--run",
         action="store_true",
         help=(
@@ -421,14 +437,20 @@ def main(argv: List[str] | None = None) -> int:
         version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
-    if args.emit_flybrain or args.emit_numpy or args.run or args.run_viz:
+    if (args.emit_flybrain or args.emit_numpy or args.emit_pytorch
+            or args.run or args.run_viz):
         if len(args.paths) != 1:
             print(
                 "--emit-*/--run/--run-viz takes exactly one .su source file",
                 file=sys.stderr,
             )
             return 2
-        backend = "flybrain" if args.emit_flybrain else "numpy"
+        if args.emit_flybrain:
+            backend = "flybrain"
+        elif args.emit_pytorch:
+            backend = "pytorch"
+        else:
+            backend = "numpy"
         if args.run_viz:
             return _run_viz(
                 args.paths[0],
