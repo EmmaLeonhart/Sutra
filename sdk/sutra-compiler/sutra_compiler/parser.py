@@ -95,6 +95,7 @@ _EXPR_START_TOKENS = {
     TokenKind.STRING_INTERP_START,
     TokenKind.TRUE,
     TokenKind.FALSE,
+    TokenKind.KW_UNKNOWN,
     TokenKind.IDENT,
     TokenKind.KW_THIS,
     TokenKind.LPAREN,
@@ -1221,6 +1222,9 @@ class Parser:
         if tok.kind is TokenKind.FALSE:
             self._advance()
             return ast.BoolLiteral(value=False, span=tok.span)
+        if tok.kind is TokenKind.KW_UNKNOWN:
+            self._advance()
+            return ast.UnknownLiteral(span=tok.span)
         if tok.kind is TokenKind.KW_THIS:
             self._advance()
             return ast.ThisExpr(span=tok.span)

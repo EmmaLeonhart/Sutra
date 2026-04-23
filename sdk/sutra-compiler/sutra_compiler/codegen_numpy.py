@@ -102,6 +102,18 @@ class NumpyCodegen(FlyBrainCodegen):
         inner_src = self._translate_expr(expr.expr)
         return f"_VSA.embed({inner_src})"
 
+    def _unknown_literal_src(self, expr: ast.UnknownLiteral) -> str:
+        """Lower `unknown` to the truth-axis neutral vector.
+
+        `unknown` is the explicit-neutrality literal — identical
+        runtime to `make_truth(0.0)` but named semantically. In a
+        trit-typed context the fold in _fuzzy_literal_init_src will
+        redirect through `make_trit(0.0)` for emitted-source
+        readability; in any other context this direct lowering is
+        used.
+        """
+        return "_VSA.make_truth(0.0)"
+
     # Three-valued fuzzy (Łukasiewicz Ł₃). `trit` is the canonical
     # name; `luk` is an alias that honors Łukasiewicz directly. Both
     # resolve to the same storage and the same literal-coercion
@@ -148,8 +160,9 @@ class NumpyCodegen(FlyBrainCodegen):
     def _fuzzy_constant_scalar(self, expr: ast.Expr) -> float | None:
         """Fold a literal expression to a single fuzzy-axis scalar.
 
-        Accepts int/float/bool literals and unary `-` on same. Returns
-        None for anything that needs runtime evaluation.
+        Accepts int/float/bool literals, the `unknown` neutral
+        literal, and unary `-` on same. Returns None for anything
+        that needs runtime evaluation.
         """
         if isinstance(expr, ast.FloatLiteral):
             return float(expr.value)
@@ -157,6 +170,8 @@ class NumpyCodegen(FlyBrainCodegen):
             return float(expr.value)
         if isinstance(expr, ast.BoolLiteral):
             return 1.0 if expr.value else -1.0
+        if isinstance(expr, ast.UnknownLiteral):
+            return 0.0
         if isinstance(expr, ast.UnaryOp) and expr.op == "-":
             inner = self._fuzzy_constant_scalar(expr.operand)
             if inner is not None:
