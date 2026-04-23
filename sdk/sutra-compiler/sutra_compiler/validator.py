@@ -56,6 +56,8 @@ def _fuzzy_literal_constant(expr: ast.Expr) -> Optional[float]:
         return float(expr.value)
     if isinstance(expr, ast.BoolLiteral):
         return 1.0 if expr.value else -1.0
+    if isinstance(expr, ast.UnknownLiteral):
+        return 0.0
     if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
         inner = _fuzzy_literal_constant(expr.operand)
         if inner is None:
