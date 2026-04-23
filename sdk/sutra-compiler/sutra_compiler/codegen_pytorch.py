@@ -645,6 +645,22 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return -self._as_truth_vector(x)")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Ordered comparison (truth-axis polynomial form) ----")
+        self._emit()
+        self._emit("def gt(self, a, b):")
+        self._indent += 1
+        self._emit('"""a > b — polynomial (a-b)(2+ab)/2 on the truth axis."""')
+        self._emit("av = self._as_truth_vector(a)")
+        self._emit("bv = self._as_truth_vector(b)")
+        self._emit("return (av - bv) * (2.0 + av * bv) * 0.5")
+        self._indent -= 1
+        self._emit()
+        self._emit("def lt(self, a, b):")
+        self._indent += 1
+        self._emit('"""a < b — negation of gt."""')
+        self._emit("return -self.gt(a, b)")
+        self._indent -= 1
+        self._emit()
         self._emit("# ---- Equality — cosine similarity on tensors ----")
         self._emit()
         self._emit("def eq(self, a, b):")

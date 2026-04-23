@@ -249,6 +249,46 @@ All the polynomial-vs-composition equivalences are verified on the `{-1, 0, +1}�
 
 ---
 
+## Ordered comparison
+
+`>`, `<`, `>=`, `<=` on truth-family values (bool / fuzzy / trit) follow the same "polynomial exact on the grid, smooth everywhere off it" approach as AND / OR / NOT. The derived polynomial:
+
+```
+gt(a, b) = (a − b) · (2 + ab) / 2          (polynomial form of "a > b")
+lt(a, b) = −gt(a, b)                         (polynomial form of "a < b")
+```
+
+Degree 3, smooth everywhere, fully differentiable (`∂gt/∂a = 1 + ab − b²/2`).
+
+### Grid behavior
+
+|  | `b = −1` | `b = 0` | `b = +1` |
+|---|:---:|:---:|:---:|
+| **`a = −1`** | 0 | −1 | −1 |
+| **`a = 0`** | +1 | 0 | −1 |
+| **`a = +1`** | +1 | +1 | 0 |
+
+Ties produce `0` (unknown) — a continuous truth value can't strictly exceed itself, so "strict greater than on the truth axis" has the honest answer "indeterminate" at `a = b`.
+
+### Strict vs. non-strict collapse on the fuzzy scale
+
+`>` and `>=` give the same answer on this scale, since the only case where they'd differ classically is the tie, and the tie is `0` (unknown) in both forms. The same holds for `<` and `<=`. So the codegen emits the same polynomial for strict and non-strict variants:
+
+```
+a >  b   →   _VSA.gt(a, b)
+a >= b   →   _VSA.gt(a, b)      (same)
+a <  b   →   _VSA.lt(a, b)
+a <= b   →   _VSA.lt(a, b)      (same)
+```
+
+This collapse is what you want on continuous truth values — the strict-vs-non-strict distinction is really a statement about a discrete partial order, and it stops carrying information once the values are continuous.
+
+### Scalar comparisons are unchanged
+
+For `int > int` and `float > float` — comparisons on plain number-axis values that aren't on the truth axis — the codegen falls through to Python's scalar comparison. `5 > 3` is still `True` (a Python bool), because the type-directed dispatch only routes comparisons through the polynomial form when at least one operand is provably truth-family. Scalar arithmetic stays on the fast path.
+
+---
+
 ## How it fits together
 
 ```mermaid
