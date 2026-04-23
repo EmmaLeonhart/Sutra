@@ -952,6 +952,16 @@ class FlyBrainCodegen:
             "(no complex-plane runtime); use the numpy or pytorch backend",
         )
 
+    def _bool_literal_src(self, expr: ast.BoolLiteral) -> str:
+        """Override point for `true` / `false` lowering.
+
+        Base fly-brain has no truth-axis runtime so it emits the
+        Python literals directly. Numpy / pytorch override to emit
+        _VSA.make_truth(±1.0) so the entire demo-path runtime is
+        vector-native (no Python-bool / vector split).
+        """
+        return "True" if expr.value else "False"
+
     def _logical_op_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
         """Override point for `&&` and `||` on truth-axis values.
@@ -997,7 +1007,7 @@ class FlyBrainCodegen:
         if isinstance(expr, ast.ComplexLiteral):
             return self._complex_literal_src(expr)
         if isinstance(expr, ast.BoolLiteral):
-            return "True" if expr.value else "False"
+            return self._bool_literal_src(expr)
         if isinstance(expr, ast.UnknownLiteral):
             return self._unknown_literal_src(expr)
         if isinstance(expr, ast.Identifier):
