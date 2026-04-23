@@ -114,6 +114,14 @@ class NumpyCodegen(FlyBrainCodegen):
         """
         return "_VSA.make_truth(0.0)"
 
+    def _imaginary_literal_src(self, expr: ast.ImaginaryLiteral) -> str:
+        """Lower `5i` to `_VSA.make_complex(0.0, 5.0)`."""
+        return f"_VSA.make_complex(0.0, {float(expr.value)!r})"
+
+    def _complex_literal_src(self, expr: ast.ComplexLiteral) -> str:
+        """Lower the folded `N + Mi` form to `_VSA.make_complex(N, M)`."""
+        return f"_VSA.make_complex({float(expr.re)!r}, {float(expr.im)!r})"
+
     # Three-valued fuzzy (Łukasiewicz Ł₃). `trit` is the canonical
     # name; `luk` is an alias that honors Łukasiewicz directly. Both
     # resolve to the same storage and the same literal-coercion
