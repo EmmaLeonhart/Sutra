@@ -542,7 +542,7 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit()
         self._emit("def make_trit(self, t):")
         self._indent += 1
-        self._emit('"""Three-valued fuzzy (Łukasiewicz Ł₃) — aliases make_truth."""')
+        self._emit('"""Three-valued primitive class — aliases make_truth."""')
         self._emit("return self.make_truth(t)")
         self._indent -= 1
         self._emit()
