@@ -1,6 +1,34 @@
 # NumpyCodegen inherits from FlyBrainCodegen
 
 **Opened:** 2026-04-23.
+**Resolved:** 2026-04-23 (same day, after user reiterated that the
+inheritance was an actual-lie-class-problem rather than a
+theoretical concern).
+
+## Resolution
+
+Refactor landed. `codegen_base.py` now holds `BaseCodegen` with all
+the backend-agnostic translator logic (AST walk, builtin table,
+loop translators, per-backend hook methods). `codegen_flybrain.py`
+is a slim subclass that overrides `_emit_prelude` with the
+fly-brain runtime imports and `_FixedFrameFlyBrainVSA` class
+emission; `codegen_numpy.py` is a sibling subclass with no
+fly-brain imports.
+
+Verification:
+- `grep -n flybrain sdk/sutra-compiler/sutra_compiler/codegen_numpy.py`
+  returns only a comment reference (to the alternative backend a
+  programmer might target), not an import.
+- 175 tests + 58 corpus subtests still green.
+- hello_world, role_filler_record, fuzzy_branching demos unchanged.
+
+Doc retained below as the rationale the refactor closed against.
+
+---
+
+**Original framing (for historical reference):**
+
+**Opened:** 2026-04-23.
 **Status:** Structural concern flagged by the user mid-session. Not
 broken, but the inheritance chain contradicts the CLAUDE.md framing
 of the demo path vs. the fly-brain substrate.

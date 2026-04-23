@@ -9,9 +9,10 @@ the module picks `cuda` as its device automatically, falling back to
 
 Relationship to codegen_numpy:
 
-    FlyBrainCodegen
-        └── NumpyCodegen            ← demo path (CPU, numpy)
-                └── PyTorchCodegen  ← GPU path (torch)
+    BaseCodegen                     ← backend-agnostic AST walker
+        ├── NumpyCodegen            ← demo path (CPU, numpy)
+        │       └── PyTorchCodegen  ← GPU path (torch)
+        └── FlyBrainCodegen         ← fly-brain experimental target
 
 PyTorchCodegen inherits the translator from NumpyCodegen (same AST
 walk, same bundle-of-binds fusion, same vector-accessor lowering,
@@ -32,7 +33,7 @@ truth axes per the 2026-04-23 design.
 from __future__ import annotations
 
 from . import ast_nodes as ast
-from .codegen_flybrain import CodegenNotSupported
+from .codegen_base import CodegenNotSupported
 from .codegen_numpy import NumpyCodegen
 
 
