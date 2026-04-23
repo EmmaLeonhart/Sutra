@@ -179,6 +179,72 @@ are bisectable.
    "foo"` in that case? Annotation-required is simpler; revisit if
    annoying in practice.
 
+## "Primitive classes," not primitives (2026-04-23 clarification)
+
+User framing, late in the literals session:
+
+> Our primitives, it is still literally a vector; it's just a different
+> type of vector, so they're not, like, a boolean isn't really a
+> primitive exactly. They're, like, what I would call them, their
+> primitive classes. A primitive class is essentially something that
+> inherits from a vector, because everything inherits from a vector.
+> … I don't know if these are true primitives. They're like
+> compilation primitives or something.
+
+The naming in source code (`bool`, `fuzzy`, `trit`, `int`, `char`,
+`complex`) and in the parser's `_PRIMITIVE_TYPES` set is a historical
+artifact of how these are written at the syntax level — they look like
+primitive types. At the runtime layer they are all the same thing:
+vectors in the extended-state layout, distinguished only by which
+axes they populate and which defuzzification / polarization rules
+apply. There is one primitive (the vector); everything else is a
+class built on top of it by axis convention.
+
+Implication: the compile-time machinery (type checks, literal
+coercion, operator dispatch) should route through the "primitive
+class" abstraction — all "primitive" values are dispatched by their
+vector-subclass identity, not by a scalar runtime tag. This is the
+framing behind:
+
+- `bool` / `fuzzy` / `trit` all sharing `synthetic[AXIS_TRUTH]` but
+  differing in defuzzification.
+- `int` / `float` / `complex` all sharing `synthetic[AXIS_REAL]`
+  (and `AXIS_IMAG` for complex) but differing in multiplication and
+  construction.
+- `char` sharing the int representation + a flag bit.
+
+The terminology in the rest of the spec ("primitive", "primitive
+type") is retained for now because rewriting it everywhere is noise;
+read "primitive" as "primitive class" throughout.
+
+## Complex numbers + unified multiplication (follow-on)
+
+User direction 2026-04-23, late session:
+
+> Another thing I want to do is make a complex number. If you want
+> to make a complex number, you're going to have to use a
+> constructor. I want all of the addition and multiplication to work
+> in a way that still works for integers, floats, and complex
+> numbers. … all the multiplication is complex multiplication,
+> because that is just simple with vectors.
+
+Design sketch:
+
+- No complex literal syntax. A complex number is built with a
+  constructor call — `complex(re, im)` — which lowers to the existing
+  `_VSA.make_complex(re, im)` runtime method.
+- Multiplication is the single operation: complex multiplication on
+  `(re, im)` pairs. For int/float values, `im = 0`, and complex
+  multiplication reduces to the scalar product the user expects —
+  `(re1 + 0i) · (re2 + 0i) = re1·re2`. So one codegen path covers
+  all numeric types.
+- Addition is the vector addition of the two `synthetic[AXIS_REAL] +
+  synthetic[AXIS_IMAG]` coordinates, which likewise reduces correctly
+  for the real-only case.
+
+This is not implemented yet. It is a follow-on slice to the literals
+work and will touch the `BinaryOp('*', ...)` codegen path.
+
 ## Pointers
 
 - Conversation source: 2026-04-23 session about literals.
