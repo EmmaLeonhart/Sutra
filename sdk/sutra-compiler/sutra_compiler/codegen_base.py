@@ -237,6 +237,12 @@ class BaseCodegen:
         # dispatches to _VSA.hashmap_get, assignment (d[k] = v)
         # dispatches to _VSA.hashmap_set (functional update).
         self._dict_declared: set[str] = set()
+        # Maps variable names to their declared primitive-class type
+        # string (`"complex"`, `"int"`, `"fuzzy"`, ...). Used by
+        # `*` dispatch: if either operand is known to be a complex,
+        # the BinaryOp lowers to _VSA.complex_mul instead of Python
+        # element-wise multiply. Populated in _translate_var_decl.
+        self._var_type: dict[str, str] = {}
 
     # -- emission helpers -------------------------------------------------
 
@@ -334,6 +340,12 @@ class BaseCodegen:
         if decl.type_ref is not None and decl.type_ref.name == "map":
             if len(decl.type_ref.type_args) >= 1:
                 self._map_key_type[decl.name] = decl.type_ref.type_args[0].name
+        # Record the declared type so binary-op dispatch can reason
+        # about the value's primitive class later. Needed for `*`
+        # to route complex multiplication through _VSA.complex_mul
+        # instead of Python element-wise multiply.
+        if decl.type_ref is not None:
+            self._var_type[decl.name] = decl.type_ref.name
         # Track dict<K, V> declarations so that d[k] / d[k] = v
         # dispatch to the rotation-hashmap runtime.
         if decl.type_ref is not None and decl.type_ref.name == "dict":
@@ -896,6 +908,44 @@ class BaseCodegen:
             "is cosine-similarity on the truth axis (numpy / pytorch only)",
         )
 
+    def _is_complex_expr(self, expr: ast.Expr) -> bool:
+        """True iff expr is provably a complex-plane value at compile time.
+
+        Conservative: returns True only for cases the codegen can be
+        certain about without full type inference. Returning False just
+        means `*` falls through to element-wise multiply, so wrong
+        answers only happen if the caller passes a complex-typed
+        runtime value through a code path the compiler can't see.
+        """
+        if isinstance(expr, (ast.ComplexLiteral, ast.ImaginaryLiteral)):
+            return True
+        if isinstance(expr, ast.Identifier):
+            return self._var_type.get(expr.name) == "complex"
+        if isinstance(expr, ast.Parenthesized):
+            return self._is_complex_expr(expr.inner)
+        # Recurse into BinaryOp: if either side of an inner arithmetic
+        # expression is complex, the whole expression is complex-typed.
+        if isinstance(expr, ast.BinaryOp) and expr.op in ("+", "-", "*"):
+            return (self._is_complex_expr(expr.left)
+                    or self._is_complex_expr(expr.right))
+        if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
+            return self._is_complex_expr(expr.operand)
+        return False
+
+    def _complex_mul_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Override point for `complex * anything` / `anything * complex`.
+
+        Base refuses — the complex-multiplication runtime lives on
+        the extended-state backends (numpy / pytorch). Fly-brain
+        has no real/imag-axis representation.
+        """
+        raise CodegenNotSupported(
+            expr,
+            "complex multiplication is not supported by this backend "
+            "(no real/imag-axis runtime); use the numpy or pytorch backend",
+        )
+
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
         if isinstance(expr, ast.StringLiteral):
             return repr(expr.value)
@@ -967,6 +1017,16 @@ class BaseCodegen:
                 return self._equality_src(expr, "eq", left, right)
             if expr.op == "!=":
                 return self._equality_src(expr, "neq", left, right)
+            # Complex multiplication dispatch: if either operand is
+            # provably a complex-plane value (literal or complex-typed
+            # variable), route `*` through the substrate's complex_mul
+            # rather than element-wise Python multiply. Real-only
+            # multiplication (int * int, float * float) stays on the
+            # Python scalar fast path — there's no need to box scalars
+            # into d-dim vectors to compute 5 * 3.
+            if expr.op == "*" and (self._is_complex_expr(expr.left)
+                                   or self._is_complex_expr(expr.right)):
+                return self._complex_mul_src(expr, left, right)
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":
