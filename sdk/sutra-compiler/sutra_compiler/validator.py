@@ -181,18 +181,19 @@ class _Walker:
             self._record_type_usage(node.type_ref)
         if node.initializer is not None:
             self.visit(node.initializer)
-        # Fuzzy literals live on the truth axis which the spec defines
-        # over [-1, +1]. A literal outside that range is almost always
-        # a mistake; warn (not error) so existing programs don't break
-        # while the rule beds in.
+        # Fuzzy / trit / luk literals live on the truth axis which the
+        # spec defines over [-1, +1]. A literal outside that range is
+        # almost always a mistake; warn (not error) so existing programs
+        # don't break while the rule beds in.
         if (node.type_ref is not None
-                and node.type_ref.name == "fuzzy"
+                and node.type_ref.name in ("fuzzy", "trit", "luk")
                 and node.initializer is not None):
             value = _fuzzy_literal_constant(node.initializer)
             if value is not None and (value < -1.0 or value > 1.0):
                 self.diagnostics.warning(
-                    f"fuzzy literal {value!r} is outside [-1, +1] — the truth "
-                    "axis saturates at ±1. Did you mean a different type?",
+                    f"{node.type_ref.name} literal {value!r} is outside "
+                    "[-1, +1] — the truth axis saturates at ±1. "
+                    "Did you mean a different type?",
                     node.span,
                     code="SUT0120",
                     hint="use a `scalar` for unbounded values, or clamp the "

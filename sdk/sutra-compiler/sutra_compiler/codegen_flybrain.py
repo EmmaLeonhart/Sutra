@@ -484,11 +484,15 @@ class FlyBrainCodegen:
                 else:
                     self._emit(f"{decl.name} = _np.zeros(_VSA.dim)")
                 return
-            # Fuzzy / bool are (per spec target) scalars on the canonical
-            # truth axis. Until the truth-axis runtime lands, use a plain
-            # float zero as the placeholder. Changes to an axis-projection
-            # read when the extended-state-vector work finishes.
-            if type_name in ("fuzzy", "bool", "int", "scalar", "number"):
+            # Fuzzy / bool / trit are (per spec target) scalars on the
+            # canonical truth axis. `trit` / `luk` default to 0 —
+            # "explicit neutrality," the first-class unknown value of
+            # Ł₃. Until the truth-axis runtime lands for these in
+            # every backend, use a plain float zero as the placeholder;
+            # the numpy / pytorch backends' make_truth path is used by
+            # initialized declarations.
+            if type_name in ("fuzzy", "bool", "int", "scalar", "number",
+                             "trit", "luk"):
                 if decl.array_size is not None:
                     self._emit(f"{decl.name} = [0.0] * {decl.array_size}")
                 else:
