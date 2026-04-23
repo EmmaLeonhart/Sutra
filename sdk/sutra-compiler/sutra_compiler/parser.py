@@ -110,6 +110,8 @@ _PRIMITIVE_TYPES = {
     "scalar", "vector", "matrix", "tuple", "string",
     "bool", "fuzzy", "void", "permutation", "map",
     "char", "int",
+    # trit = three-valued fuzzy (Łukasiewicz Ł₃). luk is an alias.
+    "trit", "luk",
 }
 
 # Keywords that can act as a "special function" in expression position.
