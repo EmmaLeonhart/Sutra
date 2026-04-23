@@ -330,17 +330,40 @@ class _NumpyVSA:
 
     def loop(self, initial_state, rotation, compiled_prototypes,
         target_name=None, threshold=0.5, max_iters=50, frame_seed=None):
-        """Eigenrotation: iterate state <- R @ state until match."""
+        """Eigenrotation: iterate state <- R @ state until a prototype matches.
+
+        Per iteration, cosine-match state against the whole prototype
+        set in one matmul instead of a Python for-loop calling
+        self.similarity per prototype. Same shape the PyTorch/GPU
+        backend will reuse — one kernel launch per iteration for the
+        match, not P of them.
+        """
         state = initial_state.copy()
+        names = list(compiled_prototypes.keys())
+        # Stack prototypes once at loop entry; shape stays constant
+        # across iterations, so the norms and the (P, d) matrix are
+        # hoisted out of the per-iter work.
+        if names:
+            P = _np.stack([
+                _np.asarray(compiled_prototypes[nm], dtype=_np.float64)
+                for nm in names
+            ])
+            proto_norms = _np.linalg.norm(P, axis=1)
+            safe_pn = _np.where(proto_norms > 0, proto_norms, 1.0)
+        best_name, best_score = None, -1.0
         for iters in range(1, max_iters + 1):
             state = rotation @ state
-            n = _np.linalg.norm(state)
-            if n > 0: state = state / n
-            best_name, best_score = None, -1.0
-            for nm, proto in compiled_prototypes.items():
-                s = self.similarity(state, proto)
-                if s > best_score:
-                    best_score = s; best_name = nm
+            sn = _np.linalg.norm(state)
+            if sn > 0: state = state / sn
+            if names:
+                # state is unit-norm after the renormalize above, so
+                # dividing by its norm is a no-op — skip it.
+                scores = (P @ state) / safe_pn
+                # Guard zero-norm prototypes so they don't win argmax.
+                scores = _np.where(proto_norms > 0, scores, -_np.inf)
+                best_idx = int(_np.argmax(scores))
+                best_name = names[best_idx]
+                best_score = float(scores[best_idx])
             if target_name is not None and best_name == target_name and best_score >= threshold:
                 return best_name, state, iters
             if target_name is None and best_score >= threshold:
