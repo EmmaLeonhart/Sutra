@@ -132,48 +132,120 @@ Five element-wise tensor ops, one kernel launch each on CUDA, full autograd supp
 
 `{!, &&, ||}` is functionally complete for three-valued logic. Every other connective is a composition — and because everything is a polynomial, compositions **symbolically simplify** into more compact direct polynomials.
 
-The eight standard connectives, each verified by Lagrange interpolation on the `{-1, 0, +1}²` grid:
+### Why this specific primitive set
 
-| connective | surface form | simplified polynomial | degree |
-|---|---|---:|---:|
+Classical Boolean logic usually picks a single primitive for completeness:
+
+- **NAND alone** is functionally complete — Henry Sheffer showed this in 1913. Most digital hardware is built on NAND gates because every other gate can be wired out of them. `NOT(a) = NAND(a, a)`, `AND(a, b) = NAND(NAND(a, b), NAND(a, b))`, and so on.
+- **NOR alone** is likewise complete — Charles Peirce noted this earlier. Some hardware uses NOR-only logic.
+
+Sutra picks a **three-primitive** set instead — `{!, &&, ||}` — for two reasons:
+
+1. **Each has a simple polynomial form.** NAND and NOR happen to just be the negations of AND and OR polynomials, so we gain nothing polynomial-complexity-wise by making one of them primitive. But `!` alone is degree-1 (`-a`), and AND / OR are symmetric degree-4 polynomials. Three short polynomials instead of one composite one.
+2. **Matches programming-language surface syntax.** Every programmer already has `!` / `&&` / `||` from C / Java / JS / Python. No re-training required.
+
+The choice of primitives only affects *how* you build the other connectives — the set of expressible connectives is the same.
+
+### The eight standard connectives, with full polynomial forms
+
+Each row shows the composition in terms of the three primitives **and** the simplified polynomial you get after symbolic expansion. All eight are verified to agree with their intended three-valued truth tables on every point of the `{-1, 0, +1}²` grid.
+
+| connective | surface composition | simplified polynomial | degree |
+|---|---|---|---:|
 | `!a` | primitive | `-a` | 1 |
 | `a && b` | primitive | `(a + b + ab − a² − b² + a²b²) / 2` | 4 |
 | `a \|\| b` | primitive | `(a + b − ab + a² + b² − a²b²) / 2` | 4 |
-| `nand` | `!(a && b)` | `−(AND poly)` | 4 |
-| `nor` | `!(a \|\| b)` | `−(OR poly)` | 4 |
-| `xor` | `(a && !b) \|\| (!a && b)` | **`−a·b`** | **2** |
-| `iff` | `(a → b) && (b → a)` | **`a·b`** | **2** |
-| `implies` | `!a \|\| b` | `(−a + b + ab + a² + b² − a²b²) / 2` | 4 |
+| `a → b` | `!a \|\| b` | `(−a + b + ab + a² + b² − a²b²) / 2` | 4 |
+| `nand(a, b)` | `!(a && b)` | `(−a − b − ab + a² + b² − a²b²) / 2` | 4 |
+| `nor(a, b)` | `!(a \|\| b)` | `(−a − b + ab − a² − b² + a²b²) / 2` | 4 |
+| `xor(a, b)` | `(a && !b) \|\| (!a && b)` | **`−a · b`** | **2** |
+| `iff(a, b)` | `(a → b) && (b → a)` | **`a · b`** | **2** |
 
-The two standouts — **XOR and IFF both collapse to single products**:
+### The NAND / NOR polynomials are just negations
+
+The simplified NAND / NOR polynomials are hard to read at first because they have six terms with mixed signs. The easier way to see them: NAND is the negation of AND, NOR is the negation of OR, and Sutra's negation is just multiplication by `-1`. So:
+
+```
+AND(a, b)  =  (a + b + ab − a² − b² + a²b²) / 2
+
+NAND(a, b) =  !(a && b)
+           =  -AND(a, b)
+           =  -(a + b + ab − a² − b² + a²b²) / 2
+           =  (−a − b − ab + a² + b² − a²b²) / 2
+```
+
+Every sign in the AND polynomial flipped. That's the whole derivation — nothing happens term by term, the outer `-` distributes across everything.
+
+The same is true for NOR:
+
+```
+OR(a, b)   =  (a + b − ab + a² + b² − a²b²) / 2
+
+NOR(a, b)  =  !(a || b)
+           =  -OR(a, b)
+           =  (−a − b + ab − a² − b² + a²b²) / 2
+```
+
+Again, just sign flips. You don't need to memorize two new polynomials; just remember "NAND = negated AND polynomial, NOR = negated OR polynomial." At the substrate level Sutra can also run NAND as a composition `!(a && b)` — two runtime ops (an AND polynomial plus a sign flip). Same answer, slightly more hops.
+
+### XOR and IFF collapse to single products
+
+XOR and IFF are the striking cases — five-op nested compositions that symbolically reduce to a single multiplication:
 
 ```
 xor(a, b) = (a && !b) || (!a && b)   =   -a · b
 iff(a, b) = (a → b) && (b → a)       =    a · b
 ```
 
-That's a five-op nested composition reducing to a single multiplication. On the signed truth scale, "the two values disagree" is exactly the negative product of their signs, and "they agree" is the positive product. The polynomial AND / OR machinery vanishes into the product after simplification.
+Why: on a signed truth scale where `-1 = false`, `+1 = true`, the **product of signs** is `+1` when the signs agree and `-1` when they disagree. That's exactly the IFF truth table. Negate it and you get XOR. When either value is `0` (unknown), the product is `0`, which is the right answer under Kleene semantics (unknown propagates).
 
-### Example: writing derived connectives in Sutra
+So "logical equivalence on the signed truth scale" isn't just *like* multiplication — it **is** multiplication. The degree-4 composition of AND / OR / NOT collapses because the AND / OR polynomials' quadratic terms cancel out in precisely the right way, leaving a degree-2 monomial.
+
+### Example: writing the derived connectives in Sutra
 
 ```c
 // Shipped in tests/corpus/valid/35_derived_logic.su.
 // Each of these is a composition of the three primitives.
 
 function fuzzy Xor(fuzzy a, fuzzy b) {
-    return (a && !b) || (!a && b);
+    return (a && !b) || (!a && b);    // simplifies to -a·b
 }
 
 function fuzzy Iff(fuzzy a, fuzzy b) {
-    return (!a || b) && (!b || a);
+    return (!a || b) && (!b || a);     // simplifies to a·b
 }
 
 function fuzzy Implies(fuzzy a, fuzzy b) {
     return !a || b;
 }
+
+function fuzzy Nand(fuzzy a, fuzzy b) {
+    return !(a && b);                  // simplifies to -AND polynomial
+}
+
+function fuzzy Nor(fuzzy a, fuzzy b) {
+    return !(a || b);                  // simplifies to -OR polynomial
+}
 ```
 
-Each runs as written. A future compile-time simplifier pass can recognize the patterns and rewrite `Xor`'s body to `-a · b` directly (saving 4 runtime ops).
+Each runs as written — the polynomial primitives compose exactly the way the source code says. A future compile-time simplifier pass can recognize the common patterns and rewrite them to their direct polynomial forms, saving runtime ops. That's just algebra on the polynomial expressions; no special-case machinery.
+
+### Worked expansion: NAND from the composition
+
+Just to show the step-by-step:
+
+```
+NAND(a, b)  =  !(a && b)
+            =  !((a + b + ab − a² − b² + a²b²) / 2)       # expand AND
+            =  -(a + b + ab − a² − b² + a²b²) / 2         # ! is multiply by -1
+            =  (−a − b − ab + a² + b² − a²b²) / 2         # distribute
+```
+
+Three algebraic steps, no case analysis. Compare to classical truth-table derivation where you'd enumerate nine cases and prove each one — the polynomial form lets you do it in three lines.
+
+### Verification
+
+All the polynomial-vs-composition equivalences are verified on the `{-1, 0, +1}²` grid (9 points × 5 connectives × 2 forms = 90 comparisons). See the derivation and verification in [`planning/findings/2026-04-23-logic-gate-polynomial-forms.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-logic-gate-polynomial-forms.md).
 
 ---
 
