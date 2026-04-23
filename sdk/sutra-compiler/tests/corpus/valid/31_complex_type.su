@@ -1,0 +1,41 @@
+// Sutra corpus test: `complex` primitive type.
+//
+// `complex` is the compile-time tag for a value on the complex
+// plane — a vector with synthetic[AXIS_REAL] and synthetic[AXIS_IMAG]
+// populated. There's no `imaginary` primitive type (imaginary-only
+// values are just `complex` values with real = 0); the `i` suffix
+// on a numeric literal is the way to write imaginary parts.
+//
+// In a complex-typed var decl, plain int / float literals coerce to
+// (value, 0) — "every number is on the complex plane." `5i` and
+// `5 + 5i` fold through the existing imaginary/complex literal path.
+
+function complex PureReal() {
+    complex c = 5;
+    return c;
+}
+
+function complex PureImag() {
+    complex c = 5i;
+    return c;
+}
+
+function complex BothParts() {
+    complex c = 5 + 5i;
+    return c;
+}
+
+function complex NegatedImag() {
+    complex c = -5i;
+    return c;
+}
+
+function complex FloatReal() {
+    complex c = 3.14;
+    return c;
+}
+
+function complex MixedFloat() {
+    complex c = 2.5 + 1.5i;
+    return c;
+}
