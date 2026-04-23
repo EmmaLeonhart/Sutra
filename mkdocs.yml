@@ -95,6 +95,7 @@ nav:
   - Logical operations: logical-operations.md
   - Numeric math: numeric-math.md
   - Memory: memory.md
+  - Compilation: compilation.md
   - Vision:
     - The graph-to-vector leap: vision.md
   - Interactive:
