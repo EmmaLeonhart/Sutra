@@ -182,6 +182,18 @@ class NumpyCodegen(BaseCodegen):
         assert op in ("eq", "neq")
         return f"_VSA.{op}({left_src}, {right_src})"
 
+    def _complex_mul_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Lower `complex * *` to _VSA.complex_mul.
+
+        The runtime reads the two relevant (real, imag) scalar pairs,
+        computes the complex product in 2D, and returns a fresh
+        make_complex vector. Scalar operands get auto-promoted via
+        make_real inside complex_mul, so `int_literal * complex_var`
+        and similar mixed forms work without additional codegen.
+        """
+        return f"_VSA.complex_mul({left_src}, {right_src})"
+
     def _complex_literal_src(self, expr: ast.ComplexLiteral) -> str:
         """Lower the folded `N + Mi` form to `_VSA.make_complex(N, M)`."""
         return f"_VSA.make_complex({float(expr.re)!r}, {float(expr.im)!r})"
@@ -902,6 +914,48 @@ class NumpyCodegen(BaseCodegen):
         self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(re)")
         self._emit("v[self.semantic_dim + self.AXIS_IMAG] = float(im)")
         self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def complex_mul(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex multiplication (r1+i1·i)(r2+i2·i).')
+        self._emit('')
+        self._emit("Numbers in Sutra live in a 2D subspace of the full extended-")
+        self._emit("state vector — real at synthetic[AXIS_REAL] and imag at")
+        self._emit("synthetic[AXIS_IMAG]. A full d×d matmul would be O(d²) wasted")
+        self._emit("work on d−2 zero axes. We read the four relevant scalars,")
+        self._emit("compute the 2D complex product, and build a fresh complex")
+        self._emit("vector. Python int / float operands get auto-promoted via")
+        self._emit("make_real so `5 * complex_var` and `complex_var * 3.14`")
+        self._emit("do the right thing without the caller pre-coercing.")
+        self._emit('')
+        self._emit("Real-valued inputs (imag = 0) reduce correctly: the cross")
+        self._emit("terms vanish and the result is just (r1·r2) on the real axis.")
+        self._emit("That's the isomorphism — one multiplication rule for int,")
+        self._emit("float, and complex, with zero overhead over scalar multiply")
+        self._emit("for real-only inputs.")
+        self._emit('"""')
+        self._emit("av = self._as_complex_vector(a)")
+        self._emit("bv = self._as_complex_vector(b)")
+        self._emit("r1 = float(av[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("i1 = float(av[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("r2 = float(bv[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("i2 = float(bv[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("return self.make_complex(r1 * r2 - i1 * i2, r1 * i2 + i1 * r2)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _as_complex_vector(self, x):")
+        self._indent += 1
+        self._emit('"""Coerce a Python scalar / vector to complex-plane form."""')
+        self._emit("if isinstance(x, _np.ndarray):")
+        self._indent += 1
+        self._emit("return x")
+        self._indent -= 1
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return self.make_real(1.0 if x else 0.0)")
+        self._indent -= 1
+        self._emit("return self.make_real(float(x))")
         self._indent -= 1
         self._emit()
         self._emit("def make_truth(self, t):")

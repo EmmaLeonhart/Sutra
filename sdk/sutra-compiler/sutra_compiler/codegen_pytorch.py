@@ -524,6 +524,32 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def complex_mul(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex multiplication on the 2D (real, imag) subspace — torch."""')
+        self._emit("av = self._as_complex_vector(a)")
+        self._emit("bv = self._as_complex_vector(b)")
+        self._emit("r1 = float(av[self.semantic_dim + self.AXIS_REAL].item())")
+        self._emit("i1 = float(av[self.semantic_dim + self.AXIS_IMAG].item())")
+        self._emit("r2 = float(bv[self.semantic_dim + self.AXIS_REAL].item())")
+        self._emit("i2 = float(bv[self.semantic_dim + self.AXIS_IMAG].item())")
+        self._emit("return self.make_complex(r1 * r2 - i1 * i2, r1 * i2 + i1 * r2)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _as_complex_vector(self, x):")
+        self._indent += 1
+        self._emit('"""Coerce Python scalar / tensor to complex-plane form."""')
+        self._emit("if isinstance(x, _torch.Tensor):")
+        self._indent += 1
+        self._emit("return x")
+        self._indent -= 1
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return self.make_real(1.0 if x else 0.0)")
+        self._indent -= 1
+        self._emit("return self.make_real(float(x))")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_truth(self, t):")
         self._indent += 1
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")

@@ -104,27 +104,43 @@ imag(a * b)  =  a.real · b.imag  +  a.imag · b.real
 
 This is a pure polynomial computation on the two coordinates — differentiable everywhere, CUDA-friendly, no branches. Addition is easier: componentwise vector addition on the `(real, imag)` axes is exactly complex addition.
 
-### Shipped vs. pending (be honest about where we are)
+### Efficient 2D complex multiplication
 
-The **representation** side is fully shipped:
+Because every number lives in a 2-dimensional subspace of the full 868-dim extended-state vector (only `real` and `imag` carry content), complex multiplication doesn't need to do O(d²) matmul on the full vector. The runtime reads the four relevant scalars, computes the 2D product directly, and writes a fresh vector:
 
-- Literals (`5`, `3.14`, `5i`, `5 + 5i`, `−5i`, `5i + 3`, etc.) all parse, fold at compile time, and produce the correct complex-plane vectors.
-- `make_complex(re, im)`, `make_real(x)`, and the real / imag accessors work on numpy and pytorch backends.
-- The type tag (`int` / `float` / `complex`) is recognized by the parser and validator.
+```
+real(a * b)  =  a.real · b.real  −  a.imag · b.imag
+imag(a * b)  =  a.real · b.imag  +  a.imag · b.real
+```
 
-The **arithmetic** side is partial:
+Constant-time regardless of ambient dimension. Real-only inputs (imag parts zero) reduce to the single `a.real · b.real` term — the isomorphism with scalar multiplication holds automatically.
 
-| operation | status |
-|---|---|
-| `complex + complex` | **works** (vector addition equals componentwise complex addition — they're the same operation) |
-| `real literal + complex variable` | **works via broadcast** on the numpy backend, but emits Python `+` which is numpy broadcast |
-| `complex * complex` | **BROKEN** — emits element-wise `a * b`, which gives `(r₁r₂, i₁i₂)` instead of the correct `(r₁r₂ − i₁i₂, r₁i₂ + i₁r₂)` |
-| `int * int` on int-typed slots | emits Python scalar `*` — correct numerically, but not yet on-substrate |
-| `int / float → complex promotion` in mixed expressions | not yet folded |
+### Shipped status
 
-That gap is on the road map. The design target is: `BinaryOp('*')` between two number-family values emits a single `_VSA.complex_mul(a, b)` call that computes the complex product via substrate vector arithmetic, regardless of whether either side is actually int, float, or complex.
+- Literals (`5`, `3.14`, `5i`, `5 + 5i`, `−5i`, `5i + 3`, etc.) parse, fold at compile time, and produce the correct complex-plane vectors.
+- `complex + complex` works — vector addition on the real/imag axes equals componentwise complex addition (they're the same operation).
+- `complex * complex` works — dispatches to `_VSA.complex_mul` when either operand is provably complex at compile time (literal, complex-typed variable, or an arithmetic expression involving one of those).
+- `int_literal * complex_var` and `complex_var * int_literal` work via scalar promotion inside `complex_mul`: Python ints / floats get auto-lifted to `make_real` vectors before the product.
+- `int * int` and `float * float` on purely real-typed slots stay on the Python scalar fast path. The type-directed dispatch only routes through `complex_mul` when complex content is statically provable, so simple arithmetic has zero vector-boxing overhead.
 
-When that lands, the observable behavior is: `complex c = (5 + 5i) * (3 + 2i)` produces `5 + 25i`, and `int n = 5 * 3` produces `15`, and they go through **one code path**.
+Empirical verification on the classic cases (from `tests/corpus/valid/36_complex_multiplication.su`):
+
+| expression | result | expected |
+|---|---|---|
+| `(5 + 5i) * (3 + 2i)` | `5 + 25i` | ✓ |
+| `7 * 4` on complex-typed | `28` | ✓ |
+| `(5i) * (3i)` | `-15` | ✓ |
+| `(2 + 3i) * 4` | `8 + 12i` | ✓ |
+| `4 * (2 + 3i)` | `8 + 12i` | ✓ |
+| `(2 + 3i) * 2i` | `-6 + 4i` | ✓ |
+| `(5 + 5i) + (3 + 2i)` | `8 + 7i` | ✓ |
+| `5 * 3` (plain int) | `15` as Python int | ✓ |
+
+### Pending
+
+- `complex - complex` — currently emits vector subtraction, which works for pure complex-complex subtraction but broadcasts wrong for `complex_var - scalar`. Same fix pattern as multiplication: dispatch through a `complex_sub` runtime when either operand is complex.
+- `complex / complex` — division not yet implemented. Natural form: `(a · conjugate(b)) / |b|²`.
+- Conjugate, modulus, and other standard complex operations as runtime methods.
 
 ---
 
