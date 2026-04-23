@@ -21,38 +21,21 @@ pick up next.
 
 ## Queued work
 
-1. **PyTorch/GPU backend.** Extended state vector landed
-   e1ccbbe (2026-04-23) — runtime vectors are now `[semantic (n) |
-   synthetic (100)]` with block-diagonal rotation preserving the
-   synthetic zero block through bind/unbind. The torch port
-   therefore runs on the extended state, not the pre-extension 768-d.
-   `codegen_numpy.py` compiles to matmuls, sums, and cosines — every
-   operation has a trivial GPU equivalent. The compile-side
-   prerequisites landed 2026-04-22:
-   - Algebraic simplifier rewrites (bundle/compose flattening,
-     similarity-of-self, unbind/bind and bind/unbind inverses,
-     displacement-of-self → zero, zero-absorption in + / − / bundle).
-   - Vectorized `argmax_cosine` and vector-map-lookup — one stacked
-     matmul instead of N sequential `_VSA.similarity` calls. Same
-     shape torch/CUDA wants.
-   - Fused `bundle_of_binds` — when every arg to `bundle(...)` is a
-     `bind(...)` call (the role-filler-record pattern), the codegen
-     emits a single runtime call that does the N binds as one batched
-     einsum over (N, d, d) Q-stack × (N, d) filler-stack. O(N) kernel
-     launches collapse to O(1).
-   - Runtime embedding disk cache (`~/.cache/sutra/embeddings/
-     <model>-d<dim>.npz`). Second run is offline.
+No active queue items — see `todo.md` for the pre-Anthropic-grant-app
+bucket. Next pick candidates live in the Deferred section below and
+in `todo.md`.
 
-   **What still blocks the port:** the mechanical torch rewrite —
-   swap `_np` for `_torch`, keep the fused shapes, keep the block-
-   diagonal rotation construction from the extended-state work.
-   Generalized ANF + dep analysis is NOT done — only the
-   `bundle(bind,bind,...)` pattern is currently fused; other
-   potentially-independent sequences (e.g. `bundle(bind(r,f), c,
-   bind(r2,f2))`) still emit sequentially. For the three demo
-   programs (hello_world, fuzzy_branching, role_filler_record) the
-   fused shapes cover the hot path; larger programs may hit the
-   sequential fallback and want broader dep analysis.
+Recently closed:
+- **PyTorch/GPU backend** (2026-04-23). New `codegen_pytorch.py`
+  emits self-contained torch modules picking CUDA at module init.
+  Demos run end-to-end on GPU with identical algebra and extended-
+  state layout. Generalized ANF + dep analysis for fusion across
+  non-bundle/bind patterns is NOT done — only the
+  `bundle(bind,bind,...)` pattern is fused; mixed sequences like
+  `bundle(bind(r,f), c, bind(r2,f2))` still emit sequentially.
+  That widening is its own follow-on (tracked in todo.md under
+  "Formula simplification — remaining pieces").
+- **Extended state vector** (e1ccbbe, 2026-04-23).
 
 ## Deferred (see `todo.md`)
 
