@@ -967,8 +967,23 @@ class FlyBrainCodegen:
             return f"({expr.op}{self._translate_expr(expr.operand)})"
         if isinstance(expr, ast.MemberAccess):
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
+        if isinstance(expr, ast.EmbedExpr):
+            return self._embed_expr_src(expr)
         raise CodegenNotSupported(
             expr, f"unsupported expression: {type(expr).__name__}"
+        )
+
+    def _embed_expr_src(self, expr: ast.EmbedExpr) -> str:
+        """Override point for per-backend `embed(<expr>)` lowering.
+
+        Raises on the fly-brain backend — no frozen-LLM embedding
+        runtime there. Numpy / pytorch override to emit
+        `_VSA.embed(<inner>)`.
+        """
+        raise CodegenNotSupported(
+            expr,
+            "embed(...) is not supported on the fly-brain backend; "
+            "use the numpy or pytorch backend",
         )
 
     def _translate_call(self, call: ast.Call) -> str:

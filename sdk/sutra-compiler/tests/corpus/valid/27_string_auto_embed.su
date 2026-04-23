@@ -1,0 +1,36 @@
+// Sutra corpus test: string auto-embed in typed contexts.
+//
+// Per 2026-04-23 literals design:
+// - `vector v = "foo"` implicitly wraps in embed()
+// - `var x = "foo"` (untyped) defaults to embed (vector-first language)
+// - `char c = "c"` compile-time folds to a char literal
+// - `string x = "foo"` stays a string (explicit string-typed slot)
+//
+// `basis_vector(...)` remains the explicit form for embedding a
+// non-literal string expression.
+
+function vector FromExplicitVector() {
+    vector v = "cat";
+    return v;
+}
+
+function vector FromUntypedVar() {
+    var x = "dog";
+    return x;
+}
+
+function int FromCharSyntax() {
+    char c = "c";
+    return c;
+}
+
+function string KeepsAsString() {
+    string s = "hello";
+    return s;
+}
+
+// Compare against the explicit basis_vector call — still valid.
+function vector ExplicitBasis() {
+    vector v = basis_vector("bird");
+    return v;
+}
