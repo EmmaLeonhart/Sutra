@@ -8,11 +8,12 @@ The fly-brain backend (`codegen_flybrain.py`) stays for fly-brain-only
 work. The demo path (what the paper points at, what fresh clones run)
 goes through this file.
 
-Design is a thin subclass of `FlyBrainCodegen`: the translator logic for
-expressions, statements, loops, declarations is identical — only the
-prelude changes. `snap` is not supported here (the demo substrate has no
-cleanup circuit; programs that need `snap` should target the fly-brain
-backend).
+Design is a sibling subclass of `CodegenBase` alongside `FlyBrainCodegen`.
+The translator logic for expressions, statements, loops, declarations
+lives in the shared base; each backend only supplies its own prelude
+(the `_VSA` runtime scaffolding) and eigenrotation-loop lowering. `snap`
+is not supported here (the demo substrate has no cleanup circuit;
+programs that need `snap` should target the fly-brain backend).
 
 The VSA runtime itself (the `_NumpyVSA` class and the helper functions
 `_argmax_cosine`, `_select_softmax`, `_vector_map_lookup`) lives in
@@ -30,15 +31,17 @@ from pathlib import Path
 from typing import List
 
 from . import ast_nodes as ast
-from .codegen_flybrain import FlyBrainCodegen, CodegenNotSupported
+from .codegen_flybrain import CodegenBase, CodegenNotSupported
 
 
-class NumpyCodegen(FlyBrainCodegen):
+class NumpyCodegen(CodegenBase):
     """Emits a self-contained numpy-only module.
 
-    Overrides the prelude and rejects `snap()` at codegen time. Everything
-    else (function bodies, bind/bundle/unbind/similarity/argmax_cosine,
-    map lookup, loop unrolling) is inherited unchanged.
+    Sibling to `FlyBrainCodegen`. Both inherit AST-walking and builtin
+    dispatch from `CodegenBase`; the two subclasses differ only in the
+    prelude (which `_VSA` runtime gets emitted) and the eigenrotation-
+    loop lowering (substrate-specific rotation parameters). Rejects
+    `snap()` and other fly-brain-only builtins at codegen time.
     """
 
     # Frozen-LLM substrate. The numpy backend runs on frozen LLM
@@ -64,12 +67,7 @@ class NumpyCodegen(FlyBrainCodegen):
         # The codegen emits a batched Ollama pre-fetch at module init
         # to replace N sequential HTTP round-trips with one call.
         self._prefetch_strings: list[str] = []
-        super().__init__(
-            runtime_dim=runtime_dim,
-            runtime_seed=runtime_seed,
-            runtime_n_kc=0,
-            runtime_use_hemibrain=False,
-        )
+        super().__init__(runtime_dim=runtime_dim, runtime_seed=runtime_seed)
 
     # Ops not supported by the pure-numpy substrate. `snap` requires a
     # cleanup circuit (MB spiking model or equivalent); rotation-based
