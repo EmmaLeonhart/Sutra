@@ -131,7 +131,14 @@ class NumpyCodegen(FlyBrainCodegen):
     # runtime vectors are numpy arrays and arrays have no `.component()`
     # method. Purpose is introspection / debugging / teaching — see the
     # user direction 2026-04-23 when the extended state vector landed.
-    _VECTOR_ACCESSORS = frozenset({"component", "semantic", "synthetic"})
+    # The shared set also includes the named canonical-axis shortcuts:
+    # `.real()` == `.synthetic(0)`, `.imag()` == `.synthetic(1)`,
+    # `.truth()` == `.synthetic(2)`. See the canonical-axis allocation in
+    # planning/findings/2026-04-21-extended-state-and-rotation-binding.md.
+    _VECTOR_ACCESSORS = frozenset({
+        "component", "semantic", "synthetic",
+        "real", "imag", "truth",
+    })
 
     def _translate_call(self, call: ast.Call) -> str:
         callee = call.callee
@@ -603,6 +610,87 @@ class NumpyCodegen(FlyBrainCodegen):
         self._indent -= 1
         self._indent -= 1
         self._emit("return float(v[self.semantic_dim + idx])")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- Canonical synthetic-axis allocation ----")
+        self._emit("#")
+        self._emit("# First three synthetic axes have designated semantics (per")
+        self._emit("# 2026-04-23 design; see")
+        self._emit("# planning/findings/2026-04-21-extended-state-and-rotation-binding.md):")
+        self._emit("#")
+        self._emit("#   synthetic[0] = real component of a number")
+        self._emit("#   synthetic[1] = imaginary component of a number")
+        self._emit("#   synthetic[2] = truth axis (higher = more true)")
+        self._emit("#")
+        self._emit("# Pinning the allocation to named class attributes so the layout")
+        self._emit("# is legible at runtime and from the REPL.")
+        self._emit("AXIS_REAL = 0")
+        self._emit("AXIS_IMAG = 1")
+        self._emit("AXIS_TRUTH = 2")
+        self._emit()
+        self._emit("def real(self, v):")
+        self._indent += 1
+        self._emit('"""Real component of v — synthetic[AXIS_REAL]."""')
+        self._emit("return float(v[self.semantic_dim + self.AXIS_REAL])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def imag(self, v):")
+        self._indent += 1
+        self._emit('"""Imaginary component of v — synthetic[AXIS_IMAG].')
+        self._emit('')
+        self._emit("Zero for a purely real number; nonzero for complex. Sutra's")
+        self._emit("commitment is first-class complex numbers sharing the allocator")
+        self._emit("with int/float — a complex number is just a vector with both")
+        self._emit("the real and imaginary synthetic axes populated.")
+        self._emit('"""')
+        self._emit("return float(v[self.semantic_dim + self.AXIS_IMAG])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def truth(self, v):")
+        self._indent += 1
+        self._emit('"""Truth value carried by v — synthetic[AXIS_TRUTH].')
+        self._emit('')
+        self._emit("Higher scalar → more true; lower (including negative) → more")
+        self._emit("false. Orthogonal to semantic content and to the real/imag")
+        self._emit("axes by construction, so a number's value does not bleed into")
+        self._emit("its truth and vice versa.")
+        self._emit('"""')
+        self._emit("return float(v[self.semantic_dim + self.AXIS_TRUTH])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_real(self, x):")
+        self._indent += 1
+        self._emit('"""Extended-state vector carrying x at synthetic[AXIS_REAL].')
+        self._emit('')
+        self._emit("The rest of the vector is zero — no semantic content, no")
+        self._emit("imaginary component, no truth. Analog of a bare float or int")
+        self._emit("literal in the Sutra runtime.")
+        self._emit('"""')
+        self._emit("v = _np.zeros(self.dim, dtype=_np.float64)")
+        self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(x)")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_complex(self, re, im):")
+        self._indent += 1
+        self._emit('"""Extended-state vector carrying (re, im) on the real/imag axes.')
+        self._emit('')
+        self._emit("A complex number is a vector with synthetic[0] = Re(z) and")
+        self._emit("synthetic[1] = Im(z). No separate wrapper type, no parallel")
+        self._emit("storage — the extended state vector carries the whole number.")
+        self._emit('"""')
+        self._emit("v = _np.zeros(self.dim, dtype=_np.float64)")
+        self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(re)")
+        self._emit("v[self.semantic_dim + self.AXIS_IMAG] = float(im)")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_truth(self, t):")
+        self._indent += 1
+        self._emit('"""Extended-state vector carrying truth value t at synthetic[AXIS_TRUTH]."""')
+        self._emit("v = _np.zeros(self.dim, dtype=_np.float64)")
+        self._emit("v[self.semantic_dim + self.AXIS_TRUTH] = float(t)")
+        self._emit("return v")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
