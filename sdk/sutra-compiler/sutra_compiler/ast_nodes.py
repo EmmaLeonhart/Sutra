@@ -61,6 +61,28 @@ class FloatLiteral(Expr):
 
 
 @dataclass
+class ImaginaryLiteral(Expr):
+    # `5i`, `3.14i` — a number literal with an `i` suffix. Represents
+    # a pure-imaginary value; runtime allocation places the scalar on
+    # synthetic[AXIS_IMAG] with zero on the real axis. The `i` suffix
+    # only binds when the following character is not an identifier
+    # continuation, so the bare variable name `i` remains available
+    # (`5 * i` stays a multiplication; `5i` is one token).
+    value: float
+
+
+@dataclass
+class ComplexLiteral(Expr):
+    # Folded form produced by the simplifier when it sees `Number ± Nij`
+    # (an int/float plus or minus an imaginary literal). Codegen lowers
+    # this to a single `_VSA.make_complex(re, im)` call so the emitted
+    # source is one allocation instead of a vector-add. No user-facing
+    # syntax produces this directly — always a fold.
+    re: float
+    im: float
+
+
+@dataclass
 class StringLiteral(Expr):
     value: str
 

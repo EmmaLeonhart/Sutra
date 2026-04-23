@@ -1,0 +1,51 @@
+// Sutra corpus test: `5i`-style imaginary literals + complex fold.
+//
+// A numeric literal with a trailing `i` is an imaginary-unit
+// literal. `5i` = 5·i, `3.14i` = 3.14·i. The `i` suffix only binds
+// when the following character is NOT an identifier continuation,
+// so:
+//   5i        → ImaginaryLiteral(5)         (lexed as one token)
+//   5index    → IntLiteral(5) + IDENT index (i is the identifier's 1st char)
+//   5 * i     → IntLiteral(5) * IDENT i      (space breaks the suffix)
+//   i         → IDENT i                      (bare identifier, variable name)
+//
+// The compile-time folding pass combines `number ± imag` into a
+// single ComplexLiteral so `5 + 5i` lowers to one `make_complex`
+// allocation instead of a runtime vector-add of two partial
+// literals. Covers both orderings (`5 + 5i` and `5i + 5`) and the
+// subtraction variants.
+//
+// `i` as a variable name remains a legitimate identifier. The
+// user's constraint: "You wouldn't say five times I because I is
+// a frequently used variable name."
+
+function vector PureImag() {
+    return 5i;
+}
+
+function vector BothParts() {
+    return 5 + 5i;
+}
+
+function vector Subtract() {
+    return 5 - 5i;
+}
+
+function vector NegatedImag() {
+    return -5i;
+}
+
+function vector FloatImag() {
+    return 3.14i;
+}
+
+function vector ImagThenReal() {
+    return 5i + 3;
+}
+
+// `i` as a local variable — the suffix rule does NOT consume `i`
+// when it stands alone, so the identifier binds normally.
+function vector IAsVariable() {
+    vector i = basis_vector("index");
+    return i;
+}

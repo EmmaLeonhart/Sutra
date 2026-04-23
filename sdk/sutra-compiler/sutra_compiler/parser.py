@@ -90,6 +90,7 @@ from .lexer import Token, TokenKind
 _EXPR_START_TOKENS = {
     TokenKind.INT_LIT,
     TokenKind.FLOAT_LIT,
+    TokenKind.IMAG_LIT,
     TokenKind.CHAR_LIT,
     TokenKind.STRING_LIT,
     TokenKind.STRING_INTERP_START,
@@ -1208,6 +1209,12 @@ class Parser:
         if tok.kind is TokenKind.FLOAT_LIT:
             self._advance()
             return ast.FloatLiteral(value=float(tok.value) if tok.value is not None else 0.0, span=tok.span)
+        if tok.kind is TokenKind.IMAG_LIT:
+            self._advance()
+            return ast.ImaginaryLiteral(
+                value=float(tok.value) if tok.value is not None else 0.0,
+                span=tok.span,
+            )
         if tok.kind is TokenKind.STRING_LIT:
             self._advance()
             return ast.StringLiteral(value=str(tok.value) if tok.value is not None else "", span=tok.span)
