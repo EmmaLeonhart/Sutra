@@ -21,20 +21,20 @@ pick up next.
 
 ## Queued work
 
-1. **Rotation-hashmap capacity experiment.** The rotation-hashmap
-   library-pattern prototype landed 2026-04-22 (5/5 exact-lookup on
-   nomic — `examples/_rotation_hashmap_test.py`). The open follow-up
-   is the capacity curve: how many distinct keys can a rotation-
-   hashmap store at d = 868 (post-extended-state) before retrieval
-   accuracy breaks down? Design doc with five concrete experiments:
-   `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`.
-   Produces a findings doc with the capacity curve as the artifact.
-
-   User direction 2026-04-23: this is the sole pre-Anthropic-grant-
-   app item. Concurrency and learned-matrix binding both moved to
-   pre-YC (see todo.md).
+(empty — the pre-Anthropic-grant-app queue is clear. Next-up work
+comes from `todo.md` when promoted.)
 
 Recently closed:
+- **Rotation-hashmap capacity at d=868** (2026-04-23). Measured
+  through the `hashmap_new/set/get` API on the extended-state runtime.
+  Findings:
+  `planning/findings/2026-04-23-rotation-hashmap-capacity-extended-state.md`.
+  Capacity curve matches the d=768 raw-bind/bundle study within
+  sampling noise (100% up to k=24, 90% threshold at k=48, 50% at
+  k=128, 200-filler codebook). The synthetic block is algebraically
+  inert under bind/bundle when held at zero (the runtime reality), so
+  the extended state does not shift the capacity story — which is the
+  honest expected result given the block-diagonal rotation design.
 - **PyTorch/GPU backend** (47ff23b, 2026-04-23). New
   `codegen_pytorch.py` emits self-contained torch modules picking
   CUDA at module init. Demos run end-to-end on GPU with identical
