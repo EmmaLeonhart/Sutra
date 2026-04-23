@@ -614,6 +614,50 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return -self._as_truth_vector(x)")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Equality — cosine similarity on tensors ----")
+        self._emit()
+        self._emit("def eq(self, a, b):")
+        self._indent += 1
+        self._emit('"""a == b = truth-axis vector with cos(a, b) on tensor backend."""')
+        self._emit("av = self._as_any_vector(a)")
+        self._emit("bv = self._as_any_vector(b)")
+        self._emit("na = _torch.sqrt((av * av).sum())")
+        self._emit("nb = _torch.sqrt((bv * bv).sum())")
+        self._emit("if float(na.item()) == 0 or float(nb.item()) == 0:")
+        self._indent += 1
+        self._emit("return self.make_truth(0.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(float(((av * bv).sum() / (na * nb)).item()))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def neq(self, a, b):")
+        self._indent += 1
+        self._emit('"""a != b = truth-axis-inverted cosine similarity."""')
+        self._emit("return self.logical_not(self.eq(a, b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _as_any_vector(self, x):")
+        self._indent += 1
+        self._emit('"""Coerce any runtime value to a d-dim tensor for comparison."""')
+        self._emit("if isinstance(x, _torch.Tensor):")
+        self._indent += 1
+        self._emit("return x")
+        self._indent -= 1
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if x else -1.0)")
+        self._indent -= 1
+        self._emit("if isinstance(x, (int, float)):")
+        self._indent += 1
+        self._emit("return self.make_real(float(x))")
+        self._indent -= 1
+        self._emit("if isinstance(x, str):")
+        self._indent += 1
+        self._emit("return self.embed(x)")
+        self._indent -= 1
+        self._emit("raise TypeError(f'cannot coerce {type(x).__name__} to a tensor for comparison')")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
         self._emit('"""Block-diagonal Haar rotation, scaled by fractional power.')
