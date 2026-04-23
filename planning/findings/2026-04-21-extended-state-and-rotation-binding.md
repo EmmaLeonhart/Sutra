@@ -125,19 +125,38 @@ through VSA):
 - Time or sequence-position axis.
 - Probability / confidence axis separate from truth.
 
-**Allocation intuition (user, 2026-04-23):** *"we're probably going
-to be able to have all n of the [dimensions] as a constant step. If
-I was just going to allocate these things, we probably have it, so
-it's like the first dimension there is the integer dimension, and
-then we'd have the ones for the rotations and various other things."*
-Concrete reading: synthetic axis 0 is the integer axis, subsequent
-axes are reserved in order for rotation planes and other canonical
-uses, and the allocation is a fixed constant layout known at compile
-time — not learned, not per-program variable. Pins down the earlier
-"designated, not learned" commitment with specific ordering. Not yet
-committed in the implementation — the first pass only reserves the
-100 synthetic dimensions without allocating which axis does what
-(that's follow-on).
+**Allocation intuition (user, 2026-04-23, refined later same day):**
+an initial concrete allocation for the first three synthetic axes:
+
+- **`synthetic[0]` — real component of a number.** For integer or
+  float types, this carries the scalar value. Zero-indexed and
+  literal — `synthetic(0) == 0.0` means the number is zero,
+  `synthetic(0) == 1.0` means one, `-1.0` means minus one, etc.
+  Subsumes the earlier "integer axis" sketch into the more general
+  "real part of any numeric type."
+- **`synthetic[1]` — imaginary component.** For a complex-valued
+  number, this is the Im(z) component; for purely real numbers it
+  stays at zero. Makes complex numbers a *first-class* scalar type
+  without a separate allocator — `integer`, `float`, `complex` all
+  live on the same two axes, differing only in which components the
+  type system allows to be nonzero. See project memory
+  `project_sutra_complex_numbers_first_class.md`.
+- **`synthetic[2]` — truth axis.** Higher value → more true, lower →
+  more false. Matches the truth-axis commitment already elsewhere in
+  this doc; the allocation pins it to index 2.
+
+Subsequent synthetic axes are reserved for rotation planes and other
+canonical uses not yet allocated. The allocation is a fixed constant
+layout known at compile time — not learned, not per-program variable.
+Pins down the earlier "designated, not learned" commitment with
+specific ordering.
+
+**Not yet committed in the implementation** — the 2026-04-23
+extended-state-vector pass only reserves the 100 synthetic dimensions
+without allocating which axis does what. The canonical-axis
+allocation itself is a follow-on design item (tracked in todo.md),
+explicitly held back from the current implementation pass because
+the allocator has not been designed.
 
 The commitment is that canonical axes are **designated, not learned**.
 The compiler and spec know their layout; two runs of the same program

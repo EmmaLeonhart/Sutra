@@ -256,6 +256,78 @@ class TestVectorAccessors(unittest.TestCase):
         self.assertIn("v[self.semantic_dim + idx]", py)
 
 
+class TestCanonicalAxes(unittest.TestCase):
+    """First three synthetic axes carry designated semantics:
+    synthetic[0] = real, synthetic[1] = imag, synthetic[2] = truth.
+    Accessor methods `.real()` / `.imag()` / `.truth()` and constructors
+    `real_number(x)` / `complex_number(re, im)` / `truth_value(t)` lower
+    to the appropriate runtime methods. Per the 2026-04-23 design.
+    """
+
+    def test_real_method_lowers_to_vsa_call(self):
+        src = (
+            "vector x = basis_vector(\"x\");\n"
+            "function fuzzy main() { return x.real(); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.real(x)", py)
+
+    def test_imag_method_lowers_to_vsa_call(self):
+        src = (
+            "vector x = basis_vector(\"x\");\n"
+            "function fuzzy main() { return x.imag(); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.imag(x)", py)
+
+    def test_truth_method_lowers_to_vsa_call(self):
+        src = (
+            "vector x = basis_vector(\"x\");\n"
+            "function fuzzy main() { return x.truth(); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.truth(x)", py)
+
+    def test_real_number_constructor_lowers(self):
+        src = (
+            "function vector main() { return real_number(3.5); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.make_real(3.5)", py)
+
+    def test_complex_number_constructor_lowers(self):
+        src = (
+            "function vector main() { return complex_number(3.0, 2.0); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.make_complex(3.0, 2.0)", py)
+
+    def test_truth_value_constructor_lowers(self):
+        src = (
+            "function vector main() { return truth_value(0.9); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.make_truth(0.9)", py)
+
+    def test_runtime_defines_canonical_axis_constants(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        # The allocation is named at class scope so the layout is legible.
+        self.assertIn("AXIS_REAL = 0", py)
+        self.assertIn("AXIS_IMAG = 1", py)
+        self.assertIn("AXIS_TRUTH = 2", py)
+
+    def test_runtime_defines_canonical_methods(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        self.assertIn("def real(self, v):", py)
+        self.assertIn("def imag(self, v):", py)
+        self.assertIn("def truth(self, v):", py)
+        self.assertIn("def make_real(self, x):", py)
+        self.assertIn("def make_complex(self, re, im):", py)
+        self.assertIn("def make_truth(self, t):", py)
+
+
 class TestExtendedStateVector(unittest.TestCase):
     """Runtime vectors are `[semantic (semantic_dim) | synthetic (synthetic_dim)]`.
     The synthetic block is reserved computational space that starts at zero
