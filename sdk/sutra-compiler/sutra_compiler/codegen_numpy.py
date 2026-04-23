@@ -122,12 +122,11 @@ class NumpyCodegen(FlyBrainCodegen):
         """Lower the folded `N + Mi` form to `_VSA.make_complex(N, M)`."""
         return f"_VSA.make_complex({float(expr.re)!r}, {float(expr.im)!r})"
 
-    # Three-valued fuzzy (Łukasiewicz Ł₃). `trit` is the canonical
-    # name; `luk` is an alias that honors Łukasiewicz directly. Both
-    # resolve to the same storage and the same literal-coercion
-    # behavior as `fuzzy`; the distinguishing runtime op is
+    # Three-valued primitive class — same truth-axis storage as
+    # `fuzzy`, but defuzzification polarizes toward {-1, 0, +1}
+    # instead of just {-1, +1}. The distinguishing runtime op is
     # defuzzify_trit, not the storage layout.
-    _TRIT_TYPE_NAMES = frozenset({"trit", "luk"})
+    _TRIT_TYPE_NAMES = frozenset({"trit"})
 
     def _fuzzy_literal_init_src(self, decl: ast.VarDecl) -> str | None:
         """Compile-time fold of `fuzzy x = <literal>` to make_truth(value).
@@ -144,10 +143,9 @@ class NumpyCodegen(FlyBrainCodegen):
         — non-literal RHS expressions (e.g. `fuzzy x = compute()`) fall
         through to normal codegen.
 
-        `trit x = 0.7` and `luk x = 0.7` use the same fold but emit
-        `make_trit` — same storage, different compile-time tag. The
-        three-valued distinguishing behavior lives in defuzzify_trit,
-        not here.
+        `trit x = 0.7` uses the same fold but emits `make_trit` —
+        same storage, different compile-time tag. The three-valued
+        distinguishing behavior lives in defuzzify_trit, not here.
         """
         if decl.initializer is None:
             return None
@@ -875,7 +873,7 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit()
         self._emit("def make_trit(self, t):")
         self._indent += 1
-        self._emit('"""Three-valued fuzzy (Łukasiewicz Ł₃) allocated on the truth axis.')
+        self._emit('"""Three-valued primitive class allocated on the truth axis.')
         self._emit('')
         self._emit("Shares storage with `make_truth` — a trit is a truth-axis")
         self._emit("scalar, same as a fuzzy. The difference is compile-time: trit")
