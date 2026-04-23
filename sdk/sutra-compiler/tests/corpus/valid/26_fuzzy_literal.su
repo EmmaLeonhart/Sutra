@@ -1,0 +1,35 @@
+// Sutra corpus test: implicit fuzzy typing for numeric literals.
+//
+// Per 2026-04-23: `fuzzy f = 0.7;` is conceptually
+// `fuzzy f = true * 0.7;` — a truth-axis vector scaled by 0.7. The
+// compile-time fold turns it into a single `_VSA.make_truth(0.7)`
+// allocation. `true` is +1 on the truth axis, `false` is -1, `0` is
+// unknown.
+//
+// No new literal syntax: a float/int/bool literal in a fuzzy-typed
+// slot gets the implicit lowering.
+
+function fuzzy Seven() {
+    fuzzy f = 0.7;
+    return f;
+}
+
+function fuzzy NegThree() {
+    fuzzy f = -0.3;
+    return f;
+}
+
+function fuzzy BoolTrue() {
+    fuzzy f = true;
+    return f;
+}
+
+function fuzzy BoolFalse() {
+    fuzzy f = false;
+    return f;
+}
+
+function fuzzy Unknown() {
+    fuzzy f = 0;
+    return f;
+}
