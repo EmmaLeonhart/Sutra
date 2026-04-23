@@ -199,6 +199,13 @@ PRIMITIVE_TYPE_NAMES = {
     # that honors the name directly.
     "trit",
     "luk",
+    # Complex numbers — real+imaginary pair on synthetic[AXIS_REAL]
+    # and synthetic[AXIS_IMAG]. Every numeric value is implicitly
+    # on the complex plane; the `complex` type tag is compile-time
+    # metadata for type-hygiene purposes. `5i` / `5 + 5i` literals
+    # already emit make_complex calls; the type lets the programmer
+    # declare the intent at the slot level.
+    "complex",
 }
 
 # Contextual keywords: identifiers with special meaning in expressions
