@@ -154,6 +154,47 @@ The programmer's job — what `class` declarations are *for* in this language �
 
 The steps go from *discover* to *organize* to *refine*. The programmer is curating a pre-existing map, not drawing one on a blank page.
 
+### Worked example: countries and their capitals
+
+Consider the `Country` concept. Countries exist in the embedding space — "France," "Japan," "Brazil," "Norway" all cluster together geometrically, because the model saw enough similar contexts to place them near each other. A programmer didn't put them there; the model did, during training.
+
+Capitals also exist as a cluster — "Paris," "Tokyo," "Brasília," "Oslo" occupy their own region.
+
+The more interesting claim is that the *relation* between them exists in the space too. Take the displacement vectors:
+
+```
+Paris    − France    ≈ some vector v_capital
+Tokyo    − Japan     ≈ the same vector v_capital
+Brasília − Brazil    ≈ the same vector v_capital
+Oslo     − Norway    ≈ the same vector v_capital
+```
+
+This is the famous "king − man + woman ≈ queen" pattern, applied to the (country, capital) pair. The vector `v_capital` is *the `capital_of` relation*, sitting in the embedding space as a geometric object that you can discover empirically by averaging many such displacements from known pairs.
+
+Now the Sutra programmer's job becomes concrete:
+
+1. **Discover** the relation. Average the `capital − country` displacements from a small seed set of known pairs. Check that the resulting vector `v_capital`, applied to a fresh country, actually lands near that country's real capital.
+2. **Name** it. Bind `v_capital` to the identifier `capital_of` in the program.
+3. **Organize** it into the `Country` class as a method:
+
+   ```c
+   class Country inherits vector {
+       function Capital get_capital() {
+           return this + capital_of;
+       }
+   }
+   ```
+
+4. **Refine / override** if the model is wrong. The model might place "Wellington" closer to "New Zealand" than the displacement predicts, or confuse "Canberra" for "Sydney." The programmer can supply explicit overrides for known edge cases, or fit a learned-matrix version of `capital_of` on a larger training set to improve accuracy.
+
+What happened in this example:
+
+- The `Country` class didn't create the category "Country" — that was already a coherent region of the embedding space.
+- The `capital_of` function wasn't written with an if-else dispatch over every known country — it's a *single vector*, discovered by averaging, that does the job for any country the model has embedded.
+- The `get_capital()` method is three characters long (`+`) because the hard work was already done by the embedding model during training. The programmer's code is a thin layer that *names and composes* what was already there.
+
+That's the inversion. OOP would have you build `capital_of` as a hashmap of country names to capital names. Sutra has you discover a geometric transformation that encodes the same information more compactly, generalizes to unseen countries, and composes with other relations (you could then ask "what is the capital of the country that speaks Portuguese" by composing `speaks_of⁻¹` with `capital_of`).
+
 ### Why this matters practically
 
 Three consequences of this inversion that keep coming up:
