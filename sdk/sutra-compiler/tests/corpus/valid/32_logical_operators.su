@@ -1,20 +1,25 @@
 // Sutra corpus test: logical operators on truth-axis values.
 //
-// `&&`, `||`, `!` operate on the truth axis. Zadeh fuzzy logic:
+// `&&`, `||`, `!` operate on the truth axis. Smooth polynomial
+// forms of min / max / negate — Lagrange-derived to match the
+// three-valued truth table exactly on {-1, 0, +1}² while staying
+// C^∞ everywhere off the grid:
 //
-//   !x   = x * -1  (multiplication by -1 on the truth axis)
-//   a && b = min(a_truth, b_truth)
-//   a || b = max(a_truth, b_truth)
+//   !x     = -x
+//   a && b = (a + b + ab - a² - b² + a²b²) / 2        (smooth min)
+//   a || b = (a + b - ab + a² + b² - a²b²) / 2        (smooth max)
 //
-// For pure-bool inputs the runtime preserves Python bool semantics
-// (so `true && false` returns Python False, not a vector). For any
-// truth-axis input (fuzzy, trit, or a vector carrying a truth
-// coordinate), the result is a truth-axis vector with the folded
-// min / max / negation.
+// All pure element-wise vector arithmetic — no absolute value, no
+// kinks, no subgradient dispatch. Compile-time simplification
+// passes can apply polynomial rewrites uniformly.
+//
+// `true` / `false` / `unknown` are truth-axis vectors (make_truth
+// of +1, -1, 0). Three-valued result table is exact on the grid;
+// continuous fuzzy values get a polynomial interpolation between
+// those grid points.
 //
 // Unlike C# / JavaScript / TypeScript `&&` and `||`, these do NOT
-// short-circuit. min and max can't be decided from one side alone
-// for fuzzy values, so both sides are always evaluated.
+// short-circuit. Both sides are always evaluated.
 
 function bool BoolAnd() {
     return true && false;

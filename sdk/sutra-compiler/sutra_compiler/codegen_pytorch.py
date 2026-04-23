@@ -572,11 +572,12 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        self._emit("# ---- Logical operators — pure tensor arithmetic ----")
+        self._emit("# ---- Logical operators — smooth polynomial form ----")
         self._emit("#")
-        self._emit("# Same algebra as the numpy backend: min / max / negate")
-        self._emit("# as element-wise tensor operations, not scalar extract-")
-        self._emit("# and-reconstruct.")
+        self._emit("# Same Lagrange-derived polynomials as the numpy backend:")
+        self._emit("#   min(a, b) = (a + b + ab - a² - b² + a²b²) / 2")
+        self._emit("#   max(a, b) = (a + b - ab + a² + b² - a²b²) / 2")
+        self._emit("# Exact on {-1, 0, +1}², C^∞ everywhere, CUDA via torch ops.")
         self._emit()
         self._emit("def _as_truth_vector(self, x):")
         self._indent += 1
@@ -594,18 +595,22 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit()
         self._emit("def logical_and(self, a, b):")
         self._indent += 1
-        self._emit('"""Zadeh t-norm: (a+b - |a-b|)/2 as tensor arithmetic."""')
+        self._emit('"""Smooth min polynomial on truth axis. Fully differentiable."""')
         self._emit("av = self._as_truth_vector(a)")
         self._emit("bv = self._as_truth_vector(b)")
-        self._emit("return (av + bv - _torch.abs(av - bv)) * 0.5")
+        self._emit("a2 = av * av")
+        self._emit("b2 = bv * bv")
+        self._emit("return (av + bv + av * bv - a2 - b2 + a2 * b2) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def logical_or(self, a, b):")
         self._indent += 1
-        self._emit('"""Zadeh t-conorm: (a+b + |a-b|)/2 as tensor arithmetic."""')
+        self._emit('"""Smooth max polynomial — sign-flipped odd terms of min."""')
         self._emit("av = self._as_truth_vector(a)")
         self._emit("bv = self._as_truth_vector(b)")
-        self._emit("return (av + bv + _torch.abs(av - bv)) * 0.5")
+        self._emit("a2 = av * av")
+        self._emit("b2 = bv * bv")
+        self._emit("return (av + bv - av * bv + a2 + b2 - a2 * b2) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def logical_not(self, x):")
