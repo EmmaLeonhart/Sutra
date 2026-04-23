@@ -128,17 +128,17 @@ Scope:
   override correctly when the source-level form is also present.
   Precedence order is source > file > project > compiler default.
 
-## [Pre-Anthropic-grant-app] Concurrency — only the cases that need explicit handling
+## [Pre-YC] Concurrency — only the cases that need explicit handling
 
 User direction 2026-04-22 (afternoon): concurrency is implicit by
 default in Sutra because the language's functional algebraic nature
 already gives the compiler license to evaluate independent sub-
 expressions in parallel via formula simplification. **An explicit
 syntax is only needed for the cases where the compiler can't derive
-the parallelism algebraically**. Moved from STATUS.md to this
-pre-grant-app section — the item's scope has shrunk substantially
-because most of what used to be "concurrency work" is now "things
-the compiler already does."
+the parallelism algebraically**. Moved to pre-YC 2026-04-23: the user
+confirmed that rotation-hashmap capacity is the only pre-Anthropic-
+grant-app item still active, and concurrency + learned-matrix both
+move to the post-Anthropic bucket.
 
 The shapes that still need explicit handling:
 
@@ -173,10 +173,13 @@ Source-of-truth for the design: `planning/sutra-spec/concurrency.md`
 `planning/open-questions/concurrency-and-monads.md` (monad framing
 was considered and demoted).
 
-## [Pre-Anthropic-grant-app] Learned-matrix binding
+## [Pre-YC] Learned-matrix binding
 
-Deferred from the 2026-04-22 rotation-binding pass (user priority —
-grant app first). When picked up:
+Deferred from the 2026-04-22 rotation-binding pass; moved to pre-YC
+on 2026-04-23 when the user confirmed the pre-Anthropic bucket is
+just rotation-hashmap capacity. The feature is genuinely useful (see
+`feedback_learned_matrix_is_not_next.md`) — it's simply not the next
+active item. When picked up:
 
 - [ ] Add a matrix-fitting step at compile time. A `role X =
   learned_from(data)` declaration reads `(input, output)` embedding

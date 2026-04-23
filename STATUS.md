@@ -21,16 +21,25 @@ pick up next.
 
 ## Queued work
 
-No active queue items — see `todo.md` for the pre-Anthropic-grant-app
-bucket. Next pick candidates live in the Deferred section below and
-in `todo.md`.
+1. **Rotation-hashmap capacity experiment.** The rotation-hashmap
+   library-pattern prototype landed 2026-04-22 (5/5 exact-lookup on
+   nomic — `examples/_rotation_hashmap_test.py`). The open follow-up
+   is the capacity curve: how many distinct keys can a rotation-
+   hashmap store at d = 868 (post-extended-state) before retrieval
+   accuracy breaks down? Design doc with five concrete experiments:
+   `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`.
+   Produces a findings doc with the capacity curve as the artifact.
+
+   User direction 2026-04-23: this is the sole pre-Anthropic-grant-
+   app item. Concurrency and learned-matrix binding both moved to
+   pre-YC (see todo.md).
 
 Recently closed:
-- **PyTorch/GPU backend** (2026-04-23). New `codegen_pytorch.py`
-  emits self-contained torch modules picking CUDA at module init.
-  Demos run end-to-end on GPU with identical algebra and extended-
-  state layout. Generalized ANF + dep analysis for fusion across
-  non-bundle/bind patterns is NOT done — only the
+- **PyTorch/GPU backend** (47ff23b, 2026-04-23). New
+  `codegen_pytorch.py` emits self-contained torch modules picking
+  CUDA at module init. Demos run end-to-end on GPU with identical
+  algebra and extended-state layout. Generalized ANF + dep analysis
+  for fusion across non-bundle/bind patterns is NOT done — only the
   `bundle(bind,bind,...)` pattern is fused; mixed sequences like
   `bundle(bind(r,f), c, bind(r2,f2))` still emit sequentially.
   That widening is its own follow-on (tracked in todo.md under
