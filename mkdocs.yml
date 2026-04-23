@@ -92,6 +92,7 @@ nav:
   - What is Sutra?: what-is-sutra.md
   - Primitive classes: primitive-classes.md
   - Logical operations: logical-operations.md
+  - Numeric math: numeric-math.md
   - Vision:
     - The graph-to-vector leap: vision.md
   - Interactive:
