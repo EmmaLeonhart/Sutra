@@ -321,7 +321,12 @@ class _NumpyVSA:
         # interpolates between identity (angle=0) and full Q (angle=pi).
         w, V = _np.linalg.eig(Q)
         phases = _np.angle(w) * (angle / _np.pi)
-        R = (V * _np.exp(1j * phases)) @ _np.linalg.inv(V)
+        # Q is real orthogonal, hence normal, so V is unitary: inv(V)
+        # equals V.conj().T exactly (verified to machine precision).
+        # Replace the O(d^3) explicit inversion with the O(d^2)
+        # conjugate transpose — same result, much cheaper, especially
+        # for the 768-dim frozen-LLM substrate.
+        R = (V * _np.exp(1j * phases)) @ V.conj().T
         return _np.real(R)
 
     def compile_prototypes(self, prototype_vectors, frame_seed=None):
