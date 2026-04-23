@@ -1,0 +1,50 @@
+// Sutra corpus test: `==` and `!=` on vectors.
+//
+// Equality is vector cosine similarity projected onto the truth axis:
+//
+//   a == b  =>  truth-axis vector with truth = cos(a, b)
+//   a != b  =>  truth-axis vector with truth = -cos(a, b)
+//
+// Identical vectors → truth +1 (true); opposite vectors → -1 (false);
+// orthogonal vectors → 0 (unknown). The output is a fuzzy value, not
+// a Python bool — consistent with everything else on the truth axis.
+//
+// Pure vector math: dot product and L2 norms are element-wise
+// operations on the full substrate vector. The reduction produces
+// the scalar cosine, which gets placed on the truth axis to build
+// the fuzzy output. No hidden Python-bool path; no `ambiguous truth
+// value of array` errors.
+
+function fuzzy SameEmbedding() {
+    vector a = "cat";
+    vector b = "cat";
+    return a == b;
+}
+
+function fuzzy SimilarEmbeddings() {
+    vector a = "cat";
+    vector b = "tiger";
+    return a == b;
+}
+
+function fuzzy InequalityOpposite() {
+    vector a = "cat";
+    vector b = "cat";
+    return a != b;
+}
+
+// Combined with logical operators — equality returns a fuzzy that
+// flows through && / || like any other truth-axis value.
+function fuzzy MatchEither() {
+    vector query = "cat";
+    vector opt_a = "tiger";
+    vector opt_b = "lion";
+    return (query == opt_a) || (query == opt_b);
+}
+
+function fuzzy MatchBoth() {
+    vector a = "cat";
+    vector b = "cat";
+    vector c = "cat";
+    return (a == b) && (b == c);
+}
