@@ -83,6 +83,7 @@ class TokenKind(Enum):
     # ---- literals ----
     INT_LIT = auto()
     FLOAT_LIT = auto()
+    CHAR_LIT = auto()            # single-quoted char literal 'a'
     STRING_LIT = auto()          # plain "..." literal
     STRING_INTERP_START = auto()  # opening $" of interpolated string
     STRING_INTERP_END = auto()    # closing " of interpolated string
@@ -337,6 +338,9 @@ class Lexer:
         if ch == "$" and self._peek(1) == '"':
             self._scan_interp_string_open(start)
             return
+        if ch == "'":
+            self._scan_char(start)
+            return
 
         # Numbers ----------------------------------------------------------
         if ch.isdigit():
@@ -476,6 +480,67 @@ class Lexer:
         # Pop so we don't loop.
         if self._interp_stack:
             self._interp_stack.pop()
+
+    def _scan_char(self, start: SourcePosition) -> None:
+        """Scan a single-quoted character literal: `'a'`, `'\\n'`, `'\\''`.
+
+        Runs after the dispatcher sees a leading `'`. Recognises the
+        same escape sequences as string literals (see
+        `_interpret_escape`). Empty literal `''` and unterminated
+        literal both produce diagnostics and emit CHAR_LIT with value
+        0 so the parser keeps making progress.
+        """
+        self._advance()  # opening '
+        value = 0
+        if self._at_end() or self._peek() == "'":
+            self.diagnostics.error(
+                "empty character literal",
+                self._span(start),
+                code="SUT0003",
+                hint="a character literal must contain exactly one character",
+            )
+            if not self._at_end() and self._peek() == "'":
+                self._advance()
+            lexeme = self.source[start.offset:self._pos]
+            self._emit_tok(TokenKind.CHAR_LIT, lexeme, start, value=value)
+            return
+
+        ch = self._advance()
+        if ch == "\\":
+            if self._at_end():
+                self.diagnostics.error(
+                    "unterminated character literal",
+                    self._span(start),
+                    code="SUT0003",
+                )
+                lexeme = self.source[start.offset:self._pos]
+                self._emit_tok(TokenKind.CHAR_LIT, lexeme, start, value=value)
+                return
+            esc = self._advance()
+            decoded = self._interpret_escape(esc)
+            value = ord(decoded)
+        elif ch == "\n":
+            self.diagnostics.error(
+                "unterminated character literal (newline before closing quote)",
+                self._span(start),
+                code="SUT0003",
+            )
+            lexeme = self.source[start.offset:self._pos]
+            self._emit_tok(TokenKind.CHAR_LIT, lexeme, start, value=value)
+            return
+        else:
+            value = ord(ch)
+
+        if not self._at_end() and self._peek() == "'":
+            self._advance()
+        else:
+            self.diagnostics.error(
+                "unterminated character literal (expected closing `'`)",
+                self._span(start),
+                code="SUT0003",
+            )
+        lexeme = self.source[start.offset:self._pos]
+        self._emit_tok(TokenKind.CHAR_LIT, lexeme, start, value=value)
 
     def _interpret_escape(self, ch: str) -> str:
         mapping = {

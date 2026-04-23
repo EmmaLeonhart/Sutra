@@ -869,6 +869,21 @@ class FlyBrainCodegen:
 
     # -- expressions ------------------------------------------------------
 
+    def _char_literal_src(self, expr: ast.CharLiteral) -> str:
+        """Override point for per-backend char literal lowering.
+
+        The base fly-brain backend doesn't have a number-axis runtime
+        yet — char literals are number-axis + synthetic flag, a
+        concept tied to the extended-state-vector layout that only
+        the numpy / pytorch backends implement. Refuse here; numpy
+        and pytorch override.
+        """
+        raise CodegenNotSupported(
+            expr,
+            "character literals are not supported on the fly-brain backend "
+            "(no number-axis runtime); use the numpy or pytorch backend",
+        )
+
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
         if isinstance(expr, ast.StringLiteral):
             return repr(expr.value)
@@ -876,6 +891,8 @@ class FlyBrainCodegen:
             return repr(expr.value)
         if isinstance(expr, ast.FloatLiteral):
             return repr(expr.value)
+        if isinstance(expr, ast.CharLiteral):
+            return self._char_literal_src(expr)
         if isinstance(expr, ast.BoolLiteral):
             return "True" if expr.value else "False"
         if isinstance(expr, ast.Identifier):
