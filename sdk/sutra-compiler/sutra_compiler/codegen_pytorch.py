@@ -43,6 +43,11 @@ class PyTorchCodegen(NumpyCodegen):
     the prelude. Vector accessor methods (`.component()`, `.real()`, etc.)
     still route through `_VSA.*` calls — the runtime method names match
     the numpy backend so the translator needs no divergence.
+
+    Bool literal lowering is inherited from NumpyCodegen (true/false →
+    make_truth(±1)); logical ops (`!`, `&&`, `||`) likewise inherit the
+    numpy override and resolve against the torch runtime's make_truth /
+    _as_truth_vector.
     """
 
     def _emit_select_helper(self) -> None:
@@ -566,59 +571,46 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        self._emit("# ---- Logical operators — torch version ----")
+        self._emit("# ---- Logical operators — pure tensor arithmetic ----")
+        self._emit("#")
+        self._emit("# Same algebra as the numpy backend: min / max / negate")
+        self._emit("# as element-wise tensor operations, not scalar extract-")
+        self._emit("# and-reconstruct.")
         self._emit()
-        self._emit("def _truth_scalar(self, x):")
+        self._emit("def _as_truth_vector(self, x):")
         self._indent += 1
-        self._emit('"""Normalize any truth-axis input to a Python scalar."""')
-        self._emit("if isinstance(x, bool):")
-        self._indent += 1
-        self._emit("return 1.0 if x else -1.0")
-        self._indent -= 1
+        self._emit('"""Return x as a tensor. Scalar / bool → make_truth."""')
         self._emit("if isinstance(x, _torch.Tensor):")
         self._indent += 1
-        self._emit("return float(x[self.semantic_dim + self.AXIS_TRUTH].item())")
+        self._emit("return x")
         self._indent -= 1
-        self._emit("return float(x)")
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if x else -1.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(float(x))")
         self._indent -= 1
         self._emit()
         self._emit("def logical_and(self, a, b):")
         self._indent += 1
-        self._emit('"""Zadeh t-norm — min on truth axis. Bool-preserving."""')
-        self._emit("if isinstance(a, bool) and isinstance(b, bool):")
-        self._indent += 1
-        self._emit("return a and b")
-        self._indent -= 1
-        self._emit("return self.make_truth(min(self._truth_scalar(a), "
-                   "self._truth_scalar(b)))")
+        self._emit('"""Zadeh t-norm: (a+b - |a-b|)/2 as tensor arithmetic."""')
+        self._emit("av = self._as_truth_vector(a)")
+        self._emit("bv = self._as_truth_vector(b)")
+        self._emit("return (av + bv - _torch.abs(av - bv)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def logical_or(self, a, b):")
         self._indent += 1
-        self._emit('"""Zadeh t-conorm — max on truth axis. Bool-preserving."""')
-        self._emit("if isinstance(a, bool) and isinstance(b, bool):")
-        self._indent += 1
-        self._emit("return a or b")
-        self._indent -= 1
-        self._emit("return self.make_truth(max(self._truth_scalar(a), "
-                   "self._truth_scalar(b)))")
+        self._emit('"""Zadeh t-conorm: (a+b + |a-b|)/2 as tensor arithmetic."""')
+        self._emit("av = self._as_truth_vector(a)")
+        self._emit("bv = self._as_truth_vector(b)")
+        self._emit("return (av + bv + _torch.abs(av - bv)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def logical_not(self, x):")
         self._indent += 1
-        self._emit('"""Truth-axis negation — multiply by -1. Bool-preserving."""')
-        self._emit("if isinstance(x, bool):")
-        self._indent += 1
-        self._emit("return not x")
-        self._indent -= 1
-        self._emit("if isinstance(x, _torch.Tensor):")
-        self._indent += 1
-        self._emit("out = x.clone()")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = "
-                   "-out[self.semantic_dim + self.AXIS_TRUTH]")
-        self._emit("return out")
-        self._indent -= 1
-        self._emit("return self.make_truth(-self._truth_scalar(x))")
+        self._emit('"""Negation as pure tensor scalar multiplication: -x."""')
+        self._emit("return -self._as_truth_vector(x)")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
