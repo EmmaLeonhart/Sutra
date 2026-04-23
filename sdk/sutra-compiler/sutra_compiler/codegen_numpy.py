@@ -124,6 +124,15 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit(f"target_name=\"target\", threshold={threshold}, max_iters=500)")
         self._indent -= 1
 
+    # Vector-level accessor methods that the user can call as
+    # `v.component(i)`, `v.semantic(i)`, `v.synthetic(i)` on any vector.
+    # Parsed generically as a Call(MemberAccess(...), ...) by the parser;
+    # intercepted here and lowered to `_VSA.component(v, i)` etc. because
+    # runtime vectors are numpy arrays and arrays have no `.component()`
+    # method. Purpose is introspection / debugging / teaching — see the
+    # user direction 2026-04-23 when the extended state vector landed.
+    _VECTOR_ACCESSORS = frozenset({"component", "semantic", "synthetic"})
+
     def _translate_call(self, call: ast.Call) -> str:
         callee = call.callee
         if isinstance(callee, ast.Identifier):
@@ -133,6 +142,12 @@ class NumpyCodegen(FlyBrainCodegen):
                     f"`{callee.name}` is not supported on the pure-numpy "
                     f"substrate; use the fly-brain backend if you need it",
                 )
+        if (isinstance(callee, ast.MemberAccess)
+                and callee.member in self._VECTOR_ACCESSORS):
+            obj_src = self._translate_expr(callee.obj)
+            arg_srcs = [self._translate_expr(a) for a in call.args]
+            joined = ", ".join([obj_src, *arg_srcs])
+            return f"_VSA.{callee.member}({joined})"
         return super()._translate_call(call)
 
     def _emit_prelude(self) -> None:
@@ -536,6 +551,58 @@ class NumpyCodegen(FlyBrainCodegen):
         self._emit("return 0.0")
         self._indent -= 1
         self._emit("return float(_np.dot(a, b) / (na * nb))")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- Vector component accessors (debugging / teaching) ----")
+        self._emit("#")
+        self._emit("# Lowered from the surface-level method calls `v.component(i)`,")
+        self._emit("# `v.semantic(i)`, `v.synthetic(i)`. Zero-indexed. Return a Python")
+        self._emit("# float so the value can be printed, compared, or fed back into")
+        self._emit("# Sutra as a scalar. Not part of the substrate's algebra — these")
+        self._emit("# only exist to make the [semantic | synthetic] layout legible.")
+        self._emit()
+        self._emit("def component(self, v, i):")
+        self._indent += 1
+        self._emit('"""Return element i of v over the full extended state vector."""')
+        self._emit("return float(v[int(i)])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def semantic(self, v, i):")
+        self._indent += 1
+        self._emit('"""Return element i of v within the semantic block (0..semantic_dim).')
+        self._emit('')
+        self._emit("Equivalent to `v.component(i)` while i < semantic_dim, but named")
+        self._emit("so the reader can see which subspace is being addressed.")
+        self._emit('"""')
+        self._emit("idx = int(i)")
+        self._emit("if idx < 0 or idx >= self.semantic_dim:")
+        self._indent += 1
+        self._emit("raise IndexError(")
+        self._indent += 1
+        self._emit('f"semantic index {idx} out of range [0, {self.semantic_dim})")')
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return float(v[idx])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def synthetic(self, v, i):")
+        self._indent += 1
+        self._emit('"""Return element i of v within the synthetic block (0..synthetic_dim).')
+        self._emit('')
+        self._emit("Equivalent to `v.component(semantic_dim + i)` — the synthetic block")
+        self._emit("starts right after the semantic block in the extended state vector.")
+        self._emit("Iterating `i` from 0 to synthetic_dim-1 walks the reserved")
+        self._emit("computational-state slots.")
+        self._emit('"""')
+        self._emit("idx = int(i)")
+        self._emit("if idx < 0 or idx >= self.synthetic_dim:")
+        self._indent += 1
+        self._emit("raise IndexError(")
+        self._indent += 1
+        self._emit('f"synthetic index {idx} out of range [0, {self.synthetic_dim})")')
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return float(v[self.semantic_dim + idx])")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")

@@ -212,6 +212,50 @@ class TestEmbeddingDiskCache(unittest.TestCase):
         self.assertIn("self._codebook = {}", py)
 
 
+class TestVectorAccessors(unittest.TestCase):
+    """Surface-level `v.component(i)`, `v.semantic(i)`, `v.synthetic(i)`
+    lower to `_VSA.component(v, i)` etc. The runtime methods return a
+    Python float so the value can print or feed back into the program.
+    Purpose is introspection / debugging / teaching — not algebra.
+    """
+
+    def test_component_method_lowers_to_vsa_call(self):
+        src = (
+            "vector x = basis_vector(\"x\");\n"
+            "function fuzzy main() { return x.component(3); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.component(x, 3)", py)
+        # The naive pass-through `x.component(3)` must NOT appear in
+        # emitted user code — numpy arrays have no such method.
+        self.assertNotIn("x.component(3)", _strip_runtime(py))
+
+    def test_semantic_method_lowers(self):
+        src = (
+            "vector x = basis_vector(\"x\");\n"
+            "function fuzzy main() { return x.semantic(0); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.semantic(x, 0)", py)
+
+    def test_synthetic_method_lowers(self):
+        src = (
+            "vector x = basis_vector(\"x\");\n"
+            "function fuzzy main() { return x.synthetic(0); }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.synthetic(x, 0)", py)
+
+    def test_runtime_defines_accessors(self):
+        src = "function vector main() { return basis_vector(\"x\"); }\n"
+        py = _compile(src)
+        self.assertIn("def component(self, v, i):", py)
+        self.assertIn("def semantic(self, v, i):", py)
+        self.assertIn("def synthetic(self, v, i):", py)
+        # Synthetic indexing offsets past the semantic block.
+        self.assertIn("v[self.semantic_dim + idx]", py)
+
+
 class TestExtendedStateVector(unittest.TestCase):
     """Runtime vectors are `[semantic (semantic_dim) | synthetic (synthetic_dim)]`.
     The synthetic block is reserved computational space that starts at zero
