@@ -566,6 +566,61 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Logical operators — torch version ----")
+        self._emit()
+        self._emit("def _truth_scalar(self, x):")
+        self._indent += 1
+        self._emit('"""Normalize any truth-axis input to a Python scalar."""')
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return 1.0 if x else -1.0")
+        self._indent -= 1
+        self._emit("if isinstance(x, _torch.Tensor):")
+        self._indent += 1
+        self._emit("return float(x[self.semantic_dim + self.AXIS_TRUTH].item())")
+        self._indent -= 1
+        self._emit("return float(x)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def logical_and(self, a, b):")
+        self._indent += 1
+        self._emit('"""Zadeh t-norm — min on truth axis. Bool-preserving."""')
+        self._emit("if isinstance(a, bool) and isinstance(b, bool):")
+        self._indent += 1
+        self._emit("return a and b")
+        self._indent -= 1
+        self._emit("return self.make_truth(min(self._truth_scalar(a), "
+                   "self._truth_scalar(b)))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def logical_or(self, a, b):")
+        self._indent += 1
+        self._emit('"""Zadeh t-conorm — max on truth axis. Bool-preserving."""')
+        self._emit("if isinstance(a, bool) and isinstance(b, bool):")
+        self._indent += 1
+        self._emit("return a or b")
+        self._indent -= 1
+        self._emit("return self.make_truth(max(self._truth_scalar(a), "
+                   "self._truth_scalar(b)))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def logical_not(self, x):")
+        self._indent += 1
+        self._emit('"""Truth-axis negation — multiply by -1. Bool-preserving."""')
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return not x")
+        self._indent -= 1
+        self._emit("if isinstance(x, _torch.Tensor):")
+        self._indent += 1
+        self._emit("out = x.clone()")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = "
+                   "-out[self.semantic_dim + self.AXIS_TRUTH]")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit("return self.make_truth(-self._truth_scalar(x))")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
         self._emit('"""Block-diagonal Haar rotation, scaled by fractional power.')
