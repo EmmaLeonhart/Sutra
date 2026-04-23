@@ -154,6 +154,13 @@ class NumpyCodegen(FlyBrainCodegen):
         if decl.type_ref is None:
             return None
         type_name = decl.type_ref.name
+        # Complex-typed slot with a literal initializer: lift the
+        # real/imag scalar into a single make_complex call. Per user
+        # direction ("every number is on the complex plane"), a plain
+        # int or float in a `complex` slot coerces to (value, 0);
+        # `5i` → (0, 5), `5 + 5i` → (5, 5) via the simplify fold.
+        if type_name == "complex":
+            return self._complex_init_src(decl.initializer)
         if type_name == "fuzzy":
             ctor = "make_truth"
         elif type_name in self._TRIT_TYPE_NAMES:
@@ -164,6 +171,47 @@ class NumpyCodegen(FlyBrainCodegen):
         if scalar is None:
             return None
         return f"_VSA.{ctor}({scalar!r})"
+
+    def _complex_init_src(self, expr: ast.Expr) -> str | None:
+        """Fold a literal initializer for a `complex`-typed slot.
+
+        Covers: IntLiteral / FloatLiteral (real-only), ImaginaryLiteral
+        (imag-only), ComplexLiteral (both), unary ± on same,
+        Parenthesized wrappers. Returns None to fall through to normal
+        codegen for non-literal RHS.
+        """
+        if isinstance(expr, ast.ComplexLiteral):
+            return f"_VSA.make_complex({float(expr.re)!r}, {float(expr.im)!r})"
+        if isinstance(expr, ast.ImaginaryLiteral):
+            return f"_VSA.make_complex(0.0, {float(expr.value)!r})"
+        if isinstance(expr, (ast.IntLiteral, ast.FloatLiteral)):
+            return f"_VSA.make_complex({float(expr.value)!r}, 0.0)"
+        if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
+            inner = self._complex_init_src(expr.operand)
+            if inner is None:
+                return None
+            if expr.op == "+":
+                return inner
+            # Unary minus — re-parse the inner to flip sign. Cheapest
+            # path: recompute from the operand shape directly.
+            if isinstance(expr.operand, ast.ComplexLiteral):
+                return (
+                    f"_VSA.make_complex({(-float(expr.operand.re))!r}, "
+                    f"{(-float(expr.operand.im))!r})"
+                )
+            if isinstance(expr.operand, ast.ImaginaryLiteral):
+                return (
+                    f"_VSA.make_complex(0.0, "
+                    f"{(-float(expr.operand.value))!r})"
+                )
+            if isinstance(expr.operand, (ast.IntLiteral, ast.FloatLiteral)):
+                return (
+                    f"_VSA.make_complex({(-float(expr.operand.value))!r}, "
+                    "0.0)"
+                )
+        if isinstance(expr, ast.Parenthesized):
+            return self._complex_init_src(expr.inner)
+        return None
 
     def _fuzzy_constant_scalar(self, expr: ast.Expr) -> float | None:
         """Fold a literal expression to a single fuzzy-axis scalar.
