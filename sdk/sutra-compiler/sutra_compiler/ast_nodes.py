@@ -104,7 +104,7 @@ class BoolLiteral(Expr):
 class UnknownLiteral(Expr):
     # The `unknown` keyword — the neutral point on the truth axis,
     # 0.0 between false (-1) and true (+1). First-class value for
-    # Łukasiewicz three-valued logic (`trit` / `luk`). Carries no
+    # three-valued logic (see `trit` primitive class). Carries no
     # payload — the value is implicit in the literal kind.
     pass
 
