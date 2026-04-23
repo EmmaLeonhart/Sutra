@@ -159,8 +159,10 @@ KEYWORDS = {
     "false": TokenKind.FALSE,
     # `unknown` — the neutral point on the truth axis (0.0 between
     # true and false). The first-class value for Łukasiewicz Ł₃ and
-    # a readability win over `trit t = 0`.
+    # a readability win over `trit t = 0`. `unk` is a short alias
+    # that gets the same token — both forms are fine to write.
     "unknown": TokenKind.KW_UNKNOWN,
+    "unk": TokenKind.KW_UNKNOWN,
 }
 
 # Primitive type names. They are ordinary identifiers at the lexer
