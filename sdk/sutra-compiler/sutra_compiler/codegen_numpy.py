@@ -105,6 +105,17 @@ class NumpyCodegen(BaseCodegen):
         inner_src = self._translate_expr(expr.expr)
         return f"_VSA.embed({inner_src})"
 
+    def _defuzzy_expr_src(self, expr: ast.DefuzzyExpr) -> str:
+        """Lower `defuzzy(<inner>)` to _VSA.defuzzify.
+
+        Single-argument source form; the runtime method uses its
+        default `iters=10`. If we later want to expose the iteration
+        count at the surface level (e.g. `defuzzy(x, 5)`), this is
+        the hook that grows a second arg.
+        """
+        inner_src = self._translate_expr(expr.expr)
+        return f"_VSA.defuzzify({inner_src})"
+
     def _unknown_literal_src(self, expr: ast.UnknownLiteral) -> str:
         """Lower `unknown` to the truth-axis neutral vector.
 
@@ -1096,6 +1107,54 @@ class NumpyCodegen(BaseCodegen):
         self._emit("return self.embed(x)")
         self._indent -= 1
         self._emit("raise TypeError(f'cannot coerce {type(x).__name__} to a vector for comparison')")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- Defuzzification — matrix projection + iterated eq ----")
+        self._emit("#")
+        self._emit("# defuzzify(x, iters=10):")
+        self._emit("#   1. Matrix-multiply by the truth-axis projector — a dim×dim")
+        self._emit("#      diagonal matrix with a single 1 at the truth axis.")
+        self._emit("#      Zeroes every other coordinate, including real/imag/")
+        self._emit("#      semantic. Non-truth-axis inputs (int, semantic")
+        self._emit("#      vector, char, etc.) go to truth=0 → unknown.")
+        self._emit("#   2. Iterate `f = f == true` N times. Under cosine equality")
+        self._emit("#      on a truth-axis vector this snaps to ±1 in one pass if")
+        self._emit("#      truth≠0, or stays at 0 (the zero-norm guard in eq)")
+        self._emit("#      if truth==0. The iteration is kept at 10 for the")
+        self._emit("#      user-specified semantics — even though one pass is")
+        self._emit("#      enough mathematically, the loop is the definition.")
+        self._emit("#")
+        self._emit("# Output is a truth-axis vector — a three-valued bool. Identical")
+        self._emit("# inputs of type bool/fuzzy/trit will defuzzify to true, false,")
+        self._emit("# or unknown depending on the sign of their truth coordinate.")
+        self._emit()
+        self._emit("def _truth_projector(self):")
+        self._indent += 1
+        self._emit('"""Diagonal dim×dim projector onto the truth axis. Cached."""')
+        self._emit("if not hasattr(self, '_truth_proj_cache') or self._truth_proj_cache is None:")
+        self._indent += 1
+        self._emit("M = _np.zeros((self.dim, self.dim), dtype=_np.float64)")
+        self._emit("idx = self.semantic_dim + self.AXIS_TRUTH")
+        self._emit("M[idx, idx] = 1.0")
+        self._emit("self._truth_proj_cache = M")
+        self._indent -= 1
+        self._emit("return self._truth_proj_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def defuzzify(self, x, iters=10):")
+        self._indent += 1
+        self._emit('"""Project onto truth axis via matmul, then iterate eq(., true)."""')
+        self._emit("av = self._as_any_vector(x)")
+        self._emit("# Step 1: matmul projection onto truth axis (zero elsewhere).")
+        self._emit("t = self._truth_projector() @ av")
+        self._emit("# Step 2: iterate equality with true — cosine similarity snaps")
+        self._emit("# to ±1 for non-neutral inputs, stays 0 for neutral inputs.")
+        self._emit("true_vec = self.make_truth(1.0)")
+        self._emit("for _ in range(int(iters)):")
+        self._indent += 1
+        self._emit("t = self.eq(t, true_vec)")
+        self._indent -= 1
+        self._emit("return t")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
