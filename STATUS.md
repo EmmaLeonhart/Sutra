@@ -61,6 +61,61 @@ pick up next.
    fused shapes cover the hot path; larger programs may hit the
    sequential fallback and want broader dep analysis.
 
+3. **CUDA-prerequisite simplifications** (2026-04-23 review). These
+   are cleanup items identified during the cuda-simplification
+   review — every one is a mechanical, reviewable change that makes
+   the PyTorch/GPU port in queue item 2 substantially smaller. They
+   are numbered so they can be worked sequentially.
+
+   3a. **Extract `_NumpyVSA` runtime into a real `runtime_numpy.py`
+       file.** Today the entire VSA runtime (~500 lines) lives inside
+       `codegen_numpy.py` as a stream of `self._emit("...")` calls
+       (codegen_numpy.py:120-633). The file cannot be linted, typed,
+       or tested as Python — only as a string-building pass. The GPU
+       port would duplicate the whole emit stream. Fix: move the
+       runtime into `sdk/sutra-compiler/sutra_compiler/runtime_numpy.py`,
+       have the codegen inline its text verbatim into the prelude.
+       Highest-leverage item — every cleanup below becomes trivial
+       once this lands, and the PyTorch port reduces to a new
+       `runtime_torch.py` file plus a ~30-line dispatch swap.
+
+   3b. **Deduplicate runtime helpers.** `_argmax_cosine` and
+       `_vector_map_lookup` have byte-for-byte identical cosine-stack
+       logic (codegen_numpy.py:572-633). `embed` and `embed_batch`
+       duplicate mean-center/normalize/pad/truncate (lines 242-320).
+       Fold each pair onto a shared helper once 3a makes the runtime
+       a real file.
+
+   3c. **Vectorize `_NumpyVSA.loop` prototype match.** Currently
+       (codegen_numpy.py:528-556) iterates host-side in Python with
+       an inner for-loop over prototypes calling `self.similarity`
+       per prototype per iteration. Stack prototypes into `(P, d)`
+       once at loop entry; per iteration do one `(P, d) @ (d,)`
+       matmul. Same shape the GPU version will reuse.
+
+   3d. **Simplify `make_random_rotation`.** The fractional-matrix-
+       power branch (codegen_numpy.py:499-519) does `eig` + complex-
+       phase scaling + `inv` on a dense 768×768 matrix. Complex
+       eigendecomposition is one of the worst kernels for GPU.
+       Confirmed by audit: no demo under `examples/*.su` uses a
+       non-π angle (loop-using demos are `concept_search.su`,
+       `counter_loop.su`, `loop_rotation.su`; all go through the
+       eigenrotation-loop emit path that hardcodes `angle=1.0` with
+       `n_planes=dim//2` per codegen_numpy.py:98-99, and the numpy
+       backend never emits a `make_rotation(...)` call with an
+       arbitrary angle from a `.su` program). Drop the eigendecomp
+       path and keep a pure-QR rotation; add back if a demo ever
+       actually needs fractional angles.
+
+   3e. **Flatten `NumpyCodegen → FlyBrainCodegen` inheritance.** The
+       numpy backend inherits from the fly-brain backend purely to
+       reuse AST-walking code; the two emit completely different
+       runtimes. The inheritance bleeds fly-brain assumptions into
+       numpy init (`runtime_n_kc=0`, `use_hemibrain=False` passed to
+       `super().__init__`) and forces future `TorchCodegen` to pick
+       a parent. Extract a `CodegenBase` with just the AST walker;
+       make each backend a sibling.
+
 ## Deferred (see `todo.md`)
 
 These are real commitments but not "next active session" work. Kept
