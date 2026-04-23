@@ -93,19 +93,26 @@ pick up next.
        once at loop entry; per iteration do one `(P, d) @ (d,)`
        matmul. Same shape the GPU version will reuse.
 
-   3d. **Simplify `make_random_rotation`.** The fractional-matrix-
-       power branch (codegen_numpy.py:499-519) does `eig` + complex-
-       phase scaling + `inv` on a dense 768×768 matrix. Complex
-       eigendecomposition is one of the worst kernels for GPU.
-       Confirmed by audit: no demo under `examples/*.su` uses a
-       non-π angle (loop-using demos are `concept_search.su`,
-       `counter_loop.su`, `loop_rotation.su`; all go through the
-       eigenrotation-loop emit path that hardcodes `angle=1.0` with
-       `n_planes=dim//2` per codegen_numpy.py:98-99, and the numpy
-       backend never emits a `make_rotation(...)` call with an
-       arbitrary angle from a `.su` program). Drop the eigendecomp
-       path and keep a pure-QR rotation; add back if a demo ever
-       actually needs fractional angles.
+   3d. **Simplify `make_random_rotation`.** Original claim in this
+       queue item was that the fractional-matrix-power branch was
+       dead code (no demo uses a non-π angle). **That audit was
+       wrong** — the loop-using demos (`concept_search.su`,
+       `counter_loop.su`, `loop_rotation.su`) go through the
+       eigenrotation-loop emit path that hardcodes `angle=1.0`,
+       which IS a non-π angle, so the eigendecomposition branch
+       runs on every loop construct. The original "drop it" plan
+       would have broken live code. Noted as a self-caught shortcut
+       per CLAUDE.md.
+       Real simplification actually applied: `Q` is real orthogonal
+       (hence normal), so its eigenvector matrix `V` from
+       `_np.linalg.eig(Q)` is unitary, and `_np.linalg.inv(V) ==
+       V.conj().T` to machine precision. Swap the O(d³) explicit
+       inversion for the O(d²) conjugate transpose. Same numerical
+       result, much cheaper — especially at the 768-dim substrate.
+       Also: `make_random_rotation` runs once per loop construct at
+       R-construction time (compile-time for R, not hot-path), so
+       eigendecomp cost itself is not a CUDA concern; the inv→conj.T
+       swap is pure quality-of-implementation.
 
    3e. **Flatten `NumpyCodegen → FlyBrainCodegen` inheritance.** The
        numpy backend inherits from the fly-brain backend purely to
