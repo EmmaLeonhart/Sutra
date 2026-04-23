@@ -157,6 +157,20 @@ class NumpyCodegen(BaseCodegen):
         """
         return f"_VSA.logical_not({operand_src})"
 
+    def _equality_src(self, expr: ast.BinaryOp, op: str,
+                      left_src: str, right_src: str) -> str:
+        """Lower `==` / `!=` to _VSA.eq / _VSA.neq.
+
+        Vector cosine similarity projected onto the truth axis. The
+        runtime computes dot(a, b) / (||a|| · ||b||) via pure vector
+        arithmetic (element-wise multiplies, sums, sqrt), then places
+        the resulting scalar on the truth axis. Differentiable almost
+        everywhere; the only singularity is at a zero-norm input
+        which we guard with a truth=0 fallback.
+        """
+        assert op in ("eq", "neq")
+        return f"_VSA.{op}({left_src}, {right_src})"
+
     def _complex_literal_src(self, expr: ast.ComplexLiteral) -> str:
         """Lower the folded `N + Mi` form to `_VSA.make_complex(N, M)`."""
         return f"_VSA.make_complex({float(expr.re)!r}, {float(expr.im)!r})"
@@ -1015,6 +1029,73 @@ class NumpyCodegen(BaseCodegen):
         self._indent += 1
         self._emit('"""Negation as pure scalar-by-vector multiplication: -x."""')
         self._emit("return -self._as_truth_vector(x)")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- Equality and inequality — vector cosine similarity ----")
+        self._emit("#")
+        self._emit("# a == b produces a truth-axis vector whose truth coordinate")
+        self._emit("# is cos(a, b). Identical vectors → truth +1 (true); opposite")
+        self._emit("# vectors → truth -1 (false); orthogonal vectors → truth 0")
+        self._emit("# (unknown). Differentiable almost everywhere — the only")
+        self._emit("# singularity is at a zero input vector, which we guard with")
+        self._emit("# an explicit fallback to truth 0.")
+        self._emit("#")
+        self._emit("# The reduction (dot product + norms) is the natural shape of")
+        self._emit("# the semantic question — 'how similar are these two vectors'")
+        self._emit("# — not a scalar-extraction cheat on top of what should have")
+        self._emit("# been a vector op. The math lives in vector arithmetic up to")
+        self._emit("# the reduction, then places the answer on the truth axis.")
+        self._emit()
+        self._emit("def eq(self, a, b):")
+        self._indent += 1
+        self._emit('"""Vector equality — cosine similarity projected onto truth axis."""')
+        self._emit("av = self._as_any_vector(a)")
+        self._emit("bv = self._as_any_vector(b)")
+        self._emit("na = _np.sqrt(_np.dot(av, av))")
+        self._emit("nb = _np.sqrt(_np.dot(bv, bv))")
+        self._emit("if na == 0 or nb == 0:")
+        self._indent += 1
+        self._emit("# Equality with the zero vector is undefined; return")
+        self._emit("# the neutral point rather than NaN.")
+        self._emit("return self.make_truth(0.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(float(_np.dot(av, bv) / (na * nb)))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def neq(self, a, b):")
+        self._indent += 1
+        self._emit('"""Vector inequality — truth axis inverted cosine similarity."""')
+        self._emit("eq_vec = self.eq(a, b)")
+        self._emit("return self.logical_not(eq_vec)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _as_any_vector(self, x):")
+        self._indent += 1
+        self._emit('"""Coerce any runtime value to a d-dim vector for comparison.')
+        self._emit('')
+        self._emit("Vectors pass through. Bool → make_truth(±1). Other scalars →")
+        self._emit("make_real(x) (on the number axis, not the truth axis — the")
+        self._emit("semantic question 'is 3 == 3.0' is about the number, not the")
+        self._emit("truth value). A string falls back to embed() so `s == embed`")
+        self._emit("works consistently.")
+        self._emit('"""')
+        self._emit("if isinstance(x, _np.ndarray):")
+        self._indent += 1
+        self._emit("return x")
+        self._indent -= 1
+        self._emit("if isinstance(x, bool):")
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if x else -1.0)")
+        self._indent -= 1
+        self._emit("if isinstance(x, (int, float)):")
+        self._indent += 1
+        self._emit("return self.make_real(float(x))")
+        self._indent -= 1
+        self._emit("if isinstance(x, str):")
+        self._indent += 1
+        self._emit("return self.embed(x)")
+        self._indent -= 1
+        self._emit("raise TypeError(f'cannot coerce {type(x).__name__} to a vector for comparison')")
         self._indent -= 1
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
