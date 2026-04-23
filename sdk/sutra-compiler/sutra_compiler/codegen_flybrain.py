@@ -170,6 +170,27 @@ def _builtin_geometric_loop(args: List[str]) -> str:
     return f"_VSA.loop({args[0]}, {args[1]}, {args[2]})"
 
 
+def _builtin_real_number(args: List[str]) -> str:
+    # Canonical-axis constructor: a scalar real number as an extended-
+    # state vector with x at synthetic[0], zeros elsewhere. Part of the
+    # int/float/complex shared-axis allocation — see project memory
+    # project_sutra_complex_numbers_first_class.md.
+    return f"_VSA.make_real({args[0]})"
+
+
+def _builtin_complex_number(args: List[str]) -> str:
+    # Canonical-axis constructor: a complex number with re at
+    # synthetic[0] and im at synthetic[1]. Sutra's first-class complex.
+    return f"_VSA.make_complex({args[0]}, {args[1]})"
+
+
+def _builtin_truth_value(args: List[str]) -> str:
+    # Canonical-axis constructor: a scalar truth value at synthetic[2].
+    # Higher = more true; 0 = neither; negative = false-leaning. The
+    # axis is orthogonal to real/imag by construction.
+    return f"_VSA.make_truth({args[0]})"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -188,6 +209,14 @@ BUILTINS = {
     "make_rotation": (_builtin_make_rotation, None),  # 1-2 args
     "compile_prototypes": (_builtin_compile_prototypes, 1),
     "geometric_loop": (_builtin_geometric_loop, None),  # 3-4 args
+    # Canonical-axis constructors. Lower to _VSA.make_real / make_complex /
+    # make_truth — runtime methods provided by NumpyCodegen's _NumpyVSA.
+    # A backend that doesn't implement them will fail at runtime with a
+    # clear AttributeError; nothing in the current flybrain runtime
+    # exercises these yet, so the shared table is fine.
+    "real_number": (_builtin_real_number, 1),
+    "complex_number": (_builtin_complex_number, 2),
+    "truth_value": (_builtin_truth_value, 1),
 }
 
 
