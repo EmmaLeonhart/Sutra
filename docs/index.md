@@ -1,6 +1,6 @@
 ---
 title: Sutra
-description: A vector programming language whose primitives are hypervectors in embedding space.
+description: A geometric tensor programming language. Every value is a tensor, every operation is tensor arithmetic in a geometric space.
 hide:
   - navigation
   - toc
@@ -8,9 +8,9 @@ hide:
 
 # 📜 Sutra
 
-**A vector programming language whose primitives are hypervectors in embedding space.**
+**A geometric tensor programming language. Every value is a tensor, every operation is tensor arithmetic in a geometric space.**
 
-Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *vector operations* that execute inside a pre-trained embedding space — making the execution environment **fundamentally semantic** rather than symbolic. Where silicon arithmetic has no inherent meaning, the geometry of an embedding space *does* — and Sutra is the first programming language designed to exploit that as a first-class computational substrate.
+Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *tensor operations* that execute inside a geometric space — typically a pre-trained embedding space, but the language is substrate-agnostic. Where silicon arithmetic has no inherent meaning, geometry *does* — and Sutra is the first programming language designed to exploit that as a first-class computational substrate.
 
 Named after the Sanskrit *sūtra* — the word Pāṇini used for the rules of his grammar, the earliest formal grammar of any language. [History →](history.md)
 
@@ -18,7 +18,7 @@ Named after the Sanskrit *sūtra* — the word Pāṇini used for the rules of h
 
 ## Why this is different
 
-Most languages think of "vectors" as a library you import. Sutra thinks of vectors as the *only* type. Numbers, symbols, structures, control flow — everything is a hypervector or an operation on hypervectors. There are no "wrong type" errors, only noisy or semantically meaningless results. Equality is replaced by **similarity**.
+Most languages think of "tensors" as a library you import. Sutra thinks of tensors as the *only* type. Numbers, symbols, structures, control flow — everything is a tensor or a tensor operation. There are no "wrong type" errors, only noisy or semantically meaningless results. Equality is replaced by **similarity**, and computation is **geometry**.
 
 This is not an AI-assisted programming tool. It is not a neural network. It is a formal system for *reasoning under uncertainty* — closer to logic programming (Prolog) than to Python, but operating in **continuous** rather than discrete space.
 
