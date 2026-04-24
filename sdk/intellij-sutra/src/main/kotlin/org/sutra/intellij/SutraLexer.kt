@@ -106,13 +106,34 @@ class SutraLexer : LexerBase() {
             return
         }
 
-        // --- Numeric literal ---
+        // --- Char literal `'a'`, `'\n'`, `'\\''` ---
+        // Matches the Python lexer's CHAR_LIT handling. Backslash
+        // escapes consume two source chars; the closing quote is
+        // expected to appear on the same line.
+        if (c == '\'') {
+            tokenEnd = scanCharBody(tokenStart + 1)
+            tokenType = SutraTokenTypes.CHAR_LITERAL
+            return
+        }
+
+        // --- Numeric literal (with optional imaginary-unit suffix) ---
+        // `5`, `3.14` are NUMBER; `5i`, `3.14i` are IMAG_LITERAL.
+        // An `i` right after the digits only counts as the imaginary
+        // suffix — if the next char after `i` is an identifier char
+        // (e.g. `5index`) the `i` belongs to the following identifier.
         if (c.isDigit()) {
             var i = tokenStart + 1
             while (i < bufferEnd && buffer[i].isDigit()) i++
             if (i + 1 < bufferEnd && buffer[i] == '.' && buffer[i + 1].isDigit()) {
                 i += 2
                 while (i < bufferEnd && buffer[i].isDigit()) i++
+            }
+            if (i < bufferEnd && buffer[i] == 'i' &&
+                (i + 1 >= bufferEnd || !(buffer[i + 1].isLetterOrDigit() || buffer[i + 1] == '_'))
+            ) {
+                tokenEnd = i + 1
+                tokenType = SutraTokenTypes.IMAG_LITERAL
+                return
             }
             tokenEnd = i
             tokenType = SutraTokenTypes.NUMBER
@@ -168,6 +189,28 @@ class SutraLexer : LexerBase() {
     }
 
     /**
+     * Scan the body of a char literal starting at [bodyStart] (just past
+     * the opening single quote). Returns the offset immediately after the
+     * closing quote — or the end of the line / buffer if unterminated, so
+     * an unterminated literal still produces a single token rather than
+     * cascading bad-character tokens.
+     */
+    private fun scanCharBody(bodyStart: Int): Int {
+        var i = bodyStart
+        while (i < bufferEnd) {
+            val ch = buffer[i]
+            if (ch == '\\' && i + 1 < bufferEnd) {
+                i += 2
+                continue
+            }
+            if (ch == '\n') return i
+            if (ch == '\'') return i + 1
+            i++
+        }
+        return bufferEnd
+    }
+
+    /**
      * Scan the body of a string literal starting at [bodyStart] (just past
      * the opening quote). Returns the offset immediately after the closing
      * quote — or [bufferEnd] if the string is unterminated.
@@ -192,6 +235,7 @@ class SutraLexer : LexerBase() {
         word in PRIMITIVE_TYPES -> SutraTokenTypes.PRIMITIVE_TYPE
         word in BUILTINS -> SutraTokenTypes.BUILTIN
         word in BOOLEAN_LITERALS -> SutraTokenTypes.BOOLEAN_LITERAL
+        word in UNKNOWN_LITERALS -> SutraTokenTypes.UNKNOWN_LITERAL
         word.isNotEmpty() && word[0].isUpperCase() -> SutraTokenTypes.TYPE_NAME
         else -> SutraTokenTypes.IDENTIFIER
     }
@@ -202,6 +246,7 @@ class SutraLexer : LexerBase() {
             "public", "private", "static", "implicit",
             "var", "const", "new",
             "return", "if", "else", "while", "for", "foreach", "in", "do",
+            "loop", "as",
             "try", "catch", "break", "continue", "this",
         )
 
@@ -209,6 +254,10 @@ class SutraLexer : LexerBase() {
             "scalar", "vector", "matrix", "tuple",
             "string", "bool", "fuzzy", "void",
             "permutation", "map",
+            // Numeric + truth-family primitives added alongside char
+            // literal / imaginary-unit support. Kept in sync with
+            // `PRIMITIVE_TYPE_NAMES` in sutra_compiler/lexer.py.
+            "char", "int", "float", "complex", "trit",
         )
 
         private val BUILTINS: Set<String> = setOf(
@@ -223,6 +272,12 @@ class SutraLexer : LexerBase() {
         )
 
         private val BOOLEAN_LITERALS: Set<String> = setOf("true", "false")
+
+        // The neutral point on the truth axis — the three-valued-logic
+        // `?`. Both spellings hit `TokenKind.KW_UNKNOWN` in the Python
+        // lexer; the IDE highlights them as a literal, not a keyword,
+        // to match how `true` / `false` are styled.
+        private val UNKNOWN_LITERALS: Set<String> = setOf("unknown", "unk")
 
         private val TWO_CHAR_OPERATORS: Set<String> = setOf(
             "==", "!=", "<=", ">=", "&&", "||",

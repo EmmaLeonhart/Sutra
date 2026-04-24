@@ -62,6 +62,11 @@ class SutraParserDefinition : ParserDefinition {
         val STRING_LITERALS: TokenSet = TokenSet.create(
             SutraTokenTypes.STRING,
             SutraTokenTypes.INTERP_STRING,
+            // Char literals (`'a'`) are grouped with the string family for
+            // platform features like quote-handling and literal-injection,
+            // even though the Sutra value they represent is a number-axis
+            // vector rather than a string.
+            SutraTokenTypes.CHAR_LITERAL,
         )
     }
 }

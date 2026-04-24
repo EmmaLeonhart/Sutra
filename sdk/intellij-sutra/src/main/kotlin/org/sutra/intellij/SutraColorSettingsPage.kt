@@ -29,6 +29,7 @@ class SutraColorSettingsPage : ColorSettingsPage {
             AttributesDescriptor("Keywords//Control keyword", SutraSyntaxHighlighter.KEYWORD),
             AttributesDescriptor("Keywords//Primitive type", SutraSyntaxHighlighter.PRIMITIVE_TYPE),
             AttributesDescriptor("Keywords//Boolean literal", SutraSyntaxHighlighter.BOOLEAN_LITERAL),
+            AttributesDescriptor("Keywords//Unknown literal", SutraSyntaxHighlighter.UNKNOWN_LITERAL),
 
             AttributesDescriptor("Identifiers//Type name", SutraSyntaxHighlighter.TYPE_NAME),
             AttributesDescriptor("Identifiers//Builtin function", SutraSyntaxHighlighter.BUILTIN),
@@ -36,7 +37,9 @@ class SutraColorSettingsPage : ColorSettingsPage {
 
             AttributesDescriptor("Literals//String", SutraSyntaxHighlighter.STRING),
             AttributesDescriptor("Literals//Interpolated string", SutraSyntaxHighlighter.INTERP_STRING),
+            AttributesDescriptor("Literals//Char", SutraSyntaxHighlighter.CHAR_LITERAL),
             AttributesDescriptor("Literals//Number", SutraSyntaxHighlighter.NUMBER),
+            AttributesDescriptor("Literals//Imaginary (5i)", SutraSyntaxHighlighter.IMAG_LITERAL),
 
             AttributesDescriptor("Comments//Line comment (//)", SutraSyntaxHighlighter.LINE_COMMENT),
             AttributesDescriptor("Comments//Doc comment (///)", SutraSyntaxHighlighter.DOC_COMMENT),
@@ -74,6 +77,9 @@ class SutraColorSettingsPage : ColorSettingsPage {
             }
 
             function string Main() {
+                char letter = 'a';
+                complex c = 5 + 5i;
+                trit verdict = unknown;
                 var greeting = ${'$'}"Hello, {Classify(embed("world"))}";
                 return greeting;
             }
