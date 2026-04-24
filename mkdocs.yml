@@ -2,11 +2,14 @@
 # Built and deployed by .github/workflows/pages.yml on every push to master
 # that touches docs/, mkdocs.yml, README.md, or planning/sutra-spec/.
 #
-# Live at: https://emmaleonhart.github.io/Sutra
+# Live at: https://sutralang.dev
+# (Custom domain pinned via docs/CNAME, which MkDocs copies into the
+# build output where GitHub Pages picks it up. DNS is configured by
+# the domain owner outside this repo.)
 
 site_name: Sutra 📜
 site_description: "\U0001F4DC A vector programming language whose primitives are hypervectors in embedding space. Compiles to operations on LLM latent spaces, biological connectomes, and other substrate-agnostic targets."
-site_url: https://emmaleonhart.github.io/Sutra
+site_url: https://sutralang.dev
 site_author: Emma Leonhart
 
 repo_url: https://github.com/EmmaLeonhart/Sutra
@@ -110,15 +113,12 @@ nav:
   - Papers: papers.md
   - History: history.md
   # SutraDB is the database side of the Sutra ecosystem — the static
-  # HTML site lives under sutraDB/pages/ and is mounted at /Sutra/SutraDB/
-  # on this Pages deploy by the pages.yml workflow (the site is served
-  # at emmaleonhart.github.io/Sutra/, so SutraDB lives one level deeper).
-  # The full /Sutra/SutraDB/ path is required because MkDocs treats a
-  # leading slash as domain-root-absolute, not site-root-absolute, and
-  # emmaleonhart.github.io/SutraDB/ is a different (non-existent) site
-  # entirely. This nav entry jumps out of the MkDocs tree to the mounted
-  # subsite.
-  - SutraDB: /Sutra/SutraDB/
+  # HTML site lives under sutraDB/pages/ and is mounted at /SutraDB/
+  # on this Pages deploy by the pages.yml workflow. The leading slash
+  # is domain-root-absolute; under the sutralang.dev custom domain
+  # this resolves to https://sutralang.dev/SutraDB/ and the rsync in
+  # pages.yml drops the static site at _site/SutraDB/ to match.
+  - SutraDB: /SutraDB/
 
 extra_javascript:
   - assets/js/bind-unbind.js
