@@ -1,62 +1,61 @@
-// Sutra corpus test: ordered comparison on the truth axis.
+// Sutra corpus test: ordered comparison — number-axis only.
 //
-// `>` and `<` on truth-family values (bool / fuzzy / trit) use a
-// Lagrange-derived polynomial that's exact on the three-valued
-// grid and smooth everywhere off-grid:
+// `>`, `<`, `>=`, `<=` are ordering relations on real values, not
+// fuzzy-logic operators. They work on number-family operands
+// (int, float, complex's real axis, char, scalar) and produce a
+// truth-axis vector. The mechanism:
 //
-//   gt(a, b) = (a - b) * (2 + ab) / 2
-//   lt(a, b) = -gt(a, b)
+//   1. Matrix-multiply both sides by a real-axis projector —
+//      zeros every axis except synthetic[AXIS_REAL].
+//   2. Read the real scalars; compute diff = a_real - b_real.
+//   3. Output make_truth(sign(diff)):
+//        diff > 0  → +1 (true)
+//        diff < 0  → -1 (false)
+//        diff == 0 → 0  (unknown — a value can't strictly exceed itself)
 //
-// On the fuzzy truth axis, strict and non-strict forms coincide:
-// ties (a == b) produce 0 (unknown) in both `>` and `>=`, since a
-// continuous truth value can't strictly exceed itself. So `>=`
-// emits the same polynomial as `>`, and `<=` the same as `<`.
+// `>=` and `<=` produce the same polynomial as `>` and `<`, because
+// ties give 0 either way (unknown). On integers this is the sign
+// function; it's not smooth at 0, but integers don't hover there
+// under gradient flow, so this is fine.
 //
-// Scalar comparisons (int / float, not on the truth axis) stay on
-// Python's scalar fast path — no type-directed dispatch fires
-// unless at least one operand is provably truth-family.
+// Comparing truth-family values (bool / fuzzy / trit) with `>` is
+// a compile-time error — ordering isn't a natural operation on a
+// truth axis. Classes can override `<` / `>` if they want custom
+// comparison semantics for their own types.
 
-// Three-valued grid cases — each should produce one of {-1, 0, +1}.
-function fuzzy TrueGtFalse() {
-    return true > false;          // +1
+function fuzzy IntGt() {
+    int a = 5;
+    int b = 3;
+    return a > b;                 // +1 (true)
 }
 
-function fuzzy FalseGtTrue() {
-    return false > true;          // -1
+function fuzzy IntLt() {
+    int a = 3;
+    int b = 5;
+    return a > b;                 // -1 (false)
 }
 
-function fuzzy TrueGtTrue() {
-    return true > true;           // 0 — ties are unknown
+function fuzzy IntEqual() {
+    int a = 7;
+    int b = 7;
+    return a > b;                 // 0 (unknown — tie)
 }
 
-function fuzzy TrueGtUnknown() {
-    return true > unknown;        // +1
+function fuzzy FloatCmp() {
+    float a = 3.14;
+    float b = 2.71;
+    return a > b;                 // +1
 }
 
-function fuzzy UnknownGtFalse() {
-    return unknown > false;       // +1
+function fuzzy NegativeCmp() {
+    int a = -5;
+    int b = -3;
+    return a > b;                 // -1 (-5 is less than -3)
 }
 
-function fuzzy UnknownGtUnknown() {
-    return unknown > unknown;     // 0
-}
-
-// Continuous fuzzy case — polynomial gives a smooth interpolation
-// rather than an exact ±1. Direction is always correct.
-function fuzzy FuzzyOrder() {
-    fuzzy a = 0.7;
-    fuzzy b = 0.3;
-    return a > b;                 // positive (a is more true than b)
-}
-
-// `>=` same polynomial as `>` on the fuzzy scale — ties unknown.
-function fuzzy TrueGeTrue() {
-    return true >= true;          // 0 (same as TrueGtTrue)
-}
-
-// `<` is the negation.
-function fuzzy FuzzyLess() {
-    fuzzy a = 0.7;
-    fuzzy b = 0.3;
-    return a < b;                 // negative
+// `<` is the mirror of `>`.
+function fuzzy LessThan() {
+    int a = 3;
+    int b = 5;
+    return a < b;                 // +1 (true)
 }

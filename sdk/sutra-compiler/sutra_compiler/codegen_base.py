@@ -933,6 +933,31 @@ class BaseCodegen:
         return False
 
     _TRUTH_TYPES = frozenset({"bool", "fuzzy", "trit"})
+    _NUMBER_TYPES = frozenset({"int", "float", "complex", "scalar", "char"})
+
+    def _is_number_expr(self, expr: ast.Expr) -> bool:
+        """True iff expr is provably a number-axis value at compile time.
+
+        Used by `<` / `>` dispatch to decide whether to route through
+        the substrate's number-axis comparison. Numeric literals,
+        number-typed identifiers, and unary +/- on same all qualify.
+        Conservative — unknown types fall through to Python scalar
+        comparison, which still handles plain Python ints / floats.
+        """
+        if isinstance(expr, (ast.IntLiteral, ast.FloatLiteral,
+                             ast.ImaginaryLiteral, ast.ComplexLiteral,
+                             ast.CharLiteral)):
+            return True
+        if isinstance(expr, ast.Identifier):
+            return self._var_type.get(expr.name) in self._NUMBER_TYPES
+        if isinstance(expr, ast.Parenthesized):
+            return self._is_number_expr(expr.inner)
+        if isinstance(expr, ast.BinaryOp) and expr.op in ("+", "-", "*", "/", "%"):
+            return (self._is_number_expr(expr.left)
+                    or self._is_number_expr(expr.right))
+        if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
+            return self._is_number_expr(expr.operand)
+        return False
 
     def _is_truth_expr(self, expr: ast.Expr) -> bool:
         """True iff expr is provably a truth-axis value at compile time.
@@ -982,17 +1007,19 @@ class BaseCodegen:
 
     def _comparison_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
-        """Override point for `<` / `>` / `<=` / `>=` on truth-axis values.
+        """Override point for `<` / `>` / `<=` / `>=` on number-axis values.
 
-        `op` is `gt` or `lt` — `>=` maps to `gt` and `<=` to `lt` on
-        the fuzzy truth axis (ties are unknown in both strict and
-        non-strict forms). Base refuses — the polynomial comparison
-        needs the truth-axis runtime which lives on numpy / pytorch.
+        `op` is `gt` or `lt` — `>=` maps to `gt` and `<=` to `lt`
+        (ties give 0 = unknown in both, so the strict / non-strict
+        distinction collapses). The numpy / pytorch backends project
+        both operands onto the real axis, subtract, and sign the
+        result onto the truth axis. Fly-brain refuses — no number-
+        axis runtime.
         """
         raise CodegenNotSupported(
             expr,
-            f"ordered comparison `{expr.op}` on truth-axis values is not "
-            "supported by this backend; use the numpy or pytorch backend",
+            f"ordered comparison `{expr.op}` is not supported by this "
+            "backend; use the numpy or pytorch backend",
         )
 
     def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
@@ -1076,16 +1103,29 @@ class BaseCodegen:
             if expr.op == "*" and (self._is_complex_expr(expr.left)
                                    or self._is_complex_expr(expr.right)):
                 return self._complex_mul_src(expr, left, right)
-            # Ordered comparison on the truth axis — dispatches to the
-            # polynomial form (a - b)(2 + ab)/2 when at least one
-            # operand is provably truth-family (bool / fuzzy / trit or
-            # a comparison / logical expression that produced one).
-            # Int / float comparisons stay on Python's scalar fast path.
-            # On the fuzzy scale `>` and `>=` produce the same polynomial
-            # (ties are unknown either way); same for `<` vs `<=`.
+            # Ordered comparison `>` / `<` / `>=` / `<=` is number-axis
+            # only. If either operand is truth-family (bool / fuzzy /
+            # trit), refuse at compile time — comparison on truth
+            # values has no natural "ordering" meaning; fuzzy logic
+            # genuinely doesn't help here. If operands are provably
+            # number-family, emit the substrate op that projects both
+            # to the real axis, subtracts, and signs the result onto
+            # the truth axis. Otherwise (plain Python scalars with no
+            # type context), fall through to Python `>` / `<` which
+            # still does the right thing for int / float operands.
             if expr.op in (">", ">=", "<", "<="):
                 if (self._is_truth_expr(expr.left)
                         or self._is_truth_expr(expr.right)):
+                    raise CodegenNotSupported(
+                        expr,
+                        f"ordered comparison `{expr.op}` is not defined "
+                        "on truth-axis values (bool / fuzzy / trit); "
+                        "comparison is a number-axis operation. "
+                        "Override the operator on a custom class if you "
+                        "need comparison semantics for a truth-family type."
+                    )
+                if (self._is_number_expr(expr.left)
+                        or self._is_number_expr(expr.right)):
                     op_name = "gt" if expr.op in (">", ">=") else "lt"
                     return self._comparison_src(expr, op_name, left, right)
             return f"({left} {expr.op} {right})"
