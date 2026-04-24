@@ -25,7 +25,7 @@ from . import __version__
 from . import ast_nodes as ast
 from .codegen_flybrain import CodegenNotSupported
 from .codegen_flybrain import translate_module as translate_flybrain
-from .codegen_numpy import translate_module as translate_numpy
+from .codegen import translate_module as translate_default
 from .codegen_pytorch import translate_module as translate_pytorch
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
@@ -200,8 +200,8 @@ def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
     try:
-        if backend == "numpy":
-            return translate_numpy(
+        if backend == "default":
+            return translate_default(
                 module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
             )
         if backend == "pytorch":
@@ -218,13 +218,13 @@ def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
 
 
 def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
-    """Compile a .su file with the numpy backend and exec the generated
+    """Compile a .su file with the default codegen and exec the generated
     module. A `main()` function in the module, if present, is called and
     its return value is printed; otherwise the module's top-level prints
     carry the output."""
     import types
     py_src = _compile_to_python(
-        path, "numpy", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        path, "default", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
         runtime_n_kc=0,
     )
     if py_src is None:
@@ -251,7 +251,7 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
     from .trace import SutraTracer
 
     py_src = _compile_to_python(
-        path, "numpy", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        path, "default", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
         runtime_n_kc=0,
     )
     if py_src is None:
@@ -379,17 +379,17 @@ def main(argv: List[str] | None = None) -> int:
         action="store_true",
         help=(
             "Compile the first input file to Python targeting the FlyBrainVSA "
-            "runtime and print it to stdout. Fly-brain-only work — the demo "
-            "path is --emit-numpy."
+            "runtime and print it to stdout. Fly-brain-only work — the main "
+            "path is --emit."
         ),
     )
     parser.add_argument(
-        "--emit-numpy",
+        "--emit",
         action="store_true",
         help=(
-            "Compile the first input file to self-contained numpy Python and "
-            "print it to stdout. This is the demo-path backend: no fly-brain "
-            "imports, no spiking simulator, ops run as plain matrix operations."
+            "Compile the first input file to self-contained Python and print "
+            "it to stdout. Ops run as matrix operations on the default CPU "
+            "runtime — no fly-brain imports, no spiking simulator."
         ),
     )
     parser.add_argument(
@@ -398,7 +398,7 @@ def main(argv: List[str] | None = None) -> int:
         help=(
             "Compile the first input file to self-contained torch Python and "
             "print it to stdout. Picks CUDA at module init if available; "
-            "falls back to CPU otherwise. Same algebra as --emit-numpy but on "
+            "falls back to CPU otherwise. Same algebra as --emit but on "
             "tensors so the fused bundle_of_binds / argmax_cosine shapes hit "
             "GPU as one big kernel each."
         ),
@@ -407,8 +407,9 @@ def main(argv: List[str] | None = None) -> int:
         "--run",
         action="store_true",
         help=(
-            "Compile and execute the first input file (numpy backend) in one "
-            "step. Captures and prints whatever the generated module prints."
+            "Compile and execute the first input file (default backend) in "
+            "one step. Captures and prints whatever the generated module "
+            "prints."
         ),
     )
     parser.add_argument(
@@ -437,7 +438,7 @@ def main(argv: List[str] | None = None) -> int:
         version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
-    if (args.emit_flybrain or args.emit_numpy or args.emit_pytorch
+    if (args.emit_flybrain or args.emit or args.emit_pytorch
             or args.run or args.run_viz):
         if len(args.paths) != 1:
             print(
@@ -450,7 +451,7 @@ def main(argv: List[str] | None = None) -> int:
         elif args.emit_pytorch:
             backend = "pytorch"
         else:
-            backend = "numpy"
+            backend = "default"
         if args.run_viz:
             return _run_viz(
                 args.paths[0],

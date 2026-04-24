@@ -62,7 +62,7 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, ".."))
 SDK_PATH = os.path.join(REPO_ROOT, "sdk", "sutra-compiler")
 sys.path.insert(0, SDK_PATH)
 
-from sutra_compiler.codegen_numpy import translate_module  # noqa: E402
+from sutra_compiler.codegen import translate_module  # noqa: E402
 from sutra_compiler.lexer import Lexer  # noqa: E402
 from sutra_compiler.parser import Parser  # noqa: E402
 
