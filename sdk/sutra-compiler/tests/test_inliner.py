@@ -291,6 +291,111 @@ class TestInlinerIdempotent(unittest.TestCase):
         self.assertEqual(py1, py2)
 
 
+class TestOperatorLowering(unittest.TestCase):
+    """Step 2.6 — operators with stdlib bodies (&&, ||, !, !=, <, <=,
+    >=) lower to Call nodes targeting their stdlib functions, then
+    the inliner expands them. Operators without stdlib bodies (==, >,
+    +, -, *, /) stay as operators."""
+
+    def test_and_operator_lowers_and_inlines(self):
+        module = _parse(
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return a && b;\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        # After inline: (a + b + ... ) * 0.5 — top is BinaryOp('*')
+        # with the 0.5 literal as the right operand.
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "*")
+
+    def test_not_operator_lowers_and_inlines(self):
+        module = _parse(
+            "function fuzzy f(fuzzy v) {\n"
+            "  return !v;\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        # After inline: 0 - v → BinaryOp('-')
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "-")
+
+    def test_lt_operator_lowers_to_swapped_gt(self):
+        module = _parse(
+            "function fuzzy f(complex a, complex b) {\n"
+            "  return a < b;\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        # lt body: b > a
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, ">")
+        self.assertIsInstance(expr.left, ast.Identifier)
+        self.assertEqual(expr.left.name, "b")
+
+    def test_eq_operator_preserved(self):
+        """eq has no stdlib body (blocked on intrinsics), so `a == b`
+        stays as BinaryOp('==') and compiles through _VSA.eq."""
+        module = _parse(
+            "function fuzzy f(vector a, vector b) {\n"
+            "  return a == b;\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "==")
+
+    def test_gt_operator_preserved(self):
+        """Same story — gt body is blocked."""
+        module = _parse(
+            "function fuzzy f(int a, int b) {\n"
+            "  return a > b;\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, ">")
+
+    def test_arithmetic_operators_preserved(self):
+        """+, -, *, / are primitive tensor arithmetic, not stdlib."""
+        module = _parse(
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return a + b;\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "+")
+
+    def test_nested_operators_lower(self):
+        """!(a && b) lowers to logical_not(logical_and(a, b)) and both
+        inline — the outer !() and inner && both expand."""
+        module = _parse(
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return !(a && b);\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        expr = fn.body.statements[0].value
+        # No Call-by-name to logical_and or logical_not should survive.
+        calls = _collect_call_names(expr)
+        self.assertNotIn("logical_and", calls)
+        self.assertNotIn("logical_not", calls)
+
+
 class TestInlinerUsesRealStdlib(unittest.TestCase):
     """Sanity: the inliner does load the real stdlib by default."""
 
