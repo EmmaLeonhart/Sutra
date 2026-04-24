@@ -1,0 +1,76 @@
+// Canonical Sutra definitions for memory / lookup operations:
+// `zero_vector`, the rotation-hashmap `hashmap_get` / `hashmap_set`,
+// and the identity-or-nearest-key map lookup.
+//
+// Today these are hardcoded as runtime methods in codegen.py — see
+// `def zero_vector`, `def hashmap_get`, `def hashmap_set`, and the
+// emitted `_vector_map_lookup` helper. This file is the target shape
+// for the inliner. See stdlib/README.md.
+//
+// Every function below is currently blocked on intrinsics — they
+// need indexed construction, cosine-based argmax, or functional-
+// update semantics that aren't Sutra-callable yet.
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics
+// ==========================================================================
+//
+// zero_vector — the zero vector at runtime dim. Every component is 0,
+// including every synthetic slot. Used as the neutral element for
+// bundling and as the starting state for constructors like
+// `make_real` / `make_complex`.
+//
+//   function vector zero_vector() {
+//       return _VSA_zeros(runtime_dim);
+//   }
+//
+// Blocked on: `_VSA_zeros(N)` primitive — a d-dim zero vector
+// literal. Could alternatively be expressed as an axis-indexed
+// assignment starting from a fresh allocation once those surfaces
+// land.
+
+
+// hashmap_get — look up a key in a rotation hashmap, returning the
+// bound value. Keys are vectors; lookup is cosine-nearest against
+// the set of rotation-bound (key, value) pairs.
+//
+//   function vector hashmap_get(map m, vector key) {
+//       vector bound = unbind(key, m.state);
+//       return snap(bound, m.values);
+//   }
+//
+// Blocked on: `map` type's field access (`m.state`, `m.values`),
+// `unbind` inlining (see vectors.su), `snap` (substrate cleanup
+// primitive — see similarity.su).
+
+
+// hashmap_set — functional update. Returns a new map with the
+// (key, value) pair added or overwritten.
+//
+//   function map hashmap_set(map m, vector key, vector value) {
+//       vector fresh = bundle(m.state, bind(key, value));
+//       return map_with_state(m, fresh);
+//   }
+//
+// Blocked on: same as hashmap_get, plus `map_with_state` constructor
+// for the map-type update.
+
+
+// map_lookup — identity-first lookup over a list of (key, value)
+// pairs. Checks each key against the query by identity (same Python
+// object) first; falls back to cosine-nearest match against the
+// stored keys.
+//
+//   function vector map_lookup(pair[] pairs, vector key) {
+//       foreach (pair p in pairs) {
+//           if (p.key is key) {
+//               return p.value;
+//           }
+//       }
+//       return argmax_cosine(key, [p.key for p in pairs]).value;
+//   }
+//
+// Blocked on: `is` identity comparison, comprehension syntax,
+// tuple/pair destructuring, and the `argmax_cosine` composition
+// from similarity.su.
