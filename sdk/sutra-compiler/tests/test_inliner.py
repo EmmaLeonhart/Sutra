@@ -409,6 +409,29 @@ class TestOperatorLowering(unittest.TestCase):
         self.assertNotIn("logical_not", calls)
 
 
+class TestIntrinsicCodegen(unittest.TestCase):
+    """Step 5 — `intrinsic function ... ;` declarations in stdlib
+    route user calls to the runtime class via `_VSA.<name>(...)`.
+    The inliner leaves intrinsic calls alone (empty body), and
+    codegen emits the runtime dispatch."""
+
+    def test_intrinsic_call_routes_to_vsa_method(self):
+        # `similarity` is declared as `intrinsic function scalar
+        # similarity(vector a, vector b);` in similarity.su. Calling
+        # it by name from user code should compile to _VSA.similarity.
+        src = (
+            "vector cat = \"cat\";\n"
+            "vector dog = \"dog\";\n"
+            "function scalar f() {\n"
+            "  return similarity(cat, dog);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # One occurrence for the user function body (the runtime
+        # prelude has `def similarity(self, ...)` which is different).
+        self.assertIn("_VSA.similarity(cat, dog)", py)
+
+
 class TestInlinerUsesRealStdlib(unittest.TestCase):
     """Sanity: the inliner does load the real stdlib by default."""
 

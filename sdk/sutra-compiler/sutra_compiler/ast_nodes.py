@@ -396,6 +396,11 @@ class FunctionDecl(Node):
     body: Block
     is_operator: bool = False
     is_implicit_conversion: bool = False
+    # `intrinsic` declarations: signature only, semicolon-terminated,
+    # no Sutra body. `body` is an empty Block in that case. Used by
+    # stdlib files for leaf primitives whose implementation lives in
+    # the runtime class (`_VSA.<name>(...)`).
+    is_intrinsic: bool = False
 
 
 @dataclass

@@ -81,3 +81,17 @@ function fuzzy neq(vector a, vector b) {
 // runtime. See `planning/sutra-spec/operations.md` for the semantic
 // contract — cleanup is a substrate-level primitive, not composable
 // from other Sutra ops.
+
+
+// ==========================================================================
+// Section 3 — intrinsic declarations
+// ==========================================================================
+//
+// These are runtime-implemented. Calls compile to `_VSA.<name>(...)`.
+// The stubs above show the target Sutra-level definitions once the
+// underlying primitives (dot, sqrt, tanh) get first-class surfaces;
+// for now the body lives in the runtime class and these declarations
+// expose the signatures at the Sutra level.
+
+intrinsic function fuzzy eq(vector a, vector b);
+intrinsic function scalar similarity(vector a, vector b);
