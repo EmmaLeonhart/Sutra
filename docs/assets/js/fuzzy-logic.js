@@ -1,10 +1,10 @@
 /**
  * Sutra — fuzzy-logic explorer.
  *
- * Two sliders (a, b) and a single connective card that switches via
- * tabs. One operation visible at a time, so the user focuses on how
- * that polynomial responds to the inputs rather than reading a grid
- * of cards.
+ * Tabs along the top pick one connective; a single card below shows
+ * its live value as the sliders move. Each tab shows three lines:
+ * the connective's name, its math symbol, and the common programming
+ * idiom for it.
  *
  * @file
  */
@@ -21,43 +21,57 @@
   const CONNECTIVES = [
     {
       id: 'and',
-      name: 'a && b',
+      name: 'AND',
+      symbol: '∧',           // ∧
+      idiom: '&&',
       polynomial: '(a + b + ab − a² − b² + a²b²) / 2',
       fn: andPoly,
     },
     {
       id: 'or',
-      name: 'a || b',
+      name: 'OR',
+      symbol: '∨',           // ∨
+      idiom: '||',
       polynomial: '(a + b − ab + a² + b² − a²b²) / 2',
       fn: orPoly,
     },
     {
       id: 'nand',
-      name: 'nand(a, b)',
+      name: 'NAND',
+      symbol: '⊼',           // ⊼
+      idiom: '!(a && b)',
       polynomial: '−(AND polynomial)',
       fn: (a, b) => -andPoly(a, b),
     },
     {
       id: 'nor',
-      name: 'nor(a, b)',
+      name: 'NOR',
+      symbol: '⊽',           // ⊽
+      idiom: '!(a || b)',
       polynomial: '−(OR polynomial)',
       fn: (a, b) => -orPoly(a, b),
     },
     {
       id: 'xor',
-      name: 'xor(a, b)',
+      name: 'XOR',
+      symbol: '⊕',           // ⊕
+      idiom: '^',
       polynomial: '−a · b',
       fn: (a, b) => -a * b,
     },
     {
       id: 'iff',
-      name: 'iff(a, b)',
+      name: 'IFF',
+      symbol: '↔',           // ↔
+      idiom: '== (on bools)',
       polynomial: 'a · b',
       fn: (a, b) => a * b,
     },
     {
       id: 'implies',
-      name: 'a → b',
+      name: 'IMPLIES',
+      symbol: '→',           // →
+      idiom: '(no common form)',
       polynomial: '(−a + b + ab + a² + b² − a²b²) / 2',
       fn: (a, b) => orPoly(-a, b),
     },
@@ -79,10 +93,7 @@
   align-items: center;
   margin-bottom: 0.5rem;
 }
-#fuzzy-logic-widget .flw-row label {
-  font-weight: 600;
-  min-width: 1.5rem;
-}
+#fuzzy-logic-widget .flw-row label { font-weight: 600; min-width: 1.5rem; }
 #fuzzy-logic-widget .flw-row input[type=range] { width: 100%; }
 #fuzzy-logic-widget .flw-val {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -103,37 +114,78 @@
   font-size: 0.8em;
 }
 #fuzzy-logic-widget .flw-snap button:hover { background: var(--md-accent-fg-color--transparent); }
+
 #fuzzy-logic-widget .flw-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.4rem;
   margin-bottom: 0.75rem;
 }
 #fuzzy-logic-widget .flw-tab {
-  padding: 0.35rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.5rem;
   border: 1px solid var(--md-default-fg-color--lighter);
   background: var(--md-default-bg-color);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.85em;
+  text-align: center;
+  transition: background 80ms, border-color 80ms;
 }
+#fuzzy-logic-widget .flw-tab:hover { background: var(--md-accent-fg-color--transparent); }
 #fuzzy-logic-widget .flw-tab.active {
   background: var(--md-primary-fg-color);
   color: var(--md-primary-bg-color);
   border-color: var(--md-primary-fg-color);
 }
+#fuzzy-logic-widget .flw-tab-name {
+  font-weight: 700;
+  font-size: 0.95em;
+  letter-spacing: 0.05em;
+}
+#fuzzy-logic-widget .flw-tab-symbol {
+  font-size: 1.2em;
+  line-height: 1;
+  opacity: 0.85;
+}
+#fuzzy-logic-widget .flw-tab-idiom {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.75em;
+  opacity: 0.65;
+  margin-top: 0.1rem;
+}
+#fuzzy-logic-widget .flw-tab.active .flw-tab-symbol,
+#fuzzy-logic-widget .flw-tab.active .flw-tab-idiom { opacity: 1; }
+
 #fuzzy-logic-widget .flw-card {
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 8px;
   padding: 1rem;
   background: var(--md-default-bg-color);
 }
-#fuzzy-logic-widget .flw-card h4 {
-  margin: 0 0 0.4rem 0;
+#fuzzy-logic-widget .flw-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+#fuzzy-logic-widget .flw-card-name {
+  font-weight: 700;
   font-size: 1.1rem;
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  letter-spacing: 0.05em;
   color: var(--md-primary-fg-color);
+}
+#fuzzy-logic-widget .flw-card-symbol {
+  font-size: 1.3rem;
+  color: var(--md-default-fg-color--light);
+}
+#fuzzy-logic-widget .flw-card-idiom {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.85em;
+  color: var(--md-default-fg-color--light);
+  margin-left: auto;
 }
 #fuzzy-logic-widget .flw-poly {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -209,8 +261,12 @@
       </div>
     </div>
     <div class="flw-tabs" id="flw-tabs"></div>
-    <div class="flw-card" id="flw-card">
-      <h4 id="flw-name"></h4>
+    <div class="flw-card">
+      <div class="flw-card-header">
+        <span class="flw-card-name" id="flw-name"></span>
+        <span class="flw-card-symbol" id="flw-symbol"></span>
+        <span class="flw-card-idiom" id="flw-idiom"></span>
+      </div>
       <div class="flw-poly" id="flw-poly"></div>
       <div class="flw-result" id="flw-result"></div>
       <div class="flw-bar"><div class="flw-marker" id="flw-marker"></div></div>
@@ -223,7 +279,11 @@
     const b = document.createElement('button');
     b.className = 'flw-tab';
     b.dataset.id = c.id;
-    b.textContent = c.name;
+    b.innerHTML = `
+      <span class="flw-tab-name">${c.name}</span>
+      <span class="flw-tab-symbol">${c.symbol}</span>
+      <span class="flw-tab-idiom">${escapeHtml(c.idiom)}</span>
+    `;
     tabsEl.appendChild(b);
   }
 
@@ -232,6 +292,8 @@
   const aVal = HOST.querySelector('#flw-a-val');
   const bVal = HOST.querySelector('#flw-b-val');
   const nameEl = HOST.querySelector('#flw-name');
+  const symbolEl = HOST.querySelector('#flw-symbol');
+  const idiomEl = HOST.querySelector('#flw-idiom');
   const polyEl = HOST.querySelector('#flw-poly');
   const resultEl = HOST.querySelector('#flw-result');
   const markerEl = HOST.querySelector('#flw-marker');
@@ -239,6 +301,9 @@
   let activeId = 'and';
 
   function fmt(v) { return (v >= 0 ? '+' : '') + v.toFixed(3); }
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
   function render() {
     const a = parseFloat(aSlider.value);
@@ -247,6 +312,8 @@
     bVal.textContent = fmt(b);
     const c = CONNECTIVES.find(c => c.id === activeId);
     nameEl.textContent = c.name;
+    symbolEl.textContent = c.symbol;
+    idiomEl.textContent = c.idiom;
     polyEl.textContent = c.polynomial;
     const val = c.fn(a, b);
     resultEl.textContent = fmt(val);
