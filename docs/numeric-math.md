@@ -185,6 +185,3 @@ This is the same "primitive class = compile-time tag on shared storage" pattern 
 
 - [Primitive classes](primitive-classes.md) — the unifying "everything is a vector" picture.
 - [Logical operations](logical-operations.md) — the truth-axis analog of this story.
-- [Literals and auto-embedding design](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/literals-and-auto-embedding.md) — the spec-level capture of the literal set including the imaginary suffix and the complex-multiplication follow-on.
-- [`tests/corpus/valid/30_imaginary_literal.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/tests/corpus/valid/30_imaginary_literal.su) — the `5i` family of literals.
-- [`tests/corpus/valid/31_complex_type.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/tests/corpus/valid/31_complex_type.su) — complex-typed variables and compile-time coercion.

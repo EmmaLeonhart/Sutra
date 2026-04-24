@@ -182,8 +182,6 @@ graph TD
 
 There is no `null`. The neutral is real, not a sentinel. When you read a not-yet-assigned variable, you get the neutral, and the neutral is a meaningful value in the math that follows.
 
-See the open-questions doc [*No null in Sutra*](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/no-null.md) for the full design rationale.
-
 ---
 
 ## Functional completeness and factorable logic
@@ -212,13 +210,8 @@ On a signed truth scale where `-1 = false`, `0 = unknown`, `+1 = true`,
 signs, and "they agree" is the positive product. Four levels of
 primitive composition collapse to a single multiplication.
 
-Full derivation and polynomial forms for all eight standard
-connectives (AND, OR, NOT, NAND, NOR, XOR, IFF, →) live in
-[`planning/findings/2026-04-23-logic-gate-polynomial-forms.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-logic-gate-polynomial-forms.md).
-The corpus test
-[`tests/corpus/valid/35_derived_logic.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/tests/corpus/valid/35_derived_logic.su)
-writes each derived connective in Sutra as a composition of the
-primitives and checks the three-valued truth tables.
+See [Logical operations](logical-operations.md) for the polynomial
+forms of all eight standard connectives and the full derivations.
 
 ---
 
@@ -234,7 +227,7 @@ Some things that follow from this hierarchy and are worth internalizing:
 
 ## Related reading
 
-- Canonical axis allocation: [`planning/findings/2026-04-21-extended-state-and-rotation-binding.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-21-extended-state-and-rotation-binding.md)
-- Zero as explicit neutrality: [`planning/open-questions/zero-as-explicit-neutrality.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/zero-as-explicit-neutrality.md)
-- No null design position: [`planning/open-questions/no-null.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/no-null.md)
-- Literals and context-driven coercion: [`planning/open-questions/literals-and-auto-embedding.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/literals-and-auto-embedding.md)
+- [Logical operations](logical-operations.md) — the truth-family algebra.
+- [Numeric math](numeric-math.md) — the numeric-family algebra.
+- [Ontology](ontology.md) — the broader class-tree picture including user-defined classes and embeddings.
+- [Memory](memory.md) — how rotation binding lets vectors act as arrays and hashmaps.
