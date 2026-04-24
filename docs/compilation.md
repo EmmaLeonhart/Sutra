@@ -125,7 +125,7 @@ bundle(bind(r1, f1), bind(r2, f2), ..., bind(rN, fN))
    →  _VSA.bundle_of_binds((r1, f1), (r2, f2), ..., (rN, fN))
 ```
 
-One stacked matmul on GPU instead of N separate bind calls followed by a sum. The fuzzy-logic compositions are the natural next target for this pass (see `planning/findings/2026-04-23-logic-gate-polynomial-forms.md` for the rewrite rules that would collapse XOR / IFF / NAND / NOR to their direct polynomial forms — not yet implemented).
+One stacked matmul on GPU instead of N separate bind calls followed by a sum. Fuzzy-logic compositions (collapsing XOR / IFF / NAND / NOR to their direct polynomial forms) are the natural next target for this pass, not yet implemented.
 
 ---
 
@@ -278,7 +278,7 @@ Now here's the interesting part. The **composition of these five polynomials** �
 (a && !b) || (!a && b)   ≡   -a · b
 ```
 
-That identity was verified on the full `{-1, 0, +1}²` grid in [`planning/findings/2026-04-23-logic-gate-polynomial-forms.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-logic-gate-polynomial-forms.md). A future simplifier pass that recognizes the XOR pattern and rewrites to `-a * b` directly would turn the five-call form above into:
+A future simplifier pass that recognizes the XOR pattern and rewrites to `-a * b` directly would turn the five-call form above into:
 
 ```python
 def F(a, b):
