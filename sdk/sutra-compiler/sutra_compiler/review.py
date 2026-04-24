@@ -1,24 +1,32 @@
 """Review mode — step-by-step trace of compilation stages.
 
-Exposes `review_file(path)` which compiles a .su file and prints each
-stage of the pipeline in human-readable form:
+Run as:
 
-  1. Source                   (the .su input)
-  2. Parsed AST               (pseudo-Sutra pretty-print of the AST)
-  3. After stdlib inlining    (inliner expansion)
-  4. During simplification    (each rewrite rule that fired + what it
-                               turned the expression into)
-  5. Simplified AST           (final form after all rewrites)
-  6. Emitted Python           (what the codegen produced)
+    python sutrac.py --review FILE.su
 
-Intended use:
+What it does: compiles `FILE.su` through the real compiler pipeline
+and prints what happened at each stage — parsing, stdlib inlining,
+rewrite-based simplification, and codegen. Each stage is annotated
+with a one-line "what this is and why" explainer so the output is
+legible without needing to know the compiler internals.
 
-    python -m sutra_compiler --review examples/analogy.su
+Stages shown:
 
-Works as a teaching and debugging aid. If a program is doing something
-unexpected at runtime, the review output shows exactly which source-
-level expression became what pre-runtime form, and which rewrites
-contributed along the way.
+  1. Source              — the .su source you wrote.
+  2. Parsing             — Sutra text -> abstract syntax tree.
+  3. Stdlib inlining     — stdlib function bodies copied in-place.
+  4. Simplification      — each rewrite rule that fired + before/after.
+  5. Codegen             — the Python code the compiler emitted.
+
+Stages that do nothing (e.g. inlining on a program with no stdlib
+calls) are collapsed to one line instead of re-dumping the whole AST,
+so the output focuses on what actually changed.
+
+The headline stage is #4 — the simplification trace. That's where
+you see which of the 16 algebraic rewrites touched your program and
+what they turned your expressions into. If no rewrites fired, the
+trace says so explicitly and points at `examples/review_demo.su` as
+a sample program that does trigger several.
 """
 from __future__ import annotations
 
@@ -39,12 +47,6 @@ from .inliner import inline_stdlib_calls
 
 
 def pretty_expr(node) -> str:
-    """Render an expression AST node as Sutra-looking source text.
-
-    Not a full source round-trip (spans / types are lost) but readable
-    enough for the review-mode trace. Literals render as their values;
-    calls render as `name(arg, arg)`; binary ops render as `lhs op rhs`.
-    """
     if node is None:
         return "<none>"
     if isinstance(node, ast.Identifier):
@@ -72,7 +74,9 @@ def pretty_expr(node) -> str:
     if isinstance(node, ast.BinaryOp):
         return f"{pretty_expr(node.left)} {node.op} {pretty_expr(node.right)}"
     if isinstance(node, ast.Call):
-        callee = pretty_expr(node.callee) if not isinstance(node.callee, ast.Identifier) else node.callee.name
+        callee = (node.callee.name
+                  if isinstance(node.callee, ast.Identifier)
+                  else pretty_expr(node.callee))
         args = ", ".join(pretty_expr(a) for a in node.args)
         return f"{callee}({args})"
     if isinstance(node, ast.ArrayLiteral):
@@ -85,12 +89,10 @@ def pretty_expr(node) -> str:
         return f"embed({pretty_expr(node.expr)})"
     if isinstance(node, ast.DefuzzyExpr):
         return f"defuzzy({pretty_expr(node.expr)})"
-    # Fallback: the raw dataclass repr.
     return f"<{type(node).__name__}>"
 
 
 def pretty_stmt(stmt, indent: int = 0) -> List[str]:
-    """Render a statement as a list of lines."""
     pad = "  " * indent
     if isinstance(stmt, ast.VarDecl):
         type_str = f"{stmt.type_ref.name} " if stmt.type_ref else "var "
@@ -121,16 +123,15 @@ def pretty_stmt(stmt, indent: int = 0) -> List[str]:
 
 
 def pretty_module(module: ast.Module) -> str:
-    """Render an entire module as a string."""
-    lines: List[str] = []
+    """One line per statement — keep it compact so diffs read cleanly."""
+    out: List[str] = []
     for item in module.items:
-        lines.extend(pretty_stmt(item))
-        lines.append("")
-    return "\n".join(lines)
+        out.extend(pretty_stmt(item))
+    return "\n".join(out)
 
 
 # ---------------------------------------------------------------------
-# Trace collector — attach to simplify.set_trace_callback
+# Trace collector
 # ---------------------------------------------------------------------
 
 
@@ -145,7 +146,7 @@ class _TraceCollector:
 
 
 # ---------------------------------------------------------------------
-# Review entry point
+# Rendering
 # ---------------------------------------------------------------------
 
 
@@ -153,15 +154,31 @@ RULE_BAR = "=" * 72
 SUB_BAR = "-" * 72
 
 
-def _heading(title: str) -> str:
-    return f"\n{RULE_BAR}\n{title}\n{RULE_BAR}"
+def _heading(num: int, title: str, explainer: str) -> str:
+    """Numbered heading + a one-line explainer of what this section is."""
+    return (f"\n{RULE_BAR}\n"
+            f"Stage {num}: {title}\n"
+            f"{SUB_BAR}\n"
+            f"  {explainer}")
+
+
+def _compare(before: str, after: str) -> str:
+    """One-line description of whether two stages differ."""
+    if before == after:
+        return "(no change from previous stage)"
+    n_before = before.count("\n") + 1
+    n_after = after.count("\n") + 1
+    delta = n_after - n_before
+    sign = "+" if delta >= 0 else ""
+    return f"(changed: {sign}{delta} lines vs previous stage)"
+
+
+# ---------------------------------------------------------------------
+# Review entry point
+# ---------------------------------------------------------------------
 
 
 def review_file(path: str) -> int:
-    """Compile `path` through the pipeline, printing each stage.
-
-    Returns 0 on success, 1 if any stage raised.
-    """
     if not os.path.exists(path):
         print(f"{path}: error: file not found", file=sys.stderr)
         return 1
@@ -169,11 +186,30 @@ def review_file(path: str) -> int:
     with open(path, encoding="utf-8") as f:
         src = f.read()
 
-    # --- 1. Source ---
-    print(_heading(f"1. Source  ({path})"))
-    print(src)
+    # Banner — orient the reader before anything else.
+    print(RULE_BAR)
+    print(f"REVIEW MODE  —  {path}")
+    print(RULE_BAR)
+    print("""
+This mode runs your .su file through the real compiler and shows
+what happened at each stage. The 5 stages below are numbered; each
+has a one-line explainer of what it is and why it matters.
 
-    # --- 2. Parse ---
+The most interesting stage is usually #4 (Simplification): that's
+where algebraic rewrites collapse redundant expressions. If zero
+rewrites fire, your program is already in minimal form — try
+`python sutrac.py --review examples/review_demo.su` to see a
+program that triggers five of them.
+""".strip())
+
+    # --- Stage 1: Source ---
+    print(_heading(1, "Source",
+                   "The .su text you wrote. Input to the compiler."))
+    print()
+    for line in src.rstrip().splitlines():
+        print(f"  {line}")
+
+    # --- Stage 2: Parsing ---
     lexer = Lexer(src, file=path)
     tokens = lexer.tokenize()
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
@@ -184,42 +220,82 @@ def review_file(path: str) -> int:
             print(f"  {d.format()}")
         return 1
 
-    print(_heading("2. Parsed AST  (pseudo-Sutra pretty-print)"))
-    print(pretty_module(module))
+    parsed_repr = pretty_module(module)
+    print(_heading(
+        2, "Parsing",
+        "Source text becomes an Abstract Syntax Tree. Below is the "
+        "AST pretty-printed back as (pseudo-)Sutra syntax — it should "
+        "look similar to your source, with comments removed and "
+        "expressions normalized."))
+    print()
+    for line in parsed_repr.splitlines():
+        print(f"  {line}")
 
-    # --- 3. Inline stdlib ---
+    # --- Stage 3: Stdlib inlining ---
     try:
         inline_stdlib_calls(module)
     except Exception as e:
         print(f"\nInliner error: {type(e).__name__}: {e}")
         return 1
+    inlined_repr = pretty_module(module)
+    print(_heading(
+        3, "Stdlib inlining",
+        "Calls to stdlib functions (e.g. logical_and, defuzzy) get "
+        "replaced by their polynomial bodies in-place, so the "
+        "downstream simplifier can fold literal inputs. If your "
+        "program doesn't call anything from stdlib, this is a no-op."))
+    print(f"  {_compare(parsed_repr, inlined_repr)}")
+    if inlined_repr != parsed_repr:
+        print()
+        for line in inlined_repr.splitlines():
+            print(f"  {line}")
 
-    print(_heading("3. After stdlib inlining"))
-    print(pretty_module(module))
-
-    # --- 4 + 5. Simplification with per-rule trace ---
+    # --- Stage 4: Simplification (the headline) ---
     collector = _TraceCollector()
     set_trace_callback(collector)
     try:
         simplify_module(module)
     finally:
         set_trace_callback(None)
+    simplified_repr = pretty_module(module)
 
-    print(_heading("4. Simplification trace  (rewrites that fired)"))
+    print(_heading(
+        4, "Simplification  (headline stage)",
+        "The compiler applies algebraic rewrite rules that preserve "
+        "meaning but reduce work. Each line below is one rewrite that "
+        "fired, showing the expression BEFORE and AFTER the rule "
+        "applied. Rule names (R01-R16) refer to the numbered rules "
+        "documented in sdk/sutra-compiler/sutra_compiler/simplify.py."))
+    print()
     if not collector.events:
-        print("  (no rewrites fired)")
+        print("  No rewrites fired on this program.")
+        print()
+        print("  This means either (a) the program is already in minimal")
+        print("  form, or (b) its expressions don't match any of the 16")
+        print("  rewrite patterns. Programs that DO trigger rewrites:")
+        print("    - examples/review_demo.su   (R01, R04, R05, R08, R16)")
+        print("    - bundle(v)                 (R01)")
+        print("    - similarity(king, king)    (R04)")
+        print("    - unbind(r, bind(r, king))  (R08)")
+        print("    - 2 + 3                     (R16)")
     else:
-        print(f"  {len(collector.events)} rewrite(s) fired:\n")
+        print(f"  {len(collector.events)} rewrite(s) fired:")
+        print()
         for i, (rule, before, after) in enumerate(collector.events, 1):
-            print(f"  [{i:2}] {rule}")
-            print(f"       before: {before}")
-            print(f"       after:  {after}")
+            print(f"  [{i}]  {rule}")
+            print(f"        before:  {before}")
+            print(f"        after:   {after}")
             print()
 
-    print(_heading("5. Simplified AST"))
-    print(pretty_module(module))
+    # Only re-print the AST if simplification actually changed something.
+    if simplified_repr != inlined_repr:
+        print(f"  {SUB_BAR[2:]}")
+        print(f"  Simplified AST:")
+        print()
+        for line in simplified_repr.splitlines():
+            print(f"  {line}")
 
-    # --- 6. Emitted Python ---
+    # --- Stage 5: Codegen ---
     try:
         from .codegen import translate_module
     except ImportError as e:
@@ -230,19 +306,69 @@ def review_file(path: str) -> int:
     except Exception as e:
         print(f"\nCodegen error: {type(e).__name__}: {e}")
         return 1
+    py_lines = py_src.splitlines()
 
-    print(_heading("6. Emitted Python  (first 80 lines)"))
-    lines = py_src.splitlines()
-    for line in lines[:80]:
-        print(line)
-    if len(lines) > 80:
-        print(f"... ({len(lines) - 80} more lines omitted)")
+    # The prelude is ~300-900 lines of boilerplate _VSA runtime class
+    # (bind, unbind, bundle, embed, slot primitives, hashmap, etc.).
+    # For review purposes, show only the USER-SPECIFIC emitted code —
+    # everything after the `_VSA = _...VSA(...)` instantiation line,
+    # which is where the runtime ends and the user's compiled program
+    # begins. Top-level `king = _VSA.embed('king')` etc. follow.
+    # User program lines are top-level assignments or defs whose name
+    # doesn't begin with underscore (convention: runtime helpers start
+    # with _). Find the first such line; everything from there down is
+    # the compiled user program.
+    import re
+    _user_line_re = re.compile(r"^([A-Za-z][A-Za-z0-9_]*)\s*(=|\()")
+    _def_re = re.compile(r"^def ([A-Za-z][A-Za-z0-9_]*)\(")
+    user_start = None
+    for i, line in enumerate(py_lines):
+        if not line or line[0] in " \t#":
+            continue
+        m = _user_line_re.match(line) or _def_re.match(line)
+        if not m:
+            continue
+        name = m.group(1)
+        if name.startswith("_") or name in ("import", "from", "class",
+                                             "def", "if", "for", "while"):
+            continue
+        # A def that's not the user's: skip helpers.
+        if line.startswith("def ") and name.startswith("_"):
+            continue
+        user_start = i
+        break
+    if user_start is None:
+        user_start = max(0, len(py_lines) - 40)
 
-    print(_heading("Review complete"))
-    print(f"  source:          {len(src)} chars")
-    print(f"  parsed items:    {len(module.items)}")
-    print(f"  rewrites fired:  {len(collector.events)}")
-    print(f"  emitted Python:  {len(lines)} lines")
+    print(_heading(
+        5, "Codegen",
+        "The compiler emits a self-contained Python module that runs "
+        "your program. The module has a large prelude defining the "
+        "_VSA runtime class (bind, unbind, bundle, slot primitives, "
+        "etc.) — that's boring boilerplate. What's shown below is "
+        "JUST your .su program after compilation: each top-level "
+        "declaration becomes one Python line, every expression has "
+        "been simplified, and calls target _VSA methods. This is "
+        "what actually runs when you invoke `python sutrac.py --run`."))
+    print(f"  emitted total:   {len(py_lines)} lines")
+    print(f"  prelude hidden:  lines 1..{user_start} "
+          f"(runtime library — same for every program)")
+    print(f"  your program:    lines {user_start + 1}..{len(py_lines)}")
+    print()
+    # Show every line from user_start onward — keep blank lines for
+    # readability but drop pure-comment-only lines that re-explain
+    # runtime helpers the user doesn't care about.
+    for line in py_lines[user_start:]:
+        print(f"  {line}")
+
+    # --- Final summary ---
+    print(_heading(6, "Summary", "One-line recap."))
+    print(f"  source:           {src.count(chr(10)) + 1} lines  "
+          f"({len(src)} chars)")
+    print(f"  AST statements:   {len(module.items)} top-level items")
+    print(f"  inlining:         {'changed the AST' if inlined_repr != parsed_repr else 'no-op (no stdlib calls)'}")
+    print(f"  simplification:   {len(collector.events)} rewrite(s) fired")
+    print(f"  emitted Python:   {len(py_lines)} lines")
     return 0
 
 
