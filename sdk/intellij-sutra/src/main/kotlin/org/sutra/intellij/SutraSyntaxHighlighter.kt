@@ -27,8 +27,11 @@ class SutraSyntaxHighlighter : SyntaxHighlighterBase() {
 
             SutraTokenTypes.STRING          -> STRING_KEYS
             SutraTokenTypes.INTERP_STRING   -> INTERP_STRING_KEYS
+            SutraTokenTypes.CHAR_LITERAL    -> CHAR_LITERAL_KEYS
             SutraTokenTypes.NUMBER          -> NUMBER_KEYS
+            SutraTokenTypes.IMAG_LITERAL    -> IMAG_LITERAL_KEYS
             SutraTokenTypes.BOOLEAN_LITERAL -> BOOLEAN_LITERAL_KEYS
+            SutraTokenTypes.UNKNOWN_LITERAL -> UNKNOWN_LITERAL_KEYS
 
             SutraTokenTypes.KEYWORD         -> KEYWORD_KEYS
             SutraTokenTypes.PRIMITIVE_TYPE  -> PRIMITIVE_TYPE_KEYS
@@ -70,8 +73,11 @@ class SutraSyntaxHighlighter : SyntaxHighlighterBase() {
 
         val STRING           = createTextAttributesKey("SUTRA_STRING", Defaults.STRING)
         val INTERP_STRING    = createTextAttributesKey("SUTRA_INTERP_STRING", Defaults.STRING)
+        val CHAR_LITERAL     = createTextAttributesKey("SUTRA_CHAR_LITERAL", Defaults.STRING)
         val NUMBER           = createTextAttributesKey("SUTRA_NUMBER", Defaults.NUMBER)
+        val IMAG_LITERAL     = createTextAttributesKey("SUTRA_IMAG_LITERAL", Defaults.NUMBER)
         val BOOLEAN_LITERAL  = createTextAttributesKey("SUTRA_BOOLEAN_LITERAL", Defaults.KEYWORD)
+        val UNKNOWN_LITERAL  = createTextAttributesKey("SUTRA_UNKNOWN_LITERAL", Defaults.KEYWORD)
 
         val KEYWORD          = createTextAttributesKey("SUTRA_KEYWORD", Defaults.KEYWORD)
         // Primitive types (vector, scalar, permutation, fuzzy, bool, …) are
@@ -106,8 +112,11 @@ class SutraSyntaxHighlighter : SyntaxHighlighterBase() {
         private val BLOCK_COMMENT_KEYS   = arrayOf(BLOCK_COMMENT)
         private val STRING_KEYS          = arrayOf(STRING)
         private val INTERP_STRING_KEYS   = arrayOf(INTERP_STRING)
+        private val CHAR_LITERAL_KEYS    = arrayOf(CHAR_LITERAL)
         private val NUMBER_KEYS          = arrayOf(NUMBER)
+        private val IMAG_LITERAL_KEYS    = arrayOf(IMAG_LITERAL)
         private val BOOLEAN_LITERAL_KEYS = arrayOf(BOOLEAN_LITERAL)
+        private val UNKNOWN_LITERAL_KEYS = arrayOf(UNKNOWN_LITERAL)
         private val KEYWORD_KEYS         = arrayOf(KEYWORD)
         private val PRIMITIVE_TYPE_KEYS  = arrayOf(PRIMITIVE_TYPE)
         private val BUILTIN_KEYS         = arrayOf(BUILTIN)

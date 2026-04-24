@@ -99,7 +99,7 @@
       "patterns": [
         {
           "name": "keyword.control.sutra",
-          "match": "\\b(if|else|while|for|foreach|in|do|return|try|catch|break|continue)\\b"
+          "match": "\\b(if|else|while|for|foreach|in|do|loop|as|return|try|catch|break|continue)\\b"
         },
         {
           "name": "keyword.declaration.sutra",
@@ -120,7 +120,7 @@
       "patterns": [
         {
           "name": "support.type.primitive.sutra",
-          "match": "\\b(scalar|vector|matrix|tuple|string|bool|fuzzy|void)\\b"
+          "match": "\\b(scalar|vector|matrix|tuple|string|bool|fuzzy|void|permutation|map|char|int|float|complex|trit)\\b"
         },
         {
           "name": "entity.name.type.sutra",
@@ -180,12 +180,34 @@
         {
           "name": "constant.language.boolean.sutra",
           "match": "\\b(true|false)\\b"
+        },
+        {
+          "comment": "Three-valued truth neutral point: `unknown` (long form) and `unk` (short alias).",
+          "name": "constant.language.unknown.sutra",
+          "match": "\\b(unknown|unk)\\b"
+        },
+        {
+          "comment": "Char literal: single-quoted character, with backslash escapes (e.g. '\\n', '\\'').",
+          "name": "string.quoted.single.sutra",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.sutra",
+              "match": "\\\\."
+            }
+          ]
         }
       ]
     },
 
     "numbers": {
       "patterns": [
+        {
+          "comment": "Imaginary suffix: `5i`, `3.14i`.",
+          "name": "constant.numeric.imaginary.sutra",
+          "match": "\\b[0-9]+(?:\\.[0-9]+)?i\\b"
+        },
         {
           "name": "constant.numeric.decimal.sutra",
           "match": "\\b[0-9]+\\.[0-9]+\\b"
