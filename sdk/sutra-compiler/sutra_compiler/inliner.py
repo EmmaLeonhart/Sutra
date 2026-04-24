@@ -74,8 +74,9 @@ def inline_stdlib_calls(
     module: ast.Module,
     stdlib_table: Optional[Dict[str, ast.FunctionDecl]] = None,
 ) -> ast.Module:
-    """Inline every stdlib call whose target has a single-return-expr
-    body. Mutates `module` in place and returns it.
+    """Rewrite operators to stdlib calls, then inline every stdlib
+    call whose target has a single-return-expr body. Mutates
+    `module` in place and returns it.
 
     Pass `stdlib_table` explicitly to test against a synthetic stdlib;
     otherwise the real `sutra_compiler/stdlib/` is loaded and cached.
@@ -86,6 +87,12 @@ def inline_stdlib_calls(
         for name, decl in table.items()
         if _is_single_return_expr(decl)
     }
+    # Step 2.6 — lower operators to stdlib calls for the ones with
+    # stdlib bodies. After this pass, `a && b` is a Call to
+    # logical_and, `!v` is a Call to logical_not, etc. — and the
+    # inliner below expands them uniformly with direct user calls.
+    _lower_operators_to_stdlib_calls(module, inlineable)
+    # Step 2 — inline stdlib calls.
     for item in module.items:
         _rewrite_top_level(item, inlineable)
     return module
@@ -190,7 +197,7 @@ def _rewrite_expr(expr, table):
         expr.args = [_rewrite_expr(a, table) for a in expr.args]
         if (isinstance(expr.callee, ast.Identifier)
                 and expr.callee.name in table):
-            return _do_inline(expr, table[expr.callee.name])
+            return _do_inline(expr, table[expr.callee.name], table)
         return expr
 
     if isinstance(expr, ast.BinaryOp):
@@ -257,9 +264,15 @@ def _rewrite_expr(expr, table):
 # ---------------------------------------------------------------------------
 
 
-def _do_inline(call: ast.Call, decl: ast.FunctionDecl):
+def _do_inline(call: ast.Call, decl: ast.FunctionDecl, table=None):
     """Return the inlined expression for `call`, or the original call
-    unchanged if arities disagree (let the validator flag it)."""
+    unchanged if arities disagree (let the validator flag it).
+
+    After substituting params into the body we re-run the rewriter on
+    the result, so inlined bodies that themselves contain stdlib
+    calls get fully expanded in one pass. Today's stdlib has no
+    recursion, so this terminates trivially; a future `@intrinsic`
+    form that's self-referential would need a depth guard."""
     if len(call.args) != len(decl.params):
         return call
 
@@ -272,7 +285,14 @@ def _do_inline(call: ast.Call, decl: ast.FunctionDecl):
         param.name: arg
         for param, arg in zip(decl.params, call.args)
     }
-    return _substitute_params(body_expr, subst)
+    substituted = _substitute_params(body_expr, subst)
+    # Recurse: the substituted body may contain more stdlib calls.
+    # (e.g. neq's body is `!(a == b)` — after operator lowering
+    # puts neq in place, the inlined !() becomes logical_not(...)
+    # which also wants to inline.)
+    if table is not None:
+        return _rewrite_expr(substituted, table)
+    return substituted
 
 
 def _substitute_params(expr, subst: Dict[str, object]):
@@ -336,4 +356,186 @@ def _substitute_params(expr, subst: Dict[str, object]):
         return expr
 
     # Literals and everything else: no substitution.
+    return expr
+
+
+# ---------------------------------------------------------------------------
+# Step 2.6 — operator lowering to stdlib calls
+# ---------------------------------------------------------------------------
+#
+# Rewrite `!v`, `a && b`, `a || b`, `a != b`, `a < b`, `a <= b`, `a >= b`
+# into explicit Call nodes targeting their stdlib counterparts. After this
+# runs, the inliner pass below sees a uniform Call shape whether the user
+# wrote `logical_and(a, b)` or `a && b`. The operators that don't have a
+# stdlib body today (`==`, `>`) are left alone — they continue to compile
+# through the hardcoded runtime methods until their stdlib forms land
+# (blocked on eq/gt intrinsics).
+#
+# Operators that aren't part of this set — `+`, `-`, `*`, `/`, etc. — are
+# not candidates for stdlib lowering. They're not "logic ops with a
+# Sutra-source definition;" they're primitive tensor arithmetic the
+# codegen knows how to emit directly.
+
+_BINARY_OP_TO_STDLIB = {
+    "&&": "logical_and",
+    "||": "logical_or",
+    "!=": "neq",
+    "<":  "lt",
+    "<=": "le",
+    ">=": "ge",
+}
+_UNARY_OP_TO_STDLIB = {
+    "!": "logical_not",
+}
+
+
+def _lower_operators_to_stdlib_calls(
+    module: ast.Module, inlineable: Dict[str, ast.FunctionDecl]
+) -> None:
+    """Walk the module and replace each operator node whose stdlib
+    counterpart is present and inlineable with a Call to it. Filters
+    by the inlineable set so operators without a stdlib body (or
+    stdlib body that can't yet be inlined) stay as operators."""
+    for item in module.items:
+        _lower_ops_top_level(item, inlineable)
+
+
+def _lower_ops_top_level(item, inlineable) -> None:
+    if isinstance(item, (ast.FunctionDecl, ast.MethodDecl)):
+        _lower_ops_block(item.body, inlineable)
+    elif isinstance(item, ast.VarDecl):
+        if item.initializer is not None:
+            item.initializer = _lower_ops_expr(item.initializer, inlineable)
+    elif isinstance(item, ast.Stmt):
+        _lower_ops_stmt(item, inlineable)
+
+
+def _lower_ops_block(block: ast.Block, inlineable) -> None:
+    for stmt in block.statements:
+        _lower_ops_stmt(stmt, inlineable)
+
+
+def _lower_ops_stmt(stmt, inlineable) -> None:
+    if isinstance(stmt, ast.VarDecl):
+        if stmt.initializer is not None:
+            stmt.initializer = _lower_ops_expr(stmt.initializer, inlineable)
+    elif isinstance(stmt, ast.ReturnStmt):
+        if stmt.value is not None:
+            stmt.value = _lower_ops_expr(stmt.value, inlineable)
+    elif isinstance(stmt, ast.ExprStmt):
+        stmt.expr = _lower_ops_expr(stmt.expr, inlineable)
+    elif isinstance(stmt, ast.Assignment):
+        stmt.target = _lower_ops_expr(stmt.target, inlineable)
+        stmt.value = _lower_ops_expr(stmt.value, inlineable)
+    elif isinstance(stmt, ast.IfStmt):
+        stmt.condition = _lower_ops_expr(stmt.condition, inlineable)
+        _lower_ops_block(stmt.then_branch, inlineable)
+        if stmt.else_branch is not None:
+            if isinstance(stmt.else_branch, ast.IfStmt):
+                _lower_ops_stmt(stmt.else_branch, inlineable)
+            else:
+                _lower_ops_block(stmt.else_branch, inlineable)
+    elif isinstance(stmt, ast.WhileStmt):
+        stmt.condition = _lower_ops_expr(stmt.condition, inlineable)
+        _lower_ops_block(stmt.body, inlineable)
+    elif isinstance(stmt, ast.DoWhileStmt):
+        _lower_ops_block(stmt.body, inlineable)
+        stmt.condition = _lower_ops_expr(stmt.condition, inlineable)
+    elif isinstance(stmt, ast.ForStmt):
+        if stmt.init is not None:
+            _lower_ops_stmt(stmt.init, inlineable)
+        if stmt.condition is not None:
+            stmt.condition = _lower_ops_expr(stmt.condition, inlineable)
+        if stmt.step is not None:
+            _lower_ops_stmt(stmt.step, inlineable)
+        _lower_ops_block(stmt.body, inlineable)
+    elif isinstance(stmt, ast.ForeachStmt):
+        stmt.iterable = _lower_ops_expr(stmt.iterable, inlineable)
+        _lower_ops_block(stmt.body, inlineable)
+    elif isinstance(stmt, ast.LoopStmt):
+        if stmt.count is not None:
+            stmt.count = _lower_ops_expr(stmt.count, inlineable)
+        if stmt.condition is not None:
+            stmt.condition = _lower_ops_expr(stmt.condition, inlineable)
+        _lower_ops_block(stmt.body, inlineable)
+    elif isinstance(stmt, ast.TryStmt):
+        _lower_ops_block(stmt.try_block, inlineable)
+        for clause in stmt.catches:
+            _lower_ops_block(clause.body, inlineable)
+    elif isinstance(stmt, ast.Block):
+        _lower_ops_block(stmt, inlineable)
+
+
+def _lower_ops_expr(expr, inlineable):
+    if expr is None:
+        return None
+
+    # Recurse into children first (post-order).
+    if isinstance(expr, ast.BinaryOp):
+        expr.left = _lower_ops_expr(expr.left, inlineable)
+        expr.right = _lower_ops_expr(expr.right, inlineable)
+        stdlib_name = _BINARY_OP_TO_STDLIB.get(expr.op)
+        if stdlib_name is not None and stdlib_name in inlineable:
+            return ast.Call(
+                callee=ast.Identifier(name=stdlib_name, span=expr.span),
+                type_args=[],
+                args=[expr.left, expr.right],
+                span=expr.span,
+            )
+        return expr
+
+    if isinstance(expr, ast.UnaryOp):
+        expr.operand = _lower_ops_expr(expr.operand, inlineable)
+        stdlib_name = _UNARY_OP_TO_STDLIB.get(expr.op)
+        if stdlib_name is not None and stdlib_name in inlineable:
+            return ast.Call(
+                callee=ast.Identifier(name=stdlib_name, span=expr.span),
+                type_args=[],
+                args=[expr.operand],
+                span=expr.span,
+            )
+        return expr
+
+    # Structural recursion for every other expression shape.
+    if isinstance(expr, ast.PostfixOp):
+        expr.operand = _lower_ops_expr(expr.operand, inlineable)
+        return expr
+    if isinstance(expr, ast.Call):
+        expr.callee = _lower_ops_expr(expr.callee, inlineable)
+        expr.args = [_lower_ops_expr(a, inlineable) for a in expr.args]
+        return expr
+    if isinstance(expr, ast.Parenthesized):
+        expr.inner = _lower_ops_expr(expr.inner, inlineable)
+        return expr
+    if isinstance(expr, ast.Subscript):
+        expr.target = _lower_ops_expr(expr.target, inlineable)
+        expr.index = _lower_ops_expr(expr.index, inlineable)
+        return expr
+    if isinstance(expr, ast.MemberAccess):
+        expr.obj = _lower_ops_expr(expr.obj, inlineable)
+        return expr
+    if isinstance(expr, ast.Assignment):
+        expr.target = _lower_ops_expr(expr.target, inlineable)
+        expr.value = _lower_ops_expr(expr.value, inlineable)
+        return expr
+    if isinstance(expr, (ast.CastExpr, ast.UnsafeCastExpr,
+                         ast.UnsafeOverrideExpr, ast.DefuzzyExpr,
+                         ast.EmbedExpr)):
+        expr.expr = _lower_ops_expr(expr.expr, inlineable)
+        return expr
+    if isinstance(expr, ast.ArrayLiteral):
+        expr.elements = [_lower_ops_expr(e, inlineable) for e in expr.elements]
+        return expr
+    if isinstance(expr, ast.MapLiteral):
+        expr.keys = [_lower_ops_expr(k, inlineable) for k in expr.keys]
+        expr.values = [_lower_ops_expr(v, inlineable) for v in expr.values]
+        return expr
+    if isinstance(expr, ast.InterpolatedString):
+        expr.parts = [
+            part if isinstance(part, str) else _lower_ops_expr(part, inlineable)
+            for part in expr.parts
+        ]
+        return expr
+
+    # Leaves (Identifier, literals, TypeRef) — no-op.
     return expr
