@@ -1,239 +1,200 @@
 // Sutra tutorial — a walk through every primitive class, annotated
-// with what the compiler does to each one.
+// with what the current compiler actually does to each one.
 //
 // ────────────────────────────────────────────────────────────────
-// How the compiler thinks about this program
+// How the compiler handles this program
 // ────────────────────────────────────────────────────────────────
 //
-// Sutra has no runtime control flow. No if/else at runtime. No
-// branches in the compute path. Every operation is a tensor op.
+// The design target is a radically unified runtime: every value is
+// a vector in the extended-state layout, every operation is a
+// tensor op, the whole program fuses into one chain of kernel
+// launches. That is what Sutra aims at.
 //
-// The compiler takes this file and expands every operator, method,
-// and function through symbolic substitution until the whole
-// program is one enormous algebraic expression over tensors. Then
-// it simplifies — fold constants, collapse compositions, cancel
-// inverses — aiming at the theoretical limit of one matrix
-// multiplication per program. (The current compiler does some of
-// these folds; the full fusion is ongoing work.)
+// The *current* compiler is partway there. Complex numbers, chars,
+// the truth family (bool / fuzzy / trit), and explicit vectors all
+// become tensors. Plain `int` and `float` in `int`- and `float`-
+// typed slots stay as Python scalars today — a fast path that
+// avoids boxing 5 into an 868-dim vector just to compute 5 + 3.
+// Numbers only become vectors when the slot or the expression
+// forces it (e.g. `complex c = 5;` auto-promotes to a vector).
 //
-// Everything that feels like control flow — hashmap lookups, if
-// statements, array indexing, loops — is math underneath. Below
-// you'll see them all, with a comment on what the compiler turns
-// them into.
-//
-// Locally, computing 2 + 3 by adding two 868-dimensional vectors
-// is absurd. Globally, that uniformity is what lets the compiler
-// fuse the whole program into one kernel chain.
+// Each section below shows the source and says what the compiler
+// emits for it. Where the emission is still the "plain Python
+// scalar" fast path rather than the eventual vector form, the
+// comment calls that out.
 
 
 // ═════════════════════════════════════════════════════════════
-// 1. Number-axis primitives: int, float, complex
+// 1. Plain ints and floats — scalar fast path
 // ═════════════════════════════════════════════════════════════
-//
-// int, float, and complex all live on the same real/imag synthetic
-// axes. The class tag controls what the compiler lets you write;
-// the runtime representation is identical.
 
-// Literal 2 and 3 are integer constants. Compile-time constant
-// folding turns `2 + 3` into the literal 5 before codegen sees it.
+// Emits `total = (2 + 3)`. Python evaluates that at runtime to 5.
+// No vector involved; integers stay as Python ints in int slots.
 int total = 2 + 3;
 
-// Float has the fractional bits. Compile-time literal, same axis.
+// Same story for float. Emits `pi_approx = 3.14159`.
 float pi_approx = 3.14159;
 
-// Imaginary-suffix literal: `5i` is one token, not `5 * i`.
-// `5 + 5i` folds at simplify time into ComplexLiteral(5, 5) — one
-// make_complex allocation at runtime, not a runtime add.
+
+// ═════════════════════════════════════════════════════════════
+// 2. Complex — actually on the real/imag axes
+// ═════════════════════════════════════════════════════════════
+
+// `5 + 5i` folds at simplify time into ComplexLiteral(5, 5);
+// codegen emits `c = _VSA.make_complex(5.0, 5.0)` — one vector
+// allocation, no runtime addition.
 complex c = 5 + 5i;
 
-// Complex multiplication is NOT element-wise. It's a composition
-// of three cached matrices + one element-wise multiply, computed
-// as tensor operations so the simplifier can fuse chains of these.
+// Complex multiplication uses three cached matrices + one element-
+// wise tensor multiply. No scalar extraction; pure tensor ops.
 complex product = c * (3 + 2i);
 
+// Complex addition is just vector addition — on the (real, imag)
+// axes, vector add = componentwise complex add.
+complex sum_c = c + product;
+
+// Complex multiplied by the imaginary unit rotates by 90°.
+// Emits `_VSA.complex_mul(sum_c, _VSA.make_complex(0.0, 1.0))`.
+complex rotated = sum_c * 1i;
+
 
 // ═════════════════════════════════════════════════════════════
-// 2. Char literals
+// 3. Char literals — int plus a flag bit
 // ═════════════════════════════════════════════════════════════
-//
-// A char is an int with a flag bit. Code point on the real axis,
-// a 1.0 on synthetic[AXIS_CHAR_FLAG]. Same storage as int; the
-// flag distinguishes 'a' from the plain int 97 at runtime.
 
+// Char lives on the same real axis as int, plus a flag at
+// synthetic[AXIS_CHAR_FLAG]. Emits
+// `letter = _VSA.make_char(97)` — a vector.
 char letter = 'a';
 
 
 // ═════════════════════════════════════════════════════════════
-// 3. Truth-axis primitives: bool, fuzzy, trit
+// 4. Truth-axis primitives — bool, fuzzy, trit
+// ═════════════════════════════════════════════════════════════
+
+// Three views of synthetic[AXIS_TRUTH]. All three become truth-
+// axis vectors at codegen time — no Python bool path.
+
+bool ready = true;            // make_truth(+1.0)
+fuzzy confidence = 0.7;       // make_truth(+0.7) — literal folded
+trit verdict = unknown;       // make_trit(0.0)
+
+
+// ═════════════════════════════════════════════════════════════
+// 5. Logical operations — polynomial on the truth axis
 // ═════════════════════════════════════════════════════════════
 //
-// Three views of one axis — synthetic[AXIS_TRUTH]. The value is
-// a real number in [-1, +1]. false = -1, unknown = 0, true = +1.
-// The class tag controls what defuzzification will do and what
-// literals the compiler accepts.
+// `&&`, `||`, `!` are Lagrange-interpolated polynomials on the
+// three-valued grid. Exact on {-1, 0, +1}², smooth elsewhere,
+// fully differentiable. No branches.
 
-// `true` / `false` compile to make_truth(+1.0) / make_truth(-1.0).
-// Not Python bool — a truth-axis vector.
-bool ready = true;
-
-// `fuzzy f = 0.7` compiles to `make_truth(0.7)` — one allocation,
-// the literal never becomes a Python float at runtime.
-fuzzy confidence = 0.7;
-
-// `unknown` (or `unk`) is the neutral point on the truth axis.
-// `trit` is a truth-axis value with {-1, 0, +1} as first-class
-// attractors under defuzzify.
-trit verdict = unknown;
-
-
-// ═════════════════════════════════════════════════════════════
-// 4. Logical operations — polynomial, no branches
-// ═════════════════════════════════════════════════════════════
-//
-// &&, ||, ! on truth-axis values are degree-4 (for AND/OR) and
-// degree-1 (for NOT) polynomials. Exact on the three-valued grid
-// {-1, 0, +1}, smooth everywhere else. No abs, no sign, no kink.
-// Compile-time simplifier can fold nested compositions.
-
-// AND: (a + b + ab − a² − b² + a²b²) / 2 — element-wise on tensors.
 fuzzy both_conditions = confidence && ready;
-
-// OR, symmetrically.
 fuzzy either_condition = confidence || ready;
-
-// NOT is multiplication by -1 — the single linear op on this axis.
 fuzzy flipped = !confidence;
 
 
 // ═════════════════════════════════════════════════════════════
-// 5. Derived connectives collapse to products
+// 6. Ordered comparison — tanh on real-axis difference
 // ═════════════════════════════════════════════════════════════
 //
-// Written as compositions, XOR and IFF reduce algebraically to
-// single monomials on the signed truth scale:
-//
-//     xor(a, b) = (a && !b) || (!a && b)   =   -a · b
-//     iff(a, b) = (a → b) && (b → a)       =    a · b
-//
-// The compiler doesn't yet recognize this pattern at
-// simplification time, so the emitted code evaluates all five
-// polynomial primitives. A future simplifier pass would reduce
-// this to one multiplication.
-
-fuzzy disagreement = (confidence && !ready) || (!confidence && ready);
-
-
-// ═════════════════════════════════════════════════════════════
-// 6. Ordered comparison — differentiable, number-axis only
-// ═════════════════════════════════════════════════════════════
-//
-// >, <, >=, <= project both sides onto the real axis, subtract,
-// and pass the result through tanh(100 · diff). Differentiable
-// everywhere, saturates at ±1 for any noticeable difference.
-// Strict and non-strict forms collapse on this scheme — tanh(0)
-// is 0 regardless, so ties give unknown in both.
+// `>`, `<`, `>=`, `<=` project both sides onto the real axis,
+// subtract, and pass through `tanh(100 · diff)`. Differentiable,
+// saturates at ±1 for any appreciable difference, `tanh(0) = 0`
+// for ties.
 
 fuzzy has_enough = total > 3;
 
 
 // ═════════════════════════════════════════════════════════════
-// 7. Equality — cosine similarity on vectors
+// 7. Equality — cosine similarity
 // ═════════════════════════════════════════════════════════════
 //
-// == and != work on any two vectors. Computes cosine similarity
-// via pure tensor arithmetic (dot product + norms + divide) and
-// places the scalar on the truth axis as a fuzzy.
+// `==` and `!=` on vectors compute cosine similarity and place
+// the resulting scalar on the truth axis. Bare string literals in
+// a vector-typed slot auto-embed via the frozen LLM at module
+// init (batched into one prefetch).
 
-// These strings auto-embed — bare string literals in a vector slot
-// compile to _VSA.embed("...") against the Ollama-backed codebook,
-// batched into one prefetch at module init.
-vector cat  = "cat";
-vector dog  = "dog";
-vector kitty = "cat";
+vector cat = "cat";
+vector kitty = "cat";     // will embed to the same vector as `cat`
+vector dog = "dog";
 
-fuzzy same_concept = cat == kitty;       // ≈ +1
-fuzzy near_concept = cat == dog;         // ≈ +0.7 (semantic neighbors)
+fuzzy identical = cat == kitty;     // ≈ +1
+fuzzy near = cat == dog;            // lower — semantically distinct
 
 
 // ═════════════════════════════════════════════════════════════
-// 8. Defuzzify — sharpen fuzzy back to discrete
+// 8. Defuzzify — truth-axis projection + iterated equality
 // ═════════════════════════════════════════════════════════════
 //
-// defuzzy(x) projects any value onto the truth axis (matmul with
-// _truth_projector), then iterates `x == true` 10 times. Under
-// cosine equality that snaps non-zero truths to ±1; zeroes stay 0.
-// Output is a three-valued bool.
+// Project any value onto the truth axis (matmul by a fixed
+// projector) and iterate `x = x == true` 10 times. Sharpens
+// fuzzy toward {true, false, unknown}.
 
-bool is_sharp = defuzzy(confidence);
+bool confidence_sharp = defuzzy(confidence);
 
 
 // ═════════════════════════════════════════════════════════════
-// 9. Hashmaps — rotation binding + additive superposition
+// 9. Vector-keyed map — rotation binding + identity lookup
 // ═════════════════════════════════════════════════════════════
 //
-// A hashmap is NOT a dictionary lookup. It's one vector built by
-// summing bind(key, value) for every pair. Retrieval is
-// unbind(key, storage) — a matrix multiplication followed by
-// argmax-cosine against a codebook. No hashing, no bucket
-// dispatch, no pointer follow. Pure math.
+// Not a hash table. At source level a `map<vector, V>` is a set
+// of (key, value) pairs; at lookup time the compiler checks for
+// key identity first, then falls back to cosine-nearest match
+// against the stored keys.
 
 map<vector, string> LABEL = {
-    cat:     "feline",
-    dog:     "canine"
+    cat: "feline",
+    dog: "canine"
 };
 
 
 // ═════════════════════════════════════════════════════════════
-// 10. The IO boundary — strings at the edge
+// 10. The IO boundary
 // ═════════════════════════════════════════════════════════════
 //
-// Strings in Sutra exist only at two places: as source-code
-// literals (which auto-embed when the slot wants a vector), and at
-// the final return where the program hands results back to the
-// host. Everywhere in between, the string has already become a
-// vector. The map lookup below is the one place a real Python
-// string surfaces in the emitted code.
+// `main` is where the computation produces its one real Python
+// string. Everything up to the map lookup is vectors or scalars.
+// LABEL[winner] is the single place the string exits the
+// vector-math world.
 
 function string main() {
-    // Use every declared variable so the compiler sees them all.
-    // These usages compose into the final computation; the
-    // simplifier folds what it can.
+    // Thread the declared variables through the computation so
+    // nothing is left unused.
 
-    // Number-axis variables threaded through arithmetic.
-    int summary_int = total + 0;            // uses `total`
-    float summary_f = pi_approx * 1.0;      // uses `pi_approx`
-    complex summary_c = c + product;        // uses `c` and `product`
-    int letter_code = letter;               // uses `letter` — same axis, just retagged
+    // Number-axis: arithmetic stays on Python scalars because
+    // `total` and `pi_approx` are int/float-typed.
+    int n_check = total + 1;            // uses `total`
+    float f_check = pi_approx + 0.01;   // uses `pi_approx`
 
-    // Truth-axis variables combined through polynomial logic.
-    fuzzy truth_blend =
+    // Complex arithmetic: `sum_c` and `rotated` are vectors,
+    // operations go through complex_mul and vector add.
+    complex grand = rotated + sum_c;    // uses `sum_c`, `rotated`
+    complex doubled = grand * 2;        // scalar auto-promotes via make_real inside complex_mul
+
+    // letter stays a char (vector). Arithmetic on it would use
+    // complex_mul's scalar-coercion path if combined with a complex;
+    // here we just pass it along as-is through the data flow.
+    char first = letter;                // uses `letter`
+
+    // Truth-axis combinations: all polynomial tensor ops.
+    fuzzy truth_mix =
         (both_conditions && either_condition) ||
         flipped ||
-        disagreement ||
-        has_enough;
-    bool verdict_sharp = defuzzy(verdict);  // uses `verdict`
-    bool confidence_sharp = is_sharp;       // uses `is_sharp`
+        has_enough ||
+        identical ||
+        near;
+    bool sharp = defuzzy(truth_mix) && confidence_sharp;    // uses both
+    bool verdict_bool = defuzzy(verdict);                   // uses `verdict`
 
-    // Equality results folded into a summary.
-    fuzzy match_strength = same_concept || near_concept;
+    // Silence the n_check / f_check / first / doubled / sharp /
+    // verdict_bool "unused" possibilities by combining into a
+    // single expression whose value we don't actually need in
+    // the output — the usage alone is enough to keep them in the
+    // compiled program.
+    fuzzy combined = sharp || verdict_bool;
 
-    // Fold everything into one combined fuzzy so the compiler sees
-    // one dataflow. (A future simplifier could collapse this whole
-    // chain into a small tensor expression.)
-    fuzzy combined = truth_blend && match_strength;
-
-    // Suppress "unused" concerns for the number-axis values by
-    // combining them symbolically. A real compile-time simplifier
-    // would fold the whole expression since everything is constant.
-    int combined_int = summary_int + letter_code;    // 5 + 97 = 102
-    float combined_f = summary_f * 1.0;               // 3.14159
-    complex combined_c = summary_c * 1i;              // rotate by i
-
-    // The one real string lookup. `argmax_cosine` compares `cat`
-    // against the codebook and returns the closest vector;
-    // LABEL[winner] is a vector-keyed map using identity-first
-    // lookup. The result is the one Python string in the
-    // compiled program's output path.
+    // Pick the closest stored key to `cat` and read its label.
+    // This is the one place a Python string surfaces.
     vector winner = argmax_cosine(cat, [cat, dog]);
     return LABEL[winner];
 }
