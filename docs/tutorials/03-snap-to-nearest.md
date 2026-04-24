@@ -65,6 +65,5 @@ This is one of the reasons the biological substrate comparison is interesting: `
 
 ## Read next
 
-- The [graph-to-linear-algebra interactive demo](../interactive/graph-to-linear-algebra.md) — a small interactive widget that walks you through the conceptual leap from "neurons in a graph" to "vectors in linear algebra," with a tiny fly-brain-shaped network as the example.
 - The [Sutra paper](../papers.md) — §6.4 has the snap cost numbers, §6.2 has the chained-computation result that depends on snap working.
 - The [fly-brain paper](../papers.md) — for how the mushroom body implements snap as a biological circuit rather than an algorithm.
