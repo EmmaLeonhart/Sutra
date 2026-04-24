@@ -57,16 +57,26 @@ exactly). Plan: replace the hand-rolled rewrites in `simplify.py`
 with an egglog-driven pass that subsumes them + adds the three
 missing passes.
 
-  - [ ] Install `egglog` (`pip install egglog`) and smoke-test that
-    Python 3.13 import works on this repo's interpreter.
+  - [x] ~~Install `egglog` (`pip install egglog`) and smoke-test
+    Python 3.13 import.~~ DONE 2026-04-24. v13.1.0 installs cleanly,
+    5/5 rewrite rules fire correctly in
+    `experiments/egglog_smoke_test.py`.
+  - [x] ~~Proof-of-concept: matrix-chain fusion with a cost model.~~
+    DONE 2026-04-24. `experiments/egglog_matrix_chain_fusion.py`
+    takes nested `Mn.apply(...M2.apply(M1.apply(v)))` chains of
+    lengths 2-5 and extracts the fully-fused `(Mn @ ... @ M1).apply(v)`
+    form via a cost model that charges 100/apply (hot path) and 1/matmul
+    (module init). All chain lengths fuse to exactly one apply. This is
+    the pass `simplify.py` does not have today.
   - [ ] Lift the 16 existing rewrites from `simplify.py` into egglog
-    rule form. Validate equivalence against existing tests.
-  - [ ] Add matrix-chain composition: `M2 @ M1 @ v` rewrites with a
-    cost model that prefers `(M2 @ M1) @ v` when M1, M2 are module-
-    init constants.
+    rule form. Validate equivalence against the existing 206-test
+    suite. Next step.
+  - [ ] Wire egglog-based simplification into the compiler pipeline
+    as a post-pass on the existing `simplify.py` output (safer
+    than replacing it in one shot — incremental migration).
   - [ ] Add linearity analysis: function bodies that are pure
     linear tensor-op compositions get a single cached matrix M and
-    compile-down to `M @ arg`.
+    compile-down to `M @ arg`. Builds on the matrix-chain fusion.
   - [ ] CSE pass — comes almost free from equality saturation; just
     needs the extraction cost to charge per-use.
 
