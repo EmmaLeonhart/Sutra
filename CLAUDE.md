@@ -190,6 +190,32 @@ The specification is not aspirational documentation. It is the contract every op
 - **Source data:** Wikidata API + SPARQL endpoint (for prior cartography work); Sutra itself does not require Wikidata.
 - **Planning docs:** `planning/` directory for design decisions and roadmap.
 
+## Global efficiency, not local — every operation stays a tensor operation
+
+**Sutra is not aiming for local efficiency.** Doing `5 * 3` by multiplying two 800-dimensional vectors is locally wasteful. That is fine. That is the point.
+
+What the language aims at is **global efficiency** — per-thread, per-program. Because every value in a Sutra program has the same essential shape (a vector in the extended-state layout) and every operation is a tensor operation on that shape, the compiler can treat the whole program as a single tensor computation. That lets it:
+
+- Fuse chains of operations into cached matrices at compile time.
+- Batch operations across threads and programs onto the same GPU kernel launch.
+- Treat the whole runtime as a dataflow graph of tensor ops — no branches, no type dispatch at the leaves, no host/device round-trips.
+
+Breaking uniformity to optimize a local operation — e.g. extracting scalars from a vector to do a "cheap" scalar multiply — **gives you local efficiency at the expense of global efficiency.** The compile-time fusion pass can't see past a scalar extraction. One operation that escapes the tensor-ops-only invariant breaks the whole chain.
+
+**Rules that follow:**
+
+1. **Every Sutra operation is a tensor operation.** Matmul, element-wise multiply, element-wise addition / subtraction, and nonlinear element-wise functions (`tanh`, `exp`, `sqrt`, `abs`, `sign`) are the allowed primitives. Nonlinear is fine. What's not fine is leaving tensor land.
+
+2. **No scalar extraction inside an operation.** If an operation reads `v[AXIS_REAL]` to pull out a float, does scalar arithmetic on that float, and packs it back into a vector, it has broken the invariant. The fact that the vector is "effectively 2-dimensional" or "only has content on one axis" does not license this — the operation still has to be expressible as matmul + element-wise so the simplifier can fold it. This was a specific trap: complex multiplication was implemented with scalar extraction ("the data is 2D so scalar form is fine") — the correct implementation is three cached matrices and two tensor multiplies, and that fixed form is what ships.
+
+3. **No Python control flow inside an operation.** `if`, `for`, `while` on scalar predicates break uniformity the same way scalar extraction does. Zero-norm guards, tie checks, and loop-unrolls all have tensor-native substitutes: `x / (||x|| + eps)` instead of `if norm == 0`; `tanh(k · x)` instead of `sign(x)`; iterate-in-the-emitted-graph instead of iterate-at-compile-time. The only acceptable Python `for` is one that is semantically part of the operation's definition (e.g. defuzzify's `iterate N times` where N is fixed at compile time and the loop body is itself a tensor op).
+
+4. **Accessor methods (`real()`, `imag()`, `truth()`, `component()`) are not compute path.** They're monitoring / debugging — extracting a scalar for host-side display. Those are fine because they don't sit inside another operation's definition.
+
+5. **The rule covers nonlinear functions, not just linear.** `tanh`, `exp`, `sqrt` are acceptable tensor ops. The constraint is "tensor operation," not "linear transformation." The AND / OR polynomials use element-wise multiply (nonlinear) and that's correct; equality uses sqrt (nonlinear) and that's correct. What's forbidden is not nonlinearity — it's dropping out of tensor land to scalars or Python branches.
+
+If a review finds a runtime method that reads a component, does scalar arithmetic, and writes the result back, the fix is to rewrite the operation in tensor form, not to justify the extraction with "but the data is conceptually scalar."
+
 ## Avoiding `fly-brain/` Python sprawl
 
 This has been a recurring, concrete problem. At audit time (2026-04-13)
