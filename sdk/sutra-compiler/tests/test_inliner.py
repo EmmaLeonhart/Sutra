@@ -1,0 +1,307 @@
+"""Tests for the stdlib inliner — step 2 of the function-expansion
+pipeline queued in STATUS.md.
+
+The inliner rewrites every `Call(Identifier(name), args)` against
+the stdlib symbol table. Bodies that are a single `return <expr>;`
+get substituted inline; statement-bodied functions (defuzzy)
+currently pass through unchanged and continue to hit their runtime
+methods — statement inlining is a separate extension.
+
+Tests strategy: compile .su source through the full pipeline and
+assert on emitted Python. When a stdlib call is inlined, the
+corresponding runtime-method call (`_VSA.logical_and`, etc.) should
+NOT appear and the polynomial / rewritten form should.
+"""
+from __future__ import annotations
+
+import unittest
+
+from sutra_compiler import ast_nodes as ast
+from sutra_compiler.codegen import translate_module
+from sutra_compiler.inliner import inline_stdlib_calls
+from sutra_compiler.lexer import Lexer
+from sutra_compiler.parser import Parser
+from sutra_compiler.stdlib_loader import load_stdlib
+
+
+def _parse(src: str) -> ast.Module:
+    lexer = Lexer(src, file="<test>")
+    tokens = lexer.tokenize()
+    parser = Parser(tokens, file="<test>", diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    assert not lexer.diagnostics.has_errors(), list(lexer.diagnostics)
+    return module
+
+
+def _compile(src: str) -> str:
+    """Full pipeline: parse → inline → simplify → codegen. Returns
+    emitted Python source."""
+    module = _parse(src)
+    py = translate_module(module)
+    # Verify it parses as Python too.
+    compile(py, "<generated>", "exec")
+    return py
+
+
+class TestInlinerSingleReturn(unittest.TestCase):
+    """Each of the 7 single-return stdlib functions should inline
+    when called by name."""
+
+    # Assertions check the AST of `f` after the inline pass, not
+    # substrings in emitted Python — the runtime prelude contains
+    # `def le(self, a, b): return self.lt(a, b)` etc. which would
+    # give false positives on any `substring in py` check.
+
+    def _inline(self, src: str) -> ast.Expr:
+        """Parse, inline, return the return-expr of the first
+        function declaration in the module."""
+        module = _parse(src)
+        inline_stdlib_calls(module)
+        fn = next(it for it in module.items if isinstance(it, ast.FunctionDecl))
+        ret = fn.body.statements[0]
+        assert isinstance(ret, ast.ReturnStmt)
+        return ret.value
+
+    def test_logical_not_inlines_to_subtract(self):
+        expr = self._inline(
+            "function fuzzy f(fuzzy v) {\n"
+            "  return logical_not(v);\n"
+            "}\n"
+        )
+        # logical_not body: `0 - v` → BinaryOp(op='-', left=0, right=v)
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "-")
+        self.assertIsInstance(expr.left, ast.IntLiteral)
+        self.assertEqual(expr.left.value, 0)
+        self.assertIsInstance(expr.right, ast.Identifier)
+        self.assertEqual(expr.right.name, "v")
+
+    def test_logical_and_inlines_to_polynomial(self):
+        expr = self._inline(
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return logical_and(a, b);\n"
+            "}\n"
+        )
+        # logical_and body: `(a + b + a*b - a*a - b*b + a*a*b*b) * 0.5`
+        # Top-level form is a multiply by 0.5.
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "*")
+        self.assertIsInstance(expr.right, ast.FloatLiteral)
+        self.assertAlmostEqual(expr.right.value, 0.5)
+        # The entire polynomial must reference both params `a` and `b`
+        # by the substituted names (here also `a` and `b` since the
+        # user function used the same names — substitution is by AST).
+        text = _repr_expr_tree(expr)
+        self.assertIn("a", text)
+        self.assertIn("b", text)
+
+    def test_logical_and_substitutes_different_arg_names(self):
+        # User passes `x, y`; the polynomial body uses `a, b` in the
+        # stdlib definition. After inlining the body should reference
+        # `x` and `y`, not `a` or `b`.
+        expr = self._inline(
+            "function fuzzy f(fuzzy x, fuzzy y) {\n"
+            "  return logical_and(x, y);\n"
+            "}\n"
+        )
+        text = _repr_expr_tree(expr)
+        self.assertIn("x", text)
+        self.assertIn("y", text)
+        # `a` and `b` are the param names in the stdlib body; they
+        # must NOT appear in the inlined form as Identifier names.
+        self.assertNotIn("Identifier(name='a'", text)
+        self.assertNotIn("Identifier(name='b'", text)
+
+    def test_neq_inlines_to_negated_eq(self):
+        expr = self._inline(
+            "vector cat = \"cat\";\n"
+            "vector dog = \"dog\";\n"
+            "function fuzzy f() {\n"
+            "  return neq(cat, dog);\n"
+            "}\n"
+        )
+        # neq body: `!(a == b)` → UnaryOp(!, Parenthesized(BinaryOp(==)))
+        self.assertIsInstance(expr, ast.UnaryOp)
+        self.assertEqual(expr.op, "!")
+
+    def test_lt_inlines_to_swapped_gt(self):
+        expr = self._inline(
+            "function fuzzy f(complex a, complex b) {\n"
+            "  return lt(a, b);\n"
+            "}\n"
+        )
+        # lt body: `b > a` → BinaryOp(op='>', left=b, right=a)
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, ">")
+        self.assertIsInstance(expr.left, ast.Identifier)
+        self.assertEqual(expr.left.name, "b")
+        self.assertIsInstance(expr.right, ast.Identifier)
+        self.assertEqual(expr.right.name, "a")
+
+
+def _collect_call_names(expr) -> set:
+    """Return the set of identifier-names used as Call callees
+    anywhere in the given expression tree."""
+    import dataclasses
+    names: set = set()
+
+    def walk(node):
+        if node is None:
+            return
+        if isinstance(node, ast.Call) and isinstance(node.callee, ast.Identifier):
+            names.add(node.callee.name)
+        if dataclasses.is_dataclass(node):
+            for field in dataclasses.fields(node):
+                child = getattr(node, field.name, None)
+                if isinstance(child, list):
+                    for c in child:
+                        walk(c)
+                else:
+                    walk(child)
+
+    walk(expr)
+    return names
+
+
+def _repr_expr_tree(expr) -> str:
+    """Cheap AST stringifier for test assertions. Walks the expr
+    and returns a flat representation including every Identifier."""
+    import dataclasses
+
+    def walk(node, parts):
+        if node is None:
+            return
+        if isinstance(node, ast.Identifier):
+            parts.append(f"Identifier(name={node.name!r})")
+            return
+        if dataclasses.is_dataclass(node):
+            for field in dataclasses.fields(node):
+                child = getattr(node, field.name, None)
+                if isinstance(child, list):
+                    for c in child:
+                        walk(c, parts)
+                else:
+                    walk(child, parts)
+
+    parts = []
+    walk(expr, parts)
+    return " ".join(parts)
+
+
+class TestInlinerStatementBodiedPassesThrough(unittest.TestCase):
+    """defuzzy is statement-bodied (contains a loop). The inliner
+    today skips it — call-by-name stays a Call, and codegen handles
+    it as any other user call. The `defuzzy(v)` keyword form (which
+    parses to DefuzzyExpr, not Call) is unaffected."""
+
+    def test_defuzzy_keyword_form_unchanged(self):
+        # `defuzzy(v)` at expression position parses as DefuzzyExpr,
+        # not Call. The inliner never sees it and codegen emits
+        # _VSA.defuzzify as before.
+        src = (
+            "function bool f(fuzzy v) {\n"
+            "  return defuzzy(v);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.defuzzify", py)
+
+
+class TestInlinerNested(unittest.TestCase):
+    """Calls within calls: inner inlines first (post-order)."""
+
+    def test_nested_inline(self):
+        module = _parse(
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return logical_or(logical_not(a), b);\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[0]
+        ret = fn.body.statements[0]
+        # No Call(Identifier('logical_or')) or Call(Identifier('logical_not'))
+        # anywhere in the resulting tree.
+        calls_by_name = _collect_call_names(ret.value)
+        self.assertNotIn("logical_or", calls_by_name)
+        self.assertNotIn("logical_not", calls_by_name)
+
+
+class TestInlinerArityMismatchPreserved(unittest.TestCase):
+    """If the arity doesn't match, we leave the call alone and let
+    the validator (or a later pass) diagnose."""
+
+    def test_wrong_arity_not_inlined(self):
+        # logical_and takes 2 args. Calling it with 1 produces AST
+        # the inliner should leave untouched.
+        module = _parse(
+            "function fuzzy f(fuzzy a) {\n"
+            "  return logical_and(a);\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        # The return expr should still be a Call to logical_and.
+        fn = module.items[0]
+        assert isinstance(fn, ast.FunctionDecl)
+        ret = fn.body.statements[0]
+        assert isinstance(ret, ast.ReturnStmt)
+        self.assertIsInstance(ret.value, ast.Call)
+        self.assertEqual(ret.value.callee.name, "logical_and")
+
+
+class TestInlinerPreservesNonStdlibCalls(unittest.TestCase):
+    """User-defined functions and runtime builtins that aren't in the
+    stdlib table should pass through untouched."""
+
+    def test_user_function_call_unchanged(self):
+        module = _parse(
+            "function fuzzy helper(fuzzy v) {\n"
+            "  return v;\n"
+            "}\n"
+            "function fuzzy f(fuzzy v) {\n"
+            "  return helper(v);\n"
+            "}\n"
+        )
+        inline_stdlib_calls(module)
+        fn = module.items[1]
+        ret = fn.body.statements[0]
+        # helper is user-defined, not stdlib; the call must remain.
+        self.assertIn("helper", _collect_call_names(ret.value))
+
+
+class TestInlinerIdempotent(unittest.TestCase):
+    """Running the inliner twice produces the same result. Useful
+    because downstream passes (simplify) might create new Calls that
+    the inliner could consume on a second pass — idempotence gives us
+    headroom to iterate without infinite loops."""
+
+    def test_double_pass_matches_single(self):
+        src = (
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return logical_and(a, b);\n"
+            "}\n"
+        )
+        m1 = _parse(src)
+        m2 = _parse(src)
+        inline_stdlib_calls(m1)
+        inline_stdlib_calls(m2)
+        inline_stdlib_calls(m2)  # twice
+        # Codegen both; they must match.
+        py1 = translate_module(m1)
+        py2 = translate_module(m2)
+        self.assertEqual(py1, py2)
+
+
+class TestInlinerUsesRealStdlib(unittest.TestCase):
+    """Sanity: the inliner does load the real stdlib by default."""
+
+    def test_default_uses_real_stdlib(self):
+        from sutra_compiler.inliner import _stdlib_table
+        table = _stdlib_table()
+        # Must include the 7 single-return functions + defuzzy.
+        for name in ("defuzzy", "logical_not", "logical_and",
+                     "logical_or", "neq", "lt", "ge", "le"):
+            self.assertIn(name, table)
+
+
+if __name__ == "__main__":
+    unittest.main()
