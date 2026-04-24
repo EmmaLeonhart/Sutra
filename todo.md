@@ -215,6 +215,35 @@ the dedicated-synthetic-subspace design is follow-on work:
   capacity / cross-talk characteristics against the 2026-04-22
   prototype baseline.
 
+## [This year] Monotonicity of fuzzy logic polynomials
+
+The current AND/OR polynomials are Lagrange-interpolated on the
+three-valued grid `{-1, 0, +1}²`. Exact at grid corners, smooth
+everywhere, but **non-monotonic between grid points.** Concrete
+example: `AND(a, 0)` as a function of `a` peaks at `a = 0.5`
+(value 0.125) and drops back to 0 at `a = 1`. Derivative
+`(1 + b − 2a + 2ab²)/2` is negative for `a > 0.5` when `b ≈ 0`.
+
+Fuzzy logic does not strictly require monotonicity, but preferring
+it would make the operators behave less surprisingly on off-grid
+inputs.
+
+Options to restore monotonicity:
+
+- **Use `minimum` / `maximum` primitives directly.** `np.minimum`
+  and `torch.minimum` are vectorized tensor ops — monotonic and
+  exact on the grid. Tradeoff: kink at `a = b` (non-smooth there;
+  differentiable almost everywhere via subgradients).
+- **Higher-degree polynomial.** Some degree-6 or higher polynomial
+  might be both exact on the grid and monotonic. Hasn't been
+  explored; likely more expensive.
+- **Softened min/max** (Einstein t-norm, Yager family, soft-min
+  with temperature). Smooth + monotonic but loses exactness at
+  the grid corners.
+
+User preference (2026-04-24): prefers more monotonic than current,
+not essential. Parked here rather than switched immediately.
+
 ## [This year] Language-design open questions
 
 Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
