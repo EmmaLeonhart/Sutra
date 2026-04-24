@@ -108,50 +108,6 @@ function fuzzy le(complex a, complex b) {
 // Section 2 — blocked on intrinsics
 // ==========================================================================
 //
-// The functions below can't be written in pure Sutra today because
-// they reach into runtime primitives that aren't exposed at the
-// language level:
-//
-//   - raw `dot` / `sqrt` on vectors (eq)
-//   - `tanh` on vectors and the axis-projector matrices (gt)
-//   - the three cached mul-matrices and matrix @ vector (complex_mul)
-//   - the sign-polarizing β-sharpening primitive (defuzzify_trit)
-//
-// The pseudo-Sutra bodies below show the target expansion. When an
-// `intrinsic` mechanism lands (letting a .su file declare "this
-// function is implemented by the runtime" and use those intrinsics
-// in another function's body), or when the primitive operations get
-// first-class language surfaces, these become real definitions.
-//
-// Until then, callers of `eq`, `gt`, `defuzzify_trit`, `complex_mul`
-// compile to the hardcoded runtime methods emitted by codegen.py.
-
-
-// eq — cosine similarity, placed on the truth axis.
-//
-//   function fuzzy eq(vector a, vector b) {
-//       scalar na  = sqrt(dot(a, a));
-//       scalar nb  = sqrt(dot(b, b));
-//       scalar cos = dot(a, b) / (na * nb + finfo_tiny);
-//       return make_truth(cos);
-//   }
-//
-// Blocked on: `dot`, `sqrt`, `make_truth`, `finfo_tiny`.
-
-
-// gt — differentiable smooth sign on real-axis difference.
-//
-//   function fuzzy gt(complex a, complex b) {
-//       vector diff   = a - b;
-//       vector diff_r = real_projector @ diff;
-//       vector signed = tanh(100.0 * diff_r);
-//       return truth_from_real @ signed;
-//   }
-//
-// Blocked on: axis-projector matrix literals, `tanh` on vectors,
-// `@` matmul as a Sutra operator.
-
-
 // defuzzify_trit — three-way polarizer (true / false / unknown) with
 // a β-sharpening knob instead of the straight cosine-eq loop.
 //
@@ -167,14 +123,22 @@ function fuzzy le(complex a, complex b) {
 // β primitive.
 
 
-// complex_mul — pure-matmul complex multiplication using three cached
-// matrices (real-part extractor, imag-part extractor, real-imag swap).
+// gt — differentiable smooth sign on real-axis difference.
 //
-//   function complex complex_mul(complex a, complex b) {
-//       vector ab         = a * b;
-//       vector swapped_ab = (swap_ri @ a) * b;
-//       return cm_real @ ab + cm_imag @ swapped_ab;
+//   function fuzzy gt(complex a, complex b) {
+//       vector diff   = a - b;
+//       vector diff_r = real_projector @ diff;
+//       vector signed = tanh(100.0 * diff_r);
+//       return truth_from_real @ signed;
 //   }
 //
-// Blocked on: matrix literals for the three cached matrices, `@`
-// matmul surfaced in Sutra.
+// Blocked on: axis-projector matrix literals, `tanh` on vectors,
+// `@` matmul as a Sutra operator.
+//
+// See also:
+//   similarity.su — `eq`, `neq`, cosine operations on vectors.
+//   numbers.su    — `complex_mul`, `make_real`, `make_complex`, `make_char`.
+//   vectors.su    — `bind`, `unbind`, `bundle`, permutation ops.
+//   memory.su     — `zero_vector`, hashmap ops.
+//   rotation.su   — rotation-matrix construction and eigenrotation loop.
+//   embed.su      — the `embed` LLM-call intrinsic.

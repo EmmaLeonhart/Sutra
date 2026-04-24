@@ -1,0 +1,117 @@
+// Canonical Sutra definitions for VSA vector operations — bind,
+// unbind, bundle, permute. These are the core hypervector primitives
+// the language is built around.
+//
+// Today they're hardcoded as runtime methods in codegen.py — see
+// `def bind`, `def unbind`, `def bundle`, `def bundle_of_binds`,
+// `def sign_flip`, `def make_sign_flip_key`. This file is the target
+// shape for the inliner. See stdlib/README.md.
+//
+// Every VSA primitive below is currently blocked on intrinsics —
+// they need matrix literals, matmul, variadic reductions, or
+// seeded-random primitives that aren't Sutra-callable yet. The
+// bodies below are pseudo-Sutra showing the target expansion.
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics
+// ==========================================================================
+//
+// bind — role-seeded Haar-random orthogonal rotation applied to filler.
+// The rotation is block-diagonal: Haar in the semantic block, identity
+// in the synthetic block, so bind acts only on semantic content and
+// leaves the real / imag / truth / char-flag axes untouched.
+//
+//   function vector bind(vector role, vector filler) {
+//       matrix Q = rotation_for_role(role);  // cached Haar rotation
+//       return Q @ filler;
+//   }
+//
+// Blocked on: `rotation_for_role` primitive (role-hash → cached
+// rotation matrix), `@` matmul. The caching is what makes repeat
+// bind with the same role one lookup + one matmul.
+
+
+// unbind — inverse of bind. Same block-diagonal rotation, transposed.
+//
+//   function vector unbind(vector role, vector bound) {
+//       matrix Q = rotation_for_role(role);
+//       return transpose(Q) @ bound;
+//   }
+//
+// Blocked on: `rotation_for_role`, `transpose`, `@` matmul.
+
+
+// bundle — normalized superposition. Variadic: takes any number of
+// vectors, sums them, L2-normalizes the result.
+//
+//   function vector bundle(vector... args) {
+//       vector s = zero_vector();
+//       foreach (v in args) {
+//           s = s + v;
+//       }
+//       return s / (norm(s) + finfo_tiny);
+//   }
+//
+// Blocked on: variadic parameter surface (`vector... args`), `norm`,
+// `finfo_tiny`, scalar-divide-vector.
+//
+// The fused bundle-of-binds shape the codegen already emits
+// (`bundle_of_binds((r1,f1), (r2,f2), ...)` → one einsum) is a
+// compile-time peephole on top of this spec definition.
+
+
+// basis_vector — alias for `embed`. Allocates a deterministic vector
+// keyed by the string name. Kept as a separate spelling for clarity
+// in VSA-style programs (role / filler allocation) vs pure embedding.
+//
+//   function vector basis_vector(string name) {
+//       return embed(name);
+//   }
+//
+// This one is actually writable as Sutra today — `embed(x)` is the
+// parsable primitive. Not listed as implemented above only because
+// the inliner to consume it doesn't exist yet; when it does, this
+// function becomes real.
+
+
+// permute — apply a permutation key to a vector. Default permutation
+// scheme is sign-flip: a deterministic ±1 mask XOR'd with the vector.
+//
+//   function vector permute(vector v, permutation key) {
+//       return v * sign_flip_mask(key);
+//   }
+//
+// Blocked on: `sign_flip_mask` primitive (key → ±1 vector),
+// element-wise multiply between a vector and a mask.
+
+
+// permutation_key — allocate a deterministic permutation key from a
+// string name.
+//
+//   function permutation permutation_key(string name) {
+//       int seed = string_hash(name);
+//       return random_sign_mask(seed);
+//   }
+//
+// Blocked on: `string_hash`, `random_sign_mask` primitives.
+
+
+// identity_permutation — the no-op permutation. Applying it leaves
+// a vector unchanged. Useful as a sentinel / default.
+//
+//   function permutation identity_permutation() {
+//       return ones_mask();
+//   }
+//
+// Blocked on: `ones_mask` primitive (a ±1 mask that's all +1).
+
+
+// compose — compose two permutations. For the sign-flip scheme this
+// is element-wise multiply of the two masks.
+//
+//   function permutation compose(permutation p, permutation q) {
+//       return p * q;
+//   }
+//
+// Blocked on: permutation type's Sutra-level operator semantics.
