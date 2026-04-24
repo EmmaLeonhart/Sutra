@@ -521,16 +521,56 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def _swap_ri_matrix(self):")
+        self._indent += 1
+        self._emit("if not hasattr(self, '_swap_ri_cache') or self._swap_ri_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("r = self.semantic_dim + self.AXIS_REAL")
+        self._emit("i = self.semantic_dim + self.AXIS_IMAG")
+        self._emit("M[r, i] = 1.0; M[i, r] = 1.0")
+        self._emit("self._swap_ri_cache = M")
+        self._indent -= 1
+        self._emit("return self._swap_ri_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _cm_real_matrix(self):")
+        self._indent += 1
+        self._emit("if not hasattr(self, '_cm_real_cache') or self._cm_real_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("r = self.semantic_dim + self.AXIS_REAL")
+        self._emit("i = self.semantic_dim + self.AXIS_IMAG")
+        self._emit("M[r, r] = 1.0; M[r, i] = -1.0")
+        self._emit("self._cm_real_cache = M")
+        self._indent -= 1
+        self._emit("return self._cm_real_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _cm_imag_matrix(self):")
+        self._indent += 1
+        self._emit("if not hasattr(self, '_cm_imag_cache') or self._cm_imag_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("r = self.semantic_dim + self.AXIS_REAL")
+        self._emit("i = self.semantic_dim + self.AXIS_IMAG")
+        self._emit("M[i, r] = 1.0; M[i, i] = 1.0")
+        self._emit("self._cm_imag_cache = M")
+        self._indent -= 1
+        self._emit("return self._cm_imag_cache")
+        self._indent -= 1
+        self._emit()
         self._emit("def complex_mul(self, a, b):")
         self._indent += 1
-        self._emit('"""Complex multiplication on the 2D (real, imag) subspace — torch."""')
+        self._emit('"""Complex product: matrix form, no scalar extraction.')
+        self._emit('')
+        self._emit("c = _cm_real @ (a * b) + _cm_imag @ ((_swap_ri @ a) * b)")
+        self._emit('"""')
         self._emit("av = self._as_complex_vector(a)")
         self._emit("bv = self._as_complex_vector(b)")
-        self._emit("r1 = float(av[self.semantic_dim + self.AXIS_REAL].item())")
-        self._emit("i1 = float(av[self.semantic_dim + self.AXIS_IMAG].item())")
-        self._emit("r2 = float(bv[self.semantic_dim + self.AXIS_REAL].item())")
-        self._emit("i2 = float(bv[self.semantic_dim + self.AXIS_IMAG].item())")
-        self._emit("return self.make_complex(r1 * r2 - i1 * i2, r1 * i2 + i1 * r2)")
+        self._emit("ab = av * bv")
+        self._emit("swapped_ab = (self._swap_ri_matrix() @ av) * bv")
+        self._emit("return self._cm_real_matrix() @ ab + self._cm_imag_matrix() @ swapped_ab")
         self._indent -= 1
         self._emit()
         self._emit("def _as_complex_vector(self, x):")
