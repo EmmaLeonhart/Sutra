@@ -1543,6 +1543,11 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     (N HTTP round-trips collapse into one batched embed call).
     """
     from .simplify import simplify_module, collect_basis_vector_strings
+    from .inliner import inline_stdlib_calls
+    # Inline stdlib calls first — the inlined polynomial bodies then
+    # go through simplify's arithmetic constant folding / zero
+    # absorption, which can fold parts of the inlined form.
+    inline_stdlib_calls(module)
     simplify_module(module)
     strings = collect_basis_vector_strings(module)
     cg = Codegen(**kwargs)
