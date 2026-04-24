@@ -21,50 +21,83 @@ pick up next.
 
 ## Queued work
 
-- **Wire up the stdlib function-expansion pipeline.** The stdlib
-  directory (`sdk/sutra-compiler/sutra_compiler/stdlib/`) now holds
-  canonical Sutra definitions for every system-function category —
-  seven `.su` files covering logic, similarity, numbers, vectors,
-  memory, rotation, and the embed intrinsic. All parse cleanly; none
-  are wired into codegen yet. User code that writes `defuzzy(v)`,
-  `a && b`, `bind(r, f)`, etc. still compiles to hardcoded runtime
-  methods in `codegen.py`'s `_emit_prelude`. Six steps, in order:
+**Stdlib function-expansion pipeline** — in progress, opportunistically
+  landing the steps sequentially. Current state:
 
-  1. **Loader.** At compiler init, walk `stdlib/*.su`, parse each,
-     build a symbol table `{function_name → FunctionDecl}` plus a
-     parallel set of names marked `@intrinsic` (see step 5).
-  2. **Inliner in `simplify.py`.** When encountering a
-     `Call(Identifier(name), args)` whose name is in the stdlib table,
-     beta-reduce: substitute args for params, splice the body into the
-     caller's AST. Run before codegen so downstream passes see the
-     inlined form.
-  3. **Unroll.** Existing compile-time `loop(N)` unroll (for literal N)
-     fires naturally on inlined bodies. `defuzzy(v)` inlines to a
-     `loop(10) { v = v == true; }` which then becomes 10 straight-line
-     `v = v == true` statements.
-  4. **Delete runtime methods.** Every `def defuzzify(...)`,
-     `def logical_and(...)`, etc. in `_emit_prelude` becomes dead code
-     once all callers inline. Drop them, one category at a time as the
-     corresponding stdlib file is fully wired.
-  5. **Intrinsic mechanism.** Define a syntactic form for "this
-     function's body is in the runtime" — `@intrinsic` decorator, a
-     dedicated `intrinsic function` keyword, or similar. Leaf
-     primitives (`dot`, `sqrt`, `tanh`, axis-slot indexed write,
-     matrix literals, `@` matmul, Haar rotation factory, LLM embed)
-     become the enumerated set the runtime must implement.
-  6. **Fusion pass (follow-up).** Recognize chains of linear tensor
-     ops in the inlined + unrolled straight-line code and fold them
-     into cached matrices. This is what makes the
-     "ten-iteration defuzzy collapses to one matmul" promise real —
-     the aggressive precalculation the user has been describing as
-     the next big piece after compilation itself.
+  - ✅ **Step 1: loader.** `sutra_compiler/stdlib_loader.py` walks
+    `stdlib/*.su` at compiler init and returns `{name → FunctionDecl}`.
+    8 functions in the table today: defuzzy + the 7 single-return fns.
+  - ✅ **Step 2: inliner for single-return-expr bodies.**
+    `sutra_compiler/inliner.py` replaces `Call(Identifier(name), args)`
+    against the stdlib table by deep-copying the body and substituting
+    params→args. Recurses into the inlined body so chains fully expand.
+  - ✅ **Step 2.6: operator lowering.** Before the inliner fires, `!`,
+    `&&`, `||`, `!=`, `<`, `<=`, `>=` with stdlib bodies rewrite to
+    Call nodes so operator forms and direct calls go through the same
+    inline path. `==` and `>` stay as operators (stdlib bodies blocked
+    on eq/gt intrinsics).
+  - ✅ **Step 3: loop(N) unroll (pre-existing).** Already in
+    `codegen_base._translate_bounded_loop`: literal N emits the body
+    N times directly. Will fire on inlined defuzzy once step 2.5 lands.
 
-  Scope: steps 1–4 are mechanical once the inliner is designed;
-  steps 5 and 6 are real compiler work. See stdlib/README.md for the
-  full inventory of what's implementable in pure Sutra today vs
-  blocked on primitives.
+  **Next up, in order:**
+
+  1. **Step 2.5: statement-level inliner.** Needed for functions
+     whose body has statements beyond a single `return expr;` — today
+     just `defuzzy` with its `loop(10) { v = v == true; }` body.
+     Inlining a statement-bodied call at a VarDecl-init or
+     ReturnStmt position requires hoisting the renamed body
+     statements before the call site and referencing a synthesized
+     temp in the expression slot. Deeper-nested call positions
+     (inside arithmetic, etc.) need ANF-style hoisting — can ship
+     the narrow-position version first.
+  2. **Retire `DefuzzyExpr` special form.** Today `defuzzy(x)`
+     parses as a dedicated AST node. Once the statement inliner
+     handles defuzzy's body, the parser can just produce
+     `Call(Identifier("defuzzy"), [x])` and the inliner takes it
+     from there — one less special form in the language.
+  3. **Step 4: delete dead runtime methods.** `_VSA.logical_and`,
+     `_VSA.logical_or`, `_VSA.logical_not`, `_VSA.neq`, `_VSA.lt`,
+     `_VSA.ge`, `_VSA.le` are now unreachable — operator lowering +
+     inlining has replaced every caller with inline arithmetic.
+     Need before/after diff of a representative corpus to confirm
+     nothing else emits them, then drop both the runtime-method
+     emissions and the codegen hooks (`_logical_op_src`,
+     `_logical_not_src`). Also `_VSA.defuzzify` once step 2.5 lands.
+     `_VSA.eq` and `_VSA.gt` stay — their stdlib bodies are blocked
+     on intrinsics.
+  4. **Step 5: intrinsic mechanism.** Define syntax for "this
+     function's body is in the runtime" — `@intrinsic` decorator or
+     `intrinsic function` keyword. Leaf primitives (`dot`, `sqrt`,
+     `tanh`, axis-slot indexed write, matrix literals, `@` matmul,
+     Haar rotation factory, LLM embed) become the enumerated set
+     the runtime must provide. Unblocks the blocked stdlib stubs.
+  5. **Step 6: fusion pass.** Recognize chains of linear tensor ops
+     in the inlined + unrolled straight-line code and fold them into
+     cached matrices. The aggressive precalculation piece — "this
+     user function is equivalent to multiplying by matrix M; compute
+     M once at module init, apply in one matmul at call time."
+
+End-to-end demo of the pipeline landed so far: `a && b` in user
+code now compiles to the inline polynomial
+`(((a + b + a*b - a*a - b*b + a*a*b*b)) * 0.5)` with zero runtime
+calls. `a != b` compiles to `(0 - _VSA.eq(a, b))` — the only
+runtime call is eq, which is blocked on intrinsics.
 
 Recently closed:
+- **Stdlib function-expansion pipeline — steps 1, 2, 2.6, recursive
+  inlining** (9001f90 / 3106ec8 / a72ec29 / 9b9d85f, 2026-04-24).
+  Loader walks `stdlib/*.su`, inliner beta-reduces stdlib Call nodes
+  against it for single-return-expr bodies, operator-lowering routes
+  `!`, `&&`, `||`, `!=`, `<`, `<=`, `>=` through the same path,
+  inliner recurses into substituted bodies so operators produced by
+  inlining get lowered and re-inlined. End-to-end demo: `a && b`
+  compiles to the inline polynomial, `a != b` compiles to
+  `(0 - _VSA.eq(a, b))` — only runtime calls surviving are eq/gt
+  (blocked on intrinsics). 201 tests pass.
+- **Release v0.2.0** (7595dd2, 2026-04-24). First tagged release.
+  __version__ bumped from dev placeholder 0.1.0. CHANGELOG.md added.
+  GitHub release at https://github.com/EmmaLeonhart/Sutra/releases/tag/v0.2.0.
 - **stdlib scaffolding for Sutra-source system functions** (cd48bf0 /
   fea4523 / 7b44a51, 2026-04-23). Created seven `.su` files under
   `sdk/sutra-compiler/sutra_compiler/stdlib/` — one per category.
