@@ -1,61 +1,57 @@
-// Sutra corpus test: ordered comparison — number-axis only.
+// Sutra corpus test: ordered comparison — differentiable, number-axis.
 //
-// `>`, `<`, `>=`, `<=` are ordering relations on real values, not
-// fuzzy-logic operators. They work on number-family operands
-// (int, float, complex's real axis, char, scalar) and produce a
-// truth-axis vector. The mechanism:
+// `>`, `<`, `>=`, `<=` on number-family operands work by projecting
+// both sides to the real axis (matmul), subtracting, and applying
+// tanh with a steep slope to get a smooth sign. Pure tensor
+// arithmetic — no componentwise predicate, no Python branch,
+// differentiable everywhere.
 //
-//   1. Matrix-multiply both sides by a real-axis projector —
-//      zeros every axis except synthetic[AXIS_REAL].
-//   2. Read the real scalars; compute diff = a_real - b_real.
-//   3. Output make_truth(sign(diff)):
-//        diff > 0  → +1 (true)
-//        diff < 0  → -1 (false)
-//        diff == 0 → 0  (unknown — a value can't strictly exceed itself)
+// Saturates at ±1 for any appreciable difference (tanh(100 · 1) is
+// indistinguishable from +1 at double precision). Smooth in the
+// near-tie region. Exact tie returns tanh(0) = 0 (unknown).
 //
-// `>=` and `<=` produce the same polynomial as `>` and `<`, because
-// ties give 0 either way (unknown). On integers this is the sign
-// function; it's not smooth at 0, but integers don't hover there
-// under gradient flow, so this is fine.
+// Strict (`>`, `<`) and non-strict (`>=`, `<=`) collapse under this
+// scheme — both give tanh(0) = 0 on ties. Programs that need to
+// distinguish tie from strict inequality compose with `==`.
 //
-// Comparing truth-family values (bool / fuzzy / trit) with `>` is
-// a compile-time error — ordering isn't a natural operation on a
-// truth axis. Classes can override `<` / `>` if they want custom
-// comparison semantics for their own types.
+// Comparing truth-family values (bool / fuzzy / trit) is a compile-
+// time error — ordered comparison has no natural meaning on the
+// truth axis.
 
 function fuzzy IntGt() {
     int a = 5;
     int b = 3;
-    return a > b;                 // +1 (true)
+    return a > b;                 // ≈ +1 (tanh(100·2) saturated)
 }
 
 function fuzzy IntLt() {
     int a = 3;
     int b = 5;
-    return a > b;                 // -1 (false)
+    return a > b;                 // ≈ -1
 }
 
-function fuzzy IntEqual() {
+function fuzzy IntTie() {
     int a = 7;
     int b = 7;
-    return a > b;                 // 0 (unknown — tie)
+    return a > b;                 // 0 (tanh(0))
 }
 
 function fuzzy FloatCmp() {
     float a = 3.14;
     float b = 2.71;
-    return a > b;                 // +1
+    return a > b;                 // ≈ +1 (diff = 0.43, tanh(43) saturated)
 }
 
-function fuzzy NegativeCmp() {
-    int a = -5;
-    int b = -3;
-    return a > b;                 // -1 (-5 is less than -3)
-}
-
-// `<` is the mirror of `>`.
 function fuzzy LessThan() {
     int a = 3;
     int b = 5;
-    return a < b;                 // +1 (true)
+    return a < b;                 // ≈ +1
+}
+
+// Non-strict behavior: same as strict on the differentiable scheme.
+// (Composing with == gives you the "true on tie" semantic if you need it.)
+function fuzzy GeTie() {
+    int a = 7;
+    int b = 7;
+    return a >= b;                // 0 (same as `>` at tie)
 }
