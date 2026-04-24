@@ -26,7 +26,7 @@ The compiler is intentionally liberal where the spec is still open
 forms and flags the clearly-forbidden ones.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .diagnostics import Diagnostic, DiagnosticLevel, DiagnosticBag
 from .lexer import Lexer, Token, TokenKind
