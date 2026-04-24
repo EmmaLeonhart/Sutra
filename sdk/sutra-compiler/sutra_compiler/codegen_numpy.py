@@ -1123,32 +1123,91 @@ class NumpyCodegen(BaseCodegen):
         self._emit("return -self._as_truth_vector(x)")
         self._indent -= 1
         self._emit()
-        self._emit("# ---- Ordered comparison on the truth axis ----")
+        self._emit("# ---- Ordered comparison — number-axis (int/float) only ----")
         self._emit("#")
-        self._emit("# gt(a, b) = (a - b) * (2 + ab) / 2")
+        self._emit("# `>`, `<`, `>=`, `<=` operate on number-family values (int,")
+        self._emit("# float) by projecting both sides onto the real axis, taking")
+        self._emit("# the difference, and placing its sign on the truth axis.")
+        self._emit("# This makes them an *ordering* on the real line, not a")
+        self._emit("# derived truth-axis operation — which is what the semantics")
+        self._emit("# of comparison actually are.")
         self._emit("#")
-        self._emit("# Lagrange-derived polynomial on the three-valued grid")
-        self._emit("# {-1, 0, +1}², with ties mapping to 0 (unknown) — a")
-        self._emit("# continuous truth value can't strictly exceed itself.")
-        self._emit("# Degree 3, smooth everywhere (no absolute value), fully")
-        self._emit("# differentiable: ∂gt/∂a = (2 + 2ab - b²) / 2.")
+        self._emit("# Pipeline per operand:")
+        self._emit("#   1. matmul with _real_projector — a dim×dim diagonal")
+        self._emit("#      matrix whose only nonzero entry is at synthetic[AXIS_REAL].")
+        self._emit("#      Strips every axis except the real one; truth, imag,")
+        self._emit("#      char-flag, and semantic content all go to zero.")
+        self._emit("#   2. read the scalar off the real axis.")
         self._emit("#")
-        self._emit("# lt is the negation. On the fuzzy truth axis `>` and `>=`")
-        self._emit("# coincide (ties are unknown in both) so `ge` emits the")
-        self._emit("# same polynomial as `gt`, and `le` the same as `lt`.")
+        self._emit("# Then diff = a_real - b_real, and the output is make_truth(")
+        self._emit("# sign(diff)). sign(+) = +1 (true), sign(-) = -1 (false),")
+        self._emit("# sign(0) = 0 (unknown — the tie case).")
+        self._emit("#")
+        self._emit("# `>=` collapses to `>` and `<=` to `<` because ties produce 0")
+        self._emit("# (unknown) in both, same as before.")
+        self._emit("#")
+        self._emit("# Truth-family operands (bool, fuzzy, trit) are not supported")
+        self._emit("# by this dispatch — comparison on the truth axis has no")
+        self._emit("# natural meaning the way ordering-on-reals does. Classes that")
+        self._emit("# want custom comparison can override the operator.")
+        self._emit()
+        self._emit("def _real_projector(self):")
+        self._indent += 1
+        self._emit('"""Diagonal dim×dim projector onto the real axis. Cached."""')
+        self._emit("if not hasattr(self, '_real_proj_cache') or self._real_proj_cache is None:")
+        self._indent += 1
+        self._emit("M = _np.zeros((self.dim, self.dim), dtype=_np.float64)")
+        self._emit("idx = self.semantic_dim + self.AXIS_REAL")
+        self._emit("M[idx, idx] = 1.0")
+        self._emit("self._real_proj_cache = M")
+        self._indent -= 1
+        self._emit("return self._real_proj_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _real_scalar(self, x):")
+        self._indent += 1
+        self._emit('"""Project x onto the real axis and return the scalar.')
+        self._emit('')
+        self._emit("Vector inputs go through the matmul projection; Python")
+        self._emit("scalars pass through unchanged. Non-numeric inputs are")
+        self._emit("a type error at the caller.")
+        self._emit('"""')
+        self._emit("if isinstance(x, _np.ndarray):")
+        self._indent += 1
+        self._emit("projected = self._real_projector() @ x")
+        self._emit("return float(projected[self.semantic_dim + self.AXIS_REAL])")
+        self._indent -= 1
+        self._emit("return float(x)")
+        self._indent -= 1
         self._emit()
         self._emit("def gt(self, a, b):")
         self._indent += 1
-        self._emit('"""a > b — polynomial ordered comparison on the truth axis."""')
-        self._emit("av = self._as_truth_vector(a)")
-        self._emit("bv = self._as_truth_vector(b)")
-        self._emit("return (av - bv) * (2.0 + av * bv) * 0.5")
+        self._emit('"""a > b on the real axis — returns a truth-axis vector."""')
+        self._emit("diff = self._real_scalar(a) - self._real_scalar(b)")
+        self._emit("if diff > 0:")
+        self._indent += 1
+        self._emit("return self.make_truth(1.0)")
+        self._indent -= 1
+        self._emit("if diff < 0:")
+        self._indent += 1
+        self._emit("return self.make_truth(-1.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(0.0)")
         self._indent -= 1
         self._emit()
         self._emit("def lt(self, a, b):")
         self._indent += 1
-        self._emit('"""a < b — negation of gt."""')
-        self._emit("return -self.gt(a, b)")
+        self._emit('"""a < b — the mirror of gt."""')
+        self._emit("diff = self._real_scalar(a) - self._real_scalar(b)")
+        self._emit("if diff < 0:")
+        self._indent += 1
+        self._emit("return self.make_truth(1.0)")
+        self._indent -= 1
+        self._emit("if diff > 0:")
+        self._indent += 1
+        self._emit("return self.make_truth(-1.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(0.0)")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Equality and inequality — vector cosine similarity ----")
