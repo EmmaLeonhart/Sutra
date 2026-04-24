@@ -21,10 +21,67 @@ pick up next.
 
 ## Queued work
 
-(empty — the pre-Anthropic-grant-app queue is clear. Next-up work
-comes from `todo.md` when promoted.)
+- **Wire up the stdlib function-expansion pipeline.** The stdlib
+  directory (`sdk/sutra-compiler/sutra_compiler/stdlib/`) now holds
+  canonical Sutra definitions for every system-function category —
+  seven `.su` files covering logic, similarity, numbers, vectors,
+  memory, rotation, and the embed intrinsic. All parse cleanly; none
+  are wired into codegen yet. User code that writes `defuzzy(v)`,
+  `a && b`, `bind(r, f)`, etc. still compiles to hardcoded runtime
+  methods in `codegen.py`'s `_emit_prelude`. Six steps, in order:
+
+  1. **Loader.** At compiler init, walk `stdlib/*.su`, parse each,
+     build a symbol table `{function_name → FunctionDecl}` plus a
+     parallel set of names marked `@intrinsic` (see step 5).
+  2. **Inliner in `simplify.py`.** When encountering a
+     `Call(Identifier(name), args)` whose name is in the stdlib table,
+     beta-reduce: substitute args for params, splice the body into the
+     caller's AST. Run before codegen so downstream passes see the
+     inlined form.
+  3. **Unroll.** Existing compile-time `loop(N)` unroll (for literal N)
+     fires naturally on inlined bodies. `defuzzy(v)` inlines to a
+     `loop(10) { v = v == true; }` which then becomes 10 straight-line
+     `v = v == true` statements.
+  4. **Delete runtime methods.** Every `def defuzzify(...)`,
+     `def logical_and(...)`, etc. in `_emit_prelude` becomes dead code
+     once all callers inline. Drop them, one category at a time as the
+     corresponding stdlib file is fully wired.
+  5. **Intrinsic mechanism.** Define a syntactic form for "this
+     function's body is in the runtime" — `@intrinsic` decorator, a
+     dedicated `intrinsic function` keyword, or similar. Leaf
+     primitives (`dot`, `sqrt`, `tanh`, axis-slot indexed write,
+     matrix literals, `@` matmul, Haar rotation factory, LLM embed)
+     become the enumerated set the runtime must implement.
+  6. **Fusion pass (follow-up).** Recognize chains of linear tensor
+     ops in the inlined + unrolled straight-line code and fold them
+     into cached matrices. This is what makes the
+     "ten-iteration defuzzy collapses to one matmul" promise real —
+     the aggressive precalculation the user has been describing as
+     the next big piece after compilation itself.
+
+  Scope: steps 1–4 are mechanical once the inliner is designed;
+  steps 5 and 6 are real compiler work. See stdlib/README.md for the
+  full inventory of what's implementable in pure Sutra today vs
+  blocked on primitives.
 
 Recently closed:
+- **stdlib scaffolding for Sutra-source system functions** (cd48bf0 /
+  fea4523 / 7b44a51, 2026-04-23). Created seven `.su` files under
+  `sdk/sutra-compiler/sutra_compiler/stdlib/` — one per category.
+  Implementable-as-Sutra functions (defuzzy, logical_not/and/or, neq,
+  lt, ge, le) carry real bodies the parser accepts today; the rest
+  carry commented pseudo-Sutra bodies showing the target expansion
+  and noting which runtime primitive they're blocked on.
+  README.md has the full inventory plus the six-step pipeline above.
+  Not wired into codegen yet — canonical reference files for the
+  inliner to consume.
+- **Dropped numpy as a user-facing backend** (b21974f / e77563b,
+  2026-04-23). `codegen_numpy.py` → `codegen.py`; class
+  `NumpyCodegen` → `Codegen`. `--emit-numpy` removed; `--emit` and
+  `--run` now target PyTorch directly. PyTorch is the compiler's
+  runtime library — Sutra compiles to torch tensor ops the way clang
+  compiles to LLVM IR. Internal IR still uses `_np.` strings in
+  `codegen.py` that PyTorch post-processes; full purge is a follow-up.
 - **Rotation-hashmap capacity at d=868** (2026-04-23). Measured
   through the `hashmap_new/set/get` API on the extended-state runtime.
   Findings:
@@ -42,8 +99,8 @@ Recently closed:
   for fusion across non-bundle/bind patterns is NOT done — only the
   `bundle(bind,bind,...)` pattern is fused; mixed sequences like
   `bundle(bind(r,f), c, bind(r2,f2))` still emit sequentially.
-  That widening is its own follow-on (tracked in todo.md under
-  "Formula simplification — remaining pieces").
+  That widening folds into step 6 of the stdlib pipeline above —
+  the fusion pass will subsume it.
 - **Extended state vector** (e1ccbbe, 2026-04-23).
 
 ## Deferred (see `todo.md`)
@@ -110,10 +167,14 @@ here as pointers so they don't fall off the radar:
    supported.** `is_true` and defuzzification don't currently
    project onto a dedicated axis; adds with the extended-state-
    vector work.
-8. **Numpy is the demo substrate. Fly-brain is segregated.** Two
-   backends: `codegen_numpy.py` (demo path, self-contained, no
-   fly-brain imports) and `codegen_flybrain.py` (fly-brain-specific
-   work, not the demo). PyTorch/GPU is a future refactor target.
+8. **PyTorch is the compiler's runtime target. Fly-brain is
+   segregated.** Two backends: `codegen_pytorch.py` (the main path —
+   emits torch modules picking CUDA at module init) and
+   `codegen_flybrain.py` (fly-brain-specific work, not the main demo).
+   `codegen.py` is an internal IR step that `PyTorchCodegen` inherits
+   from and post-processes; no longer user-reachable as a "numpy
+   backend" — `--emit` and `--run` go to PyTorch. `--emit-numpy` is
+   gone.
 9. **Defuzzification polarizes, never binarizes.** `is_true` and
    `defuzzify` keep the result fuzzy and differentiable. No commit
    primitive exists; `select` does all branching. Don't reintroduce
