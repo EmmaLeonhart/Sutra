@@ -10,7 +10,8 @@ shared across backends.
 
 The class was extracted from `codegen_flybrain.py` in commit
 history; the fly-brain backend now lives as a thin subclass in its
-own file. See also `codegen_numpy.py` and `codegen_pytorch.py`.
+own file. See also `codegen.py` (the canonical CPU codegen) and
+`codegen_pytorch.py` (the GPU variant).
 
 Unsupported AST nodes raise `CodegenNotSupported` with the source
 span of the offending node so the CLI can print a compiler-style
@@ -197,7 +198,7 @@ BUILTINS = {
     "compile_prototypes": (_builtin_compile_prototypes, 1),
     "geometric_loop": (_builtin_geometric_loop, None),  # 3-4 args
     # Canonical-axis constructors. Lower to _VSA.make_real / make_complex /
-    # make_truth — runtime methods provided by NumpyCodegen's _NumpyVSA.
+    # make_truth — runtime methods provided by the _VSA runtime class.
     # A backend that doesn't implement them will fail at runtime with a
     # clear AttributeError; nothing in the current flybrain runtime
     # exercises these yet, so the shared table is fine.
