@@ -1,0 +1,83 @@
+// Canonical Sutra definitions for vector-similarity operations.
+//
+// Today these are hardcoded as runtime methods in codegen.py —
+// see `def eq`, `def similarity`, and the vectorized `_argmax_cosine` /
+// `_select_softmax` helpers emitted by _emit_prelude. This file is
+// the target shape for the function-expansion pass to consume. See
+// stdlib/README.md.
+
+
+// ==========================================================================
+// Section 1 — implemented in pure Sutra
+// ==========================================================================
+
+
+// neq — negation of cosine-similarity equality. Composed, not primitive.
+// Once `eq` inlines, this collapses to `logical_not(eq(a, b))` which is
+// one extra polynomial on top of the eq result.
+function fuzzy neq(vector a, vector b) {
+    return !(a == b);
+}
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics
+// ==========================================================================
+//
+// eq — cosine similarity, placed on the truth axis.
+//
+//   function fuzzy eq(vector a, vector b) {
+//       scalar na  = sqrt(dot(a, a));
+//       scalar nb  = sqrt(dot(b, b));
+//       scalar cos = dot(a, b) / (na * nb + finfo_tiny);
+//       return make_truth(cos);
+//   }
+//
+// Blocked on: `dot`, `sqrt`, `make_truth`, `finfo_tiny`.
+
+
+// similarity / Cosine — cosine similarity as a scalar (no truth-axis
+// placement). Same dot/norm pipeline as eq, but returns the scalar
+// cosine instead of wrapping it on the truth axis.
+//
+//   function scalar similarity(vector a, vector b) {
+//       scalar na = sqrt(dot(a, a));
+//       scalar nb = sqrt(dot(b, b));
+//       return dot(a, b) / (na * nb + finfo_tiny);
+//   }
+//
+// Blocked on: `dot`, `sqrt`.
+
+
+// argmax_cosine — highest-cosine match from a candidate list.
+//
+//   function vector argmax_cosine(vector query, vector[] candidates) {
+//       matrix C       = stack(candidates);
+//       vector scores  = (C @ query) / (row_norms(C) * norm(query) + tiny);
+//       int    best    = argmax(scores);
+//       return candidates[best];
+//   }
+//
+// Blocked on: `stack`, `@` matmul, `row_norms`, `argmax`, array indexing
+// with a runtime int.
+
+
+// select — softmax-weighted superposition of option vectors.
+//
+//   function vector select(scalar[] scores, vector[] options) {
+//       scalar[] s   = scores - max(scores);
+//       scalar[] w   = exp(s);
+//       w            = w / sum(w);
+//       return sum(w[i] * options[i] for i);
+//   }
+//
+// Blocked on: `max`, `exp`, `sum` reductions, broadcast-multiply over
+// an array, comprehension-style reduction.
+
+
+// snap — cleanup to nearest stored pattern. The canonical "lookup"
+// operation on a memory substrate. Implemented by the fly-brain
+// backend via spiking MB cleanup; not supported on the default CPU
+// runtime. See `planning/sutra-spec/operations.md` for the semantic
+// contract — cleanup is a substrate-level primitive, not composable
+// from other Sutra ops.
