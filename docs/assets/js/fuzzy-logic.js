@@ -59,22 +59,6 @@
       polynomial: '−a · b',
       fn: (a, b) => -a * b,
     },
-    {
-      id: 'iff',
-      name: 'IFF',
-      symbol: '↔',           // ↔
-      idiom: '== (on bools)',
-      polynomial: 'a · b',
-      fn: (a, b) => a * b,
-    },
-    {
-      id: 'implies',
-      name: 'IMPLIES',
-      symbol: '→',           // →
-      idiom: '(no common form)',
-      polynomial: '(−a + b + ab + a² + b² − a²b²) / 2',
-      fn: (a, b) => orPoly(-a, b),
-    },
   ];
 
   const CSS = `
