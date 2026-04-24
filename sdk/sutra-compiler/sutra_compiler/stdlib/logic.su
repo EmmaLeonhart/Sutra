@@ -1,0 +1,41 @@
+// Canonical Sutra definitions for truth-axis and logic operations.
+//
+// Today these are hardcoded as runtime methods in codegen.py —
+// see the `def defuzzify(...)` section of _emit_prelude and its
+// siblings (eq, neq, logical_and, logical_or, logical_not). This
+// file is where they want to live: as Sutra source the compiler
+// parses, inlines into user programs, and unrolls/fuses at
+// compile time.
+//
+// Wiring: the inliner pass is not yet implemented. This file is
+// the target shape for the function-expansion work — once the
+// inliner lands in simplify.py, every `defuzzy(v)` call in user
+// code will inline this body, the `loop(10)` will unroll to 10
+// straight-line statements, and the fusion pass (later) will
+// collapse the 10 equality ops into one cached matrix applied
+// in a single matmul. See stdlib/README.md for the broader plan.
+
+
+// defuzzy — polarize any value along the truth axis.
+//
+// Iterates cosine equality with `true` ten times. Under the
+// eps-guarded cosine form of `==`, inputs with truth=0 stay at 0
+// (unknown stays unknown — the neutral point is a fixed point of
+// equality-with-true) and inputs with truth!=0 sharpen toward ±1.
+//
+// Ten iterations is the spec-level definition. One pass mathematically
+// suffices for well-separated inputs; the loop is kept because the
+// fully-unrolled form is what the compiler targets for fusion.
+//
+// Historical note: the original formulation was just `v = v == true`
+// (one pass, no loop). That had a pathology where `unknown` (truth=0)
+// got pulled toward false because the zero-norm case in cosine
+// similarity was handled with a branch. The eps-guarded divide in
+// the current `==` fixes the fixed-point at 0 without branching, which
+// is why the loop is safe to unroll.
+function fuzzy defuzzy(fuzzy v) {
+    loop (10) {
+        v = v == true;
+    }
+    return v;
+}
