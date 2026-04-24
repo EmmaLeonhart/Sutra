@@ -31,15 +31,33 @@ straight-line tensor chain into a cached matrix applied in a single matmul.
 
 ## Status (2026-04-23)
 
-- **`logic.su`** — canonical definition of `defuzzy`. Parses cleanly as
-  Sutra but is **not yet wired into the codegen pipeline**. User code
-  that writes `defuzzy(v)` today still compiles to the hardcoded runtime
-  call. This file is the target shape for the expansion work.
-- Other logic primitives (`logical_and/or/not`, `eq/neq`, `gt/lt/ge/le`)
-  will land here once their Sutra-level form is settled. Some
-  (`logical_not`, `logical_and`) are polynomial tensor ops today; their
-  Sutra-source form depends on deciding whether the polynomial
-  constants live in the language or stay as codegen magic.
+`logic.su` holds the canonical definitions for the truth-axis and
+logic-op family. Parses cleanly under the full `sutrac` validator;
+**not yet wired into the codegen pipeline** — user code that writes
+`defuzzy(v)` or `a && b` today still compiles to the hardcoded runtime
+call. This file is the target shape for the expansion work.
+
+Two sections inside logic.su:
+
+**Implemented in pure Sutra** (8 functions):
+- `defuzzy` — ten-iteration cosine-eq polarization loop
+- `logical_not` — `0 - v` (Kleene K₃ negation)
+- `logical_and` — `(a + b + ab - a² - b² + a²b²) / 2` (Lagrange polynomial)
+- `logical_or` — `(a + b - ab + a² + b² - a²b²) / 2` (dual polynomial)
+- `neq` — composed via `!(a == b)`
+- `lt` — swapped `>` arguments
+- `ge` / `le` — collapse to `>` / `<` on the differentiable scheme
+
+**Blocked on intrinsics** (4 functions, commented-out pseudo-Sutra bodies):
+- `eq` — needs `dot`, `sqrt`, `make_truth`, `finfo.tiny`
+- `gt` — needs `tanh` on vectors, axis-projector matrices, matmul operator
+- `defuzzify_trit` — needs truth-projector matrix, β-sharpening primitive
+- `complex_mul` — needs three cached matrix literals and matmul operator
+
+The blocked ones stay as hardcoded runtime methods in codegen.py until
+an `intrinsic` mechanism lands (letting .su files declare "this is
+implemented by the runtime" for the leaf primitives) or until those
+primitives get first-class language surfaces.
 
 ## Next work
 
