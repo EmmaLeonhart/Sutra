@@ -201,17 +201,23 @@ class TestInlinerStatementBodiedPassesThrough(unittest.TestCase):
     it as any other user call. The `defuzzy(v)` keyword form (which
     parses to DefuzzyExpr, not Call) is unaffected."""
 
-    def test_defuzzy_keyword_form_unchanged(self):
-        # `defuzzy(v)` at expression position parses as DefuzzyExpr,
-        # not Call. The inliner never sees it and codegen emits
-        # _VSA.defuzzify as before.
+    def test_defuzzy_keyword_form_expands_inline(self):
+        # `defuzzy(v)` at expression position parses as DefuzzyExpr.
+        # Codegen's _defuzzy_expr_src now expands it inline to ten
+        # nested _VSA.eq calls wrapping the truth-axis projection
+        # (instead of the single _VSA.defuzzify runtime call it used
+        # to emit). _VSA.defuzzify is dead and removable.
         src = (
             "function bool f(fuzzy v) {\n"
             "  return defuzzy(v);\n"
             "}\n"
         )
         py = _compile(src)
-        self.assertIn("_VSA.defuzzify", py)
+        # Ten nested _VSA.eq calls + a truth-projector + _as_any_vector.
+        # Count `_VSA.eq(` occurrences — need at least 10.
+        self.assertGreaterEqual(py.count("_VSA.eq("), 10)
+        self.assertIn("_VSA._truth_projector()", py)
+        self.assertNotIn("_VSA.defuzzify", py)
 
 
 class TestInlinerNested(unittest.TestCase):

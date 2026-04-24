@@ -655,32 +655,10 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.make_truth(float(x))")
         self._indent -= 1
         self._emit()
-        self._emit("def logical_and(self, a, b):")
-        self._indent += 1
-        self._emit('"""Smooth min polynomial on truth axis. Fully differentiable."""')
-        self._emit("av = self._as_truth_vector(a)")
-        self._emit("bv = self._as_truth_vector(b)")
-        self._emit("a2 = av * av")
-        self._emit("b2 = bv * bv")
-        self._emit("return (av + bv + av * bv - a2 - b2 + a2 * b2) * 0.5")
-        self._indent -= 1
-        self._emit()
-        self._emit("def logical_or(self, a, b):")
-        self._indent += 1
-        self._emit('"""Smooth max polynomial — sign-flipped odd terms of min."""')
-        self._emit("av = self._as_truth_vector(a)")
-        self._emit("bv = self._as_truth_vector(b)")
-        self._emit("a2 = av * av")
-        self._emit("b2 = bv * bv")
-        self._emit("return (av + bv - av * bv + a2 + b2 - a2 * b2) * 0.5")
-        self._indent -= 1
-        self._emit()
-        self._emit("def logical_not(self, x):")
-        self._indent += 1
-        self._emit('"""Negation as pure tensor scalar multiplication: -x."""')
-        self._emit("return -self._as_truth_vector(x)")
-        self._indent -= 1
-        self._emit()
+        # logical_and / logical_or / logical_not runtime methods
+        # deleted in v0.3 step 4 — operator lowering + stdlib inline
+        # replaces every caller with the inline polynomial form.
+
         self._emit("# ---- Ordered comparison — pure tensor ops, no branches ----")
         self._emit()
         self._emit("def _real_projector(self):")
@@ -723,24 +701,8 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._truth_from_real() @ signed")
         self._indent -= 1
         self._emit()
-        self._emit("def lt(self, a, b):")
-        self._indent += 1
-        self._emit('"""a < b = gt(b, a)."""')
-        self._emit("return self.gt(b, a)")
-        self._indent -= 1
-        self._emit()
-        self._emit("def ge(self, a, b):")
-        self._indent += 1
-        self._emit('"""a >= b — same as gt; ties collapse on this scheme."""')
-        self._emit("return self.gt(a, b)")
-        self._indent -= 1
-        self._emit()
-        self._emit("def le(self, a, b):")
-        self._indent += 1
-        self._emit('"""a <= b — same as lt."""')
-        self._emit("return self.lt(a, b)")
-        self._indent -= 1
-        self._emit()
+        # lt / ge / le runtime methods deleted in v0.3 step 4.
+
         self._emit("# ---- Equality — cosine similarity on tensors ----")
         self._emit()
         self._emit("def eq(self, a, b):")
@@ -754,12 +716,8 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.make_truth(float(cos.item()))")
         self._indent -= 1
         self._emit()
-        self._emit("def neq(self, a, b):")
-        self._indent += 1
-        self._emit('"""a != b = truth-axis-inverted cosine similarity."""')
-        self._emit("return self.logical_not(self.eq(a, b))")
-        self._indent -= 1
-        self._emit()
+        # neq runtime method deleted in v0.3 step 4.
+
         self._emit("def _as_any_vector(self, x):")
         self._indent += 1
         self._emit('"""Coerce any runtime value to a d-dim tensor for comparison."""')
@@ -797,18 +755,10 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._truth_proj_cache")
         self._indent -= 1
         self._emit()
-        self._emit("def defuzzify(self, x, iters=10):")
-        self._indent += 1
-        self._emit('"""Project onto truth axis via matmul, then iterate eq(., true)."""')
-        self._emit("av = self._as_any_vector(x)")
-        self._emit("t = self._truth_projector() @ av")
-        self._emit("true_vec = self.make_truth(1.0)")
-        self._emit("for _ in range(int(iters)):")
-        self._indent += 1
-        self._emit("t = self.eq(t, true_vec)")
-        self._indent -= 1
-        self._emit("return t")
-        self._indent -= 1
+        # defuzzify runtime method deleted in v0.3 step 4. The
+        # `defuzzy(x)` source form is expanded inline by codegen.py's
+        # `_defuzzy_expr_src` into ten nested eq calls (inherited
+        # unchanged here).
         self._emit()
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
