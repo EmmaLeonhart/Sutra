@@ -409,6 +409,52 @@ class TestOperatorLowering(unittest.TestCase):
         self.assertNotIn("logical_not", calls)
 
 
+class TestFusionConstantFolding(unittest.TestCase):
+    """Step 6 — the fusion pass, first slice. When stdlib-inlined
+    bodies have literal arguments, the resulting polynomial collapses
+    to a single compile-time constant; the emitted runtime sees one
+    `make_truth(...)` call instead of a chain of arithmetic ops."""
+
+    def test_logical_and_literal_args_folds_to_constant(self):
+        src = (
+            "function fuzzy main() {\n"
+            "  fuzzy x = logical_and(0.7, 0.3);\n"
+            "  return x;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # After inline + full constant fold, the body should contain
+        # exactly one make_truth call wrapping a folded literal.
+        # 0.7 * 0.3 = 0.21, the polynomial evaluates to 0.33705 (×0.5
+        # applied as part of the spec form). Emitted form inside main:
+        #   x = _VSA.make_truth(0.33705)
+        self.assertIn("_VSA.make_truth(0.33705)", py)
+
+    def test_logical_and_symbolic_args_stay_polynomial(self):
+        # No fold when args are variables — the polynomial stays
+        # as arithmetic ops (fusion at matrix level is future work).
+        src = (
+            "function fuzzy f(fuzzy a, fuzzy b) {\n"
+            "  return logical_and(a, b);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("0.5", py)   # the `* 0.5` tail from the polynomial
+        self.assertIn("a", py)
+        self.assertIn("b", py)
+
+    def test_not_not_folds_to_noop_on_literal(self):
+        # !!0.5 → 0 - (0 - 0.5) → 0.5. Full arithmetic fold.
+        src = (
+            "function fuzzy main() {\n"
+            "  fuzzy x = !!0.5;\n"
+            "  return x;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.make_truth(0.5)", py)
+
+
 class TestIntrinsicCodegen(unittest.TestCase):
     """Step 5 — `intrinsic function ... ;` declarations in stdlib
     route user calls to the runtime class via `_VSA.<name>(...)`.
