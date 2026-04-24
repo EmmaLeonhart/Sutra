@@ -91,18 +91,36 @@ class TestStdlibLoad(unittest.TestCase):
         self.assertEqual(neq.params[0].type_ref.name, "vector")
         self.assertEqual(neq.params[1].type_ref.name, "vector")
 
-    def test_no_blocked_stubs_in_table(self):
-        """Functions that live only as commented-out pseudo-Sutra
-        (eq, gt, make_real, complex_mul, bind, etc.) should NOT
-        appear in the table — they're not real FunctionDecl nodes."""
+    def test_intrinsics_are_in_table_but_not_inlineable(self):
+        """Intrinsic declarations (`intrinsic function ...;`) DO appear
+        in the stdlib table — they're FunctionDecl nodes with empty
+        bodies and is_intrinsic=True. The inliner skips them (no body
+        to substitute); the codegen routes Call(intrinsic, ...) to
+        `_VSA.<name>(...)` so the runtime implements them."""
         table = load_stdlib()
-        for blocked in ("eq", "gt", "make_real", "make_complex",
-                        "complex_mul", "bind", "unbind", "bundle",
-                        "embed", "zero_vector", "snap"):
+        for name in ("eq", "gt", "make_real", "make_complex",
+                     "make_char", "complex_mul", "embed",
+                     "zero_vector", "similarity", "make_truth"):
+            self.assertIn(name, table)
+            self.assertTrue(
+                table[name].is_intrinsic,
+                f"{name!r} should be marked is_intrinsic=True",
+            )
+            self.assertEqual(
+                table[name].body.statements, [],
+                f"{name!r} body should be an empty Block",
+            )
+
+    def test_still_unlisted_stubs(self):
+        """Functions that remain commented-out pseudo-Sutra (bind,
+        unbind, bundle, snap, conj, ...) are still not in the table —
+        they lack either a body or an intrinsic declaration."""
+        table = load_stdlib()
+        for name in ("bind", "unbind", "bundle", "snap", "conj",
+                     "permute", "hashmap_get", "make_random_rotation"):
             self.assertNotIn(
-                blocked, table,
-                f"{blocked!r} should not be in table — it's a "
-                f"blocked-on-intrinsics stub, not an implemented fn",
+                name, table,
+                f"{name!r} is still a commented stub, not yet declared",
             )
 
     def test_function_names_sorted_and_deduplicated(self):

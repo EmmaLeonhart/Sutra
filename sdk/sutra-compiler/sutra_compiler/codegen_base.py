@@ -1206,6 +1206,14 @@ class BaseCodegen:
                     )
                 arg_srcs = [self._translate_expr(a) for a in call.args]
                 return emitter(arg_srcs)
+            # Stdlib intrinsic? Route to the runtime class so the leaf
+            # primitive (dot, sqrt, tanh, make_truth, embed, ...) is
+            # dispatched to _VSA.<name>(...) instead of a bare identifier
+            # call that would fail to resolve in the emitted Python.
+            from .stdlib_loader import intrinsic_names
+            if name in intrinsic_names():
+                arg_srcs = [self._translate_expr(a) for a in call.args]
+                return f"_VSA.{name}({', '.join(arg_srcs)})"
             # User-defined call: emit as-is.
             arg_srcs = [self._translate_expr(a) for a in call.args]
             return f"{name}({', '.join(arg_srcs)})"

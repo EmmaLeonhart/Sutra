@@ -88,3 +88,18 @@
 // Blocked on: indexed read/write to synthetic slots. Alternative
 // formulation as a matrix (diag of 1s with a -1 at the imag slot)
 // needs matmul + matrix-literal surfaces.
+
+
+// ==========================================================================
+// Section 3 — intrinsic declarations
+// ==========================================================================
+//
+// Leaf constructors and complex multiplication that live in the
+// runtime class. Stdlib functions that want to build on them (once
+// the @intrinsic mechanism is wired more broadly) can reference
+// these by name; the codegen routes the calls to `_VSA.<name>(...)`.
+
+intrinsic function complex make_real(scalar x);
+intrinsic function complex make_complex(scalar r, scalar i);
+intrinsic function char make_char(int code);
+intrinsic function complex complex_mul(complex a, complex b);
