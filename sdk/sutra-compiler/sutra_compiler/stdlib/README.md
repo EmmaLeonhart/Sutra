@@ -25,45 +25,56 @@ pass inlines calls to them into user AST; the existing `loop(N)` compile-time
 unroll kicks in; the (future) fusion pass collapses the unrolled
 straight-line tensor chain into a cached matrix applied in a single matmul.
 
-## Inventory (2026-04-23)
+## Inventory (2026-04-24)
 
-All files parse cleanly under the full `sutrac` validator. **None are yet
-wired into the codegen pipeline** — user code still compiles to the
-hardcoded runtime methods. These are canonical reference files that the
-inliner will consume when it lands.
+All files parse cleanly under the full `sutrac` validator. **Wired
+into the compilation pipeline as of v0.3.** Function-expansion
+pipeline has three categories of stdlib entries:
+
+- **Implemented in Sutra** — real function body, gets inlined into
+  user code by `sutra_compiler/inliner.py`.
+- **Intrinsic** — `intrinsic function ... ;` declaration, no body.
+  Codegen routes `Call(intrinsic, args)` to `_VSA.<name>(args)`; the
+  runtime class implements the leaf.
+- **Blocked pseudo-Sutra** — still commented-out target form. Waits
+  on a primitive surface (indexed axis write, matmul operator, etc.)
+  to become expressible at the language level.
 
 ### `logic.su` — truth-axis and logic ops
 - **Implemented in Sutra:** `defuzzy`, `logical_not`, `logical_and`,
-  `logical_or`, `neq`, `lt`, `ge`, `le`
-- **Blocked on intrinsics:** `defuzzify_trit` (β-sharpening polarizer),
-  `gt` (tanh + projector matrices)
+  `logical_or`, `lt`, `ge`, `le`
+- **Intrinsic:** `gt`, `make_truth`
+- **Blocked pseudo-Sutra:** `defuzzify_trit` (β-sharpening polarizer)
 
 ### `similarity.su` — cosine / similarity / argmax
 - **Implemented in Sutra:** `neq` (via `!(a == b)`)
-- **Blocked on intrinsics:** `eq`, `similarity` / `Cosine`,
-  `argmax_cosine`, `select`, `snap` (substrate-level cleanup)
+- **Intrinsic:** `eq`, `similarity`
+- **Blocked pseudo-Sutra:** `argmax_cosine`, `select`, `snap`
 
 ### `numbers.su` — number family (int / float / complex / char)
-- **Blocked on intrinsics:** `make_real`, `make_complex`, `make_char`,
-  `complex_mul`, `conj`
+- **Intrinsic:** `make_real`, `make_complex`, `make_char`,
+  `complex_mul`
+- **Blocked pseudo-Sutra:** `conj`
 
 ### `vectors.su` — VSA ops
-- **Blocked on intrinsics:** `bind`, `unbind`, `bundle`, `basis_vector`
-  (alias for embed), `permute`, `permutation_key`, `identity_permutation`,
-  `compose`
+- **Blocked pseudo-Sutra:** `bind`, `unbind`, `bundle`,
+  `basis_vector` (alias for embed), `permute`, `permutation_key`,
+  `identity_permutation`, `compose`
+  (some are also runtime builtins via codegen_base's BUILTINS table;
+  intrinsic declarations here are pending cleanup)
 
 ### `memory.su` — memory / lookup
-- **Blocked on intrinsics:** `zero_vector`, `hashmap_get`, `hashmap_set`,
-  `map_lookup`
+- **Intrinsic:** `zero_vector`
+- **Blocked pseudo-Sutra:** `hashmap_get`, `hashmap_set`, `map_lookup`
 
 ### `rotation.su` — rotation matrices and eigenrotation
-- **Blocked on intrinsics:** `make_random_rotation`, `compile_prototypes`,
-  `eigenrotation_loop` (what `loop(cond)` / `while` compile to)
+- **Blocked pseudo-Sutra:** `make_random_rotation`,
+  `compile_prototypes`, `eigenrotation_loop` (what `loop(cond)` /
+  `while` compile to)
 
 ### `embed.su` — LLM embedding intrinsic
-- **Pure intrinsic:** `embed(string) -> vector`. No Sutra body — the
-  operation is a leaf in the dataflow graph (hits Ollama, caches,
-  normalizes).
+- **Intrinsic:** `embed(string) -> vector` — the pure leaf that hits
+  Ollama / caches / normalizes.
 
 ## Pipeline needed to make this live
 

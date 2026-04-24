@@ -74,3 +74,15 @@
 // Blocked on: `is` identity comparison, comprehension syntax,
 // tuple/pair destructuring, and the `argmax_cosine` composition
 // from similarity.su.
+
+
+// ==========================================================================
+// Section 3 — intrinsic declarations
+// ==========================================================================
+//
+// zero_vector is a runtime primitive — the compiler's neutral
+// element for bundling and the initial value for axis-indexed
+// construction (make_real, make_complex, make_char would start
+// from it once indexed write lands).
+
+intrinsic function vector zero_vector();

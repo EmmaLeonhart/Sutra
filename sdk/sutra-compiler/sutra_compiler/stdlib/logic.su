@@ -138,3 +138,17 @@ function fuzzy le(complex a, complex b) {
 //   memory.su     — `zero_vector`, hashmap ops.
 //   rotation.su   — rotation-matrix construction and eigenrotation loop.
 //   embed.su      — the `embed` LLM-call intrinsic.
+
+
+// ==========================================================================
+// Section 3 — intrinsic declarations
+// ==========================================================================
+//
+// `gt` and `make_truth` are runtime primitives. `gt` uses tanh on
+// the real-axis difference (not expressible in pure Sutra until
+// tanh has a language-level surface); `make_truth` writes a scalar
+// into the truth-axis slot (not expressible until axis-indexed
+// write lands).
+
+intrinsic function fuzzy gt(complex a, complex b);
+intrinsic function fuzzy make_truth(scalar t);

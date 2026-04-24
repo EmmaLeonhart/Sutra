@@ -121,6 +121,11 @@ class TokenKind(Enum):
     KW_OPERATOR = auto()
     KW_NEW = auto()
     KW_IMPLICIT = auto()
+    # `intrinsic` — declares a function whose body lives in the runtime
+    # (no Sutra-level body). Used by stdlib files for leaf primitives
+    # like `dot`, `sqrt`, `tanh`, `make_truth`, `embed` that can't be
+    # expressed in Sutra arithmetic. Calls compile to `_VSA.<name>(...)`.
+    KW_INTRINSIC = auto()
 
     # ---- special ----
     EOF = auto()
@@ -156,6 +161,7 @@ KEYWORDS = {
     "operator": TokenKind.KW_OPERATOR,
     "new": TokenKind.KW_NEW,
     "implicit": TokenKind.KW_IMPLICIT,
+    "intrinsic": TokenKind.KW_INTRINSIC,
     "true": TokenKind.TRUE,
     "false": TokenKind.FALSE,
     # `unknown` — the neutral point on the truth axis (0.0 between
