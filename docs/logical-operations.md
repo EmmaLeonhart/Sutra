@@ -241,7 +241,7 @@ Three algebraic steps, no case analysis. Compare to classical truth-table deriva
 
 ### Verification
 
-All the polynomial-vs-composition equivalences are verified on the `{-1, 0, +1}²` grid (9 points × 5 connectives × 2 forms = 90 comparisons). See the derivation and verification in [`planning/findings/2026-04-23-logic-gate-polynomial-forms.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-logic-gate-polynomial-forms.md).
+All the polynomial-vs-composition equivalences are exact on the `{-1, 0, +1}²` grid (9 points × 5 connectives × 2 forms).
 
 ---
 
@@ -358,6 +358,5 @@ Equality `a == b` on vectors is cosine similarity projected onto the truth axis 
 ## Related reading
 
 - [Primitive classes](primitive-classes.md) — the broader "everything is a vector" picture.
-- [Simplified polynomial forms for every logic gate](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-logic-gate-polynomial-forms.md) — derivation and 45-point verification.
-- [`tests/corpus/valid/32_logical_operators.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/tests/corpus/valid/32_logical_operators.su) — polynomial primitives in Sutra source.
-- [`tests/corpus/valid/35_derived_logic.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/tests/corpus/valid/35_derived_logic.su) — XOR / NAND / NOR / IMPLIES / IFF derived in Sutra.
+- [Numeric math](numeric-math.md) — the arithmetic counterpart to this page.
+- [Fuzzy logic explorer](interactive/fuzzy-logic.md) — slider-driven interactive demo of these operations.

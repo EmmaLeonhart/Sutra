@@ -133,7 +133,7 @@ The only thing specific to arrays here is that `key_for(i)` is seeded by the int
 
 ### What it costs
 
-- **Capacity limit.** Past a certain number of entries (~32 for `d = 868` in the current runtime, measured in [this finding](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-rotation-hashmap-capacity-extended-state.md)), the accumulated noise overwhelms the signal and lookups start failing. An array bigger than ~32 elements in a 868-d space needs to be split, use a larger dimension, or use a hierarchical structure.
+- **Capacity limit.** Past a certain number of entries (~32 for `d = 868` in the current runtime), the accumulated noise overwhelms the signal and lookups start failing. An array bigger than ~32 elements in a 868-d space needs to be split, use a larger dimension, or use a hierarchical structure.
 - **Every lookup needs a codebook.** The recovered vector is "signal + noise" — you need the set of candidate answers to cosine-match against, or you can't disambiguate from an arbitrary vector. The compiler handles this by bundling each array's possible values into a codebook at compile time.
 - **Writes allocate a new vector.** There's no in-place mutation — `storage.set(key, value)` produces a new storage vector that is `storage + bind(key, value)`. This is the natural consequence of the functional / immutable semantics, but it means large arrays with frequent writes are not this runtime's strength.
 
@@ -182,5 +182,3 @@ This isn't because branching is bad; it's because the property **"every operatio
 - [Ontology](ontology.md) — where arrays, hashmaps, and user classes fit in the class tree.
 - [Primitive classes](primitive-classes.md) — the vector-as-substrate foundation.
 - [Logical operations](logical-operations.md) — polynomial logic, which shares the "control flow as algebra" principle.
-- [Rotation-hashmap capacity at d=868](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-04-23-rotation-hashmap-capacity-extended-state.md) — the empirical measurement of how many entries fit before noise overwhelms signal.
-- [Rotation-hashmap as a language feature](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/rotation-hashmap-as-language-feature.md) — the open design question about whether soft lookup (noisy-key recovery) should be part of the language's primary hashmap, or a separate variant.
