@@ -21,80 +21,31 @@ pick up next.
 
 ## Queued work
 
-**Stdlib function-expansion pipeline** — in progress, opportunistically
-  landing the steps sequentially. Current state:
-
-  - ✅ **Step 1: loader.** `sutra_compiler/stdlib_loader.py` walks
-    `stdlib/*.su` at compiler init and returns `{name → FunctionDecl}`.
-    8 functions in the table today: defuzzy + the 7 single-return fns.
-  - ✅ **Step 2: inliner for single-return-expr bodies.**
-    `sutra_compiler/inliner.py` replaces `Call(Identifier(name), args)`
-    against the stdlib table by deep-copying the body and substituting
-    params→args. Recurses into the inlined body so chains fully expand.
-  - ✅ **Step 2.6: operator lowering.** Before the inliner fires, `!`,
-    `&&`, `||`, `!=`, `<`, `<=`, `>=` with stdlib bodies rewrite to
-    Call nodes so operator forms and direct calls go through the same
-    inline path. `==` and `>` stay as operators (stdlib bodies blocked
-    on eq/gt intrinsics).
-  - ✅ **Step 3: loop(N) unroll (pre-existing).** Already in
-    `codegen_base._translate_bounded_loop`: literal N emits the body
-    N times directly. Will fire on inlined defuzzy once step 2.5 lands.
-
-  **Next up, in order:**
-
-  1. **Step 2.5: statement-level inliner.** Needed for functions
-     whose body has statements beyond a single `return expr;` — today
-     just `defuzzy` with its `loop(10) { v = v == true; }` body.
-     Inlining a statement-bodied call at a VarDecl-init or
-     ReturnStmt position requires hoisting the renamed body
-     statements before the call site and referencing a synthesized
-     temp in the expression slot. Deeper-nested call positions
-     (inside arithmetic, etc.) need ANF-style hoisting — can ship
-     the narrow-position version first.
-  2. **Retire `DefuzzyExpr` special form.** Today `defuzzy(x)`
-     parses as a dedicated AST node. Once the statement inliner
-     handles defuzzy's body, the parser can just produce
-     `Call(Identifier("defuzzy"), [x])` and the inliner takes it
-     from there — one less special form in the language.
-  3. **Step 4: delete dead runtime methods.** `_VSA.logical_and`,
-     `_VSA.logical_or`, `_VSA.logical_not`, `_VSA.neq`, `_VSA.lt`,
-     `_VSA.ge`, `_VSA.le` are now unreachable — operator lowering +
-     inlining has replaced every caller with inline arithmetic.
-     Need before/after diff of a representative corpus to confirm
-     nothing else emits them, then drop both the runtime-method
-     emissions and the codegen hooks (`_logical_op_src`,
-     `_logical_not_src`). Also `_VSA.defuzzify` once step 2.5 lands.
-     `_VSA.eq` and `_VSA.gt` stay — their stdlib bodies are blocked
-     on intrinsics.
-  4. **Step 5: intrinsic mechanism.** Define syntax for "this
-     function's body is in the runtime" — `@intrinsic` decorator or
-     `intrinsic function` keyword. Leaf primitives (`dot`, `sqrt`,
-     `tanh`, axis-slot indexed write, matrix literals, `@` matmul,
-     Haar rotation factory, LLM embed) become the enumerated set
-     the runtime must provide. Unblocks the blocked stdlib stubs.
-  5. **Step 6: fusion pass.** Recognize chains of linear tensor ops
-     in the inlined + unrolled straight-line code and fold them into
-     cached matrices. The aggressive precalculation piece — "this
-     user function is equivalent to multiplying by matrix M; compute
-     M once at module init, apply in one matmul at call time."
-
-End-to-end demo of the pipeline landed so far: `a && b` in user
-code now compiles to the inline polynomial
-`(((a + b + a*b - a*a - b*b + a*a*b*b)) * 0.5)` with zero runtime
-calls. `a != b` compiles to `(0 - _VSA.eq(a, b))` — the only
-runtime call is eq, which is blocked on intrinsics.
+(empty — the stdlib function-expansion pipeline v0.3 is done. All six
+steps shipped 2026-04-24. Next-up work comes from `todo.md` when
+promoted.)
 
 Recently closed:
-- **Stdlib function-expansion pipeline — steps 1, 2, 2.6, recursive
-  inlining** (9001f90 / 3106ec8 / a72ec29 / 9b9d85f, 2026-04-24).
-  Loader walks `stdlib/*.su`, inliner beta-reduces stdlib Call nodes
-  against it for single-return-expr bodies, operator-lowering routes
-  `!`, `&&`, `||`, `!=`, `<`, `<=`, `>=` through the same path,
-  inliner recurses into substituted bodies so operators produced by
-  inlining get lowered and re-inlined. End-to-end demo: `a && b`
-  compiles to the inline polynomial, `a != b` compiles to
-  `(0 - _VSA.eq(a, b))` — only runtime calls surviving are eq/gt
-  (blocked on intrinsics). 201 tests pass.
+- **Stdlib function-expansion pipeline v0.3 — all six steps**
+  (9001f90 / 3106ec8 / a72ec29 / 9b9d85f / 31a4300 / 2a0c065 /
+  1250912, 2026-04-24). Full pipeline from `.su` stdlib definitions
+  through inlining, operator lowering, dead-runtime-method deletion,
+  the `intrinsic function ... ;` language surface, and the first
+  slice of the fusion pass (full literal-on-literal arithmetic
+  folding). Callers that were `_VSA.logical_and(a, b)` / `_VSA.eq`
+  pathways now compile to inline polynomial arithmetic; callers
+  with literal arguments collapse to a single compile-time
+  constant. `logical_and(0.7, 0.3)` → `_VSA.make_truth(0.33705)`
+  with zero runtime arithmetic. 206 tests pass.
+
+  What the fusion pass does NOT yet do (real compiler work,
+  separate future passes): matrix-chain composition (`M2 @ M1 @ v`
+  → `(M2 @ M1) @ v` at module init), CSE for repeated
+  subexpressions, linearity analysis to recognize "this function
+  body is matrix M, precompute M once," purity tracking for
+  runtime-constant methods. The groundwork — stdlib directory,
+  inliner, intrinsic surface, constant folding — is all in place;
+  the remaining fusion work builds on top.
 - **Release v0.2.0** (7595dd2, 2026-04-24). First tagged release.
   __version__ bumped from dev placeholder 0.1.0. CHANGELOG.md added.
   GitHub release at https://github.com/EmmaLeonhart/Sutra/releases/tag/v0.2.0.
