@@ -449,11 +449,8 @@ class PyTorchCodegen(NumpyCodegen):
         self._indent += 1
         self._emit("na = _torch.linalg.norm(a)")
         self._emit("nb = _torch.linalg.norm(b)")
-        self._emit("if float(na) == 0 or float(nb) == 0:")
-        self._indent += 1
-        self._emit("return 0.0")
-        self._indent -= 1
-        self._emit("return float(_torch.dot(a, b) / (na * nb))")
+        self._emit("# eps-guarded divide — zero-norm case evaluates to 0 without branch.")
+        self._emit("return float(_torch.dot(a, b) / (na * nb + _torch.finfo(self.dtype).tiny))")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Vector component accessors (debugging / teaching) ----")
@@ -709,16 +706,13 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit()
         self._emit("def eq(self, a, b):")
         self._indent += 1
-        self._emit('"""a == b = truth-axis vector with cos(a, b) on tensor backend."""')
+        self._emit('"""a == b — cosine similarity, eps-guarded divide, no branch."""')
         self._emit("av = self._as_any_vector(a)")
         self._emit("bv = self._as_any_vector(b)")
         self._emit("na = _torch.sqrt((av * av).sum())")
         self._emit("nb = _torch.sqrt((bv * bv).sum())")
-        self._emit("if float(na.item()) == 0 or float(nb.item()) == 0:")
-        self._indent += 1
-        self._emit("return self.make_truth(0.0)")
-        self._indent -= 1
-        self._emit("return self.make_truth(float(((av * bv).sum() / (na * nb)).item()))")
+        self._emit("cos = (av * bv).sum() / (na * nb + _torch.finfo(self.dtype).tiny)")
+        self._emit("return self.make_truth(float(cos.item()))")
         self._indent -= 1
         self._emit()
         self._emit("def neq(self, a, b):")
