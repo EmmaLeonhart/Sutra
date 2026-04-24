@@ -286,11 +286,14 @@ def _do_inline(call: ast.Call, decl: ast.FunctionDecl, table=None):
         for param, arg in zip(decl.params, call.args)
     }
     substituted = _substitute_params(body_expr, subst)
-    # Recurse: the substituted body may contain more stdlib calls.
-    # (e.g. neq's body is `!(a == b)` — after operator lowering
-    # puts neq in place, the inlined !() becomes logical_not(...)
-    # which also wants to inline.)
+    # Recurse: the substituted body may contain operators or stdlib
+    # calls that still need lowering/inlining. e.g. neq's body is
+    # `!(a == b)` — the `!` is a UnaryOp that needs operator-lowering
+    # into a logical_not Call, which itself then inlines. A single
+    # pre-order pass over user code wouldn't see this `!` because it
+    # only appeared after inlining.
     if table is not None:
+        substituted = _lower_ops_expr(substituted, table)
         return _rewrite_expr(substituted, table)
     return substituted
 
