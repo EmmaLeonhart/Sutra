@@ -21,11 +21,56 @@ pick up next.
 
 ## Queued work
 
-(empty — the stdlib function-expansion pipeline v0.3 is done. All six
-steps shipped 2026-04-24. Next-up work comes from `todo.md` when
-promoted.)
+Follow-ups surfaced during the 2026-04-24 pre-Anthropic-grant-app
+sprint that aren't urgent-next but should land pre-YC:
+
+1. **Sutra-language surface syntax for slot primitives.** The
+   runtime (`slot_store` / `slot_load` / `rotate_slot` on `_VSA`)
+   landed 2026-04-24 and passes all four reversibility tests — but
+   there is no `.su` syntax that compiles to them. Pick a surface
+   (`var x : int = 0;` with the compiler allocating a slot? an
+   explicit `slot[N] x;` declaration? `@slot` annotation?) and wire
+   it through parser + validator + codegen. Unlocks the
+   imperative-reversible demo programs.
+
+2. **Spec-text refresh for the synthetic-subspace design.** The
+   design doc
+   (`planning/findings/2026-04-21-extended-state-and-rotation-binding.md`)
+   has been empirically validated (`planning/findings/2026-04-24-
+   synthetic-subspace-validation.md`) and the runtime primitive is
+   in. `planning/sutra-spec/binding.md` still describes rotation
+   binding in the synthetic subspace as a design target rather than
+   a committed primitive — needs refresh, and the "pending
+   experimental validation" language on the 2D-Givens-per-slot design
+   should come out.
+
+3. **Imperative-reversible demo `.su` program.** Once (1) lands, a
+   demo that writes `x = a; x = b; x = a;` at the source level and
+   compiles to `slot_store` calls, provably producing the same
+   runtime state as a single `x = a;`. Pedagogical payoff for the
+   "variable assignment is a pure transform of state" commitment.
 
 Recently closed:
+- **Pre-Anthropic-grant-app sprint — all three items** (2026-04-24).
+  Grant app submitted ahead of the 2026-04-26 deadline.
+  1. Rotation-binding capacity experiments — 5/5 PASS
+     (`planning/findings/2026-04-24-synthetic-subspace-validation.md`,
+     `experiments/synthetic_subspace_validation.py`). Zero cross-talk
+     at N/2, capacity curve characterized past overlap, truth-axis
+     orthogonality under semantic ops, 100-op reversibility at FP
+     roundoff, fuzzy composition clean.
+  2. Cross-substrate embedding sweep — 5/5 correct on all three
+     substrates
+     (`planning/findings/2026-04-24-capital-country-across-substrates.md`,
+     `examples/_analogy_substrate_sweep.py`). nomic, mxbai, and
+     minilm all resolve the capital→country retrieval with
+     comfortable margins (mean > 0.14, min > 0.10).
+  3. 2D-Givens-per-slot rotation binding as a runtime primitive
+     (`planning/findings/2026-04-24-slot-rotation-runtime.md`,
+     `experiments/slot_rotation_reversibility.py`). `slot_store` /
+     `slot_load` / `rotate_slot` added to `_VSA` in codegen.py;
+     48 independent slots, exact reassignment, 9e-16 rotation
+     roundtrip, zero semantic-block drift. All 206 tests still pass.
 - **Stdlib function-expansion pipeline v0.3 — all six steps**
   (9001f90 / 3106ec8 / a72ec29 / 9b9d85f / 31a4300 / 2a0c065 /
   1250912, 2026-04-24). Full pipeline from `.su` stdlib definitions
