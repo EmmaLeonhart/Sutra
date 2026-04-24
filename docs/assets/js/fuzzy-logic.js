@@ -59,6 +59,14 @@
       polynomial: '−a · b',
       fn: (a, b) => -a * b,
     },
+    {
+      id: 'xnor',
+      name: 'XNOR',
+      symbol: '↔',           // ↔  (also the biconditional / IFF)
+      idiom: '== (on bools)',
+      polynomial: 'a · b',
+      fn: (a, b) => a * b,
+    },
   ];
 
   const CSS = `
