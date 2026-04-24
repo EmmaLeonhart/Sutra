@@ -1,0 +1,26 @@
+// Tiny program that triggers several simplification rewrites so the
+// review-mode output has interesting trace entries.
+//
+// Rewrites expected to fire here:
+//   R01  bundle(v)                      single-arg bundle
+//   R04  similarity(a, a)               self-similarity
+//   R05  displacement(a, a)             self-displacement
+//   R08  unbind(R, bind(R, x))          bind/unbind roundtrip
+//   R12  bind(R, zero_vector())         zero absorption (via R05 cascade)
+//   R16  literal arithmetic folding     2 + 3
+//
+// Run:  python -m sutra_compiler --review examples/review_demo.su
+
+vector king   = basis_vector("king");
+vector queen  = basis_vector("queen");
+vector role_r = basis_vector("role");
+
+vector round_trip = unbind(role_r, bind(role_r, king));
+vector self_disp  = displacement(king, king);
+vector single_bun = bundle(queen);
+fuzzy  self_sim   = similarity(king, king);
+int    folded     = 2 + 3;
+
+function vector main() {
+    return round_trip;
+}
