@@ -309,53 +309,18 @@ The surface form is optimized for **human readability**. The runtime form is opt
 
 ---
 
-## No null — only declared, never unassigned
+## No null
 
-One more thing the compiler enforces: **every variable that is read must have been assigned first.** There is no `null` runtime value in Sutra; the language never produces one, and a program that might read an uninitialized variable along some path is rejected at compile time.
-
-The mechanics:
-
-- Every primitive class has a natural neutral value. `fuzzy f;` with no initializer emits `f = _VSA.make_truth(0.0)` (unknown on the truth axis). `int n;` emits `n = 0.0` on the number axis. `vector v;` emits a zero vector. Reading these produces the neutral — which is a meaningful value in the arithmetic, not a sentinel.
-
-- What this isn't: C-style uninitialized memory or Python-style `None`. There is no "unassigned" state at runtime — the variable either has a value or doesn't exist yet.
-
-- What it means for the programmer: you can write `fuzzy f;` and read `f` as `unknown` without that being a bug. But you cannot write `fuzzy f; return f == true;` hoping for some "null-check" — `f` is already `unknown`, and the equality is against that.
-
-- The deferred-initialization case (declare now, assign later based on some input) is future language territory — the planned form is a `wait`-style mechanism where a variable explicitly marks itself as "value pending until the runtime supplies it." Not implemented yet; the design capture is in [`planning/open-questions/no-null.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/open-questions/no-null.md). Until that lands, every declared variable has a value from the moment it's declared.
-
-This is why no `null`-check operator exists in the language. There is nothing to check for — the neutral is the value.
-
----
-
-## Aspirational: Sutra operators written in Sutra
-
-The current compiler emits Python runtime methods (`_VSA.gt`, `_VSA.logical_and`, `_VSA.defuzzify`, ...) for every operator the language defines. That's a *bootstrap* — the language is easier to ship when the base-layer operators are implemented in Python and the compiler translates source-level operator calls to them.
-
-The longer-term design target, analogous to how C# is substantially implemented in C# or how Rust's standard library is written in Rust, is that **Sutra's operators should be defined in Sutra itself.** A file like `stdlib/operators/comparison.su` would contain:
+Sutra has no `null`. Variables can be declared without an initializer using `wait`:
 
 ```c
-// Illustrative; not yet implemented.
-operator fuzzy >(int a, int b) {
-    fuzzy s = sign_of(a - b);
-    if (s == true) { return true; }
-    return false;
-}
-
-operator fuzzy >=(int a, int b) {
-    return !(a < b);
-}
+wait fuzzy f;     // declared but not yet assigned; compile error if
+                  // no assignment reaches every read of `f`.
+f = compute();
+return f;
 ```
 
-with the `if` inside being a **Sutra `if`** — which compiles to a `select`-style weighted superposition on the truth axis, not a Python branch. The operator body is fully inside the language, and the Python runtime shrinks to a small set of true primitives (the ones you can't express in terms of simpler ones — `make_truth`, `make_real`, `_real_projector`, and a handful of others).
-
-This isn't built yet. The current Python implementations of `>`, `<`, `>=`, `<=`, `&&`, `||`, `!`, `==`, `defuzzify`, `complex_mul`, `hashmap_get/set` are all bootstrap code. When the compiler's class and function-declaration support is mature enough, we migrate the operator bodies into `.su` files and let the compiler produce their Python emission the same way it produces everything else.
-
-Two reasons this matters:
-
-1. **Consistency.** Today the operator's *behavior* is defined at two levels: the language spec (what `>` should mean) and the Python runtime (what `>` actually does). Sutra-in-Sutra collapses these into one — the operator's behavior is precisely what the Sutra source says it is, and any audit can happen at the Sutra level.
-2. **Extension.** Once operators are Sutra source, users can override or extend them the same way they override any other function. A class that defines its own `>` is not a special case handled by the compiler; it's a method body shadowing a standard library definition, same mechanism as any other override.
-
-Noted here so the bootstrap doesn't quietly calcify into "this is how it has to work." The Python runtime is expedient, not load-bearing.
+Without `wait`, a declaration must have an initializer. A bare `var x : TYPE;` in a normal declaration slot is a compile error — assign something or mark the declaration `wait`. Non-waiting variables that have no initializer get their type's zero value (zero vector, `make_truth(0.0)` for fuzzy, etc.); there's no uninitialized state at runtime for the compiler or programmer to reason about.
 
 ---
 
