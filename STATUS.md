@@ -21,6 +21,55 @@ pick up next.
 
 ## Queued work
 
+**Website HTTPS cert — manual user action required.** sutralang.dev
+serves 200 OK over both HTTP and HTTPS (verified 2026-04-24), but
+the TLS cert being presented on port 443 is GitHub's default wildcard
+`*.github.io` instead of a Let's Encrypt cert for `sutralang.dev`.
+That's why browsers reject the connection with `ERR_TLS_CERT_
+ALTNAME_INVALID`. GitHub Actions deploys are succeeding (last three
+runs all `success`); `docs/CNAME` and `_site/CNAME` both pin
+`sutralang.dev` correctly.
+
+**The fix has to happen in the GitHub UI, not in this repo.** Visit:
+`https://github.com/EmmaLeonhart/Sutra/settings/pages`. Check that:
+
+  1. Custom domain shows `sutralang.dev` with a green "DNS check
+     successful" indicator. If it's missing or red, re-save the
+     domain field and wait for DNS validation.
+  2. The "Enforce HTTPS" checkbox is checked. If greyed out, Let's
+     Encrypt hasn't provisioned the cert yet — wait ~15 min, refresh,
+     try again. Provisioning can stall after a DNS change; the usual
+     fix is to remove the custom domain, save, re-add it, save, wait
+     for DNS check, tick Enforce HTTPS.
+
+If Enforce HTTPS is ticked and the cert is still wrong after 24 hours,
+open a support ticket with GitHub — cert provisioning is their side.
+
+**Egglog integration — algebraic-simplification backend.** The
+current hand-written `simplify.py` (900 lines, 16 rules) covers the
+basics but doesn't do matrix-chain composition, linearity analysis,
+or CSE — the three passes that would let the global-efficiency story
+(every tensor-op program fuses into one kernel) actually realize.
+Research pass 2026-04-24 landed on `egglog` (actively maintained
+Python e-graph library, v13, supports matrix-valued expressions,
+direct precedent in `sdiehl/mlir-egglog` for numpy→compiler-IR
+exactly). Plan: replace the hand-rolled rewrites in `simplify.py`
+with an egglog-driven pass that subsumes them + adds the three
+missing passes.
+
+  - [ ] Install `egglog` (`pip install egglog`) and smoke-test that
+    Python 3.13 import works on this repo's interpreter.
+  - [ ] Lift the 16 existing rewrites from `simplify.py` into egglog
+    rule form. Validate equivalence against existing tests.
+  - [ ] Add matrix-chain composition: `M2 @ M1 @ v` rewrites with a
+    cost model that prefers `(M2 @ M1) @ v` when M1, M2 are module-
+    init constants.
+  - [ ] Add linearity analysis: function bodies that are pure
+    linear tensor-op compositions get a single cached matrix M and
+    compile-down to `M @ arg`.
+  - [ ] CSE pass — comes almost free from equality saturation; just
+    needs the extraction cost to charge per-use.
+
 Follow-ups surfaced during the 2026-04-24 pre-Anthropic-grant-app
 sprint that aren't urgent-next but should land pre-YC:
 
