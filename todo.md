@@ -30,10 +30,12 @@ The rotation-hashmap library-pattern prototype landed 2026-04-22
 (5/5 exact-lookup on nomic; `examples/_rotation_hashmap_test.py`).
 Two follow-ups flagged during that work:
 
-- [ ] **Capacity experiment.** Design doc is
+- [x] ~~**Capacity experiment.** Design doc is
   `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`;
   five concrete experiments, not yet run. Produces a findings doc
-  with the capacity curve.
+  with the capacity curve.~~ **DONE 2026-04-24.** All 5 experiments
+  PASS. `experiments/synthetic_subspace_validation.py` +
+  `planning/findings/2026-04-24-synthetic-subspace-validation.md`.
 - [x] ~~Monte-Carlo attractor search (first-pass, nomic only).~~
   **DONE 2026-04-22** (commit TBD). User revised timing: "do it
   today, nomic only, since nomic is the best substrate we have."
@@ -86,14 +88,17 @@ as a kwarg, but there's no source-level way to set it — the codegen is
 invoked with default args by `examples/_smoke_test.py`.
 
 Minimum scope:
-- [ ] Define the directive syntax. Leaning toward a magic first-line
+- [x] ~~Define the directive syntax. Leaning toward a magic first-line
   comment (`// @embedding: mxbai-embed-large`) that the test harness
-  parses pre-compile; zero parser/compiler changes.
-- [ ] Update `examples/_smoke_test.py` and the analogy harness to
-  respect the directive.
-- [ ] Write 3+ test programs that sweep the embedding models available
+  parses pre-compile; zero parser/compiler changes.~~ DONE 2026-04-22.
+- [x] ~~Update `examples/_smoke_test.py` and the analogy harness to
+  respect the directive.~~ DONE 2026-04-22.
+- [x] ~~Write 3+ test programs that sweep the embedding models available
   locally (`nomic-embed-text`, `mxbai-embed-large`, `all-minilm`)
-  over the same analogy task. Compare winners + margins.
+  over the same analogy task. Compare winners + margins.~~
+  **DONE 2026-04-24.** 5/5 correct on all three substrates.
+  `examples/_analogy_substrate_sweep.py` +
+  `planning/findings/2026-04-24-capital-country-across-substrates.md`.
 
 Longer scope (later):
 - [ ] Source-level declaration (not a comment) — a `embedding_space`
@@ -194,26 +199,42 @@ active item. When picked up:
   a `located_in_country` program using cartography-style displacement
   data).
 
-## [Pre-Anthropic-grant-app] Extended state vector + canonical truth axis
+## [Pre-YC] Extended state vector — remaining integration
 
-The 2026-04-21 design (semantic + synthetic subspaces) is committed at
-the spec level (`planning/sutra-spec/binding.md`, `vision.md`). The
-2026-04-22 rotation-binding implementation DELIBERATELY did not
-implement the extended-state-vector split — rotation acts in the same
-768-d subspace as sign-flip did, for prototyping speed. Upgrading to
-the dedicated-synthetic-subspace design is follow-on work:
+The runtime-primitive half of the extended-state / synthetic-subspace
+design landed 2026-04-24 (`planning/findings/2026-04-24-slot-rotation-
+runtime.md`). `_VSA` now exposes `slot_store` / `slot_load` /
+`rotate_slot` — 48 disjoint 2D-Givens slots in the synthetic block,
+exact reversibility, zero semantic drift. All 4 reversibility tests
+PASS on the compiled runtime.
 
-- [ ] Decide synthetic-subspace budget (fixed at language level,
-  per-program, or dynamic).
-- [ ] Extend the embedding pipeline so embedded vectors are
-  `[semantic | zeros]` in the new block-diagonal layout.
-- [ ] Move rotation binding to use 2D Givens planes in the synthetic
-  subspace with compiler-allocated plane indices per variable/slot.
-- [ ] Reserve one synthetic axis as the canonical truth axis.
-  Implement `is_true` / defuzzification as projection onto it.
-- [ ] Re-run smoke tests on the new layout; document any changes in
-  capacity / cross-talk characteristics against the 2026-04-22
-  prototype baseline.
+What this pass closed:
+- [x] ~~Decide synthetic-subspace budget~~ — fixed at 100 dims
+  language-level default (DEFAULT_SYNTHETIC_DIM in codegen.py).
+- [x] ~~Extend the embedding pipeline so embedded vectors are
+  `[semantic | zeros]` in the block-diagonal layout.~~ DONE 2026-04-23.
+- [x] ~~2D-Givens-per-slot primitive in the synthetic subspace.~~
+  Runtime methods landed 2026-04-24.
+- [x] ~~Reserve one synthetic axis as canonical truth axis; implement
+  `is_true` / defuzzification as projection onto it.~~ AXIS_TRUTH=2,
+  `make_truth`, `_truth_projector`, defuzzy unrolled to truth-axis
+  polarization — landed 2026-04-23.
+
+What remains (post-grant-app):
+- [ ] Sutra-language surface syntax for slot primitives. Pick a
+  surface (`var x : int = 0;` with compiler-allocated slot?
+  explicit `slot[N] x;`?) and wire through parser + validator +
+  codegen. Mirror STATUS.md queue item 1.
+- [ ] Compile-time slot allocator — map named variables to slot
+  indices deterministically, with a compile-error when capacity
+  (48 slots per program at synthetic_dim=100) is exceeded.
+- [ ] Imperative-reversible demo `.su` program. Source-level
+  `x = a; x = b; x = a;` compiling to slot_stores and provably
+  producing the same state as single assignment. Mirror STATUS.md
+  queue item 3.
+- [ ] Spec-text refresh in `planning/sutra-spec/binding.md` to
+  reflect that rotation-in-synthetic-subspace is now a committed
+  primitive, not a design target. Mirror STATUS.md queue item 2.
 
 ## [This year] Monotonicity of fuzzy logic polynomials
 
