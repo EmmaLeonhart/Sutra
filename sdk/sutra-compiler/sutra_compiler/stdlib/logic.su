@@ -77,12 +77,8 @@ function fuzzy logical_or(fuzzy a, fuzzy b) {
 }
 
 
-// neq — negation of cosine-similarity equality. Composed — not a
-// primitive. Once `eq` becomes inline-able this whole function is a
-// one-level inlining of !(eq(a, b)).
-function fuzzy neq(vector a, vector b) {
-    return !(a == b);
-}
+// neq lives in similarity.su — it's a composition over vector cosine
+// similarity, not a truth-axis primitive. Cross-referenced there.
 
 
 // lt — strictly less than. `>` with sides swapped.
