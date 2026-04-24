@@ -117,15 +117,35 @@ class Codegen(BaseCodegen):
         return f"_VSA.embed({inner_src})"
 
     def _defuzzy_expr_src(self, expr: ast.DefuzzyExpr) -> str:
-        """Lower `defuzzy(<inner>)` to _VSA.defuzzify.
+        """Lower `defuzzy(<inner>)` by compile-time expansion of the
+        stdlib `defuzzy` body.
 
-        Single-argument source form; the runtime method uses its
-        default `iters=10`. If we later want to expose the iteration
-        count at the surface level (e.g. `defuzzy(x, 5)`), this is
-        the hook that grows a second arg.
+        The canonical stdlib definition (stdlib/logic.su) is:
+
+            function fuzzy defuzzy(fuzzy v) {
+                loop (10) {
+                    v = v == true;
+                }
+                return v;
+            }
+
+        We emit that unrolled inline as a nested expression: ten
+        `_VSA.eq(_, make_truth(1.0))` calls wrapping the truth-axis
+        projection of the input. Expressing it as one compound
+        expression lets the downstream fusion pass see the whole
+        chain — a runtime `for _ in range(10)` loop hides the
+        iteration from the compiler. When the fusion pass lands it
+        collapses this nested chain into a single cached matrix
+        applied in one matmul; until then it's ten eq calls
+        straight-line in the emitted Python.
         """
+        DEFUZZ_ITERS = 10
         inner_src = self._translate_expr(expr.expr)
-        return f"_VSA.defuzzify({inner_src})"
+        acc = (f"_VSA._truth_projector() @ "
+               f"_VSA._as_any_vector({inner_src})")
+        for _ in range(DEFUZZ_ITERS):
+            acc = f"_VSA.eq({acc}, _VSA.make_truth(1.0))"
+        return acc
 
     def _unknown_literal_src(self, expr: ast.UnknownLiteral) -> str:
         """Lower `unknown` to the truth-axis neutral vector.
@@ -159,25 +179,30 @@ class Codegen(BaseCodegen):
 
     def _logical_op_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
-        """Lower `&&` / `||` to _VSA.logical_and / logical_or.
-
-        Runtime dispatches on operand types — pure-bool inputs return
-        a Python bool, any truth-axis-vector input returns a
-        truth-axis vector with the folded min / max. This keeps
-        boolean-only code behaving like Python while giving fuzzy /
-        trit / truth-vector code the Zadeh t-norm semantics.
-        """
-        method = "logical_and" if op == "and" else "logical_or"
-        return f"_VSA.{method}({left_src}, {right_src})"
+        """Unreachable under the v0.3 pipeline. `&&` / `||` are lowered
+        to stdlib `logical_and` / `logical_or` Call nodes by the
+        operator-lowering pass in `inliner.py`, then inlined to the
+        Lagrange-polynomial expression form. If this hook fires,
+        operator lowering didn't run and the inlined polynomial is
+        missing — loud failure is better than silently emitting a
+        call to a runtime method that no longer exists."""
+        raise CodegenNotSupported(
+            expr,
+            f"codegen saw a `{expr.op}` BinaryOp that the stdlib "
+            f"operator-lowering pass should have replaced with a "
+            f"Call(logical_{'and' if op == 'and' else 'or'}, ...). "
+            f"Check that `inline_stdlib_calls` ran before codegen.",
+        )
 
     def _logical_not_src(self, expr: ast.UnaryOp, operand_src: str) -> str:
-        """Lower `!x` to `_VSA.logical_not(x)`.
-
-        For bool: returns `not x`. For truth-axis vectors: flips just
-        the truth coordinate (matches the user's "multiplication by
-        -1 on the truth axis" framing without flipping other axes).
-        """
-        return f"_VSA.logical_not({operand_src})"
+        """Unreachable under the v0.3 pipeline — see _logical_op_src."""
+        raise CodegenNotSupported(
+            expr,
+            "codegen saw a `!` UnaryOp that the stdlib operator-"
+            "lowering pass should have replaced with a Call("
+            "logical_not, ...). Check that `inline_stdlib_calls` ran "
+            "before codegen.",
+        )
 
     def _equality_src(self, expr: ast.BinaryOp, op: str,
                       left_src: str, right_src: str) -> str:
@@ -1144,36 +1169,14 @@ class Codegen(BaseCodegen):
         self._emit("return self.make_truth(float(x))")
         self._indent -= 1
         self._emit()
-        self._emit("def logical_and(self, a, b):")
-        self._indent += 1
-        self._emit('"""Smooth min: (a + b + ab - a² - b² + a²b²) / 2.')
-        self._emit('')
-        self._emit("Lagrange-derived polynomial; exact on {-1, 0, +1}², C^∞")
-        self._emit("everywhere. No absolute value → no compile-time kink.")
-        self._emit('"""')
-        self._emit("av = self._as_truth_vector(a)")
-        self._emit("bv = self._as_truth_vector(b)")
-        self._emit("a2 = av * av")
-        self._emit("b2 = bv * bv")
-        self._emit("return (av + bv + av * bv - a2 - b2 + a2 * b2) * 0.5")
-        self._indent -= 1
-        self._emit()
-        self._emit("def logical_or(self, a, b):")
-        self._indent += 1
-        self._emit('"""Smooth max: (a + b - ab + a² + b² - a²b²) / 2. Same family as AND."""')
-        self._emit("av = self._as_truth_vector(a)")
-        self._emit("bv = self._as_truth_vector(b)")
-        self._emit("a2 = av * av")
-        self._emit("b2 = bv * bv")
-        self._emit("return (av + bv - av * bv + a2 + b2 - a2 * b2) * 0.5")
-        self._indent -= 1
-        self._emit()
-        self._emit("def logical_not(self, x):")
-        self._indent += 1
-        self._emit('"""Negation as pure scalar-by-vector multiplication: -x."""')
-        self._emit("return -self._as_truth_vector(x)")
-        self._indent -= 1
-        self._emit()
+        # logical_and / logical_or / logical_not runtime methods were
+        # deleted in v0.3 step 4. The operator-lowering pass in
+        # `inliner.py` rewrites `&&`, `||`, `!` as Call nodes targeting
+        # the stdlib `logical_and` / `logical_or` / `logical_not`
+        # functions defined in `stdlib/logic.su`, and the inliner
+        # expands those to the inline polynomial forms before codegen
+        # runs. No runtime method is needed.
+
         self._emit("# ---- Ordered comparison — differentiable, no predicate ----")
         self._emit("#")
         self._emit("# `>`, `<`, `>=`, `<=` operate on number-family values by")
@@ -1247,27 +1250,13 @@ class Codegen(BaseCodegen):
         self._emit("return self._truth_from_real() @ signed")
         self._indent -= 1
         self._emit()
-        self._emit("def lt(self, a, b):")
-        self._indent += 1
-        self._emit('"""a < b — gt with sides swapped."""')
-        self._emit("return self.gt(b, a)")
-        self._indent -= 1
-        self._emit()
-        self._emit("# `>=` / `<=` collapse to `>` / `<` on this scheme — both give")
-        self._emit("# tanh(0) = 0 on exact ties. Programs that need to distinguish")
-        self._emit("# tie from strict inequality should compose with `==`.")
-        self._emit("def ge(self, a, b):")
-        self._indent += 1
-        self._emit('"""a >= b — same as gt on the differentiable scheme."""')
-        self._emit("return self.gt(a, b)")
-        self._indent -= 1
-        self._emit()
-        self._emit("def le(self, a, b):")
-        self._indent += 1
-        self._emit('"""a <= b — same as lt."""')
-        self._emit("return self.lt(a, b)")
-        self._indent -= 1
-        self._emit()
+        # lt / ge / le runtime methods were deleted in v0.3 step 4.
+        # The operator-lowering pass rewrites `<`, `<=`, `>=` as
+        # Call nodes targeting stdlib `lt` / `ge` / `le`, and the
+        # inliner expands them to `b > a`, `a > b`, `b > a` before
+        # codegen — `gt` stays as the single runtime method for the
+        # comparison family until gt's own stdlib body unblocks.
+
         self._emit("# ---- Equality and inequality — vector cosine similarity ----")
         self._emit("#")
         self._emit("# a == b produces a truth-axis vector whose truth coordinate")
@@ -1301,13 +1290,11 @@ class Codegen(BaseCodegen):
         self._emit("return self.make_truth(float(_np.dot(av, bv) / (na * nb + _np.finfo(_np.float64).tiny)))")
         self._indent -= 1
         self._emit()
-        self._emit("def neq(self, a, b):")
-        self._indent += 1
-        self._emit('"""Vector inequality — truth axis inverted cosine similarity."""')
-        self._emit("eq_vec = self.eq(a, b)")
-        self._emit("return self.logical_not(eq_vec)")
-        self._indent -= 1
-        self._emit()
+        # neq runtime method was deleted in v0.3 step 4. `!=` lowers
+        # to Call(neq, ...) which inlines to `!(a == b)`; the `!` then
+        # lowers to Call(logical_not, ...) and inlines to `0 - _`.
+        # Final form: `0 - _VSA.eq(a, b)`. No runtime method needed.
+
         self._emit("def _as_any_vector(self, x):")
         self._indent += 1
         self._emit('"""Coerce any runtime value to a d-dim vector for comparison.')
@@ -1369,22 +1356,12 @@ class Codegen(BaseCodegen):
         self._emit("return self._truth_proj_cache")
         self._indent -= 1
         self._emit()
-        self._emit("def defuzzify(self, x, iters=10):")
-        self._indent += 1
-        self._emit('"""Project onto truth axis via matmul, then iterate eq(., true)."""')
-        self._emit("av = self._as_any_vector(x)")
-        self._emit("# Step 1: matmul projection onto truth axis (zero elsewhere).")
-        self._emit("t = self._truth_projector() @ av")
-        self._emit("# Step 2: iterate equality with true — cosine similarity snaps")
-        self._emit("# to ±1 for non-neutral inputs, stays 0 for neutral inputs.")
-        self._emit("true_vec = self.make_truth(1.0)")
-        self._emit("for _ in range(int(iters)):")
-        self._indent += 1
-        self._emit("t = self.eq(t, true_vec)")
-        self._indent -= 1
-        self._emit("return t")
-        self._indent -= 1
-        self._emit()
+        # defuzzify runtime method was deleted in v0.3 step 4. The
+        # `defuzzy(x)` source form is expanded inline by
+        # `_defuzzy_expr_src` above into ten nested `_VSA.eq(...)`
+        # calls wrapping the truth-axis projection of the input —
+        # matching the stdlib definition in `stdlib/logic.su`.
+
         self._emit("def make_random_rotation(self, angle, n_planes=1, seed=None):")
         self._indent += 1
         self._emit('"""Block-diagonal Haar rotation, scaled so its largest eigenphase ~= angle.')
