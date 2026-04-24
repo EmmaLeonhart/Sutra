@@ -1,8 +1,8 @@
-"""Tests for the pytorch codegen: GPU-capable demo backend.
+"""Tests for the pytorch codegen: GPU-capable backend.
 
 String-only tests (no exec, no torch import at test time), following
-the same pattern as test_codegen_numpy.py. An end-to-end run that
-actually hits torch / CUDA lives in examples/_smoke_test_pytorch.py.
+the same pattern as test_codegen.py. An end-to-end run that actually
+hits torch / CUDA lives in examples/_smoke_test_pytorch.py.
 """
 from __future__ import annotations
 
@@ -80,8 +80,8 @@ class TestPyTorchPrelude(unittest.TestCase):
 
 class TestPyTorchFusedOps(unittest.TestCase):
     """The GPU-shaped fused primitives — bundle_of_binds as one einsum,
-    argmax_cosine as one matmul — survive the inheritance from
-    NumpyCodegen and are emitted with torch APIs."""
+    argmax_cosine as one matmul — survive the inheritance from the
+    CPU `Codegen` class and are emitted with torch APIs."""
 
     def test_bundle_of_binds_fuses_to_torch_einsum(self):
         src = (
