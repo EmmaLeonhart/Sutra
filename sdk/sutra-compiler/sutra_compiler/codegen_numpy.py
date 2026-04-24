@@ -789,11 +789,8 @@ class NumpyCodegen(BaseCodegen):
         self._indent += 1
         self._emit("na = _np.linalg.norm(a)")
         self._emit("nb = _np.linalg.norm(b)")
-        self._emit("if na == 0 or nb == 0:")
-        self._indent += 1
-        self._emit("return 0.0")
-        self._indent -= 1
-        self._emit("return float(_np.dot(a, b) / (na * nb))")
+        self._emit("# eps-guarded divide — zero-norm case evaluates to 0 without branch.")
+        self._emit("return float(_np.dot(a, b) / (na * nb + _np.finfo(_np.float64).tiny))")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Vector component accessors (debugging / teaching) ----")
@@ -1234,18 +1231,20 @@ class NumpyCodegen(BaseCodegen):
         self._emit()
         self._emit("def eq(self, a, b):")
         self._indent += 1
-        self._emit('"""Vector equality — cosine similarity projected onto truth axis."""')
+        self._emit('"""Vector equality — cosine similarity projected onto truth axis.')
+        self._emit('')
+        self._emit("Pure tensor ops: dot products (matmul), sqrt (tensor), add,")
+        self._emit("divide. An eps is added to the denominator so the zero-norm")
+        self._emit("case evaluates to 0/eps = 0 (the neutral) without a predicate.")
+        self._emit('"""')
         self._emit("av = self._as_any_vector(a)")
         self._emit("bv = self._as_any_vector(b)")
         self._emit("na = _np.sqrt(_np.dot(av, av))")
         self._emit("nb = _np.sqrt(_np.dot(bv, bv))")
-        self._emit("if na == 0 or nb == 0:")
-        self._indent += 1
-        self._emit("# Equality with the zero vector is undefined; return")
-        self._emit("# the neutral point rather than NaN.")
-        self._emit("return self.make_truth(0.0)")
-        self._indent -= 1
-        self._emit("return self.make_truth(float(_np.dot(av, bv) / (na * nb)))")
+        self._emit("# tiny eps (~2.2e-308) guards the divide without branching;")
+        self._emit("# at normal norms it's lost in roundoff, at zero norms it")
+        self._emit("# makes the result exactly 0 (neutral).")
+        self._emit("return self.make_truth(float(_np.dot(av, bv) / (na * nb + _np.finfo(_np.float64).tiny)))")
         self._indent -= 1
         self._emit()
         self._emit("def neq(self, a, b):")
