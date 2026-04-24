@@ -1,19 +1,24 @@
 // Canonical Sutra definitions for truth-axis and logic operations.
 //
 // Today these are hardcoded as runtime methods in codegen.py —
-// see the `def defuzzify(...)` section of _emit_prelude and its
-// siblings (eq, neq, logical_and, logical_or, logical_not). This
-// file is where they want to live: as Sutra source the compiler
-// parses, inlines into user programs, and unrolls/fuses at
-// compile time.
+// see the `def defuzzify(...)`, `def logical_and(...)`, `def eq(...)`,
+// `def gt(...)` etc. sections of _emit_prelude. This file is where
+// they want to live: as Sutra source the compiler parses, inlines
+// into user programs, and unrolls/fuses at compile time. See
+// stdlib/README.md for the broader plan.
 //
-// Wiring: the inliner pass is not yet implemented. This file is
-// the target shape for the function-expansion work — once the
-// inliner lands in simplify.py, every `defuzzy(v)` call in user
-// code will inline this body, the `loop(10)` will unroll to 10
-// straight-line statements, and the fusion pass (later) will
-// collapse the 10 equality ops into one cached matrix applied
-// in a single matmul. See stdlib/README.md for the broader plan.
+// Two sections below:
+//   1. IMPLEMENTED IN SUTRA — bodies the parser accepts today.
+//   2. BLOCKED ON INTRINSICS — bodies that reach into primitives
+//      (dot, sqrt, tanh, axis projectors, cached polynomial
+//      matrices) that aren't language-level yet. These stay as
+//      commented-out pseudo-Sutra until an `intrinsic` mechanism
+//      or primitive-op surface lands.
+
+
+// ==========================================================================
+// Section 1 — implemented in pure Sutra
+// ==========================================================================
 
 
 // defuzzy — polarize any value along the truth axis.
@@ -39,3 +44,137 @@ function fuzzy defuzzy(fuzzy v) {
     }
     return v;
 }
+
+
+// logical_not — Kleene K₃ negation on the truth axis.
+//
+// Polynomial form: NOT(v) = -v. Exact on {-1, 0, +1}, preserves the
+// neutral point (NOT(unknown) = unknown), differentiable everywhere.
+// Sign-flip is the entirety of the operation.
+function fuzzy logical_not(fuzzy v) {
+    return 0 - v;
+}
+
+
+// logical_and — Kleene K₃ AND. Lagrange polynomial, exact on
+// {-1, 0, +1}², smooth everywhere:
+//
+//   a ∧ b = (a + b + ab - a² - b² + a²b²) / 2
+//
+// No absolute value → no compile-time kink → no branch. Every
+// subexpression stays a tensor op. This is the form the fusion pass
+// wants to see once user-written `a && b` inlines to this body.
+function fuzzy logical_and(fuzzy a, fuzzy b) {
+    return (a + b + a * b - a * a - b * b + a * a * b * b) * 0.5;
+}
+
+
+// logical_or — Kleene K₃ OR. Dual polynomial to AND:
+//
+//   a ∨ b = (a + b - ab + a² + b² - a²b²) / 2
+function fuzzy logical_or(fuzzy a, fuzzy b) {
+    return (a + b - a * b + a * a + b * b - a * a * b * b) * 0.5;
+}
+
+
+// neq — negation of cosine-similarity equality. Composed — not a
+// primitive. Once `eq` becomes inline-able this whole function is a
+// one-level inlining of !(eq(a, b)).
+function fuzzy neq(vector a, vector b) {
+    return !(a == b);
+}
+
+
+// lt — strictly less than. `>` with sides swapped.
+function fuzzy lt(complex a, complex b) {
+    return b > a;
+}
+
+
+// ge / le — on the differentiable-tanh scheme, `>=` and `<=` collapse
+// to `>` and `<`: both give tanh(0) = 0 on exact ties. Programs that
+// need to distinguish strict from tie compose with `==` (cosine
+// similarity, crisp on identical operands).
+function fuzzy ge(complex a, complex b) {
+    return a > b;
+}
+
+function fuzzy le(complex a, complex b) {
+    return a < b;
+}
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics
+// ==========================================================================
+//
+// The functions below can't be written in pure Sutra today because
+// they reach into runtime primitives that aren't exposed at the
+// language level:
+//
+//   - raw `dot` / `sqrt` on vectors (eq)
+//   - `tanh` on vectors and the axis-projector matrices (gt)
+//   - the three cached mul-matrices and matrix @ vector (complex_mul)
+//   - the sign-polarizing β-sharpening primitive (defuzzify_trit)
+//
+// The pseudo-Sutra bodies below show the target expansion. When an
+// `intrinsic` mechanism lands (letting a .su file declare "this
+// function is implemented by the runtime" and use those intrinsics
+// in another function's body), or when the primitive operations get
+// first-class language surfaces, these become real definitions.
+//
+// Until then, callers of `eq`, `gt`, `defuzzify_trit`, `complex_mul`
+// compile to the hardcoded runtime methods emitted by codegen.py.
+
+
+// eq — cosine similarity, placed on the truth axis.
+//
+//   function fuzzy eq(vector a, vector b) {
+//       scalar na  = sqrt(dot(a, a));
+//       scalar nb  = sqrt(dot(b, b));
+//       scalar cos = dot(a, b) / (na * nb + finfo_tiny);
+//       return make_truth(cos);
+//   }
+//
+// Blocked on: `dot`, `sqrt`, `make_truth`, `finfo_tiny`.
+
+
+// gt — differentiable smooth sign on real-axis difference.
+//
+//   function fuzzy gt(complex a, complex b) {
+//       vector diff   = a - b;
+//       vector diff_r = real_projector @ diff;
+//       vector signed = tanh(100.0 * diff_r);
+//       return truth_from_real @ signed;
+//   }
+//
+// Blocked on: axis-projector matrix literals, `tanh` on vectors,
+// `@` matmul as a Sutra operator.
+
+
+// defuzzify_trit — three-way polarizer (true / false / unknown) with
+// a β-sharpening knob instead of the straight cosine-eq loop.
+//
+//   function trit defuzzify_trit(trit v, int iters, scalar beta) {
+//       vector t = truth_projector @ v;
+//       loop (iters) {
+//           t = sign_polarize(t, beta);
+//       }
+//       return t;
+//   }
+//
+// Blocked on: `truth_projector` as a matrix literal, `sign_polarize`
+// β primitive.
+
+
+// complex_mul — pure-matmul complex multiplication using three cached
+// matrices (real-part extractor, imag-part extractor, real-imag swap).
+//
+//   function complex complex_mul(complex a, complex b) {
+//       vector ab         = a * b;
+//       vector swapped_ab = (swap_ri @ a) * b;
+//       return cm_real @ ab + cm_imag @ swapped_ab;
+//   }
+//
+// Blocked on: matrix literals for the three cached matrices, `@`
+// matmul surfaced in Sutra.
