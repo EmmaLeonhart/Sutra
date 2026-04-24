@@ -675,13 +675,15 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return self._t_from_r_cache")
         self._indent -= 1
         self._emit()
+        self._emit("CMP_SLOPE = 100.0")
+        self._emit()
         self._emit("def gt(self, a, b):")
         self._indent += 1
-        self._emit('"""a > b crisp — no branches, pure tensor ops."""')
+        self._emit('"""a > b — differentiable tanh on real-axis difference."""')
         self._emit("av = self._as_complex_vector(a)")
         self._emit("bv = self._as_complex_vector(b)")
         self._emit("diff_r = self._real_projector() @ (av - bv)")
-        self._emit("signed = 2.0 * (diff_r > 0).to(self.dtype) - 1.0")
+        self._emit("signed = _torch.tanh(self.CMP_SLOPE * diff_r)")
         self._emit("return self._truth_from_real() @ signed")
         self._indent -= 1
         self._emit()
@@ -693,14 +695,14 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit()
         self._emit("def ge(self, a, b):")
         self._indent += 1
-        self._emit('"""a >= b = !(a < b)."""')
-        self._emit("return self.logical_not(self.lt(a, b))")
+        self._emit('"""a >= b — same as gt; ties collapse on this scheme."""')
+        self._emit("return self.gt(a, b)")
         self._indent -= 1
         self._emit()
         self._emit("def le(self, a, b):")
         self._indent += 1
-        self._emit('"""a <= b = !(a > b)."""')
-        self._emit("return self.logical_not(self.gt(a, b))")
+        self._emit('"""a <= b — same as lt."""')
+        self._emit("return self.lt(a, b)")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Equality — cosine similarity on tensors ----")
