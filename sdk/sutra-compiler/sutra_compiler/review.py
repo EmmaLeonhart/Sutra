@@ -1,22 +1,22 @@
-"""Review mode — step-by-step trace of compilation stages.
+"""Review mode — language-level trace of parsing + algebraic simplification.
 
 Run as:
 
     python sutrac.py --review FILE.su
 
-What it does: compiles `FILE.su` through the real compiler pipeline
-and prints what happened at each stage — parsing, stdlib inlining,
-rewrite-based simplification, and codegen. Each stage is annotated
-with a one-line "what this is and why" explainer so the output is
-legible without needing to know the compiler internals.
+This mode is about seeing how the compiler understands your program
+at the language level — how it parses, how it simplifies. It does
+NOT show the emitted Python/PyTorch code (that's downstream codegen
+boilerplate and not the interesting thing); use `--emit` if you
+want that separately.
 
 Stages shown:
 
   1. Source              — the .su source you wrote.
-  2. Parsing             — Sutra text -> abstract syntax tree.
+  2. Parsing             — Sutra text -> abstract syntax tree,
+                           pretty-printed back as pseudo-Sutra.
   3. Stdlib inlining     — stdlib function bodies copied in-place.
   4. Simplification      — each rewrite rule that fired + before/after.
-  5. Codegen             — the Python code the compiler emitted.
 
 Stages that do nothing (e.g. inlining on a program with no stdlib
 calls) are collapsed to one line instead of re-dumping the whole AST,
@@ -191,15 +191,22 @@ def review_file(path: str) -> int:
     print(f"REVIEW MODE  —  {path}")
     print(RULE_BAR)
     print("""
-This mode runs your .su file through the real compiler and shows
-what happened at each stage. The 5 stages below are numbered; each
-has a one-line explainer of what it is and why it matters.
+Shows how the compiler parses your .su source and then applies
+algebraic simplification rewrites to it. Four stages:
 
-The most interesting stage is usually #4 (Simplification): that's
-where algebraic rewrites collapse redundant expressions. If zero
-rewrites fire, your program is already in minimal form — try
-`python sutrac.py --review examples/review_demo.su` to see a
+  1. Source — what you wrote.
+  2. Parsing — the AST, pretty-printed back as Sutra-ish syntax.
+  3. Stdlib inlining — if you called any stdlib function, its body
+                       gets copied in-place here.
+  4. Simplification — each algebraic rewrite that fired, with the
+                      expression before and after.
+
+Stage 4 is the interesting one. If zero rewrites fire, your program
+is already in minimal form — try `examples/review_demo.su` to see a
 program that triggers five of them.
+
+(Downstream codegen -> PyTorch is not shown here — use `--emit` for
+that if you want it. This mode is strictly language-level.)
 """.strip())
 
     # --- Stage 1: Source ---
@@ -295,80 +302,16 @@ program that triggers five of them.
         for line in simplified_repr.splitlines():
             print(f"  {line}")
 
-    # --- Stage 5: Codegen ---
-    try:
-        from .codegen import translate_module
-    except ImportError as e:
-        print(f"\nCodegen import failed: {e}")
-        return 1
-    try:
-        py_src = translate_module(module)
-    except Exception as e:
-        print(f"\nCodegen error: {type(e).__name__}: {e}")
-        return 1
-    py_lines = py_src.splitlines()
-
-    # The prelude is ~300-900 lines of boilerplate _VSA runtime class
-    # (bind, unbind, bundle, embed, slot primitives, hashmap, etc.).
-    # For review purposes, show only the USER-SPECIFIC emitted code —
-    # everything after the `_VSA = _...VSA(...)` instantiation line,
-    # which is where the runtime ends and the user's compiled program
-    # begins. Top-level `king = _VSA.embed('king')` etc. follow.
-    # User program lines are top-level assignments or defs whose name
-    # doesn't begin with underscore (convention: runtime helpers start
-    # with _). Find the first such line; everything from there down is
-    # the compiled user program.
-    import re
-    _user_line_re = re.compile(r"^([A-Za-z][A-Za-z0-9_]*)\s*(=|\()")
-    _def_re = re.compile(r"^def ([A-Za-z][A-Za-z0-9_]*)\(")
-    user_start = None
-    for i, line in enumerate(py_lines):
-        if not line or line[0] in " \t#":
-            continue
-        m = _user_line_re.match(line) or _def_re.match(line)
-        if not m:
-            continue
-        name = m.group(1)
-        if name.startswith("_") or name in ("import", "from", "class",
-                                             "def", "if", "for", "while"):
-            continue
-        # A def that's not the user's: skip helpers.
-        if line.startswith("def ") and name.startswith("_"):
-            continue
-        user_start = i
-        break
-    if user_start is None:
-        user_start = max(0, len(py_lines) - 40)
-
-    print(_heading(
-        5, "Codegen",
-        "The compiler emits a self-contained Python module that runs "
-        "your program. The module has a large prelude defining the "
-        "_VSA runtime class (bind, unbind, bundle, slot primitives, "
-        "etc.) — that's boring boilerplate. What's shown below is "
-        "JUST your .su program after compilation: each top-level "
-        "declaration becomes one Python line, every expression has "
-        "been simplified, and calls target _VSA methods. This is "
-        "what actually runs when you invoke `python sutrac.py --run`."))
-    print(f"  emitted total:   {len(py_lines)} lines")
-    print(f"  prelude hidden:  lines 1..{user_start} "
-          f"(runtime library — same for every program)")
-    print(f"  your program:    lines {user_start + 1}..{len(py_lines)}")
-    print()
-    # Show every line from user_start onward — keep blank lines for
-    # readability but drop pure-comment-only lines that re-explain
-    # runtime helpers the user doesn't care about.
-    for line in py_lines[user_start:]:
-        print(f"  {line}")
-
     # --- Final summary ---
-    print(_heading(6, "Summary", "One-line recap."))
+    print(_heading(5, "Summary", "One-line recap."))
     print(f"  source:           {src.count(chr(10)) + 1} lines  "
           f"({len(src)} chars)")
     print(f"  AST statements:   {len(module.items)} top-level items")
     print(f"  inlining:         {'changed the AST' if inlined_repr != parsed_repr else 'no-op (no stdlib calls)'}")
     print(f"  simplification:   {len(collector.events)} rewrite(s) fired")
-    print(f"  emitted Python:   {len(py_lines)} lines")
+    print()
+    print("  (To see the emitted Python/PyTorch code, run "
+           "`python sutrac.py --emit FILE.su`.)")
     return 0
 
 
