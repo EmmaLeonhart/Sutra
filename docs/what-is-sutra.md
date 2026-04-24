@@ -103,6 +103,25 @@ Three things fall out of designing a language this way:
 2. **Noise is not an error.** A fuzzy match is the default; a crisp yes/no is something you deliberately produce when you need one. This matches how real neural hardware actually works, instead of fighting it.
 3. **The substrate is swappable.** A source file written once can be evaluated on silicon, on simulated neurons, or on a real connectome. That is the path from "this idea works in simulation" to "this idea runs on neural tissue" without re-implementing anything.
 
+## What looks absurd and why it isn't
+
+Sutra probably reads like a troll language on first contact. `1 + 1 = 2` is computed by adding two 800-dimensional vectors together. `5 * 3` is a matrix multiplication. `if n > 3` dispatches through a softmax-weighted superposition of branches. Each of these looks wildly inefficient compared to what any normal language would do.
+
+Locally, it *is* inefficient. Sutra isn't aiming for local efficiency.
+
+What it aims at is a **radically unified runtime** — every value has the same shape, every operation has the same shape, the whole program is a chain of tensor operations with no escape hatches. That uniformity is what makes compile-time simplification possible at the whole-program level:
+
+- A chain of integer operations is a chain of matrix multiplications. It folds to one cached matrix.
+- That folded matrix feeds an `if`, which compiles to a softmax. The softmax composes into the next operation's matrix.
+- The `if`'s branches feed into fuzzy logic. The fuzzy logic is polynomial arithmetic. It folds into the same graph.
+- The whole chain — int math, conditional branching, fuzzy logic — reduces to a single tensor computation the compiler fuses into one stream of kernel launches.
+
+Step by step, each operation looks absurd. At the whole-program level, the uniform representation lets the compiler cut through what would otherwise be a Gordian knot of separate type systems, dispatch layers, control-flow machinery, and optimization passes. There is one kind of thing; there is one kind of operation on that thing; the whole program is transparent to the simplifier.
+
+That's why the primitives look the way they do. The "waste" on `1 + 1` buys global cohesion that normal languages pay for with enormous type-dispatch, JIT, and branch-prediction infrastructure. Sutra doesn't need any of that — because there isn't anything to dispatch on, and there aren't any branches.
+
+If you came in expecting a language where integers are cheap, this is going to feel wrong. If you came in expecting a language where the entire program composes into a single GPU kernel chain, you've found it.
+
 ## Where to go next
 
 - [**The vision page →**](vision.md) explains *why* embedding spaces let you do this — why a graph of concepts collapses into linear algebra, and why that makes computation suddenly spatial.
