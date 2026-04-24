@@ -958,6 +958,9 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     batched Ollama pre-fetch without duplicating that infrastructure.
     """
     from .simplify import simplify_module, collect_basis_vector_strings
+    from .inliner import inline_stdlib_calls
+    # Inline stdlib calls first — same pass as the CPU codegen uses.
+    inline_stdlib_calls(module)
     simplify_module(module)
     strings = collect_basis_vector_strings(module)
     cg = PyTorchCodegen(**kwargs)
