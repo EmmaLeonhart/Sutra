@@ -1,4 +1,4 @@
-"""Tests for the numpy codegen: the demo-path backend.
+"""Tests for the canonical Sutra codegen.
 
 Covers the 2026-04-22 "get GPU ready" work: fused bundle-of-binds,
 vectorized argmax_cosine, disk-cache plumbing for embeddings, and
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import unittest
 
-from sutra_compiler.codegen_numpy import translate_module
+from sutra_compiler.codegen import translate_module
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
 

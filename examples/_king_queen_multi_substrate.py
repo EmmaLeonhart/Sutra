@@ -42,7 +42,7 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, ".."))
 SDK_PATH = os.path.join(REPO_ROOT, "sdk", "sutra-compiler")
 sys.path.insert(0, SDK_PATH)
 
-from sutra_compiler.codegen_numpy import translate_module, NumpyCodegen  # noqa: E402
+from sutra_compiler.codegen import translate_module, Codegen  # noqa: E402
 from sutra_compiler.lexer import Lexer  # noqa: E402
 from sutra_compiler.parser import Parser  # noqa: E402
 
@@ -59,7 +59,7 @@ EMBEDDING_MODELS = [
 def compile_with_model(path: str, llm_model: str, dim: int) -> types.ModuleType:
     """Compile a .su file against a specific embedding backend.
 
-    Passes llm_model + runtime_dim to NumpyCodegen so the generated
+    Passes llm_model + runtime_dim to Codegen so the generated
     module's _VSA instance uses the requested substrate. The rest of
     the compilation (lexer, parser, AST) is model-independent.
     """
@@ -69,7 +69,7 @@ def compile_with_model(path: str, llm_model: str, dim: int) -> types.ModuleType:
     tokens = lexer.tokenize()
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
-    cg = NumpyCodegen(llm_model=llm_model, runtime_dim=dim)
+    cg = Codegen(llm_model=llm_model, runtime_dim=dim)
     py_src = cg.translate(module)
     mod = types.ModuleType(f"_kq_{llm_model.replace('-', '_')}")
     mod.__file__ = f"<{path} @ {llm_model}>"
