@@ -256,15 +256,28 @@ Unlike the logical operators, **ordered comparison is not a fuzzy-logic operatio
 So in Sutra, comparison is a **number-axis** operation that produces a **truth-axis** output:
 
 ```
-a > b   pipeline:
-   1. Matrix-multiply both a and b by the real-axis projector
-      (zeros every axis except synthetic[AXIS_REAL]).
-   2. Read the real scalars; compute diff = a_real − b_real.
-   3. Output make_truth(sign(diff)):
-        diff > 0  →  +1  (true)
-        diff < 0  →  −1  (false)
-        diff = 0  →   0  (unknown — a value can't strictly exceed itself)
+a > b   pipeline (no scalar extraction, no branches):
+   1. diff   = a − b                      element-wise vector subtraction
+   2. diff_r = _real_projector @ diff     matmul — zero every axis except real
+   3. signed = 2 · (diff_r > 0) − 1       componentwise: +1 where strict, -1 elsewhere
+   4. result = _truth_from_real @ signed  matmul — place that at the truth axis
 ```
+
+All four operators share this shape; `lt(a, b)` is `gt(b, a)`, and the non-strict forms (`ge`, `le`) compose with `logical_not`.
+
+### Crisp semantics
+
+Comparison results are always `+1` or `−1` — never the middle `0`. The tie behavior differs between strict and non-strict:
+
+| case | `a > b` | `a < b` | `a >= b` | `a <= b` |
+|---|:---:|:---:|:---:|:---:|
+| `a > b` | `+1` | `−1` | `+1` | `−1` |
+| `a < b` | `−1` | `+1` | `−1` | `+1` |
+| `a = b` | `−1` | `−1` | `+1` | `+1` |
+
+Strict comparisons are `false` on ties (a value can't *strictly* exceed itself). Non-strict comparisons are `true` on ties. This is classical crisp behavior, matching every other language with these operators.
+
+If you want to distinguish "strictly greater" from "tied" in a program, compose with `==` using an `if` — the language gives you the pieces and you can assemble the exact form you need.
 
 ### Type rules
 
@@ -278,15 +291,9 @@ return a > b;   // error: ordered comparison is not defined on truth-axis values
 
 If a custom class wants comparison semantics, it can override the operators. The base language reserves ordered comparison for the number axis.
 
-### `>=` collapses to `>`, `<=` to `<`
+### Why no polynomial form here
 
-On the real line, ties give `0` (unknown) regardless of whether the operator is strict or non-strict. So `>=` and `<=` emit the same substrate call as `>` and `<` — the distinction doesn't carry information on this scheme. A class override can introduce a different semantic if needed.
-
-### Differentiability
-
-The sign step is not smooth at zero. This is the honest trade-off: comparison *means* a direction call, and "smooth sign" hides the meaning. For integer comparisons (the dominant use case), this doesn't matter — integers don't hover at exactly-equal under gradient flow. If you need a smooth comparison gradient for some trained-embedding scenario, write a custom class that implements the operators as a `tanh(k · (a − b))` approximation; don't build it into the base language.
-
-This is one of the places where **fuzzy logic is least helpful**. AND / OR / NOT / equality / defuzzification all live naturally on a continuous truth axis — the fuzzy story earns its keep there. Ordered comparison lives on the number axis, where the question is genuinely discrete and the crisp answer is the useful one.
+AND / OR / NOT / equality / defuzzification all live naturally on a continuous truth axis, and each benefits from a smooth polynomial form that's exact at the grid points and differentiable between them. Ordered comparison is different: it's genuinely a *discrete* direction call — "is the real-axis value of `a` greater than `b`'s?" — and the useful answer is crisp. Making it fuzzy would hide the question, not help it. This is one of the places where **fuzzy logic is least helpful**; the direction call wants a sign, and a sign is what ships.
 
 ---
 

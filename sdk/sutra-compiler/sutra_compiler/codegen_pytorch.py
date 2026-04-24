@@ -645,7 +645,7 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return -self._as_truth_vector(x)")
         self._indent -= 1
         self._emit()
-        self._emit("# ---- Ordered comparison — number-axis only ----")
+        self._emit("# ---- Ordered comparison — pure tensor ops, no branches ----")
         self._emit()
         self._emit("def _real_projector(self):")
         self._indent += 1
@@ -660,33 +660,47 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit("return self._real_proj_cache")
         self._indent -= 1
         self._emit()
-        self._emit("def _real_scalar(self, x):")
+        self._emit("def _truth_from_real(self):")
         self._indent += 1
-        self._emit('"""Project x onto real axis, return Python float."""')
-        self._emit("if isinstance(x, _torch.Tensor):")
+        self._emit('"""Matrix moving the real-axis entry to the truth axis."""')
+        self._emit("if not hasattr(self, '_t_from_r_cache') or self._t_from_r_cache is None:")
         self._indent += 1
-        self._emit("projected = self._real_projector() @ x")
-        self._emit("return float(projected[self.semantic_dim + self.AXIS_REAL].item())")
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("M[self.semantic_dim + self.AXIS_TRUTH,")
+        self._indent += 1
+        self._emit("self.semantic_dim + self.AXIS_REAL] = 1.0")
         self._indent -= 1
-        self._emit("return float(x)")
+        self._emit("self._t_from_r_cache = M")
+        self._indent -= 1
+        self._emit("return self._t_from_r_cache")
         self._indent -= 1
         self._emit()
         self._emit("def gt(self, a, b):")
         self._indent += 1
-        self._emit('"""a > b on real axis — returns truth-axis tensor."""')
-        self._emit("diff = self._real_scalar(a) - self._real_scalar(b)")
-        self._emit("if diff > 0: return self.make_truth(1.0)")
-        self._emit("if diff < 0: return self.make_truth(-1.0)")
-        self._emit("return self.make_truth(0.0)")
+        self._emit('"""a > b crisp — no branches, pure tensor ops."""')
+        self._emit("av = self._as_complex_vector(a)")
+        self._emit("bv = self._as_complex_vector(b)")
+        self._emit("diff_r = self._real_projector() @ (av - bv)")
+        self._emit("signed = 2.0 * (diff_r > 0).to(self.dtype) - 1.0")
+        self._emit("return self._truth_from_real() @ signed")
         self._indent -= 1
         self._emit()
         self._emit("def lt(self, a, b):")
         self._indent += 1
-        self._emit('"""a < b — mirror of gt."""')
-        self._emit("diff = self._real_scalar(a) - self._real_scalar(b)")
-        self._emit("if diff < 0: return self.make_truth(1.0)")
-        self._emit("if diff > 0: return self.make_truth(-1.0)")
-        self._emit("return self.make_truth(0.0)")
+        self._emit('"""a < b = gt(b, a)."""')
+        self._emit("return self.gt(b, a)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def ge(self, a, b):")
+        self._indent += 1
+        self._emit('"""a >= b = !(a < b)."""')
+        self._emit("return self.logical_not(self.lt(a, b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def le(self, a, b):")
+        self._indent += 1
+        self._emit('"""a <= b = !(a > b)."""')
+        self._emit("return self.logical_not(self.gt(a, b))")
         self._indent -= 1
         self._emit()
         self._emit("# ---- Equality — cosine similarity on tensors ----")

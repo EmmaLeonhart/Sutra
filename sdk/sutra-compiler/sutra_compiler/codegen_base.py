@@ -1104,16 +1104,14 @@ class BaseCodegen:
                                    or self._is_complex_expr(expr.right)):
                 return self._complex_mul_src(expr, left, right)
             # Ordered comparison `>` / `<` / `>=` / `<=` is number-axis
-            # only. If either operand is truth-family (bool / fuzzy /
-            # trit), refuse at compile time — comparison on truth
-            # values has no natural "ordering" meaning; fuzzy logic
-            # genuinely doesn't help here. If operands are provably
-            # number-family, emit the substrate op that projects both
-            # to the real axis, subtracts, and signs the result onto
-            # the truth axis. Otherwise (plain Python scalars with no
-            # type context), fall through to Python `>` / `<` which
-            # still does the right thing for int / float operands.
-            if expr.op in (">", ">=", "<", "<="):
+            # only. Strict (>, <) give -1 on ties; non-strict (>=, <=)
+            # give +1 on ties. Four distinct runtime methods — gt / lt
+            # for strict, ge / le for non-strict. Truth-family operands
+            # are rejected at compile time; plain Python scalars fall
+            # through to Python's own comparison (which is fine for
+            # int / float).
+            _CMP_OP_NAMES = {">": "gt", "<": "lt", ">=": "ge", "<=": "le"}
+            if expr.op in _CMP_OP_NAMES:
                 if (self._is_truth_expr(expr.left)
                         or self._is_truth_expr(expr.right)):
                     raise CodegenNotSupported(
@@ -1126,8 +1124,9 @@ class BaseCodegen:
                     )
                 if (self._is_number_expr(expr.left)
                         or self._is_number_expr(expr.right)):
-                    op_name = "gt" if expr.op in (">", ">=") else "lt"
-                    return self._comparison_src(expr, op_name, left, right)
+                    return self._comparison_src(
+                        expr, _CMP_OP_NAMES[expr.op], left, right
+                    )
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":
