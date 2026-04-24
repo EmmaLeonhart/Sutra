@@ -526,6 +526,22 @@ def _simplify_expr(expr):
             )
         if expr.op == "+" and isinstance(expr.operand, ast.ImaginaryLiteral):
             return expr.operand
+        # Unary minus on a numeric literal: `-5` → IntLiteral(-5),
+        # `-3.14` → FloatLiteral(-3.14). Matters for inlined
+        # polynomials where a `0 - x` form from logical_not on a
+        # literal input should collapse.
+        if expr.op == "-":
+            if isinstance(expr.operand, ast.IntLiteral):
+                return ast.IntLiteral(
+                    value=-expr.operand.value, span=expr.span,
+                )
+            if isinstance(expr.operand, ast.FloatLiteral):
+                return ast.FloatLiteral(
+                    value=-expr.operand.value, span=expr.span,
+                )
+        if expr.op == "+":
+            if isinstance(expr.operand, (ast.IntLiteral, ast.FloatLiteral)):
+                return expr.operand
         return expr
 
     if isinstance(expr, ast.ArrayLiteral):
@@ -774,6 +790,9 @@ def _rewrite_binary(expr: ast.BinaryOp):
     l_num = _numeric_value(left)
     r_num = _numeric_value(right)
 
+    # Identity-element rules first — preserve the original operand
+    # node so its type/span stays. (Pre-dates the step-6 full fold
+    # and has tests asserting specific node types survive.)
     if op == "+":
         if l_num == 0:
             return right
@@ -793,15 +812,57 @@ def _rewrite_binary(expr: ast.BinaryOp):
         if r_num == 1:
             return left
 
+    # Step 6 — full literal-on-literal fold: `2 + 3` → `5`,
+    # `0.7 * 0.3` → `0.21`, `(poly on literal args) * 0.5` → single
+    # constant. Applies when both operands have a numeric-literal
+    # value AND neither is an identity element (caught above). This
+    # is the starter for the fusion pass: inlined polynomial bodies
+    # where all operands are literals collapse to a single literal
+    # at compile time. `logical_and(0.7, 0.3)` inlines to the
+    # polynomial on `0.7` / `0.3`; this fold collapses that chain to
+    # `FloatLiteral(0.33705)`, so the runtime sees a constant
+    # (wrapped in `make_truth` by the fuzzy-literal coercion) rather
+    # than a tree of arithmetic ops.
+    if l_num is not None and r_num is not None:
+        try:
+            if op == "+":
+                return _lit_from_num(l_num + r_num, expr.span)
+            if op == "-":
+                return _lit_from_num(l_num - r_num, expr.span)
+            if op == "*":
+                return _lit_from_num(l_num * r_num, expr.span)
+            if op == "/" and r_num != 0:
+                return _lit_from_num(l_num / r_num, expr.span)
+        except (ZeroDivisionError, OverflowError):
+            pass  # fall through; leave expr unchanged
+
     return expr
+
+
+def _lit_from_num(value, span: SourceSpan):
+    """Pick IntLiteral vs FloatLiteral based on the value's type.
+    Integer-valued floats that came from a pure int computation become
+    IntLiteral for pleasanter emission; anything with a fractional
+    component stays FloatLiteral."""
+    if isinstance(value, int):
+        return ast.IntLiteral(span=span, value=value)
+    if isinstance(value, float) and value.is_integer():
+        # Keep as float — mixing int and float folds should produce
+        # float per language semantics, even if the math happens to
+        # land on an integer value.
+        return _mk_float_literal(value, span)
+    return _mk_float_literal(float(value), span)
 
 
 def _numeric_value(expr):
     """Extract the numeric value of a literal node, or None if not a literal.
 
     Returns an int or float depending on the literal type; callers can
-    compare against 0 or 1 directly.
+    compare against 0 or 1 directly. Unwraps `Parenthesized(...)`
+    wrappers so a literal inside parens still folds.
     """
+    while isinstance(expr, ast.Parenthesized):
+        expr = expr.inner
     if isinstance(expr, ast.IntLiteral):
         return expr.value
     if isinstance(expr, ast.FloatLiteral):
