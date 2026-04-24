@@ -231,6 +231,15 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
 - Softmax-over-switch vs. if/elif chains —
   `planning/exploratory/softmax-conditionals.md`.
 
+## [This year] Docs / website
+
+- [ ] Interactive pipeline viewer: paste `.su` source, see the AST,
+  the simplified AST, the emitted Python, and the expanded polynomial
+  form of any expression, side-by-side with rewrite highlights. Same
+  stylistic template as the existing widgets (`graph-to-vector`,
+  `bind-unbind`, `snap-to-nearest`, `fuzzy-logic`). Lives on
+  `docs/interactive/` when built.
+
 ## [This year] Tooling
 
 - [ ] Diagnose why `!editor.bat` fails (likely JAVA_HOME or Gradle daemon
