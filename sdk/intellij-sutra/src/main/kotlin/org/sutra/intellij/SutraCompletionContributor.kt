@@ -80,6 +80,8 @@ class SutraCompletionContributor : CompletionContributor() {
             "foreach" to "foreach loop over a tuple or collection.",
             "in" to "Source-of-iteration keyword inside foreach.",
             "do" to "do-while loop body.",
+            "loop" to "Sutra loop — unrolls on integer count, eigenrotates on a condition.",
+            "as" to "Rename an iteration index inside `loop(N as i)`.",
             "try" to "try block of a try/catch.",
             "catch" to "Catch a failure pattern from the try block.",
             "break" to "Exit the innermost loop.",
@@ -98,6 +100,11 @@ class SutraCompletionContributor : CompletionContributor() {
             "void" to "No return value.",
             "permutation" to "Permutation over a basis — used by VSA `permute` operations.",
             "map" to "Generic map<K, V> with lookup semantics.",
+            "char" to "Character — an int plus a compile-time char-flag axis. Literal: 'a'.",
+            "int" to "Integer scalar. Kept as a Python int in int-typed slots.",
+            "float" to "Floating-point scalar.",
+            "complex" to "Complex number on the (real, imag) synthetic axes. Literal: 5 + 5i.",
+            "trit" to "Three-valued truth — true / false / unknown. Shares the truth axis with fuzzy.",
         )
 
         private val BUILTINS: List<Pair<String, String>> = listOf(

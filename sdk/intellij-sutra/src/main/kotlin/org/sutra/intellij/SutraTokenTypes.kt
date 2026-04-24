@@ -16,8 +16,11 @@ object SutraTokenTypes {
     // --- Literals ---
     @JvmField val STRING          = SutraTokenType("STRING")
     @JvmField val INTERP_STRING   = SutraTokenType("INTERP_STRING")
+    @JvmField val CHAR_LITERAL    = SutraTokenType("CHAR_LITERAL")
     @JvmField val NUMBER          = SutraTokenType("NUMBER")
+    @JvmField val IMAG_LITERAL    = SutraTokenType("IMAG_LITERAL")
     @JvmField val BOOLEAN_LITERAL = SutraTokenType("BOOLEAN_LITERAL")
+    @JvmField val UNKNOWN_LITERAL = SutraTokenType("UNKNOWN_LITERAL")
 
     // --- Identifiers ---
     @JvmField val KEYWORD        = SutraTokenType("KEYWORD")
