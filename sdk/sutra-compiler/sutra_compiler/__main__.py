@@ -25,7 +25,6 @@ from . import __version__
 from . import ast_nodes as ast
 from .codegen_flybrain import CodegenNotSupported
 from .codegen_flybrain import translate_module as translate_flybrain
-from .codegen import translate_module as translate_default
 from .codegen_pytorch import translate_module as translate_pytorch
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
@@ -200,10 +199,6 @@ def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
     try:
-        if backend == "default":
-            return translate_default(
-                module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-            )
         if backend == "pytorch":
             return translate_pytorch(
                 module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
@@ -218,13 +213,13 @@ def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
 
 
 def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
-    """Compile a .su file with the default codegen and exec the generated
+    """Compile a .su file with the PyTorch codegen and exec the generated
     module. A `main()` function in the module, if present, is called and
     its return value is printed; otherwise the module's top-level prints
-    carry the output."""
+    carry the output. Requires `torch` to be importable at runtime."""
     import types
     py_src = _compile_to_python(
-        path, "default", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        path, "pytorch", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
         runtime_n_kc=0,
     )
     if py_src is None:
@@ -244,14 +239,14 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
     """Compile, execute with tracing, and output a 3D visualization HTML.
 
     Strategy: inject a tracing shim into the generated Python source that
-    wraps every _NumpyVSA method. This way tracing is active from the
-    first embed() call during module-level init.
+    wraps every _VSA method. This way tracing is active from the first
+    embed() call during module-level init.
     """
     import types
     from .trace import SutraTracer
 
     py_src = _compile_to_python(
-        path, "default", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        path, "pytorch", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
         runtime_n_kc=0,
     )
     if py_src is None:
@@ -260,7 +255,7 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
     program_name = os.path.basename(path)
     tracer = SutraTracer(program_name)
 
-    # Inject tracing shim: after the _VSA = _NumpyVSA(...) line,
+    # Inject tracing shim: after the _VSA = _TorchVSA(...) line,
     # wrap every method with a tracing version.
     shim = '''
 # ── Tracing shim (injected by --run-viz) ──
@@ -295,11 +290,11 @@ _VSA.unbind = _traced_unbind
 _VSA.bundle = _traced_bundle
 # ── End tracing shim ──
 '''
-    # Find the _VSA = _NumpyVSA(...) line and inject after it
+    # Find the _VSA = _TorchVSA(...) line and inject after it
     lines = py_src.split('\n')
     inject_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith('_VSA = _NumpyVSA('):
+        if line.strip().startswith('_VSA = _TorchVSA('):
             inject_idx = i + 1
             break
 
@@ -387,29 +382,20 @@ def main(argv: List[str] | None = None) -> int:
         "--emit",
         action="store_true",
         help=(
-            "Compile the first input file to self-contained Python and print "
-            "it to stdout. Ops run as matrix operations on the default CPU "
-            "runtime — no fly-brain imports, no spiking simulator."
-        ),
-    )
-    parser.add_argument(
-        "--emit-pytorch",
-        action="store_true",
-        help=(
             "Compile the first input file to self-contained torch Python and "
             "print it to stdout. Picks CUDA at module init if available; "
-            "falls back to CPU otherwise. Same algebra as --emit but on "
-            "tensors so the fused bundle_of_binds / argmax_cosine shapes hit "
-            "GPU as one big kernel each."
+            "falls back to CPU otherwise. This is the one main codegen target — "
+            "PyTorch is the runtime and the tensor-op library Sutra compiles "
+            "against."
         ),
     )
     parser.add_argument(
         "--run",
         action="store_true",
         help=(
-            "Compile and execute the first input file (default backend) in "
+            "Compile and execute the first input file (PyTorch backend) in "
             "one step. Captures and prints whatever the generated module "
-            "prints."
+            "prints. Requires torch to be importable."
         ),
     )
     parser.add_argument(
@@ -438,7 +424,7 @@ def main(argv: List[str] | None = None) -> int:
         version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
-    if (args.emit_flybrain or args.emit or args.emit_pytorch
+    if (args.emit_flybrain or args.emit
             or args.run or args.run_viz):
         if len(args.paths) != 1:
             print(
@@ -448,10 +434,8 @@ def main(argv: List[str] | None = None) -> int:
             return 2
         if args.emit_flybrain:
             backend = "flybrain"
-        elif args.emit_pytorch:
-            backend = "pytorch"
         else:
-            backend = "default"
+            backend = "pytorch"
         if args.run_viz:
             return _run_viz(
                 args.paths[0],
