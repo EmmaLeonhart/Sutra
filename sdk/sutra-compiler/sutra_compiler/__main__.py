@@ -407,6 +407,16 @@ def main(argv: List[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--review",
+        action="store_true",
+        help=(
+            "Step-by-step review mode: show source, parsed AST, "
+            "inlined AST, every simplification rewrite that fires "
+            "(before/after), final simplified AST, and emitted Python. "
+            "For debugging and teaching."
+        ),
+    )
+    parser.add_argument(
         "--runtime-dim", type=int, default=50,
         help="Hypervector dimension for the emitted FlyBrainVSA runtime (default 50).",
     )
@@ -424,6 +434,15 @@ def main(argv: List[str] | None = None) -> int:
         version=f"sutrac {__version__}",
     )
     args = parser.parse_args(argv)
+    if args.review:
+        if len(args.paths) != 1:
+            print(
+                "--review takes exactly one .su source file",
+                file=sys.stderr,
+            )
+            return 2
+        from .review import review_file
+        return review_file(args.paths[0])
     if (args.emit_flybrain or args.emit
             or args.run or args.run_viz):
         if len(args.paths) != 1:

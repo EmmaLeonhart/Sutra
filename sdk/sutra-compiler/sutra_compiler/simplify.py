@@ -118,10 +118,36 @@ a soundness-preserving structural match. No approximate rewrites.
 """
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from . import ast_nodes as ast
 from .diagnostics import SourceSpan
+
+
+# Optional tracing hook. When set to a callable, every rewrite that
+# fires invokes `_trace_callback(rule_name, before_node, after_node)`.
+# Used by `sutra_compiler.review` to show step-by-step simplification.
+# None in production — zero overhead when not used.
+_trace_callback: Optional[Callable[[str, object, object], None]] = None
+
+
+def set_trace_callback(cb: Optional[Callable[[str, object, object], None]]) -> None:
+    """Set (or clear with None) the per-rewrite tracing callback.
+
+    The callback receives (rule_name, before_node, after_node) every
+    time a rewrite fires. Intended for the --review compiler mode;
+    production code leaves this at None.
+    """
+    global _trace_callback
+    _trace_callback = cb
+
+
+def _trace(rule: str, before, after):
+    """Invoke the trace callback if one is registered. Inline helper so
+    rewrite sites read as `return _trace("R01", call, result)`."""
+    if _trace_callback is not None:
+        _trace_callback(rule, before, after)
+    return after
 
 
 # ---------------------------------------------------------------------------
@@ -630,7 +656,7 @@ def _rewrite_call(call: ast.Call):
 
     # Rule 1: bundle(v) → v  (single-arg bundle is identity).
     if name == "bundle" and len(call.args) == 1:
-        return call.args[0]
+        return _trace("R01 bundle(v) -> v", call, call.args[0])
 
     # Rule 2: flatten nested bundles.
     if name == "bundle":
@@ -676,40 +702,46 @@ def _rewrite_call(call: ast.Call):
     if (name == "similarity"
             and len(call.args) == 2
             and _structurally_equal(call.args[0], call.args[1])):
-        return _mk_float_literal(1.0, call.span)
+        return _trace("R04 similarity(a, a) -> 1.0", call,
+                      _mk_float_literal(1.0, call.span))
 
     # Rule 5: displacement(a, a) → zero_vector() (structurally equal args).
     if (name == "displacement"
             and len(call.args) == 2
             and _structurally_equal(call.args[0], call.args[1])):
-        return _mk_zero_vector(call.span)
+        return _trace("R05 displacement(a, a) -> zero", call,
+                      _mk_zero_vector(call.span))
 
     # Rule 8: unbind(R, bind(R, x)) → x.
     if name == "unbind" and len(call.args) == 2:
         inner = call.args[1]
         if (_is_call_named(inner, "bind", arity=2)
                 and _structurally_equal(call.args[0], inner.args[0])):
-            return inner.args[1]
+            return _trace("R08 unbind(R, bind(R, x)) -> x", call,
+                          inner.args[1])
 
     # Rule 9: bind(R, unbind(R, x)) → x.
     if name == "bind" and len(call.args) == 2:
         inner = call.args[1]
         if (_is_call_named(inner, "unbind", arity=2)
                 and _structurally_equal(call.args[0], inner.args[0])):
-            return inner.args[1]
+            return _trace("R09 bind(R, unbind(R, x)) -> x", call,
+                          inner.args[1])
 
     # Rule 12: bind(role, zero_vector()) → zero_vector().
     # Q @ 0 = 0 for any orthogonal Q. The rotation of the zero vector is
     # the zero vector. Independent of role.
     if (name == "bind" and len(call.args) == 2
             and _is_zero_vector_call(call.args[1])):
-        return _mk_zero_vector(call.span)
+        return _trace("R12 bind(R, zero) -> zero", call,
+                      _mk_zero_vector(call.span))
 
     # Rule 13: unbind(role, zero_vector()) → zero_vector().
     # Q^T @ 0 = 0 by the same argument. Independent of role.
     if (name == "unbind" and len(call.args) == 2
             and _is_zero_vector_call(call.args[1])):
-        return _mk_zero_vector(call.span)
+        return _trace("R13 unbind(R, zero) -> zero", call,
+                      _mk_zero_vector(call.span))
 
     # Rule 14: compose with identity_permutation() on either side →
     # drop the identity. compose is elementwise multiply on sign-flip
@@ -737,7 +769,8 @@ def _rewrite_call(call: ast.Call):
         candidates = call.args[1]
         if (isinstance(candidates, ast.ArrayLiteral)
                 and len(candidates.elements) == 1):
-            return candidates.elements[0]
+            return _trace("R15 argmax_cosine(q, [x]) -> x", call,
+                          candidates.elements[0])
 
     return call
 
@@ -767,12 +800,12 @@ def _rewrite_binary(expr: ast.BinaryOp):
     # Rule 7: zero-vector absorption in +/-.
     if op == "+":
         if _is_zero_vector_call(left):
-            return right
+            return _trace("R07 zero + x -> x", expr, right)
         if _is_zero_vector_call(right):
-            return left
+            return _trace("R07 x + zero -> x", expr, left)
     if op == "-":
         if _is_zero_vector_call(right):
-            return left
+            return _trace("R07 x - zero -> x", expr, left)
         # zero - x is not x, so no rewrite on the left side of subtract.
 
     # Complex-literal folding: `re ± im·i` at compile time. Turns the
@@ -826,13 +859,17 @@ def _rewrite_binary(expr: ast.BinaryOp):
     if l_num is not None and r_num is not None:
         try:
             if op == "+":
-                return _lit_from_num(l_num + r_num, expr.span)
+                return _trace("R16 fold (lit + lit)", expr,
+                              _lit_from_num(l_num + r_num, expr.span))
             if op == "-":
-                return _lit_from_num(l_num - r_num, expr.span)
+                return _trace("R16 fold (lit - lit)", expr,
+                              _lit_from_num(l_num - r_num, expr.span))
             if op == "*":
-                return _lit_from_num(l_num * r_num, expr.span)
+                return _trace("R16 fold (lit * lit)", expr,
+                              _lit_from_num(l_num * r_num, expr.span))
             if op == "/" and r_num != 0:
-                return _lit_from_num(l_num / r_num, expr.span)
+                return _trace("R16 fold (lit / lit)", expr,
+                              _lit_from_num(l_num / r_num, expr.span))
         except (ZeroDivisionError, OverflowError):
             pass  # fall through; leave expr unchanged
 
