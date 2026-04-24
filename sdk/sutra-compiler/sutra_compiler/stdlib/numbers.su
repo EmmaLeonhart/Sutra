@@ -1,0 +1,90 @@
+// Canonical Sutra definitions for the number family (int / float /
+// complex / char). All four share the synthetic[AXIS_REAL] and
+// synthetic[AXIS_IMAG] slots at the vector level; `complex` is the
+// only one that occupies both, while `int` and `float` leave imag at
+// 0 and `char` additionally sets synthetic[AXIS_CHAR_FLAG] = 1.
+//
+// Today the constructors (make_real, make_complex, make_char) and
+// the arithmetic primitives (complex_mul and the three cached
+// mul-matrices) are hardcoded as runtime methods in codegen.py —
+// see `def make_real`, `def make_complex`, `def make_char`, and the
+// complex_mul block. This file is the target shape for the inliner
+// to consume. See stdlib/README.md.
+//
+// Every function here is currently blocked on intrinsics — the
+// primitives they need (writing a scalar into a specific synthetic
+// slot; matrix literals; the `@` matmul operator on a Sutra-level
+// matrix) aren't exposed at the language level yet.
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics
+// ==========================================================================
+//
+// make_real — scalar on the real axis, zero elsewhere.
+//
+//   function complex make_real(scalar x) {
+//       vector v                    = zero_vector();
+//       v[semantic_dim + AXIS_REAL] = x;
+//       return v;
+//   }
+//
+// Blocked on: `zero_vector()` surface, indexed write to a synthetic
+// slot.
+
+
+// make_complex — two scalars placed on the real and imag axes.
+//
+//   function complex make_complex(scalar r, scalar i) {
+//       vector v                    = zero_vector();
+//       v[semantic_dim + AXIS_REAL] = r;
+//       v[semantic_dim + AXIS_IMAG] = i;
+//       return v;
+//   }
+//
+// Blocked on: same as make_real.
+
+
+// make_char — integer code point on the real axis + char flag on the
+// synthetic axis.
+//
+//   function char make_char(int code) {
+//       vector v                          = zero_vector();
+//       v[semantic_dim + AXIS_REAL]       = code;
+//       v[semantic_dim + AXIS_CHAR_FLAG]  = 1.0;
+//       return v;
+//   }
+//
+// Blocked on: same as make_real.
+
+
+// complex_mul — pure-matmul complex multiplication using three cached
+// matrices: `_swap_ri` (real-imag swap), `_cm_real` (extract real
+// product into real slot), `_cm_imag` (extract imag product into
+// imag slot).
+//
+//   function complex complex_mul(complex a, complex b) {
+//       vector ab         = a * b;
+//       vector swapped_ab = (_swap_ri @ a) * b;
+//       return _cm_real @ ab + _cm_imag @ swapped_ab;
+//   }
+//
+// Blocked on: matrix literals for the three cached matrices, `@`
+// matmul as a Sutra operator. The matrices themselves are
+// d×d sparse with a handful of entries — the fusion pass wants
+// to see them as compile-time constants so chains of complex_mul
+// collapse into a single cached matrix.
+
+
+// conj — complex conjugate. Flips the imag-axis sign, leaves the real
+// axis and everything else alone.
+//
+//   function complex conj(complex c) {
+//       vector out                           = c;
+//       out[semantic_dim + AXIS_IMAG]        = -c[semantic_dim + AXIS_IMAG];
+//       return out;
+//   }
+//
+// Blocked on: indexed read/write to synthetic slots. Alternative
+// formulation as a matrix (diag of 1s with a -1 at the imag slot)
+// needs matmul + matrix-literal surfaces.

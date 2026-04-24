@@ -1,0 +1,83 @@
+// Canonical Sutra definitions for rotation construction and the
+// eigenrotation loop that runs behind runtime-conditional `loop` /
+// `while` constructs.
+//
+// Today these are hardcoded as runtime methods in codegen.py — see
+// `def make_random_rotation`, `def compile_prototypes`, and `def loop`
+// (the `_VSA.loop` geometric-rotation runner). This file is the
+// target shape for the inliner. See stdlib/README.md.
+//
+// All of this is deeply substrate-level: block-diagonal Haar rotations
+// built from QR decomposition of a Gaussian matrix, eigendecomposition
+// for fractional powers, prototype codebooks with per-frame random
+// rotations. Every function below is currently blocked on intrinsics.
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics
+// ==========================================================================
+//
+// make_random_rotation — block-diagonal Haar rotation scaled so its
+// largest eigenphase ≈ `angle`. Haar-uniform in the semantic block,
+// identity in the synthetic block — matches the bind-rotation layout
+// so eigenrotation loops walk the semantic subspace while the
+// synthetic subspace (real / imag / truth / char-flag) stays untouched.
+//
+//   function matrix make_random_rotation(scalar angle, int n_planes,
+//                                        int seed) {
+//       matrix A        = randn(semantic_dim, semantic_dim, seed);
+//       (Q_sem, _)      = qr(A);
+//       (w, V)          = eig(Q_sem);
+//       matrix phases   = angle_of(w) * (angle / pi);
+//       matrix R_sem    = real(V @ diag(exp(i * phases)) @ inverse(V));
+//       matrix R        = identity(dim);
+//       R[:semantic_dim, :semantic_dim] = R_sem;
+//       return R;
+//   }
+//
+// Blocked on: `randn`, `qr`, `eig`, complex exponential, matrix slice
+// assignment, `@` matmul. Whole-pipeline primitive.
+
+
+// compile_prototypes — take a set of prototype vectors, apply a
+// frame-seeded random rotation to each, and bundle the results into
+// a codebook the eigenrotation loop can match against.
+//
+//   function vector compile_prototypes(vector[] prototype_vectors,
+//                                      int frame_seed) {
+//       matrix frame = make_random_rotation(pi / 4, 20, frame_seed);
+//       vector[] framed = [frame @ p for p in prototype_vectors];
+//       return bundle(framed);
+//   }
+//
+// Blocked on: comprehension syntax, `@` matmul, variadic bundle.
+
+
+// eigenrotation loop — what `loop(condition)` / `while` compile to.
+// Takes a state vector, a rotation matrix, and a compiled prototype
+// codebook; iterates `state = R @ state` until the state matches a
+// prototype by the substrate's cleanup metric (Jaccard on KC patterns
+// in fly-brain; cosine on the default CPU runtime).
+//
+//   function (string, vector, int) eigenrotation_loop(
+//       vector initial_state,
+//       matrix R,
+//       vector prototype_codebook,
+//       int max_iters,
+//       scalar match_threshold) {
+//       vector state = initial_state;
+//       int    i     = 0;
+//       loop (max_iters as i) {
+//           state = R @ state;
+//           string match = match_prototype(state, prototype_codebook,
+//                                          match_threshold);
+//           if (match != unknown) {
+//               return (match, state, i);
+//           }
+//       }
+//       return (unknown, state, max_iters);
+//   }
+//
+// Blocked on: `@` matmul, `match_prototype` substrate primitive,
+// tuple return types, early-return inside `loop`, `unknown` as a
+// Sutra-level sentinel for the string type.

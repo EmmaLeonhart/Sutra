@@ -1,0 +1,45 @@
+// Canonical Sutra definition for the `embed` operation — turn a
+// string into a semantic vector by running it through the frozen
+// embedding model (Ollama / nomic-embed-text today).
+//
+// Today this is hardcoded as the `def embed(self, s)` method on the
+// runtime VSA class and batched via `def embed_batch` for the
+// compile-time prefetch pass. See `_emit_prelude` in codegen.py.
+// This file is the target shape for the inliner. See stdlib/README.md.
+//
+// `embed` is a pure intrinsic — it has no Sutra-level body. The
+// string goes to an external process (the embedding model), a
+// vector comes back. There's nothing to inline; the function call
+// is a leaf in the dataflow graph.
+//
+// Listing it here anyway for completeness — so the stdlib directory
+// is the single source of truth for every system function's
+// signature and status. Once the inliner lands, `embed` will be
+// marked `@intrinsic` (or whatever the chosen syntax is) and pass
+// through the inliner unchanged.
+
+
+// ==========================================================================
+// Section 3 — pure intrinsic (no Sutra body)
+// ==========================================================================
+//
+// embed — string → semantic vector.
+//
+//   @intrinsic
+//   function vector embed(string s) {
+//       // runtime: hits Ollama, caches to disk, mean-centers,
+//       // L2-normalizes, returns the semantic block padded with
+//       // zeros in the synthetic block.
+//   }
+//
+// Intrinsic primitive. The compile-time prefetch (collecting every
+// `basis_vector("...")` / `embed("...")` string literal at module
+// init and batching them into one Ollama call) stays a codegen-
+// level optimization — it's transparent to the .su-level semantics.
+//
+// basis_vector is an alias for embed with a different spelling (VSA-
+// role allocation vs. pure embedding). Both hit the same intrinsic.
+//
+// The fly-brain backend reroutes embed to a random-vector fallback
+// for programs that target the spiking substrate without an LLM.
+// That branch is backend-specific and lives outside this file.
