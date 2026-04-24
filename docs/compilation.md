@@ -309,37 +309,6 @@ The surface form is optimized for **human readability**. The runtime form is opt
 
 ---
 
-## No null
-
-Sutra has no `null`. Variables can be declared without an initializer using `wait`:
-
-```c
-wait fuzzy f;     // declared but not yet assigned; compile error if
-                  // no assignment reaches every read of `f`.
-f = compute();
-return f;
-```
-
-Without `wait`, a declaration must have an initializer. A bare `var x : TYPE;` in a normal declaration slot is a compile error — assign something or mark the declaration `wait`. Non-waiting variables that have no initializer get their type's zero value (zero vector, `make_truth(0.0)` for fuzzy, etc.); there's no uninitialized state at runtime for the compiler or programmer to reason about.
-
----
-
-## Possible future: an interactive pipeline viewer
-
-This page is static — a static walkthrough of four canonical cases. A natural follow-on is an interactive widget where you paste Sutra source into a text area and see, side by side:
-
-1. The source.
-2. The parsed AST (tree view).
-3. The simplified AST (tree view with rewrites highlighted).
-4. The emitted Python.
-5. A symbolic expansion showing the polynomial form of any logic / arithmetic it compiles to.
-
-Each stage collapsible. Each rewrite with a hover-tip showing which simplify rule fired. That would make the "sugar-to-polynomial stripping" story visible in a way a static page can't quite reach.
-
-Not built yet. The four pages already on the site that have interactive widgets (the graph-to-vector, bind-unbind, snap-to-nearest, and fuzzy-logic explorers) are the right stylistic template when this gets built.
-
----
-
 ## Related reading
 
 - [Logical operations](logical-operations.md) — the polynomial forms of every standard connective and why they're derivable from `{!, &&, ||}`.
