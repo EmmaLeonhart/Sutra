@@ -40,7 +40,7 @@
       name: 'NAND',
       symbol: '⊼',           // ⊼
       idiom: '!(a && b)',
-      polynomial: '−(AND polynomial)',
+      polynomial: '(−a − b − ab + a² + b² − a²b²) / 2',
       fn: (a, b) => -andPoly(a, b),
     },
     {
@@ -48,7 +48,7 @@
       name: 'NOR',
       symbol: '⊽',           // ⊽
       idiom: '!(a || b)',
-      polynomial: '−(OR polynomial)',
+      polynomial: '(−a − b + ab − a² − b² + a²b²) / 2',
       fn: (a, b) => -orPoly(a, b),
     },
     {
