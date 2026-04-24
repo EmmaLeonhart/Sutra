@@ -112,7 +112,7 @@ class TestInlinerSingleReturn(unittest.TestCase):
         self.assertNotIn("Identifier(name='a'", text)
         self.assertNotIn("Identifier(name='b'", text)
 
-    def test_neq_inlines_to_negated_eq(self):
+    def test_neq_inlines_through_to_polynomial(self):
         expr = self._inline(
             "vector cat = \"cat\";\n"
             "vector dog = \"dog\";\n"
@@ -120,9 +120,16 @@ class TestInlinerSingleReturn(unittest.TestCase):
             "  return neq(cat, dog);\n"
             "}\n"
         )
-        # neq body: `!(a == b)` → UnaryOp(!, Parenthesized(BinaryOp(==)))
-        self.assertIsInstance(expr, ast.UnaryOp)
-        self.assertEqual(expr.op, "!")
+        # neq body: `!(a == b)`. `!` is a stdlib-lowered UnaryOp so it
+        # rewrites to Call(logical_not, ...) which inlines to `0 - _`.
+        # Final shape: BinaryOp('-', IntLiteral(0), <== expr>).
+        self.assertIsInstance(expr, ast.BinaryOp)
+        self.assertEqual(expr.op, "-")
+        self.assertIsInstance(expr.left, ast.IntLiteral)
+        self.assertEqual(expr.left.value, 0)
+        # No stdlib call-by-name survives.
+        self.assertNotIn("neq", _collect_call_names(expr))
+        self.assertNotIn("logical_not", _collect_call_names(expr))
 
     def test_lt_inlines_to_swapped_gt(self):
         expr = self._inline(
