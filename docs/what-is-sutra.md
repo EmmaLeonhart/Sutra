@@ -9,7 +9,7 @@ A plain-language explanation, no prior programming-language theory required.
 
 ## The one-sentence version
 
-Most programming languages ask *"what should the computer do, step by step?"* Sutra asks a different question: *"what starting conditions should I set up, so that the reaction I want happens on its own?"*
+Sutra is a **geometric tensor programming language**: every value is a tensor, every operation is tensor arithmetic, and programs describe transformations of a point inside a geometric space rather than step-by-step machine instructions. Most programming languages ask *"what should the computer do, step by step?"* Sutra asks a different question: *"what starting conditions should I set up, so that the reaction I want happens on its own?"*
 
 ## Think of a Rube Goldberg machine
 
@@ -24,7 +24,7 @@ Compilation — running the Sutra compiler on your source code — is the act of
 
 ## The weird part: ideas as primitives
 
-In a normal programming language the primitives are things like integers, text, and lists. In Sutra the primitives are **ideas** — concepts like "smell present," "hunger hungry," "approach," "ignore" — each one represented as a long list of numbers (a high-dimensional vector).
+In a normal programming language the primitives are things like integers, text, and lists. In Sutra the primitives are **ideas** — concepts like "smell present," "hunger hungry," "approach," "ignore" — each one represented as a tensor (a point, a matrix, or a higher-rank array of real numbers arranged as a coordinate in a geometric space).
 
 This is the weird part, and it's the whole point.
 

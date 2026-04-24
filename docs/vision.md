@@ -1,6 +1,6 @@
 # The graph-to-vector leap
 
-Embedding spaces look like graphs — neurons, connections, pretrained networks. They're not. They're geometry. This page explains why the graph intuition is wrong, why the spatial one is right, and what it means to write programs in that space.
+Sutra is a **geometric tensor programming language**: every value is a tensor (a coordinate in a high-dimensional space), every operation is tensor arithmetic, and the whole program is a chain of tensor operations through a geometric substrate. This page explains *why* that framing is correct — why embedding spaces look like graphs but actually behave like geometry, and what it means to write programs in that space.
 
 ## The intuition trap
 
