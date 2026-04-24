@@ -7,11 +7,15 @@ name: Deploy GitHub Pages site
 # repo's Pages settings need to be set to "Source: GitHub Actions"
 # (Settings → Pages → Build and deployment → Source).
 #
-# Live at: https://emmaleonhart.github.io/Sutra
-# (the URL follows the GitHub repository name; rename EmmaLeonhart/Sutra
-#  to EmmaLeonhart/Sutra on GitHub to switch the published URL. The
-#  workflow itself is repo-name-agnostic and does not need to be edited
-#  when the repo is renamed.)
+# Live at: https://sutralang.dev
+# (Custom domain — docs/CNAME pins the Pages deploy to sutralang.dev
+# and MkDocs copies the CNAME file into the build output where
+# GitHub Pages picks it up on deploy. DNS for the domain is
+# configured by the domain owner outside this repo; see GitHub's
+# custom-domain docs for the required A / CNAME records. After the
+# first successful deploy, enable "Enforce HTTPS" in Settings →
+# Pages once Let's Encrypt provisions the cert, which usually
+# takes a few minutes after the domain resolves.)
 
 on:
   push:
@@ -64,11 +68,11 @@ jobs:
           # SutraDB keeps its own static HTML site under sutraDB/pages/
           # (index.html, style.css, subdirectories for each section).
           # Mount it at /SutraDB/ on the main Sutra language site so that
-          # https://emmaleonhart.github.io/Sutra/SutraDB/ serves the
-          # database's own landing page. SutraDB is a core piece of the
-          # Sutra ecosystem — the language programs vectors, the database
-          # stores them — and a single integrated docs site is the least
-          # surprising place for users to find both.
+          # https://sutralang.dev/SutraDB/ serves the database's own
+          # landing page. SutraDB is a core piece of the Sutra ecosystem —
+          # the language programs vectors, the database stores them — and
+          # a single integrated docs site is the least surprising place
+          # for users to find both.
           #
           # Caveats:
           #   - SutraDB's pages may contain absolute hrefs (/...) that
