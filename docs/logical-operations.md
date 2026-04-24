@@ -188,18 +188,14 @@ NOR(a, b)  =  !(a || b)
 
 Again, just sign flips. You don't need to memorize two new polynomials; just remember "NAND = negated AND polynomial, NOR = negated OR polynomial." At the substrate level Sutra can also run NAND as a composition `!(a && b)` — two runtime ops (an AND polynomial plus a sign flip). Same answer, slightly more hops.
 
-### XOR and IFF collapse to single products
-
-XOR and IFF are the striking cases — five-op nested compositions that symbolically reduce to a single multiplication:
+### XOR and IFF
 
 ```
 xor(a, b) = (a && !b) || (!a && b)   =   -a · b
 iff(a, b) = (a → b) && (b → a)       =    a · b
 ```
 
-Why: on a signed truth scale where `-1 = false`, `+1 = true`, the **product of signs** is `+1` when the signs agree and `-1` when they disagree. That's exactly the IFF truth table. Negate it and you get XOR. When either value is `0` (unknown), the product is `0`, which is the right answer under Kleene semantics (unknown propagates).
-
-So "logical equivalence on the signed truth scale" isn't just *like* multiplication — it **is** multiplication. The degree-4 composition of AND / OR / NOT collapses because the AND / OR polynomials' quadratic terms cancel out in precisely the right way, leaving a degree-2 monomial.
+On a signed truth scale (`-1 = false`, `+1 = true`, `0 = unknown`), the product of signs is `+1` when they agree, `-1` when they disagree, `0` when either is unknown. That's the IFF truth table; negated, it's XOR.
 
 ### Example: writing the derived connectives in Sutra
 
