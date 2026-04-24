@@ -29,7 +29,7 @@ The loader is deliberately simple:
 from __future__ import annotations
 
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from . import ast_nodes as ast
 from .lexer import Lexer
@@ -113,3 +113,25 @@ def stdlib_function_names(stdlib_dir: str = STDLIB_DIR) -> List[str]:
     once the inliner is wired."
     """
     return sorted(load_stdlib(stdlib_dir).keys())
+
+
+# Module-level cache of the intrinsic names — names declared via
+# `intrinsic function ...;` in any stdlib file. The codegen uses this
+# to route `Call(Identifier(name), args)` to `_VSA.<name>(args)`
+# when name is an intrinsic (the runtime class implements it).
+# Populated lazily on first access; safe because stdlib source is
+# frozen for a given process.
+_INTRINSIC_NAMES_CACHE: Optional[frozenset] = None
+
+
+def intrinsic_names(stdlib_dir: str = STDLIB_DIR) -> frozenset:
+    """Return the frozenset of intrinsic function names declared in
+    the stdlib — the leaves the runtime must implement."""
+    global _INTRINSIC_NAMES_CACHE
+    if _INTRINSIC_NAMES_CACHE is None:
+        table = load_stdlib(stdlib_dir)
+        _INTRINSIC_NAMES_CACHE = frozenset(
+            name for name, decl in table.items()
+            if getattr(decl, "is_intrinsic", False)
+        )
+    return _INTRINSIC_NAMES_CACHE

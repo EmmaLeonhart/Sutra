@@ -234,6 +234,12 @@ class Parser:
 
         if tok.kind is TokenKind.KW_FUNCTION:
             return self._parse_function_decl(mods)
+        if tok.kind is TokenKind.KW_INTRINSIC and self._peek(1).kind is TokenKind.KW_FUNCTION:
+            # `intrinsic function <ret> <name>(<params>);` — signature
+            # only, body lives in the runtime. Used by stdlib files for
+            # leaf primitives.
+            self._advance()  # consume `intrinsic`
+            return self._parse_function_decl(mods, is_intrinsic=True)
         if tok.kind is TokenKind.KW_METHOD:
             return self._parse_method_decl(mods)
         if tok.kind is TokenKind.KW_STATIC and self._peek(1).kind is TokenKind.KW_METHOD:
@@ -280,7 +286,9 @@ class Parser:
     # Function / method declarations
     # ----------------------------------------------------------------
 
-    def _parse_function_decl(self, mods: ast.Modifiers) -> Optional[ast.FunctionDecl]:
+    def _parse_function_decl(
+        self, mods: ast.Modifiers, *, is_intrinsic: bool = False,
+    ) -> Optional[ast.FunctionDecl]:
         start_span = self._current_span()
         self._expect(TokenKind.KW_FUNCTION, "`function`")
 
@@ -310,6 +318,24 @@ class Parser:
 
         type_params = self._parse_type_params()
         params = self._parse_param_list()
+        if is_intrinsic:
+            # Signature only; semicolon in place of body. Fabricate an
+            # empty Block so downstream code that assumes .body is a
+            # Block doesn't need a special-case.
+            semi = self._expect(TokenKind.SEMICOLON, "`;` to close intrinsic declaration")
+            end = semi.span.end if semi is not None else self._current_span().end
+            body = ast.Block(statements=[], span=SourceSpan(start=end, end=end))
+            return ast.FunctionDecl(
+                modifiers=mods,
+                return_type=return_type,
+                name=name_tok.lexeme,
+                type_params=type_params,
+                params=params,
+                body=body,
+                is_operator=False,
+                is_intrinsic=True,
+                span=SourceSpan(start=start_span.start, end=end),
+            )
         body = self._parse_block()
         if body is None:
             return None
