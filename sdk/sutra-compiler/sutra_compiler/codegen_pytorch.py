@@ -1,25 +1,24 @@
 """AST -> PyTorch/CUDA Python source translator.
 
-The GPU-capable demo backend. Emits self-contained Python modules that
-depend only on torch (numpy is still imported for a single bridge at
-ingestion time — Ollama hands us lists of floats and we construct
-tensors from them). Ops run as torch tensors; when CUDA is available
-the module picks `cuda` as its device automatically, falling back to
-`cpu` otherwise.
+The GPU path. Emits self-contained Python modules that depend only on
+torch (numpy is still imported for a single bridge at ingestion time —
+Ollama hands us lists of floats and we construct tensors from them).
+Ops run as torch tensors; when CUDA is available the module picks
+`cuda` as its device automatically, falling back to `cpu` otherwise.
 
-Relationship to codegen_numpy:
+Relationship to the CPU codegen:
 
     BaseCodegen                     ← backend-agnostic AST walker
-        ├── NumpyCodegen            ← demo path (CPU, numpy)
-        │       └── PyTorchCodegen  ← GPU path (torch)
+        ├── Codegen                 ← canonical CPU path (numpy ndarrays)
+        │       └── PyTorchCodegen  ← GPU path (torch tensors)
         └── FlyBrainCodegen         ← fly-brain experimental target
 
-PyTorchCodegen inherits the translator from NumpyCodegen (same AST
-walk, same bundle-of-binds fusion, same vector-accessor lowering,
-same extended-state-vector layout) and only overrides the prelude so
-the emitted runtime class is `_TorchVSA` operating on tensors. The
-fused shapes that the simplifier and codegen produce (stacked Q matmul
-via einsum, stacked candidate matmul for argmax_cosine) collapse O(N)
+PyTorchCodegen inherits the translator from `Codegen` (same AST walk,
+same bundle-of-binds fusion, same vector-accessor lowering, same
+extended-state-vector layout) and only overrides the prelude so the
+emitted runtime class is `_TorchVSA` operating on tensors. The fused
+shapes that the simplifier and codegen produce (stacked Q matmul via
+einsum, stacked candidate matmul for argmax_cosine) collapse O(N)
 small kernel launches into O(1) large ones on GPU — which is the
 reason this backend exists.
 
@@ -34,20 +33,20 @@ from __future__ import annotations
 
 from . import ast_nodes as ast
 from .codegen_base import CodegenNotSupported
-from .codegen_numpy import NumpyCodegen
+from .codegen import Codegen
 
 
-class PyTorchCodegen(NumpyCodegen):
+class PyTorchCodegen(Codegen):
     """Emits a self-contained torch module.
 
-    Inherits the entire translator from `NumpyCodegen` and only overrides
-    the prelude. Vector accessor methods (`.component()`, `.real()`, etc.)
+    Inherits the entire translator from `Codegen` and only overrides the
+    prelude. Vector accessor methods (`.component()`, `.real()`, etc.)
     still route through `_VSA.*` calls — the runtime method names match
-    the numpy backend so the translator needs no divergence.
+    the CPU codegen so the translator needs no divergence.
 
-    Bool literal lowering is inherited from NumpyCodegen (true/false →
+    Bool literal lowering is inherited from `Codegen` (true/false →
     make_truth(±1)); logical ops (`!`, `&&`, `||`) likewise inherit the
-    numpy override and resolve against the torch runtime's make_truth /
+    base override and resolve against the torch runtime's make_truth /
     _as_truth_vector.
     """
 
@@ -134,7 +133,7 @@ class PyTorchCodegen(NumpyCodegen):
         self._emit()
         self._emit("# Canonical synthetic-axis allocation — real, imag, truth at")
         self._emit("# synthetic[0..2], char-flag at synthetic[3]. Mirrored from")
-        self._emit("# _NumpyVSA so the two runtimes agree bit-for-bit on layout.")
+        self._emit("# the CPU runtime so the two agree bit-for-bit on layout.")
         self._emit("AXIS_REAL = 0")
         self._emit("AXIS_IMAG = 1")
         self._emit("AXIS_TRUTH = 2")
