@@ -80,6 +80,16 @@ extracted artifacts where the source is preserved elsewhere) should
 not be tracked. Anything that takes substantial space and isn't
 load-bearing for the language should be revisited.
 
+**Repo audit due soon.** A previous audit (`audit.md` / `AUDIT.md` —
+both stale duplicates from 2026-04-13, removed 2026-04-25) was
+written when the repo still hosted the now-deleted Claw4S 2026
+papers and the now-deleted `scripts/` directory. Once the chats
+triage finishes, walk every top-level directory again with the
+current scope — Sutra language, compiler, examples, planning,
+fly-brain experiments, sutraDB subtree, docs site — and flag dead
+weight. Don't reuse the old `audit.md` filename; write findings
+inline in STATUS.md or as a dated `planning/findings/` doc.
+
 **Website HTTPS cert — manual user action required.** sutralang.dev
 serves 200 OK over both HTTP and HTTPS (verified 2026-04-24), but
 the TLS cert being presented on port 443 is GitHub's default wildcard
