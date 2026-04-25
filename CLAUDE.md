@@ -44,16 +44,6 @@ Write a finding when the number is interesting, surprising, or likely to be misr
 
 The three planning/ sibling folders partition the work-adjacent writing cleanly: `exploratory/` is things we haven't tried, `open-questions/` is decisions we've avoided making, `findings/` is things we have tried and learned from.
 
-### Extract Claude.ai chat exports in `chats/`
-
-The user frequently has unstructured thinking conversations with Claude on the web (claude.ai) when the task is not code-writing — design sketches, naming discussions, concept explorations. These are cheaper and less heavyweight than Claude Code sessions, but the content is valuable and needs to land in the repo so it can be referenced from future sessions and planning docs.
-
-Workflow: the user saves the Claude.ai chat as HTML ("File → Save Page As") into `chats/`. Those HTML files need to be extracted to clean markdown so they are grep-able, diffable, and readable without a browser.
-
-When you see a `chats/*.html` file without a matching `.md` sibling — or when the user says "extract the chat" / "there's a new chat to extract" — run `python scripts/extract_chat.py`. With no args it scans `chats/` and extracts any HTML that lacks a matching markdown file. The script finds the user/assistant message blocks by their claude.ai CSS markers (`font-user-message`, `font-claude-response`), converts to markdown, and writes `chats/<title-slug>.md`.
-
-After extraction, **delete the `.html` and the `<title>_files/` browser-asset directory** — the `.md` is the canonical working copy. Policy revised 2026-04-25: the HTMLs and their `_files/` siblings were ~40 MB of bloat, and the markdown extraction is sufficient. Commit the `.md` alone; the deletion goes in the same commit. If extraction fails (Claude Code CLI exports use different DOM markers and produce 0 blocks), fall back to a raw-text dump — see `chats/sutradev-claude-code.md` for the pattern — then still delete the HTML.
-
 ## Project Overview
 
 **Sutra is a real, purely functional programming language with a working compiler and a pure-numpy matrix runtime.** `.su` source parses, validates, compiles to self-contained Python, and executes; three demonstration programs (hello world, fuzzy branching, role-filler record) run end-to-end with 23/23 outputs correct. The demo path has zero fly-brain imports. PyTorch/GPU is the next refactor target, not a dependency of anything today.
