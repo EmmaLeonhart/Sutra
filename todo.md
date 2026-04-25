@@ -24,6 +24,28 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## [This year] Make `sutralang.dev` more agent-accessible
+
+Sutra's stance per CLAUDE.md is that agents are first-class consumers
+of the documentation, not an afterthought. The site is already
+markdown-driven, but specific moves to take it further:
+
+- [ ] Audit each page on `sutralang.dev` for content that exists only
+  in rendered form (animations, hover-only tooltips, JS-rendered code
+  examples) and lift it back into the source markdown so an agent
+  fetching the raw page gets the full content.
+- [ ] Add a prominent agent-routing affordance on the landing page —
+  an explicit "If you are an AI agent, the canonical source is the
+  Markdown in `docs/` / the GitHub repo" hint, so agents can redirect
+  themselves to the higher-fidelity source.
+- [ ] Expose the docs through an MCP server (or a documented
+  fetch-this-URL pattern) so agents can query Sutra's surface
+  programmatically rather than scraping HTML.
+- [ ] Verify the site renders sensibly when JS is disabled, since
+  many agent fetchers don't execute scripts.
+
+---
+
 ## [Pre-Anthropic-grant-app] Rotation-hashmap capacity + Monte-Carlo exploration
 
 The rotation-hashmap library-pattern prototype landed 2026-04-22
