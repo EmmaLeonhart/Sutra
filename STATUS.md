@@ -21,6 +21,33 @@ pick up next.
 
 ## Queued work
 
+**Today's priority: trim repo bloat (2026-04-25).** The repo has
+accumulated weight that doesn't pay for itself. First sweep already
+landed: `chats/` lost ~40 MB by extracting the five remaining HTML
+exports to markdown and deleting the `.html` + `_files/` browser-
+asset directories (commit 438dace). chats/README.md and CLAUDE.md
+updated to reflect the new policy (markdown is canonical; HTMLs go
+after extraction).
+
+Next bloat sources to investigate:
+
+  - `sdk/intellij-sutra/build/` — IntelliJ build output, indexes,
+    sandboxes. Should be in `.gitignore` if it isn't, and the working
+    copy should be cleared (`./gradlew clean` in that dir).
+  - `fly-brain/flywire_data/` — already gitignored per CLAUDE.md, but
+    worth confirming nothing has slipped in.
+  - `fly-brain/` Python sprawl — the 2026-04-13 cleanup got it from
+    33 to 15 files; check it hasn't crept back.
+  - `experiments/` and `planning/findings/` — large but mostly
+    paying their way; audit only if something stands out.
+  - Cached embeddings, viz HTML siblings (`*_viz.html` from
+    `--run-viz`), pyc/__pycache__ leakage.
+
+The principle: anything that is regenerable (build output, caches,
+extracted artifacts where the source is preserved elsewhere) should
+not be tracked. Anything that takes substantial space and isn't
+load-bearing for the language should be revisited.
+
 **Website HTTPS cert — manual user action required.** sutralang.dev
 serves 200 OK over both HTTP and HTTPS (verified 2026-04-24), but
 the TLS cert being presented on port 443 is GitHub's default wildcard
