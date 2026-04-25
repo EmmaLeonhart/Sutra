@@ -295,6 +295,18 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
 - [ ] Diagnose why `!editor.bat` fails (likely JAVA_HOME or Gradle daemon
   issue). Get `sdk/intellij-sutra` `runIde` task working, verify `.su`
   syntax highlighting and completion in the sandbox IDE.
+- [ ] **Class system as autocomplete recommendation, not enforcement.**
+  Originally surfaced in the project-genesis chat (2024-ish): the
+  implicit class system in Sutra is meant to *suggest* meaningful ways
+  to bind / unbind / bundle / unbundle / permute, not enforce them.
+  Violating a class still produces a vector — possibly noise, possibly
+  accidentally meaningful — and the language doesn't error. The IDE
+  / MCP layer should surface class-coherent operations as autocomplete
+  options ranked by ontological fit, while leaving off-class
+  combinations callable with no warning. Pairs with the recognition-
+  layer / ontology-detector idea: completion quality is bounded by
+  how well the recognizer identifies what region of semantic space a
+  vector occupies.
 
 ## [This year] Chats audit — do NOT run from a Claude Code sandbox
 
