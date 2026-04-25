@@ -94,6 +94,7 @@ class TokenKind(Enum):
     TRUE = auto()
     FALSE = auto()
     KW_UNKNOWN = auto()         # the `unknown` literal — truth-axis neutral
+    KW_WAIT = auto()            # the `wait` literal — explicit deferred init
 
     # ---- identifiers / keywords ----
     IDENT = auto()
@@ -170,6 +171,13 @@ KEYWORDS = {
     # that gets the same token — both forms are fine to write.
     "unknown": TokenKind.KW_UNKNOWN,
     "unk": TokenKind.KW_UNKNOWN,
+    # `wait` — explicit deferred-initializer marker. Only legal in a
+    # var-decl initializer position (`int i = wait;`). Tells the
+    # compiler "I'm declaring this name now, an assignment will
+    # follow before any read." The validator enforces definite
+    # assignment; the codegen emits zero-of-type at the declaration
+    # site and the later assignment overrides it.
+    "wait": TokenKind.KW_WAIT,
 }
 
 # Primitive type names. They are ordinary identifiers at the lexer

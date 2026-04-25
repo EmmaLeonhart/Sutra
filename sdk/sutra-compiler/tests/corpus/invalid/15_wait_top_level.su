@@ -1,0 +1,10 @@
+// Expected error: SUT0133 — `wait` at top level.
+// Top-level declarations don't have a function-body execution flow
+// to deliver the promised assignment; `wait` is a function-scope
+// concept only.
+
+int orphan = wait;
+
+function int Reader() {
+    return orphan;
+}

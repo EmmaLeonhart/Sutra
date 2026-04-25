@@ -365,12 +365,22 @@ class BaseCodegen:
             self._emit(f"{decl.name} = {fuzzy_src}")
             return
 
+        # `int x = wait;` — explicit deferred initializer. The
+        # validator enforces that a real assignment happens before
+        # any read of `x`, so the value emitted here is a placeholder.
+        # We reuse the same zero-of-type emission used for the
+        # uninitialized var-colon form: same lowering, different
+        # ergonomics (the `wait` keyword is the explicit signal in
+        # source). Both backends inherit this path; only the validator
+        # treats `wait` differently from "no initializer."
+        is_wait_init = isinstance(decl.initializer, ast.WaitLiteral)
+
         # `var x : TYPE;` without an initializer — the rotation-bound
         # storage-slot form from the 2026-04-21 surface-syntax decision
         # (Candidate B: role/var). Emit a zero-valued slot of the
         # declared type. `var[N] x : TYPE;` emits a Python list of N
         # zero slots.
-        if decl.initializer is None and decl.is_var_colon:
+        if (decl.initializer is None and decl.is_var_colon) or is_wait_init:
             type_name = decl.type_ref.name if decl.type_ref is not None else "vector"
             # Vector types get a zero d-dim array per slot.
             if type_name == "vector":

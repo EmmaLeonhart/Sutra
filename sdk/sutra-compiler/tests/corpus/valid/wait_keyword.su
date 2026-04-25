@@ -1,0 +1,33 @@
+// Sutra corpus test: the `wait` keyword.
+// `int i = wait;` is the explicit-deferred-init form. The variable
+// is declared now, and the validator requires that an assignment to
+// it happens before the function exits.
+
+function int StraightLineWait() {
+    int answer = wait;
+    answer = 42;
+    return answer;
+}
+
+function vector TypedWaitWithLater() {
+    vector v = wait;
+    v = embed("cat");
+    return v;
+}
+
+function fuzzy MultipleWaits() {
+    int counter = wait;
+    fuzzy signal = wait;
+    counter = 7;
+    signal = unknown;
+    return signal;
+}
+
+function void AssignmentBeforeAnyRead() {
+    // The assignment can sit anywhere in the body; the validator
+    // only requires "at least one assignment before the function
+    // exits." Reading happens via the return paths, which here
+    // includes the implicit fall-through return for void functions.
+    scalar threshold = wait;
+    threshold = 0.85;
+}
