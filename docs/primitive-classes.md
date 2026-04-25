@@ -182,6 +182,32 @@ graph TD
 
 There is no `null`. The neutral is real, not a sentinel. When you read a not-yet-assigned variable, you get the neutral, and the neutral is a meaningful value in the math that follows.
 
+### `wait` — explicit deferred initialization
+
+If you want to declare a name *now* but signal explicitly that an assignment will follow before any read, write `wait` as the initializer:
+
+```
+function int compute() {
+    int answer = wait;
+    // ... some prep ...
+    answer = 42;
+    return answer;
+}
+```
+
+`wait` is syntactic sugar for "I am promising the compiler that I will assign this before the function returns." The codegen emits the same zero-of-type that `var x : int;` (uninitialized var-colon form) emits — so the lowering is identical. The difference is the promise: the validator tracks every `wait`-declared variable and emits a compile error if no assignment to that variable happens in the function body.
+
+Use `wait` when the deferral is intentional and you want it visible at the declaration site. Use `var x : int;` when you want a zero-initialized slot and don't intend to change it (or when the change is simply the next statement and the flag would be noise).
+
+Restrictions:
+
+- **Function scope only.** `int x = wait;` at module top level is a compile error (SUT0133) — there's no later execution flow to deliver the promised assignment.
+- **Concrete type required.** `var x = wait;` (inferred) is a compile error (SUT0131) — the codegen needs a type to default the zero allocation to.
+- **Initializer position only.** `wait` outside a var-decl initializer (e.g. `return wait;`) is a position error (SUT0130).
+- **At least one assignment required.** A `wait`-declared variable that's never assigned in the function body is a compile error (SUT0132).
+
+The check is purely compile-time. There is no runtime `wait` value — by the time the program executes, every wait has been resolved into its first assignment.
+
 ---
 
 ## Functional completeness and factorable logic

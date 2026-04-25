@@ -1,0 +1,8 @@
+// Expected error: SUT0132 — `wait`-declared variable never assigned.
+// `int i = wait;` is a promise that an assignment will follow, but
+// this function never delivers on the promise.
+
+function int Bad() {
+    int answer = wait;
+    return answer;
+}

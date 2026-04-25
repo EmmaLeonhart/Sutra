@@ -248,6 +248,11 @@ class SutraLexer : LexerBase() {
             "return", "if", "else", "while", "for", "foreach", "in", "do",
             "loop", "as",
             "try", "catch", "break", "continue", "this",
+            // Explicit deferred-init marker. Only legal as a var-decl
+            // initializer (`int i = wait;`). Highlighted as a keyword
+            // because it's a reserved word, even though it occupies an
+            // expression position grammatically.
+            "wait",
         )
 
         private val PRIMITIVE_TYPES: Set<String> = setOf(

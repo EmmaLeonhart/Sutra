@@ -132,6 +132,13 @@ class _Walker:
     def __init__(self, diagnostics: DiagnosticBag) -> None:
         self.diagnostics = diagnostics
         self._class_name_usages: Set[str] = set()
+        # `wait`-declared variables in the *current* function scope.
+        # Maps name → declaration span, populated when a `var x = wait;`
+        # is seen. Cleared on function entry so wait-tracking is
+        # function-local. When the function body finishes, any name
+        # still in this dict has never been assigned and gets a
+        # SUT0130 error.
+        self._wait_declared: dict = {}
 
     # ---- module ----------------------------------------------------
 
@@ -169,18 +176,61 @@ class _Walker:
         self._record_type_usage(node.return_type)
         for p in node.params:
             self._record_type_usage(p.type_ref)
+        self._enter_function_scope()
         self.visit(node.body)
+        self._exit_function_scope()
 
     def visit_MethodDecl(self, node: ast.MethodDecl) -> None:
         self._check_modifier_conflict(node.modifiers, node.span)
         self._record_type_usage(node.return_type)
         for p in node.params:
             self._record_type_usage(p.type_ref)
+        self._enter_function_scope()
         self.visit(node.body)
+        self._exit_function_scope()
 
     def visit_VarDecl(self, node: ast.VarDecl) -> None:
         if node.type_ref is not None:
             self._record_type_usage(node.type_ref)
+        # `wait`-initialized declarations: register the name as a
+        # pending wait (assigned-later promise) and do NOT descend into
+        # the initializer — `WaitLiteral` is legal here, illegal
+        # everywhere else, and the position check below catches the
+        # everywhere-else case.
+        if isinstance(node.initializer, ast.WaitLiteral):
+            # Top-level `wait` has no enclosing function body to
+            # assign in — reject it. Use the wait stack as the
+            # in-function indicator (it's pushed by _enter_function_scope).
+            if not getattr(self, "_wait_stack", []):
+                self.diagnostics.error(
+                    "`wait` is only valid inside a function or method "
+                    "body — top-level declarations don't have a later "
+                    "execution flow to assign in",
+                    node.span,
+                    code="SUT0133",
+                    hint="move the declaration into a function body, "
+                         "or initialize it with a concrete value at the "
+                         "top level",
+                )
+                return
+            if node.type_ref is None:
+                # `var x = wait;` (inferred) has no type to default the
+                # zero-of-type emission to. Require an explicit type.
+                self.diagnostics.error(
+                    "`var x = wait;` (inferred) is not allowed — "
+                    "`wait` requires an explicit type so the compiler "
+                    "knows the zero-of-type to allocate at the "
+                    "declaration site",
+                    node.span,
+                    code="SUT0131",
+                    hint="write `int x = wait;` (or another concrete type) "
+                         "instead, or use `var x : TYPE;` for the same "
+                         "uninitialized-slot semantics without the explicit "
+                         "deferred-init signal",
+                )
+            else:
+                self._wait_declared[node.name] = node.span
+            return
         if node.initializer is not None:
             self.visit(node.initializer)
         # Fuzzy / trit literals live on the truth axis which the
@@ -261,7 +311,58 @@ class _Walker:
         for a in node.args:
             self.visit(a)
 
+    def visit_WaitLiteral(self, node: ast.WaitLiteral) -> None:
+        # The only place `wait` is legal is the RHS of a var-decl
+        # initializer, which `visit_VarDecl` handles by short-circuiting
+        # before descending. If we reach the literal through any other
+        # path, it's a position error.
+        self.diagnostics.error(
+            "`wait` is only valid as a var-decl initializer "
+            "(`int i = wait;`); it cannot appear in other expression "
+            "positions",
+            node.span,
+            code="SUT0130",
+            hint="if you want a placeholder value, use a typed zero "
+                 "(`0`, `unknown`, the zero vector); if you want explicit "
+                 "deferred initialization, move `wait` to a declaration",
+        )
+
+    def visit_Assignment(self, node: ast.Assignment) -> None:
+        # If this assigns to a wait-declared name, mark the wait as
+        # satisfied. Single-name targets only — assignments to fields
+        # / subscripts don't satisfy a wait on the variable itself.
+        if (isinstance(node.target, ast.Identifier)
+                and node.target.name in self._wait_declared):
+            del self._wait_declared[node.target.name]
+        self.visit(node.value)
+
     # ---- helpers ---------------------------------------------------
+
+    def _enter_function_scope(self) -> None:
+        # Save the outer wait-tracking state and start a fresh scope.
+        # Function definitions can be nested (a method inside a class
+        # inside another method-bearing decl, for instance), so we
+        # need to restore on exit rather than just clearing.
+        self._wait_stack = getattr(self, "_wait_stack", [])
+        self._wait_stack.append(self._wait_declared)
+        self._wait_declared = {}
+
+    def _exit_function_scope(self) -> None:
+        # Any wait-declared name still pending at function exit was
+        # never assigned. Per the wait spec ("if it's not declared at
+        # all, it throws an error"), that's an error.
+        for name, span in self._wait_declared.items():
+            self.diagnostics.error(
+                f"variable `{name}` was declared with `wait` but never "
+                "assigned in the function body — `wait` is a promise "
+                "that an assignment will follow before the value is read",
+                span,
+                code="SUT0132",
+                hint=f"add `{name} = <value>;` somewhere in this function, "
+                     "or remove the `wait` initializer if you intended "
+                     "the zero-of-type as the final value",
+            )
+        self._wait_declared = self._wait_stack.pop() if self._wait_stack else {}
 
     def _check_modifier_conflict(
         self, mods: ast.Modifiers, span: SourceSpan
