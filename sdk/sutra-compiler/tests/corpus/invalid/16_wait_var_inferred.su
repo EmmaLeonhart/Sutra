@@ -1,0 +1,9 @@
+// Expected error: SUT0131 — `var x = wait;` is not allowed.
+// `wait` carries no type, so an inferred `var` declaration has
+// nothing to default the zero-of-type emission to. Use a concrete
+// type on the LHS.
+
+function void Bad() {
+    var x = wait;
+    x = 5;
+}

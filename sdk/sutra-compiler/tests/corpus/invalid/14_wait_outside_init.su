@@ -1,0 +1,8 @@
+// Expected error: SUT0130 — `wait` used outside a var-decl initializer.
+// The keyword is only legal as the RHS of a typed declaration. Using
+// it as a plain expression is a position error.
+
+function int Bad() {
+    int x = 5;
+    return x + wait;
+}

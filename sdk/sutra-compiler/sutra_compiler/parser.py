@@ -97,6 +97,7 @@ _EXPR_START_TOKENS = {
     TokenKind.TRUE,
     TokenKind.FALSE,
     TokenKind.KW_UNKNOWN,
+    TokenKind.KW_WAIT,
     TokenKind.IDENT,
     TokenKind.KW_THIS,
     TokenKind.LPAREN,
@@ -1260,6 +1261,14 @@ class Parser:
         if tok.kind is TokenKind.KW_UNKNOWN:
             self._advance()
             return ast.UnknownLiteral(span=tok.span)
+        if tok.kind is TokenKind.KW_WAIT:
+            # `wait` parses as a primary expression so the rest of the
+            # declaration grammar (`int i = wait;`) works. Position
+            # restriction (only as a var-decl initializer) is enforced
+            # by the validator, not the parser — same approach used
+            # for other context-sensitive constructs.
+            self._advance()
+            return ast.WaitLiteral(span=tok.span)
         if tok.kind is TokenKind.KW_THIS:
             self._advance()
             return ast.ThisExpr(span=tok.span)
