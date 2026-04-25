@@ -8,7 +8,9 @@ These are unstructured thinking conversations — design sketches, naming discus
 
 - User saves a chat as HTML into this directory.
 - Run `python scripts/extract_chat.py` (or extract inline). It scans for `.html` files without a matching `.md` sibling and writes `<title-slug>.md`.
-- Commit both `.md` and `.html`. The HTML is the source of truth; the `.md` is the working copy.
+- Commit the `.md`. **Delete the `.html` and any `<title>_files/` browser-asset directory** — the `.md` is the canonical, grep-able working copy and the HTML is multi-MB bloat. Policy revised 2026-04-25 after a chats/ cleanup; previously the HTML was kept as a backup, but the asset directories alone were ~38 MB and the `.md` extraction is sufficient.
+
+If a chat is from Claude Code (CLI) rather than claude.ai, `extract_chat.py` will report 0 message blocks because the DOM markup differs. Fall back to a raw-text dump (see `sutradev-claude-code.md` for the pattern: cleaned visible text with a header noting provenance) before deleting the HTML.
 
 ## Lifecycle
 
