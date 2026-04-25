@@ -21,13 +21,27 @@ pick up next.
 
 ## Queued work
 
-**Today's priority: trim repo bloat (2026-04-25).** The repo has
-accumulated weight that doesn't pay for itself. First sweep already
-landed: `chats/` lost ~40 MB by extracting the five remaining HTML
-exports to markdown and deleting the `.html` + `_files/` browser-
-asset directories (commit 438dace). chats/README.md and CLAUDE.md
-updated to reflect the new policy (markdown is canonical; HTMLs go
-after extraction).
+**Today's priority: trim repo bloat ahead of public presentation
+(2026-04-25).** The repo has accumulated weight that doesn't pay
+for itself, and a public release is imminent so non-load-bearing
+or dev-only material should come out.
+
+Done in this sweep:
+
+  - `chats/` removed in full (33 .md + browser-asset directories,
+    commits 438dace + 605f49e). Was unstructured Claude.ai / Claude
+    Code session exports — useful as scratch context but not
+    appropriate for the public repo.
+  - `scripts/` removed in full (8 files: chat extractor + paper-
+    submission/competition-review fetchers whose CI counterparts
+    were already deleted). Their historical referrers in the
+    workflow YAMLs are gone, so the scripts were dead.
+  - CLAUDE.md chat-extraction section dropped (no longer applicable).
+
+Caveat: history retains everything — the deletions only affect
+HEAD. If true public-release scrubbing is required, that's a
+separate force-rewrite step (`git filter-repo` / BFG) and would
+need explicit user confirmation since it rewrites public history.
 
 Next bloat sources to investigate:
 
