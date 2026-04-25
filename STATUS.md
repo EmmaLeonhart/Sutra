@@ -26,23 +26,39 @@ pick up next.
 for itself, and a public release is imminent so non-load-bearing
 or dev-only material should come out.
 
-Done in this sweep:
+**Active task: triage `chats/` against the documentation.** The
+goal is to remove every markdown in `chats/` — but not blindly. Per
+`chats/README.md`, each chat gets deleted only once its content has
+been:
+
+  1. implemented in code/spec, or
+  2. recorded in `STATUS.md`, `todo.md`, `planning/open-questions/`,
+     or `planning/findings/`, or
+  3. consciously decided as not-pursuing.
+
+The work right now is going chat-by-chat through the 33 markdown
+files, deciding which of those three paths applies, and writing
+the verdict into the appropriate doc *before* deleting the chat.
+Each chat gets its own commit so the reasoning is auditable. No
+git-history rewrite — only working-tree removal. The user's framing:
+"it's not a thing we can just do" — i.e. blanket deletion is the
+wrong move; the chats are scratch material that may carry context
+not yet captured in the spec/findings, and we have to verify
+capture before clearing.
+
+Done in this sweep so far:
 
   - `chats/` HTMLs and `_files/` browser-asset directories removed
-    (~40 MB of bloat, commit 438dace). The 33 markdown extractions
-    are kept (commit 412970e restored them after a too-aggressive
-    deletion in 605f49e) — user wants them in the working tree to
-    review.
+    (~40 MB, commit 438dace). The 33 markdown extractions are
+    intact (briefly deleted in 605f49e, restored in 412970e).
   - `scripts/` removed in full (8 files: chat extractor + paper-
     submission/competition-review fetchers whose CI counterparts
-    were already deleted). Their historical referrers in the
-    workflow YAMLs are gone, so the scripts were dead.
-  - CLAUDE.md chat-extraction section dropped (the extractor lived
-    in `scripts/` and is gone; if a future chat needs extracting,
-    re-add the script or do it manually).
+    were already deleted). The scripts were dead.
+  - CLAUDE.md chat-extraction section dropped (the extractor was in
+    `scripts/`; if a future chat needs extracting, re-add the
+    script or do it manually).
 
-History retains the HTMLs and the deleted scripts. User has noted
-that git-archaeology by readers is not the worry, so no force-
+History retains the HTMLs and the deleted scripts — no force-
 rewrite is planned.
 
 Next bloat sources to investigate:
