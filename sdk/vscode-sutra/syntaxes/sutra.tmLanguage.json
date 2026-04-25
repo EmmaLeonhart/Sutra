@@ -187,6 +187,11 @@
           "match": "\\b(unknown|unk)\\b"
         },
         {
+          "comment": "Explicit deferred-initializer marker: `int i = wait;`. Only legal as a var-decl initializer; the validator enforces that an assignment follows before the function returns.",
+          "name": "constant.language.wait.sutra",
+          "match": "\\bwait\\b"
+        },
+        {
           "comment": "Char literal: single-quoted character, with backslash escapes (e.g. '\\n', '\\'').",
           "name": "string.quoted.single.sutra",
           "begin": "'",

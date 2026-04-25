@@ -235,6 +235,31 @@ Candidate B. Without an initializer it allocates a typed zero
 (`np.zeros(dim)` for vector, `0.0` for fuzzy/bool/int/scalar/
 number). With an initializer it's equivalent to `TYPE X = expr`.
 
+### `TYPE X = wait;` — explicit deferred initialization (2026-04-25)
+
+    int answer = wait;
+    // ... prep ...
+    answer = 42;
+
+`wait` is a literal that's only legal as the RHS of a typed var
+declaration. It marks the declaration as "I will assign this before
+the function returns — hold me to that." The codegen lowers it to
+the same zero-of-type emission as the uninitialized `var X : TYPE;`
+form. The validator enforces:
+
+- Function scope only (top-level `wait` is rejected — SUT0133).
+- Concrete type required; no `var x = wait;` (SUT0131).
+- Initializer position only; `wait` outside a var-decl is a
+  position error (SUT0130).
+- At least one assignment to the wait-declared variable in the
+  enclosing function body (SUT0132).
+
+`wait` is the explicit-deferred-init form (Candidate D in
+`planning/open-questions/no-null.md`). Use it when the deferral is
+intentional and you want it visible at the declaration site; use
+`var x : TYPE;` when you want a zero-initialized slot and don't
+intend to override it.
+
 ### `var[N] X : TYPE;` — array of N slots (2026-04-22)
 
     var[16] slots : vector;

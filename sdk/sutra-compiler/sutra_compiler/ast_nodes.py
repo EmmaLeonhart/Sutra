@@ -110,6 +110,19 @@ class UnknownLiteral(Expr):
 
 
 @dataclass
+class WaitLiteral(Expr):
+    # The `wait` keyword — explicit deferred-initializer marker.
+    # Legal only as the RHS of a var-decl (`int i = wait;`). Means
+    # "I'm declaring this name now, an assignment will follow before
+    # any read." The validator enforces definite assignment; codegen
+    # emits zero-of-type at the declaration site and the later
+    # assignment overrides it. Using `wait` anywhere else is a
+    # parse-time error. Resolves the no-null deferred-init candidate
+    # D from planning/open-questions/no-null.md.
+    pass
+
+
+@dataclass
 class InterpolatedString(Expr):
     """$"foo {x} bar" — alternating literal chunks and expressions.
 

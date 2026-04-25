@@ -124,11 +124,25 @@ and eventually an error.
 - **C. Compromise: allow it, but require the programmer to assign
   `unknown` or a type-appropriate neutral explicitly.** So
   `fuzzy f = unknown;` is fine; `fuzzy f;` is not.
+- **D. `wait` keyword for explicit deferred initialization.** Landed
+  2026-04-25. `int i = wait;` is the explicit-deferral form: the
+  codegen emits the same zero-of-type as the uninitialized
+  var-colon form, but the validator enforces that an assignment to
+  `i` happens before the function exits. Restrictions: function
+  scope only (top-level `wait` is rejected), concrete type required
+  (no `var x = wait;`), initializer position only (no `return
+  wait;`), at least one assignment required. See
+  `docs/primitive-classes.md` § "wait — explicit deferred
+  initialization" for the full rules. Diagnostic codes SUT0130
+  (position), SUT0131 (inferred), SUT0132 (never assigned),
+  SUT0133 (top level). Tests in
+  `sdk/sutra-compiler/tests/corpus/{valid,invalid}/`.
 
 C is close to B in spirit but shifts the burden from "the syntax
 forbids this" to "the programmer must name what the neutral is."
-Neither implemented nor blocked yet; the current behavior is option
-A minus the initialize-before-use check.
+D is orthogonal to all three — it adds a new explicit-deferral form
+without resolving whether the bare `var x : TYPE;` form should also
+exist. The decision between A/B/C remains open even with D in.
 
 ## What this doesn't preclude
 

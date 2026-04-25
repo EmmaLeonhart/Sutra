@@ -1,0 +1,20 @@
+// Demonstrates the `wait` keyword — explicit deferred initialization.
+//
+// `int i = wait;` declares `i` with the promise that an assignment
+// will follow before the value is read. The validator enforces the
+// promise at compile time; the codegen emits zero-of-type at the
+// declaration site and the later assignment overrides it.
+//
+// This is the explicit-deferred-init form (Candidate D from the
+// no-null open question), distinct from `var i : int;` which uses
+// the same lowering but no source-level deferral signal.
+
+function int wait_demo() {
+    int answer = wait;
+    answer = 42;
+    return answer;
+}
+
+function int main() {
+    return wait_demo();
+}
