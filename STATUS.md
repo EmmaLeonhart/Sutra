@@ -28,20 +28,22 @@ or dev-only material should come out.
 
 Done in this sweep:
 
-  - `chats/` removed in full (33 .md + browser-asset directories,
-    commits 438dace + 605f49e). Was unstructured Claude.ai / Claude
-    Code session exports — useful as scratch context but not
-    appropriate for the public repo.
+  - `chats/` HTMLs and `_files/` browser-asset directories removed
+    (~40 MB of bloat, commit 438dace). The 33 markdown extractions
+    are kept (commit 412970e restored them after a too-aggressive
+    deletion in 605f49e) — user wants them in the working tree to
+    review.
   - `scripts/` removed in full (8 files: chat extractor + paper-
     submission/competition-review fetchers whose CI counterparts
     were already deleted). Their historical referrers in the
     workflow YAMLs are gone, so the scripts were dead.
-  - CLAUDE.md chat-extraction section dropped (no longer applicable).
+  - CLAUDE.md chat-extraction section dropped (the extractor lived
+    in `scripts/` and is gone; if a future chat needs extracting,
+    re-add the script or do it manually).
 
-Caveat: history retains everything — the deletions only affect
-HEAD. If true public-release scrubbing is required, that's a
-separate force-rewrite step (`git filter-repo` / BFG) and would
-need explicit user confirmation since it rewrites public history.
+History retains the HTMLs and the deleted scripts. User has noted
+that git-archaeology by readers is not the worry, so no force-
+rewrite is planned.
 
 Next bloat sources to investigate:
 
