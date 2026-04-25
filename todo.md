@@ -296,7 +296,7 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
   issue). Get `sdk/intellij-sutra` `runIde` task working, verify `.su`
   syntax highlighting and completion in the sandbox IDE.
 - [ ] **Class system as autocomplete recommendation, not enforcement.**
-  Originally surfaced in the project-genesis chat (2024-ish): the
+  Originally surfaced in the project-genesis chat: the
   implicit class system in Sutra is meant to *suggest* meaningful ways
   to bind / unbind / bundle / unbundle / permute, not enforce them.
   Violating a class still produces a vector — possibly noise, possibly
