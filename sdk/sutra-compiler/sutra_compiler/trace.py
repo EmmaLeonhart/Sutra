@@ -25,6 +25,14 @@ import numpy as np
 from typing import Any
 
 
+def _to_numpy(vec: Any) -> np.ndarray:
+    # Pytorch backend hands us torch.Tensor; numpy backend hands ndarray.
+    # Normalize at record time so PCA / serialization stay numpy-only.
+    if hasattr(vec, "detach"):
+        return vec.detach().cpu().numpy().copy()
+    return np.asarray(vec).copy()
+
+
 class SutraTracer:
     """Records vectors and operations for 3D visualization."""
 
@@ -33,23 +41,23 @@ class SutraTracer:
         self._vectors: list[dict] = []      # {name, type, step, raw_vec}
         self._operations: list[dict] = []   # {type, inputs, output, step}
         self._step = 0
-        self._vec_index: dict[int, int] = {}  # id(ndarray) → index
+        self._vec_index: dict[int, int] = {}  # id(input vec) → index
 
-    def record_vector(self, name: str, vec: np.ndarray, vtype: str = "other") -> int:
+    def record_vector(self, name: str, vec: Any, vtype: str = "other") -> int:
         """Record a named vector. Returns its index."""
         idx = len(self._vectors)
         self._vectors.append({
             "name": name,
             "type": vtype,
             "step": self._step,
-            "raw": vec.copy(),
+            "raw": _to_numpy(vec),
         })
         self._vec_index[id(vec)] = idx
         self._step += 1
         return idx
 
-    def record_op(self, op_type: str, inputs: list[np.ndarray],
-                  output: np.ndarray, output_name: str = "") -> int:
+    def record_op(self, op_type: str, inputs: list[Any],
+                  output: Any, output_name: str = "") -> int:
         """Record an operation linking input vectors to an output."""
         out_idx = self.record_vector(output_name or f"_{op_type}_out", output, op_type)
         in_indices = []
