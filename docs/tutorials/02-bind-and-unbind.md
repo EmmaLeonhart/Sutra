@@ -5,128 +5,121 @@ Binding is the operation that makes Sutra a programming language instead of a fa
 ## What you'll learn
 
 - What `bind` and `unbind` mean geometrically
-- Why the textbook VSA binding operation (Hadamard product) **fails** on natural embedding spaces
-- How sign-flip binding fixes that with a single sign mask
-- The empirical numbers from the paper: 14/14 correct recoveries on three different embedding models, sustained 10/10 chained computation
+- Why the textbook VSA binding operation (Hadamard product) fails on natural embedding spaces
+- How rotation binding — Sutra's runtime mechanism — recovers correct fillers from bundled structures
+- How chained bind-unbind cycles stay in a recoverable basin
 
 ## Try it live
 
-Pick a role, a filler, and watch what `bind` produces. The result is a 32-dim vector that looks like neither input — that's the whole point. Then `unbind` recovers approximately the filler. Raise the bundle-depth slider to add more role-filler pairs to the superposition and watch crosstalk grow until `snap` can no longer recover the right atom.
+The interactive widget below was built around an earlier Sutra binding mechanism (sign-flip) and currently illustrates the bundle / crosstalk / cleanup story rather than the rotation mechanics described in the rest of this page. The shape it shows — bind producing something dissimilar to both inputs, unbind recovering the original modulo crosstalk, snap rescuing the result — is the same shape rotation binding has, even though the per-step arithmetic is different. Treat it as intuition, not as the literal current implementation.
 
 <div id="bind-unbind-widget"></div>
 
-This is the empirical story of the Sutra paper in one widget: bundling is approximate, unbinding introduces crosstalk, and snap-to-nearest is what rescues the computation. The [next tutorial](03-snap-to-nearest.md) is entirely about that snap step.
+The [next tutorial](03-snap-to-nearest.md) covers the snap step in depth.
 
 ## The motivating example
 
-Imagine you want to encode the sentence *"the cat is sitting"* as a single vector. You have the words `cat`, `sit`, `agent`, `action`. The naive thing to do is just bundle them together with `bundle(cat, sit, agent, action)` — but bundling is *commutative* and *associative*. The bundled vector for `(agent=cat, action=sit)` is identical to the bundled vector for `(agent=sit, action=cat)`. You've lost the structure.
+Imagine you want to encode the sentence *"the cat is sitting"* as a single vector. You have the words `cat`, `sit`, `agent`, `action`. The naive thing is to bundle them with `bundle(cat, sit, agent, action)` — but bundling is *commutative* and *associative*. The bundled vector for `(agent=cat, action=sit)` is identical to the bundled vector for `(agent=sit, action=cat)`. You've lost the structure.
 
-The fix is to *bind* each value to its *role* before bundling:
+The fix is to *bind* each filler to its *role* before bundling:
 
 ```c
-vector cat = embed("cat");
-vector sit = embed("sit");
-vector agent = basis_vector("agent");
+vector cat = "cat";
+vector sit = "sit";
+vector agent  = basis_vector("agent");
 vector action = basis_vector("action");
 
 // Bind each filler to its role, then bundle the bound pairs.
 vector sentence = bundle(
-    bind(agent, cat),
+    bind(agent,  cat),
     bind(action, sit)
 );
 ```
 
-Now the bundled vector encodes *the agent is the cat* and *the action is sit*, and the two facts are recoverable from the bundle by *unbinding* the role you want:
+Now the bundled vector encodes *the agent is the cat* and *the action is sit*. Both facts are recoverable by *unbinding* the role you want:
 
 ```c
-vector recovered_cat = unbind(agent, sentence);
+vector recovered_cat = unbind(agent,  sentence);
 vector recovered_sit = unbind(action, sentence);
 ```
 
-`recovered_cat` is approximately `cat`, and `recovered_sit` is approximately `sit`. Approximately, not exactly — there is crosstalk from the other bundled pair, but the result is *similar enough* to the original that a `snap-to-nearest` (next tutorial) recovers the correct answer.
+`recovered_cat` is approximately `cat` and `recovered_sit` is approximately `sit`. Approximately, not exactly — there is crosstalk from the other bundled pair, but the result is *similar enough* to the original that an `argmax_cosine` against a codebook (or the snap step in tutorial 03) recovers the correct answer.
+
+The argument convention is **role-first**: `bind(role, filler)`, `unbind(role, record)`. Sutra is consistent on this.
 
 ## What "binding" actually does, geometrically
 
-Binding two vectors produces a **third vector that is dissimilar to both inputs**. That dissimilarity is exactly what makes the operation useful: the bound vector `bind(role, filler)` is "stored" in a region of the embedding space that doesn't *look like* either the role or the filler, so the bundle of many bound pairs doesn't collapse all of its components into one mushy attractor.
+Binding two vectors produces a **third vector dissimilar to both inputs**. That dissimilarity is what makes the operation useful: the bound vector `bind(role, filler)` lives in a region of the embedding space that doesn't *look like* either the role or the filler, so a bundle of many bound pairs doesn't collapse all its components into one mushy attractor.
 
-The classical Vector Symbolic Architecture literature uses **the Hadamard product** (elementwise multiplication) for binding. It works perfectly on *random* hypervectors — the kind you generate by sampling from a uniform distribution. And for two decades nobody questioned it, because everyone in the VSA literature was using random hypervectors.
+The classical Vector Symbolic Architecture literature uses **the Hadamard product** (elementwise multiplication) for binding. It works on *random* hypervectors — the kind you generate by sampling from a uniform distribution. For two decades nobody questioned it, because everyone in the VSA literature was using random hypervectors.
 
-Then we tried it on **frozen general-purpose text embeddings** (mxbai-embed-large, BGE-large, GTE-large, Jina-v2). The Hadamard product **failed**. At 2 bundled role-filler pairs, the recovered filler had cosine similarity ~0.11 with the actual filler — barely above noise. At 7 bundled pairs, signal was completely gone. Snap-to-nearest got the right answer 2 out of 7 times, no better than chance.
+Then we tried it on **frozen general-purpose text embeddings** (`nomic-embed-text`, `mxbai-embed-large`, `all-minilm`). The Hadamard product failed. Bundled structures lost signal at 2+ role-filler pairs because the recovered filler had cosine similarity barely above noise with the actual filler.
 
-The reason is that natural embeddings are **correlated and anisotropic**. The dimensions are not independent. The vectors are not random. The Hadamard product, applied to two correlated vectors, produces a *very biased* third vector — one that lives in a small subspace and looks too much like everything else.
+The reason: natural embeddings are **correlated and anisotropic**. The dimensions are not independent. The Hadamard product, applied to two correlated vectors, produces a *very biased* third vector — one that lives in a small subspace and looks too much like everything else.
 
-## Sign-flip binding: the fix
+## Rotation binding: the runtime mechanism
 
-Sutra's default binding operation is **sign-flip**. It is one line:
+Sutra's runtime `bind` is **rotation binding**. The role argument seeds a deterministic Haar-random orthogonal matrix `Q_role`, and binding is matrix-vector multiplication:
 
-```python
-result = a * np.sign(b)
+```
+bind(role, filler)  =  Q_role  @  filler
+unbind(role, rec)   =  Q_role^T @ rec
 ```
 
-That's it. Take the *sign* of every dimension of `b` (so a vector of `+1`s and `-1`s), then multiply it elementwise into `a`. The sign-pattern of `b` is a deterministic but pseudo-random binary mask. It strips the magnitude-correlation that wrecks the Hadamard product, and what's left is a clean *encrypted* version of `a`.
+`Q_role` is orthogonal, so `Q_role^T = Q_role^{-1}` and unbinding exactly inverts binding when applied to a bound vector alone. When applied to a bundled vector containing the bound pair plus other bound pairs, unbinding recovers the target filler plus crosstalk from the other terms — the standard VSA story, but with rotation as the algebra.
 
-Critical properties:
+Why rotation works on natural embeddings where Hadamard doesn't:
 
-- **Self-inverse.** `bind(a, b) = a * sign(b)`, and applying sign(b) again recovers `a` because `sign(b) * sign(b) = +1` everywhere. Unbinding *is* binding.
-- **Nearly orthogonal across roles.** Two different role vectors produce two different sign masks, and the masks have ~50% overlap by chance, so binding the same filler under two different roles produces two vectors that are ~0 correlated.
-- **Cheap.** 6.6 microseconds per operation on a CPU. About 4× the cost of Hadamard, but vastly cheaper than rotation binding (321 µs).
+- **Orthogonality is exact, not statistical.** `Q_role^T Q_role = I` by construction. The unbinding does not depend on the filler being uncorrelated with anything.
+- **Cross-role isolation is exact in expectation.** Two Haar-random matrices from different role seeds are orthogonal in expectation, so binding the same filler under two different roles produces vectors that are uncorrelated.
+- **The filler's geometry is preserved up to rotation.** A rotation is an isometry — it preserves norms, angles, and the substrate's metric structure. Bundle of rotated fillers is just bundle in a rotated frame.
 
-The empirical numbers from the [Sutra paper](../papers.md):
+The runtime cost is one matrix-vector multiply per bind, one per unbind. On GPU this is one kernel launch; on CPU at 768 dimensions it is ~590k float multiply-adds per bind (768²) and is the dominant per-op cost. The compiler's matrix-chain fusion pass (egglog post-pass, landed 2026-04-25) folds chains of binds into one cached matrix where it can.
 
-| Method            | Cos at 2 roles | Cos at 7 roles | Snap correct (7) | Cost (µs) |
-|-------------------|---------------:|---------------:|-----------------:|----------:|
-| Hadamard          |           0.11 |           0.09 |              2/7 |       1.5 |
-| **Sign-flip**     |       **0.74** |       **0.40** |          **7/7** |   **6.6** |
-| Permutation       |           0.71 |           0.37 |              7/7 |      30.9 |
-| Circular conv     |           0.29 |           0.13 |              7/7 |      79.3 |
-| FFT correlation   |           0.62 |           0.34 |              7/7 |      67.3 |
-| **Rotation**      |       **0.89** |       **0.80** |          **7/7** |   **321** |
+## Sustained computation across chained operations
 
-Sign-flip is the best cost/quality tradeoff on natural embeddings. It is Sutra's default for that reason, and rotation binding (`bind_precise`) is available as the high-accuracy alternative when you need it.
+A single bind-unbind pair is not the interesting case. The interesting case is *can you do this over and over and have the result still mean something?* The chained pattern is:
 
-## Sustained computation: 10/10 chained operations
+1. Take the previous result, bind it with a fresh role.
+2. Bundle the bound pair into a structure with two other bound pairs.
+3. Unbind the target role.
+4. Clean up against a codebook (`argmax_cosine` or `snap`).
+5. Use the result as the input to step 1 of the next iteration.
 
-A single bind-unbind pair is not the interesting case. The interesting case is *can you do this over and over and have the result still mean something?* In the paper we built a chained loop:
-
-1. Take the previous result, bind it with a fresh role
-2. Bundle the bound pair into a structure with two other bound pairs
-3. Unbind the target role
-4. Snap-to-nearest to clean up
-5. Use the result as the input to step 1 of the next iteration
-
-Sign-flip binding survives **10/10 cycles** of this on GTE-large with raw cosine staying in the 0.58-0.65 range and snap recovering the exact target every time. This is what makes long-form Sutra programs feasible — you can do real multi-step computation without the signal degrading into noise.
-
-The same result holds across substrates: BGE-large-en-v1.5 (1024-dim) and Jina-v2-base-en (768-dim) both achieve identical 10/10 sustained chains. The choice of binding operation matters; the choice of substrate (within reason) does not.
+The Sutra paper characterizes how long this loop stays in a recoverable basin — the cosine trajectory across cycles, the conditions under which cleanup recovers the right entry, and the substrates on which the loop is stable. The numbers in the paper were measured against an earlier sign-flip binding mechanism; the rotation-binding version preserves the cleanup property by construction (the inverse is exact when the bundle has only one term, and crosstalk is bounded by the substrate's cleanup margin) and is the binding `bind` actually compiles to today.
 
 ## Multi-hop composition
 
-The other test that matters: can you take a value out of one structure and put it into a *different* structure? We constructed two bound bundles:
+The other test that matters: can you take a value out of one structure and put it into a *different* structure?
 
 ```c
 vector A = bundle(
-    bind(agent_role, cat),
+    bind(agent_role,  cat),
     bind(action_role, sit)
 );
 
 vector B = bundle(
-    bind(agent_role, dog),
+    bind(agent_role,   dog),
     bind(patient_role, unbind(agent_role, A))
 );
 ```
 
-The inner `unbind(agent_role, A)` extracts the cat from structure `A`. That extracted-and-noisy `cat` then gets bound to `patient_role` in structure `B`. Now `B` represents *"dog (agent) [is doing something to] cat (patient)"*. Final test: extract the patient from `B` and check that it is still recognizably `cat`.
+The inner `unbind(agent_role, A)` extracts the cat from structure `A`. That extracted (and noisy) `cat` then gets bound to `patient_role` in structure `B`. Now `B` represents *"dog (agent) [is doing something to] cat (patient)."* Final test: extract the patient from `B` and check that it is still recognizably `cat`.
 
-All three extractions — `agent` from `A`, `patient` from `B`, `agent` from `B` — return the correct filler. **Multi-hop composition works.** This is the operation you need for *any* multi-step inference: pull a fact out of one place, plug it into another, keep going.
+When binding and cleanup are operating in their valid range (per-substrate margins), all three extractions — `agent` from `A`, `patient` from `B`, `agent` from `B` — return the correct filler. This is the operation you need for *any* multi-step inference: pull a fact out of one place, plug it into another, keep going.
+
+The `examples/knowledge_graph.su` and `examples/role_filler_record.su` demos exercise this pattern end-to-end.
 
 ## What you should remember
 
 - Binding is the geometric way to *associate* one vector with another, producing a third vector dissimilar to both.
-- Unbinding is the inverse, and for sign-flip binding it is *the same operation*.
-- Bundling is how you *combine* multiple bound pairs into one structure-vector.
-- Hadamard binding doesn't work on natural embeddings. Sign-flip does.
-- The whole binding-bundling-unbinding-snap loop works on real data, sustained over many steps, across multiple substrates.
+- Unbinding inverts binding by applying the transpose of the role's rotation matrix.
+- Bundling combines multiple bound pairs into one structure-vector.
+- Hadamard binding fails on natural embeddings. Rotation binding is what Sutra's runtime uses.
+- The whole binding-bundling-unbinding-cleanup loop works on real LLM embeddings, sustained over many steps, across multiple substrates.
 
 ## What to read next
 
-- **[03 — Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup operation that makes the chained computation in this tutorial possible. Without snap, the noise from each unbind step accumulates and the signal eventually dies. With snap, you stay locked to the codebook and the loop runs forever.
-- The [Sutra paper](../papers.md) — §6.2 has the full binding alternatives table, the chained-computation result, and the multi-hop composition result.
+- **[03 — Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup operation that keeps chained computation in a recoverable basin.
+- The [binding spec](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/binding.md) — full design of semantic (learned-matrix) and rotation (synthetic-subspace) binding kinds.
+- The [Sutra paper](../papers.md) — empirical characterization of which bindings recover correctly across substrates and the per-operation costs.
