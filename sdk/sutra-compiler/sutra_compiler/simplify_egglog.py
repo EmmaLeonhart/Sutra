@@ -255,6 +255,18 @@ def make_egraph() -> EGraph:
         # cost-model demo.
         rewrite((R @ S).apply(v)).to(R.apply(S.apply(v))),
         rewrite(R.apply(S.apply(v))).to((R @ S).apply(v)),
+
+        # R_PIVOT: bind/apply equivalence. `bind(R, v)` is the same
+        # algebraic shape as `R.apply(v)` — both compute Q_R · v. The
+        # egraph treats them as the same e-class so chains of `bind`s
+        # can rewrite to `apply` chains and the matrix-chain fusion
+        # rules above fire. unbind(R, v) is `R^T · v` which the
+        # current Mat IR doesn't model directly (no transpose
+        # operator), so we leave it as a distinct opaque form for
+        # now — the unbind/bind round-trip rules already cover the
+        # common case where it matters.
+        rewrite(bind(R, v)).to(R.apply(v)),
+        rewrite(R.apply(v)).to(bind(R, v)),
     )
 
     # Constant-fold for literal numerics. Done via a second register
@@ -281,14 +293,25 @@ def make_egraph() -> EGraph:
 
 
 def matrix_chain_cost_model(egraph, expr, children_costs):
-    """Cost charges 100 per `apply(...)` (hot path), 1 per `@` (init).
+    """Cost charges 100 per hot-path operation (apply, bind, unbind),
+    1 per matrix-compose (`@`) — module-init only.
 
     With these weights, the extractor prefers the single-apply form
-    `(M_n @ ... @ M_1).apply(v)` over n nested `.apply()`s. See
-    experiments/egglog_matrix_chain_fusion.py for the standalone demo.
+    `(M_n @ ... @ M_1).apply(v)` over n nested `.apply()`s and over
+    the equivalent n-nested `bind(...)`s. See
+    experiments/egglog_matrix_chain_fusion.py for the standalone
+    matrix-chain demo. The bind/unbind weighting closes the gap so
+    that AST-lifted bind chains also fuse — without it the e-graph
+    has both `bind(R, v)` and `R.apply(v)` in the same e-class but
+    extraction prefers the shorter `bind` form by tiebreak.
     """
     s = repr(expr)
-    if ".apply(" in s and s.rstrip().endswith(")"):
+    # Hot-path nodes: apply on a vector, bind, unbind. All three
+    # cost 100 so the extractor will prefer fewer of them — i.e.
+    # one apply on a composed matrix over n nested operations.
+    if (".apply(" in s and s.rstrip().endswith(")")) \
+            or s.startswith("bind(") \
+            or s.startswith("unbind("):
         base = 100
     else:
         base = 1
