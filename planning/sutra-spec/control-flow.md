@@ -23,11 +23,10 @@ a separate kind of thing — control flow.
 ### `if` / `else` is parsed but rejected at codegen
 
 The lexer has `KW_IF` / `KW_ELSE` tokens and the parser accepts the
-usual `if (cond) { then } else { else }` form. **But the fly-brain
-codegen rejects them** (`codegen_flybrain.py`, around line 487):
-"if/else is not supported by the V1 fly-brain codegen — the whole
-point is to compile it away into a prototype-table lookup." The
-numpy codegen inherits the rejection.
+usual `if (cond) { then } else { else }` form. **But the codegen
+rejects them** (`codegen_base.py`):
+"if/else is not supported by the V1 codegen — the whole point is to
+compile it away into a prototype-table lookup."
 
 So in practice: if a `.su` program contains an `if` statement, it
 fails to compile with a clear error. Programs that need branching
@@ -72,7 +71,7 @@ When the loop's termination is data-dependent (`loop (cond)` where
 1. Extracts the target vector from the condition — the shape
    `similarity(state, target_expr) < threshold` is recognized and
    `target_expr` is pulled out (`_extract_loop_target` in
-   `codegen_flybrain.py`).
+   `codegen.py`).
 2. Emits a Haar-random orthogonal rotation `R` seeded by the
    runtime seed.
 3. Iterates `state ← R · state` on the substrate, snapping against
@@ -80,9 +79,8 @@ When the loop's termination is data-dependent (`loop (cond)` where
 4. Terminates when the snapped prototype matches the target within
    the threshold, or when `max_iters` is hit.
 
-The numpy backend uses threshold 0.9 as the default termination
-gate; the fly-brain backend uses 0.3 because matching is on KC
-patterns (Jaccard, different scale).
+The PyTorch / CPU backend uses threshold 0.9 as the default
+termination gate (cosine matching).
 
 Demo programs: `examples/loop_rotation.su`,
 `examples/counter_loop.su`, `examples/concept_search.su`. All pass

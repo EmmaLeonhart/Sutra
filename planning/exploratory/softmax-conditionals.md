@@ -40,7 +40,7 @@ Properties:
 
 - **Unordered.** Cases compete symmetrically; there is no priority-from-position.
 - **One blend, not a cascade.** Weights sum to 1 by construction (softmax), so the blend is numerically comparable to any individual branch.
-- **Already implemented in prose.** `fly-brain/fuzzy_conditional.py` does exactly this with clipped cosine scores over 4 joint prototypes and hits 80/80 on the real hemibrain across 5 seeds. The language surface is what's missing, not the math.
+- **Already validated in prior work.** The retired `fly-brain/fuzzy_conditional.py` did exactly this with clipped cosine scores over 4 joint prototypes and hit 80/80 on the real hemibrain across 5 seeds. The language surface is what's missing, not the math.
 - **Temperature `tau` is a knob.** Low `tau` → winner-takes-all (discrete-ish). High `tau` → uniform blend. This is a natural place for the defuzzification threshold to hook in, if we eventually unify `is_true` thresholds with switch-sharpening.
 
 ## Three-form taxonomy (sketch, not spec)
@@ -51,11 +51,11 @@ This is the design sketch from the 2026-04-13 session. It is **not** authoritati
 |---|---|---|
 | `gate (cond) { body }` | **Single-branch, truth-weighted.** No else. `state ← truth(cond) · body + (1 − truth(cond)) · state`. The action runs to the extent the condition is true; otherwise state is unchanged. | One algebraic expression. O(1). |
 | `select { CaseA => ..., CaseB => ..., default => ... }` | **N-way softmax switch.** Cases are named prototypes; branches are unordered and exhaustive (via `default`). Weights are softmax over cosine similarities between the query state and each case's prototype. | `Σ softmax(cos(query, proto_i) / tau) · branch_i` — the shape `fuzzy_conditional.py` already validates. |
-| `if (cond) { ... } else { ... }` | **Hard codegen error in the fly-brain backend.** Diagnostic points at `gate` (for no-else) and `select` (for multi-way) and explains that C#-style priority-ordered if/else does not lower cleanly onto the fuzzy algebra. | Emits a structured error with source span, not silently degrades. |
+| `if (cond) { ... } else { ... }` | **Hard codegen error.** Diagnostic points at `gate` (for no-else) and `select` (for multi-way) and explains that C#-style priority-ordered if/else does not lower cleanly onto the fuzzy algebra. | Emits a structured error with source span, not silently degrades. |
 
 The motivation for making `if/else` a hard error rather than a silent lowering is exactly the user's stated design goal: the worst failure mode is a programmer who thinks their Sutra `if/else` does what a TypeScript `if/else` does. Silent lowering to the cascade-shape formula above is the failure mode that already bit the reviewer cycle.
 
-`codegen_flybrain.py:403` currently **already** rejects `if/else` with `CodegenNotSupported("if/else is not supported by the V1 fly-brain codegen — the whole point is to compile it away into a prototype-table lookup")`. The implementation direction is already pointed the right way — what's missing is a named replacement that the programmer is *supposed* to reach for instead.
+`codegen_base.py` currently **already** rejects `if/else` with `CodegenNotSupported("if/else is not supported by the V1 codegen — the whole point is to compile it away into a prototype-table lookup")`. The implementation direction is already pointed the right way — what's missing is a named replacement that the programmer is *supposed* to reach for instead.
 
 ## Alternatives considered
 
@@ -70,17 +70,16 @@ The motivation for making `if/else` a hard error rather than a silent lowering i
    - **Option A:** update `04-defuzzification.md` to match the paper (fixed cosine projection, threshold ladder for "recursive refinement"). `select` uses `cos` directly for weights. Cheapest to implement; consistent with the landed performance fix.
    - **Option B:** reintroduce a non-trivial iterated-matrix form where `M(v)` genuinely depends on `v` in a non-tautological way. Requires a real design, not a restoration. `select` uses the iterated form for high-confidence cases. Most expensive; also most powerful if the design works.
    - **Option C:** keep both, treat the iterated form as an opt-in high-accuracy mode. `select` defaults to cosine; `select strict { ... }` uses the iterated form. Splits the ambiguity into the syntax rather than the semantics.
-2. **Tau (softmax temperature) — who sets it?** A fixed `tau` per language is simplest but sometimes wrong. A per-`select` `tau` is flexible but asks the programmer to understand softmax. A per-prototype learned `tau` is what the fly-brain substrate actually does (KC-pattern Jaccard thresholds) but complicates the language surface.
+2. **Tau (softmax temperature) — who sets it?** A fixed `tau` per language is simplest but sometimes wrong. A per-`select` `tau` is flexible but asks the programmer to understand softmax. A per-prototype learned `tau` (the retired fly-brain substrate did this with KC-pattern Jaccard thresholds) complicates the language surface.
 3. **Do prototypes need explicit declaration?** `fuzzy_conditional.py` builds prototypes from joint bindings of the input vectors. Should `select` require `prototype CaseA = bind(smell_present, hunger_hungry)` as an explicit declaration, or should the compiler infer prototypes from case labels and the surrounding vector environment? Explicit is verbose but transparent; inferred is concise but magic.
 4. **Interaction with `loop (condition)`.** Eigenrotation loops terminate on prototype match in KC space (`03-control-flow.md` lines 111–119). If `select` also does prototype matching, should the two share a prototype table? This is probably a "yes, obviously" but worth confirming — if they don't share, we get two parallel prototype-compilation pipelines for no clear reason.
 5. **Backward compatibility.** The existing `.su` corpus uses `if` in at least `four_state_conditional.su`. A hard error on `if/else` breaks those files. Either (a) gate the hard error behind a version flag, (b) mechanically translate the existing files, or (c) lint-warning-for-a-release, hard-error-after. Decision is a policy call, not a technical one.
 
-## Prior art in the repo
+## Prior art (mostly retired)
 
-- `fly-brain/fuzzy_conditional.py` — the softmax-over-prototypes pattern, 80/80 on 5 hemibrain seeds. The math that `select` would expose as syntax.
-- `fly-brain/permutation_conditional.py` — the deprecated 4-way branching via sign-flip on query. Broken for Programs B/C/D because `sign_flip(NOT_key, query)` is a category error (see STATUS.md "Conditional branching — FIXED"). Do not resurrect.
-- `fly-brain/permutation_conditional.su` — the `.su` source for the deprecated version. Uses a manual `argmax_cosine` call, not an `if/else` chain. The structure is already close to what `select` should emit.
-- `sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py:403` — the current hard rejection of `if/else` in fly-brain codegen. `select` would replace the rejection with a positive construct the programmer is directed toward.
+- The retired `fly-brain/fuzzy_conditional.py` — the softmax-over-prototypes pattern, 80/80 on 5 hemibrain seeds. The math that `select` would expose as syntax. Source preserved in git history; supporting fly-brain backend retired 2026-04-26.
+- The retired `fly-brain/permutation_conditional.py` — the deprecated 4-way branching via sign-flip on query. Broken for Programs B/C/D because `sign_flip(NOT_key, query)` is a category error. Do not resurrect.
+- `sdk/sutra-compiler/sutra_compiler/codegen_base.py` — the current hard rejection of `if/else`. `select` would replace the rejection with a positive construct the programmer is directed toward.
 - `planning/sutra-spec/03-control-flow.md` — spec for the 2-way algebraic conditional. `select` would be a spec addition, not a spec replacement.
 
 ## What "doing this work" would look like

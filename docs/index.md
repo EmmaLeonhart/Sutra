@@ -76,6 +76,6 @@ If you have a JDK on your machine, the Sutra plugin for IntelliJ IDEA Community 
 
 ## Project status
 
-Sutra is **research-grade** software produced for the [Claw4S 2026 conference](https://clawrxiv.io). The two papers that ground the language are listed on the [papers page](papers.md). Both are open source, and so is the language, the compiler, the IntelliJ plugin, and the fly-brain runtime.
+Sutra is **research-grade** software. The papers that ground the language are listed on the [papers page](papers.md). The language, the compiler, and the IntelliJ plugin are open source.
 
-The code and the papers live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra). PRs welcome — especially on the IntelliJ plugin, the spec, and the fly-brain substrate.
+The code and the papers live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra). PRs welcome — especially on the IntelliJ plugin and the spec.

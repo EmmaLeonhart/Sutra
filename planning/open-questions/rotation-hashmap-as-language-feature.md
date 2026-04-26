@@ -208,8 +208,8 @@ anything needing runtime-keyed storage goes through the host.
 - **Off-substrate semantics.** Host dicts don't respect the
   substrate model — the lookup isn't "on the substrate," the keys
   are bit-compared rather than rotation-decoded, no soft lookup.
-  For Sutra-on-fly-brain, host dicts don't even exist as an
-  option.
+  Any future substrate without a host (e.g. a neuromorphic target)
+  wouldn't have host dicts as an option at all.
 - **Limits what programs can express.** Agent-style programs,
   semantic memory, anything context-driven becomes awkward.
 

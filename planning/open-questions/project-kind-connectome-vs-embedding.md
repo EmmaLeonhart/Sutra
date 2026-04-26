@@ -1,5 +1,14 @@
 ## Project kind: connectome target vs embedding-space target
 
+> **Status (2026-04-26):** largely resolved by fly-brain retirement —
+> the connectome-target line was retired with the `fly-brain/`
+> directory and `codegen_flybrain.py` backend. Sutra's current
+> single target is the embedding-space PyTorch backend. The
+> sub-questions about manifest shape, templates, and IDE plumbing
+> still apply if/when a second target is reintroduced (neuromorphic
+> hardware, alternative substrate); preserved below as the
+> design-space map for that future.
+
 ### The question
 
 A Sutra project compiles to one of two qualitatively different substrates, and the tooling currently doesn't make that choice explicit:

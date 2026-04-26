@@ -18,15 +18,14 @@ class to emit `_TorchVSA` when the user wants GPU.
 
 Inherits the backend-agnostic AST walker from `BaseCodegen` in
 `codegen_base.py` (so it shares expression / statement / call / loop
-translators with the fly-brain backend WITHOUT depending on it). This
-concrete class overrides the prelude, a handful of literal-lowering
-hooks (`_char_literal_src`, `_embed_expr_src`, `_bool_literal_src`,
-`_logical_op_src`, `_logical_not_src`, etc.), and the
-`_fuzzy_literal_init_src` compile-time fold so truth-axis / complex /
-char literals resolve against this codegen's runtime.
+translators across backends). This concrete class overrides the
+prelude, a handful of literal-lowering hooks (`_char_literal_src`,
+`_embed_expr_src`, `_bool_literal_src`, `_logical_op_src`,
+`_logical_not_src`, etc.), and the `_fuzzy_literal_init_src`
+compile-time fold so truth-axis / complex / char literals resolve
+against this codegen's runtime.
 
-`snap` is not supported here (this substrate has no cleanup circuit;
-programs that need `snap` should target the fly-brain backend).
+`snap` is not supported here (this substrate has no cleanup circuit).
 """
 
 from __future__ import annotations
@@ -93,8 +92,9 @@ class Codegen(BaseCodegen):
 
     # Ops not supported by the pure-numpy substrate. `snap` requires a
     # cleanup circuit (MB spiking model or equivalent); rotation-based
-    # loop primitives need the same. Programs that use these should
-    # target `codegen_flybrain` instead.
+    # loop primitives need the same. These are spec'd ops without a
+    # runtime implementation here; programs that use them are rejected
+    # at codegen time.
     _UNSUPPORTED_BUILTINS = frozenset({
         "snap",
         "make_rotation",
@@ -363,13 +363,10 @@ class Codegen(BaseCodegen):
     def _translate_eigenrotation_loop(self, stmt):
         """Eigenrotation on the numpy substrate.
 
-        Differences from fly-brain:
-        - Haar-random orthogonal matrix (fly-brain's uniform-angle
-          Givens gives a tight periodic orbit that never explores).
-        - Threshold is parsed from the condition (the numeric literal
-          side of `similarity(state, target) < T`). Fly-brain uses a
-          fixed 0.3 because matching is KC-pattern Jaccard; numpy
-          matches on raw cosine, which has a very different scale.
+        Uses a Haar-random orthogonal matrix and parses the threshold
+        from the condition (the numeric literal side of
+        `similarity(state, target) < T`). Cosine-based matching, so
+        thresholds default to 0.9 unless the source overrides.
         """
         from . import ast_nodes as ast
         lid = self._next_loop_id()
@@ -419,7 +416,7 @@ class Codegen(BaseCodegen):
                 raise CodegenNotSupported(
                     call,
                     f"`{callee.name}` is not supported on the pure-numpy "
-                    f"substrate; use the fly-brain backend if you need it",
+                    f"substrate (no cleanup circuit at runtime)",
                 )
         if (isinstance(callee, ast.MemberAccess)
                 and callee.member in self._VECTOR_ACCESSORS):
@@ -1523,7 +1520,7 @@ class Codegen(BaseCodegen):
         self._emit('explores the hypersphere. A Haar-random orthogonal matrix has a')
         self._emit('spectrum of eigenphases and produces quasi-periodic trajectories')
         self._emit('that actually sample the sphere. `angle` and `n_planes` are kept')
-        self._emit('in the signature for API compatibility with the fly-brain VSA.')
+        self._emit('in the signature for cross-backend API compatibility.')
         self._emit('"""')
         self._emit("rng = _np.random.RandomState(seed if seed is not None else self.seed)")
         self._emit("A = rng.randn(self.semantic_dim, self.semantic_dim)")

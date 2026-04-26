@@ -86,14 +86,16 @@ Next bloat sources to investigate:
   - `sdk/intellij-sutra/build/` — IntelliJ build output, indexes,
     sandboxes. Should be in `.gitignore` if it isn't, and the working
     copy should be cleared (`./gradlew clean` in that dir).
-  - `fly-brain/flywire_data/` — already gitignored per CLAUDE.md, but
-    worth confirming nothing has slipped in.
-  - `fly-brain/` Python sprawl — the 2026-04-13 cleanup got it from
-    33 to 15 files; check it hasn't crept back.
   - `experiments/` and `planning/findings/` — large but mostly
     paying their way; audit only if something stands out.
   - Cached embeddings, viz HTML siblings (`*_viz.html` from
     `--run-viz`), pyc/__pycache__ leakage.
+
+The fly-brain experimental backend was retired 2026-04-26 — the
+entire `fly-brain/` directory (47 files), the `codegen_flybrain.py`
+backend, and the `--emit-flybrain` CLI flag are gone. Findings docs
+under `planning/findings/2026-04-1*-*` are preserved as historical
+record of what worked and what didn't.
 
 The principle: anything that is regenerable (build output, caches,
 extracted artifacts where the source is preserved elsewhere) should
@@ -224,10 +226,13 @@ here as pointers so they don't fall off the radar:
 2. **No loop counters live on the host at runtime.** The "counter"
    for `loop(condition)` IS the angular position on the helix
    R^i·v₀ in the substrate.
-3. **"Rotation on neurons" has two meanings. Don't conflate:**
-   - Synthetic R (Givens) as Brian2 synapse weights → works.
-   - Real FlyWire weight matrix AS the rotation → does not rotate
-     (compressive projection).
+3. **Rotation runs in the synthetic subspace, not on connectome
+   weights.** The retired fly-brain investigation established that
+   real FlyWire weight matrices do not function as rotation operators
+   (they're compressive projections). Synthetic Givens rotations on
+   the dedicated subspace are what the language compiles to today.
+   Findings: `planning/findings/2026-04-13-shiu-rotate-collapses.md`
+   and the cluster of 2026-04-13 / 2026-04-18 docs.
 4. **Semantic roles are learned matrices; semantic `bind` is
    `R @ filler`.** Not random vectors (HRR), not sign-flip. A
    *semantic* role is a matrix fit to the substrate — "object of a
@@ -245,22 +250,20 @@ here as pointers so they don't fall off the radar:
    rotation binding is actually executable today.
 6. **Sign-flip binding is retired** (from the codegen as of
    2026-04-22). Rotation is the current `bind` implementation in
-   `codegen_numpy.py`. The name `permute` was a deprecated alias
-   and is also retired.
+   `codegen.py` and `codegen_pytorch.py`. The name `permute` was a
+   deprecated alias and is also retired.
 7. **Truth is designed as a canonical axis in the synthetic
    subspace.** Spec target in `planning/sutra-spec/equality-and-
    defuzzification.md`. **Implementation status: not yet runtime-
    supported.** `is_true` and defuzzification don't currently
    project onto a dedicated axis; adds with the extended-state-
    vector work.
-8. **PyTorch is the compiler's runtime target. Fly-brain is
-   segregated.** Two backends: `codegen_pytorch.py` (the main path —
-   emits torch modules picking CUDA at module init) and
-   `codegen_flybrain.py` (fly-brain-specific work, not the main demo).
-   `codegen.py` is an internal IR step that `PyTorchCodegen` inherits
-   from and post-processes; no longer user-reachable as a "numpy
-   backend" — `--emit` and `--run` go to PyTorch. `--emit-numpy` is
-   gone.
+8. **PyTorch is the compiler's runtime target.** `codegen_pytorch.py`
+   emits torch modules picking CUDA at module init. `codegen.py` is
+   an internal IR step that `PyTorchCodegen` inherits from and
+   post-processes; no longer user-reachable as a separate "numpy
+   backend." `--emit` and `--run` go to PyTorch. The fly-brain
+   experimental backend was retired 2026-04-26.
 9. **Defuzzification polarizes, never binarizes.** `is_true` and
    `defuzzify` keep the result fuzzy and differentiable. No commit
    primitive exists; `select` does all branching. Don't reintroduce

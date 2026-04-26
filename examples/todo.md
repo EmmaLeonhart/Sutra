@@ -78,13 +78,16 @@ into the question. Not load-bearing for Apr 26.
 ### 3. Spec coverage for `snap`
 
 `snap` is defined in `02-operations.md` and `21-builtins.md` as a
-fly-brain cleanup builtin. The numpy backend rejects `snap()` calls at
-codegen time (`_UNSUPPORTED_BUILTINS`). Programs in this directory
-therefore *cannot use `snap` directly* — they use `argmax_cosine`
-against a candidate list, which is the same shape but a different
-name. Worth either (a) routing `snap` through `argmax_cosine` on
-numpy, or (b) being explicit in the paper that `snap` is a fly-brain-
-specific name and the demo path uses `argmax_cosine`.
+substrate-level cleanup builtin (it required a real attractor
+circuit; the retired fly-brain backend was the prior example). The
+current PyTorch backend rejects `snap()` calls at codegen time
+(`_UNSUPPORTED_BUILTINS`). Programs in this directory therefore
+*cannot use `snap` directly* — they use `argmax_cosine` against a
+candidate list, which is the same shape but a different name. Worth
+either (a) routing `snap` through `argmax_cosine` on the current
+backend as the no-cleanup-circuit fallback, or (b) being explicit
+in the spec that `snap` requires a substrate-level attractor and
+the demo path uses `argmax_cosine`.
 
 ### 4. "Every class is a vector (or matrix)" — clarify
 

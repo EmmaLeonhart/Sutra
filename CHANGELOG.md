@@ -5,6 +5,19 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 Versions follow semantic versioning with the caveat that the language
 is pre-1.0 — surface can change between minor versions.
 
+## [Unreleased]
+
+### Removed
+- **Fly-brain experimental backend retired** (2026-04-26). The entire
+  `fly-brain/` directory (47 tracked files: hemibrain MB scripts, Shiu
+  whole-brain LIF probes, FlyWire data loaders, Brian2 substrate code),
+  the `codegen_flybrain.py` codegen, the `--emit-flybrain` CLI flag,
+  the `--runtime-n-kc` parameter, and the `fly-brain` substrate value
+  in `atman.toml` are gone. The substrate work outpaced the language's
+  maturity, so it was retired to clear the runway. Findings docs under
+  `planning/findings/2026-04-1*-*` are preserved as historical record
+  of negative and positive results.
+
 ## [0.2.0] — 2026-04-24
 
 First tagged release. The compiler is real, `.su` source parses,
@@ -56,10 +69,10 @@ when available, CPU otherwise), and runs. 175 tests pass.
 - **One codegen target:** `--emit` produces a self-contained torch
   module picking CUDA at module init. PyTorch is the compiler library;
   Sutra compiles to tensor ops the way clang compiles to LLVM IR.
-- **Two auxiliary backends:** `--emit-flybrain` for the fly-brain
-  experimental substrate (spiking Brian2 MB / Shiu whole-brain LIF);
-  the internal `codegen.py` as the IR step that `PyTorchCodegen`
-  inherits from.
+- **Auxiliary backends:** `--emit-flybrain` for the fly-brain
+  experimental substrate (since retired — see Unreleased changelog
+  above); the internal `codegen.py` as the IR step that
+  `PyTorchCodegen` inherits from.
 - **Simplification pass:** identity rewrites (bundle flattening,
   bundle(v) → v, zero-vector absorption), auto-embed pass,
   complex-literal folds, fuzzy-literal coercion.
@@ -115,12 +128,11 @@ canonical reference files for the inliner pass in the next release.
 - **Learned-matrix binding deferred.** `role X = learned_from(data)`
   fitting a matrix at compile time is spec'd but not implemented.
   Current `bind` is rotation-only.
-- **Fly-brain substrate is segregated.** The spiking MB and Shiu
-  whole-brain LIF targets live under `fly-brain/` with their own
-  codegen; mixed negative findings (EPG ring-attractor doesn't
-  discriminate direction on real connectivity, polar-decomposition
-  `Q` on FlyWire is compressive not rotational). Not the main
-  compilation path.
+- **Fly-brain substrate retired.** See Unreleased / 2026-04-26 entry
+  above. The spiking MB and Shiu whole-brain LIF experiments produced
+  mixed negative findings (EPG ring-attractor doesn't discriminate
+  direction on real connectivity; polar-decomposition `Q` on FlyWire
+  is compressive not rotational) preserved as findings docs.
 
 ## [0.1.0] — development placeholder
 
