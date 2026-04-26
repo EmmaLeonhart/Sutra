@@ -506,9 +506,8 @@ commitments, just parking spots. Currently parked:
 ## [This year] Speculative
 
 - **Sutra-embedded-in-Python (`@sutra` decorator + import hook).**
-  Longer-term interoperability path per
-  `chats/python-vs-dedicated-languages-for-hyperdimensional-computing.md`.
-  User vision (chat, 2026-04-22): a Python function decorated with
+  Longer-term interoperability path. User vision (2026-04-22): a
+  Python function decorated with
   `@sutra` has a Python signature (types at the boundary become the
   FFI contract) but a body written in Sutra syntax. Example:
 
@@ -553,9 +552,6 @@ commitments, just parking spots. Currently parked:
      mechanism (CSS-in-JS precedent) is designed for this pattern
      but is non-trivial to wire up for a new outer+inner language
      pair.
-
-  See `chats/python-vs-dedicated-languages-for-hyperdimensional-computing.md`
-  for the full design discussion.
 
 - **OWL → SutraDB extension + Sutra ontology import/editing.** Build out
   OWL handling so SutraDB gains a first-class ontology extension and Sutra
