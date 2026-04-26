@@ -1,64 +1,68 @@
 # 📜 Sutra
 
-**A geometric tensor programming language. Every value is a tensor, every operation is tensor arithmetic in a geometric space.**
+**A tensor programming language. Source code compiles to a sequence of matrix and elementwise tensor operations; the compiler is the thing that turns the surface syntax into that sequence.**
 
-The 📜 scroll is Sutra's project-wide branding — the Sanskrit *sūtra* is literally a thread/string of aphorisms, the word used for Pāṇini's foundational Sanskrit grammar (the earliest known formal grammar of any language), and the scroll is the physical artifact that grammars like Pāṇini's were recorded on. SutraDB (the database side of the ecosystem) already adopted a scroll favicon on 2026-03-14, so the brands align across the language and the store.
+🌐 **Website: <https://sutralang.dev>** — vision, demos, tutorials, language reference. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml). SutraDB's docs are mounted at [`/SutraDB/`](https://sutralang.dev/SutraDB/) on the same site.
 
-🌐 **Website: <https://sutralang.dev>** — vision, interactive demos, tutorials. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml) and deployed automatically on every push. SutraDB's own docs are mounted at [`/SutraDB/`](https://sutralang.dev/SutraDB/) on the same site — one integrated ecosystem, one domain.
+## What Sutra is
 
-**Sutra is a purely functional geometric tensor programming language whose values are tensors and whose programs compile to straight-line tensor operations.** There is no `print`, no IO primitive, no side effect a function body can invoke — every computation is a deterministic tensor-to-tensor map, and the only escape from the pure region is a final name lookup at the program's edge. This is the same structural property that makes a Haskell program "partial" in the sense that values leave the pure body only at the IO boundary.
+Sutra source looks like TypeScript. It parses to an AST, gets simplified, validated, and emitted as self-contained Python that calls into a small runtime class (`_VSA`) implementing the Sutra primitives — `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Those primitives are tensor operations: matmul, elementwise multiply/add, cosine, softmax-weighted sum. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
 
-**Sutra has no control flow.** Every branch is a continuous weighted blend (`select`, softmax over options), every loop is a geometric rotation, and every loop exit is a gate on a defuzzified trajectory state — not a jump, not a back-branch. Two primitives (`select` and `gate`) replace the entire `if`/`else`/`while`/`for`/`switch` family. Because nothing compiles to a machine branch, programs lower to sequences of tensor operations — matmuls, elementwise ops, cosines — which makes the compilation target **GPU-native** in principle (no branch predictor, no divergent warps) and **end-to-end differentiable** (the things that normally break backprop are not in the language). See [`planning/sutra-spec/26-select-and-gate.md`](planning/sutra-spec/26-select-and-gate.md) for the canonical framing.
+The composition is the point. Once a whole program has the same shape — values are vectors, operations are tensor ops on vectors — the compiler can read the program as one tensor expression and fold chains of operations into cached matrices at compile time. A chain of bind/unbind/bundle reduces to a sequence of matrix multiplies that the simplifier can fuse. That's the win the language is structured around.
 
-The working runtime today is a **PyTorch tensor-op backend** (`sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py`) that picks CUDA at module init if available and falls back to CPU otherwise. The generated code is straight-line tensor operations — matmul, elementwise ops, cosine — which makes both targets viable without changing the source.
+A typical Sutra value is a vector in a frozen LLM embedding space. The current default substrate is `nomic-embed-text` (768-d, mean-centered, served via Ollama). Strings auto-embed in vector contexts, so `vector v = "cat"` means "embed the string 'cat' through the substrate and bind it to `v`." The runtime caches embeddings and batches Ollama round-trips at module init.
 
-The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," the word used for Pāṇini's foundational grammar of Sanskrit. A programming language descended etymologically from the earliest known formal grammar is a better fit than the language's original name (*ākaśa*, "aether/space"), which is preserved throughout `DEVLOG.md` and the `chats/` archive as the earlier identity. The rename happened on 2026-04-11 — see the DEVLOG entry for that date for the full commit-by-commit breakdown.
+## What runs today
 
-📖 **Architectural overview: [`ARCHITECTURE.md`](ARCHITECTURE.md)** — what Sutra is, what `.su` source looks like, what the compiler does with it, what the emitted code runs on. Also mirrored on the website at [`/architecture/`](https://emmaleonhart.github.io/Sutra/architecture/).
+Two backends, both produce a self-contained Python module:
 
----
+- **`codegen.py`** — emits numpy-flavored Python. Used by the in-repo smoke test as the reference path.
+- **`codegen_pytorch.py`** — emits torch tensor ops, picks CUDA at module init if available, falls back to CPU.
 
-## What's in this repo
+The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`.
+
+The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 13 of them end-to-end:
+
+| `.su` program | What it exercises |
+|---|---|
+| `hello_world.su` | embed + retrieve, the minimal program |
+| `fuzzy_branching.su` | weighted-superposition conditional, 4 program variants × 4 inputs |
+| `role_filler_record.su` | structured record as a flat vector via `bundle(bind(role, filler))` |
+| `classifier.su` | bundled-prototype classifier, 3 classes × 3 examples |
+| `analogy.su` | associative pair memory, capital → country |
+| `knowledge_graph.su` | bundled triples, compositional query |
+| `predicate_lookup.su` | multi-object superposition, member/non-member separation |
+| `fuzzy_dispatch.su` | N-way dispatch returning structured records |
+| `nearest_phrase.su` | 20-phrase codebook, clean and noisy retrieval |
+| `sequence.su` | position-bound 5-token sequence, decode any position |
+| `loop_rotation.su` | `loop(cond)` as eigenrotation with terminal `argmax_cosine` |
+| `counter_loop.su` | `loop(cond)` as a helical counter — Turing-complete loop demonstration |
+| `concept_search.su` | `loop(cond)` over a richer codebook |
+
+## Repo layout
 
 | Directory | What it is |
 |---|---|
-| [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, validator, codegen pipeline: `codegen.py` (CPU IR) and `codegen_pytorch.py` (the user-facing PyTorch backend, picks CUDA at module init). CLI: `python -m sutra_compiler`. |
-| [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin (v0.2 scaffold). Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or, from the repo root, `!editor.bat`. |
-| [`sdk/vscode-sutra/`](sdk/vscode-sutra/) | Lighter VS Code extension — TextMate grammar + snippets. The IntelliJ plugin is the reference IDE; this is the convenience option. |
-| [`planning/sutra-spec/`](planning/sutra-spec/) | The language specification: design principles, operation model, control flow, type system, runtime architecture, lambda calculus encoding, Turing-completeness argument, embedding pathologies, IDE architecture, VSA builtins. |
-| [`planning/`](planning/) | Architecture/strategy docs (sutra pivot, open questions, findings). |
-| [`examples/`](examples/) | Hand-written `.su` source examples — language tour. |
-| [`docs/`](docs/) | Source for the GitHub Pages website at <https://emmaleonhart.github.io/Sutra>. |
-| [`scripts/`](scripts/) | Repo-wide scripts (chat extractor, utilities). |
-| [`sutraDB/`](sutraDB/) | The lightweight bundled vector database, brought in as a git subtree. *"SQLite-of-vector-databases"* — embedded, zero-config, optimized for the kinds of queries Sutra emits. |
-| [`chats/`](chats/) | Design conversations and notes. The Sutra vision page on the website is built from `chats/sutra-vision-graph-to-vector-leap.md`. |
+| [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, simplifier, validator, codegen. CLI entrypoint: `python -m sutra_compiler`. |
+| [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin. Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or run [`!editor.bat`](editor.bat) from the repo root. |
+| [`sdk/vscode-sutra/`](sdk/vscode-sutra/) | VS Code extension — TextMate grammar plus snippets. The IntelliJ plugin is the reference IDE; this is the lighter option. |
+| [`planning/sutra-spec/`](planning/sutra-spec/) | The language specification: vision, operations, binding, control flow, equality and defuzzification, types, program structure, concurrency, open questions. |
+| [`planning/findings/`](planning/findings/) | Dated experimental findings — what was measured, with raw numbers and what they mean. Includes negative results. |
+| [`planning/open-questions/`](planning/open-questions/) | Known design gaps where the implementation has made a choice the spec doesn't yet justify. |
+| [`examples/`](examples/) | Demo `.su` programs and the smoke-test harness. |
+| [`docs/`](docs/) | Source for the website at <https://sutralang.dev>. |
+| [`sutraDB/`](sutraDB/) | SutraDB — embedded vector database, brought in as a git subtree. |
+| [`chats/`](chats/) | Design conversations preserved as historical record. |
 
-The empirical foundation that motivated the Sutra pivot — relational-displacement structure in frozen embedding spaces — lives in its own repo at [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography).
+The empirical foundation that motivated Sutra — relational-displacement structure in frozen embedding spaces — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography).
 
 ## File types
 
-| Extension / filename | Belongs to | What it is |
+| Name | Belongs to | What it is |
 |---|---|---|
-| `.su` | Sutra language | Source code. The language's primary unit of compilation. Every `.su` file is either an object declaration, a module, or a standalone executable. |
-| `atman.toml` | Sutra language | Workspace / project manifest. Fixed filename (not an extension) — every Sutra workspace and project root has exactly one. `[workspace]` table = multi-project workspace; `[project]` table = single project. Spec: [`planning/sutra-spec/22-workspaces.md`](planning/sutra-spec/22-workspaces.md). |
-| `.sdb` | SutraDB | Binary database file. The on-disk storage format for a SutraDB instance — analogous to a SQLite `.db` file. Never committed; ignored via `.gitignore`. |
-
-**Historical / renamed:**
-
-| Old extension | Replaced by | Notes |
-|---|---|---|
-| `.ak` | `.su` | Akasha (pre-rename) source files. Renamed 2026-04-11 when the language was renamed from Ākaśa to Sutra. |
-| `.aksln` / `.akproj` | `atman.toml` | Old workspace / project manifest formats from the Akasha era. |
-
-## Three programs that run today
-
-The demo path — source through the numpy backend to named output. All three run under `python examples/_smoke_test.py`; 23/23 outputs match the committed reference.
-
-1. **[`examples/hello_world.su`](examples/hello_world.su)** — the minimal program. Embed a greeting, retrieve it from a codebook by cosine similarity. No control flow; the single escape from the pure region is the final name lookup.
-2. **[`examples/fuzzy_branching.su`](examples/fuzzy_branching.su)** — branches without branching. A 4-way fuzzy conditional encoded as a weighted superposition (`Σ wᵢ · behaviorᵢ`) with `wᵢ = similarity(query, prototypeᵢ)`. Four program variants × four inputs = 16 decisions, all correct.
-3. **[`examples/role_filler_record.su`](examples/role_filler_record.su)** — structured records as flat vectors. `record = bundle(bind(role_i, filler_i))`; `decode_field(record, role) = argmax_cosine(unbind(record, role), codebook)`. Textbook VSA demonstration with zero control flow at decode time.
-
----
+| `.su` | Sutra | Source code. |
+| `atman.toml` | Sutra | Workspace / project manifest. Fixed filename, one per workspace or project root. Spec: [`planning/sutra-spec/program-structure.md`](planning/sutra-spec/program-structure.md). |
+| `.sdb` | SutraDB | Binary database file. Analogous to a SQLite `.db`. |
 
 ## Get started
 
@@ -68,28 +72,20 @@ cd Sutra
 python examples/_smoke_test.py
 ```
 
-One command, no setup beyond numpy. Expected output: `PASS` and 23 individual `OK` lines. The runner compiles each `.su` source through `sdk/sutra-compiler` to self-contained Python and executes it.
-
-To see the generated Python for any example:
+To inspect the generated Python for a single example:
 
 ```bash
-PYTHONIOENCODING=utf-8 python -m sutra_compiler --emit-numpy examples/hello_world.su
+python -m sutra_compiler --emit examples/hello_world.su
 ```
 
-You can also open the repo in an IDE with syntax support: run `!editor.bat` from the repo root (Windows) and a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled.
+To open the repo in an IDE with syntax support, run [`!editor.bat`](editor.bat) (Windows) — a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled.
 
-The full reference workflow — vision page, tutorials, interactive widget, and the rest of the docs — is at <https://emmaleonhart.github.io/Sutra>.
-
----
-
-## CI workflows
+## CI
 
 | Workflow | Triggers on | What it does |
 |---|---|---|
-| [`pages.yml`](.github/workflows/pages.yml) | Push to master that touches `docs/`, `mkdocs.yml`, `README.md`, or `planning/sutra-spec/` | Builds the website with MkDocs Material and deploys it to GitHub Pages. |
-| [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) | Push to master that touches `sutraDB/` | Runs the SutraDB Rust tests (check, test, clippy) so the subtree stays green. |
-
----
+| [`pages.yml`](.github/workflows/pages.yml) | Push to master touching `docs/`, `mkdocs.yml`, `README.md`, or `planning/sutra-spec/` | Builds the website with MkDocs Material and deploys to GitHub Pages. |
+| [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) | Push to master touching `sutraDB/` | Runs the SutraDB Rust tests. |
 
 ## License
 
