@@ -379,6 +379,26 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
   `bind-unbind`, `snap-to-nearest`, `fuzzy-logic`). Lives on
   `docs/interactive/` when built.
 
+## [This year] Smoke-test failures
+
+The smoke test (`examples/_smoke_test.py`) currently returns FAIL
+overall — 4 of 97 individual checks miss. Not blocking the language
+work; flagged so it doesn't get forgotten.
+
+- [ ] **`fuzzy_dispatch.su` returns 2/4.** The four-way dispatch
+  resolves the music and timer cases correctly but misses the
+  weather and cancel cases. Likely either a prototype-similarity
+  margin issue or a structured-record decode regression introduced
+  by one of the recent simplifier / fusion passes — a `git bisect`
+  against the 2026-04-23..2026-04-25 simplifier work is the cheap
+  first step.
+- [ ] **`sequence.su` self-similarity check fails.** `sim(fox, dog)
+  = 0.827` against an expected window of `(0, 0.5)`. Either the
+  expected window is too tight for the current bundling normalization
+  or the position-bound bundle is no longer producing the disjointness
+  the test assumes. Inspect the actual cosine across the bundle and
+  decide whether to widen the window or fix the bundle.
+
 ## [This year] Compile-time math function approximation
 
 User direction (2026-04-25): "Make a math library and some
