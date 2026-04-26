@@ -1,0 +1,48 @@
+// Imperative-reversible state demo (2026-04-25).
+//
+// Per CLAUDE.md and planning/sutra-spec/binding.md § "Rotation
+// binding": a sequence of variable assignments in Sutra is a
+// sequence of 2D Givens rotations on the synthetic-subspace state
+// vector. Each `slot int x = expr;` allocates one Givens plane;
+// each subsequent `x = expr;` is a slot_store on that plane.
+//
+// The reversible-imperative claim: writing
+//
+//     x = a;
+//     x = b;
+//     x = a;
+//
+// produces the same runtime state as a single `x = a;`, because
+// slot_store(s, i, a) overwrites the plane regardless of what was
+// there before. Each assignment is its own functional transform on
+// the state vector; the chain composes cleanly and the final state
+// only depends on the last write per slot.
+//
+// This demo encodes that property in three parts:
+//
+//   1. `single_write` writes 7 to a slot once.
+//   2. `rewrite_chain` writes 99, 13, 7 to the same slot in order.
+//   3. `main` returns the difference between the two — should be
+//      0 (the chain converges to the single-write state).
+//
+// Run: python sutrac.py --run examples/imperative_reversible.su
+// Expected output: 0.0 — the rewrite chain settles to the same
+// per-slot state as the single write.
+
+function int single_write() {
+    slot int x = 0;
+    x = 7;
+    return x;
+}
+
+function int rewrite_chain() {
+    slot int x = 0;
+    x = 99;
+    x = 13;
+    x = 7;
+    return x;
+}
+
+function int main() {
+    return rewrite_chain() - single_write();
+}
