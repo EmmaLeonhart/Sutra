@@ -5,7 +5,7 @@ description: A plain-language explanation of what Sutra actually does.
 
 # What is Sutra?
 
-Sutra is a **tensor programming language**. Source code parses, compiles, and executes — but the compilation target is not machine instructions. It is a sequence of tensor operations: matrix multiplies, elementwise multiplies, additions, cosines, softmax-weighted sums. Every value in a Sutra program is a vector. Every operation is a tensor op on vectors. The whole program is one tensor expression.
+Sutra is a **geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.** Source code parses, compiles, and executes — but the compilation target is not machine instructions. It is a sequence of tensor operations on vectors in a geometric substrate: matrix multiplies, elementwise multiplies, additions, cosines, softmax-weighted sums. Every value in a Sutra program is a vector — a coordinate in that substrate. Every operation moves the program through the substrate's geometry. The compiler's job is to take the program's surface logic — branches, loops, structured records — and resolve it down to a chain of matrix multiplications before the runtime ever touches a value.
 
 ## What the compiler does
 
