@@ -194,11 +194,14 @@ sprint that aren't urgent-next but should land pre-YC:
    retired 2026-04-22; codegen.py and codegen_pytorch.py both
    compile bind to rotation now).
 
-3. **Imperative-reversible demo `.su` program.** Once (1) lands, a
-   demo that writes `x = a; x = b; x = a;` at the source level and
-   compiles to `slot_store` calls, provably producing the same
-   runtime state as a single `x = a;`. Pedagogical payoff for the
-   "variable assignment is a pure transform of state" commitment.
+3. ~~**Imperative-reversible demo `.su` program.**~~ DONE
+   2026-04-25. `examples/imperative_reversible.su` runs end-to-end
+   (returns `0.0`, confirming the rewrite chain
+   `99 → 13 → 7` produces the same final slot state as a single
+   `7`). Three functions: `single_write()` writes 7 once,
+   `rewrite_chain()` writes 99 / 13 / 7 in sequence, `main()`
+   returns the difference. Corpus test at
+   `sdk/sutra-compiler/tests/corpus/valid/slot_assignment_chain.su`.
 
 Recently closed:
 - **Pre-Anthropic-grant-app sprint — all three items** (2026-04-24).
