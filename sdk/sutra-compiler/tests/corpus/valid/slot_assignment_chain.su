@@ -1,0 +1,12 @@
+// Sutra corpus test: slot variable assignment chain.
+// Exercises the codegen path that lowers `x = expr;` to
+// `_slot_state = _VSA.slot_store(_slot_state, idx, ...)` for a
+// slot-bound variable, plus the slot_load path for reads.
+
+function int main() {
+    slot int x = 0;
+    x = 99;
+    x = 13;
+    x = 7;
+    return x;
+}
