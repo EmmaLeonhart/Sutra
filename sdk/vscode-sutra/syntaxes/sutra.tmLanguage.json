@@ -103,7 +103,7 @@
         },
         {
           "name": "keyword.declaration.sutra",
-          "match": "\\b(function|method|operator|var|const|static|public|private|implicit|class|extends)\\b"
+          "match": "\\b(function|method|operator|var|const|static|public|private|implicit|class|extends|slot)\\b"
         },
         {
           "name": "variable.language.this.sutra",

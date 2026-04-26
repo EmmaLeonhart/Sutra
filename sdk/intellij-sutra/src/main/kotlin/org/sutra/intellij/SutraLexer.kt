@@ -257,6 +257,10 @@ class SutraLexer : LexerBase() {
             // Parent { }`. MVP scope is empty bodies + single
             // inheritance bottoming out at a primitive type.
             "class", "extends",
+            // `slot TYPE name [= expr];` — rotation-bound storage in
+            // the synthetic subspace. Surface parses; codegen
+            // integration deferred.
+            "slot",
         )
 
         private val PRIMITIVE_TYPES: Set<String> = setOf(

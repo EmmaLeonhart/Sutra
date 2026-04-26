@@ -1,0 +1,12 @@
+// Sutra corpus test: slot declarations.
+//
+// `slot TYPE name = expr;` — rotation-bound storage in the
+// synthetic subspace. The surface syntax parses cleanly today;
+// codegen integration that threads slot state through function
+// scopes is deferred (the codegen rejects with SUT0150).
+
+function void DeclareSlots() {
+    slot int counter = 0;
+    slot scalar threshold = 0.5;
+    slot vector state;
+}

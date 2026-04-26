@@ -397,6 +397,15 @@ class VarDecl(Stmt):
     is_role: bool = False
     is_var_colon: bool = False
     array_size: Optional[int] = None
+    # `slot TYPE name = expr;` — rotation-bound storage in the
+    # synthetic subspace. Compiler allocates a 2D Givens plane per
+    # slot decl. Runtime primitives (slot_store / slot_load /
+    # rotate_slot) landed 2026-04-24; codegen integration that
+    # threads slot state through function scopes is deferred. The
+    # parser accepts the form so user programs can be written
+    # against the surface; the codegen rejects with a pointer at
+    # the relevant STATUS.md entry until the integration lands.
+    is_slot: bool = False
 
 
 @dataclass
