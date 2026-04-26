@@ -312,6 +312,104 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
   `bind-unbind`, `snap-to-nearest`, `fuzzy-logic`). Lives on
   `docs/interactive/` when built.
 
+## [This year] Compile-time math function approximation
+
+User direction (2026-04-25): "Make a math library and some
+compilation wizardry." The Kolmogorov–Arnold angle says any
+continuous function decomposes into univariates, which can be
+approximated as tensor ops on a bounded domain. Sutra should
+compile `log`, `sqrt`, `sin`, `exp`, etc. to tensor expressions at
+compile time rather than calling out to libm at runtime. See
+`docs/numeric-math.md` § "Transcendental functions" for the
+design.
+
+Concrete work:
+
+- [ ] **Add `[math]` section to `atman.toml`** with
+  `approximation_precision` (target abs error) and
+  `approximation_method` (`"chebyshev"` / `"lookup"` /
+  `"cordic"`). Parse it in `sdk/sutra-compiler/sutra_compiler/
+  workspace.py` (or wherever atman.toml is read).
+- [ ] **Compile-time Chebyshev coefficient generator.** Given a
+  function family (`log`, `sqrt`, …) plus a bounded domain plus a
+  precision target, emit a coefficient vector of the right
+  polynomial degree. Most of these have closed-form Chebyshev
+  expansions; precompute at compile time, dot at runtime.
+- [ ] **Lookup-table tier.** For functions where Chebyshev is
+  impractical, emit a precomputed table tensor + a sparse-matmul
+  interpolation. Sutra's "table is just another tensor" advantage
+  is real here — verify it on at least one transcendental.
+- [ ] **`stdlib/numbers.su` math intrinsics** that route to the
+  approximation pass: `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`,
+  `pow` for starters. The intrinsic declares the function; the
+  approximation pass replaces the call with the chosen tensor op.
+- [ ] **Bounded-domain inference.** For the polynomial-tier path
+  to work the compiler needs to know `x ∈ [a, b]`. Either via
+  type annotations (e.g. `bounded<scalar, 0.01, 10> x`), via
+  static analysis on simple cases, or via runtime guard +
+  fallback. Pick a path; type annotation is the most consistent
+  with the rest of the language.
+- [ ] **Precision-vs-speed test corpus.** Three programs at
+  three precisions (1e-3, 1e-6, 1e-12); show the polynomial
+  degree shifts and the result still matches. This is the
+  audit-friendly story for finance use cases.
+
+## [This year] `atman.toml` backend / dtype configuration
+
+Companion to the math-approximation work. Today `atman.toml` only
+carries `[project.embedding]`. Per the Kolmogorov chat (2026-04-25):
+
+```toml
+[backend]
+target = "cuda"               # or "cpu", "metal", "tpu"
+dtype = "float16"             # or "float32", "bfloat16"
+mixed_precision = true
+
+[pytorch]
+compile = true                # torch.compile
+```
+
+Dtype is the more interesting half — float16 vs float32 vs
+bfloat16 changes both throughput and what the compiled tensor's
+precision contract actually realizes. Right now the codegen hard-
+codes float64 for the numpy backend; the pytorch backend picks at
+init. Letting projects set this per-program closes the precision-
+contract story.
+
+Concrete work:
+
+- [ ] Extend `atman.toml` schema with `[backend]` (target, dtype,
+  mixed_precision) and `[pytorch]` (compile, etc.).
+- [ ] Plumb the dtype through `codegen_pytorch.py` so `_VSA.dim`
+  and the tensor allocations honor it.
+- [ ] Document the interaction with `[math]` precision — a
+  1e-12 precision target on float16 storage is incoherent; the
+  compiler should warn or escalate dtype.
+
+## [This year] Currency stdlib base class
+
+User direction (Kolmogorov chat, 2026-04-25): "Just declare dollar
+as a class of int." The finance pitch is: F#'s units-of-measure
+falls out of Sutra's normal type system; `Dollar extends Int`
+gives you "can add Dollar to Dollar but not Dollar to Euro" without
+any special compiler feature.
+
+Scope sketch:
+
+- [ ] Add `Currency` to `sdk/sutra-compiler/sutra_compiler/stdlib/`
+  as a base class that disables cross-type addition (operators
+  defined in terms of `Currency<T>` can't unify two different
+  `T`). Specific currencies (Dollar, Euro, Yen) inherit and get
+  the within-currency operators automatically.
+- [ ] `Portfolio<Dollar>` as a vector of dollar-typed positions —
+  falls out from generic `vector` parameterization.
+- [ ] An `ExchangeMatrix<Dollar, Euro>` form for explicit
+  cross-currency conversion. The matrix is a scalar but the
+  type signature forces the conversion to be visible.
+- [ ] One example `.su` program: a portfolio pricing function
+  that batches across instruments, shows the type-safety story,
+  and relies on the precision contract (above) for auditability.
+
 ## [This year] Tooling
 
 - [ ] Diagnose why `!editor.bat` fails (likely JAVA_HOME or Gradle daemon
