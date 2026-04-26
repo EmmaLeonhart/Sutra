@@ -1,6 +1,6 @@
 ---
 title: Sutra
-description: A geometric tensor programming language. Every value is a tensor, every operation is tensor arithmetic in a geometric space.
+description: A tensor programming language. Source compiles to a sequence of matrix and elementwise tensor operations.
 hide:
   - navigation
   - toc
@@ -8,25 +8,43 @@ hide:
 
 # 📜 Sutra
 
-**A geometric tensor programming language. Every value is a tensor, every operation is tensor arithmetic in a geometric space.**
+**A tensor programming language. Source code compiles to a sequence of matrix and elementwise tensor operations; the compiler is the thing that turns the surface syntax into that sequence.**
 
-Conventional languages compile to machine instructions that execute on silicon. Sutra compiles to *tensor operations* that execute inside a geometric space — typically a pre-trained embedding space, but the language is substrate-agnostic. Where silicon arithmetic has no inherent meaning, geometry *does* — and Sutra is the first programming language designed to exploit that as a first-class computational substrate.
+Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime (`_VSA`) implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
 
-Named after the Sanskrit *sūtra* — the word Pāṇini used for the rules of his grammar, the earliest formal grammar of any language. [History →](history.md)
+## Why this is interesting
 
----
+The composition is what matters. Once every value has the same shape (a vector) and every operation is a tensor op on that shape, the compiler can read a whole program as one tensor expression. Chains of bind/unbind/bundle reduce to chains of matrix multiplies. The simplifier folds those chains into cached matrices at compile time, and the runtime executes the result as a single sequence of tensor ops.
 
-## Why this is different
+A typical Sutra value is a vector in a frozen LLM embedding space. The current default substrate is `nomic-embed-text` (768-d, mean-centered, served via Ollama). Strings auto-embed in vector contexts: `vector v = "cat"` means "embed the string through the substrate." The runtime caches embeddings and batches Ollama round-trips at module init.
 
-Most languages think of "tensors" as a library you import. Sutra thinks of tensors as the *only* type. Numbers, symbols, structures, control flow — everything is a tensor or a tensor operation. There are no "wrong type" errors, only noisy or semantically meaningless results. Equality is replaced by **similarity**, and computation is **geometry**.
+The language has loops and conditionals, but neither compiles to a host-side branch. A conditional is a softmax-weighted sum across all options. A `loop(condition)` compiles to a fixed rotation matrix `R` applied iteratively until a similarity threshold is met — the loop counter is the angular position on a helix in the substrate.
 
-This is not an AI-assisted programming tool. It is not a neural network. It is a formal system for *reasoning under uncertainty* — closer to logic programming (Prolog) than to Python, but operating in **continuous** rather than discrete space.
-
-The conceptual leap that makes this work is the part most people find unintuitive: an embedding space looks like it should be a graph, but it actually behaves like linear algebra and is suddenly *spatial*. **[Read the vision page →](vision.md)** for the full story of why connectionism + a bunch of neurons collapses into linear algebra and what that means for programming.
+[**Read the vision page →**](vision.md) for why this is grounded in measurable structure in frozen embedding spaces, not metaphor.
 
 ---
 
-## Three things Sutra can do today
+## What runs today
+
+A reference compiler with two emitter backends (numpy-flavored and PyTorch tensor ops, the latter picking CUDA at module init if available), an IntelliJ plugin with syntax highlighting / completion / external annotator, a VS Code extension with TextMate grammar and snippets, and 13 demo `.su` programs that compile and execute end-to-end through the smoke test.
+
+```bash
+git clone https://github.com/EmmaLeonhart/Sutra
+cd Sutra
+python examples/_smoke_test.py
+```
+
+To see what the compiler actually emits for a single program:
+
+```bash
+python -m sutra_compiler --emit examples/hello_world.su
+```
+
+[**Demos →**](demos.md) lists every program in the smoke test and what it exercises.
+
+---
+
+## What you can do with it
 
 <div class="grid cards" markdown>
 
@@ -34,48 +52,38 @@ The conceptual leap that makes this work is the part most people find unintuitiv
 
     ---
 
-    Sign-flip binding achieves **14/14 correct recoveries** at 14 bundled role-filler pairs across GTE-large, BGE-large, and Jina-v2 — the same source code, three different substrates. Sustains 10/10 chained bind-unbind-snap cycles. Multi-hop composition across structures works.
+    Sutra programs operate directly on vectors from frozen LLM embedding spaces. The compiler wires `embed("string")` to the substrate (currently Ollama). Bind, unbind, bundle, similarity, argmax_cosine all execute as tensor ops on those vectors.
 
-    [→ Sutra-to-LLM paper](papers.md)
+    [→ Demos](demos.md)
 
--   :material-bee:{ .lg .middle } __Compile programs onto a fly brain__
-
-    ---
-
-    The same compiler also targets a Brian2 spiking simulation of the *Drosophila melanogaster* mushroom body. **16/16 decisions correct** across four program variants × four input conditions, all running on the simulated connectome. To our knowledge, this is the first programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate.
-
-    [→ Fly-brain paper](papers.md)
-
--   :material-school:{ .lg .middle } __Teach you to think in embedding space__
+-   :material-school:{ .lg .middle } __Learn the language__
 
     ---
 
-    The intuition that the world is a graph is hard to break. The Sutra tutorials are written specifically to walk you through the moment that intuition snaps and the geometric / spatial / linear-algebraic view takes over. No prior VSA or HDC background required.
+    Tutorials walk through writing your first `.su` file, the bind/unbind operation that makes structured records possible, and the cleanup operations that make long compositions stable. No prior VSA or HDC background required.
 
     [→ Hello Sutra](tutorials/01-hello-sutra.md)
+
+-   :material-file-document-outline:{ .lg .middle } __Read the spec__
+
+    ---
+
+    The language specification — vision, operations, binding, control flow, equality and defuzzification, types, program structure — is in the repo at `planning/sutra-spec/` and is the source of truth for what each operation computes.
+
+    [→ Compilation](compilation.md)
 
 </div>
 
 ---
 
-## Get started in two clicks
+## What it isn't
 
-The fastest way to see Sutra do something:
+Sutra is not a portable general-purpose language. You don't write a web server in it, or a GUI event loop, or a filesystem walker. What you write in it is a substrate-resident program — a conditional, a pattern lookup, a structured record decode, a bounded trajectory — running as tensor operations on whichever embedding substrate the program targets.
 
-```bash
-git clone https://github.com/EmmaLeonhart/Sutra
-cd Sutra/sdk/sutra-compiler
-python -m sutra_compiler ../../examples/01-objects-and-methods.su
-```
-
-That gives you a clean validator pass on the example. From there, [Tutorial 1 →](tutorials/01-hello-sutra.md) walks you through writing your first `.su` file by hand.
-
-If you have a JDK on your machine, the Sutra plugin for IntelliJ IDEA Community is also in the repo at `sdk/intellij-sutra/`. Run `!editor.bat` from the repo root and a sandbox IntelliJ launches with the plugin preinstalled and the project tree open.
+It is also not a neural network. The compiler does not learn anything; it lowers a `.su` source file into a fixed sequence of tensor ops. The substrate it targets may have been trained, but the program itself is deterministic compiled code.
 
 ---
 
 ## Project status
 
-Sutra is **research-grade** software. The papers that ground the language are listed on the [papers page](papers.md). The language, the compiler, and the IntelliJ plugin are open source.
-
-The code and the papers live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra). PRs welcome — especially on the IntelliJ plugin and the spec.
+Sutra is **research-grade** software. The work-in-progress queue lives in [`STATUS.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/STATUS.md). The published papers that ground the language are listed on the [papers page](papers.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).
