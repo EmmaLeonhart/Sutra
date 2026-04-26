@@ -423,38 +423,65 @@ exposition.
 - **Generics** — same shape. `function T Identity<T>(T value)`
   parses, codegen rejects with "generic function declarations
   are not supported by the V1 codegen."
-- **`class Foo extends Bar { … }` declaration form** — not in
-  the lexer, not in the parser, not in the AST. Type names in
-  type positions (`Cat c = …`) are accepted, but there is
-  **nowhere in the language to actually define what `Cat` is.**
+- **`class Foo extends Bar { }` declaration form** —
+  ✅ MVP landed 2026-04-25. Empty bodies, single inheritance,
+  parent-chain must bottom out at a primitive. See
+  `docs/ontology.md` § "MVP declaration form" and
+  `examples/classes_demo.su`. Diagnostic codes SUT0140
+  (non-empty body), SUT0141 (duplicate), SUT0142 (extends
+  unknown).
 - **Inheritance / operator overloading on user classes** — not
   at all. Operators are defined on primitive classes only, in
   `codegen.py` / `codegen_pytorch.py`.
 
-So `docs/ontology.md` describes the intended end-state, not the
-implemented one. The compiler-recognized "ontology" today is the
-primitive hierarchy (vector / int / float / complex / fuzzy /
-trit / bool / char / string), plus user-named identifiers in type
-positions that the validator tolerates but the codegen treats as
-plain vectors.
+`docs/ontology.md` now describes both the intended end-state and
+the MVP landing point. The compiler-recognized "ontology" today
+is: the primitive hierarchy (vector / int / float / complex /
+fuzzy / trit / bool / char / string), user-declared empty-body
+classes that bottom out at a primitive, plus user-named
+identifiers in type positions that the validator tolerates but
+the codegen treats as plain vectors.
 
-Concrete things missing:
+Concrete things still missing — the next layer above the MVP:
 
-- [ ] **`class Foo extends Bar { … }` declaration form** —
-  lexer keyword, parser rule, AST node (`ClassDecl`), validator
-  recognition, codegen translation.
+- [ ] **Class bodies that aren't empty.** Field declarations
+  (storage layout — which axes the class uses), method
+  declarations, operator implementations. Each is rejected by
+  the parser today (SUT0140 for non-empty bodies). The MVP
+  empty-body form is the wedge; this entry is the actual
+  ergonomics.
+- [ ] **Instance constructors / instantiation.** Today a `Cat`
+  is just a vector — there's no `new Cat(...)` form, no
+  constructor body, no per-class layout. The user's framing:
+  "objects don't even show up as a non-implemented stub." That
+  gap is real.
 - [ ] **Operator implementations on a class.** A class body
   defining `+`, `-`, `*`, etc. that subclasses inherit or
-  override.
-- [ ] **Inheritance chains that the type checker walks.** Today
-  the type system tags values with a primitive class name; a
-  real `Dollar extends Currency extends Int` chain that the
-  compiler uses to resolve operator dispatch isn't there.
+  override. This is the path that makes `Dollar + Dollar` work
+  but `Dollar + Euro` fail — the F# units-of-measure
+  replacement story.
+- [ ] **Inheritance chains that the type checker walks at
+  operator dispatch.** Today the validator tracks the chain
+  for diagnostic purposes only; the codegen still treats the
+  value as the primitive root. A real chain that the compiler
+  uses to resolve `(Dollar)x + (Dollar)y` to a Dollar-typed
+  result requires per-class operator tables.
 - [ ] **Method dispatch on user-defined classes.** Drop the
-  current "method declarations not supported" rejection and
-  actually wire it through.
+  current SUT-style rejection and actually wire it through.
 - [ ] **Generic functions and classes.** Drop the current
   "generic declarations not supported" rejection.
+
+When these land, the natural follow-on demos are:
+
+- A `Currency` base class in the stdlib whose subclasses
+  (Dollar, Yen, etc.) inherit "addable to same currency only"
+  semantics. The Kolmogorov-Arnold chat (2026-04-25) sketched
+  this as the F# units-of-measure replacement story; it's the
+  canonical demo of the ontology working end-to-end.
+- Re-examine `codegen-v1-feature-coverage.md` in
+  `planning/open-questions/` — that doc tracks the V1-codegen-
+  rejects-this-construct list, and most of those rejections
+  trace back to this gap.
 
 This is **deferred — not because it's unimportant, but because
 it's hard and most other Sutra work doesn't depend on it.** The

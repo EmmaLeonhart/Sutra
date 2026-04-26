@@ -246,6 +246,17 @@ class Parser:
         if tok.kind is TokenKind.KW_STATIC and self._peek(1).kind is TokenKind.KW_METHOD:
             mods.is_static = True
             return self._parse_method_decl(mods)
+        if tok.kind is TokenKind.KW_CLASS:
+            # Modifiers don't apply to class declarations in the MVP
+            # surface — surface them as an error if any were saved.
+            if mods.is_public or mods.is_private or mods.is_static:
+                self.diagnostics.error(
+                    "modifiers (`public`/`private`/`static`) are not yet "
+                    "supported on class declarations",
+                    tok.span,
+                    code="SUT0101",
+                )
+            return self._parse_class_decl()
 
         # No function/method. Modifiers only make sense on those, so if
         # we saw any, that's an error; rewind and try as a statement.
@@ -399,6 +410,72 @@ class Parser:
             params=params,
             body=body,
             is_operator=False,
+            span=SourceSpan(start=start_span.start, end=end_span.end),
+        )
+
+    def _parse_class_decl(self) -> Optional[ast.ClassDecl]:
+        """Parse `class Name extends Parent { ... }`.
+
+        MVP scope: empty body required, single `extends` parent
+        required (no implicit object root yet), no modifiers, no
+        type parameters, no member declarations inside the braces.
+        Any non-empty body is an error directing the user to file
+        an issue / wait for the ontology work to land.
+        """
+        start_span = self._current_span()
+        self._expect(TokenKind.KW_CLASS, "`class`")
+
+        name_tok = self._expect(TokenKind.IDENT, "class name")
+        if name_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        # `extends Parent` — required in MVP. We could default to
+        # `vector` if omitted, but making it explicit is closer to
+        # how the user described the design ("inherits from vector").
+        extends_tok = self._expect(TokenKind.KW_EXTENDS,
+                                   "`extends ParentName` (required in MVP)")
+        if extends_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+        parent_tok = self._expect(TokenKind.IDENT, "parent class name")
+        if parent_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        # Body — `{ }` for now. Anything inside the braces is
+        # rejected with a pointer at the deferred ontology work.
+        self._expect(TokenKind.LBRACE, "`{` to open class body")
+        if not self._check(TokenKind.RBRACE):
+            self.diagnostics.error(
+                "class bodies must be empty in the MVP class-declaration "
+                "form (2026-04-25). Methods, fields, and operator "
+                "implementations inside the body are deferred — see "
+                "`todo.md` § \"Ontology — make the class system real\"",
+                self._current_span(),
+                code="SUT0140",
+                hint="leave the body empty (`class Foo extends Bar { }`) "
+                     "and use top-level `function`s for behavior until "
+                     "method-on-class is wired",
+            )
+            # Skip forward to a closing brace so the rest of the file
+            # still parses.
+            depth = 1
+            while depth > 0 and self._peek().kind is not TokenKind.EOF:
+                tok = self._advance()
+                if tok.kind is TokenKind.LBRACE:
+                    depth += 1
+                elif tok.kind is TokenKind.RBRACE:
+                    depth -= 1
+        else:
+            close = self._expect(TokenKind.RBRACE, "`}` to close class body")
+            if close is None:
+                return None
+        end_span = self._current_span()
+
+        return ast.ClassDecl(
+            name=name_tok.lexeme,
+            parent_name=parent_tok.lexeme,
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 

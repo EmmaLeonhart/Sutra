@@ -1,0 +1,4 @@
+// Expected error: SUT0141 — duplicate class declaration.
+
+class Foo extends vector { }
+class Foo extends int { }

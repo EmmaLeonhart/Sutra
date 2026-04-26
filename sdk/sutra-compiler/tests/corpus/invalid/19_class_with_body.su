@@ -1,0 +1,7 @@
+// Expected error: SUT0140 — class body must be empty in MVP.
+// Methods, fields, operator implementations are deferred — see
+// `todo.md` § "Ontology — make the class system real".
+
+class Foo extends vector {
+    function void bar() { }
+}

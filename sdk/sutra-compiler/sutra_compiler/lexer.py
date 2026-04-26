@@ -127,6 +127,12 @@ class TokenKind(Enum):
     # like `dot`, `sqrt`, `tanh`, `make_truth`, `embed` that can't be
     # expressed in Sutra arithmetic. Calls compile to `_VSA.<name>(...)`.
     KW_INTRINSIC = auto()
+    # `class Name extends Parent { ... }` — user-defined ontology
+    # class. MVP scope is empty bodies + single inheritance; the
+    # extends-chain must bottom out at a primitive class. See
+    # docs/ontology.md.
+    KW_CLASS = auto()
+    KW_EXTENDS = auto()
 
     # ---- special ----
     EOF = auto()
@@ -163,6 +169,8 @@ KEYWORDS = {
     "new": TokenKind.KW_NEW,
     "implicit": TokenKind.KW_IMPLICIT,
     "intrinsic": TokenKind.KW_INTRINSIC,
+    "class": TokenKind.KW_CLASS,
+    "extends": TokenKind.KW_EXTENDS,
     "true": TokenKind.TRUE,
     "false": TokenKind.FALSE,
     # `unknown` — the neutral point on the truth axis (0.0 between

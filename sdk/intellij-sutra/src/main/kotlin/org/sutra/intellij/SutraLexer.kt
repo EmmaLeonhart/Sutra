@@ -253,6 +253,10 @@ class SutraLexer : LexerBase() {
             // because it's a reserved word, even though it occupies an
             // expression position grammatically.
             "wait",
+            // User-defined ontology classes — `class Name extends
+            // Parent { }`. MVP scope is empty bodies + single
+            // inheritance bottoming out at a primitive type.
+            "class", "extends",
         )
 
         private val PRIMITIVE_TYPES: Set<String> = setOf(

@@ -1,0 +1,5 @@
+// Expected error: SUT0142 — class extends an unknown name.
+// `Mystery` is neither a primitive type nor a previously-declared
+// class.
+
+class Foo extends Mystery { }

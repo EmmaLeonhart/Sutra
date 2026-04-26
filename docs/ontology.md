@@ -227,6 +227,39 @@ This is where Sutra's ontology connects to traditional knowledge-representation 
 
 We are early in exploring this.
 
+### MVP declaration form (2026-04-25)
+
+The minimum viable surface landed in commit-set 2026-04-25:
+
+```sutra
+class Embedding extends vector { }
+class Object extends Embedding { }
+class Animal extends Object { }
+class Cat extends Animal { }
+```
+
+What this gives you today:
+
+- A `class Name extends Parent { }` declaration form. Parsed, validated, codegen'd.
+- **Single inheritance.** Each class has exactly one parent.
+- **The chain must bottom out at a primitive** (vector / int / float / fuzzy / etc.). The validator walks the chain at compile time and emits a diagnostic if a parent is unknown.
+- **Empty bodies only.** Methods, fields, and operator implementations inside the braces are rejected with a pointer at the deferred ontology work in `todo.md`.
+- **Compile-time-only metadata.** At runtime, an instance of `Cat` is a plain vector — no extra storage, no runtime class tag, no dispatch overhead. The class name flows through the type system; the codegen skips `ClassDecl` nodes entirely.
+- **Forward references aren't supported.** `class Foo extends Bar` requires `Bar` to be either a primitive or a class declared earlier in the file.
+
+Diagnostic codes for class-decl errors: `SUT0140` (non-empty body), `SUT0141` (duplicate name), `SUT0142` (extends-target unknown).
+
+Working example at `examples/classes_demo.su`. Corpus tests at `sdk/sutra-compiler/tests/corpus/{valid/class_declarations.su, invalid/17_class_extends_unknown.su, invalid/18_class_duplicate.su, invalid/19_class_with_body.su, invalid/20_class_no_extends.su}`.
+
+What is **deferred**:
+
+- **Instance behavior beyond "is a vector."** No constructor surface, no field declarations, no per-class storage layout decisions.
+- **Methods on user classes.** The `method` keyword parses, but `MethodDecl` codegen is rejected with `"method declarations are not supported by the V1 codegen."` Same rejection applies inside a class body.
+- **Operator implementations on a class.** The path that makes `Dollar + Dollar` work but `Dollar + Euro` not work — the F#-units-of-measure replacement story — is not in.
+- **Generics.** `class Foo<T> extends Bar { }` and `function T Identity<T>(T x)` both parse but codegen rejects them.
+
+These are tracked in `todo.md` § "Ontology — make the class system real."
+
 ---
 
 ## Why call it an ontology

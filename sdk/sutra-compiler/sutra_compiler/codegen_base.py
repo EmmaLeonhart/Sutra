@@ -308,6 +308,13 @@ class BaseCodegen:
             raise CodegenNotSupported(
                 item, "method declarations are not supported by the V1 fly-brain codegen"
             )
+        elif isinstance(item, ast.ClassDecl):
+            # Class declarations are compile-time-only metadata. The
+            # validator has already registered the inheritance chain
+            # and verified it bottoms out at a primitive. Codegen
+            # emits nothing — instances of user classes are plain
+            # vectors at runtime, same as the primitive parent.
+            return
         else:
             # Statements at top level (ExprStmt, etc.) — lower as a stmt.
             if isinstance(item, ast.Stmt):
