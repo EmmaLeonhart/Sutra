@@ -100,27 +100,6 @@ extracted artifacts where the source is preserved elsewhere) should
 not be tracked. Anything that takes substantial space and isn't
 load-bearing for the language should be revisited.
 
-**Audit follow-up: four stale-looking root-level files.**
-Per `planning/findings/2026-04-25-repo-audit.md` action item 4 —
-audit four root-level files for whether their content is
-duplicated in `planning/sutra-spec/` or `docs/`, and move or
-delete accordingly:
-
-  - `fly-brain-program-plan.md` — old planning doc, predates the
-    `planning/` directory layout. Likely move to `planning/`.
-  - `sutra-demo-program.su` — root-level demo from before the
-    `examples/` pattern existed. Likely delete (overlaps with
-    `examples/`).
-  - `sutra-syntax-decisions.md` — "rolling syntax decisions"
-    file, but the current spec lives in `planning/sutra-spec/`
-    now. Likely deprecate or merge.
-  - `sutra-language-comparisons.md` — comparison content,
-    speculative. Likely move to `planning/exploratory/` or
-    `docs/`.
-
-Each needs a careful read-through before deciding move-vs-merge-
-vs-delete, which is why the audit didn't act on these directly.
-
 **Egglog integration — algebraic-simplification backend.** The
 current hand-written `simplify.py` (900 lines, 16 rules) covers the
 basics but doesn't do matrix-chain composition, linearity analysis,
