@@ -72,10 +72,10 @@ You wrote source code that the compiler parsed, validated against the grammar, t
 The mental model shift to start absorbing now:
 
 - The string `"hello"` in your source is *not* the value the program returns. The program returns a *vector*. The `embed` call is the bridge from "human concept written as text" to "coordinate in the substrate."
-- The vector that comes back has no canonical numeric value. It depends on the substrate (mxbai? GTE-large? Jina-v2? a fly brain?). Different substrates produce different coordinates. The structure of the program is substrate-independent; the *numbers* are not.
-- Every later tutorial will operate on these vectors using the algebraic and non-algebraic tiers of the language. You will not see numbers very often. You will see *operations* on vectors.
+- The vector that comes back has no canonical numeric value. It depends on the substrate (`nomic-embed-text`, `mxbai-embed-large`, `all-minilm`, etc.). Different substrates produce different coordinates. The structure of the program is substrate-independent; the *numbers* are not.
+- Every later tutorial will operate on these vectors using Sutra's primitive operations. You will not see numbers very often. You will see *operations* on vectors.
 
 ## What to read next
 
 - **[02 — Bind and unbind](02-bind-and-unbind.md)** — the operation that turns Sutra from "fancy retrieval" into "actual programming." How to associate a key with a value and pull the value back out, using only vector arithmetic.
-- The [language spec on operations](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/02-operations.md) — the formal definition of the three operation tiers.
+- The [language spec on operations](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/operations.md) — the formal definition of every primitive operation.
