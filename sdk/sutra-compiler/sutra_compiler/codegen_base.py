@@ -244,6 +244,14 @@ class BaseCodegen:
         # the BinaryOp lowers to _VSA.complex_mul instead of Python
         # element-wise multiply. Populated in _translate_var_decl.
         self._var_type: dict[str, str] = {}
+        # Per-function-scope slot-table: maps slot-declared variable
+        # name -> slot index. Populated when a `slot TYPE name = expr;`
+        # is translated; reset at function entry. Each slot variable
+        # gets a unique 2D Givens plane in the function-scope
+        # `_slot_state` vector. Used by the Identifier emit path
+        # (slot var -> _VSA.slot_load) and the Assignment emit path
+        # (target is slot var -> _VSA.slot_store + reassign).
+        self._slot_vars: dict[str, int] = {}
 
     # -- emission helpers -------------------------------------------------
 
@@ -343,22 +351,31 @@ class BaseCodegen:
         return None
 
     def _translate_var_decl(self, decl: ast.VarDecl, *, at_top_level: bool) -> None:
-        # `slot TYPE name = expr;` — rotation-bound storage. Surface
-        # syntax landed 2026-04-25; codegen integration that threads
-        # slot state through function scopes is deferred (see STATUS.md
-        # "Pre-YC: Sutra surface syntax for slot primitives" and the
-        # imperative-reversible demo entry that depends on it).
+        # `slot TYPE name = expr;` — rotation-bound storage in the
+        # synthetic subspace. Allocates a 2D Givens plane in the
+        # function-scope slot state and emits slot_store / slot_load
+        # for assignments / reads. The runtime primitives landed
+        # 2026-04-24; this codegen integration landed 2026-04-25.
         if decl.is_slot:
-            raise CodegenNotSupported(
-                decl,
-                f"slot declaration `slot {decl.type_ref.name if decl.type_ref else '?'} {decl.name}` "
-                "is parsed but the codegen integration for slot-bound "
-                "storage isn't wired yet — the runtime primitives "
-                "(slot_store / slot_load / rotate_slot on _VSA) are in, "
-                "but threading slot state through function scopes is "
-                "deferred. See STATUS.md \"Pre-YC: Sutra surface syntax "
-                "for slot primitives\".",
+            if at_top_level:
+                raise CodegenNotSupported(
+                    decl,
+                    "slot declarations are only valid at function scope; "
+                    "top-level slot vars don't have a state vector to "
+                    "thread through.",
+                )
+            slot_idx = len(self._slot_vars)
+            self._slot_vars[decl.name] = slot_idx
+            init_src = (
+                self._translate_expr(decl.initializer)
+                if decl.initializer is not None
+                else "0.0"
             )
+            self._emit(
+                f"_slot_state = _VSA.slot_store(_slot_state, {slot_idx}, "
+                f"{init_src})"
+            )
+            return
 
         # Track map<K, V> declarations so that a later subscript on this
         # name can dispatch to the right lookup helper.
@@ -476,11 +493,19 @@ class BaseCodegen:
         param_names = [p.name for p in decl.params]
         self._emit(f"def {decl.name}({', '.join(param_names)}):")
         self._indent += 1
+        # Reset the slot table for this function scope. If the body
+        # has any slot declarations we'll need a `_slot_state` local,
+        # initialized to a zero vector before the first slot_store.
+        outer_slot_vars = self._slot_vars
+        self._slot_vars = {}
+        if _has_slot_decl(decl.body):
+            self._emit("_slot_state = _VSA.zero_vector()")
         if not decl.body.statements:
             self._emit("pass")
         else:
             for stmt in decl.body.statements:
                 self._translate_stmt(stmt)
+        self._slot_vars = outer_slot_vars
         self._indent -= 1
 
     # -- statements -------------------------------------------------------
@@ -518,6 +543,29 @@ class BaseCodegen:
                     self._emit(
                         f"{dict_name} = _VSA.hashmap_set({dict_name}, "
                         f"{key_src}, {value_src})"
+                    )
+                    return
+                # Slot-bound variable assignment: `x = expr;` where
+                # x is a slot variable lowers to `_slot_state =
+                # _VSA.slot_store(_slot_state, idx, value)`. Compound
+                # assignment (+=, -=) on slot variables would need
+                # to read-modify-write through the slot — left for a
+                # follow-up since the imperative-reversible pattern
+                # only needs plain `=` to demonstrate.
+                if (isinstance(expr.target, ast.Identifier)
+                        and expr.target.name in self._slot_vars):
+                    if expr.op != "=":
+                        raise CodegenNotSupported(
+                            stmt,
+                            f"compound assignment on a slot variable "
+                            f"(`{expr.op}`) is not yet supported; use "
+                            "plain `=` for now",
+                        )
+                    idx = self._slot_vars[expr.target.name]
+                    value_src = self._translate_expr(expr.value)
+                    self._emit(
+                        f"_slot_state = _VSA.slot_store(_slot_state, "
+                        f"{idx}, {value_src})"
                     )
                     return
                 # 2026-04-22: compound assignment (+=, -=, *=, /=) is
@@ -1075,6 +1123,12 @@ class BaseCodegen:
         if isinstance(expr, ast.UnknownLiteral):
             return self._unknown_literal_src(expr)
         if isinstance(expr, ast.Identifier):
+            # If this identifier names a slot-bound variable, emit
+            # the slot_load call instead of a bare name reference.
+            # The slot table is per-function-scope.
+            if expr.name in self._slot_vars:
+                idx = self._slot_vars[expr.name]
+                return f"_VSA.slot_load(_slot_state, {idx})"
             return expr.name
         if isinstance(expr, ast.Parenthesized):
             return f"({self._translate_expr(expr.inner)})"
@@ -1257,5 +1311,45 @@ class BaseCodegen:
         raise CodegenNotSupported(
             call, f"unsupported callee expression: {type(callee).__name__}"
         )
+
+
+# ---------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------
+
+def _has_slot_decl(block: ast.Block) -> bool:
+    """True iff `block` contains a `slot TYPE name [= expr];`
+    declaration anywhere in its statement list. Used by
+    `_translate_function_decl` to decide whether to emit the
+    `_slot_state = _VSA.zero_vector()` initializer at the top of
+    the function body. Doesn't recurse into nested control flow —
+    if a slot decl appears inside a loop / branch, it'll still
+    work at runtime (the slot_store call references _slot_state),
+    so the only thing this scan affects is whether _slot_state is
+    initialized when the function has zero slot decls at the top
+    level.
+    """
+    if block is None:
+        return False
+    for stmt in block.statements:
+        if isinstance(stmt, ast.VarDecl) and stmt.is_slot:
+            return True
+        # Recurse into common containers so a slot decl inside an
+        # if/loop branch still triggers the init.
+        if isinstance(stmt, ast.IfStmt):
+            if _has_slot_decl(stmt.then_branch):
+                return True
+            if stmt.else_branch is not None and _has_slot_decl(stmt.else_branch):
+                return True
+        elif isinstance(stmt, ast.Block):
+            if _has_slot_decl(stmt):
+                return True
+        elif isinstance(stmt, ast.LoopStmt):
+            if _has_slot_decl(stmt.body):
+                return True
+        elif isinstance(stmt, ast.WhileStmt):
+            if _has_slot_decl(stmt.body):
+                return True
+    return False
 
 
