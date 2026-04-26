@@ -26,40 +26,60 @@ pick up next.
 for itself, and a public release is imminent so non-load-bearing
 or dev-only material should come out.
 
-**Active task: triage `chats/` against the documentation.** The
-goal is to remove every markdown in `chats/` — but not blindly. Per
-`chats/README.md`, each chat gets deleted only once its content has
-been:
+**Active task: finish `chats/` triage.** Three substantive chats
+deferred for a focused later pass — the rest of the original 33
+have been triaged (each removed only after its content was
+verified to be captured in spec / findings / open-questions / a
+new doc, with the verdict in the commit message).
 
-  1. implemented in code/spec, or
-  2. recorded in `STATUS.md`, `todo.md`, `planning/open-questions/`,
-     or `planning/findings/`, or
-  3. consciously decided as not-pursuing.
+Deferred for focused review:
 
-The work right now is going chat-by-chat through the 33 markdown
-files, deciding which of those three paths applies, and writing
-the verdict into the appropriate doc *before* deleting the chat.
-Each chat gets its own commit so the reasoning is auditable. No
-git-history rewrite — only working-tree removal. The user's framing:
-"it's not a thing we can just do" — i.e. blanket deletion is the
-wrong move; the chats are scratch material that may carry context
-not yet captured in the spec/findings, and we have to verify
-capture before clearing.
+  - `chats/kolmogorov-arnold-networks-for-tensor-operations.md`
+    (941 lines) — KART, beta-reduction-as-Sutra's-compilation-model,
+    Chebyshev / lookup-table compilation of math functions, TOML
+    backend/dtype settings, ISA analogy, currency stdlib idea,
+    OWL-style ontological typing, hashmap-via-rotation origin.
+    Some content already captured (rotation hashmap, ontological
+    typing); compile-time math approximation + TOML backend
+    settings are concrete future-features not yet captured.
+  - `chats/vsa-operations-explained.md` (2204 lines, 80+ sections)
+    — comprehensive early design conversation covering most of
+    Sutra's foundations. Needs careful section-by-section
+    comparison against current spec.
+  - `chats/vsa-programming-languages.md` (933 lines, 22 turns) —
+    early "what does a VSA programming language look like" deep
+    dive. Same shape as the operations chat.
 
-Done in this sweep so far:
+Done in this sweep:
 
   - `chats/` HTMLs and `_files/` browser-asset directories removed
-    (~40 MB, commit 438dace). The 33 markdown extractions are
-    intact (briefly deleted in 605f49e, restored in 412970e).
+    (~40 MB, commit 438dace).
   - `scripts/` removed in full (8 files: chat extractor + paper-
     submission/competition-review fetchers whose CI counterparts
-    were already deleted). The scripts were dead.
-  - CLAUDE.md chat-extraction section dropped (the extractor was in
-    `scripts/`; if a future chat needs extracting, re-add the
-    script or do it manually).
-
-History retains the HTMLs and the deleted scripts — no force-
-rewrite is planned.
+    were already deleted).
+  - 28 of 33 chat markdowns triaged and removed across many
+    commits; each captured what was load-bearing first. Notable
+    captures along the way:
+      - `wait` keyword fully implemented (lexer / parser / AST /
+        codegen / validator / corpus tests / docs / IDE
+        highlighting). See no-null open question Candidate D and
+        `examples/wait_keyword_demo.su`.
+      - `planning/open-questions/nested-loops-as-orthogonal-subspaces.md`
+      - `planning/prior-art-vsa-turing-completeness.md` (Flanagan,
+        Plate, Smolensky, Lambek & Scott, arXiv refs).
+      - `planning/exploratory/claw4s-paper-compile-time-vsa.md`
+        (paper draft for 2026-04-30, four computational novelties).
+      - `STATUS.md` egglog entry: Diospyros / JuliaSymbolics
+        hash-consing / VCR prior-art notes.
+      - `todo.md`: agent-friendly site item, class-system-as-
+        autocomplete-recommendation.
+      - CLAUDE.md Sutra Core Design: "runtime is committed to the
+        math" + "opinionated, not authoritarian" principles, plus
+        the agent-friendly website note.
+  - Two chats scrubbed from git history (filter-repo): the resume
+    chat and the akasha-vision-graph chat — both contained
+    personal info / hiring-positioning content. History rewrite
+    was a one-time blanket policy correction; not the default.
 
 Next bloat sources to investigate:
 
