@@ -339,10 +339,16 @@ Concrete work:
   impractical, emit a precomputed table tensor + a sparse-matmul
   interpolation. Sutra's "table is just another tensor" advantage
   is real here — verify it on at least one transcendental.
-- [ ] **`stdlib/numbers.su` math intrinsics** that route to the
+- [x] ~~**`stdlib/math.su` math intrinsics** that route to the
   approximation pass: `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`,
-  `pow` for starters. The intrinsic declares the function; the
-  approximation pass replaces the call with the chosen tensor op.
+  `pow` for starters.~~ **Placeholders landed 2026-04-25.** The
+  intrinsics are declared in `stdlib/math.su`; both numpy and
+  pytorch backends emit stub runtime methods that raise
+  `NotImplementedError` with a pointer to this entry. User code
+  that calls `sqrt(x)` compiles successfully and fails fast with
+  a clear message at runtime. The approximation pass that
+  replaces these stubs with real Chebyshev / lookup-table tensor
+  ops is the remaining work.
 - [ ] **Bounded-domain inference.** For the polynomial-tier path
   to work the compiler needs to know `x ∈ [a, b]`. Either via
   type annotations (e.g. `bounded<scalar, 0.01, 10> x`), via
@@ -386,29 +392,87 @@ Concrete work:
   1e-12 precision target on float16 storage is incoherent; the
   compiler should warn or escalate dtype.
 
-## [This year] Currency stdlib base class
+## [Pre-YC] Ontology — make the class system real
 
-User direction (Kolmogorov chat, 2026-04-25): "Just declare dollar
-as a class of int." The finance pitch is: F#'s units-of-measure
-falls out of Sutra's normal type system; `Dollar extends Int`
-gives you "can add Dollar to Dollar but not Dollar to Euro" without
-any special compiler feature.
+User reflection (2026-04-25): "We have the ontology somewhat, but
+I don't think we've really implemented classes that much, even
+though we should be implementing classes, or ontology. […]
+Defining classes is going to be a relatively late thing for us
+to do in this, once we've more or less done a large amount of
+other stuff."
 
-Scope sketch:
+Sutra calls its type system an *ontology* deliberately — both
+because it's a knowledge-representation framing (OWL/RDF sense),
+because it communicates "rules of how to use things" rather than
+proof-theoretic structure, and because the user is a philosopher
+and the framing fits. See `docs/ontology.md` for the existing
+exposition.
 
-- [ ] Add `Currency` to `sdk/sutra-compiler/sutra_compiler/stdlib/`
-  as a base class that disables cross-type addition (operators
-  defined in terms of `Currency<T>` can't unify two different
-  `T`). Specific currencies (Dollar, Euro, Yen) inherit and get
-  the within-currency operators automatically.
-- [ ] `Portfolio<Dollar>` as a vector of dollar-typed positions —
-  falls out from generic `vector` parameterization.
-- [ ] An `ExchangeMatrix<Dollar, Euro>` form for explicit
-  cross-currency conversion. The matrix is a scalar but the
-  type signature forces the conversion to be visible.
-- [ ] One example `.su` program: a portfolio pricing function
-  that batches across instruments, shows the type-safety story,
-  and relies on the precision contract (above) for auditability.
+**Audited state of the ontology / class / function surface
+(2026-04-25):**
+
+- **Functions** — fully working. `function T name(T arg) { … }`
+  parses, validates, codegens, runs. Used in nearly every `.su`
+  example.
+- **Methods** — parsed (`MethodDecl` AST node, `method` keyword
+  in lexer). **Rejected at codegen** with "method declarations
+  are not supported by the V1 fly-brain codegen." Surface syntax
+  exists; no method ever actually runs. `examples/uncertain/01-
+  objects-and-methods.su` shows the intended shape and explicitly
+  fails to run.
+- **Generics** — same shape. `function T Identity<T>(T value)`
+  parses, codegen rejects with "generic function declarations
+  are not supported by the V1 codegen."
+- **`class Foo extends Bar { … }` declaration form** — not in
+  the lexer, not in the parser, not in the AST. Type names in
+  type positions (`Cat c = …`) are accepted, but there is
+  **nowhere in the language to actually define what `Cat` is.**
+- **Inheritance / operator overloading on user classes** — not
+  at all. Operators are defined on primitive classes only, in
+  `codegen.py` / `codegen_pytorch.py`.
+
+So `docs/ontology.md` describes the intended end-state, not the
+implemented one. The compiler-recognized "ontology" today is the
+primitive hierarchy (vector / int / float / complex / fuzzy /
+trit / bool / char / string), plus user-named identifiers in type
+positions that the validator tolerates but the codegen treats as
+plain vectors.
+
+Concrete things missing:
+
+- [ ] **`class Foo extends Bar { … }` declaration form** —
+  lexer keyword, parser rule, AST node (`ClassDecl`), validator
+  recognition, codegen translation.
+- [ ] **Operator implementations on a class.** A class body
+  defining `+`, `-`, `*`, etc. that subclasses inherit or
+  override.
+- [ ] **Inheritance chains that the type checker walks.** Today
+  the type system tags values with a primitive class name; a
+  real `Dollar extends Currency extends Int` chain that the
+  compiler uses to resolve operator dispatch isn't there.
+- [ ] **Method dispatch on user-defined classes.** Drop the
+  current "method declarations not supported" rejection and
+  actually wire it through.
+- [ ] **Generic functions and classes.** Drop the current
+  "generic declarations not supported" rejection.
+
+This is **deferred — not because it's unimportant, but because
+it's hard and most other Sutra work doesn't depend on it.** The
+math-approximation work and the egglog migration both proceed
+without the ontology layer being filled in. When the ontology
+work happens, the natural follow-on items are:
+
+- A `Currency` base in the stdlib whose subclasses (Dollar, Yen,
+  etc.) inherit "addable to same currency only" semantics. The
+  Kolmogorov-Arnold chat (2026-04-25) sketched this as the F#
+  units-of-measure replacement story; it's the canonical demo of
+  the ontology working. Originally captured here as a "[This year]
+  Currency stdlib base class" item; merged into this entry because
+  it depends on real class-declaration support landing first.
+- Re-examine `codegen-v1-feature-coverage.md` in
+  `planning/open-questions/` — that doc tracks the V1-codegen-
+  rejects-this-construct list, and most of those rejections trace
+  back to the ontology gap.
 
 ## [This year] Tooling
 
