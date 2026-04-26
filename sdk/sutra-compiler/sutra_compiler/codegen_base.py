@@ -1,17 +1,15 @@
 """AST → Python source translator — backend-agnostic base.
 
 This module walks a parsed Sutra `Module` and emits Python source.
-Concrete backends (numpy, pytorch, fly-brain) subclass `BaseCodegen`
-and override `_emit_prelude` (and a few per-backend hook methods
-for literal lowering — `_char_literal_src`, `_embed_expr_src`,
-`_logical_op_src`, `_bool_literal_src`, etc.) to target their
-specific runtime. The AST walker and the builtin-call table are
-shared across backends.
+Concrete backends (the CPU IR codegen and the PyTorch codegen)
+subclass `BaseCodegen` and override `_emit_prelude` (and a few
+per-backend hook methods for literal lowering — `_char_literal_src`,
+`_embed_expr_src`, `_logical_op_src`, `_bool_literal_src`, etc.) to
+target their specific runtime. The AST walker and the builtin-call
+table are shared across backends.
 
-The class was extracted from `codegen_flybrain.py` in commit
-history; the fly-brain backend now lives as a thin subclass in its
-own file. See also `codegen.py` (the canonical CPU codegen) and
-`codegen_pytorch.py` (the GPU variant).
+See also `codegen.py` (the canonical CPU IR codegen) and
+`codegen_pytorch.py` (the GPU/PyTorch codegen).
 
 Unsupported AST nodes raise `CodegenNotSupported` with the source
 span of the offending node so the CLI can print a compiler-style
@@ -200,8 +198,7 @@ BUILTINS = {
     # Canonical-axis constructors. Lower to _VSA.make_real / make_complex /
     # make_truth — runtime methods provided by the _VSA runtime class.
     # A backend that doesn't implement them will fail at runtime with a
-    # clear AttributeError; nothing in the current flybrain runtime
-    # exercises these yet, so the shared table is fine.
+    # clear AttributeError.
     "real_number": (_builtin_real_number, 1),
     "complex_number": (_builtin_complex_number, 2),
     "truth_value": (_builtin_truth_value, 1),
@@ -295,8 +292,8 @@ class BaseCodegen:
     def _emit_prelude(self) -> None:
         """Emit the top-of-module prelude for this backend.
 
-        Each concrete backend (numpy, pytorch, fly-brain) is responsible
-        for importing its runtime, instantiating the _VSA class, and
+        Each concrete backend (CPU IR, PyTorch) is responsible for
+        importing its runtime, instantiating the _VSA class, and
         emitting any helper functions the translator references
         (`_argmax_cosine`, `_select_softmax`, `_vector_map_lookup`, ...).
         Called from `translate(module)` before the top-level walk.
@@ -314,7 +311,7 @@ class BaseCodegen:
             self._translate_function_decl(item)
         elif isinstance(item, ast.MethodDecl):
             raise CodegenNotSupported(
-                item, "method declarations are not supported by the V1 fly-brain codegen"
+                item, "method declarations are not supported by the V1 codegen"
             )
         elif isinstance(item, ast.ClassDecl):
             # Class declarations are compile-time-only metadata. The
@@ -345,8 +342,7 @@ class BaseCodegen:
 
         Returns the full assignment RHS string (e.g.
         `"_VSA.make_truth(0.7)"`) if the rewrite applies, or None to
-        fall through to the default codegen path. Base returns None —
-        fly-brain has no truth-axis runtime yet.
+        fall through to the default codegen path. Base returns None.
         """
         return None
 
@@ -642,7 +638,7 @@ class BaseCodegen:
         if isinstance(stmt, ast.IfStmt):
             raise CodegenNotSupported(
                 stmt,
-                "if/else is not supported by the V1 fly-brain codegen — the whole "
+                "if/else is not supported by the V1 codegen — the whole "
                 "point is to compile it away into a prototype-table lookup",
             )
         raise CodegenNotSupported(
@@ -881,64 +877,60 @@ class BaseCodegen:
     def _char_literal_src(self, expr: ast.CharLiteral) -> str:
         """Override point for per-backend char literal lowering.
 
-        The base fly-brain backend doesn't have a number-axis runtime
-        yet — char literals are number-axis + synthetic flag, a
-        concept tied to the extended-state-vector layout that only
-        the numpy / pytorch backends implement. Refuse here; numpy
-        and pytorch override.
+        Char literals depend on the number-axis runtime, which the
+        CPU IR and PyTorch backends implement via the extended-state
+        layout. Base refuses; concrete backends override.
         """
         raise CodegenNotSupported(
             expr,
-            "character literals are not supported on the fly-brain backend "
-            "(no number-axis runtime); use the numpy or pytorch backend",
+            "character literals require a number-axis runtime "
+            "(extended-state layout) — overridden by the concrete backends",
         )
 
     def _unknown_literal_src(self, expr: ast.UnknownLiteral) -> str:
         """Override point for the `unknown` keyword — truth-axis neutral.
 
-        Same story as char: the truth-axis representation lives on
-        the extended-state-vector runtime, which is numpy / pytorch
-        only. Base refuses; numpy and pytorch override to emit
+        Truth-axis representation lives on the extended-state-vector
+        runtime. Base refuses; concrete backends override to emit
         `_VSA.make_truth(0.0)`.
         """
         raise CodegenNotSupported(
             expr,
-            "`unknown` is not supported on the fly-brain backend "
-            "(no truth-axis runtime); use the numpy or pytorch backend",
+            "`unknown` requires a truth-axis runtime "
+            "(extended-state layout) — overridden by the concrete backends",
         )
 
     def _imaginary_literal_src(self, expr: ast.ImaginaryLiteral) -> str:
         """Override point for `5i`-style imaginary literals.
 
         Same extended-state-vector dependency as the truth-axis and
-        char literals. Base refuses; numpy / pytorch override to emit
+        char literals. Base refuses; concrete backends override to emit
         `_VSA.make_complex(0.0, magnitude)`.
         """
         raise CodegenNotSupported(
             expr,
-            "imaginary literals are not supported on the fly-brain backend "
-            "(no complex-plane runtime); use the numpy or pytorch backend",
+            "imaginary literals require a complex-plane runtime "
+            "(extended-state layout) — overridden by the concrete backends",
         )
 
     def _complex_literal_src(self, expr: ast.ComplexLiteral) -> str:
         """Override point for fold-produced `ComplexLiteral(re, im)` nodes.
 
         Only produced by the simplifier folding `N + Mi` / `N - Mi`
-        patterns. Base refuses; numpy / pytorch override.
+        patterns. Base refuses; concrete backends override.
         """
         raise CodegenNotSupported(
             expr,
-            "complex literals are not supported on the fly-brain backend "
-            "(no complex-plane runtime); use the numpy or pytorch backend",
+            "complex literals require a complex-plane runtime "
+            "(extended-state layout) — overridden by the concrete backends",
         )
 
     def _bool_literal_src(self, expr: ast.BoolLiteral) -> str:
         """Override point for `true` / `false` lowering.
 
-        Base fly-brain has no truth-axis runtime so it emits the
-        Python literals directly. Numpy / pytorch override to emit
-        _VSA.make_truth(±1.0) so the entire demo-path runtime is
-        vector-native (no Python-bool / vector split).
+        Base emits the Python literals directly. Concrete backends
+        override to emit `_VSA.make_truth(±1.0)` so the entire runtime
+        is vector-native (no Python-bool / vector split).
         """
         return "True" if expr.value else "False"
 
@@ -946,31 +938,31 @@ class BaseCodegen:
                         left_src: str, right_src: str) -> str:
         """Override point for `&&` and `||` on truth-axis values.
 
-        Base fly-brain backend has no truth-axis runtime, so the
-        Zadeh-min / max semantics can't be honored. Emitting a
-        silent Python `and`/`or` fallback would be wrong for fuzzy
-        operands (CLAUDE.md §"NO MATH SHORTCUTS"). Refuse — numpy /
-        pytorch override and implement properly.
+        Without a truth-axis runtime the Zadeh-min / max semantics
+        can't be honored, and a silent Python `and`/`or` fallback
+        would be wrong for fuzzy operands (CLAUDE.md §"NO MATH
+        SHORTCUTS"). Base refuses; concrete backends override and
+        implement properly.
         """
         raise CodegenNotSupported(
             expr,
-            f"logical `{op}` is not supported on the fly-brain backend "
-            "(no truth-axis runtime); use the numpy or pytorch backend",
+            f"logical `{op}` requires a truth-axis runtime "
+            "(extended-state layout) — overridden by the concrete backends",
         )
 
     def _logical_not_src(self, expr: ast.UnaryOp, operand_src: str) -> str:
         """Override point for `!` (logical not) on truth-axis values.
 
-        Base fly-brain refuses — the spec-aligned lowering is
-        truth-axis negation, which requires the extended-state
-        runtime that only numpy / pytorch implement. (The earlier
-        permutation-based NOT was retired as a category error.)
+        Base refuses — the spec-aligned lowering is truth-axis
+        negation, which requires the extended-state runtime.
+        (The earlier permutation-based NOT was retired as a category
+        error.)
         """
         raise CodegenNotSupported(
             expr,
-            "source-level `!` is not yet lowered by the V1 codegen; "
-            "the spec-aligned lowering is truth-axis negation on the "
-            "numpy / pytorch backend",
+            "source-level `!` is not yet lowered by the V1 codegen base; "
+            "the spec-aligned lowering is truth-axis negation, "
+            "implemented by the concrete backends",
         )
 
     def _equality_src(self, expr: ast.BinaryOp, op: str,
@@ -1234,29 +1226,28 @@ class BaseCodegen:
     def _embed_expr_src(self, expr: ast.EmbedExpr) -> str:
         """Override point for per-backend `embed(<expr>)` lowering.
 
-        Raises on the fly-brain backend — no frozen-LLM embedding
-        runtime there. Numpy / pytorch override to emit
-        `_VSA.embed(<inner>)`.
+        Base refuses — no frozen-LLM embedding runtime here.
+        Concrete backends override to emit `_VSA.embed(<inner>)`.
         """
         raise CodegenNotSupported(
             expr,
-            "embed(...) is not supported on the fly-brain backend; "
-            "use the numpy or pytorch backend",
+            "embed(...) requires a frozen-LLM embedding runtime — "
+            "overridden by the concrete backends",
         )
 
     def _defuzzy_expr_src(self, expr: ast.DefuzzyExpr) -> str:
         """Override point for `defuzzy(<expr>)` lowering.
 
-        Fly-brain refuses — no truth-axis runtime to project onto.
-        Numpy / pytorch override to emit `_VSA.defuzzify(<inner>)`
+        Base refuses — no truth-axis runtime to project onto.
+        Concrete backends override to emit `_VSA.defuzzify(<inner>)`
         which matmul-projects onto the truth axis then iterates
         `eq(., true)` N times (default 10, matching the user's
         stated semantics).
         """
         raise CodegenNotSupported(
             expr,
-            "defuzzy(...) is not supported on the fly-brain backend "
-            "(no truth-axis runtime); use the numpy or pytorch backend",
+            "defuzzy(...) requires a truth-axis runtime "
+            "(extended-state layout) — overridden by the concrete backends",
         )
 
     def _translate_call(self, call: ast.Call) -> str:

@@ -1,5 +1,13 @@
 # Open question: does `bundle(...)` run on the substrate, or stay algebraic?
 
+> **Status (2026-04-26):** moot for the current implementation —
+> the only substrate that routed `bundle` through a circuit was the
+> retired fly-brain backend. On the current PyTorch backend
+> `bundle(...)` is normalized vector addition. The question would
+> reopen if a circuit-routed substrate is reintroduced; preserved
+> as the design-space map for that future. Doc title also referred
+> to "tier-2," a framing rejected per CLAUDE.md.
+
 ## The question
 
 When a Sutra program writes `bundle(a, b, c)`, should that:
