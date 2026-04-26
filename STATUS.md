@@ -100,39 +100,26 @@ extracted artifacts where the source is preserved elsewhere) should
 not be tracked. Anything that takes substantial space and isn't
 load-bearing for the language should be revisited.
 
-**Repo audit due soon.** A previous audit (`audit.md` / `AUDIT.md` —
-both stale duplicates from 2026-04-13, removed 2026-04-25) was
-written when the repo still hosted the now-deleted Claw4S 2026
-papers and the now-deleted `scripts/` directory. Once the chats
-triage finishes, walk every top-level directory again with the
-current scope — Sutra language, compiler, examples, planning,
-fly-brain experiments, sutraDB subtree, docs site — and flag dead
-weight. Don't reuse the old `audit.md` filename; write findings
-inline in STATUS.md or as a dated `planning/findings/` doc.
+**Audit follow-up: four stale-looking root-level files.**
+Per `planning/findings/2026-04-25-repo-audit.md` action item 4 —
+audit four root-level files for whether their content is
+duplicated in `planning/sutra-spec/` or `docs/`, and move or
+delete accordingly:
 
-**Website HTTPS cert — manual user action required.** sutralang.dev
-serves 200 OK over both HTTP and HTTPS (verified 2026-04-24), but
-the TLS cert being presented on port 443 is GitHub's default wildcard
-`*.github.io` instead of a Let's Encrypt cert for `sutralang.dev`.
-That's why browsers reject the connection with `ERR_TLS_CERT_
-ALTNAME_INVALID`. GitHub Actions deploys are succeeding (last three
-runs all `success`); `docs/CNAME` and `_site/CNAME` both pin
-`sutralang.dev` correctly.
+  - `fly-brain-program-plan.md` — old planning doc, predates the
+    `planning/` directory layout. Likely move to `planning/`.
+  - `sutra-demo-program.su` — root-level demo from before the
+    `examples/` pattern existed. Likely delete (overlaps with
+    `examples/`).
+  - `sutra-syntax-decisions.md` — "rolling syntax decisions"
+    file, but the current spec lives in `planning/sutra-spec/`
+    now. Likely deprecate or merge.
+  - `sutra-language-comparisons.md` — comparison content,
+    speculative. Likely move to `planning/exploratory/` or
+    `docs/`.
 
-**The fix has to happen in the GitHub UI, not in this repo.** Visit:
-`https://github.com/EmmaLeonhart/Sutra/settings/pages`. Check that:
-
-  1. Custom domain shows `sutralang.dev` with a green "DNS check
-     successful" indicator. If it's missing or red, re-save the
-     domain field and wait for DNS validation.
-  2. The "Enforce HTTPS" checkbox is checked. If greyed out, Let's
-     Encrypt hasn't provisioned the cert yet — wait ~15 min, refresh,
-     try again. Provisioning can stall after a DNS change; the usual
-     fix is to remove the custom domain, save, re-add it, save, wait
-     for DNS check, tick Enforce HTTPS.
-
-If Enforce HTTPS is ticked and the cert is still wrong after 24 hours,
-open a support ticket with GitHub — cert provisioning is their side.
+Each needs a careful read-through before deciding move-vs-merge-
+vs-delete, which is why the audit didn't act on these directly.
 
 **Egglog integration — algebraic-simplification backend.** The
 current hand-written `simplify.py` (900 lines, 16 rules) covers the
