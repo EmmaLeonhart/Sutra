@@ -1,0 +1,30 @@
+// Demonstrates the MVP class declaration form (2026-04-25).
+//
+// User direction: "Just make an object class, where an object class
+// inherits from an embedding class, and the embedding class just
+// inherits from vector. Make it so that the compiler will be able
+// to tell what this is."
+//
+// What this MVP gives you:
+// - `class Name extends Parent { }` declarations.
+// - Single inheritance, parent chain must bottom out at a primitive
+//   (vector / int / float / fuzzy / etc.).
+// - The compiler registers each class name and uses the
+//   inheritance chain to resolve type-position references.
+// - At runtime, instances of user classes are plain vectors —
+//   no extra storage, no metadata, no dispatch overhead.
+// - Bodies are empty; methods / fields / operator implementations
+//   are deferred (see `todo.md` § "Ontology — make the class
+//   system real").
+
+class Embedding extends vector { }
+class Object extends Embedding { }
+class Animal extends Object { }
+class Cat extends Animal { }
+
+// The class declarations above are compile-time-only metadata.
+// At runtime there is nothing to execute for them — `main` just
+// returns a string confirming the program compiled.
+function string main() {
+    return "ontology demo: Embedding -> Object -> Animal -> Cat";
+}

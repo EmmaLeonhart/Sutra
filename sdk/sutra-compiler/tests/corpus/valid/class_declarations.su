@@ -1,0 +1,17 @@
+// Sutra corpus test: class declarations.
+// MVP form (2026-04-25) — empty body, single inheritance, parent
+// chain must bottom out at a primitive.
+
+// Direct subclass of a primitive.
+class Embedding extends vector { }
+
+// Multi-level chain. Each link must reference a class declared
+// earlier in the file (no forward references in MVP).
+class Object extends Embedding { }
+class Animal extends Object { }
+class Cat extends Animal { }
+class Dog extends Animal { }
+
+// Subclassing other primitives is also fine.
+class Currency extends int { }
+class Counter extends int { }

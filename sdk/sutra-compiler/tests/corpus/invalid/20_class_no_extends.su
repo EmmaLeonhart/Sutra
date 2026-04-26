@@ -1,0 +1,5 @@
+// Expected error: missing `extends` — required in MVP.
+// The MVP class form requires an explicit parent rather than
+// implicitly extending some root.
+
+class Foo { }
