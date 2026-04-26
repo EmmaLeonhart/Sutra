@@ -634,6 +634,49 @@ class PyTorchCodegen(Codegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
+        # ---- Transcendental math intrinsics (placeholders) ----
+        # Same stub block as the numpy backend — see codegen.py for
+        # the comment about why these exist as placeholders. Both
+        # backends raise NotImplementedError until the compile-time
+        # approximation pass lands.
+        self._emit("# ---- Transcendental math (placeholder stubs) ----")
+        self._emit("#")
+        self._emit("# Each of these will be replaced by an inlined Chebyshev")
+        self._emit("# polynomial dot product (or lookup-table interpolation)")
+        self._emit("# once the compile-time approximation pass lands. The")
+        self._emit("# stub raises a clear error so a `.su` program that calls")
+        self._emit("# `sqrt(x)` today compiles successfully and fails with a")
+        self._emit("# pointer to the todo.md entry rather than a mystery.")
+        self._emit()
+        for fn_name, arity, doc in [
+            ("log",  1, "Natural logarithm. Will compile to a Chebyshev polynomial on the inferred bounded domain."),
+            ("sqrt", 1, "Square root. Same shape as log; Chebyshev or lookup-table depending on the domain."),
+            ("exp",  1, "Exponential. Needs range-reduction for unbounded domain before the polynomial step."),
+            ("sin",  1, "Sine. Periodic — range-reduction mandatory; Chebyshev or CORDIC."),
+            ("cos",  1, "Cosine. Same family as sin."),
+            ("tan",  1, "Tangent. Same family as sin/cos."),
+            ("pow",  2, "Power. KART decomposition: exp(y * log(x)); free once log + exp are wired."),
+        ]:
+            params = ", ".join(["x", "y"][:arity])
+            self._emit(f"def {fn_name}(self, {params}):")
+            self._indent += 1
+            self._emit(f'"""{doc}')
+            self._emit('')
+            self._emit("Placeholder — the compile-time approximation pass that")
+            self._emit("turns this into a tensor op is not yet wired. See")
+            self._emit("`todo.md` § \"Compile-time math function approximation\"")
+            self._emit("and `docs/numeric-math.md` § \"Transcendental functions\".")
+            self._emit('"""')
+            self._emit(
+                f'raise NotImplementedError('
+                f'"math intrinsic `{fn_name}` is a placeholder — '
+                f'the compile-time approximation pass is not yet wired. '
+                f'See todo.md § \\"Compile-time math function approximation\\"."'
+                f')'
+            )
+            self._indent -= 1
+            self._emit()
+
         self._emit("# ---- Logical operators — smooth polynomial form ----")
         self._emit("#")
         self._emit("# Same Lagrange-derived polynomials as the numpy backend:")
