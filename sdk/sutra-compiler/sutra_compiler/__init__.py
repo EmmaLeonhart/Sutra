@@ -7,8 +7,10 @@ Scope (v0.1):
     - Full tokenization of Sutra source (all comment forms, string
       interpolation, numeric literals, identifiers, operators).
     - Recursive-descent parser that recognizes the declaration and
-      statement grammar described in planning/sutra-spec and
-      sutra-syntax-decisions.md.
+      statement grammar described in planning/sutra-spec/. The
+      historical predecessor — sutra-syntax-decisions.md, the
+      rolling decisions log that preceded the formal spec — lives
+      under planning/sutra-spec-deprecated/ as read-only reference.
     - Structural validation: balanced brackets, semicolons where the
       grammar requires them, well-formed declarations and control flow.
     - A small set of rule checks that the syntax-decisions doc makes
