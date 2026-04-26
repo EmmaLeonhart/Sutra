@@ -14,7 +14,7 @@ Bind, unbind, and bundle are *approximate* operations. Every time you do an unbi
 
 **Snap-to-nearest** is the cleanup pass. You compare the noisy vector against a *codebook* — a set of known-good vectors (your atoms, your basis vectors, your previously-stored fillers) — and you replace the noisy vector with the *nearest* codebook entry. As long as the noise is smaller than the distance to the second-nearest entry, you recover the right answer exactly. Then you continue computing on the cleaned-up vector and the loop can run indefinitely.
 
-This is the operation that makes long Sutra computations numerically stable. Without it, sustained computation hits the noise floor in a few steps. With it, the [chained-computation result from the paper](../papers.md) holds for 10/10 cycles and the [fly-brain compile-to-brain demo](../papers.md) runs 16/16 decisions correctly because the spiking mushroom body itself acts as a biological snap (winner-take-all sparse activation).
+This is the operation that makes long Sutra computations numerically stable. Without it, sustained computation hits the noise floor in a few steps. With it, the [chained-computation result from the paper](../papers.md) holds for 10/10 cycles, and the historical [compile-to-brain demo](../papers.md) ran 16/16 decisions correctly because a spiking mushroom body acts as a biological snap (winner-take-all sparse activation).
 
 ## Try it live
 
@@ -59,11 +59,11 @@ On a 20-item codebook, snap is ~31 µs (vs. ~7 µs for bind). On a 1k-item codeb
 
 ## When snap is free
 
-On a **biological substrate** — the fly-brain backend — snap isn't a separate operation at all. The mushroom body's Kenyon cells naturally enforce sparse coding via APL-mediated inhibition: only the top ~5% of KCs fire, and the set of firing KCs *is* the cleaned-up pattern. The codebook doesn't live in a Python data structure; it lives in the PN→KC synaptic weights. One circuit pass does `bind + bundle + snap` simultaneously, and it costs whatever the circuit costs to simulate (~300 ms for a 50-PN / 2000-KC / 1-APL / 20-MBON mushroom body in Brian2). See the [fly-brain paper](../papers.md) for the full compilation story.
+On a **biological substrate** — the now-retired fly-brain backend — snap wasn't a separate operation at all. The mushroom body's Kenyon cells naturally enforce sparse coding via APL-mediated inhibition: only the top ~5% of KCs fire, and the set of firing KCs *is* the cleaned-up pattern. The codebook didn't live in a Python data structure; it lived in the PN→KC synaptic weights. One circuit pass did `bind + bundle + snap` simultaneously. See the [historical fly-brain paper](../papers.md) for the full compilation story; the supporting code was retired 2026-04-26.
 
-This is one of the reasons the biological substrate comparison is interesting: `snap` is an infrastructure operation on silicon and a *free emergent property* on a connectome.
+This is one of the reasons the biological substrate comparison was interesting: `snap` is an infrastructure operation on silicon and was a *free emergent property* on a connectome.
 
 ## Read next
 
 - The [Sutra paper](../papers.md) — §6.4 has the snap cost numbers, §6.2 has the chained-computation result that depends on snap working.
-- The [fly-brain paper](../papers.md) — for how the mushroom body implements snap as a biological circuit rather than an algorithm.
+- The [historical fly-brain paper](../papers.md) — for how the mushroom body implemented snap as a biological circuit rather than an algorithm.

@@ -129,13 +129,14 @@ override form) is a natural extension path.
 Sutra programs are *somewhat* architecture-independent. A program
 that uses only the core vector operations
 (`bind`/`unbind`/`bundle`/`similarity`/`argmax_cosine`) runs on
-both the numpy and fly-brain backends with no source change. A
-program that uses `snap`/`make_rotation`/`compile_prototypes`/
-`geometric_loop` runs only on the fly-brain backend. A program
-that uses `basis_vector` with nomic-specific assumptions (specific
-clusters, specific distances) may not transfer meaningfully to a
-different embedding model even if both backends technically
-support every operation.
+the PyTorch backend with no source change between CPU and CUDA
+targets. A program that uses
+`snap`/`make_rotation`/`compile_prototypes`/`geometric_loop`
+requires a substrate with a cleanup-circuit primitive (none is
+currently wired; the retired fly-brain backend was the previous
+example). A program that uses `basis_vector` with nomic-specific
+assumptions (specific clusters, specific distances) may not
+transfer meaningfully to a different embedding model.
 
 The user's position: architecture-independence is a spectrum, not
 a binary property. The design doesn't force either extreme; the

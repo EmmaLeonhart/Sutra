@@ -57,7 +57,7 @@ Circular convolution as a binding operator. The first demonstration that structu
 Formalization of VSA as a class of architectures sharing three operations: a binding operator ⊗ (associating key with value), a bundling operator ⊕ (superimposing items), and a similarity measure. Different binding operators yield different VSA families — Hadamard product (HRRs), XOR (binary VSA), permutation (Plate 1995), matrix outer product (MAP). The binding operator is the critical choice; different operators have different algebraic properties and different failure modes.
 
 **Kleyko, Davies, Frady, Kanerva (2021–present) — neuromorphic VSA**
-Application of VSA to spiking neural hardware and neuromorphic computing. The formal connection between high-dimensional sparse spiking codes and hypervector algebra. This is the intellectual space in which Sutra's fly-brain experiment lives: if spiking neurons in a connectome naturally implement VSA operations, then a language whose primitives are VSA operations should compile to that substrate.
+Application of VSA to spiking neural hardware and neuromorphic computing. The formal connection between high-dimensional sparse spiking codes and hypervector algebra. This was the intellectual space in which Sutra's earlier fly-brain experiment lived: if spiking neurons in a connectome naturally implement VSA operations, then a language whose primitives are VSA operations should compile to that substrate.
 
 ### Where these threads converge
 
@@ -70,7 +70,7 @@ Sutra's starting observation — the one that turned a research finding into a l
 **Sutra's empirical contribution**
 Natural LLM embeddings are not the random orthogonal vectors that VSA theory assumes. The textbook Hadamard binding fails completely on them — correlated, anisotropic geometry breaks the unbinding algebra. Sign-flip binding (`a * sign(role)`) is robust on natural embeddings: 14/14 correct recoveries at 14 bundled role-filler pairs across GTE-large, BGE-large, and Jina-v2. This matters because it means VSA techniques apply directly to pre-trained embedding spaces without custom training — the substrate already exists, and it is large.
 
-## The fly brain
+## The fly brain (retired research line)
 
 The connection between hyperdimensional computing and the *Drosophila* mushroom body is not coincidental. Kanerva's original inspiration was biological memory. The mushroom body architecture — sparse projection neurons, ~2,000 Kenyon cells held at ~5% activation by APL inhibition, MBON readout — is a near-canonical biological associative memory, and it maps naturally onto VSA operations:
 
@@ -78,4 +78,4 @@ The connection between hyperdimensional computing and the *Drosophila* mushroom 
 - APL-enforced Winner-Take-All dynamics keeps Kenyon cell activations sparse and discriminable — the biological analog of VSA's orthogonality requirement
 - The MBON layer is the biological snap-to-nearest: a learned cosine argmax against a prototype table
 
-The Sutra fly-brain experiment ([paper](https://clawrxiv.io/posts/1541)) compiled four-state conditional programs onto a Brian2 spiking simulation of this circuit and got 16/16 correct decisions. It is not Sutra being applied to biology. It is Sutra running on a substrate that VSA was, in some sense, always describing.
+The Sutra fly-brain experiment ([paper](https://clawrxiv.io/posts/1541)) compiled four-state conditional programs onto a Brian2 spiking simulation of this circuit and got 16/16 correct decisions. A follow-on phase tested rotation, snap, and conditional branching against the Shiu et al. 2024 whole-brain LIF model, producing mostly negative findings (real FlyWire weight matrices do not function as rotation operators; CX ring-attractor circuits did not discriminate direction on real connectivity). The supporting `fly-brain/` directory and `codegen_flybrain.py` backend were retired from the repo on 2026-04-26 — the substrate work outpaced the language's maturity. Negative findings are preserved under `planning/findings/2026-04-1*-*`. The research line may resume once the language is more mature.

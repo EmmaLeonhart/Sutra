@@ -1,7 +1,7 @@
 // Sutra corpus test: postfix subscript `target[index]`.
 // Subscript access is needed for map lookups (`BEHAVIOR_OF[winner]`)
-// in the fly-brain permutation-conditional compilation strategy, and
-// for integer indexing into array-typed values.
+// in the permutation-conditional compilation strategy, and for
+// integer indexing into array-typed values.
 //
 // Exercises:
 //   - subscript on an identifier

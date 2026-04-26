@@ -1,8 +1,8 @@
-# Open question: what should the fly-brain codegen V1 actually cover?
+# Open question: what should the V1 codegen actually cover?
 
 ## The question
 
-`sdk/sutra-compiler/`'s `codegen_flybrain.translate_module` deliberately refuses several source-level constructs with a `CodegenNotSupported` error, e.g.:
+`sdk/sutra-compiler/`'s codegen pipeline deliberately refuses several source-level constructs with a `CodegenNotSupported` error, e.g.:
 
 - method declarations (class methods — not just free functions)
 - operator declarations (`operator +` etc.)
@@ -10,7 +10,7 @@
 - `EmbedExpr` (the `embed "..."` literal form)
 - `UnsafeCastExpr`
 
-Programs exist in the repo that use every one of these (see `examples/01-…06.su`, `fly-brain/four_state_conditional.su`, `examples/_legacy_syntax_tour.su`). Those programs pass parser + validator but cannot compile to the live MB substrate.
+Programs exist in the repo that use every one of these (see `examples/01-…06.su`, `examples/_legacy_syntax_tour.su`). Those programs pass parser + validator but cannot compile.
 
 The question is: which of these should V1 support, which should wait for V2, and which are spec features that were prototyped in `.su` but never made it into the runtime model?
 
@@ -28,13 +28,11 @@ The lint sweep (run 2026-04-12) found:
 | `examples/06-executable-file.su` | SKIP | `EmbedExpr` |
 | `examples/workspace/corpus/main.su` | OK | — |
 | `examples/workspace/similarity/main.su` | OK | — |
-| `fly-brain/four_state_conditional.su` | SKIP | `EmbedExpr` |
-| `fly-brain/fuzzy_conditional.su` | OK | — |
-| `fly-brain/geometric_loop.su` | OK | — |
-| `fly-brain/permutation_conditional.su` | OK | — |
 | `examples/_legacy_syntax_tour.su` | SKIP | `UnsafeCastExpr` |
 
-6 PASS, 7 SKIP, 0 FAIL. Nothing is broken; the SKIPs are known feature gaps.
+(Original sweep also covered four `fly-brain/*.su` programs; that
+directory was retired 2026-04-26 and the entries are dropped.) The
+SKIPs are known feature gaps, not regressions.
 
 ## Why each gap has force (or doesn't)
 
@@ -51,8 +49,8 @@ The lint sweep (run 2026-04-12) found:
 
 ## Concrete next steps (when picked up)
 
-- Add `EmbedExpr` lowering to `basis_vector(name)` in `codegen_flybrain.translate_expr`.
-- Add `DefuzzyExpr` lowering + matching `FlyBrainVSA.is_true` method.
+- Add `EmbedExpr` lowering to `basis_vector(name)` in `codegen.py`.
+- Add `DefuzzyExpr` lowering + matching `_VSA.is_true` method.
 - Tag each SKIP'd `.su` file with a header comment citing the specific construct it needs.
 - Add a CI lint check that fails if an `OK` file regresses to SKIP (distinct from FAIL).
 

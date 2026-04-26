@@ -71,8 +71,7 @@ will need to answer, but not as source material to copy.
 ## What papers should do in the meantime
 
 - The language paper (`language-paper/paper.md`) and the embedding
-  paper (`sutra-paper/paper.md`) and the fly-brain paper
-  (`fly-brain-paper/paper.md`) should describe what the
+  paper (`sutra-paper/paper.md`) should describe what the
   implementation actually does, not what the deprecated spec says.
   When in doubt, look at `examples/`, the compiler, and the actual
   results — those are ground truth right now, not the deprecated

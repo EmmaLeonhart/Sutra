@@ -1,6 +1,9 @@
-# Fly-Brain Visualizer
+# Fly-Brain Visualizer (archived)
 
-**Status: design doc, no implementation yet.**
+**Status: design doc, no implementation. Archived 2026-04-26
+along with the fly-brain backend retirement. Preserved as
+historical record; revisit if the fly-brain research line
+resumes.**
 Companion pane to the embedding-space visualizer described in
 [`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md).
 This is Sutra-specific IDE UX for programs that target the fly-brain

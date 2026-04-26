@@ -350,8 +350,9 @@ Type checking is a real future work item. Relevant questions:
   nominal (based on declared types)?
 - At what stage does checking happen — a separate pass after
   parsing but before codegen?
-- What about substrate-specific types (e.g. a `kc_pattern` type on
-  the fly-brain substrate that doesn't exist on numpy)?
+- What about substrate-specific types (e.g. cleanup-circuit
+  prototype patterns that only exist on substrates with attractor
+  dynamics)?
 
 Not in scope for the current spec. The fact that the runtime is
 untyped is noted here so readers don't assume a static-checker

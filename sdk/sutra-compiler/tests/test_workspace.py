@@ -100,7 +100,7 @@ default_substrate = "silicon"
 
 [[workspace.member]]
 path = "a"
-substrate = "fly-brain"
+substrate = "logit"
 """)
             _mk(root, "a/atman.toml", """
 [project]
@@ -112,7 +112,7 @@ substrate = "silicon"
 
             ws = load_workspace(root / "atman.toml")
             # Workspace-level override wins over the project atman.toml's substrate.
-            self.assertEqual(ws.projects[0].substrate, "fly-brain")
+            self.assertEqual(ws.projects[0].substrate, "logit")
 
     def test_default_substrate_propagates_when_unspecified(self) -> None:
         with TemporaryDirectory() as tmp:
@@ -121,7 +121,7 @@ substrate = "silicon"
 [workspace]
 name = "s"
 sutra_version = "0.2"
-default_substrate = "fly-brain"
+default_substrate = "logit"
 
 [[workspace.member]]
 path = "p"
@@ -134,7 +134,7 @@ entry = "main.su"
             _mk(root, "p/main.su", "function void Main() { return; }\n")
 
             ws = load_workspace(root / "atman.toml")
-            self.assertEqual(ws.projects[0].substrate, "fly-brain")
+            self.assertEqual(ws.projects[0].substrate, "logit")
 
 
 class TestErrorCases(unittest.TestCase):

@@ -379,10 +379,10 @@ preferred default is not yet fixed.
 - Are there roles that are genuinely non-linear (and so cannot
   be captured as a matrix)? The spec currently assumes linearity;
   some roles may require quadratic or attention-style operations.
-- **Rotation binding on the fly-brain substrate.** The synthetic
-  subspace is easy to append to a numpy vector. On the Shiu
-  whole-brain LIF model, "appending dimensions" is not as free —
-  there's no spare neuron population reserved for synthetic state.
-  Does this design target the numpy/embedding substrate only, or
-  does the fly-brain substrate get a corresponding synthetic-
-  population design?
+- **Rotation binding on alternative substrates.** The synthetic
+  subspace is easy to append to a tensor in the PyTorch backend.
+  On any alternative substrate where "appending dimensions" is
+  not as free (the retired fly-brain LIF substrate, or any future
+  neuromorphic target with a fixed-size population), a corresponding
+  synthetic-population design would have to be worked out. Out of
+  scope while the canonical target is the PyTorch tensor backend.

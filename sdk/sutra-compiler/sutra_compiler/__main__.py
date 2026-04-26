@@ -23,8 +23,6 @@ from typing import List
 
 from . import __version__
 from . import ast_nodes as ast
-from .codegen_flybrain import CodegenNotSupported
-from .codegen_flybrain import translate_module as translate_flybrain
 from .codegen_pytorch import translate_module as translate_pytorch
 from .diagnostics import Diagnostic, DiagnosticLevel
 from .lexer import Lexer
@@ -180,8 +178,8 @@ def _run_consistency(paths: List[str]) -> int:
     return 1 if drift_count else 0
 
 
-def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
-                       runtime_seed: int, runtime_n_kc: int) -> str | None:
+def _compile_to_python(path: str, *, runtime_dim: int,
+                       runtime_seed: int) -> str | None:
     """Validate + parse + codegen one .su file. Returns generated Python
     source, or None on failure (diagnostics already printed)."""
     if not os.path.exists(path):
@@ -198,18 +196,9 @@ def _compile_to_python(path: str, backend: str, *, runtime_dim: int,
     tokens = lexer.tokenize()
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
-    try:
-        if backend == "pytorch":
-            return translate_pytorch(
-                module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-            )
-        return translate_flybrain(
-            module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-            runtime_n_kc=runtime_n_kc,
-        )
-    except CodegenNotSupported as exc:
-        print(f"{path}:{exc}", file=sys.stderr)
-        return None
+    return translate_pytorch(
+        module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+    )
 
 
 def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
@@ -219,8 +208,7 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
     carry the output. Requires `torch` to be importable at runtime."""
     import types
     py_src = _compile_to_python(
-        path, "pytorch", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        runtime_n_kc=0,
+        path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
     )
     if py_src is None:
         return 1
@@ -246,8 +234,7 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
     from .trace import SutraTracer
 
     py_src = _compile_to_python(
-        path, "pytorch", runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        runtime_n_kc=0,
+        path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
     )
     if py_src is None:
         return 1
@@ -332,11 +319,9 @@ _VSA.bundle = _traced_bundle
     return 0
 
 
-def _run_emit(path: str, backend: str, *, runtime_dim: int, runtime_seed: int,
-              runtime_n_kc: int) -> int:
+def _run_emit(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
     out = _compile_to_python(
-        path, backend, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
-        runtime_n_kc=runtime_n_kc,
+        path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
     )
     if out is None:
         return 1
@@ -368,15 +353,6 @@ def main(argv: List[str] | None = None) -> int:
         "--consistency",
         action="store_true",
         help="Cross-file check: report class names that appear in multiple casings across the file set.",
-    )
-    parser.add_argument(
-        "--emit-flybrain",
-        action="store_true",
-        help=(
-            "Compile the first input file to Python targeting the FlyBrainVSA "
-            "runtime and print it to stdout. Fly-brain-only work — the main "
-            "path is --emit."
-        ),
     )
     parser.add_argument(
         "--emit",
@@ -418,15 +394,11 @@ def main(argv: List[str] | None = None) -> int:
     )
     parser.add_argument(
         "--runtime-dim", type=int, default=50,
-        help="Hypervector dimension for the emitted FlyBrainVSA runtime (default 50).",
+        help="Hypervector dimension for the emitted runtime (default 50).",
     )
     parser.add_argument(
         "--runtime-seed", type=int, default=42,
-        help="Random seed for the emitted FlyBrainVSA runtime (default 42).",
-    )
-    parser.add_argument(
-        "--runtime-n-kc", type=int, default=2000,
-        help="Number of Kenyon cells in the emitted mushroom body (default 2000).",
+        help="Random seed for the emitted runtime (default 42).",
     )
     parser.add_argument(
         "--version",
@@ -443,18 +415,13 @@ def main(argv: List[str] | None = None) -> int:
             return 2
         from .review import review_file
         return review_file(args.paths[0])
-    if (args.emit_flybrain or args.emit
-            or args.run or args.run_viz):
+    if args.emit or args.run or args.run_viz:
         if len(args.paths) != 1:
             print(
-                "--emit-*/--run/--run-viz takes exactly one .su source file",
+                "--emit/--run/--run-viz takes exactly one .su source file",
                 file=sys.stderr,
             )
             return 2
-        if args.emit_flybrain:
-            backend = "flybrain"
-        else:
-            backend = "pytorch"
         if args.run_viz:
             return _run_viz(
                 args.paths[0],
@@ -468,10 +435,9 @@ def main(argv: List[str] | None = None) -> int:
                 runtime_seed=args.runtime_seed,
             )
         return _run_emit(
-            args.paths[0], backend,
+            args.paths[0],
             runtime_dim=args.runtime_dim,
             runtime_seed=args.runtime_seed,
-            runtime_n_kc=args.runtime_n_kc,
         )
     if args.json:
         return _run_json(args.paths)
