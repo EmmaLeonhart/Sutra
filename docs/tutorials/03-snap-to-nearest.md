@@ -2,19 +2,18 @@
 
 ## What you'll learn
 
-- Why `bind` and `unbind` alone aren't enough to do sustained computation
-- What a **codebook** is and how `snap` uses it to clean up noisy vectors
-- The geometric condition under which snap always recovers the right answer
-- Where snap lives in the [three-tier Sutra model](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/02-operations.md) and why it's the "expensive" tier
-- The empirical cost numbers: ~31 µs on a 20-atom codebook, ~31 ms on a 10k-atom codebook
+- Why `bind` and `unbind` alone aren't enough for sustained computation
+- What a **codebook** is and how cleanup uses it to recover noisy vectors
+- The geometric condition under which cleanup always recovers the right entry
+- How `argmax_cosine` (the cleanup primitive Sutra demos use today) and `snap` (the spec name for the operation backed by a real cleanup circuit) relate
 
-## What snap is for
+## What cleanup is for
 
-Bind, unbind, and bundle are *approximate* operations. Every time you do an unbind, you get a vector that is *similar* to the original filler but contaminated by crosstalk from the other things bundled in. Do enough of these in a row and the noise compounds — eventually the result is closer to nothing in particular than to the answer.
+Bind, unbind, and bundle are *approximate* operations. Every unbind returns a vector that is *similar* to the original filler but contaminated by crosstalk from the other things bundled in. Do enough of these in a row and the noise compounds — eventually the result is closer to nothing in particular than to the answer.
 
-**Snap-to-nearest** is the cleanup pass. You compare the noisy vector against a *codebook* — a set of known-good vectors (your atoms, your basis vectors, your previously-stored fillers) — and you replace the noisy vector with the *nearest* codebook entry. As long as the noise is smaller than the distance to the second-nearest entry, you recover the right answer exactly. Then you continue computing on the cleaned-up vector and the loop can run indefinitely.
+**Cleanup** is the pass that fixes this. You compare the noisy vector against a *codebook* — a set of known-good vectors (your atoms, your basis vectors, your previously-stored fillers) — and replace the noisy vector with the *nearest* codebook entry by cosine. As long as the noise is smaller than the distance to the second-nearest entry, you recover the right answer exactly. Then you continue computing on the cleaned-up vector and the loop can run indefinitely.
 
-This is the operation that makes long Sutra computations numerically stable. Without it, sustained computation hits the noise floor in a few steps. With it, the [chained-computation result from the paper](../papers.md) holds for 10/10 cycles, and the historical [compile-to-brain demo](../papers.md) ran 16/16 decisions correctly because a spiking mushroom body acts as a biological snap (winner-take-all sparse activation).
+This is what makes long Sutra computations stable. Without it, sustained computation hits the noise floor in a few steps.
 
 ## Try it live
 
@@ -24,46 +23,40 @@ Each labeled dot is a codebook atom. The yellow query point is what comes out of
 
 What you should see:
 
-- As long as the query is closer to `target` than to any other atom, `snap(query) = target`. This is the success regime.
-- As you raise noise (or drag the query past the halfway line between two atoms), snap returns the wrong atom. This is the failure mode — it's exactly what happens in Sutra when bundle depth exceeds the crosstalk budget.
-- **The failure is silent.** Snap doesn't know it got the wrong answer. In real Sutra code this is what drives the recommendation to keep codebooks sparse and snap early, before crosstalk accumulates.
+- As long as the query is closer to `target` than to any other atom, the cleanup returns `target`. This is the success regime.
+- As you raise noise (or drag the query past the halfway line between two atoms), cleanup returns the wrong atom. This is the failure mode — exactly what happens in Sutra when bundle depth exceeds the crosstalk budget.
+- **The failure is silent.** The cleanup primitive doesn't know it got the wrong answer. In real Sutra code this drives the recommendation to keep codebooks sparse and clean up early, before crosstalk accumulates.
 
 ## The geometric condition
 
-Snap is correct whenever the query lies in the **Voronoi cell** of the true target — the region of space closer to the target than to any other atom. For a codebook with `N` atoms spaced roughly uniformly, the radius of the Voronoi cell scales with the atom spacing. So:
+Cleanup is correct whenever the query lies in the **Voronoi cell** of the true target — the region of space closer to the target than to any other atom. For a codebook with `N` atoms spaced roughly uniformly, the Voronoi cell radius scales with the atom spacing.
 
-- **Sparse codebook, few atoms:** large Voronoi cells, snap tolerates a lot of noise. Good for high bundle depth, cheap lookup.
-- **Dense codebook, many atoms:** small Voronoi cells, snap breaks under even modest noise. Expensive lookup, too.
+- **Sparse codebook, few atoms** — large Voronoi cells; cleanup tolerates a lot of noise. Good for high bundle depth, cheap lookup.
+- **Dense codebook, many atoms** — small Voronoi cells; cleanup breaks under even modest noise. Expensive lookup, too.
 
-This is the fundamental knob you tune when designing Sutra data structures: **how many things do I need to distinguish at this step, and how much noise do I expect?**
+This is the fundamental knob you tune when designing Sutra data structures: *how many things do I need to distinguish at this step, and how much noise do I expect?*
 
-## Why it lives in the non-algebraic tier
+## How it shows up in `.su` source
 
-Snap is the tier-3 ("non-algebraic / vector-graph") operation in the [three-tier model](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/02-operations.md). The reason it's in tier 3 is that it requires *infrastructure* the algebraic tier doesn't: an Approximate Nearest Neighbor (ANN) index, typically an HNSW, or a smaller exact-search codebook for tiny problems.
-
-Concretely:
+Today the demos use `argmax_cosine` — the cleanup primitive that runs against an explicit candidate list (a Python tuple at the call site, a stacked-candidate matmul plus argmax in the emitted module):
 
 ```c
-// Construct a query vector via a bunch of binds and bundles.
+// Construct a noisy query via binds and bundles.
 vector noisy = unbind(agent_role, sentence_bundle);
 
 // Clean it up against the codebook.
-vector clean = snap(noisy);
+vector clean = argmax_cosine(noisy, [v_cat, v_dog, v_mouse, v_bird]);
 ```
 
-`snap` returns the codebook vector closest to `noisy`. If you wired up the codebook with `cat`, `dog`, `mouse`, `bird`, and `noisy` is a noisy version of `cat`, you get back the *exact* `cat` vector, not the noisy one. From here on out, all the noise that accumulated in the unbind is gone.
+`argmax_cosine` returns the codebook vector closest to `noisy` by cosine. If you wired up the codebook with `cat`, `dog`, `mouse`, `bird`, and `noisy` is a noisy version of `cat`, you get the *exact* `cat` vector back, not the noisy one. From here on out, the noise that accumulated in the unbind is gone.
+
+The spec also defines `snap` — a more general cleanup operation backed by a real attractor / cleanup circuit (rather than an explicit candidate list). The current PyTorch substrate doesn't have such a circuit, so `snap` is rejected at codegen time; programs use `argmax_cosine` against an explicit codebook instead. See [`planning/sutra-spec/operations.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/operations.md) for the formal specification of both.
 
 ## Cost
 
-On a 20-item codebook, snap is ~31 µs (vs. ~7 µs for bind). On a 1k-item codebook, ~3.5 ms. On a 10k-item codebook, ~31 ms. **The critical observation: even at 10k items, snap is 8× cheaper than embedding a single text via the actual LLM** (~250 ms). So snap is "the expensive one" in the algebraic-vs-non-algebraic split, but cheap relative to the LLM forward pass that produced the embeddings in the first place. You can afford to snap aggressively.
-
-## When snap is free
-
-On a **biological substrate** — the now-retired fly-brain backend — snap wasn't a separate operation at all. The mushroom body's Kenyon cells naturally enforce sparse coding via APL-mediated inhibition: only the top ~5% of KCs fire, and the set of firing KCs *is* the cleaned-up pattern. The codebook didn't live in a Python data structure; it lived in the PN→KC synaptic weights. One circuit pass did `bind + bundle + snap` simultaneously. See the [historical fly-brain paper](../papers.md) for the full compilation story; the supporting code was retired 2026-04-26.
-
-This is one of the reasons the biological substrate comparison was interesting: `snap` is an infrastructure operation on silicon and was a *free emergent property* on a connectome.
+The codebook lookup is one matrix-vector multiply (against a stacked-candidate matrix) plus an argmax. On a 20-entry codebook this is the cheap part of the program; on a 10k-entry codebook it is still cheap relative to a single LLM forward pass (which Ollama serves at hundreds of milliseconds per call). You can afford to clean up aggressively.
 
 ## Read next
 
-- The [Sutra paper](../papers.md) — §6.4 has the snap cost numbers, §6.2 has the chained-computation result that depends on snap working.
-- The [historical fly-brain paper](../papers.md) — for how the mushroom body implemented snap as a biological circuit rather than an algorithm.
+- The [Sutra paper](../papers.md) — characterizes the chained-computation regime that depends on cleanup working.
+- The [operations spec](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/operations.md) — formal definitions of `argmax_cosine`, `snap`, and the rest of the primitive surface.
