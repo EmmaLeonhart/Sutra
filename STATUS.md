@@ -158,17 +158,36 @@ Adjacent prior art worth knowing when this lands:
     form via a cost model that charges 100/apply (hot path) and 1/matmul
     (module init). All chain lengths fuse to exactly one apply. This is
     the pass `simplify.py` does not have today.
-  - [ ] Lift the 16 existing rewrites from `simplify.py` into egglog
+  - [x] ~~Lift the 16 existing rewrites from `simplify.py` into egglog
     rule form. Validate equivalence against the existing 206-test
-    suite. Next step.
-  - [ ] Wire egglog-based simplification into the compiler pipeline
-    as a post-pass on the existing `simplify.py` output (safer
-    than replacing it in one shot — incremental migration).
-  - [ ] Add linearity analysis: function bodies that are pure
+    suite.~~ DONE 2026-04-25. Rules in
+    `sdk/sutra-compiler/sutra_compiler/simplify_egglog.py`; bridge
+    (`lift_vec` / `lift_num` / `_try_lower_to_ast`) connects the
+    Sutra AST to the egglog IR. 8 bridge tests added; 241 tests +
+    73 corpus subtests pass.
+  - [x] ~~Wire egglog-based simplification into the compiler pipeline
+    as a post-pass on the existing `simplify.py` output.~~ DONE
+    2026-04-25. `simplify.py` `_egglog_post_pass` walks every
+    expression bottom-up after the hand-rolled pass; conservative —
+    only replaces when egglog made progress and the result lowers
+    to a recognized simpler shape. ImportError on egglog is a
+    no-op rather than a hard failure.
+  - [ ] **Add linearity analysis: function bodies that are pure
     linear tensor-op compositions get a single cached matrix M and
-    compile-down to `M @ arg`. Builds on the matrix-chain fusion.
-  - [ ] CSE pass — comes almost free from equality saturation; just
-    needs the extraction cost to charge per-use.
+    compile-down to `M @ arg`.** The egglog rules already do the
+    algebra (matrix-chain fusion via `R @ S` associativity + apply
+    distribution + cost model preferring fused chains). The
+    remaining work is **codegen integration**: detect when a
+    function body's egglog form is a single `(M_n @ ... @ M_1)`
+    composed matrix expression, emit the composition at module
+    init, and replace the call site with one matrix-vector op.
+    Sub-200 lines but requires extending the lift/lower bridge to
+    handle matrix-compose forms.
+  - [ ] **CSE pass.** Falls out of equality saturation when the
+    cost model charges per-use rather than per-node. Implementation
+    is mostly in the lower step: emit Python `let`-bindings (i.e.
+    a temporary variable) for any subexpression that appears more
+    than once in the extracted form, instead of inlining.
 
 Follow-ups surfaced during the 2026-04-24 pre-Anthropic-grant-app
 sprint that aren't urgent-next but should land pre-YC:
