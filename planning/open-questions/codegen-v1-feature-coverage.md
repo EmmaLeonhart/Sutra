@@ -10,7 +10,7 @@
 - `EmbedExpr` (the `embed "..."` literal form)
 - `UnsafeCastExpr`
 
-Programs exist in the repo that use every one of these (see `examples/01-…06.su`, `fly-brain/four_state_conditional.su`, `sutra-demo-program.su`). Those programs pass parser + validator but cannot compile to the live MB substrate.
+Programs exist in the repo that use every one of these (see `examples/01-…06.su`, `fly-brain/four_state_conditional.su`, `examples/_legacy_syntax_tour.su`). Those programs pass parser + validator but cannot compile to the live MB substrate.
 
 The question is: which of these should V1 support, which should wait for V2, and which are spec features that were prototyped in `.su` but never made it into the runtime model?
 
@@ -32,7 +32,7 @@ The lint sweep (run 2026-04-12) found:
 | `fly-brain/fuzzy_conditional.su` | OK | — |
 | `fly-brain/geometric_loop.su` | OK | — |
 | `fly-brain/permutation_conditional.su` | OK | — |
-| `sutra-demo-program.su` | SKIP | `UnsafeCastExpr` |
+| `examples/_legacy_syntax_tour.su` | SKIP | `UnsafeCastExpr` |
 
 6 PASS, 7 SKIP, 0 FAIL. Nothing is broken; the SKIPs are known feature gaps.
 

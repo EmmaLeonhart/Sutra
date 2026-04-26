@@ -90,7 +90,8 @@ gradle wrapper           # first time only
 ```
 
 The sandbox instance opens with the Sutra plugin installed; drop any
-`.su` file into it (e.g. `sutra-demo-program.su` from the repo root) to
+`.su` file into it (e.g. anything from `examples/` or
+`examples/_legacy_syntax_tour.su` for a full syntax tour) to
 smoke-test highlighting, completion, live templates, and diagnostics.
 
 ## Compiler path configuration
