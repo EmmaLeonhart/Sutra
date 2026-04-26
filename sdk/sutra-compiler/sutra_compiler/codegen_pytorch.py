@@ -9,9 +9,8 @@ Ops run as torch tensors; when CUDA is available the module picks
 Relationship to the CPU codegen:
 
     BaseCodegen                     ← backend-agnostic AST walker
-        ├── Codegen                 ← canonical CPU path (numpy ndarrays)
-        │       └── PyTorchCodegen  ← GPU path (torch tensors)
-        └── FlyBrainCodegen         ← fly-brain experimental target
+        └── Codegen                 ← canonical CPU path (numpy ndarrays)
+                └── PyTorchCodegen  ← GPU path (torch tensors)
 
 PyTorchCodegen inherits the translator from `Codegen` (same AST walk,
 same bundle-of-binds fusion, same vector-accessor lowering, same

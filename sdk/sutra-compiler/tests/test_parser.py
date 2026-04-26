@@ -334,7 +334,7 @@ class TestExpressions(unittest.TestCase):
         self.assertEqual(len(init.values), 3)
 
     def test_map_literal_vector_keys(self):
-        # The fly-brain permutation-conditional shape: map<vector, string>
+        # The permutation-conditional shape: map<vector, string>
         # with expression-valued keys.
         module, diag = parse(
             'map<vector, string> BEHAVIOR_OF = '

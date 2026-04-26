@@ -8,27 +8,22 @@ Sutra is not an academic toy. The user is using this work as the foundation for 
 
 Rules that follow from this:
 
-1. **Every Sutra operation must actually run where the spec says it runs.** If the spec claims `bind` runs on spiking neurons, `bind` runs on spiking neurons — not numpy with a Brian2 fig leaf wrapped around it. If rotation is claimed to execute on the connectome, the rotation arithmetic is synaptic summation, not a host matmul. (The old "tier-2 / tier-3" framing this rule used to invoke is explicitly rejected — see the "No tier framing" section below.)
+1. **Every Sutra operation must actually run where the spec says it runs.** If the spec claims a primitive runs on the substrate, it runs on the substrate — not on the host with a thin wrapper around it. (The old "tier-2 / tier-3" framing this rule used to invoke is explicitly rejected — see the "No tier framing" section below.)
 2. **Validation numbers are measurements, not targets.** If a test gives cos=0.84 and the threshold is 0.9, you do not lower the threshold, shorten the window to hide drift, or re-seed until it passes. You report 0.84, investigate the cause, and fix the physics or the threshold with justification. Doctoring the number is the thing that gets someone hurt.
-3. **"It ran without errors" is not success.** A Brian2 simulation that emits spikes is not a working VSA operation. Compare decoded output to the ground-truth computation and report the honest delta every time.
+3. **"It ran without errors" is not success.** A simulation that produces output is not a working VSA operation. Compare decoded output to the ground-truth computation and report the honest delta every time.
 4. **Negative results are required, not optional.** If an approach does not work, mark it as not working, explain why, and do not wire it into anything downstream. Silently keeping a broken module because "it runs" is the failure mode this rule is here to prevent.
 5. **If the spec and the implementation disagree, stop and resolve the disagreement explicitly.** Either the spec is wrong and needs updating, or the implementation is wrong and needs fixing. You do not ship code that contradicts the spec, and you do not ship a spec that contradicts the code. A commit that closes one side of this gap must say which side was wrong and why.
 6. **If you notice yourself taking a shortcut, stop mid-action and say so in plain text to the user.** Do not rationalize the shortcut with spec-citations or "pragmatic stopping points." The correct move when you catch yourself is to surface it, not to dress it up.
 
 When in doubt, the default is: **do the real operation on the real substrate, even if it's slower, harder, or uglier.** Faster and cleaner code that lies about what it does is strictly worse than slow honest code. The person on the other end of the biomedical pipeline cannot tell the difference between math you faked and math you didn't — but their body will.
 
-## The real substrate is the Shiu whole-brain LIF model
+## The fly-brain experimental backend was retired 2026-04-26
 
-From 2026-04-13 forward, the canonical substrate for this project is the **Shiu et al. 2024 whole-brain LIF model** (138,639 AlphaLIF neurons, 15,091,983 synapses, real FlyWire v783 W as the sparse connectivity matrix, Shiu's calibrated parameters). It lives at `C:/Users/Immanuelle/shiu-fly-brain` and runs on PyTorch CUDA via `run_pytorch.py`.
+Earlier sessions tried to compile Sutra programs to a connectome substrate — first the hemibrain MB, then the Shiu et al. 2024 whole-brain LIF model. That work produced informative negative findings (real FlyWire weight matrices do not function as rotation operators; CX ring-attractor circuits did not discriminate direction on real connectivity; etc.) which are preserved as historical record under `planning/findings/2026-04-1*-*` and `planning/findings/2026-04-2*-*`. The whole `fly-brain/` directory plus the `codegen_flybrain.py` backend were removed on 2026-04-26 — the substrate work outpaced the language's maturity, and keeping the half-finished compile-to-connectome path was clogging the repo without paying for itself.
 
-Every Sutra operation gets tried on this substrate, persistently, from scratch when needed. The small hemibrain MB (140 PN → 1,882 KC) was useful scaffolding, but the Shiu model is the real thing — it reproduces ground-truth fly spike activity at 91% accuracy, and if an operation doesn't work there, it doesn't work on a real connectome.
+The substrate work may resume once the language is more mature. Until then, the canonical compile target is **PyTorch on the frozen-LLM semantic subspace** (`codegen_pytorch.py`, runs on CPU or CUDA depending on what's available at module init).
 
-Rules:
-
-1. **Default target for any new operation test is the Shiu model**, not the hemibrain MB. If a test isn't runnable on Shiu (e.g. it requires MB-specific circuitry), say so explicitly and justify the smaller substrate.
-2. **Be persistent.** A first attempt that returns zero recurrence or a collapsed state is a data point, not a verdict. Try different protocols (drive rate, window length, drive targets, readout — cosine vs snap vs Jaccard vs bump-centroid). Record each as a finding; the negative results compound into a map of what the substrate does and doesn't implement.
-3. **Start from scratch when needed.** If an existing `fly-brain/*.py` script encodes assumptions that turned out wrong (e.g. polar-decomposition `Q` as "rotation on the connectome"), don't patch around them — write a new script that exercises the operation directly against Shiu with no inherited premise.
-4. **Every operation gets its turn on Shiu.** Bundle, bind, unbind, similarity, snap, permute, rotate, cone, hop, scalar multiplication, projection. Some already have Shiu results (bundle cos=0.97, snap 15/16, EPG rotation negative). The rest get scripts. The result — positive, negative, or marginal — is the honest research contribution.
+The safety-critical rules above still apply with full force — they're written in substrate-neutral terms now, but the "operations run where the spec says they run" rule is the single most load-bearing principle for the whole project, not just for the fly-brain experiment.
 
 ### Open design questions live in `planning/open-questions/`
 
@@ -46,14 +41,14 @@ The three planning/ sibling folders partition the work-adjacent writing cleanly:
 
 ## Project Overview
 
-**Sutra is a real, purely functional programming language with a working compiler and a pure-numpy matrix runtime.** `.su` source parses, validates, compiles to self-contained Python, and executes; three demonstration programs (hello world, fuzzy branching, role-filler record) run end-to-end with 23/23 outputs correct. The demo path has zero fly-brain imports. PyTorch/GPU is the next refactor target, not a dependency of anything today.
+**Sutra is a real, purely functional programming language with a working compiler and a PyTorch tensor-op runtime.** `.su` source parses, validates, compiles to self-contained Python, and executes; three demonstration programs (hello world, fuzzy branching, role-filler record) run end-to-end with 23/23 outputs correct. The runtime picks CUDA at module init if available, falling back to CPU otherwise.
 
 **Fly-brain is not the language's substrate.** The `fly-brain/` directory contains an attempted compile-to-connectome backend (Brian2 spiking simulation of the *Drosophila* mushroom body, plus scripts against the Shiu whole-brain model). That attempt produced interesting negative findings — the real FlyWire weight matrix does not function as a rotation operator, EPG ring-attractor circuits did not discriminate direction on real connectivity, etc. — documented in `planning/findings/`. It is a separate experimental target, not the primary runtime. Prior sessions repeatedly told the user "the fly-brain stuff works" when it did not; this framing is a corrective against that failure mode. If in doubt: the demo is numpy; fly-brain is segregated.
 
 ### The Sutra Pivot
 Prior relational-displacement work on frozen embedding spaces — published externally in the `latent-space-cartography` repo — is the empirical foundation. **Do not quote specific numerical claims about that work from this file; verify against the source itself.** Earlier versions of this CLAUDE.md contained two different r-values for the same result and two incompatible descriptions of the mxbai pathology, which Claude propagated into prose as if they were verified. They were not. Treat any specific number ("86 predicates," any r-value) as unverified until you read the source in `EmmaLeonhart/latent-space-cartography`.
 
-Sutra is the next step beyond that prior work: instead of just *discovering* relational structure in embedding spaces, *program* in them. The language, grammar, compiler, and runtime exist; `.su` source parses, validates, compiles to Python, runs on a pure-numpy backend. Hooking the numpy backend to a frozen LLM (currently `nomic-embed-text`, 768-d, mean-centered) is ongoing.
+Sutra is the next step beyond that prior work: instead of just *discovering* relational structure in embedding spaces, *program* in them. The language, grammar, compiler, and runtime exist; `.su` source parses, validates, compiles to Python, runs on the PyTorch tensor-op backend hooked to a frozen LLM (currently `nomic-embed-text`, 768-d, mean-centered).
 
 **Sutra** is named after the Sanskrit *sūtra* — thread/rule/aphorism, the word used for Pāṇini's foundational Sanskrit grammar.
 
@@ -154,19 +149,19 @@ The rule is flat. Every Sutra operation — bundle, bind, unbind, similarity, sc
 
 Numpy has exactly two legitimate roles:
 
-1. **Compilation.** Translating a Sutra program into substrate state — e.g. polar-decomposing a FlyWire weight matrix to get Q, building a codebook, laying out motif blocks, fitting thresholds, handing Q to Brian2 as `syn.w`. Happens before the run.
-2. **Monitoring.** Decoding and viewing substrate output — reading Brian2 membrane voltage, cosine against a reference prototype for reporting, plotting, verification. Happens around the run.
+1. **Compilation.** Translating a Sutra program into substrate state — building a codebook, laying out canonical-axis blocks, fitting thresholds, precomputing fused matrices for the runtime to load. Happens before the run.
+2. **Monitoring.** Decoding and viewing substrate output — cosine against a reference prototype for reporting, plotting, verification. Happens around the run.
 
-Numpy is **not** allowed as part of the runtime computation itself. `state = Q @ state` inside an iteration loop that is supposed to be eigenrotation on the connectome is the forbidden thing. A numpy result returned as the output of a Sutra operation, with a Brian2 simulation wrapped cosmetically around it, is a lie about what executed. Where a current implementation does this (e.g. `real_rotation_140D_jaccard.py` iterates rotation on numpy), that is a gap to close — and results produced that way must be reported as host-iterated, not as "rotation on the connectome."
+Numpy is **not** allowed as part of the runtime computation itself. The runtime is PyTorch tensor ops; numpy on the hot path is the forbidden thing. A numpy result returned as the output of a Sutra operation, with a torch wrapper around it cosmetically, is a lie about what executed.
 
 ### Eigenrotation loops (from control-flow.md)
 
-`loop (condition)` iterates `state ← R · state` on the substrate, projects the state through the substrate's cleanup to a KC pattern, and terminates when the pattern matches a compiled prototype by Jaccard overlap. The rotation runs on the substrate; the match runs on the substrate. Earlier spec language that said rotation could "accumulate on the host as `R^i v₀`" was a rationalization that got baked in when the tier framing was active. It is gone. If an implementation still computes `R^i v₀` on numpy, say so in the result as a limitation.
+`loop (condition)` iterates `state ← R · state` on the substrate, projects the state through the substrate's cleanup, and terminates when the cleaned state matches a compiled prototype. The rotation runs on the substrate; the match runs on the substrate. Earlier spec language that said rotation could "accumulate on the host as `R^i v₀`" was a rationalization that got baked in when the tier framing was active. It is gone.
 
 ### Forbidden shortcut behaviors
 
-- Running a Brian2 simulation, seeing *any* spikes, and declaring an operation "working" without comparing circuit output to what the spec says the op must compute. Example: a CX ring-attractor where left-drive and right-drive produced EPG profiles with correlation 0.969 — that's not rotation, that's undifferentiated activity; the result to report is "the circuit does not distinguish direction," not "it ran."
-- Tuning bias currents or drive amplitudes until numbers "look biological" without a principled physiological reason grounded in the specific circuit being modeled.
+- Declaring an operation "working" because *something* ran, without comparing the output to what the spec says the op must compute.
+- Tuning thresholds or parameters until the numbers "look right" without a principled justification grounded in the specific computation being modeled.
 - Implementing a spec-defined operation (`permute` shuffles dimensions) as something different (`vector * key` = sign-flip) and leaving it named after the spec operation it doesn't actually implement.
 - Declaring an experiment a success when it only confirms that *something happened*, rather than confirming the specific computational claim the spec defines.
 - Writing "algebraic," "pure math," "no infrastructure," "O(1) on the host," or "runs on host by spec" about any Sutra operation. Every one of those phrases has been used to justify runtime host-math and is now rejected framing.
@@ -180,7 +175,7 @@ Stop. Report what actually executed, including negative findings. Reference the 
 The specification is not aspirational documentation. It is the contract every operation implementation must satisfy. If the implementation drifts from the spec, **either the implementation is wrong or the spec needs updating** — and the choice between those two has to be made explicitly, with a commit message explaining which way the drift was resolved.
 
 ## Architecture and Conventions
-- **Stack:** Python + numpy + Ollama. The demo numpy backend currently uses `nomic-embed-text` (768-d, mean-centered); see `sdk/sutra-compiler/sutra_compiler/codegen_numpy.py` for the authoritative embedding config.
+- **Stack:** Python + PyTorch + Ollama. The runtime currently uses `nomic-embed-text` (768-d, mean-centered) as the embedding substrate; see `sdk/sutra-compiler/sutra_compiler/codegen.py` (CPU IR) and `codegen_pytorch.py` (the user-facing PyTorch backend) for the authoritative embedding config.
 - **Source data:** Wikidata API + SPARQL endpoint (for prior cartography work); Sutra itself does not require Wikidata.
 - **Planning docs:** `planning/` directory for design decisions and roadmap.
 
@@ -210,74 +205,37 @@ Breaking uniformity to optimize a local operation — e.g. extracting scalars fr
 
 If a review finds a runtime method that reads a component, does scalar arithmetic, and writes the result back, the fix is to rewrite the operation in tensor form, not to justify the extraction with "but the data is conceptually scalar."
 
-## Avoiding `fly-brain/` Python sprawl
+## Avoiding Python sprawl
 
-This has been a recurring, concrete problem. At audit time (2026-04-13)
-the `fly-brain/` directory held ~33 `.py` files including 10 `real_rotation_*.py`
-variants, multiple `experiment_*.py` files with zero inbound references,
-and `_exploratory_cx_ring_attractor.py` (a negative result that should
-have been in `planning/findings/`). The sprawl caused real losses:
-sessions rediscovered the same dead files over and over, edited the
-wrong variant, and lost time reasoning about which script was "current."
-The 2026-04-13 cleanup pass dropped `fly-brain/` from 33 to 15 `.py`
-files without losing any experimentally-backed result — the evidence
-that most of those files were duplicates accumulated over time, not
-distinct contributions.
+A recurring, concrete failure mode: sessions reach for "create a new
+file" when they should reach for "edit the existing file." A new
+variant feels safe (doesn't break the old one), but the graveyard of
+stale variants is what the sprawl-tax runs on. The retired `fly-brain/`
+directory was the canonical example — at peak it held ~33 `.py` files
+including 10 `real_rotation_*.py` copy-paste branches, multiple
+zero-reference `experiment_*.py` files, and exploratory negative-
+result scripts that should have lived under `planning/findings/`.
 
-**The underlying pattern:** sessions reach for "create a new file"
-when they should reach for "edit the existing file." A new variant
-feels safe (doesn't break the old one), but the graveyard of stale
-variants is exactly what the sprawl-tax runs on. Edit in place;
-use git to preserve the old state if needed. The `real_rotation_*.py`
-family and the `experiment_*.py` family are both artifacts of this
-failure mode — each was a copy-paste branch that should have been a
-flag or a parameter on the original.
+Rules to prevent this from happening again:
 
-Rules for new Python work under `fly-brain/` (and anywhere else in
-the repo — this generalizes):
-
-1. **Do not copy-paste a script to make a variant.** If `real_rotation_epg_loop.py`
-   needs to be tried with Jaccard readout, add a flag or a parameter,
-   do not create `real_rotation_epg_loop_jaccard.py`. The existing
-   `real_rotation_*.py` family is technical debt, not a template to
-   extend — consult `fly-brain/ROTATION-MANIFEST.md` before adding a
-   new rotation file, and if you do add one, update the manifest in
-   the same commit.
+1. **Do not copy-paste a script to make a variant.** If a script
+   needs to be tried with a different parameter, add a flag or
+   parameter, don't create `script_v2.py`.
 2. **Exploratory / negative-result scripts go in `planning/findings/`
-   or `planning/exploratory/`**, not in `fly-brain/` with a `_`
-   prefix or a "do not import" docstring. If an experiment doesn't
-   work, the result plus the code both belong under `planning/findings/`
-   per the rules in `planning/findings/README.md`. A living `fly-brain/`
-   file implies "this is used by the test suite / the substrate" —
-   exploratory code does not meet that bar.
-3. **Every new `.py` in `fly-brain/` gets a docstring-first line that
-   states (a) what it does, (b) what calls it (test file, CLI entry
-   point, or "standalone experiment — will move to planning/findings/
-   if not wired up within one session").** A file with no docstring
-   stating its role is the first kind of dead weight the audit catches.
+   or `planning/exploratory/`**, not in the runtime tree with a `_`
+   prefix or a "do not import" docstring. A file in the runtime tree
+   implies "this is used" — exploratory code does not meet that bar.
+3. **Every new `.py` gets a docstring-first line that states (a) what
+   it does, (b) what calls it.** A file with no docstring stating its
+   role is the first kind of dead weight an audit catches.
 4. **Before adding a new `test_*.py`, check whether it is discovered
-   by a real test runner.** Several existing `test_*.py` under
-   `fly-brain/` are zero-reference and may not be run by CI at all —
-   they only exist because someone wrote them and moved on. A new
-   test file that nothing runs is worse than no test at all because it
-   rots and lies. If you're adding a test, wire it into the same
-   runner as `sdk/sutra-compiler/tests/` or clearly document the
-   manual invocation.
+   by a real test runner.** A test file that nothing runs is worse
+   than no test at all because it rots and lies. Wire new tests into
+   the same runner as `sdk/sutra-compiler/tests/` or clearly document
+   the manual invocation.
 5. **When an experiment is closed or superseded, delete the file or
    move it.** Do not leave it with a "DEPRECATED" comment and hope a
    future session does the cleanup.
-
-This rule-set is what prevents the 2026-04-13 cleanup from becoming
-a recurring task instead of a one-shot.
-
-## FlyWire connectome data — storage layout
-The full FlyWire v783 connectome is stored in **two locations on purpose:**
-- **`C:\Users\Immanuelle\flybrain\`** — authoritative copy, **outside this repo**. 14 GB including skeletons and the synapse table. Survives repo rebases, resets, fresh clones.
-- **`fly-brain/flywire_data/`** — working mirror inside the repo, **gitignored**. Only the small essential CSVs (~74 MB total).
-
-**Why both:** The in-repo copy can vanish during resets. The external copy is what you trust long-term. On a fresh clone, copy the small files from `C:\Users\Immanuelle\flybrain\` back into `fly-brain/flywire_data/` — instructions also live in `fly-brain/FLYWIRE_SETUP.md` and in `C:\Users\Immanuelle\flybrain\README.md`.
-
-Use `fly-brain/flywire_loader.py` to load the data. It resolves the directory in order: `$FLYWIRE_DATA_DIR` env var → repo mirror → external copy. First run parses CSVs (~3 s), subsequent runs use `flywire_cache.npz` (<1 s).
 
 ## Repo Structure
 - **`sdk/`** — compiler, IntelliJ plugin, VS Code extension
@@ -285,7 +243,6 @@ Use `fly-brain/flywire_loader.py` to load the data. It resolves the directory in
 - **`planning/sutra-spec/`** — Sutra language specification
 - **`planning/sutra-pivot.md`** — Full pivot design document
 - **`planning/findings/`** — dated experimental findings (negative and positive)
-- **`fly-brain/`** — experimental substrate code (Brian2 MB + Shiu whole-brain)
 - **`sutraDB/`** — SutraDB subtree (triple store)
 - **`docs/`** — MkDocs site for the language
 

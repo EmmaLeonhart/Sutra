@@ -10,7 +10,7 @@ Each tutorial is a single `.su` file plus a walkthrough explaining what it does 
 2. **[Bind and unbind](02-bind-and-unbind.md)** — the two operations that make Sutra useful. Why the sign-flip binding default beats the textbook Hadamard product on natural embedding spaces.
 3. **[Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup step. How long Sutra computations stay numerically stable instead of degrading into noise.
 
-That's it for v1 of the tutorials. More are coming as we go: cone traversal, fuzzy conditionals, the IntelliJ debugger walkthrough, the fly-brain substrate, and the embedding-space visualizer pane once it ships.
+That's it for v1 of the tutorials. More are coming as we go: cone traversal, fuzzy conditionals, the IntelliJ debugger walkthrough, and the embedding-space visualizer pane once it ships.
 
 ## Prerequisites
 

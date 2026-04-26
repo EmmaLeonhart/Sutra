@@ -11,7 +11,7 @@
 //   - single-entry map literal
 //   - multi-entry map literal with mixed key/value shapes
 //   - map literal as a function argument
-//   - vector keys (the fly-brain prototype-table shape)
+//   - vector keys (the prototype-table shape)
 
 function vector Proto(string label) {
     return snap(embed(label));
@@ -22,9 +22,9 @@ vector proto_PF = Proto("ignore");
 vector proto_AH = Proto("search");
 vector proto_AF = Proto("idle");
 
-// Vector-keyed map, the shape used by
-// fly-brain/permutation_conditional.su to map prototype vectors to
-// behavior names. Keys are expressions, not just identifiers.
+// Vector-keyed map: the permutation-conditional shape used to map
+// prototype vectors to behavior names. Keys are expressions, not
+// just identifiers.
 map<vector, string> BEHAVIOR_OF = {
     proto_PH: "approach",
     proto_PF: "ignore",

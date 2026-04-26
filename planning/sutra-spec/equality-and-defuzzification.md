@@ -105,11 +105,11 @@ reserved for computational state, orthogonal by construction to
 the semantic content. This works naturally for numpy / embedding-
 vector substrates: you just allocate a longer vector.
 
-Some substrates cannot append dimensions cheaply. The fly-brain
-Shiu whole-brain LIF model, for instance, has a fixed neuron
-population with no spare "computational" neurons reserved for
-synthetic axes. For substrates like these, the **undersymbolic
-realm** approach is the fallback:
+Some substrates cannot append dimensions cheaply. A neuromorphic
+target with a fixed-size population (the retired fly-brain
+substrate was an example) has no spare "computational" neurons
+reserved for synthetic axes. For substrates like these, the
+**undersymbolic realm** approach is the fallback:
 
 LLM embedding spaces are **anisotropic**: natural-language content
 concentrates in a cone (or a narrow manifold) that occupies only

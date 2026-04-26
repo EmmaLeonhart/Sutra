@@ -203,8 +203,7 @@ KEYWORDS = {
 # `permutation` is a vector at the substrate level (a fixed ±1
 # sign-flip mask) but it's a distinct compile-time type: the
 # operations on it (compose, invert, act on a vector) are different
-# from the operations on a plain vector. The fly-brain compile-to-brain
-# strategy relies on this distinction — see `fly-brain/STATUS.md`.
+# from the operations on a plain vector.
 #
 # `map` is a built-in generic collection type, written as
 # `map<K, V>` in type position. It's listed here so the validator

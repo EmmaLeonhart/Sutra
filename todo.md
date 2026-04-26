@@ -483,7 +483,7 @@ exposition.
   example.
 - **Methods** — parsed (`MethodDecl` AST node, `method` keyword
   in lexer). **Rejected at codegen** with "method declarations
-  are not supported by the V1 fly-brain codegen." Surface syntax
+  are not supported by the V1 codegen." Surface syntax
   exists; no method ever actually runs. `examples/uncertain/01-
   objects-and-methods.su` shows the intended shape and explicitly
   fails to run.

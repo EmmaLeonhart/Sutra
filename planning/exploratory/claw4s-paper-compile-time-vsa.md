@@ -120,9 +120,10 @@ still produces program-shaped output, not closed-form values.
 with prototype-match termination. There is no program counter at
 runtime; the "iteration count" is the angular position on the
 helix `R^i · v_0` traced through the substrate's state space.
-Termination is a Jaccard match against a compiled prototype,
-which itself runs on the substrate (in the fly-brain backend, on
-spiking Kenyon-cell sparse codes).
+Termination is a similarity match against a compiled prototype,
+which itself runs on the substrate (Jaccard on Kenyon-cell sparse
+codes in the retired fly-brain backend; cosine on the current
+PyTorch backend).
 
 Spec: `planning/sutra-spec/control-flow.md` § "loop(cond)" and
 `docs/loops.md`. Empirical validation: 30/30 across k ∈

@@ -2,35 +2,36 @@
 
 The primitive operations the compiler recognizes as builtins are
 listed below. The BUILTINS table in
-`sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py` is the
+`sdk/sutra-compiler/sutra_compiler/codegen_base.py` is the
 authoritative list; this section describes what each does and
-which backends support it.
+where it currently runs.
 
-## The builtin set (as of 2026-04-22)
+## The builtin set (as of 2026-04-26)
 
-| Op | Arity | Purpose | Numpy backend | Fly-brain backend |
-|---|---|---|---|---|
-| `basis_vector` | 1 | String → vector via the substrate's embedder | ✓ (Ollama) | ✓ (MB prototype) |
-| `bind` | 2 | Rotation binding: `Q_role @ filler` | ✓ | ✓ |
-| `unbind` | 2 | Inverse rotation: `Q_role^T @ record` | ✓ | ✓ |
-| `bundle` | variadic ≥ 1 | Superposition: `sum(vs) / norm(sum(vs))` | ✓ | ✓ |
-| `displacement` | 2 | Vector subtraction: `a - b` | ✓ | ✓ |
-| `similarity` | 2 | Cosine similarity | ✓ | ✓ |
-| `argmax_cosine` | 2 | Cleanup: nearest codebook entry by cosine | ✓ | ✓ |
-| `select` | 2 | Softmax-weighted superposition over named options | ✓ | ✓ |
-| `compose` | 2 | Pointwise multiply (sign-flip permutation composition) | ✓ | ✓ |
-| `permute` | 2 | Sign-flip permutation (legacy; see below) | ✓ | ✓ |
-| `permutation_key` | 1 | Sign-flip key derivation | ✓ | ✓ |
-| `identity_permutation` | 0 | `ones(d)` sign-flip identity | ✓ | ✓ |
-| `snap` | 1 | Cleanup against a real attractor circuit | ✗ rejected | ✓ |
-| `make_rotation` | 1–2 | Build a Haar-random rotation matrix | ✗ rejected | ✓ |
-| `compile_prototypes` | 1 | Compile a codebook to MB KC patterns | ✗ rejected | ✓ |
-| `geometric_loop` | 3–4 | Eigenrotation loop with prototype matching | ✗ rejected | ✓ |
+| Op | Arity | Purpose | Backend status |
+|---|---|---|---|
+| `basis_vector` | 1 | String → vector via the substrate's embedder | ✓ (Ollama) |
+| `bind` | 2 | Rotation binding: `Q_role @ filler` | ✓ |
+| `unbind` | 2 | Inverse rotation: `Q_role^T @ record` | ✓ |
+| `bundle` | variadic ≥ 1 | Superposition: `sum(vs) / norm(sum(vs))` | ✓ |
+| `displacement` | 2 | Vector subtraction: `a - b` | ✓ |
+| `similarity` | 2 | Cosine similarity | ✓ |
+| `argmax_cosine` | 2 | Cleanup: nearest codebook entry by cosine | ✓ |
+| `select` | 2 | Softmax-weighted superposition over named options | ✓ |
+| `compose` | 2 | Pointwise multiply (sign-flip permutation composition) | ✓ |
+| `permute` | 2 | Sign-flip permutation (legacy; see below) | ✓ |
+| `permutation_key` | 1 | Sign-flip key derivation | ✓ |
+| `identity_permutation` | 0 | `ones(d)` sign-flip identity | ✓ |
+| `snap` | 1 | Cleanup against a real attractor circuit | ✗ rejected (no cleanup circuit) |
+| `make_rotation` | 1–2 | Build a Haar-random rotation matrix | ✗ rejected (substrate-level) |
+| `compile_prototypes` | 1 | Compile a codebook to substrate-readable patterns | ✗ rejected (substrate-level) |
+| `geometric_loop` | 3–4 | Eigenrotation loop with prototype matching | ✗ rejected (substrate-level) |
 
-The numpy backend rejects four builtins because they require a
-real attractor / cleanup circuit (mushroom-body spiking model)
-that the pure-numpy substrate doesn't have. Programs that use
-them must target the fly-brain backend.
+The four rejected builtins require a real attractor / cleanup
+circuit that the current pure-tensor PyTorch substrate doesn't
+have. They were operational on the retired fly-brain backend; on
+the current backend, programs that use them are rejected at
+codegen time.
 
 ## Binding (semantic + rotation)
 
@@ -89,8 +90,9 @@ available cheaply may dominate the choice eventually.
   with the highest cosine similarity to the query. Pure-numpy
   operation, always available, what the demo path uses.
 - `snap(v)` — symbolic "cleanup to the nearest attractor" on a
-  substrate that actually has one (MB cleanup circuit on
-  fly-brain). Rejected on the numpy backend.
+  substrate that actually has one. No such substrate is currently
+  wired in the compiler, so it is rejected at codegen time on the
+  PyTorch backend.
 
 Whether the language should expose a single name that lowers
 differently per substrate (so a program written with `snap` runs

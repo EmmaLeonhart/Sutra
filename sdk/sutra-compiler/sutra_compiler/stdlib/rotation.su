@@ -56,8 +56,8 @@
 // eigenrotation loop — what `loop(condition)` / `while` compile to.
 // Takes a state vector, a rotation matrix, and a compiled prototype
 // codebook; iterates `state = R @ state` until the state matches a
-// prototype by the substrate's cleanup metric (Jaccard on KC patterns
-// in fly-brain; cosine on the default CPU runtime).
+// prototype by the substrate's cleanup metric (cosine on the default
+// CPU runtime).
 //
 //   function (string, vector, int) eigenrotation_loop(
 //       vector initial_state,

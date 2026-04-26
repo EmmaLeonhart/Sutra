@@ -1,6 +1,5 @@
-// Sutra corpus test: fly-brain style four-state conditional.
-// Mirrors the fly-brain/four_state_conditional.su demo — this is the
-// canonical test for fuzzy-axis branching via nested defuzzy calls.
+// Sutra corpus test: four-state conditional via nested defuzzy.
+// Canonical test for fuzzy-axis branching with snap-cleaned inputs.
 
 function vector SmellInput() {
     return embed("vinegar");

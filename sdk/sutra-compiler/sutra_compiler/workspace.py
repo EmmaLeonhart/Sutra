@@ -85,7 +85,7 @@ class WorkspaceError(Exception):
 # ============================================================
 
 
-VALID_SUBSTRATES = frozenset({"silicon", "fly-brain", "logit"})
+VALID_SUBSTRATES = frozenset({"silicon", "logit"})
 PROJECT_NAME_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_-]*$")
 
 

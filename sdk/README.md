@@ -54,7 +54,7 @@ From the repo root:
 
 ```bash
 cd sdk/sutra-compiler
-python -m sutra_compiler ../../examples ../../fly-brain
+python -m sutra_compiler ../../examples
 ```
 
 This walks every `.su` file under the given paths and reports any
@@ -64,7 +64,7 @@ lexical, syntactic, or semantic issues in the standard
 ### Check cross-file consistency
 
 ```bash
-python -m sutra_compiler --consistency ../../examples ../../fly-brain
+python -m sutra_compiler --consistency ../../examples
 ```
 
 Reports class names that appear in multiple casings across the file

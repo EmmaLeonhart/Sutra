@@ -60,7 +60,7 @@ When the compiler reads a `.su` source file, it produces:
 - A **pattern table** — the combinations of concepts the brain should recognize when they appear at its input.
 - A **behavior set** — the outputs the brain should produce when each pattern matches.
 - If the program has loops, a **rotation operator** — a single matrix whose repeated application walks the internal state forward one step at a time.
-- The fixed **wiring** of the chosen substrate (which, for the fly-brain target, is the real synapses of a real animal).
+- The fixed **wiring** of the chosen substrate.
 
 Taken together, this is the starting state of the machine. Everything is fixed before the first input arrives. When an input does arrive, the substrate runs its own dynamics — the input combines with the prepared concepts, the pattern-recognition circuitry fires on whichever match is closest, and the matching behavior comes out as the answer.
 
@@ -70,11 +70,10 @@ The compiler's work is done at that point. What we call "running the program" is
 
 The same compiled program is designed to run on different substrates without you changing the source:
 
-- **Your laptop (numpy).** Fast, predictable, for development. The vector math is plain linear algebra.
-- **A simulated spiking neural network (Brian2).** The same math, now realized as populations of simulated neurons firing through synaptic weights. Slower, noisier, biologically plausible.
-- **A real fly connectome.** The Janelia hemibrain data set: real synaptic wiring from a real fruit fly's mushroom body. The pattern-matching step is performed by the actual circuit a fly uses to decide whether a smell is familiar.
+- **Your laptop (PyTorch on CPU).** Fast, predictable, for development. The vector math is plain linear algebra.
+- **A GPU (PyTorch on CUDA).** The same math, executed as straight-line tensor ops. The runtime picks CUDA at module init if it's available.
 
-Switching between these is a single setting, not a rewrite. The long-term target — out of scope for the current research papers but guiding the design — is living neurons and neuromorphic hardware whose wiring has been specified to match a connectome.
+Switching between these is a single setting, not a rewrite. The long-term target — out of scope for the current research papers but guiding the design — is alternative substrates (neuromorphic hardware, sparse-spiking accelerators) whose wiring matches the tensor-op shape Sutra compiles to.
 
 ## Sutra has no control flow
 

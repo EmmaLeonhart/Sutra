@@ -76,11 +76,11 @@ function fuzzy neq(vector a, vector b) {
 
 
 // snap — cleanup to nearest stored pattern. The canonical "lookup"
-// operation on a memory substrate. Implemented by the fly-brain
-// backend via spiking MB cleanup; not supported on the default CPU
-// runtime. See `planning/sutra-spec/operations.md` for the semantic
-// contract — cleanup is a substrate-level primitive, not composable
-// from other Sutra ops.
+// operation on a memory substrate. Not supported on the default CPU
+// runtime — requires a substrate-level cleanup circuit. See
+// `planning/sutra-spec/operations.md` for the semantic contract —
+// cleanup is a substrate-level primitive, not composable from other
+// Sutra ops.
 
 
 // ==========================================================================

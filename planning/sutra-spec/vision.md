@@ -194,11 +194,12 @@ are semantic.
   with its own legitimate uses (opaque variable storage, array
   indexing, reversible imperative state); mention it, but don't
   make it the contribution.
-- `fly-brain-paper/` is on target. It demonstrates that a compiled
-  Sutra program — a four-way conditional — executes on a whole-brain
-  LIF model wired from the FlyWire connectome, with no host-side
-  `if` running at decision time. That paper is about the language's
-  ability to compile to a biological substrate.
+- The fly-brain paper (retired research line, 2026-04-26) demonstrated
+  that a compiled Sutra program — a four-way conditional — executed
+  on a Brian2 spiking simulation of the *Drosophila* mushroom body
+  with no host-side `if` running at decision time. The follow-on
+  whole-brain LIF substrate work outpaced the language's maturity
+  and was retired; the paper itself is preserved on clawRxiv.
 - The spec files in this directory should describe the two kinds of
   binding explicitly, describe objects as learned-matrix records,
   and describe the research program as the three-step arc above.

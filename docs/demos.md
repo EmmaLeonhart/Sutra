@@ -45,8 +45,7 @@ No control flow. No `if`, no `while`, no `for`, no `switch`. Every branch in eve
 
 - **`loop(condition)`** — implemented in the compiler, not yet exercised in the demo corpus. A data-dependent eigenrotation demo is future work.
 - **Real LLM embeddings** — the compiler uses fresh random basis vectors. Wiring `embed("string")` to an actual embedding model is a separate project; the companion paper *Sign-Flip Binding and Vector Symbolic Operations on Frozen LLM Embedding Spaces* characterizes which operations survive that transition.
-- **Gradient training** — needs the PyTorch backend. The emitted code is already matrix-only, so the port is mechanical.
-- **Connectome execution** — the fly-brain substrate is a separate open research question; see the *Running Sutra on the Drosophila Hemibrain Connectome* companion paper for what does and does not transfer.
+- **Gradient training** — needs autograd hooks on the PyTorch backend. The emitted code is already matrix-only, so the path is mechanical, just not yet wired.
 
 ## Reading the source
 

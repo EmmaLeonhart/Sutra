@@ -1,9 +1,12 @@
-# NumpyCodegen inherits from FlyBrainCodegen
+# NumpyCodegen inherits from FlyBrainCodegen (archived)
 
 **Opened:** 2026-04-23.
 **Resolved:** 2026-04-23 (same day, after user reiterated that the
 inheritance was an actual-lie-class-problem rather than a
 theoretical concern).
+**Superseded:** 2026-04-26 — the fly-brain backend itself was
+retired, so the inheritance concern is now moot. Doc retained as
+historical record of the refactor that did happen.
 
 ## Resolution
 

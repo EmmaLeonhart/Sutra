@@ -10,7 +10,7 @@ The 📜 scroll is Sutra's project-wide branding — the Sanskrit *sūtra* is li
 
 **Sutra has no control flow.** Every branch is a continuous weighted blend (`select`, softmax over options), every loop is a geometric rotation, and every loop exit is a gate on a defuzzified trajectory state — not a jump, not a back-branch. Two primitives (`select` and `gate`) replace the entire `if`/`else`/`while`/`for`/`switch` family. Because nothing compiles to a machine branch, programs lower to sequences of tensor operations — matmuls, elementwise ops, cosines — which makes the compilation target **GPU-native** in principle (no branch predictor, no divergent warps) and **end-to-end differentiable** (the things that normally break backprop are not in the language). See [`planning/sutra-spec/26-select-and-gate.md`](planning/sutra-spec/26-select-and-gate.md) for the canonical framing.
 
-The working runtime today is **pure numpy on CPU** (`sdk/sutra-compiler/sutra_compiler/codegen_numpy.py`). The same compiler pipeline admits a PyTorch/GPU backend as a refactor target — the generated code is already matrix-only, so the port is mechanical. A separate experimental backend targets a *Drosophila* mushroom-body spiking simulator; that work lives in [`fly-brain/`](fly-brain/) and is not the language's substrate or the primary demo.
+The working runtime today is a **PyTorch tensor-op backend** (`sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py`) that picks CUDA at module init if available and falls back to CPU otherwise. The generated code is straight-line tensor operations — matmul, elementwise ops, cosine — which makes both targets viable without changing the source.
 
 The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," the word used for Pāṇini's foundational grammar of Sanskrit. A programming language descended etymologically from the earliest known formal grammar is a better fit than the language's original name (*ākaśa*, "aether/space"), which is preserved throughout `DEVLOG.md` and the `chats/` archive as the earlier identity. The rename happened on 2026-04-11 — see the DEVLOG entry for that date for the full commit-by-commit breakdown.
 
@@ -22,12 +22,11 @@ The name comes from the Sanskrit *sūtra* — "thread" / "rule" / "aphorism," th
 
 | Directory | What it is |
 |---|---|
-| [`fly-brain/`](fly-brain/) | Experimental compile-to-connectome backend: Brian2 LIF circuit, hypervector ↔ spike bridge, `FlyBrainVSA` class. Segregated from the language's demo path — an alternative substrate, not the primary runtime. |
-| [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, validator, two codegen backends: `codegen_numpy.py` (demo path, self-contained matrix ops) and `codegen_flybrain.py` (fly-brain-specific). CLI: `python -m sutra_compiler`. |
+| [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, validator, codegen pipeline: `codegen.py` (CPU IR) and `codegen_pytorch.py` (the user-facing PyTorch backend, picks CUDA at module init). CLI: `python -m sutra_compiler`. |
 | [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin (v0.2 scaffold). Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or, from the repo root, `!editor.bat`. |
 | [`sdk/vscode-sutra/`](sdk/vscode-sutra/) | Lighter VS Code extension — TextMate grammar + snippets. The IntelliJ plugin is the reference IDE; this is the convenience option. |
 | [`planning/sutra-spec/`](planning/sutra-spec/) | The language specification: design principles, operation model, control flow, type system, runtime architecture, lambda calculus encoding, Turing-completeness argument, embedding pathologies, IDE architecture, VSA builtins. |
-| [`planning/`](planning/) | Architecture/strategy docs (sutra pivot, fly-brain architecture, open questions, findings). |
+| [`planning/`](planning/) | Architecture/strategy docs (sutra pivot, open questions, findings). |
 | [`examples/`](examples/) | Hand-written `.su` source examples — language tour. |
 | [`docs/`](docs/) | Source for the GitHub Pages website at <https://emmaleonhart.github.io/Sutra>. |
 | [`scripts/`](scripts/) | Repo-wide scripts (chat extractor, utilities). |

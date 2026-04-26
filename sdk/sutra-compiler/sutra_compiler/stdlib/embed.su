@@ -40,10 +40,6 @@
 // basis_vector is an alias for embed with a different spelling (VSA-
 // role allocation vs. pure embedding). Both hit the same intrinsic.
 //
-// The fly-brain backend reroutes embed to a random-vector fallback
-// for programs that target the spiking substrate without an LLM.
-// That branch is backend-specific and lives outside this file.
-//
 // ==========================================================================
 
 intrinsic function vector embed(string s);
