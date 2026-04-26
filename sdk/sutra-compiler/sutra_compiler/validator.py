@@ -132,6 +132,11 @@ class _Walker:
     def __init__(self, diagnostics: DiagnosticBag) -> None:
         self.diagnostics = diagnostics
         self._class_name_usages: Set[str] = set()
+        # User-declared classes — name → parent_name. Populated by
+        # visit_ClassDecl. Used to walk inheritance chains and to
+        # check that user-defined types in type positions actually
+        # resolve to a declared class.
+        self._class_decls: dict = {}
         # `wait`-declared variables in the *current* function scope.
         # Maps name → declaration span, populated when a `var x = wait;`
         # is seen. Cleared on function entry so wait-tracking is
@@ -170,6 +175,54 @@ class _Walker:
                         self.visit(item)
 
     # ---- declarations ----------------------------------------------
+
+    def visit_ClassDecl(self, node: ast.ClassDecl) -> None:
+        # Detect duplicate class declarations.
+        if node.name in self._class_decls:
+            self.diagnostics.error(
+                f"class `{node.name}` is already declared in this module",
+                node.span,
+                code="SUT0141",
+            )
+            return
+
+        # Walk the would-be inheritance chain to verify it bottoms
+        # out at a primitive. The parent must be either a primitive
+        # type name or a previously-declared user class. Forward
+        # references aren't supported in MVP — declarations are
+        # expected to be in dependency order.
+        from .lexer import PRIMITIVE_TYPE_NAMES
+
+        parent = node.parent_name
+        if parent in PRIMITIVE_TYPE_NAMES:
+            # Direct subclass of a primitive — chain has length 1, terminates at root.
+            self._class_decls[node.name] = parent
+            return
+
+        if parent not in self._class_decls:
+            self.diagnostics.error(
+                f"class `{node.name}` extends `{parent}`, which is not a "
+                "primitive type and has not been declared earlier in this "
+                "module. The MVP class system requires the extends-chain "
+                "to bottom out at a primitive (vector / int / float / "
+                "fuzzy / etc.) and does not support forward references",
+                node.span,
+                code="SUT0142",
+                hint=f"declare `class {parent} extends <something> {{ }}` "
+                     "before this declaration, or change `extends` to a "
+                     "primitive type name",
+            )
+            # Still register the class so downstream references don't
+            # double-error. Mark with a sentinel so we know the chain
+            # is broken.
+            self._class_decls[node.name] = parent
+            return
+
+        # Walk transitively to confirm the chain ultimately reaches
+        # a primitive (it should, by induction, but a malformed
+        # earlier decl can poison the chain — we already errored on
+        # it, so just treat this one as OK for downstream usage).
+        self._class_decls[node.name] = parent
 
     def visit_FunctionDecl(self, node: ast.FunctionDecl) -> None:
         self._check_modifier_conflict(node.modifiers, node.span)

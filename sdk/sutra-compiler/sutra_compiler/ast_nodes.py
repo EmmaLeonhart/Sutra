@@ -427,12 +427,32 @@ class MethodDecl(Node):
     is_operator: bool = False
 
 
+@dataclass
+class ClassDecl(Node):
+    """`class Name extends Parent { ... }` — user-defined ontology
+    class.
+
+    MVP scope (2026-04-25): empty body, single inheritance, extends
+    is required, the extends-chain must bottom out at a primitive
+    class (vector / int / float / fuzzy / etc.). Methods, fields,
+    operator implementations inside the body are deferred — see
+    `todo.md` § "Ontology — make the class system real."
+
+    At runtime an instance of a user class is a plain vector. The
+    declaration is purely compile-time metadata: the validator
+    registers the class name and uses the extends-chain to resolve
+    type-position references. Codegen skips ClassDecl nodes.
+    """
+    name: str
+    parent_name: str  # the `extends` target — required in MVP
+
+
 # ============================================================
 # Module
 # ============================================================
 
 
-TopLevel = Union[FunctionDecl, MethodDecl, VarDecl, Stmt]
+TopLevel = Union[FunctionDecl, MethodDecl, VarDecl, Stmt, ClassDecl]
 
 
 @dataclass
