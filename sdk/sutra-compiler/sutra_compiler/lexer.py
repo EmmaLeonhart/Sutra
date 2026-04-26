@@ -133,6 +133,14 @@ class TokenKind(Enum):
     # docs/ontology.md.
     KW_CLASS = auto()
     KW_EXTENDS = auto()
+    # `slot TYPE name = expr;` — rotation-bound storage in the
+    # synthetic subspace. Each slot declaration gets a dedicated 2D
+    # Givens plane allocated by the compiler. Runtime primitives
+    # (slot_store / slot_load / rotate_slot) landed 2026-04-24; the
+    # codegen integration that threads state through function scopes
+    # is the remaining work, tracked in STATUS.md "Pre-YC: Sutra
+    # surface syntax for slot primitives."
+    KW_SLOT = auto()
 
     # ---- special ----
     EOF = auto()
@@ -171,6 +179,7 @@ KEYWORDS = {
     "intrinsic": TokenKind.KW_INTRINSIC,
     "class": TokenKind.KW_CLASS,
     "extends": TokenKind.KW_EXTENDS,
+    "slot": TokenKind.KW_SLOT,
     "true": TokenKind.TRUE,
     "false": TokenKind.FALSE,
     # `unknown` — the neutral point on the truth axis (0.0 between

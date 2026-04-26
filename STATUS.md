@@ -171,14 +171,19 @@ Adjacent prior art worth knowing when this lands:
 Follow-ups surfaced during the 2026-04-24 pre-Anthropic-grant-app
 sprint that aren't urgent-next but should land pre-YC:
 
-1. **Sutra-language surface syntax for slot primitives.** The
-   runtime (`slot_store` / `slot_load` / `rotate_slot` on `_VSA`)
-   landed 2026-04-24 and passes all four reversibility tests — but
-   there is no `.su` syntax that compiles to them. Pick a surface
-   (`var x : int = 0;` with the compiler allocating a slot? an
-   explicit `slot[N] x;` declaration? `@slot` annotation?) and wire
-   it through parser + validator + codegen. Unlocks the
-   imperative-reversible demo programs.
+1. **Sutra-language surface syntax for slot primitives.** Surface
+   landed 2026-04-25 — `slot TYPE name [= expr];` parses, validates,
+   and IDE-highlights cleanly. The codegen integration that threads
+   slot state through function scopes is the remaining work and
+   rejects with SUT0150 ("slot declaration is parsed but the codegen
+   integration ... isn't wired yet") so user programs can be written
+   against the surface today and fail fast at compile time. Full
+   codegen integration is the actual blocker for the imperative-
+   reversible demo and is roughly 200 lines of compiler work — needs
+   a per-scope state vector, transformation of slot-name reads to
+   `slot_load` calls and slot-name writes to `slot_store`-then-
+   reassign. Pick this up alongside the imperative-reversible demo
+   work below.
 
 2. ~~**Spec-text refresh for the synthetic-subspace design.**~~
    DONE 2026-04-25. `planning/sutra-spec/binding.md` § "Rotation

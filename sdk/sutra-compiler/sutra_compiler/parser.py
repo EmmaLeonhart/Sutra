@@ -257,6 +257,18 @@ class Parser:
                     code="SUT0101",
                 )
             return self._parse_class_decl()
+        if tok.kind is TokenKind.KW_SLOT:
+            # `slot TYPE name = expr;` — only legal at function scope
+            # in the MVP, but the parser doesn't enforce that today.
+            # Modifiers aren't supported on slot decls.
+            if mods.is_public or mods.is_private or mods.is_static:
+                self.diagnostics.error(
+                    "modifiers (`public`/`private`/`static`) are not "
+                    "supported on slot declarations",
+                    tok.span,
+                    code="SUT0101",
+                )
+            return self._parse_slot_decl()
 
         # No function/method. Modifiers only make sense on those, so if
         # we saw any, that's an error; rewind and try as a statement.
@@ -479,6 +491,47 @@ class Parser:
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
+    def _parse_slot_decl(self) -> Optional[ast.VarDecl]:
+        """Parse `slot TYPE name [= expr];` — rotation-bound storage
+        in the synthetic subspace.
+
+        The runtime primitives (slot_store / slot_load / rotate_slot)
+        are wired in `_VSA`; the codegen integration that threads slot
+        state through function scopes is deferred. The parser accepts
+        the form and the codegen rejects with SUT0150 pointing at the
+        STATUS.md entry.
+        """
+        start_span = self._current_span()
+        self._expect(TokenKind.KW_SLOT, "`slot`")
+
+        # `slot TYPE name = expr;` — TYPE is required (slot decls
+        # always carry an explicit type because the synthetic-subspace
+        # plane allocation is per-type-shape).
+        type_ref = self._parse_type()
+        if type_ref is None:
+            self._skip_to_statement_boundary()
+            return None
+        name_tok = self._expect(TokenKind.IDENT, "slot variable name")
+        if name_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        init: Optional[ast.Expr] = None
+        if self._match(TokenKind.ASSIGN):
+            init = self._parse_expr()
+
+        end = self._expect(TokenKind.SEMICOLON, "`;` after slot declaration")
+        end_span = end.span if end else self._current_span()
+        return ast.VarDecl(
+            is_const=False,
+            is_var_inferred=False,
+            type_ref=type_ref,
+            name=name_tok.lexeme,
+            initializer=init,
+            span=SourceSpan(start=start_span.start, end=end_span.end),
+            is_slot=True,
+        )
+
     def _parse_operator_decl(
         self,
         mods: ast.Modifiers,
@@ -673,6 +726,8 @@ class Parser:
             return self._parse_return()
         if tok.kind in (TokenKind.KW_VAR, TokenKind.KW_CONST):
             return self._parse_var_or_const()
+        if tok.kind is TokenKind.KW_SLOT:
+            return self._parse_slot_decl()
         # Contextual `role` keyword: at statement-start, `role IDENT = ...`
         # is a role declaration; elsewhere `role` is a normal identifier.
         # We look for IDENT("role") IDENT ASSIGN to disambiguate.

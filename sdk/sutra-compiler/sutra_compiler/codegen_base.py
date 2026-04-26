@@ -343,6 +343,23 @@ class BaseCodegen:
         return None
 
     def _translate_var_decl(self, decl: ast.VarDecl, *, at_top_level: bool) -> None:
+        # `slot TYPE name = expr;` — rotation-bound storage. Surface
+        # syntax landed 2026-04-25; codegen integration that threads
+        # slot state through function scopes is deferred (see STATUS.md
+        # "Pre-YC: Sutra surface syntax for slot primitives" and the
+        # imperative-reversible demo entry that depends on it).
+        if decl.is_slot:
+            raise CodegenNotSupported(
+                decl,
+                f"slot declaration `slot {decl.type_ref.name if decl.type_ref else '?'} {decl.name}` "
+                "is parsed but the codegen integration for slot-bound "
+                "storage isn't wired yet — the runtime primitives "
+                "(slot_store / slot_load / rotate_slot on _VSA) are in, "
+                "but threading slot state through function scopes is "
+                "deferred. See STATUS.md \"Pre-YC: Sutra surface syntax "
+                "for slot primitives\".",
+            )
+
         # Track map<K, V> declarations so that a later subscript on this
         # name can dispatch to the right lookup helper.
         if decl.type_ref is not None and decl.type_ref.name == "map":
