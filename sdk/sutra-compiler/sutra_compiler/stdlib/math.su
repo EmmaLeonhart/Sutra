@@ -1,0 +1,90 @@
+// Canonical Sutra declarations for the transcendental-function
+// family (log / sqrt / exp / trig / pow). Sutra's design intent is
+// that these compile to tensor operations at compile time rather
+// than calling out to libm at runtime — see
+// docs/numeric-math.md § "Transcendental functions" for the
+// design and todo.md § "Compile-time math function approximation"
+// for the implementation roadmap.
+//
+// **Status: placeholder.** The intrinsic declarations below are
+// wired through the parser / validator so `sqrt(x)` is a known
+// name in user programs, but the runtime methods raise
+// NotImplementedError until the compile-time approximation pass
+// lands. Calling these functions from a `.su` program today
+// produces a compile-success / runtime-error pair: the program
+// compiles, runs through prelude initialization, and fails with
+// a clear "the approximation pass isn't wired yet" message
+// pointing at the relevant todo.md item.
+//
+// The placeholder is deliberate. Declaring the API surface now
+// lets `.su` programs be written against the eventual semantics,
+// keeps the docs honest about what Sutra promises, and makes the
+// gap auditable from the stdlib rather than from a bug-tracker
+// item.
+
+
+// ==========================================================================
+// Section 1 — what each function will compile to (design notes)
+// ==========================================================================
+//
+// log(x), x ∈ [a, b], a > 0
+//   Chebyshev polynomial on the bounded domain. The compiler reads
+//   `[math].approximation_precision` from atman.toml, picks the
+//   polynomial degree that hits the precision target, emits the
+//   coefficient vector at compile time, evaluates as a dot product
+//   against [1, x, x², ...] at runtime. No libm call. KART makes
+//   this strategy uniform across all univariate continuous
+//   functions on bounded domains.
+//
+// sqrt(x), x ∈ [0, b]
+//   Same shape as log. Chebyshev expansion on the bounded domain.
+//   For very-wide-domain sqrt the lookup-table tier may win because
+//   the Chebyshev polynomial degree balloons — the compiler picks.
+//
+// exp(x), x ∈ [a, b]
+//   Same shape. Chebyshev. The unbounded-domain case (x ∈ ℝ) needs
+//   range-reduction (e.g. write x = n*ln2 + r, expand exp(r) only)
+//   which is doable as a compile-time transformation but is the
+//   non-trivial part.
+//
+// sin(x), cos(x), tan(x)
+//   Same family. Periodic, so range-reduction is mandatory before
+//   the polynomial step. CORDIC-style decomposition into sequences
+//   of shifts and adds is also viable on hardware-targeted backends.
+//
+// pow(x, y)
+//   Two-argument case. KART says even multivariate continuous
+//   functions decompose into compositions of univariates plus
+//   addition. pow(x, y) = exp(y * log(x)) is the standard such
+//   decomposition; once log and exp are wired, pow is essentially
+//   free.
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics (pseudo-Sutra what the bodies
+// would look like once the approximation pass lands)
+// ==========================================================================
+//
+// function scalar log(scalar x) {
+//     // Compile-time: read [math] section, pick Chebyshev degree
+//     // and coefficients for log on the inferred bounded domain.
+//     // Runtime: dot(coeffs, [1, x, x², ..., x^n]).
+//     return _chebyshev_eval(_log_coeffs, x);
+// }
+//
+// (And similarly for the others. The compile-time work is the
+// coefficient generator + bounded-domain inference; the runtime is
+// just the dot product against the basis evaluations.)
+
+
+// ==========================================================================
+// Section 3 — intrinsic declarations
+// ==========================================================================
+
+intrinsic function scalar log(scalar x);
+intrinsic function scalar sqrt(scalar x);
+intrinsic function scalar exp(scalar x);
+intrinsic function scalar sin(scalar x);
+intrinsic function scalar cos(scalar x);
+intrinsic function scalar tan(scalar x);
+intrinsic function scalar pow(scalar x, scalar y);
