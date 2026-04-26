@@ -201,16 +201,14 @@ sprint that aren't urgent-next but should land pre-YC:
    it through parser + validator + codegen. Unlocks the
    imperative-reversible demo programs.
 
-2. **Spec-text refresh for the synthetic-subspace design.** The
-   design doc
-   (`planning/findings/2026-04-21-extended-state-and-rotation-binding.md`)
-   has been empirically validated (`planning/findings/2026-04-24-
-   synthetic-subspace-validation.md`) and the runtime primitive is
-   in. `planning/sutra-spec/binding.md` still describes rotation
-   binding in the synthetic subspace as a design target rather than
-   a committed primitive — needs refresh, and the "pending
-   experimental validation" language on the 2D-Givens-per-slot design
-   should come out.
+2. ~~**Spec-text refresh for the synthetic-subspace design.**~~
+   DONE 2026-04-25. `planning/sutra-spec/binding.md` § "Rotation
+   binding" now opens with a "Status: empirically validated and
+   runtime-supported as of 2026-04-24" callout pointing at the
+   two findings docs and the runtime primitives. The stale
+   sign-flip-still-in-codegen line was also fixed (sign-flip was
+   retired 2026-04-22; codegen.py and codegen_pytorch.py both
+   compile bind to rotation now).
 
 3. **Imperative-reversible demo `.su` program.** Once (1) lands, a
    demo that writes `x = a; x = b; x = a;` at the source level and

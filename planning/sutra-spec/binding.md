@@ -125,6 +125,29 @@ result.
 
 ### Rotation binding
 
+**Status: empirically validated and runtime-supported as of
+2026-04-24.** Earlier drafts of this section described the 2D-
+Givens-per-slot design as a target with experimental validation
+pending. The validation landed:
+
+- `experiments/synthetic_subspace_validation.py` +
+  `planning/findings/2026-04-24-synthetic-subspace-validation.md`
+  — five tests passed end-to-end. Zero cross-talk at N/2 slots,
+  capacity curve characterized past overlap, truth-axis
+  orthogonality under semantic ops, 100-op reversibility at FP
+  roundoff, fuzzy composition clean.
+- `experiments/slot_rotation_reversibility.py` +
+  `planning/findings/2026-04-24-slot-rotation-runtime.md` — the
+  2D-Givens-per-slot design landed as runtime primitives
+  `slot_store` / `slot_load` / `rotate_slot` on `_VSA`
+  (`codegen.py`). 48 independent slots, exact reassignment,
+  9e-16 rotation roundtrip, zero semantic-block drift.
+
+The remaining `.su`-surface-syntax work — how a Sutra program
+declares a slot-bound variable in source — is tracked separately
+in STATUS.md "Sutra-language surface syntax for slot primitives"
+and is independent of the spec design here.
+
 `R` is a **rotation in the synthetic subspace**. Each variable /
 array position / computational slot gets a dedicated 2D rotation
 plane in the synthetic subspace. Applying the role rotates the
@@ -191,9 +214,11 @@ is a *feature* (`color-of-shape` ≠ `shape-of-color`); structural
 storage doesn't need commutative bind because bundle is already
 commutative.
 
-Sign-flip is still in the current `codegen_numpy.py` implementation
-as the compiled output of `bind`; migration to rotation binding is
-STATUS.md queue item 4.
+Sign-flip is retired from the codegen as of 2026-04-22 (commit
+history). `codegen.py` and `codegen_pytorch.py` both compile `bind`
+to role-seeded Haar-random orthogonal rotation. The retirement is
+also recorded as pinned semantic correction #6 in STATUS.md so it
+doesn't get reintroduced.
 
 ### Why the distinction matters
 
