@@ -100,108 +100,12 @@ extracted artifacts where the source is preserved elsewhere) should
 not be tracked. Anything that takes substantial space and isn't
 load-bearing for the language should be revisited.
 
-**Egglog integration — algebraic-simplification backend.** The
-current hand-written `simplify.py` (900 lines, 16 rules) covers the
-basics but doesn't do matrix-chain composition, linearity analysis,
-or CSE — the three passes that would let the global-efficiency story
-(every tensor-op program fuses into one kernel) actually realize.
-Research pass 2026-04-24 landed on `egglog` (actively maintained
-Python e-graph library, v13, supports matrix-valued expressions,
-direct precedent in `sdiehl/mlir-egglog` for numpy→compiler-IR
-exactly). Plan: replace the hand-rolled rewrites in `simplify.py`
-with an egglog-driven pass that subsumes them + adds the three
-missing passes.
-
-Adjacent prior art worth knowing when this lands:
-- **Diospyros** — equality-saturation compiler for vectorizing
-  irregular linear-algebra kernels. ~3.1× over DSP libraries,
-  competitive with hand-tuned. Same e-graph technique, different
-  target (SIMD intrinsics vs Sutra's matrix-chain fusion).
-- **JuliaSymbolics hash consing** — expression deduplication in a
-  symbolic-computation engine; 3.2× speedup, 2× memory, 5× faster
-  codegen. Sutra's CSE pass is hash consing in spirit; the Julia
-  numbers are a sanity check on what to expect.
-- **VCR (Vector Chains of Recurrences)** — symbolic→vectorizable
-  recurrence compilation of math functions over grids; 2–10× over
-  scalar CR / Intel SVML. Less directly relevant than the above
-  two, but in the same family.
-
-  - [x] ~~Install `egglog` (`pip install egglog`) and smoke-test
-    Python 3.13 import.~~ DONE 2026-04-24. v13.1.0 installs cleanly,
-    5/5 rewrite rules fire correctly in
-    `experiments/egglog_smoke_test.py`.
-  - [x] ~~Proof-of-concept: matrix-chain fusion with a cost model.~~
-    DONE 2026-04-24. `experiments/egglog_matrix_chain_fusion.py`
-    takes nested `Mn.apply(...M2.apply(M1.apply(v)))` chains of
-    lengths 2-5 and extracts the fully-fused `(Mn @ ... @ M1).apply(v)`
-    form via a cost model that charges 100/apply (hot path) and 1/matmul
-    (module init). All chain lengths fuse to exactly one apply. This is
-    the pass `simplify.py` does not have today.
-  - [x] ~~Lift the 16 existing rewrites from `simplify.py` into egglog
-    rule form. Validate equivalence against the existing 206-test
-    suite.~~ DONE 2026-04-25. Rules in
-    `sdk/sutra-compiler/sutra_compiler/simplify_egglog.py`; bridge
-    (`lift_vec` / `lift_num` / `_try_lower_to_ast`) connects the
-    Sutra AST to the egglog IR. 8 bridge tests added; 241 tests +
-    73 corpus subtests pass.
-  - [x] ~~Wire egglog-based simplification into the compiler pipeline
-    as a post-pass on the existing `simplify.py` output.~~ DONE
-    2026-04-25. `simplify.py` `_egglog_post_pass` walks every
-    expression bottom-up after the hand-rolled pass; conservative —
-    only replaces when egglog made progress and the result lowers
-    to a recognized simpler shape. ImportError on egglog is a
-    no-op rather than a hard failure.
-  - [ ] **Add linearity analysis: function bodies that are pure
-    linear tensor-op compositions get a single cached matrix M and
-    compile-down to `M @ arg`.** The egglog rules already do the
-    algebra (matrix-chain fusion via `R @ S` associativity + apply
-    distribution + cost model preferring fused chains). The
-    remaining work is **codegen integration**: detect when a
-    function body's egglog form is a single `(M_n @ ... @ M_1)`
-    composed matrix expression, emit the composition at module
-    init, and replace the call site with one matrix-vector op.
-    Sub-200 lines but requires extending the lift/lower bridge to
-    handle matrix-compose forms.
-  - [ ] **CSE pass.** Falls out of equality saturation when the
-    cost model charges per-use rather than per-node. Implementation
-    is mostly in the lower step: emit Python `let`-bindings (i.e.
-    a temporary variable) for any subexpression that appears more
-    than once in the extracted form, instead of inlining.
-
-Follow-ups surfaced during the 2026-04-24 pre-Anthropic-grant-app
-sprint that aren't urgent-next but should land pre-YC:
-
-1. **Sutra-language surface syntax for slot primitives.** Surface
-   landed 2026-04-25 — `slot TYPE name [= expr];` parses, validates,
-   and IDE-highlights cleanly. The codegen integration that threads
-   slot state through function scopes is the remaining work and
-   rejects with SUT0150 ("slot declaration is parsed but the codegen
-   integration ... isn't wired yet") so user programs can be written
-   against the surface today and fail fast at compile time. Full
-   codegen integration is the actual blocker for the imperative-
-   reversible demo and is roughly 200 lines of compiler work — needs
-   a per-scope state vector, transformation of slot-name reads to
-   `slot_load` calls and slot-name writes to `slot_store`-then-
-   reassign. Pick this up alongside the imperative-reversible demo
-   work below.
-
-2. ~~**Spec-text refresh for the synthetic-subspace design.**~~
-   DONE 2026-04-25. `planning/sutra-spec/binding.md` § "Rotation
-   binding" now opens with a "Status: empirically validated and
-   runtime-supported as of 2026-04-24" callout pointing at the
-   two findings docs and the runtime primitives. The stale
-   sign-flip-still-in-codegen line was also fixed (sign-flip was
-   retired 2026-04-22; codegen.py and codegen_pytorch.py both
-   compile bind to rotation now).
-
-3. ~~**Imperative-reversible demo `.su` program.**~~ DONE
-   2026-04-25. `examples/imperative_reversible.su` runs end-to-end
-   (returns `0.0`, confirming the rewrite chain
-   `99 → 13 → 7` produces the same final slot state as a single
-   `7`). Three functions: `single_write()` writes 7 once,
-   `rewrite_chain()` writes 99 / 13 / 7 in sequence, `main()`
-   returns the difference. Corpus test at
-   `sdk/sutra-compiler/tests/corpus/valid/slot_assignment_chain.su`.
+**Compilation updates moved to `todo.md`.** Egglog post-pass +
+matrix-chain fusion landed 2026-04-25; the remaining linearity
+analysis codegen, CSE pass, and slot codegen integration are now
+tracked under `todo.md` § "[Pre-YC] Compilation updates". The
+imperative-reversible demo and the spec-text refresh both landed
+2026-04-25.
 
 Recently closed:
 - **Pre-Anthropic-grant-app sprint — all three items** (2026-04-24).

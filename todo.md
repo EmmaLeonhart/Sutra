@@ -242,21 +242,88 @@ What this pass closed:
   `make_truth`, `_truth_projector`, defuzzy unrolled to truth-axis
   polarization — landed 2026-04-23.
 
-What remains (post-grant-app):
-- [ ] Sutra-language surface syntax for slot primitives. Pick a
-  surface (`var x : int = 0;` with compiler-allocated slot?
-  explicit `slot[N] x;`?) and wire through parser + validator +
-  codegen. Mirror STATUS.md queue item 1.
+What remains:
+- [x] ~~Sutra-language surface syntax for slot primitives.~~ DONE
+  2026-04-25. `slot TYPE name [= expr];` parses, validates, and
+  IDE-highlights cleanly. Codegen rejects with SUT0150 — the
+  codegen integration itself is tracked under "Compilation updates"
+  below.
+- [x] ~~Imperative-reversible demo `.su` program.~~ DONE 2026-04-25.
+  `examples/imperative_reversible.su` runs end-to-end and returns
+  0.0, confirming the rewrite chain `99 → 13 → 7` produces the
+  same final slot state as a single `7`. Will be rewritten with
+  natural assignment syntax once slot codegen integration lands.
+- [x] ~~Spec-text refresh in `planning/sutra-spec/binding.md`.~~
+  DONE 2026-04-25. Rotation-binding section now opens with an
+  "empirically validated and runtime-supported as of 2026-04-24"
+  callout.
 - [ ] Compile-time slot allocator — map named variables to slot
   indices deterministically, with a compile-error when capacity
-  (48 slots per program at synthetic_dim=100) is exceeded.
-- [ ] Imperative-reversible demo `.su` program. Source-level
-  `x = a; x = b; x = a;` compiling to slot_stores and provably
-  producing the same state as single assignment. Mirror STATUS.md
-  queue item 3.
-- [ ] Spec-text refresh in `planning/sutra-spec/binding.md` to
-  reflect that rotation-in-synthetic-subspace is now a committed
-  primitive, not a design target. Mirror STATUS.md queue item 2.
+  (48 slots per program at synthetic_dim=100) is exceeded. Lands
+  alongside the slot codegen integration (see "Compilation updates"
+  below).
+
+## [Pre-YC] Compilation updates
+
+Compiler-side integration for primitives that already landed at the
+runtime / surface-syntax level. The egglog post-pass and slot
+rotation runtime both shipped 2026-04-24/25; what remains here is
+the codegen work that turns those primitives into things `.su`
+programs can rely on without explicit harness intervention.
+
+### Egglog — linearity analysis codegen
+
+The egglog rules already do the algebra (matrix-chain fusion via
+`R @ S` associativity + apply distribution + cost model preferring
+fused chains). The remaining work is **codegen integration**:
+function bodies that are pure linear tensor-op compositions get a
+single cached matrix `M` and compile down to `M @ arg`.
+
+- [ ] Detect when a function body's egglog form is a single
+  `(M_n @ ... @ M_1)` composed-matrix expression.
+- [ ] Extend the lift/lower bridge in
+  `sdk/sutra-compiler/sutra_compiler/simplify_egglog.py` to handle
+  matrix-compose forms.
+- [ ] Emit `M = M_n @ ... @ M_1` at module init; replace the call
+  site with one matrix-vector op.
+
+Sub-200 lines of compiler work. This is the pass that makes the
+global-efficiency story (every linear function compiles to one
+cached matrix) actually realize.
+
+### Egglog — CSE pass
+
+Falls out of equality saturation when the cost model charges per-use
+rather than per-node. Implementation is mostly in the lower step.
+
+- [ ] Adjust the cost model in `simplify_egglog.py` to charge
+  per-use.
+- [ ] Emit Python `let`-bindings (a temporary variable) for any
+  subexpression that appears more than once in the extracted form,
+  instead of inlining.
+
+Adjacent prior art: JuliaSymbolics hash consing reports 3.2× speedup
++ 5× faster codegen on similar workloads.
+
+### Slot codegen integration
+
+Surface syntax landed 2026-04-25 — `slot TYPE name [= expr];`
+parses, validates, and IDE-highlights. The codegen rejects with
+SUT0150 ("slot declaration is parsed but the codegen integration
+... isn't wired yet"), so user programs fail fast with a clear
+message. Roughly 200 lines of compiler work to finish.
+
+- [ ] Per-scope state vector that holds slot contents.
+- [ ] Transform slot-name reads to `slot_load` calls at codegen
+  time.
+- [ ] Transform slot-name writes to `slot_store` (then reassign the
+  state vector).
+- [ ] Wire the compile-time slot allocator (deterministic
+  name → index map; 48-slot capacity check at synthetic_dim=100).
+
+Once this lands, `examples/imperative_reversible.su` can be
+rewritten using natural `x = a; x = b; x = a;` assignment syntax
+instead of the explicit harness it uses today.
 
 ## [This year] Monotonicity of fuzzy logic polynomials
 
