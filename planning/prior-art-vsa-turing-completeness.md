@@ -86,6 +86,30 @@ plus the chat that produced this doc.
   its Turing-completeness story in CCC semantics rather than via
   Turing-machine simulation.
 
+### Kolmogorov–Arnold representation theorem (KART)
+
+- Hilbert's 13th-problem result, formalized by Arnold and Kolmogorov:
+  any continuous bounded multivariate function can be expressed as a
+  finite composition of univariate functions, composed via addition.
+  No multivariate function is truly "irreducible."
+- **Liu & Tegmark 2024** (KAN — Kolmogorov-Arnold Networks) brought
+  the theorem back into ML practice by replacing fixed activation
+  functions on nodes with learnable spline-parameterized activation
+  functions on edges. The KAN paper sidesteps KART's worst-case
+  pathology — that the inner univariates can be non-smooth or fractal
+   — by restricting the family to splines.
+- **Why this is in the Sutra prior-art audit:** KART is the theoretical
+  justification for Sutra's "compile every continuous math function to a
+  tensor op" strategy. The decomposition into univariates is what makes
+  the compilation strategy uniform: log, sqrt, sin, exp are all in KART
+  normal form trivially (they're already univariate), and any continuous
+  function is reachable in principle. The compiler picks an
+  approximation tier (Chebyshev polynomial / lookup table / CORDIC) and
+  emits the tensor op; the precision contract from `atman.toml`'s
+  `[math]` section sets the polynomial degree or table resolution.
+  See `docs/numeric-math.md` § "Transcendental functions" and
+  `todo.md` § "Compile-time math function approximation."
+
 ## How beta reduction features in this story
 
 In the categorical reading, beta reduction corresponds to
