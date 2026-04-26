@@ -287,3 +287,122 @@ def test_rchain_five_matrix_fuse():
     assert s.count(".apply(") == 1
     # 5 applies unfused costs >=500; single apply should be ~100.
     assert cost < 200
+
+
+# ---------------------------------------------------------------------
+# AST <-> egglog bridge tests (lift_vec / lift_num / simplify_ast_*)
+# ---------------------------------------------------------------------
+#
+# These tests exercise the path the compiler takes: real Sutra AST
+# nodes go in, the lift/saturate/lower pipeline runs, and the
+# resulting AST is checked structurally. The earlier rule-level
+# tests cover egglog behavior in isolation; these cover the bridge.
+
+from sutra_compiler import ast_nodes as _ast  # noqa: E402
+from sutra_compiler.diagnostics import (  # noqa: E402
+    SourcePosition, SourceSpan,
+)
+from sutra_compiler.simplify_egglog import (  # noqa: E402
+    simplify_ast_num, simplify_ast_vec,
+)
+
+
+def _span():
+    p = SourcePosition(line=1, column=1, offset=0)
+    return SourceSpan(start=p, end=p)
+
+
+def _id(name: str) -> _ast.Identifier:
+    return _ast.Identifier(name=name, span=_span())
+
+
+def _call(name: str, *args: _ast.Expr) -> _ast.Call:
+    s = _span()
+    return _ast.Call(
+        callee=_ast.Identifier(name=name, span=s),
+        type_args=[], args=list(args), span=s,
+    )
+
+
+def test_bridge_bundle_zero_collapses_to_identifier():
+    """bundle(zero_vector(), v) -> v after lift+saturate+lower."""
+    zero = _call("zero_vector")
+    v = _id("v")
+    expr = _call("bundle", zero, v)
+    out = simplify_ast_vec(expr)
+    assert isinstance(out, _ast.Identifier)
+    assert out.name == "v"
+
+
+def test_bridge_bundle_single_arg_is_identity():
+    """bundle(v) -> v."""
+    v = _id("v")
+    expr = _call("bundle", v)
+    out = simplify_ast_vec(expr)
+    assert isinstance(out, _ast.Identifier)
+    assert out.name == "v"
+
+
+def test_bridge_unbind_bind_roundtrip():
+    """unbind(R, bind(R, v)) -> v."""
+    R = _id("R")
+    v = _id("v")
+    expr = _call("unbind", R, _call("bind", R, v))
+    out = simplify_ast_vec(expr)
+    assert isinstance(out, _ast.Identifier)
+    assert out.name == "v"
+
+
+def test_bridge_bind_zero_is_zero():
+    """bind(R, zero_vector()) -> zero_vector()."""
+    R = _id("R")
+    zero = _call("zero_vector")
+    expr = _call("bind", R, zero)
+    out = simplify_ast_vec(expr)
+    assert isinstance(out, _ast.Call)
+    assert isinstance(out.callee, _ast.Identifier)
+    assert out.callee.name == "zero_vector"
+
+
+def test_bridge_displacement_self_is_zero():
+    """displacement(v, v) -> zero_vector()."""
+    v = _id("v")
+    expr = _call("displacement", v, v)
+    out = simplify_ast_vec(expr)
+    assert isinstance(out, _ast.Call)
+    assert out.callee.name == "zero_vector"
+
+
+def test_bridge_similarity_self_is_one():
+    """similarity(v, v) -> 1.0 (numeric context)."""
+    v = _id("v")
+    expr = _call("similarity", v, v)
+    out = simplify_ast_num(expr)
+    assert isinstance(out, (_ast.IntLiteral, _ast.FloatLiteral))
+    assert float(out.value) == 1.0
+
+
+def test_bridge_unrecognized_returns_unchanged():
+    """A construct outside the egglog IR rounds-trips unchanged.
+
+    Casts aren't modeled — the bridge is conservative and the caller
+    sees the same AST node back.
+    """
+    v = _id("v")
+    cast = _ast.CastExpr(
+        target_type=_ast.TypeRef(name="vector", type_args=[], span=_span()),
+        expr=v, span=_span(),
+    )
+    out = simplify_ast_vec(cast)
+    assert out is cast  # same object — never replaced
+
+
+def test_bridge_nested_simplification():
+    """bundle(unbind(R, bind(R, v)), zero) -> v through saturation."""
+    R = _id("R")
+    v = _id("v")
+    inner = _call("unbind", R, _call("bind", R, v))
+    expr = _call("bundle", inner, _call("zero_vector"))
+    out = simplify_ast_vec(expr)
+    assert isinstance(out, _ast.Identifier)
+    assert out.name == "v"
