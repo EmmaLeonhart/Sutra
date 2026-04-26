@@ -1,6 +1,6 @@
 ---
 title: Sutra
-description: A tensor programming language. Source compiles to a sequence of matrix and elementwise tensor operations.
+description: Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.
 hide:
   - navigation
   - toc
@@ -8,7 +8,7 @@ hide:
 
 # 📜 Sutra
 
-**A tensor programming language. Source code compiles to a sequence of matrix and elementwise tensor operations; the compiler is the thing that turns the surface syntax into that sequence.**
+**Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
 Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime (`_VSA`) implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
 
