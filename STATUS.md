@@ -126,6 +126,20 @@ exactly). Plan: replace the hand-rolled rewrites in `simplify.py`
 with an egglog-driven pass that subsumes them + adds the three
 missing passes.
 
+Adjacent prior art worth knowing when this lands:
+- **Diospyros** — equality-saturation compiler for vectorizing
+  irregular linear-algebra kernels. ~3.1× over DSP libraries,
+  competitive with hand-tuned. Same e-graph technique, different
+  target (SIMD intrinsics vs Sutra's matrix-chain fusion).
+- **JuliaSymbolics hash consing** — expression deduplication in a
+  symbolic-computation engine; 3.2× speedup, 2× memory, 5× faster
+  codegen. Sutra's CSE pass is hash consing in spirit; the Julia
+  numbers are a sanity check on what to expect.
+- **VCR (Vector Chains of Recurrences)** — symbolic→vectorizable
+  recurrence compilation of math functions over grids; 2–10× over
+  scalar CR / Intel SVML. Less directly relevant than the above
+  two, but in the same family.
+
   - [x] ~~Install `egglog` (`pip install egglog`) and smoke-test
     Python 3.13 import.~~ DONE 2026-04-24. v13.1.0 installs cleanly,
     5/5 rewrite rules fire correctly in
