@@ -158,12 +158,119 @@ def _trace(rule: str, before, after):
 def simplify_module(module: ast.Module) -> ast.Module:
     """Apply all simplification passes to a module and return the result.
 
+    Two passes:
+    1. The hand-rolled rule set in this file (R01..R16, structural).
+    2. An egglog-driven post-pass that tries to reduce expressions
+       the hand-rolled pass leaves intact — primarily cases where
+       cascading rewrites need equality saturation rather than the
+       fixed-order pattern matching the hand-rolled simplifier does.
+
+    The egglog pass is conservative: it only replaces a subtree when
+    the result lowers to a recognized simpler shape (a literal, an
+    identifier, a `zero_vector()` call). Anything else round-trips
+    losslessly. If the `egglog` package isn't installed, the post-
+    pass is a no-op.
+
     The module is mutated in place; the return value is the same
     object, returned for call-chain convenience.
     """
     for decl in module.items:
         _simplify_top_level(decl)
+    _egglog_post_pass(module)
     return module
+
+
+def _egglog_post_pass(module: ast.Module) -> None:
+    """Walk every expression in the module and try the egglog
+    simplifier on it. Replace the expression in its parent if egglog
+    found a simpler shape.
+
+    Conservative — only replaces when the result is structurally
+    simpler (a literal, identifier, or zero_vector call). The lift /
+    lower bridge in `simplify_egglog` returns the original expression
+    unchanged when it can't make progress, so the identity-comparison
+    `out is expr` is the signal for "no change."
+    """
+    try:
+        from . import simplify_egglog as _eg
+    except ImportError:
+        # egglog not installed — post-pass is a no-op.
+        return
+
+    def _try(expr: ast.Expr) -> ast.Expr:
+        # Try vec context first; if no progress, try num. Bridge is
+        # conservative on both sides — never returns a wrong result.
+        out = _eg.simplify_ast_vec(expr)
+        if out is not expr:
+            return out
+        out = _eg.simplify_ast_num(expr)
+        return out
+
+    def _walk_expr(expr: ast.Expr) -> ast.Expr:
+        """Bottom-up walk: simplify children first, then the node."""
+        if isinstance(expr, ast.Call):
+            expr.args = [_walk_expr(a) for a in expr.args]
+        elif isinstance(expr, ast.BinaryOp):
+            expr.left = _walk_expr(expr.left)
+            expr.right = _walk_expr(expr.right)
+        elif isinstance(expr, ast.UnaryOp):
+            expr.operand = _walk_expr(expr.operand)
+        elif isinstance(expr, ast.Parenthesized):
+            expr.inner = _walk_expr(expr.inner)
+        elif isinstance(expr, ast.ArrayLiteral):
+            expr.elements = [_walk_expr(e) for e in expr.elements]
+        elif isinstance(expr, ast.CastExpr):
+            expr.expr = _walk_expr(expr.expr)
+        elif isinstance(expr, ast.UnsafeCastExpr):
+            expr.expr = _walk_expr(expr.expr)
+        return _try(expr)
+
+    def _walk_stmt(stmt: ast.Stmt) -> None:
+        # Skip if there's no obvious place an expr could be.
+        if isinstance(stmt, ast.VarDecl):
+            if stmt.initializer is not None:
+                stmt.initializer = _walk_expr(stmt.initializer)
+        elif isinstance(stmt, ast.ExprStmt):
+            stmt.expr = _walk_expr(stmt.expr)
+        elif isinstance(stmt, ast.ReturnStmt):
+            if stmt.value is not None:
+                stmt.value = _walk_expr(stmt.value)
+        elif isinstance(stmt, ast.IfStmt):
+            stmt.condition = _walk_expr(stmt.condition)
+            for s in stmt.then_branch.statements:
+                _walk_stmt(s)
+            if stmt.else_branch is not None:
+                for s in stmt.else_branch.statements:
+                    _walk_stmt(s)
+        elif isinstance(stmt, ast.Block):
+            for s in stmt.statements:
+                _walk_stmt(s)
+        elif isinstance(stmt, ast.WhileStmt):
+            stmt.condition = _walk_expr(stmt.condition)
+            for s in stmt.body.statements:
+                _walk_stmt(s)
+        elif isinstance(stmt, ast.LoopStmt):
+            for s in stmt.body.statements:
+                _walk_stmt(s)
+        # Other statement types: walked-through children are out of
+        # scope for this post-pass; the hand-written pass already
+        # handled them.
+
+    for decl in module.items:
+        if isinstance(decl, ast.VarDecl):
+            if decl.initializer is not None:
+                decl.initializer = _walk_expr(decl.initializer)
+        elif isinstance(decl, ast.FunctionDecl):
+            for s in decl.body.statements:
+                _walk_stmt(s)
+        elif isinstance(decl, ast.MethodDecl):
+            for s in decl.body.statements:
+                _walk_stmt(s)
+        elif isinstance(decl, ast.ClassDecl):
+            # Empty bodies for now; nothing to walk inside.
+            pass
+        elif isinstance(decl, ast.Stmt):
+            _walk_stmt(decl)
 
 
 def _auto_embed_var_decl_init(decl: ast.VarDecl) -> None:
