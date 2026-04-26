@@ -1,6 +1,6 @@
 # 📜 Sutra
 
-**A tensor programming language. Source code compiles to a sequence of matrix and elementwise tensor operations; the compiler is the thing that turns the surface syntax into that sequence.**
+**Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
 🌐 **Website: <https://sutralang.dev>** — vision, demos, tutorials, language reference. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml). SutraDB's docs are mounted at [`/SutraDB/`](https://sutralang.dev/SutraDB/) on the same site.
 
