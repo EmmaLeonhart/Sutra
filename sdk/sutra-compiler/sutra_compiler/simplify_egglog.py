@@ -338,3 +338,314 @@ def simplify_with_cost(expr, *, cost_model: Callable | None = None,
     eg.register(expr)
     eg.run(iters)
     return eg.extract(expr, include_cost=True, cost_model=cost_model)
+
+
+# ---------------------------------------------------------------------
+# AST <-> egglog IR bridge
+# ---------------------------------------------------------------------
+#
+# `simplify_egglog.simplify_ast(ast_expr)` is the public entry point
+# the compiler calls. It walks the Sutra AST, tries to lift each
+# subexpression into the egglog IR, saturates, and lowers a known-
+# simpler form back into the AST. If the expression can't be lifted
+# (contains a construct we don't model — operator overloads, casts,
+# control-flow), it's left alone. The pass is conservative: a subtree
+# round-trips losslessly when egglog can't make progress, and only
+# the simplified shape is materialized when egglog can.
+#
+# Naming strategy: each opaque subexpression gets a stable name keyed
+# off its structural form. Two structurally-equal AST nodes lift to
+# the same `Vec.named("...")` so rules like `similarity(a, a) -> 1.0`
+# fire. The `LiftContext` carries the name table across lift + lower.
+
+from . import ast_nodes as _ast
+
+
+class LiftContext:
+    """State carried across a lift / lower pair of an AST expression.
+
+    Maps a canonical-string form of each opaque AST subexpression to a
+    fresh stable name and back. The forward direction is used during
+    lift to give the same subexpression the same egglog name (so
+    rules that require structural equality fire). The reverse
+    direction is used during lower to replace egglog leaves with the
+    original AST node.
+    """
+
+    def __init__(self) -> None:
+        self._key_to_name: dict[str, str] = {}
+        self._name_to_ast: dict[str, _ast.Expr] = {}
+        self._counter = 0
+
+    def name_for(self, node: _ast.Expr, prefix: str) -> str:
+        key = _structural_key(node)
+        if key in self._key_to_name:
+            return self._key_to_name[key]
+        name = f"{prefix}{self._counter}"
+        self._counter += 1
+        self._key_to_name[key] = name
+        self._name_to_ast[name] = node
+        return name
+
+    def ast_for(self, name: str) -> _ast.Expr | None:
+        return self._name_to_ast.get(name)
+
+
+def _structural_key(node: _ast.Expr) -> str:
+    """A structural-equality key for an AST node.
+
+    Two nodes that should lift to the same egglog name produce the
+    same key. We use the existing `_structurally_equal` semantics
+    from simplify.py — which is the same equality those rewrite
+    rules were designed against — by formatting the AST as a
+    canonical tuple-string. Identifier names go in directly;
+    literal values too; structured nodes recurse.
+    """
+    if isinstance(node, _ast.Identifier):
+        return f"id:{node.name}"
+    if isinstance(node, _ast.IntLiteral):
+        return f"int:{node.value}"
+    if isinstance(node, _ast.FloatLiteral):
+        return f"float:{node.value}"
+    if isinstance(node, _ast.StringLiteral):
+        return f"str:{node.value!r}"
+    if isinstance(node, _ast.BoolLiteral):
+        return f"bool:{node.value}"
+    if isinstance(node, _ast.UnknownLiteral):
+        return "unknown"
+    if isinstance(node, _ast.Call):
+        callee = _structural_key(node.callee)
+        args = ",".join(_structural_key(a) for a in node.args)
+        return f"call({callee};{args})"
+    if isinstance(node, _ast.BinaryOp):
+        return (f"bin({node.op};{_structural_key(node.left)};"
+                f"{_structural_key(node.right)})")
+    if isinstance(node, _ast.UnaryOp):
+        return f"un({node.op};{_structural_key(node.operand)})"
+    if isinstance(node, _ast.Parenthesized):
+        return _structural_key(node.inner)
+    # Anything else gets a unique fallback so we never accidentally
+    # alias unrelated nodes.
+    return f"opaque:{id(node)}"
+
+
+def _is_call_named(node: _ast.Expr, name: str, arity: int | None = None) -> bool:
+    if not isinstance(node, _ast.Call):
+        return False
+    if not isinstance(node.callee, _ast.Identifier) or node.callee.name != name:
+        return False
+    if arity is not None and len(node.args) != arity:
+        return False
+    return True
+
+
+# Names of AST function calls that map to specific egglog operators
+# at the Vec / Mat / Num level. Anything not in these tables falls
+# through to "name as opaque variable" (which keeps the rules from
+# firing on it but doesn't cause errors).
+
+def lift_vec(node: _ast.Expr, ctx: LiftContext) -> Vec | None:
+    """Lift a Sutra AST expression into the Vec sublanguage of the
+    egglog IR. Returns None if the expression isn't recognizably a
+    vector-typed thing.
+    """
+    if _is_call_named(node, "zero_vector", arity=0):
+        return Vec.zero()
+
+    if _is_call_named(node, "bundle"):
+        # N-ary bundle. For N == 1 use bundle1; for N >= 2 fold via
+        # the 2-arg bundle (the rules know associativity).
+        args = node.args  # type: ignore[union-attr]
+        if len(args) == 1:
+            inner = lift_vec(args[0], ctx)
+            if inner is None:
+                return None
+            return bundle1(inner)
+        if len(args) >= 2:
+            lifted = []
+            for a in args:
+                la = lift_vec(a, ctx)
+                if la is None:
+                    return None
+                lifted.append(la)
+            acc = lifted[0]
+            for nxt in lifted[1:]:
+                acc = bundle(acc, nxt)
+            return acc
+
+    if _is_call_named(node, "bind", arity=2):
+        role = lift_mat(node.args[0], ctx)  # type: ignore[union-attr]
+        filler = lift_vec(node.args[1], ctx)  # type: ignore[union-attr]
+        if role is None or filler is None:
+            return None
+        return bind(role, filler)
+
+    if _is_call_named(node, "unbind", arity=2):
+        role = lift_mat(node.args[0], ctx)  # type: ignore[union-attr]
+        record = lift_vec(node.args[1], ctx)  # type: ignore[union-attr]
+        if role is None or record is None:
+            return None
+        return unbind(role, record)
+
+    if _is_call_named(node, "displacement", arity=2):
+        a = lift_vec(node.args[0], ctx)  # type: ignore[union-attr]
+        b = lift_vec(node.args[1], ctx)  # type: ignore[union-attr]
+        if a is None or b is None:
+            return None
+        return displacement(a, b)
+
+    if isinstance(node, _ast.BinaryOp) and node.op in ("+", "-"):
+        l = lift_vec(node.left, ctx)
+        r = lift_vec(node.right, ctx)
+        if l is not None and r is not None:
+            return vec_add(l, r) if node.op == "+" else vec_sub(l, r)
+        return None
+
+    # Fall through: everything else is opaque-named at the Vec level.
+    # This is conservative — basis_vector("foo"), arbitrary identifiers,
+    # casts, calls we don't model — all become Vec.named with a stable
+    # name tied to the structural key.
+    return Vec.named(ctx.name_for(node, "v"))
+
+
+def lift_mat(node: _ast.Expr, ctx: LiftContext) -> Mat | None:
+    """Lift an AST expression into the Mat sublanguage. The role
+    arguments to bind/unbind are typed Vec at the AST level but
+    function as Mat at the algebraic level — same opaque-named
+    treatment. Identity permutation is the one specific call we
+    recognize at the Mat level.
+    """
+    if _is_call_named(node, "identity_permutation", arity=0):
+        return Mat.identity()
+    return Mat.named(ctx.name_for(node, "m"))
+
+
+def lift_num(node: _ast.Expr, ctx: LiftContext) -> Num | None:
+    """Lift a numeric-context AST expression into the Num sublanguage."""
+    if isinstance(node, _ast.IntLiteral):
+        return Num.lit(float(node.value))
+    if isinstance(node, _ast.FloatLiteral):
+        return Num.lit(float(node.value))
+    if isinstance(node, _ast.BinaryOp) and node.op in ("+", "-", "*", "/"):
+        l = lift_num(node.left, ctx)
+        r = lift_num(node.right, ctx)
+        if l is None or r is None:
+            return None
+        if node.op == "+":
+            return l + r
+        if node.op == "-":
+            return l - r
+        if node.op == "*":
+            return l * r
+        if node.op == "/":
+            return l / r
+    if _is_call_named(node, "similarity", arity=2):
+        a = lift_vec(node.args[0], ctx)  # type: ignore[union-attr]
+        b = lift_vec(node.args[1], ctx)  # type: ignore[union-attr]
+        if a is None or b is None:
+            return None
+        return similarity(a, b)
+    return Num.named(ctx.name_for(node, "n"))
+
+
+# ---------------------------------------------------------------------
+# Lower: extract pattern → AST node (only specific simplified shapes)
+# ---------------------------------------------------------------------
+
+def _try_lower_to_ast(extracted: object, ctx: LiftContext,
+                      span) -> _ast.Expr | None:
+    """If the extracted egglog form matches a known simple shape, build
+    the corresponding AST node. Otherwise return None — meaning we
+    couldn't simplify into something structurally cleaner than the
+    original AST.
+
+    The shapes we recognize are exactly what the 16 rules can reduce
+    to: a `Vec.named(...)` (replace with the original opaque AST),
+    `Vec.zero()` (replace with `zero_vector()`), `Num.lit(...)`
+    (replace with a number literal). Anything more complex is left
+    alone for now — wiring more shapes is a follow-up.
+    """
+    s = str(extracted).strip()
+
+    # Vec.named("v3") — the original opaque AST.
+    if s.startswith('Vec.named("') and s.endswith('")'):
+        name = s[len('Vec.named("'):-len('")')]
+        return ctx.ast_for(name)
+
+    # Vec.zero() — emit a zero_vector() call.
+    if s == "Vec.zero()":
+        return _ast.Call(
+            callee=_ast.Identifier(name="zero_vector", span=span),
+            type_args=[], args=[], span=span,
+        )
+
+    # Num.lit(N) — emit a numeric literal.
+    if s.startswith("Num.lit(") and s.endswith(")"):
+        body = s[len("Num.lit("):-1]
+        try:
+            value = float(body)
+        except ValueError:
+            return None
+        if value == int(value):
+            return _ast.IntLiteral(value=int(value), span=span)
+        return _ast.FloatLiteral(value=value, span=span)
+
+    # Num.named("n3") — opaque numeric.
+    if s.startswith('Num.named("') and s.endswith('")'):
+        name = s[len('Num.named("'):-len('")')]
+        return ctx.ast_for(name)
+
+    # Mat.named("m3") — opaque matrix-context AST.
+    if s.startswith('Mat.named("') and s.endswith('")'):
+        name = s[len('Mat.named("'):-len('")')]
+        return ctx.ast_for(name)
+
+    return None
+
+
+# ---------------------------------------------------------------------
+# Public AST entry points
+# ---------------------------------------------------------------------
+
+def simplify_ast_vec(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
+    """Try to simplify a vector-context AST expression via egglog.
+
+    Returns the simplified AST node if egglog reduced it to a known
+    simpler shape; otherwise returns the original node unchanged.
+    Conservative: never replaces a subtree with something it can't
+    confidently reconstruct, and short-circuits when saturation didn't
+    change the egglog expression at all (so a literal AST node round-
+    trips through unchanged rather than getting reformatted).
+    """
+    ctx = LiftContext()
+    lifted = lift_vec(node, ctx)
+    if lifted is None:
+        return node
+    extracted = simplify(lifted, iters=iters)
+    if str(extracted) == str(lifted):
+        # Saturation made no progress — keep the original AST node,
+        # which preserves span / literal-type / annotations the
+        # downstream codegen may rely on.
+        return node
+    out = _try_lower_to_ast(extracted, ctx, node.span)
+    return out if out is not None else node
+
+
+def simplify_ast_num(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
+    """Try to simplify a numeric-context AST expression via egglog.
+
+    Same short-circuit as `simplify_ast_vec`: if saturation didn't
+    change the egglog expression, the original AST node is returned.
+    This matters for literals — `FloatLiteral(0.0)` should stay a
+    `FloatLiteral`, not get reformatted to an `IntLiteral` just
+    because `0.0 == int(0.0)`.
+    """
+    ctx = LiftContext()
+    lifted = lift_num(node, ctx)
+    if lifted is None:
+        return node
+    extracted = simplify(lifted, iters=iters)
+    if str(extracted) == str(lifted):
+        return node
+    out = _try_lower_to_ast(extracted, ctx, node.span)
+    return out if out is not None else node
