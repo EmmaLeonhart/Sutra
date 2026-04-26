@@ -444,6 +444,57 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.unbind(key_vec, acc)")
         self._indent -= 1
         self._emit()
+        # ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----
+        # Mirrors the numpy backend's slot block. See codegen.py for the
+        # full design notes; this is the pytorch realization with
+        # `_torch.zeros` and `tensor.clone()` instead of `_np.copy()`.
+        self._emit("# ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----")
+        self._emit("# Mirrors the numpy backend slot block; see codegen.py.")
+        self._emit("SLOT_BASE = 4")
+        self._emit()
+        self._emit("def _slot_plane(self, slot_idx):")
+        self._indent += 1
+        self._emit("n_planes = (self.synthetic_dim - self.SLOT_BASE) // 2")
+        self._emit("if n_planes <= 0:")
+        self._indent += 1
+        self._emit("raise RuntimeError(")
+        self._indent += 1
+        self._emit('"synthetic subspace has no room for slot planes; "')
+        self._emit('"increase synthetic_dim or SLOT_BASE budget")')
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("s = int(slot_idx) % n_planes")
+        self._emit("base = self.semantic_dim + self.SLOT_BASE + 2 * s")
+        self._emit("return (base, base + 1)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def slot_store(self, state, slot_idx, scalar):")
+        self._indent += 1
+        self._emit("i, j = self._slot_plane(slot_idx)")
+        self._emit("new = state.clone() if hasattr(state, 'clone') else state.copy()")
+        self._emit("new[i] = float(scalar)")
+        self._emit("new[j] = 0.0")
+        self._emit("return new")
+        self._indent -= 1
+        self._emit()
+        self._emit("def slot_load(self, state, slot_idx):")
+        self._indent += 1
+        self._emit("i, _j = self._slot_plane(slot_idx)")
+        self._emit("return float(state[i])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def rotate_slot(self, state, slot_idx, angle):")
+        self._indent += 1
+        self._emit("import math as _math")
+        self._emit("i, j = self._slot_plane(slot_idx)")
+        self._emit("c, s = _math.cos(float(angle)), _math.sin(float(angle))")
+        self._emit("new = state.clone() if hasattr(state, 'clone') else state.copy()")
+        self._emit("xi, xj = float(state[i]), float(state[j])")
+        self._emit("new[i] = c * xi - s * xj")
+        self._emit("new[j] = s * xi + c * xj")
+        self._emit("return new")
+        self._indent -= 1
+        self._emit()
         self._emit("def similarity(self, a, b):")
         self._indent += 1
         self._emit("na = _torch.linalg.norm(a)")
