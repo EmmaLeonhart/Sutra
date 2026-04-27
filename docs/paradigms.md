@@ -12,9 +12,27 @@ People who pick up a new language want to know what shape it is. This page picks
 
 The elevator pitch first:
 
-> **Sutra is roughly Haskell + Prolog, with C-family syntax so people can actually read it — and it goes further than either by compiling all the way down to tensor algebra with no pointers anywhere.**
+> **Sutra is a functional logic programming language with approximate unification over embedding space — roughly Haskell + Prolog, with C-family syntax so people can actually read it — compiled all the way down to tensor algebra with no pointers anywhere.**
 
 Haskell gives the functional core (pure functions, immutable values, the simplifier-friendly straight-line shape). Prolog gives the declarative-relational surface (programs as relations, predicates as first-class objects, reasoning under uncertainty). The C-family braces and keywords are the surface ergonomics so the result reads like something a working programmer recognizes instead of like a paper. The piece that's *more* radical than either Haskell or Prolog: **both Haskell and Prolog have pointers in their runtime — they just refuse to expose them.** GHC compiles Haskell to a runtime with heap cells and indirection; Prolog implementations have term references everywhere. The user-facing language is pure / relational; the implementation underneath is still a graph of pointers. Sutra has no pointers at any level — surface, runtime, or implementation. The compilation target is tensor algebra, and tensor algebra has no notion of a pointer.
+
+### What "functional logic" means
+
+The term names a real paradigm — combining the functional core (Haskell, OCaml) with the logic-programming surface (Prolog) into one language. The canonical examples are [Curry](https://www-ps.informatik.uni-kiel.de/currywiki/) and [Mercury](https://mercurylang.org/). Functional logic adds two things to a plain functional language:
+
+- **Non-determinism.** A function can return multiple candidates, or "fail." You search a space of solutions rather than computing one answer.
+- **Unification.** Variables can be unconstrained and solved-for, not just bound to known values. Functions can run *backwards*: if `f x = 5`, you can ask "what `x` satisfies this?" In a plain functional language you'd have to write the reverse function by hand.
+
+Sutra has both properties — but in a continuous geometric form rather than the discrete symbolic form Curry and Mercury use:
+
+- **Ranked sets, not single answers.** `argmax_cosine(query, candidates)` returns the best match, but the underlying machinery is a *score over every candidate*. The "non-determinism" is geometric proximity, not branching execution.
+- **Reversibility built in.** `bind(role, filler) → record` and `unbind(role, record) → filler` are the two directions of the same operation. Every binding registers its inverse for free.
+- **Unification over embedding space.** Where Curry asks "what term unifies with this pattern?", Sutra asks "what vector satisfies this geometric relation?" — and answers via cosine similarity / nearest-neighbor / gradient solving rather than exact symbolic match.
+- **Narrowing analog.** Curry's narrowing instantiates free variables just enough to make a rule apply. Sutra's directed vector search instantiates an underspecified query just enough to navigate toward a valid solution. Same shape; continuous geometry instead of discrete branching.
+
+The novel piece: classical functional logic has **exact** unification — two terms unify or they don't. Sutra has **approximate** unification — failure isn't binary, it's a confidence score, and "no solution" becomes "no vector close enough." That's more expressive for the domain Sutra operates in (continuous embedding space), and it's not something Curry or Mercury can do without bolting on a separate machinery.
+
+So: Sutra is to Curry what continuous relaxation is to discrete constraint solving. Same paradigm, different geometry of the solution space.
 
 The ranking, going from most-load-bearing to least:
 
@@ -116,6 +134,8 @@ vector winner = argmax_cosine(
 - **Truth shape.** Prolog's truth is Boolean (extensions: probabilistic). Sutra's truth is graded `[-1, +1]` by default — when you ask "is Tokyo the capital of Japan?" you get back *how true*, not *whether*. The `is_true` operator polarizes the answer toward ±1 without ever binarizing it.
 
 The same comparison applies in muted form to **Datalog**, **Answer Set Programming**, and **SQL** — all are declarative-relational languages over discrete tuples, all share the "describe what, not how" shape, and all differ from Sutra in the same direction (discrete substrate, exact resolution, Boolean or 3-valued truth).
+
+The closer relatives — and the ones the elevator pitch above names — are the **functional logic** languages: **Curry** and **Mercury**. Those combine Prolog's relational surface with Haskell's functional core in a single language, which is the same combination Sutra makes. The thing Sutra adds beyond Curry and Mercury is the geometric substrate — unification becomes approximate (similarity-based) rather than exact (term-based), and "failure" becomes a confidence score rather than a binary outcome.
 
 ---
 
@@ -283,7 +303,7 @@ C's program *is* its memory writes. Sutra's program is an algebraic expression t
 
 ## So what is Sutra, in one sentence?
 
-Sutra is **Haskell + Prolog with C-family syntax, compiled all the way down to tensor algebra with no pointers anywhere.** Or, more carefully: a functional language with a strong declarative / logic-programming bias, a real-but-declarative class system, and an intentionally thin imperative surface — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time, with no memory points at runtime.
+Sutra is a **functional logic programming language with approximate unification over embedding space** — Haskell + Prolog with C-family syntax, compiled all the way down to tensor algebra with no pointers anywhere. Or, more carefully: a functional language combined with a logic-programming surface (in the Curry / Mercury family), a real-but-declarative class system, and an intentionally thin imperative surface — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time, with no memory points at runtime, and with unification realized as cosine similarity rather than exact term match.
 
 The paradigm ordering (functional > declarative+logic > OO > imperative) is the order in which each layer constrains the others. The functional core is load-bearing for compilation; remove it and the simplifier collapses. The declarative / logic surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer organizes large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience and recognition — it's the layer that makes the language *readable* by people whose first language wasn't Haskell or Prolog — but it doesn't add any computational power, and the simplifier strips it all the way down before runtime ever runs.
 
