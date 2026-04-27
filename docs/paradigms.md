@@ -1,17 +1,20 @@
 ---
 title: Paradigms — where Sutra sits
-description: How Sutra relates to functional, array-oriented, declarative, logic, object-oriented, and imperative programming, shown through code comparisons.
+description: How Sutra relates to functional, declarative/logic, object-oriented, and imperative programming, shown through code comparisons.
 ---
 
 # Paradigms — where Sutra sits
 
-People who pick up a new language want to know what shape it is. This page picks one small task per paradigm, writes it in the canonical language for that paradigm, then writes it in Sutra. The goal is to make the influences visible: what Sutra borrowed in shape, and what it changed by moving the substrate from "memory cells / discrete terms / arrays of numbers" to "vectors in a frozen LLM's embedding space."
+!!! note "Draft — needs review"
+    This page is being actively reworked. The `iterator` keyword used in the imperative section is a planned addition to the language, not a feature that ships today.
+
+People who pick up a new language want to know what shape it is. This page picks one small task per paradigm, writes it in the canonical language for that paradigm, then writes it in Sutra. The goal is to make the influences visible: what Sutra borrowed in shape, and what it changed by moving the substrate from "memory cells / discrete terms" to "vectors in a frozen LLM's embedding space."
 
 The ranking, going from most-load-bearing to least:
 
-> **Functional ≈ Array-oriented > Declarative (with strong logic-programming flavor) > Object-Oriented > Imperative**
+> **Functional > Declarative (Prolog-flavored) > Object-Oriented > Imperative**
 
-Functional and array-oriented are the foundation, nearly tied. Declarative is the surface a programmer reads and writes — and it inherits a logic-programming flavor (continuous-space reasoning under uncertainty). Object orientation is real but it's *declarative* OO, not imperative. The imperative-looking surface (`var n += 1;`, `slot x = expr;`, `loop`) is a thin convenience layer over a functional-algebraic core.
+Functional is the foundation. Declarative is the surface a programmer reads and writes — and it inherits a strong logic-programming flavor (continuous-space reasoning under uncertainty, closer to Prolog than to Python). Object orientation is real but it's *declarative* OO, not imperative — Sutra's class system names regions of embedding space; it doesn't package mutable state. The imperative-looking surface (`var n += 1;`, `slot x = expr;`, `loop`) is the thinnest layer of all, a convenience over a functional-algebraic core that **has no memory points** (see the imperative section for what that means).
 
 ---
 
@@ -64,100 +67,29 @@ function string greet(vector name) {
 
 ---
 
-## Array-oriented — APL
+## Declarative — Prolog
 
-**Task.** Compute a weighted sum of four behavior options based on four weights.
-
-**APL:**
-
-```apl
-⍝ W is a 4-element weight vector, B is a 4-element behavior vector
-result ← +/W×B
-```
-
-That's it. `×` multiplies the two arrays element-wise; `+/` reduces with addition. No loop, no index variable.
-
-**Sutra:**
-
-```sutra
-// w_PH..w_AF are scalars; b_PH..b_AF are vectors
-vector result =
-    w_PH * b_PH +
-    w_PF * b_PF +
-    w_AH * b_AH +
-    w_AF * b_AF;
-```
-
-Or, when the structure is more uniform:
-
-```sutra
-vector result = bundle(
-    bind(role_1, filler_1),
-    bind(role_2, filler_2),
-    bind(role_3, filler_3)
-);
-```
-
-**What Sutra borrows from APL.** Whole-array primitives. `bundle` is `+/` for embedding vectors. There is no "for each dimension, do x" loop in either language — the operation is whole-vector. Both languages get **global efficiency from uniform shape**: APL fuses through the interpreter because every value is an array; Sutra fuses through the compile-time simplifier because every value is a tensor. The first form (`w * b + w * b + ...`) lowers to one batched matmul under the hood, just like the APL one-liner runs as one fused reduction.
-
-**Where it diverges.** APL's element type is a *number*. Sutra's element type is a *vector in embedding space* — every "element" is itself 768-dimensional. APL's `⍳5` enumerates `1 2 3 4 5`; Sutra's nearest equivalent enumerates basis vectors. APL's notation is glyph-dense (`+/`, `⌽`, `⍳`); Sutra's is keyword-dense (`bundle`, `bind`, `loop`). The shape of the language — uniform values, whole-array ops, fusion-friendly straight-line code — is the same.
-
----
-
-## Declarative — SQL
-
-**Task.** Find the capital of Japan.
-
-**SQL:**
-
-```sql
-SELECT capital FROM countries WHERE country = 'Japan';
-```
-
-You describe *what* you want; the planner figures out *how*.
-
-**Sutra:**
-
-```sutra
-vector japan         = "Japan";
-vector capital_of    = displacement(v_paris, v_france);  // learned
-
-vector predicted_capital = japan + capital_of;
-vector winner = argmax_cosine(
-    predicted_capital,
-    [v_tokyo, v_paris, v_berlin, v_oslo]
-);
-return CITY_NAME[winner];
-```
-
-**What Sutra borrows from SQL.** A program describes a relation, not a procedure. SQL says "the relation `country → capital` exists in this table; resolve it." Sutra says "the relation `country → capital` exists as a displacement vector in embedding space; apply it." In both, the runtime figures out the lookup; the programmer only declares the structure.
-
-**Where it diverges.** SQL's table is **a finite list of pairs**. To answer "capital of Japan" SQL needs a row containing Japan. Sutra's `capital_of` is **a single vector** that generalizes — it produces a plausible answer for countries that were never in the seed set, because `country + capital_of` lands somewhere in the capital-region of embedding space and `argmax_cosine` snaps to whatever's nearest in the candidate set. This is the same shift as: from lookup table to learned model.
-
----
-
-## Logic programming — Prolog
-
-**Task.** Express the same capital-of relation, but using the logic-programming style.
+**Task.** Express a `capital_of` relation and query it.
 
 **Prolog:**
 
 ```prolog
-capital(france, paris).
-capital(japan,  tokyo).
-capital(brazil, brasilia).
-capital(norway, oslo).
+capital(france,  paris).
+capital(japan,   tokyo).
+capital(brazil,  brasilia).
+capital(norway,  oslo).
 
 ?- capital(japan, X).
 % X = tokyo
 ```
 
-`capital` is a relation; the `?-` query asks the runtime to find a binding for `X` that makes the relation hold.
+`capital` is a relation; the `?-` query asks the runtime to find a binding for `X` that makes the relation hold. The whole program is *declarations* of facts and rules — there is no main loop, no "do this then this," no mutable state. Resolution happens by unification + backtracking.
 
 **Sutra:**
 
 ```sutra
-// The relation lives in the embedding space as a displacement.
+// The relation lives in the embedding space as a displacement,
+// learned from one or more (country, capital) pairs.
 vector capital_of = displacement(v_paris, v_france);
 
 // "Query" the relation by applying it geometrically.
@@ -170,11 +102,14 @@ vector winner = argmax_cosine(
 );
 ```
 
-**What Sutra borrows from Prolog.** Predicates and relations are first-class. `capital` in Prolog is a thing you can declare, query, and reason about; `capital_of` in Sutra is a thing you can compute, name, and apply. Both are **declarative**: you describe what relates to what, not how to traverse a search tree. Both support **reasoning under uncertainty** — Prolog through extensions like ProbLog, Sutra through fuzzy similarity scores native to the substrate.
+**What Sutra borrows from Prolog.** Programs are sets of *declarations* about how things relate, not procedures for how to compute. Predicates and relations are first-class — `capital_of` in Sutra plays the same role as `capital/2` in Prolog: a named thing the language treats as a primary object you can apply, compose, and reason about. Both languages support **reasoning under uncertainty** — Prolog through extensions like ProbLog and Stochastic Logic Programming, Sutra through fuzzy similarity scores native to the substrate. Both default to **open-world semantics**: Prolog's open-world variants and Sutra's embedding-inherited semantics both assume there's more out there than what's been asserted.
 
-**Where it diverges.** Prolog resolves queries with **unification + backtracking** over discrete terms. Sutra resolves queries with **vector arithmetic + nearest-neighbor** over continuous embeddings. Prolog needs a fact for every (country, capital) pair you want to answer; Sutra needs a *single* `capital_of` vector and the query generalizes. Prolog's truth values are Boolean (extensions: probabilistic); Sutra's are graded `[-1, +1]` by default — when you ask "is Tokyo the capital of Japan?" you get back *how true*, not *whether*.
+**Where it diverges.** Prolog resolves queries with **unification + backtracking** over discrete terms. Sutra resolves queries with **vector arithmetic + nearest-neighbor** over continuous embeddings. Two consequences:
 
-The same comparison applies in muted form to **Datalog** and **Answer Set Programming** — same paradigm family, different substrate, graded truth instead of Boolean.
+- **Generalization.** Prolog needs a `capital(X, Y)` fact for every pair you want to answer. Sutra needs a *single* `capital_of` displacement vector and the query generalizes — even if `capital(germany, _)` was never asserted, `v_germany + capital_of` lands somewhere in the capital region of embedding space and `argmax_cosine` returns the nearest candidate.
+- **Truth shape.** Prolog's truth is Boolean (extensions: probabilistic). Sutra's truth is graded `[-1, +1]` by default — when you ask "is Tokyo the capital of Japan?" you get back *how true*, not *whether*. The `is_true` operator polarizes the answer toward ±1 without ever binarizing it.
+
+The same comparison applies in muted form to **Datalog**, **Answer Set Programming**, and **SQL** — all are declarative-relational languages over discrete tuples, all share the "describe what, not how" shape, and all differ from Sutra in the same direction (discrete substrate, exact resolution, Boolean or 3-valued truth).
 
 ---
 
@@ -203,7 +138,7 @@ Country japan = new Country("Japan", "Tokyo");
 String c = japan.getCapital();  // "Tokyo"
 ```
 
-A `Country` is a bundle of fields. Construction sets the fields; the method reads them.
+A `Country` is a bundle of fields. Construction sets the fields; the method reads them. The class encapsulates *state* (the fields) behind an interface (the methods).
 
 **Sutra (intended end state — bodies are deferred today):**
 
@@ -220,16 +155,21 @@ vector tokyo = japan.get_capital();
 
 Today the MVP only allows empty class bodies (`class Country extends vector { }`); the method-on-class form above is the deferred design (see [the ontology page](ontology.md) and `todo.md` § "Ontology — make the class system real"). The empty-body form is enough to *name* `Country` as a region of embedding space; the bodies will add behavior.
 
-**What Sutra borrows from Java.** Class declarations, single inheritance, the dotted-method-call surface. Going from `class Country` to `class Country extends vector` to a subclass like `class IslandNation extends Country` reads the same way as Java.
+**What Sutra borrows from Java.** Class declarations, single inheritance, the dotted-method-call surface. Going from `class Country` to `class Country extends vector` to a subclass like `class IslandNation extends Country` reads the same way as Java. The ontology grows the way a Java class hierarchy grows — by extending an existing class, by introducing new ones beside it.
 
-**Where it diverges — and this is the deepest divergence on the page.**
+**Where it diverges — and the honest version.**
 
-- **No mutable instance state.** Java's `this.capital = "Tokyo"` mutates the object. Sutra has no such operation on a class instance — there are no fields to assign to.
-- **No constructor.** Java needs `new Country("Japan", "Tokyo")` to bring an instance into being. Sutra's instances *already exist* in the embedding space; the language only names them. `vector japan = "Japan"` doesn't *construct* Japan, it *resolves* the existing geometric position.
-- **Methods are pure vector transformations.** `get_capital()` in Sutra is a single vector add: `this + capital_of`. There's no internal state to consult, no field to read.
-- **Classes can be wrong.** A Java `Dog` class is true by fiat — whatever you put in it is what `Dog` means in your program. A Sutra `Dog` class makes a claim about *where in the embedding space `Dog` sits*, and that claim can disagree with the model's clustering, with another model's, or with reality. Class membership has truth conditions.
+Classical OO's signature feature is **encapsulated mutable state behind a method interface**. A Java `Counter` packages an `int count` field with `increment()` and `value()` methods that read and mutate it. The point of the class is that the state lives *inside* the object and only the methods can touch it.
 
-This is what "declarative OO" means: a class is a *claim* about a region of embedding space, not a *recipe* for building instances out of fields. The shape borrowed from Java; the semantics borrowed from RDF/OWL.
+**Sutra structurally cannot do this.** There are no fields to mutate. There is no "inside" of an instance to encapsulate. An instance of `Country` is *just* a vector — the same kind of vector everything else in the program is. The class declaration adds no per-instance storage. (See the next section on memory points for why.)
+
+What Sutra's class system *does* do is something Java cannot do as cheaply:
+
+- **Name a region of embedding space.** `class Country` asserts that there's a coherent geometric region the model has already organized; the declaration names it.
+- **Make claims about that region that can be wrong.** A Java `Dog` class is true by fiat. A Sutra `Dog` class makes a claim about *where in embedding space `Dog` sits*, and that claim can disagree with the model's clustering, with another model's, or with reality. Class membership has truth conditions.
+- **Express behavior as pure vector transformations.** `get_capital()` is a single vector add — `this + capital_of` — that generalizes across all countries the embedding model has ever seen, including ones that were never in the seed pairs. No per-country case analysis, no lookup table, no constructor.
+
+So the right way to read the OO comparison is not "Sutra is OO with a different syntax." It's that **Java and Sutra are doing different things with the word "class"** — Java is packaging mutable state with the methods that mutate it; Sutra is naming geometric regions and declaring the pure transformations that act on them. Neither one does what the other does. The shape borrowed from Java; the semantics borrowed from RDF/OWL.
 
 ---
 
@@ -247,26 +187,30 @@ for (int i = 1; i <= 5; i++) {
 // sum == 15
 ```
 
-Memory cells, mutation, a counter, a comparison, a branch back.
+A counter `i` lives in memory, takes the values 1 through 5 in sequence, mutates the cell `sum` each iteration. Two memory cells, one branch per iteration, one back-edge.
 
-**Sutra:**
+**Sutra (intended syntax — the `iterator` keyword is planned):**
 
 ```sutra
 var n : int = 0;
 loop[5] {
-    n += 1;
+    n += iterator;
 }
 ```
 
-Looks imperative. **Isn't, underneath.**
+The `iterator` keyword inside an unwinding loop refers to the current iteration's index. Because `loop[5]` has a compile-time-constant bound, the compiler unrolls the loop and substitutes `iterator` with the constants 1, 2, 3, 4, 5 across the five copies:
 
-What the compiler does:
+```sutra
+n += 1;
+n += 2;
+n += 3;
+n += 4;
+n += 5;
+```
 
-- `loop[5] { ... }` *unrolls at compile time*. The emitted code is the body five times in sequence — no runtime counter, no comparison, no back-edge.
-- `n += 1` does not mutate a memory cell. It rebinds the name `n` to a fresh vector representing the new value. The old vector is just unreferenced.
-- The whole program lowers to straight-line tensor work that the simplifier can fuse. There is no host-side loop in the emitted code at all.
+That's what actually compiles. There is no `iterator` variable at runtime. There is no counter at runtime. There is no comparison and no back-edge. The whole loop is straight-line tensor work — five additions on the substrate, fully visible to the simplifier (which will likely fold them into `n + 15` before the runtime ever runs).
 
-For data-dependent termination, the form is different:
+For data-dependent termination, Sutra has a different form:
 
 ```sutra
 loop(state ~ target) {
@@ -274,19 +218,35 @@ loop(state ~ target) {
 }
 ```
 
-This `loop(condition)` lowers to **iterated multiplication by a fixed rotation matrix `R` on the substrate**. The "loop counter" is the angular position on a helix in the substrate; termination is a similarity check between the rotated state and the target prototype. There is no host-side `i++`.
+This `loop(condition)` lowers to **iterated multiplication by a fixed rotation matrix `R` on the substrate**. The "loop counter" is the angular position on a helix; termination is a similarity check between the rotated state and the target prototype. There is *still* no host-side `i++`.
 
 **What Sutra borrows from C.** Surface ergonomics. `var`, `+=`, `loop`, the curly braces. People know what these mean and the language doesn't fight that intuition.
 
-**Where it diverges.** Lowering target. C compiles to memory writes, branches, and a CPU counter. Sutra compiles to a tensor expression with no runtime control flow. CLAUDE.md's "no scalar extraction inside an operation, no Python control flow inside an operation" rule is the hard ceiling on how imperative the language is allowed to get — an operation that pulled a scalar out of a vector, did Python arithmetic on it, and packed the result back would break the property the simplifier depends on (the whole program is one tensor dataflow graph). The imperative surface exists exactly to the extent that it can be lowered to that graph without breaking it.
+### Where it diverges — Sutra has no memory points
+
+This is the deepest claim on the page, and it's also the hardest to state cleanly. Here goes.
+
+C's loop has **memory points**. `i` is a name for a specific cell; `sum` is a name for another cell. The cells live somewhere — on the stack, in a register, at an address — and the program's whole story is the story of which cell holds what value at each point in execution. Every variable is a pointer in the small.
+
+**Sutra has no memory points.** Not in that sense.
+
+- The `loop[5]` doesn't have a counter at runtime. `iterator` is a compile-time constant, different in each unrolled copy, never a live cell.
+- `n += iterator` doesn't mutate a memory cell. It rebinds the name `n` to a fresh vector representing the new value. The old vector is just unreferenced.
+- Even the `slot` primitive — Sutra's nearest thing to a writable cell — **is not a memory point either**. A `slot` write is a 2D-Givens rotation on a disjoint plane in the synthetic subspace. The "address" being written to is *unrooted*: it doesn't correspond to a memory location, it corresponds to a geometric operation. The sequence `slot x = a; slot x = b; slot x = a;` produces the same final substrate state as a single `slot x = a;`, because rotations compose and the round trip cancels.
+
+The closest analogy for what Sutra *does* have is a **Turing tape in vector space** — information stored as the cumulative geometric transformation that a sequence of writes produces. You *can* store information; the substrate is expressive enough for that. But unlike a Turing tape, you cannot point at a cell and say "the value is here." Information lives as a geometric structure spread across the whole vector, not at a coordinate.
+
+And here's the part that makes even the Turing-tape analogy soft: **the geometric transformation usually factors out at compile time.** The simplifier sees a chain of binds-and-bundles-and-rotations and folds it into one cached matrix or one final vector. The "writes" never happen at runtime because the result was known at compile time. So when you read a Sutra program and see something that looks like a write or a counter, the right mental model is not "this stores a value somewhere." The right mental model is "this contributes a geometric step, and the simplifier will probably collapse the whole chain into a single tensor expression before the runtime ever touches a value."
+
+This is the property C and Sutra do not share, and the one that makes "imperative-looking Sutra" honestly imperative-shaped only on the surface. C's program *is* its memory writes. Sutra's program is an algebraic expression that the compiler resolves geometrically, with the apparent memory writes serving as notation for steps in that resolution.
 
 ---
 
 ## So what is Sutra, in one sentence?
 
-Sutra is a **functional, array-oriented language with a strong declarative / logic-programming bias, a real-but-declarative class system, and an intentionally thin imperative surface** — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time.
+Sutra is a **functional language with a strong declarative / logic-programming bias, a real-but-declarative class system, and an intentionally thin imperative surface** — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time, with no memory points at runtime.
 
-The paradigm ordering (functional ≈ array-oriented > declarative+logic > OO > imperative) is the order in which each layer constrains the others. The functional and array-oriented core are load-bearing for compilation; remove either and the simplifier collapses. The declarative / logic surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer organizes large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience; remove it and you write more verbose programs, but nothing fundamental breaks.
+The paradigm ordering (functional > declarative+logic > OO > imperative) is the order in which each layer constrains the others. The functional core is load-bearing for compilation; remove it and the simplifier collapses. The declarative / logic surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer organizes large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience; remove it and you write more verbose programs, but nothing fundamental breaks.
 
 ---
 
