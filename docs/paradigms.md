@@ -223,12 +223,13 @@ A counter `i` lives in memory and takes values 0 through 4. A second cell `n` ge
 
 ```sutra
 var n : int = 0;
-loop[5] {
-    n += 1;
+loop (5) {
+    n += iterator;
 }
+// n == 1 + 2 + 3 + 4 + 5 == 15
 ```
 
-That's roughly what the surface looks like. (For "use the iteration index in the body," the language is going to grow an `iterator` keyword inside `loop[N]` — see the [loops doc](loops.md) for that design.)
+The `iterator` keyword inside an unrolling loop body refers to the current iteration's index (1-based: 1..N). See the [loops doc](loops.md#the-iterator-reserved-keyword) for the full design.
 
 What the compiler does:
 
