@@ -130,6 +130,46 @@ is the operation where this gap shows up most clearly — not the
 *limiting factor*, but the place the approximation cost is
 visible.
 
+## VSA implementation ecosystem (libraries, not languages)
+
+These are the existing software artifacts in the VSA / HDC space.
+None of them are programming languages in Sutra's sense (a `.su`
+file that compiles to substrate ops); they are libraries you call
+from Python or compilers scoped to a single task. Captured here so
+the prior-art audit has a pointer to "what already exists at the
+implementation level" alongside the theoretical references above.
+
+- **HDCC** (arXiv) — described as "the first open-source compiler
+  that translates high-level descriptions of HDC classification
+  methods into optimized C code." Has an input language, an IR,
+  and a flexible backend. Scoped specifically to ML
+  classification, not general-purpose VSA programming.
+- **Torchhd** (Python / PyTorch) — VSA library; Python embedding,
+  no dedicated language surface.
+- **vsapy** — Python VSA library.
+- **OpenHD** — GPU-based HDC with JIT compilation; library, not a
+  language.
+- **NengoSPA** — Semantic Pointer Architecture, the
+  neural/cognitive VSA prior art with the most language-shaped
+  surface (built atop Nengo's neural compiler). Closest in spirit
+  to "VSA as substrate," but the surface is still a Python DSL
+  rather than a standalone language with its own grammar.
+- **HD/VSA on large boolean vectors** (Hd-computing) — research
+  framework with program transformation and multiple backends
+  (Python, C++, NumPy, PyTorch). Closest thing to a general-
+  purpose "VSA language with compilation" before Sutra; remains
+  research-oriented, not a polished standalone language.
+
+The gap Sutra fills against this ecosystem: **no general-purpose
+language exists where you write ordinary-looking code and the
+compiler translates the semantics into substrate ops as its
+execution model.** The way Prolog compiles to unification or
+Datalog compiles to relational algebra. The libraries above all
+require the user to think in terms of `bind` / `bundle` /
+`unbind` calls explicitly; Sutra hides that behind familiar
+imperative-looking syntax that lowers to substrate ops at compile
+time.
+
 ## What this is not
 
 This is a **citation list**, not a Sutra design doc. The

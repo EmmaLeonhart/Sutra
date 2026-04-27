@@ -171,7 +171,15 @@ declared return type.
 - **Non-similarity loop conditions.** `loop(cond)` currently
   expects `similarity(state, target) < threshold`. Can a bool
   crossing a threshold or a counter hitting a ceiling terminate a
-  loop, and do those need their own lowering paths?
+  loop, and do those need their own lowering paths? A related
+  candidate is **stabilization-based termination** — terminate
+  when `similarity(state_n, state_{n+1}) > threshold` (the state
+  stops moving) rather than when it matches a known prototype.
+  This is the natural shape for attractor-like iteration where no
+  target is supplied; the `concurrency.md` MLP attractor case
+  uses `||f(x) - x|| < ε` as the per-path version of the same
+  idea. Would need its own lowering path because the condition
+  references the *previous* state, not a compile-time prototype.
 - **Decide fate of parser-only features.** `do-while`, `foreach`,
   `try-catch`, `if/else`: should they stay parsed-but-rejected (to
   reserve the surface syntax), get removed entirely, or get
