@@ -10,11 +10,17 @@ description: How Sutra relates to functional, declarative/logic, object-oriented
 
 People who pick up a new language want to know what shape it is. This page picks one small task per paradigm, writes it in the canonical language for that paradigm, then writes it in Sutra. The goal is to make the influences visible: what Sutra borrowed in shape, and what it changed by moving the substrate from "memory cells / discrete terms" to "vectors in a frozen LLM's embedding space."
 
+The elevator pitch first:
+
+> **Sutra is roughly Haskell + Prolog, with C-family syntax so people can actually read it — and it goes further than either by compiling all the way down to tensor algebra with no pointers anywhere.**
+
+Haskell gives the functional core (pure functions, immutable values, the simplifier-friendly straight-line shape). Prolog gives the declarative-relational surface (programs as relations, predicates as first-class objects, reasoning under uncertainty). The C-family braces and keywords are the surface ergonomics so the result reads like something a working programmer recognizes instead of like a paper. The piece that's *more* radical than either Haskell or Prolog: Haskell still compiles to a runtime with pointers and memory cells, Prolog still has terms that live somewhere — Sutra's compilation target is tensor algebra, which has no notion of a pointer at all.
+
 The ranking, going from most-load-bearing to least:
 
 > **Functional > Declarative (Prolog-flavored) > Object-Oriented > Imperative**
 
-Functional is the foundation. Declarative is the surface a programmer reads and writes — and it inherits a strong logic-programming flavor (continuous-space reasoning under uncertainty, closer to Prolog than to Python). Object orientation is real but it's *declarative* OO, not imperative — Sutra's class system names regions of embedding space; it doesn't package mutable state. The imperative-looking surface (`var n += 1;`, `slot x = expr;`, `loop`) is the thinnest layer of all, a convenience over a functional-algebraic core that **has no memory points** (see the imperative section for what that means).
+Functional is the foundation. Declarative is the surface a programmer reads and writes — and it inherits a strong logic-programming flavor (continuous-space reasoning under uncertainty, closer to Prolog than to Python). Object orientation is real but it's *declarative* OO, not imperative — Sutra's class system names regions of embedding space; it doesn't package mutable state. The imperative-looking surface (`var n += 1;`, `slot x = expr;`, `loop`) is the thinnest layer of all, a convenience over a functional-algebraic core that **has no memory points** (see the imperative section for what that means — and for why it's the hardest thing on this page to internalize).
 
 ---
 
@@ -175,7 +181,9 @@ So the right way to read the OO comparison is not "Sutra is OO with a different 
 
 ## Imperative — C
 
-C is the honest reference for "what an imperative language is actually doing on a computer." It's also the cleanest counterpoint to Sutra, because almost everything C *is* about, Sutra *isn't*.
+**This is the hardest section on the page to internalize, and it's the most important.** Sutra's surface looks imperative — `var`, `+=`, `loop`, curly braces. To anyone coming from C, Java, Python, JavaScript, Rust, anything in that family, the surface reads like normal imperative code. It is not. The disconnect between how it reads and what it actually compiles to is the deepest single foreign thing about the language, and the rest of the divergences on this page (no constructors, no mutable fields, fuzzy truth) are smaller in comparison.
+
+C is the right counterpoint because C is honest about what's happening on the computer. Almost everything C *is* about, Sutra *isn't*.
 
 **Task.** Increment a variable five times.
 
@@ -228,9 +236,24 @@ C is honest about what's happening on the computer. `i` and `n` are names for sp
 
 **Sutra has no memory points at all.** It has variables, but the variables don't refer to memory cells. The language operates in a state of weirdness about where information lives.
 
+The first piece of this is the part imperative programmers find hardest to swallow: **every reassignment in Sutra is a fresh variable as far as the compiler is concerned.** When you write
+
+```sutra
+var n : int = 0;
+n += 1;
+n += 1;
+```
+
+an imperative reading is "one variable `n`, mutated three times." That's not what's happening. Conceptually, this is three separate values — call them `n₀ = 0`, `n₁ = n₀ + 1`, `n₂ = n₁ + 1` — that share a name only as a convenience for the human reader. The compiler factors the chain into a straight-line algebraic expression and the runtime never holds a "current `n`" in any cell. There is no mutation; there is no underlying address being overwritten; the sequence of `n`s is a sequence of distinct values related by addition.
+
+This is *more radical* than what Haskell does. Haskell is purely functional at the language level, but GHC compiles to a runtime that has stack slots, heap cells, and pointers — there is still memory under the hood; the language just refuses to expose it. Sutra's compilation target is tensor algebra. **Tensor algebra has no notion of a pointer.** There is no "under the hood" with cells. The runtime values are vectors that get added and rotated and bundled, and that's it. Sutra is the first language most people will meet that doesn't have memory cells at any level — surface or implementation.
+
+The rest of the no-memory-points story:
+
 - The `loop[5]` doesn't have a counter at runtime. The unrolled bodies have no shared variable connecting them — each one is independent.
 - `n += 1` doesn't mutate a memory cell. It rebinds the name `n` to a fresh vector. There is no cell to point at and say "the value of `n` lives here."
 - Even the `slot` primitive — Sutra's nearest thing to a writable cell — **is not a memory point either**. A `slot` write is a 2D-Givens rotation on a disjoint plane in the synthetic subspace. The "address" being written to is *unrooted*: it doesn't correspond to a memory location, it corresponds to a geometric operation. The sequence `slot x = a; slot x = b; slot x = a;` produces the same final substrate state as a single `slot x = a;` — rotations compose and the round trip cancels.
+- The one place the language has anything resembling time-evolving state is the `loop(condition)` eigenrotation form — `state = R * state` iterated until a similarity threshold is met. Even there, each iteration produces a *fresh* `state` vector; the previous one is unreferenced. It's a sequence of distinct vectors related by rotation, not one cell that gets overwritten N times. That's as close as Sutra gets to imperative state, and it's still not a memory cell.
 
 The right analogy: **information storage in Sutra is to memory cells as the Turing tape in Conway's Game of Life is to RAM.** Conway's Game of Life is famously Turing-complete — you *can* build a computer in it, you *can* store information, you *can* implement a tape. But the "cells" of that computer are not memory cells in any conventional sense. They are gliders and oscillators and patterns of live squares interacting under the rules of the universe. There is no address you can read from; there is only the global state of the grid and the way information moves through it.
 
@@ -246,9 +269,9 @@ C's program *is* its memory writes. Sutra's program is an algebraic expression t
 
 ## So what is Sutra, in one sentence?
 
-Sutra is a **functional language with a strong declarative / logic-programming bias, a real-but-declarative class system, and an intentionally thin imperative surface** — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time, with no memory points at runtime.
+Sutra is **Haskell + Prolog with C-family syntax, compiled all the way down to tensor algebra with no pointers anywhere.** Or, more carefully: a functional language with a strong declarative / logic-programming bias, a real-but-declarative class system, and an intentionally thin imperative surface — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time, with no memory points at runtime.
 
-The paradigm ordering (functional > declarative+logic > OO > imperative) is the order in which each layer constrains the others. The functional core is load-bearing for compilation; remove it and the simplifier collapses. The declarative / logic surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer organizes large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience; remove it and you write more verbose programs, but nothing fundamental breaks.
+The paradigm ordering (functional > declarative+logic > OO > imperative) is the order in which each layer constrains the others. The functional core is load-bearing for compilation; remove it and the simplifier collapses. The declarative / logic surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer organizes large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience and recognition — it's the layer that makes the language *readable* by people whose first language wasn't Haskell or Prolog — but it doesn't add any computational power, and the simplifier strips it all the way down before runtime ever runs.
 
 ---
 
