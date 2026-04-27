@@ -1,17 +1,17 @@
 ---
 title: Paradigms — where Sutra sits
-description: How Sutra relates to functional, declarative, object-oriented, and imperative programming, and what it borrows from each.
+description: How Sutra relates to functional, array-oriented, declarative, logic, object-oriented, and imperative programming, and what it borrows from each.
 ---
 
 # Paradigms — where Sutra sits
 
-People who pick up a new language want to know what shape it is. Is it functional like Haskell? Object-oriented like Java? Declarative like Prolog or SQL? Imperative like C?
+People who pick up a new language want to know what shape it is. Is it functional like Haskell? Array-oriented like APL? Logic like Prolog? Object-oriented like Java? Imperative like C?
 
 Sutra has a clear ordering. Going from most-load-bearing to least:
 
-> **Functional > Declarative > Object-Oriented > Imperative**
+> **Functional ≈ Array-oriented > Declarative (with strong logic-programming flavor) > Object-Oriented > Imperative**
 
-Functional and declarative are the foundation and they're nearly tied. Object orientation is real but it's *declarative* object orientation, not imperative. The imperative-looking surface (`var n += 1;`, `slot x = expr;`, `loop`) is a thin convenience layer over a functional-algebraic core — the compiler lowers all of it to tensor operations on the substrate.
+Functional and array-oriented are the foundation, nearly tied. Declarative is the surface a programmer reads and writes — and it inherits a logic-programming flavor (continuous-space reasoning under uncertainty, closer to Prolog than to Python). Object orientation is real but it's *declarative* object orientation, not imperative. The imperative-looking surface (`var n += 1;`, `slot x = expr;`, `loop`) is a thin convenience layer over a functional-algebraic core — the compiler lowers all of it to tensor operations on the substrate.
 
 This page walks each paradigm in order, says what Sutra takes from it, and compares against a representative language for each.
 
@@ -42,6 +42,37 @@ The biggest divergence: Haskell uses ADTs to represent structured data; Sutra us
 
 ---
 
+## Array-oriented — also the foundation
+
+This is the paradigm Sutra is most secretly indebted to. The whole-array philosophy of APL (and J, K, BQN, and to a lesser extent NumPy) — *every value is a uniform array, every operation acts on the whole array at once, you get global efficiency from uniform shape* — is essentially Sutra's "global efficiency, not local" rule restated. Sutra is in some ways more APL-shaped than Haskell-shaped.
+
+What Sutra borrows from the array-oriented tradition:
+
+- **Uniform value shape.** Every value is a vector in the substrate. There is no scalar/array distinction at the language level — `1 + 1` and `"cat" + "dog"` go through the same primitive (a tensor add on 868-dimensional vectors). Just as APL has no "loop over the elements" because every primitive is already whole-array, Sutra has no "loop over the dimensions" because every primitive is already a tensor op.
+- **Global efficiency from uniform shape.** APL programs are dense one-liners that the interpreter can evaluate as fused whole-array operations because there are no scalar branches breaking the array shape. Sutra programs compile to dense tensor expressions that the simplifier can fuse end-to-end (matrix-chain composition, batched einsum for `bundle(bind(r1,f1), ..., bind(rN,fN))`) for the same reason — no scalar escape, so the optimizer can always see the whole graph.
+- **Locally wasteful, globally efficient.** APL doing `2 + 3` as a one-element array operation is wasteful at the leaf. Sutra doing `1 + 1` as 868-dimensional vector addition is wasteful at the leaf. The trade in both cases is that the *whole program* has uniform shape, no type-dispatch layer, no JIT-vs-interpreter switch in the hot path.
+- **Operators over operations.** APL's reduce / scan / outer-product family produces new operations from old ones. Sutra's combinators (`select`, `argmax_cosine`, `bundle`-of-binds) play a similar role — they describe a whole-array transformation in one symbol.
+
+**Comparison — APL vs Sutra:**
+
+| | APL | Sutra |
+|---|---|---|
+| Every value is an array/vector | yes | yes |
+| Whole-array primitives, no element loops | yes | yes (tensor ops, no scalar extraction) |
+| Uniform shape enables global fusion | yes (interpreter) | yes (compile-time simplifier) |
+| Reduce / scan / outer product | yes (built-in operators) | partial (`bundle`, `argmax_cosine`, planned reductions) |
+| Substrate | dense numeric arrays | dense embedding-space vectors |
+| Truth values | numeric (0/1, sometimes broader) | fuzzy `[-1, +1]` truth axis |
+| Element type | uniform numeric | uniform geometric (every value is a 768/868-d vector) |
+| Notation | terse glyphs (`+/`, `⌽`, `⍳`) | C-family keywords (`bundle`, `bind`, `loop`) |
+| Records / structured data | nested arrays | bundled role-filler bindings |
+
+The biggest divergence: APL's element type is a number, and APL's substrate is a dense numeric array. Sutra's element type is a *geometric vector in embedding space*, and the substrate is the frozen LLM's latent space. APL primitives like `+/` (sum-reduce) translate cleanly to Sutra's `bundle` (sum-and-normalize); APL's `⍳` (iota) translates loosely to a basis-vector enumeration; APL's outer product translates to bind-against-each-of-many. The shape of the language — uniform values, whole-array ops, fusion-friendly straight-line code — is the same.
+
+This is also why "vectors and matrices as primitives" appears in CLAUDE.md as a core design point. The right reference for that decision isn't NumPy (which is a *library* in a non-array-oriented host) — it's APL, where the array is the *language*.
+
+---
+
 ## Declarative — also the foundation
 
 A Sutra source file reads top-to-bottom as a sequence of *declarations*: codebooks of named vectors, role declarations, function definitions, class definitions. There is no main control loop the way an imperative program has one — the runtime evaluates declarations at module-load time, and the entry point (`main`) is itself a declaration whose body is more declarations and expressions.
@@ -66,6 +97,37 @@ Sutra also has a strong **logic-programming undertone**. CLAUDE.md describes the
 | Closed-world vs open-world | configurable | closed | open — embedding space carries semantics from training |
 
 Where Sutra differs sharply: Prolog and SQL operate on discrete tuples and resolve queries via exact unification or set algebra. Sutra operates on continuous vectors and resolves "queries" via cosine similarity and softmax-weighted superposition. Truth is graded, not Boolean. A Sutra program *describes* the geometric relations among named vectors, then asks the substrate to evaluate those relations — much like SQL describes a relational query and lets the planner figure out execution.
+
+---
+
+## Logic programming — a sub-family of declarative, worth its own section
+
+Sutra's connection to logic programming is strong enough that the SQL/Prolog table above doesn't do it justice. CLAUDE.md describes the language as "a formal system for *reasoning under uncertainty* — closer to logic programming (Prolog) than Python, but operating in continuous rather than discrete space." That phrasing is deliberate. Several of Sutra's load-bearing ideas are logic-programming ideas relocated to a continuous substrate.
+
+What Sutra borrows from the logic-programming tradition:
+
+- **Programs as relations, not procedures.** A Prolog program is a set of facts and rules describing relations; the runtime resolves queries against that relational structure. A Sutra program is a set of vector declarations and pure functions describing geometric relations; the runtime resolves queries (similarity, argmax_cosine, select) against that geometric structure. In neither case do you write "do this, then this, then this."
+- **Predicates as first-class structure.** Prolog's `parent(alice, bob)` is a relation between two terms. Sutra's `is_parent_of` is a learned matrix (or, today, a rotation) that relates two embedded objects. Both are "predicates" — claims about how things relate — that the language treats as primary objects.
+- **Reasoning under uncertainty.** Pure Prolog gives Boolean answers; extensions like ProbLog and Stochastic Logic Programs add probability. Sutra is *built* with uncertainty as the ground truth — fuzzy truth on the canonical truth axis, similarity scores in `[-1, +1]`, defuzzification that polarizes without binarizing. Confidence is first-class; certainty is the special case.
+- **Open-world semantics.** Datalog and SQL default to closed-world (anything not asserted is false). Sutra defaults to open-world — the embedding space carries semantics from training, so questions like "is `tomato` more like `fruit` or `vegetable`?" have answers before any program declares them. The language is a thin layer over a much larger learned ontology.
+
+**Comparison — Prolog vs Sutra:**
+
+| | Prolog | Sutra |
+|---|---|---|
+| Programs as relations / facts / rules | yes | yes (declarations + pure functions over geometric relations) |
+| Resolution via unification | yes (exact) | no — replaced by similarity + softmax superposition |
+| Truth values | Boolean (extensions: probabilistic) | fuzzy `[-1, +1]` by default |
+| Substrate | discrete terms | continuous vectors in embedding space |
+| Open-world reasoning | configurable | default — semantics inherited from frozen LLM |
+| Backtracking search | yes (built-in control) | no — replaced by weighted superposition over options |
+| Cut (`!`) and explicit control | yes | no — there is no execution order to cut |
+| Higher-order / metaprogramming | limited | partial (compile-time simplifier rewrites the program) |
+| Negation | negation-as-failure | fuzzy NOT (truth-axis sign flip), polarizing not binarizing |
+
+The biggest divergence: Prolog *searches* a discrete space via unification + backtracking; Sutra *computes* in a continuous space via tensor algebra. Where Prolog asks "is there a binding of variables that makes this query true?", Sutra asks "what does the geometry say about how close this is to true?" — and gets back a graded answer rather than a yes/no. Both are declarative; both treat predicates as first-class; both reason about relations rather than procedures. The substrate change (discrete terms → continuous vectors) is what makes Sutra's primitives look so different from Prolog's even though the underlying paradigm relationship is close.
+
+The same comparison applies, in muted form, to **Datalog** (Prolog without function terms — closer to SQL but still relational) and to **Answer Set Programming** (Prolog with declarative semantics around stable models). Sutra's relationship to all three is: same paradigm family, different substrate, graded truth instead of Boolean.
 
 ---
 
@@ -136,11 +198,11 @@ C is the canonical imperative language: control flow lives at runtime, mutation 
 
 ## So what is Sutra, in one sentence?
 
-Sutra is a **functional language with a strong declarative bias, a real-but-declarative class system, and an intentionally thin imperative surface** — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time.
+Sutra is a **functional, array-oriented language with a strong declarative / logic-programming bias, a real-but-declarative class system, and an intentionally thin imperative surface** — all of which lower to tensor operations on a frozen-LLM embedding substrate at compile time.
 
-Or, said differently: Sutra is a [geometrically compiled language](what-is-sutra.md) where every paradigm contributes something specific. The functional core gives the simplifier the algebraic freedom it needs. The declarative surface is where the programmer expresses intent — codebooks, roles, classes, decisions, fixed points. The object-oriented layer organizes regions of embedding space into named, queryable ontological structure. The imperative surface is convenience — slot-based reversible state and loop-shaped fixed points — that lowers cleanly to the same tensor graph as the rest.
+Or, said differently: Sutra is a [geometrically compiled language](what-is-sutra.md) where every paradigm contributes something specific. The functional core gives the simplifier the algebraic freedom it needs. The array-oriented design gives every value the same shape, so the whole program is one tensor dataflow graph the simplifier can fuse. The declarative / logic surface is where the programmer expresses intent — codebooks, roles, relations, decisions, fixed points. The object-oriented layer organizes regions of embedding space into named, queryable ontological structure. The imperative surface is convenience — slot-based reversible state and loop-shaped fixed points — that lowers cleanly to the same tensor graph as the rest.
 
-The ordering — functional > declarative > OO > imperative — is not arbitrary. It's the order in which each layer constrains the others. The functional core is load-bearing for compilation; remove it and the simplifier collapses. The declarative surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer is load-bearing for *organizing* large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience; remove it and you write more verbose programs, but nothing fundamental breaks.
+The ordering — functional ≈ array-oriented > declarative (with logic flavor) > OO > imperative — is not arbitrary. It's the order in which each layer constrains the others. The functional and array-oriented core are load-bearing for compilation; remove either and the simplifier collapses. The declarative / logic surface is load-bearing for semantics; remove it and the language becomes syntax without a story. The OO layer is load-bearing for *organizing* large programs over many embedding regions; remove it and you can still compute, but you can't structure. The imperative surface is convenience; remove it and you write more verbose programs, but nothing fundamental breaks.
 
 ---
 
