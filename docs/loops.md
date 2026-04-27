@@ -39,6 +39,34 @@ The index variable `i` takes values `0, 1, 2`. Emits a real `for i in range(3)` 
 
 Use `loop(N)` for small fixed repetitions — stacking a few transformations, generating a short codebook, initializing a banks. It's syntactic sugar over straight-line code.
 
+### Planned: the `iterator` reserved keyword
+
+A planned addition to the unrolling-loop form: a reserved keyword `iterator` that refers to the current iteration's index without needing the `as i` binding.
+
+```c
+var n : int = 0;
+loop[5] {
+    n += iterator;
+}
+// n == 1 + 2 + 3 + 4 + 5 == 15   (or 0..4, undecided)
+```
+
+Because `loop[5]` has a compile-time-constant bound, the compiler unrolls and substitutes `iterator` with the per-copy constant:
+
+```c
+n += 1;
+n += 2;
+n += 3;
+n += 4;
+n += 5;
+```
+
+`iterator` is **never a runtime variable**. Each unrolled copy gets a different compile-time constant. The keyword is contextual — only meaningful inside an unrolling loop body — and a compile-time error elsewhere.
+
+This is the language's canonical demonstration of "Sutra has no memory points": where C's `for (int i = 0; i < 5; i++)` puts `i` in memory and mutates it, Sutra's `loop[5] { n += iterator; }` substitutes five different compile-time constants and emits straight-line code with nothing to point at. See [paradigms](paradigms.md) § Imperative — C for the wider framing.
+
+**Status (2026-04-26):** not yet implemented. Tracked under `STATUS.md` as next-active-session work. Open design questions: 0-based vs 1-based; whether `iterator` should also work inside `foreach` over array literals (probably yes — same unroll mechanism); whether the existing `loop(N as i)` form coexists with `iterator` or is replaced by it.
+
 ---
 
 ## `loop(condition)` — eigenrotation
