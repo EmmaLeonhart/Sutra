@@ -47,9 +47,6 @@ Deferred for focused review:
     — comprehensive early design conversation covering most of
     Sutra's foundations. Needs careful section-by-section
     comparison against current spec.
-  - `chats/vsa-programming-languages.md` (933 lines, 22 turns) —
-    early "what does a VSA programming language look like" deep
-    dive. Same shape as the operations chat.
 
 Done in this sweep:
 
