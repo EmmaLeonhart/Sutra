@@ -35,7 +35,7 @@ Embedding spaces have none of that. Iteration in the discrete sense doesn't appl
 
 The language for this exists, and it's been around since high school: **linear algebra**. Vectors. Dot products. Matrix multiplication. Subspaces. Projections. Distance. The math you might have used to figure out "if a ball is rolling down this incline, where will it be in 3 seconds?" is the *same math* that powers a semantic search query. That is wild and most people never get told about the connection.
 
-The reason it's hard is that the path to embeddings goes *through* the connectionism story (neurons! networks! graphs!) before it lands on the geometric story (vectors! dot products! continuous space!). And the connectionism story is so vivid and so memorable that the geometric story feels like a *demystification* — like you're being told "actually it's not magic, it's just numbers." Which, yes, but the numbers are *spatial coordinates in a high-dimensional manifold*, and that is genuinely beautiful and powerful, and "it's just numbers" undersells it.
+The reason it's hard is that the path to embeddings goes *through* the connectionism story (neurons! networks! graphs!) before it lands on the geometric story (vectors! dot products! continuous space!). And the connectionism story is so vivid and so memorable that the geometric story feels like a *demystification* — like you're being told "it's just numbers." The numbers are *spatial coordinates in a high-dimensional manifold*, and "it's just numbers" undersells what that buys you.
 
 Sutra exists to give you a way to *write programs in those coordinates*.
 

@@ -247,7 +247,7 @@ All the polynomial-vs-composition equivalences are exact on the `{-1, 0, +1}²` 
 
 ## Ordered comparison — number-axis only
 
-Unlike the logical operators, **ordered comparison is not a fuzzy-logic operation**. `>` / `<` / `>=` / `<=` are relations on the real line — they ask "which of these two real numbers is larger," and the natural answer is a crisp direction (true / false / tie). Putting them on the truth axis as a smooth polynomial would produce an answer, but not a *meaningful* one; fuzzy logic genuinely doesn't help here.
+Unlike the logical operators, **ordered comparison is not a fuzzy-logic operation**. `>` / `<` / `>=` / `<=` are relations on the real line — they ask "which of these two real numbers is larger," and the natural answer is a crisp direction (true / false / tie). Putting them on the truth axis as a smooth polynomial would produce an answer, but not a *meaningful* one; fuzzy logic does not help here.
 
 So in Sutra, comparison is a **number-axis** operation that produces a **truth-axis** output, built from pure tensor arithmetic with no componentwise predicate:
 
