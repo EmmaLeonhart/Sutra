@@ -18,7 +18,7 @@ span of the offending node so the CLI can print a compiler-style
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from . import ast_nodes as ast
 
@@ -249,6 +249,14 @@ class BaseCodegen:
         # (slot var -> _VSA.slot_load) and the Assignment emit path
         # (target is slot var -> _VSA.slot_store + reassign).
         self._slot_vars: dict[str, int] = {}
+        # When unrolling a `loop (N) { ... }` with N a compile-time
+        # integer literal, this is set to the current iteration's value
+        # (1-based: 1, 2, ..., N) before each copy of the body is
+        # translated. The Identifier translation path checks this when
+        # it sees the name `iterator` and substitutes the constant.
+        # Outside an unrolling context this stays None, and a reference
+        # to `iterator` raises CodegenNotSupported.
+        self._iterator_value: Optional[int] = None
 
     # -- emission helpers -------------------------------------------------
 
@@ -703,9 +711,16 @@ class BaseCodegen:
             # For literal integers, actually unroll. For expressions, use range.
             if isinstance(stmt.count, ast.IntLiteral):
                 n = stmt.count.value
-                for _ in range(n):
+                # Save and restore _iterator_value across the unroll —
+                # nested unrolling loops save the outer value and pop
+                # it back when this loop finishes. The keyword always
+                # binds to the innermost surrounding unrolled loop.
+                saved_iter = self._iterator_value
+                for i in range(n):
+                    self._iterator_value = i + 1  # 1-based: 1..N
                     for inner in stmt.body.statements:
                         self._translate_stmt(inner)
+                self._iterator_value = saved_iter
             else:
                 self._emit(f"for _ in range({count_src}):")
                 self._indent += 1
@@ -1115,6 +1130,22 @@ class BaseCodegen:
         if isinstance(expr, ast.UnknownLiteral):
             return self._unknown_literal_src(expr)
         if isinstance(expr, ast.Identifier):
+            # `iterator`: contextual keyword inside an unrolling
+            # `loop (N) { ... }` body. The bounded-loop translator
+            # sets self._iterator_value to the current iteration's
+            # constant (1..N) before translating each copy of the
+            # body; here we substitute the literal. Outside an
+            # unrolling context, the reference is a compile error.
+            if expr.name == "iterator":
+                if self._iterator_value is None:
+                    raise CodegenNotSupported(
+                        expr,
+                        "`iterator` is only valid inside an unrolling "
+                        "`loop (N) { ... }` body where N is a compile-time "
+                        "integer literal. Use `loop (N as i)` and reference "
+                        "`i` instead for the named-index form.",
+                    )
+                return repr(self._iterator_value)
             # If this identifier names a slot-bound variable, emit
             # the slot_load call instead of a bare name reference.
             # The slot table is per-function-scope.

@@ -39,19 +39,19 @@ The index variable `i` takes values `0, 1, 2`. Emits a real `for i in range(3)` 
 
 Use `loop(N)` for small fixed repetitions — stacking a few transformations, generating a short codebook, initializing a banks. It's syntactic sugar over straight-line code.
 
-### Planned: the `iterator` reserved keyword
+### The `iterator` reserved keyword
 
-A planned addition to the unrolling-loop form: a reserved keyword `iterator` that refers to the current iteration's index without needing the `as i` binding.
+Inside an unrolling loop with a compile-time-constant bound (`loop (N) { ... }` where `N` is an integer literal), the keyword `iterator` refers to the current iteration's index without needing an `as i` binding.
 
 ```c
 var n : int = 0;
-loop[5] {
+loop (5) {
     n += iterator;
 }
-// n == 1 + 2 + 3 + 4 + 5 == 15   (or 0..4, undecided)
+// n == 1 + 2 + 3 + 4 + 5 == 15
 ```
 
-Because `loop[5]` has a compile-time-constant bound, the compiler unrolls and substitutes `iterator` with the per-copy constant:
+The compiler unrolls and substitutes `iterator` with the per-copy constant — **1-based, ranging from 1 to N**:
 
 ```c
 n += 1;
@@ -61,11 +61,15 @@ n += 4;
 n += 5;
 ```
 
-`iterator` is **never a runtime variable**. Each unrolled copy gets a different compile-time constant. The keyword is contextual — only meaningful inside an unrolling loop body — and a compile-time error elsewhere.
+`iterator` is **never a runtime variable**. Each unrolled copy gets a different compile-time constant. The keyword is contextual — only meaningful inside an unrolling `loop (N)` body where N is a literal — and a compile-time error elsewhere (including inside `loop (N as i)`, where you should reference `i` instead, and inside `loop (cond)` eigenrotation loops).
 
-This is the language's canonical demonstration of "Sutra has no memory points": where C's `for (int i = 0; i < 5; i++)` puts `i` in memory and mutates it, Sutra's `loop[5] { n += iterator; }` substitutes five different compile-time constants and emits straight-line code with nothing to point at. See [paradigms](paradigms.md) § Imperative — C for the wider framing.
+In nested unrolled loops, `iterator` always binds to the innermost surrounding loop. The outer value is saved across the inner loop's unroll and restored after.
 
-**Status (2026-04-26):** not yet implemented. Tracked under `STATUS.md` as next-active-session work. Open design questions: 0-based vs 1-based; whether `iterator` should also work inside `foreach` over array literals (probably yes — same unroll mechanism); whether the existing `loop(N as i)` form coexists with `iterator` or is replaced by it.
+This is the language's canonical demonstration of "Sutra has no memory points": where C's `for (int i = 0; i < 5; i++)` puts `i` in memory and mutates it, Sutra's `loop (5) { n += iterator; }` substitutes five different compile-time constants and emits straight-line code with nothing to point at. See [paradigms](paradigms.md) § Imperative — C for the wider framing.
+
+**Coexistence with `loop (N as i)`:** both forms are accepted. `as i` lets you choose the name (useful for nested loops that want the outer index in scope inside the inner body, since `iterator` always rebinds to the innermost). `iterator` is the always-available default. They don't conflict — a loop body can use either or both.
+
+**Open question — `foreach`:** whether `iterator` should also work inside `foreach (x in [a, b, c])` (substituting the *element* rather than an index) is undecided. The unroll mechanism is the same; the question is what `iterator` should mean. Logged under `todo.md`.
 
 ---
 

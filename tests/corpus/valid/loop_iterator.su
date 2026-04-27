@@ -1,0 +1,32 @@
+// `iterator` reserved keyword inside `loop (N) { ... }`.
+//
+// In an unrolling loop with a compile-time-constant N, `iterator`
+// refers to the current iteration's index (1-based: 1..N). The
+// compiler emits N copies of the body with `iterator` substituted
+// as a per-copy compile-time constant — never a runtime variable.
+//
+// Spec: docs/loops.md § "Planned: the iterator reserved keyword"
+// and docs/paradigms.md § Imperative — C.
+
+function int sum_one_to_five() {
+    var n : int = 0;
+    loop (5) {
+        n += iterator;
+    }
+    return n;  // 1 + 2 + 3 + 4 + 5 = 15
+}
+
+function int nested_iterator() {
+    var n : int = 0;
+    loop (3) {
+        n += iterator;
+        loop (2) {
+            n += iterator;
+        }
+    }
+    return n;  // (1 + 1 + 2) + (2 + 1 + 2) + (3 + 1 + 2) = 15
+}
+
+function int main() {
+    return sum_one_to_five() + nested_iterator();
+}

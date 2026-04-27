@@ -21,63 +21,6 @@ pick up next.
 
 ## Queued work
 
-### Add the `iterator` reserved keyword inside `loop[N]`
-
-Surfaced 2026-04-26 while writing `docs/paradigms.md` and the
-companion `docs/loops.md` § "Planned: the `iterator` reserved
-keyword". User direction: this is something we're going to add.
-
-Inside an unwinding loop body (`loop[N]` with a compile-time-
-constant bound), `iterator` is a reserved keyword that refers
-to the current iteration's index. Because the loop unrolls at
-compile time, `iterator` is **never a runtime variable** — the
-compiler emits N copies of the body with `iterator` substituted
-as a per-copy compile-time constant.
-
-```c
-var n : int = 0;
-loop[5] {
-    n += iterator;
-}
-```
-
-unrolls to
-
-```c
-n += 1;
-n += 2;
-n += 3;
-n += 4;
-n += 5;
-```
-
-Concrete work:
-
-- [ ] Lex `iterator` as a contextual keyword (only meaningful
-  inside an unrolling loop-body scope; reject it elsewhere
-  with a clear diagnostic).
-- [ ] Codegen: substitute `iterator` with the per-copy integer
-  constant during the existing unroll pass.
-- [ ] Decide 0-based vs 1-based and document the choice. The
-  doc draft hedges (`1..N` or `0..N-1` — undecided); pick one.
-- [ ] Decide whether `iterator` should also work inside
-  `foreach` over array literals. Probably yes — same unroll
-  mechanism, the substituted value is the array element.
-- [ ] Decide whether the existing `loop(N as i)` form coexists
-  with `iterator` or is replaced. Coexistence is the easier
-  path and probably the right one (`as i` lets you rename for
-  readability; `iterator` is the always-available default).
-- [ ] Update `docs/loops.md` to drop the "not yet implemented"
-  hedge and the corresponding line in `docs/paradigms.md` once
-  it ships.
-
-This is also the language's canonical demonstration of "Sutra
-has no memory points" (paradigms page § Imperative — C). C's
-`for (int i = 0; i < 5; i++)` puts `i` in memory and mutates
-it. Sutra's `loop[5] { n += iterator; }` substitutes five
-different compile-time constants and emits straight-line code
-with nothing to point at.
-
 ### Today's priority: trim repo bloat ahead of public presentation (2026-04-25)
 
 The repo has accumulated weight that doesn't pay for itself, and
