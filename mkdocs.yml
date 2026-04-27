@@ -93,6 +93,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - What is Sutra?: what-is-sutra.md
+  - Paradigms: paradigms.md
   - Ontology: ontology.md
   - Primitive classes: primitive-classes.md
   - Logical operations: logical-operations.md

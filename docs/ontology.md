@@ -6,6 +6,12 @@ What makes it unconventional is **what the hierarchy is for.** In a typical OOP 
 
 That's an ontology, not a type system. The word isn't borrowed metaphorically — it's the same sense used in knowledge representation (OWL, RDF), information science, and formal philosophy: a structured account of what exists and how the things that exist relate. Sutra's "class tree" is a small ontology, and it's designed to connect to larger external ontologies through the embedding layer.
 
+!!! note "Declarative OO, not imperative OO"
+
+    Sutra's object orientation is **declarative**, not imperative. There is no mutable instance state, no constructor side effects, no `this.field = value;` assignment. A class declaration is a *claim* about a region of embedding space — that this region exists, that it's worth naming, that certain operations make sense on values located there. Methods (when they land — see "What is deferred" below) will be pure functions from a vector to a vector. Identity is geometry, not a chain of mutations.
+
+    This places Sutra closer to RDF/OWL than to Java or Python. The [paradigms page](paradigms.md) walks through the comparison in detail.
+
 This page walks through the ontology top-down.
 
 ---
