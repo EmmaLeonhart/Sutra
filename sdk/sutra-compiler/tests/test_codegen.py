@@ -392,5 +392,89 @@ def _strip_runtime(py: str) -> str:
     return py[idx:]
 
 
+class TestIteratorKeyword(unittest.TestCase):
+    """`iterator` is a contextual keyword inside an unrolling
+    `loop (N) { ... }` body. The codegen substitutes the per-copy
+    integer constant (1-based: 1..N) at unroll time. Outside an
+    unrolling context, the reference is a CodegenNotSupported error.
+    """
+
+    def test_iterator_substitutes_one_based_constants(self):
+        src = (
+            "function int main() {\n"
+            "  var n : int = 0;\n"
+            "  loop (5) {\n"
+            "    n += iterator;\n"
+            "  }\n"
+            "  return n;\n"
+            "}\n"
+        )
+        py = _strip_runtime(_compile(src))
+        # The unrolled body should contain n += 1 through n += 5,
+        # in order, with no `iterator` name surviving.
+        for i in range(1, 6):
+            self.assertIn(f"n += {i}", py)
+        self.assertNotIn("iterator", py)
+
+    def test_iterator_in_nested_unrolled_loops(self):
+        # Inner `iterator` binds to the inner loop; outer `iterator`
+        # binds to the outer. The outer value must be saved across
+        # the inner loop and restored after.
+        src = (
+            "function int main() {\n"
+            "  var n : int = 0;\n"
+            "  loop (3) {\n"
+            "    n += iterator;\n"
+            "    loop (2) {\n"
+            "      n += iterator;\n"
+            "    }\n"
+            "  }\n"
+            "  return n;\n"
+            "}\n"
+        )
+        py = _strip_runtime(_compile(src))
+        # Outer values: 1, 2, 3. Inner values: 1, 2 (twice each
+        # outer iteration). Expected sequence: 1,1,2, 2,1,2, 3,1,2.
+        expected = [1, 1, 2, 2, 1, 2, 3, 1, 2]
+        adds = [
+            int(line.split("n += ")[1].rstrip())
+            for line in py.splitlines()
+            if "n += " in line
+        ]
+        self.assertEqual(adds, expected)
+
+    def test_iterator_outside_loop_rejected(self):
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        src = (
+            "function int main() {\n"
+            "  var n : int = 0;\n"
+            "  n += iterator;\n"
+            "  return n;\n"
+            "}\n"
+        )
+        with self.assertRaises(CodegenNotSupported) as cm:
+            _compile(src)
+        self.assertIn("iterator", str(cm.exception))
+        self.assertIn("loop", str(cm.exception))
+
+    def test_iterator_in_named_index_loop_rejected(self):
+        # `loop (N as i)` doesn't unroll — it emits a runtime
+        # `for i in range(N):`. `iterator` has no compile-time
+        # value to substitute in that path, so referencing it is
+        # an error. Users should reference `i` instead.
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        src = (
+            "function int main() {\n"
+            "  var n : int = 0;\n"
+            "  loop (5 as j) {\n"
+            "    n += iterator;\n"
+            "  }\n"
+            "  return n;\n"
+            "}\n"
+        )
+        with self.assertRaises(CodegenNotSupported):
+            _compile(src)
+
+
 if __name__ == "__main__":
     unittest.main()
