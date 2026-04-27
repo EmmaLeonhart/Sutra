@@ -50,7 +50,7 @@ The compile-to-brain paper. The empirical-initiation framework in the language p
 
 To our knowledge, this is **the first demonstration of a programming language whose conditional semantics compile mechanically onto a connectome-derived spiking substrate**. It serves as a non-silicon stress test for the substrate-agnostic claim that Sutra is supposed to satisfy.
 
-The paper documents the technical insights honestly:
+Technical findings reported in the paper:
 
 - **The fixed-frame invariant.** Every `snap` call in one program execution must share the same PN→KC connectivity matrix, or prototype matching fails. Measured fidelity: ~0.53 cosine per-snap under rolling frames vs. 1.0 under fixed frame; 4-way discrimination requires the fixed frame.
 - **Negation as permutation compiles `!` away.** Source-level `!X` compiles cleanly into `permute(NOT_X, X)` because sign-flip permutations are involutive and distribute over `bind`. The `if/else` tree is gone — the runtime decision is a single cosine argmax against a precomputed prototype table.
