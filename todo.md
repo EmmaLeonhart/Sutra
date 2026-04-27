@@ -748,6 +748,24 @@ Follow-on work for a future pass:
 
 ## [This year] Control-flow completion
 
+- [ ] **`iterator` reserved keyword inside `loop[N]`.** Surfaced
+  while writing `docs/paradigms.md` (2026-04-26). Inside an
+  unwinding loop with a compile-time-constant bound, `iterator`
+  refers to the current iteration's index. Because the loop is
+  unrolled at compile time, `iterator` is *never a runtime
+  variable* — the compiler emits N copies of the body with
+  `iterator` substituted as the constants 1..N (or 0..N-1 — to
+  decide). This is the canonical teaching example for "Sutra has
+  no memory points": C's `for (int i = 1; i <= 5; i++)` puts `i`
+  in memory; Sutra's `loop[5] { n += iterator; }` substitutes
+  five different compile-time constants and emits straight-line
+  code. Concrete work: lex `iterator` as a contextual keyword
+  inside loop-body scope; reject it elsewhere; codegen substitutes
+  the per-copy constant during the existing unroll pass; pick
+  0-based vs 1-based and document. Decide whether the same
+  keyword should also work inside `foreach` over array literals
+  (probably yes — same unroll mechanism).
+
 - [ ] **Dynamic `foreach`.** Today (2026-04-22) `foreach` unrolls
   over a compile-time-known array literal `[a, b, c]` only.
   Anything else — a named variable, an expression returning a
