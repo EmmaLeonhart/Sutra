@@ -102,8 +102,6 @@ vector result = bundle(
 
 **Where it diverges.** APL's element type is a *number*. Sutra's element type is a *vector in embedding space* — every "element" is itself 768-dimensional. APL's `⍳5` enumerates `1 2 3 4 5`; Sutra's nearest equivalent enumerates basis vectors. APL's notation is glyph-dense (`+/`, `⌽`, `⍳`); Sutra's is keyword-dense (`bundle`, `bind`, `loop`). The shape of the language — uniform values, whole-array ops, fusion-friendly straight-line code — is the same.
 
-The right reference for "vectors and matrices as primitives" is APL the *language*, not NumPy the library. NumPy is array-shaped values inside a non-array-shaped host (Python). APL and Sutra both go all the way: the array (or vector) IS the language.
-
 ---
 
 ## Declarative — SQL
