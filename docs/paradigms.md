@@ -6,7 +6,7 @@ description: How Sutra relates to functional, declarative/logic, object-oriented
 # Paradigms — where Sutra sits
 
 !!! note "Draft — needs review"
-    This page is being actively reworked. The `iterator` keyword used in the imperative section is a planned addition to the language, not a feature that ships today.
+    This page is being actively reworked.
 
 People who pick up a new language want to know what shape it is. This page picks one small task per paradigm, writes it in the canonical language for that paradigm, then writes it in Sutra. The goal is to make the influences visible: what Sutra borrowed in shape, and what it changed by moving the substrate from "memory cells / discrete terms" to "vectors in a frozen LLM's embedding space."
 
@@ -175,42 +175,40 @@ So the right way to read the OO comparison is not "Sutra is OO with a different 
 
 ## Imperative — C
 
-**Task.** Sum the integers from 1 to 5.
+C is the honest reference for "what an imperative language is actually doing on a computer." It's also the cleanest counterpoint to Sutra, because almost everything C *is* about, Sutra *isn't*.
+
+**Task.** Increment a variable five times.
 
 **C:**
 
 ```c
-int sum = 0;
-for (int i = 1; i <= 5; i++) {
-    sum += i;
+int n = 0;
+for (int i = 0; i < 5; i++) {
+    n++;
 }
-// sum == 15
+// n == 5
 ```
 
-A counter `i` lives in memory, takes the values 1 through 5 in sequence, mutates the cell `sum` each iteration. Two memory cells, one branch per iteration, one back-edge.
+A counter `i` lives in memory and takes values 0 through 4. A second cell `n` gets mutated each iteration. Each `n++` is a load, an add, a store at a known address. The program *is* this sequence of memory operations; running the program means executing them in order.
 
-**Sutra (intended syntax — the `iterator` keyword is planned):**
+**Sutra:**
 
 ```sutra
 var n : int = 0;
 loop[5] {
-    n += iterator;
+    n += 1;
 }
 ```
 
-The `iterator` keyword inside an unwinding loop refers to the current iteration's index. Because `loop[5]` has a compile-time-constant bound, the compiler unrolls the loop and substitutes `iterator` with the constants 1, 2, 3, 4, 5 across the five copies:
+That's roughly what the surface looks like. (For "use the iteration index in the body," the language is going to grow an `iterator` keyword inside `loop[N]` — see the [loops doc](loops.md) for that design.)
 
-```sutra
-n += 1;
-n += 2;
-n += 3;
-n += 4;
-n += 5;
-```
+What the compiler does:
 
-That's what actually compiles. There is no `iterator` variable at runtime. There is no counter at runtime. There is no comparison and no back-edge. The whole loop is straight-line tensor work — five additions on the substrate, fully visible to the simplifier (which will likely fold them into `n + 15` before the runtime ever runs).
+- `loop[5] { ... }` *unrolls at compile time*. The emitted code is the body five times in sequence — no runtime counter, no comparison, no back-edge.
+- `n += 1` does not mutate a memory cell. It rebinds the name `n` to a fresh vector representing the new value.
+- The whole program lowers to straight-line tensor work that the simplifier can fuse. There is no host-side loop in the emitted code at all — and the five additions will likely be folded into `n + 5` before the runtime ever runs.
 
-For data-dependent termination, Sutra has a different form:
+For data-dependent termination, the form is different:
 
 ```sutra
 loop(state ~ target) {
@@ -218,27 +216,31 @@ loop(state ~ target) {
 }
 ```
 
-This `loop(condition)` lowers to **iterated multiplication by a fixed rotation matrix `R` on the substrate**. The "loop counter" is the angular position on a helix; termination is a similarity check between the rotated state and the target prototype. There is *still* no host-side `i++`.
+This `loop(condition)` lowers to **iterated multiplication by a fixed rotation matrix `R` on the substrate**. The "loop counter" is the angular position on a helix; termination is a similarity check between the rotated state and the target prototype. Still no host-side `i++`.
 
 **What Sutra borrows from C.** Surface ergonomics. `var`, `+=`, `loop`, the curly braces. People know what these mean and the language doesn't fight that intuition.
 
 ### Where it diverges — Sutra has no memory points
 
-This is the deepest claim on the page, and it's also the hardest to state cleanly. Here goes.
+This is the deepest claim on the page.
 
-C's loop has **memory points**. `i` is a name for a specific cell; `sum` is a name for another cell. The cells live somewhere — on the stack, in a register, at an address — and the program's whole story is the story of which cell holds what value at each point in execution. Every variable is a pointer in the small.
+C is honest about what's happening on the computer. `i` and `n` are names for specific cells; the cells live somewhere — on the stack, in a register, at an address — and the program's whole story is the story of which cell holds what value at each point in execution. Every variable is a pointer in the small.
 
-**Sutra has no memory points.** Not in that sense.
+**Sutra has no memory points at all.** It has variables, but the variables don't refer to memory cells. The language operates in a state of weirdness about where information lives.
 
-- The `loop[5]` doesn't have a counter at runtime. `iterator` is a compile-time constant, different in each unrolled copy, never a live cell.
-- `n += iterator` doesn't mutate a memory cell. It rebinds the name `n` to a fresh vector representing the new value. The old vector is just unreferenced.
-- Even the `slot` primitive — Sutra's nearest thing to a writable cell — **is not a memory point either**. A `slot` write is a 2D-Givens rotation on a disjoint plane in the synthetic subspace. The "address" being written to is *unrooted*: it doesn't correspond to a memory location, it corresponds to a geometric operation. The sequence `slot x = a; slot x = b; slot x = a;` produces the same final substrate state as a single `slot x = a;`, because rotations compose and the round trip cancels.
+- The `loop[5]` doesn't have a counter at runtime. The unrolled bodies have no shared variable connecting them — each one is independent.
+- `n += 1` doesn't mutate a memory cell. It rebinds the name `n` to a fresh vector. There is no cell to point at and say "the value of `n` lives here."
+- Even the `slot` primitive — Sutra's nearest thing to a writable cell — **is not a memory point either**. A `slot` write is a 2D-Givens rotation on a disjoint plane in the synthetic subspace. The "address" being written to is *unrooted*: it doesn't correspond to a memory location, it corresponds to a geometric operation. The sequence `slot x = a; slot x = b; slot x = a;` produces the same final substrate state as a single `slot x = a;` — rotations compose and the round trip cancels.
 
-The closest analogy for what Sutra *does* have is a **Turing tape in vector space** — information stored as the cumulative geometric transformation that a sequence of writes produces. You *can* store information; the substrate is expressive enough for that. But unlike a Turing tape, you cannot point at a cell and say "the value is here." Information lives as a geometric structure spread across the whole vector, not at a coordinate.
+The right analogy: **information storage in Sutra is to memory cells as the Turing tape in Conway's Game of Life is to RAM.** Conway's Game of Life is famously Turing-complete — you *can* build a computer in it, you *can* store information, you *can* implement a tape. But the "cells" of that computer are not memory cells in any conventional sense. They are gliders and oscillators and patterns of live squares interacting under the rules of the universe. There is no address you can read from; there is only the global state of the grid and the way information moves through it.
 
-And here's the part that makes even the Turing-tape analogy soft: **the geometric transformation usually factors out at compile time.** The simplifier sees a chain of binds-and-bundles-and-rotations and folds it into one cached matrix or one final vector. The "writes" never happen at runtime because the result was known at compile time. So when you read a Sutra program and see something that looks like a write or a counter, the right mental model is not "this stores a value somewhere." The right mental model is "this contributes a geometric step, and the simplifier will probably collapse the whole chain into a single tensor expression before the runtime ever touches a value."
+Sutra's information storage works the same way. Every value in the program — every vector — is a single coordinate point in a high-dimensional substrate. The *whole* program state, at any given moment, is one geometric point in that space. Information is encoded **diffusely and non-locally**: no single coordinate "is" a piece of information; the information is a geometric structure spread across all 768 (or 868) dimensions of the point at once. You cannot point at a cell, because there are no cells. There is just the position of the point and the geometric transformations the program applies to it.
 
-This is the property C and Sutra do not share, and the one that makes "imperative-looking Sutra" honestly imperative-shaped only on the surface. C's program *is* its memory writes. Sutra's program is an algebraic expression that the compiler resolves geometrically, with the apparent memory writes serving as notation for steps in that resolution.
+This is the selling point Sutra is built around: **the information is the computation.** A C program separates state (memory) from operations (instructions); the operations read and write the state. A Sutra program does not — the act of computing *is* the act of moving the state-point through the substrate, and the result of computing *is* the position of that point at the end. There is no read step. There is no write step. There is just geometry.
+
+The simplifier closes the loop on all of this: most of the apparent geometric trajectory factors out at compile time. The compiler sees a chain of binds-and-bundles-and-rotations and folds it into one cached matrix or one final vector. The "writes" never happen at runtime because the answer was known at compile time. So when you see something in a Sutra program that looks like a write or a counter, the right mental model is not "this stores a value somewhere." The right mental model is "this contributes a geometric step in the algebraic expression the compiler will resolve before the runtime ever touches a value."
+
+C's program *is* its memory writes. Sutra's program is an algebraic expression that the compiler resolves geometrically. They are different *kinds* of artifact; the syntactic resemblance is convenience, not equivalence.
 
 ---
 
