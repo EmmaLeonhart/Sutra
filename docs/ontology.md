@@ -117,7 +117,7 @@ This is why every operation in the language works on vectors: there's no "lookin
 
 ### What's open about embeddings
 
-We don't know the best way to use embeddings in a programming language yet. That's honest: this language is an exploration of what *becomes possible* when a programming language can directly manipulate vectors in a frozen LLM's space, and the exploration is early.
+We don't know the best way to use embeddings in a programming language yet. This language is an exploration of what becomes possible when a programming language can directly manipulate vectors in a frozen LLM's space, and the exploration is early.
 
 What we have committed to:
 
