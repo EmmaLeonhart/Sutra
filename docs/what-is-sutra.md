@@ -56,6 +56,7 @@ The current compile target is PyTorch on the frozen-LLM semantic subspace, and t
 
 ## Where to go next
 
+- [**Paradigms →**](paradigms.md) — where Sutra sits relative to functional, declarative, object-oriented, and imperative languages, with side-by-side comparisons against Haskell, Prolog/SQL, Java, and C.
 - [**The vision page →**](vision.md) — why frozen embedding spaces give Sutra primitives geometric meaning, and what the displacement-vector cartography work showed.
 - [**Hello Sutra →**](tutorials/01-hello-sutra.md) — write your first `.su` program by hand.
 - [**Compilation →**](compilation.md) — how the compiler progressively strips surface sugar down to polynomial and matrix arithmetic.
