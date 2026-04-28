@@ -68,15 +68,40 @@ single matrices (or short tensor-op chains) when the simplifier can
 prove the necessary identities. This is the organizing principle, not
 an optimization pass.
 
-Standard compilers do beta reduction *during inlining*, but as an
-incidental optimization. Most languages preserve sequential control
-flow as their compilation target. Sutra's target is a **value** — a
-linear map — not an instruction sequence. The output of compilation
-is structurally different from the input.
+The crisper framing: **the program is a value, not an instruction
+sequence.** A function is a matrix; a program is a function;
+compilation is reduction until you have the matrix. The program
+doesn't *run* — it *evaluates*. This is much closer to how a
+mathematician thinks than how a systems programmer thinks. Standard
+compilers preserve sequential control flow as their compilation
+target and do beta reduction incidentally during inlining; Sutra
+inverts that — beta reduction is the compiler's organizing principle
+and the output is structurally different from the input.
 
-The closest existing analog is supercompilation (some Haskell
-compilers), but supercompilation still produces program-shaped
-output, not closed-form values.
+**Related work the paper has to distinguish from:**
+
+- **Supercompilation** (some Haskell compilers, partial-evaluation
+  research). Symbolically runs a program with unknown inputs,
+  collecting residual computation into a single expression. Closest
+  in spirit, but the output is still program-shaped, not a
+  closed-form value.
+- **Polyhedral compilation** (XLA, Halide, MLIR Affine). Analyzes
+  loop nests as geometric objects and fuses / reorders them. Output
+  is still code — fused tensor kernels — not a closed-form function.
+  Related geometric framing, different target.
+- **Automatic differentiation** (JAX, PyTorch tracing). Builds a
+  computation graph and reduces through it. Sutra's collapse-to-matrix
+  is structurally similar, but Sutra reduces at *compile time*, not
+  at trace time, and the target is a matrix rather than a gradient.
+- **None of the above treat collapse-to-a-single-value as the
+  compiler's organizing principle.** That is the gap Sutra fills.
+
+The Kolmogorov-Arnold representation theorem (KART) is the
+completeness certificate for this novelty: KART says any continuous
+bounded multivariate function decomposes into a finite composition of
+univariates, so any continuous function the user could have written
+*has* a reduced form that fits Sutra's target. The simplifier's job
+is to find it; KART guarantees it exists.
 
 ### 2. Differentiable fuzzy logic as a polynomial substrate
 
@@ -210,13 +235,19 @@ question, different destination.
   complex multiply). Use embedding spaces for link prediction. Did
   not treat the embedding space as a compilation target.
 - **Kolmogorov-Arnold representation theorem (KART) and Liu &
-  Tegmark 2024 (KANs).** KART says any continuous multivariate
-  function decomposes into univariates summed. KART is the
-  completeness certificate for "any continuous function is reachable
-  via a tensor op." KANs put learnable splines on edges. Sutra's
+  Tegmark 2024 (KANs).** KART (Hilbert's 13th problem; Arnold &
+  Kolmogorov) says any continuous bounded multivariate function
+  decomposes into a finite composition of univariates summed. This
+  is the **completeness certificate for novelty 1** — any continuous
+  function the user could have written has a reduced form Sutra's
+  simplifier could in principle find. KANs (2024) put learnable
+  splines on edges and use this constructively for training. Sutra's
   compile-time math approximation strategy (Chebyshev / lookup /
   CORDIC tiers) is the same idea applied at compile time rather than
-  at training time.
+  at training time. The honest caveat: KART's inner univariates can
+  be pathologically non-smooth in the worst case; the practical
+  ceiling on what Sutra can reduce is set by how well the simplifier
+  represents those univariates, not by KART itself.
 
 ## Honest limits
 
