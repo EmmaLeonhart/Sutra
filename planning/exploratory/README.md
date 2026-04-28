@@ -14,3 +14,5 @@ Long-form research sketches for things that **might** become work later. Nothing
 
 - `softmax-conditionals.md` — fuzzy conditional branching, softmax switches vs. classic if/elif chains, the design goal of making crisp conditionals harder to reach for than soft ones.
 - `karpathy-llm-wiki.md` — Andrej Karpathy's "LLM wiki" concept, context-management angle, potential relevance to Sutra's MCP-as-runtime model. Needs web research before it becomes actionable.
+- `sutra-paper-draft.md` — paper draft built around the embedding-space-as-ISA framing. Four computational novelties (beta-reduction-to-tensor-normal-form, differentiable Lagrange-polynomial fuzzy logic, eigenrotation loops, synthetic-dimension-rotation hashmaps) compose around that pillar. No venue or deadline yet; parking lot for framing and contributions list.
+- `sutra-native-embedding-space.md` — the most concrete sketch of "what comes next once Sutra is mature": train an embedding space FOR computation rather than retrieval, with traversal-compositionality as the novel loss. Compute-bound; not actionable today.

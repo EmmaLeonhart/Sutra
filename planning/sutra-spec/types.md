@@ -358,6 +358,58 @@ Not in scope for the current spec. The fact that the runtime is
 untyped is noted here so readers don't assume a static-checker
 guarantee that isn't there.
 
+## Casting — relabeling, not transformation
+
+Casting in Sutra is **relabeling**. The underlying tensor data
+doesn't change; what changes is which set of operations is available
+on the value. The vector stays the same vector. This contrasts
+sharply with C-family languages, where casting an int to a float
+genuinely transforms the bit representation — the data changes.
+
+The ontological reading: the underlying reality doesn't change when
+you relabel it. A dollar amount doesn't *become* a different thing
+when you view it as a `Number` instead of a `Currency`. You're
+choosing which aspects of the value you're addressing. (See
+`docs/ontology.md` §"Proof-theoretic vs ontological type systems".)
+
+Three flavors of cast follow from that framing, two of which are
+genuine transformations and one of which is free:
+
+- **No-op cast (default).** Just relabeling. The vector is
+  unchanged, the operations available on it change. Free at
+  runtime. Example: `Country japan = Country.of(human_japan_vec);`
+  costs nothing — `japan` and `human_japan_vec` are the same
+  point in the substrate, addressed under different class
+  rules. Casting `Donald Trump` from `Human` to `President` is
+  similarly free; the vector already encodes everything about him
+  including his presidency, and the cast just permits queries
+  against the presidential aspects.
+- **Projection cast.** Reduces dimensionality / loses information.
+  Requires explicit implementation. The truth-value cast (project a
+  rich semantic vector down to a single truth-axis scalar) is the
+  canonical example: real transformation, real cost, has its own
+  defuzzification machinery. Future projection casts (e.g. "extract
+  the year-of-birth from a person vector") would follow the same
+  pattern — declared per-class, runtime cost proportional to the
+  projection complexity.
+- **Embedding cast.** Goes from a lower-dimensional space to a
+  higher one; new dimensions have to come from somewhere. Requires
+  explicit implementation per the receiving class. Less common in
+  practice than the other two but the symmetric case to projection.
+
+The honest edge case: a no-op cast can succeed *syntactically* but be
+meaningless *semantically*. Casting a random obscure entity to
+`President` is permitted at compile time, but querying presidential
+properties returns weak signal because those dimensions aren't
+populated for that entity. The type system permits the cast; the
+embedding space determines whether it's meaningful. That's a feature,
+not a bug — it separates syntactic validity from semantic validity
+cleanly.
+
+The general default: free at runtime, ontologically clean. You only
+pay implementation cost when you're doing something that genuinely
+transforms the underlying data.
+
 ## Tuples and lists
 
 Tuples and lists exist at compile time but not at runtime per the
