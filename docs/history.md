@@ -14,7 +14,7 @@ Sutra grew out of earlier work on *logical inference in frozen embedding spaces*
 
 The natural next question: if you can *discover* logical operations in the geometry, can you *program* in it? That question became Sutra.
 
-The project was originally called **Ākaśa** (Sanskrit: "sky," "space," "aether") — evoking the concept of a primordial medium through which all things exist and connect, which is how a pre-trained embedding space feels: an ambient semantic field that pervades everything. Ākaśa was renamed to Sutra on 2026-04-11. The earlier name appears throughout `DEVLOG.md` and the `chats/` archive. The `.ak` file extension (now `.su`) and workspace format (`atman.toml`, formerly `.aksln`/`.akproj`) are traces of this history.
+The project was originally called **Ākaśa** (Sanskrit: "sky," "space," "aether") — evoking the concept of a primordial medium through which all things exist and connect, which is how a pre-trained embedding space feels: an ambient semantic field that pervades everything. Ākaśa was renamed to Sutra on 2026-04-11. The earlier name appears throughout `DEVLOG.md` and across older commits. The `.ak` file extension (now `.su`) and workspace format (`atman.toml`, formerly `.aksln`/`.akproj`) are traces of this history.
 
 ## The intellectual lineage
 

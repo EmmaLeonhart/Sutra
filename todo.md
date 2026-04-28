@@ -618,16 +618,6 @@ work happens, the natural follow-on items are:
   how well the recognizer identifies what region of semantic space a
   vector occupies.
 
-## [This year] Chats audit — do NOT run from a Claude Code sandbox
-
-Per user direction 2026-04-13: *"chats are not supposed to be permanent...
-once their stuff is implemented, you just remove them."* For each file
-under `chats/`, check whether its content has been absorbed into spec,
-planning doc, paper, or code; delete if absorbed (git preserves history),
-leave and file an integration task if not. **Must be done interactively
-with the user** — the "has this been absorbed?" judgment is a conversation,
-not a grep. Surface, do not execute, from a sandbox session.
-
 ## [Pre-YC] Future Goals
 
 - **Pick the multi-option `select` firing threshold.** Single-option
