@@ -52,6 +52,7 @@ The demo programs live in [`examples/`](examples/). The smoke test [`examples/_s
 | [`examples/`](examples/) | Demo `.su` programs and the smoke-test harness. |
 | [`docs/`](docs/) | Source for the website at <https://sutralang.dev>. |
 | [`sutraDB/`](sutraDB/) | SutraDB — embedded vector database, brought in as a git subtree. |
+| [`chats/`](chats/) | Design conversations awaiting triage. Each file is a topic-scoped excerpt; the rule is delete-if-already-absorbed-elsewhere, never migrate-then-delete. |
 
 The empirical foundation that motivated Sutra — relational-displacement structure in frozen embedding spaces — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography).
 
