@@ -21,13 +21,31 @@ pick up next.
 
 ## Queued work
 
-### Repo bloat sweep — remaining items
+### Three large chats restored 2026-04-27 — pending topical split
 
-The chats triage is **complete** (all 33 chat markdowns triaged and
-removed; the empty `chats/` directory was retired on 2026-04-27).
-Captured destinations are visible in commit-message bodies for each
-chat removal — substantive chats split into spec, findings,
-open-questions, prior-art, exploratory, todo.md, and CLAUDE.md.
+Three chats that were too large to triage in a single pass were
+deleted by prior sessions, with their content extracted into new
+planning docs as a substitute for the chat logs themselves. That was
+a misread of the triage policy (see memory note
+`feedback_chats_triage_is_check_not_migrate.md`). Restored:
+
+  - `chats/vsa-operations-explained.md` (2204 lines)
+  - `chats/vsa-programming-languages.md` (933 lines)
+  - `chats/kolmogorov-arnold-networks-for-tensor-operations.md` (941 lines)
+
+Three derivative planning files created out of these chats were
+removed in the same commit:
+
+  - `planning/open-questions/meta-matrix-concept-to-projector.md`
+  - `planning/prior-art-vsa-turing-completeness.md`
+  - `planning/exploratory/claw4s-paper-compile-time-vsa.md`
+
+**Next pass on these chats:** split each file into smaller,
+topic-scoped chats inside `chats/` so that each chunk becomes
+individually triageable. Triage decisions then go through the normal
+check-and-delete flow, with the user.
+
+### Repo bloat sweep — remaining items
 
 The retired `fly-brain/` directory (47 files), `codegen_flybrain.py`
 backend, and `--emit-flybrain` CLI flag are also gone (2026-04-26);

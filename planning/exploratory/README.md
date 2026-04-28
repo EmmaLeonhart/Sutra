@@ -14,4 +14,3 @@ Long-form research sketches for things that **might** become work later. Nothing
 
 - `softmax-conditionals.md` — fuzzy conditional branching, softmax switches vs. classic if/elif chains, the design goal of making crisp conditionals harder to reach for than soft ones.
 - `karpathy-llm-wiki.md` — Andrej Karpathy's "LLM wiki" concept, context-management angle, potential relevance to Sutra's MCP-as-runtime model. Needs web research before it becomes actionable.
-- `claw4s-paper-compile-time-vsa.md` — paper draft for the 2026-04-30 Claw4S window. Thesis: Sutra's compile-time beta reduction sidesteps the runtime VSA-lambda-calculus problem that the Flanagan / "Hey Pentti" line tackles inside the substrate. Four computational novelties (differentiable fuzzy logic, beta-reduction-to-tensor-normal-form, eigenrotation loops, synthetic-dimension rotation hashmaps). Has a target deadline; promote out of exploratory if it goes from outline to prose.
