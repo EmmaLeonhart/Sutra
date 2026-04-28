@@ -103,6 +103,30 @@ univariates, so any continuous function the user could have written
 *has* a reduced form that fits Sutra's target. The simplifier's job
 is to find it; KART guarantees it exists.
 
+**Worked example.** The expression `Cat == "cat"` traces through the
+pipeline as:
+
+1. **Desugaring** (syntactic): `Cat == "cat"` →
+   `Function.equals(Cat, Function.embed("cat"))`. Pure notation
+   removal, no computation.
+2. **Beta reduction** (semantic): function applications collapse
+   into compositions in the hyperdimensional algebra. The result is
+   an expression in linear maps, not function calls.
+3. **Evaluation**: `embed("cat")` is computed once at compile time,
+   producing a concrete vector. This is the only step that touches
+   external data.
+4. **Algebraic simplification**: `equals • cat_embedding` is
+   recognized as a fixed vector and named `is_cat_function`.
+5. **Result**: a runtime string-equality comparison has been
+   compiled to a single dot product against a precomputed vector.
+   No string handling, no function dispatch — geometric proximity
+   query.
+
+The algebraic-simplification step is where Sutra is smarter than a
+generic lambda-calculus reducer: it knows the domain is
+hyperdimensional, so it knows `equals • cat_embedding` has a closed
+form worth precomputing.
+
 ### 2. Differentiable fuzzy logic as a polynomial substrate
 
 Three-valued logic over `{-1, 0, +1}` implemented via Lagrange
@@ -242,12 +266,33 @@ question, different destination.
   function the user could have written has a reduced form Sutra's
   simplifier could in principle find. KANs (2024) put learnable
   splines on edges and use this constructively for training. Sutra's
-  compile-time math approximation strategy (Chebyshev / lookup /
-  CORDIC tiers) is the same idea applied at compile time rather than
-  at training time. The honest caveat: KART's inner univariates can
-  be pathologically non-smooth in the worst case; the practical
-  ceiling on what Sutra can reduce is set by how well the simplifier
-  represents those univariates, not by KART itself.
+  compile-time math approximation strategy is the same idea applied
+  at compile time rather than at training time, with a concrete tier
+  hierarchy:
+
+  1. **Exact** — function has a closed linear form → direct matrix op.
+  2. **Chebyshev / polynomial approximation** — function is smooth on
+     a bounded domain → polynomial dot product, degree chosen at
+     compile time to hit the requested precision.
+  3. **Lookup + interpolation** — function is weird or expensive →
+     tensor table, interpolation as sparse matmul. Cheap in Sutra
+     specifically because there is no representation switch — the
+     table is just another tensor and indexing is just a multiply.
+  4. **CORDIC-style decomposition** — for functions that decompose
+     into shifts/adds (trig, exp). Expressible as a matrix chain.
+
+  The tier is selected by the compiler based on the argument's domain
+  type and a project-wide TOML precision setting (e.g. `[math]
+  approximation_precision = 1e-6, approximation_method = "chebyshev"`).
+  The user writes `sqrt(x)` and gets a tensor op, not a libm call.
+  No mainstream language exposes the precision/speed tradeoff as a
+  compile-time architectural decision — Julia and F# both defer to
+  IEEE 754 + libm with no user knob. This is a real differentiator
+  for numerical work, not just AI work. The honest caveat: KART's
+  inner univariates can be pathologically non-smooth in the worst
+  case; the practical ceiling on what Sutra can reduce is set by how
+  well the simplifier represents those univariates, not by KART
+  itself.
 
 ## Honest limits
 
