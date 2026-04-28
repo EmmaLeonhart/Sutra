@@ -81,9 +81,16 @@ list until it gets promoted to real work.
         contrast against supercompilation, polyhedral, AD; tightened
         KART entry as completeness certificate for novelty 1);
         chat removed.
-  - **Pending** (20 chunks): 2 remaining KART chunks
-    (`kart-beta-reduction-and-fsharp-competition`,
-    `kart-currency-stdlib-and-precision`), all 8
+      - `kart-beta-reduction-and-fsharp-competition.md` → harvested
+        into `planning/exploratory/sutra-paper-draft.md` (added
+        Cat=="cat" worked example for novelty 1; extended KART
+        entry with explicit tier hierarchy and TOML precision
+        setting) and new file
+        `planning/exploratory/sutra-as-math-language.md` (Julia/F#
+        precision contrast, finance positioning, units-of-measure-
+        as-ordinary-types); chat removed.
+  - **Pending** (19 chunks): 1 remaining KART chunk
+    (`kart-currency-stdlib-and-precision`), all 8
     `vsa-programming-languages` chunks, all 10
     `vsa-operations-explained` chunks.
 
