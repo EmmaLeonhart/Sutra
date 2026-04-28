@@ -21,63 +21,18 @@ pick up next.
 
 ## Queued work
 
-### Today's priority: trim repo bloat ahead of public presentation (2026-04-25)
+### Repo bloat sweep — remaining items
 
-The repo has accumulated weight that doesn't pay for itself, and
-a public release is imminent so non-load-bearing or dev-only
-material should come out.
+The chats triage is **complete** (all 33 chat markdowns triaged and
+removed; the empty `chats/` directory was retired on 2026-04-27).
+Captured destinations are visible in commit-message bodies for each
+chat removal — substantive chats split into spec, findings,
+open-questions, prior-art, exploratory, todo.md, and CLAUDE.md.
 
-**Active task: finish `chats/` triage.** Three substantive chats
-deferred for a focused later pass — the rest of the original 33
-have been triaged (each removed only after its content was
-verified to be captured in spec / findings / open-questions / a
-new doc, with the verdict in the commit message).
-
-Deferred for focused review:
-
-  - `chats/kolmogorov-arnold-networks-for-tensor-operations.md`
-    (941 lines) — KART, beta-reduction-as-Sutra's-compilation-model,
-    Chebyshev / lookup-table compilation of math functions, TOML
-    backend/dtype settings, ISA analogy, currency stdlib idea,
-    OWL-style ontological typing, hashmap-via-rotation origin.
-    Some content already captured (rotation hashmap, ontological
-    typing); compile-time math approximation + TOML backend
-    settings are concrete future-features not yet captured.
-  - `chats/vsa-operations-explained.md` (2204 lines, 80+ sections)
-    — comprehensive early design conversation covering most of
-    Sutra's foundations. Needs careful section-by-section
-    comparison against current spec.
-
-Done in this sweep:
-
-  - `chats/` HTMLs and `_files/` browser-asset directories removed
-    (~40 MB, commit 438dace).
-  - `scripts/` removed in full (8 files: chat extractor + paper-
-    submission/competition-review fetchers whose CI counterparts
-    were already deleted).
-  - 28 of 33 chat markdowns triaged and removed across many
-    commits; each captured what was load-bearing first. Notable
-    captures along the way:
-      - `wait` keyword fully implemented (lexer / parser / AST /
-        codegen / validator / corpus tests / docs / IDE
-        highlighting). See no-null open question Candidate D and
-        `examples/wait_keyword_demo.su`.
-      - `planning/open-questions/nested-loops-as-orthogonal-subspaces.md`
-      - `planning/prior-art-vsa-turing-completeness.md` (Flanagan,
-        Plate, Smolensky, Lambek & Scott, arXiv refs).
-      - `planning/exploratory/claw4s-paper-compile-time-vsa.md`
-        (paper draft for 2026-04-30, four computational novelties).
-      - `STATUS.md` egglog entry: Diospyros / JuliaSymbolics
-        hash-consing / VCR prior-art notes.
-      - `todo.md`: agent-friendly site item, class-system-as-
-        autocomplete-recommendation.
-      - CLAUDE.md Sutra Core Design: "runtime is committed to the
-        math" + "opinionated, not authoritarian" principles, plus
-        the agent-friendly website note.
-  - Two chats scrubbed from git history (filter-repo): the resume
-    chat and the akasha-vision-graph chat — both contained
-    personal info / hiring-positioning content. History rewrite
-    was a one-time blanket policy correction; not the default.
+The retired `fly-brain/` directory (47 files), `codegen_flybrain.py`
+backend, and `--emit-flybrain` CLI flag are also gone (2026-04-26);
+findings docs under `planning/findings/2026-04-1*-*` are preserved
+as historical record.
 
 Next bloat sources to investigate:
 
@@ -89,23 +44,10 @@ Next bloat sources to investigate:
   - Cached embeddings, viz HTML siblings (`*_viz.html` from
     `--run-viz`), pyc/__pycache__ leakage.
 
-The fly-brain experimental backend was retired 2026-04-26 — the
-entire `fly-brain/` directory (47 files), the `codegen_flybrain.py`
-backend, and the `--emit-flybrain` CLI flag are gone. Findings docs
-under `planning/findings/2026-04-1*-*` are preserved as historical
-record of what worked and what didn't.
-
 The principle: anything that is regenerable (build output, caches,
 extracted artifacts where the source is preserved elsewhere) should
 not be tracked. Anything that takes substantial space and isn't
 load-bearing for the language should be revisited.
-
-**Compilation updates moved to `todo.md`.** Egglog post-pass +
-matrix-chain fusion landed 2026-04-25; the remaining linearity
-analysis codegen, CSE pass, and slot codegen integration are now
-tracked under `todo.md` § "[Pre-YC] Compilation updates". The
-imperative-reversible demo and the spec-text refresh both landed
-2026-04-25.
 
 Recently closed:
 - **Pre-Anthropic-grant-app sprint — all three items** (2026-04-24).
