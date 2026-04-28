@@ -1,11 +1,11 @@
 # Prior art — VSA Turing completeness via Cartesian closedness
 
 **Date opened:** 2026-04-25.
-**Status:** Reference list. Captures the citations from
-`chats/vsa-cartesian-closedness.md` so they're in a normal repo
-location before that chat is deleted. Should be folded into a
-formal prior-art audit if/when the Sutra paper needs to argue its
-own Turing-completeness story.
+**Status:** Reference list. Originally captured the citations from
+the (since-triaged) VSA Cartesian-closedness and lambda-calculus
+design chats so they'd live in a normal repo location. Should be
+folded into a formal prior-art audit if/when the Sutra paper needs
+to argue its own Turing-completeness story.
 
 ## Why this exists
 
