@@ -217,6 +217,16 @@ This framing isn't invented here. It's the same move the semantic-web community 
 
 A Sutra program is, in a real sense, a small ontology *about* a large embedded ontology. The small one is the code you write; the large one is the model's learned latent space. Sutra's class declarations are the glue.
 
+### Proof-theoretic vs ontological type systems
+
+Most programming-language type systems are **proof-theoretic**. They descend from the Curry-Howard correspondence: a type is a proposition, a program that type-checks is a proof that the proposition holds. When you write `function add(x: Dollar, y: Dollar) -> Dollar` in Haskell or Rust, the type checker is verifying a logical proof — *given a Dollar and a Dollar, I can produce a Dollar* — under a fixed set of inference rules. The check is purely structural and syntactic. The type `Dollar` doesn't *mean* anything about dollars in the world; it's a label that participates in proof rules. The type system has no idea what a dollar actually is.
+
+Sutra's type system is **ontological**. A type means something. It has a position in a concept hierarchy. It has semantic relationships to other concepts. The constraint "you can't add a Dollar to a Euro" comes from the *meaning* of those concepts, not from inference rules you wrote down. OWL does this with description logic — define what things are and the reasoner infers what operations are valid. Sutra does it with the embedding space — `Dollar` and `Euro` are semantically positioned such that cross-currency addition is meaningless, and the type system reflects that geometry.
+
+The practical difference: in a proof-theoretic system you *implement* the restriction (define the operator carefully so it rejects mismatched types). In an ontological system you *declare what the thing is* and the restrictions follow from the ontology automatically. That's why the Sutra ontology can do something Java and Haskell structurally cannot: make a class declaration that's *wrong* — claiming a region of the embedding space that doesn't actually have the geometric coherence the program assumes. A proof-theoretic class is correct by fiat. An ontological class makes a claim about reality, and reality can disagree.
+
+The design heuristic that follows: when you're unsure whether a constraint belongs in the type system, ask *does this constraint exist in the real-world thing I'm modeling?* If yes, it belongs. If it's just programming convenience, it probably doesn't. Most language designers don't have this heuristic available because their type systems are formal constructs built from scratch, not models of pre-existing structure.
+
 ---
 
 ## User-defined classes
