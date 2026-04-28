@@ -75,9 +75,17 @@ list until it gets promoted to real work.
         `docs/ontology.md` (proof-theoretic vs ontological framing)
         and `planning/sutra-spec/types.md` (cast taxonomy: no-op /
         projection / embedding); chat removed.
-  - **Pending** (21 chunks): the other 3 KART chunks, all 8
+      - `kart-as-tensor-op-decomposition.md` → harvested into
+        `planning/exploratory/sutra-paper-draft.md` (extended
+        novelty 1 with "program is a value" framing + related-work
+        contrast against supercompilation, polyhedral, AD; tightened
+        KART entry as completeness certificate for novelty 1);
+        chat removed.
+  - **Pending** (20 chunks): 2 remaining KART chunks
+    (`kart-beta-reduction-and-fsharp-competition`,
+    `kart-currency-stdlib-and-precision`), all 8
     `vsa-programming-languages` chunks, all 10
-    `vsa-operations-explained` chunks. User will continue tomorrow.
+    `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
 
