@@ -88,13 +88,15 @@ as historical record.
 
 Next bloat sources to investigate:
 
-  - `sdk/intellij-sutra/build/` — IntelliJ build output, indexes,
-    sandboxes. Should be in `.gitignore` if it isn't, and the working
-    copy should be cleared (`./gradlew clean` in that dir).
   - `experiments/` and `planning/findings/` — large but mostly
     paying their way; audit only if something stands out.
   - Cached embeddings, viz HTML siblings (`*_viz.html` from
     `--run-viz`), pyc/__pycache__ leakage.
+
+Recently cleared:
+  - `sdk/intellij-sutra/build/` — 1.1 GB local working copy deleted
+    2026-04-28. Already in `.gitignore` (line 12) and no files were
+    tracked, so no commit needed; this was purely local cleanup.
 
 The principle: anything that is regenerable (build output, caches,
 extracted artifacts where the source is preserved elsewhere) should
