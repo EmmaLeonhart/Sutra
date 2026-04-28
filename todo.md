@@ -372,6 +372,18 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
 
 ## [This year] Docs / website
 
+- [ ] **Expand `docs/paradigms.md` once more is built.** The page was
+  shrunk on 2026-04-27 to a single Java contrast (assignment, loops,
+  classes) plus the no-memory-points / non-locality core. The earlier
+  version had Haskell, Prolog, C, and Curry/Mercury sections that ran
+  ahead of what the language can actually demonstrate. Once we have
+  more substantive working programs (real class bodies post-ontology
+  work, working learned-matrix binding examples, more
+  cross-language-flavor demos that compile and run), revisit the page
+  and add back whichever comparisons are now backed by code that
+  actually executes — not aspirational prose. Do not restore the old
+  text wholesale; rewrite from current ground truth.
+
 - [ ] Interactive pipeline viewer: paste `.su` source, see the AST,
   the simplified AST, the emitted Python, and the expanded polynomial
   form of any expression, side-by-side with rewrite highlights. Same
