@@ -21,29 +21,63 @@ pick up next.
 
 ## Queued work
 
-### Three large chats restored 2026-04-27 — pending topical split
+### Chat triage in progress — one chunk at a time
 
-Three chats that were too large to triage in a single pass were
-deleted by prior sessions, with their content extracted into new
-planning docs as a substitute for the chat logs themselves. That was
-a misread of the triage policy (see memory note
-`feedback_chats_triage_is_check_not_migrate.md`). Restored:
+Three big chats were restored 2026-04-27 and split into 24
+topic-scoped chunks in `chats/` (commit `17d350c`), to be triaged
+individually. The session-by-session protocol the user is following:
 
-  - `chats/vsa-operations-explained.md` (2204 lines)
-  - `chats/vsa-programming-languages.md` (933 lines)
-  - `chats/kolmogorov-arnold-networks-for-tensor-operations.md` (941 lines)
+1. **Per chunk, write a triage note**: brief content summary, case
+   FOR removing, case AGAINST removing, and concrete harvest
+   candidates (where the content would land if kept).
+2. **The user decides per chunk**: harvest-and-clear (write the
+   harvest target, then delete the chat file), keep-for-later
+   (leave the file and revisit), or drop-without-harvest
+   (delete with a verdict in the commit message).
+3. **Each batch of decisions commits and pushes** so the queue is
+   visible and the user can pick up the next session cold.
 
-Three derivative planning files created out of these chats were
-removed in the same commit:
+This is the explicit replacement for the misread triage policy that
+preceded it (see memory note
+`feedback_chats_triage_is_check_not_migrate.md`). The original
+mistake was extracting "ideas" from chats into permanent planning
+docs as a substitute for the chat logs themselves; the corrected
+flow keeps the chat log alive until a per-chunk triage decision is
+made with the user, then either harvests in a directed way or
+deletes without harvest.
 
-  - `planning/open-questions/meta-matrix-concept-to-projector.md`
-  - `planning/prior-art-vsa-turing-completeness.md`
-  - `planning/exploratory/claw4s-paper-compile-time-vsa.md`
+**Active paper draft.** The 2026-04-28 KART triage produced a new
+paper-draft file at `planning/exploratory/sutra-paper-draft.md`. It
+is **not** a revival of the deleted Claw4S draft — it uses the
+**embedding-space-as-instruction-set-architecture** framing as the
+rhetorical anchor instead of the compile-time-beta-reduction-vs-
+runtime-VSA-LC contrast the deleted draft was built on. The four
+computational novelties (beta-reduction-to-tensor-normal-form,
+differentiable Lagrange-polynomial fuzzy logic, eigenrotation loops,
+synthetic-dimension-rotation hashmaps) compose around the
+embedding-as-ISA pillar and the paper's empirical claim is that the
+four together make that ISA story coherent. No target venue or
+deadline yet; treat as a parking lot for framing and contributions
+list until it gets promoted to real work.
 
-**Next pass on these chats:** split each file into smaller,
-topic-scoped chats inside `chats/` so that each chunk becomes
-individually triageable. Triage decisions then go through the normal
-check-and-delete flow, with the user.
+**Triaged so far** (24 chunks total):
+
+  - **Triaged 2026-04-28:**
+      - `kart-engineering-vs-research-rotation-novelty.md` →
+        harvested into `planning/exploratory/sutra-paper-draft.md`
+        (embedding-as-ISA framing, four novelties, parallax origin
+        story); chat removed.
+      - `kart-embedding-training-and-knowledge-graphs.md` → harvested
+        into `planning/exploratory/sutra-native-embedding-space.md`
+        (traversal-compositionality loss, knowledge-graph prior art,
+        Wikidata pollution caveat, fine-tuning paths); chat removed.
+      - `kart-owl-ontology-and-casting.md` → harvested into
+        `docs/ontology.md` (proof-theoretic vs ontological framing)
+        and `planning/sutra-spec/types.md` (cast taxonomy: no-op /
+        projection / embedding); chat removed.
+  - **Pending** (21 chunks): the other 3 KART chunks, all 8
+    `vsa-programming-languages` chunks, all 10
+    `vsa-operations-explained` chunks. User will continue tomorrow.
 
 ### Repo bloat sweep — remaining items
 
