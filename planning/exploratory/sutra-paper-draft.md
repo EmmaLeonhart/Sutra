@@ -112,15 +112,25 @@ pipeline as:
 2. **Beta reduction** (semantic): function applications collapse
    into compositions in the hyperdimensional algebra. The result is
    an expression in linear maps, not function calls.
-3. **Evaluation**: `embed("cat")` is computed once at compile time,
-   producing a concrete vector. This is the only step that touches
-   external data.
+3. **Evaluation**: `embed("cat")` is computed once at compile time
+   against the project's embedding space, producing a concrete
+   vector. The embedding space is itself a compile-time constant
+   (declared in `atman.toml`), so this is just baseline compilation
+   work — not a runtime concern.
 4. **Algebraic simplification**: `equals • cat_embedding` is
    recognized as a fixed vector and named `is_cat_function`.
 5. **Result**: a runtime string-equality comparison has been
    compiled to a single dot product against a precomputed vector.
    No string handling, no function dispatch — geometric proximity
    query.
+
+**The input is the only runtime variable.** The function body
+`fn is_cat(word: Word) -> Bool { word == "cat" }` compiles to
+`dot(word_vector, is_cat_function) > threshold`. Everything else
+collapsed at compile time because the embedding space was known.
+This is the embedding-as-ISA story made concrete: the compilation
+target isn't an instruction sequence, it's a precomputed vector in a
+fixed substrate.
 
 The algebraic-simplification step is where Sutra is smarter than a
 generic lambda-calculus reducer: it knows the domain is
@@ -282,12 +292,26 @@ question, different destination.
      into shifts/adds (trig, exp). Expressible as a matrix chain.
 
   The tier is selected by the compiler based on the argument's domain
-  type and a project-wide TOML precision setting (e.g. `[math]
-  approximation_precision = 1e-6, approximation_method = "chebyshev"`).
-  The user writes `sqrt(x)` and gets a tensor op, not a libm call.
-  No mainstream language exposes the precision/speed tradeoff as a
-  compile-time architectural decision — Julia and F# both defer to
-  IEEE 754 + libm with no user knob. This is a real differentiator
+  type and project-wide TOML settings split across two axes:
+
+  - `[math]` controls **approximation precision** (Chebyshev
+    polynomial degree, lookup-table resolution). E.g.
+    `approximation_precision = 1e-6, approximation_method = "chebyshev"`.
+  - `[backend]` controls **storage dtype** (`float16` /
+    `float32` / `bfloat16`) and target device (`cuda` / `cpu` /
+    `metal` / `tpu`). The dtype is the GPU/TPU axis ML
+    practitioners actually trade against — float16 is dramatically
+    faster on CUDA tensor cores; bfloat16 preserves exponent range
+    at lower mantissa precision.
+
+  Both axes have to be coherent (a 1e-12 math precision target on
+  float16 storage is incoherent — the compiler should warn). The
+  user writes `sqrt(x)` and gets a tensor op at the right precision
+  on the right device, not a libm call. PyTorch typically scatters
+  this with `torch.float16` casts and `autocast()` context managers
+  through user code; Julia and F# both defer to IEEE 754 + libm with
+  no user knob. No mainstream language exposes both axes as
+  compile-time architectural decisions. This is a real differentiator
   for numerical work, not just AI work. The honest caveat: KART's
   inner univariates can be pathologically non-smooth in the worst
   case; the practical ceiling on what Sutra can reduce is set by how
