@@ -163,7 +163,20 @@ list until it gets promoted to real work.
         user redirected to a broader Sutra-NumPy umbrella —
         added as new [This year] entry in todo.md, explicitly
         NOT in the MVP.
-  - **Pending** (13 chunks): 4 remaining
+      - `vsa-conditional-cascades-jepa-and-claw4s-rejection.md`
+        → harvested into `planning/exploratory/sutra-paper-draft.md`
+        (new "Descriptive of the substrate, not prescriptive"
+        subsection in Origins, answering the predictable "isn't
+        this just neurosymbolic AI?" reviewer objection — Sutra
+        extracts structure the model already learned during
+        training, doesn't impose symbolic structure on
+        continuous representations; cross-substrate demos cited
+        as empirical commitment that the structure is read,
+        not invented). Other four threads (cone-as-conditional,
+        JEPA framing, empirical bind/unbind validation, CLAW4S
+        rejection history) are superseded or already-known.
+        Chat removed.
+  - **Pending** (12 chunks): 3 remaining
     `vsa-programming-languages` chunks, 9 remaining
     `vsa-operations-explained` chunks.
 
