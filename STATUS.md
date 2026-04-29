@@ -104,10 +104,21 @@ list until it gets promoted to real work.
         `planning/exploratory/eigenrotation-for-sine-and-modulus.md`
         from a math insight raised mid-triage (sin/cos/tan +
         modulus as Exact-tier via the existing rotation
-        primitive). Chat removed. **All 4 KART chunks now
-        triaged.**
-  - **Pending** (18 chunks): all 8 `vsa-programming-languages`
-    chunks, all 10 `vsa-operations-explained` chunks.
+        primitive); validated empirically same day in
+        `planning/findings/2026-04-28-eigenrotation-as-trig-validation.md`
+        (cost-saving claim refuted; architectural-uniformity
+        argument survives). Chat removed. **All 4 KART chunks
+        now triaged.**
+      - `vsa-all-algebraic-branching-and-floating-point.md` →
+        dropped without harvest. Three threads (system summary,
+        probabilistic-TC + floating-point analogy, "laptop
+        isn't TC because power can fail" reductio); mostly
+        Claude synthesizing rather than novel content, FP-analogy
+        rebuttal is re-derivable, and the system summary is
+        partly stale. User verdict: remove.
+  - **Pending** (17 chunks): all 8
+    `vsa-programming-languages` chunks, 9 remaining
+    `vsa-operations-explained` chunks (one dropped above).
 
 ### Repo bloat sweep — remaining items
 
