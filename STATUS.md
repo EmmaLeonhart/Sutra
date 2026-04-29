@@ -212,9 +212,21 @@ list until it gets promoted to real work.
         (eigenrotation with prototype-match termination,
         novelty 3 of paper draft). Historical moment of an
         open question that's since been definitively closed.
-  - **Pending** (9 chunks): all 9 remaining
-    `vsa-operations-explained` chunks (last
-    `vsa-programming-languages` chunk closed above).
+      - `vsa-llm-scale-and-neurosymbolic-framing.md` →
+        dropped without harvest. Three threads: LLM-scale
+        matrix-size discussion (tied to abandoned mapping-
+        file architecture), build-on-local-models-first
+        advice (validated; Sutra targets local Ollama
+        embedders), and "probabilistic symbol manipulation
+        in a neurosymbolic system" framing. The third
+        thread is *narrower than* current Sutra positioning
+        — current paper draft and CLAUDE.md frame Sutra as
+        a real programming language with embedding-space-as-
+        ISA, not a "structured reasoning layer for
+        neurosymbolic systems." Lifting the smaller framing
+        would actively conflict with current pitch.
+  - **Pending** (8 chunks): 8 remaining
+    `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
 
