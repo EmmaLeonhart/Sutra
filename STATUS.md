@@ -189,8 +189,20 @@ list until it gets promoted to real work.
         rejection, dedicated-embedders validation) are
         validated or historical and not harvested. Chat
         removed.
-  - **Pending** (11 chunks): 2 remaining
-    `vsa-programming-languages` chunks, 9 remaining
+      - `vsa-equality-matrices-and-conditionals.md` →
+        dropped without harvest. Two threads on early
+        primitive-operation set (`is_cat`/`is_true`/`is_false`
+        matrices, equality via similarity, AND/OR/NOT/NAND
+        gap) and conditional execution via the classical
+        superposition `(cond * a) + (NOT cond * b)`. All
+        superseded: equality matrices → learned-matrix
+        binding (deferred but spec'd); AND/OR/NOT → Lagrange
+        polynomials on truth axis (novelty 2);
+        superposition-conditional → explicitly REJECTED in
+        favor of `select` polarization (memory note
+        `feedback_defuzz_polarizes_not_binarizes.md`).
+  - **Pending** (10 chunks): 1 remaining
+    `vsa-programming-languages` chunk, 9 remaining
     `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
