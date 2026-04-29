@@ -326,6 +326,65 @@ representation. It is a compile-time assertion: "this value is
 of class X, so the compiler should reject operations that
 aren't defined for X."
 
+## Operator inheritance — defaults by hierarchy branch
+
+User direction 2026-04-28: the type hierarchy should make the
+choice of "do operators work on this class by default" a property
+of *which branch* the class lives on, not a per-class
+opt-in/opt-out decision. The intended hierarchy:
+
+    Tensor
+    ├── Matrix
+    └── Vector
+        ├── Semantic    (embedding-space vectors)
+        ├── Synthetic   (constructed vectors)
+        └── Immediate   (literal vectors)
+
+    Number    (extends Vector conceptually)
+    ├── Float
+    ├── Int
+    │   └── Currency
+    │       ├── Dollar
+    │       ├── Euro
+    │       └── ...
+    └── ...
+
+    Entity    (operators disabled by default)
+    ├── Person
+    ├── Cat
+    └── ...
+
+The defaults follow what the data means:
+
+- **Number branch: operators on by default.** You almost always
+  want to add two Dollars. Subclasses inherit the `+`, `-`, `*`,
+  `/` implementations from `Number`. Currency-specific constraints
+  (no `Dollar + Euro`) are layered on top via a generic constraint
+  — not by disabling inherited operators, but by tightening the
+  type signature of the inherited form.
+- **Entity branch: operators off by default.** You almost never
+  want to add two People, or to multiply Cat by Fox. Defining
+  these operators would let `cat + fox` produce a vector that
+  looks meaningful (it isn't) and silently propagate through the
+  program. The cleaner Sutra-native approach is that `Entity`
+  simply doesn't inherit from anything that has operators defined
+  — there's nothing to disable because the operators genuinely
+  don't exist on that branch of the hierarchy.
+
+This is the right default because it matches what the values mean.
+F# can't replicate this cleanly because units-of-measure are a
+bolted-on compiler feature, separate from the rest of the type
+system; in Sutra the operator-availability defaults follow from
+ordinary inheritance.
+
+**Implementation status** (2026-04-28): not yet supported. User
+classes today bottom out at a primitive that defines operators
+(per § "Classes exist — but only at compile time" above), and
+operators are not user-definable — the dispatch is on the primitive
+root, not the user class. The Number/Entity branch separation lands
+when user-defined operators land. See `todo.md` § "[Pre-YC]
+Ontology — make the class system real".
+
 ## Type checking — there isn't any
 
 The compiler does not statically check:

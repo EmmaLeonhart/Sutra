@@ -89,10 +89,25 @@ list until it gets promoted to real work.
         `planning/exploratory/sutra-as-math-language.md` (Julia/F#
         precision contrast, finance positioning, units-of-measure-
         as-ordinary-types); chat removed.
-  - **Pending** (19 chunks): 1 remaining KART chunk
-    (`kart-currency-stdlib-and-precision`), all 8
-    `vsa-programming-languages` chunks, all 10
-    `vsa-operations-explained` chunks.
+      - `kart-currency-stdlib-and-precision.md` → harvested into
+        `planning/exploratory/sutra-paper-draft.md` (refined
+        worked example with "input is the only runtime variable"
+        framing; split TOML mention into `[math]` and `[backend]`
+        with the dtype axis exposed),
+        `planning/sutra-spec/types.md` (new section on operator
+        inheritance defaults — Number branch on, Entity branch
+        off — with full hierarchy diagram), and
+        `planning/exploratory/sutra-as-math-language.md`
+        (extended Currency stdlib design with `ExchangeMatrix`
+        and "no implicit cross-currency arithmetic"). Spawned
+        new exploratory doc
+        `planning/exploratory/eigenrotation-for-sine-and-modulus.md`
+        from a math insight raised mid-triage (sin/cos/tan +
+        modulus as Exact-tier via the existing rotation
+        primitive). Chat removed. **All 4 KART chunks now
+        triaged.**
+  - **Pending** (18 chunks): all 8 `vsa-programming-languages`
+    chunks, all 10 `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
 
