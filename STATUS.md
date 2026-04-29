@@ -262,7 +262,19 @@ list until it gets promoted to real work.
         object_marker ⊗ object`, Hadamard binding). Both
         non-substantive for current Sutra (rotation binding,
         on-demand embed + cache).
-  - **Pending** (5 chunks): 5 remaining
+      - `vsa-programming-language-existence-question.md` →
+        harvested into `planning/exploratory/sutra-paper-draft.md`
+        (added HDCC and Torchhd/vsapy/OpenHD library-family
+        bullets to the Prior-art section, with the "why
+        these don't count as embedding-as-ISA" framing —
+        HDCC is ML-classification-scoped, the libraries are
+        all embedded-in-Python with no language semantics).
+        This was the literal moment Sutra was conceived
+        (Claude's "are you thinking about designing one?")
+        but the historical moment is preserved in git; the
+        substantive harvest is the prior-art gap the paper
+        draft now closes.
+  - **Pending** (4 chunks): 4 remaining
     `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items

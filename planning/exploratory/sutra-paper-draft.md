@@ -296,6 +296,33 @@ The compiler reads it; it doesn't invent it.
   Treat relations as geometric operations (translation / rotation /
   complex multiply). Use embedding spaces for link prediction. Did
   not treat the embedding space as a compilation target.
+- **HDCC** (Pale et al., arXiv) — the closest existing
+  compile-to-VSA work. An open-source compiler that translates
+  high-level descriptions of HDC (Hyperdimensional Computing)
+  classification methods into optimized C code. Has an input
+  language, IR, and flexible backend — designed like a modern
+  compiler. **Why it doesn't count as embedding-as-ISA**: HDCC is
+  scoped specifically to ML classification tasks. It compiles HDC
+  classifier descriptions to C; it is not a general-purpose
+  language whose semantics live in the embedding space. The
+  closest precedent for "compile to VSA," but a different problem
+  shape — Sutra's claim is general-purpose computation in the
+  semantic substrate, not a DSL for one task family.
+- **Torchhd / vsapy / OpenHD** and the broader VSA library family.
+  Embedded-in-Python (or C++) libraries that expose
+  bind/bundle/permute as function calls. The user writes Python
+  that calls `bind(...)` / `bundle(...)`; the library does the
+  tensor work. **Why none of them count as a language**: the host
+  language is Python (or C++); VSA is library calls inside it.
+  There is no compiler whose job is to translate ordinary-looking
+  source code into VSA operations as its execution model. The
+  semantic gap between "library you call from Python" and
+  "language whose compilation target is the embedding space" is
+  the gap Sutra fills. (The Hey-Pentti VSA Lisp interpreter cited
+  above is the one effort that *does* push past the library
+  framing — and it does so by interpreting the lambda calculus
+  *inside* the substrate at runtime, the opposite direction from
+  Sutra's compile-time collapse.)
 - **Kolmogorov-Arnold representation theorem (KART) and Liu &
   Tegmark 2024 (KANs).** KART (Hilbert's 13th problem; Arnold &
   Kolmogorov) says any continuous bounded multivariate function
