@@ -274,7 +274,17 @@ list until it gets promoted to real work.
         but the historical moment is preserved in git; the
         substantive harvest is the prior-art gap the paper
         draft now closes.
-  - **Pending** (4 chunks): 4 remaining
+      - `vsa-substrate-and-turing-completeness.md` →
+        dropped without harvest. Three threads: TC-framing-
+        as-goal (resolved), "inference mode for an LLM"
+        framing (narrower than current positioning, same
+        shrink-the-pitch problem as previously triaged
+        "structured reasoning layer"), and "statistically
+        verify > formal proofs" (already foundational —
+        CLAUDE.md safety-critical rules, findings/
+        exploratory/open-questions structure). All
+        absorbed/resolved.
+  - **Pending** (3 chunks): 3 remaining
     `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
