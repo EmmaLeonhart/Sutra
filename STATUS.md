@@ -127,7 +127,19 @@ list until it gets promoted to real work.
         garbage-out), and types.md (dimensionality + VSA model
         per program already implemented). Historical trail
         preserved in git. User verdict: remove.
-  - **Pending** (16 chunks): 7 remaining
+      - `vsa-as-programming-language-compiler.md` → dropped
+        without harvest. Origin-conversation chunk: "compiler
+        for vector space" framing, C#/Rust syntax direction,
+        "matrix is the function" duality, "turn cat into dog
+        is matrix multiply", "data and functions are the same
+        thing" / "practically minded not lambda calculus".
+        All five threads have matured into sharper current
+        formulations: embedding-as-ISA (paper draft), novelty 1
+        (matrix-is-function natively), canonical truth axis
+        (equality-and-defuzzification.md), learned-matrix
+        binding (binding.md, deferred), homogeneous value
+        model (types.md). User verdict: remove.
+  - **Pending** (15 chunks): 6 remaining
     `vsa-programming-languages` chunks, 9 remaining
     `vsa-operations-explained` chunks.
 
