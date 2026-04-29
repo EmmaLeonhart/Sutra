@@ -151,7 +151,19 @@ list until it gets promoted to real work.
         bundle/bind/permute mechanics, permutation-doesn't-
         apply, learned distance functions) are superseded or
         already-known and not harvested. Chat removed.
-  - **Pending** (14 chunks): 5 remaining
+      - `vsa-compile-time-empirical-initiation.md` → dropped
+        without harvest. Two-phase compiler architecture
+        (Phase 1 empirical initiation → mapping file; Phase 2
+        compilation against mapping file). Implemented in
+        spirit: compile-time embedding fetch + on-disk cache
+        IS the lookup-table half of the user's "matrices +
+        lookup table" answer; learned-matrix binding (deferred,
+        in todo.md) is the matrices half. The ceremonial
+        "mapping file" intermediate wasn't needed. Mid-triage,
+        user redirected to a broader Sutra-NumPy umbrella —
+        added as new [This year] entry in todo.md, explicitly
+        NOT in the MVP.
+  - **Pending** (13 chunks): 4 remaining
     `vsa-programming-languages` chunks, 9 remaining
     `vsa-operations-explained` chunks.
 
