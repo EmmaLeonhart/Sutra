@@ -108,6 +108,46 @@ No special "units" concept needed. The types *are* the units. And
 because Sutra's types are real classes (not erased annotations), the
 units survive into runtime — serializable, reflectable, real.
 
+### Currency stdlib design (sketch)
+
+A `Currency` base class in the stdlib gives subclasses inherited
+financial semantics:
+
+- `Dollar + Dollar` → `Dollar`. Same-currency arithmetic works
+  through the inherited `Number` operators.
+- `Dollar + Euro` → **type error**. Cross-currency arithmetic is
+  rejected at compile time — there is no implicit exchange rate.
+- Conversion goes through an explicit `ExchangeMatrix<Dollar, Euro>`:
+
+      exchange : ExchangeMatrix<Dollar, Euro> -> Dollar -> Euro
+
+  Mathematically a one-entry scalar multiply, but the type
+  signature forces the conversion to be visible in source — exactly
+  what a financial auditor wants to see.
+- Portfolios compose the same way:
+
+      Portfolio<Dollar> + Portfolio<Dollar>          // fine
+      Portfolio<Dollar> + Portfolio<Euro>            // type error
+      normalize(Portfolio<Dollar>, Portfolio<Euro>,
+                ExchangeMatrix)                      // explicit
+
+This isn't special-casing. `Currency` defines `+` to require
+matching type parameters — a normal generic constraint. Everything
+else falls out from the tensor hierarchy as normal. The standard
+library story is: `Currency` gives you the financial semantics,
+`Number` gives you the math, `Tensor` gives you the operations, and
+you pick where in that hierarchy your domain concept lives.
+
+**Implementation status** (2026-04-28): the `Currency` stdlib base
+class is gated on user-class operator support landing first. Today
+operators are defined on primitive classes only (see
+`planning/sutra-spec/types.md` § "Classes exist — but only at
+compile time" and `todo.md` § "[Pre-YC] Ontology — make the class
+system real"). When user classes can carry operator implementations
+that subclasses inherit, `Currency` is the canonical demo of the
+ontology working end-to-end — same hook as the F# units-of-measure
+replacement story above.
+
 ## Who Julia / F# can't serve well
 
 The audience that Sutra's compiler architecture serves naturally:
