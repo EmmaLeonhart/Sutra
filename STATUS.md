@@ -225,7 +225,23 @@ list until it gets promoted to real work.
         ISA, not a "structured reasoning layer for
         neurosymbolic systems." Lifting the smaller framing
         would actively conflict with current pitch.
-  - **Pending** (8 chunks): 8 remaining
+      - `vsa-mxbai-pathology-and-equality-matrices.md` →
+        dropped without harvest. Three threads: mxbai
+        unit-norm magnitude pathology (the original
+        recorded claim CLAUDE.md flags as previously
+        misrepresented), matrix-multiplication-as-if-else
+        (foundational learned-matrix-binding insight,
+        already deferred + spec'd), outer-product equality
+        matrices (simplest learned-matrix case, already
+        implicit in spec). User verdict: remove. The
+        unresolved reconciliation between the user's
+        original mxbai claim and the 2026-04-24 cross-
+        substrate sweep result (mxbai passed 5/5 on a
+        direction-dominated task) is therefore not
+        captured as a finding; if it becomes load-bearing
+        later, the experiment would need to design a
+        magnitude-sensitive test from scratch.
+  - **Pending** (7 chunks): 7 remaining
     `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
