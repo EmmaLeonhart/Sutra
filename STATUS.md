@@ -139,7 +139,19 @@ list until it gets promoted to real work.
         (equality-and-defuzzification.md), learned-matrix
         binding (binding.md, deferred), homogeneous value
         model (types.md). User verdict: remove.
-  - **Pending** (15 chunks): 6 remaining
+      - `vsa-bundle-bind-permute-and-metric-choice.md` →
+        harvested into new
+        `planning/open-questions/cosine-vs-euclidean-for-post-algebraic-similarity.md`
+        (user's old recorded reservation that Euclidean might
+        beat cosine for post-bind/bundle comparison since
+        "magnitude carries information"; never tested; not
+        blocking but needs resolution before any public
+        "we picked the right metric" claim). Other four
+        threads (inference-chain reordering, canonical
+        bundle/bind/permute mechanics, permutation-doesn't-
+        apply, learned distance functions) are superseded or
+        already-known and not harvested. Chat removed.
+  - **Pending** (14 chunks): 5 remaining
     `vsa-programming-languages` chunks, 9 remaining
     `vsa-operations-explained` chunks.
 
