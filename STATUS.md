@@ -32,24 +32,33 @@ same way the just-completed batch was triaged: per-chunk note +
 `feedback_chats_triage_per_chunk_approval.md` — the per-decision
 gate is required, not optional).
 
-### Repo bloat sweep — remaining items
+### Repo bloat sweep — flagged item
 
 The retired `fly-brain/` directory (47 files), `codegen_flybrain.py`
 backend, and `--emit-flybrain` CLI flag are also gone (2026-04-26);
 findings docs under `planning/findings/2026-04-1*-*` are preserved
 as historical record.
 
-Next bloat sources to investigate:
-
-  - `experiments/` and `planning/findings/` — large but mostly
-    paying their way; audit only if something stands out.
-  - Cached embeddings, viz HTML siblings (`*_viz.html` from
-    `--run-viz`), pyc/__pycache__ leakage.
+**Flagged for user decision:** local `fly-brain/` working copy is
+**101 MB** as of 2026-04-29. The directory is gitignored
+(`.gitignore` line 39 with the explanation that the user keeps it
+locally for "possible future revival" with the canonical copy at
+`C:\Users\Immanuelle\flybrain\`). Not deleting without an explicit
+ask — but worth confirming whether the local mirror is actively
+needed or whether it can be reclaimed (the canonical copy lives
+outside the repo).
 
 Recently cleared:
   - `sdk/intellij-sutra/build/` — 1.1 GB local working copy deleted
-    2026-04-28. Already in `.gitignore` (line 12) and no files were
-    tracked, so no commit needed; this was purely local cleanup.
+    2026-04-28. Already in `.gitignore` (line 12), no files tracked.
+  - 9 `examples/*_trace.json` (~52 KB) + 3 `__pycache__` dirs in
+    `examples/`, `sdk/sutra-compiler/sutra_compiler/`, and
+    `sdk/sutra-compiler/tests/` (~1.16 MB) — deleted 2026-04-29.
+    All gitignored and regenerable.
+
+Not cleared (regen cost > storage cost):
+  - `~/.cache/sutra/` — 1.9 MB embedding cache. Refetching from
+    Ollama is slow and the cache is small enough to leave.
 
 The principle: anything that is regenerable (build output, caches,
 extracted artifacts where the source is preserved elsewhere) should
