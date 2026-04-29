@@ -241,6 +241,34 @@ This origin story is relevant to the paper because it explains
 extension of representation-focused VSA work. Different starting
 question, different destination.
 
+### Descriptive of the substrate, not prescriptive
+
+The Sutra algebra is **not handcrafted symbolic structure imposed
+on continuous representations.** It is a formal extraction of
+structure the embedding model already learned. The model learned
+addition-as-bundling and matrix-as-relation implicitly during
+training; Sutra makes those operations explicit and operable. The
+algebra is **descriptive of the substrate**, not prescriptive over
+it.
+
+This is the answer to the most predictable reviewer objection:
+*"Isn't this just neurosymbolic AI, which has been failing for
+decades?"* The classical neurosymbolic program imposes discrete
+symbolic structure onto continuous representations and pays the
+representation-mismatch tax forever. Sutra inverts the polarity —
+the symbolic operations are read out from the geometry that
+emerged from training, not bolted on. Same way `king − man + woman
+≈ queen` was discovered, not designed: the structure is *already
+there*, and Sutra's contribution is making it programmable.
+
+This framing doubles as an empirical commitment. If the algebra
+were prescriptive, demos would work only on substrates trained
+specifically to support it. Demos working on stock frozen
+embedding models (nomic, mxbai, minilm — see the cross-substrate
+sweep in `planning/findings/2026-04-24-capital-country-across-
+substrates.md`) is evidence that the structure was already there.
+The compiler reads it; it doesn't invent it.
+
 ## Prior art the paper has to reckon with
 
 - **Flanagan et al. 2024 — "Hey Pentti, We Did It!: A Fully Vector-
