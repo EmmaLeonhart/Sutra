@@ -201,9 +201,20 @@ list until it gets promoted to real work.
         superposition-conditional → explicitly REJECTED in
         favor of `select` polarization (memory note
         `feedback_defuzz_polarizes_not_binarizes.md`).
-  - **Pending** (10 chunks): 1 remaining
-    `vsa-programming-languages` chunk, 9 remaining
-    `vsa-operations-explained` chunks.
+      - `vsa-fuzzy-iteration-and-completeness.md` → dropped
+        without harvest. Three threads on natural-fuzziness-
+        as-feature (already foundational), TC via
+        variables+conditionals+iteration (all three now
+        landed: slot primitives, select, loop-eigenrotation),
+        and iteration as open question with Claude offering
+        recurrent-application-until-stabilization as option 2
+        — which is exactly what `loop(cond)` ended up being
+        (eigenrotation with prototype-match termination,
+        novelty 3 of paper draft). Historical moment of an
+        open question that's since been definitively closed.
+  - **Pending** (9 chunks): all 9 remaining
+    `vsa-operations-explained` chunks (last
+    `vsa-programming-languages` chunk closed above).
 
 ### Repo bloat sweep — remaining items
 
