@@ -254,7 +254,15 @@ list until it gets promoted to real work.
         rather than discovered). Other two threads
         (permutation-as-special-case-of-matmul, cone-traversal-
         as-optional) are absorbed/superseded.
-  - **Pending** (6 chunks): 6 remaining
+      - `vsa-primitives-and-vector-methodology.md` → dropped
+        without harvest. Two threads: textbook VSA-primitives
+        explanation (canonical bundle/bind/permute, replaced
+        by Sutra's own design) and historical 140K-vector
+        sentence-encoding methodology (`subject ⊗ verb +
+        object_marker ⊗ object`, Hadamard binding). Both
+        non-substantive for current Sutra (rotation binding,
+        on-demand embed + cache).
+  - **Pending** (5 chunks): 5 remaining
     `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
