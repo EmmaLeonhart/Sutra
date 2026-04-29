@@ -458,6 +458,25 @@ Concrete work:
   three precisions (1e-3, 1e-6, 1e-12); show the polynomial
   degree shifts and the result still matches. This is the
   audit-friendly story for finance use cases.
+- [ ] **Eigenrotation as exact tier for trig + paired modulus.**
+  User insight 2026-04-28: rotation matrices contain sin/cos as
+  their entries by definition, so `sin(x)` = "build R(x), apply
+  to (1,0), read y-coordinate" — exact, not approximate. Modulus
+  2π comes for free because rotation is periodic
+  (`R(θ + 2π) = R(θ)` exactly). Slots into the tier hierarchy as
+  a new top tier (above Chebyshev) for sin/cos/tan/sec/csc/cot
+  with real-scalar inputs, and for `mod 2π` when paired with
+  trig. The Sutra-specific claim is architectural: substrate
+  already has `rotate_slot` as a primitive (for loops), so
+  marginal cost of adding trig as Exact-tier intrinsics is
+  essentially zero. No other language gets this for free because
+  no other language has rotation as a runtime primitive. Full
+  writeup, what to try, and open questions in
+  `planning/exploratory/eigenrotation-for-sine-and-modulus.md`.
+  First step is the cheap pure-math validation: build R(θ),
+  apply to (1,0), compare against `np.sin(θ)`/`np.cos(θ)` over
+  a range of θ including values outside `[-π, π]`. Should match
+  to numerical precision and handle modulus implicitly.
 
 ## [This year] `atman.toml` backend / dtype configuration
 
