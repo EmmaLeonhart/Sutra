@@ -176,7 +176,20 @@ list until it gets promoted to real work.
         JEPA framing, empirical bind/unbind validation, CLAW4S
         rejection history) are superseded or already-known.
         Chat removed.
-  - **Pending** (12 chunks): 3 remaining
+      - `vsa-embedding-choice-and-contextuality.md` →
+        harvested into new
+        `planning/open-questions/contextual-vs-static-embedding-keys.md`
+        (Sutra's `embed()` is string-keyed and static; user
+        has explicit recorded interest in context-dependent
+        embedding for word-sense disambiguation; current
+        surface is opposite pole by accident of substrate
+        choice; load-bearing when Sutra claims NL reasoning
+        beyond toy domains). Other four threads (JEPA
+        question, Wikidata BFS history, GPT-2 dissection
+        rejection, dedicated-embedders validation) are
+        validated or historical and not harvested. Chat
+        removed.
+  - **Pending** (11 chunks): 2 remaining
     `vsa-programming-languages` chunks, 9 remaining
     `vsa-operations-explained` chunks.
 
