@@ -411,6 +411,44 @@ work; flagged so it doesn't get forgotten.
   the test assumes. Inspect the actual cosine across the bundle and
   decide whether to widen the window or fix the bundle.
 
+## [This year] Sutra-NumPy: a substrate-native numerical library
+
+User direction 2026-04-29: build Sutra's equivalent of NumPy — a
+numerical library whose primitives compile to substrate operations
+(rotations, eigenrotations, matmul, lookup tables, Chebyshev
+polynomials) instead of libm / BLAS calls. **Explicitly NOT in the
+initial MVP.** This is later-this-year scope; the MVP keeps the
+existing math intrinsics as stubs (per the math-approximation
+section below) and the language-correctness work stays the focus.
+
+The umbrella covers what's already broken out below as separate
+entries plus what isn't yet broken out:
+
+- **Already tracked**: compile-time math approximation tiers
+  (Chebyshev / lookup / CORDIC — see next section), `[backend]`
+  dtype configuration, eigenrotation-as-trig (de-prioritized
+  architectural-uniformity refactor — see findings 2026-04-28).
+- **Not yet broken out** (umbrella scope to add later):
+  substrate-native linear algebra primitives (matmul, decomp,
+  pinv) routed through the rotation/Givens machinery where
+  possible, rather than calling torch.linalg directly. Random
+  number generation. Statistics primitives. Array-creation /
+  slicing / broadcasting as first-class language constructs.
+
+The pitch: when Sutra is doing math, it should be doing math on
+its own substrate, not bouncing out to torch's host-side numerical
+stack. The architectural-uniformity argument from the
+eigenrotation finding (2026-04-28) generalizes — uniform substrate
+operations enable global-efficiency fusion in a way that
+host-side calls never can. The cost-per-op story is mixed (see
+that finding); the *whole-program-fusion* story is the actual win.
+
+This entry exists so the broader vision is captured without
+expanding the MVP. When the MVP lands and the focus shifts here,
+the per-piece work below will get re-organized under this
+umbrella. Until then, treat the per-piece entries as the active
+slice.
+
 ## [This year] Compile-time math function approximation
 
 User direction (2026-04-25): "Make a math library and some
@@ -421,6 +459,9 @@ compile `log`, `sqrt`, `sin`, `exp`, etc. to tensor expressions at
 compile time rather than calling out to libm at runtime. See
 `docs/numeric-math.md` § "Transcendental functions" for the
 design.
+
+Pieces below are sub-pieces of the broader Sutra-NumPy umbrella
+above; tracked separately because they're the active slice.
 
 Concrete work:
 
