@@ -116,9 +116,20 @@ list until it gets promoted to real work.
         Claude synthesizing rather than novel content, FP-analogy
         rebuttal is re-derivable, and the system summary is
         partly stale. User verdict: remove.
-  - **Pending** (17 chunks): all 8
+      - `vsa-as-assembly-positioning.md` → dropped without
+        harvest. Origin-conversation chunk: decision-to-build
+        moment, "abstracts mostly away" framing, "no
+        datatypes everything add/multiply" homogeneous-value
+        insight, "VSA assembly" framing → "lower than C#"
+        refinement. Technical content fully superseded by
+        current paper draft (embedding-as-ISA supersedes VSA
+        assembly), CLAUDE.md (homogeneous values, garbage-in-
+        garbage-out), and types.md (dimensionality + VSA model
+        per program already implemented). Historical trail
+        preserved in git. User verdict: remove.
+  - **Pending** (16 chunks): 7 remaining
     `vsa-programming-languages` chunks, 9 remaining
-    `vsa-operations-explained` chunks (one dropped above).
+    `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
 
