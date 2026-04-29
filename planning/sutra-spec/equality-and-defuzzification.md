@@ -23,6 +23,31 @@ literally a matrix, and its output lands on the truth axis.
 
 ## Canonical axes in the synthetic subspace
 
+### Origin of the design
+
+The user's seed thought (recorded in early triaged design chats):
+*"All embedding spaces have large, semantically void sections. I
+can do this stuff with them… conditionals are bookkeeping, not
+content — they don't need to be semantically meaningful in the
+embedding space."* That distinction — between content (which has to
+work *with* the embedding's natural geometry because that's where
+meaning lives) and bookkeeping (which doesn't have to be
+semantically meaningful at all, just consistent and reliable) — is
+what motivates the synthetic subspace. The semantic subspace is
+where Sutra's reasoning happens; the synthetic subspace is where
+its bookkeeping (truth values, integer scalars, slot state) lives.
+They're orthogonal *by construction* because they're doing
+genuinely different jobs.
+
+This is also why the canonical axes don't need to be "discovered"
+in the embedding — they're constructed. The semantic side has to
+be descriptive of what the model already learned (see paper draft
+"Descriptive of the substrate, not prescriptive"); the synthetic
+side is prescriptive because nothing was supposed to live there in
+the first place.
+
+### Committed canonical axes
+
 The synthetic subspace hosts **canonical axes** — dimensions
 designated by the language rather than allocated per-program. Two
 are committed as of 2026-04-22:

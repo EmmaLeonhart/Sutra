@@ -241,7 +241,20 @@ list until it gets promoted to real work.
         captured as a finding; if it becomes load-bearing
         later, the experiment would need to design a
         magnitude-sensitive test from scratch.
-  - **Pending** (7 chunks): 7 remaining
+      - `vsa-permutation-and-semantic-void-space.md` →
+        harvested into
+        `planning/sutra-spec/equality-and-defuzzification.md`
+        (new "Origin of the design" subsection under
+        "Canonical axes in the synthetic subspace" capturing
+        the user's seed thought: "all embedding spaces have
+        large semantically void sections... conditionals are
+        bookkeeping, not content"; the content-vs-bookkeeping
+        distinction is what motivates the synthetic subspace
+        and explains why the canonical axes are constructed
+        rather than discovered). Other two threads
+        (permutation-as-special-case-of-matmul, cone-traversal-
+        as-optional) are absorbed/superseded.
+  - **Pending** (6 chunks): 6 remaining
     `vsa-operations-explained` chunks.
 
 ### Repo bloat sweep — remaining items
