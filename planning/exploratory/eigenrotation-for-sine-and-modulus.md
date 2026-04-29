@@ -1,10 +1,15 @@
 # Eigenrotation as exact sine, cosine, and modulus
 
 **Date opened:** 2026-04-28.
-**Status:** Exploratory — mathematical insight worth trying. Not a
-commitment to ship, but the math is straightforward enough that a
-proof-of-concept is cheap and the result, if it works, slots
-directly into the existing math-approximation tier hierarchy.
+**Status:** Exploratory — mathematical insight validated, cost
+speculation refuted. See
+`planning/findings/2026-04-28-eigenrotation-as-trig-validation.md`
+for the empirical results. Summary: the identity holds (trivially);
+the modulus-for-free claim is real but is a libm property, not
+Sutra-specific; the "saves a trig call" cost claim is **wrong** —
+rotation is strictly more work than direct trig on numpy CPU. The
+architectural-uniformity argument survives and is the only
+Sutra-specific value that's honestly defensible.
 
 ## The insight
 
@@ -106,14 +111,18 @@ real-scalar inputs.
 
 ## Open questions
 
-- **Does the rotation primitive's existing build cost (computing
+- ~~**Does the rotation primitive's existing build cost (computing
   cos θ / sin θ to assemble R(θ)) make this no better than just
-  calling sin / cos directly?** Possibly — but the substrate's
-  rotation build is *one* trig call to assemble both sin and cos
-  simultaneously, whereas separate `sin(x)` and `cos(x)` calls in
-  user code would be *two*. So even in the no-savings case, this
-  pays for itself when both are needed (which is most of the time
-  — if you have one, you usually want the other).
+  calling sin / cos directly?**~~ **Resolved 2026-04-28: yes, it
+  makes it strictly worse on numpy CPU.** The rotation builder
+  internally calls *both* `np.cos(θ)` and `np.sin(θ)` to fill R, so
+  there's no "one trig call assembles both" saving — there's a 2×2
+  matvec on top of the same two trig calls. Measured: rotation path
+  is 1.41× the cost of scalar direct trig and 99× the cost of
+  vectorized direct trig. The earlier speculation in this doc that
+  "this pays for itself when both are needed" was wrong. See
+  `planning/findings/2026-04-28-eigenrotation-as-trig-validation.md`
+  test 3 for the measurements.
 
 - **Does this play with the synthetic subspace's slot allocation?**
   The rotation primitive operates on 2D Givens slots. Trig
@@ -142,7 +151,15 @@ A commitment to ship a new tier. A claim that this is novel
 mathematics (it isn't — rotation matrices have always contained
 sin/cos). The Sutra-specific claim is **architectural**: because
 Sutra already has eigenrotation as a substrate primitive for an
-unrelated reason (loops), the marginal cost of adding sin/cos/tan
-as Exact-tier intrinsics is essentially zero. No other language
-gets to make that claim because no other language has rotation as
-a runtime primitive.
+unrelated reason (loops), routing trig through it costs *one
+runtime code path instead of two* — but it does not cost less per
+operation, on numpy CPU. The cost-win story would only materialize
+on a substrate where rotation is a hardware primitive cheaper than
+two libm calls (CORDIC on FPGA, or a future native instruction),
+which is not where Sutra runs today.
+
+The honest pitch: this is a "nice cleanup if/when we touch the
+math-tier code" item, not a priority feature. It does not justify
+prioritizing the work over the existing approximation tiers
+(Chebyshev, lookup-table, CORDIC) that the math-approximation
+todo entry tracks.
