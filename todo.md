@@ -458,25 +458,34 @@ Concrete work:
   three precisions (1e-3, 1e-6, 1e-12); show the polynomial
   degree shifts and the result still matches. This is the
   audit-friendly story for finance use cases.
-- [ ] **Eigenrotation as exact tier for trig + paired modulus.**
+- [ ] **Eigenrotation as a substrate-uniformity refactor for trig
+  intrinsics** (de-prioritized 2026-04-28 after validation).
   User insight 2026-04-28: rotation matrices contain sin/cos as
   their entries by definition, so `sin(x)` = "build R(x), apply
-  to (1,0), read y-coordinate" — exact, not approximate. Modulus
-  2π comes for free because rotation is periodic
-  (`R(θ + 2π) = R(θ)` exactly). Slots into the tier hierarchy as
-  a new top tier (above Chebyshev) for sin/cos/tan/sec/csc/cot
-  with real-scalar inputs, and for `mod 2π` when paired with
-  trig. The Sutra-specific claim is architectural: substrate
-  already has `rotate_slot` as a primitive (for loops), so
-  marginal cost of adding trig as Exact-tier intrinsics is
-  essentially zero. No other language gets this for free because
-  no other language has rotation as a runtime primitive. Full
-  writeup, what to try, and open questions in
+  to (1,0), read y-coordinate." Exploratory writeup:
   `planning/exploratory/eigenrotation-for-sine-and-modulus.md`.
-  First step is the cheap pure-math validation: build R(θ),
-  apply to (1,0), compare against `np.sin(θ)`/`np.cos(θ)` over
-  a range of θ including values outside `[-π, π]`. Should match
-  to numerical precision and handle modulus implicitly.
+  Validated 2026-04-28 in
+  `planning/findings/2026-04-28-eigenrotation-as-trig-validation.md`
+  via `experiments/eigenrotation_as_trig.py`:
+  - Math identity holds (trivially).
+  - "Modulus for free" is real but inherited from libm's range
+    reduction — not a Sutra-specific differentiator.
+  - **Cost-saving claim REFUTED.** Rotation path is 1.41× scalar
+    direct trig and 99× vectorized direct trig on numpy CPU. The
+    rotation builder calls *both* `cos` and `sin` to fill R, then
+    adds a 2×2 matvec — strictly more work, not less.
+  - Surviving Sutra-specific value is architectural only: one
+    runtime code path instead of two (substrate-uniformity for
+    trig). Not a speed win.
+  - Cost-win story would only materialize on hardware rotation
+    primitives (CORDIC / FPGA / future native instructions),
+    which is not where Sutra runs today.
+
+  Implication: this is a "nice cleanup if/when we touch the
+  math-tier code" item, NOT a priority feature. It does not
+  justify prioritizing it ahead of the Chebyshev / lookup /
+  CORDIC tiers above. Kept in the queue so we don't re-derive
+  the insight; not a near-term work item.
 
 ## [This year] `atman.toml` backend / dtype configuration
 
