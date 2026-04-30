@@ -190,48 +190,15 @@ substrate-pure compile target.
 Verify the suite still finishes in reasonable time after the switch.
 If it's catastrophic, plug `torch.set_num_threads` or similar.
 
-### 7. Implement the closure-loop form (additive)
+### 7. Loop tail-call surface — SHIPPED 2026-04-30 (commit b3bc0cd)
 
-Design captured in
-`planning/open-questions/loop-as-recursive-closure.md` from the
-2026-04-30 chat
-`chats/literal-based-optimization-in-programming-languages.md`.
-
-```sutra
-text book_content = loop readBook(while bookUnread);
-
-function loop text readBook(cond bookUnread) {
-    // `b` is captured from file scope, baked at compile time
-    return readBook(isRead);   // tail call to self = recurrent connection
-}
-```
-
-**Why before the paper:** the paper's loop story is much cleaner if
-the language has the idiomatic form Emma actually wants. Today's
-`do_while NAME(...)` / `while_loop NAME(...)` / etc. forms work but
-aren't the surface the paper examples should use.
-
-**Plan:**
-1. Parser: recognize `function loop NAME(...)` as a function decl
-   with `is_loop=True`. Body uses `return NAME(...)` for the
-   recurrent step instead of `pass`.
-2. AST node: extend `FunctionDecl` with an `is_loop` flag, or
-   subclass `LoopFunctionDecl` to share machinery.
-3. Codegen: detect a tail-recursive call to self in the function
-   body; translate to the same T-step soft-halt cell that today's
-   loop kinds use. The function's `return NAME(...)` is the
-   substrate cell update; any non-recursive `return <expr>` is the
-   exit value.
-4. Closure handling: free variables in the body (file-scope refs)
-   stay as Python free variables in the emitted code. Compile-time
-   bake happens via the existing literal folder.
-5. Worked example + tests covering convergence (matches
-   `do_while_adder.su`), non-convergence (output gets wiped by
-   halt propagation), and closure-baked file-scope reads.
-
-**Critically:** keep the four existing loop kinds. This is
-additive. The idiomatic form is the recommended path going forward;
-existing programs and tests continue to work as-is.
+`return NAME(args)` is now an alternative to `pass values` inside
+loop function bodies. Same semantics; both surfaces work. Per Emma
+2026-04-30, the original "closure-loop" chat framing was a
+misnomer — what shipped is just the prettier tail-call surface, no
+closure machinery. Design doc:
+`planning/open-questions/loop-tail-call-surface.md`. Object
+encapsulation deferred to todo.md.
 
 ## Queued work — final item (paper + submission pipeline)
 
