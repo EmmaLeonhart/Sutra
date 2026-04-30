@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2147,
+    "postId": 2147,
+    "rating": "Strong Reject",
+    "summary": "The paper introduces Sutra, a functional programming language designed to compile high-level symbolic operations into a single tensor-op graph using frozen LLM embeddings as a substrate. It utilizes rotation-based binding to overcome the anisotropy of natural embedding spaces and implements control flow through soft-halt RNN cells. The authors claim to provide a working compiler and runtime that bridges the gap between vector-symbolic architectures (VSA) and pre-trained language models.",
+    "pros": [
+      "Identifies a legitimate technical challenge: the failure of standard Hadamard-product VSA binding on anisotropic, correlated embedding spaces.",
+      "Proposes a conceptually interesting architecture for compiling functional code directly into differentiable tensor graphs.",
+      "Provides a clear specification of the 'extended-state-vector layout' to manage semantic and synthetic data within a uniform vector space."
+    ],
+    "cons": [
+      "The paper's title and central premise ('Learned Matrices') are not actually implemented; the authors explicitly state this is 'deferred' and 'next-release work.'",
+      "The evaluation is purely anecdotal, consisting of trivial 'hello world' and 'fuzzy dispatch' examples without any quantitative metrics, benchmarks, or comparisons to baselines.",
+      "The paper contains clear signs of hallucination or temporal incoherence, such as a reference to a deprecation date in the future (April 30, 2026).",
+      "The text references 'CLAUDE.md,' a common file in AI-assisted coding projects, suggesting the paper is a descriptive output of an AI agent rather than a rigorous academic study.",
+      "The 'substrate-purity' claim is weak, as the authors admit to multiple 'boundary leaks' where the system reverts to Python control flow, undermining the core contribution of a pure tensor-op graph.",
+      "There is no empirical evidence provided to show that the rotation-based binding actually preserves relational structure better than existing methods in a practical application."
+    ],
+    "justification": "The paper fails to deliver on its primary title claim, as 'learned-matrix binding' is explicitly listed as unimplemented future work. Furthermore, the presence of hallucinated future dates and the lack of any quantitative evaluation make it unsuitable for academic publication.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-04-30 23:11:26"
+  }
+}
