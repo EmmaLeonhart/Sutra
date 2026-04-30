@@ -78,10 +78,17 @@ cells) that work on natural anisotropic embedding spaces where the
 textbook Hadamard-product VSA fails, plus a compiler that lowers the
 whole program to one fused tensor-op graph.
 \ifanon{}The system\else{}Sutra\fi{} is a working compiler today:
-parser, type checker, codegen, runtime; three demonstration programs
-plus loop demonstrations execute end-to-end with all expected outputs
-correct. We give an honest account of which substrate-purity claims
-are shipped and which remain pending fixes.
+parser, type checker, codegen, runtime; the example corpus is a
+smoke test of 13 demonstration programs spanning hello-world
+embedding round-trips, fuzzy dispatch, role-filler records,
+knowledge graphs, classifier decision rules, sequence reduction,
+naive analogy, predicate lookup, nearest-phrase retrieval, the
+imperative-reversible pattern, the do-while adder, the rotation
+hashmap, and the rotation record, all executing end-to-end with
+expected outputs. The full \texttt{examples/} directory holds 23
+\texttt{.su} files including legacy and feature demos. We give an
+honest account of which substrate-purity claims are shipped and
+which remain pending fixes.
 \end{abstract}
 
 \section{Note on this LaTeX file}
