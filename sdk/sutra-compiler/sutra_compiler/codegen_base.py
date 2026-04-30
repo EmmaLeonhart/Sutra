@@ -269,6 +269,11 @@ class BaseCodegen:
         # Outside an unrolling context this stays None, and a reference
         # to `iterator` raises CodegenNotSupported.
         self._iterator_value: Optional[int] = None
+        # Set to True while translating an `iterative_loop` function
+        # body, so the `iterator` keyword translates to the runtime
+        # Python local `_iterator` rather than a compile-time constant.
+        # Restored on exit.
+        self._iterator_runtime_in_scope: bool = False
         # Stack of state-parameter name lists, pushed when entering a
         # loop function body and popped on exit. Used by PassStmt
         # translation to know which Python locals to assign. Outside a
@@ -577,6 +582,11 @@ class BaseCodegen:
 
         # Push state names so PassStmt translation knows what to assign.
         self._loop_state_stack.append(state_names)
+        # For iterative_loop, `iterator` in the body resolves to the
+        # runtime Python local `_iterator` instead of erroring.
+        prior_iter_runtime = self._iterator_runtime_in_scope
+        if decl.kind == "iterative_loop":
+            self._iterator_runtime_in_scope = True
 
         # do_while: body runs once unconditionally first.
         if decl.kind == "do_while":
@@ -636,8 +646,9 @@ class BaseCodegen:
             )
         self._indent -= 1  # close the for loop
 
-        # Pop state stack.
+        # Pop state stack and restore iterator-runtime flag.
         self._loop_state_stack.pop()
+        self._iterator_runtime_in_scope = prior_iter_runtime
 
         # Return final state values + halt_cum (last).
         return_items = state_names + ["_halt_cum"]
@@ -1362,13 +1373,21 @@ class BaseCodegen:
             # body; here we substitute the literal. Outside an
             # unrolling context, the reference is a compile error.
             if expr.name == "iterator":
+                # Two contexts where `iterator` is meaningful:
+                # 1. Compile-time-unrolled `loop (N) { ... }`: substitute
+                #    the literal int (1..N) — handled via _iterator_value.
+                # 2. Runtime `iterative_loop NAME(N, ...) { ... }`: refer
+                #    to the Python local `_iterator` (1-indexed tick count
+                #    set by the cell). Handled via _iterator_runtime_in_scope.
+                if self._iterator_runtime_in_scope:
+                    return "_iterator"
                 if self._iterator_value is None:
                     raise CodegenNotSupported(
                         expr,
                         "`iterator` is only valid inside an unrolling "
-                        "`loop (N) { ... }` body where N is a compile-time "
-                        "integer literal. Use `loop (N as i)` and reference "
-                        "`i` instead for the named-index form.",
+                        "`loop (N) { ... }` body or an `iterative_loop` "
+                        "function body. Use `loop (N as i)` and reference "
+                        "`i` for the compile-time named-index form.",
                     )
                 return repr(self._iterator_value)
             # If this identifier names a slot-bound variable, emit
