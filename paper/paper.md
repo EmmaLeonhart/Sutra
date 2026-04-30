@@ -1,6 +1,6 @@
-# From Learned Displacements to Learned Matrices: Sutra, a Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
+# Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
 
-**Emma Leonhart** — *immanuelleleonhart@gmail.com*
+**Emma Leonhart** — *EmmaLeonhart999@gmail.com*
 
 ---
 
@@ -21,12 +21,9 @@ compiler that lowers the whole program to one fused tensor-op
 graph. Sutra is a working compiler today: parser, type checker,
 codegen, runtime; three demonstration programs (hello world, fuzzy
 dispatch, role-filler record) plus loop demonstrations execute
-end-to-end with all expected outputs correct. The language design
-also positions learned-matrix binding — `role X = learned_from(data)` —
-as an explicit extension point, with rotation binding as the
-shipped substrate today and learned matrices as the natural next
-implementation. We give an honest account of which parts of the
-substrate-purity story are shipped and which remain.
+end-to-end with all expected outputs correct. We give an honest
+account of which parts of the substrate-purity story are shipped
+and which remain.
 
 ---
 
@@ -37,41 +34,27 @@ encode relational structure as vector arithmetic — `king − man +
 woman ≈ queen`, formalized through TransE, RotatE, and the
 broader knowledge-graph embedding literature — established that
 there is genuine algebraic content in the geometry of pre-trained
-models. The same property is observable in general-purpose text
-encoders: relational predicates produce consistent vector
-displacements, and the geometric consistency of a displacement is
-predictive of how well it composes with others.
+models. Given that algebraic structure exists, two questions
+follow:
 
-Given that algebraic structure exists, three questions follow:
-
-1. **Which displacements are reliable enough to be used as
-   primitives** of a compositional algebra over the embedding
-   space, rather than as one-off lexical facts?
+1. **Which operations on these embeddings are reliable enough to
+   be used as primitives** of a compositional algebra over the
+   embedding space, rather than as one-off lexical facts?
 2. **What is the correct binding operation** to compose those
    primitives into structured representations — i.e. how do we
    build a working vector-symbolic architecture (VSA) on top of
    substrates the standard VSA literature was not designed for?
-3. **Can we go from individual displacements to a learned
-   *matrix* of relational operators** — a parametric family
-   indexed by role, where each role is a small dense matrix fit
-   to data rather than a hand-picked direction?
 
-This paper answers questions 1 and 2 in the form of a working
+This paper answers both questions in the form of a working
 programming language, **Sutra**, whose primitives are exactly
-these consolidated operations. Question 3 is positioned as the
-language's natural next implementation step — the design surface
-already includes a `role X = learned_from(data)` form that the
-runtime today rejects with a deferred-feature error and the next
-release implements. We deliberately do not present learned-matrix
-binding as a finished result; the paper's claim is that the
-language design supports the trajectory.
+these consolidated operations.
 
 The naming: **Sutra** is the Sanskrit *sūtra* — thread, rule,
 aphorism — the term for Pāṇini's foundational Sanskrit grammar.
 
-### 1.1 Two contributions and a trajectory
+### 1.1 Two contributions
 
-This paper presents two contributions and points at a third:
+This paper presents two contributions:
 
 > 1. **Consolidation** of the algebraic structure of frozen
 >    embedding spaces into canonical primitive forms that can be
@@ -81,17 +64,11 @@ This paper presents two contributions and points at a third:
 >    tensor-op graph over those primitives — the algorithms above,
 >    realized as a typed, purely functional language with a working
 >    compiler and runtime.
-> 3. **A trajectory** from rank-zero displacements (translations)
->    to learned matrices operating on the substrate as full-rank
->    role operators. The *semantic role* becomes a fitted matrix.
->    The language already accepts the surface; the compiler fit
->    pass is next-release work.
 
 Sign-flip binding is not the headline — it is at most a side note
 explaining why the textbook VSA choice (Hadamard product) fails on
 anisotropic embeddings. The headline is the consolidation into a
-working algebra plus the trajectory toward learned-matrix
-generalization.
+working algebra plus the language that operationalizes it.
 
 ### 1.2 Contributions
 
@@ -137,23 +114,16 @@ generalization.
    paper's substrate-purity claim is correctly scoped, not
    overclaimed.
 
-6. **Learned-matrix binding as an explicit deferred extension.**
-   The language design includes `role X = learned_from(data)`;
-   the runtime today rejects calls with a deferred-feature error
-   pointing at the spec. This positions the next step (learned
-   matrices) as an implementation — not a research — task.
-
 ### 1.3 What this paper is not
 
 This paper does not propose a new VSA binding operation; rotation
 binding is well-known (Plate 1995). It does not propose a new RNN
-architecture; the soft-halt cell is straightforward. It does not
-present learned-matrix binding as a finished empirical result.
-The contribution is the *language* — the choice to compile a
-textual, typed source language into a single substrate-pure
-tensor-op graph, the design and implementation work that makes
-that compilation sound, and the evidence that it works on
-demonstration programs.
+architecture; the soft-halt cell is straightforward. The
+contribution is the *language* — the choice to compile a textual,
+typed source language into a single substrate-pure tensor-op
+graph, the design and implementation work that makes that
+compilation sound, and the evidence that it works on demonstration
+programs.
 
 ---
 
@@ -170,9 +140,7 @@ embedding spaces are not designed for VSA — they are correlated
 and anisotropic — and the textbook bind operations do not transfer
 cleanly. Rotation binding (`R_role @ filler` for a role-seeded
 Haar-random orthogonal `R_role`) does, and is what Sutra uses
-today. The trajectory toward learned-matrix binding (where
-`R_role` is fit to data rather than seeded from a hash) is the
-natural extension and the language's next-implementation target.
+today.
 
 ### 2.2 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
@@ -268,38 +236,7 @@ data section never carries the embeddings.
 
 ---
 
-## 4. Learned-Matrix Binding (Deferred)
-
-The natural next implementation: replace the role-hash-seeded Haar
-rotation with a *learned* matrix fit to data. The language design
-already includes the surface:
-
-```sutra
-role agent = learned_from(corpus_of_agent_examples);
-vector v = bind(agent, "cat");
-```
-
-`role X = learned_from(data)` declares a learned binding matrix
-that the compiler fits at compile time from the supplied data,
-caches as `R_X`, and uses for subsequent `bind(X, _)` calls. The
-runtime today rejects this with a deferred-feature error pointing
-at `planning/sutra-spec/binding.md` § "Semantic binding". Shipping
-the implementation is the next-release work — out of scope for
-this paper but explicitly positioned as the next step rather than
-a research question.
-
-The case for this generalization: relational displacements in
-frozen embedding spaces *are* operators of varying rank. Rank-zero
-(translation) is the baseline that the broader embedding-arithmetic
-literature establishes; rank-one or higher (matrix) is the obvious
-extension that the embedding-space geometry already supports.
-Learned matrices give the language a parameter family indexed by
-role, with each role being something the compiler can fit and
-bake.
-
----
-
-## 5. The Sutra Compiler
+## 4. The Sutra Compiler
 
 The compiler is a five-stage pipeline:
 
@@ -326,7 +263,7 @@ are all baked into the emitted source. Re-running a compiled
 module hits the disk-cached embeddings and the precomputed
 rotations on second-and-later runs.
 
-### 5.1 Substrate-purity invariants
+### 4.1 Substrate-purity invariants
 
 Three invariants the compiler enforces:
 
@@ -346,7 +283,7 @@ Three invariants the compiler enforces:
    substrate primitives (`heaviside`, `saturate_unit`) instead of
    Python ternaries.
 
-### 5.2 Boundary leak enumeration
+### 4.2 Boundary leak enumeration
 
 Five places where Python crossed the substrate↔Python boundary
 were enumerated; three were fixed in the work this paper reports
@@ -376,12 +313,12 @@ in the project's CLAUDE.md exists to prevent).
 
 ---
 
-## 6. Demonstration Programs
+## 5. Demonstration Programs
 
 Three programs run end-to-end in the current implementation; each
 exercises a different part of the language.
 
-### 6.1 Hello world
+### 5.1 Hello world
 
 ```sutra
 function vector main() {
@@ -393,7 +330,7 @@ Compiles to a single-call program that returns the
 `nomic-embed-text` embedding of the literal string. The compile-
 time disk cache makes second-run cost approximately zero.
 
-### 6.2 Fuzzy dispatch
+### 5.2 Fuzzy dispatch
 
 A program that compares an input string's embedding against
 several prototype embeddings via similarity, then routes through
@@ -401,7 +338,7 @@ a soft-mux on the resulting truth-axis scores. All arithmetic is
 substrate-pure; the dispatch is differentiable end-to-end (every
 intermediate is a tensor on the substrate).
 
-### 6.3 Role-filler record
+### 5.3 Role-filler record
 
 A bundled role-filler structure (`agent: "cat", action: "sit"`)
 that supports unbind-snap retrieval. Demonstrates that the VSA
@@ -410,7 +347,7 @@ construction, retrieval, and multi-hop composition (extract a
 filler from one structure, insert it into another, retrieve from
 the second) all return correct results.
 
-### 6.4 Loop demonstrations
+### 5.4 Loop demonstrations
 
 The loop demos confirm substrate-pure recurrent computation:
 
@@ -425,15 +362,9 @@ The loop demos confirm substrate-pure recurrent computation:
 
 ---
 
-## 7. Limitations and Future Work
+## 6. Limitations and Future Work
 
-### 7.1 Learned-matrix binding (next-release)
-
-The implementation that generalizes from rotation binding to
-learned-matrix role operators. Surface design exists; runtime
-rejects with a deferred-feature error.
-
-### 7.2 Object encapsulation as load-bearing
+### 6.1 Object encapsulation as load-bearing
 
 Sutra's design includes ontology-oriented objects (closer to OWL
 classes than to OOP) for compile-time semantic checking. Today's
@@ -441,14 +372,14 @@ compiler implements free functions cleanly; object methods parse
 but their encapsulation rules (no closure across class boundary)
 are not enforced. Queued.
 
-### 7.3 Two boundary leaks remain
+### 6.2 Two boundary leaks remain
 
 Rotation cache lookup and loop tick counter are control-flow
 seams that still cross to Python. Fix paths are specified. After
 both fixes, the emitted module is a pure tensor-op graph that
 `torch.compile` can fuse into a small number of CUDA kernels.
 
-### 7.4 SutraDB integration depth
+### 6.3 SutraDB integration depth
 
 SutraDB is the embedded codebook today. Hashmap routing was
 considered and dropped as the language has no real hashmap
@@ -458,7 +389,7 @@ schema is deferred until there's a concrete requirement; an
 env-var override (`SUTRA_DB_PATH`) covers the "persistent .sdb
 across runs" use case today.
 
-### 7.5 Numpy backend retirement
+### 6.4 Numpy backend retirement
 
 The compiler has historically had two backends; the numpy one
 (`codegen.py`) is deprecated as of 2026-04-30. Behavior tests run
@@ -467,7 +398,7 @@ tests and gets fully removed in a follow-up.
 
 ---
 
-## 8. Conclusion
+## 7. Conclusion
 
 Sutra demonstrates that a programming language whose compile
 target is a single tensor-op graph over a frozen embedding
@@ -481,13 +412,8 @@ dataflow graph with no type dispatch at the leaves.
 The substrate-purity story is what makes the language useful for
 the empirical question we built it to address: which embedding
 operations actually compose, at what capacity, on which
-substrates, and — at the next step — what learned matrices fall
-out of the displacement findings. With the language in hand,
-those questions become programs to write rather than scripts to
-glue together.
-
-From rotation binding to learned matrices is the language's next
-implementation, not its next research question.
+substrates. With the language in hand, those questions become
+programs to write rather than scripts to glue together.
 
 ---
 
