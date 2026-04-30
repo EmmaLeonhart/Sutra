@@ -94,55 +94,86 @@ class TestSutraDBEmbedded(unittest.TestCase):
         "cd sutraDB && cargo build --release -p sutra-ffi"
     ),
 )
-class TestSutraDBArgmaxRuntimeIntegration(unittest.TestCase):
-    """End-to-end check: a compiled Sutra program that calls
-    argmax_cosine with N>=4 candidates routes through SutraDB
-    (via the codegen_pytorch.py prelude's `_sutra_argmax_via_db`)
-    and returns the correct candidate. The matmul fallback gets
-    exercised on smaller N.
+class TestSutraDBCodebookIntegration(unittest.TestCase):
+    """Compile-time SutraDB population + nearest_string decode.
+
+    Per Emma 2026-04-30: every embedded string in a Sutra program
+    goes into SutraDB at compile time. The runtime can decode any
+    query vector back to the nearest string via
+    `_VSA.nearest_string(query)`. Strings declared but not used in
+    expressions are still inserted, so they remain decodable.
+
+    These tests exercise the runtime methods directly (via a
+    minimal _TorchVSA instance) rather than running the full
+    compile pipeline against a `.su` source.
     """
 
-    def test_argmax_via_sutradb_returns_correct_candidate(self):
-        # Construct vectors in 8 dims; query is exactly equal to the
-        # third candidate so cosine=1.0 picks it deterministically.
-        # Using direct Python here (we exercise _argmax_cosine, not the
-        # whole compile pipeline, to keep the test fast and focused).
+    def test_populate_then_decode_three_words(self):
+        # Build a tiny _TorchVSA, manually populate the codebook
+        # with three labeled vectors, push to SutraDB, decode.
+        # We don't go through ollama here; the test just exercises
+        # populate_sutradb + nearest_string against a hand-built
+        # codebook so it doesn't depend on a running embedding model.
+        import torch
         from sutra_compiler.codegen_pytorch import PyTorchCodegen
-        # Smallest program shape that triggers a 5-candidate argmax_cosine.
-        # Using inline vectors via component construction would be ideal
-        # but the simplest exercising is the runtime helper directly.
-        # Emit a tiny module that defines _argmax_cosine + helpers, then
-        # call it.
-        cg = PyTorchCodegen()
-        # Minimal module: just the prelude. We skip cg.translate so we
-        # don't need a full .su program; instead we exec the prelude
-        # against an empty namespace and call the helper directly.
         from sutra_compiler import ast_nodes
-        empty_module = ast_nodes.Module(items=[], span=None)  # type: ignore[arg-type]
+        cg = PyTorchCodegen()
+        cg._prefetch_strings = []  # don't try to embed anything at module init
+        empty = ast_nodes.Module(items=[], span=None)  # type: ignore[arg-type]
         try:
-            py = cg.translate(empty_module)
+            py = cg.translate(empty)
         except Exception:
             self.skipTest("PyTorchCodegen.translate(empty) failed; skip")
         ns: dict = {}
-        try:
-            exec(py, ns)
-        except Exception as e:
-            self.skipTest(f"Generated module failed to exec: {e}")
-        argmax = ns.get("_argmax_cosine")
-        self.assertIsNotNone(argmax, "_argmax_cosine missing from emitted module")
+        exec(py, ns)
+        vsa = ns.get("_VSA")
+        self.assertIsNotNone(vsa, "_VSA missing from emitted module")
+        # Hand-populate the codebook with three orthogonal-ish vectors
+        # in the semantic block (synthetic block stays zero — that's
+        # the layout populate_sutradb expects).
+        sem = vsa.semantic_dim
+        syn = vsa.synthetic_dim
+        v_cat = torch.zeros(sem + syn, dtype=vsa.dtype, device=vsa.device)
+        v_dog = torch.zeros(sem + syn, dtype=vsa.dtype, device=vsa.device)
+        v_bird = torch.zeros(sem + syn, dtype=vsa.dtype, device=vsa.device)
+        v_cat[0] = 1.0
+        v_dog[1] = 1.0
+        v_bird[2] = 1.0
+        vsa._codebook = {"cat": v_cat, "dog": v_dog, "bird": v_bird}
+        vsa.populate_sutradb()
+        # Query close to "dog".
+        query = torch.zeros(sem + syn, dtype=vsa.dtype, device=vsa.device)
+        query[0] = 0.1
+        query[1] = 0.95
+        query[2] = 0.05
+        result = vsa.nearest_string(query)
+        self.assertEqual(result, "dog")
+
+    def test_decode_unicode_label(self):
+        # URL-quoting in populate_sutradb / unquoting in nearest_string
+        # round-trips a label with spaces / non-ASCII characters.
         import torch
-        # 5 candidates; query matches candidate index 2 exactly.
-        vecs = [
-            torch.tensor([1.0, 0, 0, 0, 0, 0, 0, 0]),
-            torch.tensor([0, 1.0, 0, 0, 0, 0, 0, 0]),
-            torch.tensor([0, 0, 1.0, 0, 0, 0, 0, 0]),  # target
-            torch.tensor([0, 0, 0, 1.0, 0, 0, 0, 0]),
-            torch.tensor([0, 0, 0, 0, 1.0, 0, 0, 0]),
-        ]
-        query = torch.tensor([0.05, 0.05, 0.95, 0.05, 0.05, 0.0, 0.0, 0.0])
-        result = argmax(query, vecs)
-        # The result should be the candidate at index 2.
-        self.assertTrue(torch.allclose(result, vecs[2], atol=1e-5))
+        from sutra_compiler.codegen_pytorch import PyTorchCodegen
+        from sutra_compiler import ast_nodes
+        cg = PyTorchCodegen()
+        cg._prefetch_strings = []
+        empty = ast_nodes.Module(items=[], span=None)  # type: ignore[arg-type]
+        try:
+            py = cg.translate(empty)
+        except Exception:
+            self.skipTest("PyTorchCodegen.translate(empty) failed; skip")
+        ns: dict = {}
+        exec(py, ns)
+        vsa = ns["_VSA"]
+        sem = vsa.semantic_dim
+        syn = vsa.synthetic_dim
+        v = torch.zeros(sem + syn, dtype=vsa.dtype, device=vsa.device)
+        v[0] = 1.0
+        label = "hello world café"
+        vsa._codebook = {label: v}
+        vsa.populate_sutradb()
+        result = vsa.nearest_string(v)
+        self.assertEqual(result, label)
 
 
 if __name__ == "__main__":

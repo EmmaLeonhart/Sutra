@@ -317,6 +317,99 @@ class PyTorchCodegen(Codegen):
         self._emit("self._write_disk_cache()")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Embedded SutraDB (compile-time string codebook) ----")
+        self._emit("# Per Emma 2026-04-30 (queue item 2): every embedded string in a")
+        self._emit("# Sutra program goes into SutraDB at compile time. The embeddings")
+        self._emit("# don't live in the Python module's data section — they live in")
+        self._emit("# the .sdb file SutraDB manages. Runtime can decode any query")
+        self._emit("# vector back to a string via nearest_string() — the inverse of")
+        self._emit("# embed(). Strings declared but not used in expressions still get")
+        self._emit("# inserted, so they remain decodable.")
+        self._emit()
+        self._emit("def _ensure_sutradb(self):")
+        self._indent += 1
+        self._emit('"""Lazy-init the SutraDB handle on first use. Returns None if the')
+        self._emit("FFI DLL isn't built (caller decides what to do).")
+        self._emit('"""')
+        self._emit("if hasattr(self, '_sutradb') and self._sutradb is not None:")
+        self._indent += 1
+        self._emit("return self._sutradb")
+        self._indent -= 1
+        self._emit("try:")
+        self._indent += 1
+        self._emit("import importlib, tempfile, os as _os2")
+        self._emit("mod = importlib.import_module('sutra_compiler.sutradb_embedded')")
+        self._emit("self._sutradb_tmpdir = tempfile.mkdtemp(prefix='sutra_codebook_')")
+        self._emit("path = _os2.path.join(self._sutradb_tmpdir, 'codebook.sdb')")
+        self._emit("self._sutradb = mod.SutraDBEmbedded(path)")
+        self._emit("return self._sutradb")
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("self._sutradb = None  # mark attempted-and-failed")
+        self._emit("return None")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit()
+        self._emit("def populate_sutradb(self):")
+        self._indent += 1
+        self._emit('"""Push every codebook entry into SutraDB.')
+        self._emit('')
+        self._emit("Called from the codegen prelude after embed_batch finishes")
+        self._emit("populating self._codebook. Each (name, vec) becomes a triple")
+        self._emit('<urn:sutra:label:NAME> <urn:sutra:embedding> "VEC"^^<f32vec> .')
+        self._emit('"""')
+        self._emit("db = self._ensure_sutradb()")
+        self._emit("if db is None:")
+        self._indent += 1
+        self._emit("return  # FFI unavailable; nearest_string will return None")
+        self._indent -= 1
+        self._emit("for name, vec in self._codebook.items():")
+        self._indent += 1
+        self._emit("# Skip non-URL-safe characters in label by URL-quoting.")
+        self._emit("import urllib.parse as _urllib_parse")
+        self._emit("safe = _urllib_parse.quote(name, safe='')")
+        self._emit("vec_list = vec.tolist() if hasattr(vec, 'tolist') else list(vec)")
+        self._emit("try:")
+        self._indent += 1
+        self._emit("db.add(safe, vec_list)")
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("pass  # one bad insert shouldn't kill the rest")
+        self._indent -= 1
+        self._indent -= 1
+        self._indent -= 1
+        self._emit()
+        self._emit("def nearest_string(self, query):")
+        self._indent += 1
+        self._emit('"""Inverse of embed(): given a query vector, return the nearest')
+        self._emit("string from the compile-time-populated SutraDB codebook. None")
+        self._emit("if SutraDB is unavailable. The query vector is the full extended-")
+        self._emit("state vector; only the semantic block is consulted by SutraDB.")
+        self._emit('"""')
+        self._emit("db = self._ensure_sutradb()")
+        self._emit("if db is None:")
+        self._indent += 1
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("q_list = query.tolist() if hasattr(query, 'tolist') else list(query)")
+        self._emit("try:")
+        self._indent += 1
+        self._emit("labels = db.nearest(q_list, k=1)")
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("if not labels:")
+        self._indent += 1
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("import urllib.parse as _urllib_parse")
+        self._emit("return _urllib_parse.unquote(labels[0])")
+        self._indent -= 1
+        self._emit()
         self._emit("def _role_hash(self, role_vec):")
         self._indent += 1
         self._emit('"""Deterministic uint32 seed from a role tensor.')
@@ -981,40 +1074,32 @@ class PyTorchCodegen(Codegen):
         )
         if self._prefetch_strings:
             self._emit(f"_VSA.embed_batch({self._prefetch_strings!r})")
+            # Compile-time SutraDB population (queue item 2). Every embedded
+            # string in the program is now in the SutraDB codebook and
+            # decodable via _VSA.nearest_string. Strings declared but not
+            # used in expressions are still in the prefetch list and so
+            # still get inserted; they're available for decode even though
+            # no expression in the program references them.
+            self._emit("_VSA.populate_sutradb()")
         self._emit()
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
         self._indent += 1
         self._emit('"""Vectorized cosine argmax on torch tensors.')
         self._emit('')
-        self._emit("Tries SutraDB first (HNSW + Rust); falls back to matmul if")
-        self._emit("the DLL isn't built or any error occurs. SutraDB integration:")
-        self._emit("queue.md item 2; demonstration of substrate-level vector lookup")
-        self._emit("through the embedded triplestore.")
+        self._emit("Stacks candidates into (N, d), computes all N cosines as one")
+        self._emit("matmul against the query, returns the candidate at the argmax.")
+        self._emit("This is the GPU-shaped form: O(1) big kernel, not O(N) small ones.")
+        self._emit("")
+        self._emit("Note: SutraDB integration (queue item 2) does NOT route through")
+        self._emit("here — see _VSA.nearest_string for the embedded-DB decode path.")
+        self._emit("argmax_cosine takes a runtime candidate-vector list; SutraDB is")
+        self._emit("the compile-time-populated string-to-embedding store.")
         self._emit('"""')
         self._emit("if not candidates:")
         self._indent += 1
         self._emit("return None")
         self._indent -= 1
-        self._emit("# SutraDB hot path: only attempt when N >= 4 (matmul wins on")
-        self._emit("# tiny N because of FFI per-call overhead).")
-        self._emit("if len(candidates) >= 4:")
-        self._indent += 1
-        self._emit("try:")
-        self._indent += 1
-        self._emit("idx = _sutra_argmax_via_db(query, candidates)")
-        self._emit("if idx is not None:")
-        self._indent += 1
-        self._emit("return candidates[idx]")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("except Exception:")
-        self._indent += 1
-        self._emit("pass  # DLL missing, build error, etc. — fall through to matmul.")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("# Matmul fallback: stacks candidates into (N, d), computes all N")
-        self._emit("# cosines as one matmul, returns the candidate at the argmax.")
         self._emit("M = _torch.stack([")
         self._indent += 1
         self._emit("_torch.as_tensor(c, dtype=_DTYPE, device=_DEVICE)")
@@ -1033,51 +1118,6 @@ class PyTorchCodegen(Codegen):
         self._emit("neg_inf = _torch.full_like(scores, float('-inf'))")
         self._emit("scores = _torch.where(row_norms > 0, scores, neg_inf)")
         self._emit("return candidates[int(_torch.argmax(scores).item())]")
-        self._indent -= 1
-        self._emit()
-        self._emit("# SutraDB-backed argmax helper. Returns the index of the")
-        self._emit("# candidate nearest to query, or None if the DLL is unavailable.")
-        self._emit("# Cached SutraDBEmbedded handle in module scope to amortize the")
-        self._emit("# DLL load + db_open across multiple argmax calls in one program.")
-        self._emit("_sutra_db_handle = None")
-        self._emit("_sutra_db_tmpdir = None")
-        self._emit("def _sutra_argmax_via_db(query, candidates):")
-        self._indent += 1
-        self._emit("global _sutra_db_handle, _sutra_db_tmpdir")
-        self._emit("import importlib, tempfile, os")
-        self._emit("if _sutra_db_handle is None:")
-        self._indent += 1
-        self._emit("mod = importlib.import_module('sutra_compiler.sutradb_embedded')")
-        self._emit("_sutra_db_tmpdir = tempfile.mkdtemp(prefix='sutra_argmax_')")
-        self._emit("path = os.path.join(_sutra_db_tmpdir, 'argmax.sdb')")
-        self._emit("_sutra_db_handle = mod.SutraDBEmbedded(path)")
-        self._indent -= 1
-        self._emit("# Each call gets a fresh prefix so candidate sets don't bleed")
-        self._emit("# across calls. The reindex-on-query workaround means add() is")
-        self._emit("# slower than ideal (FFI fix tracked as queue item 2 piece 6).")
-        self._emit("import uuid")
-        self._emit("prefix = uuid.uuid4().hex[:8]")
-        self._emit("for i, c in enumerate(candidates):")
-        self._indent += 1
-        self._emit("vec_list = c.tolist() if hasattr(c, 'tolist') else list(c)")
-        self._emit(f"_sutra_db_handle.add(f'{{prefix}}_{{i}}', vec_list)")
-        self._indent -= 1
-        self._emit("q_list = query.tolist() if hasattr(query, 'tolist') else list(query)")
-        self._emit("labels = _sutra_db_handle.nearest(q_list, k=1)")
-        self._emit("if not labels:")
-        self._indent += 1
-        self._emit("return None")
-        self._indent -= 1
-        self._emit("# Decode back to candidate index. Filter to this call's prefix")
-        self._emit("# in case earlier calls left stale labels in the index.")
-        self._emit("for label in labels:")
-        self._indent += 1
-        self._emit("if label.startswith(prefix + '_'):")
-        self._indent += 1
-        self._emit("return int(label.split('_', 1)[1])")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("return None")
         self._indent -= 1
         self._emit()
         self._emit()
