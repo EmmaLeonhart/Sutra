@@ -24,6 +24,41 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## [This year] Object encapsulation with file-scope rule for free functions
+
+**Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
+
+The compiler today doesn't really exercise object methods in
+load-bearing ways. Emma's design 2026-04-30:
+
+- **Free (non-object) functions** can read any variable declared at
+  the file's top level. This is **file-scope visibility, not
+  closure** — the function reads at call time, same as any Python
+  function in its enclosing module. Already works via emitted
+  Python's natural scoping.
+- **Object methods (static and non-static)** do NOT have file-scope
+  access — they're encapsulated within the class boundary. Static
+  method's scope is the class as namespace; non-static method's
+  scope is `this`. Today this rule is implicit; it should be
+  explicit and enforced when objects start being used for real.
+
+When encapsulation becomes load-bearing:
+
+1. Parser/typechecker rejects file-scope reads from object methods
+   (static or non-static) unless the file-scope name was explicitly
+   imported into the class via the language's import mechanism.
+2. Object methods can read class-level (static) or instance-level
+   (non-static) state through the class boundary, but nothing
+   beyond that.
+3. Stdlib operators (e.g. `+`, `*`, `==`, `bind`) become static
+   methods of an abstract `Math` / `VSA` class — no closure, just
+   namespace.
+
+Full design: `planning/open-questions/function-taxonomy-and-closure.md`.
+Surface design that this defers: `planning/open-questions/loop-tail-call-surface.md`
+(the loop tail-call ships today; this object encapsulation is the
+deferred companion piece).
+
 ## [This year] Make `sutralang.dev` more agent-accessible
 
 Sutra's stance per CLAUDE.md is that agents are first-class consumers
