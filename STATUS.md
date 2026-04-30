@@ -21,16 +21,59 @@ pick up next.
 
 ## Queued work
 
-### Incoming chat with a new algorithm (2026-04-29)
+### Triage `chats/implementing-transcendental-functions.md` (2026-04-29)
 
-User mentioned during the 2026-04-29 chats-triage cleanup that they
-came up with a new algorithm in a separate chat earlier the same
-day, planned to be shared in the evening but blocked by some
-sharing difficulty at the time. When the chat lands, triage it the
-same way the just-completed batch was triaged: per-chunk note +
-**explicit user verdict per chunk before delete** (see memory note
-`feedback_chats_triage_per_chunk_approval.md` — the per-decision
-gate is required, not optional).
+Chat landed in the chats/ directory 2026-04-29 evening; extracted
+to markdown via `scripts/extract_chat.py` (78 user / 76 assistant
+blocks, 748 lines). Subject: implementing the four transcendental
+functions (exp, log, sin, arcsin) in Sutra, intuition-building
+about complex-plane rotation as the unifying operation. Connects
+directly to today's eigenrotation-for-trig finding
+(`planning/findings/2026-04-28-eigenrotation-as-trig-validation.md`)
+and the broader Sutra-NumPy umbrella in todo.md.
+
+Triage protocol same as the just-completed batch: per-chunk note +
+**explicit user verdict per chunk before delete** (memory note
+`feedback_chats_triage_per_chunk_approval.md`). The chat is small
+enough that splitting may not be necessary — read first, then
+decide whether to triage as-a-whole or in topical chunks.
+
+### Audit `loop(cond)` implementation — RNN-style on substrate or leaking to host? (2026-04-29)
+
+User flagged 2026-04-29 evening: concern that the current loop
+implementation might not actually be running as a substrate-resident
+recurrent computation. Spec says (`planning/sutra-spec/control-flow.md`,
+paper draft novelty 3): `loop(cond)` compiles to `state ← R · state`
+on the substrate with prototype-match termination, no host counter
+— mathematically an RNN-style recurrence (`h_{t+1} = f(W h_t)` with
+W = R fixed). The question is whether the **implementation** actually
+realizes that, or whether it bails out to host-side Python `while`
+somewhere in the codegen.
+
+Why this matters: RNNs run efficiently on CUDA as tight matmul
+loops. If Sutra's `loop(cond)` genuinely compiles to such a loop,
+the whole iterating-on-substrate story holds. If it leaks to host
+iteration, the spec and the implementation disagree (which is the
+exact failure mode CLAUDE.md flags as load-bearing for the
+biomedical pipeline — "if the spec and the implementation disagree,
+stop and resolve the disagreement explicitly").
+
+Concrete audit questions:
+- What does the codegen for `loop(cond)` emit today? Tight tensor-op
+  loop, or `while not converged: state = R @ state` in Python with
+  the convergence check on the host?
+- Is the prototype-match termination running on the substrate
+  (compiled prototype + similarity in tensor-op space) or on the
+  host (Python comparison)?
+- If host, what would it take to push it down? Compile the
+  termination predicate into the loop body, emit a fixed-iteration
+  unroll up to a cap with early-exit-as-mask, or something else?
+
+The user noted they had a chat about this they couldn't share. The
+audit doesn't depend on the chat — read `codegen.py` /
+`codegen_pytorch.py` for the actual emitted loop code, compare
+against `control-flow.md`, write a finding either confirming "spec
+and impl agree" or proposing how to close the gap.
 
 ### Repo bloat sweep — flagged item
 
