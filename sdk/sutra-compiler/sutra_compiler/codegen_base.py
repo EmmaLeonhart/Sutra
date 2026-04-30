@@ -538,6 +538,13 @@ class BaseCodegen:
         # initialized to a zero vector before the first slot_store.
         outer_slot_vars = self._slot_vars
         self._slot_vars = {}
+        # Program-level halt accumulator (Emma 2026-04-30): every loop
+        # call multiplies its halt_cum into _program_halt; every return
+        # multiplies the returned value by _program_halt. A loop that
+        # ran out of T-step budget without converging emits halt_cum≈0,
+        # which wipes the function's output. No-op in functions with no
+        # loop calls (1.0 * value).
+        self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
         if not decl.body.statements:
@@ -765,6 +772,9 @@ class BaseCodegen:
                 f"_slot_state = _VSA.slot_store(_slot_state, {idx}, "
                 f"{ret_name})"
             )
+        # Accumulate halt_cum into the function-scope program-halt so
+        # this loop's completion gates the function's return value.
+        self._emit("_program_halt = _program_halt * _loopret_halt")
 
     # -- statements -------------------------------------------------------
 
@@ -807,7 +817,14 @@ class BaseCodegen:
             if stmt.value is None:
                 self._emit("return")
             else:
-                self._emit(f"return {self._translate_expr(stmt.value)}")
+                # Multiply the returned value by _program_halt so that
+                # any unconverged loop in this function (halt_cum≈0)
+                # wipes the output. For functions without loops the
+                # accumulator stays 1.0 and this is a no-op.
+                self._emit(
+                    f"return ({self._translate_expr(stmt.value)}) "
+                    f"* _program_halt"
+                )
             return
         if isinstance(stmt, ast.ExprStmt):
             expr = stmt.expr
