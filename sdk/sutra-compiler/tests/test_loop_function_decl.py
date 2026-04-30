@@ -227,21 +227,52 @@ function int main() {
         self.assertIn("loop function body", str(exc_info.value))
 
 
-class TestForeachLoopDeferred(unittest.TestCase):
-    """foreach_loop is parsed but errors at codegen (V1 limitation)."""
+class TestForeachLoop(unittest.TestCase):
+    """foreach_loop: walks elements of a binding-array; binds `element`
+    each tick to the current array value."""
 
-    def test_foreach_loop_errors_at_codegen(self):
-        src = """
-foreach_loop walk(arr, int total) {
-    pass total + 1;
+    SUM_ARR = """
+foreach_loop sumArr(arr, int total) {
+    pass total + element;
+}
+
+function int main() {
+    slot int total = 0;
+    loop sumArr([1, 2, 3, 4, 5], total);
+    return total;
 }
 """
-        # We can't actually parse this fully without an array literal in
-        # the call. Just check the kind keyword is recognized at parse
-        # time and rejected at codegen.
+
+    def test_sum_basic(self):
+        # 1+2+3+4+5 = 15
+        result = _run_main(self.SUM_ARR)
+        self.assertAlmostEqual(float(result), 15.0, places=2)
+
+    def test_sum_single_element(self):
+        src = self.SUM_ARR.replace("[1, 2, 3, 4, 5]", "[7]")
+        result = _run_main(src)
+        self.assertAlmostEqual(float(result), 7.0, places=2)
+
+    def test_sum_ten_elements(self):
+        # 1+2+...+10 = 55
+        src = self.SUM_ARR.replace(
+            "[1, 2, 3, 4, 5]",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+        )
+        result = _run_main(src)
+        self.assertAlmostEqual(float(result), 55.0, places=2)
+
+    def test_element_outside_foreach_errors(self):
+        # `element` is contextual; only valid inside foreach_loop body.
+        src = """
+function int main() {
+    return element;
+}
+"""
         from sutra_compiler.codegen_base import CodegenNotSupported
         with pytest.raises(CodegenNotSupported) as exc_info:
             _compile(src)
+        self.assertIn("element", str(exc_info.value))
         self.assertIn("foreach_loop", str(exc_info.value))
 
 
