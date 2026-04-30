@@ -1118,9 +1118,10 @@ class PyTorchCodegen(Codegen):
         self._emit("target_name=None, threshold=0.5, max_iters=50, k=20.0, frame_seed=None):")
         self._emit('"""Branchless RNN-style eigenrotation loop (torch backend).')
         self._emit('')
-        self._emit("Same semantics as the numpy backend. T-step unroll, soft halt via")
-        self._emit("sigmoid, output gating via AXIS_LOOP_DONE. Autograd-friendly:")
-        self._emit("every op is differentiable with respect to state, target, threshold.")
+        self._emit("T=50 fully unrolled tensor-op steps, no Python loops.")
+        self._emit("Soft halt via sigmoid, output gating via AXIS_LOOP_DONE.")
+        self._emit("Autograd-friendly: every op is differentiable.")
+        self._emit("max_iters is accepted for backward compat but ignored (T is compile-time-fixed).")
         self._emit('"""')
         self._emit("state = initial_state.clone()")
         self._emit("halt_cum = _torch.tensor(0.0, dtype=self.dtype, device=self.device)")
@@ -1133,11 +1134,11 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("target = next(iter(compiled_prototypes.values()))")
         self._indent -= 1
-        self._emit("for _t in range(max_iters):")
-        self._indent += 1
-        self._emit("iters_active = iters_active + (1.0 - halt_cum)")
-        self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
-        self._indent -= 1
+        # Full unroll: emit T=50 inline step calls, no Python for loop.
+        for _t in range(50):
+            self._emit(f"# step {_t}")
+            self._emit("iters_active = iters_active + (1.0 - halt_cum)")
+            self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
         self._emit("# Output gating: scale value axes by halt_cum; mark AXIS_LOOP_DONE.")
         self._emit("gated = state * halt_cum")
         self._emit("gated[self.semantic_dim + self.AXIS_LOOP_DONE] = halt_cum")

@@ -90,16 +90,13 @@ class TestNoHostControlFlow(unittest.TestCase):
                 i += 1
         return "".join(out)
 
-    def test_loop_emits_no_for_iters_in_range(self):
+    def test_loop_emits_no_python_loops(self):
         py_src, _ = _compile(np_translate, TRIVIAL_SRC)
         loop_block = py_src.split("def loop(self,")[1].split("def ")[0]
         loop_code = self._strip_docstring_and_comments(loop_block)
-        # The old impl had `for iters in range(1, max_iters + 1):` — that's
-        # the host-side iteration count we're banishing. Our new impl uses
-        # `for _t in range(max_iters):` which is meta-iteration over a
-        # compile-time-fixed count. Specifically check for the OLD form.
+        # No Python loops at all — loop is fully unrolled at compile time.
         self.assertNotIn("for iters in range", loop_code)
-        # No `while` inside the loop primitive.
+        self.assertNotIn("for _t in range", loop_code)
         self.assertNotIn("while ", loop_code)
 
     def test_loop_emits_no_best_score_compare(self):
@@ -109,11 +106,13 @@ class TestNoHostControlFlow(unittest.TestCase):
         self.assertNotIn("best_score", loop_code)
         self.assertNotIn(">= threshold", loop_code)
 
-    def test_torch_loop_emits_no_host_for(self):
+    def test_torch_loop_emits_no_python_loops(self):
         py_src, _ = _compile(torch_translate, TRIVIAL_SRC)
         loop_block = py_src.split("def loop(self,")[1].split("def ")[0]
         loop_code = self._strip_docstring_and_comments(loop_block)
+        # No Python loops at all — fully unrolled.
         self.assertNotIn("for iters in range", loop_code)
+        self.assertNotIn("for _t in range", loop_code)
         self.assertNotIn("best_score", loop_code)
 
 

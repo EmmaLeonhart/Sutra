@@ -619,40 +619,16 @@ class BaseCodegen:
             for inner in decl.body.statements:
                 self._translate_stmt(inner)
 
-        # T-step soft-halt loop. The Python `for _t in range(T)` is
-        # meta-iteration over a compile-time-fixed count.
-        self._emit(f"for _t in range({self._LOOP_T}):")
-        self._indent += 1
-        # Snapshot pre-step state for soft-mux freeze on halt.
-        for state_name in state_names:
-            self._emit(f"_pre_{state_name} = {state_name}")
-        # Evaluate condition (semantics depend on kind).
+        # Full unroll: T inline tensor-op steps, no Python for loop.
+        # Pre-translate condition expressions (codegen-time).
+        _cond_src = None
+        _count_src = None
+        _arr_param_name = None
         if decl.kind in ("do_while", "while_loop"):
-            cond_src = self._translate_expr(decl.condition)
-            # Comparisons inline to fuzzy-vector operations (e.g. gt
-            # returns a vector with truth on AXIS_TRUTH). Extract the
-            # truth-axis scalar via _VSA.truth_axis (substrate scalar
-            # return), then heaviside it to a keep-mask — both
-            # substrate-pure. See planning/findings/2026-04-30-
-            # substrate-purity-leak-enumeration.md (Leak 1).
-            self._emit(f"_cond = {cond_src}")
-            self._emit(f"_cond_truth = _VSA.truth_axis(_cond)")
-            self._emit(f"_keep = _VSA.heaviside(_cond_truth)")
+            _cond_src = self._translate_expr(decl.condition)
         elif decl.kind == "iterative_loop":
-            # condition is the count; iterator = _t + 1 (1-indexed).
-            count_src = self._translate_expr(decl.condition)
-            self._emit(f"# iterative_loop: tick = _t+1, halt when tick > count.")
-            self._emit(f"_iterator = _t + 1")
-            # Heaviside of (count - iterator + 1): positive while iterator
-            # <= count; zero or negative once past. Substrate-pure scalar.
-            self._emit(
-                f"_keep = _VSA.heaviside(int({count_src}) - _iterator + 1)"
-            )
+            _count_src = self._translate_expr(decl.condition)
         elif decl.kind == "foreach_loop":
-            # foreach: condition is the array parameter (an Identifier
-            # naming the array). The function takes the array as its
-            # first parameter (in addition to state inits). Each tick:
-            # halt when _t >= length; bind `element` to arr[_t].
             if not isinstance(decl.condition, ast.Identifier):
                 raise CodegenNotSupported(
                     decl.condition,
@@ -660,35 +636,45 @@ class BaseCodegen:
                     "identifier naming the array (e.g. `arr`). Got "
                     f"{type(decl.condition).__name__}.",
                 )
-            arr_param_name = decl.condition.name
-            self._emit(f"# foreach_loop: array param `{arr_param_name}`,")
-            self._emit(f"# bind `element` to {arr_param_name}[_t] each tick.")
-            self._emit(f"_length = _VSA.array_length({arr_param_name})")
-            # Heaviside of (_length - _t): positive while _t < _length.
-            self._emit(f"_keep = _VSA.heaviside(_length - _t)")
-            # Fetch the element BEFORE running body. Bind to `_element`.
-            # For halted ticks the read is wasted but harmless (default
-            # element-of-arr index is the last valid one or 0).
-            self._emit(f"_element = _VSA.array_get({arr_param_name}, "
-                       f"min(_t, max(_length - 1, 0)))")
+            _arr_param_name = decl.condition.name
         else:
             raise CodegenNotSupported(
                 decl, f"unknown loop kind `{decl.kind}`"
             )
-        self._emit(f"_halt_term = 1.0 - _keep")
-        # Substrate-pure saturation: numpy.minimum / torch.minimum, not
-        # Python's min(). Keeps _halt_cum a substrate scalar.
-        self._emit(f"_halt_cum = _VSA.saturate_unit(_halt_cum + _halt_term)")
-        # Body re-runs each tick; PassStmt updates state locals.
-        for inner in decl.body.statements:
-            self._translate_stmt(inner)
-        # Soft mux: freeze state at pre-step value once halt saturates.
-        for state_name in state_names:
-            self._emit(
-                f"{state_name} = (1.0 - _halt_cum) * {state_name} "
-                f"+ _halt_cum * _pre_{state_name}"
-            )
-        self._indent -= 1  # close the for loop
+
+        self._emit(f"# Full unroll: {self._LOOP_T} inline tensor-op steps")
+        for _t_val in range(self._LOOP_T):
+            self._emit(f"_t = {_t_val}")
+            # Snapshot pre-step state for soft-mux freeze.
+            for state_name in state_names:
+                self._emit(f"_pre_{state_name} = {state_name}")
+            # Evaluate condition (semantics depend on kind).
+            if decl.kind in ("do_while", "while_loop"):
+                self._emit(f"_cond = {_cond_src}")
+                self._emit(f"_cond_truth = _VSA.truth_axis(_cond)")
+                self._emit(f"_keep = _VSA.heaviside(_cond_truth)")
+            elif decl.kind == "iterative_loop":
+                self._emit(f"_iterator = _t + 1")
+                self._emit(
+                    f"_keep = _VSA.heaviside(int({_count_src}) - _iterator + 1)"
+                )
+            elif decl.kind == "foreach_loop":
+                self._emit(f"_length = _VSA.array_length({_arr_param_name})")
+                self._emit(f"_keep = _VSA.heaviside(_length - _t)")
+                self._emit(f"_element = _VSA.array_get({_arr_param_name}, "
+                           f"min(_t, max(_length - 1, 0)))")
+            self._emit(f"_halt_term = 1.0 - _keep")
+            # Substrate-pure saturation: numpy.minimum / torch.minimum.
+            self._emit(f"_halt_cum = _VSA.saturate_unit(_halt_cum + _halt_term)")
+            # Body re-runs each tick; PassStmt updates state locals.
+            for inner in decl.body.statements:
+                self._translate_stmt(inner)
+            # Soft mux: freeze state at pre-step value once halt saturates.
+            for state_name in state_names:
+                self._emit(
+                    f"{state_name} = (1.0 - _halt_cum) * {state_name} "
+                    f"+ _halt_cum * _pre_{state_name}"
+                )
 
         # Pop state stack and restore iterator/element runtime flags.
         self._loop_state_stack.pop()
