@@ -1,10 +1,10 @@
 ---
 name: sutra-language
-description: Reproduce the demonstration programs and substrate-purity claims for "From Learned Displacements to Learned Matrices: Sutra, a Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces" — the working Sutra compiler + PyTorch tensor-op runtime, three demonstration programs, loop function decls + soft-halt RNN cells, embedded SutraDB codebook with nearest_string decode, opt-in torch.compile wrapping.
+description: Reproduce the demonstration programs and substrate-purity claims for "Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces" — the working Sutra compiler + PyTorch tensor-op runtime, three demonstration programs, loop function decls + soft-halt RNN cells, embedded SutraDB codebook with nearest_string decode, opt-in torch.compile wrapping.
 allowed-tools: Bash(python *), Bash(pip *), Bash(cd *), Bash(cargo *)
 ---
 
-# Sutra: From Learned Displacements to Learned Matrices
+# Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
 
 **Author: Emma Leonhart**
 
@@ -140,9 +140,6 @@ with `SUTRA_TORCH_COMPILE_BACKEND=inductor` for fused CUDA kernels
   that frozen embedding spaces have algebraic structure; that is
   established by the prior knowledge-graph-embedding literature
   (TransE, RotatE, word-analogy work) and is not re-derived here.
-- **Learned-matrix binding** — surface design exists in
-  `planning/sutra-spec/binding.md` § "Semantic binding"; runtime
-  rejects with a deferred-feature error. Next-release work.
 - **Object encapsulation as load-bearing.** Parser handles object
   decls; encapsulation is not enforced. Queued.
 
