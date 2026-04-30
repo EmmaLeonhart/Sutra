@@ -21,53 +21,13 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
-## Queued work — top of queue
+## Queued work — only item
 
-### 1. "Python is just IO" target — DONE
+### 1. Paper draft, three submission targets, and CI/CD pipeline — IN PROGRESS
 
-Shipped via opt-in `torch.compile` wrapping. Per Emma's framing the
-Python wrapper does only IO/console shell work; everything else
-runs as one big tensor-op graph.
-
-What ships:
-
-- **`torch.compile` opt-in wrapping for every loop function.**
-  PyTorchCodegen.translate() appends a guarded block that wraps
-  each `_loop_NAME` with `torch.compile(_, backend=...)`. Default
-  backend is `eager` (Dynamo trace, portable, no Triton needed);
-  override with `SUTRA_TORCH_COMPILE_BACKEND=inductor` for fused
-  CUDA kernels (requires Triton install).
-- **Toggle:** `SUTRA_TORCH_COMPILE=1` env var enables; default off
-  because graph-capture overhead can dominate cold-start for small
-  T. Production deployments turn it on.
-- **Substrate-purity claim:** with the wrap on, the loop body's
-  Python `for _t in range(50)` gets unrolled by Dynamo at trace
-  time — the resulting graph is one large tensor-op chain. The
-  source still has the for-loop (cosmetic), but the substrate sees
-  the same flattened graph. Full source-level unroll is deferred
-  as cosmetic; Dynamo does the real work.
-
-What's deferred (not blocking paper):
-
-- **Full source-level unroll** — replace `for _t in range(50)` with
-  T inline tensor-op calls. Mostly cosmetic since Dynamo already
-  unrolls fixed-bound loops at trace time. File-size cost is real
-  (~50× per loop body) so deferred until there's a concrete reason.
-
-Tests in `tests/test_torch_compile_wrap.py` (3 new):
-- wrap block present in emitted source when loops declared
-- correctness preserved with SUTRA_TORCH_COMPILE off
-- correctness preserved with SUTRA_TORCH_COMPILE on (eager backend)
-
-3/3 wrap tests pass; 244/244 full suite pass.
-
-## Queued work — final item (paper + submission pipeline)
-
-### 2. Paper draft, three submission targets, and CI/CD pipeline
-
-After item 1 lands and the language works end-to-end on real
-programs, the last queue item is **writing the paper and shipping
-it**. Three submission targets (Emma 2026-04-30):
+The language works end-to-end on real programs. Last queue item is
+**writing the paper and shipping it**. Three submission targets
+(Emma 2026-04-30):
 
 1. **Claw4S workshop** — the AI-workshops conference / preprint
    server pair (`clawRxiv`). Repo had a substantial Claw4S submission
@@ -81,11 +41,11 @@ it**. Three submission targets (Emma 2026-04-30):
    is the current pipeline already follows NeurIPS rules properly,
    but verify before submitting.
 3. **A second workshop after NeurIPS** — TBD which one; identify
-   during 2a.
+   during 1a.
 
 #### Sub-items, in rough order
 
-**2a. Audit submission rules for all three targets first.** Read
+**1a. Audit submission rules for all three targets first.** Read
 current Claw4S, NeurIPS, and the post-NeurIPS workshop author guides;
 capture in a findings doc:
 - Page limit + format per target (LaTeX templates).
@@ -97,7 +57,7 @@ capture in a findings doc:
 Output: `planning/findings/YYYY-MM-DD-paper-submission-rules.md`.
 This document is what the CI/CD pipeline gets built against.
 
-**2b. Recover Claw4S infrastructure from git history.** Per
+**1b. Recover Claw4S infrastructure from git history.** Per
 DEVLOG.md Phase 4, the three workflows (`papers-ci.yml`,
 `submit-papers.yml`, `competition-cron.yml`) plus submission
 scripts (`scripts/fetch_all_papers.py`, `scripts/fetch_reviews.py`)
@@ -105,7 +65,7 @@ plus per-paper `SKILL.md` template are all recoverable from
 `903308e^`. The `CLAWRXIV_API_KEY` repo secret is still configured
 per Emma 2026-04-30. Restore selectively rather than reinventing.
 
-**2c. Write the paper itself.** Substance, not yet plumbing:
+**1c. Write the paper itself.** Substance, not yet plumbing:
 - The narrative arc per `project_sutra_paper_real_scope.md`:
   displacements in frozen embedding spaces → consolidate into rotation
   binding → learned matrices as the natural extension. Sign-flip is at
@@ -125,7 +85,7 @@ This is the work-product itself, not infrastructure. Likely lives in
 a new `paper/` directory at repo root with `paper.tex` + `paper.bib`
 + figures.
 
-**2d. CI/CD pipeline — single source, four outputs.** From the same
+**1d. CI/CD pipeline — single source, four outputs.** From the same
 LaTeX/Markdown source, the pipeline produces:
 1. **HTML on the docs site** (`sutralang.dev`) — for casual readers
    and AI-agent consumers.
@@ -138,7 +98,7 @@ LaTeX/Markdown source, the pipeline produces:
    on the same anonymized version they're supposed to be reviewing.)
 4. **Claw4S / clawRxiv upload** — Claw4S workshop submission +
    preprint mirror. The previous repo had a working push-to-clawRxiv
-   action; recover it (per 2b).
+   action; recover it (per 1b).
 
 Pipeline shape (rough): GitHub Actions workflow on push to
 `paper/` triggers two LaTeX builds (full + anonymized via `\if`
@@ -146,7 +106,7 @@ macros), uploads the PDFs as workflow artifacts, deploys both PDFs
 + rendered HTML to the docs site, and (optionally, on a tag) pushes
 to the preprint server's API.
 
-**2e. Anonymization macros.** A single-source approach uses LaTeX
+**1e. Anonymization macros.** A single-source approach uses LaTeX
 conditionals to swap in/out the deanonymizing pieces:
 ```latex
 \ifanon
@@ -160,19 +120,19 @@ conditionals to swap in/out the deanonymizing pieces:
 Build flag (`-DANON=1`) flips between modes. Avoids the trap of
 forking two paper sources that drift from each other.
 
-**2f. Reproducibility submission.** NeurIPS reproducibility
+**1f. Reproducibility submission.** NeurIPS reproducibility
 checklist will require pointing at runnable code. The Sutra repo
 itself is the answer; the submission references it (anonymized in
-2e via `\repo`) and includes a `paper/REPRODUCE.md` with
+1e via `\repo`) and includes a `paper/REPRODUCE.md` with
 "clone, install, run these commands, get these numbers."
 
 #### Why this is at the end, not the start
 
 The paper claims things about the language. The language has to
-actually do those things first. Item 1 is the language being
+actually do those things first. The pre-paper queue items were the language being
 *real* (substrate-pure, complete RNN compilation, no boundary
-leaks, default vector backend). Item 2 is the language being
-*defended* in print. Doing 2 first would mean writing a paper about
+leaks, default vector backend). this paper item is the language being
+*defended* in print. Doing the paper first would mean writing a paper about
 aspirational software, which is the failure mode the
 safety-critical preamble in CLAUDE.md exists to prevent.
 
