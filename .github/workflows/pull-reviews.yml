@@ -55,9 +55,10 @@ jobs:
         run: |
           set -euo pipefail
           # Count in-progress runs of THIS workflow other than ourselves.
-          # gh run list returns runs ordered by recency; filter for in_progress
-          # and exclude the current run by databaseId.
+          # This step runs before checkout, so gh has no repo context;
+          # pass --repo explicitly.
           others=$(gh run list \
+            --repo "${{ github.repository }}" \
             --workflow=pull-reviews.yml \
             --status=in_progress \
             --json databaseId \
