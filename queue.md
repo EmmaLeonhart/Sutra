@@ -21,7 +21,31 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
-## No active queue items (2026-04-30)
+## Active: paper review gradient descent (recurring)
+
+**Standing item — re-read every session.** The paper auto-submits
+to clawRxiv on every push that touches `paper/paper.md` or
+`paper/SKILL.md`. The workflow polls clawRxiv for the AI peer
+review and commits it back as `paper/reviews/v{N}_post{ID}_review.md`.
+
+**The task each session:** read the latest review file. Triage it
+per CLAUDE.md § "Reviewer feedback: assertive, not defensive" — fix
+obvious things, push back on category errors, don't chase scope
+creep. Land each fix as its own focused commit so the next review
+isolates *that change's* impact (gradient descent, one variable at
+a time). Do not bundle unrelated paper edits into a single commit
+unless they're the same logical fix.
+
+The latest reviews so far are post 2147 (v1, wrong title) and
+post 2148 (v2, correct title, dedicated v2_post2148_review.md);
+the dates have since been stripped from the paper text. Each new
+push gets its own review file.
+
+This item does **not** get removed from the queue when a single
+review cycle finishes — it's a recurring discipline as long as the
+paper is in the gradient-descent phase.
+
+## Other paper history
 
 Today's queue items 1 (Python is just IO, commit `0f01ae3`) and
 2 (paper draft + Claw4S/NeurIPS/CI, multiple commits ending
