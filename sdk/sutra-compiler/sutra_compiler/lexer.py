@@ -115,6 +115,26 @@ class TokenKind(Enum):
     KW_IN = auto()
     KW_DO = auto()
     KW_LOOP = auto()
+    # Function-declaration loop kinds (Emma 2026-04-30 redesign).
+    # Loops are first-class declared functions with a kind prefix:
+    #   do_while name(cond, ...state) { body; pass ...; }
+    #   while_loop name(cond, ...state) { ... }
+    #   iterative_loop name(count, ...state) { ... }   // iterator keyword for tick
+    #   foreach_loop name(array, ...state) { ... }
+    # Call site uses the existing KW_LOOP prefix:
+    #   loop name(cond_or_array_or_count, ...state);
+    # See planning/open-questions/loop-function-declarations.md.
+    KW_DO_WHILE = auto()
+    KW_WHILE_LOOP = auto()
+    KW_ITERATIVE_LOOP = auto()
+    KW_FOREACH_LOOP = auto()
+    # `pass <exprs>;` — tail-recursive yield in a loop body. Required to
+    # provide one expression per state parameter; the condition is
+    # re-evaluated automatically against the new state. The `replace`
+    # keyword takes the place of an expression to mean "keep this
+    # parameter's input value across the recurrence."
+    KW_PASS = auto()
+    KW_REPLACE = auto()
     KW_AS = auto()
     KW_TRY = auto()
     KW_CATCH = auto()
@@ -169,6 +189,12 @@ KEYWORDS = {
     "in": TokenKind.KW_IN,
     "do": TokenKind.KW_DO,
     "loop": TokenKind.KW_LOOP,
+    "do_while": TokenKind.KW_DO_WHILE,
+    "while_loop": TokenKind.KW_WHILE_LOOP,
+    "iterative_loop": TokenKind.KW_ITERATIVE_LOOP,
+    "foreach_loop": TokenKind.KW_FOREACH_LOOP,
+    "pass": TokenKind.KW_PASS,
+    "replace": TokenKind.KW_REPLACE,
     "as": TokenKind.KW_AS,
     "try": TokenKind.KW_TRY,
     "catch": TokenKind.KW_CATCH,

@@ -235,6 +235,23 @@ class Parser:
 
         if tok.kind is TokenKind.KW_FUNCTION:
             return self._parse_function_decl(mods)
+        # Loop function declarations (Emma 2026-04-30 redesign).
+        # Surface: `<kind> name(condition_expr, type name (= default)?, ...) { body }`.
+        # Each is a first-class declared function whose recurrent state is
+        # the named state parameters (no outer-scope access). See
+        # planning/open-questions/loop-function-declarations.md.
+        if tok.kind in (TokenKind.KW_DO_WHILE,
+                        TokenKind.KW_WHILE_LOOP,
+                        TokenKind.KW_ITERATIVE_LOOP,
+                        TokenKind.KW_FOREACH_LOOP):
+            if mods.is_public or mods.is_private or mods.is_static:
+                self.diagnostics.error(
+                    "modifiers (`public`/`private`/`static`) are not yet "
+                    "supported on loop function declarations",
+                    tok.span,
+                    code="SUT0101",
+                )
+            return self._parse_loop_function_decl()
         if tok.kind is TokenKind.KW_INTRINSIC and self._peek(1).kind is TokenKind.KW_FUNCTION:
             # `intrinsic function <ret> <name>(<params>);` — signature
             # only, body lives in the runtime. Used by stdlib files for
@@ -373,6 +390,90 @@ class Parser:
             params=params,
             body=body,
             is_operator=False,
+            span=SourceSpan(start=start_span.start, end=end_span.end),
+        )
+
+    # ----------------------------------------------------------------
+    # Loop function declarations (Emma 2026-04-30 redesign)
+    # ----------------------------------------------------------------
+
+    _LOOP_KIND_TOKEN = {
+        TokenKind.KW_DO_WHILE: "do_while",
+        TokenKind.KW_WHILE_LOOP: "while_loop",
+        TokenKind.KW_ITERATIVE_LOOP: "iterative_loop",
+        TokenKind.KW_FOREACH_LOOP: "foreach_loop",
+    }
+
+    def _parse_loop_function_decl(self) -> Optional[ast.LoopFunctionDecl]:
+        """Parse `<kind> name(condition, type name (= default)?, ...) { body }`.
+
+        The first item in the paren-list is an expression (the condition for
+        while/do_while; the count for iterative; the array for foreach).
+        Remaining items are state-parameter declarations with optional
+        defaults. State params can be referenced by the condition expression.
+        """
+        start_span = self._current_span()
+        kind_tok = self._advance()
+        kind = self._LOOP_KIND_TOKEN[kind_tok.kind]
+
+        name_tok = self._expect(TokenKind.IDENT, f"loop function name after `{kind}`")
+        if name_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        if self._expect(TokenKind.LPAREN, "`(` after loop function name") is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        # First item: the condition expression.
+        condition = self._parse_expr()
+        if condition is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        # Remaining items: state parameters (TYPE name (= default)?).
+        state_params: List[ast.LoopStateParam] = []
+        while self._match(TokenKind.COMMA):
+            param_start = self._current_span()
+            type_ref = self._parse_type()
+            if type_ref is None:
+                self._skip_to_statement_boundary()
+                return None
+            param_name_tok = self._expect(TokenKind.IDENT, "state parameter name")
+            if param_name_tok is None:
+                self._skip_to_statement_boundary()
+                return None
+            default_expr: Optional[ast.Expr] = None
+            if self._match(TokenKind.ASSIGN):
+                default_expr = self._parse_expr()
+                if default_expr is None:
+                    self._skip_to_statement_boundary()
+                    return None
+            param_end = self._current_span().end
+            state_params.append(
+                ast.LoopStateParam(
+                    type_ref=type_ref,
+                    name=param_name_tok.lexeme,
+                    default=default_expr,
+                    span=SourceSpan(start=param_start.start, end=param_end),
+                )
+            )
+
+        if self._expect(TokenKind.RPAREN, "`)` to close loop parameter list") is None:
+            self._skip_to_statement_boundary()
+            return None
+
+        body = self._parse_block()
+        if body is None:
+            return None
+
+        end_span = body.span
+        return ast.LoopFunctionDecl(
+            kind=kind,
+            name=name_tok.lexeme,
+            condition=condition,
+            state_params=state_params,
+            body=body,
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
@@ -724,6 +825,8 @@ class Parser:
             return self._parse_try()
         if tok.kind is TokenKind.KW_RETURN:
             return self._parse_return()
+        if tok.kind is TokenKind.KW_PASS:
+            return self._parse_pass()
         if tok.kind in (TokenKind.KW_VAR, TokenKind.KW_CONST):
             return self._parse_var_or_const()
         if tok.kind is TokenKind.KW_SLOT:
@@ -1021,20 +1124,56 @@ class Parser:
             span=SourceSpan(start=start.start, end=end_span.end),
         )
 
-    def _parse_loop(self) -> Optional[ast.LoopStmt]:
-        """Parse Sutra's unified loop construct.
+    def _parse_loop(self):
+        """Parse a `loop` statement.
 
-        Three forms:
+        Forms:
           loop (10) { ... }            bounded, unrolls at compile time
           loop (10 as i) { ... }       bounded with index variable
           loop (expr) { ... }          eigenrotation (condition-based)
+          loop NAME(cond, args, ...);  invoke a loop function
+                                       (Emma 2026-04-30 redesign — see
+                                       _parse_loop_function_decl)
 
-        Disambiguation: if the expression inside parens is an integer
-        literal (optionally followed by `as IDENT`), it's bounded.
-        Otherwise it's a condition for eigenrotation.
+        Disambiguation by what follows `loop`:
+          IDENT → loop call (new function-decl form)
+          LPAREN → existing bounded/eigenrotation forms
         """
         start = self._current_span()
         self._advance()  # loop
+
+        # New form: `loop NAME(cond, args, ...);` — invoke a declared
+        # loop function.
+        if self._check(TokenKind.IDENT):
+            name_tok = self._advance()
+            if self._expect(TokenKind.LPAREN, "`(` after loop function name") is None:
+                self._skip_to_statement_boundary()
+                return None
+            condition_arg = self._parse_expr()
+            if condition_arg is None:
+                self._skip_to_statement_boundary()
+                return None
+            state_arg_names: List[str] = []
+            while self._match(TokenKind.COMMA):
+                arg_tok = self._expect(
+                    TokenKind.IDENT,
+                    "state argument must be an identifier (slot variable name)",
+                )
+                if arg_tok is None:
+                    self._skip_to_statement_boundary()
+                    return None
+                state_arg_names.append(arg_tok.lexeme)
+            self._expect(TokenKind.RPAREN, "`)` to close loop call argument list")
+            end = self._expect(TokenKind.SEMICOLON, "`;` after loop call")
+            end_span = end.span if end else self._current_span()
+            return ast.LoopCallStmt(
+                name=name_tok.lexeme,
+                condition_arg=condition_arg,
+                state_arg_names=state_arg_names,
+                span=SourceSpan(start=start.start, end=end_span.end),
+            )
+
+        # Existing forms.
         self._expect(TokenKind.LPAREN, "`(` after `loop`")
 
         # Try to determine if this is a bounded loop (integer literal)
@@ -1083,6 +1222,37 @@ class Parser:
             catch_body=catch_body,
             span=SourceSpan(start=start.start, end=catch_body.span.end),
         )
+
+    def _parse_pass(self):
+        """Parse `pass <expr_or_replace>, ...;` — tail-recursive yield in
+        a loop function body. Each item is either an expression or the
+        `replace` keyword (carries the input value through). The number
+        of items must match the enclosing loop's state-param count;
+        validation happens at codegen.
+        """
+        start = self._current_span()
+        self._advance()  # pass
+        values: List = []
+        # `pass;` with zero items would be unusual but parser accepts it
+        # (codegen will catch it if the loop has state params).
+        if not self._check(TokenKind.SEMICOLON):
+            values.append(self._parse_pass_value())
+            while self._match(TokenKind.COMMA):
+                values.append(self._parse_pass_value())
+        end = self._expect(TokenKind.SEMICOLON, "`;` after `pass`")
+        end_span = end.span if end else self._current_span()
+        return ast.PassStmt(
+            values=values,
+            span=SourceSpan(start=start.start, end=end_span.end),
+        )
+
+    def _parse_pass_value(self):
+        """One item in a pass list: either `replace` or a regular expression."""
+        tok = self._peek()
+        if tok.kind is TokenKind.KW_REPLACE:
+            self._advance()
+            return ast.ReplaceMarker(span=tok.span)
+        return self._parse_expr()
 
     def _parse_return(self) -> Optional[ast.ReturnStmt]:
         start = self._current_span()
