@@ -346,6 +346,93 @@ class TryStmt(Stmt):
     catch_body: Block
 
 
+# Loop function declaration nodes (Emma 2026-04-30 redesign).
+# Loops with runtime data dependence are first-class declared functions
+# that compile to substrate-native RNN cells. Distinguished from the
+# compile-time-unroll loop forms (LoopStmt) by the function-declaration
+# surface syntax. See planning/open-questions/loop-function-declarations.md.
+
+
+@dataclass
+class LoopStateParam(Node):
+    """One state parameter of a loop function declaration.
+
+    Like Param but with an optional default initializer for use when
+    the loop is called without specifying that parameter (common for
+    accumulator state — running max, sum, count, etc.).
+    """
+    type_ref: TypeRef
+    name: str
+    default: Optional[Expr]
+
+
+@dataclass
+class LoopFunctionDecl(Node):
+    """A loop function declaration of one of the four kinds.
+
+    Surface syntax (kind keyword + name + paren-list + body):
+        do_while addNumber(x < 11, int x) { pass x + 1; }
+        while_loop ... (cond, ...state) { ... }
+        iterative_loop ... (count, ...state) { ... }
+        foreach_loop ... (array, ...state) { ... }
+
+    For do_while/while_loop, `condition` is a boolean expression that
+    references the state params; the loop iterates until it becomes
+    false. For iterative_loop, `condition` is an integer expression
+    giving the cap on tick count; the body uses the `iterator` keyword
+    for the current tick. For foreach_loop, `condition` is an array
+    expression; one element per tick (binding details TBD).
+
+    The body uses `pass <exprs>;` (PassStmt) for the tail-recursive yield.
+    """
+    kind: str  # "do_while" | "while_loop" | "iterative_loop" | "foreach_loop"
+    name: str
+    condition: Expr        # first paren-list item; semantic depends on kind
+    state_params: List[LoopStateParam]
+    body: Block
+
+
+@dataclass
+class ReplaceMarker(Node):
+    """Placeholder for the `replace` keyword in a `pass` argument list.
+
+    `pass <expr>, replace, <expr>;` means: update first state param to
+    expr, keep second state param at its input value, update third.
+    Used when the body only updates some of the state params per tick.
+    """
+
+
+@dataclass
+class PassStmt(Stmt):
+    """`pass expr1, expr2, ...;` — tail-recursive yield in a loop body.
+
+    Required to provide one value per state parameter (in declaration
+    order). Each value is either an expression (the new value for that
+    state param) or a ReplaceMarker (keep the param's input value).
+
+    Triggers the next iteration of the enclosing loop function.
+    Forbidden outside a loop function declaration body.
+    """
+    values: List[Union[Expr, ReplaceMarker]]
+
+
+@dataclass
+class LoopCallStmt(Stmt):
+    """`loop name(cond_arg, state_arg, ...);` — invoke a loop function.
+
+    The condition_arg is evaluated once before the first tick (and
+    re-evaluated against the new state each subsequent tick).
+    The state_args MUST be identifiers (slot variable names in the
+    caller scope); on loop completion, the loop's final state values
+    are written back into those caller variables (by-reference).
+
+    Acknowledged non-idiomatic; idiomatic-cleanup tracked in todo.md.
+    """
+    name: str
+    condition_arg: Expr
+    state_arg_names: List[str]
+
+
 # ============================================================
 # Declarations
 # ============================================================
