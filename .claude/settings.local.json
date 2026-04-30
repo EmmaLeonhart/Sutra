@@ -130,7 +130,9 @@
       "Bash(PYTHONPATH=sdk/sutra-compiler PYTHONIOENCODING=utf-8 python -m sutra_compiler --run examples/fuzzy_dispatch.su)",
       "Bash(snap)",
       "Bash(./gradlew.bat compileKotlin)",
-      "Bash(ps -W)"
+      "Bash(ps -W)",
+      "Bash(py:*)",
+      "Bash(where ollama:*)"
     ]
   }
 }
