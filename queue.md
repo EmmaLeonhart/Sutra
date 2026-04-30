@@ -158,9 +158,84 @@ These are the "make Python wrapper genuinely just IO" pieces. After
 they land, the wrapper is module load + `_VSA` instance setup +
 `main()` call + return value to console — nothing else.
 
+## Queued work — pre-paper consolidation
+
+### 6. Retire the numpy backend; consolidate to PyTorch-only
+
+Today's repo has TWO codegen backends — `codegen.py` (`_NumpyVSA`,
+numpy ndarrays + Ollama, used by tests) and `codegen_pytorch.py`
+(`_TorchVSA`, torch tensors + Ollama, used by `--emit` and `--run`).
+Per CLAUDE.md and the project memory: **PyTorch is Sutra's compiler
+library — one codegen target.** The dual-backend state is a
+historical drift that needs to land before the paper claims a single
+substrate-pure compile target.
+
+**Plan:**
+1. Move literal-lowering hooks (`_char_literal_src`,
+   `_embed_expr_src`, `_bool_literal_src`, `_logical_op_src`,
+   `_logical_not_src`, `_fuzzy_literal_init_src`) out of
+   `codegen.py:Codegen` and into either `codegen_base.py:BaseCodegen`
+   or directly into `codegen_pytorch.py:PyTorchCodegen`.
+2. Make `PyTorchCodegen` extend `BaseCodegen` directly, not
+   `Codegen`.
+3. Retire `codegen.py` (delete or move to `planning/_archived/`).
+4. Switch tests in `sdk/sutra-compiler/tests/` to compile via the
+   PyTorch backend. Probably means installing torch in the test env;
+   verify CPU-only torch works for the test corpus.
+5. CLI: drop the dispatch-by-flag and always emit PyTorch.
+6. Update CLAUDE.md, README, queue.md, devlog with the
+   "single codegen target" framing.
+
+**Risk:** torch on CPU is slower than numpy for the test corpus.
+Verify the suite still finishes in reasonable time after the switch.
+If it's catastrophic, plug `torch.set_num_threads` or similar.
+
+### 7. Implement the closure-loop form (additive)
+
+Design captured in
+`planning/open-questions/loop-as-recursive-closure.md` from the
+2026-04-30 chat
+`chats/literal-based-optimization-in-programming-languages.md`.
+
+```sutra
+text book_content = loop readBook(while bookUnread);
+
+function loop text readBook(cond bookUnread) {
+    // `b` is captured from file scope, baked at compile time
+    return readBook(isRead);   // tail call to self = recurrent connection
+}
+```
+
+**Why before the paper:** the paper's loop story is much cleaner if
+the language has the idiomatic form Emma actually wants. Today's
+`do_while NAME(...)` / `while_loop NAME(...)` / etc. forms work but
+aren't the surface the paper examples should use.
+
+**Plan:**
+1. Parser: recognize `function loop NAME(...)` as a function decl
+   with `is_loop=True`. Body uses `return NAME(...)` for the
+   recurrent step instead of `pass`.
+2. AST node: extend `FunctionDecl` with an `is_loop` flag, or
+   subclass `LoopFunctionDecl` to share machinery.
+3. Codegen: detect a tail-recursive call to self in the function
+   body; translate to the same T-step soft-halt cell that today's
+   loop kinds use. The function's `return NAME(...)` is the
+   substrate cell update; any non-recursive `return <expr>` is the
+   exit value.
+4. Closure handling: free variables in the body (file-scope refs)
+   stay as Python free variables in the emitted code. Compile-time
+   bake happens via the existing literal folder.
+5. Worked example + tests covering convergence (matches
+   `do_while_adder.su`), non-convergence (output gets wiped by
+   halt propagation), and closure-baked file-scope reads.
+
+**Critically:** keep the four existing loop kinds. This is
+additive. The idiomatic form is the recommended path going forward;
+existing programs and tests continue to work as-is.
+
 ## Queued work — final item (paper + submission pipeline)
 
-### 6. Paper draft, three submission targets, and CI/CD pipeline
+### 8. Paper draft, three submission targets, and CI/CD pipeline
 
 After items 1-5 land and the language works end-to-end on real
 programs, the last queue item is **writing the paper and shipping
