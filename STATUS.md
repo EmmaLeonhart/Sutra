@@ -21,59 +21,78 @@ pick up next.
 
 ## Queued work
 
-### Triage `chats/implementing-transcendental-functions.md` (2026-04-29)
+### RNN-style loop execution — the live forward direction (2026-04-29)
 
-Chat landed in the chats/ directory 2026-04-29 evening; extracted
-to markdown via `scripts/extract_chat.py` (78 user / 76 assistant
-blocks, 748 lines). Subject: implementing the four transcendental
-functions (exp, log, sin, arcsin) in Sutra, intuition-building
-about complex-plane rotation as the unifying operation. Connects
-directly to today's eigenrotation-for-trig finding
-(`planning/findings/2026-04-28-eigenrotation-as-trig-validation.md`)
-and the broader Sutra-NumPy umbrella in todo.md.
+User direction 2026-04-29 evening: **RNN-style is what Sutra
+should be doing** for `loop(cond)`, even though pushing the
+implementation to genuine RNN-style is harder. This isn't just an
+"audit current behavior" question — it's the priority direction
+the language is moving in.
 
-Triage protocol same as the just-completed batch: per-chunk note +
-**explicit user verdict per chunk before delete** (memory note
-`feedback_chats_triage_per_chunk_approval.md`). The chat is small
-enough that splitting may not be necessary — read first, then
-decide whether to triage as-a-whole or in topical chunks.
+The math is already there: spec (`planning/sutra-spec/control-flow.md`,
+paper draft novelty 3) says `loop(cond)` compiles to
+`state ← R · state` on the substrate with prototype-match
+termination — that's an RNN recurrence (`h_{t+1} = f(W h_t)` with
+W = R fixed). RNNs run efficiently on CUDA as tight matmul loops,
+which is the implementation target.
 
-### Audit `loop(cond)` implementation — RNN-style on substrate or leaking to host? (2026-04-29)
+The audit half: whether the *current* codegen for `loop(cond)`
+actually emits a tight tensor-op loop or whether it bails to a
+host-side Python `while` somewhere. CLAUDE.md is explicit that
+spec-vs-impl disagreement is the load-bearing failure mode for
+the biomedical pipeline — "if the spec and the implementation
+disagree, stop and resolve the disagreement explicitly."
 
-User flagged 2026-04-29 evening: concern that the current loop
-implementation might not actually be running as a substrate-resident
-recurrent computation. Spec says (`planning/sutra-spec/control-flow.md`,
-paper draft novelty 3): `loop(cond)` compiles to `state ← R · state`
-on the substrate with prototype-match termination, no host counter
-— mathematically an RNN-style recurrence (`h_{t+1} = f(W h_t)` with
-W = R fixed). The question is whether the **implementation** actually
-realizes that, or whether it bails out to host-side Python `while`
-somewhere in the codegen.
-
-Why this matters: RNNs run efficiently on CUDA as tight matmul
-loops. If Sutra's `loop(cond)` genuinely compiles to such a loop,
-the whole iterating-on-substrate story holds. If it leaks to host
-iteration, the spec and the implementation disagree (which is the
-exact failure mode CLAUDE.md flags as load-bearing for the
-biomedical pipeline — "if the spec and the implementation disagree,
-stop and resolve the disagreement explicitly").
-
-Concrete audit questions:
-- What does the codegen for `loop(cond)` emit today? Tight tensor-op
-  loop, or `while not converged: state = R @ state` in Python with
-  the convergence check on the host?
+Concrete audit + push-down questions:
+- What does the codegen for `loop(cond)` emit today? Tight
+  tensor-op loop, or `while not converged: state = R @ state` in
+  Python with the convergence check on the host?
 - Is the prototype-match termination running on the substrate
   (compiled prototype + similarity in tensor-op space) or on the
   host (Python comparison)?
-- If host, what would it take to push it down? Compile the
+- If host, what's the path to push it down? Compile the
   termination predicate into the loop body, emit a fixed-iteration
-  unroll up to a cap with early-exit-as-mask, or something else?
+  unroll up to a cap with early-exit-as-mask, or compile the loop
+  to a CUDA-targeting tight matmul kernel?
+- Once running RNN-style on the substrate, what does that change
+  for the global-efficiency / fusion story (CLAUDE.md "Global
+  efficiency, not local")?
 
-The user noted they had a chat about this they couldn't share. The
-audit doesn't depend on the chat — read `codegen.py` /
-`codegen_pytorch.py` for the actual emitted loop code, compare
-against `control-flow.md`, write a finding either confirming "spec
-and impl agree" or proposing how to close the gap.
+This is going to take real effort — flagged as such by the user.
+Read `codegen.py` / `codegen_pytorch.py` for the current emitted
+loop code first to know which half (audit vs push-down) is
+actually open before estimating scope.
+
+### Transcendentals chat — source-of-truth, no formal triage planned (2026-04-29)
+
+`chats/implementing-transcendental-functions.md` (78 user / 76
+assistant blocks, 748 lines) was extracted from the HTML the user
+dropped in 2026-04-29 evening. Subject: implementing exp / log /
+sin / arcsin in Sutra, with the user landing on a unified
+algorithm based on complex-plane rotation that handles the
+transcendental family AND exponentiation / logarithms.
+
+User decision 2026-04-29 evening: **no formal per-chunk triage of
+this chat planned.** The substantive thinking matured during the
+chat itself; when transcendentals implementation work begins, the
+chat is the source-of-truth to read. Two things from the chat got
+declared as commitments and captured elsewhere:
+
+- **`^` (exponent) as a Sutra operator.** Reasoning: "there are
+  no bits in Sutra," so exponentiation is a first-class numeric
+  operation, not a derived function call. Captured in `todo.md`
+  under "Language-design open questions" — not in the math-
+  approximation section, because this is a surface-syntax
+  decision, not an approximation-strategy decision.
+- **Transcendentals implementation is unblocked when prioritized.**
+  The algorithm exists in the chat. When the math-approximation
+  work in `todo.md` is picked up, the implementation pulls the
+  algorithm from the chat directly rather than re-deriving.
+
+Leaving the chat in `chats/` as a working reference. If it later
+becomes load-bearing to formally extract the algorithm into a
+planning doc (e.g. spec-level commitment for transcendentals),
+that's a follow-up — but not on the queue today.
 
 ### Repo bloat sweep — flagged item
 
