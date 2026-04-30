@@ -1,6 +1,6 @@
 ---
 name: sutra-language
-description: Reproduce the demonstration programs and substrate-purity claims for "Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces" — the working Sutra compiler + PyTorch tensor-op runtime, three demonstration programs, loop function decls + soft-halt RNN cells, embedded SutraDB codebook with nearest_string decode, opt-in torch.compile wrapping.
+description: Reproduce the demonstration programs and substrate-purity claims for "Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces" — the working Sutra compiler + PyTorch tensor-op runtime, 13 demonstration programs in a smoke test (with 23 .su files in examples/ total), loop function decls + soft-halt RNN cells, embedded SutraDB codebook with nearest_string decode, opt-in torch.compile wrapping.
 allowed-tools: Bash(python *), Bash(pip *), Bash(cd *), Bash(cargo *)
 ---
 

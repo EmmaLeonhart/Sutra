@@ -19,11 +19,17 @@ soft-halt RNN cells) that work on natural anisotropic embedding
 spaces where the textbook Hadamard-product VSA fails, plus a
 compiler that lowers the whole program to one fused tensor-op
 graph. Sutra is a working compiler today: parser, type checker,
-codegen, runtime; three demonstration programs (hello world, fuzzy
-dispatch, role-filler record) plus loop demonstrations execute
-end-to-end with all expected outputs correct. We give an honest
-account of which parts of the substrate-purity story are shipped
-and which remain.
+codegen, runtime; the example corpus is a smoke test of 13
+demonstration programs covering hello-world embedding round-trips,
+fuzzy dispatch, role-filler records, knowledge graphs, classifier
+decision rules, sequence reduction, naive analogy, predicate
+lookup, nearest-phrase retrieval, the imperative-reversible
+pattern, the do-while adder, the rotation hashmap, the rotation
+record, and a tutorial — all executing end-to-end with expected
+outputs. The full `examples/` directory holds 23 `.su` files
+including legacy and feature demos. We give an honest account of
+which parts of the substrate-purity story are shipped and which
+remain.
 
 ---
 
@@ -315,8 +321,16 @@ in the project's CLAUDE.md exists to prevent).
 
 ## 5. Demonstration Programs
 
-Three programs run end-to-end in the current implementation; each
-exercises a different part of the language.
+The smoke test (`examples/_smoke_test.py`) runs 13 demonstration
+programs end-to-end against the compiler+runtime pipeline; the
+full `examples/` directory holds 23 `.su` files including legacy
+syntax tours and feature demos. The 13 smoke-tested programs are:
+hello-world, fuzzy branching, role-filler record, classifier,
+analogy, knowledge graph, predicate lookup, fuzzy dispatch,
+nearest-phrase retrieval, sequence reduction, loop rotation,
+concept search, and counter loop. Each exercises a different part
+of the language; the subsections below describe four canonical
+examples in detail.
 
 ### 5.1 Hello world
 
