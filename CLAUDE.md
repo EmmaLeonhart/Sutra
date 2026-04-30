@@ -81,6 +81,8 @@ The prior relational-displacement work (published in the external `latent-space-
 - **Do not enter planning-only modes.** All thinking must produce files and commits.
 - **Keep this file up to date.** Record architectural decisions, conventions, and anything needed to work effectively.
 - **Update README.md regularly.** It should always reflect the current state of the project.
+- **Always use the task tool with queue.md.** Per Emma 2026-04-30, this is a general rule, not a per-session reminder: every time you're working from `queue.md`, mirror items into `TaskCreate`, mark them in_progress when you start, and completed when you finish. The task tool and queue.md are two views of the same list — do not let them drift.
+- **Deprecate, don't remove.** Per Emma 2026-04-30, the language is in an early state but the convention is set: when something is superseded, mark it deprecated; don't delete it unless there's a specific reason. Reasons that warrant deletion: the deprecated thing actively misleads (e.g. the old C-style `loop(cond)` form whose body was discarded), it has no users in tests or examples, or its code is genuinely a maintenance liability. Otherwise, deprecation is a docstring/spec note, not a code change. Examples of deprecated-but-kept: `do_while NAME(...)` and `while_loop NAME(...)` (superseded by the tail-call surface 2026-04-30 but kept because they're still load-bearing in code and tests).
 
 ## queue.md and the task tool
 
