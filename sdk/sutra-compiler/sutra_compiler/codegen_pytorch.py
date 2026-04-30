@@ -131,12 +131,15 @@ class PyTorchCodegen(Codegen):
         self._emit('"""')
         self._emit()
         self._emit("# Canonical synthetic-axis allocation — real, imag, truth at")
-        self._emit("# synthetic[0..2], char-flag at synthetic[3]. Mirrored from")
-        self._emit("# the CPU runtime so the two agree bit-for-bit on layout.")
+        self._emit("# synthetic[0..2], char-flag at synthetic[3], loop-done at")
+        self._emit("# synthetic[4]. Mirrored from the CPU runtime so the two agree")
+        self._emit("# bit-for-bit on layout. AXIS_LOOP_DONE is the substrate-side")
+        self._emit("# completion flag set by the RNN-style branchless loop.")
         self._emit("AXIS_REAL = 0")
         self._emit("AXIS_IMAG = 1")
         self._emit("AXIS_TRUTH = 2")
         self._emit("AXIS_CHAR_FLAG = 3")
+        self._emit("AXIS_LOOP_DONE = 4")
         self._emit()
         self._emit("def __init__(self, semantic_dim, synthetic_dim, seed, llm_model):")
         self._indent += 1
@@ -449,7 +452,8 @@ class PyTorchCodegen(Codegen):
         # `_torch.zeros` and `tensor.clone()` instead of `_np.copy()`.
         self._emit("# ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----")
         self._emit("# Mirrors the numpy backend slot block; see codegen.py.")
-        self._emit("SLOT_BASE = 4")
+        self._emit("# SLOT_BASE = 5 to leave room for AXIS_LOOP_DONE at synthetic[4].")
+        self._emit("SLOT_BASE = 5")
         self._emit()
         self._emit("def _slot_plane(self, slot_idx):")
         self._indent += 1
@@ -1145,35 +1149,48 @@ class PyTorchCodegen(Codegen):
         self._emit("return dict(prototype_vectors)")
         self._indent -= 1
         self._emit()
+        self._emit("def _step(self, state, R, target, halt_cum, k, threshold, eps=1e-12):")
+        self._indent += 1
+        self._emit('"""RNN cell: one branchless eigenrotation step (torch tensor ops)."""')
+        self._emit("cand = R @ state")
+        self._emit("cand = cand / (_torch.linalg.norm(cand) + eps)")
+        self._emit("sim = _torch.dot(cand, target) / (_torch.linalg.norm(target) + eps)")
+        self._emit("halt = 1.0 / (1.0 + _torch.exp(-k * (sim - threshold)))")
+        self._emit("one = _torch.tensor(1.0, dtype=self.dtype, device=self.device)")
+        self._emit("halt_cum = _torch.minimum(halt_cum + halt, one)")
+        self._emit("state = (1.0 - halt_cum) * cand + halt_cum * state")
+        self._emit("return state, halt_cum")
+        self._indent -= 1
+        self._emit()
         self._emit("def loop(self, initial_state, rotation, compiled_prototypes,")
         self._indent += 1
-        self._emit("target_name=None, threshold=0.5, max_iters=50, frame_seed=None):")
-        self._emit('"""Eigenrotation: iterate state <- R @ state until match."""')
+        self._emit("target_name=None, threshold=0.5, max_iters=50, k=20.0, frame_seed=None):")
+        self._emit('"""Branchless RNN-style eigenrotation loop (torch backend).')
+        self._emit('')
+        self._emit("Same semantics as the numpy backend. T-step unroll, soft halt via")
+        self._emit("sigmoid, output gating via AXIS_LOOP_DONE. Autograd-friendly:")
+        self._emit("every op is differentiable with respect to state, target, threshold.")
+        self._emit('"""')
         self._emit("state = initial_state.clone()")
-        self._emit("for iters in range(1, max_iters + 1):")
+        self._emit("halt_cum = _torch.tensor(0.0, dtype=self.dtype, device=self.device)")
+        self._emit("iters_active = _torch.tensor(0.0, dtype=self.dtype, device=self.device)")
+        self._emit("if target_name is not None:")
         self._indent += 1
-        self._emit("state = rotation @ state")
-        self._emit("n = _torch.linalg.norm(state)")
-        self._emit("if n > 0: state = state / n")
-        self._emit("best_name, best_score = None, -1.0")
-        self._emit("for nm, proto in compiled_prototypes.items():")
+        self._emit("target = compiled_prototypes[target_name]")
+        self._indent -= 1
+        self._emit("else:")
         self._indent += 1
-        self._emit("s = self.similarity(state, proto)")
-        self._emit("if s > best_score:")
+        self._emit("target = next(iter(compiled_prototypes.values()))")
+        self._indent -= 1
+        self._emit("for _t in range(max_iters):")
         self._indent += 1
-        self._emit("best_score = s; best_name = nm")
+        self._emit("iters_active = iters_active + (1.0 - halt_cum)")
+        self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
         self._indent -= 1
-        self._indent -= 1
-        self._emit("if target_name is not None and best_name == target_name and best_score >= threshold:")
-        self._indent += 1
-        self._emit("return best_name, state, iters")
-        self._indent -= 1
-        self._emit("if target_name is None and best_score >= threshold:")
-        self._indent += 1
-        self._emit("return best_name, state, iters")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("return best_name, state, max_iters")
+        self._emit("# Output gating: scale value axes by halt_cum; mark AXIS_LOOP_DONE.")
+        self._emit("gated = state * halt_cum")
+        self._emit("gated[self.semantic_dim + self.AXIS_LOOP_DONE] = halt_cum")
+        self._emit("return target_name, gated, iters_active")
         self._indent -= 1
         self._indent -= 1
         self._emit()
