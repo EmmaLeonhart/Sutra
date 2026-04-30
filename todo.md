@@ -383,6 +383,31 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
   chat for the trig family). Source-of-truth for the algorithm:
   `chats/implementing-transcendental-functions.md`.
 
+## [This year] Make loops idiomatic
+
+The 2026-04-30 loop redesign (`planning/open-questions/loop-function-declarations.md`)
+ships loops as first-class declared functions with `pass` for tail-recursive
+yield and `loop name(args)` call sites that mutate caller variables by
+reference. Emma 2026-04-30: "this is a bit of a weird thing... it's
+unidiomatic... I'm probably going to figure out a nicer way to represent
+this at some point. I'm not going to be able to do this right now though...
+my priority is making it fucking work."
+
+So: ship the by-reference form first (substrate-pure RNN cell, body
+actually runs, completion flag propagates), then later this year revisit
+to make it idiomatic. Likely cleanup direction: loop calls return a
+tuple of state values that the caller assigns explicitly, eliminating
+the by-reference surprise:
+
+```sutra
+x = loop addNumber(x < 11, x);          // single-state return
+(max, count) = loop findMax(arr, 0, 0); // multi-state return
+```
+
+Don't touch this until the function-declaration form has shipped and a
+few real programs have exercised it — premature cleanup risks designing
+the wrong thing.
+
 ## [This year] Docs / website
 
 - [ ] **Expand `docs/paradigms.md` once more is built.** The page was
