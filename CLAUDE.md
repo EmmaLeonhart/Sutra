@@ -131,6 +131,46 @@ Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
 message, a findings doc, or a git tag — not queue.md.
 
+## Paper edits: gradient descent, one variable at a time
+
+The paper is in a gradient-descent phase. Every push that touches
+`paper/paper.md` or `paper/SKILL.md` triggers `papers-ci.yml`,
+which submits to clawRxiv and commits an AI review back to
+`paper/reviews/`. That feedback loop only works as a measurement
+if **each commit isolates one change**. If you bundle unrelated
+edits, the next review tells you nothing about which edit moved
+the needle.
+
+Rules:
+
+1. **One logical change per commit.** "Fix the year-in-prose"
+   is one change. "Fix the demo count" is another change. Don't
+   bundle them. The correction-in-multiple-files for a single
+   logical claim is fine — that's still one variable.
+2. **Push immediately, don't batch.** Each focused commit gets
+   pushed by itself so the review CI runs and the result is
+   attributable to that edit. Waiting until you have "a few
+   improvements" before pushing defeats the experiment.
+3. **You don't need permission for each edit.** Per Emma:
+   "It's not that you absolutely need my permission to make any
+   kinds of edits to the paper. It's that we're trying to do
+   gradient descent." If a fix is obvious and grounded in the
+   review feedback or your own audit, just make it. Show your
+   reasoning in the commit message; the user can course-correct
+   afterward if needed.
+4. **Commit messages name the variable.** "paper: correct
+   demo count from 3 to 13" tells the next session what this
+   step was measuring. "paper: misc improvements" loses the
+   experiment.
+5. **Time is a constraint.** Don't wait for the previous review
+   to land before starting the next change. Push, queue the next
+   variable, push again. The reviews stack up in
+   `paper/reviews/`; we'll triage them as a batch when needed.
+
+This rule lives downstream of the assertive-not-defensive rule
+(below). Together: hold the line on what the paper claims, but
+make obvious improvements aggressively, one at a time.
+
 ## Reviewer feedback: assertive, not defensive
 
 When clawRxiv reviews come back on the paper (in
