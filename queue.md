@@ -119,25 +119,26 @@ provides decode-back from vectors to strings; `SUTRA_DB_PATH` env
 var configures persistence. The only deferred piece is full
 atman.toml schema, which can wait for a concrete config use case.
 
-### 3. make_random_rotation pre-warm at compile time — IN PROGRESS
+### 3. make_random_rotation pre-warm at compile time — DONE
 
-Today, the first call to `bind` for each role triggers
-`make_random_rotation` (numpy random + QR + Givens construction).
-Cache-hit path is fine; cache-miss is host Python.
+Shipped. `_TorchVSA.prewarm_rotation_cache()` iterates the codebook
+after embed_batch + populate_sutradb and pre-computes a rotation
+matrix for every entry. The runtime never pays the QR cost on the
+hot path. Codegen prelude calls it as the third initialization step
+(embed_batch → populate_sutradb → prewarm_rotation_cache).
 
-Fix: scan all role names used in the program at compile time, emit
-a pre-warm block at the top of the generated module that constructs
-all role rotations up front. Runtime then only ever hits the cached
-matmul.
+Approach taken: conservative pre-warm (every codebook entry, not
+just bind() role args). Over-warms for fillers that aren't used as
+roles, but the cost is one-time and proportional to codebook size,
+which is small for typical programs. Targeted role-scan would be a
+future optimization but isn't worth the codegen complexity today.
 
-Verify with a test that runs a compiled program twice with timing
-and asserts the second run has zero rotation construction.
+Tests in `tests/test_rotation_prewarm.py`:
+- pre-warm populates `_rot_cache` with one entry per codebook string
+- post-prewarm `bind()` doesn't grow the cache (= it hit the cache)
+- empty-codebook case handled without raising
 
-**Status (2026-04-30):** in progress. Approach: walk AST for every
-`bind(_, ROLE)` call at compile time, collect the set of role
-expressions (typically `embed("role_name")`), emit
-`_VSA._rot_cache[hash] = _VSA._compute_rotation(role_vec)` after the
-embed_batch + populate_sutradb in the prelude.
+3/3 pre-warm tests pass; 241/241 full suite pass.
 
 ## Queued work — back of queue (boundary leaks; "Python is just IO" target)
 
