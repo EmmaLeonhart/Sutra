@@ -86,17 +86,19 @@ jobs:
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
+      - name: Stage paper PDFs into docs/ for MkDocs link validation
+        run: |
+          # Copy PDFs into docs/ BEFORE mkdocs build so strict-mode
+          # link validation sees them as valid targets. The files
+          # are gitignored at the docs/ level (intentional: the
+          # build artifact, not source); the workflow re-creates
+          # them on every run.
+          cp paper/paper-named.pdf docs/paper.pdf
+          cp paper/paper-anonymized.pdf docs/paper-anonymized.pdf
+
       - name: Build site
         run: |
           mkdocs build --strict --verbose
-
-      - name: Copy paper PDFs into the site
-        run: |
-          # Serve the PDFs at /paper.pdf and /paper-anonymized.pdf so
-          # the Theory and Paper landing page can link to them with
-          # stable, predictable URLs.
-          cp paper/paper-named.pdf _site/paper.pdf
-          cp paper/paper-anonymized.pdf _site/paper-anonymized.pdf
 
       - name: Integrate SutraDB static site at /SutraDB/
         run: |
