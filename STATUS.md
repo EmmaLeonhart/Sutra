@@ -141,6 +141,35 @@ every loop form actually compiles to substrate operations. Today
 half of them either discard their bodies or bail to host Python.
 The redesign closes both holes.
 
+### Runtime substrate-purity sweep (2026-04-30)
+
+Triggered by `planning/findings/2026-04-30-runtime-substrate-purity-audit.md`.
+Real violations found beyond the loop work already queued above:
+
+1. **`exp` / `log` / `sqrt` / `pow` / `tan` run as Python scalar
+   arithmetic.** Shipped 2026-04-29 with the commit message
+   claiming substrate-pure but actually implemented as
+   `for n in range(EXP_TAYLOR_TERMS): acc = 1.0 + r * acc / n`
+   over Python floats. Open Emma call: rewrite as tensor ops
+   on 0-dim torch tensors (Taylor stays, but each step is a
+   tensor multiply), OR just call `torch.exp` / `torch.log`
+   directly the same way trig-via-libm is now accepted. The
+   first preserves the "no transcendentals at runtime" stance;
+   the second is simpler and matches the eigenrotation-given-up
+   precedent.
+2. **`argmax_cosine` / `snap` use Python loops over candidates.**
+   Should be a single `torch.argmax(scores)` over a stacked
+   candidate tensor. Easy fix; one `_VSA` method body each.
+3. **`make_random_rotation` runs at runtime on first bind for
+   each role.** Cache-hit path is fine; cache-miss path uses
+   numpy random + QR + Givens construction (host Python).
+   Acceptable if all roles are pre-warmed before the hot path.
+   **Verify this is actually true** — write a test that runs a
+   compiled program twice with timing and asserts the second run
+   has zero rotation construction. If false, fix by pre-warming
+   at compile time (emit a warmup block at the top of the
+   compiled module that constructs all known rotations).
+
 ### Rename `STATUS.md` → `queue.md` — naming for clarity
 
 Emma 2026-04-30: "this status.md is being ignored enough, is being
