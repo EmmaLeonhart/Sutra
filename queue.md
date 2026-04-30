@@ -21,149 +21,9 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
-## Queued work — top of queue (work through in order)
+## Queued work — top of queue
 
-### 1. Program-level completion flag propagation
-
-`AXIS_LOOP_DONE` is set on the loop's local result vector but
-doesn't propagate through layers to the program's final output.
-Today the call-site writeback grabs `_loopret_x` (the state value)
-and stores it back into the caller's slot var, dropping the
-`_loopret_halt` (the completion flag) on the floor. So the program
-returns a normal-looking value even if a loop didn't converge.
-
-Emma's design: every loop's halt_cum should multiply through to the
-program's final output via element-wise multiply (since halt_cum ∈
-[0, 1]). If any loop in the call chain didn't complete, the program
-emits a near-zero (detectably wiped) output rather than a partial
-result.
-
-Concrete shape:
-- Each loop call accumulates its halt_cum into a function-scope
-  `_program_halt` variable.
-- At each function's `return <expr>`, multiply the return value by
-  `_program_halt`.
-- For nested loops, the inner halt_cum gets multiplied into the
-  outer's, and so on up to main's return.
-
-This is medium-scope codegen work. Tests: programs with reachable
-loops return correct values; programs with unreachable loops
-(impossible condition) return wiped outputs.
-
-## Queued work — middle of queue
-
-### 2. SutraDB integration as the default vector backend
-
-Emma 2026-04-30: "we should be using SutraDB with `nomic-embed-text`.
-... SutraDB and runtime are small enough that we can reasonably embed
-it in what we make. ... Particularly for hash mapping and stuff, it's
-probably better to do this than to rely on the arg max thing.
-Especially in the future, for larger files, it should probably be the
-default, the default thing that we compile with."
-
-So this isn't just "use SutraDB for tests" — it's **make SutraDB the
-default vector backend that every compiled Sutra program embeds and
-queries.** The host-Python `argmax_cosine` / `snap` / hashmap-lookup
-loops get replaced with SutraDB queries.
-
-Concrete shape:
-- **Embedded mode** (`.sdb` file like SQLite, no daemon). Each
-  compiled Sutra program opens its own `.sdb` at module init and
-  queries it inline.
-- **`nomic-embed-text` is the embedding model** (already CLAUDE.md
-  default). MxBai/MiniLM are the comparison substrates for
-  cross-substrate experiments, but compiled programs default to
-  nomic.
-- **Hashmap (`hashmap_set` / `hashmap_get`) routes through SutraDB**
-  too — instead of bind/bundle accumulator with bit-identical-key
-  lookup, store key-value pairs as triples in SutraDB and query by
-  vector similarity. Soft lookup falls out for free (HNSW is
-  approximate-nearest-neighbor).
-- **`argmax_cosine` / `snap`** become SutraDB nearest-neighbor
-  queries. The "loop over candidates" violation dissolves: SutraDB
-  does the work in Rust + HNSW.
-
-Implementation pieces (rough sequencing):
-1. ~~Embed SutraDB CLI / FFI binding into the runtime~~ — DONE in
-   commit `3b33938`. `sutradb_embedded.py` ctypes wrapper.
-2. ~~Codegen: at module init, open a `.sdb` populated with the
-   program's known vectors~~ — DONE (reworked in `8c3ee7f`). PyTorch
-   codegen prelude calls `_VSA.populate_sutradb()` after embed_batch
-   so every embedded string is in SutraDB at module init.
-3. ~~Replace `argmax_cosine` with SutraDB~~ — REWORKED in `8c3ee7f`
-   per Emma 2026-04-30 reframe: `argmax_cosine` stays matmul (it
-   takes a runtime candidate-vector list, wrong abstraction for
-   SutraDB). The new value-add is `_VSA.nearest_string(query)` —
-   the **decode** path: given any vector, return the nearest
-   string label from the compile-time-populated SutraDB. This is
-   the "embeddings live in the database, not in the program"
-   architecture the user wanted.
-4. ~~Replace `hashmap_*` runtime methods with SutraDB~~ — DROPPED
-   per Emma 2026-04-30. The "hashmap" reference in
-   `stdlib/memory.su` was a Python-side helper; the language has
-   no real hashmap concept. Sutra is using SutraDB only for text-
-   embedding storage + decode, not as a general key-value store.
-5. ~~`atman.toml` `[vector_db]` config section~~ — partially DONE
-   in `<this commit>`. Env var `SUTRA_DB_PATH` now overrides the
-   tempdir, giving a persistent .sdb across runs. Full
-   `[project.vector_db]` TOML schema (HNSW M / ef_construction /
-   embedding model override) deferred until there's a concrete
-   user requirement.
-6. ~~FFI auto-declare-on-insert fix~~ — DONE in commit `d72ab1c`.
-   `sutra_insert_ntriples` auto-declares vector predicates on
-   first insert.
-
-**Status as of 2026-04-30:** Item 2 is done. SutraDB is the
-embedded codebook for every Sutra program; `_VSA.nearest_string`
-provides decode-back from vectors to strings; `SUTRA_DB_PATH` env
-var configures persistence. The only deferred piece is full
-atman.toml schema, which can wait for a concrete config use case.
-
-### 3. make_random_rotation pre-warm at compile time — DONE
-
-Shipped. `_TorchVSA.prewarm_rotation_cache()` iterates the codebook
-after embed_batch + populate_sutradb and pre-computes a rotation
-matrix for every entry. The runtime never pays the QR cost on the
-hot path. Codegen prelude calls it as the third initialization step
-(embed_batch → populate_sutradb → prewarm_rotation_cache).
-
-Approach taken: conservative pre-warm (every codebook entry, not
-just bind() role args). Over-warms for fillers that aren't used as
-roles, but the cost is one-time and proportional to codebook size,
-which is small for typical programs. Targeted role-scan would be a
-future optimization but isn't worth the codegen complexity today.
-
-Tests in `tests/test_rotation_prewarm.py`:
-- pre-warm populates `_rot_cache` with one entry per codebook string
-- post-prewarm `bind()` doesn't grow the cache (= it hit the cache)
-- empty-codebook case handled without raising
-
-3/3 pre-warm tests pass; 241/241 full suite pass.
-
-## Queued work — back of queue (boundary leaks; "Python is just IO" target)
-
-### 4. Remaining boundary leaks
-
-The 5 boundary leaks were enumerated in `planning/findings/
-2026-04-30-substrate-purity-leak-enumeration.md` and **three of
-five were fixed in commit 93beb01** (loop halt check, slot_load,
-array_get). New `_VSA.truth_axis` / `_VSA.heaviside` /
-`_VSA.saturate_unit` substrate primitives mirror across both the
-numpy and PyTorch backends. Two leaks remain:
-
-- **Rotation cache lookup** (`if key not in self._rot_cache`) —
-  covered by item 3 (compile-time pre-warm). After pre-warm, the
-  lookup is always a hit and can be replaced with a direct
-  attribute access at compile time.
-- **Loop tick counter** (`for _t in range(50)`) — covered by item 5
-  (full unroll). Cosmetic for substrate-purity since the substrate
-  sees the same T cell evaluations either way; matters for
-  `torch.compile` fusion.
-
-Both remaining leaks are bigger refactors and are tracked under
-their own queue items (3 and 5).
-
-### 5. "Python is just IO" target — three pieces
+### 1. "Python is just IO" target — full unroll + torch.compile
 
 Emma's framing: ideally the Python wrapper does *only* IO/console
 shell work; everything else runs as one big tensor-op graph.
@@ -173,9 +33,9 @@ Distance is small but non-zero:
   function with T inline tensor-op calls. Substrate sees the same
   graph; emitted source has no Python loops at all. Mostly cosmetic
   but useful for `torch.compile` to fully fuse.
-- **No `.item()` / `bool()` at the boundary**: see item 5 above.
-  Same fix.
-- **`torch.compile` the whole module**: once items 5+6 land, the
+- **No `.item()` / `bool()` at the boundary**: residual scalar
+  extractions in the prelude that cross from substrate to Python.
+- **`torch.compile` the whole module**: once the above two land, the
   emitted module is a pure tensor-op graph and torch.compile can
   trace + fuse the whole thing into a single CUDA kernel (or a few).
 
@@ -183,72 +43,31 @@ These are the "make Python wrapper genuinely just IO" pieces. After
 they land, the wrapper is module load + `_VSA` instance setup +
 `main()` call + return value to console — nothing else.
 
-## Queued work — pre-paper consolidation
-
-### 6. Retire the numpy backend; consolidate to PyTorch-only
-
-Today's repo has TWO codegen backends — `codegen.py` (`_NumpyVSA`,
-numpy ndarrays + Ollama, used by tests) and `codegen_pytorch.py`
-(`_TorchVSA`, torch tensors + Ollama, used by `--emit` and `--run`).
-Per CLAUDE.md and the project memory: **PyTorch is Sutra's compiler
-library — one codegen target.** The dual-backend state is a
-historical drift that needs to land before the paper claims a single
-substrate-pure compile target.
-
-**Plan:**
-1. Move literal-lowering hooks (`_char_literal_src`,
-   `_embed_expr_src`, `_bool_literal_src`, `_logical_op_src`,
-   `_logical_not_src`, `_fuzzy_literal_init_src`) out of
-   `codegen.py:Codegen` and into either `codegen_base.py:BaseCodegen`
-   or directly into `codegen_pytorch.py:PyTorchCodegen`.
-2. Make `PyTorchCodegen` extend `BaseCodegen` directly, not
-   `Codegen`.
-3. Retire `codegen.py` (delete or move to `planning/_archived/`).
-4. Switch tests in `sdk/sutra-compiler/tests/` to compile via the
-   PyTorch backend. Probably means installing torch in the test env;
-   verify CPU-only torch works for the test corpus.
-5. CLI: drop the dispatch-by-flag and always emit PyTorch.
-6. Update CLAUDE.md, README, queue.md, devlog with the
-   "single codegen target" framing.
-
-**Risk:** torch on CPU is slower than numpy for the test corpus.
-Verify the suite still finishes in reasonable time after the switch.
-If it's catastrophic, plug `torch.set_num_threads` or similar.
-
-### 7. Loop tail-call surface — SHIPPED 2026-04-30 (commit b3bc0cd)
-
-`return NAME(args)` is now an alternative to `pass values` inside
-loop function bodies. Same semantics; both surfaces work. Per Emma
-2026-04-30, the original "closure-loop" chat framing was a
-misnomer — what shipped is just the prettier tail-call surface, no
-closure machinery. Design doc:
-`planning/open-questions/loop-tail-call-surface.md`. Object
-encapsulation deferred to todo.md.
-
 ## Queued work — final item (paper + submission pipeline)
 
-### 8. Paper draft, three submission targets, and CI/CD pipeline
+### 2. Paper draft, three submission targets, and CI/CD pipeline
 
-After items 1-5 land and the language works end-to-end on real
+After item 1 lands and the language works end-to-end on real
 programs, the last queue item is **writing the paper and shipping
 it**. Three submission targets (Emma 2026-04-30):
 
 1. **Claw4S workshop** — the AI-workshops conference / preprint
    server pair (`clawRxiv`). Repo had a substantial Claw4S submission
-   pipeline before the Sutra rebrand; that infrastructure should be
+   pipeline before the Sutra rebrand; that infrastructure is
    recoverable from git history (commits like `b353ff3 exploratory:
    Claw4S paper draft on Sutra as compile-time VSA`, `f09a3f2
    Complete documentation overhaul + SKILL.md for Claw4S submission`,
-   `1b73781 Reorganize repo for two Claw4S 2026 papers`).
+   `1b73781 Reorganize repo for two Claw4S 2026 papers`). Recovery
+   recipe is in `DEVLOG.md` Phase 4.
 2. **NeurIPS** — main conference, double-blind. Emma's read 2026-04-30
    is the current pipeline already follows NeurIPS rules properly,
    but verify before submitting.
 3. **A second workshop after NeurIPS** — TBD which one; identify
-   during 6a.
+   during 2a.
 
 #### Sub-items, in rough order
 
-**6a. Audit submission rules for all three targets first.** Read
+**2a. Audit submission rules for all three targets first.** Read
 current Claw4S, NeurIPS, and the post-NeurIPS workshop author guides;
 capture in a findings doc:
 - Page limit + format per target (LaTeX templates).
@@ -260,14 +79,15 @@ capture in a findings doc:
 Output: `planning/findings/YYYY-MM-DD-paper-submission-rules.md`.
 This document is what the CI/CD pipeline gets built against.
 
-**6b. Recover Claw4S infrastructure from git history.** The repo
-previously had Claw4S submission pipeline files, an SKILL.md, paper
-drafts, and CI plumbing — all removed during the Sutra rebrand
-(see `903308e Remove papers, submission CI, and Claw4S strategic
-layer`). The dev log dive (queued separately) will surface what's
-recoverable; restore selectively rather than reinventing.
+**2b. Recover Claw4S infrastructure from git history.** Per
+DEVLOG.md Phase 4, the three workflows (`papers-ci.yml`,
+`submit-papers.yml`, `competition-cron.yml`) plus submission
+scripts (`scripts/fetch_all_papers.py`, `scripts/fetch_reviews.py`)
+plus per-paper `SKILL.md` template are all recoverable from
+`903308e^`. The `CLAWRXIV_API_KEY` repo secret is still configured
+per Emma 2026-04-30. Restore selectively rather than reinventing.
 
-**6c. Write the paper itself.** Substance, not yet plumbing:
+**2c. Write the paper itself.** Substance, not yet plumbing:
 - The narrative arc per `project_sutra_paper_real_scope.md`:
   displacements in frozen embedding spaces → consolidate into rotation
   binding → learned matrices as the natural extension. Sign-flip is at
@@ -287,7 +107,7 @@ This is the work-product itself, not infrastructure. Likely lives in
 a new `paper/` directory at repo root with `paper.tex` + `paper.bib`
 + figures.
 
-**6d. CI/CD pipeline — single source, four outputs.** From the same
+**2d. CI/CD pipeline — single source, four outputs.** From the same
 LaTeX/Markdown source, the pipeline produces:
 1. **HTML on the docs site** (`sutralang.dev`) — for casual readers
    and AI-agent consumers.
@@ -300,7 +120,7 @@ LaTeX/Markdown source, the pipeline produces:
    on the same anonymized version they're supposed to be reviewing.)
 4. **Claw4S / clawRxiv upload** — Claw4S workshop submission +
    preprint mirror. The previous repo had a working push-to-clawRxiv
-   action; recover it (per 6b).
+   action; recover it (per 2b).
 
 Pipeline shape (rough): GitHub Actions workflow on push to
 `paper/` triggers two LaTeX builds (full + anonymized via `\if`
@@ -308,7 +128,7 @@ macros), uploads the PDFs as workflow artifacts, deploys both PDFs
 + rendered HTML to the docs site, and (optionally, on a tag) pushes
 to the preprint server's API.
 
-**6e. Anonymization macros.** A single-source approach uses LaTeX
+**2e. Anonymization macros.** A single-source approach uses LaTeX
 conditionals to swap in/out the deanonymizing pieces:
 ```latex
 \ifanon
@@ -322,27 +142,21 @@ conditionals to swap in/out the deanonymizing pieces:
 Build flag (`-DANON=1`) flips between modes. Avoids the trap of
 forking two paper sources that drift from each other.
 
-**6f. Reproducibility submission.** NeurIPS reproducibility
+**2f. Reproducibility submission.** NeurIPS reproducibility
 checklist will require pointing at runnable code. The Sutra repo
 itself is the answer; the submission references it (anonymized in
-6e via `\repo`) and includes a `paper/REPRODUCE.md` with
+2e via `\repo`) and includes a `paper/REPRODUCE.md` with
 "clone, install, run these commands, get these numbers."
 
 #### Why this is at the end, not the start
 
 The paper claims things about the language. The language has to
-actually do those things first. Items 1-5 are the language being
+actually do those things first. Item 1 is the language being
 *real* (substrate-pure, complete RNN compilation, no boundary
-leaks, default vector backend). Item 6 is the language being
-*defended* in print. Doing 6 first would mean writing a paper about
+leaks, default vector backend). Item 2 is the language being
+*defended* in print. Doing 2 first would mean writing a paper about
 aspirational software, which is the failure mode the
 safety-critical preamble in CLAUDE.md exists to prevent.
-
-#### Likely scope
-
-This item is bigger than items 1-5 combined. Will need its own
-plan + several findings docs (NeurIPS rules audit, paper outline
-review, pipeline design) when it rolls to the front of the queue.
 
 ## Queued work — flagged but not blocking
 
@@ -385,6 +199,15 @@ here as pointers so they don't fall off the radar:
   Sketched in
   `planning/findings/2026-04-30-rnn-loop-architecture.md` § "Unify
   with the broader exception channel".
+- **Numpy backend full file deletion.** `codegen.py` was deprecated
+  2026-04-30 (deprecation header + behavior tests moved to PyTorch
+  backend) but the file is retained for emit-shape tests. Full
+  deletion + literal-hook migration into `BaseCodegen` is queued
+  but not blocking.
+- **Full `atman.toml [vector_db]` config schema.** Today's SutraDB
+  path is configurable via `SUTRA_DB_PATH` env var. Full TOML
+  schema (HNSW M / ef_construction / embedding model override)
+  deferred until there's a concrete config use case.
 
 ## Pinned semantic corrections (I keep dropping these)
 
@@ -396,7 +219,8 @@ here as pointers so they don't fall off the radar:
    for substrate iteration IS the soft-mask cumulative halt in a
    fixed-T tensor-op unroll. The `for _t in range(50)` in the
    emitted Python is meta-iteration, not a runtime counter — the
-   substrate sees T inline cell evaluations regardless.
+   substrate sees T inline cell evaluations regardless. (Item 1
+   above eliminates even the meta-iteration via full unroll.)
 3. **Rotation runs in the synthetic subspace, not on connectome
    weights.** Real FlyWire weight matrices do not function as
    rotation operators (they're compressive projections). Synthetic
@@ -415,7 +239,8 @@ here as pointers so they don't fall off the radar:
 7. **Truth is designed as a canonical axis in the synthetic
    subspace.** `synthetic[AXIS_TRUTH=2]`.
 8. **PyTorch is the compiler's runtime target.** `codegen_pytorch.py`
-   emits torch modules picking CUDA at module init.
+   emits torch modules picking CUDA at module init. The numpy
+   backend (`codegen.py`) is deprecated as of 2026-04-30.
 9. **Defuzzification polarizes, never binarizes.** `is_true` and
    `defuzzify` keep the result fuzzy and differentiable. No commit
    primitive exists; `select` does all branching. Don't reintroduce
@@ -431,15 +256,16 @@ here as pointers so they don't fall off the radar:
     slots at default `synthetic_dim=100`).
 13. **Loops are first-class declared functions** (Emma 2026-04-30).
     `<kind> NAME(condition_or_array_or_count, type state, ...) { body; pass values; }`.
-    Body uses `pass <exprs>` (tail-recursive yield, one expr per
-    state param; `replace` keyword keeps an input value). Call site
-    is `loop NAME(...)` and mutates caller variables by reference.
-    Loop functions have NO outer-scope access — pure functions over
-    their declared parameters only. The four kinds: `do_while` (body
-    runs once + while-style continuation), `while_loop` (body skipped
-    if cond false at start), `iterative_loop` (runs N times; body
-    sees `iterator` keyword), `foreach_loop` (walks binding-array;
-    body sees `element` keyword). Substrate execution: T fixed cell
+    Body uses `pass <exprs>` OR `return NAME(args)` (tail-recursive
+    yield, one value per state param; `replace` keyword keeps an
+    input value in the `pass` form). Call site is `loop NAME(...)`
+    and mutates caller variables by reference. Loop functions have
+    NO outer-scope access — pure functions over their declared
+    parameters only. The four kinds: `do_while` (body runs once +
+    while-style continuation), `while_loop` (body skipped if cond
+    false at start), `iterative_loop` (runs N times; body sees
+    `iterator` keyword), `foreach_loop` (walks binding-array; body
+    sees `element` keyword). Substrate execution: T fixed cell
     steps with soft-halt sigmoid + monotone cumulative + soft-mux
     freeze. AXIS_LOOP_DONE marks completion.
 14. **Idiomatic-loop cleanup is queued for later this year.** Today's
@@ -447,6 +273,17 @@ here as pointers so they don't fall off the radar:
     cleanup direction (return tuples, no by-ref mutation) is in
     `todo.md` § "Make loops idiomatic." Don't touch the design
     until a few real programs have exercised the by-ref form.
+15. **SutraDB is the embedded codebook.** Every embedded string in
+    a Sutra program goes into SutraDB at compile time via
+    `_VSA.populate_sutradb()`. `_VSA.nearest_string(query)` decodes
+    any vector back to the nearest string label. `SUTRA_DB_PATH`
+    env var configures persistent .sdb across runs. Build prereq:
+    `cd sutraDB && cargo build --release -p sutra-ffi`.
+16. **Rotation cache is pre-warmed at compile time.** Every
+    codebook entry gets its rotation matrix computed in
+    `_VSA.prewarm_rotation_cache()` at module init, after
+    embed_batch + populate_sutradb. The runtime never pays QR cost
+    on the hot path.
 
 ## Pointers
 
@@ -456,3 +293,4 @@ here as pointers so they don't fall off the radar:
 - Findings (dated): `planning/findings/`.
 - Open design questions: `planning/open-questions/`.
 - Hardwired assumptions in the demo path: `examples/todo.md`.
+- Devlog (full history): `DEVLOG.md`.
