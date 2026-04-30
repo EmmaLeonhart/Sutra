@@ -12,9 +12,10 @@ See CLAUDE.md §"queue.md and the task tool" for the full workflow.
 The work here is **making Sutra the language actually work** — the
 compiler, the spec, the substrate-backed runtime, the demo programs.
 **The last queue item, after the language works, is writing the
-paper and shipping it (preprint + NeurIPS submission with CI/CD).**
-The question each queue item answers is: *what does it take to make
-this language a real thing someone can use, and then publish?*
+paper and shipping it** (Claw4S workshop + NeurIPS + a follow-up
+workshop, with a CI/CD pipeline). The question each queue item
+answers is: *what does it take to make this language a real thing
+someone can use, and then publish?*
 
 Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
@@ -162,38 +163,45 @@ they land, the wrapper is module load + `_VSA` instance setup +
 
 ## Queued work — final item (paper + submission pipeline)
 
-### 6. Paper draft, NeurIPS submission, and CI/CD pipeline
+### 6. Paper draft, three submission targets, and CI/CD pipeline
 
 After items 1-5 land and the language works end-to-end on real
 programs, the last queue item is **writing the paper and shipping
-it**. Emma 2026-04-30: target is a NeurIPS submission with a
-preprint posted in parallel.
+it**. Three submission targets (Emma 2026-04-30):
+
+1. **Claw4S workshop** — the AI-workshops conference / preprint
+   server pair (`clawRxiv`). Repo had a substantial Claw4S submission
+   pipeline before the Sutra rebrand; that infrastructure should be
+   recoverable from git history (commits like `b353ff3 exploratory:
+   Claw4S paper draft on Sutra as compile-time VSA`, `f09a3f2
+   Complete documentation overhaul + SKILL.md for Claw4S submission`,
+   `1b73781 Reorganize repo for two Claw4S 2026 papers`).
+2. **NeurIPS** — main conference, double-blind. Emma's read 2026-04-30
+   is the current pipeline already follows NeurIPS rules properly,
+   but verify before submitting.
+3. **A second workshop after NeurIPS** — TBD which one; identify
+   during 6a.
 
 #### Sub-items, in rough order
 
-**6a. Audit NeurIPS submission rules first.** Before any pipeline
-work, read the current year's NeurIPS author guide and capture in a
-findings doc:
-- Page limit + format (LaTeX template? `neurips_2026.sty`?).
-- Anonymization rules (double-blind: no author names, no acknowledgments,
-  no GitHub URLs that deanonymize, no self-citations that aren't
-  third-person).
-- Supplementary material rules (separate PDF? code submission?).
+**6a. Audit submission rules for all three targets first.** Read
+current Claw4S, NeurIPS, and the post-NeurIPS workshop author guides;
+capture in a findings doc:
+- Page limit + format per target (LaTeX templates).
+- Anonymization rules (double-blind for NeurIPS at minimum).
+- Supplementary material rules.
 - Reproducibility checklist requirements.
-- Submission deadline + abstract registration deadline.
+- Deadlines: abstract registration, full submission, camera-ready.
 
-Output: `planning/findings/YYYY-MM-DD-neurips-submission-rules.md`.
+Output: `planning/findings/YYYY-MM-DD-paper-submission-rules.md`.
 This document is what the CI/CD pipeline gets built against.
 
-**6b. Pick the preprint server.** Emma's wording on 2026-04-30 was
-"CLAW4S" (likely a voice-transcription artifact for **arXiv**, but
-could also mean **alphaXiv** — the ML annotated-preprint platform —
-since "we're going back to" suggests a previously-used service).
-Resolve before building the upload step.
-
-Either way, the paper goes onto a public preprint server in parallel
-with the NeurIPS submission, so peer reviewers can find it but Emma
-isn't waiting on the conference cycle to publish.
+**6b. Recover Claw4S infrastructure from git history.** The repo
+previously had Claw4S submission pipeline files, an SKILL.md, paper
+drafts, and CI plumbing — all removed during the Sutra rebrand
+(see `903308e Remove papers, submission CI, and Claw4S strategic
+layer`). The dev log dive (queued separately) will surface what's
+recoverable; restore selectively rather than reinventing.
 
 **6c. Write the paper itself.** Substance, not yet plumbing:
 - The narrative arc per `project_sutra_paper_real_scope.md`:
@@ -226,11 +234,9 @@ LaTeX/Markdown source, the pipeline produces:
    that goes to NeurIPS double-blind review. (Why on the website too?
    So reviewers who find the paper outside the OpenReview portal land
    on the same anonymized version they're supposed to be reviewing.)
-4. **Preprint server upload** (arXiv or alphaXiv per 6b) — typically
-   the non-anonymized version once NeurIPS allows preprint posting.
-   Verify the rule in the NeurIPS author guide (some years require
-   the preprint timing to predate the submission deadline; some
-   require it to follow).
+4. **Claw4S / clawRxiv upload** — Claw4S workshop submission +
+   preprint mirror. The previous repo had a working push-to-clawRxiv
+   action; recover it (per 6b).
 
 Pipeline shape (rough): GitHub Actions workflow on push to
 `paper/` triggers two LaTeX builds (full + anonymized via `\if`
