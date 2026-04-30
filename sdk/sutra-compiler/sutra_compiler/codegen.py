@@ -1648,14 +1648,11 @@ class Codegen(BaseCodegen):
         self._indent += 1
         self._emit("target = next(iter(compiled_prototypes.values()))")
         self._indent -= 1
-        self._emit("# T-step unroll. The Python `for` is meta-iteration over compile-")
-        self._emit("# time-fixed steps; each iteration is a tensor-op cell with no")
-        self._emit("# data-dependent branches.")
-        self._emit("for _t in range(max_iters):")
-        self._indent += 1
-        self._emit("iters_active = iters_active + (1.0 - float(halt_cum))")
-        self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
-        self._indent -= 1
+        self._emit("# Full unroll: T=50 inline tensor-op steps, no Python loop.")
+        for _t in range(50):
+            self._emit(f"# step {_t}")
+            self._emit("iters_active = iters_active + (1.0 - float(halt_cum))")
+            self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
         self._emit("# Output gating: multiply value-bearing axes by halt_cum so an")
         self._emit("# incomplete loop emits a near-zero output. AXIS_LOOP_DONE itself")
         self._emit("# carries the cumulative halt as a tensor scalar for downstream")
