@@ -21,26 +21,74 @@ pick up next.
 
 ## Queued work
 
-### RNN-style loop execution — DONE 2026-04-30
+### Loop-form audit — what actually works (2026-04-30)
 
-`loop(cond)` rewired as a branchless RNN unroll. T fixed cell steps
-(default 50), no host-side `for iters in range`, no host-side `if
-best_score >= threshold`. Soft halt via sigmoid + monotone cumulative
-freezes state once convergence; output gating multiplies value axes
-by `halt_cum` so a non-converging loop emits a near-zero output. New
-canonical synthetic axis `AXIS_LOOP_DONE = 4` carries the cumulative
-halt as the substrate-side completion flag (loop-specific instance of
-the broader exception-channel pattern — divide-by-zero, NaN
+After surfacing that `loop(cond)` discards its body, here's the
+honest table of what each surface form does:
+
+| Form | Body runs? | Substrate-pure? | Notes |
+|---|---|---|---|
+| `loop[N]` literal N | ✓ unrolled at compile time | ✓ | Body emitted N times inline. No runtime iteration. |
+| `loop[N]` runtime N | ✓ host `for _ in range(N)` | ✗ host loop | Body runs but iteration counter lives on host. |
+| `loop(N as i)` | ✓ host `for i in range(N)` | ✗ host loop | Same; index var available in body. |
+| `foreach(T x in [a,b,c])` | ✓ unrolled per element | ✓ | Compile-time only. |
+| `foreach(T x in expr)` | — compile-time error | n/a | `CodegenNotSupported`; dynamic foreach is future work. |
+| `loop(cond)` | ✗ **body discarded** | ✓ (post-2026-04-30 refactor) | Body replaced with `R · state` for T=50 steps + soft halt + output gating. Only the state-var name and the condition's target are used. |
+| `while(cond)` | ✗ **body discarded** | ✓ | Same path as `loop(cond)`. |
+| `for(init; cond; step)` | ✗ **body discarded** | partial | Body replaced with `R · state` + snap. Iteration count extracted from condition. |
+| `do { body } while(cond)` | ✓ once, then ✗ for subsequent | ✓ for the while half | First iteration of body runs literally; subsequent iterations are eigenrotation with discarded body. |
+| `if/else` | n/a | n/a | Parser-accepted, codegen-rejected; rewrite to `select`. |
+
+**Verified vs unverified:**
+- The compile-time-unrolled forms (`loop[N]` literal, `foreach`
+  literal) are exercised by tests in `tests/test_codegen.py` and
+  several `examples/`. **Verified.**
+- `loop[N]` with runtime N: emits `for _ in range(N)` — has
+  parser/codegen tests but **no end-to-end test that asserts the
+  body's side effects**. Likely works (it's a plain Python for
+  loop) but unverified at the integration level.
+- `foreach` with runtime expression: explicitly errors at compile
+  time. **Verified to error**, no silent misbehavior.
+- `loop(cond)` / `while(cond)` / `for(...)` body-discard
+  behavior: pre-existing, dates back to the original
+  eigenrotation-loop introduction. The example programs
+  (`examples/loop_rotation.su`, `counter_loop.su`,
+  `concept_search.su`) all use `state = state;` as the body —
+  a no-op — so the discard has been invisible.
+- The 2026-04-30 RNN refactor made `_VSA.loop()`'s **execution**
+  substrate-pure (no host-side `for iters` / `if best_score`),
+  but did NOT change the body-discard semantics. That's a
+  separate question now parked in
+  `planning/open-questions/loop-body-semantics.md`.
+
+### RNN-style loop execution — substrate-pure but not really an "RNN" (2026-04-30)
+
+`loop(cond)` rewired as a branchless T-step tensor-op unroll. T
+fixed cell steps (default 50), no host-side `for iters in range`,
+no host-side `if best_score >= threshold`. Soft halt via sigmoid
++ monotone cumulative freezes state once convergence; output
+gating multiplies value axes by `halt_cum` so a non-converging
+loop emits a near-zero output. New canonical synthetic axis
+`AXIS_LOOP_DONE = 4` carries the cumulative halt as the
+substrate-side completion flag (loop-specific instance of the
+broader exception-channel pattern — divide-by-zero, NaN
 propagation TBD).
 
-Architecture: non-looping Sutra programs = MLP (forward pass);
-looping Sutra programs = RNN (recurrent forward pass). Both
-branchless on the substrate. cos / sin are still the eigenrotation
-primitive (chat's design that worked); the new piece is the soft-
-halt cell + output gating.
+**Honest naming:** "RNN-style" was overselling. What ships is
+`R^T · state` with a soft-halt early-exit — an iterated
+matrix-power, not a recurrent neural network in any meaningful
+sense. A real RNN has either (a) an input stream per step, (b) a
+cell body that varies per step, or (c) open-ended runtime. This
+has none — fixed Haar-random R, fixed T=50 steps, no per-step
+input. The "looping Sutra program = RNN" framing in
+`planning/findings/2026-04-30-rnn-loop-architecture.md` is more
+aspirational than descriptive. The substrate-purity claim
+(no host control flow) is real and shipped; the RNN-shape claim
+needs the body to actually be the cell — see
+`planning/open-questions/loop-body-semantics.md`.
 
-Tests: `sdk/sutra-compiler/tests/test_branchless_loop.py` (7 PASS) +
-80 broader codegen tests still green. Spec updated
+Tests: `sdk/sutra-compiler/tests/test_branchless_loop.py` (7
+PASS) + 80 broader codegen tests still green. Spec updated
 `planning/sutra-spec/control-flow.md`.
 
 ### Transcendentals — DONE 2026-04-29
