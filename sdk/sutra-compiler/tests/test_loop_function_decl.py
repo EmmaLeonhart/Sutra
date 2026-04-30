@@ -120,7 +120,9 @@ class TestCodegenShape(unittest.TestCase):
         self.assertIn("def _loop_addNumber(_init_x):", py)
         self.assertIn("for _t in range(50):", py)
         self.assertIn("_pre_x = x", py)
-        self.assertIn("_halt_cum = min(_halt_cum + _halt_term, 1.0)", py)
+        # Substrate-pure halt accumulator (queue item 4 fix, 2026-04-30):
+        # uses _VSA.saturate_unit instead of Python's min().
+        self.assertIn("_halt_cum = _VSA.saturate_unit(_halt_cum + _halt_term)", py)
         self.assertIn("x = (1.0 - _halt_cum) * x + _halt_cum * _pre_x", py)
 
 
