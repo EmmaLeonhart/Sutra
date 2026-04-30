@@ -11,9 +11,10 @@ See CLAUDE.md §"queue.md and the task tool" for the full workflow.
 
 The work here is **making Sutra the language actually work** — the
 compiler, the spec, the substrate-backed runtime, the demo programs.
-No papers, no submission deadlines. The question each queue item
-answers is: *what does it take to make this language a real thing
-someone can use?*
+**The last queue item, after the language works, is writing the
+paper and shipping it (preprint + NeurIPS submission with CI/CD).**
+The question each queue item answers is: *what does it take to make
+this language a real thing someone can use, and then publish?*
 
 Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
@@ -21,33 +22,7 @@ pick up next.
 
 ## Queued work — top of queue (work through in order)
 
-### 1. Deprecate or remove the old loop forms
-
-The function-declaration loop forms (`do_while NAME(...)`,
-`while_loop NAME(...)`, `iterative_loop NAME(...)`, `foreach_loop
-NAME(...)` + `loop NAME(...);` call site) shipped 2026-04-30 and all
-four kinds work end-to-end (17 tests pass). The OLD C-style forms —
-`while(cond) { body }`, `for(init; cond; step) { body }`,
-`loop(cond) { body }`, `do { body } while (cond);` — still parse and
-compile, but their codegen is the body-discard variant that doesn't
-actually run the body. Two parallel surfaces, one of which is broken.
-
-Pick one of:
-- **Hard removal**: parser rejects the old forms with
-  `CodegenNotSupported` pointing at the function-decl forms.
-- **Deprecation warning**: parser still accepts but emits a warning;
-  removal in a later release.
-
-Either way, the old `examples/loop_rotation.su`,
-`examples/counter_loop.su`, `examples/concept_search.su` need to
-either move to the new form or get deleted. They use no-op bodies
-that never exercised the discarded code anyway.
-
-The compile-time `loop(N) { body }` (literal N, unrolls at compile
-time) stays — that's the cheap easy form Emma wants for arrays-of-
-known-size cases. Do NOT remove that.
-
-### 2. Program-level completion flag propagation
+### 1. Program-level completion flag propagation
 
 `AXIS_LOOP_DONE` is set on the loop's local result vector but
 doesn't propagate through layers to the program's final output.
@@ -76,7 +51,7 @@ loops return correct values; programs with unreachable loops
 
 ## Queued work — middle of queue
 
-### 3. SutraDB integration as the default vector backend
+### 2. SutraDB integration as the default vector backend
 
 Emma 2026-04-30: "we should be using SutraDB with `nomic-embed-text`.
 ... SutraDB and runtime are small enough that we can reasonably embed
@@ -125,7 +100,7 @@ of the queue rolls around to it. Worth flagging as "default for
 larger files in the future" — small programs may stay on the
 in-process bind/bundle/argmax path during the transition.
 
-### 4. make_random_rotation pre-warm at compile time
+### 3. make_random_rotation pre-warm at compile time
 
 Today, the first call to `bind` for each role triggers
 `make_random_rotation` (numpy random + QR + Givens construction).
@@ -141,7 +116,7 @@ and asserts the second run has zero rotation construction.
 
 ## Queued work — back of queue (boundary leaks; "Python is just IO" target)
 
-### 5. Boundary leaks (Python touching scalars where it shouldn't)
+### 4. Boundary leaks (Python touching scalars where it shouldn't)
 
 These are real but small — they don't break correctness, just keep
 the runtime from being purely tensor ops:
@@ -165,7 +140,7 @@ to user, print, etc.). Requires touching: slot_load, slot_store
 similarity, the loop halt check, array_get, the vector accessors
 (real, imag, truth, component).
 
-### 6. "Python is just IO" target — three pieces
+### 5. "Python is just IO" target — three pieces
 
 Emma's framing: ideally the Python wrapper does *only* IO/console
 shell work; everything else runs as one big tensor-op graph.
@@ -184,6 +159,120 @@ Distance is small but non-zero:
 These are the "make Python wrapper genuinely just IO" pieces. After
 they land, the wrapper is module load + `_VSA` instance setup +
 `main()` call + return value to console — nothing else.
+
+## Queued work — final item (paper + submission pipeline)
+
+### 6. Paper draft, NeurIPS submission, and CI/CD pipeline
+
+After items 1-5 land and the language works end-to-end on real
+programs, the last queue item is **writing the paper and shipping
+it**. Emma 2026-04-30: target is a NeurIPS submission with a
+preprint posted in parallel.
+
+#### Sub-items, in rough order
+
+**6a. Audit NeurIPS submission rules first.** Before any pipeline
+work, read the current year's NeurIPS author guide and capture in a
+findings doc:
+- Page limit + format (LaTeX template? `neurips_2026.sty`?).
+- Anonymization rules (double-blind: no author names, no acknowledgments,
+  no GitHub URLs that deanonymize, no self-citations that aren't
+  third-person).
+- Supplementary material rules (separate PDF? code submission?).
+- Reproducibility checklist requirements.
+- Submission deadline + abstract registration deadline.
+
+Output: `planning/findings/YYYY-MM-DD-neurips-submission-rules.md`.
+This document is what the CI/CD pipeline gets built against.
+
+**6b. Pick the preprint server.** Emma's wording on 2026-04-30 was
+"CLAW4S" (likely a voice-transcription artifact for **arXiv**, but
+could also mean **alphaXiv** — the ML annotated-preprint platform —
+since "we're going back to" suggests a previously-used service).
+Resolve before building the upload step.
+
+Either way, the paper goes onto a public preprint server in parallel
+with the NeurIPS submission, so peer reviewers can find it but Emma
+isn't waiting on the conference cycle to publish.
+
+**6c. Write the paper itself.** Substance, not yet plumbing:
+- The narrative arc per `project_sutra_paper_real_scope.md`:
+  displacements in frozen embedding spaces → consolidate into rotation
+  binding → learned matrices as the natural extension. Sign-flip is at
+  most a side note; the headline is learned-matrix (semantic) binding.
+- Empirical foundation from `latent-space-cartography` (sibling repo
+  — verify numbers against source, do not quote from memory).
+- The Sutra language as the realization of the program: a programming
+  language whose primitives are the operations that fall out of the
+  embedding-space analysis.
+- Substrate-purity story: every operation runs as tensor ops on the
+  substrate; no host-Python compute; the compiler is the safety
+  boundary because the runtime has no error channel by mechanism.
+- Demo programs (`hello world`, `fuzzy_dispatch`, `role_filler_record`,
+  the loop demos) as worked examples.
+
+This is the work-product itself, not infrastructure. Likely lives in
+a new `paper/` directory at repo root with `paper.tex` + `paper.bib`
++ figures.
+
+**6d. CI/CD pipeline — single source, four outputs.** From the same
+LaTeX/Markdown source, the pipeline produces:
+1. **HTML on the docs site** (`sutralang.dev`) — for casual readers
+   and AI-agent consumers.
+2. **Downloadable PDF on the website** — full version with author
+   names, links, acknowledgments.
+3. **Anonymized PDF on the website** — author names stripped, repo
+   URLs anonymized, third-person self-references. This is the version
+   that goes to NeurIPS double-blind review. (Why on the website too?
+   So reviewers who find the paper outside the OpenReview portal land
+   on the same anonymized version they're supposed to be reviewing.)
+4. **Preprint server upload** (arXiv or alphaXiv per 6b) — typically
+   the non-anonymized version once NeurIPS allows preprint posting.
+   Verify the rule in the NeurIPS author guide (some years require
+   the preprint timing to predate the submission deadline; some
+   require it to follow).
+
+Pipeline shape (rough): GitHub Actions workflow on push to
+`paper/` triggers two LaTeX builds (full + anonymized via `\if`
+macros), uploads the PDFs as workflow artifacts, deploys both PDFs
++ rendered HTML to the docs site, and (optionally, on a tag) pushes
+to the preprint server's API.
+
+**6e. Anonymization macros.** A single-source approach uses LaTeX
+conditionals to swap in/out the deanonymizing pieces:
+```latex
+\ifanon
+  \author{Anonymous Authors}
+  \newcommand{\repo}{[anonymized repository]}
+\else
+  \author{Emma Leonhart}
+  \newcommand{\repo}{\url{https://github.com/...}}
+\fi
+```
+Build flag (`-DANON=1`) flips between modes. Avoids the trap of
+forking two paper sources that drift from each other.
+
+**6f. Reproducibility submission.** NeurIPS reproducibility
+checklist will require pointing at runnable code. The Sutra repo
+itself is the answer; the submission references it (anonymized in
+6e via `\repo`) and includes a `paper/REPRODUCE.md` with
+"clone, install, run these commands, get these numbers."
+
+#### Why this is at the end, not the start
+
+The paper claims things about the language. The language has to
+actually do those things first. Items 1-5 are the language being
+*real* (substrate-pure, complete RNN compilation, no boundary
+leaks, default vector backend). Item 6 is the language being
+*defended* in print. Doing 6 first would mean writing a paper about
+aspirational software, which is the failure mode the
+safety-critical preamble in CLAUDE.md exists to prevent.
+
+#### Likely scope
+
+This item is bigger than items 1-5 combined. Will need its own
+plan + several findings docs (NeurIPS rules audit, paper outline
+review, pipeline design) when it rolls to the front of the queue.
 
 ## Queued work — flagged but not blocking
 
