@@ -398,6 +398,29 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._indent -= 1
         self._emit()
+        self._emit("def prewarm_rotation_cache(self):")
+        self._indent += 1
+        self._emit('"""Pre-compute rotation matrices for every codebook entry.')
+        self._emit('')
+        self._emit("Per Emma 2026-04-30 (queue item 3): the runtime should never")
+        self._emit("pay the QR construction cost on the hot path. Pre-warming at")
+        self._emit("module init means every bind/unbind hits the cache. Conservative")
+        self._emit("over the codebook (some entries are fillers, not roles); the")
+        self._emit("cost is one-time and proportional to codebook size.")
+        self._emit('"""')
+        self._emit("for name, vec in self._codebook.items():")
+        self._indent += 1
+        self._emit("try:")
+        self._indent += 1
+        self._emit("self._rotation_for(vec)")
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("pass  # one bad rotation shouldn't kill the rest")
+        self._indent -= 1
+        self._indent -= 1
+        self._indent -= 1
+        self._emit()
         self._emit("def nearest_string(self, query):")
         self._indent += 1
         self._emit('"""Inverse of embed(): given a query vector, return the nearest')
@@ -1098,6 +1121,14 @@ class PyTorchCodegen(Codegen):
             # still get inserted; they're available for decode even though
             # no expression in the program references them.
             self._emit("_VSA.populate_sutradb()")
+            # Compile-time rotation pre-warm (queue item 3). Conservatively
+            # pre-warms a rotation matrix for every codebook entry so the
+            # runtime never pays the QR cost on the hot path. Over-warms
+            # for fillers that aren't ever used as roles, but the cost is
+            # one-time and proportional to the codebook size which is
+            # small for typical programs. A targeted "scan for bind() role
+            # args only" pass would be a future optimization.
+            self._emit("_VSA.prewarm_rotation_cache()")
         self._emit()
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
