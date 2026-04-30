@@ -84,22 +84,34 @@ Concrete shape:
   does the work in Rust + HNSW.
 
 Implementation pieces (rough sequencing):
-1. Embed SutraDB CLI / FFI binding into the runtime so compiled
-   modules can query a `.sdb` without a separate process.
+1. ~~Embed SutraDB CLI / FFI binding into the runtime so compiled
+   modules can query a `.sdb` without a separate process.~~ — DONE
+   in commit `3b33938`. `sdk/sutra-compiler/sutra_compiler/
+   sutradb_embedded.py` is a ctypes wrapper around `sutra_ffi.dll`
+   exposing open / add(label, vec) / nearest(query, k). 4/4 smoke
+   tests pass. Build prereq: `cd sutraDB && cargo build --release
+   -p sutra-ffi`.
 2. Codegen: at module init, open a `.sdb` populated with the
-   program's known vectors (codebook, role rotations, etc.).
+   program's known vectors (codebook, role rotations, etc.). NOT
+   STARTED.
 3. Replace `argmax_cosine` / `snap` runtime methods with SutraDB
-   nearest-neighbor queries.
+   nearest-neighbor queries. NOT STARTED.
 4. Replace `hashmap_*` runtime methods with SutraDB triple
-   insert/query.
+   insert/query. NOT STARTED.
 5. `atman.toml` `[vector_db]` section to override defaults
-   (nomic-embed-text, sdb file path, HNSW params).
+   (nomic-embed-text, sdb file path, HNSW params). NOT STARTED.
+6. **FFI auto-declare-on-insert fix.** Today's FFI doesn't declare
+   a vector predicate when its first triple gets inserted; only
+   the `sutra_db_open` rebuild path auto-declares. The Python
+   wrapper works around this via close+reopen on `nearest()`,
+   which is correct but slow. Fix: modify `sutra_insert_ntriples`
+   in `sutraDB/sutra-ffi/src/lib.rs` to detect f32vec-typed object
+   literals and auto-declare. Rust-side change; rebuild required.
 
-This is bigger than the rest of the queue items combined. Will
-likely need its own design doc + plan when the slot at the front
-of the queue rolls around to it. Worth flagging as "default for
-larger files in the future" — small programs may stay on the
-in-process bind/bundle/argmax path during the transition.
+The pieces above are scoped tractable. Pieces 2 + 3 together get
+the language using SutraDB for its hot path; 4 + 5 + 6 are
+follow-ups. Small programs may stay on the in-process
+bind/bundle/argmax path during the transition.
 
 ### 3. make_random_rotation pre-warm at compile time
 
