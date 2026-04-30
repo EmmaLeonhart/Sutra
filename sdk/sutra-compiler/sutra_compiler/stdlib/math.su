@@ -1,26 +1,31 @@
 // Canonical Sutra declarations for the transcendental-function
-// family (log / sqrt / exp / trig / pow). Sutra's design intent is
-// that these compile to tensor operations at compile time rather
-// than calling out to libm at runtime — see
-// docs/numeric-math.md § "Transcendental functions" for the
-// design and todo.md § "Compile-time math function approximation"
-// for the implementation roadmap.
+// family (log / sqrt / exp / trig / pow). All seven are wired to
+// real implementations as of 2026-04-29; both numpy and pytorch
+// backends emit substrate-pure runtime methods.
 //
-// **Status: placeholder.** The intrinsic declarations below are
-// wired through the parser / validator so `sqrt(x)` is a known
-// name in user programs, but the runtime methods raise
-// NotImplementedError until the compile-time approximation pass
-// lands. Calling these functions from a `.su` program today
-// produces a compile-success / runtime-error pair: the program
-// compiles, runs through prelude initialization, and fails with
-// a clear "the approximation pass isn't wired yet" message
-// pointing at the relevant todo.md item.
+// **Architecture:**
+//   - cos / sin: eigenrotation primitive — R(theta) applied to (1, 0)
+//     yields (cos theta, sin theta) directly. This is the user's
+//     "they're eigenrotations" understanding from the design chat.
+//   - exp(z) for complex z = re + i*im: realExp(re) via degree-25
+//     Taylor + 5-pass squaring range reduction (no libm, no floor),
+//     composed with the cos/sin eigenrotation of im.
+//   - log(z) = ln|z| + i*atan2(im, re). ln via frexp range reduction
+//     (IEEE 754 exponent extraction, a substrate primitive — bit
+//     manipulation, NOT a transcendental) plus artanh series on the
+//     mantissa in [0.5, 1). atan2 via Gregory series + quadrant
+//     decomposition.
+//   - sqrt = exp(0.5 * log).
+//   - pow(x, y) = exp(y * log(x)).
+//   - tan = sin / cos.
 //
-// The placeholder is deliberate. Declaring the API surface now
-// lets `.su` programs be written against the eventual semantics,
-// keeps the docs honest about what Sutra promises, and makes the
-// gap auditable from the stdlib rather than from a bug-tracker
-// item.
+// **Bound-table-via-binding** (the originally-sketched design from
+// chats/implementing-transcendental-functions.md) is used only for
+// cos/sin, where the eigenrotation gives FP-precise results. For
+// non-periodic functions (exp, ln) the bound-table architecture has
+// a fundamental capacity limit (the 2-scalar bundle can only encode
+// one DFT coefficient of the function). See
+// planning/findings/2026-04-29-bound-table-capacity-limit.md.
 
 
 // ==========================================================================

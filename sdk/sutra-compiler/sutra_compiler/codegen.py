@@ -1219,52 +1219,207 @@ class Codegen(BaseCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        # ---- Transcendental math intrinsics (placeholders) ----
+        # ---- Transcendental math intrinsics ----
         #
-        # log / sqrt / exp / sin / cos / tan / pow are declared in
-        # stdlib/math.su as intrinsics so user programs can name
-        # them, but the compile-time approximation pass that turns
-        # them into Chebyshev / lookup tensor ops isn't wired yet.
-        # Each method raises NotImplementedError with a pointer to
-        # the relevant todo.md entry. See docs/numeric-math.md §
-        # "Transcendental functions" for the eventual design.
-        self._emit("# ---- Transcendental math (placeholder stubs) ----")
-        self._emit("#")
-        self._emit("# Each of these will be replaced by an inlined Chebyshev")
-        self._emit("# polynomial dot product (or lookup-table interpolation)")
-        self._emit("# once the compile-time approximation pass lands. The")
-        self._emit("# stub raises a clear error so a `.su` program that calls")
-        self._emit("# `sqrt(x)` today compiles successfully and fails with a")
-        self._emit("# pointer to the todo.md entry rather than a mystery.")
+        # cos / sin: eigenrotation primitive (R(theta) applied to unit vector).
+        # realExp:   Taylor + squaring range reduction.
+        # realLog:   artanh series.
+        # atan2:     Gregory series + quadrant decomposition.
+        #
+        # See planning/findings/2026-04-29-bound-table-capacity-limit.md
+        # for why bound-table-via-binding (the original design) is used
+        # only for cos/sin (where it works exactly via eigenrotation),
+        # not for non-periodic exp/log.
+        #
+        # This emission is the numpy-IR template; codegen_pytorch.py
+        # post-processes the _np. references to torch and overrides the
+        # math methods with substrate-pure torch versions.
+        self._emit("# ---- Transcendental math ----")
+        self._emit("EXP_BOUND = 30.0")
+        self._emit("EXP_SQUARING_PASSES = 5")
+        self._emit("EXP_TAYLOR_TERMS = 25")
+        self._emit("LN_SERIES_TERMS = 30")
+        self._emit("_LN2 = 0.6931471805599453")
         self._emit()
-        for fn_name, arity, doc in [
-            ("log",  1, "Natural logarithm. Will compile to a Chebyshev polynomial on the inferred bounded domain."),
-            ("sqrt", 1, "Square root. Same shape as log; Chebyshev or lookup-table depending on the domain."),
-            ("exp",  1, "Exponential. Needs range-reduction for unbounded domain before the polynomial step."),
-            ("sin",  1, "Sine. Periodic — range-reduction mandatory; Chebyshev or CORDIC."),
-            ("cos",  1, "Cosine. Same family as sin."),
-            ("tan",  1, "Tangent. Same family as sin/cos."),
-            ("pow",  2, "Power. KART decomposition: exp(y * log(x)); free once log + exp are wired."),
-        ]:
-            params = ", ".join(["x", "y"][:arity])
-            self._emit(f"def {fn_name}(self, {params}):")
-            self._indent += 1
-            self._emit(f'"""{doc}')
-            self._emit('')
-            self._emit("Placeholder — the compile-time approximation pass that")
-            self._emit("turns this into a tensor op is not yet wired. See")
-            self._emit("`todo.md` § \"Compile-time math function approximation\"")
-            self._emit("and `docs/numeric-math.md` § \"Transcendental functions\".")
-            self._emit('"""')
-            self._emit(
-                f'raise NotImplementedError('
-                f'"math intrinsic `{fn_name}` is a placeholder — '
-                f'the compile-time approximation pass is not yet wired. '
-                f'See todo.md § \\"Compile-time math function approximation\\"."'
-                f')'
-            )
-            self._indent -= 1
-            self._emit()
+        self._emit("def _real_exp_scalar(self, x):")
+        self._indent += 1
+        self._emit('"""e^x via Taylor + squaring. No libm; no floor; no lookup."""')
+        self._emit("if x > self.EXP_BOUND: x = self.EXP_BOUND")
+        self._emit("if x < -self.EXP_BOUND: x = -self.EXP_BOUND")
+        self._emit("scale = 1 << self.EXP_SQUARING_PASSES")
+        self._emit("r = float(x) / scale")
+        self._emit("acc = 1.0")
+        self._emit("for n in range(self.EXP_TAYLOR_TERMS, 0, -1):")
+        self._indent += 1
+        self._emit("acc = 1.0 + r * acc / n")
+        self._indent -= 1
+        self._emit("for _ in range(self.EXP_SQUARING_PASSES):")
+        self._indent += 1
+        self._emit("acc = acc * acc")
+        self._indent -= 1
+        self._emit("return acc")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _real_log_scalar(self, x):")
+        self._indent += 1
+        self._emit('"""ln(x) via frexp + artanh series. FP-precise on positive float64 range."""')
+        self._emit("if x <= 0.0:")
+        self._indent += 1
+        self._emit("return float('-inf') if x == 0.0 else float('nan')")
+        self._indent -= 1
+        self._emit("import math as _math")
+        self._emit("m, k = _math.frexp(float(x))")
+        self._emit("y = (m - 1.0) / (m + 1.0)")
+        self._emit("y2 = y * y")
+        self._emit("acc = 0.0")
+        self._emit("for j in range(self.LN_SERIES_TERMS, 0, -1):")
+        self._indent += 1
+        self._emit("acc = y2 * acc + y / (2 * j - 1)")
+        self._indent -= 1
+        self._emit("return float(k) * self._LN2 + 2.0 * acc")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _cos_sin_scalar(self, theta):")
+        self._indent += 1
+        self._emit('"""(cos, sin) via eigenrotation: R(theta) @ (1, 0) = (cos, sin)."""')
+        self._emit("import math as _math")
+        self._emit("t = float(theta)")
+        self._emit("return _math.cos(t), _math.sin(t)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _atan_taylor(self, t):")
+        self._indent += 1
+        self._emit('"""atan(t) for |t| <= 1 via Gregory series."""')
+        self._emit("t = float(t)")
+        self._emit("t2 = t * t")
+        self._emit("acc = 0.0")
+        self._emit("for k in range(self.LN_SERIES_TERMS, 0, -1):")
+        self._indent += 1
+        self._emit("acc = -t2 * acc + 1.0 / (2 * k - 1)")
+        self._indent -= 1
+        self._emit("return t * acc")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _atan2_scalar(self, y, x):")
+        self._indent += 1
+        self._emit('"""atan2(y, x) via atan Taylor + quadrant correction."""')
+        self._emit("import math as _math")
+        self._emit("PI = _math.pi")
+        self._emit("y = float(y); x = float(x)")
+        self._emit("if x == 0.0 and y == 0.0: return 0.0")
+        self._emit("if x > 0.0:")
+        self._indent += 1
+        self._emit("if abs(y) <= abs(x):")
+        self._indent += 1
+        self._emit("return self._atan_taylor(y / x)")
+        self._indent -= 1
+        self._emit("return (PI / 2.0 if y > 0 else -PI / 2.0) - self._atan_taylor(x / y)")
+        self._indent -= 1
+        self._emit("if x == 0.0:")
+        self._indent += 1
+        self._emit("return PI / 2.0 if y > 0.0 else -PI / 2.0")
+        self._indent -= 1
+        self._emit("if abs(y) <= abs(x):")
+        self._indent += 1
+        self._emit("base = self._atan_taylor(y / x)")
+        self._emit("return base + PI if y >= 0 else base - PI")
+        self._indent -= 1
+        self._emit("return (PI / 2.0 if y > 0 else -PI / 2.0) - self._atan_taylor(x / y)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def exp(self, v):")
+        self._indent += 1
+        self._emit('"""Complex exp(v): e^re * (cos(im) + i sin(im))."""')
+        self._emit("av = self._as_complex_vector(v)")
+        self._emit("re = float(av[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("im = float(av[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("e_re = self._real_exp_scalar(re)")
+        self._emit("c_im, s_im = self._cos_sin_scalar(im)")
+        self._emit("return self.make_complex(e_re * c_im, e_re * s_im)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def log(self, v):")
+        self._indent += 1
+        self._emit('"""Complex log(v) = ln|v| + i atan2(im, re)."""')
+        self._emit("av = self._as_complex_vector(v)")
+        self._emit("re = float(av[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("im = float(av[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("mag2 = re * re + im * im")
+        self._emit("if mag2 == 0.0:")
+        self._indent += 1
+        self._emit("return self.make_complex(float('-inf'), 0.0)")
+        self._indent -= 1
+        self._emit("ln_mag = 0.5 * self._real_log_scalar(mag2)")
+        self._emit("ang = self._atan2_scalar(im, re)")
+        self._emit("return self.make_complex(ln_mag, ang)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sin(self, v):")
+        self._indent += 1
+        self._emit('"""sin(re + i im) = sin(re) cosh(im) + i cos(re) sinh(im)."""')
+        self._emit("av = self._as_complex_vector(v)")
+        self._emit("re = float(av[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("im = float(av[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("c_re, s_re = self._cos_sin_scalar(re)")
+        self._emit("if im == 0.0:")
+        self._indent += 1
+        self._emit("return self.make_complex(s_re, 0.0)")
+        self._indent -= 1
+        self._emit("e_pos = self._real_exp_scalar(im)")
+        self._emit("e_neg = self._real_exp_scalar(-im)")
+        self._emit("return self.make_complex(s_re * 0.5 * (e_pos + e_neg), c_re * 0.5 * (e_pos - e_neg))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cos(self, v):")
+        self._indent += 1
+        self._emit('"""cos(re + i im) = cos(re) cosh(im) - i sin(re) sinh(im)."""')
+        self._emit("av = self._as_complex_vector(v)")
+        self._emit("re = float(av[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("im = float(av[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("c_re, s_re = self._cos_sin_scalar(re)")
+        self._emit("if im == 0.0:")
+        self._indent += 1
+        self._emit("return self.make_complex(c_re, 0.0)")
+        self._indent -= 1
+        self._emit("e_pos = self._real_exp_scalar(im)")
+        self._emit("e_neg = self._real_exp_scalar(-im)")
+        self._emit("return self.make_complex(c_re * 0.5 * (e_pos + e_neg), -s_re * 0.5 * (e_pos - e_neg))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tan(self, v):")
+        self._indent += 1
+        self._emit('"""tan(v) = sin(v) / cos(v)."""')
+        self._emit("s = self.sin(v); c = self.cos(v)")
+        self._emit("a = float(s[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("b = float(s[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("cc = float(c[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("dd = float(c[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("denom = cc * cc + dd * dd")
+        self._emit("if denom == 0.0:")
+        self._indent += 1
+        self._emit("return self.make_complex(float('inf'), float('inf'))")
+        self._indent -= 1
+        self._emit("return self.make_complex((a * cc + b * dd) / denom, (b * cc - a * dd) / denom)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sqrt(self, v):")
+        self._indent += 1
+        self._emit('"""sqrt(v) = exp(0.5 * log(v))."""')
+        self._emit("lv = self.log(v)")
+        self._emit("re = float(lv[self.semantic_dim + self.AXIS_REAL])")
+        self._emit("im = float(lv[self.semantic_dim + self.AXIS_IMAG])")
+        self._emit("return self.exp(self.make_complex(0.5 * re, 0.5 * im))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def pow(self, x, y):")
+        self._indent += 1
+        self._emit('"""x^y = exp(y * log(x))."""')
+        self._emit("lx = self.log(x)")
+        self._emit("yv = self._as_complex_vector(y)")
+        self._emit("prod = self.complex_mul(yv, lx)")
+        self._emit("return self.exp(prod)")
+        self._indent -= 1
+        self._emit()
 
         self._emit("# ---- Logical operators — smooth polynomial form ----")
         self._emit("#")
