@@ -62,11 +62,11 @@ Python `for _ in range(N)` loop around the body (no unrolling).
 That's a compile-time choice, not a runtime eigenrotation — the
 substrate doesn't see any rotation in this case.
 
-### `loop(cond)` — data-dependent, eigenrotation on the substrate
+### `loop(cond)` — data-dependent, branchless RNN unroll on the substrate
 
 When the loop's termination is data-dependent (`loop (cond)` where
 `cond` is not an integer literal), the codegen lowers to an
-**eigenrotation loop on the substrate**. The compiler:
+**RNN-style unrolled cell on the substrate** (2026-04-30). The compiler:
 
 1. Extracts the target vector from the condition — the shape
    `similarity(state, target_expr) < threshold` is recognized and
@@ -74,17 +74,41 @@ When the loop's termination is data-dependent (`loop (cond)` where
    `codegen.py`).
 2. Emits a Haar-random orthogonal rotation `R` seeded by the
    runtime seed.
-3. Iterates `state ← R · state` on the substrate, snapping against
-   a compiled prototype table at each step.
-4. Terminates when the snapped prototype matches the target within
-   the threshold, or when `max_iters` is hit.
+3. Calls `_VSA.loop()`, which runs **T fixed cell steps unconditionally**:
+   - Cell: `state, halt_cum = _step(state, R, target, halt_cum, k, threshold)`
+   - `_step` computes `cand = R · state`, normalizes, computes
+     `sim = cos(cand, target)`, computes soft halt
+     `halt = sigmoid(k · (sim - threshold))`, accumulates monotonically
+     `halt_cum = min(halt_cum + halt, 1)`, and freezes via soft mux
+     `state = (1 - halt_cum) · cand + halt_cum · state`.
+   - Pure tensor ops at every step: multiply, add, divide, exp, minimum.
+     **No host-side `if`, no host-side `while`, no host-side iteration
+     count** in the cell.
+4. After T steps, gates the value-bearing axes by `halt_cum` so a
+   non-converging loop emits a near-zero output. The cumulative
+   halt is written to `synthetic[AXIS_LOOP_DONE]` as the
+   substrate-side completion flag.
 
-The PyTorch / CPU backend uses threshold 0.9 as the default
-termination gate (cosine matching).
+This is the RNN dual of Sutra's MLP-shaped non-looping path:
+non-looping programs are a single forward pass; looping programs
+are a recurrent forward pass. Both are branchless on the substrate.
+
+Defaults: `T = max_iters = 50`, `k = 20.0` (sigmoid sharpness),
+`threshold = 0.5` (cosine convergence gate).
+
+**Output gating + AXIS_LOOP_DONE.** The reserved synthetic axis at
+index 4 carries the cumulative halt (`halt_cum ∈ [0, 1]`):
+- `halt_cum ≈ 1` → loop converged; output is valid; value axes
+  are unchanged.
+- `halt_cum < 1` → loop did not converge within T steps; value
+  axes are scaled by `halt_cum` (toward zero), so downstream code
+  sees a near-zero output it can detect as "incomplete." This is
+  the loop-specific instance of the broader **exception channel**
+  pattern (divide-by-zero, NaN propagation; see `todo.md`).
 
 Demo programs: `examples/loop_rotation.su`,
 `examples/counter_loop.su`, `examples/concept_search.su`. All pass
-under the current rotation-binding runtime.
+under the new RNN unroll.
 
 ### `while` and `for` — also eigenrotation
 
@@ -171,15 +195,16 @@ declared return type.
 - **Non-similarity loop conditions.** `loop(cond)` currently
   expects `similarity(state, target) < threshold`. Can a bool
   crossing a threshold or a counter hitting a ceiling terminate a
-  loop, and do those need their own lowering paths? A related
-  candidate is **stabilization-based termination** — terminate
-  when `similarity(state_n, state_{n+1}) > threshold` (the state
-  stops moving) rather than when it matches a known prototype.
-  This is the natural shape for attractor-like iteration where no
-  target is supplied; the `concurrency.md` MLP attractor case
-  uses `||f(x) - x|| < ε` as the per-path version of the same
-  idea. Would need its own lowering path because the condition
-  references the *previous* state, not a compile-time prototype.
+  loop, and do those need their own lowering paths?
+  **(Partially resolved 2026-04-30 by the soft-halt mechanism:**
+  any sigmoid-able scalar can be the halt source, so adding new
+  termination shapes is a matter of swapping `sim` for the
+  appropriate quantity in `_step`. Stabilization termination
+  `||state_n - state_{n-1}|| < eps` fits the same shape — track
+  the previous state via a one-step delay and feed the difference
+  norm into the sigmoid.) Still open: surface syntax for
+  selecting between target-similarity vs stabilization vs custom
+  predicates.
 - **Decide fate of parser-only features.** `do-while`, `foreach`,
   `try-catch`, `if/else`: should they stay parsed-but-rejected (to
   reserve the surface syntax), get removed entirely, or get
