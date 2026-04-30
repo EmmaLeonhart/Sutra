@@ -491,6 +491,35 @@ class PyTorchCodegen(Codegen):
         self._emit("return state[i]")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Binding-array primitive (substrate-stored ordered list) ----")
+        self._emit("# Layout: arr[0] = length scalar, arr[1..length] = elements. Used by")
+        self._emit("# foreach_loop. Pure tensor reads/writes; no Python list, no heap")
+        self._emit("# allocation beyond the initial tensor.")
+        self._emit()
+        self._emit("def array_from_literal(self, *values):")
+        self._indent += 1
+        self._emit('"""Build an array from compile-time-known scalar values."""')
+        self._emit("arr = _torch.zeros(len(values) + 1, dtype=self.dtype, device=self.device)")
+        self._emit("arr[0] = float(len(values))")
+        self._emit("for i, v in enumerate(values):")
+        self._indent += 1
+        self._emit("arr[1 + i] = float(v)")
+        self._indent -= 1
+        self._emit("return arr")
+        self._indent -= 1
+        self._emit()
+        self._emit("def array_length(self, arr):")
+        self._indent += 1
+        self._emit('"""Read the length prefix as an int (used for Python loop bound)."""')
+        self._emit("return int(arr[0].item())")
+        self._indent -= 1
+        self._emit()
+        self._emit("def array_get(self, arr, i):")
+        self._indent += 1
+        self._emit('"""Read element at index i (0-based). Returns torch 0-dim tensor."""')
+        self._emit("return arr[1 + int(i)]")
+        self._indent -= 1
+        self._emit()
         self._emit("# ---- Substrate scalar primitives (boundary-leak reductions) ----")
         self._emit()
         self._emit("def truth_axis(self, vec_or_scalar):")
