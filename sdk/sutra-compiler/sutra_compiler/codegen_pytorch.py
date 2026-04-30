@@ -741,10 +741,9 @@ class PyTorchCodegen(Codegen):
         self._emit("import math as _math")
         self._emit("i, j = self._slot_plane(slot_idx)")
         self._emit("c, s = _math.cos(float(angle)), _math.sin(float(angle))")
-        self._emit("new = state.clone() if hasattr(state, 'clone') else state.copy()")
-        self._emit("xi, xj = float(state[i]), float(state[j])")
-        self._emit("new[i] = c * xi - s * xj")
-        self._emit("new[j] = s * xi + c * xj")
+        self._emit("new = state.clone()")
+        self._emit("new[i] = c * state[i] - s * state[j]")
+        self._emit("new[j] = s * state[i] + c * state[j]")
         self._emit("return new")
         self._indent -= 1
         self._emit()
@@ -893,7 +892,7 @@ class PyTorchCodegen(Codegen):
         self._emit("def make_truth(self, t):")
         self._indent += 1
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
-        self._emit("v[self.semantic_dim + self.AXIS_TRUTH] = float(t)")
+        self._emit("v[self.semantic_dim + self.AXIS_TRUTH] = t")
         self._emit("return v")
         self._indent -= 1
         self._emit()
@@ -920,21 +919,24 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def defuzzify_trit(self, v, iters=10, beta=2.0):")
         self._indent += 1
-        self._emit('"""Three-way polarizer toward {-1, 0, +1} — torch version."""')
-        self._emit("x = float(v[self.semantic_dim + self.AXIS_TRUTH].item())")
-        self._emit("b = float(beta)")
+        self._emit('"""Three-way polarizer toward {-1, 0, +1} — torch tensor ops."""')
+        self._emit("x = v[self.semantic_dim + self.AXIS_TRUTH]")
+        self._emit("b = _torch.tensor(float(beta), dtype=self.dtype, device=self.device)")
+        # Fixed-N compile-time loop with tensor-op body (acceptable per
+        # CLAUDE.md: "The only acceptable Python `for` is one that is
+        # semantically part of the operation's definition where N is fixed
+        # at compile time and the loop body is itself a tensor op.")
         self._emit("for _ in range(int(iters)):")
         self._indent += 1
-        self._emit("import math as _math")
-        self._emit("w_neg = _math.exp(-b * (x + 1.0) ** 2)")
-        self._emit("w_zero = _math.exp(-b * x ** 2)")
-        self._emit("w_pos = _math.exp(-b * (x - 1.0) ** 2)")
+        self._emit("w_neg = _torch.exp(-b * (x + 1.0) ** 2)")
+        self._emit("w_zero = _torch.exp(-b * x ** 2)")
+        self._emit("w_pos = _torch.exp(-b * (x - 1.0) ** 2)")
         self._emit("s = w_neg + w_zero + w_pos")
         self._emit("x = (-w_neg + w_pos) / s")
-        self._emit("b *= 2.0")
+        self._emit("b = b * 2.0")
         self._indent -= 1
         self._emit("out = v.clone()")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = float(x)")
+        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = x")
         self._emit("return out")
         self._indent -= 1
         self._emit()
@@ -1027,7 +1029,7 @@ class PyTorchCodegen(Codegen):
         self._emit("na = _torch.sqrt((av * av).sum())")
         self._emit("nb = _torch.sqrt((bv * bv).sum())")
         self._emit("cos = (av * bv).sum() / (na * nb + _torch.finfo(self.dtype).tiny)")
-        self._emit("return self.make_truth(float(cos.item()))")
+        self._emit("return self.make_truth(cos)")
         self._indent -= 1
         self._emit()
         # neq runtime method deleted in v0.3 step 4.
