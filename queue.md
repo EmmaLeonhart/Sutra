@@ -119,7 +119,7 @@ provides decode-back from vectors to strings; `SUTRA_DB_PATH` env
 var configures persistence. The only deferred piece is full
 atman.toml schema, which can wait for a concrete config use case.
 
-### 3. make_random_rotation pre-warm at compile time
+### 3. make_random_rotation pre-warm at compile time — IN PROGRESS
 
 Today, the first call to `bind` for each role triggers
 `make_random_rotation` (numpy random + QR + Givens construction).
@@ -132,6 +132,12 @@ matmul.
 
 Verify with a test that runs a compiled program twice with timing
 and asserts the second run has zero rotation construction.
+
+**Status (2026-04-30):** in progress. Approach: walk AST for every
+`bind(_, ROLE)` call at compile time, collect the set of role
+expressions (typically `embed("role_name")`), emit
+`_VSA._rot_cache[hash] = _VSA._compute_rotation(role_vec)` after the
+embed_batch + populate_sutradb in the prelude.
 
 ## Queued work — back of queue (boundary leaks; "Python is just IO" target)
 
