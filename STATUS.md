@@ -38,7 +38,7 @@ quirk doc: `planning/open-questions/loop-body-semantics.md`.
 | `loop(N)` literal N | Compile-time unroll, body runs N times. | ✅ works today |
 | `loop(N)` runtime N | Substrate-pure iteration up to N. | ❌ today bails to host Python `for` |
 | `while(cond) { body }` | Substrate iteration; body IS the cell, runs each tick. | ❌ today body is discarded, replaced with fixed Haar `R · state` |
-| `do_while(cond) { body }` | Body once + `while(cond) { body }`. | Partial — body-once part works; while part inherits the body-discard bug |
+| `do_while(cond) { body }` | Body runs unconditionally each tick; condition evaluated at end produces halt signal that propagates as program-completion flag. | ❌ today desugars to body-once + while(cond), and while inherits body-discard. **First loop primitive to implement (item 3 below).** |
 | `foreach(T x in iterable)` | Per-element iteration. Iterable can be literal OR runtime binding-array. | ❌ today literals only; binding-array case errors at compile time |
 
 **Dropped:**
@@ -52,57 +52,105 @@ quirk doc: `planning/open-questions/loop-body-semantics.md`.
 - `for(init; cond; step)` — body-discard variant; supersede with
   `loop(N)` or `while`.
 
-**Concrete queue items, in implementation order:**
+**Concrete queue items, in implementation order (revised 2026-04-30
+per Emma's "do-while first" call):**
 
 1. **Drop the `loop[N]` square-bracket syntax.** Collapse to
-   `loop(N)` as a regular call-style argument. The compiler decides
-   literal-vs-runtime at compile time (literal → unroll; runtime
-   → substrate iteration via item 3 below). Square brackets aren't
-   used for anything else in Sutra and the bracket form was a
-   stylistic accident. Parser change + AST node consolidation.
-2. **Drop `loop(cond)`; unify with `while(cond)`.** Parser emits a
-   deprecation warning pointing users to `while`; codegen collapses
-   both AST nodes to one path. Cheap.
-3. **Make the body of `while(cond)` actually run as the RNN cell.**
-   Rewrite `_translate_while_as_geometric_loop` to translate the
-   body literally (instead of extracting state-var name + target
-   and discarding the rest). The body becomes a Python function
-   (or inline cell) fed to a new `_VSA.while_loop` that runs the
-   body T fixed times under the same soft-halt + output-gating
-   pattern as the current `_VSA.loop`. Drop the fixed Haar `R`.
-   This is the substantive change — the loop's recurrence becomes
-   the user's program text, not a fixed random rotation.
-4. **Substrate-pure `loop(N)` with runtime N.** Today emits host
+   `loop(N)` as a regular call-style argument. Parser change +
+   AST node consolidation. Cheap.
+2. **Drop `loop(cond)`; unify with `while(cond)`.** Parser
+   deprecation warning + codegen collapse to one path. Cheap.
+3. **Implement `do_while(cond) { body }` as a substrate-pure RNN
+   with body-as-cell.** This is the **first real loop primitive**
+   to land — Emma's call. Rationale: do-while has the cleanest
+   shape for substrate iteration. Body runs unconditionally
+   (matches "first iteration always happens"), then the condition
+   evaluated at the end is naturally the halt signal. Specifically:
+   - Compile body as a cell function `cell(state) → state'`.
+   - Compile condition as a soft predicate `cond(state) → scalar
+     in [0, 1]`.
+   - Run T fixed steps. Each step:
+     - `cand = cell(state)`
+     - `cond_val = cond(cand)`  (soft scalar; high = keep going)
+     - `halt_term = sigmoid(k · (1 − cond_val))`  (halt when cond
+       falls toward 0 — i.e., "while is false")
+     - `halt_cum = min(halt_cum + halt_term, 1)`
+     - `state = (1 − halt_cum)·cand + halt_cum·state`
+   - After T: write `halt_cum` to `AXIS_LOOP_DONE`; output-gate
+     value axes by `halt_cum`.
+   - Per Emma: "when the while is false at the end of it, then
+     it spits out the information saying that the program is
+     completed" — this is exactly the `halt_cum` saturating; the
+     completion flag rides on `AXIS_LOOP_DONE` and propagates to
+     the program-level output gating (item 4 below).
+4. **Program-level completion flag propagation.** Today
+   `AXIS_LOOP_DONE` only marks the loop's local result. Emma's
+   vision: the flag rides through nested layers all the way to
+   the final program output, which is gated branchlessly: if any
+   loop along the way didn't complete, the whole program emits
+   a wiped output rather than a partial one. Concretely: every
+   compose / call site that consumes a looped value should AND
+   its own halt_cum with the upstream halt_cum (or use
+   element-wise multiply since halt_cum ∈ [0, 1]); the final
+   program output gets multiplied by the propagated cumulative
+   halt before return.
+5. **Apply the do-while body-as-cell pattern to `while(cond)`.**
+   `while(cond) { body }` desugars to "if cond then do_while(cond)
+   { body } else don't run body" — but since we want branchless,
+   the more natural lowering is: same as do-while but with an
+   initial halt evaluation that gates the first body execution.
+   Or just: while is "do-while with halt evaluated before each
+   step instead of after." Either lowering works.
+6. **Substrate-pure `loop(N)` with runtime N.** Today emits host
    Python `for _ in range(N)`. Replace with a soft-masked
    `loop(T_MAX)` unroll where each step's effect is gated by
-   `(i < N ? 1 : 0)` — branchless via the same multiplication-by-
-   indicator trick used for output gating. Body runs each step
-   but past `N` the masked-off updates are discarded.
-5. **`foreach` over runtime binding-arrays.** Binding-array =
+   `(i < N)` — branchless multiplication-by-indicator. Body runs
+   each step; past `N` the masked-off updates are discarded.
+7. **`foreach` over runtime binding-arrays.** Binding-array =
    substrate vector storing N entries via N rotation-binding
    slots, with a runtime length scalar. Compile `foreach` to
    `loop(CAPACITY)` over the slots, masked by `(i < length)`.
-   Per-element body runs branchlessly. Need to design the
-   binding-array primitive first (probably a stdlib type wrapping
-   `slot_store` / `slot_load` / `rotate_slot`).
-6. **Drop `for(init; cond; step)`.** No clean substrate semantic;
-   compile-time-error pointing users to `loop(N)` or `while`.
-7. **Tests for body-actually-runs.** New tests that put a
-   meaningful statement in a `while(cond)` body and assert the
-   side effect happens (e.g. `state` actually changes per iter
-   in a way matching the body). Today's tests use no-op bodies
-   and missed the discard for months.
+   Per-element body runs branchlessly. Needs the binding-array
+   primitive designed first.
+8. **Drop `for(init; cond; step)`.** No clean substrate semantic;
+   compile-time error pointing users to `loop(N)` or `while`.
+9. **Tests for body-actually-runs.** New tests that put a
+   meaningful statement in a `do_while` / `while` body and
+   assert the side effect happens. Today's tests use no-op
+   bodies and missed the discard for months.
 
-Each step is gated on the previous; (1) and (2) are cheap parser
-work, (3) is the substantial one (actual RNN-cell semantics),
-(4) and (5) are medium-scope follow-ups, (6) is small, (7) gates
-the merge.
+Sequencing rationale:
+- (1) and (2) are parser-level cleanups — cheap, do them
+  together.
+- (3) is the **first substantive loop primitive**. Emma chose
+  do-while because the always-run-once-then-check shape composes
+  most cleanly with the soft-halt mechanism and the program-
+  completion-flag idea (item 4).
+- (4) follows naturally — the propagation is the same scalar
+  flowing from AXIS_LOOP_DONE up through layers via element-wise
+  multiplication.
+- (5) reuses (3)'s machinery.
+- (6) and (7) are medium-scope follow-ups built on (3)'s cell
+  pattern.
+- (8) is small.
+- (9) gates merge.
 
 Why this matters: Sutra's whole substrate-purity story ("programs
 are forward passes through tensor ops on CUDA") is only true if
 every loop form actually compiles to substrate operations. Today
 half of them either discard their bodies or bail to host Python.
 The redesign closes both holes.
+
+### Rename `STATUS.md` → `queue.md` — naming for clarity
+
+Emma 2026-04-30: "this status.md is being ignored enough, is being
+improperly used enough that it should have a more clear name like
+queue.md." Rename touches CLAUDE.md and several planning docs that
+reference "STATUS.md" by name; not done in the same commit as the
+loop redesign capture to keep diffs reviewable. Queue this as a
+small follow-up: rename the file, sweep references in CLAUDE.md +
+todo.md + planning/ + sdk/ + examples/ to point at `queue.md`,
+verify the workflow still resolves.
 
 ### Repo bloat sweep — flagged item
 
