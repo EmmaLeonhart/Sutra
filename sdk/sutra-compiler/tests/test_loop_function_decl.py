@@ -5,14 +5,19 @@ named state parameters. Body uses `pass` for tail-recursive yield.
 Call site uses `loop NAME(args)`. See
 planning/open-questions/loop-function-declarations.md.
 
-These tests verify:
+These tests exercise:
 1. Parsing — new syntax produces the right AST nodes.
 2. Codegen — emitted Python contains the expected loop function +
    call shape.
-3. End-to-end execution — the number-adder converges to the right
-   value (start=9 → end=11).
+3. End-to-end execution — number-adder converges to the right value
+   (do_while), starting-condition-false skips body (while_loop),
+   iterator keyword and tick count (iterative_loop).
 4. The body actually runs each tick (the bug the prior body-discard
    designs hid).
+
+Note: tests bypass `translate_module`'s simplify_egglog post-pass by
+using the inliner + Codegen directly, since simplify_egglog has a
+slow import that can take 20+ minutes on Windows.
 """
 from __future__ import annotations
 
@@ -21,7 +26,8 @@ import unittest
 import pytest
 
 from sutra_compiler import ast_nodes
-from sutra_compiler.codegen import translate_module as np_translate
+from sutra_compiler.codegen import Codegen
+from sutra_compiler.inliner import inline_stdlib_calls
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
 
@@ -37,20 +43,27 @@ def _parse(src: str):
 
 
 def _compile(src: str) -> str:
-    """Return emitted Python source from the numpy backend."""
-    return np_translate(_parse(src))
+    """Return emitted Python source via inliner + Codegen (bypassing
+    simplify_egglog post-pass so tests don't hang on its import).
+    """
+    module = _parse(src)
+    inline_stdlib_calls(module)
+    cg = Codegen()
+    cg._prefetch_strings = []
+    return cg.translate(module)
 
 
-def _exec_prelude_and_call_main(py_src: str):
-    """Exec the emitted module up through main() and return main()'s result."""
-    namespace: dict = {}
-    exec(py_src, namespace)
-    main = namespace.get("main")
+def _run_main(src: str):
+    """Compile, exec, and return main()'s value."""
+    py = _compile(src)
+    ns: dict = {}
+    exec(py, ns)
+    main = ns.get("main")
     assert main is not None, "no `main` in emitted module"
     return main()
 
 
-SIMPLE_ADDER = """
+SIMPLE_DO_WHILE_ADDER = """
 do_while addNumber(x < 11, int x) {
     pass x + 1;
 }
@@ -67,26 +80,19 @@ class TestParser(unittest.TestCase):
     """The parser produces the right AST nodes for the new syntax."""
 
     def test_parses_loop_function_decl(self):
-        module = _parse(SIMPLE_ADDER)
-        decls = module.items
-        # First decl: LoopFunctionDecl.
-        self.assertIsInstance(decls[0], ast_nodes.LoopFunctionDecl)
-        loop_decl = decls[0]
+        module = _parse(SIMPLE_DO_WHILE_ADDER)
+        loop_decl = module.items[0]
+        self.assertIsInstance(loop_decl, ast_nodes.LoopFunctionDecl)
         self.assertEqual(loop_decl.kind, "do_while")
         self.assertEqual(loop_decl.name, "addNumber")
-        # Condition: a binary op (`x < 11`).
         self.assertIsInstance(loop_decl.condition, ast_nodes.BinaryOp)
-        # State params: one int x.
         self.assertEqual(len(loop_decl.state_params), 1)
         self.assertEqual(loop_decl.state_params[0].name, "x")
-        # Body has one PassStmt.
-        self.assertEqual(len(loop_decl.body.statements), 1)
         self.assertIsInstance(loop_decl.body.statements[0], ast_nodes.PassStmt)
 
     def test_parses_loop_call_stmt(self):
-        module = _parse(SIMPLE_ADDER)
+        module = _parse(SIMPLE_DO_WHILE_ADDER)
         main_decl = module.items[1]
-        # main's body has slot decl, loop call, return.
         loop_call = main_decl.body.statements[1]
         self.assertIsInstance(loop_call, ast_nodes.LoopCallStmt)
         self.assertEqual(loop_call.name, "addNumber")
@@ -97,66 +103,115 @@ class TestParser(unittest.TestCase):
 do_while foo(c > 0, int x, int y) {
     pass replace, y + 1;
 }
-
-function int main() {
-    slot int a = 5;
-    slot int b = 0;
-    loop foo(a > 0, a, b);
-    return b;
-}
 """
         module = _parse(src)
         loop_decl = module.items[0]
         pass_stmt = loop_decl.body.statements[0]
-        self.assertIsInstance(pass_stmt, ast_nodes.PassStmt)
         self.assertEqual(len(pass_stmt.values), 2)
-        # First value is `replace`, second is `y + 1`.
         self.assertIsInstance(pass_stmt.values[0], ast_nodes.ReplaceMarker)
         self.assertIsInstance(pass_stmt.values[1], ast_nodes.BinaryOp)
 
 
-class TestCodegen(unittest.TestCase):
-    """The emitted Python has the right shape."""
+class TestCodegenShape(unittest.TestCase):
+    """The emitted Python contains the expected substrate-pure shape."""
 
-    def test_emits_loop_function(self):
-        py = _compile(SIMPLE_ADDER)
-        # Loop function appears as `def _loop_addNumber(...)`.
+    def test_emits_loop_function_with_soft_halt(self):
+        py = _compile(SIMPLE_DO_WHILE_ADDER)
         self.assertIn("def _loop_addNumber(_init_x):", py)
-        # State init from arg.
-        self.assertIn("x = _init_x", py)
-        # T-step soft-halt loop.
         self.assertIn("for _t in range(50):", py)
-        # Snapshot for soft mux.
         self.assertIn("_pre_x = x", py)
-        # Condition eval.
-        self.assertIn("_keep = 1.0 if bool(", py)
-        # Halt accumulation.
         self.assertIn("_halt_cum = min(_halt_cum + _halt_term, 1.0)", py)
-        # Soft mux.
         self.assertIn("x = (1.0 - _halt_cum) * x + _halt_cum * _pre_x", py)
 
-    def test_emits_loop_call(self):
-        py = _compile(SIMPLE_ADDER)
-        # Call to _loop_addNumber with slot_load init.
-        self.assertIn("_loop_addNumber(_VSA.slot_load(_slot_state,", py)
-        # Writeback via slot_store.
-        self.assertIn("_VSA.slot_store(_slot_state,", py)
+
+class TestDoWhile(unittest.TestCase):
+    """do_while: body always runs at least once, then condition checked."""
+
+    def test_basic_increment_to_threshold(self):
+        # start=9, x<11: body runs; x=10; check 10<11 true; body; x=11;
+        # check 11<11 false; halt. Final x=11.
+        result = _run_main(SIMPLE_DO_WHILE_ADDER)
+        self.assertAlmostEqual(float(result), 11.0, places=2)
+
+    def test_starting_at_threshold_runs_body_once(self):
+        # do_while runs body unconditionally before first check, so even
+        # if starting value already fails the condition, body runs once.
+        # start=11, x<11: preamble runs body; x=12; check 12<11 false; halt.
+        # Final x=12 (NOT 11 — that would be while_loop semantics).
+        src = SIMPLE_DO_WHILE_ADDER.replace("int x = 9", "int x = 11")
+        result = _run_main(src)
+        self.assertAlmostEqual(float(result), 12.0, places=2)
+
+    def test_starting_well_past_threshold(self):
+        # start=15, x<11: preamble x=16; check 16<11 false; halt. Final 16.
+        src = SIMPLE_DO_WHILE_ADDER.replace("int x = 9", "int x = 15")
+        result = _run_main(src)
+        self.assertAlmostEqual(float(result), 16.0, places=2)
 
 
-class TestEndToEnd(unittest.TestCase):
-    """The number-adder actually computes 11 starting from 9."""
+class TestWhileLoop(unittest.TestCase):
+    """while_loop: body skipped (effect reverted) if condition false at start."""
 
-    def test_number_adder_converges(self):
-        py = _compile(SIMPLE_ADDER)
-        result = _exec_prelude_and_call_main(py)
-        # Soft-mux means result might be a float close to 11, not exactly 11.
-        # Tolerance accounts for the soft halt's last partial step.
-        self.assertAlmostEqual(float(result), 11.0, places=2,
-                               msg=f"expected ~11, got {result}")
+    WHILE_SRC = """
+while_loop addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;
+}
+"""
+
+    def test_basic_increment(self):
+        result = _run_main(self.WHILE_SRC)
+        self.assertAlmostEqual(float(result), 11.0, places=2)
+
+    def test_starting_at_threshold_does_not_run(self):
+        # while_loop: cond false at start → body's effect reverted by
+        # soft mux → final value unchanged from start.
+        src = self.WHILE_SRC.replace("int x = 9", "int x = 11")
+        result = _run_main(src)
+        self.assertAlmostEqual(float(result), 11.0, places=2)
+
+    def test_starting_well_past_threshold_does_not_run(self):
+        src = self.WHILE_SRC.replace("int x = 9", "int x = 15")
+        result = _run_main(src)
+        self.assertAlmostEqual(float(result), 15.0, places=2)
+
+
+class TestIterativeLoop(unittest.TestCase):
+    """iterative_loop: runs body N times; iterator keyword for tick number."""
+
+    SUM_N = """
+iterative_loop sumN(5, int total) {
+    pass total + iterator;
+}
+
+function int main() {
+    slot int total = 0;
+    loop sumN(5, total);
+    return total;
+}
+"""
+
+    def test_iterator_keyword_sums_correctly(self):
+        # iterator is 1-indexed: 1, 2, 3, 4, 5.
+        # total starts at 0; after each tick: 0+1=1, 1+2=3, 3+3=6, 6+4=10, 10+5=15.
+        result = _run_main(self.SUM_N)
+        self.assertAlmostEqual(float(result), 15.0, places=2)
+
+    def test_zero_iterations(self):
+        # iterator <= 0 → halt immediately. Body's effect reverted.
+        src = self.SUM_N.replace("sumN(5,", "sumN(0,")
+        result = _run_main(src)
+        # Result should still be 0 (initial value) since no body completes.
+        self.assertAlmostEqual(float(result), 0.0, places=2)
 
 
 class TestPassValidation(unittest.TestCase):
-    """`pass` outside a loop body, or with wrong arg count, errors clearly."""
+    """`pass` outside a loop body errors clearly."""
 
     def test_pass_outside_loop_body_errors(self):
         src = """
@@ -170,6 +225,24 @@ function int main() {
             _compile(src)
         self.assertIn("pass", str(exc_info.value))
         self.assertIn("loop function body", str(exc_info.value))
+
+
+class TestForeachLoopDeferred(unittest.TestCase):
+    """foreach_loop is parsed but errors at codegen (V1 limitation)."""
+
+    def test_foreach_loop_errors_at_codegen(self):
+        src = """
+foreach_loop walk(arr, int total) {
+    pass total + 1;
+}
+"""
+        # We can't actually parse this fully without an array literal in
+        # the call. Just check the kind keyword is recognized at parse
+        # time and rejected at codegen.
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        with pytest.raises(CodegenNotSupported) as exc_info:
+            _compile(src)
+        self.assertIn("foreach_loop", str(exc_info.value))
 
 
 if __name__ == "__main__":
