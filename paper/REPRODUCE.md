@@ -46,7 +46,7 @@ SutraDB FFI build (one-time, ~5 minutes).
 | §4 — compiler 5-stage pipeline | `python -m pytest sdk/sutra-compiler/tests/ -q --ignore=tests/test_simplify_egglog.py` (244+ tests; full suite green) |
 | §4.1 — substrate-purity invariants | the runtime-substrate-purity-audit and substrate-purity-leak-enumeration finding docs under `planning/findings/` |
 | §4.2 — boundary leak enumeration (5 leaks; 3 fixed) | both findings docs above; the fix commits are `93beb01` (leaks 1+2+4) and `cdd9482` (numpy backend deprecation related cleanup) |
-| §5 — three demonstration programs | `examples/hello_world.su`, `examples/fuzzy_dispatch.su`, `examples/role_filler_record.su` |
+| §5 — demonstration programs (13 in smoke test, 23 `.su` files total) | `python examples/_smoke_test.py` runs the smoke-test corpus end-to-end; full file listing in `examples/` |
 | §5.4 — convergent + non-convergent loop demos | `examples/do_while_adder.su` plus the test corpus in `tests/test_loop_function_decl.py` |
 | §4 — `torch.compile` wrapping (opt-in) | `SUTRA_TORCH_COMPILE=1 python -m pytest sdk/sutra-compiler/tests/test_torch_compile_wrap.py -q` |
 
