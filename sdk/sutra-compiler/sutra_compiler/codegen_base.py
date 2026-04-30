@@ -594,7 +594,16 @@ class BaseCodegen:
         # Evaluate condition (semantics depend on kind).
         if decl.kind in ("do_while", "while_loop"):
             cond_src = self._translate_expr(decl.condition)
-            self._emit(f"_keep = 1.0 if bool({cond_src}) else 0.0")
+            # Comparisons inline to fuzzy-vector operations (e.g. gt
+            # returns a vector with truth on AXIS_TRUTH). Extract the
+            # truth-axis scalar to drive the halt check. If the value is
+            # already a scalar (Python float/int), use it directly.
+            self._emit(f"_cond = {cond_src}")
+            self._emit(
+                f"_cond_truth = (float(_cond[_VSA.semantic_dim + _VSA.AXIS_TRUTH]) "
+                f"if hasattr(_cond, '__len__') else float(_cond))"
+            )
+            self._emit(f"_keep = 1.0 if _cond_truth > 0 else 0.0")
         elif decl.kind == "iterative_loop":
             # condition is the count; iterator = _t + 1 (1-indexed).
             count_src = self._translate_expr(decl.condition)
