@@ -70,7 +70,7 @@ jobs:
             --paper-dir paper \
             --tags "programming-languages,vsa,embedding-spaces"
 
-      - name: Commit review back (with Skip-Submit trailer)
+      - name: Commit review back (with Skip-Submit trailer + rebase-retry)
         if: steps.skip_check.outputs.skip == 'false'
         run: |
           set -euo pipefail
@@ -88,4 +88,18 @@ jobs:
           markdown captured under paper/reviews/.
 
           Skip-Submit: true"
-          git push origin HEAD:master
+          # Push race resilience: master may have moved while we were
+          # submitting + polling for the review (a separate push, the
+          # pull-reviews workflow auto-committing reviews, etc.). Retry
+          # up to 3 times with rebase before giving up.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:master; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected; rebasing and retrying..."
+            git fetch origin master
+            git rebase origin/master
+          done
+          echo "ERROR: could not push after 3 rebase-retry attempts"
+          exit 1
