@@ -276,5 +276,47 @@ function int main() {
         self.assertIn("foreach_loop", str(exc_info.value))
 
 
+class TestProgramHaltPropagation(unittest.TestCase):
+    """Program-level halt propagation (Emma 2026-04-30): a loop that
+    runs out of T-step budget without converging emits halt_cum≈0,
+    which multiplies through to wipe the function's output. Loops that
+    do converge leave halt_cum≈1.0 and the output is preserved."""
+
+    def test_converged_loop_preserves_output(self):
+        # Sanity check: existing converging case still returns the
+        # same value after halt-multiply (1.0 * 11 == 11).
+        result = _run_main(SIMPLE_DO_WHILE_ADDER)
+        self.assertAlmostEqual(float(result), 11.0, places=2)
+
+    def test_unconverged_loop_wipes_output(self):
+        # iterative_loop with count=1000 and T=50: the cond
+        # (_iterator <= 1000) stays true for all 50 ticks, so
+        # halt_cum never increments above 0. Output gets multiplied
+        # by ~0 → wiped.
+        src = """
+iterative_loop runForever(1000, int total) {
+    pass total + 1;
+}
+
+function int main() {
+    slot int total = 0;
+    loop runForever(1000, total);
+    return total;
+}
+"""
+        result = _run_main(src)
+        # Wiped output: total accumulates internally but the halt-mux
+        # plus _program_halt multiply zero it out at return.
+        self.assertAlmostEqual(float(result), 0.0, places=2)
+
+    def test_emitted_program_halt_accumulator(self):
+        # The codegen emits the _program_halt accumulator and the
+        # multiply on return. Sanity-check the shape.
+        py = _compile(SIMPLE_DO_WHILE_ADDER)
+        self.assertIn("_program_halt = 1.0", py)
+        self.assertIn("_program_halt = _program_halt * _loopret_halt", py)
+        self.assertIn("* _program_halt", py)
+
+
 if __name__ == "__main__":
     unittest.main()
