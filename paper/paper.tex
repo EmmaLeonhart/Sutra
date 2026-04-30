@@ -30,7 +30,12 @@
 % Anonymization switch — set \anontrue at build time for the NeurIPS
 % double-blind PDF. Default (no flag) builds the named version.
 % ====================================================================
-\newif\ifanon
+% Guard: the build workflow's -usepretex='\newif\ifanon\anontrue' may
+% have already declared \ifanon. If so, do not re-\newif (which would
+% reset the flag back to false). Only declare when undefined.
+\makeatletter
+\@ifundefined{ifanon}{\newif\ifanon}{}
+\makeatother
 % Default: not anonymized. Override at command line:
 %   pdflatex "\def\anontrue{} \input{paper.tex}"
 % (or via the build workflow's -DANON=1 conditional logic)
