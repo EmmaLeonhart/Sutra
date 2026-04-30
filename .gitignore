@@ -44,3 +44,9 @@ fly-brain/
 
 # MkDocs build output
 _site/
+
+# Claude.ai chat exports — only the extracted .md is tracked,
+# not the raw HTML / _files/ sources (run scripts/extract_chat.py
+# to regenerate the markdown if needed).
+chats/*.html
+chats/*_files/
