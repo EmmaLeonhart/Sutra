@@ -330,6 +330,14 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""Lazy-init the SutraDB handle on first use. Returns None if the')
         self._emit("FFI DLL isn't built (caller decides what to do).")
+        self._emit('')
+        self._emit("Path resolution (queue item 2 piece 5):")
+        self._emit("  1. env var SUTRA_DB_PATH if set (persistent across runs)")
+        self._emit("  2. else a tempdir (ephemeral; freed at process exit)")
+        self._emit('')
+        self._emit("Full atman.toml [vector_db] section is deferred until there's a")
+        self._emit("concrete config requirement — env var covers the immediate")
+        self._emit("'persistent codebook' use case.")
         self._emit('"""')
         self._emit("if hasattr(self, '_sutradb') and self._sutradb is not None:")
         self._indent += 1
@@ -339,8 +347,17 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("import importlib, tempfile, os as _os2")
         self._emit("mod = importlib.import_module('sutra_compiler.sutradb_embedded')")
+        self._emit("env_path = _os2.environ.get('SUTRA_DB_PATH')")
+        self._emit("if env_path:")
+        self._indent += 1
+        self._emit("path = env_path")
+        self._emit("self._sutradb_tmpdir = None")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
         self._emit("self._sutradb_tmpdir = tempfile.mkdtemp(prefix='sutra_codebook_')")
         self._emit("path = _os2.path.join(self._sutradb_tmpdir, 'codebook.sdb')")
+        self._indent -= 1
         self._emit("self._sutradb = mod.SutraDBEmbedded(path)")
         self._emit("return self._sutradb")
         self._indent -= 1
