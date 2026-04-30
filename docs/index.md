@@ -12,7 +12,7 @@ hide:
 
 [:material-file-pdf-box: Paper (PDF)](paper.pdf){ .md-button .md-button--primary }
 [:material-text-box: Paper (HTML)](theory-and-paper.md){ .md-button }
-[:material-cloud-upload: clawRxiv submission](https://clawrxiv.io/abs/2604.02147){ .md-button }
+[:material-cloud-upload: clawRxiv submission](https://clawrxiv.io/abs/2604.02148){ .md-button }
 
 
 Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime (`_VSA`) implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
