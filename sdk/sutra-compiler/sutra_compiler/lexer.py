@@ -135,6 +135,12 @@ class TokenKind(Enum):
     # parameter's input value across the recurrence."
     KW_PASS = auto()
     KW_REPLACE = auto()
+    # Note: `element` (the foreach_loop's current-array-value reference)
+    # and `iterator` (the iterative_loop's tick number) are CONTEXTUAL
+    # — they parse as plain IDENT tokens and the codegen recognizes
+    # them specially in the identifier translation path. They are not
+    # hard keywords so they don't break unrelated `element` / `iterator`
+    # variable names elsewhere in user code.
     KW_AS = auto()
     KW_TRY = auto()
     KW_CATCH = auto()

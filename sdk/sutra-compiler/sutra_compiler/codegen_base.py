@@ -274,6 +274,10 @@ class BaseCodegen:
         # Python local `_iterator` rather than a compile-time constant.
         # Restored on exit.
         self._iterator_runtime_in_scope: bool = False
+        # Set to True while translating a `foreach_loop` function body,
+        # so the `element` keyword translates to the runtime Python local
+        # `_element` (the current array element this tick).
+        self._element_runtime_in_scope: bool = False
         # Stack of state-parameter name lists, pushed when entering a
         # loop function body and popped on exit. Used by PassStmt
         # translation to know which Python locals to assign. Outside a
@@ -563,8 +567,14 @@ class BaseCodegen:
         state_names = [p.name for p in decl.state_params]
         init_param_names = [f"_init_{n}" for n in state_names]
 
+        # foreach_loop adds the array as the first Python parameter
+        # (before the state inits). The condition Expr names it.
+        py_params = list(init_param_names)
+        if decl.kind == "foreach_loop":
+            if isinstance(decl.condition, ast.Identifier):
+                py_params.insert(0, decl.condition.name)
         self._emit(
-            f"def _loop_{decl.name}({', '.join(init_param_names)}):"
+            f"def _loop_{decl.name}({', '.join(py_params)}):"
         )
         self._indent += 1
         self._emit(
@@ -585,8 +595,11 @@ class BaseCodegen:
         # For iterative_loop, `iterator` in the body resolves to the
         # runtime Python local `_iterator` instead of erroring.
         prior_iter_runtime = self._iterator_runtime_in_scope
+        prior_elem_runtime = self._element_runtime_in_scope
         if decl.kind == "iterative_loop":
             self._iterator_runtime_in_scope = True
+        if decl.kind == "foreach_loop":
+            self._element_runtime_in_scope = True
 
         # do_while: body runs once unconditionally first.
         if decl.kind == "do_while":
@@ -621,14 +634,27 @@ class BaseCodegen:
             self._emit(f"_iterator = _t + 1")
             self._emit(f"_keep = 1.0 if (_iterator <= int({count_src})) else 0.0")
         elif decl.kind == "foreach_loop":
-            # foreach: condition is an array; element-binding TBD.
-            # For V1, error out — implementation pending.
-            raise CodegenNotSupported(
-                decl,
-                "foreach_loop kind is not yet implemented; only do_while, "
-                "while_loop, iterative_loop are supported in V1. See "
-                "planning/open-questions/loop-function-declarations.md.",
-            )
+            # foreach: condition is the array parameter (an Identifier
+            # naming the array). The function takes the array as its
+            # first parameter (in addition to state inits). Each tick:
+            # halt when _t >= length; bind `element` to arr[_t].
+            if not isinstance(decl.condition, ast.Identifier):
+                raise CodegenNotSupported(
+                    decl.condition,
+                    "foreach_loop's first parameter must be a plain "
+                    "identifier naming the array (e.g. `arr`). Got "
+                    f"{type(decl.condition).__name__}.",
+                )
+            arr_param_name = decl.condition.name
+            self._emit(f"# foreach_loop: array param `{arr_param_name}`,")
+            self._emit(f"# bind `element` to {arr_param_name}[_t] each tick.")
+            self._emit(f"_length = _VSA.array_length({arr_param_name})")
+            self._emit(f"_keep = 1.0 if (_t < _length) else 0.0")
+            # Fetch the element BEFORE running body. Bind to `_element`.
+            # For halted ticks the read is wasted but harmless (default
+            # element-of-arr index is the last valid one or 0).
+            self._emit(f"_element = _VSA.array_get({arr_param_name}, "
+                       f"min(_t, max(_length - 1, 0)))")
         else:
             raise CodegenNotSupported(
                 decl, f"unknown loop kind `{decl.kind}`"
@@ -646,9 +672,10 @@ class BaseCodegen:
             )
         self._indent -= 1  # close the for loop
 
-        # Pop state stack and restore iterator-runtime flag.
+        # Pop state stack and restore iterator/element runtime flags.
         self._loop_state_stack.pop()
         self._iterator_runtime_in_scope = prior_iter_runtime
+        self._element_runtime_in_scope = prior_elem_runtime
 
         # Return final state values + halt_cum (last).
         return_items = state_names + ["_halt_cum"]
@@ -693,12 +720,19 @@ class BaseCodegen:
                     f"with `slot TYPE name = ...`.",
                 )
             slot_args.append((arg_name, self._slot_vars[arg_name]))
-        # Evaluate the condition arg for side effects + parser symmetry.
-        cond_src = self._translate_expr(stmt.condition_arg)
+        # Evaluate the condition arg. For foreach_loop with an array
+        # literal, route through array_from_literal so the array is the
+        # substrate-stored binding-array (not a plain Python list).
+        if (decl.kind == "foreach_loop"
+                and isinstance(stmt.condition_arg, ast.ArrayLiteral)):
+            elem_srcs = [
+                self._translate_expr(e)
+                for e in stmt.condition_arg.elements
+            ]
+            cond_src = f"_VSA.array_from_literal({', '.join(elem_srcs)})"
+        else:
+            cond_src = self._translate_expr(stmt.condition_arg)
         self._emit(f"# loop call: {stmt.name}({cond_src}, ...)")
-        self._emit(f"# Condition arg evaluated for side effects; runtime")
-        self._emit(f"# uses the loop's decl-time condition expression.")
-        self._emit(f"_ = {cond_src}")
         # Read current slot values to pass as init args.
         init_args = [
             f"_VSA.slot_load(_slot_state, {idx})"
@@ -706,10 +740,25 @@ class BaseCodegen:
         ]
         # Generate distinct names for the unpacked return values.
         ret_names = [f"_loopret_{n}" for n, _ in slot_args] + ["_loopret_halt"]
-        self._emit(
-            f"({', '.join(ret_names)},) = _loop_{stmt.name}("
-            f"{', '.join(init_args)})"
-        )
+        if decl.kind == "foreach_loop":
+            # Pass the array (cond_src) as the first Python arg, then
+            # state inits. The function reads the array each tick to
+            # fetch the next `element`.
+            all_args = [cond_src] + init_args
+            self._emit(
+                f"({', '.join(ret_names)},) = _loop_{stmt.name}("
+                f"{', '.join(all_args)})"
+            )
+        else:
+            # Other kinds: cond_src evaluated for side effects only;
+            # runtime uses the loop's decl-time condition each tick.
+            self._emit(f"# Condition arg evaluated for side effects; runtime")
+            self._emit(f"# uses the loop's decl-time condition expression.")
+            self._emit(f"_ = {cond_src}")
+            self._emit(
+                f"({', '.join(ret_names)},) = _loop_{stmt.name}("
+                f"{', '.join(init_args)})"
+            )
         # Write back to caller's slot vars.
         for (arg_name, idx), ret_name in zip(slot_args, ret_names[:-1]):
             self._emit(
@@ -1390,6 +1439,19 @@ class BaseCodegen:
                         "`i` for the compile-time named-index form.",
                     )
                 return repr(self._iterator_value)
+            if expr.name == "element":
+                # Contextual: only valid inside a foreach_loop function
+                # body. Refers to the current array element on this tick
+                # — the Python local `_element` set by the cell via
+                # `_VSA.array_get(arr_param, _t)`.
+                if not self._element_runtime_in_scope:
+                    raise CodegenNotSupported(
+                        expr,
+                        "`element` is only valid inside a `foreach_loop` "
+                        "function body, where it binds to the current "
+                        "array element each tick.",
+                    )
+                return "_element"
             # If this identifier names a slot-bound variable, emit
             # the slot_load call instead of a bare name reference.
             # The slot table is per-function-scope.
