@@ -21,120 +21,43 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
-## Queued work — only item
+## No active queue items (2026-04-30)
 
-### 1. Paper draft, three submission targets, and CI/CD pipeline — IN PROGRESS
+Today's queue items 1 (Python is just IO, commit `0f01ae3`) and
+2 (paper draft + Claw4S/NeurIPS/CI, multiple commits ending
+`ef29fa4`) shipped. The paper item delivered:
 
-The language works end-to-end on real programs. Last queue item is
-**writing the paper and shipping it**. Three submission targets
-(Emma 2026-04-30):
+- **Sub-item 1a (submission rules audit):** READY, deferred-VERIFY
+  for current-cycle NeurIPS deadlines; see
+  `planning/findings/2026-04-30-paper-submission-rules.md`
+- **Sub-item 1b (Claw4S CI/CD recovery):** WORKFLOWS RESTORED.
+  papers-ci.yml rewritten as single-paper for `paper/`;
+  submit-papers.yml + competition-cron.yml restored; submission
+  scripts in `scripts/`; SKILL.md template recovered.
+- **Sub-item 1c (paper draft):** SHIPPED. `paper/paper.md`
+  (564-line markdown for clawRxiv).
+- **Sub-item 1d (PDF-build CI):** SHIPPED. `.github/workflows/
+  paper-pdf.yml` builds named + anonymized PDFs.
+- **Sub-item 1e (anonymization macros):** SHIPPED. `paper/paper.tex`
+  with `\ifanon` switch.
+- **Sub-item 1f (REPRODUCE.md):** SHIPPED.
 
-1. **Claw4S workshop** — the AI-workshops conference / preprint
-   server pair (`clawRxiv`). Repo had a substantial Claw4S submission
-   pipeline before the Sutra rebrand; that infrastructure is
-   recoverable from git history (commits like `b353ff3 exploratory:
-   Claw4S paper draft on Sutra as compile-time VSA`, `f09a3f2
-   Complete documentation overhaul + SKILL.md for Claw4S submission`,
-   `1b73781 Reorganize repo for two Claw4S 2026 papers`). Recovery
-   recipe is in `DEVLOG.md` Phase 4.
-2. **NeurIPS** — main conference, double-blind. Emma's read 2026-04-30
-   is the current pipeline already follows NeurIPS rules properly,
-   but verify before submitting.
-3. **A second workshop after NeurIPS** — TBD which one; identify
-   during 1a.
+The next active session has no pending queue items at the top
+level. Pick up from `todo.md` (longer-horizon work) or wait for
+user direction.
 
-#### Sub-items, in rough order
+### Below the line: deferred-VERIFY
 
-**1a. Audit submission rules for all three targets first.** Read
-current Claw4S, NeurIPS, and the post-NeurIPS workshop author guides;
-capture in a findings doc:
-- Page limit + format per target (LaTeX templates).
-- Anonymization rules (double-blind for NeurIPS at minimum).
-- Supplementary material rules.
-- Reproducibility checklist requirements.
-- Deadlines: abstract registration, full submission, camera-ready.
-
-Output: `planning/findings/YYYY-MM-DD-paper-submission-rules.md`.
-This document is what the CI/CD pipeline gets built against.
-
-**1b. Recover Claw4S infrastructure from git history.** Per
-DEVLOG.md Phase 4, the three workflows (`papers-ci.yml`,
-`submit-papers.yml`, `competition-cron.yml`) plus submission
-scripts (`scripts/fetch_all_papers.py`, `scripts/fetch_reviews.py`)
-plus per-paper `SKILL.md` template are all recoverable from
-`903308e^`. The `CLAWRXIV_API_KEY` repo secret is still configured
-per Emma 2026-04-30. Restore selectively rather than reinventing.
-
-**1c. Write the paper itself.** Substance, not yet plumbing:
-- The narrative arc per `project_sutra_paper_real_scope.md`:
-  displacements in frozen embedding spaces → consolidate into rotation
-  binding → learned matrices as the natural extension. Sign-flip is at
-  most a side note; the headline is learned-matrix (semantic) binding.
-- Empirical foundation from `latent-space-cartography` (sibling repo
-  — verify numbers against source, do not quote from memory).
-- The Sutra language as the realization of the program: a programming
-  language whose primitives are the operations that fall out of the
-  embedding-space analysis.
-- Substrate-purity story: every operation runs as tensor ops on the
-  substrate; no host-Python compute; the compiler is the safety
-  boundary because the runtime has no error channel by mechanism.
-- Demo programs (`hello world`, `fuzzy_dispatch`, `role_filler_record`,
-  the loop demos) as worked examples.
-
-This is the work-product itself, not infrastructure. Likely lives in
-a new `paper/` directory at repo root with `paper.tex` + `paper.bib`
-+ figures.
-
-**1d. CI/CD pipeline — single source, four outputs.** From the same
-LaTeX/Markdown source, the pipeline produces:
-1. **HTML on the docs site** (`sutralang.dev`) — for casual readers
-   and AI-agent consumers.
-2. **Downloadable PDF on the website** — full version with author
-   names, links, acknowledgments.
-3. **Anonymized PDF on the website** — author names stripped, repo
-   URLs anonymized, third-person self-references. This is the version
-   that goes to NeurIPS double-blind review. (Why on the website too?
-   So reviewers who find the paper outside the OpenReview portal land
-   on the same anonymized version they're supposed to be reviewing.)
-4. **Claw4S / clawRxiv upload** — Claw4S workshop submission +
-   preprint mirror. The previous repo had a working push-to-clawRxiv
-   action; recover it (per 1b).
-
-Pipeline shape (rough): GitHub Actions workflow on push to
-`paper/` triggers two LaTeX builds (full + anonymized via `\if`
-macros), uploads the PDFs as workflow artifacts, deploys both PDFs
-+ rendered HTML to the docs site, and (optionally, on a tag) pushes
-to the preprint server's API.
-
-**1e. Anonymization macros.** A single-source approach uses LaTeX
-conditionals to swap in/out the deanonymizing pieces:
-```latex
-\ifanon
-  \author{Anonymous Authors}
-  \newcommand{\repo}{[anonymized repository]}
-\else
-  \author{Emma Leonhart}
-  \newcommand{\repo}{\url{https://github.com/...}}
-\fi
-```
-Build flag (`-DANON=1`) flips between modes. Avoids the trap of
-forking two paper sources that drift from each other.
-
-**1f. Reproducibility submission.** NeurIPS reproducibility
-checklist will require pointing at runnable code. The Sutra repo
-itself is the answer; the submission references it (anonymized in
-1e via `\repo`) and includes a `paper/REPRODUCE.md` with
-"clone, install, run these commands, get these numbers."
-
-#### Why this is at the end, not the start
-
-The paper claims things about the language. The language has to
-actually do those things first. The pre-paper queue items were the language being
-*real* (substrate-pure, complete RNN compilation, no boundary
-leaks, default vector backend). this paper item is the language being
-*defended* in print. Doing the paper first would mean writing a paper about
-aspirational software, which is the failure mode the
-safety-critical preamble in CLAUDE.md exists to prevent.
+The paper infrastructure is push-ready for clawRxiv. Before
+NeurIPS submission, verify:
+- Current-cycle NeurIPS deadlines + template URL + reproducibility
+  checklist
+- Which post-NeurIPS workshop to target
+- Cross-check the [CITE] placeholders in `paper/paper.md` against
+  the `latent-space-cartography` sibling repo's actual numbers
+- The `paper-pdf.yml` workflow's anonymization step (untested
+  end-to-end; the `-usepretex='\anontrue'` mechanism may need a
+  small tweak when first run on real LaTeX content).
 
 ## Queued work — flagged but not blocking
 
