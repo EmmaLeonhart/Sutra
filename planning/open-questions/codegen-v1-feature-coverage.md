@@ -56,4 +56,4 @@ SKIPs are known feature gaps, not regressions.
 
 ## Status
 
-Unresolved. Not blocking the Claw4S paper. Currently captured as backlog item in STATUS.md.
+Unresolved. Not blocking the Claw4S paper. Currently captured as backlog item in queue.md.

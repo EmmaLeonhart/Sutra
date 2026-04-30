@@ -18,9 +18,9 @@ Sutra's existing design commits to context-management-as-infrastructure:
 
 - **MCP server is a core part of the language runtime, not an add-on** (`CLAUDE.md`). The tooling becomes part of the runtime because long-range dependencies in the fuzzy-vector semantics cannot be captured in a single file.
 - **S1/Sutra dual runtime.** S1 is the fast cached layer; Sutra is the deliberate semantic layer. This is already the shape of a "persistent context store + deliberate execution over it."
-- **`STATUS.md` protocol.** The `Queued work` section + "read STATUS.md every session" rule is a lo-fi version of the same idea — the session's context persists in a file that the next session is required to read before acting.
+- **`queue.md` protocol.** The `Queued work` section + "read queue.md every session" rule is a lo-fi version of the same idea — the session's context persists in a file that the next session is required to read before acting.
 
-If Karpathy's framing has a clean formalization of what an "LLM wiki" stores and how it's queried, it could either (a) give Sutra's MCP layer a better protocol to speak, (b) suggest that STATUS.md should be structured as something more wiki-shaped and less narrative-shaped, or (c) turn out to be orthogonal and we learn nothing. All three are fine outcomes of the research step.
+If Karpathy's framing has a clean formalization of what an "LLM wiki" stores and how it's queried, it could either (a) give Sutra's MCP layer a better protocol to speak, (b) suggest that queue.md should be structured as something more wiki-shaped and less narrative-shaped, or (c) turn out to be orthogonal and we learn nothing. All three are fine outcomes of the research step.
 
 ## Research questions (to be answered before any implementation)
 
@@ -35,7 +35,7 @@ If Karpathy's framing has a clean formalization of what an "LLM wiki" stores and
 ## Relevance-to-Sutra questions (only meaningful after the above)
 
 1. Does Sutra's MCP-as-runtime design fit any of the storage or query models? Mapping MCP to the Karpathy framing would tell us whether we already have this or not.
-2. Does `STATUS.md`-as-persistent-context count as a degenerate LLM wiki? If yes, is there a cheap upgrade path that gets the benefits without building something new?
+2. Does `queue.md`-as-persistent-context count as a degenerate LLM wiki? If yes, is there a cheap upgrade path that gets the benefits without building something new?
 3. Is the "LLM wiki" concept substrate-agnostic (works with any LLM) or does it assume a specific LLM architecture? Sutra assumes embedding-space-as-substrate, which is a stronger claim — does the wiki concept conflict or compose?
 4. Is there anything in the wiki concept that would change Sutra's language-level design (new operations, new types, new syntactic form), or is it purely at the tooling / runtime layer? If purely runtime, it does not touch `planning/sutra-spec/` — that's useful to know early.
 
@@ -44,8 +44,8 @@ If Karpathy's framing has a clean formalization of what an "LLM wiki" stores and
 Not scheduled. When it comes back:
 
 1. Web research step: find the artifact, read it, write a one-page summary of what it is and isn't. Commit the summary to this directory. This is the whole first milestone — do not skip to implementation.
-2. Delta analysis: compare the wiki concept to Sutra's MCP-as-runtime, `STATUS.md`, and the S1/Sutra dual runtime. Commit the delta analysis.
-3. Decision point: with the analysis in hand, the user decides whether to (a) do nothing (the concept is interesting but Sutra is different enough that it doesn't map), (b) adjust the MCP/STATUS.md protocol to borrow a specific idea, or (c) build something bigger.
+2. Delta analysis: compare the wiki concept to Sutra's MCP-as-runtime, `queue.md`, and the S1/Sutra dual runtime. Commit the delta analysis.
+3. Decision point: with the analysis in hand, the user decides whether to (a) do nothing (the concept is interesting but Sutra is different enough that it doesn't map), (b) adjust the MCP/queue.md protocol to borrow a specific idea, or (c) build something bigger.
 
 No language spec changes, no code changes, no dependency adds until after the decision point.
 

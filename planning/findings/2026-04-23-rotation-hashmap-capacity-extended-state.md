@@ -1,7 +1,7 @@
 # Rotation-hashmap capacity at d=868 (post-extended-state)
 
 **Date:** 2026-04-23.
-**Status:** Closes STATUS.md's remaining pre-Anthropic-grant-app item
+**Status:** Closes queue.md's remaining pre-Anthropic-grant-app item
 (rotation-hashmap capacity at the post-extended-state runtime
 dimension). Complements the 2026-04-22 study, which measured the same
 thing through raw `bind/bundle` at d=768.
@@ -24,7 +24,7 @@ Two things changed between the 2026-04-22 study and today:
    bind + add + unbind — the question here is whether they actually
    behave that way under stress.
 
-The question the experiment answers, from STATUS.md: *at d=868, how
+The question the experiment answers, from queue.md: *at d=868, how
 many distinct keys can the rotation-hashmap store before retrieval
 breaks down?*
 
@@ -165,7 +165,7 @@ the synthetic block starts carrying active-bound content.
 ## What this closes vs. leaves open
 
 **Closed:**
-- The STATUS.md question "how many keys at d=868" has a number: 32
+- The queue.md question "how many keys at d=868" has a number: 32
   clean, 48 at the 90% threshold, 96 at the 50% threshold, against a
   200-filler codebook.
 - The `hashmap_new`/`hashmap_set`/`hashmap_get` API is empirically

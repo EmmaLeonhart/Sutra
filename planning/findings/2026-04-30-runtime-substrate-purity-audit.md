@@ -31,7 +31,7 @@ substrate violations if implemented as expected):
   so trig-via-libm is accepted; whether log/exp-via-libm follows
   the same logic is an Emma call).
 - **Loop body discard** in `loop(cond)` / `while(cond)` / `for(...)`
-  — already known, queued in STATUS.md.
+  — already known, queued in queue.md.
 - **`loop(N)` runtime-N falls back to Python `for _ in range(N)`** —
   already known, queued.
 - **`argmax_cosine` / `snap`** use Python loops over candidates
@@ -217,9 +217,9 @@ which methods the program uses. For the "loop and snap" pattern
 the loop-iteration is substrate; the wrapping (embed cache, R
 construction, snap) is host Python.
 
-## Path forward (does NOT belong in this doc — that's STATUS.md
+## Path forward (does NOT belong in this doc — that's queue.md
 queue work)
 
-Each violation needs its own fix. They're queued in `STATUS.md`
+Each violation needs its own fix. They're queued in `queue.md`
 under a new "Runtime substrate-purity sweep" item that this audit
 will trigger.

@@ -15,7 +15,7 @@ Why this is tricky on *this* repo specifically:
   config. Cron / CI pushes that touch any workflow YAML get rejected
   with a `workflows permission` error even if the specific commit in
   the push did not touch the YAML (push protection fires on the tree,
-  not the diff). See `STATUS.md` → "CI pipeline state" for the full
+  not the diff). See `queue.md` → "CI pipeline state" for the full
   story; this is why `papers-ci` was reverted from branch+PR to
   direct-master-push in commit 211bd92.
 - `competition-cron` still uses the branch+PR flow and still hits that
@@ -46,7 +46,7 @@ git pull --rebase origin master
 
 Humans and cron both push to this repo. A merge commit for a trivial
 race is noise in the history. If a rebase hits a conflict in
-`paper.md` or `STATUS.md`, resolve by hand — both are high-churn files
+`paper.md` or `queue.md`, resolve by hand — both are high-churn files
 and a bad auto-merge is worse than a visible conflict.
 
 ### 3. Never skip hooks, never force-push to master.
@@ -63,11 +63,11 @@ or fix the thing the hook is checking — don't route around it.
   anything that could fail CI): open a PR, let it sit, merge when
   green. Per branch-strategy rules, this repo's Claude sessions
   typically work on `claude/<task-slug>` branches per session.
-- **One-liner fix on master** (typo, STATUS.md update, queue removal):
+- **One-liner fix on master** (typo, queue.md update, queue removal):
   direct push is fine — this is what `papers-ci` uses, and it's what
   `competition-cron` should probably switch to per `todo.md`'s
   GitHub-Actions-failure-modes section. A full PR for a one-line
-  STATUS.md edit is ceremony that slows the iteration loop without
+  queue.md edit is ceremony that slows the iteration loop without
   adding safety.
 
 ### 5. Do *not* mix direct-master commits and PR-branch commits in the
@@ -84,14 +84,14 @@ decisions on bad data.
 working on a branch, stay on the branch. If you're patching master
 directly, don't also open PRs elsewhere on the same files. If you
 have to switch mid-session, announce the switch in a commit message
-and in STATUS.md so the next session knows what happened.
+and in queue.md so the next session knows what happened.
 
-### 6. After every merge, update STATUS.md.
+### 6. After every merge, update queue.md.
 
-If a PR just landed and the queue in `STATUS.md` doesn't reflect it,
+If a PR just landed and the queue in `queue.md` doesn't reflect it,
 the queue is wrong. Per CLAUDE.md queue protocol: queue items removed
 in the same commit as the implementation. Merges should never leave
-STATUS.md claiming something is pending when it's done.
+queue.md claiming something is pending when it's done.
 
 ### 7. Ask for logs before diagnosing CI failures.
 

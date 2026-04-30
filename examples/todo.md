@@ -172,7 +172,7 @@ can say explicitly which they want, substrate-independent.
 **Open:** spec the primitive, add to the compiler, rewrite `sequence.su`
 to use it, re-run smoke test expecting 11/11.
 
-## Items that should move to `STATUS.md` when prioritized
+## Items that should move to `queue.md` when prioritized
 
 - Document the hardwired embedding-model assumption in the paper's
   Limitations section.

@@ -82,9 +82,9 @@ The prior relational-displacement work (published in the external `latent-space-
 - **Keep this file up to date.** Record architectural decisions, conventions, and anything needed to work effectively.
 - **Update README.md regularly.** It should always reflect the current state of the project.
 
-## STATUS.md and the task tool
+## queue.md and the task tool
 
-`STATUS.md` at the repo root is the **persistent work queue across
+`queue.md` at the repo root is the **persistent work queue across
 sessions**. It is not a state snapshot and it is not a log of finished
 work. Items live in it until they are done; then they are removed.
 Completed work is preserved in `git log` and in dated findings docs
@@ -92,40 +92,40 @@ under `planning/findings/`.
 
 The task tool (`TaskCreate` / `TaskUpdate` / `TaskList`) is the
 session-level counterpart. **The intended workflow is that the task
-tool runs off of `STATUS.md`:**
+tool runs off of `queue.md`:**
 
 1. **At the start of a session when you're about to do work from the
-   queue**, read `STATUS.md` and call `TaskCreate` for each queued
+   queue**, read `queue.md` and call `TaskCreate` for each queued
    item (or each sub-item if a queue item naturally breaks down).
    Task subjects should be short and action-oriented; descriptions
-   should reference the STATUS.md entry so nothing is lost.
+   should reference the queue.md entry so nothing is lost.
 2. **Work through the tasks**: `TaskUpdate` to `in_progress` when you
    start, `completed` when you finish. This is the same task tool you
    already use for multi-step coding work.
-3. **When a task is completed**, also **edit `STATUS.md` to remove
+3. **When a task is completed**, also **edit `queue.md` to remove
    the corresponding queue item in the same commit that closes the
    work**. Not at session end; as each item finishes. The delete is
    the explicit signal that an item is done.
 4. **If you realize a queue item needs to split into smaller pieces**
    before it fits in one task, split it in the task tool first, and
-   reflect the split back into STATUS.md so the two views stay in
+   reflect the split back into queue.md so the two views stay in
    sync.
 
-This is the reason STATUS.md is a queue, not a state snapshot:
-**STATUS.md and the task tool are two views of the same list**, one
+This is the reason queue.md is a queue, not a state snapshot:
+**queue.md and the task tool are two views of the same list**, one
 persistent across sessions and one session-local. Drift between them
 defeats the purpose.
 
 Longer-horizon commitments that aren't "next active session" work
-belong in `todo.md` instead. STATUS.md is for what Claude should pick
+belong in `todo.md` instead. queue.md is for what Claude should pick
 up on the next working pass; `todo.md` is for what Claude should pick
 up eventually. When an item moves from "eventually" to "now", it
-migrates from `todo.md` to `STATUS.md`; when it completes, it
+migrates from `todo.md` to `queue.md`; when it completes, it
 disappears from both.
 
-Do not use STATUS.md as a log of completed work or as a state
+Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
-message, a findings doc, or a git tag — not STATUS.md.
+message, a findings doc, or a git tag — not queue.md.
 
 ## NO MATH SHORTCUTS (critical — re-read before every experiment)
 
