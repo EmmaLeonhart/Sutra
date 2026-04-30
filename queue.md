@@ -23,7 +23,7 @@ pick up next.
 
 ## Queued work — top of queue
 
-### 1. "Python is just IO" target — full unroll + torch.compile
+### 1. "Python is just IO" target — full unroll + torch.compile — IN PROGRESS
 
 Emma's framing: ideally the Python wrapper does *only* IO/console
 shell work; everything else runs as one big tensor-op graph.
