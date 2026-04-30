@@ -626,20 +626,23 @@ class BaseCodegen:
             cond_src = self._translate_expr(decl.condition)
             # Comparisons inline to fuzzy-vector operations (e.g. gt
             # returns a vector with truth on AXIS_TRUTH). Extract the
-            # truth-axis scalar to drive the halt check. If the value is
-            # already a scalar (Python float/int), use it directly.
+            # truth-axis scalar via _VSA.truth_axis (substrate scalar
+            # return), then heaviside it to a keep-mask — both
+            # substrate-pure. See planning/findings/2026-04-30-
+            # substrate-purity-leak-enumeration.md (Leak 1).
             self._emit(f"_cond = {cond_src}")
-            self._emit(
-                f"_cond_truth = (float(_cond[_VSA.semantic_dim + _VSA.AXIS_TRUTH]) "
-                f"if hasattr(_cond, '__len__') else float(_cond))"
-            )
-            self._emit(f"_keep = 1.0 if _cond_truth > 0 else 0.0")
+            self._emit(f"_cond_truth = _VSA.truth_axis(_cond)")
+            self._emit(f"_keep = _VSA.heaviside(_cond_truth)")
         elif decl.kind == "iterative_loop":
             # condition is the count; iterator = _t + 1 (1-indexed).
             count_src = self._translate_expr(decl.condition)
             self._emit(f"# iterative_loop: tick = _t+1, halt when tick > count.")
             self._emit(f"_iterator = _t + 1")
-            self._emit(f"_keep = 1.0 if (_iterator <= int({count_src})) else 0.0")
+            # Heaviside of (count - iterator + 1): positive while iterator
+            # <= count; zero or negative once past. Substrate-pure scalar.
+            self._emit(
+                f"_keep = _VSA.heaviside(int({count_src}) - _iterator + 1)"
+            )
         elif decl.kind == "foreach_loop":
             # foreach: condition is the array parameter (an Identifier
             # naming the array). The function takes the array as its
@@ -656,7 +659,8 @@ class BaseCodegen:
             self._emit(f"# foreach_loop: array param `{arr_param_name}`,")
             self._emit(f"# bind `element` to {arr_param_name}[_t] each tick.")
             self._emit(f"_length = _VSA.array_length({arr_param_name})")
-            self._emit(f"_keep = 1.0 if (_t < _length) else 0.0")
+            # Heaviside of (_length - _t): positive while _t < _length.
+            self._emit(f"_keep = _VSA.heaviside(_length - _t)")
             # Fetch the element BEFORE running body. Bind to `_element`.
             # For halted ticks the read is wasted but harmless (default
             # element-of-arr index is the last valid one or 0).
@@ -667,7 +671,9 @@ class BaseCodegen:
                 decl, f"unknown loop kind `{decl.kind}`"
             )
         self._emit(f"_halt_term = 1.0 - _keep")
-        self._emit(f"_halt_cum = min(_halt_cum + _halt_term, 1.0)")
+        # Substrate-pure saturation: numpy.minimum / torch.minimum, not
+        # Python's min(). Keeps _halt_cum a substrate scalar.
+        self._emit(f"_halt_cum = _VSA.saturate_unit(_halt_cum + _halt_term)")
         # Body re-runs each tick; PassStmt updates state locals.
         for inner in decl.body.statements:
             self._translate_stmt(inner)
