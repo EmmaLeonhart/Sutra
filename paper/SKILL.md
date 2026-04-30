@@ -9,13 +9,13 @@ allowed-tools: Bash(python *), Bash(pip *), Bash(cd *), Bash(cargo *)
 **Author: Emma Leonhart**
 
 This skill reproduces the demonstration programs and verifiable
-substrate-purity claims of the paper. The empirical foundation
-(step 1 of the three-step arc — relational displacements in
-frozen embedding spaces) lives in the sibling repository
-`EmmaLeonhart/latent-space-cartography` and is reproduced by that
-repo's own skill. This skill covers steps 2 + the language
-(step 3 is positioned as next-implementation, not a finished
-result; nothing to reproduce there yet).
+substrate-purity claims of the paper. The paper takes the
+algebraic structure of frozen embedding spaces as established by
+the prior knowledge-graph-embedding literature (TransE, RotatE,
+the word-analogy line) and presents the algorithms and language
+that consolidate that structure into composable primitives.
+Learned-matrix binding is positioned as next-implementation, not
+a finished result; nothing to reproduce there yet.
 
 ## What this reproduces
 
@@ -136,9 +136,11 @@ with `SUTRA_TORCH_COMPILE_BACKEND=inductor` for fused CUDA kernels
 
 ## What this does NOT reproduce
 
-- **Step 1 (cartography findings)** — see sibling repo
-  `EmmaLeonhart/latent-space-cartography`.
-- **Step 3 (learned-matrix binding)** — surface design exists in
+- **The algebraic-structure premise.** The paper takes as given
+  that frozen embedding spaces have algebraic structure; that is
+  established by the prior knowledge-graph-embedding literature
+  (TransE, RotatE, word-analogy work) and is not re-derived here.
+- **Learned-matrix binding** — surface design exists in
   `planning/sutra-spec/binding.md` § "Semantic binding"; runtime
   rejects with a deferred-feature error. Next-release work.
 - **Object encapsulation as load-bearing.** Parser handles object
