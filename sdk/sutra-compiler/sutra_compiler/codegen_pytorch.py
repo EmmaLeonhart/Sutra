@@ -482,8 +482,55 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def slot_load(self, state, slot_idx):")
         self._indent += 1
+        self._emit('"""Read the slot scalar. Returns a torch 0-dim tensor.')
+        self._emit('')
+        self._emit("Substrate-pure: downstream arithmetic stays in tensor land. See")
+        self._emit("planning/findings/2026-04-30-substrate-purity-leak-enumeration.md.")
+        self._emit('"""')
         self._emit("i, _j = self._slot_plane(slot_idx)")
-        self._emit("return float(state[i])")
+        self._emit("return state[i]")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- Substrate scalar primitives (boundary-leak reductions) ----")
+        self._emit()
+        self._emit("def truth_axis(self, vec_or_scalar):")
+        self._indent += 1
+        self._emit('"""Read AXIS_TRUTH from a fuzzy-vector result, or pass scalars through.')
+        self._emit('')
+        self._emit("Returns a torch 0-dim tensor; substrate-pure loop halt checks consume")
+        self._emit("the result without crossing the Python boundary.")
+        self._emit('"""')
+        self._emit("if hasattr(vec_or_scalar, '__len__') and len(vec_or_scalar) > 1:")
+        self._indent += 1
+        self._emit("return vec_or_scalar[self.semantic_dim + self.AXIS_TRUTH]")
+        self._indent -= 1
+        self._emit("if _torch.is_tensor(vec_or_scalar):")
+        self._indent += 1
+        self._emit("return vec_or_scalar")
+        self._indent -= 1
+        self._emit("return _torch.tensor(vec_or_scalar, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def heaviside(self, x):")
+        self._indent += 1
+        self._emit('"""Step function: 1.0 where x > 0, else 0.0. Torch 0-dim tensor."""')
+        self._emit("if not _torch.is_tensor(x):")
+        self._indent += 1
+        self._emit("x = _torch.tensor(x, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit("zero = _torch.zeros((), dtype=self.dtype, device=self.device)")
+        self._emit("return _torch.heaviside(x.to(self.dtype), zero)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def saturate_unit(self, x):")
+        self._indent += 1
+        self._emit('"""min(x, 1.0) implemented as torch.minimum. Torch 0-dim tensor."""')
+        self._emit("if not _torch.is_tensor(x):")
+        self._indent += 1
+        self._emit("x = _torch.tensor(x, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit("one = _torch.ones((), dtype=self.dtype, device=self.device)")
+        self._emit("return _torch.minimum(x, one)")
         self._indent -= 1
         self._emit()
         self._emit("def rotate_slot(self, state, slot_idx, angle):")
