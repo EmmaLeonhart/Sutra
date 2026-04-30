@@ -23,6 +23,18 @@ from typing import List, Optional
 from . import ast_nodes as ast
 
 
+# Transcendental intrinsic names that the codegen actively rejects.
+# The 2026-04-29 implementation was withdrawn 2026-04-30 because it
+# ran as host Python scalar arithmetic at runtime, not as substrate
+# tensor ops. The intrinsic declarations remain in `stdlib/math.su`
+# (so the parser knows the names exist) but the codegen rejects any
+# call before it reaches a backend. See
+# `planning/findings/2026-04-30-runtime-substrate-purity-audit.md`.
+_TRANSCENDENTALS_DISABLED = frozenset({
+    "log", "sqrt", "exp", "sin", "cos", "tan", "pow",
+})
+
+
 # ============================================================
 # Error type
 # ============================================================
@@ -1296,7 +1308,7 @@ class BaseCodegen:
             # bundle. This is the independence structure of a role-filler
             # record: every (role, filler) pair is completely independent of
             # the others. Matches the 2026-04-22 "PyTorch/GPU gated on
-            # scheduled parallel evaluation" item from STATUS.md.
+            # scheduled parallel evaluation" item from queue.md.
             if (name == "bundle"
                     and len(call.args) >= 2
                     and all(_is_bind_call(a) for a in call.args)):
@@ -1316,6 +1328,24 @@ class BaseCodegen:
                     )
                 arg_srcs = [self._translate_expr(a) for a in call.args]
                 return emitter(arg_srcs)
+            # Transcendental intrinsics — disabled 2026-04-30. The
+            # 2026-04-29 implementation ran as Python scalar arithmetic at
+            # runtime, not as substrate tensor ops. Withdrawn rather than
+            # left as a working-but-architecturally-wrong impl. The future
+            # direction is eigenrotation-as-modulus (see stdlib/math.su
+            # and planning/findings/2026-04-30-runtime-substrate-purity-audit.md).
+            # Programs that use these names fail to compile here.
+            if name in _TRANSCENDENTALS_DISABLED:
+                raise CodegenNotSupported(
+                    call,
+                    f"transcendental intrinsic `{name}` is not implemented. "
+                    f"The 2026-04-29 implementation was withdrawn 2026-04-30 "
+                    f"because it ran as host Python scalar arithmetic at "
+                    f"runtime, violating the substrate-purity contract. "
+                    f"See `sdk/sutra-compiler/sutra_compiler/stdlib/math.su` "
+                    f"and `planning/findings/2026-04-30-runtime-substrate-purity-audit.md` "
+                    f"for the rationale and the eigenrotation-as-modulus future direction.",
+                )
             # Stdlib intrinsic? Route to the runtime class so the leaf
             # primitive (dot, sqrt, tanh, make_truth, embed, ...) is
             # dispatched to _VSA.<name>(...) instead of a bare identifier

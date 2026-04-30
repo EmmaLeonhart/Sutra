@@ -138,7 +138,7 @@ class TokenKind(Enum):
     # Givens plane allocated by the compiler. Runtime primitives
     # (slot_store / slot_load / rotate_slot) landed 2026-04-24; the
     # codegen integration that threads state through function scopes
-    # is the remaining work, tracked in STATUS.md "Pre-YC: Sutra
+    # is the remaining work, tracked in queue.md "Pre-YC: Sutra
     # surface syntax for slot primitives."
     KW_SLOT = auto()
 

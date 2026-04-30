@@ -27,7 +27,7 @@ basis_vector("role_name");` and every `bind(role, filler)` call
 compiles to sign-flip (which is retired as a design kind; see the
 2026-04-21 findings note). There is no source-level way to say
 "this is a semantic role" vs "this is a rotation-bound variable."
-The migration off sign-flip onto rotation binding (STATUS.md queue
+The migration off sign-flip onto rotation binding (queue.md queue
 item 4) needs this syntax settled first.
 
 ## Why this is load-bearing

@@ -88,7 +88,7 @@ picks the winner. Same program, three substrates declared via the
    programs are byte-identical except for their first-line
    directive; swapping substrate is a one-line change in source,
    no compiler flags, no harness reconfiguration. This is exactly
-   what the 2026-04-22 STATUS.md commitment promised — per-program
+   what the 2026-04-22 queue.md commitment promised — per-program
    substrate declaration lives in the source.
 
 4. **mxbai's "france as generic European country" is a small

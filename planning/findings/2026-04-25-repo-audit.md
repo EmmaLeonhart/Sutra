@@ -1,6 +1,6 @@
 # Repo audit — 2026-04-25
 
-**Status:** Per STATUS.md "Repo audit due soon" queue item. Walked
+**Status:** Per queue.md "Repo audit due soon" queue item. Walked
 every top-level directory after the chats / scripts / HTMLs sweep
 of 2026-04-25 closed. Replaces the stale `audit.md` / `AUDIT.md`
 duplicates that were removed earlier in the day (those were written
@@ -95,7 +95,7 @@ explicitly retained as a read-only reference.
 
 Three files: `README.md` plus two deferred chats from the 2026-04-25
 triage round (`vsa-operations-explained.md`,
-`vsa-programming-languages.md`). Status in STATUS.md.
+`vsa-programming-languages.md`). Status in queue.md.
 
 **Recommendation:** none until those two are triaged.
 
@@ -137,7 +137,7 @@ remain valid as historical context.
 | `CLAUDE.md` | Current; updated 2026-04-25. | Keep. |
 | `DEVLOG.md` | Active. | Keep. |
 | `README.md` | Current; framing updated this round. | Keep. |
-| `STATUS.md` | Active queue. | Keep. |
+| `queue.md` | Active queue. | Keep. |
 | `todo.md` | Active. | Keep. |
 | `mkdocs.yml` | Build config. | Keep. |
 | `sutrac.py` | Compiler CLI wrapper. | Keep. |
@@ -164,7 +164,7 @@ Concrete, ordered by impact:
    `sutra-syntax-decisions.md`, `sutra-language-comparisons.md` —
    for whether their content is duplicated in `planning/sutra-spec/`
    or `docs/`. Move or delete accordingly. This is a separate
-   STATUS.md follow-up because it requires careful read-through;
+   queue.md follow-up because it requires careful read-through;
    the audit itself doesn't make the call.
 
 Items 1 and 2 are quick wins. Items 3 and 4 are optional/scoped

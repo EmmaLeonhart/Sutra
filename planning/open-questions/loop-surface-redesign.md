@@ -7,7 +7,7 @@
 
 ## Context
 
-The 2026-04-30 audit of loop forms (in `STATUS.md` § "Loop-form
+The 2026-04-30 audit of loop forms (in `queue.md` § "Loop-form
 audit") surfaced two distinct problems:
 
 1. **Body-discard in `loop(cond)` / `while(cond)` / `for(...)`.**

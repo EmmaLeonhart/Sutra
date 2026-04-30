@@ -60,5 +60,5 @@ the readout is robust as far out as we've pushed it.
 ## Status
 
 - Queue item 3 of 3 complete.
-- Queue section in STATUS.md will be removed by this commit.
+- Queue section in queue.md will be removed by this commit.
 - Loops problem as scoped in `fly-brain-paper` is closed.

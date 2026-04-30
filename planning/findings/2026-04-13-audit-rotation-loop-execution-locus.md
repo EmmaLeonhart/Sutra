@@ -62,7 +62,7 @@ Spiking counting test: target k=3, max_iters=6, 5 seeds.
 Spiking counting at k=3: 3/5 seeds, wall clock 24.6s.
 ```
 
-Seed 1's failure is a Poisson-noise flip (cos difference is 0.01). Seed 4's failure is structural — cos at k=1 is 0.13 above cos at k=3 — which is consistent with the Q² spectrum argument in STATUS.md (`cos(Q v, Q³ v) = cos(v, Q² v)` can be large if Q² has eigenvalues near 1).
+Seed 1's failure is a Poisson-noise flip (cos difference is 0.01). Seed 4's failure is structural — cos at k=1 is 0.13 above cos at k=3 — which is consistent with the Q² spectrum argument in queue.md (`cos(Q v, Q³ v) = cos(v, Q² v)` can be large if Q² has eigenvalues near 1).
 
 ## Implications
 
@@ -73,4 +73,4 @@ Seed 1's failure is a Poisson-noise flip (cos difference is 0.01). Seed 4's fail
 
 ## Open question
 
-Is host-side similarity acceptable as a *readout* boundary (like MBON → motor command in the fly brain), or is it a substrate violation that must be fixed before headline results are trusted? The answer shapes whether item 1 of STATUS.md is "fix three ops" or "fix one op plus document two as readout-boundary host ops by design." See `planning/open-questions/` for where this might live when the answer is considered.
+Is host-side similarity acceptable as a *readout* boundary (like MBON → motor command in the fly brain), or is it a substrate violation that must be fixed before headline results are trusted? The answer shapes whether item 1 of queue.md is "fix three ops" or "fix one op plus document two as readout-boundary host ops by design." See `planning/open-questions/` for where this might live when the answer is considered.

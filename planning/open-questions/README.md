@@ -10,7 +10,7 @@ Live design questions that we know we need to answer eventually, but haven't. Di
 1. **Each doc states the question, what we currently do, why we do it, and what we don't know.** Not a plan — a problem statement.
 2. **Add an entry here when a session-level decision gets made in lieu of a principled one.** e.g. "we picked X because Y worked in one test" — that's an open question, not a resolved design.
 3. **Resolving an open question means updating the spec (`planning/sutra-spec/`) or the implementation**, then removing the doc from this folder. Don't let resolved questions rot here.
-4. **Link from `STATUS.md` when an open question is actively blocking work.** Otherwise, these live here quietly until someone comes back to them.
+4. **Link from `queue.md` when an open question is actively blocking work.** Otherwise, these live here quietly until someone comes back to them.
 
 ## Current contents
 

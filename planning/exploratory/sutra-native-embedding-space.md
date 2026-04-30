@@ -202,5 +202,5 @@ is actively reshaping its substrate.
   Wikidata pollution issue.
 
 None of these are blocked on anything except sequencing. Tracked
-here, not in `STATUS.md`, until the language matures enough to
+here, not in `queue.md`, until the language matures enough to
 support the next step.

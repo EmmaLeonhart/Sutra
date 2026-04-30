@@ -208,9 +208,9 @@ first-class binding kinds with their own legitimate use cases*. That
 framing is now stale. The following need to be updated once the
 rotation-binding design is confirmed:
 
-- `STATUS.md` queue item 1 — rewrite to "implement rotation binding
+- `queue.md` queue item 1 — rewrite to "implement rotation binding
   in the synthetic subspace; migrate demos off sign-flip."
-- `STATUS.md` pinned items 4, 5, 6 — rewrite binding-related language
+- `queue.md` pinned items 4, 5, 6 — rewrite binding-related language
   around the two-kinds model (semantic + rotation), sign-flip as legacy.
 - `planning/sutra-spec/binding.md` — rewrite "Kinds of binding" and
   subsections. Add "Extended state vector" section. Retire the

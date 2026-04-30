@@ -1,90 +1,65 @@
 // Canonical Sutra declarations for the transcendental-function
-// family (log / sqrt / exp / trig / pow). All seven are wired to
-// real implementations as of 2026-04-29; both numpy and pytorch
-// backends emit substrate-pure runtime methods.
+// family (log / sqrt / exp / sin / cos / tan / pow).
 //
-// **Architecture:**
-//   - cos / sin: eigenrotation primitive — R(theta) applied to (1, 0)
-//     yields (cos theta, sin theta) directly. This is the user's
-//     "they're eigenrotations" understanding from the design chat.
-//   - exp(z) for complex z = re + i*im: realExp(re) via degree-25
-//     Taylor + 5-pass squaring range reduction (no libm, no floor),
-//     composed with the cos/sin eigenrotation of im.
-//   - log(z) = ln|z| + i*atan2(im, re). ln via frexp range reduction
-//     (IEEE 754 exponent extraction, a substrate primitive — bit
-//     manipulation, NOT a transcendental) plus artanh series on the
-//     mantissa in [0.5, 1). atan2 via Gregory series + quadrant
-//     decomposition.
-//   - sqrt = exp(0.5 * log).
-//   - pow(x, y) = exp(y * log(x)).
-//   - tan = sin / cos.
+// **Status (2026-04-30): NOT IMPLEMENTED. Compile-time error if used.**
 //
-// **Bound-table-via-binding** (the originally-sketched design from
-// chats/implementing-transcendental-functions.md) is used only for
-// cos/sin, where the eigenrotation gives FP-precise results. For
-// non-periodic functions (exp, ln) the bound-table architecture has
-// a fundamental capacity limit (the 2-scalar bundle can only encode
-// one DFT coefficient of the function). See
-// planning/findings/2026-04-29-bound-table-capacity-limit.md.
+// History:
+//   - 2026-04-25: Intrinsic declarations landed as placeholders;
+//     runtime stubs raised NotImplementedError.
+//   - 2026-04-29: A Taylor + frexp + Newton-refinement implementation
+//     was wired in commit e45d373. Math returned correct values, but
+//     the implementation ran as host Python scalar arithmetic (Python
+//     `for n in range(25): acc = 1.0 + r * acc / n` over Python floats),
+//     not as substrate tensor ops on CUDA. The commit message claimed
+//     "substrate-pure" but the architecture was wrong.
+//   - 2026-04-30: Implementation withdrawn. The codegen now rejects
+//     calls to any of the seven names with CodegenNotSupported. The
+//     intrinsic declarations remain so the parser knows the names exist;
+//     the compile-time error fires from `_translate_call` in
+//     `codegen_base.py` (`_TRANSCENDENTALS_DISABLED` set).
+//
+// Documentation of what was tried and what failed:
+//   - chats/implementing-transcendental-functions.md — the original
+//     design conversation (bound-table-via-binding, eigenrotation
+//     hopes, etc.).
+//   - planning/findings/2026-04-29-bound-table-capacity-limit.md —
+//     why the bound-table architecture doesn't work for non-periodic
+//     functions (Gibbs phenomenon, 2-scalar bundle capacity).
+//   - planning/findings/2026-04-30-runtime-substrate-purity-audit.md
+//     — why the Taylor-on-Python-floats implementation was withdrawn.
+//
+// **Future direction: eigenrotation-as-modulus** (Emma 2026-04-30).
+// The unit-circle rotation is naturally periodic — applying R(θ)
+// arbitrarily many times wraps around the circle without needing
+// floor-based range reduction. This might be a path to substrate-pure
+// trig (and by extension exp/log via complex composition) that doesn't
+// hit the bound-table capacity wall. Hunch only, not a design yet.
+// Actual design and implementation belongs in `planning/open-questions/`
+// when someone picks it up.
+//
+// **Why disabled rather than fixed**: the transcendentals are a
+// "look at this cool thing our language can do" feature, not
+// fundamental runtime. The fundamental runtime is the RNN substrate
+// (loop bodies, binding, bundling, etc.). Disabling the broken
+// transcendentals frees focus for getting the fundamental pieces right
+// without leaving an architectural lie behind that could mislead
+// downstream users into thinking their `exp(x)` runs on CUDA when it
+// actually runs in CPython.
+//
+// TODO: re-implement via eigenrotation-as-modulus when the design
+// is drafted. Expected entry point: a new section here describing the
+// substrate-pure architecture, with the codegen guard removed once
+// the implementation is verified to actually run as tensor ops.
 
 
 // ==========================================================================
-// Section 1 — what each function will compile to (design notes)
+// Intrinsic declarations
 // ==========================================================================
 //
-// log(x), x ∈ [a, b], a > 0
-//   Chebyshev polynomial on the bounded domain. The compiler reads
-//   `[math].approximation_precision` from atman.toml, picks the
-//   polynomial degree that hits the precision target, emits the
-//   coefficient vector at compile time, evaluates as a dot product
-//   against [1, x, x², ...] at runtime. No libm call. KART makes
-//   this strategy uniform across all univariate continuous
-//   functions on bounded domains.
-//
-// sqrt(x), x ∈ [0, b]
-//   Same shape as log. Chebyshev expansion on the bounded domain.
-//   For very-wide-domain sqrt the lookup-table tier may win because
-//   the Chebyshev polynomial degree balloons — the compiler picks.
-//
-// exp(x), x ∈ [a, b]
-//   Same shape. Chebyshev. The unbounded-domain case (x ∈ ℝ) needs
-//   range-reduction (e.g. write x = n*ln2 + r, expand exp(r) only)
-//   which is doable as a compile-time transformation but is the
-//   non-trivial part.
-//
-// sin(x), cos(x), tan(x)
-//   Same family. Periodic, so range-reduction is mandatory before
-//   the polynomial step. CORDIC-style decomposition into sequences
-//   of shifts and adds is also viable on hardware-targeted backends.
-//
-// pow(x, y)
-//   Two-argument case. KART says even multivariate continuous
-//   functions decompose into compositions of univariates plus
-//   addition. pow(x, y) = exp(y * log(x)) is the standard such
-//   decomposition; once log and exp are wired, pow is essentially
-//   free.
-
-
-// ==========================================================================
-// Section 2 — blocked on intrinsics (pseudo-Sutra what the bodies
-// would look like once the approximation pass lands)
-// ==========================================================================
-//
-// function scalar log(scalar x) {
-//     // Compile-time: read [math] section, pick Chebyshev degree
-//     // and coefficients for log on the inferred bounded domain.
-//     // Runtime: dot(coeffs, [1, x, x², ..., x^n]).
-//     return _chebyshev_eval(_log_coeffs, x);
-// }
-//
-// (And similarly for the others. The compile-time work is the
-// coefficient generator + bounded-domain inference; the runtime is
-// just the dot product against the basis evaluations.)
-
-
-// ==========================================================================
-// Section 3 — intrinsic declarations
-// ==========================================================================
+// These names exist for the parser so that referenced calls have a
+// known symbol. The codegen (`codegen_base.py::_translate_call` in
+// the `_TRANSCENDENTALS_DISABLED` branch) rejects them with a clear
+// CodegenNotSupported error pointing at this file.
 
 intrinsic function scalar log(scalar x);
 intrinsic function scalar sqrt(scalar x);

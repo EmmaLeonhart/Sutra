@@ -7,7 +7,7 @@ task tool (`TaskCreate`) at session start, works through them, and
 work lives in `git log` and `planning/findings/`; this file is only
 the *pending* work.
 
-See CLAUDE.md §"STATUS.md and the task tool" for the full workflow.
+See CLAUDE.md §"queue.md and the task tool" for the full workflow.
 
 The work here is **making Sutra the language actually work** — the
 compiler, the spec, the substrate-backed runtime, the demo programs.
@@ -170,12 +170,12 @@ Real violations found beyond the loop work already queued above:
    at compile time (emit a warmup block at the top of the
    compiled module that constructs all known rotations).
 
-### Rename `STATUS.md` → `queue.md` — naming for clarity
+### Rename `queue.md` → `queue.md` — naming for clarity
 
 Emma 2026-04-30: "this status.md is being ignored enough, is being
 improperly used enough that it should have a more clear name like
 queue.md." Rename touches CLAUDE.md and several planning docs that
-reference "STATUS.md" by name; not done in the same commit as the
+reference "queue.md" by name; not done in the same commit as the
 loop redesign capture to keep diffs reviewable. Queue this as a
 small follow-up: rename the file, sweep references in CLAUDE.md +
 todo.md + planning/ + sdk/ + examples/ to point at `queue.md`,

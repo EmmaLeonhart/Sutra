@@ -153,4 +153,4 @@ can drop their "pending experimental validation" language.
 
 Remaining follow-on items (runtime implementation of 2D-Givens-
 per-slot as a first-class primitive, demos that exercise it,
-spec-text cleanup) go back into STATUS.md / `todo.md`.
+spec-text cleanup) go back into queue.md / `todo.md`.
