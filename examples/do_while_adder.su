@@ -1,0 +1,25 @@
+// do_while body-as-cell demo: increment x until it passes a threshold.
+//
+// Per Emma 2026-04-30: loops are first-class declared functions whose
+// recurrent state is the named state parameters. The body uses `pass`
+// for tail-recursive yield. The loop is invoked with the `loop` prefix;
+// caller's slot variables get mutated by reference on completion.
+//
+// Sutra has only `>` (no `>=` or `<=`) since fuzzy comparison returns
+// "unknown" at equality. So "continue while x is at most 10" is
+// expressed as `x < 11`.
+//
+// Starting from x=9:
+//   tick 1 (do part): pass x+1 → x=10; check 10 < 11 (true) → continue
+//   tick 2:           pass x+1 → x=11; check 11 < 11 (false) → halt
+//   final x = 11
+
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;
+}
