@@ -270,6 +270,41 @@ pub extern "C" fn sutra_insert_ntriples(db: *mut SutraDb, data: *const c_char) -
         if inner.ps.insert(triple).is_ok() {
             let _ = inner.store.insert(triple);
             inserted += 1;
+
+            // Auto-declare vector predicates and insert into the HNSW
+            // index when the object is a f32vec literal. Mirrors the
+            // rebuild-on-open path above so fresh inserts also become
+            // queryable via VECTOR_SIMILAR / VECTOR_SCORE without
+            // requiring a close+reopen cycle. Added 2026-04-30 (Sutra
+            // queue item 2 piece 6) — see Sutra repo CLAUDE.md and
+            // DEVLOG.md for context.
+            let f32vec_suffix = "^^<http://sutra.dev/f32vec>";
+            if obj_str.contains(f32vec_suffix) {
+                if let Some(start) = obj_str.find('"') {
+                    let end = obj_str[start + 1..].find('"').map(|p| p + start + 1);
+                    if let Some(end) = end {
+                        let vec_str = &obj_str[start + 1..end];
+                        let floats: Vec<f32> = vec_str
+                            .split_whitespace()
+                            .filter_map(|s| s.parse::<f32>().ok())
+                            .collect();
+                        if !floats.is_empty() {
+                            let dims = floats.len();
+                            if !inner.vectors.has_index(p_id) {
+                                let config = sutra_hnsw::VectorPredicateConfig {
+                                    predicate_id: p_id,
+                                    dimensions: dims,
+                                    m: 16,
+                                    ef_construction: 200,
+                                    metric: sutra_hnsw::DistanceMetric::Cosine,
+                                };
+                                let _ = inner.vectors.declare(config);
+                            }
+                            let _ = inner.vectors.insert(p_id, floats, o_id);
+                        }
+                    }
+                }
+            }
         }
     }
 

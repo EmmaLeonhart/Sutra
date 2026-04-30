@@ -177,7 +177,6 @@ class SutraDBEmbedded:
             err = self._last_error()
             raise RuntimeError(f"sutra_db_open failed: {err}")
         self._closed = False
-        self._needs_reindex = False
 
     def _last_error(self) -> str:
         ptr = self._lib.sutra_last_error()
@@ -193,11 +192,11 @@ class SutraDBEmbedded:
         as the object of a triple with predicate `<urn:sutra:embedding>`,
         typed `<http://sutra.dev/f32vec>`.
 
-        NOTE: this marks the database as "needs reindex" — see
-        `_ensure_indexed`. The FFI's `sutra_insert_ntriples` does not
-        auto-declare a vector predicate on first insert; only the
-        `sutra_db_open` rebuild path does. We work around by
-        closing + reopening before the next query.
+        As of FFI build 2026-04-30 (queue item 2 piece 6),
+        `sutra_insert_ntriples` auto-declares vector predicates and
+        adds the vector to the HNSW index inline — no close+reopen
+        needed. The FFI rebuild on open still works; this just removes
+        the slow path for fresh inserts.
         """
         if self._closed:
             raise RuntimeError("SutraDBEmbedded already closed")
@@ -212,27 +211,6 @@ class SutraDBEmbedded:
         if n < 0:
             err = self._last_error()
             raise RuntimeError(f"sutra_insert_ntriples failed: {err}")
-        self._needs_reindex = True
-
-    def _ensure_indexed(self) -> None:
-        """Close + reopen the DB so the HNSW index is rebuilt from stored
-        triples. Required for queries to see fresh inserts (FFI limitation,
-        2026-04-30: insert path does not auto-declare vector predicates).
-        """
-        if not self._needs_reindex:
-            return
-        if self._path == ":memory:":
-            # Can't close+reopen in-memory; would lose data. Caller has
-            # to handle this, but :memory: is rejected by sled anyway.
-            self._needs_reindex = False
-            return
-        self._lib.sutra_db_close(self._db)
-        c_path = self._path.encode("utf-8")
-        self._db = self._lib.sutra_db_open(c_path)
-        if not self._db:
-            err = self._last_error()
-            raise RuntimeError(f"sutra_db_open (reindex) failed: {err}")
-        self._needs_reindex = False
 
     def nearest(self, query: Sequence[float], k: int = 1) -> list[str]:
         """Return the `k` nearest labels to `query` by cosine similarity.
@@ -241,7 +219,6 @@ class SutraDBEmbedded:
         """
         if self._closed:
             raise RuntimeError("SutraDBEmbedded already closed")
-        self._ensure_indexed()
         vec_lit = " ".join(f"{float(x):.8g}" for x in query)
         sparql = (
             f"SELECT ?s WHERE {{ "
