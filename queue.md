@@ -84,34 +84,40 @@ Concrete shape:
   does the work in Rust + HNSW.
 
 Implementation pieces (rough sequencing):
-1. ~~Embed SutraDB CLI / FFI binding into the runtime so compiled
-   modules can query a `.sdb` without a separate process.~~ — DONE
-   in commit `3b33938`. `sdk/sutra-compiler/sutra_compiler/
-   sutradb_embedded.py` is a ctypes wrapper around `sutra_ffi.dll`
-   exposing open / add(label, vec) / nearest(query, k). 4/4 smoke
-   tests pass. Build prereq: `cd sutraDB && cargo build --release
-   -p sutra-ffi`.
-2. Codegen: at module init, open a `.sdb` populated with the
-   program's known vectors (codebook, role rotations, etc.). NOT
-   STARTED.
-3. Replace `argmax_cosine` / `snap` runtime methods with SutraDB
-   nearest-neighbor queries. NOT STARTED.
-4. Replace `hashmap_*` runtime methods with SutraDB triple
-   insert/query. NOT STARTED.
-5. `atman.toml` `[vector_db]` section to override defaults
-   (nomic-embed-text, sdb file path, HNSW params). NOT STARTED.
-6. **FFI auto-declare-on-insert fix.** Today's FFI doesn't declare
-   a vector predicate when its first triple gets inserted; only
-   the `sutra_db_open` rebuild path auto-declares. The Python
-   wrapper works around this via close+reopen on `nearest()`,
-   which is correct but slow. Fix: modify `sutra_insert_ntriples`
-   in `sutraDB/sutra-ffi/src/lib.rs` to detect f32vec-typed object
-   literals and auto-declare. Rust-side change; rebuild required.
+1. ~~Embed SutraDB CLI / FFI binding into the runtime~~ — DONE in
+   commit `3b33938`. `sutradb_embedded.py` ctypes wrapper.
+2. ~~Codegen: at module init, open a `.sdb` populated with the
+   program's known vectors~~ — DONE in commit `cc0c25a`. PyTorch
+   codegen prelude lazy-initializes a SutraDBEmbedded handle in
+   module scope on first argmax_cosine call.
+3. ~~Replace `argmax_cosine` runtime method with SutraDB nearest-
+   neighbor queries~~ — DONE in commit `cc0c25a`. `_argmax_cosine`
+   now tries SutraDB first (N>=4 candidates) and falls back to
+   matmul on any error or DLL absence. `snap` is a separate op
+   that's not yet routed (snap requires a cleanup circuit; not
+   scoped here).
+4. **Replace `hashmap_*` runtime methods with SutraDB triple
+   insert/query.** NOT STARTED. Hashmap is used in
+   `stdlib/memory.su` but not in any current example/demo, so
+   this isn't blocking the headline use case. When picked up:
+   `_hashmap_set(key, value, accumulator)` → SutraDB insert of
+   `<urn:hashmap:key:K> <urn:hashmap:value> "V"^^...` triple;
+   `_hashmap_get(key, accumulator)` → SPARQL-resolved lookup.
+   Soft lookup falls out for free (HNSW is approximate-NN).
+5. **`atman.toml` `[vector_db]` config section.** NOT STARTED.
+   Today the SutraDB tempdir path is hard-coded in the codegen
+   prelude. Config to expose: sdb file path (per-program
+   persistent vs ephemeral tempdir), HNSW M and ef_construction
+   parameters, nomic-embed-text vs alternative embedding model.
+6. ~~FFI auto-declare-on-insert fix~~ — DONE in commit `d72ab1c`.
+   `sutra_insert_ntriples` in the FFI now detects f32vec-typed
+   object literals and auto-declares the predicate on first
+   insert. Eliminated the close+reopen reindex workaround.
 
-The pieces above are scoped tractable. Pieces 2 + 3 together get
-the language using SutraDB for its hot path; 4 + 5 + 6 are
-follow-ups. Small programs may stay on the in-process
-bind/bundle/argmax path during the transition.
+**Status as of 2026-04-30:** 4/6 pieces done. The headline
+"SutraDB embedded replaces argmax_cosine for substrate-side vector
+lookup" is delivered. Pieces 4+5 are clean follow-ups that don't
+block paper writing.
 
 ### 3. make_random_rotation pre-warm at compile time
 
