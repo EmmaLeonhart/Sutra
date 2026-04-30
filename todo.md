@@ -483,25 +483,35 @@ Concrete work:
   `approximation_method` (`"chebyshev"` / `"lookup"` /
   `"cordic"`). Parse it in `sdk/sutra-compiler/sutra_compiler/
   workspace.py` (or wherever atman.toml is read).
-- [ ] **Compile-time Chebyshev coefficient generator.** Given a
+- [x] ~~**Compile-time Chebyshev coefficient generator.** Given a
   function family (`log`, `sqrt`, …) plus a bounded domain plus a
   precision target, emit a coefficient vector of the right
-  polynomial degree. Most of these have closed-form Chebyshev
-  expansions; precompute at compile time, dot at runtime.
-- [ ] **Lookup-table tier.** For functions where Chebyshev is
+  polynomial degree.~~ **SUPERSEDED 2026-04-29.** Wired the
+  transcendentals via Taylor + frexp range reduction (real
+  exp/log) and eigenrotation (cos/sin) instead. Bound-table /
+  Chebyshev approach kept as a possible future optimization, but
+  the Taylor+frexp path is FP-precise across the operating range
+  and has zero compile-time machinery to maintain. See
+  `planning/findings/2026-04-29-bound-table-capacity-limit.md`
+  for why the originally-proposed bound-table architecture didn't
+  pencil out.
+- [x] ~~**Lookup-table tier.** For functions where Chebyshev is
   impractical, emit a precomputed table tensor + a sparse-matmul
-  interpolation. Sutra's "table is just another tensor" advantage
-  is real here — verify it on at least one transcendental.
+  interpolation.~~ **SUPERSEDED 2026-04-29** (same finding).
+  The bundled-bound-table approach the user originally sketched
+  has a 2-scalar-of-capacity limit that doesn't reproduce
+  non-periodic functions. cos/sin still use the eigenrotation
+  primitive (which IS the bound-table working as intended);
+  exp/ln use Taylor+frexp.
 - [x] ~~**`stdlib/math.su` math intrinsics** that route to the
   approximation pass: `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`,
-  `pow` for starters.~~ **Placeholders landed 2026-04-25.** The
-  intrinsics are declared in `stdlib/math.su`; both numpy and
-  pytorch backends emit stub runtime methods that raise
-  `NotImplementedError` with a pointer to this entry. User code
-  that calls `sqrt(x)` compiles successfully and fails fast with
-  a clear message at runtime. The approximation pass that
-  replaces these stubs with real Chebyshev / lookup-table tensor
-  ops is the remaining work.
+  `pow` for starters.~~ **DONE 2026-04-29.** All seven intrinsics
+  wired with substrate-pure runtime methods on both backends. Tests
+  in `tests/test_transcendentals.py` (34/34 PASS). Architecture:
+  cos/sin via eigenrotation primitive; realExp via Taylor +
+  squaring range reduction; realLog via frexp range reduction +
+  artanh series; complex exp / log compose; sqrt / pow / tan
+  derived from exp / log.
 - [ ] **Bounded-domain inference.** For the polynomial-tier path
   to work the compiler needs to know `x ∈ [a, b]`. Either via
   type annotations (e.g. `bounded<scalar, 0.01, 10> x`), via

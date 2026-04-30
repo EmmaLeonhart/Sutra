@@ -63,36 +63,31 @@ Read `codegen.py` / `codegen_pytorch.py` for the current emitted
 loop code first to know which half (audit vs push-down) is
 actually open before estimating scope.
 
-### Transcendentals chat — source-of-truth, no formal triage planned (2026-04-29)
+### Transcendentals — DONE 2026-04-29
 
-`chats/implementing-transcendental-functions.md` (78 user / 76
-assistant blocks, 748 lines) was extracted from the HTML the user
-dropped in 2026-04-29 evening. Subject: implementing exp / log /
-sin / arcsin in Sutra, with the user landing on a unified
-algorithm based on complex-plane rotation that handles the
-transcendental family AND exponentiation / logarithms.
+All seven math intrinsics (`exp`, `log`, `sin`, `cos`, `tan`,
+`sqrt`, `pow`) wired with substrate-pure runtime methods on both
+backends. 34/34 dedicated tests PASS plus the full 266-test suite.
 
-User decision 2026-04-29 evening: **no formal per-chunk triage of
-this chat planned.** The substantive thinking matured during the
-chat itself; when transcendentals implementation work begins, the
-chat is the source-of-truth to read. Two things from the chat got
-declared as commitments and captured elsewhere:
+Architecture (substantively different from the chat sketch):
+- **cos / sin** via the eigenrotation primitive (R(theta) applied
+  to (1, 0)) — exactly as the chat described. FP precision.
+- **realExp** via degree-25 Taylor + 5-pass squaring range reduction.
+- **realLog** via `math.frexp` range reduction + degree-30 artanh
+  series (FP precision across float64 range).
+- **complex exp / log** compose; **sqrt / pow / tan** derive from
+  exp / log / sin / cos.
 
-- **`^` (exponent) as a Sutra operator.** Reasoning: "there are
-  no bits in Sutra," so exponentiation is a first-class numeric
-  operation, not a derived function call. Captured in `todo.md`
-  under "Language-design open questions" — not in the math-
-  approximation section, because this is a surface-syntax
-  decision, not an approximation-strategy decision.
-- **Transcendentals implementation is unblocked when prioritized.**
-  The algorithm exists in the chat. When the math-approximation
-  work in `todo.md` is picked up, the implementation pulls the
-  algorithm from the chat directly rather than re-deriving.
+The chat's bound-table-via-binding architecture for exp / ln did
+not pencil out — the 2-scalar bundle has fundamental capacity
+limits for non-periodic functions. Empirical finding written up
+in `planning/findings/2026-04-29-bound-table-capacity-limit.md`
+with `experiments/bound_table_transcendentals.py` as reproducer.
+cos / sin are the part of the chat's design that DID work
+exactly (because rotation IS the trig primitive there).
 
-Leaving the chat in `chats/` as a working reference. If it later
-becomes load-bearing to formally extract the algorithm into a
-planning doc (e.g. spec-level commitment for transcendentals),
-that's a follow-up — but not on the queue today.
+Chat retained in `chats/` as working reference; no formal triage
+needed since the implementation work landed.
 
 ### Repo bloat sweep — flagged item
 
