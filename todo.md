@@ -369,6 +369,19 @@ Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
 - IO — how Sutra handles input/output.
 - Softmax-over-switch vs. if/elif chains —
   `planning/exploratory/softmax-conditionals.md`.
+- **`^` (exponent) as a Sutra operator** (declared 2026-04-29 from
+  the transcendentals chat). Not a function call (`pow(x, y)`),
+  not a derived form — a first-class infix operator on the number
+  axis. User reasoning: "there are no bits in Sutra," so `^` is a
+  numeric primitive, not a bitwise XOR (which is what `^` means
+  in C/Python). When implementation lands: lexer needs `^` token,
+  parser needs an infix-binary production at the appropriate
+  precedence (above `*`, right-associative is the math convention),
+  codegen routes through whatever exponentiation tier the math-
+  approximation work picks (Chebyshev for non-integer exponents,
+  potentially the rotation-based path from the transcendentals
+  chat for the trig family). Source-of-truth for the algorithm:
+  `chats/implementing-transcendental-functions.md`.
 
 ## [This year] Docs / website
 
