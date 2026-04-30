@@ -79,6 +79,7 @@ The prior relational-displacement work (published in the external `latent-space-
 - **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
 - **Commit and push everything.** Always push to remote after committing. No local-only work.
 - **Commit and push *frequently*** — not just at end of session — to survive disruptions (rate-limit hits, browser glitches, lost auth tokens). Per Emma 2026-04-30: when you've completed a meaningful unit of work, commit and push it before starting the next unit. The cost of an extra push is zero; the cost of losing 30 minutes of work is high.
+- **Update `queue.md` in the same commits as the work**, not in batches at session end. Per Emma 2026-04-30: if the session terminates mid-task, the next session needs to read `queue.md` and immediately know what's done, what's in flight, and what's next. Stale queue.md = lost context. Mark items in-progress when starting, partially-done with concrete commit refs as pieces land, fully-done when finished.
 - **Do not enter planning-only modes.** All thinking must produce files and commits.
 - **Keep this file up to date.** Record architectural decisions, conventions, and anything needed to work effectively.
 - **Update README.md regularly.** It should always reflect the current state of the project.
