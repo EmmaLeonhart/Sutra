@@ -117,6 +117,11 @@ def _is_single_return_expr(decl: ast.FunctionDecl) -> bool:
 def _rewrite_top_level(item, table) -> None:
     if isinstance(item, (ast.FunctionDecl, ast.MethodDecl)):
         _rewrite_block(item.body, table)
+    elif isinstance(item, ast.LoopFunctionDecl):
+        # Walk the loop function's condition + body so stdlib calls
+        # inside (like `<` → `lt(a,b)` → `b > a`) get inlined.
+        item.condition = _rewrite_expr(item.condition, table)
+        _rewrite_block(item.body, table)
     elif isinstance(item, ast.VarDecl):
         if item.initializer is not None:
             item.initializer = _rewrite_expr(item.initializer, table)
@@ -172,6 +177,14 @@ def _rewrite_stmt(stmt, table) -> None:
         if stmt.condition is not None:
             stmt.condition = _rewrite_expr(stmt.condition, table)
         _rewrite_block(stmt.body, table)
+    elif isinstance(stmt, ast.PassStmt):
+        # Each pass value is either an Expr or a ReplaceMarker.
+        # Rewrite expressions in place; ReplaceMarker is a leaf.
+        for i, val in enumerate(stmt.values):
+            if not isinstance(val, ast.ReplaceMarker):
+                stmt.values[i] = _rewrite_expr(val, table)
+    elif isinstance(stmt, ast.LoopCallStmt):
+        stmt.condition_arg = _rewrite_expr(stmt.condition_arg, table)
     elif isinstance(stmt, ast.TryStmt):
         _rewrite_block(stmt.try_block, table)
         for clause in stmt.catches:
@@ -406,6 +419,9 @@ def _lower_operators_to_stdlib_calls(
 def _lower_ops_top_level(item, inlineable) -> None:
     if isinstance(item, (ast.FunctionDecl, ast.MethodDecl)):
         _lower_ops_block(item.body, inlineable)
+    elif isinstance(item, ast.LoopFunctionDecl):
+        item.condition = _lower_ops_expr(item.condition, inlineable)
+        _lower_ops_block(item.body, inlineable)
     elif isinstance(item, ast.VarDecl):
         if item.initializer is not None:
             item.initializer = _lower_ops_expr(item.initializer, inlineable)
@@ -461,6 +477,12 @@ def _lower_ops_stmt(stmt, inlineable) -> None:
         if stmt.condition is not None:
             stmt.condition = _lower_ops_expr(stmt.condition, inlineable)
         _lower_ops_block(stmt.body, inlineable)
+    elif isinstance(stmt, ast.PassStmt):
+        for i, val in enumerate(stmt.values):
+            if not isinstance(val, ast.ReplaceMarker):
+                stmt.values[i] = _lower_ops_expr(val, inlineable)
+    elif isinstance(stmt, ast.LoopCallStmt):
+        stmt.condition_arg = _lower_ops_expr(stmt.condition_arg, inlineable)
     elif isinstance(stmt, ast.TryStmt):
         _lower_ops_block(stmt.try_block, inlineable)
         for clause in stmt.catches:
