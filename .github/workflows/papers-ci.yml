@@ -66,7 +66,9 @@ jobs:
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
-          python -u scripts/paper_submit_and_fetch.py paper
+          python -u scripts/paper_submit_and_fetch.py \
+            --paper-dir paper \
+            --tags "programming-languages,vsa,embedding-spaces"
 
       - name: Commit review back (with Skip-Submit trailer)
         if: steps.skip_check.outputs.skip == 'false'
