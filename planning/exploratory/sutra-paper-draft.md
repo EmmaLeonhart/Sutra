@@ -11,7 +11,7 @@ Flanagan / "Hey Pentti" line of work that the prior draft was reacting
 to.
 
 This is a parking lot for the contributions list and motivation. If
-it becomes real work, it moves to STATUS.md and gets a target venue.
+it becomes real work, it moves to queue.md and gets a target venue.
 
 ## Working title
 
@@ -418,4 +418,4 @@ The compiler reads it; it doesn't invent it.
 
 A commitment that the paper gets written or submitted. A parking lot
 for the framing and contributions list. If it becomes real work, it
-moves into STATUS.md with a target venue and a deadline.
+moves into queue.md with a target venue and a deadline.

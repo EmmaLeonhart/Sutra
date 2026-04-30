@@ -1,6 +1,6 @@
 """Rotation-hashmap capacity — extended-state runtime (d=868).
 
-Answers STATUS.md's standing question: how many distinct keys can a
+Answers queue.md's standing question: how many distinct keys can a
 rotation-hashmap store at d = 868 (post-extended-state) before
 retrieval accuracy breaks down?
 

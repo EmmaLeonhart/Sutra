@@ -376,7 +376,7 @@ class VarDecl(Stmt):
     - `is_role`: this is a semantic role binding. `role X = expr;`
       produces a value that semantically should be treated as a
       learned matrix operator; today it behaves identically to
-      `vector X = expr;` (no learned_from yet — see STATUS.md
+      `vector X = expr;` (no learned_from yet — see queue.md
       "Deferred" section). When learned-matrix binding lands, the
       is_role flag is what tells the codegen to emit the matrix-fit
       path.
@@ -404,7 +404,7 @@ class VarDecl(Stmt):
     # threads slot state through function scopes is deferred. The
     # parser accepts the form so user programs can be written
     # against the surface; the codegen rejects with a pointer at
-    # the relevant STATUS.md entry until the integration lands.
+    # the relevant queue.md entry until the integration lands.
     is_slot: bool = False
 
 

@@ -7,4 +7,4 @@ The canonical grammar has moved. Use:
 
 When this file's ancestors disagreed with the reference parser, the parser won. That disagreement is resolved by deferring to `24-grammar.ebnf`, which is regenerated from the parser's current state.
 
-This stub exists so that links to `planning/sutra-spec/grammar.md` (notably from `STATUS.md` and `language-paper/paper.md`) keep working. Update those pointers opportunistically.
+This stub exists so that links to `planning/sutra-spec/grammar.md` (notably from `queue.md` and `language-paper/paper.md`) keep working. Update those pointers opportunistically.

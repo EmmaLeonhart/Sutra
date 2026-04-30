@@ -110,7 +110,7 @@ covering them.
 
 ## Status
 
-Negative result. Documented here, reported to STATUS.md queue item 3
+Negative result. Documented here, reported to queue.md queue item 3
 as "pipeline built and measured, does not pass." No paper claims
 change; the paper's existing retraction about the numpy `Q@v` gap
 remains accurate.

@@ -23,7 +23,7 @@ This script loads the real compiled `_VSA` from the demo harness
 
 Uses hello_world.su as a harness because we only need a compiled
 _VSA — no Sutra-language syntax for slot primitives exists yet (the
-compiler-side allocation is the follow-on task from STATUS.md #3).
+compiler-side allocation is the follow-on task from queue.md #3).
 
 Usage: python experiments/slot_rotation_reversibility.py
 """

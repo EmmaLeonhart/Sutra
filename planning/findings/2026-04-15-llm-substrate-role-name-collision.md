@@ -2,7 +2,7 @@
 
 Date: 2026-04-15
 Context: wired frozen-LLM (Ollama, `nomic-embed-text`, 768-dim) into
-`codegen_numpy.py` per STATUS.md item 1.
+`codegen_numpy.py` per queue.md item 1.
 
 ## What was measured
 

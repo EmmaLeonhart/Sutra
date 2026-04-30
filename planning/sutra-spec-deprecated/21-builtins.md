@@ -61,7 +61,7 @@ multiplication, and a biological mapping for bind/unbind/bundle
 requires a different circuit than the MB cleanup the runtime
 currently uses. That is a gap to close in the implementation, not a
 spec-sanctioned execution mode. See `19-substrate-candidates.md` and
-STATUS.md §3 in `fly-brain/` for the candidate mappings.
+queue.md §3 in `fly-brain/` for the candidate mappings.
 
 ### `bind`
 
@@ -130,7 +130,7 @@ permute(p, bind(a, b)) == bind(permute(p, a), b)
 
 This distributivity is the reason negation-as-permutation compiles
 cleanly into the fly-brain prototype-table lookup — see
-`fly-brain/STATUS.md` §Technical Insight 1.
+`fly-brain/queue.md` §Technical Insight 1.
 
 ### `compose`
 
@@ -180,7 +180,7 @@ involutive sign-flip permutation if none exists. Every permutation
 produced by this builtin is its own inverse (`permute(p, permute(p, v)) == v`).
 This is the primitive that implements source-level `!` at the
 substrate level: `!X` compiles to `permute(permutation_key("NOT_X"), X)`
-in the query rewrite strategy described in `STATUS.md`.
+in the query rewrite strategy described in `queue.md`.
 
 ### `identity_permutation`
 
@@ -217,7 +217,7 @@ identical to VSA cleanup — hence the substrate mapping described in
 **Runtime contract (fixed frame):** every `snap` call inside a
 single program execution must share the same PN→KC connectivity
 matrix, or else prototype-table comparisons are meaningless. The
-reason and the measured numbers are in `fly-brain/STATUS.md`
+reason and the measured numbers are in `fly-brain/queue.md`
 §Technical Insight 2. Enforcement is currently a runtime convention
 (`FixedFrameFlyBrainVSA` subclass); the medium-term compilation
 path in todo.md promotes it to a compile-time guarantee.
@@ -269,4 +269,4 @@ v0.2).
 - **Generalized boolean compilation.** `permute` cleanly compiles
   source-level `!`, but there is no known VSA-to-substrate
   compilation scheme for general `&&`/`||`. This is the first
-  long-term research question in `fly-brain/STATUS.md`.
+  long-term research question in `fly-brain/queue.md`.
