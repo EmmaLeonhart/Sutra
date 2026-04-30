@@ -21,47 +21,27 @@ pick up next.
 
 ## Queued work
 
-### RNN-style loop execution — the live forward direction (2026-04-29)
+### RNN-style loop execution — DONE 2026-04-30
 
-User direction 2026-04-29 evening: **RNN-style is what Sutra
-should be doing** for `loop(cond)`, even though pushing the
-implementation to genuine RNN-style is harder. This isn't just an
-"audit current behavior" question — it's the priority direction
-the language is moving in.
+`loop(cond)` rewired as a branchless RNN unroll. T fixed cell steps
+(default 50), no host-side `for iters in range`, no host-side `if
+best_score >= threshold`. Soft halt via sigmoid + monotone cumulative
+freezes state once convergence; output gating multiplies value axes
+by `halt_cum` so a non-converging loop emits a near-zero output. New
+canonical synthetic axis `AXIS_LOOP_DONE = 4` carries the cumulative
+halt as the substrate-side completion flag (loop-specific instance of
+the broader exception-channel pattern — divide-by-zero, NaN
+propagation TBD).
 
-The math is already there: spec (`planning/sutra-spec/control-flow.md`,
-paper draft novelty 3) says `loop(cond)` compiles to
-`state ← R · state` on the substrate with prototype-match
-termination — that's an RNN recurrence (`h_{t+1} = f(W h_t)` with
-W = R fixed). RNNs run efficiently on CUDA as tight matmul loops,
-which is the implementation target.
+Architecture: non-looping Sutra programs = MLP (forward pass);
+looping Sutra programs = RNN (recurrent forward pass). Both
+branchless on the substrate. cos / sin are still the eigenrotation
+primitive (chat's design that worked); the new piece is the soft-
+halt cell + output gating.
 
-The audit half: whether the *current* codegen for `loop(cond)`
-actually emits a tight tensor-op loop or whether it bails to a
-host-side Python `while` somewhere. CLAUDE.md is explicit that
-spec-vs-impl disagreement is the load-bearing failure mode for
-the biomedical pipeline — "if the spec and the implementation
-disagree, stop and resolve the disagreement explicitly."
-
-Concrete audit + push-down questions:
-- What does the codegen for `loop(cond)` emit today? Tight
-  tensor-op loop, or `while not converged: state = R @ state` in
-  Python with the convergence check on the host?
-- Is the prototype-match termination running on the substrate
-  (compiled prototype + similarity in tensor-op space) or on the
-  host (Python comparison)?
-- If host, what's the path to push it down? Compile the
-  termination predicate into the loop body, emit a fixed-iteration
-  unroll up to a cap with early-exit-as-mask, or compile the loop
-  to a CUDA-targeting tight matmul kernel?
-- Once running RNN-style on the substrate, what does that change
-  for the global-efficiency / fusion story (CLAUDE.md "Global
-  efficiency, not local")?
-
-This is going to take real effort — flagged as such by the user.
-Read `codegen.py` / `codegen_pytorch.py` for the current emitted
-loop code first to know which half (audit vs push-down) is
-actually open before estimating scope.
+Tests: `sdk/sutra-compiler/tests/test_branchless_loop.py` (7 PASS) +
+80 broader codegen tests still green. Spec updated
+`planning/sutra-spec/control-flow.md`.
 
 ### Transcendentals — DONE 2026-04-29
 
