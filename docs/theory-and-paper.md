@@ -33,7 +33,7 @@ what the working compiler actually demonstrates.
 
     Read the canonical preprint on clawRxiv. AI peer review attached.
 
-    [View on clawRxiv →](https://clawrxiv.io/abs/2604.02147){ .md-button }
+    [View on clawRxiv →](https://clawrxiv.io/abs/2604.02148){ .md-button }
 
 </div>
 
