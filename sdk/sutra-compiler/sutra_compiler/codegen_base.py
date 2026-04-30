@@ -269,6 +269,19 @@ class BaseCodegen:
         # Outside an unrolling context this stays None, and a reference
         # to `iterator` raises CodegenNotSupported.
         self._iterator_value: Optional[int] = None
+        # Stack of state-parameter name lists, pushed when entering a
+        # loop function body and popped on exit. Used by PassStmt
+        # translation to know which Python locals to assign. Outside a
+        # loop body the stack is empty and `pass` is a compile error.
+        # Stack (not single value) so nested loop calls don't collide,
+        # though loop-inside-loop bodies are an open question per the
+        # design doc.
+        self._loop_state_stack: List[List[str]] = []
+        # Registry of loop function declarations seen so far in the
+        # module, name -> LoopFunctionDecl. Used by LoopCallStmt
+        # translation to look up the state-param shape for the call's
+        # writeback. Populated in _translate_loop_function_decl.
+        self._loop_decls: dict[str, "ast.LoopFunctionDecl"] = {}
 
     # -- emission helpers -------------------------------------------------
 
@@ -329,6 +342,8 @@ class BaseCodegen:
             self._translate_var_decl(item, at_top_level=True)
         elif isinstance(item, ast.FunctionDecl):
             self._translate_function_decl(item)
+        elif isinstance(item, ast.LoopFunctionDecl):
+            self._translate_loop_function_decl(item)
         elif isinstance(item, ast.MethodDecl):
             raise CodegenNotSupported(
                 item, "method declarations are not supported by the V1 codegen"
@@ -524,9 +539,198 @@ class BaseCodegen:
         self._slot_vars = outer_slot_vars
         self._indent -= 1
 
+    # -- loop function declarations (Emma 2026-04-30) --------------------
+    #
+    # Loops with runtime data dependence are first-class declared functions
+    # whose recurrent state is the named state parameters. Compiles to a
+    # T-step soft-halt cell: each tick evaluates the condition, runs the
+    # body (which uses `pass` to update state locals), accumulates a soft
+    # halt indicator, and freezes state via soft-mux once halt saturates.
+    # Spec: planning/open-questions/loop-function-declarations.md.
+
+    _LOOP_T = 50  # max tick count per loop function — compile-time-fixed
+
+    def _translate_loop_function_decl(self, decl: "ast.LoopFunctionDecl") -> None:
+        """Emit a Python function for a loop function declaration."""
+        # Register so LoopCallStmt knows the state-param shape.
+        self._loop_decls[decl.name] = decl
+
+        state_names = [p.name for p in decl.state_params]
+        init_param_names = [f"_init_{n}" for n in state_names]
+
+        self._emit(
+            f"def _loop_{decl.name}({', '.join(init_param_names)}):"
+        )
+        self._indent += 1
+        self._emit(
+            f'"""Loop function `{decl.name}` (kind={decl.kind}).'
+        )
+        self._emit(f"")
+        self._emit(
+            f"T-step soft-halt cell. Returns ({', '.join(state_names) or 'no state'}, halt_cum)."
+        )
+        self._emit(f'"""')
+        # State locals init from caller args.
+        for state_name, init_name in zip(state_names, init_param_names):
+            self._emit(f"{state_name} = {init_name}")
+        self._emit("_halt_cum = 0.0")
+
+        # Push state names so PassStmt translation knows what to assign.
+        self._loop_state_stack.append(state_names)
+
+        # do_while: body runs once unconditionally first.
+        if decl.kind == "do_while":
+            self._emit(f"# do_while: body runs once unconditionally first.")
+            for inner in decl.body.statements:
+                self._translate_stmt(inner)
+
+        # T-step soft-halt loop. The Python `for _t in range(T)` is
+        # meta-iteration over a compile-time-fixed count.
+        self._emit(f"for _t in range({self._LOOP_T}):")
+        self._indent += 1
+        # Snapshot pre-step state for soft-mux freeze on halt.
+        for state_name in state_names:
+            self._emit(f"_pre_{state_name} = {state_name}")
+        # Evaluate condition (semantics depend on kind).
+        if decl.kind in ("do_while", "while_loop"):
+            cond_src = self._translate_expr(decl.condition)
+            self._emit(f"_keep = 1.0 if bool({cond_src}) else 0.0")
+        elif decl.kind == "iterative_loop":
+            # condition is the count; iterator = _t + 1 (1-indexed).
+            count_src = self._translate_expr(decl.condition)
+            self._emit(f"# iterative_loop: tick = _t+1, halt when tick > count.")
+            self._emit(f"_iterator = _t + 1")
+            self._emit(f"_keep = 1.0 if (_iterator <= int({count_src})) else 0.0")
+        elif decl.kind == "foreach_loop":
+            # foreach: condition is an array; element-binding TBD.
+            # For V1, error out — implementation pending.
+            raise CodegenNotSupported(
+                decl,
+                "foreach_loop kind is not yet implemented; only do_while, "
+                "while_loop, iterative_loop are supported in V1. See "
+                "planning/open-questions/loop-function-declarations.md.",
+            )
+        else:
+            raise CodegenNotSupported(
+                decl, f"unknown loop kind `{decl.kind}`"
+            )
+        self._emit(f"_halt_term = 1.0 - _keep")
+        self._emit(f"_halt_cum = min(_halt_cum + _halt_term, 1.0)")
+        # Body re-runs each tick; PassStmt updates state locals.
+        for inner in decl.body.statements:
+            self._translate_stmt(inner)
+        # Soft mux: freeze state at pre-step value once halt saturates.
+        for state_name in state_names:
+            self._emit(
+                f"{state_name} = (1.0 - _halt_cum) * {state_name} "
+                f"+ _halt_cum * _pre_{state_name}"
+            )
+        self._indent -= 1  # close the for loop
+
+        # Pop state stack.
+        self._loop_state_stack.pop()
+
+        # Return final state values + halt_cum (last).
+        return_items = state_names + ["_halt_cum"]
+        self._emit(f"return ({', '.join(return_items)},)")
+        self._indent -= 1  # close the function
+
+    def _translate_loop_call(self, stmt: "ast.LoopCallStmt") -> None:
+        """Emit a call to a previously-declared loop function + writeback.
+
+        State args at the call site MUST be slot-variable names; on
+        completion, the loop's final state values are written back into
+        those slot vars (by-reference). The condition arg is evaluated
+        once (for any side effects + visual symmetry with the function-
+        decl form) but its value is unused — the loop function uses its
+        own decl-time condition expression against the state locals each
+        tick.
+        """
+        decl = self._loop_decls.get(stmt.name)
+        if decl is None:
+            raise CodegenNotSupported(
+                stmt,
+                f"loop function `{stmt.name}` is not declared. Loop "
+                f"functions must be declared with one of `do_while`, "
+                f"`while_loop`, `iterative_loop`, `foreach_loop` keywords "
+                f"before being invoked with `loop NAME(...)`.",
+            )
+        if len(stmt.state_arg_names) != len(decl.state_params):
+            raise CodegenNotSupported(
+                stmt,
+                f"loop call `{stmt.name}` expects "
+                f"{len(decl.state_params)} state arg(s), got "
+                f"{len(stmt.state_arg_names)}",
+            )
+        # Each state arg must be a slot variable in the caller.
+        slot_args: List[tuple[str, int]] = []
+        for arg_name in stmt.state_arg_names:
+            if arg_name not in self._slot_vars:
+                raise CodegenNotSupported(
+                    stmt,
+                    f"loop call state argument `{arg_name}` must be a "
+                    f"slot variable in the caller scope; was not declared "
+                    f"with `slot TYPE name = ...`.",
+                )
+            slot_args.append((arg_name, self._slot_vars[arg_name]))
+        # Evaluate the condition arg for side effects + parser symmetry.
+        cond_src = self._translate_expr(stmt.condition_arg)
+        self._emit(f"# loop call: {stmt.name}({cond_src}, ...)")
+        self._emit(f"# Condition arg evaluated for side effects; runtime")
+        self._emit(f"# uses the loop's decl-time condition expression.")
+        self._emit(f"_ = {cond_src}")
+        # Read current slot values to pass as init args.
+        init_args = [
+            f"_VSA.slot_load(_slot_state, {idx})"
+            for _, idx in slot_args
+        ]
+        # Generate distinct names for the unpacked return values.
+        ret_names = [f"_loopret_{n}" for n, _ in slot_args] + ["_loopret_halt"]
+        self._emit(
+            f"({', '.join(ret_names)},) = _loop_{stmt.name}("
+            f"{', '.join(init_args)})"
+        )
+        # Write back to caller's slot vars.
+        for (arg_name, idx), ret_name in zip(slot_args, ret_names[:-1]):
+            self._emit(
+                f"_slot_state = _VSA.slot_store(_slot_state, {idx}, "
+                f"{ret_name})"
+            )
+
     # -- statements -------------------------------------------------------
 
     def _translate_stmt(self, stmt: ast.Stmt) -> None:
+        # PassStmt: tail-recursive yield in a loop function body.
+        # Translates to assignment of the loop's state locals.
+        # Handled here rather than in a more general dispatcher so that
+        # it errors clearly outside a loop body.
+        if isinstance(stmt, ast.PassStmt):
+            if not self._loop_state_stack:
+                raise CodegenNotSupported(
+                    stmt,
+                    "`pass` is only valid inside a loop function body. "
+                    "See planning/open-questions/loop-function-declarations.md.",
+                )
+            state_names = self._loop_state_stack[-1]
+            if len(stmt.values) != len(state_names):
+                raise CodegenNotSupported(
+                    stmt,
+                    f"`pass` expects {len(state_names)} value(s) (one per "
+                    f"state parameter `{', '.join(state_names)}`), got "
+                    f"{len(stmt.values)}",
+                )
+            for state_name, value in zip(state_names, stmt.values):
+                if isinstance(value, ast.ReplaceMarker):
+                    # `replace` keyword: restore the parameter's input value.
+                    self._emit(f"{state_name} = _init_{state_name}")
+                else:
+                    value_src = self._translate_expr(value)
+                    self._emit(f"{state_name} = {value_src}")
+            return
+        # LoopCallStmt: invoke a loop function and write back state.
+        if isinstance(stmt, ast.LoopCallStmt):
+            self._translate_loop_call(stmt)
+            return
         if isinstance(stmt, ast.VarDecl):
             self._translate_var_decl(stmt, at_top_level=False)
             return
