@@ -122,4 +122,4 @@ The `examples/knowledge_graph.su` and `examples/role_filler_record.su` demos exe
 
 - **[03 — Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup operation that keeps chained computation in a recoverable basin.
 - The [binding spec](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/binding.md) — full design of semantic (learned-matrix) and rotation (synthetic-subspace) binding kinds.
-- The [Sutra paper](../papers.md) — empirical characterization of which bindings recover correctly across substrates and the per-operation costs.
+- The [Sutra paper](../theory-and-paper.md) — empirical characterization of which bindings recover correctly across substrates and the per-operation costs.
