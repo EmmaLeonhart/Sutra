@@ -87,12 +87,53 @@ class PyTorchCodegen(Codegen):
         module init. We post-process the output to swap those specific
         string occurrences to the torch equivalent. Everything else is
         emitted directly as torch via `_emit_prelude`.
+
+        Then optionally appends a `torch.compile` wrapping block for
+        every loop function (queue item 1: 'Python is just IO'). Gated
+        on env var SUTRA_TORCH_COMPILE=1 — default off because the
+        first call pays a graph-capture cost that dwarfs the runtime
+        for tiny loops, and per Emma 2026-04-30 'commit and push
+        frequently' we want to ship the opt-in version first.
         """
         out = super().translate(module)
         out = out.replace(
             "_np.zeros(_VSA.dim)",
             "_torch.zeros(_VSA.dim, dtype=_DTYPE, device=_DEVICE)",
         )
+        # Append torch.compile wrapping for each loop function. Each
+        # wrap is guarded by env var SUTRA_TORCH_COMPILE. The wrap
+        # fuses the T-step soft-halt cell + body tensor ops into a
+        # single graph; substantial speedup on GPU for hot loops, but
+        # graph-capture overhead can dominate cold-start for small T.
+        if self._loop_decls:
+            wrap_lines = [
+                "",
+                "",
+                "# Optional torch.compile wrapping for loop functions (queue item 1).",
+                "# Enable via SUTRA_TORCH_COMPILE=1 — see CLAUDE.md / DEVLOG.md.",
+                "import os as _sutra_compile_os",
+                "if _sutra_compile_os.environ.get('SUTRA_TORCH_COMPILE'):",
+                "    try:",
+            ]
+            for loop_name in self._loop_decls.keys():
+                # backend='eager' does graph capture (Dynamo trace) without
+                # requiring Triton. The default 'inductor' backend produces
+                # fused CUDA kernels but needs Triton, which isn't bundled
+                # in standard torch installs. Eager is correct + portable;
+                # users who want fused kernels can rebuild with Triton and
+                # set SUTRA_TORCH_COMPILE_BACKEND=inductor.
+                wrap_lines.append(
+                    f"        _loop_{loop_name} = _torch.compile("
+                    f"_loop_{loop_name}, "
+                    f"backend=_sutra_compile_os.environ.get("
+                    f"'SUTRA_TORCH_COMPILE_BACKEND', 'eager'))"
+                )
+            wrap_lines.extend([
+                "    except Exception:",
+                "        pass  # torch.compile not available or trace failed",
+                "",
+            ])
+            out = out + "\n".join(wrap_lines)
         return out
 
     def _emit_prelude(self) -> None:
