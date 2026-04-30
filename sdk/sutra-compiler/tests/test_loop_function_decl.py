@@ -26,7 +26,7 @@ import unittest
 import pytest
 
 from sutra_compiler import ast_nodes
-from sutra_compiler.codegen import Codegen
+from sutra_compiler.codegen_pytorch import PyTorchCodegen
 from sutra_compiler.inliner import inline_stdlib_calls
 from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
@@ -43,12 +43,15 @@ def _parse(src: str):
 
 
 def _compile(src: str) -> str:
-    """Return emitted Python source via inliner + Codegen (bypassing
-    simplify_egglog post-pass so tests don't hang on its import).
+    """Return emitted Python source via inliner + PyTorchCodegen
+    (bypassing simplify_egglog post-pass so tests don't hang on its
+    import). PyTorch is Sutra's canonical compile target — see
+    CLAUDE.md and the queue-item-6 numpy-backend retirement work
+    (2026-04-30).
     """
     module = _parse(src)
     inline_stdlib_calls(module)
-    cg = Codegen()
+    cg = PyTorchCodegen()
     cg._prefetch_strings = []
     return cg.translate(module)
 

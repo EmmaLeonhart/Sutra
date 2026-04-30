@@ -1,29 +1,33 @@
-"""AST -> Python source translator — the main Sutra codegen.
+"""AST -> Python source translator — DEPRECATED numpy backend.
 
-Emits self-contained Python modules that run Sutra programs as plain
-matrix operations on CPU. The only runtime dependency is numpy — the
-emitted module imports `numpy as _np` and defines a `_VSA` runtime
-that handles bind / unbind / bundle / similarity / argmax_cosine and
-the extended-state-vector layout on ndarrays.
+**STATUS: DEPRECATED 2026-04-30.** Per CLAUDE.md and project memory:
+*PyTorch is Sutra's compiler library — one codegen target. Don't
+reintroduce numpy-as-backend.* This file emits a `_NumpyVSA` runtime
+class whose existence contradicts that rule. Use
+`codegen_pytorch.PyTorchCodegen` for all new code.
 
-This used to be the "numpy backend" with `NumpyCodegen` / `--emit-numpy`
-/ a separate PyTorch backend as an alternative. That split was a
-historical artifact — the PyTorch backend always inherited from the
-numpy class and only overrode the prelude + post-processed the emitted
-`_np.zeros(_VSA.dim)` strings to their torch equivalents. It wasn't
-solving a capability gap. The 2026-04-23 refactor collapsed the two
-into one canonical codegen (`Codegen` here) with PyTorch as a thin
-subclass in `codegen_pytorch.py` that swaps the prelude and runtime
-class to emit `_TorchVSA` when the user wants GPU.
+This file is retained until the consolidation in queue item 6 is
+complete. It still provides:
 
-Inherits the backend-agnostic AST walker from `BaseCodegen` in
-`codegen_base.py` (so it shares expression / statement / call / loop
-translators across backends). This concrete class overrides the
-prelude, a handful of literal-lowering hooks (`_char_literal_src`,
-`_embed_expr_src`, `_bool_literal_src`, `_logical_op_src`,
-`_logical_not_src`, etc.), and the `_fuzzy_literal_init_src`
-compile-time fold so truth-axis / complex / char literals resolve
-against this codegen's runtime.
+- The literal-lowering hooks (`_char_literal_src`, `_embed_expr_src`,
+  `_bool_literal_src`, `_equality_src`, `_complex_mul_src`, etc.)
+  that `PyTorchCodegen` inherits from. These are backend-agnostic
+  (they emit `_VSA.X(...)` calls; both runtime classes implement
+  the same method names).
+- The `_emit_prelude` numpy runtime emit, which a few tests
+  (`test_codegen.py`, `test_inliner.py`) still assert against for
+  emit-shape verification.
+- `_translate_eigenrotation_loop` (numpy-specific).
+
+**Migration path** (queue item 6): move literal hooks into
+`BaseCodegen`, make `PyTorchCodegen` extend `BaseCodegen` directly,
+then delete this file. Tests that assert on numpy-specific emit
+shapes either move to PyTorch-equivalent assertions or get retired.
+
+**For new test code:** import `PyTorchCodegen` from
+`codegen_pytorch` and use `cg.translate(module)`. The runtime
+emit (the `_TorchVSA` class) is the same shape as `_NumpyVSA`
+with torch tensors instead of numpy ndarrays.
 
 `snap` is not supported here (this substrate has no cleanup circuit).
 """

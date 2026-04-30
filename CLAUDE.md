@@ -175,7 +175,7 @@ Stop. Report what actually executed, including negative findings. Reference the 
 The specification is not aspirational documentation. It is the contract every operation implementation must satisfy. If the implementation drifts from the spec, **either the implementation is wrong or the spec needs updating** — and the choice between those two has to be made explicitly, with a commit message explaining which way the drift was resolved.
 
 ## Architecture and Conventions
-- **Stack:** Python + PyTorch + Ollama. The runtime currently uses `nomic-embed-text` (768-d, mean-centered) as the embedding substrate; see `sdk/sutra-compiler/sutra_compiler/codegen.py` (CPU IR) and `codegen_pytorch.py` (the user-facing PyTorch backend) for the authoritative embedding config.
+- **Stack:** Python + PyTorch + Ollama. The runtime currently uses `nomic-embed-text` (768-d, mean-centered) as the embedding substrate. **PyTorch is the canonical compile target** (`codegen_pytorch.py`, runs on CPU or CUDA). The numpy backend (`codegen.py`) is **deprecated as of 2026-04-30** and being retired (queue item 6); some tests still assert against its numpy-specific emit shape, but new code uses `PyTorchCodegen`. See either file for the embedding config — they share method names and the layout is bit-for-bit identical.
 - **Source data:** Wikidata API + SPARQL endpoint (for prior cartography work); Sutra itself does not require Wikidata.
 - **Planning docs:** `planning/` directory for design decisions and roadmap.
 
