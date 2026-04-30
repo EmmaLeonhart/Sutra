@@ -987,14 +987,34 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""Vectorized cosine argmax on torch tensors.')
         self._emit('')
-        self._emit("Stacks candidates into (N, d), computes all N cosines as one")
-        self._emit("matmul against the query, returns the candidate at the argmax.")
-        self._emit("This is the GPU-shaped form: O(1) big kernel, not O(N) small ones.")
+        self._emit("Tries SutraDB first (HNSW + Rust); falls back to matmul if")
+        self._emit("the DLL isn't built or any error occurs. SutraDB integration:")
+        self._emit("queue.md item 2; demonstration of substrate-level vector lookup")
+        self._emit("through the embedded triplestore.")
         self._emit('"""')
         self._emit("if not candidates:")
         self._indent += 1
         self._emit("return None")
         self._indent -= 1
+        self._emit("# SutraDB hot path: only attempt when N >= 4 (matmul wins on")
+        self._emit("# tiny N because of FFI per-call overhead).")
+        self._emit("if len(candidates) >= 4:")
+        self._indent += 1
+        self._emit("try:")
+        self._indent += 1
+        self._emit("idx = _sutra_argmax_via_db(query, candidates)")
+        self._emit("if idx is not None:")
+        self._indent += 1
+        self._emit("return candidates[idx]")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("except Exception:")
+        self._indent += 1
+        self._emit("pass  # DLL missing, build error, etc. — fall through to matmul.")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("# Matmul fallback: stacks candidates into (N, d), computes all N")
+        self._emit("# cosines as one matmul, returns the candidate at the argmax.")
         self._emit("M = _torch.stack([")
         self._indent += 1
         self._emit("_torch.as_tensor(c, dtype=_DTYPE, device=_DEVICE)")
@@ -1013,6 +1033,51 @@ class PyTorchCodegen(Codegen):
         self._emit("neg_inf = _torch.full_like(scores, float('-inf'))")
         self._emit("scores = _torch.where(row_norms > 0, scores, neg_inf)")
         self._emit("return candidates[int(_torch.argmax(scores).item())]")
+        self._indent -= 1
+        self._emit()
+        self._emit("# SutraDB-backed argmax helper. Returns the index of the")
+        self._emit("# candidate nearest to query, or None if the DLL is unavailable.")
+        self._emit("# Cached SutraDBEmbedded handle in module scope to amortize the")
+        self._emit("# DLL load + db_open across multiple argmax calls in one program.")
+        self._emit("_sutra_db_handle = None")
+        self._emit("_sutra_db_tmpdir = None")
+        self._emit("def _sutra_argmax_via_db(query, candidates):")
+        self._indent += 1
+        self._emit("global _sutra_db_handle, _sutra_db_tmpdir")
+        self._emit("import importlib, tempfile, os")
+        self._emit("if _sutra_db_handle is None:")
+        self._indent += 1
+        self._emit("mod = importlib.import_module('sutra_compiler.sutradb_embedded')")
+        self._emit("_sutra_db_tmpdir = tempfile.mkdtemp(prefix='sutra_argmax_')")
+        self._emit("path = os.path.join(_sutra_db_tmpdir, 'argmax.sdb')")
+        self._emit("_sutra_db_handle = mod.SutraDBEmbedded(path)")
+        self._indent -= 1
+        self._emit("# Each call gets a fresh prefix so candidate sets don't bleed")
+        self._emit("# across calls. The reindex-on-query workaround means add() is")
+        self._emit("# slower than ideal (FFI fix tracked as queue item 2 piece 6).")
+        self._emit("import uuid")
+        self._emit("prefix = uuid.uuid4().hex[:8]")
+        self._emit("for i, c in enumerate(candidates):")
+        self._indent += 1
+        self._emit("vec_list = c.tolist() if hasattr(c, 'tolist') else list(c)")
+        self._emit(f"_sutra_db_handle.add(f'{{prefix}}_{{i}}', vec_list)")
+        self._indent -= 1
+        self._emit("q_list = query.tolist() if hasattr(query, 'tolist') else list(query)")
+        self._emit("labels = _sutra_db_handle.nearest(q_list, k=1)")
+        self._emit("if not labels:")
+        self._indent += 1
+        self._emit("return None")
+        self._indent -= 1
+        self._emit("# Decode back to candidate index. Filter to this call's prefix")
+        self._emit("# in case earlier calls left stale labels in the index.")
+        self._emit("for label in labels:")
+        self._indent += 1
+        self._emit("if label.startswith(prefix + '_'):")
+        self._indent += 1
+        self._emit("return int(label.split('_', 1)[1])")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return None")
         self._indent -= 1
         self._emit()
         self._emit()
