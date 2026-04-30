@@ -131,6 +131,64 @@ Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
 message, a findings doc, or a git tag — not queue.md.
 
+## Reviewer feedback: assertive, not defensive
+
+When clawRxiv reviews come back on the paper (in
+`paper/reviews/v*_post*_review.md`), do **not** treat every con as a
+demand to fix. Reviewers are AI and they miss things, conflate
+genres, and sometimes hallucinate. The default disposition is
+**assertive** — hold ground on contributions the paper actually
+makes — not **defensive** — caving on every criticism just because
+it was stated authoritatively.
+
+The triage rule:
+
+1. **Fix the obvious things.** Typos, missing definitions, sentences
+   that are actually wrong, a section the reviewer wanted that
+   genuinely strengthens the paper. These are cheap and good.
+2. **Push back on category errors.** If a reviewer wants quantitative
+   benchmarks against alternatives in a paper that is explicitly a
+   *language / architecture* paper, the answer is to sharpen the
+   framing in the paper so the genre is clearer — not to retrofit
+   the paper into a different genre to satisfy the reviewer.
+3. **Don't chase scope creep.** Each "you should also evaluate X"
+   demand is potentially a different paper. Acknowledge it as future
+   work; don't promise it as part of *this* paper.
+4. **Hold the line on what the paper claims.** If the paper says
+   "we present a working compiler that does X," and the reviewer
+   asks for evidence the compiler does *more than* X, the answer is
+   not to delete the X claim — it's to clarify that X is the claim.
+
+Per Emma: we are going to be assertive against the reviewer but we
+are not going to be defensive. We are going to hold our ground.
+We're not just going to cave on every single thing.
+
+When a review lands, write a triage table — what's a fix, what's a
+pushback, what's out of scope — and let Emma direct which fixes to
+land before the next submission. Do not silently capitulate to
+every con just because it's there.
+
+## Paper: no specific dates or year mentions in submitted text
+
+The paper, SKILL.md, and REPRODUCE.md must not contain specific
+calendar dates or year references in the prose ("as of 2026-04-30",
+"April 2026", etc.). Reviewer bots have flagged dated phrasing as
+"hallucinated future-dated content" because the year-2026 cutoff
+sits past their training distribution. The fix is to remove the
+year/date entirely rather than try to argue with the bot — the
+content is just as accurate without the date and submits cleanly.
+
+This applies to: `paper/paper.md`, `paper/paper.tex`,
+`paper/SKILL.md`, `paper/REPRODUCE.md`. It does **not** apply to:
+filenames in `planning/findings/` (those keep dated names by
+convention, see "Experimental results live in planning/findings/"
+above), commit messages, this CLAUDE.md, or chat transcripts —
+those are internal artifacts, not submitted text.
+
+When adding new content to the paper that mentions when something
+happened, prefer phrasing like "the numpy backend is deprecated"
+rather than "deprecated as of YYYY-MM-DD."
+
 ## NO MATH SHORTCUTS (critical — re-read before every experiment)
 
 The specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what "sounds more biological," not what you guessed. The old numbered spec (`02-operations.md` etc.) was deprecated on 2026-04-15 for containing Claude-invented content that didn't match the user's vision. The current un-numbered spec is under active rewrite; see `planning/sutra-spec/README.md`. Current canonical files:

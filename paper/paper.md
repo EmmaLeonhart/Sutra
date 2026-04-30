@@ -392,9 +392,9 @@ across runs" use case today.
 ### 6.4 Numpy backend retirement
 
 The compiler has historically had two backends; the numpy one
-(`codegen.py`) is deprecated as of 2026-04-30. Behavior tests run
-on PyTorch; the numpy backend is retained only for emit-shape
-tests and gets fully removed in a follow-up.
+(`codegen.py`) is deprecated. Behavior tests run on PyTorch; the
+numpy backend is retained only for emit-shape tests and gets
+fully removed in a follow-up.
 
 ---
 

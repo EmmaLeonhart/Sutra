@@ -1,9 +1,9 @@
 # Reproducing the Sutra Paper Results
 
-**Per Emma 2026-04-30 (queue item 1f).** NeurIPS reproducibility
-checklist requires pointing at runnable code; this is the
-runnable-code map. Pair with `paper/SKILL.md` (the agent-facing
-skill description) and `DEVLOG.md` (the historical context).
+NeurIPS reproducibility checklist requires pointing at runnable
+code; this is the runnable-code map. Pair with `paper/SKILL.md`
+(the agent-facing skill description) and `DEVLOG.md` (the
+historical context).
 
 The Sutra repository at
 `https://github.com/EmmaLeonhart/Sutra`
@@ -44,7 +44,7 @@ SutraDB FFI build (one-time, ~5 minutes).
 | §3.2 — halt propagation wipes output for unconverged loops | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
 | §3.3 — embedded SutraDB codebook + decode path | `python -m pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py -q` (7 tests) |
 | §4 — compiler 5-stage pipeline | `python -m pytest sdk/sutra-compiler/tests/ -q --ignore=tests/test_simplify_egglog.py` (244+ tests; full suite green) |
-| §4.1 — substrate-purity invariants | `cat planning/findings/2026-04-30-runtime-substrate-purity-audit.md` plus `2026-04-30-substrate-purity-leak-enumeration.md` |
+| §4.1 — substrate-purity invariants | the runtime-substrate-purity-audit and substrate-purity-leak-enumeration finding docs under `planning/findings/` |
 | §4.2 — boundary leak enumeration (5 leaks; 3 fixed) | both findings docs above; the fix commits are `93beb01` (leaks 1+2+4) and `cdd9482` (numpy backend deprecation related cleanup) |
 | §5 — three demonstration programs | `examples/hello_world.su`, `examples/fuzzy_dispatch.su`, `examples/role_filler_record.su` |
 | §5.4 — convergent + non-convergent loop demos | `examples/do_while_adder.su` plus the test corpus in `tests/test_loop_function_decl.py` |
@@ -81,8 +81,8 @@ These are real and disclosed in the paper:
   counter). `torch.compile` traces past both at runtime when
   `SUTRA_TORCH_COMPILE=1`. Source still has Python `for _t in
   range(50)` in loop function bodies (cosmetic).
-- Numpy backend (`codegen.py`) is deprecated as of 2026-04-30 but
-  retained for emit-shape tests. Behavior tests run on PyTorch.
+- Numpy backend (`codegen.py`) is deprecated but retained for
+  emit-shape tests. Behavior tests run on PyTorch.
 - Object encapsulation parses but rules are not enforced.
 
 ## Reporting issues
