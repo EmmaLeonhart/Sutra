@@ -151,5 +151,4 @@ with `SUTRA_TORCH_COMPILE_BACKEND=inductor` for fused CUDA kernels
 - `planning/findings/` — dated experimental findings
 - `sutraDB/` — sibling RDF + HNSW triplestore (Rust)
 - `paper/` — this paper + skill + reproduction docs
-- `DEVLOG.md` — full project history (1407 commits, 2026-03-13 →
-  2026-04-30)
+- `DEVLOG.md` — full project history
