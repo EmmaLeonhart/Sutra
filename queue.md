@@ -87,37 +87,37 @@ Implementation pieces (rough sequencing):
 1. ~~Embed SutraDB CLI / FFI binding into the runtime~~ — DONE in
    commit `3b33938`. `sutradb_embedded.py` ctypes wrapper.
 2. ~~Codegen: at module init, open a `.sdb` populated with the
-   program's known vectors~~ — DONE in commit `cc0c25a`. PyTorch
-   codegen prelude lazy-initializes a SutraDBEmbedded handle in
-   module scope on first argmax_cosine call.
-3. ~~Replace `argmax_cosine` runtime method with SutraDB nearest-
-   neighbor queries~~ — DONE in commit `cc0c25a`. `_argmax_cosine`
-   now tries SutraDB first (N>=4 candidates) and falls back to
-   matmul on any error or DLL absence. `snap` is a separate op
-   that's not yet routed (snap requires a cleanup circuit; not
-   scoped here).
-4. **Replace `hashmap_*` runtime methods with SutraDB triple
-   insert/query.** NOT STARTED. Hashmap is used in
-   `stdlib/memory.su` but not in any current example/demo, so
-   this isn't blocking the headline use case. When picked up:
-   `_hashmap_set(key, value, accumulator)` → SutraDB insert of
-   `<urn:hashmap:key:K> <urn:hashmap:value> "V"^^...` triple;
-   `_hashmap_get(key, accumulator)` → SPARQL-resolved lookup.
-   Soft lookup falls out for free (HNSW is approximate-NN).
-5. **`atman.toml` `[vector_db]` config section.** NOT STARTED.
-   Today the SutraDB tempdir path is hard-coded in the codegen
-   prelude. Config to expose: sdb file path (per-program
-   persistent vs ephemeral tempdir), HNSW M and ef_construction
-   parameters, nomic-embed-text vs alternative embedding model.
+   program's known vectors~~ — DONE (reworked in `8c3ee7f`). PyTorch
+   codegen prelude calls `_VSA.populate_sutradb()` after embed_batch
+   so every embedded string is in SutraDB at module init.
+3. ~~Replace `argmax_cosine` with SutraDB~~ — REWORKED in `8c3ee7f`
+   per Emma 2026-04-30 reframe: `argmax_cosine` stays matmul (it
+   takes a runtime candidate-vector list, wrong abstraction for
+   SutraDB). The new value-add is `_VSA.nearest_string(query)` —
+   the **decode** path: given any vector, return the nearest
+   string label from the compile-time-populated SutraDB. This is
+   the "embeddings live in the database, not in the program"
+   architecture the user wanted.
+4. ~~Replace `hashmap_*` runtime methods with SutraDB~~ — DROPPED
+   per Emma 2026-04-30. The "hashmap" reference in
+   `stdlib/memory.su` was a Python-side helper; the language has
+   no real hashmap concept. Sutra is using SutraDB only for text-
+   embedding storage + decode, not as a general key-value store.
+5. ~~`atman.toml` `[vector_db]` config section~~ — partially DONE
+   in `<this commit>`. Env var `SUTRA_DB_PATH` now overrides the
+   tempdir, giving a persistent .sdb across runs. Full
+   `[project.vector_db]` TOML schema (HNSW M / ef_construction /
+   embedding model override) deferred until there's a concrete
+   user requirement.
 6. ~~FFI auto-declare-on-insert fix~~ — DONE in commit `d72ab1c`.
-   `sutra_insert_ntriples` in the FFI now detects f32vec-typed
-   object literals and auto-declares the predicate on first
-   insert. Eliminated the close+reopen reindex workaround.
+   `sutra_insert_ntriples` auto-declares vector predicates on
+   first insert.
 
-**Status as of 2026-04-30:** 4/6 pieces done. The headline
-"SutraDB embedded replaces argmax_cosine for substrate-side vector
-lookup" is delivered. Pieces 4+5 are clean follow-ups that don't
-block paper writing.
+**Status as of 2026-04-30:** Item 2 is done. SutraDB is the
+embedded codebook for every Sutra program; `_VSA.nearest_string`
+provides decode-back from vectors to strings; `SUTRA_DB_PATH` env
+var configures persistence. The only deferred piece is full
+atman.toml schema, which can wait for a concrete config use case.
 
 ### 3. make_random_rotation pre-warm at compile time
 

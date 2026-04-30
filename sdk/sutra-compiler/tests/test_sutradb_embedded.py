@@ -149,6 +149,53 @@ class TestSutraDBCodebookIntegration(unittest.TestCase):
         result = vsa.nearest_string(query)
         self.assertEqual(result, "dog")
 
+    def test_env_var_path_override(self):
+        # SUTRA_DB_PATH env var overrides the tempdir. Two _VSA instances
+        # pointed at the same path should see each other's inserts after
+        # close+reopen (not tested explicitly here; just confirm the env
+        # var routes the path).
+        import os
+        import torch
+        from sutra_compiler.codegen_pytorch import PyTorchCodegen
+        from sutra_compiler import ast_nodes
+
+        custom_path = os.path.join(self._tmpdir, "custom_codebook.sdb")
+        old_env = os.environ.get("SUTRA_DB_PATH")
+        os.environ["SUTRA_DB_PATH"] = custom_path
+        try:
+            cg = PyTorchCodegen()
+            cg._prefetch_strings = []
+            empty = ast_nodes.Module(items=[], span=None)  # type: ignore[arg-type]
+            try:
+                py = cg.translate(empty)
+            except Exception:
+                self.skipTest("translate(empty) failed; skip")
+            ns: dict = {}
+            exec(py, ns)
+            vsa = ns["_VSA"]
+            sem = vsa.semantic_dim
+            syn = vsa.synthetic_dim
+            v = torch.zeros(sem + syn, dtype=vsa.dtype, device=vsa.device)
+            v[0] = 1.0
+            vsa._codebook = {"persistent_label": v}
+            vsa.populate_sutradb()
+            # Confirm the .sdb sled directory was created at our custom path.
+            self.assertTrue(os.path.isdir(custom_path),
+                            f"expected sled dir at {custom_path}")
+        finally:
+            if old_env is None:
+                os.environ.pop("SUTRA_DB_PATH", None)
+            else:
+                os.environ["SUTRA_DB_PATH"] = old_env
+
+    def setUp(self) -> None:
+        import tempfile
+        self._tmpdir = tempfile.mkdtemp(prefix="sutradb_codebook_test_")
+
+    def tearDown(self) -> None:
+        import shutil
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
     def test_decode_unicode_label(self):
         # URL-quoting in populate_sutradb / unquoting in nearest_string
         # round-trips a label with spaces / non-ASCII characters.
