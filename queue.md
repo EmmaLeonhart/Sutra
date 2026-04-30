@@ -117,29 +117,26 @@ and asserts the second run has zero rotation construction.
 
 ## Queued work — back of queue (boundary leaks; "Python is just IO" target)
 
-### 4. Boundary leaks (Python touching scalars where it shouldn't)
+### 4. Remaining boundary leaks
 
-These are real but small — they don't break correctness, just keep
-the runtime from being purely tensor ops:
+The 5 boundary leaks were enumerated in `planning/findings/
+2026-04-30-substrate-purity-leak-enumeration.md` and **three of
+five were fixed in commit 93beb01** (loop halt check, slot_load,
+array_get). New `_VSA.truth_axis` / `_VSA.heaviside` /
+`_VSA.saturate_unit` substrate primitives mirror across both the
+numpy and PyTorch backends. Two leaks remain:
 
-- **`slot_load` returns Python float** via `float(state[i])`. If the
-  next op is a tensor op the value gets re-vectorized; if it's
-  Python arithmetic, the work happens on CPU. Used everywhere slot
-  vars are read.
-- **Loop halt check uses Python `bool()`** on the truth-axis scalar
-  extracted from the condition's fuzzy-vector result. Branchless in
-  the soft-mux sense, but the comparison happens in Python.
-- **`if key not in self._rot_cache`** — runtime conditional on
-  first-use of each role. Fine if all roles are pre-warmed (item 4
-  above); leaky otherwise.
-- **`array_get` returns Python float** — same shape as `slot_load`.
+- **Rotation cache lookup** (`if key not in self._rot_cache`) —
+  covered by item 3 (compile-time pre-warm). After pre-warm, the
+  lookup is always a hit and can be replaced with a direct
+  attribute access at compile time.
+- **Loop tick counter** (`for _t in range(50)`) — covered by item 5
+  (full unroll). Cosmetic for substrate-purity since the substrate
+  sees the same T cell evaluations either way; matters for
+  `torch.compile` fusion.
 
-Fix: keep values as 0-dim tensors throughout the runtime methods;
-only `.item()` extract at the program's final IO boundary (return
-to user, print, etc.). Requires touching: slot_load, slot_store
-(maybe — currently writes a float into a tensor position),
-similarity, the loop halt check, array_get, the vector accessors
-(real, imag, truth, component).
+Both remaining leaks are bigger refactors and are tracked under
+their own queue items (3 and 5).
 
 ### 5. "Python is just IO" target — three pieces
 
