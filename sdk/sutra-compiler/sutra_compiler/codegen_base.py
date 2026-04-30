@@ -876,32 +876,52 @@ class BaseCodegen:
                 self._translate_stmt(inner)
             return
         if isinstance(stmt, ast.LoopStmt):
+            # loop(N) literal N: compile-time unroll. Cheap easy form.
+            # Stays — Emma 2026-04-30: "pure compile-time loops where
+            # you just give an integer literal as the thing in it" are
+            # the cheap easy form for arrays-of-known-size.
             if stmt.count is not None:
                 self._translate_bounded_loop(stmt)
-            else:
-                self._translate_eigenrotation_loop(stmt)
-            return
-        if isinstance(stmt, ast.WhileStmt):
-            self._translate_while_as_geometric_loop(stmt)
-            return
-        if isinstance(stmt, ast.ForStmt):
-            self._translate_for_as_geometric_loop(stmt)
-            return
-        if isinstance(stmt, ast.DoWhileStmt):
-            # `do { body } while (cond)` desugars to the body executed
-            # once, followed by a `while (cond) { body }`. User direction
-            # 2026-04-22: "decompose to a single iteration, followed by
-            # a while loop of it." The while half then lowers to the
-            # same eigenrotation-loop machinery ForStmt / WhileStmt use.
-            for inner in stmt.body.statements:
-                self._translate_stmt(inner)
-            synthesized_while = ast.WhileStmt(
-                condition=stmt.condition,
-                body=stmt.body,
-                span=stmt.span,
+                return
+            # loop(cond) — old eigenrotation form. Rejected; superseded
+            # by the function-declaration loop kinds.
+            raise CodegenNotSupported(
+                stmt,
+                "`loop(cond) { body }` is no longer supported. The body-"
+                "discard eigenrotation form is replaced by the function-"
+                "declaration loop kinds (`do_while NAME(...)`, "
+                "`while_loop NAME(...)`, `iterative_loop NAME(...)`, "
+                "`foreach_loop NAME(...)` + `loop NAME(...);` call site). "
+                "See planning/open-questions/loop-function-declarations.md.",
             )
-            self._translate_while_as_geometric_loop(synthesized_while)
-            return
+        if isinstance(stmt, ast.WhileStmt):
+            raise CodegenNotSupported(
+                stmt,
+                "C-style `while (cond) { body }` is no longer supported. "
+                "Use a `while_loop NAME(cond, ...state) { ...; pass ...; }` "
+                "function declaration + `loop NAME(cond, args);` call site. "
+                "See planning/open-questions/loop-function-declarations.md.",
+            )
+        if isinstance(stmt, ast.ForStmt):
+            raise CodegenNotSupported(
+                stmt,
+                "C-style `for (init; cond; step) { body }` is no longer "
+                "supported. Use `iterative_loop NAME(count, ...state) { "
+                "...; pass ...; }` for fixed-count iteration (with the "
+                "`iterator` keyword for the tick number), or "
+                "`while_loop NAME(cond, ...state) { ... }` for general "
+                "data-dependent iteration. See "
+                "planning/open-questions/loop-function-declarations.md.",
+            )
+        if isinstance(stmt, ast.DoWhileStmt):
+            raise CodegenNotSupported(
+                stmt,
+                "C-style `do { body } while (cond);` is no longer "
+                "supported. Use `do_while NAME(cond, ...state) { ...; "
+                "pass ...; }` function declaration + "
+                "`loop NAME(cond, args);` call site. See "
+                "planning/open-questions/loop-function-declarations.md.",
+            )
         if isinstance(stmt, ast.ForeachStmt):
             # `foreach (x in [a, b, c]) { body }` unrolls at compile time
             # — one body emission per element, with the loop variable
