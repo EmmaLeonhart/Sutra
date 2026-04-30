@@ -15,6 +15,316 @@ current layout looks the way it does.
 
 ---
 
+## 2026-04-30: Loop redesign apex + substrate-purity sweep + numpy backend deprecated
+
+The day's work formalized loops as first-class declared functions
+with both `pass values` and `return NAME(args)` tail surfaces,
+fixed three of five substrate-purity boundary leaks, deprecated
+the numpy backend, shipped program-level halt propagation, and
+disabled the broken transcendentals at compile time rather than
+fix them in place.
+
+Concrete commits in chronological order (a single 14-hour push):
+
+- `54e14f3` STATUS+todo: capture user direction from transcendentals
+  chat follow-up.
+- `51ffbb4` chats: restore extract_chat.py, extract transcendentals
+  chat, queue RNN-loop audit.
+- `3d11a44` STATUS+open-questions: queue the loop redesign, drop
+  completion-log cruft.
+- `c50f76f` queue: do-while is the first loop primitive to implement
+  (Emma's call). The four kinds (do_while, while_loop,
+  iterative_loop, foreach_loop) get sequenced.
+- `3ee3d35` queue: add substrate-purity sweep items from 2026-04-30
+  audit. The audit (`planning/findings/2026-04-30-runtime-substrate-
+  purity-audit.md`) enumerated every place the runtime touched
+  Python; the queue items were derived from that.
+- `2515fca` cleanup: rename `STATUS.md → queue.md`; disable broken
+  transcendentals. The `sin/cos/tan/exp/log/sqrt/pow` intrinsics
+  rejected at compile time; their old runtime methods deleted from
+  both backends. `stdlib/math.su` flipped to NOT IMPLEMENTED with
+  forward-pointer to the eigenrotation-as-modulus design.
+- `c41a08c` docs: capture loop-function-declarations design + queue
+  idiomatic cleanup.
+- `444ed6a` loop: function-declaration loops compile end-to-end
+  (do_while + iterative_loop + while_loop). The number-adder demo
+  (x=9, x<11 → x=11) ships as the first working example.
+- `9681c0f` loop: do_while end-to-end works — number-adder returns
+  11 from 9. First confirmed substrate-pure RNN-style loop run.
+- `b50db21` loop: while_loop + iterative_loop end-to-end + 14 tests.
+- `b870bbf` loop: foreach_loop + binding-array primitive end-to-end.
+  `array_from_literal` / `array_length` / `array_get` runtime
+  methods plus the `element` and `iterator` contextual keywords.
+- `d97bec5` queue: clean up DONE items, add boundary leaks at back,
+  queue SutraDB as default.
+- `29733a4` loop: reject old C-style loop forms with clear error
+  pointing at function-decl forms. `loop(cond) { body }` and
+  `for(...; ...; ...) { body }` now error out — the body-discard
+  variants that didn't actually run the body are gone.
+- `b222b31` chats: extract literal-based-optimization chat (Sutra
+  design notes). The chat that prompted the closure-loop discussion
+  later in the day.
+- `29b8b2c` queue: drop done item, renumber, add paper+NeurIPS+CI/CD
+  as item 6.
+- `353d7be` queue: Claw4S is the real workshop name; three submission
+  targets. Earlier I'd misread "Claw4S" as a transcription artifact
+  for arXiv; it's the real workshop, the same one the Phase 4 papers
+  targeted (Phase 4 below in this devlog).
+- `06c8498` loop: program-level halt propagation via _program_halt
+  accumulator. Every loop call's halt-cum multiplies into a
+  function-scope `_program_halt`; every `return <expr>` multiplies
+  the value by `_program_halt`. A loop that fails to converge wipes
+  program output to ~0 — substrate-pure detection of unconverged
+  computation.
+- `13b8c41` design: enumerate substrate-purity leaks + capture
+  function taxonomy. Two design docs.
+- `93beb01` loop: fix substrate-purity boundary leaks 1, 2, 4. Loop
+  halt check, slot_load, array_get no longer cross to Python. New
+  `_VSA.truth_axis` / `heaviside` / `saturate_unit` substrate-scalar
+  primitives, mirrored across both backends.
+- `1432f4b` queue: collapse item 4 — leaks 1/2/4 fixed in 93beb01;
+  only 3+5 remain.
+- `c4e01a2` queue: insert numpy-backend retire + closure-loop impl
+  before paper. The 30-minute decision sequence: do these two before
+  paper, not after.
+- `cdd9482` codegen: switch loop tests to PyTorch backend; deprecate
+  numpy codegen. The numpy backend (`codegen.py`) gets a deprecation
+  header in its docstring; loop tests imports flip to PyTorchCodegen;
+  `array_*` methods added to `_TorchVSA`.
+- `b3bc0cd` loop: ship `return NAME(args)` tail-call surface as `pass`
+  alternative. Per Emma's walkback of the closure-loop framing
+  ("I don't think this language is actually going to even have
+  closure"), the surface change is just a prettier tail step inside
+  loop function bodies. Same semantics as PassStmt.
+- `7dc3c0a` queue: collapse item 7 — tail-call surface shipped in
+  b3bc0cd.
+- `98b46c9` claude: add 'always use task tool with queue.md' +
+  'deprecate not remove' rules. Two general rules: queue.md and the
+  task tool stay synced; superseded constructs get docstring
+  deprecation, not deletion.
+
+End of day status: substrate-pure compiler, four loop kinds with
+two surfaces (`pass` and `return NAME(args)`) both shipping, halt
+propagation, three boundary leaks fixed, numpy backend deprecated,
+231/231 tests passing.
+
+---
+
+## 2026-04-29: Bound-table failure + eigenrotation cost refuted + bloat sweep
+
+- `f9e7486` STATUS: bloat sweep results. Local `intellij-sutra/build/`
+  is 1.1 GB (untracked, gitignored); local `fly-brain/` mirror is
+  101 MB (untracked since `31bcdd0` retirement); both flagged for
+  user decision.
+- `9afe0b6` chats triage: drop `vsa-substrate-and-turing-completeness`
+  without harvest.
+- `ce4e539` chats triage: drop final 3 chunks; collapse triage log;
+  queue incoming chat. End of the chats triage workflow.
+- `4f4aaed` findings: validate eigenrotation-as-trig insight; cost
+  claim refuted. The math (rotation eigendecomposition gives `cos`
+  and `sin` for free) holds; the engineering claim that this would
+  be cheaper than other approaches doesn't. Today's transcendentals
+  are disabled rather than implemented because of this finding plus
+  the bound-table-via-binding capacity limit (next bullet).
+- `planning/findings/2026-04-29-bound-table-capacity-limit.md` —
+  documents the capacity limit of the bound-table-via-binding
+  Fourier approach. 2-scalar capacity; Gibbs phenomenon for
+  non-periodic functions like `exp` and `log`. The Taylor + frexp
+  fallback worked numerically but ran as Python scalar arithmetic
+  at runtime (substrate-purity violation).
+
+---
+
+## 2026-04-25 → 2026-04-28: Chats triage workflow + fly-brain retirement + docs sweep
+
+The substrate work outpaced the language. The repo focused on
+Sutra-the-language; fly-brain experimental code retired.
+
+### 2026-04-26: Fly-brain retired
+
+- `31bcdd0` Retire fly-brain experimental backend. Removed:
+  - `fly-brain/` directory (47 tracked files): hemibrain MB scripts,
+    Shiu whole-brain LIF probes, FlyWire data loaders, Brian2
+    substrate code, `.su` demo programs, codegen e2e tests.
+  - `sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`.
+  - `sdk/sutra-compiler/tests/test_codegen_flybrain.py`.
+  - `--emit-flybrain` CLI flag, `--runtime-n-kc` parameter, fly-brain
+    backend dispatch in `__main__.py`.
+  - `fly-brain` value from `VALID_SUBSTRATES`; test_workspace.py
+    updated to use `logit` instead.
+  - Fly-brain references in docstrings, CLAUDE.md, error messages.
+  - Authoritative FlyWire data lives at `C:\Users\Immanuelle\flybrain\`
+    untouched.
+  - **Recoverable from `31bcdd0^` if substrate work resumes.**
+- `e93de7c` Docs: rewrite README and high-traffic site pages to be
+  concrete (the new "real, purely functional language" framing).
+- `3ac4ead` Docs: rewrite tutorials around rotation binding, sweep
+  stale claims (sign-flip era).
+- `2240876` Docs: rename to "geometrically compiled language" headline.
+- `53c59f7` Docs: drop "honest" / "genuinely" buzzwords from
+  user-facing pages.
+- `573d88e` Docs: tighten paradigms imperative section, move iterator
+  into loops doc + STATUS.
+
+### 2026-04-25: Chats triage push
+
+~30 commits dropping or harvesting individual chats. Examples:
+
+- `9afe0b6` chats triage: drop `vsa-substrate-and-turing-completeness`
+- `4a6fee8` STATUS.md: chats triage substantially complete.
+- `8af409d` chats triage: harvest cosine-vs-euclidean question into
+  open-questions/.
+- `8d84528` chats triage: harvest contextual-vs-static-embedding-keys
+  open question.
+
+The workflow established here (per-chunk approval required for
+drop/harvest decisions) generalized into the memory rule
+`feedback_chats_triage_per_chunk_approval.md`.
+
+- `ea8f064` Repo audit (2026-04-25) + delete empty many-to-many/.
+- `4ad7580` Spec refresh: synthetic-subspace section in `binding.md`
+  rewritten with current canonical-axis allocation.
+- `8d5a276` Move 4 stale-at-root files into proper directories.
+- `7843eb3` Move compilation updates from STATUS.md to todo.md.
+
+### 2026-04-27: Iterator keyword in compile-time loops
+
+- `3aa8c48` Iterator keyword: implement `iterator` inside unrolling
+  `loop (N)`. The compile-time-unrolled loop form gets the contextual
+  `iterator` keyword. Foundation for the runtime `iterative_loop`
+  that lands 2026-04-30.
+
+### 2026-04-27 → 2026-04-28: Final chat-triage sweep
+
+- `f2f86fd` chats: remove vsa-operations-explained.md after triage.
+- `9812931` chats: drop stale references in live state docs.
+- `5e6a5b1` chats: restore three large unprocessed chats; remove
+  derivative planning docs. The split-into-chunks workflow used for
+  the largest chats.
+- `17d350c` chats: split three large chats into 24 topic-scoped
+  chunks for triage.
+- `e437cfc` chats triage: harvest 3 KART chunks, document workflow
+  in STATUS.
+
+---
+
+## 2026-04-22 → 2026-04-24: Sign-flip retirement → rotation binding canonical
+
+The compile-target rotation work that displaced sign-flip binding
+in the user-facing demos. Sign-flip stayed in the codebase as
+historically-meaningful but `bind` defaulted to rotation.
+
+- Sign-flip retired from the codegen 2026-04-22 (memory:
+  `feedback_no_sign_flip.md`). Rotation became the only `bind`
+  implementation; the binding spec (`planning/sutra-spec/binding.md`)
+  flipped its "current implementation" pointer.
+- Synthetic-subspace validation work in
+  `planning/findings/2026-04-24-synthetic-subspace-validation.md`.
+
+---
+
+## 2026-04-18: Papers + Claw4S CI/CD strategic layer retired (`903308e`)
+
+**The retirement that the upcoming paper push (queue item 8) needs to
+recover from.**
+
+- `903308e` Remove papers, submission CI, and Claw4S strategic layer.
+  Deleted:
+  - **Paper directories:** `sutra-paper/`, `fly-brain-paper/`,
+    `language-paper/`, `many-to-many/`, `paper-history/`.
+  - **CI workflows:**
+    - `.github/workflows/papers-ci.yml` (239 lines) — auto-submit on
+      paper.md push; fetch reviews after submission. Triggered on
+      paths `sutra-paper/paper.md`, `fly-brain-paper/paper.md`,
+      `language-paper/paper.md`, etc. Uses `Skip-Submit:` commit-
+      message trailer to prevent infinite loops. Recoverable from
+      `903308e^:.github/workflows/papers-ci.yml`.
+    - `.github/workflows/submit-papers.yml` (104 lines) — manual
+      `workflow_dispatch` submission with paper_dir / title / tags /
+      supersedes inputs. Calls clawRxiv API directly via
+      `CLAWRXIV_API_KEY` repo secret. Recoverable from
+      `903308e^:.github/workflows/submit-papers.yml`.
+    - `.github/workflows/competition-cron.yml` (79 lines) — 6-hour
+      scheduled refresh of clawRxiv paper + review metadata; auto-
+      commits `planning/competition-analysis-latest.md`. Schedule:
+      `0 4,10,16,22 * * *` UTC. Recoverable from
+      `903308e^:.github/workflows/competition-cron.yml`.
+  - **Strategic layer:** `claw4s-scope.md` (94 lines), STATUS.md
+    paper-era version, `planning/competition-analysis-*.md`.
+  - **Submission scripts:** `scripts/fetch_all_papers.py`,
+    `scripts/fetch_reviews.py`.
+  - **Per-paper SKILL.md** files describing submission shapes.
+
+**Recovery recipe** (per Emma 2026-04-30: "the secrets are still
+completely supported for Git"):
+
+```bash
+# 1. Restore three workflows
+for f in papers-ci submit-papers competition-cron; do
+  git show 903308e^:.github/workflows/$f.yml > .github/workflows/$f.yml
+done
+# 2. Restore submission scripts (paths inside scripts/)
+git show 903308e^:scripts/fetch_all_papers.py > scripts/fetch_all_papers.py
+git show 903308e^:scripts/fetch_reviews.py > scripts/fetch_reviews.py
+# 3. Restore one or more SKILL.md files
+git show 903308e^:sutra-paper/SKILL.md > paper/SKILL.md
+# 4. Update path filters in papers-ci.yml to point at the new paper dir
+# 5. CLAWRXIV_API_KEY repo secret: still configured, no need to re-provision
+# 6. Push to master; auto-submit + review-fetch flow takes over
+```
+
+For NeurIPS specifically: NeurIPS is **not** a clawRxiv workshop, so
+its submission goes through OpenReview. New work needed: a separate
+workflow that builds an anonymized PDF (LaTeX + `\ifanon` macros)
+for OpenReview upload. Today's repo has nothing pre-existing for
+OpenReview / NeurIPS — that work is clean-slate.
+
+---
+
+## SutraDB embedded-runtime integration: NOT DONE
+
+Per Emma 2026-04-30: "I don't know if we actually integrated the
+Sutra database as an embedded thing within our programmes."
+
+**Answer from history: no.** SutraDB exists as a separate Rust
+project in `sutraDB/`; the Sutra compiler does not embed or call
+into SutraDB at runtime. Compiled programs use in-process
+bind/bundle/argmax over numpy or torch tensors. The integration is
+queued (item 2 in `queue.md`) but unstarted. The two share the
+`sutra` brand name but are distinct codebases. The Wikidata BFS
+import script (`cb066d3` 2026-03-?? era) imports into SutraDB; no
+Sutra compile path emits SutraDB queries.
+
+---
+
+## What's now deprecated-but-kept (Emma 2026-04-30)
+
+- **`do_while` and `while_loop` kinds** — superseded by the
+  tail-call surface in spirit; kept because still load-bearing in
+  code and tests.
+- **`codegen.py` (numpy backend)** — deprecation header in
+  docstring; emit-shape tests still use it. Full retirement is
+  queued (item 6).
+- **The four loop kinds with explicit kind tags** — alternative to a
+  single uniform "function loop" form; kept as canonical for now.
+
+---
+
+## What's now queued post-2026-04-30 (queue.md)
+
+1. ~~Program-level halt propagation~~ — DONE (`06c8498`)
+2. SutraDB integration as default vector backend — NOT STARTED
+3. `make_random_rotation` pre-warm at compile time — NOT STARTED
+4. Boundary leaks 1/2/4 — DONE; 3/5 remain
+5. "Python is just IO" target (full unroll + torch.compile) — NOT
+   STARTED
+6. Numpy backend full retirement — DEPRECATED, full removal queued
+7. ~~Tail-call surface~~ — DONE (`b3bc0cd`)
+8. Paper draft + Claw4S/NeurIPS/CI — NOT STARTED (this devlog
+   precedes that work)
+
+---
+
 ## 2026-04-13: Recent compiler/codegen items + 2026-04-08 syntax decisions folded in from todo.md
 
 Folded out of `todo.md`'s former §"Recently done" and §"Recently Decided
