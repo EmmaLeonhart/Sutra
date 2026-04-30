@@ -284,8 +284,11 @@ class BaseCodegen:
         # loop body the stack is empty and `pass` is a compile error.
         # Stack (not single value) so nested loop calls don't collide,
         # though loop-inside-loop bodies are an open question per the
-        # design doc.
-        self._loop_state_stack: List[List[str]] = []
+        # design doc. Each entry is (loop_name, [state_names...]) so the
+        # `return NAME(args)` tail-call surface (alternative to `pass
+        # values`, Emma 2026-04-30) can verify the call targets the
+        # enclosing loop function.
+        self._loop_state_stack: List[tuple[str, List[str]]] = []
         # Registry of loop function declarations seen so far in the
         # module, name -> LoopFunctionDecl. Used by LoopCallStmt
         # translation to look up the state-param shape for the call's
@@ -597,8 +600,10 @@ class BaseCodegen:
             self._emit(f"{state_name} = {init_name}")
         self._emit("_halt_cum = 0.0")
 
-        # Push state names so PassStmt translation knows what to assign.
-        self._loop_state_stack.append(state_names)
+        # Push (loop_name, state_names) so PassStmt and tail-call
+        # ReturnStmt translation know what to assign and which loop
+        # name a `return NAME(args)` surface targets.
+        self._loop_state_stack.append((decl.name, state_names))
         # For iterative_loop, `iterator` in the body resolves to the
         # runtime Python local `_iterator` instead of erroring.
         prior_iter_runtime = self._iterator_runtime_in_scope
@@ -796,7 +801,7 @@ class BaseCodegen:
                     "`pass` is only valid inside a loop function body. "
                     "See planning/open-questions/loop-function-declarations.md.",
                 )
-            state_names = self._loop_state_stack[-1]
+            _loop_name, state_names = self._loop_state_stack[-1]
             if len(stmt.values) != len(state_names):
                 raise CodegenNotSupported(
                     stmt,
@@ -820,6 +825,34 @@ class BaseCodegen:
             self._translate_var_decl(stmt, at_top_level=False)
             return
         if isinstance(stmt, ast.ReturnStmt):
+            # Tail-call surface (Emma 2026-04-30): inside a loop function
+            # body, `return NAME(args)` where NAME is the enclosing loop
+            # is the prettier alternative to `pass args`. Same semantics
+            # as PassStmt — assigns each arg to the corresponding state
+            # local. Outside a loop body or for any other return value,
+            # falls through to the regular return-with-_program_halt.
+            if (self._loop_state_stack
+                    and stmt.value is not None
+                    and isinstance(stmt.value, ast.Call)
+                    and isinstance(stmt.value.callee, ast.Identifier)):
+                loop_name, state_names = self._loop_state_stack[-1]
+                if stmt.value.callee.name == loop_name:
+                    args = stmt.value.args
+                    if len(args) != len(state_names):
+                        raise CodegenNotSupported(
+                            stmt,
+                            f"tail call `return {loop_name}(...)` expects "
+                            f"{len(state_names)} arg(s) (one per state "
+                            f"parameter `{', '.join(state_names)}`), got "
+                            f"{len(args)}",
+                        )
+                    for state_name, value in zip(state_names, args):
+                        if isinstance(value, ast.ReplaceMarker):
+                            self._emit(f"{state_name} = _init_{state_name}")
+                        else:
+                            value_src = self._translate_expr(value)
+                            self._emit(f"{state_name} = {value_src}")
+                    return
             if stmt.value is None:
                 self._emit("return")
             else:

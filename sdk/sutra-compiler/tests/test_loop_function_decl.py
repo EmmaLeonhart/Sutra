@@ -281,6 +281,68 @@ function int main() {
         self.assertIn("foreach_loop", str(exc_info.value))
 
 
+class TestReturnTailCallSurface(unittest.TestCase):
+    """`return NAME(args)` (Emma 2026-04-30) is a prettier alternative
+    to `pass values` inside a loop function body — same semantics as
+    PassStmt, just expressed as tail recursion. Confirms semantic
+    equivalence between the two surfaces."""
+
+    DO_WHILE_TAIL = """
+do_while addNumber(x < 11, int x) {
+    return addNumber(x + 1);
+}
+
+function int main() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;
+}
+"""
+
+    def test_tail_call_matches_pass_semantics(self):
+        # Same expected behavior as the SIMPLE_DO_WHILE_ADDER test:
+        # 9 -> 10 -> 11 -> halt. Final x = 11.
+        result = _run_main(self.DO_WHILE_TAIL)
+        self.assertAlmostEqual(float(result), 11.0, places=2)
+
+    def test_tail_call_in_iterative_loop(self):
+        # Same as TestIterativeLoop.test_iterator_keyword_sums_correctly
+        # but with `return sumN(...)` instead of `pass total + iterator`.
+        src = """
+iterative_loop sumN(5, int total) {
+    return sumN(total + iterator);
+}
+
+function int main() {
+    slot int total = 0;
+    loop sumN(5, total);
+    return total;
+}
+"""
+        result = _run_main(src)
+        # 0+1+2+3+4+5 = 15 (iterator is 1-indexed, runs 5 times)
+        self.assertAlmostEqual(float(result), 15.0, places=2)
+
+    def test_tail_call_arg_count_mismatch_errors(self):
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        src = """
+do_while bad(c > 0, int x, int y) {
+    return bad(x + 1);
+}
+
+function int main() {
+    slot int x = 0;
+    slot int y = 0;
+    loop bad(true, x, y);
+    return x;
+}
+"""
+        with pytest.raises(CodegenNotSupported) as exc_info:
+            _compile(src)
+        self.assertIn("tail call", str(exc_info.value))
+        self.assertIn("2 arg(s)", str(exc_info.value))
+
+
 class TestProgramHaltPropagation(unittest.TestCase):
     """Program-level halt propagation (Emma 2026-04-30): a loop that
     runs out of T-step budget without converging emits halt_cum≈0,
