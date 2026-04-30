@@ -1,6 +1,6 @@
 """egglog smoke-test — can we lift Sutra's rewrite rules into egglog?
 
-First integration step of the algebraic-simplification plan in STATUS.md.
+First integration step of the algebraic-simplification plan in queue.md.
 The existing `sdk/sutra-compiler/sutra_compiler/simplify.py` hand-writes
 ~16 rewrite rules over the Sutra AST. This file verifies that egglog
 (v13, `pip install egglog`) can:

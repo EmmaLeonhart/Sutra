@@ -84,7 +84,7 @@ undershooting by 2).
 ## Implications
 
 **For pipeline A (substrate-only):** The primary open problem named in
-STATUS.md ("close the gap between pipeline A 14/30 and pipeline B 30/30
+queue.md ("close the gap between pipeline A 14/30 and pipeline B 30/30
 while keeping rotation on the substrate") is now partially answered.
 At SIM_MS=6000 pipeline A would score ~10/15 on the k ∈ {3,5,8} portion
 of the grid vs 2/9 at SIM_MS=3000 — a 5× improvement from window

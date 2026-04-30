@@ -1,9 +1,9 @@
 # Findings
 
 Experimental results with reasoning. One file per finding. This is the
-write-up layer between raw commit messages and `STATUS.md`:
+write-up layer between raw commit messages and `queue.md`:
 
-- `STATUS.md` has the one-line truth-table summary ("3/5 seeds spiking
+- `queue.md` has the one-line truth-table summary ("3/5 seeds spiking
   rotation, noise characterized").
 - Commit messages have the what-and-why of a specific diff.
 - A finding here has the full story: what we ran, what we measured,

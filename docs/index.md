@@ -86,4 +86,4 @@ It is also not a neural network. The compiler does not learn anything; it lowers
 
 ## Project status
 
-Sutra is **research-grade** software. The work-in-progress queue lives in [`STATUS.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/STATUS.md). The published papers that ground the language are listed on the [papers page](papers.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).
+Sutra is **research-grade** software. The work-in-progress queue lives in [`queue.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/queue.md). The published papers that ground the language are listed on the [papers page](papers.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).

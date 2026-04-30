@@ -85,7 +85,7 @@ experimental validation" to "runtime-supported primitive":
 
 ## Pre-Anthropic-grant-app sprint closeout
 
-This is the last item of the three-item sprint (STATUS.md,
+This is the last item of the three-item sprint (queue.md,
 2026-04-24). All three closed:
 
 1. **Capacity experiments** — all 5 passed.

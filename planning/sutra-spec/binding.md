@@ -145,7 +145,7 @@ pending. The validation landed:
 
 The remaining `.su`-surface-syntax work — how a Sutra program
 declares a slot-bound variable in source — is tracked separately
-in STATUS.md "Sutra-language surface syntax for slot primitives"
+in queue.md "Sutra-language surface syntax for slot primitives"
 and is independent of the spec design here.
 
 `R` is a **rotation in the synthetic subspace**. Each variable /
@@ -217,7 +217,7 @@ commutative.
 Sign-flip is retired from the codegen as of 2026-04-22 (commit
 history). `codegen.py` and `codegen_pytorch.py` both compile `bind`
 to role-seeded Haar-random orthogonal rotation. The retirement is
-also recorded as pinned semantic correction #6 in STATUS.md so it
+also recorded as pinned semantic correction #6 in queue.md so it
 doesn't get reintroduced.
 
 ### Why the distinction matters

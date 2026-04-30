@@ -132,7 +132,7 @@ on nomic for king - man + woman. When they disagree — on weaker
 substrates, richer codebooks, harder analogies — the disagreements
 are the data.
 
-## What remains (todo.md / STATUS.md)
+## What remains (todo.md / queue.md)
 
 - **Cross-substrate attractor comparison.** Train separate MLPs on
   each of nomic / mxbai / minilm and compare basin maps. Do the

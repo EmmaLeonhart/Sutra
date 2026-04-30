@@ -1,13 +1,13 @@
 # Sutra — consolidated TODO
 
-This file is the long-term agenda. `STATUS.md` at the repo root is the
-active session queue — if the two disagree, STATUS.md wins for what is
+This file is the long-term agenda. `queue.md` at the repo root is the
+active session queue — if the two disagree, queue.md wins for what is
 being worked on *now*, and this file wins for what needs doing
 *eventually*. Do not re-split this into per-subdirectory todo files.
 
 ## 🗂 Priority levels
 
-- **Immediate** — do right now / this session. Usually mirrored in `STATUS.md`.
+- **Immediate** — do right now / this session. Usually mirrored in `queue.md`.
 - **Pre-Anthropic-grant-app (~2026-04-29)** — user's next external deadline;
   items here should land before that.
 - **Pre-Y-Combinator pitch** — must land before the YC pitch (no fixed date).
@@ -132,7 +132,7 @@ Longer scope (later):
 User direction 2026-04-23: *"the runtime override, honestly, it
 wouldn't be at runtime; it would be at compile time"* and *"both of
 those things go after the anthropic application."* Moved from
-STATUS.md (where it was erroneously framed as runtime override) to
+queue.md (where it was erroneously framed as runtime override) to
 this post-Anthropic-grant-app bucket.
 
 File-level (`// @embedding`) and project-level (`atman.toml`
@@ -212,7 +212,7 @@ active item. When picked up:
   learned_from(data)` declaration reads `(input, output)` embedding
   pairs and fits R via lstsq (or Procrustes, or low-rank —
   substrate-dependent).
-- [ ] Wire the `role` surface syntax into the parser. STATUS.md item
+- [ ] Wire the `role` surface syntax into the parser. queue.md item
   3's decision (Candidate B: `role` / `var`) is resolved at the spec
   level but not implemented in `sdk/sutra-compiler/`.
 - [ ] Emit `R @ filler` runtime for semantic roles; `R.T @ record`
@@ -503,15 +503,17 @@ Concrete work:
   non-periodic functions. cos/sin still use the eigenrotation
   primitive (which IS the bound-table working as intended);
   exp/ln use Taylor+frexp.
-- [x] ~~**`stdlib/math.su` math intrinsics** that route to the
-  approximation pass: `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`,
-  `pow` for starters.~~ **DONE 2026-04-29.** All seven intrinsics
-  wired with substrate-pure runtime methods on both backends. Tests
-  in `tests/test_transcendentals.py` (34/34 PASS). Architecture:
-  cos/sin via eigenrotation primitive; realExp via Taylor +
-  squaring range reduction; realLog via frexp range reduction +
-  artanh series; complex exp / log compose; sqrt / pow / tan
-  derived from exp / log.
+- [ ] **`stdlib/math.su` math intrinsics** (`log`, `sqrt`, `exp`,
+  `sin`, `cos`, `tan`, `pow`). 2026-04-29 implementation was
+  withdrawn 2026-04-30 because it ran as host Python scalar
+  arithmetic at runtime (substrate-purity violation; values were
+  correct but architecture wrong). Codegen now rejects calls
+  with a clear CodegenNotSupported pointing at math.su. Future
+  direction: eigenrotation-as-modulus (Emma 2026-04-30 hunch —
+  the unit circle is naturally periodic so applying R unboundedly
+  could give substrate-pure trig without floor-based range
+  reduction). Re-implementation needs a real design first;
+  belongs in `planning/open-questions/` when picked up.
 - [ ] **Bounded-domain inference.** For the polynomial-tier path
   to work the compiler needs to know `x ∈ [a, b]`. Either via
   type annotations (e.g. `bounded<scalar, 0.01, 10> x`), via

@@ -11,7 +11,7 @@ substrate.
 
 ## Why this exists
 
-The fly-brain work (see [`../fly-brain/STATUS.md`](../fly-brain/STATUS.md))
+The fly-brain work (see [`../fly-brain/queue.md`](../fly-brain/queue.md))
 gave Sutra an end-to-end path from `.su` source through the compiler's
 `--emit-flybrain` codegen onto a Brian2-simulated mushroom body model,
 with verified correct behavior on the `permutation_conditional.su`
@@ -46,7 +46,7 @@ before.
   that line controls. This is the debugger affordance that makes the
   whole pane worth building.
 - **Compile-time probe results**: if the `--emit-flybrain` codegen's
-  fixed-frame invariant (see `fly-brain/STATUS.md` §Technical Insight 2)
+  fixed-frame invariant (see `fly-brain/queue.md` §Technical Insight 2)
   fails, the violation shows up visually as a mismatch in the pane.
 
 ## Two interpretations of "fly-brain visualizer"
@@ -217,7 +217,7 @@ Concretely, the fly-brain pane's MCP surface has to include at least:
 ## Related
 
 - [`sutra-spec/20-ide-architecture.md`](sutra-spec/20-ide-architecture.md) — parent IDE architecture doc
-- [`../fly-brain/STATUS.md`](../fly-brain/STATUS.md) — current state of the fly-brain substrate
+- [`../fly-brain/queue.md`](../fly-brain/queue.md) — current state of the fly-brain substrate
 - [`../fly-brain/DEMO.md`](../fly-brain/DEMO.md) — what the compile-to-brain pipeline actually does today
 - [`../sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py`](../sdk/sutra-compiler/sutra_compiler/codegen_flybrain.py) — the AST → FlyBrainVSA translator whose output the visualizer renders
 - [`../sdk/intellij-sutra/`](../sdk/intellij-sutra/) — the IntelliJ plugin scaffold this visualizer slots into

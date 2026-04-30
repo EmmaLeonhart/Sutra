@@ -134,7 +134,7 @@ type) vs. which are Python artifacts.
 - **`snap` vs. `argmax_cosine` unification.** One name with
   backend-dispatched lowering, or stay distinct?
 - **Semantic-role matrix fitting.** When `role X =
-  learned_from(data)` lands (deferred, see STATUS.md /
+  learned_from(data)` lands (deferred, see queue.md /
   todo.md), what fitting procedure — lstsq, ridge, Procrustes,
   low-rank? Substrate-dependent.
 - **Vector binary operators.** Are elementwise `+` / `-` / `*`

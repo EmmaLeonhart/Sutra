@@ -174,7 +174,7 @@ result.
 - If all five pass: the rotation-binding + extended-state design is
   validated. Move the relevant sections from the design note into
   `planning/sutra-spec/binding.md` as committed spec (not "pending
-  experimental validation"), and close out STATUS.md queue item 2.
+  experimental validation"), and close out queue.md queue item 2.
 - If experiment 1 or 2 fails: the allocation scheme needs revisiting.
   Candidates: different rotation-plane choices (e.g. Fourier basis),
   cleanup procedure tuning, or giving up on the zero-cross-talk

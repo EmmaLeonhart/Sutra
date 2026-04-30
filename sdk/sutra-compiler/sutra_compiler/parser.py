@@ -499,7 +499,7 @@ class Parser:
         are wired in `_VSA`; the codegen integration that threads slot
         state through function scopes is deferred. The parser accepts
         the form and the codegen rejects with SUT0150 pointing at the
-        STATUS.md entry.
+        queue.md entry.
         """
         start_span = self._current_span()
         self._expect(TokenKind.KW_SLOT, "`slot`")

@@ -1,5 +1,5 @@
 """Tests for the stdlib inliner — step 2 of the function-expansion
-pipeline queued in STATUS.md.
+pipeline queued in queue.md.
 
 The inliner rewrites every `Call(Identifier(name), args)` against
 the stdlib symbol table. Bodies that are a single `return <expr>;`
