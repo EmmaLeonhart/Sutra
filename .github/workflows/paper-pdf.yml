@@ -62,9 +62,11 @@ jobs:
           \PassOptionsToPackage{anonymous}{}
           \input{paper.tex}
           EOF
-          # Actually simpler: pass the flag via -usepretex.
+          # Pass the flag via -usepretex. The pretex must declare
+          # \ifanon itself because paper.tex guards its \newif via
+          # \@ifundefined to avoid resetting the flag.
           latexmk -pdf -interaction=nonstopmode \
-            -usepretex='\anontrue' paper.tex
+            -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
       - name: Upload PDFs as artifacts
