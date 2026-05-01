@@ -21,12 +21,13 @@ rotation-vs-Hadamard separation in every case. Sutra is a
 working compiler: parser, type checker, codegen, runtime,
 embedded SutraDB codebook, opt-in `torch.compile` wrapping. The
 example corpus is a 13-program smoke test (with 23 `.su` files
-total) and 237 passing unit tests. We report honest negative
+total), and 237 passing unit tests. We report honest negative
 results alongside the positive ones — most notably the §3.1.1
 crosstalk analysis, which scopes the rotation-binding capacity
-claim to single-cycle records, and we close with §3.6 showing
-that symbolic if-then rules over those primitives remain
-end-to-end differentiable through standard PyTorch autograd.
+claim to single-cycle records, and we close with §3.6, which
+demonstrates that symbolic if-then rules built from those
+primitives remain end-to-end differentiable through standard
+PyTorch autograd.
 
 ---
 
