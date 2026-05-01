@@ -133,6 +133,23 @@ These four primitives are integrated into a single working
 compiler that lowers `.su` source to a self-contained PyTorch
 module and runs on CPU or CUDA.
 
+The architectural construction is Turing-complete in the sense
+of Siegelmann & Sontag (1992): a tail-recursive loop compiled to
+a soft-halt RNN cell over a fixed-width state vector with a halt
+criterion is the same construction those authors used to show
+that recurrent neural networks with rational weights are
+universal under unbounded recursion depth. The deployed
+implementation uses a fixed iteration count, currently T=50,
+which makes the *practically-usable* system bounded-depth and
+limits expressivity to programs whose tail-recursive depth fits
+within T. T itself is a constant in the compiler's codegen, not
+an architectural property; lifting T to a per-project
+configuration field in the `atman.toml` manifest (§3.5) is
+straightforward future work and would not change the language
+semantics or the runtime tensor-op graph shape, only the size of
+the unrolled cell. The Turing-completeness claim is therefore
+about the construction, not about the current default.
+
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
 
