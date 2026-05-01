@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install TeX Live (minimal)
+      - name: Install TeX Live + pandoc
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -38,7 +38,17 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-recommended \
             lmodern \
-            latexmk
+            latexmk \
+            pandoc
+
+      - name: Generate paper.tex.body from paper.md
+        working-directory: paper
+        run: |
+          pandoc paper.md \
+            --from=gfm \
+            --to=latex \
+            --output=paper.tex.body \
+            --wrap=preserve
 
       - name: Build named PDF
         working-directory: paper
