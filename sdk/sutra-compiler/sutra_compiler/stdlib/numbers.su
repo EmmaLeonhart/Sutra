@@ -91,15 +91,22 @@
 
 
 // ==========================================================================
-// Section 3 — intrinsic declarations
+// Section 3 — intrinsic declarations (class-as-namespace form)
 // ==========================================================================
 //
 // Leaf constructors and complex multiplication that live in the
-// runtime class. Stdlib functions that want to build on them (once
-// the @intrinsic mechanism is wired more broadly) can reference
-// these by name; the codegen routes the calls to `_VSA.<name>(...)`.
+// runtime class. Stdlib functions that want to build on them can
+// reference these by name; the codegen routes the calls to
+// `_VSA.<name>(...)`.
+//
+// Migrated 2026-05-01 from top-level `intrinsic function` declarations
+// to the class-as-namespace shape per the encapsulation taxonomy. The
+// stdlib_loader registers each entry under both the bare name
+// (`make_real`) and the namespaced name (`Numbers.make_real`).
 
-intrinsic function complex make_real(scalar x);
-intrinsic function complex make_complex(scalar r, scalar i);
-intrinsic function char make_char(int code);
-intrinsic function complex complex_mul(complex a, complex b);
+class Numbers extends vector {
+    static intrinsic method complex make_real(scalar x);
+    static intrinsic method complex make_complex(scalar r, scalar i);
+    static intrinsic method char make_char(int code);
+    static intrinsic method complex complex_mul(complex a, complex b);
+}

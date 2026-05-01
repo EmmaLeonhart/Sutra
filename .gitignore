@@ -42,6 +42,15 @@ fly-brain/
 *_viz.html
 *_trace.json
 
+# Compiler emit output — regenerable from .su via `sutrac --emit`.
+*_emitted.py
+
+# torch.compile / Inductor / Triton / NVRTC artifacts. The pipeline
+# .su -> PyTorch -> CUDA writes these here; they're a function of the
+# host GPU + driver version + torch build, not source.
+cuda_artifacts/
+torchinductor_cache/
+
 # MkDocs build output
 _site/
 
