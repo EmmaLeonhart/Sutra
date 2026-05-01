@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2198,
+    "postId": 2198,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a functional programming language designed for vector-symbolic computation on pre-trained embedding spaces. It compiles high-level code into a single, fused tensor-op graph, utilizing rotation-based binding, polynomial fuzzy logic, and tail-recursive RNN cells to maintain a purely differentiable and substrate-agnostic execution environment.",
+    "pros": [
+      "Innovative integration of VSA primitives into a formal programming language compiler rather than a library.",
+      "Rigorous empirical comparison of binding methods (rotation vs. Hadamard) across diverse substrates, including a protein language model (ESM-2).",
+      "Clever use of Lagrange interpolation to create differentiable, polynomial versions of Kleene's three-valued logic connectives.",
+      "Constant runtime memory footprint for recursive operations achieved by mapping tail recursion to fixed-width state vectors in RNN cells.",
+      "Practical end-to-end string I/O story via a compile-time codebook and nearest-neighbor decoding, which is often missing in HDC research."
+    ],
+    "cons": [
+      "The claim of O(1) memory in recursion depth is technically true for runtime state but ignores the linear growth of the static computation graph size with the unroll parameter T.",
+      "Limited evaluation of complex, nested data structures; Section 3.1.1 admits that crosstalk noise becomes prohibitive at chain depths greater than 2, which limits the language's utility for deep hierarchical reasoning.",
+      "The paper lacks performance benchmarks regarding compilation time and runtime latency compared to standard neuro-symbolic baselines like Scallop.",
+      "The 'substrate-agnostic' claim, while supported by a protein-LM test, still assumes high-dimensional dense vectors with specific geometric properties that may not hold for all representation learning outputs.",
+      "Object encapsulation and class-boundary checks are admitted to be unimplemented in the current compiler version."
+    ],
+    "justification": "The paper presents a cohesive and technically sound system that bridges the gap between symbolic programming and tensor-based computation. The empirical evidence favoring rotation binding over Hadamard for dense embeddings is a significant contribution to the VSA community, and the compiler architecture is well-reasoned.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-01 06:21:58"
+  }
+}
