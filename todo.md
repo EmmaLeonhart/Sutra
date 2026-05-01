@@ -734,15 +734,6 @@ work happens, the natural follow-on items are:
   computer work above is the path here). Numpy allowed only at the
   compile/monitor boundary, never at runtime.
 
-## [This year] Formula simplification — remaining pieces
-
-AST simplification pass + batched Ollama pre-fetch landed
-2026-04-22 (sdk/sutra-compiler/sutra_compiler/simplify.py,
-codegen_numpy embed_batch). 2.93× measured speedup on
-nearest_phrase.su. Later the same day, aggressive simplifier
-expansion + fused bundle-of-binds + disk cache landed (see
-commit on `claude/enable-gpu-support-rczYD`). Remaining pieces:
-
 ## [This year] Integer class — follow-on work
 
 The integer class landed as a compile-time tag on 2026-04-22
@@ -753,7 +744,7 @@ the integer class" and
 `planning/sutra-spec/equality-and-defuzzification.md` §"Canonical
 axes in the synthetic subspace").
 
-What landed:
+Follow-on work (none of this is in master yet):
 - [ ] **Compile-time integer-specific checks.** Overflow bounds,
   mod-N wrap semantics, division by constant zero, etc. Today
   `var n : int` is a float at runtime with no checks; an integer-
@@ -775,18 +766,16 @@ What landed:
 
 ## [This year] Control-flow completion
 
-- [ ] **Dynamic `foreach`.** Today (2026-04-22) `foreach` unrolls
-  over a compile-time-known array literal `[a, b, c]` only.
-  Anything else — a named variable, an expression returning a
-  collection — is a compile-time error. The dynamic case requires
-  deciding what "runtime iteration over a Sutra collection"
-  actually looks like: is a named collection a compile-time tuple
-  that the compiler can still unroll (if the initializer is an
-  array literal)? Is there a runtime collection type whose
-  iteration order is meaningful? How does the loop-body lower —
-  as a host `for` (counters on the host, rejected by the CLAUDE.md
-  rule), as an eigenrotation-indexed loop, as something else?
-  Deferred pending a concrete use case.
+The `foreach_loop NAME(array, state) { pass element(state); }`
+declared-function form (2026-04-30 redesign) walks a Sutra
+binding-array at runtime, so the old "Dynamic foreach" question is
+now answered: dynamic iteration goes through `foreach_loop` over a
+binding-array (`array_from_literal` / `array_length` /
+`array_get`). The earlier compile-time `foreach (x in [a,b,c])`
+unroll-over-literal form is folded into the same surface — a
+literal array is just a binding-array constructed at compile time.
+
+Remaining piece:
 
 - [ ] **`try-catch`.** Parser accepts it; codegen rejects. Sutra
   has no `raise` / `throw` primitive, so "what does a catch
