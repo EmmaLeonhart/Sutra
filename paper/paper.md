@@ -219,6 +219,46 @@ The four core technical contributions of this paper are:
    programmer write the obvious form, and the runtime executes
    the minimal one.
 
+   **Where TNF sits relative to standard compiler concepts.** A
+   reasonable read of "we beta-reduce, we inline, we fold" is
+   "this is just AOT compilation rebadged." The distinction we
+   are drawing is ontological, not quantitative. Compare:
+
+   - *Constant propagation* substitutes specific values known at
+     compile time. The residual program still runs on a
+     conventional machine; you removed some work.
+   - *Partial evaluation* (Futamura) specializes a program against
+     known inputs, producing a residual program over the unknown
+     ones. The output is still a program in the same
+     computational model.
+   - *Staging* (MetaML, Lean `#eval`) makes the compile-time vs
+     runtime boundary explicit. Same model underneath, with
+     temporal layering.
+   - *Tensor normal form* asserts that the runtime *is* matrix
+     arithmetic on the substrate. There is no residual program
+     in the conventional sense — no jump table, no register
+     file, no instruction stream. Compilation produces a weight
+     structure; execution is a forward pass.
+
+   Neural-network inference is the closest existing analogy:
+   weights are matrices fixed at inference time; the forward
+   pass is chained matmuls; nobody calls that constant folding,
+   even though every weight is constant. The matrices *are* the
+   computation, not an optimization of it. Sutra extends this to
+   arbitrary programs: the compilation step produces the weight
+   structure, execution is the forward pass, and the reason it
+   does not feel like constant folding is that there is no
+   "un-folded" version lurking underneath. Matrix operations are
+   not an optimization applied to some more primitive semantics
+   — they are the ground level. In the limiting sense, TNF is
+   the *most* constant-folded a program can be: compile-time
+   work has consumed the entire computational model, leaving
+   only linear algebra. Whether one calls that "still constant
+   folding" or "no longer constant folding" is a matter of
+   taste; what the paper claims is the construction, the
+   primitives, and that the construction reaches that limit on
+   real programs.
+
 3. **Tail recursion as the loop primitive, eliminating control
    flow, with O(1) memory in recursion depth.** Loops are not
    `for`/`while` constructs over a host-side iterator. They are
