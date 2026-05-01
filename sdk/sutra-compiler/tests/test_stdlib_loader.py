@@ -62,10 +62,20 @@ class TestStdlibLoad(unittest.TestCase):
                 decl, ast.FunctionDecl,
                 f"stdlib entry {name!r} is not a FunctionDecl",
             )
-            self.assertEqual(
-                decl.name, name,
-                f"name mismatch: key {name!r} vs decl.name {decl.name!r}",
-            )
+            # Bare-name keys must match decl.name. Namespaced keys
+            # (`Math.log`) are also registered — their suffix after the
+            # `.` must match decl.name.
+            if "." in name:
+                _, suffix = name.split(".", 1)
+                self.assertEqual(
+                    decl.name, suffix,
+                    f"namespaced key {name!r} suffix vs decl.name {decl.name!r}",
+                )
+            else:
+                self.assertEqual(
+                    decl.name, name,
+                    f"name mismatch: key {name!r} vs decl.name {decl.name!r}",
+                )
 
     def test_signatures_match_expected(self):
         """Spot-check signatures for the entries we care most about.
