@@ -1,0 +1,29 @@
+// Sutra corpus test: classes with method bodies.
+//
+// Class bodies can contain method declarations as of 2026-05-01
+// (extending the empty-body MVP). Static and non-static methods are
+// both accepted; field declarations and operator overloads remain
+// deferred. Codegen routing for ClassName.method(...) dispatch is
+// the next slice and isn't wired today, so this file only exercises
+// the parser/validator path — not whole-program compilation.
+
+class Math extends vector {
+    static method scalar twice(scalar x) {
+        return x * 2;
+    }
+
+    static method scalar square(scalar x) {
+        scalar y = x * x;
+        return y;
+    }
+}
+
+class Greeter extends vector {
+    method string Hello() {
+        return $"hello from {this.name}";
+    }
+
+    method string Goodbye() {
+        return $"bye from {this.name}";
+    }
+}
