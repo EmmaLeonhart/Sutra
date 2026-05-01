@@ -1,12 +1,20 @@
 /**
  * Sutra — interactive bind/unbind widget.
  *
- * Demonstrates why sign-flip binding is the default in Sutra:
- * user picks a role and filler, sees the bound vector (dissimilar
- * to both), then sees the recovered filler after unbind. A
- * "bundle depth" slider shows how crosstalk grows with more
- * role-filler pairs bundled together — the empirical motivation
- * for snap-to-nearest (next tutorial).
+ * Demonstrates the bind/unbind/bundle/crosstalk shape: user picks
+ * a role and filler, sees the bound vector (dissimilar to both),
+ * then sees the recovered filler after unbind. A "bundle depth"
+ * slider shows how crosstalk grows with more role-filler pairs
+ * bundled together — the empirical motivation for snap-to-nearest
+ * (next tutorial).
+ *
+ * The widget itself uses sign-flip binding (a retired VSA
+ * mechanism) for visual simplicity — Sutra's actual runtime uses
+ * rotation binding (Q_role @ filler with cached Haar-random
+ * orthogonal Q). The bundle / crosstalk / cleanup shape the widget
+ * shows is the same shape rotation binding has; the per-step
+ * arithmetic is different. See tutorials/02-bind-and-unbind.md for
+ * the caveat in the rendered page.
  *
  * Vanilla JS, no framework, no bundler. Mounts into
  * <div id="bind-unbind-widget">.
