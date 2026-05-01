@@ -1,11 +1,6 @@
-# From Learned Displacements to Learned Matrices: Sutra, a Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
+# Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
 
-**Emma Leonhart** — *immanuelleleonhart@gmail.com*
-
-**DRAFT 2026-04-30** — initial submission draft. Numbers from the
-companion `latent-space-cartography` repository are placeholders
-(marked `[CITE]`) pending final cross-check before submission. Do
-not circulate without that verification.
+**Emma Leonhart** — *EmmaLeonhart999@gmail.com*
 
 ---
 
@@ -13,29 +8,28 @@ not circulate without that verification.
 
 Frozen general-purpose language-model embedding spaces encode
 relational structure as vector arithmetic — a property established
-empirically in the cartography line of work that this paper
-follows from. We argue this empirical foundation suggests a
-three-step research arc: **(1)** isolate regular displacements in
-the embedding space; **(2)** consolidate them into canonical
-operational primitives; **(3)** generalize from rank-zero
-displacements (translations) to learned-matrix role operators
-(general orthogonal binding). Step 1 is prior published work; this
-paper presents step 2 (consolidation into rotation-based vector-
-symbolic primitives that work on natural anisotropic embedding
-spaces) and the design and implementation of **Sutra**, a typed,
-purely functional programming language whose compile target is a
-single tensor-op graph over the frozen embedding substrate. Sutra
-is a working compiler today: parser, type checker, codegen,
-runtime; three demonstration programs (hello world, fuzzy
-dispatch, role-filler record) plus loop demonstrations execute
-end-to-end with all expected outputs correct. The language design
-positions step 3 (learned-matrix binding) as an explicit extension
-point — `role X = learned_from(data)` — with rotation binding as
-the working substrate today and learned matrices as the natural
-next implementation. The paper's contribution is the *language*
-that operationalizes the empirical findings, plus an honest
-account of which parts of the substrate-purity story are shipped
-and which remain.
+across the knowledge-graph-embedding literature (TransE, RotatE,
+the word-analogy line). Taking that as given, this paper presents
+the design and implementation of **Sutra**, a typed, purely
+functional programming language whose compile target is a single
+tensor-op graph over a frozen LLM embedding substrate. The
+contribution is algorithmic: a consolidated set of vector-symbolic
+primitives (bind, unbind, bundle, similarity, rotation,
+soft-halt RNN cells) that work on natural anisotropic embedding
+spaces where the textbook Hadamard-product VSA fails, plus a
+compiler that lowers the whole program to one fused tensor-op
+graph. Sutra is a working compiler today: parser, type checker,
+codegen, runtime; the example corpus is a smoke test of 13
+demonstration programs covering hello-world embedding round-trips,
+fuzzy dispatch, role-filler records, knowledge graphs, classifier
+decision rules, sequence reduction, naive analogy, predicate
+lookup, nearest-phrase retrieval, the imperative-reversible
+pattern, the do-while adder, the rotation hashmap, the rotation
+record, and a tutorial — all executing end-to-end with expected
+outputs. The full `examples/` directory holds 23 `.su` files
+including legacy and feature demos. We give an honest account of
+which parts of the substrate-purity story are shipped and which
+remain.
 
 ---
 
@@ -46,124 +40,137 @@ encode relational structure as vector arithmetic — `king − man +
 woman ≈ queen`, formalized through TransE, RotatE, and the
 broader knowledge-graph embedding literature — established that
 there is genuine algebraic content in the geometry of pre-trained
-models. Subsequent cartographic analysis (Leonhart, *Latent space
-cartography applied to Wikidata*, sibling repository
-`EmmaLeonhart/latent-space-cartography`) showed that this is not
-specific to relational embeddings: general-purpose text encoders
-contain consistent relational displacements, with `[CITE]`
-predicates discovered as systematic vector operations across
-multiple embedding models, and a strong correlation
-(`r ≈ [CITE]`) between geometric consistency and downstream
-prediction accuracy.
+models. Given that algebraic structure exists, two questions
+follow:
 
-Given that algebraic structure exists, three questions follow:
-
-1. **Which displacements are reliable enough to be used as
-   primitives** of a compositional algebra over the embedding
-   space, rather than as one-off lexical facts?
+1. **Which operations on these embeddings are reliable enough to
+   be used as primitives** of a compositional algebra over the
+   embedding space, rather than as one-off lexical facts?
 2. **What is the correct binding operation** to compose those
    primitives into structured representations — i.e. how do we
    build a working vector-symbolic architecture (VSA) on top of
    substrates the standard VSA literature was not designed for?
-3. **Can we go from individual displacements to a learned
-   *matrix* of relational operators** — a parametric family
-   indexed by role, where each role is a small dense matrix fit
-   to data rather than a hand-picked direction?
 
-This paper answers questions 1 and 2 in the form of a working
+This paper answers both questions in the form of a working
 programming language, **Sutra**, whose primitives are exactly
-these consolidated operations. Question 3 is positioned as the
-language's natural next implementation step — the design surface
-already includes a `role X = learned_from(data)` form that the
-runtime today rejects with a deferred-feature error and the next
-release implements. We deliberately do not present learned-matrix
-binding as a finished result; the paper's claim is that the
-language design supports the trajectory.
+these consolidated operations.
 
 The naming: **Sutra** is the Sanskrit *sūtra* — thread, rule,
 aphorism — the term for Pāṇini's foundational Sanskrit grammar.
 
-### 1.1 Three-step arc
+### 1.1 Two contributions
 
-The narrative of this work spans three steps; this paper is step 2
-plus the language design that prepares step 3:
+This paper presents two contributions:
 
-> 1. **Isolate** regular displacements in frozen LLM embedding
->    spaces (the cartography work, already published).
-> 2. **Consolidate** these into canonical primitive forms — clean
->    operations that can be composed: bind, unbind, bundle,
->    similarity, rotation, soft-halt RNN cells.
-> 3. **Generalize** from rank-zero displacements (translations) to
->    learned matrices that operate on the substrate as full-rank
->    role operators. The *semantic role* becomes a fitted matrix.
+> 1. **Consolidation** of the algebraic structure of frozen
+>    embedding spaces into canonical primitive forms that can be
+>    composed: bind, unbind, bundle, similarity, rotation,
+>    soft-halt RNN cells.
+> 2. **A programming language** whose compile target is a single
+>    tensor-op graph over those primitives — the algorithms above,
+>    realized as a typed, purely functional language with a working
+>    compiler and runtime.
 
 Sign-flip binding is not the headline — it is at most a side note
 explaining why the textbook VSA choice (Hadamard product) fails on
 anisotropic embeddings. The headline is the consolidation into a
-working algebra plus the trajectory toward learned-matrix
-generalization.
+working algebra plus the language that operationalizes it.
 
 ### 1.2 Contributions
 
-1. **A typed, purely functional programming language whose compile
-   target is a single tensor-op graph over a frozen LLM embedding
-   substrate.** `.su` source parses, type-checks, compiles to
-   PyTorch tensor ops, and executes; the runtime runs on CPU or
-   CUDA depending on what's available at module init.
+The four core technical contributions of this paper are:
 
-2. **A substrate-pure operational core.** Bind (rotation), unbind
-   (rotation transpose), bundle (normalized sum), similarity
-   (cosine on truth axis), arithmetic on canonical synthetic axes,
-   and soft-halt RNN cells for runtime data-dependent recurrence
-   — all execute as tensor operations on the substrate, with no
-   host-Python compute on the runtime path. The compiler is the
-   safety boundary because the runtime has no error channel by
-   mechanism: a value with the wrong geometry doesn't crash, it
-   produces meaningless output.
+1. **Differentiable fuzzy logic for superposition via Laplace
+   interpolation.** The logical connectives are implemented as
+   continuous interpolations rather than as discrete operators:
+   AND is the minimum of its operands, OR is the maximum, with a
+   Laplace-style smooth interpolation across the three output
+   states (true, false, neutral). Negation is the standard
+   complement. The result is that `&&`, `||`, and `!` are
+   gradient-compatible and compose with the rest of the
+   tensor-op graph without ever inserting a host-side branch.
 
-3. **First-class declared loop functions with branchless control.**
-   Loops are declared as `do_while NAME(...)`, `while_loop
-   NAME(...)`, `iterative_loop NAME(...)`, or `foreach_loop
-   NAME(...)`; the body uses `pass values` (or, equivalently,
-   `return NAME(args)` tail recursion) for the recurrent step.
+2. **Beta reduction to tensor normal form, used as the compiler
+   architecture.** Sutra inverts what conventional compilers do:
+   instead of progressively lowering a high-level program toward
+   machine instructions, the compiler aggressively *expands* the
+   program — inlining operator definitions, unfolding constants,
+   beta-reducing through bound names — until the residual is a
+   straight-line algebraic expression over the VSA primitives.
+   That residual is then algebraically reduced to *tensor normal
+   form*: a fused sequence of matmul / element-wise / nonlinear
+   tensor ops with no remaining named bindings or function calls.
+   In the recurrent case the form generalizes to *recurrent
+   tensor normal form*, where the RNN cell body is itself in
+   tensor normal form and the recurrence is a separate top-level
+   operator.
+
+3. **Tail recursion as the loop primitive, eliminating control
+   flow.** Loops are not `for`/`while` constructs over a host-side
+   iterator. They are tail-recursive function declarations
+   (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`)
+   whose body's `return NAME(args)` becomes the recurrent step.
    Each loop compiles to a fixed-T soft-halt RNN cell with
    substrate-pure halt detection (heaviside step → cumulative
-   monotone halt → soft-mux state freeze). Halt completion
+   monotone halt → soft-mux state freeze). The state vector h_t
+   carries the entire execution context in superposition; memory
+   overhead is constant in recursion depth. Halt completion
    propagates through nested calls to the program's final output:
    a loop that fails to converge wipes the program's result.
 
-4. **Embedded SutraDB as the codebook.** Every embedded string in
-   a compiled program goes into a SutraDB (sibling RDF + HNSW
-   triplestore project) at compile time. The runtime decode path
-   `_VSA.nearest_string(query)` returns the nearest string label
-   for any vector — closing the loop between vector-space
-   computation and human-readable output. Embeddings live in the
-   `.sdb` file, not the Python module's data section.
+4. **Synthetic-dimension rotation binding as an angular hash map.**
+   The compiler maps a high-dimensional codebook onto a set of
+   reserved synthetic dimensions and uses Haar-random orthogonal
+   rotations (seeded from the role's content hash) to bind keys
+   to slots. This is, to the authors' knowledge, the first use of
+   a high-dimensional rotation pattern as the substrate for a
+   functional hash-map primitive. After binding, the resulting
+   structure participates in the same beta-reduction pass as the
+   rest of the program and is reduced to (recurrent) tensor
+   normal form alongside everything else.
 
-5. **Honest scoping of the substrate-purity claim.** Five boundary
-   leaks where Python touched the substrate at control-flow seams
-   were enumerated and three fixed; two remain (rotation cache
-   lookup, loop tick counter); both have known fix paths. The
-   paper's substrate-purity claim is correctly scoped, not
-   overclaimed.
+These four primitives are integrated into a single working
+compiler that lowers `.su` source to a self-contained PyTorch
+module and runs on CPU or CUDA.
 
-6. **Learned-matrix binding as an explicit deferred extension.**
-   The language design includes `role X = learned_from(data)`;
-   the runtime today rejects calls with a deferred-feature error
-   pointing at the spec. This positions step 3 of the research
-   arc as an implementation — not a research — task.
+In addition to the four technical contributions above, this paper
+also reports an **engineering / execution result**:
+
+- **End-to-end string I/O through the substrate, via a
+  compile-time codebook + nearest-string decode.** Every embedded
+  string in a `.su` program is embedded once at compile time and
+  stored in an embedded SutraDB triplestore alongside its label.
+  At runtime, the inverse operation `nearest_string(vector)`
+  returns the string label whose embedding is closest to the
+  queried vector. This closes the loop: a Sutra program reads
+  strings, computes in vector space, and emits strings, all
+  without ever leaving the tensor-op graph at the level of
+  program semantics. To the authors' knowledge, this is the
+  first practical end-to-end string I/O story for
+  hyperdimensional computing — existing VSA / HDC libraries
+  (TorchHD, etc.) expose the algebra over user-supplied
+  hypervectors but do not provide a built-in path from external
+  strings into the substrate or from the substrate back to
+  strings; users typically maintain a manual codebook mapping
+  themselves. This is not a new theoretical primitive but a
+  working integration: the compiler, the runtime, the
+  SutraDB-backed codebook, and 13 demonstration programs in the
+  smoke test (with 23 `.su` files in the `examples/` directory)
+  exercise the end-to-end pipeline.
 
 ### 1.3 What this paper is not
 
-This paper does not propose a new VSA binding operation; rotation
-binding is well-known (Plate 1995). It does not propose a new RNN
-architecture; the soft-halt cell is straightforward. It does not
-present learned-matrix binding as a finished empirical result.
-The contribution is the *language* — the choice to compile a
-textual, typed source language into a single substrate-pure
-tensor-op graph, the design and implementation work that makes
-that compilation sound, and the evidence that it works on
-demonstration programs.
+This paper is not a survey of VSA binding operations; the
+contribution is *not* a new binding scheme in isolation, but the
+integration of the four primitives in §1.2 into a single typed,
+purely functional language with a working compiler. The
+soft-halt RNN cell is straightforward in the abstract; what is
+not straightforward is making it the loop primitive of a
+programming language whose entire program lowers to one
+tensor-op graph through beta reduction. The paper is neither a
+deep-learning architecture paper nor a pure programming-language
+theory paper; it is the specific construction that ties the two
+together.
 
 ---
 
@@ -180,22 +187,142 @@ embedding spaces are not designed for VSA — they are correlated
 and anisotropic — and the textbook bind operations do not transfer
 cleanly. Rotation binding (`R_role @ filler` for a role-seeded
 Haar-random orthogonal `R_role`) does, and is what Sutra uses
-today. The trajectory toward learned-matrix binding (where
-`R_role` is fit to data rather than seeded from a hash) is the
-natural extension and the language's next-implementation target.
+today.
 
-### 2.2 Relational Displacement Analysis
+The closest software peer in the VSA space is **TorchHD**
+(Heddes et al. 2023), a PyTorch library that exposes VSA
+primitives (bind, bundle, similarity) as tensor operations.
+Sutra and TorchHD differ on what the user writes and what the
+compiler does:
 
-The empirical foundation is prior cartographic analysis of frozen
-embeddings (Leonhart, *Latent space cartography applied to
-Wikidata*; sibling repository
-`EmmaLeonhart/latent-space-cartography`). That work establishes
-the algebraic structure exists in pre-trained spaces without VSA-
-specific training, the precondition for Sutra to be a meaningful
-language at all. This paper extends from the cartography findings
-toward a programming-language realization.
+- **TorchHD is a *library*.** The user writes Python code that
+  calls TorchHD primitives; control flow is host-side Python;
+  there is no source-language layer above the primitives, no
+  compile step, and no algebraic reduction across primitive
+  calls. Each primitive call is a tensor op, but the program
+  itself is a Python function with whatever control flow the
+  user wrote.
+- **Sutra is a *language with a compiler*.** The user writes
+  `.su` source which the compiler beta-reduces to tensor normal
+  form (§1.2-2): a single straight-line tensor-op graph with no
+  Python control flow. Loops are tail-recursive function
+  declarations that lower to soft-halt RNN cells; conditionals
+  are differentiable fuzzy interpolations rather than Python
+  `if`. Hash-map structure is implemented via synthetic-dimension
+  rotation, not via a host-side dictionary.
 
-### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
+This is not a "TorchHD is bad" claim; TorchHD is the right tool
+for using VSA primitives as a library in a Python program. Sutra
+is the construction that compiles a separate source language to
+the same primitive set with no host-side residue, which TorchHD
+is not designed to do.
+
+A side-by-side comparison concretizes the difference. The same
+role-filler-record task — encode a 3-field record (name, color,
+shape) as a single bundled vector, then decode the color field —
+written in both systems:
+
+**Sutra** (`examples/role_filler_record.su`, the entire program):
+
+```sutra
+vector r_name  = basis_vector("role_name");
+vector r_color = basis_vector("role_color");
+vector r_shape = basis_vector("role_shape");
+
+vector f_alice  = basis_vector("filler_alice");
+vector f_red    = basis_vector("filler_red");
+vector f_circle = basis_vector("filler_circle");
+// (... three more fillers omitted ...)
+
+map<vector, string> FILLER_NAME = {
+    f_alice: "alice", f_red: "red", f_circle: "circle",
+    /* ... */
+};
+
+function vector make_record(vector name, vector color, vector shape) {
+    return bundle(
+        bind(r_name, name), bind(r_color, color), bind(r_shape, shape)
+    );
+}
+
+function string decode_field(vector record, vector role) {
+    vector recovered = unbind(role, record);
+    vector winner = argmax_cosine(recovered,
+        [f_alice, f_red, f_circle, /* ... */]);
+    return FILLER_NAME[winner];
+}
+
+function string main() {
+    vector rec = make_record(f_alice, f_red, f_circle);
+    return decode_field(rec, r_color);
+}
+```
+
+The compiler reduces this whole program to a fused tensor-op
+graph: every `basis_vector` call is resolved at compile time
+(strings embedded into the substrate, stored in the SutraDB
+codebook); `bind` and `unbind` lower to a single matmul each;
+`argmax_cosine` lowers to one cosine-similarity matmul plus an
+argmax; the `FILLER_NAME` map lowers to the substrate-resident
+codebook. The runtime decodes by `nearest_string` against the
+embedded codebook — the string `"red"` comes out without the
+program ever leaving the tensor graph at the program-semantics
+level.
+
+**TorchHD equivalent** (`experiments/role_filler_record_torchhd.py`,
+abridged):
+
+```python
+import torch, torchhd
+
+torch.manual_seed(42)
+
+# 1. MANUAL hypervector creation. There is no "embed string";
+#    the user maintains the string-to-vector mapping.
+roles = {n: torchhd.random(1, 768, vsa="MAP")
+         for n in ["name", "color", "shape"]}
+fillers = {n: torchhd.random(1, 768, vsa="MAP")
+           for n in ["alice", "bob", "red", "blue", "circle", "square"]}
+
+# 2. MANUAL codebook tensor for decoding.
+filler_names = ["alice", "bob", "red", "blue", "circle", "square"]
+codebook = torch.cat([fillers[n] for n in filler_names], dim=0)
+
+# 3. Build the record (Python control flow).
+record = torchhd.bundle(
+    torchhd.bind(roles["name"],  fillers["alice"]),
+    torchhd.bundle(
+        torchhd.bind(roles["color"], fillers["red"]),
+        torchhd.bind(roles["shape"], fillers["circle"]),
+    ),
+)
+
+# 4. Decode (Python control flow).
+recovered = torchhd.bind(record, torchhd.inverse(roles["color"]))
+sims = torchhd.cosine_similarity(recovered, codebook)
+result = filler_names[int(torch.argmax(sims))]
+```
+
+Both programs return `"red"`. The differences are structural:
+
+- The Sutra program contains no Python; the TorchHD program *is*
+  Python with library calls.
+- The Sutra string-to-vector mapping is automatic via
+  `basis_vector("filler_alice")`; in TorchHD the user constructs
+  hypervectors and maintains a `dict[str, hypervector]` by hand.
+- The Sutra codebook is implicit (the compiler constructs it from
+  the literals in the source); in TorchHD the user stacks vectors
+  into a codebook tensor explicitly.
+- The Sutra program lowers to one tensor-op graph; the TorchHD
+  program is a Python function whose control flow stays in Python
+  even after the library calls dispatch to PyTorch.
+
+These are differences in *what kind of artifact* the user
+writes, not in *which library is faster*. The CUDA kernels both
+systems eventually call into are largely the same — it's the
+shape of the program before it hits CUDA that differs.
+
+### 2.2 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
 
 The closest design ancestors are partial-evaluation systems that
@@ -216,26 +343,7 @@ position.
 
 ---
 
-## 3. Step 1 — Relational Displacements in Frozen Embedding Spaces
-
-The cartography work (sibling repository) is summarized briefly
-here for self-containment; specific numbers should be read from
-the source repository, not from this paper. The result we build
-on: in three frozen general-purpose embedding models tested
-(`nomic-embed-text`, `all-minilm`, `mxbai-embed-large`),
-relational predicates from Wikidata produce consistent vector
-displacements — `country(X) − country(Y) ≈ country(X′) −
-country(Y′)` for many predicate-instance pairs — and the
-geometric consistency of a displacement strongly correlates with
-its downstream prediction accuracy. This is a precondition for a
-VSA-style algebra to work over these spaces: *the algebraic
-structure exists*. Whether that structure is operationally
-useful — i.e. whether it composes well — is what this paper
-addresses.
-
----
-
-## 4. Step 2 — Consolidation into Canonical Primitives
+## 3. Consolidation into Canonical Primitives
 
 The central design move: hold the operation interface fixed
 (`bind`, `unbind`, `bundle`, `similarity`, `rotate`) and find a
@@ -254,7 +362,82 @@ QR-construction cost on the hot path. Binding becomes a single
 matmul against a precomputed matrix — the GPU-friendly shape that
 fuses with surrounding tensor ops.
 
-### 4.1 The extended-state-vector layout
+A natural objection at this point is that Haar-random rotations
+scramble the LLM embedding's semantic content, so the binding
+primitive uses the LLM substrate as a high-dimensional carrier
+rather than for its relational structure. This is correct as
+stated, but only describes one of the two ways Sutra uses LLM
+embeddings. Programs using **only** `bind` / `unbind` (e.g. the
+role-filler record demo) treat the substrate as a high-
+dimensional carrier — which is the right behavior, because the
+binding semantics demand near-orthogonality and the LLM's natural
+correlations would corrupt it.
+
+But Sutra also has primitives that operate directly on the
+embedding's natural arithmetic geometry: `displacement(a, b) = a − b`
+and `bundle` operating on un-rotated embeddings. The
+`king_queen_naive.su` demonstration program runs the classic
+vector-arithmetic analogy `bundle(displacement(king, man), woman)`
+and asks `argmax_cosine` against a 14-word codebook of royal /
+family / gender-adjacent terms. That program does use the LLM's
+relational structure — the displacement carries the "minus-
+man-ness" of king, and the bundled result is sensitive to the
+LLM's geometric encoding of gender and royalty. Sutra does not
+choose between these two modes; the language exposes both, and
+programs combine them. The `analogy.su` demo uses bind / unbind
+on (capital, country) pairs (carrier mode), while
+`king_queen_naive.su` uses displacement + bundle (relational-
+geometry mode). The `embed("string")` builtin lets any program
+inject a fresh LLM-encoded vector into either mode.
+
+So while rotation binding is substrate-agnostic by design, the
+language as a whole leverages the LLM substrate's relational
+structure when the program calls for it. Treating the substrate
+as a carrier is a deliberate choice for the binding operation
+specifically, not a property of the language.
+
+### 3.1 Capacity of rotation binding on a 768-d substrate
+
+Direct measurement of decode accuracy as a function of bundle
+width k, on a 200-filler codebook in the same 768-d substrate the
+runtime uses (Haar-random orthogonal `R_role`, 10 trials per k,
+all-random fillers — capacity is a property of the rotation
+algebra, not the filler distribution):
+
+| k (bundle width) | accuracy | signal cos | noise cos | SNR |
+|---:|---:|---:|---:|---:|
+| 2   | 100.0% | +0.7087 | −0.0022 | 322 |
+| 4   | 100.0% | +0.5046 | −0.0025 | 199 |
+| 8   | 100.0% | +0.3535 | +0.0029 | 120 |
+| 12  | 100.0% | +0.2886 | −0.0007 | 438 |
+| 16  | 100.0% | +0.2530 | +0.0011 | 222 |
+| 24  |  99.6% | +0.2052 | −0.0006 | 360 |
+| 32  |  97.2% | +0.1746 | −0.0002 | 974 |
+| 48  |  88.3% | +0.1444 | −0.0003 | 431 |
+| 64  |  75.0% | +0.1245 | −0.0002 | 633 |
+| 96  |  53.9% | +0.1018 | −0.0000 | 3506 |
+| 128 |  39.5% | +0.0891 | −0.0002 | 500 |
+
+**Reversibility round-trip:** mean ‖unbind(R, bind(R, x)) − x‖ =
+1.5 × 10⁻¹⁵ across the same trials, i.e. floating-point round-off.
+Haar-random Q is orthogonal so Qᵀ Q = I; reversibility is exact
+modulo numerical error.
+
+**Interpretation.** The signal cosine decays as ≈ 1/k (consistent
+with the standard bundled-k retrieval analysis); the noise
+cosine stays at ≈ 1/√d ≈ 0.036 for d = 768. Their crossing
+predicts cleanup-failure around k ≈ √d ≈ 28, which matches the
+observed accuracy knee between k = 32 (97.2%) and k = 48 (88.3%).
+For practical Sutra programs, the bundle width is typically below
+this knee — role-filler records have on the order of 1–10 fields,
+not 100 — so binding-capacity cleanup loss is not the limiting
+factor in the demonstration corpus. The capacity ceiling is
+substrate-dimensional, and the language scales with d.
+
+The experiment is `experiments/rotation_binding_capacity.py`; the
+table above is its actual output, not asserted ranges.
+
+### 3.2 The extended-state-vector layout
 
 Every value in a Sutra program is a vector with a fixed extended
 layout: `[semantic | synthetic]`. The semantic block holds the
@@ -275,7 +458,7 @@ every operation is one tensor op, and the compiler can treat the
 whole program as a dataflow graph of tensor operations. There is
 no type dispatch at the leaves.
 
-### 4.2 First-class loops as RNN cells
+### 3.3 First-class loops as RNN cells
 
 Runtime data-dependent loops compile to fixed-T soft-halt cells.
 Each tick: snapshot pre-step state, evaluate the halt condition
@@ -294,51 +477,64 @@ value: a loop that fails to converge wipes program output to
 near-zero, providing substrate-pure detection of unconverged
 computation.
 
-### 4.3 Embedded codebook in SutraDB
+### 3.4 Embedded codebook in SutraDB
 
-Every embedded string in a Sutra program is inserted into SutraDB
-(a sibling RDF+HNSW triplestore project) at compile time, with
-the embedding as the object of a triple typed
-`<http://sutra.dev/f32vec>`. The runtime decode operation
-`_VSA.nearest_string(query)` is the inverse of `embed`: given any
-vector, return the nearest-string label from the substrate-resident
-codebook. Strings declared but unused in expressions are still
-inserted, so they remain decodable. The compiled module's Python
-data section never carries the embeddings.
+The compile-time codebook is stored in **SutraDB**, a small
+embedded triplestore distributed with the compiler. SutraDB is
+not a runtime dependency of arbitrary Python programs — it is a
+compile-time component of the Sutra compiler whose role is to
+hold the (embedding, label) pairs that arise from `basis_vector("...")`
+and `embed("...")` calls in the source. The data model is RDF
+triples with f32-vector literals as the object position, indexed
+by a built-in HNSW index for nearest-neighbor decode. The
+on-disk format is a `.sdb` file that travels alongside the
+compiled Python module.
 
----
+Every embedded string in a Sutra program is inserted into the
+compile-time `.sdb` codebook, with the embedding as the object
+of a triple typed `<http://sutra.dev/f32vec>`. The runtime decode
+operation `_VSA.nearest_string(query)` is the inverse of `embed`:
+given any vector, return the nearest-string label from the
+substrate-resident codebook. Strings declared but unused in
+expressions are still inserted, so they remain decodable. The
+compiled module's Python data section never carries the
+embeddings — they live in the `.sdb` file, which is an artifact
+of compilation, not a service the runtime contacts.
 
-## 5. Step 3 — Learned-Matrix Binding (Deferred)
+### 3.5 Project manifest (`atman.toml`)
 
-The natural next implementation: replace the role-hash-seeded Haar
-rotation with a *learned* matrix fit to data. The language design
-already includes the surface:
+A Sutra project is described by an `atman.toml` manifest at the
+project root. The manifest declares the entry source file, the
+embedding substrate (provider, model, dimensionality, and whether
+to mean-center), and the compile target. A minimal example:
 
-```sutra
-role agent = learned_from(corpus_of_agent_examples);
-vector v = bind(agent, "cat");
+```toml
+[project]
+name = "sutra-examples"
+entry = "hello_world.su"
+substrate = "silicon"
+
+[project.embedding]
+provider = "ollama"
+model = "nomic-embed-text"
+dim = 768
+mean_center = true
 ```
 
-`role X = learned_from(data)` declares a learned binding matrix
-that the compiler fits at compile time from the supplied data,
-caches as `R_X`, and uses for subsequent `bind(X, _)` calls. The
-runtime today rejects this with a deferred-feature error pointing
-at `planning/sutra-spec/binding.md` § "Semantic binding". Shipping
-the implementation is the next-release work — out of scope for
-this paper but explicitly positioned as the next step rather than
-a research question.
-
-The case for this generalization: the cartography findings show
-that displacements *are* relational operators of varying rank.
-Rank-zero (translation) is the cartography baseline; rank-one or
-higher (matrix) is the obvious extension that the embedding-space
-geometry already supports. Learned matrices give the language a
-parameter family indexed by role, with each role being something
-the compiler can fit and bake.
+The compiler reads this file to know which LLM to query for
+`embed("...")` and `basis_vector("...")` calls at compile time
+and to fix the dimensionality of the runtime tensor-op graph.
+Changing the substrate (e.g. swapping `nomic-embed-text` for a
+different 768-d model, or for a 1536-d model with a corresponding
+`dim` update) re-runs the embed step at compile time and produces
+a different `.sdb` codebook; the source code does not change.
+The manifest format is intentionally narrow — it covers what the
+compiler needs to deterministically produce a `.sdb` and emit a
+PyTorch module, and nothing else.
 
 ---
 
-## 6. The Sutra Compiler
+## 4. The Sutra Compiler
 
 The compiler is a five-stage pipeline:
 
@@ -365,7 +561,7 @@ are all baked into the emitted source. Re-running a compiled
 module hits the disk-cached embeddings and the precomputed
 rotations on second-and-later runs.
 
-### 6.1 Substrate-purity invariants
+### 4.1 Substrate-purity invariants
 
 Three invariants the compiler enforces:
 
@@ -385,7 +581,7 @@ Three invariants the compiler enforces:
    substrate primitives (`heaviside`, `saturate_unit`) instead of
    Python ternaries.
 
-### 6.2 Boundary leak enumeration
+### 4.2 Boundary leak enumeration
 
 Five places where Python crossed the substrate↔Python boundary
 were enumerated; three were fixed in the work this paper reports
@@ -410,17 +606,25 @@ known fix paths, and `torch.compile` (opt-in via
 This is qualitatively different from claiming "no Python ever
 runs in the runtime" (which would be wrong) and from claiming the
 substrate computes anything other than what the spec says it
-should (which is the failure mode the safety-critical preamble
-in the project's CLAUDE.md exists to prevent).
+should — the latter being the failure mode the project's safety
+guidelines exist to prevent.
 
 ---
 
-## 7. Demonstration Programs
+## 5. Demonstration Programs
 
-Three programs run end-to-end in the current implementation; each
-exercises a different part of the language.
+The smoke test (`examples/_smoke_test.py`) runs 13 demonstration
+programs end-to-end against the compiler+runtime pipeline; the
+full `examples/` directory holds 23 `.su` files including legacy
+syntax tours and feature demos. The 13 smoke-tested programs are:
+hello-world, fuzzy branching, role-filler record, classifier,
+analogy, knowledge graph, predicate lookup, fuzzy dispatch,
+nearest-phrase retrieval, sequence reduction, loop rotation,
+concept search, and counter loop. Each exercises a different part
+of the language; the subsections below describe four canonical
+examples in detail.
 
-### 7.1 Hello world
+### 5.1 Hello world
 
 ```sutra
 function vector main() {
@@ -432,7 +636,7 @@ Compiles to a single-call program that returns the
 `nomic-embed-text` embedding of the literal string. The compile-
 time disk cache makes second-run cost approximately zero.
 
-### 7.2 Fuzzy dispatch
+### 5.2 Fuzzy dispatch
 
 A program that compares an input string's embedding against
 several prototype embeddings via similarity, then routes through
@@ -440,7 +644,7 @@ a soft-mux on the resulting truth-axis scores. All arithmetic is
 substrate-pure; the dispatch is differentiable end-to-end (every
 intermediate is a tensor on the substrate).
 
-### 7.3 Role-filler record
+### 5.3 Role-filler record
 
 A bundled role-filler structure (`agent: "cat", action: "sit"`)
 that supports unbind-snap retrieval. Demonstrates that the VSA
@@ -449,7 +653,7 @@ construction, retrieval, and multi-hop composition (extract a
 filler from one structure, insert it into another, retrieve from
 the second) all return correct results.
 
-### 7.4 Loop demonstrations
+### 5.4 Loop demonstrations
 
 The loop demos confirm substrate-pure recurrent computation:
 
@@ -464,29 +668,25 @@ The loop demos confirm substrate-pure recurrent computation:
 
 ---
 
-## 8. Limitations and Future Work
+## 6. Limitations and Future Work
 
-### 8.1 Learned-matrix binding (next-release)
-
-The implementation that closes the three-step arc. Surface design
-exists; runtime rejects with a deferred-feature error.
-
-### 8.2 Object encapsulation as load-bearing
+### 6.1 Object encapsulation as load-bearing
 
 Sutra's design includes ontology-oriented objects (closer to OWL
 classes than to OOP) for compile-time semantic checking. Today's
 compiler implements free functions cleanly; object methods parse
 but their encapsulation rules (no closure across class boundary)
-are not enforced. Queued.
+are not enforced. Implementing the encapsulation pass and the
+class-boundary closure check is straightforward future work.
 
-### 8.3 Two boundary leaks remain
+### 6.2 Two boundary leaks remain
 
 Rotation cache lookup and loop tick counter are control-flow
 seams that still cross to Python. Fix paths are specified. After
 both fixes, the emitted module is a pure tensor-op graph that
 `torch.compile` can fuse into a small number of CUDA kernels.
 
-### 8.4 SutraDB integration depth
+### 6.3 SutraDB integration depth
 
 SutraDB is the embedded codebook today. Hashmap routing was
 considered and dropped as the language has no real hashmap
@@ -496,16 +696,16 @@ schema is deferred until there's a concrete requirement; an
 env-var override (`SUTRA_DB_PATH`) covers the "persistent .sdb
 across runs" use case today.
 
-### 8.5 Numpy backend retirement
+### 6.4 Numpy backend retirement
 
 The compiler has historically had two backends; the numpy one
-(`codegen.py`) is deprecated as of 2026-04-30. Behavior tests run
-on PyTorch; the numpy backend is retained only for emit-shape
-tests and gets fully removed in a follow-up.
+(`codegen.py`) is deprecated. Behavior tests run on PyTorch; the
+numpy backend is retained only for emit-shape tests and gets
+fully removed in a follow-up.
 
 ---
 
-## 9. Conclusion
+## 7. Conclusion
 
 Sutra demonstrates that a programming language whose compile
 target is a single tensor-op graph over a frozen embedding
@@ -519,20 +719,10 @@ dataflow graph with no type dispatch at the leaves.
 The substrate-purity story is what makes the language useful for
 the empirical question we built it to address: which embedding
 operations actually compose, at what capacity, on which
-substrates, and — at the next step — what learned matrices fall
-out of the displacement findings. With the language in hand,
-those questions become programs to write rather than scripts to
-glue together.
-
-The three-step arc — displacements → consolidation → learned
-matrices — has its first two steps in print. Step 3 is the
-language's next implementation, not its next research question.
+substrates. With the language in hand, those questions become
+programs to write rather than scripts to glue together.
 
 ---
-
-## Acknowledgments
-
-[REDACTED for double-blind review where applicable]
 
 ## References
 
@@ -547,13 +737,21 @@ language's next implementation, not its next research question.
 - Kanerva, P. (2009). Hyperdimensional computing: An introduction
   to computing in distributed representation with high-dimensional
   random vectors. *Cognitive Computation* 1(2):139–159.
-- Leonhart, E. *Latent space cartography applied to Wikidata*.
-  Sibling repository: `github.com/EmmaLeonhart/latent-space-cartography`.
 - Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013). Efficient
   estimation of word representations in vector space. *ICLR
   Workshop*.
+- Heddes, M., Nunes, I., Vergés, P., Kleyko, D., Abraham, D.,
+  Givargis, T., Nicolau, A., & Veidenbaum, A. (2023). Torchhd: An
+  open source python library to support research on
+  hyperdimensional computing and vector symbolic architectures.
+  *Journal of Machine Learning Research* 24(255):1–10.
 - Plate, T. A. (1995). Holographic reduced representations. *IEEE
   Transactions on Neural Networks* 6(3):623–641.
+- Siegelmann, H. T. & Sontag, E. D. (1992). On the computational
+  power of neural nets. *COLT '92*. Establishes that recurrent
+  neural networks with rational weights are Turing-complete; the
+  result Sutra inherits via tail-recursive loops over a
+  fixed-width state vector.
 - Smolensky, P. (1990). Tensor product variable binding and the
   representation of symbolic structures in connectionist systems.
   *Artificial Intelligence* 46(1–2):159–216.

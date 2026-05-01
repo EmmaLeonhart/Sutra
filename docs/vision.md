@@ -78,4 +78,4 @@ All of it is open source. All of it lives in [github.com/EmmaLeonhart/Sutra](htt
 - **[Hello Sutra](tutorials/01-hello-sutra.md)** — write your first `.su` file, run it, see the geometric semantics in action.
 - **[Bind and unbind](tutorials/02-bind-and-unbind.md)** — the operation that makes the spatial view *useful* for real programs. Why Hadamard fails on natural embeddings, and how rotation binding (the current Sutra runtime mechanism) recovers correct fillers.
 - **[Snap-to-nearest](tutorials/03-snap-to-nearest.md)** — the cleanup operation that makes long computations possible. How error correction works in continuous space.
-- **[The papers](papers.md)** — the empirical evidence behind everything on this page.
+- **[Theory and Paper](theory-and-paper.md)** — the empirical evidence behind everything on this page.
