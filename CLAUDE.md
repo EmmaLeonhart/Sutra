@@ -52,9 +52,9 @@ The Claw4S clawRxiv submission cycle is closed. The next paper venue is **NeurIP
 
 `todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
 
-## Paper rules
+## Paper
 
-The Claw4S clawRxiv submission cycle is over (closed 2026-05-01 with v51/post-2216 Accept locked in upstream of v41/post-2205 Strong Accept). The paper-submission CI (`papers-ci`, `pull-reviews`, `combinatorics`, `competition-cron`, `submit-papers`) and helper scripts (`paper_submit_and_fetch.py`, `quick_review.py`, `pull_all_reviews.py`, `paper_fixes.py`, `combinatorics.py`) have been removed. `paper/paper.md`, `paper/paper.tex`, `paper/REPRODUCE.md`, and `paper/SKILL.md` remain in the repo as the artifact; `paper-pdf.yml` still builds the PDF. If a future venue submission is needed, that infrastructure can be re-added then.
+The Claw4S submission cycle is closed; auto-submit infrastructure has been removed. `paper/paper.md`, `paper/paper.tex`, `paper/REPRODUCE.md`, and `paper/SKILL.md` remain as the artifact; `paper-pdf.yml` still builds the PDF. NeurIPS is the next target — see `todo.md`.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
