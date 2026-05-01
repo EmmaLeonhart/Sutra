@@ -132,7 +132,13 @@
       "Bash(./gradlew.bat compileKotlin)",
       "Bash(ps -W)",
       "Read(//c/Users/IMMANU~1/AppData/Local/Temp/claude/C--Users-Immanuelle-Documents-Github-Sutra/2d5bd088-a51a-4f75-bcb5-356a5291b2c7/tasks/**)",
-      "Bash(cat planning/findings/b7084fc*)"
+      "Bash(cat planning/findings/b7084fc*)",
+      "Bash(where python3:*)",
+      "Bash(where py:*)",
+      "Bash(where python:*)",
+      "Bash(py:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(PYTHONIOENCODING=utf-8 py experiments/differentiable_training.py)"
     ]
   }
 }
