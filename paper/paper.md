@@ -727,15 +727,38 @@ on the substrate (truth-axis read → heaviside step → cumulative
 saturating sum), run the body which uses `pass values` (or
 equivalently `return NAME(args)` tail recursion) to update state
 locals, then a soft-mux freezes state at the pre-step value once
-halt saturates. T is a **runtime** compute budget: the emitted
-module's loop body reads the module-level `_LOOP_T` value at
-each call. The compile-time default is 50; runtime can override
-via the `SUTRA_LOOP_T` environment variable (read at import) or
-by setting `module._LOOP_T = N` before calling. The soft-halt
+halt saturates.
+
+**Loop body vs loop driver — what is and isn't in tensor normal
+form.** Sutra's "tensor normal form" applies to the *body* of
+each loop tick: one fused chunk of tensor ops with no Python
+control flow inside any operation. The *loop itself* is a
+Python `for _t in range(_LOOP_T):` driver that invokes that
+fused body T times sequentially. We do **not** claim the loop is
+unrolled into the body's tensor graph at compile time. Standard
+PyTorch tracing handles a Python for-loop wrapping pure tensor
+ops fine — autograd records each iteration's operations as it
+executes (this is the mechanism §3.6 relies on for end-to-end
+backprop through the soft-halt cell). The `torch.compile`
+wrapping (opt-in, §3.5) may further fuse multiple iterations at
+trace time on a per-call basis, but the language semantics do
+not require that fusion: the default runtime is a Python loop
+calling normal-form bodies. This separation is what makes T
+overridable at runtime without recompilation — the loop count
+is a Python integer, not a baked-in unroll factor.
+
+T is a **runtime** compute budget: the emitted module's loop
+body reads the module-level `_LOOP_T` value at each call. The
+compile-time default is 50; runtime can override via the
+`SUTRA_LOOP_T` environment variable (read at import) or by
+setting `module._LOOP_T = N` before calling. The soft-halt
 gating ensures convergence typically occurs in far fewer steps,
 with remaining iterations gated to identity by the saturated
-halt signal. Optional `torch.compile` wrapping unrolls the
-iteration at trace time.
+halt signal. Optional `torch.compile` wrapping (§3.5) traces
+the per-call iteration into a fused kernel; the wrapped form
+is opaque to autograd in the same way any `torch.compile`'d
+function is, but the unwrapped default — which is what §3.6's
+training experiment uses — is differentiable cell-by-cell.
 
 T should be read as a *compute budget*, not a halt condition,
 and is *potentially unlimited*. The implementation places no
