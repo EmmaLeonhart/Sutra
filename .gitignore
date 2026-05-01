@@ -57,6 +57,10 @@ docs/paper-anonymized.pdf
 # re-downloaded each session, not committed."
 references/
 
+# Cached LLM embeddings from experiment runs (e.g. rotation_binding_
+# capacity_llm.py). Re-fetched on cache miss; not source.
+experiments/_embedding_cache/
+
 # Claude.ai chat exports — only the extracted .md is tracked,
 # not the raw HTML / _files/ sources (run scripts/extract_chat.py
 # to regenerate the markdown if needed).

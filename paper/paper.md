@@ -14,10 +14,9 @@ the design and implementation of **Sutra**, a typed, purely
 functional programming language whose compile target is a single
 tensor-op graph over a frozen LLM embedding substrate. The
 contribution is algorithmic: a consolidated set of vector-symbolic
-primitives (bind, unbind, bundle, similarity, rotation,
-soft-halt RNN cells) that work on natural anisotropic embedding
-spaces where the textbook Hadamard-product VSA fails, plus a
-compiler that lowers the whole program to one fused tensor-op
+primitives (bind, unbind, bundle, similarity, rotation, soft-halt
+RNN cells) that operate on a frozen LLM embedding substrate, plus
+a compiler that lowers the whole program to one fused tensor-op
 graph. Sutra is a working compiler today: parser, type checker,
 codegen, runtime; the example corpus is a smoke test of 13
 demonstration programs covering hello-world embedding round-trips,
@@ -71,10 +70,11 @@ This paper presents two contributions:
 >    realized as a typed, purely functional language with a working
 >    compiler and runtime.
 
-Sign-flip binding is not the headline — it is at most a side note
-explaining why the textbook VSA choice (Hadamard product) fails on
-anisotropic embeddings. The headline is the consolidation into a
-working algebra plus the language that operationalizes it.
+The headline is the consolidation into a working algebra plus
+the language that operationalizes it. The choice of binding
+operation is an implementation concern (rotation works on the
+substrates we tested; Hadamard tends not to — see §3.1) rather
+than the contribution.
 
 ### 1.2 Contributions
 
@@ -86,25 +86,36 @@ The four core technical contributions of this paper are:
    The logical connectives are taken from Kleene's strong
    three-valued logic (Kleene 1952): on the discrete grid
    {−1, 0, +1}, AND is the minimum of its operands, OR is the
-   maximum, NOT is negation. These operations are correct as
-   stated, but `min` and `max` are piecewise-linear and
-   non-differentiable at the diagonal `a = b`, which breaks
-   gradient flow when the connectives compose with the rest of
-   the tensor-op graph. Sutra resolves this by Lagrange-
-   interpolating each operator's truth table as a polynomial that
-   is *exact* on the {−1, 0, +1}² grid and C^∞ everywhere else.
-   The closed forms are:
+   maximum, NOT is negation. This is the same choice that **Gödel
+   fuzzy logic** makes for its t-norm and t-conorm in the
+   continuous setting (AND = min, OR = max), as opposed to
+   Łukasiewicz logic (AND = max(0, x+y−1), OR = min(1, x+y)) or
+   product logic (AND = x·y, OR = x+y−xy); see Hájek (1998) for
+   the standard t-norm-fuzzy-logic survey. The min/max choice is
+   correct as stated, but is piecewise-linear and non-
+   differentiable at the diagonal `a = b`, which breaks gradient
+   flow when the connectives compose with the rest of the
+   tensor-op graph — a well-known issue in the differentiable
+   fuzzy logic literature (van Krieken, Acar & van Harmelen 2022
+   survey several t-norm-derived operators in the
+   neural-symbolic context).
+
+   Sutra resolves this by Lagrange-interpolating each operator's
+   truth table as a polynomial that is *exact* on the {−1, 0, +1}²
+   grid and C^∞ everywhere else. The closed forms are:
    `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2`,
    `OR(a, b) = (a + b − ab + a² + b² − a²b²) / 2`, and
-   `NOT(x) = −x` (already polynomial). By functional
-   completeness of {AND, OR, NOT} for three-valued logic, every
-   other connective (XOR, IMPLIES, NAND, NOR, …) lowers to a
-   composition of these three polynomials. The result is that
-   `&&`, `||`, `!`, and any derived connective are all polynomial
-   tensor-op-graph fragments — gradient-compatible, branchless,
-   and exact on the discrete-logic regime; the differentiability
-   is the property that lets fuzzy logic compose with the rest
-   of the substrate-pure runtime.
+   `NOT(x) = −x` (already polynomial). On the discrete grid these
+   match Gödel's min/max behavior exactly; off the grid they are
+   smooth interpolants rather than piecewise functions. By
+   functional completeness of {AND, OR, NOT} for three-valued
+   logic, every other connective (XOR, IMPLIES, NAND, NOR, …)
+   lowers to a composition of these three polynomials. The
+   result is that `&&`, `||`, `!`, and any derived connective
+   are all polynomial tensor-op-graph fragments — gradient-
+   compatible, branchless, and exact on the discrete-logic
+   regime; the differentiability is the property that lets fuzzy
+   logic compose with the rest of the substrate-pure runtime.
 
 2. **Beta reduction to tensor normal form, used as the compiler
    architecture.** Sutra inverts what conventional compilers do:
@@ -217,11 +228,12 @@ dimensional vectors (Kanerva 2009; Plate 1995; Gayler 2003). The
 standard VSA development assumes hypervectors drawn from a
 controlled random distribution designed for the algebra; bind is
 typically Hadamard product or circular convolution. Frozen LLM
-embedding spaces are not designed for VSA — they are correlated
-and anisotropic — and the textbook bind operations do not transfer
-cleanly. Rotation binding (`R_role @ filler` for a role-seeded
-Haar-random orthogonal `R_role`) does, and is what Sutra uses
-today.
+embedding spaces are not designed for VSA, and the textbook bind
+operations do not always transfer cleanly to them. Rotation
+binding (`R_role @ filler` for a role-seeded Haar-random
+orthogonal `R_role`) is the choice that worked across the
+substrates we tested, and is what Sutra uses today; §3.1
+reports the per-substrate measurements supporting that choice.
 
 The closest software peer in the VSA space is **TorchHD**
 (Heddes et al. 2023), a PyTorch library that exposes VSA
@@ -477,15 +489,17 @@ position.
 ## 3. Consolidation into Canonical Primitives
 
 The central design move: hold the operation interface fixed
-(`bind`, `unbind`, `bundle`, `similarity`, `rotate`) and find a
-binding implementation that works on natural anisotropic embedding
-spaces. Standard VSA's Hadamard product fails because correlated
-embeddings produce destructive crosstalk under elementwise
-multiply. Rotation binding succeeds: each role gets a Haar-random
-orthogonal matrix, seeded by a hash of the role-vector content,
-and `bind(filler, role) = R_role @ filler`. Unbind is the matrix
-transpose. The rotation acts as a near-orthogonal scrambling that
-is invertible by construction.
+(`bind`, `unbind`, `bundle`, `similarity`, `rotate`) and pick a
+binding implementation that works on the LLM substrates we use.
+Standard VSA's Hadamard product is not robust here because
+elementwise multiplication of correlated real-valued vectors
+produces destructive crosstalk on bundled retrieval (§3.1
+measures this directly). Rotation binding works: each role gets
+a Haar-random orthogonal matrix, seeded by a hash of the
+role-vector content, and `bind(filler, role) = R_role @ filler`.
+Unbind is the matrix transpose. The rotation is invertible by
+construction and stays well-conditioned on the substrates we
+tested.
 
 The compiler emits role rotations as cached matrices, pre-warmed
 at module init from the codebook so the runtime never pays the
@@ -506,46 +520,84 @@ binding, bundling, and similarity primitives operate on the
 vectors as opaque dense tensors and are correct under any
 substrate that ships the same dimensionality.
 
-### 3.1 Capacity of rotation binding on a 768-d substrate
+### 3.1 Capacity of rotation versus Hadamard binding on real LLM substrates
 
-Direct measurement of decode accuracy as a function of bundle
-width k, on a 200-filler codebook in the same 768-d substrate the
-runtime uses (Haar-random orthogonal `R_role`, 10 trials per k,
-all-random fillers — capacity is a property of the rotation
-algebra, not the filler distribution):
+We measure decode accuracy as a function of bundle width k on
+real LLM embeddings — not on random fillers — for three frozen
+substrates of different dimensionality. Each substrate's
+codebook is the same 84-word vocabulary (animals, foods,
+objects, places, abstract nouns) embedded via Ollama; the
+embeddings are unit-normalized (and mean-centered for
+nomic-embed-text per the standard Sutra config). For each
+bundle width and each binding scheme we run 10 trials, each
+sampling k random (role, filler) pairs without replacement,
+forming the bundle, and decoding by unbind + argmax-cosine
+against the full codebook. The two binding schemes compared
+are *rotation binding* (`R_role @ filler`, role-seeded
+Haar-random orthogonal `R_role`) and *Hadamard binding*
+(elementwise product `role .* filler`, the textbook MAP-VSA
+choice).
 
-| k (bundle width) | accuracy | signal cos | noise cos | SNR |
+**nomic-embed-text (768-d, mean-centered):**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
 |---:|---:|---:|---:|---:|
-| 2   | 100.0% | +0.7087 | −0.0022 | 322 |
-| 4   | 100.0% | +0.5046 | −0.0025 | 199 |
-| 8   | 100.0% | +0.3535 | +0.0029 | 120 |
-| 12  | 100.0% | +0.2886 | −0.0007 | 438 |
-| 16  | 100.0% | +0.2530 | +0.0011 | 222 |
-| 24  |  99.6% | +0.2052 | −0.0006 | 360 |
-| 32  |  97.2% | +0.1746 | −0.0002 | 974 |
-| 48  |  88.3% | +0.1444 | −0.0003 | 431 |
-| 64  |  75.0% | +0.1245 | −0.0002 | 633 |
-| 96  |  53.9% | +0.1018 | −0.0000 | 3506 |
-| 128 |  39.5% | +0.0891 | −0.0002 | 500 |
+| 2  | 100.0% | +0.703 | 95.0% | +0.488 |
+| 4  | 100.0% | +0.497 | 95.0% | +0.400 |
+| 8  | 100.0% | +0.354 | 87.5% | +0.307 |
+| 16 | 100.0% | +0.251 | 84.4% | +0.230 |
+| 24 | 100.0% | +0.203 | 60.8% | +0.189 |
+| 32 |  99.1% | +0.176 | 63.1% | +0.167 |
+| 48 |  93.3% | +0.144 | 48.3% | +0.136 |
 
-**Reversibility round-trip:** mean ‖unbind(R, bind(R, x)) − x‖ =
-1.5 × 10⁻¹⁵ across the same trials, i.e. floating-point round-off.
-Haar-random Q is orthogonal so Qᵀ Q = I; reversibility is exact
-modulo numerical error.
+**all-minilm (384-d):**
 
-**Interpretation.** The signal cosine decays as ≈ 1/k (consistent
-with the standard bundled-k retrieval analysis); the noise
-cosine stays at ≈ 1/√d ≈ 0.036 for d = 768. Their crossing
-predicts cleanup-failure around k ≈ √d ≈ 28, which matches the
-observed accuracy knee between k = 32 (97.2%) and k = 48 (88.3%).
-For practical Sutra programs, the bundle width is typically below
-this knee — role-filler records have on the order of 1–10 fields,
-not 100 — so binding-capacity cleanup loss is not the limiting
-factor in the demonstration corpus. The capacity ceiling is
-substrate-dimensional, and the language scales with d.
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.711 | 45.0% | +0.386 |
+| 4  | 100.0% | +0.506 | 10.0% | +0.335 |
+| 8  | 100.0% | +0.356 |  7.5% | +0.315 |
+| 16 |  92.5% | +0.252 |  3.1% | +0.299 |
+| 24 |  76.2% | +0.203 |  2.9% | +0.300 |
+| 32 |  66.9% | +0.179 |  2.5% | +0.297 |
+| 48 |  42.3% | +0.144 |  1.7% | +0.294 |
 
-The experiment is `experiments/rotation_binding_capacity.py`; the
-table above is its actual output, not asserted ranges.
+**mxbai-embed-large (1024-d):**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.708 | 15.0% | +0.311 |
+| 4  | 100.0% | +0.500 |  2.5% | +0.304 |
+| 8  | 100.0% | +0.353 |  2.5% | +0.295 |
+| 16 |  98.8% | +0.251 |  1.2% | +0.294 |
+| 24 |  95.8% | +0.203 |  0.8% | +0.293 |
+| 32 |  85.3% | +0.176 |  0.9% | +0.292 |
+| 48 |  72.1% | +0.146 |  1.0% | +0.291 |
+
+**Reversibility round-trip (rotation):** mean
+‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ across the same trials
+on every substrate, i.e. floating-point round-off. Haar-random Q
+is orthogonal so Qᵀ Q = I; reversibility is exact modulo
+numerical error.
+
+**Interpretation.** Rotation binding works across all three
+substrates — 100% decode accuracy up through k=8 in every case,
+with graceful degradation thereafter. Hadamard binding does not:
+on `mxbai-embed-large` even k=2 yields 15% accuracy (worse than
+chance for a target-versus-83-distractors decode); on
+`all-minilm` Hadamard is at 45% for k=2 and 1.7% by k=48; on
+nomic-embed-text Hadamard is in the same band as rotation only
+at very small k and falls behind sharply by k≥24. The signal
+cosine for Hadamard is comparable to rotation's, but the noise
+floor is much higher because the elementwise product of
+correlated real-valued embeddings produces a result that
+overlaps with many distractors in the codebook rather than
+near-orthogonally with one. This is a head-to-head measurement
+on the specific substrates Sutra targets, not a general claim
+about Hadamard binding under all conditions. Rotation is the
+right choice for these substrates; the underlying experiment is
+`experiments/rotation_binding_capacity_llm.py` and its raw
+output JSON is in `experiments/rotation_binding_capacity_llm_results.json`.
 
 ### 3.2 The extended-state-vector layout
 
@@ -889,6 +941,10 @@ programs to write rather than scripts to glue together.
   Workshop*.
 - Badreddine, S., Garcez, A. d., Serafini, L., & Spranger, M.
   (2022). Logic Tensor Networks. *Artificial Intelligence* 303.
+- Hájek, P. (1998). *Metamathematics of Fuzzy Logic*. Trends in
+  Logic vol. 4. Kluwer Academic. The standard reference for
+  t-norm-based fuzzy logics (Gödel, Łukasiewicz, product) cited
+  in §1.2-1 to place Sutra's polynomial connectives.
 - Heddes, M., Nunes, I., Vergés, P., Kleyko, D., Abraham, D.,
   Givargis, T., Nicolau, A., & Veidenbaum, A. (2023). Torchhd: An
   open source python library to support research on
@@ -903,6 +959,12 @@ programs to write rather than scripts to glue together.
 - Serafini, L. & Garcez, A. d. (2016). Logic Tensor Networks: Deep
   Learning and Logical Reasoning from Data and Knowledge. *NeSy
   Workshop*.
+- van Krieken, E., Acar, E., & van Harmelen, F. (2022).
+  Analyzing Differentiable Fuzzy Logic Operators. *Artificial
+  Intelligence* 302:103602. The differentiable-fuzzy-logic survey
+  cited in §1.2-1; analyzes t-norm-derived AND/OR/IMPLIES
+  operators in the neural-symbolic context and is the closest
+  prior literature to Sutra's polynomial approach.
 - Vergés, P., Heddes, M., Nunes, I., Givargis, T., & Nicolau, A.
   (2023). HDCC: A Hyperdimensional Computing compiler for
   classification on embedded systems and high-performance
