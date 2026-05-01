@@ -162,15 +162,29 @@ What's deferred (this doc captures the design but not the impl):
 **0. Encapsulation-rule enforcement (landed 2026-05-01).** The
 validator emits **SUT0144** when a method body reads any
 file-scope name (top-level FunctionDecl / MethodDecl / VarDecl /
-ClassDecl / LoopFunctionDecl) that isn't bound locally (param or
-in-body var). This bites before any of the steps below land —
-methods today still don't have working codegen, but the
-encapsulation rule is now load-bearing at the validator level so
-when methods become real, the rule is already enforced. Test:
-`tests/corpus/invalid/21_method_reads_file_scope.su`. Existing
-corpus stress test `tests/corpus/valid/20_kitchen_sink.su` was
-refactored to inline `PetLikeness` into `Describe()` since the
+LoopFunctionDecl — class names are exempt, see below) that isn't
+bound locally (param or in-body var). This bites before any of the
+steps below land — methods today still don't have working codegen,
+but the encapsulation rule is now load-bearing at the validator
+level so when methods become real, the rule is already enforced.
+Test: `tests/corpus/invalid/21_method_reads_file_scope.su`.
+Existing corpus stress test `tests/corpus/valid/20_kitchen_sink.su`
+was refactored to inline `PetLikeness` into `Describe()` since the
 free-function-call-from-method pattern now violates SUT0144.
+
+**0.5. Class bodies with method declarations (landed 2026-05-01).**
+The parser now accepts method declarations inside class bodies
+(both `method ...` and `static method ...`). `ClassDecl.methods`
+carries them; the validator walks them via the existing
+visit_MethodDecl path, so SUT0144 fires for in-class method
+bodies the same way it does for top-level methods. Codegen
+routing for `ClassName.method(...)` dispatch is **not yet wired**
+— the parser/validator surface is available but `Math.log(2)`
+still doesn't compile to anything. That comes in step 1 below.
+Test: `tests/corpus/valid/21_class_with_methods.su`. Class names
+themselves are exempt from the file-scope encapsulation rule (you
+can call `Math.log(x)` from a method body — class names are
+namespace anchors, not file-scope reads).
 
 1. **Static-method-as-namespace pattern.** Migrate the existing
    stdlib (`stdlib/math.su`, `stdlib/rotation.su`) to declare its

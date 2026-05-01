@@ -162,9 +162,15 @@ class _Walker:
 
     def visit_module(self, module: ast.Module) -> None:
         # Pre-pass: collect every top-level declaration's name into the
-        # file-scope set. Methods inside method bodies are checked
-        # against this set by the encapsulation rule (SUT0144).
+        # file-scope set, EXCEPT class names. Class names are
+        # namespace anchors — `Math.log(x)` from inside a method is
+        # legitimate access through the class boundary, not a
+        # file-scope read. The encapsulation rule (SUT0144) fires on
+        # bare references to file-scope free functions, top-level vars,
+        # top-level methods, and top-level loop functions.
         for item in module.items:
+            if isinstance(item, ast.ClassDecl):
+                continue
             name = getattr(item, "name", None)
             if isinstance(name, str) and name:
                 self._file_scope_names.add(name)
@@ -204,6 +210,9 @@ class _Walker:
                 node.span,
                 code="SUT0141",
             )
+            # Still walk methods so any in-method diagnostics fire.
+            for m in node.methods:
+                self.visit(m)
             return
 
         # Walk the would-be inheritance chain to verify it bottoms
@@ -215,11 +224,8 @@ class _Walker:
 
         parent = node.parent_name
         if parent in PRIMITIVE_TYPE_NAMES:
-            # Direct subclass of a primitive — chain has length 1, terminates at root.
             self._class_decls[node.name] = parent
-            return
-
-        if parent not in self._class_decls:
+        elif parent not in self._class_decls:
             self.diagnostics.error(
                 f"class `{node.name}` extends `{parent}`, which is not a "
                 "primitive type and has not been declared earlier in this "
@@ -236,13 +242,18 @@ class _Walker:
             # double-error. Mark with a sentinel so we know the chain
             # is broken.
             self._class_decls[node.name] = parent
-            return
+        else:
+            # Walk transitively to confirm the chain ultimately reaches
+            # a primitive (it should, by induction, but a malformed
+            # earlier decl can poison the chain — we already errored on
+            # it, so just treat this one as OK for downstream usage).
+            self._class_decls[node.name] = parent
 
-        # Walk transitively to confirm the chain ultimately reaches
-        # a primitive (it should, by induction, but a malformed
-        # earlier decl can poison the chain — we already errored on
-        # it, so just treat this one as OK for downstream usage).
-        self._class_decls[node.name] = parent
+        # Walk methods declared inside the class body. Each is
+        # validator-visited via the existing visit_MethodDecl, which
+        # enforces the encapsulation rule (SUT0144) on the body.
+        for m in node.methods:
+            self.visit(m)
 
     def visit_FunctionDecl(self, node: ast.FunctionDecl) -> None:
         self._check_modifier_conflict(node.modifiers, node.span)

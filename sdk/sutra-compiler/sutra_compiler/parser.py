@@ -556,39 +556,62 @@ class Parser:
             self._skip_to_statement_boundary()
             return None
 
-        # Body — `{ }` for now. Anything inside the braces is
-        # rejected with a pointer at the deferred ontology work.
+        # Body. As of 2026-05-01 the body can contain method
+        # declarations (`method ...` and `static method ...`); fields
+        # and operator overloads remain deferred. Any other declaration
+        # inside the braces still triggers SUT0140 pointing at the
+        # deferred work.
         self._expect(TokenKind.LBRACE, "`{` to open class body")
-        if not self._check(TokenKind.RBRACE):
-            self.diagnostics.error(
-                "class bodies must be empty in the MVP class-declaration "
-                "form (2026-04-25). Methods, fields, and operator "
-                "implementations inside the body are deferred — see "
-                "`todo.md` § \"Ontology — make the class system real\"",
-                self._current_span(),
-                code="SUT0140",
-                hint="leave the body empty (`class Foo extends Bar { }`) "
-                     "and use top-level `function`s for behavior until "
-                     "method-on-class is wired",
-            )
-            # Skip forward to a closing brace so the rest of the file
-            # still parses.
-            depth = 1
-            while depth > 0 and self._peek().kind is not TokenKind.EOF:
-                tok = self._advance()
-                if tok.kind is TokenKind.LBRACE:
-                    depth += 1
-                elif tok.kind is TokenKind.RBRACE:
-                    depth -= 1
-        else:
-            close = self._expect(TokenKind.RBRACE, "`}` to close class body")
-            if close is None:
-                return None
+        methods: List[ast.MethodDecl] = []
+        while not self._check(TokenKind.RBRACE) and self._peek().kind is not TokenKind.EOF:
+            tok = self._peek()
+            if tok.kind is TokenKind.KW_METHOD or (
+                tok.kind is TokenKind.KW_STATIC
+                and self._peek(1).kind is TokenKind.KW_METHOD
+            ):
+                mods = ast.Modifiers()
+                if tok.kind is TokenKind.KW_STATIC:
+                    mods.is_static = True
+                m = self._parse_method_decl(mods)
+                if m is not None:
+                    methods.append(m)
+            else:
+                self.diagnostics.error(
+                    "class bodies accept method declarations only "
+                    "(`method ...` or `static method ...`). Field "
+                    "declarations and operator overloads are deferred — "
+                    "see `todo.md` § \"Object encapsulation\"",
+                    self._current_span(),
+                    code="SUT0140",
+                    hint="declare the body member as `method <ret> "
+                         "<name>(...) { ... }` or remove it",
+                )
+                # Skip forward to a closing brace so the rest of the
+                # file still parses.
+                depth = 1
+                while depth > 0 and self._peek().kind is not TokenKind.EOF:
+                    nxt = self._advance()
+                    if nxt.kind is TokenKind.LBRACE:
+                        depth += 1
+                    elif nxt.kind is TokenKind.RBRACE:
+                        depth -= 1
+                # We've consumed the closing brace; bail out.
+                end_span = self._current_span()
+                return ast.ClassDecl(
+                    name=name_tok.lexeme,
+                    parent_name=parent_tok.lexeme,
+                    methods=methods,
+                    span=SourceSpan(start=start_span.start, end=end_span.end),
+                )
+        close = self._expect(TokenKind.RBRACE, "`}` to close class body")
+        if close is None:
+            return None
         end_span = self._current_span()
 
         return ast.ClassDecl(
             name=name_tok.lexeme,
             parent_name=parent_tok.lexeme,
+            methods=methods,
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
