@@ -37,6 +37,8 @@ jobs:
             texlive-latex-recommended \
             texlive-latex-extra \
             texlive-fonts-recommended \
+            texlive-luatex \
+            texlive-xetex \
             lmodern \
             latexmk \
             pandoc
@@ -48,12 +50,13 @@ jobs:
             --from=gfm \
             --to=latex \
             --output=paper.tex.body \
-            --wrap=preserve
+            --wrap=preserve \
+            --no-highlight
 
       - name: Build named PDF
         working-directory: paper
         run: |
-          latexmk -pdf -interaction=nonstopmode paper.tex
+          latexmk -lualatex -interaction=nonstopmode paper.tex
           mv paper.pdf paper-named.pdf
 
       - name: Clean intermediate
@@ -75,7 +78,7 @@ jobs:
           # Pass the flag via -usepretex. The pretex must declare
           # \ifanon itself because paper.tex guards its \newif via
           # \@ifundefined to avoid resetting the flag.
-          latexmk -pdf -interaction=nonstopmode \
+          latexmk -lualatex -interaction=nonstopmode \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
