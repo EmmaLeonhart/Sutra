@@ -224,7 +224,7 @@ jobs:
           print("\n" + "\n".join(lines))
           PYEOF
 
-      - name: Restore .post_id (DEFAULT: keep chain head, not pre-run snapshot)
+      - name: "Restore .post_id (DEFAULT: keep chain head, not pre-run snapshot)"
         if: inputs.restore_post_id == 'true'
         run: |
           set -euo pipefail
