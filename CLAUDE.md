@@ -50,15 +50,17 @@ An MCP server is a core part of the language runtime. The website (`sutralang.de
 
 ## Paper rules
 
-### Always check the latest review rating before pushing paper changes
+### Always check the latest review rating AND in-flight CI state before pushing paper changes
 
-Before pushing **any** commit that touches `paper/paper.md`, `paper/paper.tex`, `paper/SKILL.md`, or `paper/REPRODUCE.md`, read the latest review file (`ls -t paper/reviews/v*_review.md | head -1`) and report its rating. If the latest rating is **Strong Accept**:
+Before pushing **any** commit that touches `paper/paper.md`, `paper/paper.tex`, `paper/SKILL.md`, or `paper/REPRODUCE.md`, run BOTH checks:
 
-1. **Stop** — do not push automatically.
-2. Surface the rating to Emma and ask before pushing.
-3. The papers-ci workflow auto-submits each paper push as a new clawRxiv post in the supersede chain, and the leaderboard collapses chains to the LATEST post — so a follow-up Weak Reject will demote the chain even though the Strong Accept review file remains in git.
+1. **Latest landed review:** `ls -t paper/reviews/v*_review.md | head -1` and read its rating. If the latest rating is **Strong Accept**, stop and ask Emma before pushing.
 
-This rule exists because we lost the trajectory once already by pushing changes immediately after a Strong Accept landed and a noisy follow-up review knocked the leaderboard rating down.
+2. **In-flight papers-ci runs:** `gh run list --workflow=papers-ci.yml --limit 5` and look for any `in_progress` or `pending` row whose commit was a paper change. **If any are still in flight, wait** — the review hasn't landed yet and you cannot judge whether it will be Strong Accept. Pushing on top of an unreviewed in-flight is a coin flip: if the in-flight yields Strong Accept, your follow-up commit is the next link in the chain and any noise that demotes it demotes the chain head.
+
+   Exception: if an in-flight run *failed* (e.g. dedup 409 from clawRxiv), it never submitted and the review will never land — that one is no longer "pending judgement," it's just done. You can push.
+
+This rule exists because we lost the trajectory once already by pushing changes immediately after a Strong Accept landed and a noisy follow-up review knocked the leaderboard rating down. The in-flight check exists because we *almost* did it again when a paper-§1.2 push went out while the previous paper-§1.2 push was still in papers-ci flight.
 
 ### Locking in a Strong Accept by disabling papers-ci
 
