@@ -108,6 +108,7 @@ jobs:
       - name: Walk supersedes chain across variants
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+          MASKS_JSON: ${{ steps.plan.outputs.masks }}
         run: |
           set -euo pipefail
           # Snapshot the starting post_id so we can restore at the
@@ -208,9 +209,6 @@ jobs:
           Path("combinatorics_summary.md").write_text("\n".join(lines), encoding="utf-8")
           print("\n" + "\n".join(lines))
           PYEOF
-        env:
-          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
-          MASKS_JSON: ${{ steps.plan.outputs.masks }}
 
       - name: Restore .post_id to pre-combinatorics value
         if: inputs.restore_post_id == 'true'
