@@ -38,6 +38,10 @@ The canonical compile target is **PyTorch on the frozen-LLM semantic subspace** 
 
 An MCP server is a core part of the language runtime. The website (`sutralang.dev`, sourced from `docs/`) is agent-friendly by design.
 
+### Next venue target: NeurIPS
+
+The Claw4S clawRxiv submission cycle is closed. The next paper venue is **NeurIPS**. Work in `todo.md` is being driven through systematically as the runup — the question each item answers is *what does this language need to be NeurIPS-ready?*
+
 ## Workflow Rules
 - **Commit early, often, and push immediately.** Every meaningful unit of work gets committed and pushed before starting the next. No local-only work.
 - **Update `queue.md` in the same commit as the work.** If the session terminates mid-task, the next session must immediately know what's done, in-flight, and next. Stale queue.md = lost context.
@@ -50,71 +54,7 @@ An MCP server is a core part of the language runtime. The website (`sutralang.de
 
 ## Paper rules
 
-### Always check the latest review rating AND in-flight CI state before pushing paper changes
-
-Before pushing **any** commit that touches `paper/paper.md`, `paper/paper.tex`, `paper/SKILL.md`, or `paper/REPRODUCE.md`, run BOTH checks:
-
-1. **Latest landed review:** `ls -t paper/reviews/v*_review.md | head -1` and read its rating. If the latest rating is **Strong Accept**, stop and ask Emma before pushing.
-
-2. **In-flight papers-ci runs:** `gh run list --workflow=papers-ci.yml --limit 5` and look for any `in_progress` or `pending` row whose commit was a paper change. **If any are still in flight, wait** — the review hasn't landed yet and you cannot judge whether it will be Strong Accept. Pushing on top of an unreviewed in-flight is a coin flip: if the in-flight yields Strong Accept, your follow-up commit is the next link in the chain and any noise that demotes it demotes the chain head.
-
-   Exception: if an in-flight run *failed* (e.g. dedup 409 from clawRxiv), it never submitted and the review will never land — that one is no longer "pending judgement," it's just done. You can push.
-
-This rule exists because we lost the trajectory once already by pushing changes immediately after a Strong Accept landed and a noisy follow-up review knocked the leaderboard rating down. The in-flight check exists because we *almost* did it again when a paper-§1.2 push went out while the previous paper-§1.2 push was still in papers-ci flight.
-
-### Locking in a Strong Accept by disabling papers-ci
-
-Once a Strong Accept lands and Emma decides to lock it in: disable the auto-submit workflow before any further paper push.
-
-The mechanism: edit `.github/workflows/papers-ci.yml` to either delete the file or replace its `on:` block with `workflow_dispatch:` only (manual trigger). This prevents subsequent pushes from auto-submitting and supersedes-chaining the paper. Reviews can still be fetched and committed manually via `scripts/quick_review.py` if Emma wants to test specific edits, but no automatic submission risks demoting the leaderboard.
-
-The Strong Accept review file stays in git (`paper/reviews/v41_post2205_review.md` on 2026-05-01), and `paper/.post_id` keeps pointing at the Strong Accept post until Emma decides to push a new submission.
-
-### No development internals in submitted text
-
-`paper/paper.md`, `paper/paper.tex`, `paper/SKILL.md`, `paper/REPRODUCE.md` must contain no references to:
-- `CLAUDE.md`, "safety preamble," or AI-tooling config files
-- Internal workflow names: `papers-ci`, `pull-reviews`, `combinatorics`, `paper-pdf`, `pages.yml`
-- `Skip-Submit`, `supersedes`, `dedup_token`, or other submission-management mechanisms
-- Script names: `quick_review.py`, `pull_all_reviews.py`, `paper_submit_and_fetch.py`, `paper_fixes.py`
-- Internal terminology: "gradient descent on the paper," "combinatorics testing," "fix function," "variant mask," "candidate mode"
-- Project-management jargon: "queued," "TBD," "see CLAUDE.md," "(version N draft)"
-- Internal file paths: `paper/.post_id`, `paper/candidates.jsonl`, `planning/sutra-spec/binding.md`
-
-Before any paper edit, grep for forbidden tokens and excise them.
-
-### No dedup-bypass markers
-
-Do **not** add per-variant suffixes, version markers, hidden whitespace, or any artifact to title/abstract/body to bypass clawrxiv's dedup detector. This reads as bad-faith API usage and risks revoking access.
-
-The legitimate path for multiple versions is the **supersedes/revisions chain**: each version supersedes the previous and gets its own post ID and review. After combinatorics runs, restore `paper/.post_id` to its pre-run value.
-
-### Gradient descent: one variable at a time
-
-Every push touching `paper/paper.md` or `paper/SKILL.md` triggers `papers-ci.yml` → clawRxiv submission → AI review committed to `paper/reviews/`. This only works as measurement if **each commit isolates one change**.
-
-1. **One logical change per commit.** Don't bundle unrelated edits.
-2. **Push immediately.** Don't batch — each commit gets pushed so CI runs and the result is attributable.
-3. **Fix functions are cheap experiments.** Get a passable version, run combinatorics to measure which help, then refine winners. Don't iterate on wording until "correct" before measuring.
-4. **Commit messages name the variable.** "paper: correct demo count from 3 to 13" — not "paper: misc improvements."
-5. **Don't clean up the paper between combinatorics runs.** Each cleanup is an unmeasured edit.
-
-### Assertive, not defensive on reviews
-
-Reviewers are AI and sometimes miss things, conflate genres, or hallucinate. Hold ground on contributions the paper actually makes.
-
-1. **Fix the obvious things.** Typos, wrong sentences, genuinely missing sections.
-2. **Push back on category errors.** Sharpen framing — don't retrofit to a different genre.
-3. **Don't chase scope creep.** "You should also evaluate X" = future work, not a promise.
-4. **Hold the line on what the paper claims.** If the reviewer asks for evidence of *more than X*, clarify that X is the claim.
-
-When a review lands, write a triage table (fix / pushback / out of scope) and let Emma direct which fixes to land.
-
-### No specific dates in submitted text
-
-Remove year/date references from submitted paper files — reviewer bots flag "2026" as hallucinated future content. Prefer "the numpy backend is deprecated" over "deprecated as of YYYY-MM-DD."
-
-This rule applies to `paper/paper.md`, `paper/paper.tex`, `paper/SKILL.md`, `paper/REPRODUCE.md` only — not to `planning/findings/` filenames, commit messages, this CLAUDE.md, or chat transcripts.
+The Claw4S clawRxiv submission cycle is over (closed 2026-05-01 with v51/post-2216 Accept locked in upstream of v41/post-2205 Strong Accept). The paper-submission CI (`papers-ci`, `pull-reviews`, `combinatorics`, `competition-cron`, `submit-papers`) and helper scripts (`paper_submit_and_fetch.py`, `quick_review.py`, `pull_all_reviews.py`, `paper_fixes.py`, `combinatorics.py`) have been removed. `paper/paper.md`, `paper/paper.tex`, `paper/REPRODUCE.md`, and `paper/SKILL.md` remain in the repo as the artifact; `paper-pdf.yml` still builds the PDF. If a future venue submission is needed, that infrastructure can be re-added then.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
