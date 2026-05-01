@@ -22,7 +22,7 @@ The composition is what matters. Once every value has the same shape (a vector) 
 
 A typical Sutra value is a vector in a frozen LLM embedding space. The current default substrate is `nomic-embed-text` (768-d, mean-centered, served via Ollama). Strings auto-embed in vector contexts: `vector v = "cat"` means "embed the string through the substrate." The runtime caches embeddings and batches Ollama round-trips at module init.
 
-The language has loops and conditionals, but neither compiles to a host-side branch. A conditional is a softmax-weighted sum across all options. A `loop(condition)` compiles to a fixed rotation matrix `R` applied iteratively until a similarity threshold is met — the loop counter is the angular position on a helix in the substrate.
+The language has loops and conditionals, but neither compiles to a host-side branch. A conditional is a softmax-weighted sum across all options. A loop is a declared function whose parameters are the recurrent state and whose body is one cell tick; the cell unrolls to a fixed-T tensor-op chain on the substrate, and a soft-halt mask freezes the state when the termination condition is met. The "loop counter" is the angular position on a helix in the substrate, not a host variable.
 
 [**Read the vision page →**](vision.md) for why this is grounded in measurable structure in frozen embedding spaces, not metaphor.
 
@@ -30,7 +30,7 @@ The language has loops and conditionals, but neither compiles to a host-side bra
 
 ## What runs today
 
-A reference compiler with two emitter backends (numpy-flavored and PyTorch tensor ops, the latter picking CUDA at module init if available), an IntelliJ plugin with syntax highlighting / completion / external annotator, a VS Code extension with TextMate grammar and snippets, and 13 demo `.su` programs that compile and execute end-to-end through the smoke test.
+A reference compiler with two emitter backends (numpy-flavored and PyTorch tensor ops, the latter picking CUDA at module init if available), an IntelliJ plugin with syntax highlighting / completion / external annotator, a VS Code extension with TextMate grammar and snippets, and ten demo `.su` programs that compile and execute end-to-end through the smoke test.
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
