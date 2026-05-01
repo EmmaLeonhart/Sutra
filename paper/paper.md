@@ -106,15 +106,21 @@ The four core technical contributions of this paper are:
    operator.
 
 3. **Tail recursion as the loop primitive, eliminating control
-   flow.** Loops are not `for`/`while` constructs over a host-side
-   iterator. They are tail-recursive function declarations
-   (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`)
-   whose body's `return NAME(args)` becomes the recurrent step.
-   Each loop compiles to a fixed-T soft-halt RNN cell with
-   substrate-pure halt detection (heaviside step → cumulative
-   monotone halt → soft-mux state freeze). The state vector h_t
-   carries the entire execution context in superposition; memory
-   overhead is constant in recursion depth. Halt completion
+   flow, with O(1) memory in recursion depth.** Loops are not
+   `for`/`while` constructs over a host-side iterator. They are
+   tail-recursive function declarations (`do_while`, `while_loop`,
+   `iterative_loop`, `foreach_loop`) whose body's
+   `return NAME(args)` becomes the recurrent step. Each loop
+   compiles to a fixed-T soft-halt RNN cell with substrate-pure
+   halt detection (heaviside step → cumulative monotone halt →
+   soft-mux state freeze). The state vector h_t carries the entire
+   execution context in superposition over a fixed-width vector,
+   so memory overhead is **constant in recursion depth**: a Sutra
+   program can specify deeper recurrence (a larger T at compile
+   time, §1.2 manifest setting) without expanding the runtime
+   memory budget. There is no per-iteration stack frame, no
+   growing context, no heap allocation keyed by depth — the loop
+   body updates the same state tensor T times. Halt completion
    propagates through nested calls to the program's final output:
    a loop that fails to converge wipes the program's result.
 
@@ -403,17 +409,33 @@ from Sutra. DeepProbLog grounds neural predicates in a ProbLog
 proof tree; LTN compiles first-order-logic formulas into
 differentiable t-norm losses over learned embeddings; NeurASP
 extends Answer Set Programming with neural predicates. All three
-treat symbols as a separate stratum from the neural layer. None
-of them, and to the authors' knowledge no published HDC system
-either, targets the specific configuration that Sutra occupies:
-a single tensor-op graph folding the whole program — including
-the string-in / string-out I/O — over a frozen externally-trained
-embedding substrate. The combination of (a) one fused tensor-op
-graph as the compile target, (b) HDC primitives as the
-operations, and (c) a frozen LLM embedding space as the substrate
-that doubles as the I/O codebook is what distinguishes Sutra
-from each of these peers, not any one of those three properties
-in isolation.
+treat symbols as a separate stratum from the neural layer.
+
+The HDC-side comparison is sparser. The closest HDC peer with
+compiler infrastructure is HDCC (Vergés et al. 2023), which
+translates a description-file DSL into self-contained C for
+embedded classification. HDCC ships random and level
+hypervectors only (no LLM substrate), supports no general
+control flow (no loops, no recursion, no conditionals beyond
+the encode-then-classify pipeline), and is scoped to
+classification rather than general-purpose programming. The
+TorchHD library and OpenHD / HDTorch frameworks similarly do
+not expose loops as a language primitive — control flow lives
+in the host Python.
+
+To the authors' knowledge, no published HDC system targets the
+specific configuration that Sutra occupies: a single tensor-op
+graph folding the whole program — including string-in /
+string-out I/O and tail-recursive loops with constant memory
+overhead in recursion depth (§3.3) — over a frozen
+externally-trained embedding substrate. The combination of (a)
+one fused tensor-op graph as the compile target, (b) HDC
+primitives as the operations, (c) a frozen LLM embedding space
+as the substrate that doubles as the I/O codebook, and (d)
+tail-recursive loops compiled to soft-halt RNN cells over a
+fixed-width state vector is what distinguishes Sutra from each
+of these peers, not any one of those four properties in
+isolation.
 
 ### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
@@ -558,6 +580,36 @@ into every loop call's halt-cum and into every function's return
 value: a loop that fails to converge wipes program output to
 near-zero, providing substrate-pure detection of unconverged
 computation.
+
+**Constant memory in recursion depth.** The state vector that
+the loop body updates is fixed-width: `[semantic | synthetic]`,
+total dimensionality set at compile time and unchanged from the
+first iteration to the T-th. A tail-recursive loop in Sutra
+therefore consumes O(1) memory in its recursion depth — there is
+no per-step stack frame, no growing context, no heap allocation
+keyed by depth. The compiler's emitted artifact for a loop is a
+sequence of T identical tensor-op cell evaluations against the
+same state tensor, with the soft-halt mask determining which
+cells contribute. Doubling T doubles the static graph size but
+does not change runtime memory; halving T does the opposite.
+Compared with sequence models that accumulate a context window
+linearly with input length and with stack-based recursive
+languages whose memory footprint grows with call depth, Sutra's
+recurrent-tail-recursive form folds an arbitrary execution
+trajectory into a single fixed-width vector via VSA superposition
+and pays no memory cost as the trajectory deepens.
+
+This is the property that makes Sutra a candidate for
+substrate-bounded computation: a program written in Sutra can
+specify a deeper recurrence at compile time without expanding
+the runtime memory budget, and the upper bound on what fits in
+T iterations is determined by the binding capacity of the
+substrate (§3.1) rather than by available RAM. To the authors'
+knowledge, no other HDC system or HDC compiler exposes
+user-program-level recursion at all (HDCC compiles classification
+pipelines only, with no general control flow; TorchHD requires
+the user to write Python loops over hypervectors, which are not
+constant-memory in either depth or context).
 
 ### 3.4 Embedded codebook store
 
@@ -832,6 +884,10 @@ programs to write rather than scripts to glue together.
 - Serafini, L. & Garcez, A. d. (2016). Logic Tensor Networks: Deep
   Learning and Logical Reasoning from Data and Knowledge. *NeSy
   Workshop*.
+- Vergés, P., Heddes, M., Nunes, I., Givargis, T., & Nicolau, A.
+  (2023). HDCC: A Hyperdimensional Computing compiler for
+  classification on embedded systems and high-performance
+  computing. arXiv:2304.12398.
 - Yang, Z., Ishay, A., & Lee, J. (2020). NeurASP: Embracing Neural
   Networks into Answer Set Programming. *IJCAI*.
 - Plate, T. A. (1995). Holographic reduced representations. *IEEE
