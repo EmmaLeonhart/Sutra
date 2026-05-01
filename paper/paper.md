@@ -160,21 +160,37 @@ The four core technical contributions of this paper are:
    than the standard compiler passes it generalizes. Constant
    folding eliminates literal arithmetic; function inlining
    substitutes call bodies; beta reduction substitutes named
-   arguments. Sutra runs all three plus *rotation matrix
-   precomputation* (every Haar-orthogonal binding rotation `R_role`
-   is materialized at compile time keyed by the role's content
-   hash so runtime bind is one matmul, not a Haar-sample-then-
-   matmul) and *synthetic-axis slot allocation* (canonical
-   dimensions for primitive types are assigned compile-time so
-   every read/write is a known index, not a hashtable lookup).
-   The output is not "the program with constants folded"; it is a
-   single dense tensor pipeline whose only inputs are the
+   arguments. Sutra runs all three plus three things standard
+   compiler passes do not do:
+
+   - *Conditional-as-tensor lowering.* A Sutra `if cond then a
+     else b` does not become a control-flow branch in the IR. It
+     becomes the polynomial `(1 + cond) / 2 · a + (1 − cond) / 2
+     · b` (the soft-mux derived from the `cond` value's
+     truth-axis coordinate via the §1.2 Lagrange polynomials).
+     The compiled output has no jumps, no branches, no `if`
+     opcodes — every conditional is one tensor expression. This
+     is what lets PyTorch autograd backprop through symbolic
+     if-then rules in §3.6.
+   - *Rotation-matrix precomputation.* Every Haar-orthogonal
+     binding rotation `R_role` is materialized at compile time
+     keyed by the role's content hash, so runtime `bind` is one
+     matmul, not a Haar-sample-then-matmul.
+   - *Synthetic-axis slot allocation.* Canonical dimensions for
+     primitive types are assigned compile-time, so every
+     read/write is a known index rather than a hashtable lookup.
+
+   The output is not "the program with constants folded"; it is
+   a single dense tensor pipeline whose only inputs are the
    substrate-resident variables and whose only outputs are the
    substrate-resident return value. There is no Python control
    flow inside any operation, no host-side dispatch, no
-   string-keyed lookup at runtime. That's what makes the form a
-   normal form, and it's what makes the body of every loop fit
-   inside one fused subgraph for `torch.compile` consumption.
+   string-keyed lookup at runtime, **and no branches** — the
+   conditional-as-tensor lowering means the compiled artifact is
+   straight-line dataflow over the VSA primitives. That's what
+   makes the form a normal form, and it's what makes the body of
+   every loop fit inside one fused subgraph for `torch.compile`
+   consumption.
 
 3. **Tail recursion as the loop primitive, eliminating control
    flow, with O(1) memory in recursion depth.** Loops are not
@@ -259,30 +275,51 @@ deep-learning architecture paper nor a pure programming-language
 theory paper; it is the specific construction that ties the two
 together.
 
-### 1.4 Substrate dependence is a feature, not a bug
+### 1.4 The substrate is the architecture target
 
-A Sutra program's runtime semantics are determined by the
-substrate: the embedding model named in `atman.toml` plus its
-weights at compile time. Swap to a different model (different
-provider, different version, different dimensionality) and the
-compiled `.sdb` codebook changes deterministically, the program
-re-binds against the new substrate, and the program's
-similarity comparisons inherit whatever the new model encodes.
-This is the same shape as a C program inheriting the libc
-version it was linked against, or a SQL query inheriting the
-schema of the database it runs on. The substrate is part of the
-program's specification, not an unstated dependency.
+A Sutra program is not "an LLM-dependent program." It is a
+program **compiled for an embedding-space architecture**, in
+the same sense that a C program is compiled for x86 or ARM,
+and a CUDA kernel is compiled for an NVIDIA SM versus an AMD
+CDNA target. The embedding model named in `atman.toml` is the
+*architecture target*: it fixes the dimensionality, the
+geometry of the semantic block, and the meaning of every
+basis-vector lookup, just as a CPU target fixes register width,
+addressing modes, and the meaning of every load.
 
-The compile-time codebook makes this explicit: every embedded
-string in the source is materialized into a `.sdb` file at
-compile time using the manifest-declared substrate, and the
-`.sdb` ships alongside the compiled module. Re-running on the
-same `.sdb` produces bit-identical output. Re-running on a
-fresh `.sdb` from a different substrate produces output keyed
-to that substrate's geometry. There is no implicit dependency
-on a specific LLM version; the dependency is the manifest and
-the `.sdb`, which together pin the substrate as deterministically
-as a `requirements.txt` pins Python packages.
+Swap to a different embedding model — a different LLM, a
+protein language model (§3.1 demonstrates ESM-2), a CNN feature
+extractor, a knowledge-graph encoder, or the hidden state of an
+arbitrary trained network — and the compiled `.sdb` codebook
+re-materializes deterministically, the program re-binds against
+the new substrate, and the program's similarity comparisons
+inherit the new architecture's geometry. The source code does
+not change. This is exactly the architecture-target pattern:
+one source, one toolchain, multiple deployment targets.
+
+A consequence is that **Sutra programs can compile to a
+substrate that is itself a trained neural network**. The
+embedding space need not come from a frozen LLM exposed via an
+API; it can come from any neural network that produces a dense
+vector representation. A Sutra program compiled against a
+particular network's hidden state is, in effect, a symbolic
+operator graph wired into that network — the substrate is the
+network, the program is the symbolic computation that runs on
+it. This is the literal connection §3 builds toward: not LLM
+compatibility per se, but neural-network-as-substrate
+compatibility, with frozen LLMs as one well-tooled instance.
+
+The compile-time codebook makes the substrate dependency
+explicit: every embedded string in the source is materialized
+into a `.sdb` file at compile time using the manifest-declared
+substrate, and the `.sdb` ships alongside the compiled module.
+Re-running on the same `.sdb` produces bit-identical output.
+Re-running on a fresh `.sdb` from a different substrate
+produces output keyed to that substrate's geometry. There is
+no implicit dependency on a specific model version; the
+dependency is the manifest and the `.sdb`, which together pin
+the architecture target as deterministically as a CPU triple
+pins a binary.
 
 ---
 
