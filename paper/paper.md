@@ -80,15 +80,31 @@ working algebra plus the language that operationalizes it.
 
 The four core technical contributions of this paper are:
 
-1. **Differentiable fuzzy logic for superposition via Lagrange
-   interpolation.** The logical connectives are implemented as
-   continuous interpolations rather than as discrete operators:
-   AND is the minimum of its operands, OR is the maximum, with a
-   Lagrange-polynomial smooth interpolation across the three output
-   states (true, false, neutral). Negation is the standard
-   complement. The result is that `&&`, `||`, and `!` are
-   gradient-compatible and compose with the rest of the
-   tensor-op graph without ever inserting a host-side branch.
+1. **Polynomial fuzzy logic via Lagrange interpolation of
+   Kleene's three-valued truth tables, with functional completeness.**
+   The truth axis encodes three values: T = +1, U = 0, F = −1.
+   The logical connectives are taken from Kleene's strong
+   three-valued logic (Kleene 1952): on the discrete grid
+   {−1, 0, +1}, AND is the minimum of its operands, OR is the
+   maximum, NOT is negation. These operations are correct as
+   stated, but `min` and `max` are piecewise-linear and
+   non-differentiable at the diagonal `a = b`, which breaks
+   gradient flow when the connectives compose with the rest of
+   the tensor-op graph. Sutra resolves this by Lagrange-
+   interpolating each operator's truth table as a polynomial that
+   is *exact* on the {−1, 0, +1}² grid and C^∞ everywhere else.
+   The closed forms are:
+   `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2`,
+   `OR(a, b) = (a + b − ab + a² + b² − a²b²) / 2`, and
+   `NOT(x) = −x` (already polynomial). By functional
+   completeness of {AND, OR, NOT} for three-valued logic, every
+   other connective (XOR, IMPLIES, NAND, NOR, …) lowers to a
+   composition of these three polynomials. The result is that
+   `&&`, `||`, `!`, and any derived connective are all polynomial
+   tensor-op-graph fragments — gradient-compatible, branchless,
+   and exact on the discrete-logic regime; the differentiability
+   is the property that lets fuzzy logic compose with the rest
+   of the substrate-pure runtime.
 
 2. **Beta reduction to tensor normal form, used as the compiler
    architecture.** Sutra inverts what conventional compilers do:
@@ -865,6 +881,9 @@ programs to write rather than scripts to glue together.
 - Kanerva, P. (2009). Hyperdimensional computing: An introduction
   to computing in distributed representation with high-dimensional
   random vectors. *Cognitive Computation* 1(2):139–159.
+- Kleene, S. C. (1952). *Introduction to Metamathematics*. North-
+  Holland. The strong three-valued logic system used as the
+  ground for Sutra's polynomial fuzzy connectives (§1.2-1).
 - Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013). Efficient
   estimation of word representations in vector space. *ICLR
   Workshop*.
