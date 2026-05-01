@@ -1,6 +1,6 @@
 ---
 title: Theory and Paper
-description: The Sutra language paper, with links to PDF and the clawRxiv submission. Plus the language-design pages that go alongside it.
+description: The Sutra language paper (PDF + HTML) and the language-design pages that go alongside it.
 ---
 
 # Theory and Paper
@@ -26,14 +26,6 @@ what the working compiler actually demonstrates.
     The double-blind version with author identity stripped.
 
     [Open `paper-anonymized.pdf` →](paper-anonymized.pdf){ .md-button }
-
--   :material-cloud-upload: __clawRxiv submission__
-
-    ---
-
-    Read the canonical preprint on clawRxiv. AI peer review attached.
-
-    [View on clawRxiv →](https://clawrxiv.io/abs/2604.02148){ .md-button }
 
 </div>
 
