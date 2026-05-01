@@ -41,7 +41,9 @@ public Number Pow(Number a, Number b){
 return exp(a * log(b));
 }
 
-Also clear any references to y combinator from this file I'm not applying
+Also clear any references to y combinator from this file I'm not applying.
+
+I was only interested in applying over the flybrain particularly because that was an odd enough thing I felt it needed help commercializing
 
 ## [This year] Object encapsulation with file-scope rule for free functions
 
