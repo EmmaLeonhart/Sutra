@@ -8,7 +8,7 @@ description: Sutra reads like Java but compiles to nothing like Java. Three side
 !!! note "Draft — needs review"
     This page is a stub focused on the Java contrast. It will grow as the language matures.
 
-Sutra's surface looks like Java. `var`, `=`, `+=`, `for`/`loop`, curly braces, `class` declarations. To anyone coming from Java, Python, JavaScript, C++, the syntax reads like ordinary imperative-OO code.
+Sutra's surface looks like Java. `var`, `=`, `+=`, curly braces, `class` declarations. To anyone coming from Java, Python, JavaScript, C++, the syntax reads like ordinary imperative-OO code.
 
 It is not that. The point of this page is to make that disconnect visible.
 
@@ -61,24 +61,28 @@ for (int i = 0; i < 5; i++) {
 **Sutra:**
 
 ```sutra
-var n : int = 0;
-loop (5) {
-    n += iterator;
+iterative_loop sumToN(5, int n) {
+    pass n + iterator;
 }
+
+slot int n = 0;
+loop sumToN(5, n);
 // n == 1 + 2 + 3 + 4 + 5 == 15
 ```
 
-`loop (5)` *unrolls at compile time*. The emitted code is the body five times in sequence — no runtime counter, no comparison, no back-edge. `iterator` inside the body is the (1-based) iteration index, substituted in at unroll time. The five additions will likely be folded into `n + 15` before the runtime ever runs. See the [loops doc](loops.md#the-iterator-reserved-keyword) for the full design.
+`iterative_loop sumToN(...)` declares a loop function whose recurrent state is the named param `n`. The body uses `pass` to yield the next iteration's value. There is no runtime counter on the host — the unrolled cell runs five times on the substrate as part of one tensor-op forward pass. `iterator` inside the body is the (1-based) iteration index, substituted in at unroll time.
 
 For data-dependent termination, the form is different:
 
 ```sutra
-loop (state ~ target) {
-    state = R * state;
+while_loop converge(sim(state, target) < 0.95, vector state) {
+    pass R * state;
 }
+
+loop converge(sim(state, target) < 0.95, state);
 ```
 
-This `loop(condition)` lowers to **iterated multiplication by a fixed rotation matrix `R` on the substrate**. The "loop counter" is the angular position on a helix; termination is a similarity check between the rotated state and the target prototype. Each iteration produces a fresh `state` vector — the previous one is unreferenced. There is no host-side `i++`.
+A `while_loop` (or `do_while`) compiles to **iterated multiplication by a fixed rotation matrix `R` on the substrate**. The "loop counter" is the angular position on a helix; termination is a similarity check between the rotated state and the target prototype, evaluated as a soft-halt mask on the substrate. Each iteration produces a fresh `state` vector — the previous one is unreferenced. There is no host-side `i++`.
 
 ---
 
@@ -154,6 +158,6 @@ Java's program *is* its memory writes. Sutra's program is an algebraic expressio
 
 - [What is Sutra?](what-is-sutra.md) — the geometric-compilation pitch.
 - [The ontology](ontology.md) — the class system in detail.
-- [Loops](loops.md) — how `loop[N]` and `loop(condition)` lower.
+- [Loops](loops.md) — how the four declared-function loop kinds lower as substrate-pure RNN cells.
 - [Memory without control flow](memory.md) — how binding and bundling replace imperative array/map patterns.
 - [Compilation](compilation.md) — how the simplifier strips surface sugar down to polynomial and matrix arithmetic.
