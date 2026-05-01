@@ -21,37 +21,6 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
-##  Immediate queue
-My intention here is that this causes the desktop ai to merge changes on this file and follow these instructions
-
-First things first, I want a page on the website that is just all of the operators. 
-
-And I want it to show the root definition thing of the operators. I don't even know if it exists yet, but if it doesn't exist, it should exist. 
-
-but for example
-
-public Number operator ^(Number a, Number b){
-return Math.Pow(a, b);
-}
-
-public Number Pow(Number a, Number b){
-return exp(a * log(b));
-}
-
-Basically all functions have this function expansion thing with them
-
-all operators get this
-
-Better way of doing transcendental functions
-
-If we were able to somehow get a reliable way of representing the natural logarithm and exponents of E, then this would basically help us substantially. This would basically mean that we'd have all of our transcendental functions running. 
-
-lookup table was attempted, we can try again
-
-basically all functions beta reduce to their components except recursive ones
-
-as a result the object encapsulation one is good
-
 ## [This year] Object encapsulation with file-scope rule for free functions
 
 **Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
@@ -493,6 +462,16 @@ compile `log`, `sqrt`, `sin`, `exp`, etc. to tensor expressions at
 compile time rather than calling out to libm at runtime. See
 `docs/numeric-math.md` § "Transcendental functions" for the
 design.
+
+User direction (2026-05-01): the unlock is **natural log + exp(E)**.
+If we get a reliable, substrate-pure way to represent those two,
+everything else cascades — `Pow(a, b) = exp(a * log(b))` makes `^`
+work, and the rest of the transcendental family composes from
+there. Lookup-table approach was attempted and didn't pencil out
+(see `planning/findings/2026-04-29-bound-table-capacity-limit.md`);
+worth retrying with a different shape. The principle: every
+non-recursive function beta-reduces to its components, so once the
+two leaves work, the chain is done.
 
 Pieces below are sub-pieces of the broader Sutra-NumPy umbrella
 above; tracked separately because they're the active slice.
