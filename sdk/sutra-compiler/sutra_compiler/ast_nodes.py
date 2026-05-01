@@ -528,19 +528,27 @@ class ClassDecl(Node):
     """`class Name extends Parent { ... }` — user-defined ontology
     class.
 
-    MVP scope (2026-04-25): empty body, single inheritance, extends
-    is required, the extends-chain must bottom out at a primitive
-    class (vector / int / float / fuzzy / etc.). Methods, fields,
-    operator implementations inside the body are deferred — see
-    `todo.md` § "Ontology — make the class system real."
+    Body content (extended 2026-05-01 from the empty-only MVP):
+    method declarations are now accepted inside the body. Field
+    declarations and operator implementations remain deferred —
+    see `todo.md` § "Object encapsulation" and
+    `planning/open-questions/function-taxonomy-and-closure.md`.
+
+    Methods declared inside a class body land on this node's
+    `methods` list. They're validator-visited (per the existing
+    `visit_MethodDecl`); codegen routing for `ClassName.method(...)`
+    dispatch is the next slice and isn't wired today, so calls to
+    methods on a class fail at codegen with a clear pointer until
+    that lands.
 
     At runtime an instance of a user class is a plain vector. The
-    declaration is purely compile-time metadata: the validator
-    registers the class name and uses the extends-chain to resolve
-    type-position references. Codegen skips ClassDecl nodes.
+    declaration is compile-time metadata: the validator registers
+    the class name and uses the extends-chain to resolve
+    type-position references.
     """
     name: str
     parent_name: str  # the `extends` target — required in MVP
+    methods: List["MethodDecl"] = field(default_factory=list)
 
 
 # ============================================================
