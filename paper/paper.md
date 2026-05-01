@@ -21,13 +21,10 @@ rotation-vs-Hadamard separation in every case. Sutra is a
 working compiler: parser, type checker, codegen, runtime,
 embedded SutraDB codebook, opt-in `torch.compile` wrapping. The
 example corpus is a 13-program smoke test (with 23 `.su` files
-total), and 237 passing unit tests. We report honest negative
+total) and 237 passing unit tests. We report honest negative
 results alongside the positive ones — most notably the §3.1.1
 crosstalk analysis, which scopes the rotation-binding capacity
-claim to single-cycle records, and we close with §3.6, which
-demonstrates that symbolic if-then rules built from those
-primitives remain end-to-end differentiable through standard
-PyTorch autograd.
+claim to single-cycle records.
 
 ---
 
@@ -101,45 +98,20 @@ The four core technical contributions of this paper are:
 
    Sutra resolves this by Lagrange-interpolating each operator's
    truth table as a polynomial that is *exact* on the {−1, 0, +1}²
-   grid and C^∞ everywhere else. For two operands, a 2-D Lagrange
-   interpolant on a 3×3 grid is uniquely determined by the nine
-   values it must take, so each connective has a single closed
-   polynomial form.
-
-   **Basis.** {AND, OR, NOT} is the basis from which every other
-   Kleene-valid connective derives. Their closed polynomials are:
-
-   - `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2`
-   - `OR(a, b)  = (a + b − ab + a² + b² − a²b²) / 2`
-   - `NOT(a)    = −a`
-
-   On the discrete grid these match Gödel fuzzy logic's min/max
-   behavior exactly; off the grid they are smooth interpolants
-   rather than piecewise functions.
-
-   **Derived connectives.** Every other connective in the Kleene
-   fragment is both a logical composition of the basis and a
-   closed polynomial in its own right:
-
-   | Connective   | Derivation in {AND, OR, NOT}        | Closed polynomial |
-   |---|---|---|
-   | `NAND(a, b)` | `NOT(AND(a, b))`                    | `−(a + b + ab − a² − b² + a²b²) / 2` |
-   | `NOR(a, b)`  | `NOT(OR(a, b))`                     | `−(a + b − ab + a² + b² − a²b²) / 2` |
-   | `XOR(a, b)`  | `OR(AND(a, NOT(b)), AND(NOT(a), b))` | `−ab` |
-   | `XNOR(a, b)` | `NOT(XOR(a, b))`                    | `ab` |
-
-   The XOR and XNOR rows are the surprise of the table: their
-   3×3 Lagrange interpolant collapses to a single multiplicative
-   term because the value is zero whenever either input is the
-   unknown U=0 and bilinear in the remaining {−1, +1} corners.
-   So `&&`, `||`, `!`, and any derived Kleene-valid connective
-   are polynomial tensor-op-graph fragments — gradient-compatible,
-   branchless, and exact on the discrete-logic regime. The
-   differentiability of these polynomials is what lets fuzzy
-   logic compose with the rest of the substrate-pure runtime: a
-   symbolic if-then rule built from these gates is one fused
-   subgraph that PyTorch autograd can backprop through end-to-
-   end (§3.6).
+   grid and C^∞ everywhere else. The closed forms are:
+   `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2`,
+   `OR(a, b) = (a + b − ab + a² + b² − a²b²) / 2`, and
+   `NOT(x) = −x` (already polynomial). On the discrete grid these
+   match Gödel's min/max behavior exactly; off the grid they are
+   smooth interpolants rather than piecewise functions. By
+   functional completeness of {AND, OR, NOT} for three-valued
+   logic, every other connective (XOR, IMPLIES, NAND, NOR, …)
+   lowers to a composition of these three polynomials. The
+   result is that `&&`, `||`, `!`, and any derived connective
+   are all polynomial tensor-op-graph fragments — gradient-
+   compatible, branchless, and exact on the discrete-logic
+   regime; the differentiability is the property that lets fuzzy
+   logic compose with the rest of the substrate-pure runtime.
 
 2. **Beta reduction to tensor normal form, used as the compiler
    architecture.** Sutra inverts what conventional compilers do:
@@ -156,143 +128,24 @@ The four core technical contributions of this paper are:
    tensor normal form and the recurrence is a separate top-level
    operator.
 
-   "Tensor normal form" names a specific shape that is stronger
-   than the standard compiler passes it generalizes. Constant
-   folding eliminates literal arithmetic; function inlining
-   substitutes call bodies; beta reduction substitutes named
-   arguments. Sutra runs all three plus three things standard
-   compiler passes do not do:
-
-   - *Conditional-as-tensor lowering.* A Sutra `if cond then a
-     else b` does not become a control-flow branch in the IR. It
-     becomes the polynomial `(1 + cond) / 2 · a + (1 − cond) / 2
-     · b` (the soft-mux derived from the `cond` value's
-     truth-axis coordinate via the §1.2 Lagrange polynomials).
-     The compiled output has no jumps, no branches, no `if`
-     opcodes — every conditional is one tensor expression. This
-     is what lets PyTorch autograd backprop through symbolic
-     if-then rules in §3.6.
-   - *Rotation-matrix precomputation.* Every Haar-orthogonal
-     binding rotation `R_role` is materialized at compile time
-     keyed by the role's content hash, so runtime `bind` is one
-     matmul, not a Haar-sample-then-matmul.
-   - *Synthetic-axis slot allocation.* Canonical dimensions for
-     primitive types are assigned compile-time, so every
-     read/write is a known index rather than a hashtable lookup.
-
-   The output is not "the program with constants folded"; it is
-   a single dense tensor pipeline whose only inputs are the
-   substrate-resident variables and whose only outputs are the
-   substrate-resident return value. There is no Python control
-   flow inside any operation, no host-side dispatch, no
-   string-keyed lookup at runtime, **and no branches** — the
-   conditional-as-tensor lowering means the compiled artifact is
-   straight-line dataflow over the VSA primitives. That's what
-   makes the form a normal form, and it's what makes the body of
-   every loop fit inside one fused subgraph for `torch.compile`
-   consumption.
-
-   **Worked example.** The XOR pattern `(a && !b) || (!a && b)`
-   in `.su` source compiles, after the simplify pass, into five
-   composed polynomial calls:
-
-   ```
-   logical_or(
-     logical_and(a, logical_not(b)),
-     logical_and(logical_not(a), b)
-   )
-   ```
-
-   Each call evaluates a degree-≤4 polynomial at runtime — five
-   kernel launches if executed naively. But the *composition* of
-   those five polynomials, expanded symbolically, simplifies to
-   the closed XOR form from §1.2: `−ab`. A pattern-matching pass
-   in the simplifier (queued, not yet shipped) recognizes the
-   composed expression and rewrites it to the single
-   multiplication. This is what "aggressive" means here: not
-   just folding numeric literals, but recognizing that an entire
-   five-step polynomial pipeline collapses to one tensor op
-   because we have closed forms for every connective. Standard
-   constant folding does not do this; standard inlining does not
-   do this. The whole language is structured to make these
-   collapses visible to the compiler — the surface lets the
-   programmer write the obvious form, and the runtime executes
-   the minimal one.
-
-   **Where TNF sits relative to standard compiler concepts.** A
-   reasonable read of "we beta-reduce, we inline, we fold" is
-   "this is just AOT compilation rebadged." The distinction we
-   are drawing is ontological, not quantitative. Compare:
-
-   - *Constant propagation* substitutes specific values known at
-     compile time. The residual program still runs on a
-     conventional machine; you removed some work.
-   - *Partial evaluation* (Futamura) specializes a program against
-     known inputs, producing a residual program over the unknown
-     ones. The output is still a program in the same
-     computational model.
-   - *Staging* (MetaML, Lean `#eval`) makes the compile-time vs
-     runtime boundary explicit. Same model underneath, with
-     temporal layering.
-   - *Tensor normal form* asserts that the runtime *is* matrix
-     arithmetic on the substrate. There is no residual program
-     in the conventional sense — no jump table, no register
-     file, no instruction stream. Compilation produces a weight
-     structure; execution is a forward pass.
-
-   Neural-network inference is the closest existing analogy:
-   weights are matrices fixed at inference time; the forward
-   pass is chained matmuls; nobody calls that constant folding,
-   even though every weight is constant. The matrices *are* the
-   computation, not an optimization of it. Sutra extends this to
-   arbitrary programs: the compilation step produces the weight
-   structure, execution is the forward pass, and the reason it
-   does not feel like constant folding is that there is no
-   "un-folded" version lurking underneath. Matrix operations are
-   not an optimization applied to some more primitive semantics
-   — they are the ground level. In the limiting sense, TNF is
-   the *most* constant-folded a program can be: compile-time
-   work has consumed the entire computational model, leaving
-   only linear algebra. Whether one calls that "still constant
-   folding" or "no longer constant folding" is a matter of
-   taste; what the paper claims is the construction, the
-   primitives, and that the construction reaches that limit on
-   real programs.
-
-3. **Tail recursion as the loop primitive, with no in-graph
-   control flow and O(1) state vector width in recursion depth.**
-   Loops are not `for`/`while` constructs over a host-side
-   iterator. They are tail-recursive function declarations
-   (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`)
-   whose body's `return NAME(args)` becomes the recurrent step.
-   Each loop compiles to a soft-halt RNN cell with
-   substrate-pure halt detection (heaviside step → cumulative
-   monotone halt → soft-mux state freeze).
-
-   "No control flow" here is a claim about the *compiled
-   program*: the body of every loop and conditional is one
-   straight-line tensor pipeline with no branch instructions, no
-   graph control-flow operators (no If-node, no While-node, no
-   Switch-node), no in-tensor jumps. There is still a Python
-   `while True: … break` driver around each loop tick on the
-   host (§3.3), the same way any compiled program has a host
-   process around it; the claim is that the *substrate-resident*
-   computation has no control flow, not that the entire process
-   is in tensor land.
-
-   The state vector h_t carries the execution context in
-   superposition over a fixed-width vector, so the **state
-   vector width is O(1) in recursion depth**: a Sutra program
-   that runs N loop ticks does not grow its state vector,
-   regardless of how large N becomes. There is no per-iteration
-   stack frame, no growing context, no heap allocation keyed by
-   depth — the loop body updates the same state tensor each
-   tick. Compute scales O(N) (each tick runs the body once); the
-   autograd tape during training scales O(N) up to the
-   `backward()` call (standard PyTorch, freed after the backward
-   pass). Inference does not build a tape and pays only the
-   fixed-width state vector. Halt completion propagates through
-   nested calls to the program's final output.
+3. **Tail recursion as the loop primitive, eliminating control
+   flow, with O(1) memory in recursion depth.** Loops are not
+   `for`/`while` constructs over a host-side iterator. They are
+   tail-recursive function declarations (`do_while`, `while_loop`,
+   `iterative_loop`, `foreach_loop`) whose body's
+   `return NAME(args)` becomes the recurrent step. Each loop
+   compiles to a fixed-T soft-halt RNN cell with substrate-pure
+   halt detection (heaviside step → cumulative monotone halt →
+   soft-mux state freeze). The state vector h_t carries the entire
+   execution context in superposition over a fixed-width vector,
+   so memory overhead is **constant in recursion depth**: a Sutra
+   program can specify deeper recurrence (a larger T at compile
+   time, §1.2 manifest setting) without expanding the runtime
+   memory budget. There is no per-iteration stack frame, no
+   growing context, no heap allocation keyed by depth — the loop
+   body updates the same state tensor T times. Halt completion
+   propagates through nested calls to the program's final output:
+   a loop that fails to converge wipes the program's result.
 
 4. **Synthetic-dimension rotation binding as an angular hash map.**
    The compiler maps a high-dimensional codebook onto a set of
@@ -307,12 +160,21 @@ The four core technical contributions of this paper are:
 
 These four primitives are integrated into a single working
 compiler that lowers `.su` source to a self-contained PyTorch
-module and runs on CPU or CUDA. Loops are **self-halting**:
-each iteration computes a halt-cum scalar, and the Python loop
-driver breaks the moment that scalar saturates. There is no
-compile-time iteration cap and no runtime budget parameter —
-programs terminate when their halt condition fires, exactly the
-way any other programming language's `while` loop terminates.
+module and runs on CPU or CUDA. The loop compute budget T is a
+**runtime** value, not compile-time configuration. T is
+*potentially unlimited* — any non-negative integer is a valid
+value, with no hard cap in the implementation — but the
+*effective work* is bounded by the soft-halt mechanism: once
+`halt_cum` saturates (the program-visible computation has
+converged), all remaining iterations are masked-out identity
+steps that do not change the output. Setting T = 10⁹ does not
+cost 10⁹ ticks of real work; it costs ~(convergence depth) plus
+the tail of cheap no-op ticks. The emitted module reads
+`_LOOP_T` from `SUTRA_LOOP_T` at import (default 50), or the
+caller can reassign `module._LOOP_T` before calling. The
+`atman.toml` field `[project.compile] loop_max_iterations` and
+the `--loop-T` CLI flag set the *default* baked into the
+emitted module; they do not bound the language.
 
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
@@ -357,52 +219,6 @@ tensor-op graph through beta reduction. The paper is neither a
 deep-learning architecture paper nor a pure programming-language
 theory paper; it is the specific construction that ties the two
 together.
-
-### 1.4 The substrate is the architecture target
-
-A Sutra program is not "an LLM-dependent program." It is a
-program **compiled for an embedding-space architecture**, in
-the same sense that a C program is compiled for x86 or ARM,
-and a CUDA kernel is compiled for an NVIDIA SM versus an AMD
-CDNA target. The embedding model named in `atman.toml` is the
-*architecture target*: it fixes the dimensionality, the
-geometry of the semantic block, and the meaning of every
-basis-vector lookup, just as a CPU target fixes register width,
-addressing modes, and the meaning of every load.
-
-Swap to a different embedding model — a different LLM, a
-protein language model (§3.1 demonstrates ESM-2), a CNN feature
-extractor, a knowledge-graph encoder, or the hidden state of an
-arbitrary trained network — and the compiled `.sdb` codebook
-re-materializes deterministically, the program re-binds against
-the new substrate, and the program's similarity comparisons
-inherit the new architecture's geometry. The source code does
-not change. This is exactly the architecture-target pattern:
-one source, one toolchain, multiple deployment targets.
-
-A consequence is that **Sutra programs can compile to a
-substrate that is itself a trained neural network**. The
-embedding space need not come from a frozen LLM exposed via an
-API; it can come from any neural network that produces a dense
-vector representation. A Sutra program compiled against a
-particular network's hidden state is, in effect, a symbolic
-operator graph wired into that network — the substrate is the
-network, the program is the symbolic computation that runs on
-it. This is the literal connection §3 builds toward: not LLM
-compatibility per se, but neural-network-as-substrate
-compatibility, with frozen LLMs as one well-tooled instance.
-
-The compile-time codebook makes the substrate dependency
-explicit: every embedded string in the source is materialized
-into a `.sdb` file at compile time using the manifest-declared
-substrate, and the `.sdb` ships alongside the compiled module.
-Re-running on the same `.sdb` produces bit-identical output.
-Re-running on a fresh `.sdb` from a different substrate
-produces output keyed to that substrate's geometry. There is
-no implicit dependency on a specific model version; the
-dependency is the manifest and the `.sdb`, which together pin
-the architecture target as deterministically as a CPU triple
-pins a binary.
 
 ---
 
@@ -902,35 +718,40 @@ no type dispatch at the leaves.
 
 ### 3.3 First-class loops as RNN cells
 
-Runtime data-dependent loops compile to **self-halting RNN
-cells**. Each tick: snapshot pre-step state, evaluate the halt
-condition on the substrate (truth-axis read → heaviside step →
-cumulative saturating sum), run the body which uses `pass values`
-(or equivalently `return NAME(args)` tail recursion) to update
-state locals, then a soft-mux blends pre-step and new-step state
-weighted by the halt accumulator. The loop driver is a Python
-`while True:` that **breaks the moment `halt_cum` saturates**.
-There is no compile-time iteration cap and no runtime budget
-parameter — programs terminate when their halt condition fires,
-exactly the way any other programming language's `while` loop
-terminates. The halt-cum scalar that drives the break is one
-boundary read per iteration, the same kind of boundary operation
-as the codebook's `nearest_string` decode (§3.4).
+Runtime data-dependent loops compile to fixed-T soft-halt cells.
+Each tick: snapshot pre-step state, evaluate the halt condition
+on the substrate (truth-axis read → heaviside step → cumulative
+saturating sum), run the body which uses `pass values` (or
+equivalently `return NAME(args)` tail recursion) to update state
+locals, then a soft-mux freezes state at the pre-step value once
+halt saturates. T is a **runtime** compute budget: the emitted
+module's loop body reads the module-level `_LOOP_T` value at
+each call. The compile-time default is 50; runtime can override
+via the `SUTRA_LOOP_T` environment variable (read at import) or
+by setting `module._LOOP_T = N` before calling. The soft-halt
+gating ensures convergence typically occurs in far fewer steps,
+with remaining iterations gated to identity by the saturated
+halt signal. Optional `torch.compile` wrapping unrolls the
+iteration at trace time.
 
-**Loop body vs loop driver.** Sutra's "tensor normal form"
-applies to the *body* of each loop tick: one fused chunk of
-tensor ops with no Python control flow inside any operation.
-The *loop itself* is a Python `while True: … break` driver that
-invokes that fused body until it self-halts. We do **not** claim
-the loop is unrolled into the body's tensor graph at compile
-time. Standard PyTorch tracing handles a Python while-loop
-wrapping pure tensor ops fine — autograd records each
-iteration's operations as it executes (this is the mechanism
-§3.6 relies on for end-to-end backprop through the cell). The
-`torch.compile` wrapping (opt-in, §3.5) may further fuse the
-per-call iteration at trace time, but the language semantics do
-not require that fusion: the default runtime is a Python loop
-calling normal-form bodies until convergence.
+T should be read as a *compute budget*, not a halt condition,
+and is *potentially unlimited*. The implementation places no
+hard cap on `_LOOP_T`: any non-negative integer is a valid
+value, including values much larger than the soft-halt's
+convergence depth. The soft-halt mechanism terminates the
+*program-visible* computation as soon as the convergence
+criterion is met (the state matches a compiled prototype within
+the cleanup tolerance); the remaining iterations are masked-out
+identity steps that do not change the output. So T bounds
+*how long the runtime is willing to walk the loop*, not
+*how much actual work happens before convergence*, and not
+*how deep a recursion the language can express*. Programs with
+deeper-than-default convergence depth raise T at runtime — no
+recompile — by exporting `SUTRA_LOOP_T` or assigning
+`module._LOOP_T`. The `atman.toml` field
+`[project.compile] loop_max_iterations` and the `--loop-T` CLI
+flag set the default baked into the emitted prelude; they do
+not bound the language.
 
 (The recurrent computational substrate that emerges from this
 construction is the same shape Siegelmann & Sontag (1992)
@@ -940,34 +761,42 @@ mention this for completeness — the result is well-established
 and assumed for any general-purpose programming language; we do
 not lean on it as a contribution.)
 
-**Constant memory in recursion depth.** The state vector the
-loop body updates is fixed-width: `[semantic | synthetic]`,
-total dimensionality set at compile time and unchanged across
-all iterations. A tail-recursive loop in Sutra therefore consumes
-**O(1) memory in the state vector** regardless of how many
-iterations it runs — no per-step stack frame, no growing context,
-no heap allocation keyed by depth. Compute scales linearly in
-the number of iterations actually executed (each tick runs the
-fused body once), and during training the autograd tape grows
-linearly in the number of iterations executed up to the
-`backward()` call (standard PyTorch behavior, freed after the
-backward pass). So a more honest summary is: **O(1) state, O(N)
-compute, O(N) gradient tape during training**, where N is
-*iterations actually executed* rather than a compile-time budget.
-For inference (no training) the gradient tape is not built and
-the only memory cost is the fixed-width state vector. Compared
-with sequence models that accumulate a context window linearly
-with input length and with stack-based recursive languages whose
-memory footprint grows with call depth, Sutra's recurrent-tail-
-recursive form folds an arbitrary execution trajectory into a
-single fixed-width vector via VSA superposition.
+Each loop returns a halt-cum scalar in `[0, 1]` indicating
+completion confidence. A `_program_halt` accumulator multiplies
+into every loop call's halt-cum and into every function's return
+value: a loop that fails to converge wipes program output to
+near-zero, providing substrate-pure detection of unconverged
+computation.
 
-To the authors' knowledge, no other HDC system or HDC compiler
-exposes user-program-level recursion at all (HDCC compiles
-classification pipelines only, with no general control flow;
-TorchHD requires the user to write Python loops over
-hypervectors, which are not constant-memory in either depth or
-context).
+**Constant memory in recursion depth.** The state vector that
+the loop body updates is fixed-width: `[semantic | synthetic]`,
+total dimensionality set at compile time and unchanged from the
+first iteration to the T-th. A tail-recursive loop in Sutra
+therefore consumes O(1) memory in its recursion depth — there is
+no per-step stack frame, no growing context, no heap allocation
+keyed by depth. The compiler's emitted artifact for a loop is a
+sequence of T identical tensor-op cell evaluations against the
+same state tensor, with the soft-halt mask determining which
+cells contribute. Doubling T doubles the static graph size but
+does not change runtime memory; halving T does the opposite.
+Compared with sequence models that accumulate a context window
+linearly with input length and with stack-based recursive
+languages whose memory footprint grows with call depth, Sutra's
+recurrent-tail-recursive form folds an arbitrary execution
+trajectory into a single fixed-width vector via VSA superposition
+and pays no memory cost as the trajectory deepens.
+
+This is the property that makes Sutra a candidate for
+substrate-bounded computation: a program written in Sutra can
+specify a deeper recurrence at compile time without expanding
+the runtime memory budget, and the upper bound on what fits in
+T iterations is determined by the binding capacity of the
+substrate (§3.1) rather than by available RAM. To the authors'
+knowledge, no other HDC system or HDC compiler exposes
+user-program-level recursion at all (HDCC compiles classification
+pipelines only, with no general control flow; TorchHD requires
+the user to write Python loops over hypervectors, which are not
+constant-memory in either depth or context).
 
 ### 3.4 Embedded codebook store
 
@@ -994,29 +823,14 @@ compiled module's Python data section never carries the
 embeddings — they live in the `.sdb` file, which is an artifact
 of compilation, not a service the runtime contacts.
 
-**Decode complexity.** `nearest_string` runs over an HNSW
-(Hierarchical Navigable Small World) approximate-nearest-neighbor
-graph maintained by the triplestore. HNSW (Malkov & Yashunin,
-TPAMI 2020) is a well-established ANN structure with **O(log N)
-expected query time and O(log N) worst-case query time** under
-standard graph-construction parameters — it has displaced
-linear scan as the default ANN index in Faiss, Milvus, Weaviate,
-Qdrant, and most production vector databases for this exact
-reason. So a 100-string codebook and a 100,000-string codebook
-have comparable decode latency at runtime, modulo the HNSW's
-tunable `M` (graph degree) and `ef_search` (beam width)
-parameters; the cost difference is roughly one extra graph hop
-per 10× growth in N.
-
-**HNSW is a boundary operation, not part of the in-graph tensor
-pipeline.** The body-vs-driver distinction from §3.3 applies
-here too: the tensor-op graph computes a query vector; the HNSW
-lookup happens at the *output boundary*, returning a host string
-that hands off to Python the way any compiled program returns a
-host value. Calling out to a well-engineered Rust ANN library
-for the codebook decode is the same shape as calling out to
-PyTorch for a matmul — both are the runtime's substrate, neither
-is "host-side control flow" of the kind substrate purity forbids.
+The decode does **not** scale linearly with codebook size. The
+underlying triplestore maintains an HNSW (Hierarchical Navigable
+Small World) approximate-nearest-neighbor index over every
+f32-vector triple object at compile time, so `nearest_string`
+runs in roughly logarithmic time in the number of stored
+strings, not linear. A 100-string codebook and a 100,000-string
+codebook have comparable decode latency at runtime, modulo the
+HNSW's tunable `M` and `ef_search` parameters.
 
 ### 3.5 Project manifest (`atman.toml`)
 
@@ -1036,6 +850,9 @@ provider = "ollama"
 model = "nomic-embed-text"
 dim = 768
 mean_center = true
+
+[project.compile]
+loop_max_iterations = 50
 ```
 
 The compiler reads `[project.embedding]` to know which LLM to
@@ -1045,18 +862,25 @@ tensor-op graph. Changing the substrate (e.g. swapping
 `nomic-embed-text` for a different 768-d model, or for a 1536-d
 model with a corresponding `dim` update) re-runs the embed step
 at compile time and produces a different `.sdb` codebook; the
-source code does not change. The manifest format is
-intentionally narrow — it covers what the compiler needs to
-deterministically produce a `.sdb` and emit a PyTorch module,
-and nothing else.
+source code does not change. `[project.compile] loop_max_iterations`
+sets the *default* soft-halt compute budget T baked into the
+emitted module's prelude (discussed in §1.2 and §3.3). T is
+overridable at runtime via `SUTRA_LOOP_T` in the environment or
+by reassigning `module._LOOP_T` after import; the manifest
+field is the default, not a bound on the language. The manifest format is intentionally narrow — it covers
+what the compiler needs to deterministically produce a `.sdb`
+and emit a PyTorch module, and nothing else.
 
 ### 3.6 End-to-end differentiable training through Sutra operations
 
-Because every Sutra primitive compiles to a differentiable tensor
-operation, the compiled graph supports standard PyTorch
-`loss.backward()` without modification. We verify this by
-training learnable parameters through a fuzzy-logic classifier
-built entirely from Sutra operations.
+Sutra's fuzzy conditionals depend on embedding comparisons,
+which are inherently uncertain — the similarity between two
+embeddings is a continuous value, not a crisp truth. This is
+a feature, not a limitation: because the fuzzy logic gates
+(AND, OR, NOT) are Lagrange polynomials over continuous truth
+values, gradient descent can optimize the parameters that drive
+those truth values *while preserving the symbolic program
+structure unchanged*.
 
 **Setup.** 15 words from three categories (animals, vehicles,
 foods) are embedded via nomic-embed-text (768-d, frozen). Three
@@ -1068,12 +892,17 @@ to produce per-class scores:
     rule_i = AND(sim(x, proto_i), AND(NOT(sim(x, proto_j)),
                                       NOT(sim(x, proto_k))))
 
-Each gate is a polynomial (§3, Lagrange interpolation on the
-Kleene {-1, 0, +1} grid), so the full forward pass is a
-composition of polynomial and rational tensor operations with
-well-defined gradients everywhere. Cross-entropy loss over the
-three rule scores drives Adam updates on the prototype
-embeddings.
+The symbolic structure — three fuzzy if-then rules composed of
+AND and NOT gates — is fixed throughout training and remains
+human-readable. What changes are the prototype embeddings that
+the gates evaluate against. The rule still says "classify as
+category *i* if similar to prototype *i* and not similar to the
+others"; training teaches the prototypes *what those categories
+look like in the embedding space* so the fuzzy truth values align
+with the intended classification. This is the neuro-symbolic
+proposition: the symbolic layer (the program, its rules, its
+logic gates) provides interpretability and structure; the neural
+layer (the embedding comparisons) provides learnability.
 
 **Results.** Before training (random prototypes), accuracy is 40%
 (chance = 33%). After 300 epochs, accuracy reaches 100%. Gradient
@@ -1088,14 +917,15 @@ dot product) -> `fuzzy_not` (Kleene negation) -> `fuzzy_and`
 | Before |     40%  |  1.93  |
 | After  |    100%  |  0.04  |
 
-This is the minimal demonstration that Sutra's compiled
-tensor-op graph is not merely structurally differentiable but
-*trainable*: gradient descent through the fuzzy-logic gates
-learns to position the prototypes so that the AND/NOT rules
-correctly classify all inputs. The experiment uses no
-Sutra-specific autograd machinery — standard `torch.autograd`
-suffices because the compiler emits only operations that PyTorch
-already knows how to differentiate.
+The symbolic content of the program — three AND/NOT rules over
+three prototypes — is identical before and after training.
+The program is as readable at epoch 300 as at epoch 0. Only the
+prototype embeddings moved, and they moved because the
+polynomial fuzzy gates transmitted gradient information from the
+classification loss all the way back to the embedding vectors.
+No Sutra-specific autograd machinery is required; standard
+`torch.autograd` suffices because the compiler emits only
+operations that PyTorch already knows how to differentiate.
 
 ---
 
@@ -1342,3 +1172,4 @@ programs to write rather than scripts to glue together.
   space. *ICLR*.
 - Wang, Z., Zhang, J., Feng, J., & Chen, Z. (2014). Knowledge
   graph embedding by translating on hyperplanes. *AAAI*.
+,
