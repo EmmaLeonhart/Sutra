@@ -384,7 +384,8 @@ Sutra's design includes ontology-oriented objects (closer to OWL
 classes than to OOP) for compile-time semantic checking. Today's
 compiler implements free functions cleanly; object methods parse
 but their encapsulation rules (no closure across class boundary)
-are not enforced. Queued.
+are not enforced. Implementing the encapsulation pass and the
+class-boundary closure check is straightforward future work.
 
 ### 6.2 Two boundary leaks remain
 
