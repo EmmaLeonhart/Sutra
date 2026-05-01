@@ -113,7 +113,7 @@ path override.
 If the FFI DLL isn't built, all 7 tests skip; the test runner
 prints a hint pointing at the cargo build command.
 
-### Substrate-purity boundary leak fix verification
+### Substrate-purity verification (host-language scaffolding)
 
 ```bash
 cd sdk/sutra-compiler
