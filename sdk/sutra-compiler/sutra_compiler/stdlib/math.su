@@ -53,18 +53,27 @@
 
 
 // ==========================================================================
-// Intrinsic declarations
+// Intrinsic declarations — class-as-namespace form
 // ==========================================================================
 //
 // These names exist for the parser so that referenced calls have a
 // known symbol. The codegen (`codegen_base.py::_translate_call` in
 // the `_TRANSCENDENTALS_DISABLED` branch) rejects them with a clear
 // CodegenNotSupported error pointing at this file.
+//
+// Migrated 2026-05-01 from top-level `intrinsic function` declarations
+// to the class-as-namespace shape per the encapsulation taxonomy. The
+// stdlib_loader registers each entry under both the bare name (`log`)
+// and the namespaced name (`Math.log`), so existing user code that
+// calls `log(x)` still resolves and the new `Math.log(x)` shape is
+// also recognized.
 
-intrinsic function scalar log(scalar x);
-intrinsic function scalar sqrt(scalar x);
-intrinsic function scalar exp(scalar x);
-intrinsic function scalar sin(scalar x);
-intrinsic function scalar cos(scalar x);
-intrinsic function scalar tan(scalar x);
-intrinsic function scalar pow(scalar x, scalar y);
+class Math extends vector {
+    static intrinsic method scalar log(scalar x);
+    static intrinsic method scalar sqrt(scalar x);
+    static intrinsic method scalar exp(scalar x);
+    static intrinsic method scalar sin(scalar x);
+    static intrinsic method scalar cos(scalar x);
+    static intrinsic method scalar tan(scalar x);
+    static intrinsic method scalar pow(scalar x, scalar y);
+}
