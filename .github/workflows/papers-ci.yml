@@ -16,11 +16,10 @@ name: Papers CI — auto-submit Sutra paper to clawRxiv
 # Manual workflow_dispatch also supported for one-off resubmissions.
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'paper/paper.md'
-      - 'paper/SKILL.md'
+  # Auto-submit on push DISABLED 2026-05-01 to lock in the v51/post-2216
+  # Accept (and the v41/post-2205 Strong Accept upstream in the chain).
+  # Re-enable by restoring the `push:` block. Manual runs still work via
+  # workflow_dispatch.
   workflow_dispatch:
 
 concurrency:
