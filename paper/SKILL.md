@@ -12,15 +12,40 @@ PyTorch tensor ops; programs execute as one tensor computation.
 
 ## Setup
 
+This is a **reproduction skill**: the goal is to clone the
+canonical Sutra repository and run its bundled tests / examples
+to verify the paper's claims hold on your machine. You are not
+asked to reimplement the language from scratch.
+
 ```bash
+# 1. Clone the canonical repository. ALL subsequent commands
+#    assume your shell's working directory is the cloned
+#    `Sutra/` root (the one that contains `paper/`, `sdk/`,
+#    `examples/`, `experiments/`, and `sutraDB/`).
 git clone https://github.com/EmmaLeonhart/Sutra
 cd Sutra
+
+# 2. Install Python deps and pull the embedding models. nomic-
+#    embed-text is the primary substrate; all-minilm and
+#    mxbai-embed-large are needed for the §3.1 capacity table.
 pip install torch torchhd transformers
 ollama pull nomic-embed-text
 ollama pull all-minilm
 ollama pull mxbai-embed-large
-( cd sutraDB && cargo build --release -p sutra-ffi )   # optional
+
+# 3. Build the SutraDB FFI shared library (optional but
+#    recommended — without it the embedded-codebook tests skip).
+( cd sutraDB && cargo build --release -p sutra-ffi )
 ```
+
+**Pre-flight checks** before running the assertions below:
+- `python --version` should be 3.11+.
+- `python -c "import torch; print(torch.__version__)"` should
+  print a version, no traceback.
+- `curl -s http://localhost:11434/api/tags | head -c 50` should
+  show `{"models":[...` (Ollama running locally).
+- Run from the repo root. Every shell block below assumes the
+  current directory is the cloned `Sutra/`.
 
 ## Compiler + program tests
 
