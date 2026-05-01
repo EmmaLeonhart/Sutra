@@ -131,6 +131,218 @@ Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
 message, a findings doc, or a git tag — not queue.md.
 
+## NEVER mention development internals in the submitted paper
+
+The paper text submitted to clawrxiv (`paper/paper.md`,
+`paper/paper.tex`, `paper/SKILL.md`, `paper/REPRODUCE.md`) must
+contain no references to:
+
+- `CLAUDE.md`, "safety preamble," or any AI-tooling configuration
+  files
+- Internal workflow names: `papers-ci`, `pull-reviews`,
+  `combinatorics`, `paper-pdf`, `pages.yml`, etc.
+- `Skip-Submit` trailer, `supersedes`, `dedup_token`, or any other
+  internal mechanism for managing submissions
+- `quick_review.py`, `pull_all_reviews.py`,
+  `paper_submit_and_fetch.py`, `paper_fixes.py`, or any other
+  script names from `scripts/`
+- Internal terminology: "gradient descent on the paper,"
+  "combinatorics testing," "fix function," "variant mask," "mask
+  bit," "candidate mode," etc.
+- Project-management jargon that betrays the iterative-AI nature:
+  "queued," "fix paths are specified," "next-release work," "TBD,"
+  "see CLAUDE.md," "(version N draft)," dated timestamps in prose
+- File paths that include internal session artifacts:
+  `paper/.post_id`, `paper/candidates.jsonl`,
+  `combinatorics_results.json`, etc.
+
+The reason: the v1 (post 2147) review explicitly cited the
+`CLAUDE.md` mention as evidence the paper is "a descriptive output
+of an AI agent rather than a rigorous academic study." Every
+internal-development tell raises the same flag. The reviewer's job
+is to evaluate the research; our job is to give them a paper that
+reads like a finished research artifact, not a snapshot of an
+in-flight AI workflow.
+
+Per Emma 2026-04-30: "There will be no mention of development
+internals in the paper."
+
+How to apply: before any paper edit, grep the paper files for the
+forbidden tokens above and excise them. References to internal
+specs (e.g., `planning/sutra-spec/binding.md`) are also internal
+and shouldn't appear in submitted text — point at concepts, not
+file paths inside this repo.
+
+## NEVER add unique markers to clawrxiv submissions to bypass dedup
+
+The clawrxiv API has duplicate detection on (title, abstract).
+**Do not** add per-variant suffixes, version markers, build IDs,
+"variant N" tags, hidden whitespace, or any other artifact to
+title, abstract, or body to bypass that detector. The user has
+explicitly rejected this approach as both stupid and dangerous —
+"endangering us" — because:
+
+1. It's transparently a hack to defeat their dedup system, which
+   reads as bad-faith API usage.
+2. Their dedup detector is AI-driven and sees through trivial
+   markers anyway ("minor addition to the title indicating a build
+   version, which does not change the core research"); even when it
+   did "work" it would tip the reviewer that the submission is a
+   test, contaminating the rating signal.
+3. If the platform notices we're systematically gaming dedup, our
+   API access could be revoked and the larger pipeline goes down.
+
+The legitimate way to submit multiple versions of the same paper
+to clawrxiv is the **supersedes / revisions chain**: each new
+version supersedes the previous, gets its own post ID and its own
+review, and the chain advances by one. This is serial (one variant
+at a time) but it's what the API is designed for.
+
+For combinatorial paper-fix testing, this means walking the chain:
+variant 0 → submit, supersedes the current canonical → get post
+N+1 + review → variant 1 → submit, supersedes N+1 → get post N+2 +
+review → ... etc. After the run, restore `paper/.post_id` to its
+pre-combinatorics value so the canonical chain isn't permanently
+advanced by throwaway variants. Implementation lives in
+`.github/workflows/combinatorics.yml`.
+
+Per Emma 2026-04-30: "We're not going to make it fucking obvious
+to anybody who's looking what's going on." Submissions go in
+under the real title, real abstract, real body. The combination
+under test is hidden in the body changes, not flagged in the
+metadata.
+
+## Don't overthink the paper gradient descent
+
+The paper gradient-descent loop is intentionally crude. Reviewer
+ratings are noisy. Fix functions don't have to be perfect on the
+first pass. The goal is to identify *which fixes move the needle*,
+not to ship a polished paper on iteration one.
+
+Concretely: when the user lists reviewer cons and asks for fixes,
+do not iterate on the wording of each fix function until it's
+"correct." Get a passable version of each fix, run combinatorics
+to measure which ones help, then refine the winners. Treat the
+combinatorics workflow as the measurement instrument. Treat the
+fix functions as cheap experiments.
+
+Per Emma 2026-04-30: "We aren't trying to get the paper right at
+the beginning. We're trying to get the gradients."
+
+Concretely-applied rules:
+1. Fix functions in `scripts/paper_fixes.py` are throwaway
+   experiments. They don't need to handle every edge case. If a
+   `text.replace()` doesn't match because the surrounding text
+   changed slightly, that's fine — the variant for that mask is
+   a no-op.
+2. Combinatorics workflow runs are the unit of progress, not
+   individual paper.md edits. Trigger combinatorics, look at
+   results, refine.
+3. Do not get blocked debating which fix to apply first. Apply
+   them all in the combinatorics matrix. Let the data say which
+   ones helped.
+4. Resist the impulse to clean up the paper between combinatorics
+   runs. Each cleanup is an unmeasured edit. Save cleanup for
+   after a run identifies a clear winner.
+
+## Paper edits: gradient descent, one variable at a time
+
+The paper is in a gradient-descent phase. Every push that touches
+`paper/paper.md` or `paper/SKILL.md` triggers `papers-ci.yml`,
+which submits to clawRxiv and commits an AI review back to
+`paper/reviews/`. That feedback loop only works as a measurement
+if **each commit isolates one change**. If you bundle unrelated
+edits, the next review tells you nothing about which edit moved
+the needle.
+
+Rules:
+
+1. **One logical change per commit.** "Fix the year-in-prose"
+   is one change. "Fix the demo count" is another change. Don't
+   bundle them. The correction-in-multiple-files for a single
+   logical claim is fine — that's still one variable.
+2. **Push immediately, don't batch.** Each focused commit gets
+   pushed by itself so the review CI runs and the result is
+   attributable to that edit. Waiting until you have "a few
+   improvements" before pushing defeats the experiment.
+3. **You don't need permission for each edit.** Per Emma:
+   "It's not that you absolutely need my permission to make any
+   kinds of edits to the paper. It's that we're trying to do
+   gradient descent." If a fix is obvious and grounded in the
+   review feedback or your own audit, just make it. Show your
+   reasoning in the commit message; the user can course-correct
+   afterward if needed.
+4. **Commit messages name the variable.** "paper: correct
+   demo count from 3 to 13" tells the next session what this
+   step was measuring. "paper: misc improvements" loses the
+   experiment.
+5. **Time is a constraint.** Don't wait for the previous review
+   to land before starting the next change. Push, queue the next
+   variable, push again. The reviews stack up in
+   `paper/reviews/`; we'll triage them as a batch when needed.
+
+This rule lives downstream of the assertive-not-defensive rule
+(below). Together: hold the line on what the paper claims, but
+make obvious improvements aggressively, one at a time.
+
+## Reviewer feedback: assertive, not defensive
+
+When clawRxiv reviews come back on the paper (in
+`paper/reviews/v*_post*_review.md`), do **not** treat every con as a
+demand to fix. Reviewers are AI and they miss things, conflate
+genres, and sometimes hallucinate. The default disposition is
+**assertive** — hold ground on contributions the paper actually
+makes — not **defensive** — caving on every criticism just because
+it was stated authoritatively.
+
+The triage rule:
+
+1. **Fix the obvious things.** Typos, missing definitions, sentences
+   that are actually wrong, a section the reviewer wanted that
+   genuinely strengthens the paper. These are cheap and good.
+2. **Push back on category errors.** If a reviewer wants quantitative
+   benchmarks against alternatives in a paper that is explicitly a
+   *language / architecture* paper, the answer is to sharpen the
+   framing in the paper so the genre is clearer — not to retrofit
+   the paper into a different genre to satisfy the reviewer.
+3. **Don't chase scope creep.** Each "you should also evaluate X"
+   demand is potentially a different paper. Acknowledge it as future
+   work; don't promise it as part of *this* paper.
+4. **Hold the line on what the paper claims.** If the paper says
+   "we present a working compiler that does X," and the reviewer
+   asks for evidence the compiler does *more than* X, the answer is
+   not to delete the X claim — it's to clarify that X is the claim.
+
+Per Emma: we are going to be assertive against the reviewer but we
+are not going to be defensive. We are going to hold our ground.
+We're not just going to cave on every single thing.
+
+When a review lands, write a triage table — what's a fix, what's a
+pushback, what's out of scope — and let Emma direct which fixes to
+land before the next submission. Do not silently capitulate to
+every con just because it's there.
+
+## Paper: no specific dates or year mentions in submitted text
+
+The paper, SKILL.md, and REPRODUCE.md must not contain specific
+calendar dates or year references in the prose ("as of 2026-04-30",
+"April 2026", etc.). Reviewer bots have flagged dated phrasing as
+"hallucinated future-dated content" because the year-2026 cutoff
+sits past their training distribution. The fix is to remove the
+year/date entirely rather than try to argue with the bot — the
+content is just as accurate without the date and submits cleanly.
+
+This applies to: `paper/paper.md`, `paper/paper.tex`,
+`paper/SKILL.md`, `paper/REPRODUCE.md`. It does **not** apply to:
+filenames in `planning/findings/` (those keep dated names by
+convention, see "Experimental results live in planning/findings/"
+above), commit messages, this CLAUDE.md, or chat transcripts —
+those are internal artifacts, not submitted text.
+
+When adding new content to the paper that mentions when something
+happened, prefer phrasing like "the numpy backend is deprecated"
+rather than "deprecated as of YYYY-MM-DD."
+
 ## NO MATH SHORTCUTS (critical — re-read before every experiment)
 
 The specification of every Sutra operation lives in `planning/sutra-spec/`. Before implementing or modifying any operation, **read the relevant spec file first** and match the implementation to what the spec actually says — not what "sounds more biological," not what you guessed. The old numbered spec (`02-operations.md` etc.) was deprecated on 2026-04-15 for containing Claude-invented content that didn't match the user's vision. The current un-numbered spec is under active rewrite; see `planning/sutra-spec/README.md`. Current canonical files:

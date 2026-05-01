@@ -26,6 +26,7 @@ on:
       - 'README.md'
       - 'planning/sutra-spec/**'
       - 'sutraDB/pages/**'
+      - 'paper/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -58,6 +59,42 @@ jobs:
             "mkdocs-material>=9.5.0" \
             "pymdown-extensions>=10.0" \
             "mkdocs>=1.6.0"
+
+      - name: Install TeX Live (for paper PDF builds)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            lmodern \
+            latexmk
+
+      - name: Build paper PDFs (named + anonymized)
+        working-directory: paper
+        run: |
+          # Named (full version with author + repo URLs).
+          latexmk -pdf -interaction=nonstopmode paper.tex
+          mv paper.pdf paper-named.pdf
+          # Clean intermediate files before the second build.
+          latexmk -c paper.tex || true
+          # Anonymized (NeurIPS double-blind).  Pretex declares
+          # \ifanon and \anontrue ahead of paper.tex, which guards
+          # its own \newif so the pretex's value is preserved.
+          latexmk -pdf -interaction=nonstopmode \
+            -usepretex='\newif\ifanon\anontrue' paper.tex
+          mv paper.pdf paper-anonymized.pdf
+
+      - name: Stage paper PDFs into docs/ for MkDocs link validation
+        run: |
+          # Copy PDFs into docs/ BEFORE mkdocs build so strict-mode
+          # link validation sees them as valid targets. The files
+          # are gitignored at the docs/ level (intentional: the
+          # build artifact, not source); the workflow re-creates
+          # them on every run.
+          cp paper/paper-named.pdf docs/paper.pdf
+          cp paper/paper-anonymized.pdf docs/paper-anonymized.pdf
 
       - name: Build site
         run: |
