@@ -646,7 +646,13 @@ class BaseCodegen:
 
         # T-step soft-halt loop. The Python `for _t in range(T)` is
         # meta-iteration over a compile-time-fixed count.
-        self._emit(f"for _t in range({self._LOOP_T}):")
+        # `_LOOP_T` is a module-level runtime variable (see prelude).
+        # Compile-time value baked into the prelude is the default;
+        # runtime can override via SUTRA_LOOP_T env var or by assigning
+        # to module._LOOP_T after import. Reviewer-recurring concern
+        # (loop_max_iterations is compile-time configuration) →
+        # T is now a runtime compute budget.
+        self._emit("for _t in range(_LOOP_T):")
         self._indent += 1
         # Snapshot pre-step state for soft-mux freeze on halt.
         for state_name in state_names:

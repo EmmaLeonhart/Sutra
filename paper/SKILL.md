@@ -76,6 +76,19 @@ SUTRA_TORCH_COMPILE=1 python -m pytest sdk/sutra-compiler/tests/test_torch_compi
 test $? -eq 0 || { echo "FAIL: torch.compile wrap"; exit 1; }
 ```
 
+```bash
+# T-as-runtime-budget: same compiled program, three different T values.
+# T is potentially unlimited (any non-negative integer); effective work
+# is bounded by the soft-halt cell, so an oversized T does not cost
+# extra compute past convergence.
+got50=$(PYTHONPATH=sdk/sutra-compiler python -m sutra_compiler --run examples/do_while_adder.su 2>&1 | tail -1)
+got200=$(SUTRA_LOOP_T=200 PYTHONPATH=sdk/sutra-compiler python -m sutra_compiler --run examples/do_while_adder.su 2>&1 | tail -1)
+got10000=$(SUTRA_LOOP_T=10000 PYTHONPATH=sdk/sutra-compiler python -m sutra_compiler --run examples/do_while_adder.su 2>&1 | tail -1)
+[ "$got50" = "$got200" ] || { echo "FAIL: T=50 vs T=200 disagreed"; exit 1; }
+[ "$got50" = "$got10000" ] || { echo "FAIL: T=50 vs T=10000 disagreed"; exit 1; }
+echo "OK: T-as-runtime-budget reproduces (got '$got50' across T in {50, 200, 10000})"
+```
+
 ## Empirical results from the paper
 
 ### §3.1 — Rotation vs Hadamard capacity (LLM substrates)

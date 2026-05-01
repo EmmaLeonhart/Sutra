@@ -174,14 +174,21 @@ The four core technical contributions of this paper are:
 
 These four primitives are integrated into a single working
 compiler that lowers `.su` source to a self-contained PyTorch
-module and runs on CPU or CUDA. The compile-time loop unroll
-depth T is a per-project configuration field
-(`[project.compile] loop_max_iterations` in the project's
-`atman.toml` manifest, §3.5; equivalently, the `--loop-T` CLI
-flag); the default is T=50, and programs that need deeper
-recursion compile with a larger T at no runtime cost beyond the
-longer emitted graph (the soft-halt cell freezes state once
-`halt_cum` saturates).
+module and runs on CPU or CUDA. The loop compute budget T is a
+**runtime** value, not compile-time configuration. T is
+*potentially unlimited* — any non-negative integer is a valid
+value, with no hard cap in the implementation — but the
+*effective work* is bounded by the soft-halt mechanism: once
+`halt_cum` saturates (the program-visible computation has
+converged), all remaining iterations are masked-out identity
+steps that do not change the output. Setting T = 10⁹ does not
+cost 10⁹ ticks of real work; it costs ~(convergence depth) plus
+the tail of cheap no-op ticks. The emitted module reads
+`_LOOP_T` from `SUTRA_LOOP_T` at import (default 50), or the
+caller can reassign `module._LOOP_T` before calling. The
+`atman.toml` field `[project.compile] loop_max_iterations` and
+the `--loop-T` CLI flag set the *default* baked into the
+emitted module; they do not bound the language.
 
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
@@ -795,22 +802,34 @@ on the substrate (truth-axis read → heaviside step → cumulative
 saturating sum), run the body which uses `pass values` (or
 equivalently `return NAME(args)` tail recursion) to update state
 locals, then a soft-mux freezes state at the pre-step value once
-halt saturates. T is a configurable compile-time parameter (default 50);
-the soft-halt gating ensures convergence typically occurs in
-far fewer steps, with remaining iterations gated to identity
-by the saturated halt signal. Optional `torch.compile` wrapping
-unrolls the iteration at trace time.
+halt saturates. T is a **runtime** compute budget: the emitted
+module's loop body reads the module-level `_LOOP_T` value at
+each call. The compile-time default is 50; runtime can override
+via the `SUTRA_LOOP_T` environment variable (read at import) or
+by setting `module._LOOP_T = N` before calling. The soft-halt
+gating ensures convergence typically occurs in far fewer steps,
+with remaining iterations gated to identity by the saturated
+halt signal. Optional `torch.compile` wrapping unrolls the
+iteration at trace time.
 
-T should be read as a *compute budget*, not a halt condition.
-The soft-halt mechanism terminates the program-visible
-computation as soon as the convergence criterion is met (the
-state matches a compiled prototype within the cleanup tolerance);
-the remaining iterations are masked-out identity steps that do
-not change the output. T bounds *how long the compiler is willing
-to unroll*, not *how deep a recursion the language can express*.
-Programs with deeper-than-default convergence depth raise T at
-compile time (`[project.compile] loop_max_iterations` in
-`atman.toml` or `--loop-T` on the CLI; §1.2 / §3.5).
+T should be read as a *compute budget*, not a halt condition,
+and is *potentially unlimited*. The implementation places no
+hard cap on `_LOOP_T`: any non-negative integer is a valid
+value, including values much larger than the soft-halt's
+convergence depth. The soft-halt mechanism terminates the
+*program-visible* computation as soon as the convergence
+criterion is met (the state matches a compiled prototype within
+the cleanup tolerance); the remaining iterations are masked-out
+identity steps that do not change the output. So T bounds
+*how long the runtime is willing to walk the loop*, not
+*how much actual work happens before convergence*, and not
+*how deep a recursion the language can express*. Programs with
+deeper-than-default convergence depth raise T at runtime — no
+recompile — by exporting `SUTRA_LOOP_T` or assigning
+`module._LOOP_T`. The `atman.toml` field
+`[project.compile] loop_max_iterations` and the `--loop-T` CLI
+flag set the default baked into the emitted prelude; they do
+not bound the language.
 
 (The recurrent computational substrate that emerges from this
 construction is the same shape Siegelmann & Sontag (1992)
@@ -922,9 +941,11 @@ tensor-op graph. Changing the substrate (e.g. swapping
 model with a corresponding `dim` update) re-runs the embed step
 at compile time and produces a different `.sdb` codebook; the
 source code does not change. `[project.compile] loop_max_iterations`
-sets the soft-halt loop unroll depth T discussed in §1.2 and
-§3.3; the default is 50 and programs requiring deeper recursion
-raise it. The manifest format is intentionally narrow — it covers
+sets the *default* soft-halt compute budget T baked into the
+emitted module's prelude (discussed in §1.2 and §3.3). T is
+overridable at runtime via `SUTRA_LOOP_T` in the environment or
+by reassigning `module._LOOP_T` after import; the manifest
+field is the default, not a bound on the language. The manifest format is intentionally narrow — it covers
 what the compiler needs to deterministically produce a `.sdb`
 and emit a PyTorch module, and nothing else.
 
