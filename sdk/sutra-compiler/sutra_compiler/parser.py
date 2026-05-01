@@ -587,23 +587,29 @@ class Parser:
             self._skip_to_statement_boundary()
             return None
 
-        # Body. As of 2026-05-01 the body can contain method
-        # declarations: `method ...`, `static method ...`,
-        # `intrinsic method ...;`, and `static intrinsic method ...;`.
+        # Body. As of 2026-05-01 the body can contain:
+        #   - method declarations: `method ...`, `static method ...`,
+        #     `intrinsic method ...;`, `static intrinsic method ...;`
+        #   - loop function declarations: `do_while ...`, `while_loop ...`,
+        #     `iterative_loop ...`, `foreach_loop ...` (object loops —
+        #     step 6 of the encapsulation taxonomy, 2026-05-01)
         # Field declarations and operator overloads remain deferred.
         # Any other declaration inside the braces still triggers
         # SUT0140 pointing at the deferred work.
         self._expect(TokenKind.LBRACE, "`{` to open class body")
         methods: List[ast.MethodDecl] = []
+        loop_functions: List[ast.LoopFunctionDecl] = []
+        loop_kw_set = (
+            TokenKind.KW_DO_WHILE,
+            TokenKind.KW_WHILE_LOOP,
+            TokenKind.KW_ITERATIVE_LOOP,
+            TokenKind.KW_FOREACH_LOOP,
+        )
         while not self._check(TokenKind.RBRACE) and self._peek().kind is not TokenKind.EOF:
             tok0 = self._peek()
             tok1 = self._peek(1)
             tok2 = self._peek(2)
-            # Detect the four shapes:
-            #   method ...
-            #   static method ...
-            #   intrinsic method ... ;
-            #   static intrinsic method ... ;
+            # Detect the four method shapes plus loop function decls.
             is_method_start = False
             is_static = False
             is_intrinsic = False
@@ -617,8 +623,6 @@ class Parser:
                   and tok1.kind is TokenKind.KW_METHOD):
                 is_method_start = True
                 is_intrinsic = True
-                # Consume the `intrinsic` token here so
-                # _parse_method_decl sees `method ...` next.
                 self._advance()
             elif (tok0.kind is TokenKind.KW_STATIC
                   and tok1.kind is TokenKind.KW_INTRINSIC
@@ -626,8 +630,6 @@ class Parser:
                 is_method_start = True
                 is_static = True
                 is_intrinsic = True
-                # Consume `static` and `intrinsic` so _parse_method_decl
-                # sees `method ...` next; restore static via mods.
                 self._advance()  # static
                 self._advance()  # intrinsic
             if is_method_start:
@@ -637,16 +639,26 @@ class Parser:
                 m = self._parse_method_decl(mods, is_intrinsic=is_intrinsic)
                 if m is not None:
                     methods.append(m)
+            elif tok0.kind in loop_kw_set:
+                # Object loop: a loop function declared inside a class
+                # body. Same shape as a top-level loop function decl;
+                # the codegen emits it with a class-mangled name and
+                # routes `loop Class.name(...)` calls to it.
+                lf = self._parse_loop_function_decl()
+                if lf is not None:
+                    loop_functions.append(lf)
             else:
                 self.diagnostics.error(
-                    "class bodies accept method declarations only "
-                    "(`method ...` or `static method ...`). Field "
-                    "declarations and operator overloads are deferred — "
-                    "see `todo.md` § \"Object encapsulation\"",
+                    "class bodies accept method and loop-function "
+                    "declarations only. Field declarations and operator "
+                    "overloads are deferred — see `todo.md` § \"Object "
+                    "encapsulation\"",
                     self._current_span(),
                     code="SUT0140",
                     hint="declare the body member as `method <ret> "
-                         "<name>(...) { ... }` or remove it",
+                         "<name>(...) { ... }`, a loop function "
+                         "(`do_while`, `while_loop`, `iterative_loop`, "
+                         "`foreach_loop`), or remove it",
                 )
                 # Skip forward to a closing brace so the rest of the
                 # file still parses.
@@ -663,6 +675,7 @@ class Parser:
                     name=name_tok.lexeme,
                     parent_name=parent_tok.lexeme,
                     methods=methods,
+                    loop_functions=loop_functions,
                     span=SourceSpan(start=start_span.start, end=end_span.end),
                 )
         close = self._expect(TokenKind.RBRACE, "`}` to close class body")
@@ -674,6 +687,7 @@ class Parser:
             name=name_tok.lexeme,
             parent_name=parent_tok.lexeme,
             methods=methods,
+            loop_functions=loop_functions,
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
@@ -1227,10 +1241,21 @@ class Parser:
         start = self._current_span()
         self._advance()  # loop
 
-        # New form: `loop NAME(cond, args, ...);` — invoke a declared
-        # loop function.
+        # New form: `loop NAME(cond, args, ...);` or
+        # `loop CLASS.NAME(cond, args, ...);` — invoke a declared loop
+        # function. The dotted form invokes a loop function declared
+        # inside a class body (object loops, step 6 of the
+        # encapsulation taxonomy 2026-05-01).
         if self._check(TokenKind.IDENT):
             name_tok = self._advance()
+            full_name = name_tok.lexeme
+            if self._match(TokenKind.DOT):
+                method_tok = self._expect(TokenKind.IDENT,
+                                          "method name after `.` in loop call")
+                if method_tok is None:
+                    self._skip_to_statement_boundary()
+                    return None
+                full_name = f"{name_tok.lexeme}.{method_tok.lexeme}"
             if self._expect(TokenKind.LPAREN, "`(` after loop function name") is None:
                 self._skip_to_statement_boundary()
                 return None
@@ -1252,7 +1277,7 @@ class Parser:
             end = self._expect(TokenKind.SEMICOLON, "`;` after loop call")
             end_span = end.span if end else self._current_span()
             return ast.LoopCallStmt(
-                name=name_tok.lexeme,
+                name=full_name,
                 condition_arg=condition_arg,
                 state_arg_names=state_arg_names,
                 span=SourceSpan(start=start.start, end=end_span.end),
