@@ -329,7 +329,55 @@ writes, not in *which library is faster*. The CUDA kernels both
 systems eventually call into are largely the same — it's the
 shape of the program before it hits CUDA that differs.
 
-### 2.2 Differentiable Programming, AOT Compilation, and Knowledge
+### 2.2 Comparison to other neuro-symbolic languages
+
+The closest neuro-symbolic-language peer is **Scallop** (Li et
+al. 2023), a Datalog-based language with PyTorch bindings whose
+differentiability comes from an extended provenance-semiring
+framework over relational queries. Scallop's architectural shape
+is a two-stage pipeline: a neural model `M_θ` extracts discrete
+symbols `r` from raw input, and a Datalog program `P` performs
+logical reasoning over those symbols to produce the output. The
+boundary between perception and reasoning is sharp; the symbols
+that flow between them are typed relations.
+
+Sutra's shape is different at the same architectural level. There
+is no perception-then-reasoning split: the substrate is a
+continuous embedding space throughout, and primitives like
+`bind`, `unbind`, `bundle`, and similarity operate on vectors
+end-to-end. There is no discrete symbolic layer to extract into
+or reason over. The whole program — including what would in
+Scallop be the logic program — compiles to a single fused
+tensor-op graph through beta reduction (§1.2-2). Differentiability
+is inherited from the tensor-op graph itself; there are no
+provenance semirings because there is no relational layer to
+annotate.
+
+The two systems are good at different things. Scallop is the
+right tool when an application's problem structure is naturally
+relational — scene-graph queries, knowledge-graph reasoning,
+combinatorial search over typed entities — and the perception
+side can be cleanly factored out into a separate neural module.
+Sutra is the right tool when computation is best expressed as
+algebra on vectors and the substrate is a frozen LLM embedding
+space the program reads strings into and decodes strings out of.
+Neither subsumes the other; they answer different
+"what kind of program does the user want to write?" questions.
+
+The other named neuro-symbolic peers — DeepProbLog (Manhaeve et
+al. 2018), Logic Tensor Networks (Serafini & Garcez 2016;
+Badreddine et al. 2022), and NeurASP (Yang et al. 2020) — share
+Scallop's perception-then-reasoning shape and differ similarly
+from Sutra. DeepProbLog grounds neural predicates in a ProbLog
+proof tree; LTN compiles first-order-logic formulas into
+differentiable t-norm losses over learned embeddings; NeurASP
+extends Answer Set Programming with neural predicates. All three
+treat symbols as a separate stratum from the neural layer. None
+of them targets the configuration where a single tensor-op graph
+folds the whole program — including the I/O — over a frozen
+externally-trained substrate.
+
+### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
 
 The closest design ancestors are partial-evaluation systems that
@@ -730,11 +778,24 @@ programs to write rather than scripts to glue together.
 - Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013). Efficient
   estimation of word representations in vector space. *ICLR
   Workshop*.
+- Badreddine, S., Garcez, A. d., Serafini, L., & Spranger, M.
+  (2022). Logic Tensor Networks. *Artificial Intelligence* 303.
 - Heddes, M., Nunes, I., Vergés, P., Kleyko, D., Abraham, D.,
   Givargis, T., Nicolau, A., & Veidenbaum, A. (2023). Torchhd: An
   open source python library to support research on
   hyperdimensional computing and vector symbolic architectures.
   *Journal of Machine Learning Research* 24(255):1–10.
+- Li, Z., Huang, J., & Naik, M. (2023). Scallop: A Language for
+  Neurosymbolic Programming. *Proceedings of the ACM on Programming
+  Languages* 7(PLDI):1463–1487. arXiv:2304.04812.
+- Manhaeve, R., Dumancic, S., Kimmig, A., Demeester, T., & De
+  Raedt, L. (2018). DeepProbLog: Neural Probabilistic Logic
+  Programming. *NeurIPS*.
+- Serafini, L. & Garcez, A. d. (2016). Logic Tensor Networks: Deep
+  Learning and Logical Reasoning from Data and Knowledge. *NeSy
+  Workshop*.
+- Yang, Z., Ishay, A., & Lee, J. (2020). NeurASP: Embracing Neural
+  Networks into Answer Set Programming. *IJCAI*.
 - Plate, T. A. (1995). Holographic reduced representations. *IEEE
   Transactions on Neural Networks* 6(3):623–641.
 - Siegelmann, H. T. & Sontag, E. D. (1992). On the computational
