@@ -77,12 +77,18 @@
 
 
 // ==========================================================================
-// Section 3 — intrinsic declarations
+// Section 3 — intrinsic declarations (class-as-namespace form)
 // ==========================================================================
 //
 // zero_vector is a runtime primitive — the compiler's neutral
 // element for bundling and the initial value for axis-indexed
 // construction (make_real, make_complex, make_char would start
 // from it once indexed write lands).
+//
+// Migrated 2026-05-01 from a top-level intrinsic to the
+// class-as-namespace shape. Stdlib loader registers it under both
+// `zero_vector` and `Memory.zero_vector`.
 
-intrinsic function vector zero_vector();
+class Memory extends vector {
+    static intrinsic method vector zero_vector();
+}
