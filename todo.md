@@ -45,6 +45,16 @@ Also clear any references to y combinator from this file I'm not applying.
 
 I was only interested in applying over the flybrain particularly because that was an odd enough thing I felt it needed help commercializing
 
+Better way of doing transcendental functions
+
+If we were able to somehow get a reliable way of representing the natural logarithm and exponents of E, then this would basically help us substantially. This would basically mean that we'd have all of our transcendental functions running. 
+
+lookup table was attempted, we can try again
+
+basically all functions beta reduce to their components except recursive ones
+
+as a result the object encapsulation one is good
+
 ## [This year] Object encapsulation with file-scope rule for free functions
 
 **Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
