@@ -102,12 +102,13 @@ nav:
   - What is Sutra?: what-is-sutra.md
   - Theory and Paper:
     # Section landing page — the HTML version of the paper itself,
-    # with prominent links to the PDF (built by paper-pdf.yml and
-    # served at /paper.pdf) and the canonical clawRxiv submission.
+    # with a link to the PDF (built by paper-pdf.yml and served at
+    # /paper.pdf).
     - Theory and Paper: theory-and-paper.md
     - Paradigms: paradigms.md
     - Ontology: ontology.md
     - Primitive classes: primitive-classes.md
+    - Operators: operators.md
     - Logical operations: logical-operations.md
     - Numeric math: numeric-math.md
     - Memory: memory.md
