@@ -313,7 +313,7 @@ not essential. Parked here rather than switched immediately.
 
 ## [This year] Language-design open questions
 
-Not paper-critical; revisit after Claw4S. Grouped because they are of a piece.
+Not blocking the active work; grouped because they are of a piece.
 
 - Anonymous functions (leaning toward `lambda` keyword).
 - How primitive substrate operations read in source.
@@ -848,7 +848,7 @@ commitments, just parking spots. Currently parked:
 - **OWL → SutraDB extension + Sutra ontology import/editing.** Build out
   OWL handling so SutraDB gains a first-class ontology extension and Sutra
   gains ontology-aware operations. Protégé may be a more helpful starting
-  point than raw OWL files. Scope expansion; revisit after Claw4S.
+  point than raw OWL files.
 
 ---
 
