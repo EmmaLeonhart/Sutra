@@ -145,25 +145,30 @@ also reports an **engineering / execution result**:
 
 - **End-to-end string I/O through the substrate, via a
   compile-time codebook + nearest-string decode.** Every embedded
-  string in a `.su` program is embedded once at compile time and
-  stored in an embedded codebook store alongside its label.
-  At runtime, the inverse operation `nearest_string(vector)`
-  returns the string label whose embedding is closest to the
-  queried vector. This closes the loop: a Sutra program reads
-  strings, computes in vector space, and emits strings, all
-  without ever leaving the tensor-op graph at the level of
-  program semantics. To the authors' knowledge, this is the
-  first practical end-to-end string I/O story for
-  hyperdimensional computing — existing VSA / HDC libraries
-  (TorchHD, etc.) expose the algebra over user-supplied
-  hypervectors but do not provide a built-in path from external
-  strings into the substrate or from the substrate back to
-  strings; users typically maintain a manual codebook mapping
-  themselves. This is not a new theoretical primitive but a
-  working integration: the compiler, the runtime, the
-  embedded codebook, and 13 demonstration programs in the
-  smoke test (with 23 `.su` files in the `examples/` directory)
-  exercise the end-to-end pipeline.
+  string in a `.su` program is embedded once at compile time via
+  the project's configured frozen LLM and stored in an embedded
+  codebook store alongside its label. At runtime, the inverse
+  operation `nearest_string(vector)` returns the label whose
+  embedding is closest to the queried vector. The frozen LLM is
+  load-bearing for this design: a deterministic, reproducible,
+  dense-enough string-to-vector map is what makes the codebook
+  practical and the inverse decode reliable. Replacing the
+  embedding with the random hypervectors that classical VSA
+  literature assumes would still yield a working algebra but
+  would leave the language with no I/O story — strings would have
+  no canonical mapping to vectors and the substrate would have
+  nowhere to decode labels from. To the authors' knowledge, Sutra
+  is therefore the only HDC implementation that ships a practical
+  end-to-end string-in / string-out path as a built-in compiler
+  concern. Existing HDC libraries (TorchHD and similar) expose
+  the algebra over user-supplied hypervectors but require users
+  to maintain their own string-to-vector mapping and codebook
+  by hand; that boilerplate is what makes most HDC code stay
+  research-tooling-shaped rather than program-shaped. This is
+  not a new theoretical primitive but a working integration: the
+  compiler, the runtime, the embedded codebook, and 13
+  demonstration programs in the smoke test (with 23 `.su` files
+  in the `examples/` directory) exercise the end-to-end pipeline.
 
 ### 1.3 What this paper is not
 
@@ -223,6 +228,32 @@ for using VSA primitives as a library in a Python program. Sutra
 is the construction that compiles a separate source language to
 the same primitive set with no host-side residue, which TorchHD
 is not designed to do.
+
+A second axis on which the two systems differ, and where to the
+authors' knowledge Sutra is uniquely positioned within the broader
+HDC ecosystem, is **string I/O**. TorchHD and other HDC libraries
+expose the algebra over user-supplied hypervectors: the user
+constructs random or hash-derived vectors for whatever they want
+to represent, maintains a `dict[str, hypervector]` mapping by
+hand, and decodes by cosine similarity against a manually
+assembled codebook tensor. There is no built-in path from external
+strings into the substrate or from the substrate back to strings.
+Sutra's compile-time codebook (§3.4) closes that loop: every
+embedded string in `.su` source is embedded once at compile time
+via the configured frozen LLM (e.g. `nomic-embed-text`, 768-d) and
+stored in the project's `.sdb` codebook, and the runtime
+`nearest_string` operation is the inverse — given any vector, it
+returns the nearest known label. The frozen LLM embedding is
+load-bearing for this: it is what gives the compile-time codebook
+a deterministic, reproducible, and dense-enough mapping for
+nearest-neighbor decode to be practical. Replacing the embedding
+with random hypervectors would still yield a working VSA algebra
+but would have no I/O story — strings would have no canonical
+mapping to vectors and decoding would have nowhere to look up
+labels. To the authors' knowledge, Sutra is the only HDC
+implementation that ships an end-to-end string-in / string-out
+path as a built-in compiler concern rather than as user-supplied
+boilerplate.
 
 A side-by-side comparison concretizes the difference. The same
 role-filler-record task — encode a 3-field record (name, color,
@@ -373,9 +404,16 @@ proof tree; LTN compiles first-order-logic formulas into
 differentiable t-norm losses over learned embeddings; NeurASP
 extends Answer Set Programming with neural predicates. All three
 treat symbols as a separate stratum from the neural layer. None
-of them targets the configuration where a single tensor-op graph
-folds the whole program — including the I/O — over a frozen
-externally-trained substrate.
+of them, and to the authors' knowledge no published HDC system
+either, targets the specific configuration that Sutra occupies:
+a single tensor-op graph folding the whole program — including
+the string-in / string-out I/O — over a frozen externally-trained
+embedding substrate. The combination of (a) one fused tensor-op
+graph as the compile target, (b) HDC primitives as the
+operations, and (c) a frozen LLM embedding space as the substrate
+that doubles as the I/O codebook is what distinguishes Sutra
+from each of these peers, not any one of those three properties
+in isolation.
 
 ### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
