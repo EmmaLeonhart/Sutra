@@ -539,6 +539,32 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         with self.assertRaises(CodegenNotSupported):
             _compile(src)
 
+    def test_intrinsic_method_routes_to_VSA_runtime(self):
+        # `static intrinsic method scalar log(scalar x);` inside a
+        # class body is a signature-only declaration. Calls of the form
+        # `Math.log(x)` must dispatch to `_VSA.log(x)` directly — no
+        # `Math_log` wrapper should be emitted, and no literal
+        # `Math.log` should remain in the output.
+        #
+        # log is on the codegen's _TRANSCENDENTALS_DISABLED list when
+        # called as a bare Identifier (`log(x)`), but going through the
+        # class-namespace dispatch here bypasses that path entirely
+        # since the call site is a MemberAccess, not an Identifier.
+        # That's intentional — the disabled-list check only fires on
+        # the bare-name path.
+        src = (
+            "class VSA extends vector {\n"
+            "  static intrinsic method vector zero_vector();\n"
+            "}\n"
+            "function vector make_zero() {\n"
+            "  return VSA.zero_vector();\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.zero_vector()", py)
+        # No mangled wrapper for an intrinsic method.
+        self.assertNotIn("def VSA_zero_vector", py)
+
 
 if __name__ == "__main__":
     unittest.main()
