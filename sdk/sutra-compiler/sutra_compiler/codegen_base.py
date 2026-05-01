@@ -308,6 +308,14 @@ class BaseCodegen:
         # when the return is a vector — strings/ints/bools cannot be
         # multiplied by a float halt accumulator.
         self._current_return_type: str | None = None
+        # Static methods declared inside class bodies. Maps
+        # class_name -> set of static method names. Populated by
+        # _translate_top_level when seeing a ClassDecl. Used by
+        # _translate_call to dispatch `Math.foo(x)` to the mangled
+        # top-level function `Math_foo(x)` that the codegen emits.
+        # Non-static class methods are tracked separately and rejected
+        # at call time today (instance dispatch isn't wired yet).
+        self._class_static_methods: dict[str, set[str]] = {}
 
     # -- emission helpers -------------------------------------------------
 
@@ -341,6 +349,18 @@ class BaseCodegen:
     def translate(self, module: ast.Module) -> str:
         self._emit_prelude()
         self._emit()
+        # Pre-pass: register every class's static method names so call
+        # sites can dispatch even when the class declaration comes
+        # after the calling function in the file. Non-static methods
+        # are intentionally not registered here — they'd need instance
+        # dispatch which isn't wired.
+        for item in module.items:
+            if isinstance(item, ast.ClassDecl):
+                for m in item.methods:
+                    if m.modifiers.is_static and not m.is_operator and not m.type_params:
+                        self._class_static_methods.setdefault(
+                            item.name, set()
+                        ).add(m.name)
         for item in module.items:
             self._translate_top_level(item)
             self._emit()
@@ -375,12 +395,16 @@ class BaseCodegen:
                 item, "method declarations are not supported by the V1 codegen"
             )
         elif isinstance(item, ast.ClassDecl):
-            # Class declarations are compile-time-only metadata. The
-            # validator has already registered the inheritance chain
-            # and verified it bottoms out at a primitive. Codegen
-            # emits nothing — instances of user classes are plain
+            # Class declarations: instances of a user class are plain
             # vectors at runtime, same as the primitive parent.
-            return
+            # The class itself emits nothing for the empty-body case.
+            # If the class body has methods (the 2026-05-01 extension),
+            # static methods get emitted as mangled top-level Python
+            # functions (`{ClassName}_{method_name}`) so call sites
+            # like `Math.log(x)` can dispatch to them. Non-static
+            # methods are deferred — instance dispatch isn't wired.
+            for method in item.methods:
+                self._translate_class_method(item.name, method)
         else:
             # Statements at top level (ExprStmt, etc.) — lower as a stmt.
             if isinstance(item, ast.Stmt):
@@ -537,6 +561,61 @@ class BaseCodegen:
                 "zero-initialized slot array."
             )
         self._emit(f"{decl.name} = {init_src}")
+
+    def _translate_class_method(self, class_name: str, decl: ast.MethodDecl) -> None:
+        """Emit a class-body method as a mangled top-level Python function.
+
+        Static methods inside `class Math { static method scalar twice(x) {...} }`
+        emit as `def Math_twice(x): ...` at module level; call sites of
+        the form `Math.twice(5)` are routed to that mangled name in
+        `_translate_call`. Non-static methods aren't emitted today —
+        instance dispatch (`g.Hello()` for an instance `g`) isn't wired,
+        and the safer move is to fail loudly when one is declared so the
+        gap is visible.
+        """
+        if decl.is_operator:
+            raise CodegenNotSupported(
+                decl,
+                "operator method declarations are not supported by the V1 codegen",
+            )
+        if decl.type_params:
+            raise CodegenNotSupported(
+                decl,
+                "generic method declarations are not supported by the V1 codegen",
+            )
+        if not decl.modifiers.is_static:
+            raise CodegenNotSupported(
+                decl,
+                f"non-static methods on user classes are not supported by "
+                f"the V1 codegen (instance dispatch isn't wired). Mark "
+                f"`{class_name}.{decl.name}` as `static method` for now, or "
+                f"call it as a free function at top level. See "
+                f"`planning/open-questions/function-taxonomy-and-closure.md` "
+                f"for the deferred steps.",
+            )
+        # Register in the lookup table the call-dispatch path consults.
+        self._class_static_methods.setdefault(class_name, set()).add(decl.name)
+        param_names = [p.name for p in decl.params]
+        mangled = f"{class_name}_{decl.name}"
+        self._emit(f"def {mangled}({', '.join(param_names)}):")
+        self._indent += 1
+        outer_slot_vars = self._slot_vars
+        self._slot_vars = {}
+        outer_return_type = self._current_return_type
+        self._current_return_type = (
+            decl.return_type.name if decl.return_type else None
+        )
+        self._emit("_program_halt = 1.0")
+        if _has_slot_decl(decl.body):
+            self._emit("_slot_state = _VSA.zero_vector()")
+        if not decl.body.statements:
+            self._emit("pass")
+        else:
+            for stmt in decl.body.statements:
+                self._translate_stmt(stmt)
+        self._slot_vars = outer_slot_vars
+        self._current_return_type = outer_return_type
+        self._indent -= 1
 
     def _translate_function_decl(self, decl: ast.FunctionDecl) -> None:
         if decl.is_operator:
@@ -1784,6 +1863,22 @@ class BaseCodegen:
             arg_srcs = [self._translate_expr(a) for a in call.args]
             return f"{name}({', '.join(arg_srcs)})"
         if isinstance(callee, ast.MemberAccess):
+            # Class-namespace dispatch: `Math.log(x)` where `Math` is a
+            # declared class and `log` is a static method on it. We
+            # emit it as `Math_log(x)` — the mangled name that
+            # _translate_class_method registered. Instance method
+            # dispatch (`g.Hello()` on a Greeter instance) is not
+            # wired today; that path falls through to the generic
+            # `obj.member(args)` form which works iff `obj` is a
+            # native Python object that already has the method (e.g.
+            # vector accessors handled in the numpy-backend override).
+            if isinstance(callee.obj, ast.Identifier):
+                cls_name = callee.obj.name
+                method_name = callee.member
+                if (cls_name in self._class_static_methods
+                        and method_name in self._class_static_methods[cls_name]):
+                    arg_srcs = [self._translate_expr(a) for a in call.args]
+                    return f"{cls_name}_{method_name}({', '.join(arg_srcs)})"
             arg_srcs = [self._translate_expr(a) for a in call.args]
             return f"{self._translate_expr(callee)}({', '.join(arg_srcs)})"
         raise CodegenNotSupported(
