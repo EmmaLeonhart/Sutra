@@ -46,7 +46,7 @@ SutraDB FFI build (one-time, ~5 minutes).
 | §3.4 — embedded SutraDB codebook + decode path | `python -m pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py -q` (7 tests) |
 | §4 — compiler 5-stage pipeline | `python -m pytest sdk/sutra-compiler/tests/ -q --ignore=tests/test_simplify_egglog.py` (244+ tests; full suite green) |
 | §4.1 — substrate-purity invariants | the runtime-substrate-purity-audit and substrate-purity-leak-enumeration finding docs under `planning/findings/` |
-| §4.2 — host-language scaffolding (5 original seams; 3 eliminated) | both findings docs above; the fix commits are `93beb01` (seams 1+2+4) and `cdd9482` (numpy backend deprecation related cleanup) |
+| §4.2 — compile-time resolution to tensor normal form | rotation precomputation + fixed-depth loop unroll; see `codegen_pytorch.py` `prewarm_rotation_cache` and `loop` methods |
 | §5 — demonstration programs (13 in smoke test, 23 `.su` files total) | `python examples/_smoke_test.py` runs the smoke-test corpus end-to-end; full file listing in `examples/` |
 | §5.4 — convergent + non-convergent loop demos | `examples/do_while_adder.su` plus the test corpus in `tests/test_loop_function_decl.py` |
 | §4 — `torch.compile` wrapping (opt-in) | `SUTRA_TORCH_COMPILE=1 python -m pytest sdk/sutra-compiler/tests/test_torch_compile_wrap.py -q` |
@@ -78,10 +78,6 @@ when convergent, near zero when not.
 
 These are real and disclosed in the paper:
 
-- Two pieces of host-language scaffolding remain (rotation cache
-  lookup; loop iteration counter) — standard PyTorch module
-  patterns. `torch.compile` traces past both at runtime when
-  `SUTRA_TORCH_COMPILE=1`.
 - Numpy backend (`codegen.py`) is deprecated but retained for
   emit-shape tests. Behavior tests run on PyTorch.
 - Object encapsulation parses but rules are not enforced.

@@ -601,32 +601,29 @@ Three invariants the compiler enforces:
    substrate primitives (`heaviside`, `saturate_unit`) instead of
    Python ternaries.
 
-### 4.2 Host-language scaffolding
+### 4.2 Compile-time resolution to tensor normal form
 
-Every compiled Sutra module emits a self-contained PyTorch
-tensor-op graph. The substrate operations — bind, unbind, bundle,
-similarity, rotation, halt detection — are all tensor ops. Two
-pieces of host-language scaffolding remain around the tensor
-graph, identical in kind to the scaffolding in any PyTorch module:
+Two compile-time mechanisms are central to how the compiler
+achieves tensor normal form:
 
-1. **Rotation cache lookup.** Role rotations are precomputed at
-   module init (`prewarm_rotation_cache`); the runtime retrieves
-   them from a Python dictionary. This is a constant-table lookup
-   — the same pattern as `nn.ModuleDict` in a Transformer —
-   not a substrate computation.
-2. **Loop iteration counter.** `for _t in range(T)` drives the
-   RNN unroll. The loop body is entirely tensor ops; the Python
-   `for` is iteration scaffolding, equivalent to
-   `for layer in self.layers` in `nn.TransformerEncoder`.
-   `torch.compile` (opt-in via `SUTRA_TORCH_COMPILE=1`) traces
-   past this at runtime, unrolling the iteration into the
-   compiled graph.
+1. **Precomputed rotation matrices.** Every role rotation is
+   constructed at compile time (`prewarm_rotation_cache`) and
+   stored as a constant tensor. At runtime, `bind(role, filler)`
+   is a single matmul against a precomputed matrix — the
+   compile-time resolution eliminates the QR construction from
+   the runtime graph entirely.
+2. **Fixed-depth loop unroll.** Tail-recursive loops compile to a
+   fixed-T iteration over the RNN cell body. The compiler fixes T
+   at compile time (configurable, default 50), and the soft-halt
+   gating ensures convergence typically occurs in far fewer steps.
+   With `torch.compile` (opt-in via `SUTRA_TORCH_COMPILE=1`), the
+   tracer folds the unrolled iteration into a single fused kernel.
 
-The substrate-purity claim is: *every Sutra operation runs as a
-tensor operation on the substrate.* The host-language scaffolding
-is control-flow plumbing around those operations — the same
-plumbing every PyTorch module uses — not substrate computation
-that has escaped to the host.
+Both are instances of the same principle: the compiler resolves
+structure at compile time so the runtime is a straight-line
+tensor-op graph. Role rotations become constant matrices;
+recursion becomes a fixed-depth cell. This is how beta reduction
+to tensor normal form works in practice.
 
 ---
 
@@ -698,14 +695,7 @@ but their encapsulation rules (no closure across class boundary)
 are not enforced. Implementing the encapsulation pass and the
 class-boundary closure check is straightforward future work.
 
-### 6.2 Tracing past host-language scaffolding
-
-The rotation cache lookup and loop iteration counter are standard
-host-language scaffolding (§4.2). With `torch.compile` enabled,
-the tracer unrolls both into the compiled graph, producing a
-fused tensor-op kernel with no remaining Python in the hot path.
-
-### 6.3 Codebook integration depth
+### 6.2 Codebook integration depth
 
 The embedded codebook store covers the compile-time embed →
 runtime decode path today. Extended features (hashmap routing,
