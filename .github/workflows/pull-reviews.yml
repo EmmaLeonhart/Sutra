@@ -95,11 +95,19 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Stage review-adjacent files. `git add <dir>` picks up both
-          # modified-tracked and new-untracked files. Don't sweep up
-          # unrelated paper/ edits that might have been left in working
-          # tree (e.g. paper.md changes pulled in by checkout).
-          git add paper/reviews/ paper/candidates.jsonl paper/.post_id 2>/dev/null || true
+          # Stage review-adjacent files. Use separate `git add` calls
+          # so a missing path (e.g. paper/candidates.jsonl, which only
+          # exists after the first quick_review.py run) doesn't abort
+          # the whole staging operation. `git add <dir>` picks up
+          # untracked files; `--ignore-errors` keeps going on
+          # individual misses.
+          git add paper/reviews/ 2>/dev/null || true
+          if [ -f paper/candidates.jsonl ]; then
+            git add paper/candidates.jsonl
+          fi
+          if [ -f paper/.post_id ]; then
+            git add paper/.post_id
+          fi
           # Now check the *index* for staged changes. `git diff --cached
           # --quiet` returns 0 when nothing is staged.
           if git diff --cached --quiet; then
