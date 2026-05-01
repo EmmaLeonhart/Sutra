@@ -17,10 +17,9 @@
 %              -> latexmk -pdf -usepretex=... paper.tex (anonymized)
 %              -> docs/paper.pdf staged for the GitHub Pages deploy
 
+% Built with lualatex so Unicode (−, ≈, ∞, ⁹, etc.) lands as-is.
 \documentclass[11pt]{article}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
+\usepackage{fontspec}
 \usepackage{microtype}
 \usepackage{hyperref}
 \usepackage{url}
@@ -34,10 +33,17 @@
 \usepackage{array}
 \usepackage{caption}
 \usepackage{enumitem}
-% pandoc's tightlist macro for compact lists:
+\usepackage{verbatim}
+% pandoc emission shims:
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
-% pandoc's pandocbounded for image sizing:
 \providecommand{\pandocbounded}[1]{#1}
+% pandoc's `Shaded` (background-shaded code block) — minimal definition
+% so the workflow doesn't need pandoc's full default preamble. We just
+% wrap code in a `quote`-styled block; full syntax highlighting is
+% disabled via pandoc's --no-highlight.
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade*}}{\end{snugshade*}}
 
 \hypersetup{
   colorlinks=true,

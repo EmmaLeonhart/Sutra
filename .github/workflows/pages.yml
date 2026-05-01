@@ -68,6 +68,8 @@ jobs:
             texlive-latex-recommended \
             texlive-latex-extra \
             texlive-fonts-recommended \
+            texlive-luatex \
+            texlive-xetex \
             lmodern \
             latexmk \
             pandoc
@@ -78,21 +80,26 @@ jobs:
           # Generate the LaTeX body from paper.md. paper.tex \input's
           # paper.tex.body, so the actual paper content (abstract,
           # sections 1-5, references, all 1100+ lines) lands in the
-          # PDF rather than just the title page skeleton.
+          # PDF rather than just the title-page skeleton.
+          # --no-highlight: emit code blocks as plain Verbatim instead
+          #   of pandoc's Highlighting + token-color macros, which
+          #   would otherwise need pandoc's full default preamble.
           pandoc paper.md \
             --from=gfm \
             --to=latex \
             --output=paper.tex.body \
-            --wrap=preserve
-          # Named (full version with author + repo URLs).
-          latexmk -pdf -interaction=nonstopmode paper.tex
+            --wrap=preserve \
+            --no-highlight
+          # lualatex handles Unicode natively (−, ≈, ∞, etc.) which the
+          # paper uses heavily. -lualatex picks lualatex via latexmk.
+          latexmk -lualatex -interaction=nonstopmode paper.tex
           mv paper.pdf paper-named.pdf
           # Clean intermediate files before the second build.
           latexmk -c paper.tex || true
-          # Anonymized (NeurIPS double-blind).  Pretex declares
-          # \ifanon and \anontrue ahead of paper.tex, which guards
-          # its own \newif so the pretex's value is preserved.
-          latexmk -pdf -interaction=nonstopmode \
+          # Anonymized (NeurIPS double-blind). Pretex declares \ifanon
+          # and \anontrue ahead of paper.tex, which guards its own
+          # \newif so the pretex's value is preserved.
+          latexmk -lualatex -interaction=nonstopmode \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
