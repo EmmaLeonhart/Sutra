@@ -49,13 +49,39 @@ def load_stdlib(stdlib_dir: str = STDLIB_DIR) -> Dict[str, ast.FunctionDecl]:
     """Return `{function_name → FunctionDecl}` for every function
     declaration in every `*.su` file under the stdlib directory.
 
-    Methods (`method ...`) and top-level statements are ignored — the
-    stdlib is function declarations only by design. A function whose
-    body is commented out (the intrinsic-blocked stubs in the .su
-    files) simply isn't present as a `FunctionDecl` and so doesn't
-    appear in the returned table.
+    Both shapes are picked up:
+      1. Top-level `function ...` and `intrinsic function ...;` —
+         the original stdlib form. Goes into the table by its bare
+         name (`log`, `bind`, etc.).
+      2. Class-body static methods on stdlib classes (`class Math {
+         static intrinsic method scalar log(scalar x); ... }`) — the
+         post-2026-05-01 namespaced form. Goes into the table under
+         BOTH the bare name (`log`) and the namespaced name
+         (`Math.log`). The bare-name entry preserves backward
+         compatibility for user code that still calls `log(x)`; the
+         namespaced entry supports the future call shape
+         `Math.log(x)`. Class-bodied static methods are repackaged
+         as `FunctionDecl` so callers don't have to know which
+         shape they came from.
+
+    Method declarations on instances (non-static), top-level
+    statements, and class bodies that aren't static-method bearing
+    are ignored — the stdlib is callable-namespace-only by design.
     """
     table: Dict[str, ast.FunctionDecl] = {}
+
+    def _add(name: str, decl: ast.FunctionDecl, path: str) -> None:
+        if name in table:
+            existing = table[name]
+            raise StdlibLoadError(
+                f"duplicate stdlib function {name!r}: "
+                f"declared at {path}:{decl.span.start.line} and "
+                f"previously at {existing.span.start.line} in an "
+                f"earlier file. Each function should live in one "
+                f"stdlib file; see stdlib/README.md for the "
+                f"category split."
+            )
+        table[name] = decl
 
     for fname in sorted(os.listdir(stdlib_dir)):
         if not fname.endswith(".su"):
@@ -63,21 +89,32 @@ def load_stdlib(stdlib_dir: str = STDLIB_DIR) -> Dict[str, ast.FunctionDecl]:
         path = os.path.join(stdlib_dir, fname)
         module = _parse_stdlib_file(path)
         for item in module.items:
-            if not isinstance(item, ast.FunctionDecl):
-                continue
-            if item.name in table:
-                # Duplicate across files. Point at both sources so the
-                # cleanup is obvious.
-                existing = table[item.name]
-                raise StdlibLoadError(
-                    f"duplicate stdlib function {item.name!r}: "
-                    f"declared at {path}:{item.span.start.line} and "
-                    f"previously at {existing.span.start.line} in an "
-                    f"earlier file. Each function should live in one "
-                    f"stdlib file; see stdlib/README.md for the "
-                    f"category split."
-                )
-            table[item.name] = item
+            if isinstance(item, ast.FunctionDecl):
+                _add(item.name, item, path)
+            elif isinstance(item, ast.ClassDecl):
+                for m in item.methods:
+                    if (m.modifiers.is_static
+                            and not m.is_operator
+                            and not m.type_params):
+                        # Repackage as a FunctionDecl so callers don't
+                        # need to special-case class-bodied entries.
+                        repackaged = ast.FunctionDecl(
+                            modifiers=m.modifiers,
+                            return_type=m.return_type,
+                            name=m.name,
+                            type_params=m.type_params,
+                            params=m.params,
+                            body=m.body,
+                            is_operator=False,
+                            is_intrinsic=m.is_intrinsic,
+                            span=m.span,
+                        )
+                        # Bare-name entry (backward compat).
+                        _add(m.name, repackaged, path)
+                        # Namespaced entry (`Math.log`) — duplicates
+                        # the AST node, which is fine because lookups
+                        # don't mutate it.
+                        _add(f"{item.name}.{m.name}", repackaged, path)
 
     return table
 

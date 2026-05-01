@@ -173,36 +173,60 @@ was refactored to inline `PetLikeness` into `Describe()` since the
 free-function-call-from-method pattern now violates SUT0144.
 
 **0.5. Class bodies with method declarations (landed 2026-05-01).**
-The parser now accepts method declarations inside class bodies
-(both `method ...` and `static method ...`). `ClassDecl.methods`
-carries them; the validator walks them via the existing
-visit_MethodDecl path, so SUT0144 fires for in-class method
-bodies the same way it does for top-level methods. Codegen
-routing for `ClassName.method(...)` dispatch is **not yet wired**
-— the parser/validator surface is available but `Math.log(2)`
-still doesn't compile to anything. That comes in step 1 below.
-Test: `tests/corpus/valid/21_class_with_methods.su`. Class names
-themselves are exempt from the file-scope encapsulation rule (you
-can call `Math.log(x)` from a method body — class names are
-namespace anchors, not file-scope reads).
+The parser now accepts method declarations inside class bodies:
+`method ...`, `static method ...`, `intrinsic method ...;`, and
+`static intrinsic method ...;`. `ClassDecl.methods` carries them;
+the validator walks them via the existing visit_MethodDecl path,
+so SUT0144 fires for in-class method bodies the same way it does
+for top-level methods. Class names themselves are exempt from the
+file-scope encapsulation rule (you can call `Math.log(x)` from a
+method body — class names are namespace anchors, not file-scope
+reads).
 
-1. **Static-method-as-namespace pattern.** Migrate the existing
-   stdlib (`stdlib/math.su`, `stdlib/rotation.su`) to declare its
-   functions as static methods of a class-as-namespace. No closure
-   semantics change yet — just the surface. Verifies the parser
-   and import paths.
-2. **Free-function file-level closure.** Make file-level
+**1. Static-method-as-namespace dispatch (landed 2026-05-01).**
+Slice 1 codegen + stdlib-loader infrastructure:
+- Static methods inside class bodies emit as mangled top-level
+  Python functions (`{ClassName}_{method_name}`).
+- Calls of the form `Math.foo(x)` dispatch to the mangled name
+  via a pre-pass over module items (so forward references work).
+- Static intrinsic methods (`static intrinsic method ...;`)
+  dispatch directly to `_VSA.<method>(args)` with no wrapper.
+- Non-static methods on user classes raise CodegenNotSupported
+  pointing at the deferred instance-dispatch work (step 3 below).
+- `stdlib_loader.load_stdlib()` now picks up class-bodied static
+  methods alongside top-level FunctionDecl, registering them
+  under both the bare name (backward-compat) and the namespaced
+  form (`Math.log`).
+- Tests: `TestClassStaticMethodDispatch` in test_codegen.py;
+  examples/class_static_dispatch.su runs end-to-end.
+
+What remains for the **actual stdlib migration**: rewriting
+stdlib/math.su, stdlib/rotation.su, stdlib/similarity.su, etc.
+to wrap their declarations in `class Math { ... }` /
+`class VSA { ... }` / etc. The loader infrastructure accepts both
+shapes today, so the migration is a series of small, individually
+shippable file rewrites — none of them break existing user code
+that still calls bare names.
+
+2. **Static-method-as-namespace migration of stdlib.** Migrate the
+   existing stdlib (`stdlib/math.su`, `stdlib/rotation.su`,
+   `stdlib/similarity.su`, etc.) to declare its functions as static
+   methods of a class-as-namespace. The loader / dispatch
+   infrastructure (step 1) accepts both shapes already, so this is
+   a series of small, individually shippable file rewrites — none
+   break existing user code calling bare names.
+3. **Free-function file-level closure.** Make file-level
    declarations visible inside any function in the same file, with
    the compile-time bake actually happening. Tests:
    declaring a vector at file top-level, using it inside a function,
    checking that the compiled artifact has the vector inlined.
-3. **Non-static method encapsulation.** `class Foo { field x;
+4. **Non-static method encapsulation.** `class Foo { field x;
    function bar() { return x + 1; } }` compiles with `x` as a
    bounded reference into the instance's substrate vector. Tests:
    instantiate, call method, verify bake.
-4. **Static method encapsulation.** Similar but with class-level
+5. **Static method encapsulation.** Similar but with class-level
    slots instead of instance slots.
-5. **Object loops** (loop methods on classes). The recurrent cell
+6. **Object loops** (loop methods on classes). The recurrent cell
    has access to bounded `this` (or class-level state) but no other
    closure. Compiles to "RNN parameterized by an object" per the
    chat.
