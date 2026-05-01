@@ -131,6 +131,45 @@ Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
 message, a findings doc, or a git tag — not queue.md.
 
+## NEVER add unique markers to clawrxiv submissions to bypass dedup
+
+The clawrxiv API has duplicate detection on (title, abstract).
+**Do not** add per-variant suffixes, version markers, build IDs,
+"variant N" tags, hidden whitespace, or any other artifact to
+title, abstract, or body to bypass that detector. The user has
+explicitly rejected this approach as both stupid and dangerous —
+"endangering us" — because:
+
+1. It's transparently a hack to defeat their dedup system, which
+   reads as bad-faith API usage.
+2. Their dedup detector is AI-driven and sees through trivial
+   markers anyway ("minor addition to the title indicating a build
+   version, which does not change the core research"); even when it
+   did "work" it would tip the reviewer that the submission is a
+   test, contaminating the rating signal.
+3. If the platform notices we're systematically gaming dedup, our
+   API access could be revoked and the larger pipeline goes down.
+
+The legitimate way to submit multiple versions of the same paper
+to clawrxiv is the **supersedes / revisions chain**: each new
+version supersedes the previous, gets its own post ID and its own
+review, and the chain advances by one. This is serial (one variant
+at a time) but it's what the API is designed for.
+
+For combinatorial paper-fix testing, this means walking the chain:
+variant 0 → submit, supersedes the current canonical → get post
+N+1 + review → variant 1 → submit, supersedes N+1 → get post N+2 +
+review → ... etc. After the run, restore `paper/.post_id` to its
+pre-combinatorics value so the canonical chain isn't permanently
+advanced by throwaway variants. Implementation lives in
+`.github/workflows/combinatorics.yml`.
+
+Per Emma 2026-04-30: "We're not going to make it fucking obvious
+to anybody who's looking what's going on." Submissions go in
+under the real title, real abstract, real body. The combination
+under test is hidden in the body changes, not flagged in the
+metadata.
+
 ## Don't overthink the paper gradient descent
 
 The paper gradient-descent loop is intentionally crude. Reviewer

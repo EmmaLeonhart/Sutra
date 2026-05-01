@@ -1,33 +1,23 @@
-name: Paper-fix combinatorics review (matrix fanout)
+name: Paper-fix combinatorics review (serial supersedes chain)
 
-# Manual workflow that fans out across all 2^N paper-fix combinations
-# via a GitHub Actions matrix, so each variant runs in its own parallel
-# job. Each job applies one specific subset of fixes from
-# scripts/paper_fixes.py to the baseline paper.md, submits via
-# scripts/quick_review.py (candidate mode — uses dedup_token to bypass
-# the canonical supersede chain, so this does NOT touch
-# paper/.post_id), saves the review JSON, and uploads it as an
-# artifact. A final aggregator job collects every artifact into a
-# single results table.
+# Manual workflow that walks every 2^N paper-fix combination through
+# clawrxiv's supersedes chain. Each variant is submitted as a
+# revision of the previous, gets reviewed, and we save the review
+# JSON. After N variants the chain has advanced N times; we restore
+# paper/.post_id to its pre-combinatorics value at the end so the
+# canonical chain isn't permanently bombed by throwaway variants.
 #
-# Why matrix fanout (not serial-in-one-job):
-#   - Wall-clock time: 8 variants in parallel = ~2 min vs. ~10 min serial
-#   - One variant's failure doesn't tank the others (fail-fast: false)
-#   - Each variant's review is its own auditable artifact
+# Why serial-supersedes (not parallel candidates):
+#   clawrxiv's duplicate detection (title + abstract match) is
+#   strict and not bypassed by dedup_token for exact matches.
+#   Parallel candidate submissions all 409 as duplicates. Modifying
+#   title or abstract per-variant contaminates the review signal
+#   AND the dedup detector sees through trivial markers anyway.
+#   The supersedes chain is the legitimate API surface for
+#   submitting multiple versions of the same paper, so we use it,
+#   accepting the wall-clock cost of serial execution.
 #
-# Why this exists:
-#   Single-sample reviews from Gemini 3 Flash are noisy. v2→v3 went
-#   from Reject to Strong Reject after dropping the temporal-
-#   inconsistency con — the rating worsened despite addressing a
-#   legitimate concern. Conclusion: per-variant noise dominates
-#   single-sample comparisons. Combinatorics + repeats is needed
-#   to get real signal.
-#
-# Trigger: workflow_dispatch only — each run hits the API up to 2^N
-# times.
-#
-# To run for the 3 not-yet-applied fixes (3,4,5) only, set the
-# `vary_bits` input to "3,4,5". The 2^3 = 8 variants will be tested.
+# Trigger: workflow_dispatch only.
 
 on:
   workflow_dispatch:
@@ -35,20 +25,14 @@ on:
       vary_bits:
         description: |
           Comma-separated bit indices to vary, OR a single integer
-          mask of bits to vary. The non-varying bits inherit from
-          the `fixed_bits` mask. With 7 fixes and vary_bits="3,4,5",
-          2^3 = 8 variants are tested.
-
-          Default "3,4,5" tests just the unapplied fixes against
-          current master.
+          mask of bits to vary. With vary_bits='3,4,5', 2^3=8
+          variants are tested. Default '3,4,5'.
         required: false
         default: '3,4,5'
       fixed_bits:
         description: |
           Bitmask of fixes to ALWAYS apply (bits not in vary_bits).
-          Default 0 = no extra fixes; for testing against current
-          master HEAD (which has fixes 0,1,2,6 applied), use 71
-          (= 1+2+4+64).
+          Default 0.
         required: false
         default: '0'
       baseline_ref:
@@ -57,233 +41,235 @@ on:
           Default master.
         required: false
         default: 'master'
-      timeout_per_submission:
-        description: 'Seconds per submission (default 60)'
+      restore_post_id:
+        description: |
+          Whether to restore paper/.post_id to its pre-run value
+          after combinatorics finishes. Default true so the
+          canonical chain isn't permanently advanced. Set false to
+          keep the last variant as the new canonical (rare).
         required: false
-        default: '60'
+        default: 'true'
 
-# Singleton at the workflow level. Inside the workflow we fan out
-# across the matrix, but the workflow itself is one-at-a-time.
 concurrency:
   group: combinatorics
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write  # to commit reviews back
 
 jobs:
-  # 1. Compute the matrix of masks from vary_bits + fixed_bits.
-  plan:
-    name: Compute mask matrix
+  combinatorics:
+    name: Walk variants through supersedes chain
     runs-on: ubuntu-latest
-    outputs:
-      masks: ${{ steps.compute.outputs.masks }}
-      n_variants: ${{ steps.compute.outputs.n_variants }}
-    steps:
-      - id: compute
-        run: |
-          python3 - <<'PYEOF'
-          import json, os, sys
-
-          vary = "${{ inputs.vary_bits }}".strip()
-          fixed = int("${{ inputs.fixed_bits }}".strip() or "0")
-
-          # Parse vary as either comma-list of bit indices, or a mask.
-          if "," in vary:
-              vary_bits = [int(x) for x in vary.split(",") if x.strip()]
-          elif vary.isdigit():
-              # Treat as a mask: which bits in this mask are 1?
-              v = int(vary)
-              vary_bits = [i for i in range(64) if (v >> i) & 1]
-          else:
-              vary_bits = [3, 4, 5]  # default
-
-          n = len(vary_bits)
-          masks = []
-          for k in range(1 << n):
-              mask = fixed
-              for i, bit_idx in enumerate(vary_bits):
-                  if (k >> i) & 1:
-                      mask |= (1 << bit_idx)
-                  else:
-                      mask &= ~(1 << bit_idx)
-              masks.append(mask)
-
-          # Dedupe (in case vary_bits and fixed_bits overlap).
-          masks = sorted(set(masks))
-          out = json.dumps(masks)
-          print(f"vary_bits={vary_bits}  fixed_bits={fixed}  n_variants={len(masks)}")
-          print(f"masks={out}")
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"masks={out}\n")
-              f.write(f"n_variants={len(masks)}\n")
-          PYEOF
-
-  # 2. Fan out: one job per mask. Each submits one candidate to
-  #    clawrxiv and uploads the review JSON as an artifact.
-  variant:
-    name: Variant mask=${{ matrix.mask }}
-    needs: plan
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    strategy:
-      # If one variant fails to submit, keep going so we still get
-      # the others' reviews. Combinatorics is exploratory.
-      fail-fast: false
-      # Cap concurrent jobs to be polite to the clawrxiv API. Adjust
-      # downward if rate-limited.
-      max-parallel: 8
-      matrix:
-        mask: ${{ fromJSON(needs.plan.outputs.masks) }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.baseline_ref }}
-          fetch-depth: 1
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
-      - name: Apply fixes for this mask + submit candidate
+      - name: Compute variant masks
+        id: plan
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+          vary = "${{ inputs.vary_bits }}".strip()
+          fixed = int("${{ inputs.fixed_bits }}".strip() or "0")
+          if "," in vary:
+              vary_bits = [int(x) for x in vary.split(",") if x.strip()]
+          elif vary.isdigit():
+              v = int(vary)
+              vary_bits = [i for i in range(64) if (v >> i) & 1]
+          else:
+              vary_bits = [3, 4, 5]
+          n = len(vary_bits)
+          masks = []
+          for k in range(1 << n):
+              m = fixed
+              for i, bit in enumerate(vary_bits):
+                  if (k >> i) & 1:
+                      m |= 1 << bit
+                  else:
+                      m &= ~(1 << bit)
+              masks.append(m)
+          masks = sorted(set(masks))
+          print(f"vary_bits={vary_bits}  fixed_bits={fixed}  n_variants={len(masks)}")
+          print(f"masks={masks}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"masks={json.dumps(masks)}\n")
+              f.write(f"n_variants={len(masks)}\n")
+          PYEOF
+
+      - name: Walk supersedes chain across variants
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/variant_${{ matrix.mask }}
-          # Apply the fixes corresponding to this mask to a copy of
-          # paper/paper.md, written to /tmp/variant_<mask>_paper.md.
-          python3 - <<PYEOF
-          import sys
+          # Snapshot the starting post_id so we can restore at the
+          # end if requested.
+          ORIGINAL_POST_ID=$(cat paper/.post_id || echo "")
+          echo "Original canonical post_id: $ORIGINAL_POST_ID"
+          echo "$ORIGINAL_POST_ID" > /tmp/original_post_id
+
+          # The Python orchestrator handles the loop: for each mask,
+          # apply fixes to a fresh copy of paper/paper.md, write it
+          # back to disk so paper_submit_and_fetch.py reads the
+          # variant, then call that script which uses the supersedes
+          # chain (reads .post_id, submits, writes new .post_id,
+          # saves review files).
+          python3 - <<'PYEOF'
+          import json, os, subprocess, sys, time
+          from pathlib import Path
           sys.path.insert(0, "scripts")
           from paper_fixes import apply_fixes, mask_label
-          baseline = open("paper/paper.md", encoding="utf-8").read()
-          modified, applied = apply_fixes(baseline, ${{ matrix.mask }})
-          open("/tmp/variant_${{ matrix.mask }}_paper.md", "w", encoding="utf-8").write(modified)
-          print(f"mask={${{ matrix.mask }}} label={mask_label(${{ matrix.mask }})} "
-                f"applies: {applied}")
+
+          masks = json.loads(os.environ["MASKS_JSON"])
+          paper_md = Path("paper/paper.md")
+          baseline_text = paper_md.read_text(encoding="utf-8")
+          results = []
+
+          for i, mask in enumerate(masks):
+              modified, applied = apply_fixes(baseline_text, mask)
+              paper_md.write_text(modified, encoding="utf-8")
+              label = mask_label(mask)
+              print(f"\n[{i + 1}/{len(masks)}] mask={mask} ({label})")
+              print(f"  applies: {applied or '(no-op)'}")
+
+              # Snapshot current .post_id so we know what this
+              # variant superseded (for the results table).
+              current_post_id = Path("paper/.post_id").read_text(encoding="utf-8").strip()
+
+              t = time.monotonic()
+              proc = subprocess.run(
+                  [sys.executable, "-u", "scripts/paper_submit_and_fetch.py",
+                   "--paper-dir", "paper",
+                   "--tags", "programming-languages,vsa,embedding-spaces",
+                   "--poll-seconds", "5",
+                   "--review-timeout-seconds", "90"],
+                  capture_output=True, text=True,
+              )
+              elapsed = time.monotonic() - t
+
+              # Read the new .post_id (script writes it on success).
+              new_post_id = Path("paper/.post_id").read_text(encoding="utf-8").strip()
+              entry = {
+                  "mask": mask,
+                  "label": label,
+                  "applied": applied,
+                  "superseded": current_post_id,
+                  "new_post_id": new_post_id,
+                  "elapsed_seconds": round(elapsed, 1),
+                  "exit_code": proc.returncode,
+                  "stdout_tail": proc.stdout.splitlines()[-10:] if proc.stdout else [],
+                  "stderr_tail": proc.stderr.splitlines()[-3:] if proc.stderr else [],
+              }
+              # The canonical script saves reviews to paper/reviews/v*_post*_review.json.
+              # Find the matching one for this post.
+              if new_post_id and new_post_id != current_post_id:
+                  matches = list(Path("paper/reviews").glob(f"v*_post{new_post_id}_review.json"))
+                  if matches:
+                      try:
+                          entry["review"] = json.loads(matches[0].read_text(encoding="utf-8"))
+                      except Exception as e:
+                          entry["review_parse_error"] = str(e)
+                  else:
+                      entry["review"] = None
+              else:
+                  entry["review"] = None
+
+              rating = (entry.get("review") or {}).get("rating", "?")
+              print(f"  -> {rating}  (post {new_post_id}, {elapsed:.1f}s, exit {proc.returncode})")
+              results.append(entry)
+
+          Path("combinatorics_results.json").write_text(
+              json.dumps(results, indent=2, ensure_ascii=False),
+              encoding="utf-8",
+          )
+
+          # Markdown summary table.
+          lines = [
+              "# Combinatorics review results (serial supersedes chain)",
+              "",
+              "| mask | label | rating | post | superseded | applied |",
+              "|---:|---|---|---:|---:|---|",
+          ]
+          for r in results:
+              rating = (r.get("review") or {}).get("rating", "(no review)")
+              applied = ", ".join(r["applied"]) or "(baseline)"
+              lines.append(
+                  f"| {r['mask']} | `{r['label']}` | {rating} | "
+                  f"{r['new_post_id']} | {r['superseded']} | {applied} |"
+              )
+          Path("combinatorics_summary.md").write_text("\n".join(lines), encoding="utf-8")
+          print("\n" + "\n".join(lines))
           PYEOF
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+          MASKS_JSON: ${{ steps.plan.outputs.masks }}
 
-          # clawRxiv has strict duplicate detection on exact (title,
-          # abstract) match with no dedup_token bypass for exact
-          # matches. Most of our 7 fixes don't touch title or abstract,
-          # so most variants would 409 as duplicates. Append a
-          # per-variant build-id suffix to the title so dedup passes.
-          # Reviewers tend to ignore numeric build markers (similar to
-          # ArXiv version suffixes).
-          BASE_TITLE="Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces"
-          UNIQUE_TITLE="$BASE_TITLE [combinatorics build ${{ matrix.mask }}]"
+      - name: Restore .post_id to pre-combinatorics value
+        if: inputs.restore_post_id == 'true'
+        run: |
+          set -euo pipefail
+          if [ -s /tmp/original_post_id ]; then
+            cp /tmp/original_post_id paper/.post_id
+            echo "Restored paper/.post_id to $(cat paper/.post_id)"
+          fi
 
-          python -u scripts/quick_review.py \
-            --paper-dir paper \
-            --paper-md /tmp/variant_${{ matrix.mask }}_paper.md \
-            --title "$UNIQUE_TITLE" \
-            --label "mask_${{ matrix.mask }}" \
-            --no-track \
-            --timeout ${{ inputs.timeout_per_submission }} \
-            --json-out /tmp/variant_${{ matrix.mask }}/review.json \
-            | tee /tmp/variant_${{ matrix.mask }}/quick_review_stdout.txt
-
-          # Always write a metadata file alongside the review JSON
-          # so the aggregator knows which mask this came from.
-          python3 - <<PYEOF
-          import json, os
-          meta = {"mask": ${{ matrix.mask }}}
-          with open("/tmp/variant_${{ matrix.mask }}/meta.json", "w") as f:
-              json.dump(meta, f)
-          PYEOF
+      - name: Restore paper.md from baseline
+        run: |
+          # The serial loop wrote variant text to paper/paper.md. We
+          # don't want the last variant's text persisted; restore
+          # from git.
+          git checkout -- paper/paper.md
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: variant-mask-${{ matrix.mask }}
-          path: /tmp/variant_${{ matrix.mask }}/
-          retention-days: 14
-
-  # 3. Aggregate: download every variant's artifact, build a summary
-  #    table, upload as a single artifact + print to logs.
-  aggregate:
-    name: Aggregate results
-    needs: [plan, variant]
-    if: always()  # aggregate even if some variants failed
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.baseline_ref }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: variants
-          pattern: variant-mask-*
-
-      - name: Build summary
-        run: |
-          python3 - <<'PYEOF'
-          import json, os, sys
-          from pathlib import Path
-          sys.path.insert(0, "scripts")
-          from paper_fixes import ALL_FIXES, mask_label
-
-          variants_dir = Path("variants")
-          rows = []
-          for variant_dir in sorted(variants_dir.iterdir()):
-              if not variant_dir.is_dir():
-                  continue
-              meta_path = variant_dir / "meta.json"
-              review_path = variant_dir / "review.json"
-              if not meta_path.exists():
-                  continue
-              meta = json.loads(meta_path.read_text())
-              mask = meta["mask"]
-              label = mask_label(mask)
-              applied = [name for i, (name, _) in enumerate(ALL_FIXES) if mask & (1 << i)]
-              row = {
-                  "mask": mask,
-                  "label": label,
-                  "applied": applied,
-                  "rating": None,
-                  "summary": None,
-              }
-              if review_path.exists():
-                  try:
-                      review = json.loads(review_path.read_text())
-                      row["rating"] = review.get("rating") or review.get("recommendation")
-                      row["summary"] = (review.get("summary") or "")[:200]
-                  except Exception as e:
-                      row["error"] = str(e)
-              rows.append(row)
-
-          rows.sort(key=lambda r: r["mask"])
-
-          # JSON
-          Path("combinatorics_summary.json").write_text(
-              json.dumps(rows, indent=2, ensure_ascii=False),
-              encoding="utf-8",
-          )
-
-          # Markdown table
-          lines = [
-              "# Combinatorics review results",
-              "",
-              "| mask | label | rating | applied fixes |",
-              "|---:|---|---|---|",
-          ]
-          for r in rows:
-              applied = ", ".join(r["applied"]) or "(baseline)"
-              rating = r["rating"] or "(no review)"
-              lines.append(f"| {r['mask']} | `{r['label']}` | {rating} | {applied} |")
-          Path("combinatorics_summary.md").write_text("\n".join(lines), encoding="utf-8")
-
-          # Stdout
-          print("\n".join(lines))
-          PYEOF
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: combinatorics-summary
+          name: combinatorics-results
           path: |
-            combinatorics_summary.json
+            combinatorics_results.json
             combinatorics_summary.md
           retention-days: 90
+
+      - name: Commit results + reviews back (with rebase-retry)
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Stage review files (paper_submit_and_fetch.py wrote them
+          # during the loop), .post_id (restored if requested), and
+          # the results files.
+          git add paper/reviews/ 2>/dev/null || true
+          if [ -f paper/.post_id ]; then git add paper/.post_id; fi
+          git add combinatorics_results.json combinatorics_summary.md 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git diff --cached --stat
+          git commit -m "combinatorics: serial supersedes chain results
+
+          $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by combinatorics.yml.
+          Walked the variant chain, captured per-variant reviews under
+          paper/reviews/, and saved combinatorics_results.json +
+          combinatorics_summary.md.
+
+          Skip-Submit: true"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:master; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected; rebasing and retrying..."
+            git fetch origin master
+            git rebase origin/master
+          done
+          echo "ERROR: could not push after 3 rebase-retry attempts"
+          exit 1
