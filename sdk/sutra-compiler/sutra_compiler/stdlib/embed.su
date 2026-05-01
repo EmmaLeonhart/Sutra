@@ -42,4 +42,11 @@
 //
 // ==========================================================================
 
-intrinsic function vector embed(string s);
+// Migrated 2026-05-01 to class-as-namespace shape. The bare-name
+// `embed(s)` resolves via the stdlib_loader's backward-compat
+// alias (and via the parser's EmbedExpr surface for string-literal
+// auto-embedding), so existing code continues to work.
+
+class Embedding extends vector {
+    static intrinsic method vector embed(string s);
+}
