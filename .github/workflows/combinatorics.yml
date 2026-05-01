@@ -1,46 +1,60 @@
-name: Paper-fix combinatorics review (manual)
+name: Paper-fix combinatorics review (matrix fanout)
 
-# Manual workflow that runs scripts/combinatorics.py against clawrxiv.
-# For each subset of paper-fixes defined in scripts/paper_fixes.py,
-# applies that subset to a baseline paper.md, submits as a candidate
-# (uses dedup_token to bypass the canonical chain — does NOT touch
-# paper/.post_id), polls for the review, and tabulates ratings.
+# Manual workflow that fans out across all 2^N paper-fix combinations
+# via a GitHub Actions matrix, so each variant runs in its own parallel
+# job. Each job applies one specific subset of fixes from
+# scripts/paper_fixes.py to the baseline paper.md, submits via
+# scripts/quick_review.py (candidate mode — uses dedup_token to bypass
+# the canonical supersede chain, so this does NOT touch
+# paper/.post_id), saves the review JSON, and uploads it as an
+# artifact. A final aggregator job collects every artifact into a
+# single results table.
+#
+# Why matrix fanout (not serial-in-one-job):
+#   - Wall-clock time: 8 variants in parallel = ~2 min vs. ~10 min serial
+#   - One variant's failure doesn't tank the others (fail-fast: false)
+#   - Each variant's review is its own auditable artifact
 #
 # Why this exists:
-#   Single-sample reviews from Gemini 3 Flash are noisy. The same
-#   paper resubmitted twice often produces different cons. To do
-#   real gradient descent we need to test variants in isolation
-#   and ideally average across noise. This workflow is the
-#   isolation half; sample-averaging needs a second pass with
-#   --masks repeated.
+#   Single-sample reviews from Gemini 3 Flash are noisy. v2→v3 went
+#   from Reject to Strong Reject after dropping the temporal-
+#   inconsistency con — the rating worsened despite addressing a
+#   legitimate concern. Conclusion: per-variant noise dominates
+#   single-sample comparisons. Combinatorics + repeats is needed
+#   to get real signal.
 #
-# Trigger: workflow_dispatch only — this hits the API a lot of
-# times, so don't run it on every push.
+# Trigger: workflow_dispatch only — each run hits the API up to 2^N
+# times.
 #
-# Output: JSON results uploaded as a workflow artifact, plus a
-# rendered summary in the workflow logs.
+# To run for the 3 not-yet-applied fixes (3,4,5) only, set the
+# `vary_bits` input to "3,4,5". The 2^3 = 8 variants will be tested.
 
 on:
   workflow_dispatch:
     inputs:
-      masks:
+      vary_bits:
         description: |
-          Comma-separated bitmask values. Each bit corresponds to
-          a fix in scripts/paper_fixes.py ALL_FIXES (bit 0 = first
-          fix). Default empty = all 2^N combinations.
+          Comma-separated bit indices to vary, OR a single integer
+          mask of bits to vary. The non-varying bits inherit from
+          the `fixed_bits` mask. With 7 fixes and vary_bits="3,4,5",
+          2^3 = 8 variants are tested.
 
-          Examples:
-            (empty)    → all combinations
-            0          → pure baseline (no fixes)
-            127        → all fixes applied (with N=7)
-            1,2,4,8,16,32,64 → each fix alone
+          Default "3,4,5" tests just the unapplied fixes against
+          current master.
         required: false
-        default: ''
+        default: '3,4,5'
+      fixed_bits:
+        description: |
+          Bitmask of fixes to ALWAYS apply (bits not in vary_bits).
+          Default 0 = no extra fixes; for testing against current
+          master HEAD (which has fixes 0,1,2,6 applied), use 71
+          (= 1+2+4+64).
+        required: false
+        default: '0'
       baseline_ref:
         description: |
-          Git ref to use as the baseline paper.md. Default
-          'master'. Use a specific commit hash to test against an
-          older version (e.g. the post-2149 baseline).
+          Git ref to check out for paper.md and the fix scripts.
+          Default master.
         required: false
         default: 'master'
       timeout_per_submission:
@@ -48,7 +62,8 @@ on:
         required: false
         default: '60'
 
-# Singleton: combinatorics is expensive; don't stack runs.
+# Singleton at the workflow level. Inside the workflow we fan out
+# across the matrix, but the workflow itself is one-at-a-time.
 concurrency:
   group: combinatorics
   cancel-in-progress: false
@@ -57,10 +72,69 @@ permissions:
   contents: read
 
 jobs:
-  combinatorics:
-    name: Run combinatorial review
+  # 1. Compute the matrix of masks from vary_bits + fixed_bits.
+  plan:
+    name: Compute mask matrix
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    outputs:
+      masks: ${{ steps.compute.outputs.masks }}
+      n_variants: ${{ steps.compute.outputs.n_variants }}
+    steps:
+      - id: compute
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, sys
+
+          vary = "${{ inputs.vary_bits }}".strip()
+          fixed = int("${{ inputs.fixed_bits }}".strip() or "0")
+
+          # Parse vary as either comma-list of bit indices, or a mask.
+          if "," in vary:
+              vary_bits = [int(x) for x in vary.split(",") if x.strip()]
+          elif vary.isdigit():
+              # Treat as a mask: which bits in this mask are 1?
+              v = int(vary)
+              vary_bits = [i for i in range(64) if (v >> i) & 1]
+          else:
+              vary_bits = [3, 4, 5]  # default
+
+          n = len(vary_bits)
+          masks = []
+          for k in range(1 << n):
+              mask = fixed
+              for i, bit_idx in enumerate(vary_bits):
+                  if (k >> i) & 1:
+                      mask |= (1 << bit_idx)
+                  else:
+                      mask &= ~(1 << bit_idx)
+              masks.append(mask)
+
+          # Dedupe (in case vary_bits and fixed_bits overlap).
+          masks = sorted(set(masks))
+          out = json.dumps(masks)
+          print(f"vary_bits={vary_bits}  fixed_bits={fixed}  n_variants={len(masks)}")
+          print(f"masks={out}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"masks={out}\n")
+              f.write(f"n_variants={len(masks)}\n")
+          PYEOF
+
+  # 2. Fan out: one job per mask. Each submits one candidate to
+  #    clawrxiv and uploads the review JSON as an artifact.
+  variant:
+    name: Variant mask=${{ matrix.mask }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      # If one variant fails to submit, keep going so we still get
+      # the others' reviews. Combinatorics is exploratory.
+      fail-fast: false
+      # Cap concurrent jobs to be polite to the clawrxiv API. Adjust
+      # downward if rate-limited.
+      max-parallel: 8
+      matrix:
+        mask: ${{ fromJSON(needs.plan.outputs.masks) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,26 +145,137 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Run combinatorics
+      - name: Apply fixes for this mask + submit candidate
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
           set -euo pipefail
-          masks_arg=""
-          if [ -n "${{ inputs.masks }}" ]; then
-            masks_arg="--masks ${{ inputs.masks }}"
-          fi
-          python -u scripts/combinatorics.py \
-            --baseline paper/paper.md \
-            --paper-dir paper \
-            --output combinatorics_results.json \
-            --timeout-per-submission ${{ inputs.timeout_per_submission }} \
-            $masks_arg
+          mkdir -p /tmp/variant_${{ matrix.mask }}
+          # Apply the fixes corresponding to this mask to a copy of
+          # paper/paper.md, written to /tmp/variant_<mask>_paper.md.
+          python3 - <<PYEOF
+          import sys
+          sys.path.insert(0, "scripts")
+          from paper_fixes import apply_fixes, mask_label
+          baseline = open("paper/paper.md", encoding="utf-8").read()
+          modified, applied = apply_fixes(baseline, ${{ matrix.mask }})
+          open("/tmp/variant_${{ matrix.mask }}_paper.md", "w", encoding="utf-8").write(modified)
+          print(f"mask={${{ matrix.mask }}} label={mask_label(${{ matrix.mask }})} "
+                f"applies: {applied}")
+          PYEOF
 
-      - name: Upload results as artifact
-        if: always()  # upload even on partial failure
-        uses: actions/upload-artifact@v4
+          # Submit the variant via quick_review.py with --no-track so
+          # it doesn't pollute paper/candidates.jsonl, and capture the
+          # review JSON.
+          python -u scripts/quick_review.py \
+            --paper-dir paper \
+            --paper-md /tmp/variant_${{ matrix.mask }}_paper.md \
+            --label "mask_${{ matrix.mask }}" \
+            --no-track \
+            --timeout ${{ inputs.timeout_per_submission }} \
+            --json-out /tmp/variant_${{ matrix.mask }}/review.json \
+            | tee /tmp/variant_${{ matrix.mask }}/quick_review_stdout.txt
+
+          # Always write a metadata file alongside the review JSON
+          # so the aggregator knows which mask this came from.
+          python3 - <<PYEOF
+          import json, os
+          meta = {"mask": ${{ matrix.mask }}}
+          with open("/tmp/variant_${{ matrix.mask }}/meta.json", "w") as f:
+              json.dump(meta, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: combinatorics-results
-          path: combinatorics_results.json
-          retention-days: 30
+          name: variant-mask-${{ matrix.mask }}
+          path: /tmp/variant_${{ matrix.mask }}/
+          retention-days: 14
+
+  # 3. Aggregate: download every variant's artifact, build a summary
+  #    table, upload as a single artifact + print to logs.
+  aggregate:
+    name: Aggregate results
+    needs: [plan, variant]
+    if: always()  # aggregate even if some variants failed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.baseline_ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: variants
+          pattern: variant-mask-*
+
+      - name: Build summary
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, "scripts")
+          from paper_fixes import ALL_FIXES, mask_label
+
+          variants_dir = Path("variants")
+          rows = []
+          for variant_dir in sorted(variants_dir.iterdir()):
+              if not variant_dir.is_dir():
+                  continue
+              meta_path = variant_dir / "meta.json"
+              review_path = variant_dir / "review.json"
+              if not meta_path.exists():
+                  continue
+              meta = json.loads(meta_path.read_text())
+              mask = meta["mask"]
+              label = mask_label(mask)
+              applied = [name for i, (name, _) in enumerate(ALL_FIXES) if mask & (1 << i)]
+              row = {
+                  "mask": mask,
+                  "label": label,
+                  "applied": applied,
+                  "rating": None,
+                  "summary": None,
+              }
+              if review_path.exists():
+                  try:
+                      review = json.loads(review_path.read_text())
+                      row["rating"] = review.get("rating") or review.get("recommendation")
+                      row["summary"] = (review.get("summary") or "")[:200]
+                  except Exception as e:
+                      row["error"] = str(e)
+              rows.append(row)
+
+          rows.sort(key=lambda r: r["mask"])
+
+          # JSON
+          Path("combinatorics_summary.json").write_text(
+              json.dumps(rows, indent=2, ensure_ascii=False),
+              encoding="utf-8",
+          )
+
+          # Markdown table
+          lines = [
+              "# Combinatorics review results",
+              "",
+              "| mask | label | rating | applied fixes |",
+              "|---:|---|---|---|",
+          ]
+          for r in rows:
+              applied = ", ".join(r["applied"]) or "(baseline)"
+              rating = r["rating"] or "(no review)"
+              lines.append(f"| {r['mask']} | `{r['label']}` | {rating} | {applied} |")
+          Path("combinatorics_summary.md").write_text("\n".join(lines), encoding="utf-8")
+
+          # Stdout
+          print("\n".join(lines))
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combinatorics-summary
+          path: |
+            combinatorics_summary.json
+            combinatorics_summary.md
+          retention-days: 90
