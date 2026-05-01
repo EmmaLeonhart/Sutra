@@ -35,9 +35,8 @@ The demo programs live in [`examples/`](examples/). The smoke test [`examples/_s
 | `fuzzy_dispatch.su` | N-way dispatch returning structured records |
 | `nearest_phrase.su` | 20-phrase codebook, clean and noisy retrieval |
 | `sequence.su` | position-bound 5-token sequence, decode any position |
-| `loop_rotation.su` | `loop(cond)` as eigenrotation with terminal `argmax_cosine` |
-| `counter_loop.su` | `loop(cond)` as a helical counter — Turing-complete loop demonstration |
-| `concept_search.su` | `loop(cond)` over a richer codebook |
+
+Loop coverage moved from these dropped demos to the declared-function form (`do_while_adder.su`) plus the `test_loop_function_decl.py` test suite when the C-style `loop (cond) { body }` surface was retired in the 2026-04-30 redesign. See [`docs/loops.md`](docs/loops.md) for the current shape.
 
 ## Repo layout
 
