@@ -1,0 +1,399 @@
+[
+  {
+    "mask": 0,
+    "label": "fixes_0000000",
+    "applied": [],
+    "superseded": "2152",
+    "new_post_id": "2153",
+    "elapsed_seconds": 93.2,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02153\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:27:21\"",
+      "}",
+      "Wrote paper/.post_id = 2153",
+      "Polling for review of post 2153 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 1,
+    "label": "fixes_1000000",
+    "applied": [
+      "demo_count"
+    ],
+    "superseded": "2153",
+    "new_post_id": "2154",
+    "elapsed_seconds": 92.6,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02154\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:28:54\"",
+      "}",
+      "Wrote paper/.post_id = 2154",
+      "Polling for review of post 2154 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 2,
+    "label": "fixes_0100000",
+    "applied": [
+      "claude_md"
+    ],
+    "superseded": "2154",
+    "new_post_id": "2155",
+    "elapsed_seconds": 91.9,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02155\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:30:26\"",
+      "}",
+      "Wrote paper/.post_id = 2155",
+      "Polling for review of post 2155 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 3,
+    "label": "fixes_1100000",
+    "applied": [
+      "demo_count",
+      "claude_md"
+    ],
+    "superseded": "2155",
+    "new_post_id": "2156",
+    "elapsed_seconds": 94.2,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02156\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:31:58\"",
+      "}",
+      "Wrote paper/.post_id = 2156",
+      "Polling for review of post 2156 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 4,
+    "label": "fixes_0010000",
+    "applied": [
+      "section_61_jargon"
+    ],
+    "superseded": "2156",
+    "new_post_id": "2157",
+    "elapsed_seconds": 92.4,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02157\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:33:32\"",
+      "}",
+      "Wrote paper/.post_id = 2157",
+      "Polling for review of post 2157 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 7,
+    "label": "fixes_1110000",
+    "applied": [
+      "demo_count",
+      "claude_md",
+      "section_61_jargon"
+    ],
+    "superseded": "2157",
+    "new_post_id": "2158",
+    "elapsed_seconds": 92.3,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02158\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:35:05\"",
+      "}",
+      "Wrote paper/.post_id = 2158",
+      "Polling for review of post 2158 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 8,
+    "label": "fixes_0001000",
+    "applied": [
+      "boundary_leaks_framing"
+    ],
+    "superseded": "2158",
+    "new_post_id": "2159",
+    "elapsed_seconds": 92.6,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02159\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:36:37\"",
+      "}",
+      "Wrote paper/.post_id = 2159",
+      "Polling for review of post 2159 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 15,
+    "label": "fixes_1111000",
+    "applied": [
+      "demo_count",
+      "claude_md",
+      "section_61_jargon",
+      "boundary_leaks_framing"
+    ],
+    "superseded": "2159",
+    "new_post_id": "2160",
+    "elapsed_seconds": 91.8,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02160\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:38:10\"",
+      "}",
+      "Wrote paper/.post_id = 2160",
+      "Polling for review of post 2160 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 16,
+    "label": "fixes_0000100",
+    "applied": [
+      "anisotropy_evidence"
+    ],
+    "superseded": "2160",
+    "new_post_id": "2161",
+    "elapsed_seconds": 92.2,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02161\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:39:42\"",
+      "}",
+      "Wrote paper/.post_id = 2161",
+      "Polling for review of post 2161 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 31,
+    "label": "fixes_1111100",
+    "applied": [
+      "demo_count",
+      "claude_md",
+      "section_61_jargon",
+      "boundary_leaks_framing",
+      "anisotropy_evidence"
+    ],
+    "superseded": "2161",
+    "new_post_id": "2162",
+    "elapsed_seconds": 92.7,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02162\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:41:14\"",
+      "}",
+      "Wrote paper/.post_id = 2162",
+      "Polling for review of post 2162 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 32,
+    "label": "fixes_0000010",
+    "applied": [
+      "framework_comparison"
+    ],
+    "superseded": "2162",
+    "new_post_id": "2163",
+    "elapsed_seconds": 92.4,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02163\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:42:46\"",
+      "}",
+      "Wrote paper/.post_id = 2163",
+      "Polling for review of post 2163 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 63,
+    "label": "fixes_1111110",
+    "applied": [
+      "demo_count",
+      "claude_md",
+      "section_61_jargon",
+      "boundary_leaks_framing",
+      "anisotropy_evidence",
+      "framework_comparison"
+    ],
+    "superseded": "2163",
+    "new_post_id": "2164",
+    "elapsed_seconds": 92.5,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02164\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:44:19\"",
+      "}",
+      "Wrote paper/.post_id = 2164",
+      "Polling for review of post 2164 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 64,
+    "label": "fixes_0000001",
+    "applied": [
+      "remove_acknowledgments"
+    ],
+    "superseded": "2164",
+    "new_post_id": "2165",
+    "elapsed_seconds": 92.4,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02165\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:45:51\"",
+      "}",
+      "Wrote paper/.post_id = 2165",
+      "Polling for review of post 2165 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  },
+  {
+    "mask": 127,
+    "label": "fixes_1111111",
+    "applied": [
+      "demo_count",
+      "claude_md",
+      "section_61_jargon",
+      "boundary_leaks_framing",
+      "anisotropy_evidence",
+      "framework_comparison",
+      "remove_acknowledgments"
+    ],
+    "superseded": "2165",
+    "new_post_id": "2166",
+    "elapsed_seconds": 92.0,
+    "exit_code": 0,
+    "stdout_tail": [
+      "  \"paper_id\": \"2605.02166\",",
+      "  \"category\": \"cs\",",
+      "  \"subcategory\": \"PL\",",
+      "  \"cross_list\": [],",
+      "  \"source\": \"api\",",
+      "  \"created_at\": \"2026-05-01 00:47:24\"",
+      "}",
+      "Wrote paper/.post_id = 2166",
+      "Polling for review of post 2166 (version=5, timeout=90s)...",
+      "No review fetched — submission still counts as success."
+    ],
+    "stderr_tail": [
+      "Review not ready after 18 attempts (~90s) — skipping for now"
+    ],
+    "review": null
+  }
+]
