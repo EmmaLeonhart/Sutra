@@ -1,6 +1,6 @@
 # Sutra: A Programming Language for Vector-Symbolic Computation in Vector Embedding Spaces
 
-**Emma Leonhart** — *EmmaLeonhart999@gmail.com*
+
 
 ---
 
