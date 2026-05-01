@@ -96,6 +96,14 @@ Remove year/date references from submitted paper files — reviewer bots flag "2
 
 This rule applies to `paper/paper.md`, `paper/paper.tex`, `paper/SKILL.md`, `paper/REPRODUCE.md` only — not to `planning/findings/` filenames, commit messages, this CLAUDE.md, or chat transcripts.
 
+### Reference PDFs are re-downloaded each session, not committed
+
+When we need to read a paper from arxiv (or anywhere else) to ground a comparison or check structure, the PDF goes into a gitignored cache directory (e.g. `references/`) and is **re-downloaded every time it's needed**. Do not commit the PDF to the repo.
+
+The reason is intellectual property: arxiv papers are freely accessible to download but redistributing them inside another project's repo is a different question, and the cleanest answer is "we never redistribute, we always fetch fresh from the original source." A small `scripts/fetch_reference_pdfs.py` (or similar) downloads the file each time. The cache directory itself is gitignored; only the fetch script is committed.
+
+If a reference is needed and the cache is empty, run the fetch script first, then proceed.
+
 ## NO MATH SHORTCUTS
 
 Before implementing or modifying any operation, **read the relevant spec file in `planning/sutra-spec/`** and match the implementation to what the spec actually says. Current canonical files:
