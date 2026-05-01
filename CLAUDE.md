@@ -131,6 +131,39 @@ Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
 message, a findings doc, or a git tag — not queue.md.
 
+## Don't overthink the paper gradient descent
+
+The paper gradient-descent loop is intentionally crude. Reviewer
+ratings are noisy. Fix functions don't have to be perfect on the
+first pass. The goal is to identify *which fixes move the needle*,
+not to ship a polished paper on iteration one.
+
+Concretely: when the user lists reviewer cons and asks for fixes,
+do not iterate on the wording of each fix function until it's
+"correct." Get a passable version of each fix, run combinatorics
+to measure which ones help, then refine the winners. Treat the
+combinatorics workflow as the measurement instrument. Treat the
+fix functions as cheap experiments.
+
+Per Emma 2026-04-30: "We aren't trying to get the paper right at
+the beginning. We're trying to get the gradients."
+
+Concretely-applied rules:
+1. Fix functions in `scripts/paper_fixes.py` are throwaway
+   experiments. They don't need to handle every edge case. If a
+   `text.replace()` doesn't match because the surrounding text
+   changed slightly, that's fine — the variant for that mask is
+   a no-op.
+2. Combinatorics workflow runs are the unit of progress, not
+   individual paper.md edits. Trigger combinatorics, look at
+   results, refine.
+3. Do not get blocked debating which fix to apply first. Apply
+   them all in the combinatorics matrix. Let the data say which
+   ones helped.
+4. Resist the impulse to clean up the paper between combinatorics
+   runs. Each cleanup is an unmeasured edit. Save cleanup for
+   after a run identifies a clear winner.
+
 ## Paper edits: gradient descent, one variable at a time
 
 The paper is in a gradient-descent phase. Every push that touches
