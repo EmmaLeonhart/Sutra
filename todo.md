@@ -87,28 +87,6 @@ The rotation-hashmap library-pattern prototype landed 2026-04-22
 (5/5 exact-lookup on nomic; `examples/_rotation_hashmap_test.py`).
 Two follow-ups flagged during that work:
 
-- [x] ~~**Capacity experiment.** Design doc is
-  `planning/findings/2026-04-21-rotation-binding-capacity-experiment-design.md`;
-  five concrete experiments, not yet run. Produces a findings doc
-  with the capacity curve.~~ **DONE 2026-04-24.** All 5 experiments
-  PASS. `experiments/synthetic_subspace_validation.py` +
-  `planning/findings/2026-04-24-synthetic-subspace-validation.md`.
-- [x] ~~Monte-Carlo attractor search (first-pass, nomic only).~~
-  **DONE 2026-04-22** (commit TBD). User revised timing: "do it
-  today, nomic only, since nomic is the best substrate we have."
-  `examples/_king_queen_mlp_attractor.py` trains a 2-layer tanh
-  MLP `f(x) = x + r(x)` with 14 codebook vectors as fixed points,
-  iterates from v0 = king - man + woman, and runs a 4-noise-level
-  Monte-Carlo basin sweep. Key finding: **queen is the attractor
-  basin for v0 on nomic, but the boundary with king is proximal**
-  — 0.05 noise flips 1 in 5 trajectories to king, 0.15 noise is
-  near coin-flip. Written up in
-  `planning/findings/2026-04-22-mlp-attractor-king-queen-nomic.md`.
-  The older placeholder at `examples/_king_queen_attractor_search.py`
-  (random-rotation-plus-nearest-neighbor, not attractor dynamics)
-  stays as a fragility-check tool but is NOT the real attractor
-  search.
-
 - [ ] **Cross-substrate attractor comparison.** Follow-on to the
   2026-04-22 single-substrate result. Train separate MLPs on
   nomic, mxbai, and minilm codebooks. Compare: does v0 land in
@@ -145,19 +123,6 @@ as a kwarg, but there's no source-level way to set it — the codegen is
 invoked with default args by `examples/_smoke_test.py`.
 
 Minimum scope:
-- [x] ~~Define the directive syntax. Leaning toward a magic first-line
-  comment (`// @embedding: mxbai-embed-large`) that the test harness
-  parses pre-compile; zero parser/compiler changes.~~ DONE 2026-04-22.
-- [x] ~~Update `examples/_smoke_test.py` and the analogy harness to
-  respect the directive.~~ DONE 2026-04-22.
-- [x] ~~Write 3+ test programs that sweep the embedding models available
-  locally (`nomic-embed-text`, `mxbai-embed-large`, `all-minilm`)
-  over the same analogy task. Compare winners + margins.~~
-  **DONE 2026-04-24.** 5/5 correct on all three substrates.
-  `examples/_analogy_substrate_sweep.py` +
-  `planning/findings/2026-04-24-capital-country-across-substrates.md`.
-
-Longer scope (later):
 - [ ] Source-level declaration (not a comment) — a `embedding_space`
   pragma the parser recognizes. Decide after seeing how the magic-
   comment version is used in practice.
@@ -266,32 +231,6 @@ exact reversibility, zero semantic drift. All 4 reversibility tests
 PASS on the compiled runtime.
 
 What this pass closed:
-- [x] ~~Decide synthetic-subspace budget~~ — fixed at 100 dims
-  language-level default (DEFAULT_SYNTHETIC_DIM in codegen.py).
-- [x] ~~Extend the embedding pipeline so embedded vectors are
-  `[semantic | zeros]` in the block-diagonal layout.~~ DONE 2026-04-23.
-- [x] ~~2D-Givens-per-slot primitive in the synthetic subspace.~~
-  Runtime methods landed 2026-04-24.
-- [x] ~~Reserve one synthetic axis as canonical truth axis; implement
-  `is_true` / defuzzification as projection onto it.~~ AXIS_TRUTH=2,
-  `make_truth`, `_truth_projector`, defuzzy unrolled to truth-axis
-  polarization — landed 2026-04-23.
-
-What remains:
-- [x] ~~Sutra-language surface syntax for slot primitives.~~ DONE
-  2026-04-25. `slot TYPE name [= expr];` parses, validates, and
-  IDE-highlights cleanly. Codegen rejects with SUT0150 — the
-  codegen integration itself is tracked under "Compilation updates"
-  below.
-- [x] ~~Imperative-reversible demo `.su` program.~~ DONE 2026-04-25.
-  `examples/imperative_reversible.su` runs end-to-end and returns
-  0.0, confirming the rewrite chain `99 → 13 → 7` produces the
-  same final slot state as a single `7`. Will be rewritten with
-  natural assignment syntax once slot codegen integration lands.
-- [x] ~~Spec-text refresh in `planning/sutra-spec/binding.md`.~~
-  DONE 2026-04-25. Rotation-binding section now opens with an
-  "empirically validated and runtime-supported as of 2026-04-24"
-  callout.
 - [ ] Compile-time slot allocator — map named variables to slot
   indices deterministically, with a compile-error when capacity
   (48 slots per program at synthetic_dim=100) is exceeded. Lands
@@ -543,26 +482,6 @@ Concrete work:
   `approximation_method` (`"chebyshev"` / `"lookup"` /
   `"cordic"`). Parse it in `sdk/sutra-compiler/sutra_compiler/
   workspace.py` (or wherever atman.toml is read).
-- [x] ~~**Compile-time Chebyshev coefficient generator.** Given a
-  function family (`log`, `sqrt`, …) plus a bounded domain plus a
-  precision target, emit a coefficient vector of the right
-  polynomial degree.~~ **SUPERSEDED 2026-04-29.** Wired the
-  transcendentals via Taylor + frexp range reduction (real
-  exp/log) and eigenrotation (cos/sin) instead. Bound-table /
-  Chebyshev approach kept as a possible future optimization, but
-  the Taylor+frexp path is FP-precise across the operating range
-  and has zero compile-time machinery to maintain. See
-  `planning/findings/2026-04-29-bound-table-capacity-limit.md`
-  for why the originally-proposed bound-table architecture didn't
-  pencil out.
-- [x] ~~**Lookup-table tier.** For functions where Chebyshev is
-  impractical, emit a precomputed table tensor + a sparse-matmul
-  interpolation.~~ **SUPERSEDED 2026-04-29** (same finding).
-  The bundled-bound-table approach the user originally sketched
-  has a 2-scalar-of-capacity limit that doesn't reproduce
-  non-periodic functions. cos/sin still use the eigenrotation
-  primitive (which IS the bound-table working as intended);
-  exp/ln use Taylor+frexp.
 - [ ] **`stdlib/math.su` math intrinsics** (`log`, `sqrt`, `exp`,
   `sin`, `cos`, `tan`, `pow`). 2026-04-29 implementation was
   withdrawn 2026-04-30 because it ran as host Python scalar
@@ -833,39 +752,6 @@ nearest_phrase.su. Later the same day, aggressive simplifier
 expansion + fused bundle-of-binds + disk cache landed (see
 commit on `claude/enable-gpu-support-rczYD`). Remaining pieces:
 
-- [x] ~~Identity simplification~~ — `bundle(v) → v`, bundle
-  flattening. Done in simplify.py.
-- [x] ~~Batched Ollama pre-fetch~~ — `basis_vector(...)` strings
-  collected at compile time, one batched embed call at module
-  init instead of N sequential HTTP round-trips. Done.
-- [x] ~~Additional algebraic rewrites.~~ `displacement(a, a) →
-  zero_vector()`, `unbind(R, bind(R, x)) → x`, `bind(R, unbind(R,
-  x)) → x`, `similarity(a, a) → 1.0`, compose flattening,
-  zero-absorption in + / − / bundle, arithmetic constant folding
-  (x+0, x*1, x*0, x/1). All in `simplify.py`; covered by
-  `tests/test_simplify.py`.
-- [x] ~~Basis-vector on-disk cache.~~ Runtime cache at
-  `~/.cache/sutra/embeddings/<model>-d<dim>.npz`. First run fetches
-  from Ollama + writes atomically; second run loads from disk with
-  zero Ollama calls. (Compile-time inlining — emitting embedded
-  numpy literals directly into the generated module — is a further
-  optimization; the runtime cache captures the value for now.)
-- [x] ~~Scheduled parallel evaluation (fused dispatch).~~ Scoped
-  to the two patterns that cover the demo programs:
-  - `bundle(bind(r1,f1), ..., bind(rN,fN))` → fused runtime
-    primitive `_VSA.bundle_of_binds(...)` doing one batched einsum
-    over stacked rotations + stacked fillers. Replaces N sequential
-    binds + an N-arg bundle with one op. On GPU, this collapses
-    O(N) kernel launches into O(1).
-  - `argmax_cosine(q, [a,b,c,...])` → stacked-candidate matmul +
-    argmax. One numpy call instead of a Python for-loop.
-  **Not done:** generalized ANF + dep-graph scheduling for
-  arbitrary independent sub-expressions (e.g. `bundle(bind(r,f), c,
-  bind(r2,f2))` still emits sequentially because one arg isn't a
-  bind). For the three demos the targeted fusion is sufficient;
-  larger programs would benefit from the general pass. Deferred
-  until it has a concrete demo driving it.
-
 ## [This year] Integer class — follow-on work
 
 The integer class landed as a compile-time tag on 2026-04-22
@@ -877,12 +763,6 @@ the integer class" and
 axes in the synthetic subspace").
 
 What landed:
-- [x] ~~Augmented assignment~~ — `+=`, `-=`, `*=`, `/=` emit
-  Python's native compound assign. Done.
-- [x] ~~Spec commitment to the number axis~~ — documented
-  alongside the truth axis. Done.
-
-Follow-on work for a future pass:
 - [ ] **Compile-time integer-specific checks.** Overflow bounds,
   mod-N wrap semantics, division by constant zero, etc. Today
   `var n : int` is a float at runtime with no checks; an integer-

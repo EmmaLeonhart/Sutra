@@ -14,6 +14,14 @@ tool stay in sync.
 bottom, treating it as a queue. Implement → commit → push →
 remove from `todo.md` in the same commit. Repeat.
 
+### Next up
+
+1. **Website audit** (Emma 2026-05-01). Audit `docs/` for
+   stale / irrelevant content; the Sutra docs site
+   (`sutralang.dev`) needs to reflect the actual current
+   state of the language. Delete what doesn't belong.
+2. Then start barreling through `todo.md` from top.
+
 The Claw4S clawRxiv submission cycle is closed (2026-05-01,
 v51/post-2216 Accept locked in). All paper-submission CI
 infrastructure has been removed.
