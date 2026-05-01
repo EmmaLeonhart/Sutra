@@ -131,6 +131,48 @@ Do not use queue.md as a log of completed work or as a state
 snapshot. If you need to record what was done, that's a commit
 message, a findings doc, or a git tag — not queue.md.
 
+## NEVER mention development internals in the submitted paper
+
+The paper text submitted to clawrxiv (`paper/paper.md`,
+`paper/paper.tex`, `paper/SKILL.md`, `paper/REPRODUCE.md`) must
+contain no references to:
+
+- `CLAUDE.md`, "safety preamble," or any AI-tooling configuration
+  files
+- Internal workflow names: `papers-ci`, `pull-reviews`,
+  `combinatorics`, `paper-pdf`, `pages.yml`, etc.
+- `Skip-Submit` trailer, `supersedes`, `dedup_token`, or any other
+  internal mechanism for managing submissions
+- `quick_review.py`, `pull_all_reviews.py`,
+  `paper_submit_and_fetch.py`, `paper_fixes.py`, or any other
+  script names from `scripts/`
+- Internal terminology: "gradient descent on the paper,"
+  "combinatorics testing," "fix function," "variant mask," "mask
+  bit," "candidate mode," etc.
+- Project-management jargon that betrays the iterative-AI nature:
+  "queued," "fix paths are specified," "next-release work," "TBD,"
+  "see CLAUDE.md," "(version N draft)," dated timestamps in prose
+- File paths that include internal session artifacts:
+  `paper/.post_id`, `paper/candidates.jsonl`,
+  `combinatorics_results.json`, etc.
+
+The reason: the v1 (post 2147) review explicitly cited the
+`CLAUDE.md` mention as evidence the paper is "a descriptive output
+of an AI agent rather than a rigorous academic study." Every
+internal-development tell raises the same flag. The reviewer's job
+is to evaluate the research; our job is to give them a paper that
+reads like a finished research artifact, not a snapshot of an
+in-flight AI workflow.
+
+Per Emma 2026-04-30: "There will be no mention of development
+internals in the paper."
+
+How to apply: before any paper edit, grep the paper files for the
+forbidden tokens above and excise them. References to internal
+specs (e.g., `planning/sutra-spec/binding.md`) are also internal
+and shouldn't appear in submitted text — point at concepts, not
+file paths inside this repo.
+
 ## NEVER add unique markers to clawrxiv submissions to bypass dedup
 
 The clawrxiv API has duplicate detection on (title, abstract).
