@@ -152,17 +152,6 @@ class PyTorchCodegen(Codegen):
         self._emit("# every tensor so einsum / matmul don't trigger implicit upcasts.")
         self._emit("_DTYPE = _torch.float32")
         self._emit()
-        self._emit("# Loop compute budget T. Module-level so it is overridable at")
-        self._emit("# runtime — set SUTRA_LOOP_T in the environment before import,")
-        self._emit("# or assign to module._LOOP_T after import to change the budget")
-        self._emit("# for subsequent calls. The compile-time value here is the")
-        self._emit("# default; the language is not bounded by it at compile time.")
-        self._emit("import os as _sutra_loop_t_os")
-        self._emit(
-            f"_LOOP_T = int(_sutra_loop_t_os.environ.get('SUTRA_LOOP_T', "
-            f"{self._LOOP_T}))"
-        )
-        self._emit()
         self._emit()
         self._emit("class _TorchVSA:")
         self._indent += 1
