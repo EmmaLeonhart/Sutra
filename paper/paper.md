@@ -12,12 +12,18 @@ across the knowledge-graph-embedding literature (TransE, RotatE,
 the word-analogy line). Taking that as given, this paper presents
 the design and implementation of **Sutra**, a typed, purely
 functional programming language whose compile target is a single
-tensor-op graph over a frozen LLM embedding substrate. The
+tensor-op graph over a frozen vector embedding substrate. The
 contribution is algorithmic: a consolidated set of vector-symbolic
 primitives (bind, unbind, bundle, similarity, rotation, soft-halt
-RNN cells) that operate on a frozen LLM embedding substrate, plus
-a compiler that lowers the whole program to one fused tensor-op
-graph. Sutra is a working compiler today: parser, type checker,
+RNN cells) that operate on a frozen high-dimensional vector
+embedding substrate, plus a compiler that lowers the whole program
+to one fused tensor-op graph. The current demonstrations use LLM
+embeddings (nomic-embed-text, all-minilm, mxbai-embed-large), but
+the construction is substrate-agnostic — any frozen vector
+embedding space of comparable dimensionality works the same way,
+including non-language sources (CNN feature maps, knowledge-graph
+embeddings, biochemical / bioinformatic embeddings, transformer
+hidden states from arbitrary modalities). Sutra is a working compiler today: parser, type checker,
 codegen, runtime; the example corpus is a smoke test of 13
 demonstration programs covering hello-world embedding round-trips,
 fuzzy dispatch, role-filler records, knowledge graphs, classifier
@@ -453,17 +459,28 @@ in the host Python.
 
 To the authors' knowledge, no published HDC system targets the
 specific configuration that Sutra occupies: a single tensor-op
-graph folding the whole program — including string-in /
-string-out I/O and tail-recursive loops with constant memory
-overhead in recursion depth (§3.3) — over a frozen
-externally-trained embedding substrate. The combination of (a)
-one fused tensor-op graph as the compile target, (b) HDC
-primitives as the operations, (c) a frozen LLM embedding space
-as the substrate that doubles as the I/O codebook, and (d)
-tail-recursive loops compiled to soft-halt RNN cells over a
-fixed-width state vector is what distinguishes Sutra from each
-of these peers, not any one of those four properties in
-isolation.
+graph folding the whole program — including substrate I/O and
+tail-recursive loops with constant memory overhead in recursion
+depth (§3.3) — over a frozen externally-trained embedding
+substrate. The combination of (a) one fused tensor-op graph as
+the compile target, (b) HDC primitives as the operations, (c) a
+frozen vector embedding space as the substrate (the demonstrations
+use LLM embeddings, but any frozen embedding of comparable
+dimensionality applies — see §1 abstract), and (d) tail-recursive
+loops compiled to soft-halt RNN cells over a fixed-width state
+vector is what distinguishes Sutra from each of these peers, not
+any one of those four properties in isolation.
+
+A consequence of (a)–(d) the paper does not lean on but is worth
+noting: because the compiled artifact is itself a tensor-op
+graph against an externally-supplied vector substrate, a Sutra
+program can in principle be wired into an existing trained
+neural network as a neural API — reading activations from a
+designated layer of a CNN, MLP, or transformer as its input
+substrate, and emitting tensor-op outputs that the surrounding
+network consumes. Demonstrating this composition with a real
+host network is left as future work, but the construction does
+not rely on the substrate being a language model.
 
 ### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
