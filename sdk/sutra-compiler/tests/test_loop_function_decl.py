@@ -121,11 +121,12 @@ class TestCodegenShape(unittest.TestCase):
     def test_emits_loop_function_with_soft_halt(self):
         py = _compile(SIMPLE_DO_WHILE_ADDER)
         self.assertIn("def _loop_addNumber(_init_x):", py)
-        # T is now a runtime budget (module-level _LOOP_T), not a
-        # compile-time-baked literal. The emitted `for` references
-        # the variable; the default value lives in the prelude.
-        self.assertIn("for _t in range(_LOOP_T):", py)
-        self.assertIn("_LOOP_T = int(", py)
+        # Loops are now self-halting `while True:` driven by
+        # `if float(_halt_cum) >= 0.99: break`. There is no fixed
+        # iteration cap — programs terminate when their halt
+        # condition fires, same as any other programming language.
+        self.assertIn("while True:", py)
+        self.assertIn("if float(_halt_cum) >= 0.99:", py)
         self.assertIn("_pre_x = x", py)
         # Substrate-pure halt accumulator (queue item 4 fix, 2026-04-30):
         # uses _VSA.saturate_unit instead of Python's min().
@@ -359,26 +360,28 @@ class TestProgramHaltPropagation(unittest.TestCase):
         result = _run_main(SIMPLE_DO_WHILE_ADDER)
         self.assertAlmostEqual(float(result), 11.0, places=2)
 
-    def test_unconverged_loop_wipes_output(self):
-        # iterative_loop with count=1000 and T=50: the cond
-        # (_iterator <= 1000) stays true for all 50 ticks, so
-        # halt_cum never increments above 0. Output gets multiplied
-        # by ~0 → wiped.
+    def test_iterative_loop_runs_to_specified_count(self):
+        # iterative_loop with count=1000: the loop self-halts after
+        # 1000 ticks (the halt condition fires when _iterator > count).
+        # Without a fixed compile-time iteration cap, the loop simply
+        # runs to completion — same as any other programming language.
+        # The previous "wipes output if not converged within T=50"
+        # behavior is gone with the T removal: programs that loop
+        # legitimately for 1000 iterations now produce the legitimate
+        # answer (total = 1000) rather than being silently zeroed.
         src = """
-iterative_loop runForever(1000, int total) {
+iterative_loop runOneThousand(1000, int total) {
     pass total + 1;
 }
 
 function int main() {
     slot int total = 0;
-    loop runForever(1000, total);
+    loop runOneThousand(1000, total);
     return total;
 }
 """
         result = _run_main(src)
-        # Wiped output: total accumulates internally but the halt-mux
-        # plus _program_halt multiply zero it out at return.
-        self.assertAlmostEqual(float(result), 0.0, places=2)
+        self.assertAlmostEqual(float(result), 1000.0, places=2)
 
     def test_emitted_program_halt_accumulator(self):
         # The codegen emits the _program_halt accumulator and the

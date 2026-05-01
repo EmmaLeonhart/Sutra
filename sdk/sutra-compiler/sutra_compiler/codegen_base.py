@@ -644,15 +644,16 @@ class BaseCodegen:
             for inner in decl.body.statements:
                 self._translate_stmt(inner)
 
-        # T-step soft-halt loop. The Python `for _t in range(T)` is
-        # meta-iteration over a compile-time-fixed count.
-        # `_LOOP_T` is a module-level runtime variable (see prelude).
-        # Compile-time value baked into the prelude is the default;
-        # runtime can override via SUTRA_LOOP_T env var or by assigning
-        # to module._LOOP_T after import. Reviewer-recurring concern
-        # (loop_max_iterations is compile-time configuration) →
-        # T is now a runtime compute budget.
-        self._emit("for _t in range(_LOOP_T):")
+        # Loop driver (Python). The body is substrate-pure; the driver
+        # is Python and reads `_halt_cum` at iteration boundary to
+        # decide whether to continue — the same kind of boundary scalar
+        # read as the codebook nearest_string lookup. There is no
+        # compile-time iteration count: programs halt themselves when
+        # the loop's halt condition fires, just like any other
+        # programming language. `_t` is kept as a Python iteration
+        # counter for diagnostics / iterative_loop arithmetic.
+        self._emit("_t = 0")
+        self._emit("while True:")
         self._indent += 1
         # Snapshot pre-step state for soft-mux freeze on halt.
         for state_name in state_names:
@@ -714,12 +715,26 @@ class BaseCodegen:
         for inner in decl.body.statements:
             self._translate_stmt(inner)
         # Soft mux: freeze state at pre-step value once halt saturates.
+        # This makes the iteration that converges produce a state
+        # numerically equivalent to its pre-state, so the early-break
+        # below exits with the converged value.
         for state_name in state_names:
             self._emit(
                 f"{state_name} = (1.0 - _halt_cum) * {state_name} "
                 f"+ _halt_cum * _pre_{state_name}"
             )
-        self._indent -= 1  # close the for loop
+        # Self-halt: programs terminate when the loop's halt condition
+        # fires. `float(_halt_cum)` is one boundary scalar read per
+        # iteration (same kind of boundary op as the codebook lookup).
+        # No fixed iteration cap; if the program writes a non-
+        # converging loop, that's a programmer bug — same as any
+        # `while True` in any other language.
+        self._emit("_t += 1")
+        self._emit("if float(_halt_cum) >= 0.99:")
+        self._indent += 1
+        self._emit("break")
+        self._indent -= 1
+        self._indent -= 1  # close the while loop
 
         # Pop state stack and restore iterator/element runtime flags.
         self._loop_state_stack.pop()
