@@ -21,37 +21,52 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
-## [This year] Object encapsulation with file-scope rule for free functions
+## [This year] Object encapsulation — language ergonomics
 
 **Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
-**Steps 0, 0.5, and 1 shipped 2026-05-01.**
+**Steps 0, 0.5, 1, 2 (partial), 3 (no-op), 4, 6 (partial) shipped 2026-05-01.**
 
 The rule: free (non-object) functions read file-scope; object
 methods (static or non-static) do not. The validator emits
 **SUT0144** on any method body that reads a file-scope name.
 Class bodies accept method declarations (regular, static,
-intrinsic, static-intrinsic). Static methods inside classes
-compile end-to-end with `Class.method(...)` dispatch (regular
-methods → mangled wrapper; intrinsic methods → direct
-`_VSA.<method>` dispatch). The stdlib_loader picks up class-bodied
-static methods alongside top-level FunctionDecls.
+intrinsic, static-intrinsic) and loop function declarations.
+Static methods compile via mangled wrappers; non-static methods
+take `this` as their first param; class loop functions emit as
+`_loop_{Class}_{name}`. `Class.method(...)` and
+`loop Class.name(...)` both dispatch correctly. The
+stdlib_loader picks up class-bodied static methods alongside
+top-level FunctionDecls.
+
+Per Emma's 2026-05-01 correction: there is no closure in Sutra
+— what the design calls "closure" is namespace-access scoping
+(free functions read file-level names through Python's natural
+emission, methods see only their class). The "free-function
+file-level closure" step is therefore a no-op.
 
 See `planning/open-questions/function-taxonomy-and-closure.md`
-for the full taxonomy and the remaining implementation slices.
+for the full taxonomy.
 
 Remaining work:
 
-- [ ] **Migrate stdlib files** to use `class Math { static
-  intrinsic method ... }` etc. The infrastructure accepts both
-  shapes — migration is a series of individually shippable
-  file rewrites that don't break existing user code.
-- [ ] **Free-function file-level closure:** compile-time bake of
-  file-level values into emitted artifacts.
-- [ ] **Non-static method encapsulation:** real codegen so
-  `class Foo { field x; function bar() { return x + 1; } }`
-  compiles with `x` as a bounded reference into the instance.
-- [ ] **Static method encapsulation with class-level slots.**
-- [ ] **Object loops** (loop methods on classes).
+- [ ] **Migrate the four remaining stdlib files** to class-as-namespace
+  shape: `logic.su`, `similarity.su`, `vectors.su`, `rotation.su`.
+  Their bodies use the `loop (10)` form which still works but
+  needs a careful check that the inliner still expands them
+  correctly inside class bodies (it does, per the 2026-05-01
+  inliner extension).
+- [ ] **Field declarations inside class bodies** (`field x : int;`).
+  Without fields there's no per-class state for non-static methods
+  to encapsulate, and step 5 (class-level slots) has no referent.
+- [ ] **Non-static object loops with `this` threading.** Today
+  class loops are effectively static — the cell function takes
+  only the declared state params. Per Emma's design, non-static
+  loops should pass `this` through each iteration so the loop
+  walks the same instance. Implementation: insert `this` as an
+  implicit additional state parameter on non-static class loops.
+- [ ] **Instance-syntax dispatch on typed variables** (`g.method(args)`
+  for `Greeter g`). Needs variable type tracking through the
+  codegen.
 
 ## [This year] Make `sutralang.dev` more agent-accessible
 
