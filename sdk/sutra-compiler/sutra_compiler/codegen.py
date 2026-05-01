@@ -438,6 +438,15 @@ class Codegen(BaseCodegen):
         self._emit()
         self._emit("import numpy as _np")
         self._emit()
+        self._emit("# Loop compute budget T. Module-level so it is overridable at")
+        self._emit("# runtime — set SUTRA_LOOP_T in the environment before import,")
+        self._emit("# or assign to module._LOOP_T after import.")
+        self._emit("import os as _sutra_loop_t_os")
+        self._emit(
+            f"_LOOP_T = int(_sutra_loop_t_os.environ.get('SUTRA_LOOP_T', "
+            f"{self._LOOP_T}))"
+        )
+        self._emit()
         self._emit()
         self._emit("class _NumpyVSA:")
         self._indent += 1
