@@ -541,23 +541,28 @@ binding, bundling, and similarity primitives operate on the
 vectors as opaque dense tensors and are correct under any
 substrate that ships the same dimensionality.
 
-### 3.1 Capacity of rotation versus Hadamard binding on real LLM substrates
+### 3.1 Capacity of rotation versus Hadamard binding across substrates
 
 We measure decode accuracy as a function of bundle width k on
-real LLM embeddings — not on random fillers — for three frozen
-substrates of different dimensionality. Each substrate's
-codebook is the same 84-word vocabulary (animals, foods,
-objects, places, abstract nouns) embedded via Ollama; the
-embeddings are unit-normalized (and mean-centered for
-nomic-embed-text per the standard Sutra config). For each
-bundle width and each binding scheme we run 10 trials, each
-sampling k random (role, filler) pairs without replacement,
-forming the bundle, and decoding by unbind + argmax-cosine
-against the full codebook. The two binding schemes compared
-are *rotation binding* (`R_role @ filler`, role-seeded
-Haar-random orthogonal `R_role`) and *Hadamard binding*
-(elementwise product `role .* filler`, the textbook MAP-VSA
-choice).
+real embeddings — not on random fillers — across **four
+substrates spanning two modalities**: three frozen LLM text
+encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and
+one frozen protein language model (ESM-2 small,
+`facebook/esm2_t6_8M_UR50D`). The protein-LM substrate
+embeds an 84-sequence amino-acid vocabulary (canonical signal
+peptides, cell-penetrating peptides, antimicrobial peptides,
+classic affinity-tag motifs, and deterministic random k-mers);
+the LLM substrates each embed the same 84-word noun vocabulary
+(animals, foods, objects, places, abstract nouns) via Ollama.
+All embeddings are unit-normalized; nomic-embed-text and ESM-2
+are additionally mean-centered. For each bundle width and each
+binding scheme we run 10 trials, each sampling k random (role,
+filler) pairs without replacement, forming the bundle, and
+decoding by unbind + argmax-cosine against the full codebook.
+The two binding schemes compared are *rotation binding*
+(`R_role @ filler`, role-seeded Haar-random orthogonal `R_role`)
+and *Hadamard binding* (elementwise product `role .* filler`,
+the textbook MAP-VSA choice).
 
 **nomic-embed-text (768-d, mean-centered):**
 
@@ -595,30 +600,59 @@ choice).
 | 32 |  85.3% | +0.176 |  0.9% | +0.292 |
 | 48 |  72.1% | +0.146 |  1.0% | +0.291 |
 
+**ESM-2 small protein language model (320-d, mean-centered) —
+non-LLM, non-text substrate:**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.713 | 75.0% | +0.470 |
+| 4  | 100.0% | +0.501 | 50.0% | +0.323 |
+| 8  | 100.0% | +0.349 | 28.7% | +0.257 |
+| 16 |  90.6% | +0.252 | 16.2% | +0.185 |
+| 24 |  77.1% | +0.205 | 11.2% | +0.171 |
+| 32 |  61.9% | +0.174 |  6.2% | +0.141 |
+| 48 |  44.2% | +0.143 |  4.2% | +0.117 |
+
+ESM-2 (Lin et al., Science 2023) is a frozen protein language
+model trained on UniRef sequences with no exposure to natural-
+language text; its embedding space encodes amino-acid context,
+not word semantics. The reproduction script is
+`experiments/rotation_binding_capacity_bioinformatics.py`. The
+same rotation-vs-Hadamard separation appears in this entirely
+different modality: rotation holds 100% accuracy through k=8
+and degrades gracefully thereafter; Hadamard collapses fast.
+
 **Reversibility round-trip (rotation):** mean
 ‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ across the same trials
 on every substrate, i.e. floating-point round-off. Haar-random Q
 is orthogonal so Qᵀ Q = I; reversibility is exact modulo
 numerical error.
 
-**Interpretation.** Rotation binding works across all three
+**Interpretation.** Rotation binding works across all four
 substrates — 100% decode accuracy up through k=8 in every case,
 with graceful degradation thereafter. Hadamard binding does not:
 on `mxbai-embed-large` even k=2 yields 15% accuracy (worse than
 chance for a target-versus-83-distractors decode); on
 `all-minilm` Hadamard is at 45% for k=2 and 1.7% by k=48; on
-nomic-embed-text Hadamard is in the same band as rotation only
-at very small k and falls behind sharply by k≥24. The signal
-cosine for Hadamard is comparable to rotation's, but the noise
-floor is much higher because the elementwise product of
-correlated real-valued embeddings produces a result that
-overlaps with many distractors in the codebook rather than
-near-orthogonally with one. This is a head-to-head measurement
-on the specific substrates Sutra targets, not a general claim
-about Hadamard binding under all conditions. Rotation is the
-right choice for these substrates; the underlying experiment is
-`experiments/rotation_binding_capacity_llm.py` and its raw
-output JSON is in `experiments/rotation_binding_capacity_llm_results.json`.
+ESM-2 protein embeddings Hadamard starts at 75% and collapses
+to 4.2% by k=48; on nomic-embed-text Hadamard is in the same
+band as rotation only at very small k and falls behind sharply
+by k≥24. The signal cosine for Hadamard is comparable to
+rotation's, but the noise floor is much higher because the
+elementwise product of correlated real-valued embeddings
+produces a result that overlaps with many distractors in the
+codebook rather than near-orthogonally with one.
+
+The substrate-agnosticism claim is not a hedge — the same
+characteristic shape (rotation: graceful degradation; Hadamard:
+fast collapse) reproduces on a dense vector space produced by a
+protein language model that has never seen natural-language
+text. Sutra's rotation primitive is sensitive to whether the
+substrate is dense and high-dimensional, not to whether the
+substrate was trained on words. Reproducing experiments:
+`experiments/rotation_binding_capacity_llm.py` (LLM substrates)
+and `experiments/rotation_binding_capacity_bioinformatics.py`
+(ESM-2). Raw JSON is committed alongside.
 
 ### 3.2 The extended-state-vector layout
 
