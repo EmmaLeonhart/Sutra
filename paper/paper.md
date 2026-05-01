@@ -235,7 +235,48 @@ QR-construction cost on the hot path. Binding becomes a single
 matmul against a precomputed matrix — the GPU-friendly shape that
 fuses with surrounding tensor ops.
 
-### 3.1 The extended-state-vector layout
+### 3.1 Capacity of rotation binding on a 768-d substrate
+
+Direct measurement of decode accuracy as a function of bundle
+width k, on a 200-filler codebook in the same 768-d substrate the
+runtime uses (Haar-random orthogonal `R_role`, 10 trials per k,
+all-random fillers — capacity is a property of the rotation
+algebra, not the filler distribution):
+
+| k (bundle width) | accuracy | signal cos | noise cos | SNR |
+|---:|---:|---:|---:|---:|
+| 2   | 100.0% | +0.7087 | −0.0022 | 322 |
+| 4   | 100.0% | +0.5046 | −0.0025 | 199 |
+| 8   | 100.0% | +0.3535 | +0.0029 | 120 |
+| 12  | 100.0% | +0.2886 | −0.0007 | 438 |
+| 16  | 100.0% | +0.2530 | +0.0011 | 222 |
+| 24  |  99.6% | +0.2052 | −0.0006 | 360 |
+| 32  |  97.2% | +0.1746 | −0.0002 | 974 |
+| 48  |  88.3% | +0.1444 | −0.0003 | 431 |
+| 64  |  75.0% | +0.1245 | −0.0002 | 633 |
+| 96  |  53.9% | +0.1018 | −0.0000 | 3506 |
+| 128 |  39.5% | +0.0891 | −0.0002 | 500 |
+
+**Reversibility round-trip:** mean ‖unbind(R, bind(R, x)) − x‖ =
+1.5 × 10⁻¹⁵ across the same trials, i.e. floating-point round-off.
+Haar-random Q is orthogonal so Qᵀ Q = I; reversibility is exact
+modulo numerical error.
+
+**Interpretation.** The signal cosine decays as ≈ 1/k (consistent
+with the standard bundled-k retrieval analysis); the noise
+cosine stays at ≈ 1/√d ≈ 0.036 for d = 768. Their crossing
+predicts cleanup-failure around k ≈ √d ≈ 28, which matches the
+observed accuracy knee between k = 32 (97.2%) and k = 48 (88.3%).
+For practical Sutra programs, the bundle width is typically below
+this knee — role-filler records have on the order of 1–10 fields,
+not 100 — so binding-capacity cleanup loss is not the limiting
+factor in the demonstration corpus. The capacity ceiling is
+substrate-dimensional, and the language scales with d.
+
+The experiment is `experiments/rotation_binding_capacity.py`; the
+table above is its actual output, not asserted ranges.
+
+### 3.2 The extended-state-vector layout
 
 Every value in a Sutra program is a vector with a fixed extended
 layout: `[semantic | synthetic]`. The semantic block holds the
@@ -256,7 +297,7 @@ every operation is one tensor op, and the compiler can treat the
 whole program as a dataflow graph of tensor operations. There is
 no type dispatch at the leaves.
 
-### 3.2 First-class loops as RNN cells
+### 3.3 First-class loops as RNN cells
 
 Runtime data-dependent loops compile to fixed-T soft-halt cells.
 Each tick: snapshot pre-step state, evaluate the halt condition
@@ -275,7 +316,7 @@ value: a loop that fails to converge wipes program output to
 near-zero, providing substrate-pure detection of unconverged
 computation.
 
-### 3.3 Embedded codebook in SutraDB
+### 3.4 Embedded codebook in SutraDB
 
 Every embedded string in a Sutra program is inserted into SutraDB
 (a sibling RDF+HNSW triplestore project) at compile time, with
