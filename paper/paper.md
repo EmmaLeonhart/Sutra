@@ -259,24 +259,40 @@ The four core technical contributions of this paper are:
    primitives, and that the construction reaches that limit on
    real programs.
 
-3. **Tail recursion as the loop primitive, eliminating control
-   flow, with O(1) memory in recursion depth.** Loops are not
-   `for`/`while` constructs over a host-side iterator. They are
-   tail-recursive function declarations (`do_while`, `while_loop`,
-   `iterative_loop`, `foreach_loop`) whose body's
-   `return NAME(args)` becomes the recurrent step. Each loop
-   compiles to a fixed-T soft-halt RNN cell with substrate-pure
-   halt detection (heaviside step → cumulative monotone halt →
-   soft-mux state freeze). The state vector h_t carries the entire
-   execution context in superposition over a fixed-width vector,
-   so memory overhead is **constant in recursion depth**: a Sutra
-   program can specify deeper recurrence (a larger T at compile
-   time, §1.2 manifest setting) without expanding the runtime
-   memory budget. There is no per-iteration stack frame, no
-   growing context, no heap allocation keyed by depth — the loop
-   body updates the same state tensor T times. Halt completion
-   propagates through nested calls to the program's final output:
-   a loop that fails to converge wipes the program's result.
+3. **Tail recursion as the loop primitive, with no in-graph
+   control flow and O(1) state vector width in recursion depth.**
+   Loops are not `for`/`while` constructs over a host-side
+   iterator. They are tail-recursive function declarations
+   (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`)
+   whose body's `return NAME(args)` becomes the recurrent step.
+   Each loop compiles to a soft-halt RNN cell with
+   substrate-pure halt detection (heaviside step → cumulative
+   monotone halt → soft-mux state freeze).
+
+   "No control flow" here is a claim about the *compiled
+   program*: the body of every loop and conditional is one
+   straight-line tensor pipeline with no branch instructions, no
+   graph control-flow operators (no If-node, no While-node, no
+   Switch-node), no in-tensor jumps. There is still a Python
+   `while True: … break` driver around each loop tick on the
+   host (§3.3), the same way any compiled program has a host
+   process around it; the claim is that the *substrate-resident*
+   computation has no control flow, not that the entire process
+   is in tensor land.
+
+   The state vector h_t carries the execution context in
+   superposition over a fixed-width vector, so the **state
+   vector width is O(1) in recursion depth**: a Sutra program
+   that runs N loop ticks does not grow its state vector,
+   regardless of how large N becomes. There is no per-iteration
+   stack frame, no growing context, no heap allocation keyed by
+   depth — the loop body updates the same state tensor each
+   tick. Compute scales O(N) (each tick runs the body once); the
+   autograd tape during training scales O(N) up to the
+   `backward()` call (standard PyTorch, freed after the backward
+   pass). Inference does not build a tape and pays only the
+   fixed-width state vector. Halt completion propagates through
+   nested calls to the program's final output.
 
 4. **Synthetic-dimension rotation binding as an angular hash map.**
    The compiler maps a high-dimensional codebook onto a set of
