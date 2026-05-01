@@ -871,6 +871,53 @@ field is the default, not a bound on the language. The manifest format is intent
 what the compiler needs to deterministically produce a `.sdb`
 and emit a PyTorch module, and nothing else.
 
+### 3.6 End-to-end differentiable training through Sutra operations
+
+Because every Sutra primitive compiles to a differentiable tensor
+operation, the compiled graph supports standard PyTorch
+`loss.backward()` without modification. We verify this by
+training learnable parameters through a fuzzy-logic classifier
+built entirely from Sutra operations.
+
+**Setup.** 15 words from three categories (animals, vehicles,
+foods) are embedded via nomic-embed-text (768-d, frozen). Three
+learnable prototype vectors are initialized randomly. The
+classifier computes cosine similarity between an input and each
+prototype, then applies Lagrange-interpolated fuzzy AND/NOT gates
+to produce per-class scores:
+
+    rule_i = AND(sim(x, proto_i), AND(NOT(sim(x, proto_j)),
+                                      NOT(sim(x, proto_k))))
+
+Each gate is a polynomial (§3, Lagrange interpolation on the
+Kleene {-1, 0, +1} grid), so the full forward pass is a
+composition of polynomial and rational tensor operations with
+well-defined gradients everywhere. Cross-entropy loss over the
+three rule scores drives Adam updates on the prototype
+embeddings.
+
+**Results.** Before training (random prototypes), accuracy is 40%
+(chance = 33%). After 300 epochs, accuracy reaches 100%. Gradient
+norms for all three prototypes are nonzero at every step,
+confirming that backpropagation reaches every learnable parameter
+through the full chain of Sutra operations: `similarity` (cosine
+dot product) -> `fuzzy_not` (Kleene negation) -> `fuzzy_and`
+(Lagrange min polynomial) -> cross-entropy.
+
+| Phase  | Accuracy | Loss   |
+|--------|----------|--------|
+| Before |     40%  |  1.93  |
+| After  |    100%  |  0.04  |
+
+This is the minimal demonstration that Sutra's compiled
+tensor-op graph is not merely structurally differentiable but
+*trainable*: gradient descent through the fuzzy-logic gates
+learns to position the prototypes so that the AND/NOT rules
+correctly classify all inputs. The experiment uses no
+Sutra-specific autograd machinery — standard `torch.autograd`
+suffices because the compiler emits only operations that PyTorch
+already knows how to differentiate.
+
 ---
 
 ## 4. The Sutra Compiler

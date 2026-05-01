@@ -154,6 +154,30 @@ print('OK: §3.1.1 crosstalk reproduces')
 Honest negative: chain=1 100%, chain=8 at chance — scopes the
 §3.1 capacity claim to single-cycle records.
 
+### §3.6 — End-to-end differentiable training
+
+```bash
+python experiments/differentiable_training.py
+test $? -eq 0 || { echo "FAIL: differentiable training"; exit 1; }
+python -c "
+import json
+d = json.load(open('experiments/differentiable_training_results.json'))
+assert d['accuracy_after'] > d['accuracy_before'], \
+    f\"Training did not improve: {d['accuracy_before']} -> {d['accuracy_after']}\"
+assert all(g > 0 for g in d['gradient_norms'].values()), \
+    f\"Gradient blocked: {d['gradient_norms']}\"
+print(f\"Before: {d['accuracy_before']:.0%}, After: {d['accuracy_after']:.0%}\")
+print(f\"Gradient norms: {d['gradient_norms']}\")
+print('OK: §3.6 differentiable training reproduces')
+"
+```
+
+Trains learnable prototype embeddings through Sutra's Lagrange
+fuzzy AND/NOT gates via standard PyTorch autograd. Random
+prototypes (40% accuracy) reach 100% after 300 epochs. All
+gradient norms are nonzero, confirming backprop reaches every
+parameter through the full chain of Sutra operations.
+
 ### §3.1.3 — Sutra vs Scallop (1-hop knowledge-graph query)
 
 ```bash
