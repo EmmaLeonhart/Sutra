@@ -14,17 +14,30 @@ tool stay in sync.
 bottom, treating it as a queue. Implement → commit → push →
 remove from `todo.md` in the same commit. Repeat.
 
+### Done in this sprint
+
+- **Claw4S close-out.** Auto-submit infra removed; paper artifact
+  preserved; CLAUDE.md trimmed; queue/todo cleaned (commits
+  `80f8c41`, `6540acf`).
+- **Y Combinator references cleared** from todo.md (commit
+  `0f4a89a`).
+- **Operators page** added (`docs/operators.md`, commit `b2dda77`)
+  — root-definition / function-expansion form for every Sutra
+  operator. Wired into Theory-and-Paper nav.
+- **Website audit** of the docs/ pages for stale content (loops,
+  demo count, retired surfaces, broken links). Commits `02c3d1f`,
+  `2a6654c`, `333f670`, `e1eed83`, `b69e313`, `473f5b1`,
+  `ca421fe`, `ff81d09`, `6a07a75`.
+
 ### Next up
 
-1. **Website audit** (Emma 2026-05-01). Audit `docs/` for
-   stale / irrelevant content; the Sutra docs site
-   (`sutralang.dev`) needs to reflect the actual current
-   state of the language. Delete what doesn't belong.
-2. Then start barreling through `todo.md` from top.
-
-The Claw4S clawRxiv submission cycle is closed (2026-05-01,
-v51/post-2216 Accept locked in). All paper-submission CI
-infrastructure has been removed.
+Now barreling through `todo.md` from the top. First section is
+"[This year] Object encapsulation with file-scope rule for free
+functions" — but most of those checkbox items are blocked on
+class-system surfaces that don't exist yet, so the substantive
+todo work starts a few sections down. Actual approach: scan
+top-to-bottom, take the first item where the work is concrete
+and shippable today.
 
 ## Pointers
 
