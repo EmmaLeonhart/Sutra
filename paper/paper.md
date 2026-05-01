@@ -138,17 +138,17 @@ of Siegelmann & Sontag (1992): a tail-recursive loop compiled to
 a soft-halt RNN cell over a fixed-width state vector with a halt
 criterion is the same construction those authors used to show
 that recurrent neural networks with rational weights are
-universal under unbounded recursion depth. The deployed
-implementation uses a fixed iteration count, currently T=50,
-which makes the *practically-usable* system bounded-depth and
-limits expressivity to programs whose tail-recursive depth fits
-within T. T itself is a constant in the compiler's codegen, not
-an architectural property; lifting T to a per-project
-configuration field in the `atman.toml` manifest (§3.5) is
-straightforward future work and would not change the language
-semantics or the runtime tensor-op graph shape, only the size of
-the unrolled cell. The Turing-completeness claim is therefore
-about the construction, not about the current default.
+universal under unbounded recursion depth. The compiler exposes
+the unroll depth T as a per-project configuration field
+(`[project.compile] loop_max_iterations` in the project's
+`atman.toml` manifest, §3.5; equivalently, the `--loop-T` CLI
+flag); the default is T=50, and programs that need deeper
+recursion compile with a larger T. The soft-halt cell freezes
+state once `halt_cum` saturates, so a larger T affects only the
+size of the emitted tensor-op graph, not runtime work after halt.
+The system is therefore Turing-complete by construction, with T
+as the single budget-vs-expressivity dial, not an architectural
+limit.
 
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
@@ -526,7 +526,7 @@ of compilation, not a service the runtime contacts.
 A Sutra project is described by an `atman.toml` manifest at the
 project root. The manifest declares the entry source file, the
 embedding substrate (provider, model, dimensionality, and whether
-to mean-center), and the compile target. A minimal example:
+to mean-center), and compile-time settings. A minimal example:
 
 ```toml
 [project]
@@ -539,18 +539,24 @@ provider = "ollama"
 model = "nomic-embed-text"
 dim = 768
 mean_center = true
+
+[project.compile]
+loop_max_iterations = 50
 ```
 
-The compiler reads this file to know which LLM to query for
-`embed("...")` and `basis_vector("...")` calls at compile time
-and to fix the dimensionality of the runtime tensor-op graph.
-Changing the substrate (e.g. swapping `nomic-embed-text` for a
-different 768-d model, or for a 1536-d model with a corresponding
-`dim` update) re-runs the embed step at compile time and produces
-a different `.sdb` codebook; the source code does not change.
-The manifest format is intentionally narrow — it covers what the
-compiler needs to deterministically produce a `.sdb` and emit a
-PyTorch module, and nothing else.
+The compiler reads `[project.embedding]` to know which LLM to
+query for `embed("...")` and `basis_vector("...")` calls at
+compile time and to fix the dimensionality of the runtime
+tensor-op graph. Changing the substrate (e.g. swapping
+`nomic-embed-text` for a different 768-d model, or for a 1536-d
+model with a corresponding `dim` update) re-runs the embed step
+at compile time and produces a different `.sdb` codebook; the
+source code does not change. `[project.compile] loop_max_iterations`
+sets the soft-halt loop unroll depth T discussed in §1.2 and
+§3.3; the default is 50 and programs requiring deeper recursion
+raise it. The manifest format is intentionally narrow — it covers
+what the compiler needs to deterministically produce a `.sdb`
+and emit a PyTorch module, and nothing else.
 
 ---
 

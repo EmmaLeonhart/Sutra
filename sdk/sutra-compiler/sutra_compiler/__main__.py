@@ -178,10 +178,49 @@ def _run_consistency(paths: List[str]) -> int:
     return 1 if drift_count else 0
 
 
+def _read_atman_loop_T(source_path: str) -> int | None:
+    """Walk up from the .su source file looking for an atman.toml that
+    declares `[project.compile] loop_max_iterations = N`. Returns N if
+    found, else None.
+    """
+    try:
+        import tomllib  # py3.11+
+    except ImportError:
+        try:
+            import tomli as tomllib  # type: ignore
+        except ImportError:
+            return None
+    cur = os.path.dirname(os.path.abspath(source_path))
+    while True:
+        candidate = os.path.join(cur, "atman.toml")
+        if os.path.isfile(candidate):
+            try:
+                with open(candidate, "rb") as fp:
+                    data = tomllib.load(fp)
+            except Exception:
+                return None
+            v = (data.get("project", {})
+                     .get("compile", {})
+                     .get("loop_max_iterations"))
+            if isinstance(v, int) and v > 0:
+                return v
+            return None
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            return None
+        cur = parent
+
+
 def _compile_to_python(path: str, *, runtime_dim: int,
-                       runtime_seed: int) -> str | None:
+                       runtime_seed: int,
+                       loop_T: int | None = None) -> str | None:
     """Validate + parse + codegen one .su file. Returns generated Python
-    source, or None on failure (diagnostics already printed)."""
+    source, or None on failure (diagnostics already printed).
+
+    `loop_T` resolution: if the caller passes an explicit value, use it.
+    Else, walk up from the source file looking for `atman.toml` with a
+    `[project.compile] loop_max_iterations` field. Else default to 50.
+    """
     if not os.path.exists(path):
         print(f"{path}: error: file not found", file=sys.stderr)
         return None
@@ -196,12 +235,16 @@ def _compile_to_python(path: str, *, runtime_dim: int,
     tokens = lexer.tokenize()
     parser = Parser(tokens, file=path, diagnostics=lexer.diagnostics)
     module = parser.parse_module()
+    if loop_T is None:
+        loop_T = _read_atman_loop_T(path) or 50
     return translate_pytorch(
         module, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        loop_max_iterations=loop_T,
     )
 
 
-def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
+def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int,
+                 loop_T: int | None = None) -> int:
     """Compile a .su file with the PyTorch codegen and exec the generated
     module. A `main()` function in the module, if present, is called and
     its return value is printed; otherwise the module's top-level prints
@@ -209,6 +252,7 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
     import types
     py_src = _compile_to_python(
         path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        loop_T=loop_T,
     )
     if py_src is None:
         return 1
@@ -223,6 +267,7 @@ def _run_execute(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
 
 
 def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
+             loop_T: int | None = None,
              output_html: str | None = None) -> int:
     """Compile, execute with tracing, and output a 3D visualization HTML.
 
@@ -235,6 +280,7 @@ def _run_viz(path: str, *, runtime_dim: int, runtime_seed: int,
 
     py_src = _compile_to_python(
         path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        loop_T=loop_T,
     )
     if py_src is None:
         return 1
@@ -319,9 +365,11 @@ _VSA.bundle = _traced_bundle
     return 0
 
 
-def _run_emit(path: str, *, runtime_dim: int, runtime_seed: int) -> int:
+def _run_emit(path: str, *, runtime_dim: int, runtime_seed: int,
+              loop_T: int | None = None) -> int:
     out = _compile_to_python(
         path, runtime_dim=runtime_dim, runtime_seed=runtime_seed,
+        loop_T=loop_T,
     )
     if out is None:
         return 1
@@ -401,6 +449,19 @@ def main(argv: List[str] | None = None) -> int:
         help="Random seed for the emitted runtime (default 42).",
     )
     parser.add_argument(
+        "--loop-T", type=int, default=None,
+        help=(
+            "Maximum compile-time loop unroll depth (T) for "
+            "tail-recursive loop functions and the soft-halt RNN cell. "
+            "If unset, the compiler reads the value from the nearest "
+            "[project.compile] loop_max_iterations field in atman.toml, "
+            "and falls back to 50 if no manifest declares it. The "
+            "soft-halt cell freezes state once halt-cum saturates, so "
+            "larger T costs only a longer emitted graph, not extra "
+            "runtime work."
+        ),
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"sutrac {__version__}",
@@ -427,17 +488,20 @@ def main(argv: List[str] | None = None) -> int:
                 args.paths[0],
                 runtime_dim=args.runtime_dim,
                 runtime_seed=args.runtime_seed,
+                loop_T=args.loop_T,
             )
         if args.run:
             return _run_execute(
                 args.paths[0],
                 runtime_dim=args.runtime_dim,
                 runtime_seed=args.runtime_seed,
+                loop_T=args.loop_T,
             )
         return _run_emit(
             args.paths[0],
             runtime_dim=args.runtime_dim,
             runtime_seed=args.runtime_seed,
+            loop_T=args.loop_T,
         )
     if args.json:
         return _run_json(args.paths)
