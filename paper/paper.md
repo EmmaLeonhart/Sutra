@@ -131,24 +131,14 @@ The four core technical contributions of this paper are:
 
 These four primitives are integrated into a single working
 compiler that lowers `.su` source to a self-contained PyTorch
-module and runs on CPU or CUDA.
-
-The architectural construction is Turing-complete in the sense
-of Siegelmann & Sontag (1992): a tail-recursive loop compiled to
-a soft-halt RNN cell over a fixed-width state vector with a halt
-criterion is the same construction those authors used to show
-that recurrent neural networks with rational weights are
-universal under unbounded recursion depth. The compiler exposes
-the unroll depth T as a per-project configuration field
+module and runs on CPU or CUDA. The compile-time loop unroll
+depth T is a per-project configuration field
 (`[project.compile] loop_max_iterations` in the project's
 `atman.toml` manifest, §3.5; equivalently, the `--loop-T` CLI
 flag); the default is T=50, and programs that need deeper
-recursion compile with a larger T. The soft-halt cell freezes
-state once `halt_cum` saturates, so a larger T affects only the
-size of the emitted tensor-op graph, not runtime work after halt.
-The system is therefore Turing-complete by construction, with T
-as the single budget-vs-expressivity dial, not an architectural
-limit.
+recursion compile with a larger T at no runtime cost beyond the
+longer emitted graph (the soft-halt cell freezes state once
+`halt_cum` saturates).
 
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
@@ -488,6 +478,14 @@ the soft-halt gating ensures convergence typically occurs in
 far fewer steps, with remaining iterations gated to identity
 by the saturated halt signal. Optional `torch.compile` wrapping
 unrolls the iteration at trace time.
+
+(The recurrent computational substrate that emerges from this
+construction is the same shape Siegelmann & Sontag (1992)
+analyzed when they showed recurrent neural networks with rational
+weights can compute any Turing-machine-computable function. We
+mention this for completeness — the result is well-established
+and assumed for any general-purpose programming language; we do
+not lean on it as a contribution.)
 
 Each loop returns a halt-cum scalar in `[0, 1]` indicating
 completion confidence. A `_program_halt` accumulator multiplies
