@@ -428,14 +428,19 @@ class BaseCodegen:
         elif isinstance(item, ast.ClassDecl):
             # Class declarations: instances of a user class are plain
             # vectors at runtime, same as the primitive parent.
-            # The class itself emits nothing for the empty-body case.
             # If the class body has methods (the 2026-05-01 extension),
             # static methods get emitted as mangled top-level Python
             # functions (`{ClassName}_{method_name}`) so call sites
             # like `Math.log(x)` can dispatch to them. Non-static
-            # methods are deferred — instance dispatch isn't wired.
+            # methods take `this` as their first param.
+            # If the class body has loop function declarations (object
+            # loops, step 6 of the encapsulation taxonomy), they emit
+            # as `_loop_{ClassName}_{name}` and are reachable from
+            # `loop ClassName.name(...)` call sites.
             for method in item.methods:
                 self._translate_class_method(item.name, method)
+            for lf in item.loop_functions:
+                self._translate_loop_function_decl(lf, class_name=item.name)
         else:
             # Statements at top level (ExprStmt, etc.) — lower as a stmt.
             if isinstance(item, ast.Stmt):
@@ -729,10 +734,25 @@ class BaseCodegen:
     # without going through __init__.
     _LOOP_T = 50
 
-    def _translate_loop_function_decl(self, decl: "ast.LoopFunctionDecl") -> None:
-        """Emit a Python function for a loop function declaration."""
+    def _translate_loop_function_decl(
+        self, decl: "ast.LoopFunctionDecl", *, class_name: Optional[str] = None
+    ) -> None:
+        """Emit a Python function for a loop function declaration.
+
+        When `class_name` is set, the loop function is being emitted on
+        behalf of a class body (object loop, step 6 of the
+        encapsulation taxonomy). The registry key uses the dotted form
+        `Class.name`, and the Python identifier mangles `.` to `_` so
+        `_loop_Greeter_run` is a valid name.
+        """
+        if class_name is not None:
+            registry_key = f"{class_name}.{decl.name}"
+            py_loop_name = f"_loop_{class_name}_{decl.name}"
+        else:
+            registry_key = decl.name
+            py_loop_name = f"_loop_{decl.name}"
         # Register so LoopCallStmt knows the state-param shape.
-        self._loop_decls[decl.name] = decl
+        self._loop_decls[registry_key] = decl
 
         state_names = [p.name for p in decl.state_params]
         init_param_names = [f"_init_{n}" for n in state_names]
@@ -744,7 +764,7 @@ class BaseCodegen:
             if isinstance(decl.condition, ast.Identifier):
                 py_params.insert(0, decl.condition.name)
         self._emit(
-            f"def _loop_{decl.name}({', '.join(py_params)}):"
+            f"def {py_loop_name}({', '.join(py_params)}):"
         )
         self._indent += 1
         self._emit(
@@ -939,13 +959,18 @@ class BaseCodegen:
         ]
         # Generate distinct names for the unpacked return values.
         ret_names = [f"_loopret_{n}" for n, _ in slot_args] + ["_loopret_halt"]
+        # Mangled python identifier for the emitted loop function.
+        # For class-bodied loops the source name is dotted
+        # (`Greeter.run`); replace `.` with `_` so the name is a valid
+        # Python identifier (`_loop_Greeter_run`).
+        py_loop_name = f"_loop_{stmt.name.replace('.', '_')}"
         if decl.kind == "foreach_loop":
             # Pass the array (cond_src) as the first Python arg, then
             # state inits. The function reads the array each tick to
             # fetch the next `element`.
             all_args = [cond_src] + init_args
             self._emit(
-                f"({', '.join(ret_names)},) = _loop_{stmt.name}("
+                f"({', '.join(ret_names)},) = {py_loop_name}("
                 f"{', '.join(all_args)})"
             )
         else:
@@ -955,7 +980,7 @@ class BaseCodegen:
             self._emit(f"# uses the loop's decl-time condition expression.")
             self._emit(f"_ = {cond_src}")
             self._emit(
-                f"({', '.join(ret_names)},) = _loop_{stmt.name}("
+                f"({', '.join(ret_names)},) = {py_loop_name}("
                 f"{', '.join(init_args)})"
             )
         # Write back to caller's slot vars.
