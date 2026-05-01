@@ -131,10 +131,36 @@ The four core technical contributions of this paper are:
 
 These four primitives are integrated into a single working
 compiler that lowers `.su` source to a self-contained PyTorch
-module and runs on CPU or CUDA. The compiler, the runtime, the
-SutraDB-backed compile-time codebook, and 13 demonstration
-programs in the smoke test (with 23 `.su` files in the
-`examples/` directory) exercise the end-to-end pipeline.
+module and runs on CPU or CUDA. The language is Turing-complete
+by the same construction that makes RNNs Turing-complete
+(Siegelmann & Sontag 1992): tail-recursive loops over a
+fixed-width state vector with a halt criterion, running on a
+continuous-state recurrent substrate.
+
+In addition to the four technical contributions above, this paper
+also reports an **engineering / execution result**:
+
+- **End-to-end string I/O through the substrate, via a
+  compile-time codebook + nearest-string decode.** Every embedded
+  string in a `.su` program is embedded once at compile time and
+  stored in an embedded SutraDB triplestore alongside its label.
+  At runtime, the inverse operation `nearest_string(vector)`
+  returns the string label whose embedding is closest to the
+  queried vector. This closes the loop: a Sutra program reads
+  strings, computes in vector space, and emits strings, all
+  without ever leaving the tensor-op graph at the level of
+  program semantics. To the authors' knowledge, this is the
+  first practical end-to-end string I/O story for
+  hyperdimensional computing — existing VSA / HDC libraries
+  (TorchHD, etc.) expose the algebra over user-supplied
+  hypervectors but do not provide a built-in path from external
+  strings into the substrate or from the substrate back to
+  strings; users typically maintain a manual codebook mapping
+  themselves. This is not a new theoretical primitive but a
+  working integration: the compiler, the runtime, the
+  SutraDB-backed codebook, and 13 demonstration programs in the
+  smoke test (with 23 `.su` files in the `examples/` directory)
+  exercise the end-to-end pipeline.
 
 ### 1.3 What this paper is not
 
@@ -194,6 +220,111 @@ for using VSA primitives as a library in a Python program. Sutra
 is the construction that compiles a separate source language to
 the same primitive set with no host-side residue, which TorchHD
 is not designed to do.
+
+A side-by-side comparison concretizes the difference. The same
+role-filler-record task — encode a 3-field record (name, color,
+shape) as a single bundled vector, then decode the color field —
+written in both systems:
+
+**Sutra** (`examples/role_filler_record.su`, the entire program):
+
+```sutra
+vector r_name  = basis_vector("role_name");
+vector r_color = basis_vector("role_color");
+vector r_shape = basis_vector("role_shape");
+
+vector f_alice  = basis_vector("filler_alice");
+vector f_red    = basis_vector("filler_red");
+vector f_circle = basis_vector("filler_circle");
+// (... three more fillers omitted ...)
+
+map<vector, string> FILLER_NAME = {
+    f_alice: "alice", f_red: "red", f_circle: "circle",
+    /* ... */
+};
+
+function vector make_record(vector name, vector color, vector shape) {
+    return bundle(
+        bind(r_name, name), bind(r_color, color), bind(r_shape, shape)
+    );
+}
+
+function string decode_field(vector record, vector role) {
+    vector recovered = unbind(role, record);
+    vector winner = argmax_cosine(recovered,
+        [f_alice, f_red, f_circle, /* ... */]);
+    return FILLER_NAME[winner];
+}
+
+function string main() {
+    vector rec = make_record(f_alice, f_red, f_circle);
+    return decode_field(rec, r_color);
+}
+```
+
+The compiler reduces this whole program to a fused tensor-op
+graph: every `basis_vector` call is resolved at compile time
+(strings embedded into the substrate, stored in the SutraDB
+codebook); `bind` and `unbind` lower to a single matmul each;
+`argmax_cosine` lowers to one cosine-similarity matmul plus an
+argmax; the `FILLER_NAME` map lowers to the substrate-resident
+codebook. The runtime decodes by `nearest_string` against the
+embedded codebook — the string `"red"` comes out without the
+program ever leaving the tensor graph at the program-semantics
+level.
+
+**TorchHD equivalent** (`experiments/role_filler_record_torchhd.py`,
+abridged):
+
+```python
+import torch, torchhd
+
+torch.manual_seed(42)
+
+# 1. MANUAL hypervector creation. There is no "embed string";
+#    the user maintains the string-to-vector mapping.
+roles = {n: torchhd.random(1, 768, vsa="MAP")
+         for n in ["name", "color", "shape"]}
+fillers = {n: torchhd.random(1, 768, vsa="MAP")
+           for n in ["alice", "bob", "red", "blue", "circle", "square"]}
+
+# 2. MANUAL codebook tensor for decoding.
+filler_names = ["alice", "bob", "red", "blue", "circle", "square"]
+codebook = torch.cat([fillers[n] for n in filler_names], dim=0)
+
+# 3. Build the record (Python control flow).
+record = torchhd.bundle(
+    torchhd.bind(roles["name"],  fillers["alice"]),
+    torchhd.bundle(
+        torchhd.bind(roles["color"], fillers["red"]),
+        torchhd.bind(roles["shape"], fillers["circle"]),
+    ),
+)
+
+# 4. Decode (Python control flow).
+recovered = torchhd.bind(record, torchhd.inverse(roles["color"]))
+sims = torchhd.cosine_similarity(recovered, codebook)
+result = filler_names[int(torch.argmax(sims))]
+```
+
+Both programs return `"red"`. The differences are structural:
+
+- The Sutra program contains no Python; the TorchHD program *is*
+  Python with library calls.
+- The Sutra string-to-vector mapping is automatic via
+  `basis_vector("filler_alice")`; in TorchHD the user constructs
+  hypervectors and maintains a `dict[str, hypervector]` by hand.
+- The Sutra codebook is implicit (the compiler constructs it from
+  the literals in the source); in TorchHD the user stacks vectors
+  into a codebook tensor explicitly.
+- The Sutra program lowers to one tensor-op graph; the TorchHD
+  program is a Python function whose control flow stays in Python
+  even after the library calls dispatch to PyTorch.
+
+These are differences in *what kind of artifact* the user
+writes, not in *which library is faster*. The CUDA kernels both
+systems eventually call into are largely the same — it's the
+shape of the program before it hits CUDA that differs.
 
 ### 2.2 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
@@ -536,8 +667,18 @@ programs to write rather than scripts to glue together.
 - Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013). Efficient
   estimation of word representations in vector space. *ICLR
   Workshop*.
+- Heddes, M., Nunes, I., Vergés, P., Kleyko, D., Abraham, D.,
+  Givargis, T., Nicolau, A., & Veidenbaum, A. (2023). Torchhd: An
+  open source python library to support research on
+  hyperdimensional computing and vector symbolic architectures.
+  *Journal of Machine Learning Research* 24(255):1–10.
 - Plate, T. A. (1995). Holographic reduced representations. *IEEE
   Transactions on Neural Networks* 6(3):623–641.
+- Siegelmann, H. T. & Sontag, E. D. (1992). On the computational
+  power of neural nets. *COLT '92*. Establishes that recurrent
+  neural networks with rational weights are Turing-complete; the
+  result Sutra inherits via tail-recursive loops over a
+  fixed-width state vector.
 - Smolensky, P. (1990). Tensor product variable binding and the
   representation of symbolic structures in connectionist systems.
   *Artificial Intelligence* 46(1–2):159–216.
