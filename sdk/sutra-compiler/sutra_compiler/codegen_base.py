@@ -302,6 +302,12 @@ class BaseCodegen:
         # translation to look up the state-param shape for the call's
         # writeback. Populated in _translate_loop_function_decl.
         self._loop_decls: dict[str, "ast.LoopFunctionDecl"] = {}
+        # Current function's return type name (e.g. "vector", "string").
+        # Set in _translate_function_decl / _translate_loop_function_decl.
+        # Halt-propagation (`return value * _program_halt`) only applies
+        # when the return is a vector — strings/ints/bools cannot be
+        # multiplied by a float halt accumulator.
+        self._current_return_type: str | None = None
 
     # -- emission helpers -------------------------------------------------
 
@@ -549,12 +555,18 @@ class BaseCodegen:
         # initialized to a zero vector before the first slot_store.
         outer_slot_vars = self._slot_vars
         self._slot_vars = {}
+        outer_return_type = self._current_return_type
+        self._current_return_type = decl.return_type.name if decl.return_type else None
         # Program-level halt accumulator (Emma 2026-04-30): every loop
         # call multiplies its halt_cum into _program_halt; every return
         # multiplies the returned value by _program_halt. A loop that
         # ran out of T-step budget without converging emits halt_cum≈0,
         # which wipes the function's output. No-op in functions with no
-        # loop calls (1.0 * value).
+        # loop calls (1.0 * value). The local is always defined so
+        # LoopCallStmt accumulation is safe; only vector-returning
+        # functions actually multiply the return value by it (host-
+        # language types like string/int/bool can't be multiplied by
+        # a float scalar).
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
@@ -564,6 +576,7 @@ class BaseCodegen:
             for stmt in decl.body.statements:
                 self._translate_stmt(stmt)
         self._slot_vars = outer_slot_vars
+        self._current_return_type = outer_return_type
         self._indent -= 1
 
     # -- loop function declarations (Emma 2026-04-30) --------------------
@@ -871,11 +884,21 @@ class BaseCodegen:
                 # Multiply the returned value by _program_halt so that
                 # any unconverged loop in this function (halt_cum≈0)
                 # wipes the output. For functions without loops the
-                # accumulator stays 1.0 and this is a no-op.
-                self._emit(
-                    f"return ({self._translate_expr(stmt.value)}) "
-                    f"* _program_halt"
-                )
+                # accumulator stays 1.0 and this is a no-op. String
+                # returns can't be multiplied by a float (codebook
+                # nearest-string lookup at the edge yields a host
+                # str), so we emit a bare return for those — halt
+                # wipe doesn't apply at the string boundary anyway,
+                # since a wiped-vector lookup already returns the
+                # nearest-string of zero (which is the right
+                # behavior).
+                if self._current_return_type == "string":
+                    self._emit(f"return {self._translate_expr(stmt.value)}")
+                else:
+                    self._emit(
+                        f"return ({self._translate_expr(stmt.value)}) "
+                        f"* _program_halt"
+                    )
             return
         if isinstance(stmt, ast.ExprStmt):
             expr = stmt.expr
