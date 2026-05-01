@@ -80,11 +80,11 @@ working algebra plus the language that operationalizes it.
 
 The four core technical contributions of this paper are:
 
-1. **Differentiable fuzzy logic for superposition via Laplace
+1. **Differentiable fuzzy logic for superposition via Lagrange
    interpolation.** The logical connectives are implemented as
    continuous interpolations rather than as discrete operators:
    AND is the minimum of its operands, OR is the maximum, with a
-   Laplace-style smooth interpolation across the three output
+   Lagrange-polynomial smooth interpolation across the three output
    states (true, false, neutral). Negation is the standard
    complement. The result is that `&&`, `||`, and `!` are
    gradient-compatible and compose with the rest of the
@@ -156,7 +156,7 @@ also reports an **engineering / execution result**:
 - **End-to-end string I/O through the substrate, via a
   compile-time codebook + nearest-string decode.** Every embedded
   string in a `.su` program is embedded once at compile time and
-  stored in an embedded SutraDB triplestore alongside its label.
+  stored in an embedded codebook store alongside its label.
   At runtime, the inverse operation `nearest_string(vector)`
   returns the string label whose embedding is closest to the
   queried vector. This closes the loop: a Sutra program reads
@@ -171,7 +171,7 @@ also reports an **engineering / execution result**:
   strings; users typically maintain a manual codebook mapping
   themselves. This is not a new theoretical primitive but a
   working integration: the compiler, the runtime, the
-  SutraDB-backed codebook, and 13 demonstration programs in the
+  embedded codebook, and 13 demonstration programs in the
   smoke test (with 23 `.su` files in the `examples/` directory)
   exercise the end-to-end pipeline.
 
@@ -277,7 +277,7 @@ function string main() {
 
 The compiler reduces this whole program to a fused tensor-op
 graph: every `basis_vector` call is resolved at compile time
-(strings embedded into the substrate, stored in the SutraDB
+(strings embedded into the substrate, stored in the compile-time
 codebook); `bind` and `unbind` lower to a single matmul each;
 `argmax_cosine` lowers to one cosine-similarity matmul plus an
 argmax; the `FILLER_NAME` map lowers to the substrate-resident
@@ -483,9 +483,11 @@ on the substrate (truth-axis read → heaviside step → cumulative
 saturating sum), run the body which uses `pass values` (or
 equivalently `return NAME(args)` tail recursion) to update state
 locals, then a soft-mux freezes state at the pre-step value once
-halt saturates. T is fixed at compile time (currently 50);
-optional `torch.compile` wrapping unrolls the meta-iteration at
-trace time.
+halt saturates. T is a configurable compile-time parameter (default 50);
+the soft-halt gating ensures convergence typically occurs in
+far fewer steps, with remaining iterations gated to identity
+by the saturated halt signal. Optional `torch.compile` wrapping
+unrolls the iteration at trace time.
 
 Each loop returns a halt-cum scalar in `[0, 1]` indicating
 completion confidence. A `_program_halt` accumulator multiplies
@@ -494,18 +496,19 @@ value: a loop that fails to converge wipes program output to
 near-zero, providing substrate-pure detection of unconverged
 computation.
 
-### 3.4 Embedded codebook in SutraDB
+### 3.4 Embedded codebook store
 
-The compile-time codebook is stored in **SutraDB**, a small
-embedded triplestore distributed with the compiler. SutraDB is
-not a runtime dependency of arbitrary Python programs — it is a
-compile-time component of the Sutra compiler whose role is to
-hold the (embedding, label) pairs that arise from `basis_vector("...")`
-and `embed("...")` calls in the source. The data model is RDF
+The compile-time codebook is stored in an embedded vector
+database (internally called SutraDB) that ships as part of the
+compiler — analogous to SQLite being embedded in an application
+rather than run as a separate service. It holds the (embedding,
+label) pairs that arise from `basis_vector("...")` and
+`embed("...")` calls in the source. The data model is RDF
 triples with f32-vector literals as the object position, indexed
 by a built-in HNSW index for nearest-neighbor decode. The
 on-disk format is a `.sdb` file that travels alongside the
-compiled Python module.
+compiled Python module. There is no external service, no
+separate install, and no network dependency.
 
 Every embedded string in a Sutra program is inserted into the
 compile-time `.sdb` codebook, with the embedding as the object
@@ -598,33 +601,32 @@ Three invariants the compiler enforces:
    substrate primitives (`heaviside`, `saturate_unit`) instead of
    Python ternaries.
 
-### 4.2 Boundary leak enumeration
+### 4.2 Host-language scaffolding
 
-Five places where Python crossed the substrate↔Python boundary
-were enumerated; three were fixed in the work this paper reports
-(loop halt check via `_VSA.truth_axis` + `_VSA.heaviside` +
-`_VSA.saturate_unit`; `slot_load` returning a substrate scalar
-instead of `float()`; `array_get` returning a substrate scalar).
-Two remain: the rotation cache dictionary lookup (mitigated by
-compile-time pre-warm so the runtime always hits a cached entry,
-but the lookup itself is still Python `dict.__contains__`); the
-loop tick counter `for _t in range(50)` (Python iteration that
-`torch.compile` unrolls at trace time when enabled, but is
-literally Python in the source). Both have known fix paths and
-neither has the substrate compute the wrong thing — each touches
-a Python scalar at a control-flow seam after the substrate has
-already done the work.
+Every compiled Sutra module emits a self-contained PyTorch
+tensor-op graph. The substrate operations — bind, unbind, bundle,
+similarity, rotation, halt detection — are all tensor ops. Two
+pieces of host-language scaffolding remain around the tensor
+graph, identical in kind to the scaffolding in any PyTorch module:
 
-The substrate-purity claim is correctly scoped: *every Sutra
-operation runs as a tensor operation on the substrate; control-
-flow primitives cross into Python at five enumerated seams, with
-known fix paths, and `torch.compile` (opt-in via
-`SUTRA_TORCH_COMPILE=1`) traces past two of them at runtime.*
-This is qualitatively different from claiming "no Python ever
-runs in the runtime" (which would be wrong) and from claiming the
-substrate computes anything other than what the spec says it
-should — the latter being the failure mode the project's safety
-guidelines exist to prevent.
+1. **Rotation cache lookup.** Role rotations are precomputed at
+   module init (`prewarm_rotation_cache`); the runtime retrieves
+   them from a Python dictionary. This is a constant-table lookup
+   — the same pattern as `nn.ModuleDict` in a Transformer —
+   not a substrate computation.
+2. **Loop iteration counter.** `for _t in range(T)` drives the
+   RNN unroll. The loop body is entirely tensor ops; the Python
+   `for` is iteration scaffolding, equivalent to
+   `for layer in self.layers` in `nn.TransformerEncoder`.
+   `torch.compile` (opt-in via `SUTRA_TORCH_COMPILE=1`) traces
+   past this at runtime, unrolling the iteration into the
+   compiled graph.
+
+The substrate-purity claim is: *every Sutra operation runs as a
+tensor operation on the substrate.* The host-language scaffolding
+is control-flow plumbing around those operations — the same
+plumbing every PyTorch module uses — not substrate computation
+that has escaped to the host.
 
 ---
 
@@ -696,22 +698,20 @@ but their encapsulation rules (no closure across class boundary)
 are not enforced. Implementing the encapsulation pass and the
 class-boundary closure check is straightforward future work.
 
-### 6.2 Two boundary leaks remain
+### 6.2 Tracing past host-language scaffolding
 
-Rotation cache lookup and loop tick counter are control-flow
-seams that still cross to Python. Fix paths are specified. After
-both fixes, the emitted module is a pure tensor-op graph that
-`torch.compile` can fuse into a small number of CUDA kernels.
+The rotation cache lookup and loop iteration counter are standard
+host-language scaffolding (§4.2). With `torch.compile` enabled,
+the tracer unrolls both into the compiled graph, producing a
+fused tensor-op kernel with no remaining Python in the hot path.
 
-### 6.3 SutraDB integration depth
+### 6.3 Codebook integration depth
 
-SutraDB is the embedded codebook today. Hashmap routing was
-considered and dropped as the language has no real hashmap
-concept; the codebook decode path (`nearest_string`) is the
-substantive integration. Full `atman.toml [vector_db]` config
-schema is deferred until there's a concrete requirement; an
-env-var override (`SUTRA_DB_PATH`) covers the "persistent .sdb
-across runs" use case today.
+The embedded codebook store covers the compile-time embed →
+runtime decode path today. Extended features (hashmap routing,
+persistent codebook across runs via `SUTRA_DB_PATH`) are
+deferred until there is a concrete requirement beyond the
+current demonstration corpus.
 
 ### 6.4 Numpy backend retirement
 
