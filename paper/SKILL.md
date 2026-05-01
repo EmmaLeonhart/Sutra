@@ -154,7 +154,50 @@ print('OK: §3.1.1 crosstalk reproduces')
 Honest negative: chain=1 100%, chain=8 at chance — scopes the
 §3.1 capacity claim to single-cycle records.
 
-### §3.6 — End-to-end differentiable training
+### §3.6 — End-to-end differentiable training (symbolic if-then rules)
+
+The headline neuro-symbolic claim: **a symbolic Sutra program made
+of fuzzy if-then rules is end-to-end differentiable**, and standard
+PyTorch autograd trains the embeddings the rules evaluate against
+*without changing the rules themselves*. The symbolic structure is
+identical at epoch 0 and at epoch 300 — only the prototype
+embeddings move.
+
+**What to build (replication spec):**
+
+1. Pick a frozen embedding model (the canonical implementation uses
+   `nomic-embed-text` at 768-d) and embed 15 words across 3
+   categories — e.g. `{cat, dog, horse, ...}` (animals),
+   `{car, bus, train, ...}` (vehicles), `{apple, bread, ...}` (foods).
+2. Initialize 3 **learnable** prototype tensors (one per category)
+   with `requires_grad=True`. Random init.
+3. Forward pass per input word `x`, computing per-class scores via
+   Sutra's primitives composed as a fuzzy if-then rule:
+
+   ```
+   sim_i  = similarity(x, proto_i)          # cosine_similarity
+   rule_i = AND(sim_i,
+                AND(NOT(sim_j), NOT(sim_k)))  # Lagrange polynomials
+   ```
+
+   where `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2` is the
+   Lagrange-interpolated Kleene min, and `NOT(x) = -x`. The rule
+   reads "classify as *i* if similar to prototype *i* AND not
+   similar to the other two."
+
+4. Cross-entropy loss over the three rule scores, Adam optimizer,
+   train for 300 epochs.
+5. Save `accuracy_before`, `accuracy_after`, and per-prototype
+   `gradient_norms` to a JSON file.
+
+**Success criteria:**
+- `accuracy_after > accuracy_before` (random ~40% → trained ~100%)
+- Every prototype's gradient norm > 0 (gradient flows through every
+  Lagrange gate to every learnable parameter)
+- The symbolic program text is unchanged across training: only the
+  embeddings moved
+
+**Reference implementation + verification:**
 
 ```bash
 python experiments/differentiable_training.py
@@ -172,41 +215,42 @@ print('OK: §3.6 differentiable training reproduces')
 "
 ```
 
-Trains learnable prototype embeddings through Sutra's Lagrange
-fuzzy AND/NOT gates via standard PyTorch autograd. Random
-prototypes (40% accuracy) reach 100% after 300 epochs. All
-gradient norms are nonzero, confirming backprop reaches every
-parameter through the full chain of Sutra operations.
+Reference numbers: 40% → 100% after 300 epochs;
+gradient norms `{animal: ~0.05, vehicle: ~0.07, food: ~0.10}`.
 
-### §3.1.3 — Sutra vs Scallop (1-hop knowledge-graph query)
+### Multi-system neuro-symbolic comparison (optional, requires Docker)
+
+A 1-hop knowledge-graph query that Sutra, Scallop, DeepProbLog,
+and TorchHD can all express natively. The comparison is on the
+*intersection* of what each can do, not a single-number speedup.
+Sutra encodes the KG as a single bundled vector; Scallop /
+DeepProbLog use Datalog/Prolog; TorchHD uses MAP-VSA.
 
 ```bash
-# Build the Scallop image (Rust nightly + scallopy build, ~10-15 min
-# first time; cached thereafter):
-docker build -t sutra-scallop -f experiments/scallop_compare/Dockerfile .
+# Build the multi-system image (Rust nightly + scallopy + DeepProbLog,
+# ~10-15 min first time; cached thereafter):
+docker build -t sutra-neurosym -f experiments/scallop_compare/Dockerfile .
 
-# Run the side-by-side comparison (mounts the repo so source edits
-# are live):
-docker run --rm -v "$PWD:/work" -w /work sutra-scallop \
+# Run the side-by-side comparison:
+docker run --rm -v "$PWD:/work" -w /work sutra-neurosym \
     python experiments/scallop_compare/run_compare.py
-test $? -eq 0 || { echo "FAIL: scallop compare run"; exit 1; }
+test $? -eq 0 || { echo "FAIL: multi-system compare run"; exit 1; }
 python -c "
 import json
 d = json.load(open('experiments/scallop_compare/results.json'))
-sutra = d['sutra']
-scallop = d['scallop']
-assert sutra['accuracy'] == 1.0, f'Sutra accuracy {sutra[\"accuracy\"]}'
-if scallop is not None:
-    assert scallop['accuracy'] == 1.0, f'Scallop accuracy {scallop[\"accuracy\"]}'
-    print(f'Sutra: {sutra[\"per_query_us\"]:.1f} us/q; Scallop: {scallop[\"per_query_us\"]:.1f} us/q')
-print('OK: shared 1-hop KG task reproduces')
+systems = d['systems']
+for name, r in systems.items():
+    if r is None or 'error' in (r or {}):
+        print(f'{name}: skipped/error')
+        continue
+    assert r['accuracy'] == 1.0, f'{name} accuracy {r[\"accuracy\"]}'
+    print(f'{name}: {r[\"per_query_us\"]:.1f} us/q at 100% accuracy')
+print('OK: multi-system 1-hop KG comparison reproduces')
 "
 ```
 
-A 6-fact KG (6 entities, 3 relations) with 1-hop relational queries.
-Both systems achieve 100% accuracy; the comparison is per-query
-latency on a task each can express natively. Sutra encodes the KG
-as a single bundled vector and decodes via unbind+argmax-cosine;
-Scallop expresses it as Datalog and resolves via SLG.
+Outside the container, only Sutra and TorchHD run on the host;
+Scallop and DeepProbLog skip gracefully. The Docker image is the
+reproducibility artifact for the cross-paradigm comparison.
 
 
