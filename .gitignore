@@ -51,6 +51,12 @@ _site/
 docs/paper.pdf
 docs/paper-anonymized.pdf
 
+# Reference PDFs (arxiv, etc.) downloaded by scripts/fetch_reference_pdfs.py.
+# We do not commit redistributed papers — we re-download from the
+# original source each session. See CLAUDE.md § "Reference PDFs are
+# re-downloaded each session, not committed."
+references/
+
 # Claude.ai chat exports — only the extracted .md is tracked,
 # not the raw HTML / _files/ sources (run scripts/extract_chat.py
 # to regenerate the markdown if needed).

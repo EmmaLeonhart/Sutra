@@ -21,6 +21,46 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
+## Active: Scallop comparison for paper
+
+**Goal:** ground the §2.x related-work / framework-comparison
+section against an actual neuro-symbolic language paper rather
+than relying on my own framing. The closest peer is Scallop
+(Li et al. 2023, arXiv:2304.04812 — "Scallop: A Language for
+Neurosymbolic Programming"), a Datalog-derived language that
+integrates with PyTorch.
+
+**Action:**
+
+1. Write a small script (e.g. `scripts/fetch_reference_pdfs.py`)
+   that downloads `https://arxiv.org/pdf/2304.04812` to a local
+   cache dir like `references/scallop.pdf`. **Gitignore the
+   cache dir** — see CLAUDE.md § "Reference PDFs are
+   re-downloaded each session, not committed" for why we
+   don't commit the file.
+2. Read the Scallop paper. Pull out:
+   - How they structure the comparison-with-other-frameworks
+     section (Sutra's reviewer wants this and we keep getting
+     dinged).
+   - Where Scallop's framing genuinely differs from Sutra's
+     (Datalog vs functional; learned probabilistic atoms vs
+     VSA; logical query vs tensor normal form).
+   - Quantitative-evaluation patterns they use that we could
+     adapt — accuracy on benchmark tasks, scaling, etc.
+3. Add a Scallop comparison sentence/paragraph to §2.x of
+   `paper/paper.md` alongside the existing TorchHD / JAX / LTN /
+   DeepProbLog comparisons. Honest, qualitative, not "Sutra is
+   better" — focus on the structural axis (Sutra compiles to a
+   single tensor-op graph; Scallop interleaves logical
+   resolution with neural calls).
+4. Other neuro-symbolic peers to skim while we're at it:
+   DeepProbLog, Logic Tensor Networks, NeurASP. Probably one
+   sentence each in §2.x rather than full paragraphs unless
+   the reviewer keeps flagging the absence.
+
+This is one gradient-descent variable that addresses the
+recurring "no comparison to neuro-symbolic frameworks" con.
+
 ## Active: paper review gradient descent (recurring)
 
 **Standing item — re-read every session.** The paper auto-submits
