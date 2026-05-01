@@ -20,8 +20,19 @@ class Math extends vector {
     }
 }
 
+class VSA extends vector {
+    // Intrinsic methods have no Sutra body — the runtime class
+    // implements them. Calls of the form `VSA.zero_vector()` route
+    // directly to `_VSA.zero_vector()` in the emitted Python.
+    static intrinsic method vector zero_vector();
+}
+
 function scalar main_value() {
     scalar a = Math.twice(3);     // 6
     scalar b = Math.squared(4);   // 16
     return a + b;                 // 22
+}
+
+function vector zero() {
+    return VSA.zero_vector();     // dispatched to _VSA.zero_vector()
 }

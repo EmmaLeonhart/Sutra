@@ -521,6 +521,12 @@ class MethodDecl(Node):
     params: List[Param]
     body: Block
     is_operator: bool = False
+    # `static intrinsic method ...;` — signature only, semicolon-
+    # terminated, no Sutra body. Used by stdlib class-as-namespace
+    # bodies for leaf primitives whose implementation lives in the
+    # runtime class (`_VSA.<name>(...)`). Mirrors FunctionDecl's
+    # is_intrinsic for the class-method shape.
+    is_intrinsic: bool = False
 
 
 @dataclass
