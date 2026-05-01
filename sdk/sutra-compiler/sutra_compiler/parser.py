@@ -477,13 +477,26 @@ class Parser:
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
-    def _parse_method_decl(self, mods: ast.Modifiers) -> Optional[ast.MethodDecl]:
+    def _parse_method_decl(
+        self, mods: ast.Modifiers, *, is_intrinsic: bool = False
+    ) -> Optional[ast.MethodDecl]:
         start_span = self._current_span()
         # Consume `static` if we got here via static-method detection.
         self._match(TokenKind.KW_STATIC)
+        # Consume `intrinsic` if it precedes `method` (handled by the
+        # caller normally, but tolerate it here for top-level entry).
+        if self._check(TokenKind.KW_INTRINSIC):
+            self._advance()
+            is_intrinsic = True
         self._expect(TokenKind.KW_METHOD, "`method`")
 
         if self._check(TokenKind.KW_OPERATOR):
+            if is_intrinsic:
+                self.diagnostics.error(
+                    "operator methods cannot be declared `intrinsic`",
+                    self._current_span(),
+                    code="SUT0145",
+                )
             fn = self._parse_operator_decl(mods, start_span, is_method=True)
             if fn is None:
                 return None
@@ -510,6 +523,24 @@ class Parser:
 
         type_params = self._parse_type_params()
         params = self._parse_param_list()
+        if is_intrinsic:
+            # Signature-only declaration; semicolon in place of body.
+            semi = self._expect(TokenKind.SEMICOLON,
+                                "`;` to close intrinsic method declaration")
+            end = semi.span.end if semi is not None else self._current_span().end
+            body = ast.Block(statements=[], span=SourceSpan(start=end, end=end))
+            return ast.MethodDecl(
+                modifiers=mods,
+                return_type=return_type,
+                name=name_tok.lexeme,
+                type_params=type_params,
+                params=params,
+                body=body,
+                is_operator=False,
+                is_intrinsic=True,
+                span=SourceSpan(start=start_span.start, end=end),
+            )
+
         body = self._parse_block()
         if body is None:
             return None
@@ -557,22 +588,53 @@ class Parser:
             return None
 
         # Body. As of 2026-05-01 the body can contain method
-        # declarations (`method ...` and `static method ...`); fields
-        # and operator overloads remain deferred. Any other declaration
-        # inside the braces still triggers SUT0140 pointing at the
-        # deferred work.
+        # declarations: `method ...`, `static method ...`,
+        # `intrinsic method ...;`, and `static intrinsic method ...;`.
+        # Field declarations and operator overloads remain deferred.
+        # Any other declaration inside the braces still triggers
+        # SUT0140 pointing at the deferred work.
         self._expect(TokenKind.LBRACE, "`{` to open class body")
         methods: List[ast.MethodDecl] = []
         while not self._check(TokenKind.RBRACE) and self._peek().kind is not TokenKind.EOF:
-            tok = self._peek()
-            if tok.kind is TokenKind.KW_METHOD or (
-                tok.kind is TokenKind.KW_STATIC
-                and self._peek(1).kind is TokenKind.KW_METHOD
-            ):
+            tok0 = self._peek()
+            tok1 = self._peek(1)
+            tok2 = self._peek(2)
+            # Detect the four shapes:
+            #   method ...
+            #   static method ...
+            #   intrinsic method ... ;
+            #   static intrinsic method ... ;
+            is_method_start = False
+            is_static = False
+            is_intrinsic = False
+            if tok0.kind is TokenKind.KW_METHOD:
+                is_method_start = True
+            elif (tok0.kind is TokenKind.KW_STATIC
+                  and tok1.kind is TokenKind.KW_METHOD):
+                is_method_start = True
+                is_static = True
+            elif (tok0.kind is TokenKind.KW_INTRINSIC
+                  and tok1.kind is TokenKind.KW_METHOD):
+                is_method_start = True
+                is_intrinsic = True
+                # Consume the `intrinsic` token here so
+                # _parse_method_decl sees `method ...` next.
+                self._advance()
+            elif (tok0.kind is TokenKind.KW_STATIC
+                  and tok1.kind is TokenKind.KW_INTRINSIC
+                  and tok2.kind is TokenKind.KW_METHOD):
+                is_method_start = True
+                is_static = True
+                is_intrinsic = True
+                # Consume `static` and `intrinsic` so _parse_method_decl
+                # sees `method ...` next; restore static via mods.
+                self._advance()  # static
+                self._advance()  # intrinsic
+            if is_method_start:
                 mods = ast.Modifiers()
-                if tok.kind is TokenKind.KW_STATIC:
+                if is_static:
                     mods.is_static = True
-                m = self._parse_method_decl(mods)
+                m = self._parse_method_decl(mods, is_intrinsic=is_intrinsic)
                 if m is not None:
                     methods.append(m)
             else:
