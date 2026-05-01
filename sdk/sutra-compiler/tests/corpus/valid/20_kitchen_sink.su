@@ -33,9 +33,14 @@ function fuzzy PetLikeness(Animal subject) {
     return unsafeCast<fuzzy>(Cosine(s, petMarker));
 }
 
-/// A method attached to an object file.
+/// A method attached to an object file. Per the encapsulation rule
+/// (SUT0144), method bodies cannot read file-scope names — so the
+/// pet-likeness signal is computed inline here rather than via the
+/// PetLikeness free function above.
 method string Describe() {
-    fuzzy signal = PetLikeness(this);
+    vector s = (vector) this;
+    vector petMarker = embed("pet");
+    fuzzy signal = unsafeCast<fuzzy>(Cosine(s, petMarker));
     if (defuzzy(signal)) {
         return $"{this.name} is pet-like";
     } else {
