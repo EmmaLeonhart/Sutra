@@ -23,53 +23,57 @@ pick up next.
 
 ## Active items (in priority order, per Emma 2026-05-01)
 
-### 0. [IN PROGRESS] End-to-end differentiable training through a Sutra program
+### 0. [SHIPPED] End-to-end differentiable training through a Sutra program
 
-**Reviewer con (posts 2200, 2202, 2203):** "The paper lacks an
-end-to-end training experiment to demonstrate that
-differentiability leads to better learning outcomes."
+**Status: SHIPPED.** Commit `9b0de30`, paper §3.6, experiment
+at `experiments/differentiable_training.py`. Results: 40% → 100%
+accuracy, all gradient norms nonzero. Trained weights saved at
+`experiments/differentiable_training_weights.pt`.
 
-**Goal:** Demonstrate that you can backpropagate through a
-compiled Sutra program to learn parameters. This is the single
-highest-value experiment for the paper because it proves the
-differentiability claim is real, not just architectural.
+#### What this is and why it matters
 
-**What we're building:**
+Sutra's fuzzy logic (the Lagrange-interpolated AND/OR/NOT gates)
+operates on embedding comparisons — cosine similarities between
+vectors. These similarities are continuous values, not crisp
+true/false. That means the fuzzy conditionals in a Sutra program
+don't always have a clear predetermined meaning: `similarity(x,
+prototype)` depends on where `prototype` sits in the embedding
+space, and the embedding space is a learned, opaque geometry.
 
-A Sutra program with fuzzy conditionals (the Lagrange-
-interpolated AND/OR/NOT) where certain parameters are
-learnable (`requires_grad=True`). The program classifies
-inputs using fuzzy if-then rules with learnable weights.
-Training loop: forward through compiled tensor-op graph →
-loss → backward → update weights. The entire Sutra runtime
-is autograd-friendly (verified: only two `detach` calls in
-the codegen, both in non-compute paths).
+**This is exactly what makes them trainable.** Because the fuzzy
+truth values are continuous and the logic gates are C^∞
+polynomials, gradient information flows backward through the
+entire if-then rule structure. You can fine-tune a Sutra program's
+behavior by adjusting the embeddings that its fuzzy conditionals
+compare against — and the symbolic structure of the program (which
+gates, which rules, which control flow) stays completely unchanged.
 
-**Concrete plan:**
+The program says "classify as animal if similar to animal-prototype
+AND NOT similar to vehicle-prototype AND NOT similar to food-
+prototype." That rule is readable and interpretable before and
+after training. Training doesn't touch the rule — it teaches the
+prototypes what "animal" / "vehicle" / "food" look like in the
+embedding space, so the fuzzy truth values align with the intended
+classification.
 
-1. Write a `.su` program with fuzzy branching that classifies
-   an input embedding into categories using similarity checks
-   + fuzzy AND/OR gates.
-2. Compile it to a PyTorch module via `PyTorchCodegen`.
-3. Identify the learnable parameters in the compiled graph
-   (e.g., prototype embeddings, similarity thresholds, or
-   explicit weight scalars on branches).
-4. Wrap in a standard PyTorch training loop:
-   `output = compiled_program(input)` → loss → `loss.backward()`
-   → `optimizer.step()`.
-5. Show: accuracy before training vs after training. The
-   fuzzy logic gates learn to route inputs correctly.
-6. Write up as a new §3.X or §5.X in the paper with the
-   training curve and before/after accuracy.
+This is the neuro-symbolic proposition: **symbolic structure
+provides interpretability; neural embeddings provide
+learnability; fuzzy logic gates are the differentiable bridge
+between the two.** We used standard PyTorch autograd (no custom
+backward passes) because every Sutra operation compiles to
+standard tensor ops that PyTorch already differentiates.
 
-**Why this works:** Sutra's compiled output is a straight-line
-tensor-op graph. Every op (matmul, element-wise, sigmoid,
-Lagrange polynomial) has a torch autograd derivative. The
-soft-halt loop is differentiable by design (sigmoid halt,
-soft-mux freeze). No op breaks the gradient chain.
+#### What was built
 
-**Timeline:** Must ship before the competition deadline
-(~5 AM local, 2026-05-01).
+- `experiments/differentiable_training.py` — 15 words from 3
+  categories, 3 learnable prototype embeddings, Lagrange AND/NOT
+  gates, 300 epochs of Adam, 768-d nomic-embed-text
+- `experiments/differentiable_training_results.json` — metrics
+- `experiments/differentiable_training_weights.pt` — trained
+  prototype tensors + input embeddings
+- Paper §3.6 — documents the experiment and the neuro-symbolic
+  framing
+- `paper/SKILL.md` — reproduction block for §3.6
 
 ### 1. [DEFERRED] Wire Sutra into an existing neural network
 
