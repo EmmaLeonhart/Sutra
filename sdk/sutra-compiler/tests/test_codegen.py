@@ -476,5 +476,69 @@ class TestIteratorKeyword(unittest.TestCase):
             _compile(src)
 
 
+class TestClassStaticMethodDispatch(unittest.TestCase):
+    """Slice 1 of the object-encapsulation work (2026-05-01): static
+    methods declared inside class bodies emit as mangled top-level
+    Python functions, and `Math.foo(x)` call sites dispatch to them."""
+
+    def test_static_method_emits_as_mangled_function(self):
+        src = (
+            "class Math extends vector {\n"
+            "  static method scalar twice(scalar x) {\n"
+            "    return x * 2;\n"
+            "  }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Math_twice(x):", py)
+
+    def test_class_namespace_call_dispatches_to_mangled_name(self):
+        src = (
+            "class Math extends vector {\n"
+            "  static method scalar twice(scalar x) {\n"
+            "    return x * 2;\n"
+            "  }\n"
+            "}\n"
+            "function scalar caller() {\n"
+            "  return Math.twice(3);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Math_twice(x):", py)
+        self.assertIn("Math_twice(3)", py)
+        # Should NOT emit a literal `Math.twice(3)` — that would fail
+        # at runtime because there's no Python class `Math` in scope.
+        self.assertNotIn("Math.twice(3)", py)
+
+    def test_forward_reference_to_class_works_via_pre_pass(self):
+        # Caller appears textually before the class — the pre-pass
+        # over module items should still register the static methods
+        # so the call dispatches correctly.
+        src = (
+            "function scalar caller() {\n"
+            "  return Math.twice(3);\n"
+            "}\n"
+            "class Math extends vector {\n"
+            "  static method scalar twice(scalar x) {\n"
+            "    return x * 2;\n"
+            "  }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("Math_twice(3)", py)
+
+    def test_non_static_method_in_class_rejects_at_codegen(self):
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        src = (
+            "class Greeter extends vector {\n"
+            "  method string Hello() {\n"
+            "    return \"hi\";\n"
+            "  }\n"
+            "}\n"
+        )
+        with self.assertRaises(CodegenNotSupported):
+            _compile(src)
+
+
 if __name__ == "__main__":
     unittest.main()
