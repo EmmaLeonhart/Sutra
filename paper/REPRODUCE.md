@@ -39,10 +39,11 @@ SutraDB FFI build (one-time, ~5 minutes).
 | Paper claim | Reproduction |
 |---|---|
 | §3 — rotation binding works on natural anisotropic embeddings | `python -m pytest sdk/sutra-compiler/tests/test_codegen.py` (verifies the emitted `bind`/`unbind` shape; round-trip in the demo programs) |
-| §3.1 — extended-state-vector layout | `sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py` `_TorchVSA` class definition |
-| §3.2 — first-class loops as RNN cells | `python -m pytest sdk/sutra-compiler/tests/test_loop_function_decl.py -q` (23 tests) |
-| §3.2 — halt propagation wipes output for unconverged loops | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
-| §3.3 — embedded SutraDB codebook + decode path | `python -m pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py -q` (7 tests) |
+| §3.1 — capacity table for rotation binding on 768-d substrate | `python experiments/rotation_binding_capacity.py` (the table in §3.1 is this script's output) |
+| §3.2 — extended-state-vector layout | the `_TorchVSA` runtime class in the PyTorch codegen module |
+| §3.3 — first-class loops as RNN cells | `python -m pytest sdk/sutra-compiler/tests/test_loop_function_decl.py -q` (23 tests) |
+| §3.3 — halt propagation wipes output for unconverged loops | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
+| §3.4 — embedded SutraDB codebook + decode path | `python -m pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py -q` (7 tests) |
 | §4 — compiler 5-stage pipeline | `python -m pytest sdk/sutra-compiler/tests/ -q --ignore=tests/test_simplify_egglog.py` (244+ tests; full suite green) |
 | §4.1 — substrate-purity invariants | the runtime-substrate-purity-audit and substrate-purity-leak-enumeration finding docs under `planning/findings/` |
 | §4.2 — boundary leak enumeration (5 leaks; 3 fixed) | both findings docs above; the fix commits are `93beb01` (leaks 1+2+4) and `cdd9482` (numpy backend deprecation related cleanup) |
