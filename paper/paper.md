@@ -192,6 +192,33 @@ The four core technical contributions of this paper are:
    every loop fit inside one fused subgraph for `torch.compile`
    consumption.
 
+   **Worked example.** The XOR pattern `(a && !b) || (!a && b)`
+   in `.su` source compiles, after the simplify pass, into five
+   composed polynomial calls:
+
+   ```
+   logical_or(
+     logical_and(a, logical_not(b)),
+     logical_and(logical_not(a), b)
+   )
+   ```
+
+   Each call evaluates a degree-≤4 polynomial at runtime — five
+   kernel launches if executed naively. But the *composition* of
+   those five polynomials, expanded symbolically, simplifies to
+   the closed XOR form from §1.2: `−ab`. A pattern-matching pass
+   in the simplifier (queued, not yet shipped) recognizes the
+   composed expression and rewrites it to the single
+   multiplication. This is what "aggressive" means here: not
+   just folding numeric literals, but recognizing that an entire
+   five-step polynomial pipeline collapses to one tensor op
+   because we have closed forms for every connective. Standard
+   constant folding does not do this; standard inlining does not
+   do this. The whole language is structured to make these
+   collapses visible to the compiler — the surface lets the
+   programmer write the obvious form, and the runtime executes
+   the minimal one.
+
 3. **Tail recursion as the loop primitive, eliminating control
    flow, with O(1) memory in recursion depth.** Loops are not
    `for`/`while` constructs over a host-side iterator. They are
