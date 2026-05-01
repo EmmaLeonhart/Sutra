@@ -156,6 +156,26 @@ The four core technical contributions of this paper are:
    tensor normal form and the recurrence is a separate top-level
    operator.
 
+   "Tensor normal form" names a specific shape that is stronger
+   than the standard compiler passes it generalizes. Constant
+   folding eliminates literal arithmetic; function inlining
+   substitutes call bodies; beta reduction substitutes named
+   arguments. Sutra runs all three plus *rotation matrix
+   precomputation* (every Haar-orthogonal binding rotation `R_role`
+   is materialized at compile time keyed by the role's content
+   hash so runtime bind is one matmul, not a Haar-sample-then-
+   matmul) and *synthetic-axis slot allocation* (canonical
+   dimensions for primitive types are assigned compile-time so
+   every read/write is a known index, not a hashtable lookup).
+   The output is not "the program with constants folded"; it is a
+   single dense tensor pipeline whose only inputs are the
+   substrate-resident variables and whose only outputs are the
+   substrate-resident return value. There is no Python control
+   flow inside any operation, no host-side dispatch, no
+   string-keyed lookup at runtime. That's what makes the form a
+   normal form, and it's what makes the body of every loop fit
+   inside one fused subgraph for `torch.compile` consumption.
+
 3. **Tail recursion as the loop primitive, eliminating control
    flow, with O(1) memory in recursion depth.** Loops are not
    `for`/`while` constructs over a host-side iterator. They are
@@ -238,6 +258,31 @@ tensor-op graph through beta reduction. The paper is neither a
 deep-learning architecture paper nor a pure programming-language
 theory paper; it is the specific construction that ties the two
 together.
+
+### 1.4 Substrate dependence is a feature, not a bug
+
+A Sutra program's runtime semantics are determined by the
+substrate: the embedding model named in `atman.toml` plus its
+weights at compile time. Swap to a different model (different
+provider, different version, different dimensionality) and the
+compiled `.sdb` codebook changes deterministically, the program
+re-binds against the new substrate, and the program's
+similarity comparisons inherit whatever the new model encodes.
+This is the same shape as a C program inheriting the libc
+version it was linked against, or a SQL query inheriting the
+schema of the database it runs on. The substrate is part of the
+program's specification, not an unstated dependency.
+
+The compile-time codebook makes this explicit: every embedded
+string in the source is materialized into a `.sdb` file at
+compile time using the manifest-declared substrate, and the
+`.sdb` ships alongside the compiled module. Re-running on the
+same `.sdb` produces bit-identical output. Re-running on a
+fresh `.sdb` from a different substrate produces output keyed
+to that substrate's geometry. There is no implicit dependency
+on a specific LLM version; the dependency is the manifest and
+the `.sdb`, which together pin the substrate as deterministically
+as a `requirements.txt` pins Python packages.
 
 ---
 
