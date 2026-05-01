@@ -122,9 +122,13 @@ class PyTorchCodegen(Codegen):
                 # in standard torch installs. Eager is correct + portable;
                 # users who want fused kernels can rebuild with Triton and
                 # set SUTRA_TORCH_COMPILE_BACKEND=inductor.
+                # Class-bodied loops have dotted registry keys
+                # (`Greeter.run`); the emitted Python identifier mangles
+                # `.` to `_` so it's a valid Python attribute name.
+                py_loop_name = f"_loop_{loop_name.replace('.', '_')}"
                 wrap_lines.append(
-                    f"        _loop_{loop_name} = _torch.compile("
-                    f"_loop_{loop_name}, "
+                    f"        {py_loop_name} = _torch.compile("
+                    f"{py_loop_name}, "
                     f"backend=_sutra_compile_os.environ.get("
                     f"'SUTRA_TORCH_COMPILE_BACKEND', 'eager'))"
                 )

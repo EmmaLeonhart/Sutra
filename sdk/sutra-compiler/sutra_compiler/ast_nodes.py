@@ -555,6 +555,7 @@ class ClassDecl(Node):
     name: str
     parent_name: str  # the `extends` target — required in MVP
     methods: List["MethodDecl"] = field(default_factory=list)
+    loop_functions: List["LoopFunctionDecl"] = field(default_factory=list)
 
 
 # ============================================================

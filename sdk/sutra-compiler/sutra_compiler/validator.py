@@ -254,6 +254,11 @@ class _Walker:
         # enforces the encapsulation rule (SUT0144) on the body.
         for m in node.methods:
             self.visit(m)
+        # Walk loop function declarations declared inside the class
+        # body (object loops). Same visitor path as top-level loop
+        # function decls.
+        for lf in node.loop_functions:
+            self.visit(lf)
 
     def visit_FunctionDecl(self, node: ast.FunctionDecl) -> None:
         self._check_modifier_conflict(node.modifiers, node.span)

@@ -570,6 +570,27 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         self.assertIn("this", body_src)
         self.assertIn("Greeter_Self(g)", py)
 
+    def test_class_body_loop_function_emits_with_class_mangling(self):
+        # Step 6 of the encapsulation taxonomy (2026-05-01): a loop
+        # function declared inside a class body emits as
+        # `_loop_{Class}_{name}`. The LoopCallStmt for `loop
+        # Class.name(...)` dispatches to the same mangled name.
+        src = (
+            "class Counter extends vector {\n"
+            "  do_while addOne(x < 5, int x) {\n"
+            "    pass x + 1;\n"
+            "  }\n"
+            "}\n"
+            "function int main() {\n"
+            "  slot int x = 0;\n"
+            "  loop Counter.addOne(x < 5, x);\n"
+            "  return x;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def _loop_Counter_addOne(", py)
+        self.assertIn("_loop_Counter_addOne(", py)
+
     def test_this_dot_method_dispatches_to_same_class(self):
         # `this.other(args)` from inside a method on Greeter dispatches
         # to `Greeter_other(this, *args)`.

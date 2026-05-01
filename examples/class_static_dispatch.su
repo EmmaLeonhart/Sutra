@@ -36,3 +36,18 @@ function scalar main_value() {
 function vector zero() {
     return VSA.zero_vector();     // dispatched to _VSA.zero_vector()
 }
+
+// Step 6: object loops — loop functions declared inside a class body.
+// The codegen emits `_loop_Counter_addOne` and the call site
+// `loop Counter.addOne(...)` dispatches to it.
+class Counter extends vector {
+    do_while addOne(x < 5, int x) {
+        pass x + 1;
+    }
+}
+
+function int count_to_five() {
+    slot int x = 0;
+    loop Counter.addOne(x < 5, x);
+    return x;
+}
