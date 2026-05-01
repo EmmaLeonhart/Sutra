@@ -2,10 +2,16 @@
 //
 // Class bodies can contain method declarations as of 2026-05-01
 // (extending the empty-body MVP). Static and non-static methods are
-// both accepted; field declarations and operator overloads remain
-// deferred. Codegen routing for ClassName.method(...) dispatch is
-// the next slice and isn't wired today, so this file only exercises
-// the parser/validator path — not whole-program compilation.
+// both accepted; static intrinsic methods (signature-only, runtime
+// implements them) also parse. Field declarations and operator
+// overloads remain deferred. Static methods compile end-to-end with
+// `Class.method(...)` dispatch; non-static method codegen is
+// deferred (validator accepts them, codegen rejects).
+
+class VSA extends vector {
+    static intrinsic method vector zero_vector();
+    static intrinsic method scalar similarity(vector a, vector b);
+}
 
 class Math extends vector {
     static method scalar twice(scalar x) {

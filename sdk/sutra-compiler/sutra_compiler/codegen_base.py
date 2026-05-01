@@ -316,6 +316,11 @@ class BaseCodegen:
         # Non-static class methods are tracked separately and rejected
         # at call time today (instance dispatch isn't wired yet).
         self._class_static_methods: dict[str, set[str]] = {}
+        # Intrinsic static methods declared inside class bodies. These
+        # have no Sutra body — the runtime class implements them. A
+        # call `Math.log(x)` for an intrinsic dispatches directly to
+        # `_VSA.log(x)` without going through a mangled wrapper.
+        self._class_intrinsic_methods: dict[str, set[str]] = {}
 
     # -- emission helpers -------------------------------------------------
 
@@ -353,7 +358,9 @@ class BaseCodegen:
         # sites can dispatch even when the class declaration comes
         # after the calling function in the file. Non-static methods
         # are intentionally not registered here — they'd need instance
-        # dispatch which isn't wired.
+        # dispatch which isn't wired. Intrinsic-marked static methods
+        # also land in `_class_intrinsic_methods` so the call-site
+        # dispatch routes them to `_VSA.<name>` directly.
         for item in module.items:
             if isinstance(item, ast.ClassDecl):
                 for m in item.methods:
@@ -361,6 +368,10 @@ class BaseCodegen:
                         self._class_static_methods.setdefault(
                             item.name, set()
                         ).add(m.name)
+                        if m.is_intrinsic:
+                            self._class_intrinsic_methods.setdefault(
+                                item.name, set()
+                            ).add(m.name)
         for item in module.items:
             self._translate_top_level(item)
             self._emit()
@@ -572,6 +583,12 @@ class BaseCodegen:
         instance dispatch (`g.Hello()` for an instance `g`) isn't wired,
         and the safer move is to fail loudly when one is declared so the
         gap is visible.
+
+        Intrinsic methods (declared `static intrinsic method ...;`) have
+        no Sutra body — the runtime class implements them — so this
+        method emits nothing for them. The pre-pass in `translate()`
+        registers them in `_class_intrinsic_methods` so the call-site
+        dispatch routes `Math.log(x)` to `_VSA.log(x)`.
         """
         if decl.is_operator:
             raise CodegenNotSupported(
@@ -595,6 +612,12 @@ class BaseCodegen:
             )
         # Register in the lookup table the call-dispatch path consults.
         self._class_static_methods.setdefault(class_name, set()).add(decl.name)
+        if decl.is_intrinsic:
+            # Signature-only declaration; runtime class implements the
+            # body. Emit nothing — the pre-pass already registered the
+            # method in `_class_intrinsic_methods` for call-site dispatch.
+            self._class_intrinsic_methods.setdefault(class_name, set()).add(decl.name)
+            return
         param_names = [p.name for p in decl.params]
         mangled = f"{class_name}_{decl.name}"
         self._emit(f"def {mangled}({', '.join(param_names)}):")
@@ -1875,6 +1898,13 @@ class BaseCodegen:
             if isinstance(callee.obj, ast.Identifier):
                 cls_name = callee.obj.name
                 method_name = callee.member
+                # Intrinsic methods on a class route directly to the
+                # runtime: `Math.log(x)` -> `_VSA.log(x)`. The mangled
+                # wrapper isn't emitted for intrinsic-marked methods.
+                if (cls_name in self._class_intrinsic_methods
+                        and method_name in self._class_intrinsic_methods[cls_name]):
+                    arg_srcs = [self._translate_expr(a) for a in call.args]
+                    return f"_VSA.{method_name}({', '.join(arg_srcs)})"
                 if (cls_name in self._class_static_methods
                         and method_name in self._class_static_methods[cls_name]):
                     arg_srcs = [self._translate_expr(a) for a in call.args]
