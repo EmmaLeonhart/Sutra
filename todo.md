@@ -8,9 +8,6 @@ being worked on *now*, and this file wins for what needs doing
 ## 🗂 Priority levels
 
 - **Immediate** — do right now / this session. Usually mirrored in `queue.md`.
-- **Pre-Anthropic-grant-app (~2026-04-29)** — user's next external deadline;
-  items here should land before that.
-- **Pre-Y-Combinator pitch** — must land before the YC pitch (no fixed date).
 - **This year** — should land in 2026, not necessarily tied to a deadline.
 
 When adding an item, pick a level. When closing one, delete the line.
@@ -44,10 +41,6 @@ return exp(a * log(b));
 Basically all functions have this function expansion thing with them
 
 all operators get this
-
-Also clear any references to y combinator from this file I'm not applying.
-
-I was only interested in applying over the flybrain particularly because that was an odd enough thing I felt it needed help commercializing
 
 Better way of doing transcendental functions
 
@@ -116,7 +109,7 @@ markdown-driven, but specific moves to take it further:
 
 ---
 
-## [Pre-Anthropic-grant-app] Rotation-hashmap capacity + Monte-Carlo exploration
+## [This year] Rotation-hashmap capacity + Monte-Carlo exploration
 
 The rotation-hashmap library-pattern prototype landed 2026-04-22
 (5/5 exact-lookup on nomic; `examples/_rotation_hashmap_test.py`).
@@ -129,8 +122,7 @@ Two follow-ups flagged during that work:
   the weaker substrates too? The cross-substrate sweep
   (`_king_queen_multi_substrate.py`) showed mxbai and minilm fail
   naive analogy — the interesting question is whether attractor
-  dynamics can recover the right answer anyway. Likely a
-  pre-Anthropic-grant-app item (not today).
+  dynamics can recover the right answer anyway.
 
 - [ ] **Larger-codebook attractor.** 14 words is proof-of-mechanism.
   Scaling to thousands of codebook entries (a real concept-memory
@@ -146,7 +138,7 @@ Two follow-ups flagged during that work:
   binding lands (which uses related machinery — fit a matrix at
   compile time).
 
-## [Pre-Anthropic-grant-app] Per-program embedding-space override
+## [This year] Per-program embedding-space override
 
 User direction 2026-04-22: *"programmes should be able to have their
 native embedding space [declared] at the beginning of them as an
@@ -162,7 +154,7 @@ Minimum scope:
   pragma the parser recognizes. Decide after seeing how the magic-
   comment version is used in practice.
 
-## [Pre-YC] `main(embedding_space: string)` compile-time override
+## [This year] `main(embedding_space: string)` compile-time override
 
 User direction 2026-04-23: *"the runtime override, honestly, it
 wouldn't be at runtime; it would be at compile time"* and *"both of
@@ -190,17 +182,14 @@ Scope:
   override correctly when the source-level form is also present.
   Precedence order is source > file > project > compiler default.
 
-## [Pre-YC] Concurrency — only the cases that need explicit handling
+## [This year] Concurrency — only the cases that need explicit handling
 
 User direction 2026-04-22 (afternoon): concurrency is implicit by
 default in Sutra because the language's functional algebraic nature
 already gives the compiler license to evaluate independent sub-
 expressions in parallel via formula simplification. **An explicit
 syntax is only needed for the cases where the compiler can't derive
-the parallelism algebraically**. Moved to pre-YC 2026-04-23: the user
-confirmed that rotation-hashmap capacity is the only pre-Anthropic-
-grant-app item still active, and concurrency + learned-matrix both
-move to the post-Anthropic bucket.
+the parallelism algebraically**.
 
 The shapes that still need explicit handling:
 
@@ -235,13 +224,11 @@ Source-of-truth for the design: `planning/sutra-spec/concurrency.md`
 `planning/open-questions/concurrency-and-monads.md` (monad framing
 was considered and demoted).
 
-## [Pre-YC] Learned-matrix binding
+## [This year] Learned-matrix binding
 
-Deferred from the 2026-04-22 rotation-binding pass; moved to pre-YC
-on 2026-04-23 when the user confirmed the pre-Anthropic bucket is
-just rotation-hashmap capacity. The feature is genuinely useful (see
-`feedback_learned_matrix_is_not_next.md`) — it's simply not the next
-active item. When picked up:
+Deferred from the 2026-04-22 rotation-binding pass. The feature is
+genuinely useful (see `feedback_learned_matrix_is_not_next.md`) — it's
+simply not the next active item. When picked up:
 
 - [ ] Add a matrix-fitting step at compile time. A `role X =
   learned_from(data)` declaration reads `(input, output)` embedding
@@ -256,7 +243,7 @@ active item. When picked up:
   a `located_in_country` program using cartography-style displacement
   data).
 
-## [Pre-YC] Extended state vector — remaining integration
+## [This year] Extended state vector — remaining integration
 
 The runtime-primitive half of the extended-state / synthetic-subspace
 design landed 2026-04-24 (`planning/findings/2026-04-24-slot-rotation-
@@ -272,7 +259,7 @@ What this pass closed:
   alongside the slot codegen integration (see "Compilation updates"
   below).
 
-## [Pre-YC] Compilation updates
+## [This year] Compilation updates
 
 Compiler-side integration for primitives that already landed at the
 runtime / surface-syntax level. The egglog post-pass and slot
@@ -599,7 +586,7 @@ Concrete work:
   1e-12 precision target on float16 storage is incoherent; the
   compiler should warn or escalate dtype.
 
-## [Pre-YC] Ontology — make the class system real
+## [This year] Ontology — make the class system real
 
 User reflection (2026-04-25): "We have the ontology somewhat, but
 I don't think we've really implemented classes that much, even
@@ -726,7 +713,7 @@ work happens, the natural follow-on items are:
   how well the recognizer identifies what region of semantic space a
   vector occupies.
 
-## [Pre-YC] Future Goals
+## [This year] Future Goals
 
 - **Pick the multi-option `select` firing threshold.** Single-option
   `select` has a 0.5 default with a clean justification (softmax-of-one-
@@ -772,7 +759,6 @@ work happens, the natural follow-on items are:
   general-connectionist.** A Sutra project compiles to one of three
   qualitatively different substrates. Design doc:
   `planning/open-questions/project-kind-connectome-vs-embedding.md`.
-  Unblocks the YC demo (which cannot run on a connectome).
 - **Sutra on commodity hardware end-to-end.** Every operation from
   `02-operations.md` running on a laptop substrate (the connectionist-
   computer work above is the path here). Numpy allowed only at the
