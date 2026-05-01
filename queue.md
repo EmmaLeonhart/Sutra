@@ -21,45 +21,85 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
-## Active: Scallop comparison for paper
+## Active items (in priority order, per Emma 2026-04-30)
 
-**Goal:** ground the §2.x related-work / framework-comparison
-section against an actual neuro-symbolic language paper rather
-than relying on my own framing. The closest peer is Scallop
-(Li et al. 2023, arXiv:2304.04812 — "Scallop: A Language for
-Neurosymbolic Programming"), a Datalog-derived language that
-integrates with PyTorch.
+The four cons surviving in the post 2191 review (Weak Accept,
+4 pros / 4 cons) plus the user-flagged language refactor.
+Items 1 and 4 (T-as-budget reframe, HNSW clarification) shipped
+in commit `bf312a9`. Remaining items in the order they should
+be tackled.
 
-**Action:**
+### 1. Crosstalk noise analysis across nested operations [DO NEXT]
 
-1. Write a small script (e.g. `scripts/fetch_reference_pdfs.py`)
-   that downloads `https://arxiv.org/pdf/2304.04812` to a local
-   cache dir like `references/scallop.pdf`. **Gitignore the
-   cache dir** — see CLAUDE.md § "Reference PDFs are
-   re-downloaded each session, not committed" for why we
-   don't commit the file.
-2. Read the Scallop paper. Pull out:
-   - How they structure the comparison-with-other-frameworks
-     section (Sutra's reviewer wants this and we keep getting
-     dinged).
-   - Where Scallop's framing genuinely differs from Sutra's
-     (Datalog vs functional; learned probabilistic atoms vs
-     VSA; logical query vs tensor normal form).
-   - Quantitative-evaluation patterns they use that we could
-     adapt — accuracy on benchmark tasks, scaling, etc.
-3. Add a Scallop comparison sentence/paragraph to §2.x of
-   `paper/paper.md` alongside the existing TorchHD / JAX / LTN /
-   DeepProbLog comparisons. Honest, qualitative, not "Sutra is
-   better" — focus on the structural axis (Sutra compiles to a
-   single tensor-op graph; Scallop interleaves logical
-   resolution with neural calls).
-4. Other neuro-symbolic peers to skim while we're at it:
-   DeepProbLog, Logic Tensor Networks, NeurASP. Probably one
-   sentence each in §2.x rather than full paragraphs unless
-   the reviewer keeps flagging the absence.
+**Reviewer con (post 2191):** "Lacks a formal error analysis
+regarding the accumulation of VSA noise (crosstalk) across deep
+nested operations."
 
-This is one gradient-descent variable that addresses the
-recurring "no comparison to neuro-symbolic frameworks" con.
+**Action:** Write `experiments/crosstalk_chain.py` that measures
+how cosine fidelity of decoded values degrades across a chain of
+N bind-unbind cycles on real LLM substrates. Plot or tabulate
+fidelity-vs-chain-length at several bundle widths; identify the
+chain-length knee for each substrate. Add the resulting numbers
+as a §3.X subsection or as additions to §3.1.
+
+The capacity-vs-k experiment we just shipped (commit `fa1e5d8`)
+measures one bind-unbind cycle. Crosstalk-over-chain is the
+nested-operation case the reviewer is asking about.
+
+### 2. Refactor T to be a true compute budget, not a hard cap
+
+Per Emma 2026-04-30: "Just make it so that we're able to compile
+it without having the loop budget. That's just a compute
+limitation. We can easily just refactor the programme to make it
+so that the loop max iterations thing doesn't actually occur.
+This is a compute budget. Basically, this is just a compute
+budget. It just gives you an output every cycle."
+
+**Action:** Reshape the loop compilation so the runtime can
+yield outputs each cycle and run indefinitely under host-side
+control, rather than baking T into the compiled artifact as a
+fixed unroll. Concrete options:
+
+- Compile the loop body to a single-step cell function that the
+  runtime calls in a Python `while not halted:` loop. The
+  compiler emits the cell; the user (or a default harness) runs
+  it.
+- Or expose a `--streaming` mode where the cell is wrapped in a
+  generator that yields each cycle's output.
+
+T stays as the *default* unroll for the static-graph mode, but
+it stops being the language's expressivity bound. The paper
+edit (already in §3.3) already frames T as a compute budget;
+this queue item makes that framing literally true at the
+implementation level.
+
+### 3. Large-scale empirical study (final, high-risk-high-reward)
+
+Per Emma 2026-04-30: "The empirical studies should probably be
+the last thing that we do in this. They're high risk, high
+reward because of the amount of time that we have left. The
+large scale of empirical studies, as opposed to the smoke test,
+is something that we should do."
+
+**Reviewer con (post 2191):** "Evaluation restricted to
+small-scale smoke tests without quantitative performance or
+accuracy benchmarks against non-VSA baselines."
+
+**Action:** Pick 1–2 benchmark tasks where Sutra plausibly
+competes (role-filler retrieval at scale, knowledge-graph
+single-hop reasoning, classification-via-bundled-prototypes) and
+run Sutra against a non-VSA baseline (a small transformer fine-
+tune, a logistic regression on the embeddings, etc.). Report
+accuracy, latency, memory. Honest comparison — not "Sutra wins
+by default."
+
+This is parked until the easier cons are addressed because:
+- It requires real ML engineering (dataset prep, baseline
+  training, evaluation harness) that takes hours not minutes.
+- The result might not favor Sutra on all axes; we should be
+  ready to publish whatever the data shows.
+
+## Active: paper review gradient descent (recurring)
 
 ## Active: paper review gradient descent (recurring)
 
