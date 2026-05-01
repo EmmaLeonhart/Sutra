@@ -1,0 +1,17 @@
+{
+  "dim": 768,
+  "warmup": 50,
+  "trials": 1000,
+  "sutra": {
+    "compile_ms": 2716.501300001255,
+    "cold_us": 5472.9,
+    "steady_mean_us": 5677.6504,
+    "steady_std_us": 612.0144963968092
+  },
+  "torchhd": {
+    "cold_us": 680.7,
+    "steady_mean_us": 480.98969999999997,
+    "steady_std_us": 142.77410964145426
+  },
+  "speedup_steady": 0.08471632913502387
+}
