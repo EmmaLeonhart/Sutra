@@ -131,7 +131,8 @@
       "Bash(snap)",
       "Bash(./gradlew.bat compileKotlin)",
       "Bash(ps -W)",
-      "Read(//c/Users/IMMANU~1/AppData/Local/Temp/claude/C--Users-Immanuelle-Documents-Github-Sutra/2d5bd088-a51a-4f75-bcb5-356a5291b2c7/tasks/**)"
+      "Read(//c/Users/IMMANU~1/AppData/Local/Temp/claude/C--Users-Immanuelle-Documents-Github-Sutra/2d5bd088-a51a-4f75-bcb5-356a5291b2c7/tasks/**)",
+      "Bash(cat planning/findings/b7084fc*)"
     ]
   }
 }
