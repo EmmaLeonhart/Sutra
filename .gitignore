@@ -45,6 +45,12 @@ fly-brain/
 # MkDocs build output
 _site/
 
+# Paper PDFs staged into docs/ at build time by .github/workflows/pages.yml
+# so that mkdocs strict-mode link validation sees them. Not source — the
+# workflow rebuilds them each run from paper/paper.tex.
+docs/paper.pdf
+docs/paper-anonymized.pdf
+
 # Claude.ai chat exports — only the extracted .md is tracked,
 # not the raw HTML / _files/ sources (run scripts/extract_chat.py
 # to regenerate the markdown if needed).

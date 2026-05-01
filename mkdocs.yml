@@ -73,7 +73,14 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      # Allow snippets to include files from outside docs/, specifically
+      # paper/paper.md which is rendered as the body of the
+      # "Theory and Paper" page.
+      base_path:
+        - .
+        - docs
+      check_paths: true
   - pymdownx.superfences:
       # Mermaid fenced blocks for diagrams. Declaring this custom
       # fence is what enables Material for MkDocs' built-in mermaid
@@ -93,33 +100,32 @@ markdown_extensions:
 nav:
   - Home: index.md
   - What is Sutra?: what-is-sutra.md
-  - Paradigms: paradigms.md
-  - Ontology: ontology.md
-  - Primitive classes: primitive-classes.md
-  - Logical operations: logical-operations.md
-  - Numeric math: numeric-math.md
-  - Memory: memory.md
-  - Loops: loops.md
-  - Compilation: compilation.md
-  - Vision:
+  - Theory and Paper:
+    # Section landing page — the HTML version of the paper itself,
+    # with prominent links to the PDF (built by paper-pdf.yml and
+    # served at /paper.pdf) and the canonical clawRxiv submission.
+    - Theory and Paper: theory-and-paper.md
+    - Paradigms: paradigms.md
+    - Ontology: ontology.md
+    - Primitive classes: primitive-classes.md
+    - Logical operations: logical-operations.md
+    - Numeric math: numeric-math.md
+    - Memory: memory.md
+    - Loops: loops.md
+    - Compilation: compilation.md
     - The graph-to-vector leap: vision.md
-  - Interactive:
     - Fuzzy logic explorer: interactive/fuzzy-logic.md
-  - Tutorials:
-    - tutorials/index.md
-    - 01 — Hello Sutra: tutorials/01-hello-sutra.md
-    - 02 — Bind and unbind: tutorials/02-bind-and-unbind.md
-    - 03 — Snap-to-nearest: tutorials/03-snap-to-nearest.md
-  - Demos: demos.md
-  - Papers: papers.md
-  - History: history.md
-  # SutraDB is the database side of the Sutra ecosystem — the static
-  # HTML site lives under sutraDB/pages/ and is mounted at /SutraDB/
-  # on this Pages deploy by the pages.yml workflow. The leading slash
-  # is domain-root-absolute; under the sutralang.dev custom domain
-  # this resolves to https://sutralang.dev/SutraDB/ and the rsync in
-  # pages.yml drops the static site at _site/SutraDB/ to match.
-  - SutraDB: /SutraDB/
+    - Tutorials:
+      - tutorials/index.md
+      - 01 — Hello Sutra: tutorials/01-hello-sutra.md
+      - 02 — Bind and unbind: tutorials/02-bind-and-unbind.md
+      - 03 — Snap-to-nearest: tutorials/03-snap-to-nearest.md
+    - Demos: demos.md
+    - History: history.md
+    # SutraDB is the database side of the Sutra ecosystem — the static
+    # HTML site lives under sutraDB/pages/ and is mounted at /SutraDB/
+    # on this Pages deploy by the pages.yml workflow.
+    - SutraDB: /SutraDB/
 
 extra_javascript:
   - assets/js/bind-unbind.js
