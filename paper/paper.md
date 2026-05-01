@@ -1052,14 +1052,11 @@ and nothing else.
 
 ### 3.6 End-to-end differentiable training through Sutra operations
 
-Sutra's fuzzy conditionals depend on embedding comparisons,
-which are inherently uncertain — the similarity between two
-embeddings is a continuous value, not a crisp truth. This is
-a feature, not a limitation: because the fuzzy logic gates
-(AND, OR, NOT) are Lagrange polynomials over continuous truth
-values, gradient descent can optimize the parameters that drive
-those truth values *while preserving the symbolic program
-structure unchanged*.
+Because every Sutra primitive compiles to a differentiable tensor
+operation, the compiled graph supports standard PyTorch
+`loss.backward()` without modification. We verify this by
+training learnable parameters through a fuzzy-logic classifier
+built entirely from Sutra operations.
 
 **Setup.** 15 words from three categories (animals, vehicles,
 foods) are embedded via nomic-embed-text (768-d, frozen). Three
@@ -1071,17 +1068,12 @@ to produce per-class scores:
     rule_i = AND(sim(x, proto_i), AND(NOT(sim(x, proto_j)),
                                       NOT(sim(x, proto_k))))
 
-The symbolic structure — three fuzzy if-then rules composed of
-AND and NOT gates — is fixed throughout training and remains
-human-readable. What changes are the prototype embeddings that
-the gates evaluate against. The rule still says "classify as
-category *i* if similar to prototype *i* and not similar to the
-others"; training teaches the prototypes *what those categories
-look like in the embedding space* so the fuzzy truth values align
-with the intended classification. This is the neuro-symbolic
-proposition: the symbolic layer (the program, its rules, its
-logic gates) provides interpretability and structure; the neural
-layer (the embedding comparisons) provides learnability.
+Each gate is a polynomial (§3, Lagrange interpolation on the
+Kleene {-1, 0, +1} grid), so the full forward pass is a
+composition of polynomial and rational tensor operations with
+well-defined gradients everywhere. Cross-entropy loss over the
+three rule scores drives Adam updates on the prototype
+embeddings.
 
 **Results.** Before training (random prototypes), accuracy is 40%
 (chance = 33%). After 300 epochs, accuracy reaches 100%. Gradient
@@ -1096,15 +1088,14 @@ dot product) -> `fuzzy_not` (Kleene negation) -> `fuzzy_and`
 | Before |     40%  |  1.93  |
 | After  |    100%  |  0.04  |
 
-The symbolic content of the program — three AND/NOT rules over
-three prototypes — is identical before and after training.
-The program is as readable at epoch 300 as at epoch 0. Only the
-prototype embeddings moved, and they moved because the
-polynomial fuzzy gates transmitted gradient information from the
-classification loss all the way back to the embedding vectors.
-No Sutra-specific autograd machinery is required; standard
-`torch.autograd` suffices because the compiler emits only
-operations that PyTorch already knows how to differentiate.
+This is the minimal demonstration that Sutra's compiled
+tensor-op graph is not merely structurally differentiable but
+*trainable*: gradient descent through the fuzzy-logic gates
+learns to position the prototypes so that the AND/NOT rules
+correctly classify all inputs. The experiment uses no
+Sutra-specific autograd machinery — standard `torch.autograd`
+suffices because the compiler emits only operations that PyTorch
+already knows how to differentiate.
 
 ---
 
