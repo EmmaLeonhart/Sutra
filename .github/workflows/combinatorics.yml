@@ -1,0 +1,96 @@
+name: Paper-fix combinatorics review (manual)
+
+# Manual workflow that runs scripts/combinatorics.py against clawrxiv.
+# For each subset of paper-fixes defined in scripts/paper_fixes.py,
+# applies that subset to a baseline paper.md, submits as a candidate
+# (uses dedup_token to bypass the canonical chain — does NOT touch
+# paper/.post_id), polls for the review, and tabulates ratings.
+#
+# Why this exists:
+#   Single-sample reviews from Gemini 3 Flash are noisy. The same
+#   paper resubmitted twice often produces different cons. To do
+#   real gradient descent we need to test variants in isolation
+#   and ideally average across noise. This workflow is the
+#   isolation half; sample-averaging needs a second pass with
+#   --masks repeated.
+#
+# Trigger: workflow_dispatch only — this hits the API a lot of
+# times, so don't run it on every push.
+#
+# Output: JSON results uploaded as a workflow artifact, plus a
+# rendered summary in the workflow logs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      masks:
+        description: |
+          Comma-separated bitmask values. Each bit corresponds to
+          a fix in scripts/paper_fixes.py ALL_FIXES (bit 0 = first
+          fix). Default empty = all 2^N combinations.
+
+          Examples:
+            (empty)    → all combinations
+            0          → pure baseline (no fixes)
+            127        → all fixes applied (with N=7)
+            1,2,4,8,16,32,64 → each fix alone
+        required: false
+        default: ''
+      baseline_ref:
+        description: |
+          Git ref to use as the baseline paper.md. Default
+          'master'. Use a specific commit hash to test against an
+          older version (e.g. the post-2149 baseline).
+        required: false
+        default: 'master'
+      timeout_per_submission:
+        description: 'Seconds per submission (default 60)'
+        required: false
+        default: '60'
+
+# Singleton: combinatorics is expensive; don't stack runs.
+concurrency:
+  group: combinatorics
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  combinatorics:
+    name: Run combinatorial review
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Run combinatorics
+        env:
+          CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
+        run: |
+          set -euo pipefail
+          masks_arg=""
+          if [ -n "${{ inputs.masks }}" ]; then
+            masks_arg="--masks ${{ inputs.masks }}"
+          fi
+          python -u scripts/combinatorics.py \
+            --baseline paper/paper.md \
+            --paper-dir paper \
+            --output combinatorics_results.json \
+            --timeout-per-submission ${{ inputs.timeout_per_submission }} \
+            $masks_arg
+
+      - name: Upload results as artifact
+        if: always()  # upload even on partial failure
+        uses: actions/upload-artifact@v4
+        with:
+          name: combinatorics-results
+          path: combinatorics_results.json
+          retention-days: 30
