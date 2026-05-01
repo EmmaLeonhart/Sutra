@@ -152,12 +152,14 @@ the parallelism algebraically**.
 
 The shapes that still need explicit handling:
 
-- [ ] **Concurrent looping.** `loop` today is a single trajectory
-  (bounded unroll for `loop[N]`, eigenrotation for `loop(cond)`).
-  A concurrent form would run N independent trajectories in
-  parallel. Surface syntax TBD — probably an extension of existing
-  `loop` rather than a new keyword, given the user's "implicit
-  except where needed" framing.
+- [ ] **Concurrent looping.** Each declared loop function
+  (`do_while` / `while_loop` / `iterative_loop` / `foreach_loop`)
+  is a single trajectory today. A concurrent form would run N
+  independent trajectories in parallel — same cell, different
+  initial states, collected as a basin distribution. Surface
+  syntax TBD; probably an extension of the existing call form
+  (e.g. `loop[N] NAME(...)` for N parallel runs) given the
+  user's "implicit except where needed" framing.
 
 - [ ] **MLP attractor search.** N independent trajectories through
   an attractor MLP, each from `v0 + noise[i]`, each iterated until
