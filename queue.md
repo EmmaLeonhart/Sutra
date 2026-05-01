@@ -41,25 +41,41 @@ same commit. Repeat.
   deferrals removed. Commits `4b2bebc`, `6eb350a`, `51c6c67`,
   `bab0b91`.
 
+- **Object encapsulation (steps 0, 0.5, 1)** — landed 2026-05-01.
+  - **Step 0** — `SUT0144` validator rejects file-scope reads from
+    method bodies (commit `7e1240b`).
+  - **Step 0.5** — parser accepts method declarations inside class
+    bodies, including `static intrinsic method`. ClassDecl gains
+    a `methods` list (commits `9600fab`, `72b3534`).
+  - **Step 1** — codegen routes `Class.staticMethod(...)` calls
+    (regular -> mangled wrapper, intrinsic -> `_VSA.<name>`); the
+    stdlib_loader picks up class-bodied entries under both bare and
+    namespaced names (commits `b0f4e87`, `72b3534`, `ee9483a`).
+  - **Step 2 (partial)** — three stdlib files migrated to the
+    class-as-namespace shape: `math.su` (`class Math`), `numbers.su`
+    (`class Numbers`), `memory.su` (`class Memory`), `embed.su`
+    (`class Embedding`). Logic / similarity / vectors / rotation
+    still on the legacy top-level shape (their bodies use retired
+    loop syntax that wants care before migration).
+
 ### Next up
 
-Most remaining `todo.md` items need real engineering or design time
-that won't fit in an autonomous sprint:
+The remaining language-ergonomics steps (3-6) of the encapsulation
+taxonomy are all real refactors — non-static method instance
+dispatch, free-function file-level closure, instance fields, static
+method state, object loops. None blocking; each shippable as a
+separate session.
 
-- **Object encapsulation** — gated on the class-system MVP gaining
-  bodies / methods / instances. Premature today.
+Other open work in `todo.md`:
+
 - **Compile-time math approximation** — needs a substrate-pure
   `log`/`exp(E)` design before implementation; lookup-table approach
   failed (see the 2026-04-29 finding).
 - **Rotation-hashmap capacity / Monte-Carlo experiments** — need GPU
   time and a real evaluation harness.
-- **MCP server for docs** — real infrastructure piece; not a doc
-  edit.
+- **MCP server for docs** — real infrastructure piece.
 - **Concurrency / learned-matrix binding / atman.toml backend config
   / transcendentals** — substantial parser+codegen work each.
-
-Pick whichever of these you want to start on, or keep barreling for
-small wins (e.g. the smaller IDE/tooling items further down `todo.md`).
 
 ## Pointers
 
