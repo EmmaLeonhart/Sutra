@@ -6,39 +6,25 @@
 
 ## Abstract
 
-Dense vector embedding spaces — whether produced by frozen LLMs,
-CNN feature extractors, knowledge-graph embeddings, or
-bioinformatics encoders such as ESM-2 — encode meaningful
-structure as vector arithmetic. The general property is established across the
-knowledge-graph-embedding literature (TransE, RotatE, the word-
-analogy line) and re-emerges across modalities wherever
-representation learning produces a high-dimensional dense vector.
-Taking that as given, this paper presents the design and
-implementation of **Sutra**, a typed, purely functional programming
-language whose compile target is a single tensor-op graph over an
-arbitrary vector embedding substrate. The
-contribution is algorithmic: a consolidated set of vector-symbolic
-primitives (bind, unbind, bundle, similarity, rotation, soft-halt
-RNN cells) that operate on a frozen high-dimensional vector
-embedding substrate, plus a compiler that lowers the whole program
-to one fused tensor-op graph. The current demonstrations use LLM
-embeddings (nomic-embed-text, all-minilm, mxbai-embed-large), but
-the construction is substrate-agnostic — any frozen vector
-embedding space of comparable dimensionality works the same way,
-including non-language sources (CNN feature maps, knowledge-graph
-embeddings, biochemical / bioinformatic embeddings, transformer
-hidden states from arbitrary modalities). Sutra is a working compiler today: parser, type checker,
-codegen, runtime; the example corpus is a smoke test of 13
-demonstration programs covering hello-world embedding round-trips,
-fuzzy dispatch, role-filler records, knowledge graphs, classifier
-decision rules, sequence reduction, naive analogy, predicate
-lookup, nearest-phrase retrieval, the imperative-reversible
-pattern, the do-while adder, the rotation hashmap, the rotation
-record, and a tutorial — all executing end-to-end with expected
-outputs. The full `examples/` directory holds 23 `.su` files
-including legacy and feature demos. We give an honest account of
-which parts of the substrate-purity story are shipped and which
-remain.
+**Sutra** is a typed, purely functional programming language
+whose values are vectors in a dense embedding space and whose
+compile target is a single tensor-op graph. The contribution is
+algorithmic: a consolidated set of vector-symbolic primitives
+(rotation binding, unbind, bundle, similarity, soft-halt RNN
+cells, polynomial Kleene three-valued logic) lowered through a
+compiler that beta-reduces the whole program to tensor normal
+form. The substrate is *any* dense high-dimensional vector
+space — empirically validated on three frozen LLM embeddings
+(nomic-embed-text, all-minilm, mxbai-embed-large) and on ESM-2
+protein-language-model embeddings, with the same characteristic
+rotation-vs-Hadamard separation in every case. Sutra is a
+working compiler: parser, type checker, codegen, runtime,
+embedded SutraDB codebook, opt-in `torch.compile` wrapping. The
+example corpus is a 13-program smoke test (with 23 `.su` files
+total) and 237 passing unit tests. We report honest negative
+results alongside the positive ones — most notably the §3.1.1
+crosstalk analysis, which scopes the rotation-binding capacity
+claim to single-cycle records.
 
 ---
 

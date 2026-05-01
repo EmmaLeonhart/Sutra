@@ -154,6 +154,37 @@ print('OK: §3.1.1 crosstalk reproduces')
 Honest negative: chain=1 100%, chain=8 at chance — scopes the
 §3.1 capacity claim to single-cycle records.
 
+### §3.1.3 — Sutra vs Scallop (1-hop knowledge-graph query)
+
+```bash
+# Build the Scallop image (Rust nightly + scallopy build, ~10-15 min
+# first time; cached thereafter):
+docker build -t sutra-scallop -f experiments/scallop_compare/Dockerfile .
+
+# Run the side-by-side comparison (mounts the repo so source edits
+# are live):
+docker run --rm -v "$PWD:/work" -w /work sutra-scallop \
+    python experiments/scallop_compare/run_compare.py
+test $? -eq 0 || { echo "FAIL: scallop compare run"; exit 1; }
+python -c "
+import json
+d = json.load(open('experiments/scallop_compare/results.json'))
+sutra = d['sutra']
+scallop = d['scallop']
+assert sutra['accuracy'] == 1.0, f'Sutra accuracy {sutra[\"accuracy\"]}'
+if scallop is not None:
+    assert scallop['accuracy'] == 1.0, f'Scallop accuracy {scallop[\"accuracy\"]}'
+    print(f'Sutra: {sutra[\"per_query_us\"]:.1f} us/q; Scallop: {scallop[\"per_query_us\"]:.1f} us/q')
+print('OK: shared 1-hop KG task reproduces')
+"
+```
+
+A 6-fact KG (6 entities, 3 relations) with 1-hop relational queries.
+Both systems achieve 100% accuracy; the comparison is per-query
+latency on a task each can express natively. Sutra encodes the KG
+as a single bundled vector and decodes via unbind+argmax-cosine;
+Scallop expresses it as Datalog and resolves via SLG.
+
 ### §3.1.2 — Per-call latency vs TorchHD
 
 ```bash
