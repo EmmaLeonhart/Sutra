@@ -131,11 +131,7 @@ The four core technical contributions of this paper are:
 
 These four primitives are integrated into a single working
 compiler that lowers `.su` source to a self-contained PyTorch
-module and runs on CPU or CUDA. The language is Turing-complete
-by the same construction that makes RNNs Turing-complete
-(Siegelmann & Sontag 1992): tail-recursive loops over a
-fixed-width state vector with a halt criterion, running on a
-continuous-state recurrent substrate.
+module and runs on CPU or CUDA.
 
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
