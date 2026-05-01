@@ -321,6 +321,19 @@ class BaseCodegen:
         # call `Math.log(x)` for an intrinsic dispatches directly to
         # `_VSA.log(x)` without going through a mangled wrapper.
         self._class_intrinsic_methods: dict[str, set[str]] = {}
+        # Non-static (instance) methods declared inside class bodies.
+        # Same shape as _class_static_methods. Calls of the form
+        # `this.method(args)` from inside another method on the same
+        # class dispatch to `{Class}_{method}(this, *args)`. Top-level
+        # `Class.method(instance, args)` also works the same way (the
+        # instance is the explicit first arg). True instance-syntax
+        # dispatch (`g.method(args)` for a typed variable `g`) needs
+        # variable type tracking which isn't wired today.
+        self._class_instance_methods: dict[str, set[str]] = {}
+        # Name of the class whose method body is currently being
+        # emitted. Used by `this.method(args)` dispatch to know which
+        # class to mangle with. None when not inside a class method.
+        self._current_class_name: Optional[str] = None
 
     # -- emission helpers -------------------------------------------------
 
@@ -354,17 +367,20 @@ class BaseCodegen:
     def translate(self, module: ast.Module) -> str:
         self._emit_prelude()
         self._emit()
-        # Pre-pass: register every class's static method names so call
-        # sites can dispatch even when the class declaration comes
-        # after the calling function in the file. Non-static methods
-        # are intentionally not registered here — they'd need instance
-        # dispatch which isn't wired. Intrinsic-marked static methods
-        # also land in `_class_intrinsic_methods` so the call-site
-        # dispatch routes them to `_VSA.<name>` directly.
+        # Pre-pass: register every class's method names so call sites
+        # can dispatch even when the class declaration comes after the
+        # calling function in the file. Static methods land in
+        # _class_static_methods (intrinsic ones also in
+        # _class_intrinsic_methods so the call site goes to _VSA.<name>
+        # directly). Non-static methods land in _class_instance_methods
+        # so `this.method(args)` from inside another method on the same
+        # class can dispatch.
         for item in module.items:
             if isinstance(item, ast.ClassDecl):
                 for m in item.methods:
-                    if m.modifiers.is_static and not m.is_operator and not m.type_params:
+                    if m.is_operator or m.type_params:
+                        continue
+                    if m.modifiers.is_static:
                         self._class_static_methods.setdefault(
                             item.name, set()
                         ).add(m.name)
@@ -372,6 +388,10 @@ class BaseCodegen:
                             self._class_intrinsic_methods.setdefault(
                                 item.name, set()
                             ).add(m.name)
+                    else:
+                        self._class_instance_methods.setdefault(
+                            item.name, set()
+                        ).add(m.name)
         for item in module.items:
             self._translate_top_level(item)
             self._emit()
@@ -600,25 +620,35 @@ class BaseCodegen:
                 decl,
                 "generic method declarations are not supported by the V1 codegen",
             )
-        if not decl.modifiers.is_static:
-            raise CodegenNotSupported(
-                decl,
-                f"non-static methods on user classes are not supported by "
-                f"the V1 codegen (instance dispatch isn't wired). Mark "
-                f"`{class_name}.{decl.name}` as `static method` for now, or "
-                f"call it as a free function at top level. See "
-                f"`planning/open-questions/function-taxonomy-and-closure.md` "
-                f"for the deferred steps.",
-            )
-        # Register in the lookup table the call-dispatch path consults.
-        self._class_static_methods.setdefault(class_name, set()).add(decl.name)
-        if decl.is_intrinsic:
-            # Signature-only declaration; runtime class implements the
-            # body. Emit nothing — the pre-pass already registered the
-            # method in `_class_intrinsic_methods` for call-site dispatch.
-            self._class_intrinsic_methods.setdefault(class_name, set()).add(decl.name)
-            return
+        is_static = decl.modifiers.is_static
+        # Register in the lookup tables the call-dispatch path consults.
+        if is_static:
+            self._class_static_methods.setdefault(class_name, set()).add(decl.name)
+            if decl.is_intrinsic:
+                # Signature-only declaration; runtime class implements
+                # the body. Emit nothing — the pre-pass already
+                # registered the method in `_class_intrinsic_methods`
+                # for call-site dispatch.
+                self._class_intrinsic_methods.setdefault(
+                    class_name, set()
+                ).add(decl.name)
+                return
+        else:
+            if decl.is_intrinsic:
+                raise CodegenNotSupported(
+                    decl,
+                    f"non-static intrinsic methods are not supported — "
+                    f"intrinsics live on the runtime class which has no "
+                    f"per-instance state. Mark `{class_name}.{decl.name}` "
+                    f"as `static intrinsic method` instead.",
+                )
+            self._class_instance_methods.setdefault(class_name, set()).add(decl.name)
+
+        # Non-static methods get `this` as an implicit first parameter.
+        # Static methods don't.
         param_names = [p.name for p in decl.params]
+        if not is_static:
+            param_names = ["this", *param_names]
         mangled = f"{class_name}_{decl.name}"
         self._emit(f"def {mangled}({', '.join(param_names)}):")
         self._indent += 1
@@ -628,6 +658,8 @@ class BaseCodegen:
         self._current_return_type = (
             decl.return_type.name if decl.return_type else None
         )
+        outer_class_name = self._current_class_name
+        self._current_class_name = class_name
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
@@ -638,6 +670,7 @@ class BaseCodegen:
                 self._translate_stmt(stmt)
         self._slot_vars = outer_slot_vars
         self._current_return_type = outer_return_type
+        self._current_class_name = outer_class_name
         self._indent -= 1
 
     def _translate_function_decl(self, decl: ast.FunctionDecl) -> None:
@@ -1784,6 +1817,8 @@ class BaseCodegen:
             if expr.op == "!":
                 return self._logical_not_src(expr, self._translate_expr(expr.operand))
             return f"({expr.op}{self._translate_expr(expr.operand)})"
+        if isinstance(expr, ast.ThisExpr):
+            return "this"
         if isinstance(expr, ast.MemberAccess):
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
         if isinstance(expr, ast.EmbedExpr):
@@ -1886,6 +1921,30 @@ class BaseCodegen:
             arg_srcs = [self._translate_expr(a) for a in call.args]
             return f"{name}({', '.join(arg_srcs)})"
         if isinstance(callee, ast.MemberAccess):
+            # `this.method(args)` from inside a class method body —
+            # dispatch to `{CurrentClass}_{method}(this, *args)`. The
+            # current class name is captured in
+            # `_current_class_name` while a class method body is
+            # being emitted.
+            if (isinstance(callee.obj, ast.ThisExpr)
+                    and self._current_class_name is not None):
+                cls_name = self._current_class_name
+                method_name = callee.member
+                if (cls_name in self._class_instance_methods
+                        and method_name in self._class_instance_methods[cls_name]):
+                    arg_srcs = [self._translate_expr(a) for a in call.args]
+                    all_args = ["this", *arg_srcs]
+                    return f"{cls_name}_{method_name}({', '.join(all_args)})"
+                if (cls_name in self._class_static_methods
+                        and method_name in self._class_static_methods[cls_name]):
+                    # `this.staticMethod(...)` — surfaces as a class-
+                    # namespace call too (static doesn't take `this`).
+                    if (cls_name in self._class_intrinsic_methods
+                            and method_name in self._class_intrinsic_methods[cls_name]):
+                        arg_srcs = [self._translate_expr(a) for a in call.args]
+                        return f"_VSA.{method_name}({', '.join(arg_srcs)})"
+                    arg_srcs = [self._translate_expr(a) for a in call.args]
+                    return f"{cls_name}_{method_name}({', '.join(arg_srcs)})"
             # Class-namespace dispatch: `Math.log(x)` where `Math` is a
             # declared class and `log` is a static method on it. We
             # emit it as `Math_log(x)` — the mangled name that
@@ -1907,6 +1966,16 @@ class BaseCodegen:
                     return f"_VSA.{method_name}({', '.join(arg_srcs)})"
                 if (cls_name in self._class_static_methods
                         and method_name in self._class_static_methods[cls_name]):
+                    arg_srcs = [self._translate_expr(a) for a in call.args]
+                    return f"{cls_name}_{method_name}({', '.join(arg_srcs)})"
+                # Non-static class method called via class-namespace
+                # syntax: `Greeter.Hello(g, ...)`. The first arg is the
+                # instance and becomes `this` inside the method body.
+                # The mangled function takes `this` as its first param,
+                # so we just emit the args straight through — Python
+                # doesn't care about the param name at the call site.
+                if (cls_name in self._class_instance_methods
+                        and method_name in self._class_instance_methods[cls_name]):
                     arg_srcs = [self._translate_expr(a) for a in call.args]
                     return f"{cls_name}_{method_name}({', '.join(arg_srcs)})"
             arg_srcs = [self._translate_expr(a) for a in call.args]

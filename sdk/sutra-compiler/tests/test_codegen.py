@@ -527,8 +527,11 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         py = _compile(src)
         self.assertIn("Math_twice(3)", py)
 
-    def test_non_static_method_in_class_rejects_at_codegen(self):
-        from sutra_compiler.codegen_base import CodegenNotSupported
+    def test_non_static_method_emits_with_this_param(self):
+        # Step 4 of the encapsulation taxonomy (2026-05-01): non-static
+        # methods compile to `def Class_method(this, *params):`. The
+        # `this` keyword inside the body translates to the local
+        # Python identifier `this`.
         src = (
             "class Greeter extends vector {\n"
             "  method string Hello() {\n"
@@ -536,8 +539,53 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
             "  }\n"
             "}\n"
         )
-        with self.assertRaises(CodegenNotSupported):
-            _compile(src)
+        py = _compile(src)
+        self.assertIn("def Greeter_Hello(this):", py)
+
+    def test_class_namespace_call_threads_instance_to_this(self):
+        # Calling a non-static method via `Greeter.Hello(g)` passes `g`
+        # as the first arg, which the mangled function receives as
+        # `this`. Inside the body, references to `this` (ThisExpr)
+        # translate to the local `this`. Vector returns get
+        # halt-propagation wrapping (`return value * _program_halt`),
+        # so the returned expression contains `this` rather than being
+        # bare-equal to it.
+        src = (
+            "class Greeter extends vector {\n"
+            "  method vector Self() {\n"
+            "    return this;\n"
+            "  }\n"
+            "}\n"
+            "function vector echo(vector g) {\n"
+            "  return Greeter.Self(g);\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Greeter_Self(this):", py)
+        # Body references `this` somewhere in the return expression.
+        body_marker = "def Greeter_Self(this):"
+        body_start = py.index(body_marker)
+        body_end = py.index("def echo")
+        body_src = py[body_start:body_end]
+        self.assertIn("this", body_src)
+        self.assertIn("Greeter_Self(g)", py)
+
+    def test_this_dot_method_dispatches_to_same_class(self):
+        # `this.other(args)` from inside a method on Greeter dispatches
+        # to `Greeter_other(this, *args)`.
+        src = (
+            "class Greeter extends vector {\n"
+            "  method vector Inner() {\n"
+            "    return this;\n"
+            "  }\n"
+            "  method vector Outer() {\n"
+            "    return this.Inner();\n"
+            "  }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Greeter_Outer(this):", py)
+        self.assertIn("Greeter_Inner(this)", py)
 
     def test_intrinsic_method_routes_to_VSA_runtime(self):
         # `static intrinsic method scalar log(scalar x);` inside a
