@@ -1,6 +1,6 @@
 # Demos
 
-Thirteen `.su` programs live in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/master/examples) and are exercised end-to-end by the smoke test:
+Ten `.su` programs live in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/master/examples) and are exercised end-to-end by the smoke test:
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
@@ -10,7 +10,7 @@ python examples/_smoke_test.py
 
 The smoke test compiles each `.su` source through the reference codegen path, executes the emitted Python, and compares the output to a hardcoded expected table. Seed and dimensions are fixed, so results are deterministic.
 
-## The thirteen programs
+## The smoke-tested programs
 
 | # | File | What it demonstrates |
 |---|---|---|
@@ -24,11 +24,25 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 | 7 | [`fuzzy_dispatch.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/fuzzy_dispatch.su) | N-way dispatch returning structured records. Each branch returns an (action, target) record; the winner is decoded with two `unbind` calls. |
 | 8 | [`nearest_phrase.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/nearest_phrase.su) | 20-phrase codebook, clean and noisy retrieval. Target plus 0.2·distractor still returns target. |
 | 9 | [`sequence.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/sequence.su) | Position-bound sequence encoder. A 5-token sequence is one vector; decode any position with `unbind(pos_i, record)`. Two sequences compared by cosine. |
-| 10 | [`loop_rotation.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/loop_rotation.su) | `loop(condition)` as eigenrotation. Iterates `state ← R · state` on the substrate; terminal `argmax_cosine` commits. |
-| 11 | [`counter_loop.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/counter_loop.su) | `loop(condition)` as a helical counter. The angular position on the helix IS the loop counter — the demonstration of unbounded iteration without a host-side counter variable. |
-| 12 | [`concept_search.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/concept_search.su) | `loop(condition)` over a richer codebook with different starting points yielding different iteration counts. |
 
-## The primitives the demos exercise
+The earlier loop demos (`loop_rotation.su`, `counter_loop.su`, `concept_search.su`) used the retired C-style `loop (cond) { ... }` eigenrotation surface; the 2026-04-30 redesign moved loops to first-class declared functions, and those three demos were removed when their syntax stopped parsing. Loop coverage now lives in [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/do_while_adder.su) (the canonical `do_while` declared-function example) plus the `test_loop_function_decl.py` test suite (23 tests). See the [Loops page](loops.md) for the current surface.
+
+## Other examples in the directory
+
+`examples/` contains additional programs that aren't part of the smoke-test asserted-output table but exist as reference material:
+
+- `do_while_adder.su` — minimal `do_while` declared-function loop.
+- `imperative_reversible.su` — slot-based reversible state demo.
+- `classes_demo.su` — empty-body class declarations (the MVP form, see [Ontology](ontology.md)).
+- `analogy_minilm.su`, `analogy_mxbai.su` — substrate-sweep variants of `analogy.su`.
+- `protein_record.su` — the same role-filler shape applied to ESM-2 protein-language-model embeddings.
+- `rotation_hashmap.su`, `rotation_book_catalog.su`, `rotation_record.su` — rotation-binding library patterns.
+- `tutorial.su` — companion source for the tutorials.
+- `wait_keyword_demo.su` — the `wait` reserved-keyword shape.
+
+These don't have asserted outputs in the smoke test but parse and (where the codegen supports them) execute under the standard pipeline.
+
+## The primitives the smoke-tested demos exercise
 
 | Operation | What it computes | Demo files |
 |---|---|---|
@@ -36,18 +50,17 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 | `bundle(a, b, …)` | sum and L2-normalize | 1, 2, 3, 4, 5, 6, 7, 9 |
 | `bind(role, filler)` | rotation binding: `Q_role @ filler` | 1, 2, 5, 7, 9 |
 | `unbind(role, record)` | inverse rotation: `Q_role^T @ record` | 2, 5, 6, 7, 9 |
-| `similarity(a, b)` | cosine similarity | 1, 6, 9, 10 |
-| `argmax_cosine(query, [candidates])` | nearest codebook entry | 0, 1, 3, 4, 5, 7, 8, 10, 11, 12 |
+| `similarity(a, b)` | cosine similarity | 1, 6, 9 |
+| `argmax_cosine(query, [candidates])` | nearest codebook entry | 0, 1, 3, 4, 5, 7, 8 |
 | `select([scores], [options])` | softmax-weighted superposition | 1, 7 |
-| `loop(condition) { … }` | iterated rotation with similarity-threshold termination | 10, 11, 12 |
 | Scalar-vector multiply, vector add | weighted superposition | 1, 7 |
 | `map<vector, string>` lookup | the single edge bridge from vector to host string | all |
 
-There is no `if`, `while`, `for`, or `switch` in any of these programs. Every conditional is a weighted sum across all options; the commitment to a discrete answer happens at the final `argmax_cosine` or map lookup.
+There is no `if`, `while`, `for`, or `switch` in any of these programs. Every conditional is a weighted sum across all options; the commitment to a discrete answer happens at the final `argmax_cosine` or map lookup. Loop primitives show up in `do_while_adder.su` and the dedicated test suite, not in the smoke-tested ten.
 
 ## Reading the source
 
-The `.su` files are deliberately short (30–100 lines each including comments) and meant to be read front-to-back. Start with `hello_world.su` for the minimal shape; `role_filler_record.su` and `knowledge_graph.su` are the richest for understanding bind/unbind composition; `loop_rotation.su` and `counter_loop.su` show the data-dependent loop mechanism.
+The `.su` files are deliberately short (30–100 lines each including comments) and meant to be read front-to-back. Start with `hello_world.su` for the minimal shape; `role_filler_record.su` and `knowledge_graph.su` are the richest for understanding bind/unbind composition; `do_while_adder.su` is the smallest example of the new loop surface.
 
 To inspect the generated Python for any demo:
 
