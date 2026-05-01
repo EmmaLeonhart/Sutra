@@ -78,58 +78,77 @@ working algebra plus the language that operationalizes it.
 
 ### 1.2 Contributions
 
-1. **A typed, purely functional programming language whose compile
-   target is a single tensor-op graph over a frozen LLM embedding
-   substrate.** `.su` source parses, type-checks, compiles to
-   PyTorch tensor ops, and executes; the runtime runs on CPU or
-   CUDA depending on what's available at module init.
+The four core technical contributions of this paper are:
 
-2. **A substrate-pure operational core.** Bind (rotation), unbind
-   (rotation transpose), bundle (normalized sum), similarity
-   (cosine on truth axis), arithmetic on canonical synthetic axes,
-   and soft-halt RNN cells for runtime data-dependent recurrence
-   — all execute as tensor operations on the substrate, with no
-   host-Python compute on the runtime path. The compiler is the
-   safety boundary because the runtime has no error channel by
-   mechanism: a value with the wrong geometry doesn't crash, it
-   produces meaningless output.
+1. **Differentiable fuzzy logic for superposition via Laplace
+   interpolation.** The logical connectives are implemented as
+   continuous interpolations rather than as discrete operators:
+   AND is the minimum of its operands, OR is the maximum, with a
+   Laplace-style smooth interpolation across the three output
+   states (true, false, neutral). Negation is the standard
+   complement. The result is that `&&`, `||`, and `!` are
+   gradient-compatible and compose with the rest of the
+   tensor-op graph without ever inserting a host-side branch.
 
-3. **First-class declared loop functions with branchless control.**
-   Loops are declared as `do_while NAME(...)`, `while_loop
-   NAME(...)`, `iterative_loop NAME(...)`, or `foreach_loop
-   NAME(...)`; the body uses `pass values` (or, equivalently,
-   `return NAME(args)` tail recursion) for the recurrent step.
+2. **Beta reduction to tensor normal form, used as the compiler
+   architecture.** Sutra inverts what conventional compilers do:
+   instead of progressively lowering a high-level program toward
+   machine instructions, the compiler aggressively *expands* the
+   program — inlining operator definitions, unfolding constants,
+   beta-reducing through bound names — until the residual is a
+   straight-line algebraic expression over the VSA primitives.
+   That residual is then algebraically reduced to *tensor normal
+   form*: a fused sequence of matmul / element-wise / nonlinear
+   tensor ops with no remaining named bindings or function calls.
+   In the recurrent case the form generalizes to *recurrent
+   tensor normal form*, where the RNN cell body is itself in
+   tensor normal form and the recurrence is a separate top-level
+   operator.
+
+3. **Tail recursion as the loop primitive, eliminating control
+   flow.** Loops are not `for`/`while` constructs over a host-side
+   iterator. They are tail-recursive function declarations
+   (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`)
+   whose body's `return NAME(args)` becomes the recurrent step.
    Each loop compiles to a fixed-T soft-halt RNN cell with
    substrate-pure halt detection (heaviside step → cumulative
-   monotone halt → soft-mux state freeze). Halt completion
+   monotone halt → soft-mux state freeze). The state vector h_t
+   carries the entire execution context in superposition; memory
+   overhead is constant in recursion depth. Halt completion
    propagates through nested calls to the program's final output:
    a loop that fails to converge wipes the program's result.
 
-4. **Embedded SutraDB as the codebook.** Every embedded string in
-   a compiled program goes into a SutraDB (sibling RDF + HNSW
-   triplestore project) at compile time. The runtime decode path
-   `_VSA.nearest_string(query)` returns the nearest string label
-   for any vector — closing the loop between vector-space
-   computation and human-readable output. Embeddings live in the
-   `.sdb` file, not the Python module's data section.
+4. **Synthetic-dimension rotation binding as an angular hash map.**
+   The compiler maps a high-dimensional codebook onto a set of
+   reserved synthetic dimensions and uses Haar-random orthogonal
+   rotations (seeded from the role's content hash) to bind keys
+   to slots. This is, to the authors' knowledge, the first use of
+   a high-dimensional rotation pattern as the substrate for a
+   functional hash-map primitive. After binding, the resulting
+   structure participates in the same beta-reduction pass as the
+   rest of the program and is reduced to (recurrent) tensor
+   normal form alongside everything else.
 
-5. **Honest scoping of the substrate-purity claim.** Five boundary
-   leaks where Python touched the substrate at control-flow seams
-   were enumerated and three fixed; two remain (rotation cache
-   lookup, loop tick counter); both have known fix paths. The
-   paper's substrate-purity claim is correctly scoped, not
-   overclaimed.
+These four primitives are integrated into a single working
+compiler that lowers `.su` source to a self-contained PyTorch
+module and runs on CPU or CUDA. The compiler, the runtime, the
+SutraDB-backed compile-time codebook, and 13 demonstration
+programs in the smoke test (with 23 `.su` files in the
+`examples/` directory) exercise the end-to-end pipeline.
 
 ### 1.3 What this paper is not
 
-This paper does not propose a new VSA binding operation; rotation
-binding is well-known (Plate 1995). It does not propose a new RNN
-architecture; the soft-halt cell is straightforward. The
-contribution is the *language* — the choice to compile a textual,
-typed source language into a single substrate-pure tensor-op
-graph, the design and implementation work that makes that
-compilation sound, and the evidence that it works on demonstration
-programs.
+This paper is not a survey of VSA binding operations; the
+contribution is *not* a new binding scheme in isolation, but the
+integration of the four primitives in §1.2 into a single typed,
+purely functional language with a working compiler. The
+soft-halt RNN cell is straightforward in the abstract; what is
+not straightforward is making it the loop primitive of a
+programming language whose entire program lowers to one
+tensor-op graph through beta reduction. The paper is neither a
+deep-learning architecture paper nor a pure programming-language
+theory paper; it is the specific construction that ties the two
+together.
 
 ---
 
@@ -147,6 +166,34 @@ and anisotropic — and the textbook bind operations do not transfer
 cleanly. Rotation binding (`R_role @ filler` for a role-seeded
 Haar-random orthogonal `R_role`) does, and is what Sutra uses
 today.
+
+The closest software peer in the VSA space is **TorchHD**
+(Heddes et al. 2023), a PyTorch library that exposes VSA
+primitives (bind, bundle, similarity) as tensor operations.
+Sutra and TorchHD differ on what the user writes and what the
+compiler does:
+
+- **TorchHD is a *library*.** The user writes Python code that
+  calls TorchHD primitives; control flow is host-side Python;
+  there is no source-language layer above the primitives, no
+  compile step, and no algebraic reduction across primitive
+  calls. Each primitive call is a tensor op, but the program
+  itself is a Python function with whatever control flow the
+  user wrote.
+- **Sutra is a *language with a compiler*.** The user writes
+  `.su` source which the compiler beta-reduces to tensor normal
+  form (§1.2-2): a single straight-line tensor-op graph with no
+  Python control flow. Loops are tail-recursive function
+  declarations that lower to soft-halt RNN cells; conditionals
+  are differentiable fuzzy interpolations rather than Python
+  `if`. Hash-map structure is implemented via synthetic-dimension
+  rotation, not via a host-side dictionary.
+
+This is not a "TorchHD is bad" claim; TorchHD is the right tool
+for using VSA primitives as a library in a Python program. Sutra
+is the construction that compiles a separate source language to
+the same primitive set with no host-side residue, which TorchHD
+is not designed to do.
 
 ### 2.2 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
