@@ -60,7 +60,7 @@ jobs:
             "pymdown-extensions>=10.0" \
             "mkdocs>=1.6.0"
 
-      - name: Install TeX Live (for paper PDF builds)
+      - name: Install TeX Live + pandoc (for paper PDF builds)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -69,11 +69,21 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-recommended \
             lmodern \
-            latexmk
+            latexmk \
+            pandoc
 
       - name: Build paper PDFs (named + anonymized)
         working-directory: paper
         run: |
+          # Generate the LaTeX body from paper.md. paper.tex \input's
+          # paper.tex.body, so the actual paper content (abstract,
+          # sections 1-5, references, all 1100+ lines) lands in the
+          # PDF rather than just the title page skeleton.
+          pandoc paper.md \
+            --from=gfm \
+            --to=latex \
+            --output=paper.tex.body \
+            --wrap=preserve
           # Named (full version with author + repo URLs).
           latexmk -pdf -interaction=nonstopmode paper.tex
           mv paper.pdf paper-named.pdf

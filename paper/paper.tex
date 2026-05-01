@@ -1,62 +1,66 @@
-% paper.tex — Sutra paper LaTeX source with anonymization macros.
+% paper.tex — Sutra paper LaTeX wrapper.
+%
+% The substantive paper content lives in paper/paper.md. The pages.yml
+% workflow runs `pandoc paper.md -t latex -o paper.tex.body` before
+% latexmk, so the entire body of the markdown lands here at \input
+% time. paper.tex itself is a thin wrapper that supplies the
+% documentclass, packages, anonymization switch, title, and author
+% block.
 %
 % Two builds from the same source via the \ifanon switch:
-%   pdflatex \def\anontrue{} \input{paper.tex}    -> anonymized (NeurIPS double-blind)
-%   pdflatex \input{paper.tex}                    -> full version (with author + repo URL)
+%   pdflatex paper.tex                                    -> named (full)
+%   pdflatex -usepretex='\newif\ifanon\anontrue' paper.tex -> anonymized
 %
-% The CI/CD workflow (.github/workflows/paper-pdf.yml — TODO) will
-% drive both builds and publish them to the docs site.
-%
-% The substantive paper content lives in paper/paper.md (Markdown
-% for clawRxiv submission). This LaTeX file is the NeurIPS-shaped
-% skeleton; the body is currently a thin wrapper that includes the
-% Markdown content via pandoc-converted intermediate (paper.tex.body
-% generated at build time). Full NeurIPS-template integration (the
-% specific year's neurips_*.sty file) is deferred until the deadline
-% is announced and the template URL is confirmed.
+% Build chain:
+%   pages.yml  -> pandoc paper.md -t latex -o paper.tex.body
+%              -> latexmk -pdf paper.tex      (named)
+%              -> latexmk -pdf -usepretex=... paper.tex (anonymized)
+%              -> docs/paper.pdf staged for the GitHub Pages deploy
 
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}  % Scalable CM fonts; required for microtype's auto-expansion
+\usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{xcolor}
 \usepackage{geometry}
 \geometry{margin=1in}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{enumitem}
+% pandoc's tightlist macro for compact lists:
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+% pandoc's pandocbounded for image sizing:
+\providecommand{\pandocbounded}[1]{#1}
 
-% ====================================================================
-% Anonymization switch — set \anontrue at build time for the NeurIPS
-% double-blind PDF. Default (no flag) builds the named version.
-% ====================================================================
-% Guard: the build workflow's -usepretex='\newif\ifanon\anontrue' may
-% have already declared \ifanon. If so, do not re-\newif (which would
-% reset the flag back to false). Only declare when undefined.
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue,
+}
+
+% Anonymization switch for NeurIPS double-blind. Build with
+% `-usepretex='\newif\ifanon\anontrue'`. Default is named.
 \makeatletter
 \@ifundefined{ifanon}{\newif\ifanon}{}
 \makeatother
-% Default: not anonymized. Override at command line:
-%   pdflatex "\def\anontrue{} \input{paper.tex}"
-% (or via the build workflow's -DANON=1 conditional logic)
 
 \ifanon
-  % Anonymized version — NeurIPS double-blind safe.
   \title{Sutra: A Programming Language for Vector-Symbolic\\
-    Computation in Frozen Embedding Spaces}
+    Computation in Vector Embedding Spaces}
   \author{Anonymous Authors}
-  \newcommand{\repo}{[anonymized repository]}
-  \newcommand{\sutradburl}{[anonymized companion repository]}
-  \newcommand{\authoremail}{[anonymized]}
 \else
-  % Full version — for clawRxiv preprint and post-acceptance camera-ready.
   \title{Sutra: A Programming Language for Vector-Symbolic\\
-    Computation in Frozen Embedding Spaces}
+    Computation in Vector Embedding Spaces}
   \author{Emma Leonhart\\
     \texttt{EmmaLeonhart999@gmail.com}}
-  \newcommand{\repo}{\url{https://github.com/EmmaLeonhart/Sutra}}
-  \newcommand{\sutradburl}{\url{https://github.com/EmmaLeonhart/SutraDB}}
-  \newcommand{\authoremail}{\texttt{EmmaLeonhart999@gmail.com}}
 \fi
 
 \date{}
@@ -64,73 +68,10 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}
-Frozen general-purpose language-model embedding spaces encode
-relational structure as vector arithmetic — a property established
-across the knowledge-graph-embedding literature (TransE, RotatE,
-the word-analogy line). Taking that as given, this paper presents
-the design and implementation of \ifanon{}a programming language\else{}\textbf{Sutra}\fi,
-a typed, purely functional programming language whose compile target
-is a single tensor-op graph over a frozen LLM embedding substrate.
-The contribution is algorithmic: a consolidated set of vector-symbolic
-primitives (bind, unbind, bundle, similarity, rotation, soft-halt RNN
-cells) that work on natural anisotropic embedding spaces where the
-textbook Hadamard-product VSA fails, plus a compiler that lowers the
-whole program to one fused tensor-op graph.
-\ifanon{}The system\else{}Sutra\fi{} is a working compiler today:
-parser, type checker, codegen, runtime; the example corpus is a
-smoke test of 13 demonstration programs spanning hello-world
-embedding round-trips, fuzzy dispatch, role-filler records,
-knowledge graphs, classifier decision rules, sequence reduction,
-naive analogy, predicate lookup, nearest-phrase retrieval, the
-imperative-reversible pattern, the do-while adder, the rotation
-hashmap, and the rotation record, all executing end-to-end with
-expected outputs. The full \texttt{examples/} directory holds 23
-\texttt{.su} files including legacy and feature demos. We give an
-honest account of which substrate-purity claims are shipped and
-which remain pending fixes.
-\end{abstract}
-
-\section{Note on this LaTeX file}
-
-The substantive paper content is maintained in \texttt{paper.md}
-(Markdown, suitable for clawRxiv and pandoc-to-anything). This
-\texttt{paper.tex} is the NeurIPS-shaped skeleton: it sets the
-title/author/repo URLs via the \texttt{\textbackslash{}ifanon}
-switch and stages the abstract for review-ready PDF generation.
-The body sections will be either:
-
-\begin{itemize}
-  \item \textbf{Hand-converted to LaTeX} when the NeurIPS deadline
-    is announced and the year-specific template is integrated.
-    Anchors: see \texttt{paper.md} sections 1--8 for content.
-  \item \textbf{Generated by pandoc} at build time
-    (\texttt{pandoc paper.md -t latex -o paper.tex.body}), with
-    this file becoming a thin wrapper. Easier but loses fine
-    typographic control.
-\end{itemize}
-
-The CI/CD workflow at \texttt{.github/workflows/paper-pdf.yml}
-(TODO, sub-item 1d) will drive both anonymized and named PDF
-builds and publish them as workflow artifacts.
-
-\section{Repository pointers}
-
-\begin{itemize}
-  \item Sutra repository: \repo{}
-  \item SutraDB (sibling triplestore): \sutradburl{}
-  \item Reproducibility checklist: \texttt{paper/REPRODUCE.md}
-  \item Skill description: \texttt{paper/SKILL.md}
-  \item Project devlog: \texttt{DEVLOG.md}
-\end{itemize}
-
-\section*{Why this is a skeleton, not a finished LaTeX paper}
-
-For \texttt{paper.md} on clawRxiv, the Markdown source is what
-ships and is complete. For NeurIPS, a year-specific LaTeX template
-is required and the year's deadline+template aren't confirmed yet.
-Rather than guess the template (NeurIPS evolves it annually),
-this skeleton stages the anon-macro infrastructure so the future
-template-integration step is a short edit, not a full rewrite.
+% The paper body comes from `pandoc paper.md -t latex -o paper.tex.body`,
+% generated by the pages.yml workflow before latexmk runs. Everything
+% below this line — Abstract, sections 1-5, references — is sourced
+% from paper.md.
+\input{paper.tex.body}
 
 \end{document}
