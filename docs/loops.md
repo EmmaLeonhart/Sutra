@@ -1,147 +1,130 @@
 # Loops
 
-Sutra has four looping constructs: `loop`, `while`, `do`/`while`, and `foreach`. Each compiles to one of two patterns:
+Sutra loops are **first-class declared functions** whose parameters are the recurrent state. The body uses `pass` to yield the next iteration's state values. Call sites use the `loop` prefix and mutate the caller's named variables by reference.
 
-- **Compile-time unroll** — the loop body is emitted once per iteration directly into the output, no loop exists at runtime.
-- **Eigenrotation** — the loop state is rotated by a fixed matrix each step; termination is a prototype-match test in vector space. The brain (or GPU tensor code) iterates; Python doesn't.
+The four loop kinds are each a function-declaration form:
 
-Which pattern a given loop uses is determined by whether the iteration count is known at compile time.
+| Kind | First parameter | Body |
+|---|---|---|
+| `do_while`       | Boolean condition; re-evaluated AFTER the body runs.         | Always runs once before the first check. |
+| `while_loop`     | Boolean condition; checked BEFORE each tick.                 | Body runs only if condition true. |
+| `iterative_loop` | Integer count (cap). Body sees the `iterator` keyword.       | Runs N times, no condition. |
+| `foreach_loop`   | Binding-array. Body sees the `element` keyword.              | One element per tick. |
 
----
-
-## `loop(N)` — compile-time unroll
-
-```c
-loop (3) {
-    x = x + step;
-}
-```
-
-When `N` is an integer literal, the body is emitted three times:
-
-```python
-x = x + step
-x = x + step
-x = x + step
-```
-
-No runtime loop. No iteration counter on the host. The emitted code is straight-line and the compiler can simplify across the copies.
-
-### With an index
-
-```c
-loop (3 as i) {
-    use(i);
-}
-```
-
-The index variable `i` takes values `0, 1, 2`. Emits a real `for i in range(3)` when the count isn't a pure literal, otherwise unrolls.
-
-Use `loop(N)` for small fixed repetitions — stacking a few transformations, generating a short codebook, initializing a banks. It's syntactic sugar over straight-line code.
-
-### The `iterator` reserved keyword
-
-Inside an unrolling loop with a compile-time-constant bound (`loop (N) { ... }` where `N` is an integer literal), the keyword `iterator` refers to the current iteration's index without needing an `as i` binding.
-
-```c
-var n : int = 0;
-loop (5) {
-    n += iterator;
-}
-// n == 1 + 2 + 3 + 4 + 5 == 15
-```
-
-The compiler unrolls and substitutes `iterator` with the per-copy constant — **1-based, ranging from 1 to N**:
-
-```c
-n += 1;
-n += 2;
-n += 3;
-n += 4;
-n += 5;
-```
-
-`iterator` is **never a runtime variable**. Each unrolled copy gets a different compile-time constant. The keyword is contextual — only meaningful inside an unrolling `loop (N)` body where N is a literal — and a compile-time error elsewhere (including inside `loop (N as i)`, where you should reference `i` instead, and inside `loop (cond)` eigenrotation loops).
-
-In nested unrolled loops, `iterator` always binds to the innermost surrounding loop. The outer value is saved across the inner loop's unroll and restored after.
-
-This is the language's canonical demonstration of "Sutra has no memory points": where C's `for (int i = 0; i < 5; i++)` puts `i` in memory and mutates it, Sutra's `loop (5) { n += iterator; }` substitutes five different compile-time constants and emits straight-line code with nothing to point at. See [paradigms](paradigms.md) § Imperative — C for the wider framing.
-
-**Coexistence with `loop (N as i)`:** both forms are accepted. `as i` lets you choose the name (useful for nested loops that want the outer index in scope inside the inner body, since `iterator` always rebinds to the innermost). `iterator` is the always-available default. They don't conflict — a loop body can use either or both.
-
-**Open question — `foreach`:** whether `iterator` should also work inside `foreach (x in [a, b, c])` (substituting the *element* rather than an index) is undecided. The unroll mechanism is the same; the question is what `iterator` should mean. Logged under `todo.md`.
+This design ships loops as substrate-pure RNN cells: the cell function's parameters ARE the hidden state, the body is the cell, `pass` is the recurrence. There is no C-style `loop(N) { body }` / `while(cond) { body }` / `for(init; cond; step)` surface anymore — those forms were retired in the 2026-04-30 redesign in favor of the declared-function shape.
 
 ---
 
-## `loop(condition)` — eigenrotation
+## `do_while`
 
-```c
-loop (x.truth() > 0.5) {
-    x = step(x);
+Body runs once before the first condition check. Re-evaluates after each tick.
+
+```sutra
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+
+function int main() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;     // 11
 }
 ```
 
-When the loop header is a condition (not an integer), the loop compiles to a **geometric rotation** on the state vector with termination by prototype match:
+- `do_while addNumber(...)` — declaration. First param is the condition expression; remaining params are the recurrent state vars.
+- `pass x + 1;` — tail-recursive yield. Provides one value per recurrent state param, in declaration order. The condition is re-evaluated automatically against the new state, not passed.
+- `loop addNumber(x < 11, x)` — call site. Mutates the caller's `x` by reference on completion.
 
-1. Compile the body to a single rotation matrix `R`.
-2. Compile the condition into a codebook of target prototypes.
-3. Emit `_VSA.loop(state, R, prototypes)` — the runtime applies `R` to the state, checks against the prototypes, and terminates when the match crosses a threshold.
+Two equivalent body forms — the compiler accepts both:
 
-The iteration happens on the substrate. Python does not see the loop counter. The loop terminates because the rotated state enters the target prototype's basin, not because a host counter hit a limit. There's a `max_iters` safety cap in the runtime, but the semantic terminator is the prototype match.
+```sutra
+// Form A: pass an expression directly.
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
 
-This is the form that makes Sutra effectively a linear bounded automaton rather than just a feedforward circuit — runtime-conditional iteration over runtime-evolving state.
-
----
-
-## `while(cond)` — same eigenrotation machinery
-
-```c
-while (x.truth() > 0.5) {
-    x = step(x);
+// Form B: mutate then pass.
+do_while addNumber(x < 11, int x) {
+    x = x + 1;
+    pass x;
 }
 ```
 
-Semantically identical to `loop(condition)`. Kept as a keyword because people coming from C-family languages reach for `while` first. Compiles through the same `_translate_while_as_geometric_loop` path.
+### `replace` keeps the input value
+
+When a state param shouldn't update on an iteration, use `replace` in its `pass` slot — that keeps whatever value the loop was called with for that param.
 
 ---
 
-## `do { body } while (cond)` — desugars
+## `while_loop`
 
-```c
-do {
-    x = step(x);
-} while (x.truth() > 0.5);
-```
+Same as `do_while` but the condition is checked before each tick. Body is skipped entirely if the condition is false at entry.
 
-Desugars to: body executes once, then a `while (cond) { body }`. The while half compiles to eigenrotation. The desugar happens at the AST level — there's no do-while-specific runtime.
-
----
-
-## `for(init; cond; step)` — bounded geometric loop
-
-```c
-for (int i = 0; i < 10; i++) {
-    x = step(x);
+```sutra
+while_loop drainQueue(count > 0, int count) {
+    pass count - 1;
 }
 ```
 
-Compiles to a **bounded** eigenrotation loop. The bound (`i < 10`) is extracted at compile time, and the rotation is pre-scaled so `N` iterations equals the intended total angle. Emits `for i in range(N): …` around a rotation application.
-
-The structure is the same as `loop(N)` in spirit — fixed count, no runtime termination test — but with the geometric-rotation semantic that the brain expects.
-
 ---
 
-## `foreach(x in [a, b, c])` — compile-time expansion over array literals
+## `iterative_loop`
 
-```c
-foreach (step in [step_a, step_b, step_c]) {
-    x = step(x);
+Runs N times. Body sees the `iterator` keyword, which is 1-indexed and ranges from 1 to N.
+
+```sutra
+iterative_loop sumToN(5, int n) {
+    pass n + iterator;
+}
+
+function int main() {
+    slot int n = 0;
+    loop sumToN(5, n);
+    return n;     // 0 + 1 + 2 + 3 + 4 + 5 == 15
 }
 ```
 
-When the iterable is a compile-time-known array literal, the body is emitted once per element with `step` substituted. Three calls in straight line, no runtime iteration. This is how Sutra writes out a fixed sequence of operations that would be a for-each-item loop in other languages.
+`iterator` is contextual — only meaningful inside an `iterative_loop` body. It is **never a runtime variable** in the host sense; the substrate sees it as part of the cell's per-tick state.
 
-`foreach` over a runtime-known array (not a literal) is not currently supported — the array has to be known at compile time so the unrolling can happen.
+---
+
+## `foreach_loop`
+
+Walks a binding-array (Sutra's array form: `arr[0]` is the length, `arr[1..length]` are the elements). Body sees the `element` keyword bound to the current item.
+
+```sutra
+foreach_loop applySteps(steps, vector x) {
+    pass element(x);
+}
+```
+
+The array has to be a Sutra binding-array (constructed via `array_from_literal` or read from another binding-array operation). See [Memory](memory.md) for binding-array semantics.
+
+---
+
+## Call-site shape
+
+```sutra
+loop NAME(cond_or_count_or_array, state1, state2, ...);
+```
+
+- `loop` is the call prefix; the named function `NAME` must be a declared loop function.
+- The call site mutates the caller's named variables for each state param. The state vars must be `slot`-declared at the caller.
+- Loop functions have **no outer-scope access** — they're pure functions over their declared parameters only.
+
+The by-reference call shape is acknowledged non-idiomatic; the cleanup direction (return tuples, no by-ref mutation) is in `todo.md` § "Make loops idiomatic" for later.
+
+---
+
+## Substrate execution
+
+Under the hood, each loop kind compiles to a fixed-T tensor-op unroll where T is the runtime compute budget. Each "tick" is one cell evaluation:
+
+- The cell function takes the current state and emits the next state plus a `done` flag derived from the condition (or array exhaustion, or iteration count).
+- Soft-halt sigmoid + monotone cumulative + soft-mux freeze: once `done` crosses the threshold, subsequent ticks copy the current state forward, so the final output is the state at the moment of completion.
+- `AXIS_LOOP_DONE` (a reserved synthetic axis) carries the completion flag through the unroll.
+
+Result: the host runs the unroll once; the substrate sees T inline cell evaluations regardless of when the logical loop terminated. No counter lives on the host. See `planning/findings/2026-04-30-rnn-loop-architecture.md` for the design rationale.
 
 ---
 
@@ -149,11 +132,9 @@ When the iterable is a compile-time-known array literal, the body is emitted onc
 
 | you want | use |
 |---|---|
-| N fixed at compile time, small | `loop(N)` |
-| N fixed, need the index | `loop(N as i)` |
-| iterate a fixed list of items | `foreach(x in [...])` |
-| iterate until a state converges | `loop(condition)` or `while(condition)` |
-| do-at-least-once with a continue-condition | `do { } while` |
-| C-style three-part index loop | `for(init; cond; step)` |
+| body must run at least once, then check | `do_while` |
+| check first, possibly skip the body | `while_loop` |
+| run N times | `iterative_loop` |
+| iterate a Sutra binding-array | `foreach_loop` |
 
-The common theme: loops that unroll at compile time stay straight-line in the emitted code and let the compiler simplify across iterations. Loops that depend on runtime state evolve the state via rotation and terminate by prototype match.
+The common theme: every Sutra loop is a substrate-resident RNN cell. Termination is on the substrate (a soft-halt mask), not a host counter.
