@@ -1,6 +1,6 @@
 ---
 name: sutra-language
-description: Reproduce results from the Sutra paper — build the compiler, run the 13-program smoke test, run the rotation-vs-Hadamard capacity tables (LLM + ESM-2 protein-LM substrates), the chained-bind crosstalk experiment, and the Sutra-vs-TorchHD latency benchmark, plus the loop function decl + SutraDB codebook test suites.
+description: Reproduce results from the Sutra paper — build the compiler, run the 13-program smoke test, run the rotation-vs-Hadamard capacity tables (LLM + ESM-2 protein-LM substrates), the chained-bind crosstalk experiment, plus the loop function decl + codebook test suites.
 allowed-tools: Bash(python *), Bash(pip *), Bash(cd *), Bash(cargo *), Bash(git *), Bash(ollama *)
 ---
 
@@ -185,25 +185,4 @@ latency on a task each can express natively. Sutra encodes the KG
 as a single bundled vector and decodes via unbind+argmax-cosine;
 Scallop expresses it as Datalog and resolves via SLG.
 
-### §3.1.2 — Per-call latency vs TorchHD
 
-```bash
-SUTRA_TORCH_COMPILE=1 python experiments/sutra_vs_torchhd_latency.py
-test $? -eq 0 || { echo "FAIL: latency run"; exit 1; }
-python -c "
-import json
-d = json.load(open('experiments/sutra_vs_torchhd_latency_results.json'))
-sutra = d['sutra']['steady_mean_us']
-torchhd = d['torchhd']['steady_mean_us']
-ratio = sutra / torchhd
-print(f'Sutra: {sutra:.0f} us, TorchHD: {torchhd:.0f} us, ratio: {ratio:.1f}x')
-assert 5 <= ratio <= 25, f'ratio {ratio} outside expected band [5x, 25x]'
-print('OK: §3.1.2 latency reproduces (~12x slower band)')
-"
-```
-
-Reproduces the §3.1.2 latency table. Expected ratio band 5–25×;
-typical mid-band ~12× slower per call. The 12× gap is runtime
-Python scaffolding overhead (per-axis synthetic dims, slot
-state, halt-cum), not architectural — both systems dispatch the
-same PyTorch tensor ops underneath.
