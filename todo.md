@@ -24,6 +24,25 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+##  Immediate queue
+My intention here is that this causes the desktop ai to merge changes on this file and follow these instructions
+
+First things first, I want a page on the website that is just all of the operators. 
+
+And I want it to show the root definition thing of the operators. I don't even know if it exists yet, but if it doesn't exist, it should exist. 
+
+but for example
+
+public Number operator ^(Number a, Number b){
+return Math.Pow(a, b);
+}
+
+public Number Pow(Number a, Number b){
+return exp(a * log(b));
+}
+
+Also clear any references to y combinator from this file I'm not applying
+
 ## [This year] Object encapsulation with file-scope rule for free functions
 
 **Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
