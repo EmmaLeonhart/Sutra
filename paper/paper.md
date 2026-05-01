@@ -634,6 +634,17 @@ far fewer steps, with remaining iterations gated to identity
 by the saturated halt signal. Optional `torch.compile` wrapping
 unrolls the iteration at trace time.
 
+T should be read as a *compute budget*, not a halt condition.
+The soft-halt mechanism terminates the program-visible
+computation as soon as the convergence criterion is met (the
+state matches a compiled prototype within the cleanup tolerance);
+the remaining iterations are masked-out identity steps that do
+not change the output. T bounds *how long the compiler is willing
+to unroll*, not *how deep a recursion the language can express*.
+Programs with deeper-than-default convergence depth raise T at
+compile time (`[project.compile] loop_max_iterations` in
+`atman.toml` or `--loop-T` on the CLI; §1.2 / §3.5).
+
 (The recurrent computational substrate that emerges from this
 construction is the same shape Siegelmann & Sontag (1992)
 analyzed when they showed recurrent neural networks with rational
@@ -703,6 +714,15 @@ expressions are still inserted, so they remain decodable. The
 compiled module's Python data section never carries the
 embeddings — they live in the `.sdb` file, which is an artifact
 of compilation, not a service the runtime contacts.
+
+The decode does **not** scale linearly with codebook size. The
+underlying triplestore maintains an HNSW (Hierarchical Navigable
+Small World) approximate-nearest-neighbor index over every
+f32-vector triple object at compile time, so `nearest_string`
+runs in roughly logarithmic time in the number of stored
+strings, not linear. A 100-string codebook and a 100,000-string
+codebook have comparable decode latency at runtime, modulo the
+HNSW's tunable `M` and `ef_search` parameters.
 
 ### 3.5 Project manifest (`atman.toml`)
 
