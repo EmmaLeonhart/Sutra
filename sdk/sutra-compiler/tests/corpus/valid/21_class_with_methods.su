@@ -13,6 +13,15 @@ class VSA extends vector {
     static intrinsic method scalar similarity(vector a, vector b);
 }
 
+// Object loops — loop function declarations inside a class body.
+// The codegen emits `_loop_Counter_addOne` and the call site
+// `loop Counter.addOne(...)` dispatches to it.
+class Counter extends vector {
+    do_while addOne(x < 5, int x) {
+        pass x + 1;
+    }
+}
+
 class Math extends vector {
     static method scalar twice(scalar x) {
         return x * 2;

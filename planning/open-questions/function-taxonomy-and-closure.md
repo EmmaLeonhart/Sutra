@@ -1,12 +1,17 @@
-# Function taxonomy and closure semantics
+# Function taxonomy and namespace-access semantics
 
 **Source:** Emma 2026-04-30 (clarification on top of
 `loop-as-recursive-closure.md`, extending the chat in
 `chats/literal-based-optimization-in-programming-languages.md`).
 
-**Status:** open question, design vision recorded. Not implemented
-today. Today's plan (2026-04-30) is "releasable language + paper";
-this is queued post-paper.
+**Naming correction (Emma 2026-05-01):** there is no closure in
+Sutra. Earlier framings here used the word "closure," but what
+the design actually describes is **namespace-access scoping** —
+free functions read file-level top-level names; methods see only
+their class. No environment is captured at function-creation time
+the way closures in Lisp / JS / Python work. The word "closure"
+in headings and prose below should be read as "scope" / "namespace
+access" instead.
 
 ## Current state of objects in Sutra
 
@@ -215,21 +220,35 @@ that still calls bare names.
    infrastructure (step 1) accepts both shapes already, so this is
    a series of small, individually shippable file rewrites — none
    break existing user code calling bare names.
-3. **Free-function file-level closure.** Make file-level
-   declarations visible inside any function in the same file, with
-   the compile-time bake actually happening. Tests:
-   declaring a vector at file top-level, using it inside a function,
-   checking that the compiled artifact has the vector inlined.
-4. **Non-static method encapsulation.** `class Foo { field x;
-   function bar() { return x + 1; } }` compiles with `x` as a
-   bounded reference into the instance's substrate vector. Tests:
-   instantiate, call method, verify bake.
-5. **Static method encapsulation.** Similar but with class-level
-   slots instead of instance slots.
-6. **Object loops** (loop methods on classes). The recurrent cell
-   has access to bounded `this` (or class-level state) but no other
-   closure. Compiles to "RNN parameterized by an object" per the
-   chat.
+3. **Free-function file-level scope (no-op).** Free functions
+   already read file-level names — that's just Python's natural
+   scoping in the emitted code. The "closure" phrasing in earlier
+   docs was a misnomer (Emma 2026-05-01: "there is no closure in
+   this language"). This step is therefore a documentation
+   correction rather than implementation work.
+4. **Non-static method dispatch (landed 2026-05-01).** Non-static
+   methods now compile to `def {Class}_{method}(this, *params)`,
+   with `this` threaded as the implicit first parameter.
+   `this.method(args)` inside a method body dispatches to
+   `{CurrentClass}_{method}(this, *args)`. `Class.method(instance,
+   args)` also works. Instance-syntax dispatch on a typed variable
+   (`g.method(args)` for `Greeter g`) needs variable type tracking
+   and is deferred. (Commit `2429d76`.)
+5. **Class-level slots (gated on field declarations).** Static
+   methods can call sibling static/intrinsic methods through the
+   class namespace today. Per-class state would require field
+   declarations inside class bodies (`field x : int;`) — that
+   surface doesn't exist yet, so step 5 is gated. When fields land,
+   class-level state becomes meaningful and the codegen can emit a
+   class-scope state vector that static methods read.
+6. **Object loops (landed 2026-05-01, partial).** Loop function
+   declarations inside class bodies now parse and emit as
+   `_loop_{Class}_{name}`. `loop Class.name(...)` call sites
+   dispatch correctly. The `this`-as-recurrent-state threading for
+   non-static object loops (per Emma's design — every iteration
+   gets the same instance with all its properties) is the
+   remaining piece; today class loops behave equivalently to
+   static loops. (Commit `4bf73b6`.)
 
 This is a substantial refactor — likely a separate plan when the
 slot at the front of the queue rolls around to it. Probably comes
