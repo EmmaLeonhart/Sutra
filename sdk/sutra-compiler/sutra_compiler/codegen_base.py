@@ -231,11 +231,19 @@ class BaseCodegen:
 
     def __init__(self, *, runtime_dim: int = 50, runtime_seed: int = 42,
                  runtime_n_kc: int = 2000,
-                 runtime_use_hemibrain: bool = False) -> None:
+                 runtime_use_hemibrain: bool = False,
+                 loop_max_iterations: int = 50) -> None:
         self.runtime_dim = runtime_dim
         self.runtime_seed = runtime_seed
         self.runtime_n_kc = runtime_n_kc
         self.runtime_use_hemibrain = runtime_use_hemibrain
+        # Compile-time loop unroll depth. Defaults to 50 but is
+        # configurable via the CLI's --loop-T flag and via
+        # [project.compile] loop_max_iterations in atman.toml. Larger
+        # values cost a longer emitted tensor-op graph but no runtime
+        # overhead beyond unroll length, since the soft-halt cell
+        # freezes state once halt-cum saturates.
+        self._LOOP_T = loop_max_iterations
         self._lines: List[str] = []
         self._indent = 0
         # Maps variable names to the *key* type of a map-typed declaration
@@ -567,7 +575,11 @@ class BaseCodegen:
     # halt indicator, and freezes state via soft-mux once halt saturates.
     # Spec: planning/open-questions/loop-function-declarations.md.
 
-    _LOOP_T = 50  # max tick count per loop function — compile-time-fixed
+    # _LOOP_T is now a per-instance attribute set in __init__ from the
+    # `loop_max_iterations` kwarg (default 50). The class attribute is
+    # kept as a fallback for any subclass that constructs the codegen
+    # without going through __init__.
+    _LOOP_T = 50
 
     def _translate_loop_function_decl(self, decl: "ast.LoopFunctionDecl") -> None:
         """Emit a Python function for a loop function declaration."""

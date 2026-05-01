@@ -69,7 +69,8 @@ class Codegen(BaseCodegen):
     def __init__(self, *, runtime_dim: int | None = None,
                  runtime_seed: int = 42,
                  llm_model: str | None = None,
-                 synthetic_dim: int | None = None) -> None:
+                 synthetic_dim: int | None = None,
+                 loop_max_iterations: int = 50) -> None:
         self._llm_model = llm_model if llm_model is not None else self.DEFAULT_LLM_MODEL
         # `runtime_dim` now names the SEMANTIC subspace size (the block
         # the LLM fills). Synthetic dims are appended on top. Total
@@ -92,6 +93,7 @@ class Codegen(BaseCodegen):
             runtime_seed=runtime_seed,
             runtime_n_kc=0,
             runtime_use_hemibrain=False,
+            loop_max_iterations=loop_max_iterations,
         )
 
     # Ops not supported by the pure-numpy substrate. `snap` requires a
