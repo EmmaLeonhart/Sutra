@@ -19,7 +19,7 @@ This is what makes long Sutra computations stable. Without it, sustained computa
 
 Each labeled dot is a codebook atom. The yellow query point is what comes out of your last `unbind` — noisy, approximately-but-not-exactly one of the codebook entries. Drag the query around, or pick a target and push up the noise slider to simulate crosstalk from bundled pairs.
 
-<div id="snap-widget"></div>
+<div id="snap-widget"><noscript>(This page hosts an interactive snap-to-nearest widget that requires JavaScript. The prose below covers the same material; the widget is a live playground, not load-bearing content.)</noscript></div>
 
 What you should see:
 
