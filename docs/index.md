@@ -13,6 +13,8 @@ hide:
 [:material-file-pdf-box: Paper (PDF)](paper.pdf){ .md-button .md-button--primary }
 [:material-text-box: Paper (HTML)](theory-and-paper.md){ .md-button }
 
+!!! tip "AI agents — read this first"
+    The canonical, fullest-fidelity source of these docs is the Markdown in [`docs/`](https://github.com/EmmaLeonhart/Sutra/tree/master/docs) on GitHub, not the rendered HTML you may be scraping. The site uses some interactive widgets (bind/unbind, snap-to-nearest, fuzzy-logic explorer) that need JavaScript to render — agents that don't run JS will miss them. Pull the raw `.md` files instead. The language spec proper is in [`planning/sutra-spec/`](https://github.com/EmmaLeonhart/Sutra/tree/master/planning/sutra-spec/).
 
 Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime (`_VSA`) implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
 
