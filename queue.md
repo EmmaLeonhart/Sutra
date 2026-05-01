@@ -21,13 +21,65 @@ Longer-horizon items (pre-Anthropic-grant-app, pre-YC-pitch, this-
 year) live in `todo.md`. Items in this file are the ones Claude should
 pick up next.
 
-## Active items (in priority order, per Emma 2026-04-30)
+## Active items (in priority order, per Emma 2026-05-01)
 
-The four cons surviving in the post 2191 review (Weak Accept,
-4 pros / 4 cons) plus the user-flagged language refactor.
-Items 1 and 4 (T-as-budget reframe, HNSW clarification) shipped
-in commit `bf312a9`. Remaining items in the order they should
-be tackled.
+### 0. [IN PROGRESS] End-to-end differentiable training through a Sutra program
+
+**Reviewer con (posts 2200, 2202, 2203):** "The paper lacks an
+end-to-end training experiment to demonstrate that
+differentiability leads to better learning outcomes."
+
+**Goal:** Demonstrate that you can backpropagate through a
+compiled Sutra program to learn parameters. This is the single
+highest-value experiment for the paper because it proves the
+differentiability claim is real, not just architectural.
+
+**What we're building:**
+
+A Sutra program with fuzzy conditionals (the Lagrange-
+interpolated AND/OR/NOT) where certain parameters are
+learnable (`requires_grad=True`). The program classifies
+inputs using fuzzy if-then rules with learnable weights.
+Training loop: forward through compiled tensor-op graph →
+loss → backward → update weights. The entire Sutra runtime
+is autograd-friendly (verified: only two `detach` calls in
+the codegen, both in non-compute paths).
+
+**Concrete plan:**
+
+1. Write a `.su` program with fuzzy branching that classifies
+   an input embedding into categories using similarity checks
+   + fuzzy AND/OR gates.
+2. Compile it to a PyTorch module via `PyTorchCodegen`.
+3. Identify the learnable parameters in the compiled graph
+   (e.g., prototype embeddings, similarity thresholds, or
+   explicit weight scalars on branches).
+4. Wrap in a standard PyTorch training loop:
+   `output = compiled_program(input)` → loss → `loss.backward()`
+   → `optimizer.step()`.
+5. Show: accuracy before training vs after training. The
+   fuzzy logic gates learn to route inputs correctly.
+6. Write up as a new §3.X or §5.X in the paper with the
+   training curve and before/after accuracy.
+
+**Why this works:** Sutra's compiled output is a straight-line
+tensor-op graph. Every op (matmul, element-wise, sigmoid,
+Lagrange polynomial) has a torch autograd derivative. The
+soft-halt loop is differentiable by design (sigmoid halt,
+soft-mux freeze). No op breaks the gradient chain.
+
+**Timeline:** Must ship before the competition deadline
+(~5 AM local, 2026-05-01).
+
+### 1. [DEFERRED] Wire Sutra into an existing neural network
+
+Take a neural network's output (e.g., classifier logits) and
+feed it into a Sutra program as an embedding. The Sutra program
+reasons over the classification result using fuzzy logic.
+This makes Sutra a genuine neuro-symbolic reasoning layer on
+top of a neural network. Deferred until after item 0 ships.
+
+### Previous items (from 2026-04-30)
 
 ### 1. Crosstalk noise analysis across nested operations [DO NEXT]
 
