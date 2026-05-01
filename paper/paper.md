@@ -479,15 +479,58 @@ computation.
 
 ### 3.4 Embedded codebook in SutraDB
 
-Every embedded string in a Sutra program is inserted into SutraDB
-(a sibling RDF+HNSW triplestore project) at compile time, with
-the embedding as the object of a triple typed
-`<http://sutra.dev/f32vec>`. The runtime decode operation
-`_VSA.nearest_string(query)` is the inverse of `embed`: given any
-vector, return the nearest-string label from the substrate-resident
-codebook. Strings declared but unused in expressions are still
-inserted, so they remain decodable. The compiled module's Python
-data section never carries the embeddings.
+The compile-time codebook is stored in **SutraDB**, a small
+embedded triplestore distributed with the compiler. SutraDB is
+not a runtime dependency of arbitrary Python programs — it is a
+compile-time component of the Sutra compiler whose role is to
+hold the (embedding, label) pairs that arise from `basis_vector("...")`
+and `embed("...")` calls in the source. The data model is RDF
+triples with f32-vector literals as the object position, indexed
+by a built-in HNSW index for nearest-neighbor decode. The
+on-disk format is a `.sdb` file that travels alongside the
+compiled Python module.
+
+Every embedded string in a Sutra program is inserted into the
+compile-time `.sdb` codebook, with the embedding as the object
+of a triple typed `<http://sutra.dev/f32vec>`. The runtime decode
+operation `_VSA.nearest_string(query)` is the inverse of `embed`:
+given any vector, return the nearest-string label from the
+substrate-resident codebook. Strings declared but unused in
+expressions are still inserted, so they remain decodable. The
+compiled module's Python data section never carries the
+embeddings — they live in the `.sdb` file, which is an artifact
+of compilation, not a service the runtime contacts.
+
+### 3.5 Project manifest (`atman.toml`)
+
+A Sutra project is described by an `atman.toml` manifest at the
+project root. The manifest declares the entry source file, the
+embedding substrate (provider, model, dimensionality, and whether
+to mean-center), and the compile target. A minimal example:
+
+```toml
+[project]
+name = "sutra-examples"
+entry = "hello_world.su"
+substrate = "silicon"
+
+[project.embedding]
+provider = "ollama"
+model = "nomic-embed-text"
+dim = 768
+mean_center = true
+```
+
+The compiler reads this file to know which LLM to query for
+`embed("...")` and `basis_vector("...")` calls at compile time
+and to fix the dimensionality of the runtime tensor-op graph.
+Changing the substrate (e.g. swapping `nomic-embed-text` for a
+different 768-d model, or for a 1536-d model with a corresponding
+`dim` update) re-runs the embed step at compile time and produces
+a different `.sdb` codebook; the source code does not change.
+The manifest format is intentionally narrow — it covers what the
+compiler needs to deterministically produce a `.sdb` and emit a
+PyTorch module, and nothing else.
 
 ---
 
