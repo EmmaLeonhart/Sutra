@@ -286,7 +286,7 @@ def main() -> None:
     ]
     print()
     print(f"Step 4: Accuracy AFTER training: {acc_after:.0%}")
-    print(f"  Proto↔centroid cosine: {cos_after}")
+    print(f"  Proto<->centroid cosine: {cos_after}")
     print(f"  Improvement: {acc_before:.0%} -> {acc_after:.0%}")
     print()
 
