@@ -13,7 +13,7 @@ Binding is the operation that makes Sutra a programming language instead of a fa
 
 The interactive widget below was built around an earlier Sutra binding mechanism (sign-flip) and currently illustrates the bundle / crosstalk / cleanup story rather than the rotation mechanics described in the rest of this page. The shape it shows — bind producing something dissimilar to both inputs, unbind recovering the original modulo crosstalk, snap rescuing the result — is the same shape rotation binding has, even though the per-step arithmetic is different. Treat it as intuition, not as the literal current implementation.
 
-<div id="bind-unbind-widget"></div>
+<div id="bind-unbind-widget"><noscript>(This page hosts an interactive bind/unbind widget that requires JavaScript. The prose below covers the same material; the widget is a live playground, not load-bearing content.)</noscript></div>
 
 The [next tutorial](03-snap-to-nearest.md) covers the snap step in depth.
 

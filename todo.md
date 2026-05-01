@@ -62,15 +62,9 @@ Sutra's stance per CLAUDE.md is that agents are first-class consumers
 of the documentation, not an afterthought. The site is already
 markdown-driven, but specific moves to take it further:
 
-- [ ] Audit each page on `sutralang.dev` for content that exists only
-  in rendered form (animations, hover-only tooltips, JS-rendered code
-  examples) and lift it back into the source markdown so an agent
-  fetching the raw page gets the full content.
 - [ ] Expose the docs through an MCP server (or a documented
   fetch-this-URL pattern) so agents can query Sutra's surface
   programmatically rather than scraping HTML.
-- [ ] Verify the site renders sensibly when JS is disabled, since
-  many agent fetchers don't execute scripts.
 
 ---
 
