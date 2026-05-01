@@ -432,10 +432,6 @@ programs to write rather than scripts to glue together.
 
 ---
 
-## Acknowledgments
-
-[REDACTED for double-blind review where applicable]
-
 ## References
 
 - Bordes, A., Usunier, N., García-Durán, A., Weston, J., &
