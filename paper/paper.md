@@ -314,8 +314,8 @@ known fix paths, and `torch.compile` (opt-in via
 This is qualitatively different from claiming "no Python ever
 runs in the runtime" (which would be wrong) and from claiming the
 substrate computes anything other than what the spec says it
-should (which is the failure mode the safety-critical preamble
-in the project's CLAUDE.md exists to prevent).
+should — the latter being the failure mode the project's safety
+guidelines exist to prevent.
 
 ---
 
