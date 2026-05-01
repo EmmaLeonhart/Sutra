@@ -1,0 +1,13 @@
+{
+  "kg_size": {
+    "entities": 6,
+    "relations": 3,
+    "triples": 6
+  },
+  "n_queries": 100,
+  "sutra": {
+    "accuracy": 1.0,
+    "per_query_us": 511.12483333333336
+  },
+  "scallop": null
+}

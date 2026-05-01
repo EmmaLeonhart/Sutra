@@ -66,3 +66,4 @@ experiments/_embedding_cache/
 # to regenerate the markdown if needed).
 chats/*.html
 chats/*_files/
+experiments/scallop_compare/_build.log
