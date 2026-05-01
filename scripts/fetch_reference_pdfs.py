@@ -39,6 +39,19 @@ REFERENCES: dict[str, tuple[str, str]] = {
         "The closest neuro-symbolic-language peer to Sutra; Datalog-like "
         "with PyTorch integration.",
     ),
+    "hdcc": (
+        "https://arxiv.org/pdf/2304.12398",
+        "HDCC: A Hyperdimensional Computing compiler for classification on "
+        "embedded systems and high-performance computing (Pale et al. 2023). "
+        "An actual HDC *compiler* — relevant peer for the 'is Sutra the only "
+        "HDC compiler with practical I/O?' question.",
+    ),
+    "torchhd": (
+        "https://arxiv.org/pdf/2205.09208",
+        "Torchhd: An Open Source Python Library to Support Research on HDC and "
+        "VSA (Heddes et al. 2022/2023, JMLR 24). Reference for the closest "
+        "HDC library peer.",
+    ),
     # Add more entries here as the paper-comparison work expands.
     # Common candidates: deepproblog, ltn, neurasp, terpret, npi.
 }
