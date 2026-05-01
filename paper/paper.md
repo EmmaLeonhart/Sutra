@@ -8,8 +8,8 @@
 
 Dense vector embedding spaces — whether produced by frozen LLMs,
 CNN feature extractors, knowledge-graph embeddings, or
-bioinformatics encoders — encode meaningful structure as vector
-arithmetic. The general property is established across the
+bioinformatics encoders such as ESM-2 — encode meaningful
+structure as vector arithmetic. The general property is established across the
 knowledge-graph-embedding literature (TransE, RotatE, the word-
 analogy line) and re-emerges across modalities wherever
 representation learning produces a high-dimensional dense vector.
