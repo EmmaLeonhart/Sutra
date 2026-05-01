@@ -1,17 +1,22 @@
 # Loops
 
-Sutra loops are **first-class declared functions** whose parameters are the recurrent state. The body uses `pass` to yield the next iteration's state values. Call sites use the `loop` prefix and mutate the caller's named variables by reference.
+Sutra has two loop forms:
 
-The four loop kinds are each a function-declaration form:
+1. **`loop (N) { body }`** — bounded compile-time unroll. The body is emitted N times in sequence; no runtime iteration; `iterator` inside the body is the per-copy compile-time constant. This is the **preferred** form for any loop with a known iteration count.
 
-| Kind | First parameter | Body |
-|---|---|---|
-| `do_while`       | Boolean condition; re-evaluated AFTER the body runs.         | Always runs once before the first check. |
-| `while_loop`     | Boolean condition; checked BEFORE each tick.                 | Body runs only if condition true. |
-| `iterative_loop` | Integer count (cap). Body sees the `iterator` keyword.       | Runs N times, no condition. |
-| `foreach_loop`   | Binding-array. Body sees the `element` keyword.              | One element per tick. |
+2. **Loop function declarations** (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`) — first-class declared functions whose parameters are the recurrent state. The body uses `pass` to yield the next iteration's values. Call sites use the `loop` prefix. This is the form for loops with runtime data dependence.
 
-This design ships loops as substrate-pure RNN cells: the cell function's parameters ARE the hidden state, the body is the cell, `pass` is the recurrence. There is no C-style `loop(N) { body }` / `while(cond) { body }` / `for(init; cond; step)` surface anymore — those forms were retired in the 2026-04-30 redesign in favor of the declared-function shape.
+The retired form is the **C-style imperative loop** — `while(cond) { body }`, `do { body } while(cond)`, `for(init; cond; step) { body }`. Those compiled to host-side branches and didn't survive the 2026-04-30 substrate-purity audit. They're neither a counter loop nor a tail-recursive cell, which is why they didn't fit.
+
+The two forms above DO fit, for different reasons: `loop (N)` runs at compile time (no host branches needed), and the declared-function loops compile to substrate-pure RNN cells (no host counter, soft-halt mask freezes state on the substrate).
+
+| Form | When to use |
+|---|---|
+| `loop (N) { body }` | Compile-time-known iteration count. Body is emitted N times; `iterator` substitutes in. |
+| `do_while NAME(...)` | Body runs once before the condition check; condition re-evaluated each tick. |
+| `while_loop NAME(...)` | Condition checked before each tick; body skipped if false at entry. |
+| `iterative_loop NAME(...)` | Run N times, body sees `iterator` (N can be runtime). |
+| `foreach_loop NAME(...)` | Walk a Sutra binding-array; body sees `element`. |
 
 ---
 
