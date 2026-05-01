@@ -41,3 +41,12 @@ provider = "ollama"
 model = "nomic-embed-text"
 dim = 768
 mean_center = true
+
+# Compile-time settings. Currently the only configurable knob is the
+# soft-halt loop unroll depth. The compiler emits `for _t in range(T)`
+# scaffolding around every tail-recursive loop function; the soft-halt
+# cell terminates the program-visible computation once `halt_cum`
+# saturates, so larger T costs only a longer emitted graph, never
+# extra runtime work.
+[project.compile]
+loop_max_iterations = 50
