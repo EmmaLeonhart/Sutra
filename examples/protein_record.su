@@ -1,0 +1,78 @@
+// Protein database entries as VSA role-filler records. Same
+// machinery as role_filler_record.su, applied to a small
+// bioinformatics knowledge base.
+//
+// Each protein has three attributes (function, localization,
+// family) and we encode a whole protein record as a single
+// vector. Decoding recovers any single attribute via one unbind
+// + argmax against the filler codebook.
+//
+// The substrate here is text embeddings (nomic-embed-text) of
+// biological terms. The companion experiment
+// rotation_binding_capacity_bioinformatics.py runs the same
+// rotation-binding primitives on actual protein-language-model
+// embeddings (ESM-2) — the language doesn't care which dense
+// vector substrate it operates on, only that one is present.
+
+// --- Roles: which slot of the record we are addressing ---
+vector r_function      = basis_vector("role_function");
+vector r_localization  = basis_vector("role_localization");
+vector r_family        = basis_vector("role_family");
+
+// --- Filler codebook: candidate values for each slot ---
+vector f_kinase        = basis_vector("filler_kinase");
+vector f_phosphatase   = basis_vector("filler_phosphatase");
+vector f_transporter   = basis_vector("filler_transporter");
+vector f_protease      = basis_vector("filler_protease");
+vector f_nucleus       = basis_vector("filler_nucleus");
+vector f_cytoplasm     = basis_vector("filler_cytoplasm");
+vector f_membrane      = basis_vector("filler_membrane");
+vector f_mitochondrion = basis_vector("filler_mitochondrion");
+vector f_GPCR          = basis_vector("filler_GPCR");
+vector f_zinc_finger   = basis_vector("filler_zinc_finger");
+vector f_immunoglobulin = basis_vector("filler_immunoglobulin");
+vector f_serpin        = basis_vector("filler_serpin");
+
+map<vector, string> FILLER_NAME = {
+    f_kinase:        "kinase",
+    f_phosphatase:   "phosphatase",
+    f_transporter:   "transporter",
+    f_protease:      "protease",
+    f_nucleus:       "nucleus",
+    f_cytoplasm:     "cytoplasm",
+    f_membrane:      "membrane",
+    f_mitochondrion: "mitochondrion",
+    f_GPCR:          "GPCR",
+    f_zinc_finger:   "zinc_finger",
+    f_immunoglobulin: "immunoglobulin",
+    f_serpin:        "serpin"
+};
+
+// --- Encode a protein record as one vector ---
+function vector make_protein(vector func, vector loc, vector fam) {
+    return bundle(
+        bind(r_function,     func),
+        bind(r_localization, loc),
+        bind(r_family,       fam)
+    );
+}
+
+// --- Decode one attribute: unbind by role, argmax against codebook ---
+function string decode_attribute(vector record, vector role) {
+    vector recovered = unbind(role, record);
+    vector winner = argmax_cosine(
+        recovered,
+        [f_kinase, f_phosphatase, f_transporter, f_protease,
+         f_nucleus, f_cytoplasm, f_membrane, f_mitochondrion,
+         f_GPCR, f_zinc_finger, f_immunoglobulin, f_serpin]
+    );
+    return FILLER_NAME[winner];
+}
+
+// Hypothetical entry: a membrane-bound kinase in the GPCR family.
+// (Roughly mirrors the shape of an entry like a receptor tyrosine
+// kinase, e.g. EGFR's general profile.)
+function string main() {
+    vector rec = make_protein(f_kinase, f_membrane, f_GPCR);
+    return decode_attribute(rec, r_localization);
+}
