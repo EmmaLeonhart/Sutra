@@ -1,4 +1,4 @@
-# Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
+# Sutra: A Programming Language for Vector-Symbolic Computation in Vector Embedding Spaces
 
 **Emma Leonhart** — *EmmaLeonhart999@gmail.com*
 
@@ -6,13 +6,17 @@
 
 ## Abstract
 
-Frozen general-purpose language-model embedding spaces encode
-relational structure as vector arithmetic — a property established
-across the knowledge-graph-embedding literature (TransE, RotatE,
-the word-analogy line). Taking that as given, this paper presents
-the design and implementation of **Sutra**, a typed, purely
-functional programming language whose compile target is a single
-tensor-op graph over a frozen vector embedding substrate. The
+Dense vector embedding spaces — whether produced by frozen LLMs,
+CNN feature extractors, knowledge-graph embeddings, or
+bioinformatics encoders — encode meaningful structure as vector
+arithmetic. The general property is established across the
+knowledge-graph-embedding literature (TransE, RotatE, the word-
+analogy line) and re-emerges across modalities wherever
+representation learning produces a high-dimensional dense vector.
+Taking that as given, this paper presents the design and
+implementation of **Sutra**, a typed, purely functional programming
+language whose compile target is a single tensor-op graph over an
+arbitrary vector embedding substrate. The
 contribution is algorithmic: a consolidated set of vector-symbolic
 primitives (bind, unbind, bundle, similarity, rotation, soft-halt
 RNN cells) that operate on a frozen high-dimensional vector
