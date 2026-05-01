@@ -39,7 +39,8 @@ SutraDB FFI build (one-time, ~5 minutes).
 | Paper claim | Reproduction |
 |---|---|
 | §3 — rotation binding works on natural anisotropic embeddings | `python -m pytest sdk/sutra-compiler/tests/test_codegen.py` (verifies the emitted `bind`/`unbind` shape; round-trip in the demo programs) |
-| §3.1 — capacity table for rotation binding on 768-d substrate | `python experiments/rotation_binding_capacity.py` (the table in §3.1 is this script's output) |
+| §3.1 — capacity tables (rotation vs Hadamard, 3 LLM substrates) | `python experiments/rotation_binding_capacity_llm.py` (the three tables in §3.1 are this script's output; embeddings cached to a gitignored dir on first run) |
+| §3.1 — synthetic-vector reference (rotation algebra alone, no LLM) | `python experiments/rotation_binding_capacity.py` (controls for the rotation algebra independent of substrate distribution) |
 | §3.2 — extended-state-vector layout | the `_TorchVSA` runtime class in the PyTorch codegen module |
 | §3.3 — first-class loops as RNN cells | `python -m pytest sdk/sutra-compiler/tests/test_loop_function_decl.py -q` (23 tests) |
 | §3.3 — halt propagation wipes output for unconverged loops | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
