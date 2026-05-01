@@ -369,39 +369,18 @@ QR-construction cost on the hot path. Binding becomes a single
 matmul against a precomputed matrix — the GPU-friendly shape that
 fuses with surrounding tensor ops.
 
-A natural objection at this point is that Haar-random rotations
-scramble the LLM embedding's semantic content, so the binding
-primitive uses the LLM substrate as a high-dimensional carrier
-rather than for its relational structure. This is correct as
-stated, but only describes one of the two ways Sutra uses LLM
-embeddings. Programs using **only** `bind` / `unbind` (e.g. the
-role-filler record demo) treat the substrate as a high-
-dimensional carrier — which is the right behavior, because the
-binding semantics demand near-orthogonality and the LLM's natural
-correlations would corrupt it.
-
-But Sutra also has primitives that operate directly on the
-embedding's natural arithmetic geometry: `displacement(a, b) = a − b`
-and `bundle` operating on un-rotated embeddings. The
-`king_queen_naive.su` demonstration program runs the classic
-vector-arithmetic analogy `bundle(displacement(king, man), woman)`
-and asks `argmax_cosine` against a 14-word codebook of royal /
-family / gender-adjacent terms. That program does use the LLM's
-relational structure — the displacement carries the "minus-
-man-ness" of king, and the bundled result is sensitive to the
-LLM's geometric encoding of gender and royalty. Sutra does not
-choose between these two modes; the language exposes both, and
-programs combine them. The `analogy.su` demo uses bind / unbind
-on (capital, country) pairs (carrier mode), while
-`king_queen_naive.su` uses displacement + bundle (relational-
-geometry mode). The `embed("string")` builtin lets any program
-inject a fresh LLM-encoded vector into either mode.
-
-So while rotation binding is substrate-agnostic by design, the
-language as a whole leverages the LLM substrate's relational
-structure when the program calls for it. Treating the substrate
-as a carrier is a deliberate choice for the binding operation
-specifically, not a property of the language.
+The role of the LLM substrate in Sutra is to provide a
+deterministic I/O mapping: a string in the source program embeds
+to a specific 768-d vector via the configured frozen LLM, and at
+runtime the inverse `nearest_string` lookup decodes any vector
+back to the closest known label. The substrate is what makes
+program input and output expressible as ordinary strings while
+the runtime computes in vector space. Sutra does not depend on
+any particular semantic property of the embedding beyond the
+mapping being stable and the dimensionality being fixed; the
+binding, bundling, and similarity primitives operate on the
+vectors as opaque dense tensors and are correct under any
+substrate that ships the same dimensionality.
 
 ### 3.1 Capacity of rotation binding on a 768-d substrate
 
