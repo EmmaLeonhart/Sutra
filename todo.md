@@ -41,6 +41,10 @@ public Number Pow(Number a, Number b){
 return exp(a * log(b));
 }
 
+Basically all functions have this function expansion thing with them
+
+all operators get this
+
 Also clear any references to y combinator from this file I'm not applying.
 
 I was only interested in applying over the flybrain particularly because that was an odd enough thing I felt it needed help commercializing
