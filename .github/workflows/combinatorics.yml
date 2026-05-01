@@ -22,17 +22,26 @@ name: Paper-fix combinatorics review (serial supersedes chain)
 on:
   workflow_dispatch:
     inputs:
+      explicit_masks:
+        description: |
+          Comma-separated list of EXPLICIT masks to test, e.g.
+          '0,1,2,4,8,16,32,64,3,7,15,31,63,127'. If set, this
+          overrides vary_bits/fixed_bits. Use this to test specific
+          combinations rather than the full 2^N power set.
+        required: false
+        default: ''
       vary_bits:
         description: |
           Comma-separated bit indices to vary, OR a single integer
           mask of bits to vary. With vary_bits='3,4,5', 2^3=8
-          variants are tested. Default '3,4,5'.
+          variants are tested. Ignored if explicit_masks is set.
+          Default '3,4,5'.
         required: false
         default: '3,4,5'
       fixed_bits:
         description: |
           Bitmask of fixes to ALWAYS apply (bits not in vary_bits).
-          Default 0.
+          Default 0. Ignored if explicit_masks is set.
         required: false
         default: '0'
       baseline_ref:
@@ -78,27 +87,32 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           import json, os
-          vary = "${{ inputs.vary_bits }}".strip()
-          fixed = int("${{ inputs.fixed_bits }}".strip() or "0")
-          if "," in vary:
-              vary_bits = [int(x) for x in vary.split(",") if x.strip()]
-          elif vary.isdigit():
-              v = int(vary)
-              vary_bits = [i for i in range(64) if (v >> i) & 1]
+          explicit = "${{ inputs.explicit_masks }}".strip()
+          if explicit:
+              masks = sorted(set(int(x) for x in explicit.split(",") if x.strip()))
+              print(f"using explicit_masks: {masks}")
           else:
-              vary_bits = [3, 4, 5]
-          n = len(vary_bits)
-          masks = []
-          for k in range(1 << n):
-              m = fixed
-              for i, bit in enumerate(vary_bits):
-                  if (k >> i) & 1:
-                      m |= 1 << bit
-                  else:
-                      m &= ~(1 << bit)
-              masks.append(m)
-          masks = sorted(set(masks))
-          print(f"vary_bits={vary_bits}  fixed_bits={fixed}  n_variants={len(masks)}")
+              vary = "${{ inputs.vary_bits }}".strip()
+              fixed = int("${{ inputs.fixed_bits }}".strip() or "0")
+              if "," in vary:
+                  vary_bits = [int(x) for x in vary.split(",") if x.strip()]
+              elif vary.isdigit():
+                  v = int(vary)
+                  vary_bits = [i for i in range(64) if (v >> i) & 1]
+              else:
+                  vary_bits = [3, 4, 5]
+              n = len(vary_bits)
+              masks = []
+              for k in range(1 << n):
+                  m = fixed
+                  for i, bit in enumerate(vary_bits):
+                      if (k >> i) & 1:
+                          m |= 1 << bit
+                      else:
+                          m &= ~(1 << bit)
+                  masks.append(m)
+              masks = sorted(set(masks))
+              print(f"vary_bits={vary_bits}  fixed_bits={fixed}  n_variants={len(masks)}")
           print(f"masks={masks}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"masks={json.dumps(masks)}\n")
