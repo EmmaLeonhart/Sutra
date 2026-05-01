@@ -654,6 +654,54 @@ substrate was trained on words. Reproducing experiments:
 and `experiments/rotation_binding_capacity_bioinformatics.py`
 (ESM-2). Raw JSON is committed alongside.
 
+#### 3.1.1 Noise accumulation across chained bind/unbind cycles
+
+The §3.1 protocol measures *one* cycle of bind+bundle+unbind.
+Real records can nest: a recovered filler can become the role
+of a sub-record. Each nested level adds bundle noise. We
+quantified that.
+
+For each substrate, chain length L ∈ {1, 2, 4, 8, 16, 32}, 20
+trials, bundle width 4 (3 distractors per cycle): pick a
+starting filler, forward-bind through L role rotations bundling
+3 distractor (role, filler) pairs at each step, then unbind in
+reverse and decode. Two flavors: **raw** (no cleanup) and
+**snap** (argmax-cosine cleanup against the codebook after each
+unbind step).
+
+| substrate | L=1 raw | L=2 raw | L=4 raw | L=1 snap | L=2 snap | L=4 snap |
+|---|---:|---:|---:|---:|---:|---:|
+| nomic-embed-text | 100% | 100% | 20% | 100% | 10% | 0% |
+| all-minilm | 100% | 100% | 5% | 100% | 0% | 0% |
+| mxbai-embed-large | 100% | 100% | 5% | 100% | 0% | 0% |
+
+By chain length 8 raw accuracy is at chance (1/84) on all three
+substrates. **The crosstalk floor is real**: deep nested
+bind+bundle compositions hit it well before any language-design
+ceiling. This is the right scope statement for the §3.1
+capacity claim — the demonstrated regime is single-cycle
+records (the actual shape of `role_filler_record.su`,
+`knowledge_graph.su`, the soft-dispatch and predicate-lookup
+demos), not record-of-record-of-record at depth 4+.
+
+Snap is *worse* than raw past chain length 1: a hard codebook
+commitment converts soft noise into a high-confidence wrong
+answer that the next unbind cannot recover from. This matters
+for compiler design — the runtime does not implicitly snap
+between operations; cleanup is an explicit step the program
+schedules where it knows the codebook is the right reference.
+
+**Distinction from the soft-halt RNN cell (§3.3).** The soft-
+halt cell's per-tick update is `state ← R · state` with a halt-
+gate component update — *no per-tick bundle of distractors*.
+Pure rotation chains are exact: the §3.1 reversibility
+round-trip is 1.5 × 10⁻¹⁵ per cycle. T=50 iterations
+accumulate floating-point round-off, not crosstalk; the noise
+mechanism measured in this subsection does not apply to the
+loop-cell regime. The reproduction script is
+`experiments/crosstalk_chain.py`; raw JSON in
+`experiments/crosstalk_chain_results.json`.
+
 ### 3.2 The extended-state-vector layout
 
 Every value in a Sutra program is a vector with a fixed extended
