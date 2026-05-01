@@ -66,10 +66,6 @@ markdown-driven, but specific moves to take it further:
   in rendered form (animations, hover-only tooltips, JS-rendered code
   examples) and lift it back into the source markdown so an agent
   fetching the raw page gets the full content.
-- [ ] Add a prominent agent-routing affordance on the landing page —
-  an explicit "If you are an AI agent, the canonical source is the
-  Markdown in `docs/` / the GitHub repo" hint, so agents can redirect
-  themselves to the higher-fidelity source.
 - [ ] Expose the docs through an MCP server (or a documented
   fetch-this-URL pattern) so agents can query Sutra's surface
   programmatically rather than scraping HTML.
