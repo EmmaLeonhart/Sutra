@@ -1,28 +1,32 @@
 ---
 name: sutra-language
-description: Reproduce the demonstration programs and substrate-purity claims for "Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces" — the working Sutra compiler + PyTorch tensor-op runtime, 13 demonstration programs in a smoke test (with 23 .su files in examples/ total), loop function decls + soft-halt RNN cells, embedded SutraDB codebook with nearest_string decode, opt-in torch.compile wrapping.
+description: Reproduce the demonstration programs and substrate-purity claims for "Sutra: A Programming Language for Vector-Symbolic Computation in Vector Embedding Spaces" — the working Sutra compiler + PyTorch tensor-op runtime, 13 demonstration programs in a smoke test (with 23 .su files in examples/ total), loop function decls + soft-halt RNN cells, embedded SutraDB codebook with nearest_string decode, opt-in torch.compile wrapping.
 allowed-tools: Bash(python *), Bash(pip *), Bash(cd *), Bash(cargo *)
 ---
 
-# Sutra: A Programming Language for Vector-Symbolic Computation in Frozen Embedding Spaces
+# Sutra: A Programming Language for Vector-Symbolic Computation in Vector Embedding Spaces
 
 **Author: Emma Leonhart**
 
 This skill reproduces the demonstration programs and verifiable
-substrate-purity claims of the paper. The paper takes the
-algebraic structure of frozen embedding spaces as established by
-the prior knowledge-graph-embedding literature (TransE, RotatE,
-the word-analogy line) and presents the algorithms and language
-that consolidate that structure into composable primitives.
-Learned-matrix binding is positioned as next-implementation, not
-a finished result; nothing to reproduce there yet.
+substrate-purity claims of the paper. Sutra is a working
+programming language whose values are vectors in an embedding
+space — frozen LLM embeddings, learned bioinformatics embeddings,
+CNN feature maps, or any other dense vector representation. The
+compiler emits PyTorch tensor ops; programs execute as a single
+tensor computation that can be fused, batched, and `torch.compile`-
+wrapped. Learned-matrix binding is positioned as next-
+implementation, not a finished result; nothing to reproduce there
+yet.
 
 ## What this reproduces
 
 1. **Working compiler end-to-end.** `.su` source → parse → simplify
-   → codegen (PyTorch) → execute. Three demonstration programs
-   (`hello_world.su`, `fuzzy_dispatch.su`, `role_filler_record.su`)
-   plus loop demonstrations all run with expected outputs correct.
+   → codegen (PyTorch) → execute. The smoke-test corpus runs 13
+   demonstration programs (with 23 `.su` files in `examples/`
+   total) including `hello_world.su`, `fuzzy_dispatch.su`,
+   `role_filler_record.su`, plus loop demonstrations — all run
+   with expected outputs correct.
 2. **Substrate-pure operations.** Bind (rotation), unbind, bundle,
    similarity, arithmetic on canonical synthetic axes, soft-halt
    RNN cells — all execute as tensor operations on the substrate.
@@ -76,16 +80,19 @@ its import takes >20 minutes on Windows; the test itself is fine.
 ### Demonstration programs
 
 ```bash
+# Full smoke-test corpus (13 programs):
+python examples/_smoke_test.py
+
+# Or run individual programs:
 cd sdk/sutra-compiler
 PYTHONPATH=. python -m sutra_compiler --run ../../examples/hello_world.su
 PYTHONPATH=. python -m sutra_compiler --run ../../examples/fuzzy_dispatch.su
 PYTHONPATH=. python -m sutra_compiler --run ../../examples/role_filler_record.su
 ```
 
-Each program prints its result. The hello-world program emits the
-nomic-embed-text embedding of "hello world"; fuzzy_dispatch routes
-through soft-mux scoring; role_filler_record demonstrates VSA
-algebra with bind/bundle/unbind round-trips.
+The hello-world program emits the embedding of "hello world";
+fuzzy_dispatch routes through soft-mux scoring; role_filler_record
+demonstrates VSA algebra with bind/bundle/unbind round-trips.
 
 ### Loop demonstrations (function-decl form)
 
@@ -136,10 +143,6 @@ with `SUTRA_TORCH_COMPILE_BACKEND=inductor` for fused CUDA kernels
 
 ## What this does NOT reproduce
 
-- **The algebraic-structure premise.** The paper takes as given
-  that frozen embedding spaces have algebraic structure; that is
-  established by the prior knowledge-graph-embedding literature
-  (TransE, RotatE, word-analogy work) and is not re-derived here.
 - **Object encapsulation as load-bearing.** Parser handles object
   decls; encapsulation is not enforced. Queued.
 
