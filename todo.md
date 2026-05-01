@@ -24,29 +24,34 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 ## [This year] Object encapsulation with file-scope rule for free functions
 
 **Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
-**Step 0 (enforcement) shipped 2026-05-01.**
+**Steps 0, 0.5, and 1 shipped 2026-05-01.**
 
 The rule: free (non-object) functions read file-scope; object
-methods (static or non-static) do not. The validator now emits
-**SUT0144** on any method body that reads a file-scope name —
-see `planning/open-questions/function-taxonomy-and-closure.md`
-for the full taxonomy and the remaining implementation steps
-(stdlib migration to static-method-as-namespace, real method
-codegen, instance fields, etc.).
+methods (static or non-static) do not. The validator emits
+**SUT0144** on any method body that reads a file-scope name.
+Class bodies accept method declarations (regular, static,
+intrinsic, static-intrinsic). Static methods inside classes
+compile end-to-end with `Class.method(...)` dispatch (regular
+methods → mangled wrapper; intrinsic methods → direct
+`_VSA.<method>` dispatch). The stdlib_loader picks up class-bodied
+static methods alongside top-level FunctionDecls.
 
-Remaining implementation slices (none of these are blocking the
-substrate work; they're language-ergonomics steps):
+See `planning/open-questions/function-taxonomy-and-closure.md`
+for the full taxonomy and the remaining implementation slices.
 
-- [ ] Migrate stdlib (`stdlib/math.su`, `stdlib/rotation.su`) to
-  declare functions as static methods of a class-as-namespace.
-- [ ] Free-function file-level closure: compile-time bake of
+Remaining work:
+
+- [ ] **Migrate stdlib files** to use `class Math { static
+  intrinsic method ... }` etc. The infrastructure accepts both
+  shapes — migration is a series of individually shippable
+  file rewrites that don't break existing user code.
+- [ ] **Free-function file-level closure:** compile-time bake of
   file-level values into emitted artifacts.
-- [ ] Non-static method encapsulation: real codegen so
+- [ ] **Non-static method encapsulation:** real codegen so
   `class Foo { field x; function bar() { return x + 1; } }`
   compiles with `x` as a bounded reference into the instance.
-- [ ] Static method encapsulation: same shape but class-level
-  slots.
-- [ ] Object loops (loop methods on classes).
+- [ ] **Static method encapsulation with class-level slots.**
+- [ ] **Object loops** (loop methods on classes).
 
 ## [This year] Make `sutralang.dev` more agent-accessible
 
