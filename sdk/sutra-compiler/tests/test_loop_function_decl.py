@@ -121,7 +121,11 @@ class TestCodegenShape(unittest.TestCase):
     def test_emits_loop_function_with_soft_halt(self):
         py = _compile(SIMPLE_DO_WHILE_ADDER)
         self.assertIn("def _loop_addNumber(_init_x):", py)
-        self.assertIn("for _t in range(50):", py)
+        # T is now a runtime budget (module-level _LOOP_T), not a
+        # compile-time-baked literal. The emitted `for` references
+        # the variable; the default value lives in the prelude.
+        self.assertIn("for _t in range(_LOOP_T):", py)
+        self.assertIn("_LOOP_T = int(", py)
         self.assertIn("_pre_x = x", py)
         # Substrate-pure halt accumulator (queue item 4 fix, 2026-04-30):
         # uses _VSA.saturate_unit instead of Python's min().
