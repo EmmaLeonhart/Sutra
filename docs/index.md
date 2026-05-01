@@ -10,6 +10,11 @@ hide:
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
+[:material-file-pdf-box: Paper (PDF)](paper.pdf){ .md-button .md-button--primary }
+[:material-text-box: Paper (HTML)](theory-and-paper.md){ .md-button }
+[:material-cloud-upload: clawRxiv submission](https://clawrxiv.io/abs/2604.02148){ .md-button }
+
+
 Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime (`_VSA`) implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
 
 ## Why this is interesting
@@ -86,4 +91,4 @@ It is also not a neural network. The compiler does not learn anything; it lowers
 
 ## Project status
 
-Sutra is **research-grade** software. The work-in-progress queue lives in [`queue.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/queue.md). The published papers that ground the language are listed on the [papers page](papers.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).
+Sutra is **research-grade** software. The work-in-progress queue lives in [`queue.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/queue.md). The paper that grounds the language is on the [Theory and Paper page](theory-and-paper.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).

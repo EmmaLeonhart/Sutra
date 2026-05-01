@@ -1,9 +1,9 @@
 # Reproducing the Sutra Paper Results
 
-**Per Emma 2026-04-30 (queue item 1f).** NeurIPS reproducibility
-checklist requires pointing at runnable code; this is the
-runnable-code map. Pair with `paper/SKILL.md` (the agent-facing
-skill description) and `DEVLOG.md` (the historical context).
+NeurIPS reproducibility checklist requires pointing at runnable
+code; this is the runnable-code map. Pair with `paper/SKILL.md`
+(the agent-facing skill description) and `DEVLOG.md` (the
+historical context).
 
 The Sutra repository at
 `https://github.com/EmmaLeonhart/Sutra`
@@ -38,19 +38,18 @@ SutraDB FFI build (one-time, ~5 minutes).
 
 | Paper claim | Reproduction |
 |---|---|
-| §3 — relational displacements exist in frozen embeddings | sibling repo `EmmaLeonhart/latent-space-cartography` (this paper does not reproduce step 1) |
-| §4 — rotation binding works on natural anisotropic embeddings | `python -m pytest sdk/sutra-compiler/tests/test_codegen.py` (verifies the emitted `bind`/`unbind` shape; round-trip in the demo programs) |
-| §4.1 — extended-state-vector layout | `sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py` `_TorchVSA` class definition |
-| §4.2 — first-class loops as RNN cells | `python -m pytest sdk/sutra-compiler/tests/test_loop_function_decl.py -q` (23 tests) |
-| §4.2 — halt propagation wipes output for unconverged loops | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
-| §4.3 — embedded SutraDB codebook + decode path | `python -m pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py -q` (7 tests) |
-| §5 — learned-matrix binding (deferred) | parser accepts the surface; runtime rejects with deferred-feature error pointing at the spec. Not reproducible until the next release. |
-| §6 — compiler 5-stage pipeline | `python -m pytest sdk/sutra-compiler/tests/ -q --ignore=tests/test_simplify_egglog.py` (244+ tests; full suite green) |
-| §6.1 — substrate-purity invariants | `cat planning/findings/2026-04-30-runtime-substrate-purity-audit.md` plus `2026-04-30-substrate-purity-leak-enumeration.md` |
-| §6.2 — boundary leak enumeration (5 leaks; 3 fixed) | both findings docs above; the fix commits are `93beb01` (leaks 1+2+4) and `cdd9482` (numpy backend deprecation related cleanup) |
-| §7 — three demonstration programs | `examples/hello_world.su`, `examples/fuzzy_dispatch.su`, `examples/role_filler_record.su` |
-| §7.4 — convergent + non-convergent loop demos | `examples/do_while_adder.su` plus the test corpus in `tests/test_loop_function_decl.py` |
-| §6 — `torch.compile` wrapping (opt-in) | `SUTRA_TORCH_COMPILE=1 python -m pytest sdk/sutra-compiler/tests/test_torch_compile_wrap.py -q` |
+| §3 — rotation binding works on natural anisotropic embeddings | `python -m pytest sdk/sutra-compiler/tests/test_codegen.py` (verifies the emitted `bind`/`unbind` shape; round-trip in the demo programs) |
+| §3.1 — capacity table for rotation binding on 768-d substrate | `python experiments/rotation_binding_capacity.py` (the table in §3.1 is this script's output) |
+| §3.2 — extended-state-vector layout | the `_TorchVSA` runtime class in the PyTorch codegen module |
+| §3.3 — first-class loops as RNN cells | `python -m pytest sdk/sutra-compiler/tests/test_loop_function_decl.py -q` (23 tests) |
+| §3.3 — halt propagation wipes output for unconverged loops | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
+| §3.4 — embedded SutraDB codebook + decode path | `python -m pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py -q` (7 tests) |
+| §4 — compiler 5-stage pipeline | `python -m pytest sdk/sutra-compiler/tests/ -q --ignore=tests/test_simplify_egglog.py` (244+ tests; full suite green) |
+| §4.1 — substrate-purity invariants | the runtime-substrate-purity-audit and substrate-purity-leak-enumeration finding docs under `planning/findings/` |
+| §4.2 — boundary leak enumeration (5 leaks; 3 fixed) | both findings docs above; the fix commits are `93beb01` (leaks 1+2+4) and `cdd9482` (numpy backend deprecation related cleanup) |
+| §5 — demonstration programs (13 in smoke test, 23 `.su` files total) | `python examples/_smoke_test.py` runs the smoke-test corpus end-to-end; full file listing in `examples/` |
+| §5.4 — convergent + non-convergent loop demos | `examples/do_while_adder.su` plus the test corpus in `tests/test_loop_function_decl.py` |
+| §4 — `torch.compile` wrapping (opt-in) | `SUTRA_TORCH_COMPILE=1 python -m pytest sdk/sutra-compiler/tests/test_torch_compile_wrap.py -q` |
 
 ## Numerical exactness
 
@@ -83,14 +82,9 @@ These are real and disclosed in the paper:
   counter). `torch.compile` traces past both at runtime when
   `SUTRA_TORCH_COMPILE=1`. Source still has Python `for _t in
   range(50)` in loop function bodies (cosmetic).
-- Numpy backend (`codegen.py`) is deprecated as of 2026-04-30 but
-  retained for emit-shape tests. Behavior tests run on PyTorch.
-- Learned-matrix binding (paper §5) is deferred; runtime rejects
-  the surface with a deferred-feature error.
+- Numpy backend (`codegen.py`) is deprecated but retained for
+  emit-shape tests. Behavior tests run on PyTorch.
 - Object encapsulation parses but rules are not enforced.
-- The `latent-space-cartography` sibling repo's specific numbers
-  cited as `[CITE]` in the paper need cross-check before
-  submission; do not quote from memory.
 
 ## Reporting issues
 
