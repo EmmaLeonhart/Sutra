@@ -144,10 +144,30 @@ class _Walker:
         # still in this dict has never been assigned and gets a
         # SUT0130 error.
         self._wait_declared: dict = {}
+        # Names declared at file scope (top-level FunctionDecl,
+        # MethodDecl, VarDecl, ClassDecl, LoopFunctionDecl). Populated
+        # in visit_module before the per-item walk. Used by the object-
+        # encapsulation rule (SUT0144): object methods cannot read
+        # file-scope names — see planning/open-questions/
+        # function-taxonomy-and-closure.md.
+        self._file_scope_names: Set[str] = set()
+        # When inside a method body, the set of names locally in
+        # scope (params + body var decls). None when not in a method.
+        # The encapsulation rule fires on any Identifier whose name is
+        # in _file_scope_names AND not in _method_local_names while
+        # _method_local_names is non-None.
+        self._method_local_names: Optional[Set[str]] = None
 
     # ---- module ----------------------------------------------------
 
     def visit_module(self, module: ast.Module) -> None:
+        # Pre-pass: collect every top-level declaration's name into the
+        # file-scope set. Methods inside method bodies are checked
+        # against this set by the encapsulation rule (SUT0144).
+        for item in module.items:
+            name = getattr(item, "name", None)
+            if isinstance(name, str) and name:
+                self._file_scope_names.add(name)
         for item in module.items:
             self.visit(item)
         self._check_class_casing_drift()
@@ -239,7 +259,17 @@ class _Walker:
         for p in node.params:
             self._record_type_usage(p.type_ref)
         self._enter_function_scope()
-        self.visit(node.body)
+        # Encapsulation rule (SUT0144): walking the method body, any
+        # bare Identifier whose name is in _file_scope_names but not in
+        # _method_local_names is forbidden. Seed the local set with the
+        # method's params; visit_VarDecl extends it as `var x = ...;`
+        # decls are seen inside the body.
+        saved_method_scope = self._method_local_names
+        self._method_local_names = {p.name for p in node.params}
+        try:
+            self.visit(node.body)
+        finally:
+            self._method_local_names = saved_method_scope
         self._exit_function_scope()
 
     def visit_VarDecl(self, node: ast.VarDecl) -> None:
@@ -251,6 +281,8 @@ class _Walker:
         # everywhere else, and the position check below catches the
         # everywhere-else case.
         if isinstance(node.initializer, ast.WaitLiteral):
+            if self._method_local_names is not None:
+                self._method_local_names.add(node.name)
             # Top-level `wait` has no enclosing function body to
             # assign in — reject it. Use the wait stack as the
             # in-function indicator (it's pushed by _enter_function_scope).
@@ -286,6 +318,12 @@ class _Walker:
             return
         if node.initializer is not None:
             self.visit(node.initializer)
+        # After the initializer is checked (so `var x = file_scope_name;`
+        # inside a method body still flags the file-scope read), register
+        # x as method-local so subsequent references inside the body
+        # don't trip the encapsulation rule.
+        if self._method_local_names is not None:
+            self._method_local_names.add(node.name)
         # Fuzzy / trit literals live on the truth axis which the
         # spec defines over [-1, +1]. A literal outside that range is
         # almost always a mistake; warn (not error) so existing programs
@@ -307,6 +345,38 @@ class _Walker:
 
     def visit_Param(self, node: ast.Param) -> None:
         self._record_type_usage(node.type_ref)
+
+    def visit_Identifier(self, node: ast.Identifier) -> None:
+        # Object-encapsulation rule (SUT0144): when we are inside a
+        # method body (`_method_local_names` is non-None), any bare
+        # identifier whose name is declared at file scope but is not
+        # locally bound (param or var decl in the body) is forbidden.
+        # Object methods are encapsulated within the class boundary —
+        # static methods see the class as namespace; non-static
+        # methods see `this` only. File-scope visibility is for free
+        # functions only.
+        # See planning/open-questions/function-taxonomy-and-closure.md.
+        if self._method_local_names is None:
+            return
+        if node.name in self._method_local_names:
+            return
+        if node.name in self._file_scope_names:
+            self.diagnostics.error(
+                f"object methods cannot read file-scope name `{node.name}` — "
+                "object methods are encapsulated within the class boundary "
+                "(static methods see the class as namespace; non-static "
+                "methods see `this` only). File-scope visibility is for "
+                "free functions only.",
+                node.span,
+                code="SUT0144",
+                hint=(
+                    f"if `{node.name}` should be accessible to this method, "
+                    "either make this a free function (`function` instead of "
+                    f"`method`), or move `{node.name}` onto a class so the "
+                    "method can reach it through `this.` or the class as a "
+                    "namespace."
+                ),
+            )
 
     # ---- statements ------------------------------------------------
 

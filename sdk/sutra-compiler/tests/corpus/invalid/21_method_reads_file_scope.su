@@ -1,0 +1,22 @@
+// Expected error: SUT0144 — object methods cannot read file-scope
+// names. Free functions get file-level closure; methods are
+// encapsulated within the class boundary.
+//
+// See planning/open-questions/function-taxonomy-and-closure.md.
+
+// Top-level free function: in file scope.
+function fuzzy IsPet(Animal a) {
+    return unsafeCast<fuzzy>(0.5);
+}
+
+// Top-level var: also in file scope.
+vector globalMarker = embed("marker");
+
+// Method body cannot read either of those — they're file-scope, and
+// methods only see their own params plus class scope (`this` /
+// class-as-namespace).
+method string Describe() {
+    fuzzy s = IsPet(this);             // SUT0144: reads `IsPet`
+    vector m = globalMarker;           // SUT0144: reads `globalMarker`
+    return $"{this.name} marker check";
+}
