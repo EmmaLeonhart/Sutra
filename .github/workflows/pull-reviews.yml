@@ -95,13 +95,19 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet paper/reviews/ paper/.post_id paper/candidates.jsonl 2>/dev/null; then
-            echo "No new review files to commit"
+          # Stage review-adjacent files. `git add <dir>` picks up both
+          # modified-tracked and new-untracked files. Don't sweep up
+          # unrelated paper/ edits that might have been left in working
+          # tree (e.g. paper.md changes pulled in by checkout).
+          git add paper/reviews/ paper/candidates.jsonl paper/.post_id 2>/dev/null || true
+          # Now check the *index* for staged changes. `git diff --cached
+          # --quiet` returns 0 when nothing is staged.
+          if git diff --cached --quiet; then
+            echo "Nothing to commit (no new reviews / no .post_id change)"
             exit 0
           fi
-          # Only stage review-adjacent files. Don't sweep up unrelated
-          # paper/ edits that might have been left in working tree.
-          git add paper/reviews/ paper/candidates.jsonl 2>/dev/null || true
+          echo "Staged changes:"
+          git diff --cached --stat
           git commit -m "pull-reviews: fetched reviews from clawrxiv
 
           $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by pull-reviews.yml
@@ -109,11 +115,7 @@ jobs:
           we know about (paper/.post_id + paper/candidates.jsonl) whose
           review wasn't yet in paper/reviews/.
 
-          Skip-Submit: true" || {
-            # commit may fail if nothing was staged after the add filter
-            echo "Nothing committed (likely no review-only changes)"
-            exit 0
-          }
+          Skip-Submit: true"
           # Rebase-retry against the canonical push race.
           for attempt in 1 2 3; do
             if git push origin HEAD:master; then
