@@ -350,7 +350,8 @@ Not blocking the active work; grouped because they are of a piece.
   approximation work picks (Chebyshev for non-integer exponents,
   potentially the rotation-based path from the transcendentals
   chat for the trig family). Source-of-truth for the algorithm:
-  `chats/implementing-transcendental-functions.md`.
+  the §"Transcendental functions — design absorbed from voice
+  chat" section at the bottom of this file.
 
 ## [This year] Make loops idiomatic
 
@@ -861,6 +862,98 @@ commitments, just parking spots. Currently parked:
   OWL handling so SutraDB gains a first-class ontology extension and Sutra
   gains ontology-aware operations. Protégé may be a more helpful starting
   point than raw OWL files.
+
+## [This year] Transcendental functions — design absorbed from voice chat
+
+User direction (voice conversation, mid-2026 — full chat absorbed
+2026-05-02 from `chats/implementing-transcendental-functions.md`,
+which has since been deleted). The intuition that crystallized
+during the chat: in the complex plane, the four "main"
+transcendentals — exponential, logarithm, sine, arc-sine — are
+all the same operation viewed from different angles.
+
+- `exp(x + iy)` is scaling (real part) plus rotation (imaginary
+  part). On the unit circle (`x = 0`) it's pure rotation by `y`
+  radians. Scaling and rotation compose because exponents
+  multiply: `exp(a + b) = exp(a) * exp(b)`.
+- `sin` is the imaginary part of `exp(iθ)`. Cosine is the real
+  part. They're not independent operations — they're projections
+  of the rotation onto the two axes.
+- `log` inverts: real part of the log is the magnitude (how much
+  scaling), imaginary part is the angle (how much rotation).
+  `log(-1) = iπ`, `log(i) = iπ/2`. The "log of negative numbers
+  doesn't exist" graph is lying by omission — it just means the
+  output is on the imaginary axis. Zero is the only genuine
+  asymptote.
+- `arcsin` is just `log` in disguise — given an imaginary value,
+  find the rotation that produced it. The branch-cut artifact
+  arises from picking which of the infinite valid rotations to
+  return.
+
+### Two primitives, lookup tables, everything else derived
+
+The Sutra implementation reduces to **two primitives**: `exp` and
+`ln`. Both backed by lookup tables. Everything else beta-reduces:
+
+```
+x ^ p              ->  pow(x, p)            (operator desugar)
+pow(x, p)          ->  exp(p * ln(x))       (change-of-base identity)
+log(b, x)          ->  ln(x) / ln(b)        (change-of-base for log)
+sin(θ)             ->  imag(exp(iθ))        (definitional)
+cos(θ)             ->  real(exp(iθ))        (definitional)
+arcsin(z)          ->  imag-extract(log(...))  (deferred)
+sinh / cosh / tanh ->  combinations of exp(x), exp(-x)  (deferred)
+```
+
+`exp(1)` returns Euler's number — no need to hardcode `e` as a
+constant; it falls out of the primitive.
+
+### `^` operator (no XOR conflict in Sutra)
+
+`^` is exponentiation. Sutra has no bits to flip, so the C-family
+"^ means bitwise XOR" convention doesn't apply — XOR exists only
+as a logical connective on the truth axis (and is reachable as
+the keyword `xor` plus the parser-level chain reductions). `^`
+binds above `*`, right-associative is the math convention.
+
+### `sin` via rotation matrix, not lookup
+
+Per the Emma 2026-04-28 eigenrotation finding (validated, refuted
+on speed but accepted for substrate-uniformity), sine via rotation
+matrix is one matmul. The rotation matrix entries are sin/cos of
+the angle, so it does a self-referential thing internally — but
+once Sutra has `exp` working on the imaginary axis, the rotation
+matrix can be built from `exp(iθ)` instead of calling out to libm
+sin/cos. That closes the loop: every transcendental in the
+language compiles down to `exp` and `ln` lookups.
+
+### Implementation order, when picked up
+
+1. **`exp(x)` lookup table** for real x in a bounded range, plus
+   integer-iteration for the part outside the range and
+   geometric-root for the fractional part. Substrate-pure (no
+   host scalar arithmetic — that was the architecture mistake
+   the 2026-04-29 implementation made and got withdrawn).
+2. **`ln(x)` lookup table** for positive real x. Negative x
+   handled by `ln(-x) + iπ`. Zero raises (genuine asymptote).
+3. **`exp(z)` for complex z** = `exp(real(z)) * (cos(imag(z)) +
+   i sin(imag(z)))`. With the rotation-matrix path for sin/cos,
+   this is one scalar lookup plus one rotation matmul.
+4. **`pow`, `log`, `sin`, `cos`** as inliner-expanded calls over
+   the two primitives. No new runtime ops.
+5. **`arcsin`, hyperbolic** deferred — useful for completeness
+   but not needed for the language to be complete.
+
+The bound-table-via-binding approach didn't pencil out
+(`planning/findings/2026-04-29-bound-table-capacity-limit.md`),
+but the lookup-table approach the chat settled on is different —
+it's a flat table-plus-interpolation, not a VSA-bundle of bound
+table entries. Worth retrying.
+
+This is a "later this year" item, not blocking. Re-implementation
+needs a real design doc in `planning/open-questions/` before
+codegen, plus a re-validation pass against the substrate-purity
+audit.
 
 ---
 

@@ -5,7 +5,9 @@
 **Implementation commit:** `e612598`
 **Spec section:** `planning/sutra-spec/control-flow.md` § "loop(cond)"
 **Companion finding:** `planning/findings/2026-04-29-bound-table-capacity-limit.md`
-**Related chat:** `chats/implementing-transcendental-functions.md`
+**Related design:** `todo.md` § "Transcendental functions —
+design absorbed from voice chat" (the chat that originally
+sat in `chats/` was inlined into todo.md 2026-05-02).
 
 This is a captured-design doc, not a spec. The implementation
 landed and the spec got the user-facing summary; this writeup is
