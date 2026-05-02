@@ -167,7 +167,7 @@ Sutra recognizes Python-style comparison chains and reduces them to named operat
 | `a > b > c` | `hasOrder(c, b, a)` *(args reversed — reduction is always-ascending)* |
 | `a <= b <= c` | `hasOrderOrEqual(a, b, c)` |
 | `a >= b >= c` | `hasOrderOrEqual(c, b, a)` |
-| `a == b > c == d > e` | `ComplexTransitive(a, b, c, d, e)` *(reserved — codegen rejects, semantics not yet wired)* |
+| `a == b > c == d > e` | `OrderedEquals(a, b, c, d, e)` *(reserved — codegen rejects, semantics not yet wired)* |
 | `a != b == c > d` | `(a != b) && (b == c) && (c > d)` *(any chain with `!=`, or otherwise mixed → AND-chain fallback)* |
 
 Reductions:
@@ -175,7 +175,7 @@ Reductions:
 - `Equals(a, b, c, ...)` → fuzzy AND of `_VSA.eq(a, b)` between each adjacent pair.
 - `hasOrder(a, b, c, ...)` → fuzzy AND of `_VSA.gt(b, a)` between each adjacent pair (since `a < b` is `b > a` on the runtime).
 - `hasOrderOrEqual(...)` → currently identical to `hasOrder` because the K3-tanh `<=` collapses to `<` (both produce `tanh(0) = 0` on exact ties); when a real non-strict semantics lands the body switches.
-- `ComplexTransitive(...)` is **reserved**. The parser emits the call so the syntax is recognized, but the codegen rejects with `CodegenNotSupported`. The eventual semantics is "equality groups separated by uniform-direction ordering" — i.e. for `a == b > c == d > e`, the groups `{a, b}` and `{c, d}` and `{e}` are each internally equal and the groups are in strict descending order.
+- `OrderedEquals(...)` is **reserved**. The parser emits the call so the syntax is recognized, but the codegen rejects with `CodegenNotSupported`. The eventual semantics is "equality groups separated by uniform-direction ordering" — i.e. for `a == b > c == d > e`, the groups `{a, b}` and `{c, d}` and `{e}` are each internally equal and the groups are in strict descending order.
 
 This is parser-level sugar — the `+`, `-`, `*`, etc. arithmetic operators continue to bind tighter than comparisons (so `a + 1 == b + 2 == c` works as expected).
 
