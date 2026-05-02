@@ -163,7 +163,11 @@ _INTRINSIC_NAMES_CACHE: Optional[frozenset] = None
 
 def intrinsic_names(stdlib_dir: str = STDLIB_DIR) -> frozenset:
     """Return the frozenset of intrinsic function names declared in
-    the stdlib — the leaves the runtime must implement."""
+    the stdlib — the leaves the runtime must implement.
+
+    Includes both bare-name and namespaced (`Math.log`) entries since
+    the dual-registration pattern (load_stdlib) puts both into the
+    table. Callers that need only one form can filter with `.`."""
     global _INTRINSIC_NAMES_CACHE
     if _INTRINSIC_NAMES_CACHE is None:
         table = load_stdlib(stdlib_dir)
@@ -172,3 +176,44 @@ def intrinsic_names(stdlib_dir: str = STDLIB_DIR) -> frozenset:
             if getattr(decl, "is_intrinsic", False)
         )
     return _INTRINSIC_NAMES_CACHE
+
+
+# Per-class intrinsic-method registry, populated lazily. Maps
+# `class_name -> frozenset of intrinsic method names`. Used by the
+# codegen to dispatch `Tensor.MatrixMul(a, b)` to `_VSA.MatrixMul(a, b)`
+# when the class is declared in stdlib (and therefore not in the
+# user's module AST).
+_STDLIB_CLASS_INTRINSICS_CACHE: Optional[Dict[str, frozenset]] = None
+
+
+def stdlib_class_intrinsic_methods(
+    stdlib_dir: str = STDLIB_DIR,
+) -> Dict[str, frozenset]:
+    """Return `{class_name: frozenset(method_names)}` for every
+    static-intrinsic method declared inside a stdlib class body.
+
+    Lets the codegen dispatch namespaced stdlib calls
+    (`Tensor.MatrixMul(a, b)`) to the runtime alongside its existing
+    user-class dispatch path.
+    """
+    global _STDLIB_CLASS_INTRINSICS_CACHE
+    if _STDLIB_CLASS_INTRINSICS_CACHE is None:
+        result: Dict[str, set] = {}
+        for fname in sorted(os.listdir(stdlib_dir)):
+            if not fname.endswith(".su"):
+                continue
+            path = os.path.join(stdlib_dir, fname)
+            module = _parse_stdlib_file(path)
+            for item in module.items:
+                if not isinstance(item, ast.ClassDecl):
+                    continue
+                for m in item.methods:
+                    if (m.is_intrinsic
+                            and m.modifiers.is_static
+                            and not m.is_operator
+                            and not m.type_params):
+                        result.setdefault(item.name, set()).add(m.name)
+        _STDLIB_CLASS_INTRINSICS_CACHE = {
+            cls: frozenset(names) for cls, names in result.items()
+        }
+    return _STDLIB_CLASS_INTRINSICS_CACHE

@@ -1017,6 +1017,57 @@ class Codegen(BaseCodegen):
         self._emit("return float(_np.dot(a, b) / (na * nb + _np.finfo(_np.float64).tiny))")
         self._indent -= 1
         self._emit()
+        # General-purpose tensor operations on vectors and matrices.
+        # The Sutra language exposes these via the `Tensor` namespace
+        # (stdlib/tensor.su):
+        #   Tensor.MatrixMul(A, B)     -> _VSA.matmul
+        #   Tensor.TensorProduct(a, b) -> _VSA.tensor_product
+        #   Tensor.Outer(a, b)         -> _VSA.outer
+        #   Tensor.Dot(a, b)           -> _VSA.dot (scalar)
+        #   Tensor.Transpose(M)        -> _VSA.transpose
+        # Each is a thin wrapper over numpy; the linear-algebra
+        # behavior is whatever numpy does. These are general
+        # tensor-algebra primitives, not VSA primitives — bind /
+        # unbind / bundle remain the canonical VSA operations.
+        self._emit("def matmul(self, a, b):")
+        self._indent += 1
+        self._emit('"""Matrix multiplication (numpy `a @ b`). Works on 1-D, 2-D, or higher-rank arrays per numpy semantics."""')
+        self._emit("return _np.matmul(a, b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tensor_product(self, a, b):")
+        self._indent += 1
+        self._emit('"""Tensor / Kronecker product (numpy `kron`)."""')
+        self._emit("return _np.kron(a, b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def outer(self, a, b):")
+        self._indent += 1
+        self._emit('"""Vector outer product → rank-2 array."""')
+        self._emit("return _np.outer(a, b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def dot(self, a, b):")
+        self._indent += 1
+        self._emit('"""Inner / dot product → scalar."""')
+        self._emit("return float(_np.dot(a, b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def transpose(self, m):")
+        self._indent += 1
+        self._emit('"""Transpose. For 1-D inputs, returns the input unchanged (numpy convention)."""')
+        self._emit("return _np.transpose(m)")
+        self._indent -= 1
+        self._emit()
+        # PascalCase aliases — Emma's preferred Sutra-side spelling.
+        # Bound at the class level so `_VSA.MatrixMul(a, b)` resolves
+        # via Python's descriptor protocol and binds self correctly.
+        self._emit("MatrixMul = matmul")
+        self._emit("TensorProduct = tensor_product")
+        self._emit("Outer = outer")
+        self._emit("Dot = dot")
+        self._emit("Transpose = transpose")
+        self._emit()
         self._emit("# ---- Vector component accessors (debugging / teaching) ----")
         self._emit("#")
         self._emit("# Lowered from the surface-level method calls `v.component(i)`,")

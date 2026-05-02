@@ -1,0 +1,56 @@
+// Canonical Sutra namespace for general-purpose tensor operations.
+//
+// VSA-specific operations (`bind`, `unbind`, `bundle`, `similarity`)
+// are documented separately — those have first-class compile-time
+// roles. This file is for the *general* linear-algebra primitives
+// the language exposes on top of the underlying tensor runtime
+// (numpy on the legacy backend, torch on the canonical backend).
+//
+// Each call routes directly to the runtime via `_VSA.<name>(...)`,
+// so the Sutra-level dispatch is one indirection over a numpy or
+// torch call.
+//
+// Both PascalCase and snake_case names are exposed (Emma 2026-05-01:
+// PascalCase is more readable for these tensor verbs). Either form
+// works:
+//
+//     vector x = Tensor.MatrixMul(M, v);   // preferred
+//     vector x = Tensor.matmul(M, v);      // also works
+//
+// And the bare-name aliases via the stdlib_loader's dual
+// registration:
+//
+//     vector x = MatrixMul(M, v);          // bare-name shortcut
+
+class Tensor extends vector {
+    // Matrix multiplication. Works on 1-D, 2-D, or higher-rank
+    // arguments per numpy/torch matmul semantics:
+    //   (n,)   @ (n,)   -> scalar (dot)
+    //   (m, k) @ (k, n) -> (m, n)
+    //   (m, k) @ (k,)   -> (m,)   — vector treated as column
+    //   (k,)   @ (k, n) -> (n,)   — vector treated as row
+    static intrinsic method vector MatrixMul(vector a, vector b);
+    static intrinsic method vector matmul(vector a, vector b);
+
+    // Kronecker / tensor product. For two vectors of length n and m,
+    // produces a vector of length n*m: every pairwise product. For
+    // higher-rank inputs, produces the standard Kronecker block
+    // matrix.
+    static intrinsic method vector TensorProduct(vector a, vector b);
+    static intrinsic method vector tensor_product(vector a, vector b);
+
+    // Outer product. For two 1-D vectors a (length n) and b (length
+    // m), produces a 2-D matrix `M` where `M[i, j] = a[i] * b[j]`.
+    static intrinsic method vector Outer(vector a, vector b);
+    static intrinsic method vector outer(vector a, vector b);
+
+    // Inner / dot product. Scalar result.
+    static intrinsic method scalar Dot(vector a, vector b);
+    static intrinsic method scalar dot(vector a, vector b);
+
+    // Transpose. For 2-D input, swaps the two axes; for 1-D, returns
+    // the input unchanged (numpy convention — there's no "row" vs
+    // "column" distinction at rank-1).
+    static intrinsic method vector Transpose(vector m);
+    static intrinsic method vector transpose(vector m);
+}
