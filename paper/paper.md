@@ -1,4 +1,4 @@
-# Sutra: Compiling Lambda Calculus to a Recurrent Neural Network
+# Sutra: Compiling a Vector Symbolic Architecture to a Tensor-Op Recurrent Neural Network via Beta Reduction
 
 
 
