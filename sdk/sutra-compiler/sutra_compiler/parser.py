@@ -1434,22 +1434,88 @@ class Parser:
             )
         return left
 
+    # Logical operator precedence (lowest to highest):
+    #   ||  or                  (parse_logical_or)
+    #   xor xnor iff nand       (parse_logical_xor)
+    #   &&  and                 (parse_logical_and)
+    #   ==  !=                  (parse_equality)
+    #   <   <=  >  >=           (parse_comparison)
+    # Symbolic and keyword forms produce the same op-string in the
+    # AST so the inliner can lower uniformly. The keyword forms
+    # (`and`, `or`, `nand`, `xor`, `xnor`, `iff`, `not`) are
+    # CONTEXTUAL — they lex as IDENT and the parser checks their
+    # lowercased lexeme here so user identifiers with the same
+    # spelling (e.g. `Iff`, `Nand`) keep working.
+    _LOGICAL_OR_KW = {"or"}             # binary, op="||"
+    _LOGICAL_XOR_KW = {                  # binary, op as named
+        "xor":  "xor",
+        "xnor": "xnor",
+        "iff":  "xnor",
+        "nand": "nand",
+    }
+    _LOGICAL_AND_KW = {"and"}            # binary, op="&&"
+    _LOGICAL_NOT_KW = {"not"}            # unary, op="!"
+
+    def _ident_lex_lower(self) -> Optional[str]:
+        """Return the lowercased lexeme of the current token if it's
+        an IDENT, else None. Used by the logical-keyword check."""
+        tok = self._peek()
+        if tok.kind is TokenKind.IDENT:
+            return tok.lexeme.lower()
+        return None
+
     def _parse_logical_or(self) -> ast.Expr:
+        left = self._parse_logical_xor()
+        while True:
+            tok = self._peek()
+            ident_lower = self._ident_lex_lower()
+            if tok.kind is TokenKind.OR:
+                self._advance()
+                op = "||"
+            elif ident_lower in self._LOGICAL_OR_KW:
+                self._advance()
+                op = "||"
+            else:
+                break
+            right = self._parse_logical_xor()
+            left = ast.BinaryOp(
+                op=op, left=left, right=right,
+                span=SourceSpan(start=left.span.start, end=right.span.end),
+            )
+        return left
+
+    def _parse_logical_xor(self) -> ast.Expr:
         left = self._parse_logical_and()
-        while self._match(TokenKind.OR):
+        while True:
+            ident_lower = self._ident_lex_lower()
+            if ident_lower in self._LOGICAL_XOR_KW:
+                op = self._LOGICAL_XOR_KW[ident_lower]
+                self._advance()
+            else:
+                break
             right = self._parse_logical_and()
             left = ast.BinaryOp(
-                op="||", left=left, right=right,
+                op=op, left=left, right=right,
                 span=SourceSpan(start=left.span.start, end=right.span.end),
             )
         return left
 
     def _parse_logical_and(self) -> ast.Expr:
         left = self._parse_equality()
-        while self._match(TokenKind.AND):
+        while True:
+            tok = self._peek()
+            ident_lower = self._ident_lex_lower()
+            if tok.kind is TokenKind.AND:
+                self._advance()
+                op = "&&"
+            elif ident_lower in self._LOGICAL_AND_KW:
+                self._advance()
+                op = "&&"
+            else:
+                break
             right = self._parse_equality()
             left = ast.BinaryOp(
-                op="&&", left=left, right=right,
+                op=op, left=left, right=right,
                 span=SourceSpan(start=left.span.start, end=right.span.end),
             )
         return left
@@ -1507,7 +1573,25 @@ class Parser:
         return left
 
     def _parse_unary(self) -> ast.Expr:
-        if self._peek().kind in (TokenKind.BANG, TokenKind.MINUS, TokenKind.PLUS):
+        # `!`, `~`, and the `not` keyword (case-insensitive, contextual
+        # — lexes as IDENT) all produce the same UnaryOp("!") AST so
+        # the inliner lowers them uniformly to logical_not. `+` and
+        # `-` stay as arithmetic unary operators.
+        kind = self._peek().kind
+        ident_lower = self._ident_lex_lower()
+        is_logical_not = (
+            kind in (TokenKind.BANG, TokenKind.TILDE)
+            or ident_lower in self._LOGICAL_NOT_KW
+        )
+        if is_logical_not:
+            op_tok = self._advance()
+            operand = self._parse_unary()
+            return ast.UnaryOp(
+                op="!",
+                operand=operand,
+                span=SourceSpan(start=op_tok.span.start, end=operand.span.end),
+            )
+        if kind in (TokenKind.MINUS, TokenKind.PLUS):
             op_tok = self._advance()
             operand = self._parse_unary()
             return ast.UnaryOp(

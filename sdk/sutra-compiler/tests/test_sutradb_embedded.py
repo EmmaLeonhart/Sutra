@@ -28,12 +28,10 @@ _DLL = _default_dll_path()
 _DLL_AVAILABLE = _DLL.exists()
 
 
-@pytest.mark.skipif(
-    not _DLL_AVAILABLE,
-    reason=(
-        f"sutra_ffi.dll not found at {_DLL}. Build with: "
-        "cd sutraDB && cargo build --release -p sutra-ffi"
-    ),
+@unittest.skipUnless(
+    _DLL_AVAILABLE,
+    f"sutra_ffi.dll not found at {_DLL}. Build with: "
+    "cd sutraDB && cargo build --release -p sutra-ffi",
 )
 class TestSutraDBEmbedded(unittest.TestCase):
     """Round-trip insert + nearest-neighbor over the FFI.
@@ -87,12 +85,10 @@ class TestSutraDBEmbedded(unittest.TestCase):
             self.assertEqual(set(labels), {"a", "b"})
 
 
-@pytest.mark.skipif(
-    not _DLL_AVAILABLE,
-    reason=(
-        f"sutra_ffi.dll not found at {_DLL}. Build with: "
-        "cd sutraDB && cargo build --release -p sutra-ffi"
-    ),
+@unittest.skipUnless(
+    _DLL_AVAILABLE,
+    f"sutra_ffi.dll not found at {_DLL}. Build with: "
+    "cd sutraDB && cargo build --release -p sutra-ffi",
 )
 class TestSutraDBCodebookIntegration(unittest.TestCase):
     """Compile-time SutraDB population + nearest_string decode.

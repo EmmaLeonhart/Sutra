@@ -77,6 +77,49 @@ function fuzzy logical_or(fuzzy a, fuzzy b) {
 }
 
 
+// logical_nand — NOT(AND). Composition over the existing primitives;
+// the inliner expands the !(...) wrapper and then the AND polynomial,
+// so the final emitted form is one polynomial subtracted from a
+// constant — no new substrate primitive is introduced.
+function fuzzy logical_nand(fuzzy a, fuzzy b) {
+    return !logical_and(a, b);
+}
+
+
+// logical_xor — Kleene K₃ XOR. Closed-form polynomial: -a·b.
+//
+// Verification on the K₃ grid {-1, 0, +1}²:
+//   (1,  1)   -> -1   (T XOR T = F)
+//   (1, -1)   -> +1   (T XOR F = T)
+//   (-1, 1)   -> +1   (F XOR T = T)
+//   (-1,-1)   -> -1   (F XOR F = F)
+//   (0,  1)   ->  0   (U XOR T = U — unknown is a fixed point)
+//   (1,  0)   ->  0   (T XOR U = U)
+//
+// Equivalent to the longer composition `(a && !b) || (!a && b)`,
+// which Emma observed reduces to `-a·b` after polynomial folding —
+// see docs/compilation.md § "Worked examples". Shipping the closed
+// form directly so the simplifier doesn't have to discover it.
+function fuzzy logical_xor(fuzzy a, fuzzy b) {
+    return 0 - a * b;
+}
+
+
+// logical_xnor — Kleene K₃ XNOR / IFF. NOT(XOR), which simplifies to
+// the bare product:
+//
+//   (1,  1)   -> +1   (T <-> T = T)
+//   (1, -1)   -> -1   (T <-> F = F)
+//   (-1,-1)   -> +1   (F <-> F = T)
+//   (0,  1)   ->  0   (unknown bilateral)
+//
+// Same shape as logical_xor with the sign flipped. `iff` is the
+// natural-language alias the lexer also accepts.
+function fuzzy logical_xnor(fuzzy a, fuzzy b) {
+    return a * b;
+}
+
+
 // neq lives in similarity.su — it's a composition over vector cosine
 // similarity, not a truth-axis primitive. Cross-referenced there.
 

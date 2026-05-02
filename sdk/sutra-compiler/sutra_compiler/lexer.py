@@ -56,6 +56,7 @@ class TokenKind(Enum):
     SLASH = auto()            # /
     PERCENT = auto()          # %
     BANG = auto()             # !
+    TILDE = auto()            # ~ (alternative NOT)
     QUESTION = auto()         # ?
     ASSIGN = auto()           # =
     EQ = auto()               # ==
@@ -153,6 +154,22 @@ class TokenKind(Enum):
     # like `dot`, `sqrt`, `tanh`, `make_truth`, `embed` that can't be
     # expressed in Sutra arithmetic. Calls compile to `_VSA.<name>(...)`.
     KW_INTRINSIC = auto()
+    # Logical-connective keyword operators. Spelled case-insensitively
+    # (the lexer lowercases lexemes before matching, only for these).
+    # Map to the same stdlib functions the symbolic forms (`!`, `&&`,
+    # `||`, etc.) lower to:
+    #   not / NOT  -> logical_not    (symbolic: ! ~)
+    #   and / AND  -> logical_and    (symbolic: && &)
+    #   nand       -> logical_nand
+    #   or  / OR   -> logical_or     (symbolic: || |)
+    #   xor        -> logical_xor
+    #   xnor / iff -> logical_xnor
+    KW_LOGICAL_NOT = auto()
+    KW_LOGICAL_AND = auto()
+    KW_LOGICAL_OR = auto()
+    KW_LOGICAL_NAND = auto()
+    KW_LOGICAL_XOR = auto()
+    KW_LOGICAL_XNOR = auto()
     # `class Name extends Parent { ... }` — user-defined ontology
     # class. MVP scope is empty bodies + single inheritance; the
     # extends-chain must bottom out at a primitive class. See
@@ -267,6 +284,23 @@ PRIMITIVE_TYPE_NAMES = {
     # already emit make_complex calls; the type lets the programmer
     # declare the intent at the slot level.
     "complex",
+}
+
+# Logical-connective keywords. CONTEXTUAL — these names lex as
+# IDENT so user identifiers like `Iff`, `Nand`, `XorTable` keep
+# parsing. The parser checks IDENT lexemes against this map (after
+# lowercasing) only in expression positions, where they then become
+# operators. Maps lowercased lexeme -> the logical-op string the
+# inliner lowers to. Symbolic equivalents (`!`, `~`, `&&`, `&`,
+# `||`, `|`) come through dedicated tokens, not this map.
+_LOGIC_KEYWORD_NAMES = {
+    "not":  "!",       # unary
+    "and":  "&&",      # binary
+    "or":   "||",      # binary
+    "nand": "nand",    # binary
+    "xor":  "xor",     # binary
+    "xnor": "xnor",    # binary
+    "iff":  "xnor",    # binary, alias for xnor
 }
 
 # Contextual keywords: identifiers with special meaning in expressions
@@ -685,6 +719,12 @@ class Lexer:
                 break
         lexeme = self.source[start.offset:self._pos]
         kind = KEYWORDS.get(lexeme, TokenKind.IDENT)
+        # The logical-connective keywords (`not`, `and`, `or`, `nand`,
+        # `xor`, `xnor`, `iff`) are CONTEXTUAL — they emit as IDENT so
+        # they don't shadow user identifiers like `Iff` or `Nand`.
+        # The parser recognizes them as operators in expression
+        # positions by checking the IDENT lexeme (case-insensitively).
+        # See _LOGIC_KEYWORD_NAMES below.
         self._emit_tok(kind, lexeme, start)
 
     # ---- operators --------------------------------------------------------
@@ -756,8 +796,12 @@ class Lexer:
             "=": TokenKind.ASSIGN,
             "<": TokenKind.LT,
             ">": TokenKind.GT,
-            "&": TokenKind.BIT_AND,
-            "|": TokenKind.BIT_OR,
+            "~": TokenKind.TILDE,
+            # Single `&` and `|` are logical, not bitwise — Sutra has
+            # no bits to flip. They lex to the same kinds as `&&` and
+            # `||` so the parser and inliner treat them uniformly.
+            "&": TokenKind.AND,
+            "|": TokenKind.OR,
             "^": TokenKind.BIT_XOR,
         }
         kind = single.get(ch)

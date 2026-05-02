@@ -1,0 +1,46 @@
+// Sutra logical connectives — every spelling, every connective.
+//
+// Per Emma 2026-05-01: NOT, AND, NAND, OR, XOR, XNOR each accept
+// multiple syntactic spellings, all producing identical AST and
+// lowering to the same stdlib polynomial body.
+//
+//    NOT:  ! ~      not (case-insensitive)
+//    AND:  & &&     and (case-insensitive)
+//    NAND: —        nand (case-insensitive)
+//    OR:   | ||     or (case-insensitive)
+//    XOR:  —        xor (case-insensitive)
+//    XNOR: —        xnor / iff (case-insensitive)
+//
+// Each function below returns a fuzzy value on the truth axis.
+
+// NOT — three spellings, all equivalent.
+function fuzzy not_via_bang(fuzzy a) { return !a; }
+function fuzzy not_via_tilde(fuzzy a) { return ~a; }
+function fuzzy not_via_keyword(fuzzy a) { return not a; }
+function fuzzy not_via_keyword_caps(fuzzy a) { return NOT a; }
+
+// AND — three spellings.
+function fuzzy and_double_amp(fuzzy a, fuzzy b) { return a && b; }
+function fuzzy and_single_amp(fuzzy a, fuzzy b) { return a & b; }
+function fuzzy and_keyword(fuzzy a, fuzzy b) { return a and b; }
+
+// NAND — single keyword form.
+function fuzzy nand_keyword(fuzzy a, fuzzy b) { return a nand b; }
+
+// OR — three spellings.
+function fuzzy or_double_pipe(fuzzy a, fuzzy b) { return a || b; }
+function fuzzy or_single_pipe(fuzzy a, fuzzy b) { return a | b; }
+function fuzzy or_keyword(fuzzy a, fuzzy b) { return a or b; }
+
+// XOR — single keyword form.
+function fuzzy xor_keyword(fuzzy a, fuzzy b) { return a xor b; }
+
+// XNOR / IFF — two spellings.
+function fuzzy xnor_keyword(fuzzy a, fuzzy b) { return a xnor b; }
+function fuzzy iff_keyword(fuzzy a, fuzzy b) { return a iff b; }
+
+// Identifiers named `Iff`, `Nand`, etc. still work — the keywords
+// are CONTEXTUAL (only recognized in operator position).
+function fuzzy Iff(fuzzy a, fuzzy b) {
+    return a iff b;
+}
