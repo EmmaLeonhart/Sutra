@@ -167,7 +167,7 @@ Sutra recognizes Python-style comparison chains and reduces them to named operat
 | `a > b > c` | `hasOrder(c, b, a)` *(args reversed — reduction is always-ascending)* |
 | `a <= b <= c` | `hasOrderOrEqual(a, b, c)` |
 | `a >= b >= c` | `hasOrderOrEqual(c, b, a)` |
-| `a == b > c == d > e` | `OrderedEquals(a, b, c, d, e)` *(reserved — codegen rejects, semantics not yet wired)* |
+| `a == b > c == d > e` | `hasOrder(e, Equals(c, d), Equals(a, b))` *(equality groups inlined as nested `Equals(...)` args; codegen rejects nested form for now, but the parser-level shape is locked in)* |
 | `a != b == c > d` | `(a != b) && (b == c) && (c > d)` *(any chain with `!=`, or otherwise mixed → AND-chain fallback)* |
 
 Reductions:
@@ -175,7 +175,7 @@ Reductions:
 - `Equals(a, b, c, ...)` → fuzzy AND of `_VSA.eq(a, b)` between each adjacent pair.
 - `hasOrder(a, b, c, ...)` → fuzzy AND of `_VSA.gt(b, a)` between each adjacent pair (since `a < b` is `b > a` on the runtime).
 - `hasOrderOrEqual(...)` → currently identical to `hasOrder` because the K3-tanh `<=` collapses to `<` (both produce `tanh(0) = 0` on exact ties); when a real non-strict semantics lands the body switches.
-- `OrderedEquals(...)` is **reserved**. The parser emits the call so the syntax is recognized, but the codegen rejects with `CodegenNotSupported`. The eventual semantics is "equality groups separated by uniform-direction ordering" — i.e. for `a == b > c == d > e`, the groups `{a, b}` and `{c, d}` and `{e}` are each internally equal and the groups are in strict descending order.
+- For chains mixing `==` with uniform-direction ordering (e.g. `a == b > c == d > e`), the parser builds `hasOrder` (or `hasOrderOrEqual`) with each equality group inlined as a nested `Equals(...)` call. The example reduces to `hasOrder(e, Equals(c, d), Equals(a, b))`. Note the "weird programming concept" this introduces: `Equals` returns a fuzzy truth value at top level, but as a positional arg inside `hasOrder` it represents the equality group itself — same call name, different role by context. The codegen rejects the nested form today (the group-expansion semantics — chain-AND with cross-group ordering plus internal group equality — isn't wired yet). The parser-level reduction is locked in so a future codegen pass can implement it without breaking source.
 
 This is parser-level sugar — the `+`, `-`, `*`, etc. arithmetic operators continue to bind tighter than comparisons (so `a + 1 == b + 2 == c` works as expected).
 
