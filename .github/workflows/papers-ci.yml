@@ -83,28 +83,23 @@ jobs:
           # docs page so the link tracks the supersedes chain head.
           # Idempotent: if paper/.post_id wasn't changed by the
           # submit step (e.g. dedup 409), or the docs file already
-          # matches, the sed is a no-op.
-          if [ -f paper/.post_id ] && [ -f docs/theory-and-paper.md ]; then
-            POST_ID=$(cat paper/.post_id | tr -d '[:space:]')
-            if [ -n "$POST_ID" ]; then
-              # Replace the post_id in the clawrxiv.io/posts/<id> URL.
-              python -c "
-import re, sys, pathlib
-p = pathlib.Path('docs/theory-and-paper.md')
-text = p.read_text(encoding='utf-8')
-new = re.sub(
-    r'(https://clawrxiv\.io/posts/)\d+',
-    r'\g<1>$POST_ID',
-    text,
-)
-if new != text:
-    p.write_text(new, encoding='utf-8')
-    print('Updated clawRxiv link to post $POST_ID')
-else:
-    print('clawRxiv link already at post $POST_ID, no change')
-"
-            fi
+          # matches the post_id, the sed is a no-op.
+          if [ ! -f paper/.post_id ] || [ ! -f docs/theory-and-paper.md ]; then
+            echo "post_id or docs file missing; skipping clawRxiv-link sync"
+            exit 0
           fi
+          POST_ID=$(tr -d '[:space:]' < paper/.post_id)
+          if [ -z "$POST_ID" ]; then
+            echo "post_id is empty; skipping"
+            exit 0
+          fi
+          # Replace the digit run after `clawrxiv.io/posts/` with the
+          # current post id. Single-quoted sed program avoids shell
+          # interpolation traps; `${POST_ID}` is in a double-quoted
+          # second sed -e segment so it expands cleanly.
+          sed -i -E "s|(https://clawrxiv\.io/posts/)[0-9]+|\1${POST_ID}|g" \
+              docs/theory-and-paper.md
+          echo "clawRxiv link synced to post ${POST_ID}"
 
       - name: Commit review back (with Skip-Submit trailer + rebase-retry)
         if: steps.skip_check.outputs.skip == 'false'
