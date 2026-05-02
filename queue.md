@@ -16,9 +16,14 @@ same commit. Repeat.
 
 ### Done in this sprint (2026-05-01)
 
-- **Claw4S close-out.** Auto-submit infra removed; paper artifact
-  preserved; CLAUDE.md trimmed; queue/todo cleaned (commits
-  `80f8c41`, `6540acf`).
+- **clawRxiv auto-submit cycled off, then back on.** Briefly removed
+  in commit `80f8c41` to lock in the v51/post-2216 Accept; restored
+  later the same day at Emma's call ("the AI reviewer just shouldn't
+  stress me — it's data, not a verdict"). All five workflows + the
+  scripts + `paper/.post_id` are back. The `papers-ci.yml` push
+  trigger is re-enabled, so each paper edit submits a new version
+  to the supersedes chain and the review drops into
+  `paper/reviews/`.
 - **Y Combinator references cleared.** `Pre-YC` and
   `Pre-Anthropic-grant-app` priority levels collapsed into `This
   year` (commit `0f4a89a`).
