@@ -285,19 +285,14 @@ The four core technical contributions of this paper are:
    pass is chained matmuls; nobody calls that constant folding,
    even though every weight is constant. The matrices *are* the
    computation, not an optimization of it. Sutra extends this to
-   arbitrary programs: the compilation step produces the weight
-   structure, execution is the forward pass, and the reason it
-   does not feel like constant folding is that there is no
-   "un-folded" version lurking underneath. Matrix operations are
-   not an optimization applied to some more primitive semantics
-   — they are the ground level. In the limiting sense, TNF is
-   the *most* constant-folded a program can be: compile-time
-   work has consumed the entire computational model, leaving
-   only linear algebra. Whether one calls that "still constant
-   folding" or "no longer constant folding" is a matter of
-   taste; what the paper claims is the construction, the
-   primitives, and that the construction reaches that limit on
-   real programs.
+   arbitrary programs: compilation produces the weight
+   structure, execution is the forward pass, and there is no
+   "un-folded" version lurking underneath — matrix operations
+   are the ground level, not an optimization applied to some
+   more primitive semantics. In the limiting sense, TNF is the
+   *most* constant-folded a program can be: compile-time work
+   has consumed the entire computational model, leaving only
+   linear algebra.
 
 3. **Tail recursion as the loop primitive, with no in-graph
    control flow and O(1) state vector width in recursion depth.**
@@ -432,18 +427,6 @@ it. This is the literal connection §3 builds toward: not LLM
 compatibility per se, but neural-network-as-substrate
 compatibility, with frozen LLMs as one well-tooled instance.
 
-The compile-time codebook makes the substrate dependency
-explicit: every embedded string in the source is materialized
-into a `.sdb` file at compile time using the manifest-declared
-substrate, and the `.sdb` ships alongside the compiled module.
-Re-running on the same `.sdb` produces bit-identical output.
-Re-running on a fresh `.sdb` from a different substrate
-produces output keyed to that substrate's geometry. There is
-no implicit dependency on a specific model version; the
-dependency is the manifest and the `.sdb`, which together pin
-the architecture target as deterministically as a CPU triple
-pins a binary.
-
 ---
 
 ## 2. Related Work
@@ -490,31 +473,11 @@ is the construction that compiles a separate source language to
 the same primitive set with no host-side residue, which TorchHD
 is not designed to do.
 
-A second axis on which the two systems differ, and where to the
-authors' knowledge Sutra is uniquely positioned within the broader
-HDC ecosystem, is **string I/O**. TorchHD and other HDC libraries
-expose the algebra over user-supplied hypervectors: the user
-constructs random or hash-derived vectors for whatever they want
-to represent, maintains a `dict[str, hypervector]` mapping by
-hand, and decodes by cosine similarity against a manually
-assembled codebook tensor. There is no built-in path from external
-strings into the substrate or from the substrate back to strings.
-Sutra's compile-time codebook (§3.4) closes that loop: every
-embedded string in `.su` source is embedded once at compile time
-via the configured frozen LLM (e.g. `nomic-embed-text`, 768-d) and
-stored in the project's `.sdb` codebook, and the runtime
-`nearest_string` operation is the inverse — given any vector, it
-returns the nearest known label. The frozen LLM embedding is
-load-bearing for this: it is what gives the compile-time codebook
-a deterministic, reproducible, and dense-enough mapping for
-nearest-neighbor decode to be practical. Replacing the embedding
-with random hypervectors would still yield a working VSA algebra
-but would have no I/O story — strings would have no canonical
-mapping to vectors and decoding would have nowhere to look up
-labels. To the authors' knowledge, Sutra is the only HDC
-implementation that ships an end-to-end string-in / string-out
-path as a built-in compiler concern rather than as user-supplied
-boilerplate.
+A second axis where the two systems differ is **string I/O**
+(see §1.2 contribution 5): TorchHD users maintain a
+`dict[str, hypervector]` mapping and a codebook tensor by hand,
+whereas Sutra's compile-time `.sdb` codebook (§3.4) closes the
+string-in / string-out loop in the compiler.
 
 A side-by-side comparison concretizes the difference. The same
 role-filler-record task — encode a 3-field record (name, color,
@@ -1037,14 +1000,6 @@ per-call iteration at trace time, but the language semantics do
 not require that fusion: the default runtime is a Python loop
 calling normal-form bodies until convergence.
 
-(The recurrent computational substrate that emerges from this
-construction is the same shape Siegelmann & Sontag (1992)
-analyzed when they showed recurrent neural networks with rational
-weights can compute any Turing-machine-computable function. We
-mention this for completeness — the result is well-established
-and assumed for any general-purpose programming language; we do
-not lean on it as a contribution.)
-
 **Constant memory in recursion depth.** The state vector the
 loop body updates is fixed-width: `[semantic | synthetic]`,
 total dimensionality set at compile time and unchanged across
@@ -1387,7 +1342,7 @@ persistent codebook across runs via `SUTRA_DB_PATH`) are
 deferred until there is a concrete requirement beyond the
 current demonstration corpus.
 
-### 6.4 Numpy backend retirement
+### 6.3 Numpy backend retirement
 
 The compiler has historically had two backends; the numpy one
 (`codegen.py`) is deprecated. Behavior tests run on PyTorch; the
@@ -1468,11 +1423,6 @@ programs to write rather than scripts to glue together.
   Networks into Answer Set Programming. *IJCAI*.
 - Plate, T. A. (1995). Holographic reduced representations. *IEEE
   Transactions on Neural Networks* 6(3):623–641.
-- Siegelmann, H. T. & Sontag, E. D. (1992). On the computational
-  power of neural nets. *COLT '92*. Establishes that recurrent
-  neural networks with rational weights are Turing-complete; the
-  result Sutra inherits via tail-recursive loops over a
-  fixed-width state vector.
 - Smolensky, P. (1990). Tensor product variable binding and the
   representation of symbolic structures in connectionist systems.
   *Artificial Intelligence* 46(1–2):159–216.
