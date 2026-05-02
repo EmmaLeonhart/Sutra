@@ -635,5 +635,117 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         self.assertNotIn("def VSA_zero_vector", py)
 
 
+class TestLogicalConnectives(unittest.TestCase):
+    """All logical connectives lower to stdlib polynomial bodies.
+
+    Coverage (Emma 2026-05-01 list):
+      NOT:  ! ~ not (case-insensitive)
+      AND:  & && and (case-insensitive)
+      OR:   | || or (case-insensitive)
+      NAND: nand (case-insensitive)
+      XOR:  xor (case-insensitive)
+      XNOR: xnor iff (case-insensitive)
+    """
+
+    def _expect_inlined(self, src: str, expected_substring: str) -> None:
+        """Compile and assert the emitted Python contains a substring
+        characteristic of the polynomial form (i.e. the inliner ran
+        and the call to logical_X is gone)."""
+        py = _compile(src)
+        self.assertIn(expected_substring, py)
+        # No bare logical_X call should remain — they should all
+        # have been inlined to the polynomial body.
+        for fn in (
+            "logical_not", "logical_and", "logical_or",
+            "logical_nand", "logical_xor", "logical_xnor",
+        ):
+            self.assertNotIn(f"_VSA.{fn}(", py, msg=f"{fn} not inlined")
+
+    def test_not_via_bang(self):
+        src = "function fuzzy main() { fuzzy a = unknown; return !a; }"
+        self._expect_inlined(src, "(0 - a)")
+
+    def test_not_via_tilde(self):
+        src = "function fuzzy main() { fuzzy a = unknown; return ~a; }"
+        self._expect_inlined(src, "(0 - a)")
+
+    def test_not_via_keyword_lowercase(self):
+        src = "function fuzzy main() { fuzzy a = unknown; return not a; }"
+        self._expect_inlined(src, "(0 - a)")
+
+    def test_not_via_keyword_uppercase(self):
+        src = "function fuzzy main() { fuzzy a = unknown; return NOT a; }"
+        self._expect_inlined(src, "(0 - a)")
+
+    def test_and_via_double_amp(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a && b; }"
+        py = _compile(src)
+        # AND polynomial includes a*b*a*b
+        self.assertIn("0.5", py)
+
+    def test_and_via_single_amp(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a & b; }"
+        py = _compile(src)
+        self.assertIn("0.5", py)
+
+    def test_and_via_keyword(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a AND b; }"
+        py = _compile(src)
+        self.assertIn("0.5", py)
+
+    def test_or_via_double_pipe(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a || b; }"
+        py = _compile(src)
+        self.assertIn("0.5", py)
+
+    def test_or_via_single_pipe(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a | b; }"
+        py = _compile(src)
+        self.assertIn("0.5", py)
+
+    def test_or_via_keyword(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a or b; }"
+        py = _compile(src)
+        self.assertIn("0.5", py)
+
+    def test_xor_via_keyword(self):
+        # XOR polynomial: -a*b
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a xor b; }"
+        py = _compile(src)
+        self.assertIn("(0 - (a * b))", py)
+
+    def test_xnor_via_keyword(self):
+        # XNOR polynomial: a*b
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a xnor b; }"
+        py = _compile(src)
+        self.assertIn("(a * b)", py)
+
+    def test_iff_alias_for_xnor(self):
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a iff b; }"
+        py = _compile(src)
+        self.assertIn("(a * b)", py)
+
+    def test_nand_via_keyword(self):
+        # NAND = !AND, so the emitted form should have a negation
+        # over the AND polynomial.
+        src = "function fuzzy main(fuzzy a, fuzzy b) { return a nand b; }"
+        py = _compile(src)
+        self.assertIn("0 -", py)
+        self.assertIn("0.5", py)
+
+    def test_iff_identifier_still_works(self):
+        # `Iff` is contextual — it lexes as IDENT, so a function named
+        # `Iff` still parses correctly. The keyword form `iff` only
+        # gets recognized in expression position by the parser.
+        src = (
+            "function fuzzy Iff(fuzzy a, fuzzy b) {\n"
+            "  return (a iff b);\n"
+            "}\n"
+        )
+        # Just making sure compilation doesn't raise.
+        py = _compile(src)
+        self.assertIn("def Iff(", py)
+
+
 if __name__ == "__main__":
     unittest.main()
