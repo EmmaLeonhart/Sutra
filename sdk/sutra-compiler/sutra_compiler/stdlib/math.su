@@ -19,9 +19,10 @@
 //     `codegen_base.py` (`_TRANSCENDENTALS_DISABLED` set).
 //
 // Documentation of what was tried and what failed:
-//   - chats/implementing-transcendental-functions.md — the original
-//     design conversation (bound-table-via-binding, eigenrotation
-//     hopes, etc.).
+//   - todo.md § "Transcendental functions — design absorbed from
+//     voice chat" — the design absorbed from the original
+//     conversation: two primitives (`exp`, `ln`) backed by lookup
+//     tables, everything else beta-reduces.
 //   - planning/findings/2026-04-29-bound-table-capacity-limit.md —
 //     why the bound-table architecture doesn't work for non-periodic
 //     functions (Gibbs phenomenon, 2-scalar bundle capacity).

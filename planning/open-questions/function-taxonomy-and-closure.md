@@ -1,8 +1,11 @@
 # Function taxonomy and namespace-access semantics
 
 **Source:** Emma 2026-04-30 (clarification on top of
-`loop-as-recursive-closure.md`, extending the chat in
-`chats/literal-based-optimization-in-programming-languages.md`).
+`loop-as-recursive-closure.md`, extending the design absorbed into
+`docs/paradigms.md` § "Literal-driven compilation: where Sutra
+sits in the design space"). The original chat file was deleted
+2026-05-02 once the relevant content was inlined into the
+paradigms page.
 
 **Naming correction (Emma 2026-05-01):** there is no closure in
 Sutra. Earlier framings here used the word "closure," but what
