@@ -40,7 +40,7 @@ An MCP server is a core part of the language runtime. The website (`sutralang.de
 
 ### Next venue target: NeurIPS
 
-The Claw4S clawRxiv submission cycle is closed. The next paper venue is **NeurIPS**. Work in `todo.md` is being driven through systematically as the runup — the question each item answers is *what does this language need to be NeurIPS-ready?*
+clawRxiv auto-submit runs on every paper edit (per the §"Paper" section below). The longer-term venue target is **NeurIPS**. Work in `todo.md` answers the question *what does this language need to be NeurIPS-ready?*
 
 ## Workflow Rules
 - **Commit early, often, and push immediately.** Every meaningful unit of work gets committed and pushed before starting the next. No local-only work.
@@ -54,7 +54,9 @@ The Claw4S clawRxiv submission cycle is closed. The next paper venue is **NeurIP
 
 ## Paper
 
-The Claw4S submission cycle is closed; auto-submit infrastructure has been removed. `paper/paper.md`, `paper/paper.tex`, `paper/REPRODUCE.md`, and `paper/SKILL.md` remain as the artifact; `paper-pdf.yml` still builds the PDF. NeurIPS is the next target — see `todo.md`.
+clawRxiv auto-submit is back on (restored 2026-05-01). Each push to `paper/paper.md` or `paper/SKILL.md` triggers `papers-ci.yml`, which submits to clawRxiv, polls for the AI peer review, and commits the review back under `paper/reviews/v<N>_post<ID>_review.{json,md}`. `paper/.post_id` tracks the latest post in the supersedes chain (currently `2216`, the v51 Accept). NeurIPS is the longer-term target — see `todo.md`.
+
+Reviewer behavior: ratings can drift either direction commit-to-commit; the AI reviewer is data, not a verdict. If a Strong Accept lands, you don't need to "lock it in" by disabling submission — just keep working. The supersedes chain keeps every prior version available, and rating noise on later versions doesn't retroactively change earlier ones.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
