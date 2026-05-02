@@ -1,0 +1,41 @@
+// Sutra tensor operations — general-purpose linear algebra.
+//
+// Per Emma 2026-05-01: bind/unbind/bundle/similarity are
+// VSA-specific; this file demonstrates the *general* tensor
+// primitives the language exposes on top of the runtime
+// (numpy/torch).
+//
+// Both PascalCase and snake_case names are accepted; both forms
+// route to the same _VSA runtime method. Either style works:
+//
+//     vector y = Tensor.MatrixMul(M, x);    // preferred
+//     vector y = Tensor.matmul(M, x);       // also works
+
+// MatrixMul — matrix-vector multiply for the 2-D-times-1-D case.
+// In a real program M would come from a learned matrix or a
+// rotation primitive; here we just want to demonstrate the call.
+function vector matvec(vector M, vector x) {
+    return Tensor.MatrixMul(M, x);
+}
+
+// TensorProduct — Kronecker product. Two 1-D vectors produce a
+// 1-D result of length n*m holding every pairwise product.
+function vector kron_demo(vector a, vector b) {
+    return Tensor.TensorProduct(a, b);
+}
+
+// Outer — vector outer product. Two 1-D vectors of lengths n, m
+// produce a 2-D matrix of shape (n, m).
+function vector outer_demo(vector a, vector b) {
+    return Tensor.Outer(a, b);
+}
+
+// Dot — inner product, scalar result. Same as `Tensor.dot(a, b)`.
+function scalar dot_demo(vector a, vector b) {
+    return Tensor.Dot(a, b);
+}
+
+// Transpose — row/column swap. Identity on 1-D input.
+function vector transpose_demo(vector m) {
+    return Tensor.Transpose(m);
+}
