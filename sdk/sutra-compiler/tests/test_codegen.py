@@ -755,7 +755,7 @@ class TestChainedComparisons(unittest.TestCase):
         a > b > c          -> hasOrder(c, b, a)
         a <= b <= c        -> hasOrderOrEqual(a, b, c)
         a >= b >= c        -> hasOrderOrEqual(c, b, a)
-        a == b > c == d    -> ComplexTransitive(...)  [reserved, throws]
+        a == b > c == d    -> OrderedEquals(...)  [reserved, throws]
     Anything with `!=` or fully mixed falls back to AND-chain.
     """
 
@@ -793,7 +793,7 @@ class TestChainedComparisons(unittest.TestCase):
         self.assertIn("_VSA.gt(b, c)", py)
         self.assertIn("_VSA.gt(a, b)", py)
 
-    def test_complex_transitive_reserved_throws_at_codegen(self):
+    def test_ordered_equals_reserved_throws_at_codegen(self):
         from sutra_compiler.codegen_base import CodegenNotSupported
         src = (
             "function fuzzy main(fuzzy a, fuzzy b, fuzzy c, fuzzy d, fuzzy e) {\n"
@@ -802,7 +802,7 @@ class TestChainedComparisons(unittest.TestCase):
         )
         with self.assertRaises(CodegenNotSupported) as ctx:
             _compile(src)
-        self.assertIn("ComplexTransitive", str(ctx.exception))
+        self.assertIn("OrderedEquals", str(ctx.exception))
 
     def test_neq_in_chain_falls_back_to_and_chain(self):
         # a != b == c -> (a != b) && (b == c) — AND-chain expansion,

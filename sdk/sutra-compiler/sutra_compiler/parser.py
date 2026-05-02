@@ -1587,7 +1587,7 @@ class Parser:
         #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
         #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
         #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [args reversed]
-        #   a == b > c == d > e   -> ComplexTransitive(a, b, c, d, e) [reserved]
+        #   a == b > c == d > e   -> OrderedEquals(a, b, c, d, e) [reserved]
         # Anything else (chains with `!=`, or other mixed combinations)
         # falls back to the AND-chain expansion.
         span = SourceSpan(
@@ -1633,7 +1633,7 @@ class Parser:
                 span=span,
             )
         # Mixed `==` + uniform-direction ordering — the
-        # ComplexTransitive case. Direction must be consistent (all
+        # OrderedEquals case. Direction must be consistent (all
         # ascending OR all descending) and `!=` must not appear.
         ordering_ops = {"<", "<=", ">", ">="}
         if "!=" not in op_set and op_set.issubset({"=="} | ordering_ops):
@@ -1642,14 +1642,14 @@ class Parser:
             present_ordering = op_set & ordering_ops
             if present_ordering and present_ordering.issubset(ascending):
                 return ast.Call(
-                    callee=ast.Identifier(name="ComplexTransitive", span=span),
+                    callee=ast.Identifier(name="OrderedEquals", span=span),
                     type_args=[],
                     args=operands,
                     span=span,
                 )
             if present_ordering and present_ordering.issubset(descending):
                 return ast.Call(
-                    callee=ast.Identifier(name="ComplexTransitive", span=span),
+                    callee=ast.Identifier(name="OrderedEquals", span=span),
                     type_args=[],
                     args=list(reversed(operands)),
                     span=span,
