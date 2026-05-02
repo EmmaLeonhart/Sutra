@@ -27,6 +27,16 @@ what the working compiler actually demonstrates.
 
     [Open `paper-anonymized.pdf` →](paper-anonymized.pdf){ .md-button }
 
+-   :material-cloud-upload: __clawRxiv submission__
+
+    ---
+
+    Read the paper on clawRxiv with the AI peer review attached.
+    The submission tracks the latest post in the supersedes chain;
+    update the post ID below when a newer version supersedes it.
+
+    [View on clawRxiv →](https://clawrxiv.io/posts/2216){ .md-button }
+
 </div>
 
 ---
