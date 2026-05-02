@@ -1,4 +1,4 @@
-# Sutra: A Programming Language for Vector-Symbolic Computation in Vector Embedding Spaces
+# Sutra: Compiling Lambda Calculus to a Recurrent Neural Network
 
 
 
@@ -20,8 +20,8 @@ protein-language-model embeddings, with the same characteristic
 rotation-vs-Hadamard separation in every case. Sutra is a
 working compiler: parser, type checker, codegen, runtime,
 embedded SutraDB codebook, opt-in `torch.compile` wrapping. The
-example corpus is a 13-program smoke test (with 23 `.su` files
-total), and 237 passing unit tests. We report honest negative
+example corpus is a 10-program smoke test (with 27 `.su` files
+total), and 276 passing unit tests. We report honest negative
 results alongside the positive ones — most notably the §3.1.1
 crosstalk analysis, which scopes the rotation-binding capacity
 claim to single-cycle records, and we close with §3.6, which
@@ -1279,16 +1279,23 @@ to tensor normal form works in practice.
 
 ## 5. Demonstration Programs
 
-The smoke test (`examples/_smoke_test.py`) runs 13 demonstration
+The smoke test (`examples/_smoke_test.py`) runs 10 demonstration
 programs end-to-end against the compiler+runtime pipeline; the
-full `examples/` directory holds 23 `.su` files including legacy
-syntax tours and feature demos. The 13 smoke-tested programs are:
-hello-world, fuzzy branching, role-filler record, classifier,
-analogy, knowledge graph, predicate lookup, fuzzy dispatch,
-nearest-phrase retrieval, sequence reduction, loop rotation,
-concept search, and counter loop. Each exercises a different part
-of the language; the subsections below describe four canonical
-examples in detail.
+full `examples/` directory holds 27 `.su` files including
+class-as-namespace demos, the operator-spelling tour, the tensor-
+op transparency walkthrough, and feature exercises. The 10
+smoke-tested programs are: hello-world, fuzzy branching,
+role-filler record, classifier, analogy, knowledge graph,
+predicate lookup, fuzzy dispatch, nearest-phrase retrieval, and
+sequence reduction. Loop coverage moved out of the smoke-test
+asserted set when the C-style `loop (cond) { body }` surface was
+retired in favor of the declared-function loop forms (`do_while`
+NAME, `while_loop` NAME, `iterative_loop` NAME, `foreach_loop`
+NAME); it now lives in `examples/do_while_adder.su` plus the
+`test_loop_function_decl.py` test suite (23 tests). Each
+remaining smoke-tested program exercises a different part of the
+language; the subsections below describe four canonical examples
+in detail.
 
 ### 5.1 Hello world
 
