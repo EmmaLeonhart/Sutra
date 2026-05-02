@@ -367,7 +367,25 @@ class BaseCodegen:
     def translate(self, module: ast.Module) -> str:
         self._emit_prelude()
         self._emit()
-        # Pre-pass: register every class's method names so call sites
+        # Pre-pass A: pull in stdlib class intrinsics (e.g.
+        # `Tensor.MatrixMul`, `Tensor.matmul`, etc.) so namespaced
+        # stdlib calls dispatch to `_VSA.<name>` even though the
+        # stdlib class isn't declared in the user's module AST.
+        try:
+            from .stdlib_loader import stdlib_class_intrinsic_methods
+            for cls_name, method_names in stdlib_class_intrinsic_methods().items():
+                self._class_static_methods.setdefault(
+                    cls_name, set()
+                ).update(method_names)
+                self._class_intrinsic_methods.setdefault(
+                    cls_name, set()
+                ).update(method_names)
+        except Exception:
+            # If stdlib loading fails for any reason, fall back to
+            # user-class-only dispatch. Stdlib failures show up
+            # elsewhere with clearer diagnostics.
+            pass
+        # Pre-pass B: register every class's method names so call sites
         # can dispatch even when the class declaration comes after the
         # calling function in the file. Static methods land in
         # _class_static_methods (intrinsic ones also in

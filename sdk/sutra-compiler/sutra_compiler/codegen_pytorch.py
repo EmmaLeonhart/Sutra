@@ -760,6 +760,50 @@ class PyTorchCodegen(Codegen):
         self._emit("return float(_torch.dot(a, b) / (na * nb + _torch.finfo(self.dtype).tiny))")
         self._indent -= 1
         self._emit()
+        # General-purpose tensor operations — see codegen.py for the
+        # numpy-backend equivalent and stdlib/tensor.su for the Sutra
+        # surface (`Tensor.MatrixMul` etc.).
+        self._emit("def matmul(self, a, b):")
+        self._indent += 1
+        self._emit('"""Matrix multiplication (torch matmul / `a @ b`)."""')
+        self._emit("return _torch.matmul(a, b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tensor_product(self, a, b):")
+        self._indent += 1
+        self._emit('"""Tensor / Kronecker product."""')
+        self._emit("return _torch.kron(a, b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def outer(self, a, b):")
+        self._indent += 1
+        self._emit('"""Vector outer product → rank-2 tensor."""')
+        self._emit("return _torch.outer(a, b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def dot(self, a, b):")
+        self._indent += 1
+        self._emit('"""Inner / dot product → scalar."""')
+        self._emit("return float(_torch.dot(a, b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def transpose(self, m):")
+        self._indent += 1
+        self._emit('"""Transpose (last two dims for 2-D+; identity for 1-D)."""')
+        self._emit("if m.ndim < 2:")
+        self._indent += 1
+        self._emit("return m")
+        self._indent -= 1
+        self._emit("return _torch.transpose(m, -2, -1)")
+        self._indent -= 1
+        self._emit()
+        # PascalCase aliases — Emma's preferred Sutra-side spelling.
+        self._emit("MatrixMul = matmul")
+        self._emit("TensorProduct = tensor_product")
+        self._emit("Outer = outer")
+        self._emit("Dot = dot")
+        self._emit("Transpose = transpose")
+        self._emit()
         self._emit("# ---- Vector component accessors (debugging / teaching) ----")
         self._emit()
         self._emit("def component(self, v, i):")
