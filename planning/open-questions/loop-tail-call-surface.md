@@ -1,9 +1,10 @@
 # Loop tail-call surface (`return NAME(args)` as `pass` alternative)
 
-**Source:** Emma 2026-04-30, originally explored in
-`chats/literal-based-optimization-in-programming-languages.md`
-(framed as "closure-loop"), then narrowed into the actual design
-the user wanted.
+**Source:** Emma 2026-04-30, originally explored as "closure-loop"
+in a voice chat (now absorbed into `docs/paradigms.md` §
+"Literal-driven compilation: where Sutra sits in the design
+space"; the original chat file was deleted 2026-05-02), then
+narrowed into the actual design the user wanted.
 
 **Status:** **shipped** as of 2026-04-30. Surface implemented in
 codegen_base.py; 23/23 loop tests pass on the PyTorch backend

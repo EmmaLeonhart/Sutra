@@ -3,8 +3,10 @@
 **Date:** 2026-04-29
 **Author:** Claude (Sonnet) under Emma's direction
 **Experiment:** `experiments/bound_table_transcendentals.py`
-**Context:** Implementing exp/ln/sin/cos in Sutra per the design in
-`chats/implementing-transcendental-functions.md` (2026-04-29).
+**Context:** Implementing exp/ln/sin/cos in Sutra per the design
+absorbed into `todo.md` § "Transcendental functions — design
+absorbed from voice chat" (2026-04-29 chat, content moved into
+todo.md 2026-05-02 when the original chat file was deleted).
 
 ## What was tested
 
@@ -137,8 +139,10 @@ pencils out, that's an upgrade path.
 
 ## What to read if revisiting
 
-- `chats/implementing-transcendental-functions.md` — original chat
-  where the architecture was sketched.
+- `todo.md` § "Transcendental functions — design absorbed from
+  voice chat" — the absorbed design (two primitives + lookup
+  tables, beta-reduction chain). The original chat file was
+  deleted 2026-05-02 once the design was inlined.
 - This file — what was tested, what didn't work, why.
 - `experiments/bound_table_transcendentals.py` — reproducer.
 - `feedback_no_libm_shortcuts_in_math_intrinsics.md` (in memory) —
