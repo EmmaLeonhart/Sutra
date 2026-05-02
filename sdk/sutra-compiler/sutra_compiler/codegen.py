@@ -1059,6 +1059,25 @@ class Codegen(BaseCodegen):
         self._emit("return _np.transpose(m)")
         self._indent -= 1
         self._emit()
+        self._emit("def norm(self, v):")
+        self._indent += 1
+        self._emit('"""L2 norm. Scalar result."""')
+        self._emit("return float(_np.linalg.norm(v))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def normalize(self, v):")
+        self._indent += 1
+        self._emit('"""L2-normalize with an eps-guard so zero-norm input returns zero."""')
+        self._emit("n = _np.linalg.norm(v)")
+        self._emit("return v / (n + _np.finfo(_np.float64).tiny)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def rotation_for(self, role):")
+        self._indent += 1
+        self._emit('"""Cached Haar-random orthogonal rotation matrix for the role vector."""')
+        self._emit("return self._rotation_for(role)")
+        self._indent -= 1
+        self._emit()
         # PascalCase aliases — Emma's preferred Sutra-side spelling.
         # Bound at the class level so `_VSA.MatrixMul(a, b)` resolves
         # via Python's descriptor protocol and binds self correctly.
@@ -1067,6 +1086,9 @@ class Codegen(BaseCodegen):
         self._emit("Outer = outer")
         self._emit("Dot = dot")
         self._emit("Transpose = transpose")
+        self._emit("Norm = norm")
+        self._emit("Normalize = normalize")
+        self._emit("RotationFor = rotation_for")
         self._emit()
         self._emit("# ---- Vector component accessors (debugging / teaching) ----")
         self._emit("#")

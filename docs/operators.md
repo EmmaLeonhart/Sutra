@@ -188,19 +188,19 @@ Each step of the chain is a function-expansion: `^` reduces to `Pow`, `Pow` redu
 
 ---
 
-## General tensor operations
+## The leaf VSA primitives — what everything beta-reduces to
 
-Most Sutra programs use the VSA primitives below (bind / unbind / bundle / similarity), but the language also exposes general-purpose tensor algebra on the `Tensor` namespace for programs that need plain matrix multiplication, outer products, dot products, etc. These are thin wrappers over the underlying runtime (numpy or torch) — they don't have VSA-specific semantics.
+The operations below are the **bottom of the function-expansion chain**. The rest of this page lists higher-level operations (`bind`, `unbind`, `bundle`, `similarity`, `argmax_cosine`, etc.) — those are convenience names for common compositions that ultimately reduce to calls into the `Tensor` namespace defined here. The point is **transparency**: when you ask "what does `bind` actually do at the lowest level?" the answer is `MatrixMul(RotationFor(role), filler)`, and you can read that chain in the stdlib source.
 
-Both PascalCase and snake_case spellings are accepted:
+Both PascalCase and snake_case spellings are accepted; both bare-name and namespaced forms work:
 
 ```sutra
-vector y = Tensor.MatrixMul(M, x);    // preferred
-vector y = Tensor.matmul(M, x);       // also works
-vector y = MatrixMul(M, x);           // bare-name shortcut via stdlib_loader
+vector x = Tensor.MatrixMul(M, v);    // preferred
+vector x = Tensor.matmul(M, v);       // also works
+vector x = MatrixMul(M, v);           // bare-name shortcut via stdlib_loader
 ```
 
-| Operation | Sutra form | Underlying call |
+| Leaf primitive | Sutra form | Runtime |
 |---|---|---|
 | Matrix multiplication | `Tensor.MatrixMul(a, b)` / `matmul(a, b)` | `np.matmul` / `torch.matmul` |
 | Tensor / Kronecker product | `Tensor.TensorProduct(a, b)` / `tensor_product(a, b)` | `np.kron` / `torch.kron` |
@@ -208,13 +208,23 @@ vector y = MatrixMul(M, x);           // bare-name shortcut via stdlib_loader
 | Dot product (scalar result) | `Tensor.Dot(a, b)` / `dot(a, b)` | `np.dot` / `torch.dot` |
 | Transpose | `Tensor.Transpose(M)` / `transpose(M)` | `np.transpose` / `torch.transpose` |
 
-Worked example: `examples/tensor_ops.su` uses each of the five operations end-to-end. Source for the namespace declaration: `sdk/sutra-compiler/sutra_compiler/stdlib/tensor.su`.
+How the higher-level VSA names reduce:
 
-These exist because asking "Sutra has tensor ops, but how do I call them?" was an obvious gap — VSA-style operations are domain-specific (role-rotation binding, normalized superposition); general matrix/vector math is what programmers reach for first. The VSA primitives below remain the canonical operations for hyperdimensional records and nearest-match retrieval.
+```
+bind(role, filler)        -> MatrixMul(RotationFor(role), filler)
+unbind(role, record)      -> MatrixMul(Transpose(RotationFor(role)), record)
+bundle(a, b, c, ...)      -> Normalize(a + b + c + ...)
+similarity(a, b)          -> Dot(a, b) / (Norm(a) * Norm(b))
+argmax_cosine(q, [a, b, c]) -> a/b/c with the largest similarity(q, .)
+```
+
+There's nothing else underneath. Every Sutra program is some chain of these five leaf operations plus element-wise `+`, `-`, `*`, `/` and the polynomial logical-connective forms.
+
+Worked example: `examples/tensor_ops.su` calls each of the five primitives directly. Source for the namespace declaration: `sdk/sutra-compiler/sutra_compiler/stdlib/tensor.su`.
 
 ---
 
-## Vector / VSA primitives
+## Vector / VSA primitives — what reduces to the leaves above
 
 The hyperdimensional-computing core. Every operation is a tensor op on the substrate.
 

@@ -1,18 +1,28 @@
-// Canonical Sutra namespace for general-purpose tensor operations.
+// Sutra's leaf VSA primitives — the bottom of the function-expansion
+// chain.
 //
-// VSA-specific operations (`bind`, `unbind`, `bundle`, `similarity`)
-// are documented separately — those have first-class compile-time
-// roles. This file is for the *general* linear-algebra primitives
-// the language exposes on top of the underlying tensor runtime
-// (numpy on the legacy backend, torch on the canonical backend).
+// Higher-level operations like `bind`, `unbind`, `bundle`, and
+// `similarity` are NOT magical substrate calls. They beta-reduce to
+// the operations declared in this file:
 //
-// Each call routes directly to the runtime via `_VSA.<name>(...)`,
-// so the Sutra-level dispatch is one indirection over a numpy or
-// torch call.
+//     bind(role, filler)    -> MatrixMul(RotationFor(role), filler)
+//     unbind(role, record)  -> MatrixMul(Transpose(RotationFor(role)), record)
+//     bundle(a, b, c, ...)  -> Normalize(a + b + c + ...)
+//     similarity(a, b)      -> Dot(a, b) / (Norm(a) * Norm(b))
 //
-// Both PascalCase and snake_case names are exposed (Emma 2026-05-01:
-// PascalCase is more readable for these tensor verbs). Either form
-// works:
+// The point of this file is **transparency**. When a programmer asks
+// "what does `bind` actually do at the lowest level?" — the answer
+// is `MatrixMul(RotationFor(role), filler)` and they can verify that
+// by reading the source here. Same for `bundle` (vector add +
+// normalize), `similarity` (dot / norm), and so on.
+//
+// These ARE the VSA primitives. Every other operation in the
+// language reduces to a chain of calls to these. The bind /
+// unbind / bundle / similarity operations are convenience names
+// for common compositions; the actual computational substrate is
+// matmul + tensor product + outer + dot + transpose.
+//
+// Both PascalCase and snake_case names are exposed:
 //
 //     vector x = Tensor.MatrixMul(M, v);   // preferred
 //     vector x = Tensor.matmul(M, v);      // also works
@@ -53,4 +63,20 @@ class Tensor extends vector {
     // "column" distinction at rank-1).
     static intrinsic method vector Transpose(vector m);
     static intrinsic method vector transpose(vector m);
+
+    // L2 norm of a vector. Scalar result.
+    static intrinsic method scalar Norm(vector v);
+    static intrinsic method scalar norm(vector v);
+
+    // L2 normalization. Returns v / Norm(v) with an eps-guard to
+    // make the zero-norm case behave (returns zero, no NaN).
+    static intrinsic method vector Normalize(vector v);
+    static intrinsic method vector normalize(vector v);
+
+    // Cached rotation matrix for a role vector. The role-vector hash
+    // keys a Haar-random orthogonal rotation in the semantic block
+    // (identity in the synthetic block) — the substrate's binding
+    // operator. Same role always produces the same rotation.
+    static intrinsic method vector RotationFor(vector role);
+    static intrinsic method vector rotation_for(vector role);
 }
