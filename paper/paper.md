@@ -219,6 +219,46 @@ The four core technical contributions of this paper are:
    programmer write the obvious form, and the runtime executes
    the minimal one.
 
+   **Reduction chain — the same idea for VSA primitives.** Every
+   surface operation has a function-expansion form that bottoms
+   out at substrate primitives. The compiler can read this chain
+   end-to-end, and the user can read it too — either as
+   transparency into what `bind` actually computes, or as an
+   explicit alternative spelling.
+
+   ```
+       user code:    bundle(bind(role_a, filler_a),
+                            bind(role_b, filler_b))
+                                |
+                                |  inliner: bind / bundle have stdlib defns
+                                v
+                     normalize(  RotationFor(role_a) @ filler_a
+                               + RotationFor(role_b) @ filler_b )
+                                |
+                                |  fusion: bundle-of-binds peephole
+                                v
+                       _VSA.bundle_of_binds(
+                            (role_a, filler_a),
+                            (role_b, filler_b))
+                                |
+                                |  runtime: stack rotations, batched einsum,
+                                |          L2 normalize
+                                v
+                       leaf tensor ops:
+                            torch.matmul, torch.linalg.norm,
+                            element-wise add and divide.
+   ```
+
+   The leaves at the bottom of every chain are the same five-or-six
+   tensor verbs: matmul, kron, outer, dot, transpose, plus
+   element-wise add/sub/mul/div. Every higher-level operation —
+   `bind`, `unbind`, `bundle`, `similarity`, the polynomial fuzzy
+   gates, the loop cells — reduces to a chain of these. We surface
+   the leaves directly as `Tensor.MatrixMul(a, b)` /
+   `Tensor.Outer(a, b)` etc. so the user can spell the bottom of
+   the chain explicitly when they want to bypass the higher-level
+   convenience names.
+
    **Where TNF sits relative to standard compiler concepts.** A
    reasonable read of "we beta-reduce, we inline, we fold" is
    "this is just AOT compilation rebadged." The distinction we
@@ -886,6 +926,24 @@ layout: `[semantic | synthetic]`. The semantic block holds the
 LLM embedding for vector-shaped values; the synthetic block
 reserves canonical axes for primitive types and slot machinery:
 
+```
+          +-------------------------+----+----+----+----+----+----------+
+   value  | semantic block          | R  | I  | T  | C  | L  | slots... |
+          +-------------------------+----+----+----+----+----+----------+
+          |<-- semantic_dim ------->|<--- synthetic_dim ----------------|>
+                                       0    1    2    3    4    5..
+                                      REAL IMAG TRUTH CHAR LOOP_DONE
+                                                      _FLAG
+```
+
+The semantic block is the LLM embedding (frozen, mean-centered,
+L2-normalized). The synthetic block reserves canonical axes for
+the primitive types and the loop-completion flag, then 2D Givens
+planes (one slot per pair of axes) for variable storage. Default
+sizing: 768 semantic dims (nomic-embed-text) + 100 synthetic dims
+= 868 total. The 100-dim synthetic block accommodates the five
+canonical axes plus 47 disjoint Givens slots. Per-axis purposes:
+
 | Index             | Purpose                                  |
 |-------------------|------------------------------------------|
 | `synthetic[0]`    | `AXIS_REAL` (real component for int/float/complex) |
@@ -900,6 +958,14 @@ every operation is one tensor op, and the compiler can treat the
 whole program as a dataflow graph of tensor operations. There is
 no type dispatch at the leaves.
 
+Rotation binding is block-diagonal across this split: bind's
+`Q_role` is Haar-random in the semantic block and identity in the
+synthetic block, so binding only mixes semantic content and the
+canonical synthetic axes pass through bind/unbind unchanged. That
+disjointness is what lets a fuzzy-truth scalar coexist with a
+semantic vector inside the same value without bind smearing them
+into each other.
+
 ### 3.3 First-class loops as RNN cells
 
 Runtime data-dependent loops compile to **self-halting RNN
@@ -910,6 +976,45 @@ cumulative saturating sum), run the body which uses `pass values`
 state locals, then a soft-mux blends pre-step and new-step state
 weighted by the halt accumulator. The loop driver is a Python
 `while True:` that **breaks the moment `halt_cum` saturates**.
+
+```
+                 state_in (from previous tick)
+                    |
+             +------+------+
+             |             |
+             v             v
+        pre_state      cell body (pure tensor ops, no Python branches)
+        (snapshot)         |
+             |             v
+             |        new_state, halt_signal
+             |             |
+             |   +---------+
+             |   |
+             |   v
+             |  halt_cum += halt_signal     <-- saturating sum [0, 1]
+             |  (truth-axis read,
+             |   heaviside step)
+             |             |
+             |    +--------+
+             |    |
+             v    v
+            soft-mux freeze:
+              state_out = (1 - halt_cum) * new_state
+                        +     halt_cum  * pre_state
+                    |
+                    v
+        Python driver: if halt_cum saturates, break and return state_out;
+                       else feed state_out back as state_in next tick.
+```
+
+Once `halt_cum` reaches 1.0, the soft-mux output is just
+`pre_state` — the loop has frozen. The Python driver checks
+`halt_cum` once per tick and breaks when it saturates, which is
+the only host-side branch in the entire loop machinery. Inside
+the cell body, every operation is a substrate tensor op; outside
+the cell, the only host work is the boundary `halt_cum` read
+(equivalent in cost to the codebook's `nearest_string` boundary
+read in §3.4).
 There is no compile-time iteration cap and no runtime budget
 parameter — programs terminate when their halt condition fires,
 exactly the way any other programming language's `while` loop

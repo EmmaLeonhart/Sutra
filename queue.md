@@ -16,14 +16,15 @@ same commit. Repeat.
 
 ### Done in this sprint (2026-05-01)
 
-- **clawRxiv auto-submit cycled off, then back on.** Briefly removed
-  in commit `80f8c41` to lock in the v51/post-2216 Accept; restored
-  later the same day at Emma's call ("the AI reviewer just shouldn't
-  stress me — it's data, not a verdict"). All five workflows + the
-  scripts + `paper/.post_id` are back. The `papers-ci.yml` push
-  trigger is re-enabled, so each paper edit submits a new version
-  to the supersedes chain and the review drops into
-  `paper/reviews/`.
+- **Claw4S close-out + clawRxiv kept as feedback channel.** The
+  Claw4S competition is over. The clawRxiv CI/CD was briefly removed
+  in commit `80f8c41` and restored shortly after — Emma's framing:
+  "I'm keeping the CI/CD because it's a venue for feedback and
+  visibility." None of the Claw4S-specific rules (lock-in on Strong
+  Accept, dedup-bypass concerns, etc.) apply anymore. The five
+  workflows + scripts + `paper/.post_id` are restored; `papers-ci.yml`
+  push trigger is on, so each paper edit submits a new version to the
+  supersedes chain and the review drops into `paper/reviews/`.
 - **Y Combinator references cleared.** `Pre-YC` and
   `Pre-Anthropic-grant-app` priority levels collapsed into `This
   year` (commit `0f4a89a`).
