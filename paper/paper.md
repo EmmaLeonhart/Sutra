@@ -51,31 +51,11 @@ follow:
 
 This paper answers both questions in the form of a working
 programming language, **Sutra**, whose primitives are exactly
-these consolidated operations.
+these consolidated operations. The naming: **Sutra** is the
+Sanskrit *sūtra* — thread, rule, aphorism — the term for
+Pāṇini's foundational Sanskrit grammar.
 
-The naming: **Sutra** is the Sanskrit *sūtra* — thread, rule,
-aphorism — the term for Pāṇini's foundational Sanskrit grammar.
-
-### 1.1 Two contributions
-
-This paper presents two contributions:
-
-> 1. **Consolidation** of the algebraic structure of frozen
->    embedding spaces into canonical primitive forms that can be
->    composed: bind, unbind, bundle, similarity, rotation,
->    soft-halt RNN cells.
-> 2. **A programming language** whose compile target is a single
->    tensor-op graph over those primitives — the algorithms above,
->    realized as a typed, purely functional language with a working
->    compiler and runtime.
-
-The headline is the consolidation into a working algebra plus
-the language that operationalizes it. The choice of binding
-operation is an implementation concern (rotation works on the
-substrates we tested; Hadamard tends not to — see §3.1) rather
-than the contribution.
-
-### 1.2 Contributions
+### 1.1 Contributions
 
 The four core technical contributions of this paper are:
 
@@ -167,7 +147,7 @@ The four core technical contributions of this paper are:
      else b` does not become a control-flow branch in the IR. It
      becomes the polynomial `(1 + cond) / 2 · a + (1 − cond) / 2
      · b` (the soft-mux derived from the `cond` value's
-     truth-axis coordinate via the §1.2 Lagrange polynomials).
+     truth-axis coordinate via the §1.1 Lagrange polynomials).
      The compiled output has no jumps, no branches, no `if`
      opcodes — every conditional is one tensor expression. This
      is what lets PyTorch autograd backprop through symbolic
@@ -206,7 +186,7 @@ The four core technical contributions of this paper are:
    Each call evaluates a degree-≤4 polynomial at runtime — five
    kernel launches if executed naively. But the *composition* of
    those five polynomials, expanded symbolically, simplifies to
-   the closed XOR form from §1.2: `−ab`. A pattern-matching pass
+   the closed XOR form from §1.1: `−ab`. A pattern-matching pass
    in the simplifier (queued, not yet shipped) recognizes the
    composed expression and rewrites it to the single
    multiplication. This is what "aggressive" means here: not
@@ -384,11 +364,11 @@ also reports an **engineering / execution result**:
   demonstration programs in the smoke test (with 23 `.su` files
   in the `examples/` directory) exercise the end-to-end pipeline.
 
-### 1.3 What this paper is not
+### 1.2 What this paper is not
 
 This paper is not a survey of VSA binding operations; the
 contribution is *not* a new binding scheme in isolation, but the
-integration of the four primitives in §1.2 into a single typed,
+integration of the four primitives in §1.1 into a single typed,
 purely functional language with a working compiler. The
 soft-halt RNN cell is straightforward in the abstract; what is
 not straightforward is making it the loop primitive of a
@@ -398,7 +378,7 @@ deep-learning architecture paper nor a pure programming-language
 theory paper; it is the specific construction that ties the two
 together.
 
-### 1.4 The substrate is the architecture target
+### 1.3 The substrate is the architecture target
 
 A Sutra program is not "an LLM-dependent program." It is a
 program **compiled for an embedding-space architecture**, in
@@ -477,7 +457,7 @@ compiler does:
   user wrote.
 - **Sutra is a *language with a compiler*.** The user writes
   `.su` source which the compiler beta-reduces to tensor normal
-  form (§1.2-2): a single straight-line tensor-op graph with no
+  form (§1.1-2): a single straight-line tensor-op graph with no
   Python control flow. Loops are tail-recursive function
   declarations that lower to soft-halt RNN cells; conditionals
   are differentiable fuzzy interpolations rather than Python
@@ -640,7 +620,7 @@ continuous embedding space throughout, and primitives like
 end-to-end. There is no discrete symbolic layer to extract into
 or reason over. The whole program — including what would in
 Scallop be the logic program — compiles to a single fused
-tensor-op graph through beta reduction (§1.2-2). Differentiability
+tensor-op graph through beta reduction (§1.1-2). Differentiability
 is inherited from the tensor-op graph itself; there are no
 provenance semirings because there is no relational layer to
 annotate.
@@ -1430,7 +1410,7 @@ programs to write rather than scripts to glue together.
   random vectors. *Cognitive Computation* 1(2):139–159.
 - Kleene, S. C. (1952). *Introduction to Metamathematics*. North-
   Holland. The strong three-valued logic system used as the
-  ground for Sutra's polynomial fuzzy connectives (§1.2-1).
+  ground for Sutra's polynomial fuzzy connectives (§1.1-1).
 - Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013). Efficient
   estimation of word representations in vector space. *ICLR
   Workshop*.
@@ -1439,7 +1419,7 @@ programs to write rather than scripts to glue together.
 - Hájek, P. (1998). *Metamathematics of Fuzzy Logic*. Trends in
   Logic vol. 4. Kluwer Academic. The standard reference for
   t-norm-based fuzzy logics (Gödel, Łukasiewicz, product) cited
-  in §1.2-1 to place Sutra's polynomial connectives.
+  in §1.1-1 to place Sutra's polynomial connectives.
 - Heddes, M., Nunes, I., Vergés, P., Kleyko, D., Abraham, D.,
   Givargis, T., Nicolau, A., & Veidenbaum, A. (2023). Torchhd: An
   open source python library to support research on
@@ -1457,7 +1437,7 @@ programs to write rather than scripts to glue together.
 - van Krieken, E., Acar, E., & van Harmelen, F. (2022).
   Analyzing Differentiable Fuzzy Logic Operators. *Artificial
   Intelligence* 302:103602. The differentiable-fuzzy-logic survey
-  cited in §1.2-1; analyzes t-norm-derived AND/OR/IMPLIES
+  cited in §1.1-1; analyzes t-norm-derived AND/OR/IMPLIES
   operators in the neural-symbolic context and is the closest
   prior literature to Sutra's polynomial approach.
 - Vergés, P., Heddes, M., Nunes, I., Givargis, T., & Nicolau, A.
