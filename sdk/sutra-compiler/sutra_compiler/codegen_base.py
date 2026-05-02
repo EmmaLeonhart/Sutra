@@ -168,23 +168,23 @@ def _builtin_has_order_or_equal(args: List[str]) -> str:
     return _builtin_has_order(args)
 
 
-def _builtin_complex_transitive(args: List[str]) -> str:
-    """`ComplexTransitive(...)` — RESERVED. The parser emits this
-    for chains mixing `==` with uniform-direction ordering (e.g.
-    `a == b > c == d > e`). The semantics — equal-groups separated
-    by ordering — is specified at the language level but not yet
-    wired through codegen. Throws `CodegenNotSupported` so the
-    syntax is reserved without committing to an implementation
-    today.
+def _builtin_ordered_equals(args: List[str]) -> str:
+    """`OrderedEquals(...)` — RESERVED. The parser emits this for
+    chains mixing `==` with uniform-direction ordering (e.g.
+    `a == b > c == d > e`). The semantics — equality groups
+    separated by ordering — is specified at the language level but
+    not yet wired through codegen. Args are always passed in
+    ascending order regardless of source direction. Throws
+    `CodegenNotSupported` so the syntax is reserved without
+    committing to an implementation today.
 
     NOTE: this is a `_builtin_*` emitter, not an Exception raise — but
     BUILTINS expects a string return. The actual rejection happens
     in `_translate_call` (which checks for the name before calling
-    the emitter). The dummy body here is unreachable; the parser
-    output is captured by the rejection branch below.
+    the emitter). The dummy body here is unreachable.
     """
     raise NotImplementedError(
-        "_builtin_complex_transitive should never be called; the "
+        "_builtin_ordered_equals should never be called; the "
         "rejection happens in _translate_call before the emitter "
         "runs."
     )
@@ -268,22 +268,26 @@ BUILTINS = {
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
     # Chained-comparison reductions (Emma 2026-05-01). The parser
-    # produces these for the recognized patterns:
+    # produces these for the recognized patterns. All reductions
+    # pass args in ASCENDING order regardless of source direction —
+    # for descending source the parser reverses operands before
+    # building the call. This way the reduction has one canonical
+    # form to evaluate against.
     #   a == b == c           -> Equals(a, b, c)
     #   a < b < c             -> hasOrder(a, b, c)
     #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
     #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
     #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [args reversed]
-    #   a == b > c == d > e   -> ComplexTransitive(a, b, c, d, e)
+    #   a == b > c == d > e   -> OrderedEquals(e, d, c, b, a)
     # The first three lower to fuzzy-AND chains over `_VSA.eq` /
-    # `_VSA.gt`. ComplexTransitive is RESERVED: the parser emits the
+    # `_VSA.gt`. OrderedEquals is RESERVED: the parser emits the
     # call so the syntax is recognized; the codegen rejects with a
     # clear "reserved for future" diagnostic so the implementation
     # can land without a syntactic break.
     "Equals": (_builtin_equals, None),
     "hasOrder": (_builtin_has_order, None),
     "hasOrderOrEqual": (_builtin_has_order_or_equal, None),
-    "ComplexTransitive": (_builtin_complex_transitive, None),
+    "OrderedEquals": (_builtin_ordered_equals, None),
     "snap": (_builtin_snap, 1),
     "argmax_cosine": (_builtin_argmax_cosine, 2),
     "select": (_builtin_select, 2),
@@ -2020,23 +2024,26 @@ class BaseCodegen:
                     filler_src = self._translate_expr(bind_call.args[1])
                     pair_srcs.append(f"({role_src}, {filler_src})")
                 return f"_VSA.bundle_of_binds({', '.join(pair_srcs)})"
-            if name == "ComplexTransitive":
-                # Reserved syntactic surface (Emma 2026-05-01). The
-                # parser produces this for chains mixing `==` with
+            if name == "OrderedEquals":
+                # Reserved syntactic surface (Emma 2026-05-01,
+                # renamed from ComplexTransitive). The parser
+                # produces this for chains mixing `==` with
                 # uniform-direction ordering (`a == b > c == d > e`).
                 # Semantics specified at the language level —
-                # equality groups separated by ordering relations —
-                # but not yet wired through codegen. Reject with a
-                # clear pointer rather than mis-compile.
+                # equality groups separated by ordering relations,
+                # args always in ascending order — but not yet
+                # wired through codegen. Reject with a clear pointer
+                # rather than mis-compile.
                 raise CodegenNotSupported(
                     call,
-                    "ComplexTransitive(...) is a reserved chained-"
-                    "comparison reduction (Emma 2026-05-01). The parser "
-                    "emits this name for source like `a == b > c == d > e` "
-                    "so the syntax is recognized; the semantic — equality "
-                    "groups separated by ordering — is not yet implemented "
-                    "in codegen. For now, rewrite the comparison without "
-                    "the mixed `==` and ordering pattern (e.g. as separate "
+                    "OrderedEquals(...) is a reserved chained-"
+                    "comparison reduction. The parser emits this "
+                    "name for source like `a == b > c == d > e` so "
+                    "the syntax is recognized; the semantic — equality "
+                    "groups separated by ordering, args in ascending "
+                    "order — is not yet implemented in codegen. For "
+                    "now, rewrite the comparison without the mixed "
+                    "`==` and ordering pattern (e.g. as separate "
                     "AND-joined comparisons).",
                 )
             if name in BUILTINS:
