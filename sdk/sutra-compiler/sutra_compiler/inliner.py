@@ -404,12 +404,15 @@ def _substitute_params(expr, subst: Dict[str, object]):
 # codegen knows how to emit directly.
 
 _BINARY_OP_TO_STDLIB = {
-    "&&": "logical_and",
-    "||": "logical_or",
-    "!=": "neq",
-    "<":  "lt",
-    "<=": "le",
-    ">=": "ge",
+    "&&":   "logical_and",
+    "||":   "logical_or",
+    "nand": "logical_nand",
+    "xor":  "logical_xor",
+    "xnor": "logical_xnor",
+    "!=":   "neq",
+    "<":    "lt",
+    "<=":   "le",
+    ">=":   "ge",
 }
 _UNARY_OP_TO_STDLIB = {
     "!": "logical_not",
