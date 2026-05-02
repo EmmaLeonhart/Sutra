@@ -168,26 +168,6 @@ def _builtin_has_order_or_equal(args: List[str]) -> str:
     return _builtin_has_order(args)
 
 
-def _builtin_ordered_equals(args: List[str]) -> str:
-    """`OrderedEquals(...)` — RESERVED. The parser emits this for
-    chains mixing `==` with uniform-direction ordering (e.g.
-    `a == b > c == d > e`). The semantics — equality groups
-    separated by ordering — is specified at the language level but
-    not yet wired through codegen. Args are always passed in
-    ascending order regardless of source direction. Throws
-    `CodegenNotSupported` so the syntax is reserved without
-    committing to an implementation today.
-
-    NOTE: this is a `_builtin_*` emitter, not an Exception raise — but
-    BUILTINS expects a string return. The actual rejection happens
-    in `_translate_call` (which checks for the name before calling
-    the emitter). The dummy body here is unreachable.
-    """
-    raise NotImplementedError(
-        "_builtin_ordered_equals should never be called; the "
-        "rejection happens in _translate_call before the emitter "
-        "runs."
-    )
 
 
 def _builtin_snap(args: List[str]) -> str:
@@ -271,23 +251,21 @@ BUILTINS = {
     # produces these for the recognized patterns. All reductions
     # pass args in ASCENDING order regardless of source direction —
     # for descending source the parser reverses operands before
-    # building the call. This way the reduction has one canonical
-    # form to evaluate against.
+    # building the call.
     #   a == b == c           -> Equals(a, b, c)
     #   a < b < c             -> hasOrder(a, b, c)
-    #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
+    #   a > b > c             -> hasOrder(c, b, a)         [reversed]
     #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
-    #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [args reversed]
-    #   a == b > c == d > e   -> OrderedEquals(e, d, c, b, a)
-    # The first three lower to fuzzy-AND chains over `_VSA.eq` /
-    # `_VSA.gt`. OrderedEquals is RESERVED: the parser emits the
-    # call so the syntax is recognized; the codegen rejects with a
-    # clear "reserved for future" diagnostic so the implementation
-    # can land without a syntactic break.
+    #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [reversed]
+    #   a == b > c == d > e   -> hasOrder(e, Equals(c,d), Equals(a,b))
+    # Equals lowers to fuzzy-AND of `_VSA.eq` over adjacent pairs.
+    # hasOrder / hasOrderOrEqual lower to fuzzy-AND of `_VSA.gt`
+    # over adjacent pairs IF every arg is a bare operand; if any
+    # arg is itself a Call (the nested-Equals "group" case), the
+    # codegen rejects with a clear "reserved" diagnostic.
     "Equals": (_builtin_equals, None),
     "hasOrder": (_builtin_has_order, None),
     "hasOrderOrEqual": (_builtin_has_order_or_equal, None),
-    "OrderedEquals": (_builtin_ordered_equals, None),
     "snap": (_builtin_snap, 1),
     "argmax_cosine": (_builtin_argmax_cosine, 2),
     "select": (_builtin_select, 2),
@@ -2024,28 +2002,29 @@ class BaseCodegen:
                     filler_src = self._translate_expr(bind_call.args[1])
                     pair_srcs.append(f"({role_src}, {filler_src})")
                 return f"_VSA.bundle_of_binds({', '.join(pair_srcs)})"
-            if name == "OrderedEquals":
-                # Reserved syntactic surface (Emma 2026-05-01,
-                # renamed from ComplexTransitive). The parser
-                # produces this for chains mixing `==` with
-                # uniform-direction ordering (`a == b > c == d > e`).
-                # Semantics specified at the language level —
-                # equality groups separated by ordering relations,
-                # args always in ascending order — but not yet
-                # wired through codegen. Reject with a clear pointer
-                # rather than mis-compile.
-                raise CodegenNotSupported(
-                    call,
-                    "OrderedEquals(...) is a reserved chained-"
-                    "comparison reduction. The parser emits this "
-                    "name for source like `a == b > c == d > e` so "
-                    "the syntax is recognized; the semantic — equality "
-                    "groups separated by ordering, args in ascending "
-                    "order — is not yet implemented in codegen. For "
-                    "now, rewrite the comparison without the mixed "
-                    "`==` and ordering pattern (e.g. as separate "
-                    "AND-joined comparisons).",
-                )
+            if name in ("hasOrder", "hasOrderOrEqual"):
+                # Reject the nested-Equals "group" form for now.
+                # Source `a == b > c == d > e` becomes
+                # `hasOrder(e, Equals(c,d), Equals(a,b))` at parse
+                # time (Emma 2026-05-01) — the syntax is recognized
+                # but the codegen for the group expansion isn't
+                # wired. Bare-operand args still work via the
+                # standard BUILTIN emitter.
+                for arg in call.args:
+                    if isinstance(arg, ast.Call):
+                        raise CodegenNotSupported(
+                            call,
+                            f"`{name}(...)` with a nested `Equals(...)` "
+                            "group arg is reserved syntax — produced by "
+                            "the parser for source like `a == b > c == "
+                            "d > e` (equality groups separated by "
+                            "ordering). The expansion (chain-AND with "
+                            "internal group equality plus cross-group "
+                            "ordering) is not yet wired in codegen. "
+                            "For now, rewrite the comparison without "
+                            "the mixed `==` and ordering pattern (e.g. "
+                            "as separate AND-joined comparisons).",
+                        )
             if name in BUILTINS:
                 emitter, arity = BUILTINS[name]
                 if arity is not None and len(call.args) != arity:
