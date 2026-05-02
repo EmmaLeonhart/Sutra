@@ -1520,31 +1520,171 @@ class Parser:
             )
         return left
 
+    # Chained comparisons (Python-style, Emma 2026-05-01).
+    # `a == b == c` reduces to a single `Equals(a, b, c)` call.
+    # `a < b < c` reduces to `hasOrder(a, b, c)` (strict ascending).
+    # `a > b > c` reduces to `hasOrder(c, b, a)` (always ascending in
+    # the reduction — args are reversed for descending source).
+    # Mixed chains like `a != b == c > d` expand to an AND chain of
+    # pairwise comparisons.
+    _CHAIN_COMPARISON_TOKENS = frozenset({
+        TokenKind.EQ, TokenKind.NEQ,
+        TokenKind.LT, TokenKind.GT, TokenKind.LE, TokenKind.GE,
+    })
+
     def _parse_equality(self) -> ast.Expr:
-        left = self._parse_comparison()
-        while self._peek().kind in (TokenKind.EQ, TokenKind.NEQ):
-            op_tok = self._advance()
-            right = self._parse_comparison()
-            op = "==" if op_tok.kind is TokenKind.EQ else "!="
-            left = ast.BinaryOp(
-                op=op, left=left, right=right,
-                span=SourceSpan(start=left.span.start, end=right.span.end),
-            )
-        return left
+        # Equality + comparison are merged into one chain-aware parser.
+        # Python's chained-comparison semantics with Sutra-specific
+        # reductions for transitive same-op chains.
+        return self._parse_chained_comparison()
 
     def _parse_comparison(self) -> ast.Expr:
-        left = self._parse_additive()
-        while self._peek().kind in (
-            TokenKind.LT, TokenKind.GT, TokenKind.LE, TokenKind.GE
-        ):
+        # Kept as a separate level for additive-precedence callers
+        # that don't want chain detection. Today only _parse_equality
+        # is the entry; this method is here so subclassing parsers
+        # that want plain non-chained comparison can override.
+        return self._parse_chained_comparison()
+
+    def _parse_chained_comparison(self) -> ast.Expr:
+        first = self._parse_additive()
+        # Collect a chain of (op_string, operand) pairs.
+        ops: List[str] = []
+        operands: List[ast.Expr] = [first]
+        while self._peek().kind in self._CHAIN_COMPARISON_TOKENS:
             op_tok = self._advance()
-            right = self._parse_additive()
             op = op_tok.lexeme
-            left = ast.BinaryOp(
-                op=op, left=left, right=right,
-                span=SourceSpan(start=left.span.start, end=right.span.end),
+            # Token lexeme differs from canonical op string for !=
+            if op_tok.kind is TokenKind.NEQ:
+                op = "!="
+            elif op_tok.kind is TokenKind.EQ:
+                op = "=="
+            right = self._parse_additive()
+            ops.append(op)
+            operands.append(right)
+        if not ops:
+            return first
+        if len(ops) == 1:
+            # Single comparison: emit BinaryOp as before.
+            return ast.BinaryOp(
+                op=ops[0],
+                left=operands[0],
+                right=operands[1],
+                span=SourceSpan(
+                    start=operands[0].span.start,
+                    end=operands[1].span.end,
+                ),
             )
-        return left
+        # 2+ ops in the chain — Python-style chained-comparison
+        # reduction. Recognized patterns produce named Call AST nodes
+        # (so the user's intent is visible at the AST level and the
+        # codegen can route them through dedicated polynomial forms);
+        # unrecognized patterns fall back to a fuzzy-AND chain of
+        # pairwise BinaryOps.
+        #
+        # Recognized patterns (Emma 2026-05-01):
+        #   a == b == c           -> Equals(a, b, c)
+        #   a < b < c             -> hasOrder(a, b, c)
+        #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
+        #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
+        #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [args reversed]
+        #   a == b > c == d > e   -> ComplexTransitive(a, b, c, d, e) [reserved]
+        # Anything else (chains with `!=`, or other mixed combinations)
+        # falls back to the AND-chain expansion.
+        span = SourceSpan(
+            start=operands[0].span.start,
+            end=operands[-1].span.end,
+        )
+        op_set = set(ops)
+        # Uniform `==` chain.
+        if op_set == {"=="}:
+            return ast.Call(
+                callee=ast.Identifier(name="Equals", span=span),
+                type_args=[],
+                args=operands,
+                span=span,
+            )
+        # Uniform strict-ordering chain.
+        if op_set == {"<"}:
+            return ast.Call(
+                callee=ast.Identifier(name="hasOrder", span=span),
+                type_args=[],
+                args=operands,
+                span=span,
+            )
+        if op_set == {">"}:
+            return ast.Call(
+                callee=ast.Identifier(name="hasOrder", span=span),
+                type_args=[],
+                args=list(reversed(operands)),
+                span=span,
+            )
+        if op_set == {"<="}:
+            return ast.Call(
+                callee=ast.Identifier(name="hasOrderOrEqual", span=span),
+                type_args=[],
+                args=operands,
+                span=span,
+            )
+        if op_set == {">="}:
+            return ast.Call(
+                callee=ast.Identifier(name="hasOrderOrEqual", span=span),
+                type_args=[],
+                args=list(reversed(operands)),
+                span=span,
+            )
+        # Mixed `==` + uniform-direction ordering — the
+        # ComplexTransitive case. Direction must be consistent (all
+        # ascending OR all descending) and `!=` must not appear.
+        ordering_ops = {"<", "<=", ">", ">="}
+        if "!=" not in op_set and op_set.issubset({"=="} | ordering_ops):
+            ascending = {"<", "<="}
+            descending = {">", ">="}
+            present_ordering = op_set & ordering_ops
+            if present_ordering and present_ordering.issubset(ascending):
+                return ast.Call(
+                    callee=ast.Identifier(name="ComplexTransitive", span=span),
+                    type_args=[],
+                    args=operands,
+                    span=span,
+                )
+            if present_ordering and present_ordering.issubset(descending):
+                return ast.Call(
+                    callee=ast.Identifier(name="ComplexTransitive", span=span),
+                    type_args=[],
+                    args=list(reversed(operands)),
+                    span=span,
+                )
+        # Fallback: AND-chain expansion of pairwise BinaryOps. Each
+        # pair goes through the inliner's normal comparison-lowering
+        # pipeline (`<` -> `lt(a, b)` -> `b > a`, etc.), so the final
+        # emitted form is the polynomial chain.
+        and_chain: ast.Expr = ast.BinaryOp(
+            op=ops[0],
+            left=operands[0],
+            right=operands[1],
+            span=SourceSpan(
+                start=operands[0].span.start, end=operands[1].span.end,
+            ),
+        )
+        for i, op in enumerate(ops[1:], start=1):
+            pair = ast.BinaryOp(
+                op=op,
+                left=operands[i],
+                right=operands[i + 1],
+                span=SourceSpan(
+                    start=operands[i].span.start,
+                    end=operands[i + 1].span.end,
+                ),
+            )
+            and_chain = ast.BinaryOp(
+                op="&&",
+                left=and_chain,
+                right=pair,
+                span=SourceSpan(
+                    start=and_chain.span.start, end=pair.span.end,
+                ),
+            )
+        return and_chain
 
     def _parse_additive(self) -> ast.Expr:
         left = self._parse_multiplicative()

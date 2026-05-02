@@ -747,5 +747,129 @@ class TestLogicalConnectives(unittest.TestCase):
         self.assertIn("def Iff(", py)
 
 
+class TestChainedComparisons(unittest.TestCase):
+    """Python-style chained comparisons reduce to named operations
+    per Emma 2026-05-01:
+        a == b == c        -> Equals(a, b, c)
+        a < b < c          -> hasOrder(a, b, c)
+        a > b > c          -> hasOrder(c, b, a)
+        a <= b <= c        -> hasOrderOrEqual(a, b, c)
+        a >= b >= c        -> hasOrderOrEqual(c, b, a)
+        a == b > c == d    -> ComplexTransitive(...)  [reserved, throws]
+    Anything with `!=` or fully mixed falls back to AND-chain.
+    """
+
+    def test_equals_chain_emits_pairwise_eq_polynomial(self):
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b, fuzzy c) {\n"
+            "  return a == b == c;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # Two `_VSA.eq` calls (one per adjacent pair).
+        self.assertEqual(py.count("_VSA.eq("), 2)
+
+    def test_strict_ascending_chain_emits_pairwise_gt(self):
+        # hasOrder(a, b, c) -> _VSA.gt(b, a) && _VSA.gt(c, b)
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b, fuzzy c) {\n"
+            "  return a < b < c;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertEqual(py.count("_VSA.gt("), 2)
+
+    def test_strict_descending_chain_reverses_args(self):
+        # `a > b > c` -> hasOrder(c, b, a) -> gt(b, c) && gt(a, b)
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b, fuzzy c) {\n"
+            "  return a > b > c;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertEqual(py.count("_VSA.gt("), 2)
+        # Args are reversed so the reduction is always-ascending —
+        # verify both expected pair shapes appear.
+        self.assertIn("_VSA.gt(b, c)", py)
+        self.assertIn("_VSA.gt(a, b)", py)
+
+    def test_complex_transitive_reserved_throws_at_codegen(self):
+        from sutra_compiler.codegen_base import CodegenNotSupported
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b, fuzzy c, fuzzy d, fuzzy e) {\n"
+            "  return a == b > c == d > e;\n"
+            "}\n"
+        )
+        with self.assertRaises(CodegenNotSupported) as ctx:
+            _compile(src)
+        self.assertIn("ComplexTransitive", str(ctx.exception))
+
+    def test_neq_in_chain_falls_back_to_and_chain(self):
+        # a != b == c -> (a != b) && (b == c) — AND-chain expansion,
+        # NOT a named call (since `!=` is non-transitive).
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b, fuzzy c) {\n"
+            "  return a != b == c;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # neq lowers via stdlib to !(a == b), so the polynomial form
+        # contains an `_VSA.eq(a, b)` (negated) and an `_VSA.eq(b, c)`.
+        # Just verify both pairs appear.
+        self.assertIn("_VSA.eq(a, b)", py)
+        self.assertIn("_VSA.eq(b, c)", py)
+
+    def test_single_comparison_unchanged(self):
+        # No chain — still emits a single BinaryOp.
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b) {\n"
+            "  return a == b;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertEqual(py.count("_VSA.eq("), 1)
+
+
+class TestImperativeShortcuts(unittest.TestCase):
+    """++ / -- / += / -= / *= / /= as statements (Emma 2026-05-01)."""
+
+    def test_postfix_increment_compiles(self):
+        src = (
+            "function int main() {\n"
+            "  var i : int = 5;\n"
+            "  i++;\n"
+            "  return i;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("i += 1", py)
+
+    def test_postfix_decrement_compiles(self):
+        src = (
+            "function int main() {\n"
+            "  var i : int = 5;\n"
+            "  i--;\n"
+            "  return i;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("i -= 1", py)
+
+    def test_augmented_arithmetic_compiles(self):
+        src = (
+            "function int main() {\n"
+            "  var i : int = 5;\n"
+            "  i += 3;\n"
+            "  i *= 2;\n"
+            "  i /= 4;\n"
+            "  return i;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("i += 3", py)
+        self.assertIn("i *= 2", py)
+        self.assertIn("i /= 4", py)
+
+
 if __name__ == "__main__":
     unittest.main()
