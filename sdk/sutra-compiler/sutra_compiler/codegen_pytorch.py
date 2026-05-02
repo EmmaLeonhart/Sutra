@@ -797,12 +797,34 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.transpose(m, -2, -1)")
         self._indent -= 1
         self._emit()
+        self._emit("def norm(self, v):")
+        self._indent += 1
+        self._emit('"""L2 norm. Scalar result."""')
+        self._emit("return float(_torch.linalg.norm(v))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def normalize(self, v):")
+        self._indent += 1
+        self._emit('"""L2-normalize with an eps-guard so zero-norm input returns zero."""')
+        self._emit("n = _torch.linalg.norm(v)")
+        self._emit("return v / (n + _torch.finfo(self.dtype).tiny)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def rotation_for(self, role):")
+        self._indent += 1
+        self._emit('"""Cached Haar-random orthogonal rotation matrix for the role vector."""')
+        self._emit("return self._rotation_for(role)")
+        self._indent -= 1
+        self._emit()
         # PascalCase aliases — Emma's preferred Sutra-side spelling.
         self._emit("MatrixMul = matmul")
         self._emit("TensorProduct = tensor_product")
         self._emit("Outer = outer")
         self._emit("Dot = dot")
         self._emit("Transpose = transpose")
+        self._emit("Norm = norm")
+        self._emit("Normalize = normalize")
+        self._emit("RotationFor = rotation_for")
         self._emit()
         self._emit("# ---- Vector component accessors (debugging / teaching) ----")
         self._emit()

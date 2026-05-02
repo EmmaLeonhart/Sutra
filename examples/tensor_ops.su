@@ -39,3 +39,40 @@ function scalar dot_demo(vector a, vector b) {
 function vector transpose_demo(vector m) {
     return Tensor.Transpose(m);
 }
+
+// ----- Transparency: VSA primitives in terms of leaf operations -----
+//
+// `bind(role, filler)` is convenience naming for the matrix-vector
+// multiply against the role's cached Haar-random orthogonal
+// rotation. The two functions below produce the SAME vector when
+// called with the same inputs:
+
+function vector bind_high_level(vector role, vector filler) {
+    return bind(role, filler);
+}
+
+function vector bind_low_level(vector role, vector filler) {
+    return Tensor.MatrixMul(Tensor.RotationFor(role), filler);
+}
+
+// Same for `unbind` — it's matmul against the transpose of the
+// rotation:
+function vector unbind_high_level(vector role, vector record) {
+    return unbind(role, record);
+}
+
+function vector unbind_low_level(vector role, vector record) {
+    return Tensor.MatrixMul(
+        Tensor.Transpose(Tensor.RotationFor(role)),
+        record
+    );
+}
+
+// Similarity is dot product over norms:
+function scalar similarity_high_level(vector a, vector b) {
+    return similarity(a, b);
+}
+
+function scalar similarity_low_level(vector a, vector b) {
+    return Tensor.Dot(a, b) / (Tensor.Norm(a) * Tensor.Norm(b));
+}
