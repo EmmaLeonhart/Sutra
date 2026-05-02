@@ -1336,14 +1336,41 @@ The loop demos confirm substrate-pure recurrent computation:
 
 ## 6. Limitations and Future Work
 
-### 6.1 Object encapsulation as load-bearing
+### 6.1 Object encapsulation — implementation status
 
-Sutra's design includes ontology-oriented objects (closer to OWL
-classes than to OOP) for compile-time semantic checking. Today's
-compiler implements free functions cleanly; object methods parse
-but their encapsulation rules (no closure across class boundary)
-are not enforced. Implementing the encapsulation pass and the
-class-boundary closure check is straightforward future work.
+The ontology-oriented object system shipped end-to-end. Class
+bodies parse method declarations of all four shapes (`method`,
+`static method`, `intrinsic method`, `static intrinsic method`)
+plus loop function declarations (`do_while`, `while_loop`,
+`iterative_loop`, `foreach_loop`) for object loops. The
+encapsulation rule — object methods cannot read file-scope names —
+is enforced by the validator (`SUT0144`); a method body that
+references a top-level free function or top-level variable is
+rejected at compile time, with class names exempt because they
+are namespace anchors rather than file-scope reads. Static methods
+on classes compile to mangled top-level Python functions; calls of
+the form `Class.method(args)` dispatch to them. Intrinsic methods
+on classes route directly to the runtime (`Class.method(args)` →
+`_VSA.method(args)`). Non-static methods take `this` as their
+implicit first parameter, and `this.other_method(args)` from inside
+a method body dispatches to the same class. Object loops emit as
+`_loop_{Class}_{name}` and are reachable from `loop Class.name(...)`
+call sites. Four stdlib files (`math.su`, `numbers.su`,
+`memory.su`, `embed.su`) have been migrated to the
+class-as-namespace shape, with the loader registering each entry
+under both bare-name (`log`) and namespaced (`Math.log`) keys for
+backward compatibility.
+
+Three pieces remain incomplete and are honest future work: (1)
+non-static object loops that thread `this` through the recurrent
+state — today's class loops behave equivalently to static loops;
+(2) instance-syntax dispatch on typed variables (`g.method(args)`
+for an instance `g`), which needs variable type tracking through
+the codegen; (3) field declarations inside class bodies (`field x
+: int;`), without which "class-level slots" has no referent.
+Migration of the four remaining stdlib files (`logic.su`,
+`similarity.su`, `vectors.su`, `rotation.su`) to the
+class-as-namespace shape is straightforward when prioritized.
 
 ### 6.2 Codebook integration depth
 

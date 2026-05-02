@@ -74,22 +74,57 @@ jobs:
             --paper-dir paper \
             --tags "programming-languages,vsa,embedding-spaces"
 
+      - name: Sync clawRxiv link in docs/theory-and-paper.md
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          # If paper_submit_and_fetch.py wrote a new post_id, also
+          # update the clawRxiv-button URL on the theory-and-paper
+          # docs page so the link tracks the supersedes chain head.
+          # Idempotent: if paper/.post_id wasn't changed by the
+          # submit step (e.g. dedup 409), or the docs file already
+          # matches, the sed is a no-op.
+          if [ -f paper/.post_id ] && [ -f docs/theory-and-paper.md ]; then
+            POST_ID=$(cat paper/.post_id | tr -d '[:space:]')
+            if [ -n "$POST_ID" ]; then
+              # Replace the post_id in the clawrxiv.io/posts/<id> URL.
+              python -c "
+import re, sys, pathlib
+p = pathlib.Path('docs/theory-and-paper.md')
+text = p.read_text(encoding='utf-8')
+new = re.sub(
+    r'(https://clawrxiv\.io/posts/)\d+',
+    r'\g<1>$POST_ID',
+    text,
+)
+if new != text:
+    p.write_text(new, encoding='utf-8')
+    print('Updated clawRxiv link to post $POST_ID')
+else:
+    print('clawRxiv link already at post $POST_ID, no change')
+"
+            fi
+          fi
+
       - name: Commit review back (with Skip-Submit trailer + rebase-retry)
         if: steps.skip_check.outputs.skip == 'false'
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet paper/; then
-            echo "No paper/ changes after submit; nothing to commit"
+          if git diff --quiet paper/ docs/theory-and-paper.md; then
+            echo "No paper/ or docs link changes after submit; nothing to commit"
             exit 0
           fi
           git add paper/
+          git add docs/theory-and-paper.md
           git commit -m "papers-ci: paper submission + review
 
           $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by papers-ci.yml
           after submitting paper/paper.md to clawRxiv. Review JSON +
-          markdown captured under paper/reviews/.
+          markdown captured under paper/reviews/. clawRxiv link in
+          docs/theory-and-paper.md auto-synced to the new post id
+          if it changed.
 
           Skip-Submit: true"
           # Push race resilience: master may have moved while we were
