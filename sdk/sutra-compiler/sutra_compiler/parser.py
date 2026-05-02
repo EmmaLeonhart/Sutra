@@ -1587,7 +1587,12 @@ class Parser:
         #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
         #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
         #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [args reversed]
-        #   a == b > c == d > e   -> OrderedEquals(a, b, c, d, e) [reserved]
+        #   a == b > c == d > e   -> hasOrder(e, Equals(c,d), Equals(a,b))
+        #     (groups built from adjacent ==; nested Equals(...) is
+        #      "weird programming" — Equals returns a fuzzy at top
+        #      level but the same call inside hasOrder represents the
+        #      equality group. Implementation deferred; codegen
+        #      rejects when hasOrder args contain a nested Call.)
         # Anything else (chains with `!=`, or other mixed combinations)
         # falls back to the AND-chain expansion.
         span = SourceSpan(
@@ -1632,26 +1637,58 @@ class Parser:
                 args=list(reversed(operands)),
                 span=span,
             )
-        # Mixed `==` + uniform-direction ordering — the
-        # OrderedEquals case. Direction must be consistent (all
-        # ascending OR all descending) and `!=` must not appear.
-        ordering_ops = {"<", "<=", ">", ">="}
-        if "!=" not in op_set and op_set.issubset({"=="} | ordering_ops):
-            ascending = {"<", "<="}
-            descending = {">", ">="}
-            present_ordering = op_set & ordering_ops
-            if present_ordering and present_ordering.issubset(ascending):
+        # Mixed `==` + uniform-direction ordering — group adjacent
+        # `==` operands and pass the groups as args to hasOrder /
+        # hasOrderOrEqual. Each group is either a bare operand or a
+        # `Call(Equals, [members])` (multi-element). Args always in
+        # ascending order — descending source has its group list
+        # reversed before the Call is built.
+        ordering_ops_set = {"<", "<=", ">", ">="}
+        if "!=" not in op_set and op_set.issubset({"=="} | ordering_ops_set):
+            ascending_set = {"<", "<="}
+            descending_set = {">", ">="}
+            present_ordering = op_set & ordering_ops_set
+            is_ascending = bool(present_ordering) and present_ordering.issubset(ascending_set)
+            is_descending = bool(present_ordering) and present_ordering.issubset(descending_set)
+            if is_ascending or is_descending:
+                # Walk left-to-right, gathering adjacent == operands
+                # into one group and starting a new group at every
+                # ordering op.
+                groups: List[List[ast.Expr]] = []
+                current = [operands[0]]
+                for i, op_i in enumerate(ops):
+                    nxt = operands[i + 1]
+                    if op_i == "==":
+                        current.append(nxt)
+                    else:
+                        groups.append(current)
+                        current = [nxt]
+                groups.append(current)
+                # Single-element groups stay flat; multi-element
+                # groups wrap in Equals(...).
+                group_args: List[ast.Expr] = []
+                for g in groups:
+                    if len(g) == 1:
+                        group_args.append(g[0])
+                    else:
+                        gspan = SourceSpan(
+                            start=g[0].span.start, end=g[-1].span.end,
+                        )
+                        group_args.append(ast.Call(
+                            callee=ast.Identifier(name="Equals", span=gspan),
+                            type_args=[],
+                            args=g,
+                            span=gspan,
+                        ))
+                if is_descending:
+                    group_args = list(reversed(group_args))
+                # Any non-strict ordering op present -> hasOrderOrEqual.
+                non_strict = bool(present_ordering & {"<=", ">="})
+                callee_name = "hasOrderOrEqual" if non_strict else "hasOrder"
                 return ast.Call(
-                    callee=ast.Identifier(name="OrderedEquals", span=span),
+                    callee=ast.Identifier(name=callee_name, span=span),
                     type_args=[],
-                    args=operands,
-                    span=span,
-                )
-            if present_ordering and present_ordering.issubset(descending):
-                return ast.Call(
-                    callee=ast.Identifier(name="OrderedEquals", span=span),
-                    type_args=[],
-                    args=list(reversed(operands)),
+                    args=group_args,
                     span=span,
                 )
         # Fallback: AND-chain expansion of pairwise BinaryOps. Each

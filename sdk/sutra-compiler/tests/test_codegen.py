@@ -755,7 +755,7 @@ class TestChainedComparisons(unittest.TestCase):
         a > b > c          -> hasOrder(c, b, a)
         a <= b <= c        -> hasOrderOrEqual(a, b, c)
         a >= b >= c        -> hasOrderOrEqual(c, b, a)
-        a == b > c == d    -> OrderedEquals(...)  [reserved, throws]
+        a == b > c == d    -> hasOrder(d, Equals(b, c), a) [reserved nested form, throws]
     Anything with `!=` or fully mixed falls back to AND-chain.
     """
 
@@ -793,7 +793,12 @@ class TestChainedComparisons(unittest.TestCase):
         self.assertIn("_VSA.gt(b, c)", py)
         self.assertIn("_VSA.gt(a, b)", py)
 
-    def test_ordered_equals_reserved_throws_at_codegen(self):
+    def test_grouped_equals_inside_hasOrder_reserved_throws(self):
+        # Per Emma 2026-05-01: `a == b > c == d > e` reduces to
+        # `hasOrder(e, Equals(c, d), Equals(a, b))` — the nested
+        # Equals(...) form. The parser builds this; codegen rejects
+        # the nested-Call args until the group-expansion semantics
+        # is wired.
         from sutra_compiler.codegen_base import CodegenNotSupported
         src = (
             "function fuzzy main(fuzzy a, fuzzy b, fuzzy c, fuzzy d, fuzzy e) {\n"
@@ -802,7 +807,8 @@ class TestChainedComparisons(unittest.TestCase):
         )
         with self.assertRaises(CodegenNotSupported) as ctx:
             _compile(src)
-        self.assertIn("OrderedEquals", str(ctx.exception))
+        self.assertIn("Equals", str(ctx.exception))
+        self.assertIn("hasOrder", str(ctx.exception))
 
     def test_neq_in_chain_falls_back_to_and_chain(self):
         # a != b == c -> (a != b) && (b == c) — AND-chain expansion,
