@@ -183,37 +183,25 @@ This is the same "primitive class = compile-time tag on shared storage" pattern 
 
 ## Transcendental functions: compile-time tensor approximation
 
-Most languages handle `log`, `sqrt`, `sin`, `exp`, etc. by deferring to a runtime math library (`libm`, IEEE 754, libopenlibm). Sutra's design intent is the opposite: **compile transcendental functions into tensor operations at compile time**, with the precision contract set per project rather than per platform.
+Most languages handle `log`, `sqrt`, `sin`, `exp`, etc. by deferring to a runtime math library (`libm`, IEEE 754, libopenlibm). Sutra's design intent is the opposite: **compile transcendental functions into tensor operations at compile time**, so the runtime never makes a libm call and the precision contract is set at compile time rather than at the platform's IEEE-754 default.
 
-The underlying observation is the **Kolmogorov–Arnold representation theorem** — any continuous bounded multivariate function decomposes into a finite composition of univariate functions. Univariate functions of one variable are already in KART normal form, which means there's a uniform compilation strategy for all of them: approximate as a tensor op on a bounded domain, with the polynomial degree or table resolution chosen by a precision setting.
+### The reduction chain
 
-### Three compilation tiers
+The design (absorbed from a 2026-04 voice chat into `todo.md` § "Transcendental functions — design absorbed from voice chat") is built around two primitives: **`exp`** and **`ln`**, both backed by lookup tables on a bounded domain. Everything else beta-reduces:
 
-The compiler picks one based on type information and the project-level precision setting:
+- `x ^ p` (Sutra has no bit-fiddling, so `^` is exponentiation) → `pow(x, p)` → `exp(p * ln(x))`.
+- `sqrt(x)` → `pow(x, 0.5)` → `exp(0.5 * ln(x))`.
+- `sin(θ)` is special: it's the imaginary component of `R(θ) · e₀`, i.e. a single rotation matrix applied to the unit vector. No lookup table needed — sin and cos are literally the matrix entries of the rotation that the rest of the language already uses for binding. `tan` reduces to `sin / cos` over the same rotation.
 
-1. **Exact (closed linear form)** — the function has a direct matrix-op representation. Emit it directly.
-2. **Chebyshev polynomial approximation** — for a smooth function on a bounded domain, evaluate as `dot(coefficients, [x, x², …, x^n])` where the polynomial degree is set to hit the configured precision. This is exact up to the precision contract — `log(x)` on `[0.01, 10]` becomes a vector of Chebyshev coefficients dotted against a vector of basis evaluations.
-3. **Lookup table + interpolation** — for weird or expensive functions, discretize into a table. Interpolation is a sparse matrix-vector product; in Sutra this is essentially free because everything is already living in tensor land — a lookup is just matrix-row selection on a tensor that's right there. (Other languages pay a pointer dereference + cache miss + branch for interpolation; Sutra doesn't switch representation, so the "table" is just another tensor.)
+So at the substrate level, the transcendentals collapse to two lookup tables (for exp / ln) plus one rotation primitive (for the trig family) — both already first-class operations in the runtime.
 
-A fourth tier — CORDIC-style decompositions into shifts and adds — exists for hardware-targeted backends but is not exposed at the language level today.
+### Status: disabled
 
-### The precision contract lives in `atman.toml`
+This is **not currently implemented**. An earlier attempt (commit `e45d373`, withdrawn 2026-04-30) ran Taylor + Newton refinement on host-side Python floats inside what claimed to be substrate-pure code. It was reverted because biomedical-hardware downstream uses cannot tolerate that lie about where the math executes. A bound-table approach was then explored for `exp` and `ln` and produced ~85% relative error on `exp` due to a 2-scalar bundle capacity limit and Gibbs phenomenon at the periodic boundary (see `planning/findings/2026-04-29-bound-table-capacity-limit.md`).
 
-The user controls the tradeoff explicitly per project:
+Today the codegen rejects calls to `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`, `pow` with a `CodegenNotSupported` error pointing at `stdlib/math.su`. The intrinsic declarations remain so the parser knows the names; the rejection is in `_translate_call` under `_TRANSCENDENTALS_DISABLED`.
 
-```toml
-[math]
-approximation_precision = 1e-6        # target abs error
-approximation_method = "chebyshev"    # or "lookup" or "cordic"
-```
-
-Different projects make different choices. A physics simulation wants 1e-12; a game engine wants 1e-3 and maximum speed. The compiler reads these settings, picks the polynomial degree (or table resolution) that hits the precision target, and emits the chosen tensor op. **The user writes `sqrt(x)` and the compiler picks the tier.** No runtime dispatch, no math-library call.
-
-This is a different philosophy from F# / Julia / most languages, which fix the precision at IEEE 754 and route through libm at runtime. Sutra makes precision a compile-time architectural decision that the compiled tensor reflects directly. For finance / regulatory / GPU-deployment work, that's a meaningful contrast — the compiled tensor is inspectable and deterministic in a way a JIT-compiled libm call chain isn't.
-
-### Status
-
-Aspirational as of 2026-04-25. The compiler doesn't currently have a transcendental-function approximation pass, and `atman.toml`'s `[math]` section is not parsed. Tracked in `todo.md` under "[This year] Compile-time math function approximation."
+The path forward — sketched but not implemented — is **eigenrotation-as-modulus**: the unit-circle rotation is naturally periodic without floor-based range reduction, which sidesteps the wrap-around crosstalk that broke the bound-table experiments. Tracked in `todo.md` under "Transcendental functions — design absorbed from voice chat."
 
 ---
 
