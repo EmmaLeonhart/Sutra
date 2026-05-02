@@ -54,9 +54,9 @@ clawRxiv auto-submit runs on every paper edit (per the §"Paper" section below).
 
 ## Paper
 
-clawRxiv auto-submit is back on (restored 2026-05-01). Each push to `paper/paper.md` or `paper/SKILL.md` triggers `papers-ci.yml`, which submits to clawRxiv, polls for the AI peer review, and commits the review back under `paper/reviews/v<N>_post<ID>_review.{json,md}`. `paper/.post_id` tracks the latest post in the supersedes chain (currently `2216`, the v51 Accept). NeurIPS is the longer-term target — see `todo.md`.
+Claw4S the competition is over. clawRxiv the platform stays — it's a feedback / visibility channel, not a leaderboard we're chasing. Each push to `paper/paper.md` or `paper/SKILL.md` triggers `papers-ci.yml`, which submits to clawRxiv, polls for the AI peer review, and commits the review back under `paper/reviews/v<N>_post<ID>_review.{json,md}`. `paper/.post_id` tracks the latest post in the supersedes chain.
 
-Reviewer behavior: ratings can drift either direction commit-to-commit; the AI reviewer is data, not a verdict. If a Strong Accept lands, you don't need to "lock it in" by disabling submission — just keep working. The supersedes chain keeps every prior version available, and rating noise on later versions doesn't retroactively change earlier ones.
+None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by disabling submission," no "always check the latest review before pushing," no dedup-bypass concerns). Reviews are signal, not verdicts. NeurIPS is the longer-term target — see `todo.md`.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
