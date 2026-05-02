@@ -1,7 +1,8 @@
 """Proof-of-concept: bound-table lookup for transcendentals.
 
-Tests the user's design from chats/implementing-transcendental-functions.md
-and the 2026-04-29 follow-up:
+Tests the user's design absorbed into todo.md § "Transcendental functions —
+design absorbed from voice chat" (originally explored in a 2026-04-29 voice
+chat; the chat file was deleted 2026-05-02 once the design was inlined):
 
   - exp and ln stored as bound tables in a reserved 2D plane
   - x -> angle via linear map theta(x) = (x - LO) / (HI - LO) * 2*pi
