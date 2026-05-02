@@ -8,7 +8,7 @@ That's an ontology, not a type system. The word isn't borrowed metaphorically �
 
 !!! note "Declarative OO, not imperative OO"
 
-    Sutra's object orientation is **declarative**, not imperative. There is no mutable instance state, no constructor side effects, no `this.field = value;` assignment. A class declaration is a *claim* about a region of embedding space — that this region exists, that it's worth naming, that certain operations make sense on values located there. Methods (when they land — see "What is deferred" below) will be pure functions from a vector to a vector. Identity is geometry, not a chain of mutations.
+    Sutra's object orientation is **declarative**, not imperative. There is no mutable instance state, no constructor side effects, no `this.field = value;` assignment. A class declaration is a *claim* about a region of embedding space — that this region exists, that it's worth naming, that certain operations make sense on values located there. Methods are pure functions from a vector to a vector — the encapsulation rule is enforced by the validator (see "Encapsulation" below) and methods compile through to substrate ops. Identity is geometry, not a chain of mutations.
 
     This places Sutra closer to RDF/OWL than to Java or Python. The [paradigms page](paradigms.md) walks through the comparison in detail.
 
@@ -243,9 +243,7 @@ This is where Sutra's ontology connects to traditional knowledge-representation 
 
 We are early in exploring this.
 
-### MVP declaration form (2026-04-25)
-
-The minimum viable surface landed in commit-set 2026-04-25:
+### Declaration form
 
 ```sutra
 class Embedding extends vector { }
@@ -256,25 +254,34 @@ class Cat extends Animal { }
 
 What this gives you today:
 
-- A `class Name extends Parent { }` declaration form. Parsed, validated, codegen'd.
+- A `class Name extends Parent { ... }` declaration form. Parsed, validated, codegen'd.
 - **Single inheritance.** Each class has exactly one parent.
 - **The chain must bottom out at a primitive** (vector / int / float / fuzzy / etc.). The validator walks the chain at compile time and emits a diagnostic if a parent is unknown.
-- **Empty bodies only.** Methods, fields, and operator implementations inside the braces are rejected with a pointer at the deferred ontology work in `todo.md`.
-- **Compile-time-only metadata.** At runtime, an instance of `Cat` is a plain vector — no extra storage, no runtime class tag, no dispatch overhead. The class name flows through the type system; the codegen skips `ClassDecl` nodes entirely.
+- **Bodies may carry method declarations.** Static methods, non-static methods, intrinsic methods, and loop-function declarations all parse inside class bodies; codegen routes them as described under "Methods and encapsulation" below.
+- **Compile-time-only metadata.** At runtime, an instance of `Cat` is a plain vector — no extra storage, no runtime class tag, no dispatch overhead. The class name flows through the type system; the codegen emits each method as a mangled top-level function (`{Class}_{method}`) and `ClassDecl` nodes themselves contribute no runtime allocation.
 - **Forward references aren't supported.** `class Foo extends Bar` requires `Bar` to be either a primitive or a class declared earlier in the file.
 
-Diagnostic codes for class-decl errors: `SUT0140` (non-empty body), `SUT0141` (duplicate name), `SUT0142` (extends-target unknown).
+Diagnostic codes for class-decl errors: `SUT0140` (parser-rejected body content), `SUT0141` (duplicate name), `SUT0142` (extends-target unknown), `SUT0144` (method body reads a file-scope name — see encapsulation below).
 
-Working example at `examples/classes_demo.su`. Corpus tests at `sdk/sutra-compiler/tests/corpus/{valid/class_declarations.su, invalid/17_class_extends_unknown.su, invalid/18_class_duplicate.su, invalid/19_class_with_body.su, invalid/20_class_no_extends.su}`.
+### Methods and encapsulation
 
-What is **deferred**:
+Methods landed in stages on 2026-05-01. The shipped surface:
 
-- **Instance behavior beyond "is a vector."** No constructor surface, no field declarations, no per-class storage layout decisions.
-- **Methods on user classes.** The `method` keyword parses, but `MethodDecl` codegen is rejected with `"method declarations are not supported by the V1 codegen."` Same rejection applies inside a class body.
-- **Operator implementations on a class.** The path that makes `Dollar + Dollar` work but `Dollar + Euro` not work — the F#-units-of-measure replacement story — is not in.
-- **Generics.** `class Foo<T> extends Bar { }` and `function T Identity<T>(T x)` both parse but codegen rejects them.
+- **Static methods** dispatch as `Class.method(args)` and emit as `{Class}_{method}(args)`. `static intrinsic method` declarations dispatch directly to the substrate (`_VSA.<method>`).
+- **Non-static methods** dispatch as `instance.method(args)` (when the variable's type is statically known) or `Class.method(instance, args)`. They emit as `{Class}_{method}(this, *args)` with `this` threaded as the implicit first parameter.
+- **Loop-function declarations inside a class body** emit as `_loop_{Class}_{name}` and are reached via `loop Class.name(...)`.
+- **Encapsulation is enforced.** A method body that reads any file-scope name (top-level functions, methods, vars) trips `SUT0144`. The class is its own scope boundary; sibling methods and class names are reachable, but free-floating module-level state is not. This is the structural inverse of free-function file-scope access.
 
-These are tracked in `todo.md` § "Ontology — make the class system real."
+What remains deferred:
+
+- **Instance fields.** `field x : int;` inside a class body is not yet a surface. Without it, "instance state" is whatever the caller passes through `this`.
+- **Operator implementations on a class.** The F#-units-of-measure-style story for `Dollar + Dollar` vs `Dollar + Euro` is not in.
+- **Generics.** `class Foo<T> extends Bar { }` and `function T Identity<T>(T x)` parse but codegen rejects them.
+- **Variable-typed instance dispatch.** `g.method(args)` for `Greeter g` requires variable-type tracking across the function body; today the typed-instance path works for simple cases. The `Class.method(instance, args)` form always works.
+
+These are tracked in `todo.md` § "Ontology — make the class system real" and in `planning/open-questions/function-taxonomy-and-closure.md`.
+
+Working example at `examples/classes_demo.su`. Corpus tests at `sdk/sutra-compiler/tests/corpus/{valid/class_declarations.su, invalid/17_class_extends_unknown.su, invalid/18_class_duplicate.su, invalid/20_class_no_extends.su, invalid/21_method_reads_file_scope.su}`.
 
 ---
 
