@@ -22,6 +22,23 @@ Status legend:
 
 Sutra's logic is fuzzy — every value lives on the truth axis as a number in `[-1, +1]` (Kleene K₃: `+1` true, `0` unknown, `-1` false). Logical operators are Lagrange polynomials over this scheme: exact on the three-valued grid, smooth everywhere, differentiable for gradient flow.
 
+Each connective accepts multiple spellings; all forms produce identical AST and lower to the same stdlib polynomial body. The keyword forms (`not`, `and`, `or`, `nand`, `xor`, `xnor`, `iff`) are case-insensitive AND contextual — they only become operators in expression positions, so user identifiers like `Iff`, `Nand`, or `XorTable` keep parsing as plain names.
+
+| Connective | Symbolic | Keyword (case-insensitive) | Stdlib body |
+|---|---|---|---|
+| NOT  | `!a`, `~a`           | `not a`                | `0 - a` |
+| AND  | `a && b`, `a & b`    | `a and b`              | `(a + b + ab − a² − b² + a²b²) / 2` |
+| NAND | —                    | `a nand b`             | `!(a && b)` |
+| OR   | `a \|\| b`, `a \| b` | `a or b`               | `(a + b − ab + a² + b² − a²b²) / 2` |
+| XOR  | —                    | `a xor b`              | `0 - a * b` |
+| XNOR | —                    | `a xnor b`, `a iff b`  | `a * b` |
+| EQ   | `a == b`             | —                      | cosine similarity on truth axis (intrinsic) |
+| NEQ  | `a != b`             | —                      | `!(a == b)` |
+| LT   | `a < b`              | —                      | `b > a` |
+| GT   | `a > b`              | —                      | smooth-tanh on real-axis difference (intrinsic) |
+| LE   | `a <= b`             | —                      | `a < b` (collapses to LT under tanh-scheme) |
+| GE   | `a >= b`             | —                      | `a > b` (same collapse) |
+
 ### `!a` — negation
 
 ```sutra
@@ -30,7 +47,7 @@ function fuzzy logical_not(fuzzy v) {
 }
 ```
 
-Polynomial form: `NOT(v) = -v`. Exact on `{-1, 0, +1}`, fixed point at `0` (unknown stays unknown). **Status: in Sutra** (`stdlib/logic.su`).
+Polynomial form: `NOT(v) = -v`. Exact on `{-1, 0, +1}`, fixed point at `0` (unknown stays unknown). Spellings: `!a`, `~a`, `not a` / `NOT a`. **Status: in Sutra** (`stdlib/logic.su`).
 
 ### `a && b` — conjunction (Kleene K₃ AND)
 
@@ -40,7 +57,17 @@ function fuzzy logical_and(fuzzy a, fuzzy b) {
 }
 ```
 
-Lagrange polynomial: `a ∧ b = (a + b + ab − a² − b² + a²b²) / 2`. **Status: in Sutra** (`stdlib/logic.su`).
+Lagrange polynomial: `a ∧ b = (a + b + ab − a² − b² + a²b²) / 2`. Spellings: `a && b`, `a & b`, `a and b` / `AND` / `And`. **Status: in Sutra** (`stdlib/logic.su`).
+
+### `a nand b` — NAND
+
+```sutra
+function fuzzy logical_nand(fuzzy a, fuzzy b) {
+    return !logical_and(a, b);
+}
+```
+
+Composition over AND and NOT. Functionally complete on its own (`{NAND}` alone can express any Boolean function). **Status: in Sutra** (`stdlib/logic.su`).
 
 ### `a || b` — disjunction (Kleene K₃ OR)
 
@@ -50,7 +77,27 @@ function fuzzy logical_or(fuzzy a, fuzzy b) {
 }
 ```
 
-Dual polynomial to AND: `a ∨ b = (a + b − ab + a² + b² − a²b²) / 2`. **Status: in Sutra** (`stdlib/logic.su`).
+Dual polynomial to AND: `a ∨ b = (a + b − ab + a² + b² − a²b²) / 2`. Spellings: `a || b`, `a | b`, `a or b` / `OR` / `Or`. **Status: in Sutra** (`stdlib/logic.su`).
+
+### `a xor b` — exclusive OR
+
+```sutra
+function fuzzy logical_xor(fuzzy a, fuzzy b) {
+    return 0 - a * b;
+}
+```
+
+Closed form: `XOR(a, b) = -a·b`. Equivalent to `(a && !b) || (!a && b)` after polynomial folding. The simplifier discovers this collapse on its own when XOR is written compositionally; shipping the closed form here saves the simplifier the work. **Status: in Sutra** (`stdlib/logic.su`).
+
+### `a xnor b` — biconditional / IFF
+
+```sutra
+function fuzzy logical_xnor(fuzzy a, fuzzy b) {
+    return a * b;
+}
+```
+
+NOT(XOR), which simplifies to the bare product. Spellings: `a xnor b`, `a iff b`. **Status: in Sutra** (`stdlib/logic.su`).
 
 ### `a == b` — fuzzy equality (cosine on truth axis)
 

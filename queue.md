@@ -58,6 +58,19 @@ same commit. Repeat.
     still on the legacy top-level shape (their bodies use retired
     loop syntax that wants care before migration).
 
+### Open issues to address
+
+- **SutraDB FFI tests fail locally because `sutra_ffi.dll` isn't
+  built.** `tests/test_sutradb_embedded.py` raises
+  `FileNotFoundError: sutra_ffi.dll not found at
+  sutraDB/target/release/sutra_ffi.dll`. To fix locally, build the
+  Rust crate: `cd sutraDB && cargo build --release -p sutra-ffi`
+  (build prereq from `planning/semantic-corrections.md` §15). All
+  other 245+ tests pass without this. If a CI run picks this up,
+  the workflow needs the same `cargo build` step before the Python
+  tests; the SutraDB-related tests should be skipped (not failed)
+  when the dll isn't present, so unrelated PRs don't bounce.
+
 ### Next up
 
 The remaining language-ergonomics steps (3-6) of the encapsulation
