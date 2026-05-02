@@ -188,6 +188,32 @@ Each step of the chain is a function-expansion: `^` reduces to `Pow`, `Pow` redu
 
 ---
 
+## General tensor operations
+
+Most Sutra programs use the VSA primitives below (bind / unbind / bundle / similarity), but the language also exposes general-purpose tensor algebra on the `Tensor` namespace for programs that need plain matrix multiplication, outer products, dot products, etc. These are thin wrappers over the underlying runtime (numpy or torch) — they don't have VSA-specific semantics.
+
+Both PascalCase and snake_case spellings are accepted:
+
+```sutra
+vector y = Tensor.MatrixMul(M, x);    // preferred
+vector y = Tensor.matmul(M, x);       // also works
+vector y = MatrixMul(M, x);           // bare-name shortcut via stdlib_loader
+```
+
+| Operation | Sutra form | Underlying call |
+|---|---|---|
+| Matrix multiplication | `Tensor.MatrixMul(a, b)` / `matmul(a, b)` | `np.matmul` / `torch.matmul` |
+| Tensor / Kronecker product | `Tensor.TensorProduct(a, b)` / `tensor_product(a, b)` | `np.kron` / `torch.kron` |
+| Outer product | `Tensor.Outer(a, b)` / `outer(a, b)` | `np.outer` / `torch.outer` |
+| Dot product (scalar result) | `Tensor.Dot(a, b)` / `dot(a, b)` | `np.dot` / `torch.dot` |
+| Transpose | `Tensor.Transpose(M)` / `transpose(M)` | `np.transpose` / `torch.transpose` |
+
+Worked example: `examples/tensor_ops.su` uses each of the five operations end-to-end. Source for the namespace declaration: `sdk/sutra-compiler/sutra_compiler/stdlib/tensor.su`.
+
+These exist because asking "Sutra has tensor ops, but how do I call them?" was an obvious gap — VSA-style operations are domain-specific (role-rotation binding, normalized superposition); general matrix/vector math is what programmers reach for first. The VSA primitives below remain the canonical operations for hyperdimensional records and nearest-match retrieval.
+
+---
+
 ## Vector / VSA primitives
 
 The hyperdimensional-computing core. Every operation is a tensor op on the substrate.
