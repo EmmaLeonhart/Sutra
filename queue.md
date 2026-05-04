@@ -108,17 +108,28 @@ Sutra is a typed, purely functional programming language; a compiled Sutra progr
 
 ### Primary area (NeurIPS 2026 list)
 
-Recommend **Deep Learning** (the contribution is a programming-
-language layer that compiles to PyTorch ops; the empirical
-claims are about gradient flow, capacity, and convergence on
-PyTorch). Alternates if "Deep Learning" feels too broad:
+Recommend **SysML Infrastructure**. Confirmed as a listed area on
+the 2026 call page. Sutra is fundamentally a *compiler* — it
+translates `.su` source into a fused PyTorch tensor-op graph —
+and its contribution is a programming-language layer that targets
+neural-net runtimes. The right reviewer audience is ML-systems /
+PL / compiler researchers, who will recognize what beta reduction
+to tensor normal form is and won't expect ResNet baselines.
 
-- **Language and Multimodal Models** — relevant because three of
-  four substrates are LLMs, but the paper isn't about LLM
-  behavior so this risks misrouting to LLM-application reviewers.
-- **Probabilistic Methods** — fuzzy logic / Kleene routes here,
-  but it's not the headline; the paper is about compilation, not
-  inference under uncertainty.
+Why **not** Deep Learning, even though the runtime is a neural
+network: that area routes to architecture-and-training reviewers,
+who would (correctly) point out that Sutra is not a new NN
+architecture and didn't propose a new optimizer. The contribution
+is upstream of those concerns.
+
+Alternate fallbacks if SysML Infrastructure isn't a clean
+dropdown match in the actual form:
+- **Theory** — partial fit; the polynomial Kleene logic is
+  formal, but the paper is mostly construction + empirical.
+- **Deep Learning** — broad-stroke fallback. Routes to architecture
+  reviewers (some risk).
+- **Language and Multimodal Models** — three of four substrates
+  are LLMs but the paper isn't about LLM behavior. Avoid.
 
 ### Keywords (suggest five; the form usually allows up to ~6)
 
@@ -142,9 +153,89 @@ submission time.
 
 ### After abstract
 
-queue.md flips back to a systematic todo.md pass once the May 4
-AOE submission is in. Full paper PDF + checklist still due May 6
-AOE.
+queue.md flips to **May 6 paper-deadline mode** as soon as the
+4 AM abstract submission lands.
+
+#### Length: paper currently overshoots ~3x (1453 lines, ~26 pages estimated; NeurIPS cap = 9 content pages, refs + appendix unlimited)
+
+Section line counts:
+- §1 Introduction + Contributions — 394 lines (target: ~80)
+- §2 Related Work — 278 lines (target: ~50)
+- §3 Consolidation into Canonical Primitives — 508 lines (target: ~250)
+- §4 The Sutra Compiler — 64 lines (target: ~30)
+- §5 Demonstration Programs — 64 lines (target: ~30)
+- §6 Limitations — 12 lines (keep)
+- §7 Conclusion — 19 lines (keep)
+- References — 65 lines (out of body budget)
+
+Move-to-appendix candidates:
+- **§1.1 contribution #2's TNF defense** (lines ~241–280, the
+  "ontological not quantitative" defense vs constant propagation
+  / partial evaluation / staging). Keep one sentence in body
+  saying what TNF is; defend it in appendix.
+- **§1.3 Substrate-as-architecture-target** (lines ~380–425).
+  Compress to one paragraph in §1.2; full discussion to appendix.
+- **§2 Related Work's TorchHD code-sample contrast** (lines
+  ~498-700). The point is "Sutra is a compiler, TorchHD is a
+  library"; the side-by-side `.su` vs Python code is appendix
+  material.
+- **§3.1.1 Crosstalk depth analysis** (lines ~854–911). One
+  table + two-sentence summary in body; full analysis to
+  appendix.
+- **§3.2 Extended-state-vector layout details** (lines ~913–999).
+  Diagram + one paragraph in body; layout walkthrough to
+  appendix.
+- **§3.4 Embedded codebook store** (lines ~1057–1136). Tight
+  paragraph in body about boundary I/O; HNSW details to appendix.
+- **§3.5 torch.compile wrapping** — possibly drop entirely from
+  body; mention in appendix as an opt-in optimization.
+
+Cuts that actually delete (not appendix):
+- §1's three repetitions of "no compile-time iteration cap"
+  (one is enough).
+- §2 has overlap with §1.3 on substrate-as-architecture; pick
+  one home.
+- The four §5 demo subsections (5.1 hello world, 5.2 fuzzy
+  dispatch, 5.3 role-filler, 5.4 loops). Keep one as a worked
+  example; the rest are smoke-test references.
+
+#### Three Emma asks for the May 6 body
+
+1. **Diagrams of how Sutra programs work at runtime.** Need at
+   least two figures:
+   - Figure A: `.su` source → AST → simplified AST → emitted
+     PyTorch source → tensor-op graph at runtime. Stage flow.
+   - Figure B: a concrete fused-graph snapshot for one program
+     (the differentiable-training rule pipeline is a good one —
+     19 ANDs deep, all visible).
+2. **Mathematical representations of runtime behavior.** Add
+   formal notation for the soft-halt RNN cell update, the
+   bind/unbind tensor operations, the rule pipeline. Notation
+   already exists in scattered form; consolidate into one
+   "Notation" subsection at the start of §3.
+3. **A worked beta-reduction example.** Take a small `.su`
+   program (e.g. `bundle(bind(role_a, filler_a), bind(role_b,
+   filler_b))`) and step through:
+   - parse to AST
+   - inline `bind` and `bundle` definitions
+   - normalize to `R_a @ filler_a + R_b @ filler_b`
+   - peephole-fuse to `_VSA.bundle_of_binds(...)`
+   - lower to `torch.matmul + element-wise add + L2 normalize`
+
+   This is what Sutra's pitch *is*; the paper currently sketches
+   it in an ASCII diagram in §1.1-2 but has no honest worked
+   step-by-step example.
+
+#### Order of operations for May 5
+
+1. Lock the abstract submission at 4 AM.
+2. Plan the trim concretely (mark each line range as keep / cut /
+   move-to-appendix in a single pass).
+3. Add Figure A + Figure B + the worked beta-reduction example
+   (these are *additions*, but they support the body's value —
+   the trim above gets us back under the limit).
+4. Iterate clawRxiv reviews; aim to keep v23's Accept rating.
+5. Submit full PDF May 6 AOE.
 
 ### Done in this sprint (2026-05-01)
 
