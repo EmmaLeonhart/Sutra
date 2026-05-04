@@ -378,85 +378,42 @@ graph) are differences in artifact shape, not library speed.
 
 ### 2.2 Comparison to other neuro-symbolic languages
 
-The closest neuro-symbolic-language peer is **Scallop** (Li et
-al. 2023), a Datalog-based language with PyTorch bindings whose
-differentiability comes from an extended provenance-semiring
-framework over relational queries. Scallop's architectural shape
-is a two-stage pipeline: a neural model `M_θ` extracts discrete
-symbols `r` from raw input, and a Datalog program `P` performs
-logical reasoning over those symbols to produce the output. The
-boundary between perception and reasoning is sharp; the symbols
-that flow between them are typed relations.
+The closest neuro-symbolic-language peers — **Scallop** (Li et
+al. 2023, Datalog with provenance-semiring differentiability),
+**DeepProbLog** (Manhaeve et al. 2018, ProbLog with neural
+predicates), **Logic Tensor Networks** (Badreddine et al. 2022,
+first-order logic compiled to t-norm losses), and **NeurASP**
+(Yang et al. 2020, Answer Set Programming with neural predicates)
+— all share a two-stage perception-then-reasoning shape: a
+neural model extracts discrete symbols from raw input, and a
+symbolic program reasons over those symbols. Sutra's shape is
+different at this architectural level: the substrate is a
+continuous embedding space throughout, primitives operate on
+vectors end-to-end, and the whole program — including what would
+be the logic program in Scallop — compiles to a single fused
+tensor-op graph through beta reduction. There is no discrete
+symbolic stratum to extract into or reason over; differentiability
+is inherited from the tensor-op graph itself, not from a
+provenance annotation on a relational query. The two are good at
+different problem structures: Scallop and its peers when the
+problem is naturally relational and perception cleanly factors
+out; Sutra when computation is best expressed as algebra on
+vectors over a substrate the program reads strings into and
+decodes strings out of.
 
-Sutra's shape is different at the same architectural level. There
-is no perception-then-reasoning split: the substrate is a
-continuous embedding space throughout, and primitives like
-`bind`, `unbind`, `bundle`, and similarity operate on vectors
-end-to-end. There is no discrete symbolic layer to extract into
-or reason over. The whole program — including what would in
-Scallop be the logic program — compiles to a single fused
-tensor-op graph through beta reduction (§1.1-2). Differentiability
-is inherited from the tensor-op graph itself; there are no
-provenance semirings because there is no relational layer to
-annotate.
-
-The two systems are good at different things. Scallop is the
-right tool when an application's problem structure is naturally
-relational — scene-graph queries, knowledge-graph reasoning,
-combinatorial search over typed entities — and the perception
-side can be cleanly factored out into a separate neural module.
-Sutra is the right tool when computation is best expressed as
-algebra on vectors and the substrate is a frozen LLM embedding
-space the program reads strings into and decodes strings out of.
-Neither subsumes the other; they answer different
-"what kind of program does the user want to write?" questions.
-
-The other named neuro-symbolic peers — DeepProbLog (Manhaeve et
-al. 2018), Logic Tensor Networks (Serafini & Garcez 2016;
-Badreddine et al. 2022), and NeurASP (Yang et al. 2020) — share
-Scallop's perception-then-reasoning shape and differ similarly
-from Sutra. DeepProbLog grounds neural predicates in a ProbLog
-proof tree; LTN compiles first-order-logic formulas into
-differentiable t-norm losses over learned embeddings; NeurASP
-extends Answer Set Programming with neural predicates. All three
-treat symbols as a separate stratum from the neural layer.
-
-The HDC-side comparison is sparser. The closest HDC peer with
-compiler infrastructure is HDCC (Vergés et al. 2023), which
-translates a description-file DSL into self-contained C for
-embedded classification. HDCC ships random and level
-hypervectors only (no LLM substrate), supports no general
-control flow (no loops, no recursion, no conditionals beyond
-the encode-then-classify pipeline), and is scoped to
-classification rather than general-purpose programming. The
-TorchHD library and OpenHD / HDTorch frameworks similarly do
-not expose loops as a language primitive — control flow lives
-in the host Python.
-
-To the authors' knowledge, no published HDC system targets the
-specific configuration that Sutra occupies: a single tensor-op
-graph folding the whole program — including substrate I/O and
-tail-recursive loops with constant memory overhead in recursion
-depth (§3.4) — over a frozen externally-trained embedding
-substrate. The combination of (a) one fused tensor-op graph as
-the compile target, (b) HDC primitives as the operations, (c) a
-frozen vector embedding space as the substrate (the demonstrations
-use LLM embeddings, but any frozen embedding of comparable
-dimensionality applies — see §1 abstract), and (d) tail-recursive
-loops compiled to soft-halt RNN cells over a fixed-width state
-vector is what distinguishes Sutra from each of these peers, not
-any one of those four properties in isolation.
-
-A consequence of (a)–(d) the paper does not lean on but is worth
-noting: because the compiled artifact is itself a tensor-op
-graph against an externally-supplied vector substrate, a Sutra
-program can in principle be wired into an existing trained
-neural network as a neural API — reading activations from a
-designated layer of a CNN, MLP, or transformer as its input
-substrate, and emitting tensor-op outputs that the surrounding
-network consumes. Demonstrating this composition with a real
-host network is left as future work, but the construction does
-not rely on the substrate being a language model.
+The closest HDC peer with compiler infrastructure is **HDCC**
+(Vergés et al. 2023), a description-file DSL targeting
+self-contained C for embedded classification — random/level
+hypervectors only, no general control flow, scoped to
+classification. **TorchHD** and OpenHD / HDTorch are libraries
+without a language-level loop primitive. To the authors'
+knowledge, no published HDC system combines (a) one fused
+tensor-op graph as compile target, (b) HDC primitives as the
+operations, (c) a frozen externally-trained vector embedding
+space as the substrate, and (d) tail-recursive loops compiled to
+soft-halt RNN cells with constant state-vector width in
+recursion depth. The combination is what distinguishes Sutra,
+not any one of those properties in isolation.
 
 ### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
