@@ -176,7 +176,7 @@ print('OK: §3.1.1 crosstalk reproduces')
 "
 ```
 
-Honest negative: chain=1 100%, chain=8 at chance — scopes the
+chain=1 reaches 100%, chain=8 falls to chance — this scopes the
 §3.1 capacity claim to single-cycle records.
 
 ### §3.6 — End-to-end differentiable training (symbolic if-then rules)
