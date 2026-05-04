@@ -670,108 +670,58 @@ allocator details in Appendix D.
 Runtime data-dependent loops compile to **self-halting RNN
 cells**. Each tick: snapshot pre-step state, evaluate the halt
 condition on the substrate (truth-axis read → heaviside step →
-cumulative saturating sum), run the body which uses `pass values`
-(or equivalently `return NAME(args)` tail recursion) to update
-state locals, then a soft-mux blends pre-step and new-step state
-weighted by the halt accumulator. The loop driver is a Python
-`while True:` that **breaks the moment `halt_cum` saturates**.
+cumulative saturating sum), run the cell body, then a soft-mux
+blends pre-step and new-step state weighted by the halt
+accumulator. A Python `while True:` driver breaks the moment
+`halt_cum` saturates.
 
 ```
-                 state_in (from previous tick)
-                    |
-             +------+------+
-             |             |
-             v             v
-        pre_state      cell body (pure tensor ops, no Python branches)
-        (snapshot)         |
-             |             v
-             |        new_state, halt_signal
-             |             |
-             |   +---------+
-             |   |
-             |   v
-             |  halt_cum += halt_signal     <-- saturating sum [0, 1]
-             |  (truth-axis read,
-             |   heaviside step)
-             |             |
-             |    +--------+
-             |    |
-             v    v
-            soft-mux freeze:
-              state_out = (1 - halt_cum) * new_state
-                        +     halt_cum  * pre_state
-                    |
-                    v
-        Python driver: if halt_cum saturates, break and return state_out;
-                       else feed state_out back as state_in next tick.
+            state_in
+               |
+        +------+------+
+        |             |
+        v             v
+    pre_state    cell body (pure tensor ops)
+                      |
+                      v
+                 new_state, halt_signal
+                      |
+              halt_cum  ← saturating sum
+                      |
+                      v
+              soft-mux freeze:
+              state_out = (1 - halt_cum) · new_state
+                        +     halt_cum  · pre_state
 ```
 
-Once `halt_cum` reaches 1.0, the soft-mux output is just
-`pre_state` — the loop has frozen. The Python driver checks
-`halt_cum` once per tick and breaks when it saturates, which is
-the only host-side branch in the entire loop machinery. Inside
-the cell body, every operation is a substrate tensor op; outside
-the cell, the only host work is the boundary `halt_cum` read
-(equivalent in cost to the codebook's `nearest_string` boundary
-read in §3.5).
-There is no compile-time iteration cap — programs terminate when
-their halt condition fires, exactly the way any other programming
-language's `while` loop terminates. The halt-cum scalar that
-drives the break is one boundary read per iteration, the same
-kind of boundary operation as the codebook's `nearest_string`
-decode (§3.5).
+Once `halt_cum` saturates, the soft-mux output is `pre_state` —
+the loop has frozen. The Python driver checks `halt_cum` once per
+tick and breaks; this is the only host-side branch in the loop
+machinery. Inside the cell body, every operation is a substrate
+tensor op. There is no compile-time iteration cap — programs
+terminate when their halt condition fires, exactly the way any
+other programming language's `while` loop does. The halt-cum read
+is a boundary operation of the same shape as the codebook decode
+(§3.5).
 
-**Loop body vs loop driver.** Sutra's "tensor normal form"
-applies to the *body* of each loop tick: one fused chunk of
-tensor ops with no Python control flow inside any operation.
-The *loop itself* is a Python `while True: … break` driver that
-invokes that fused body until it self-halts. We do **not** claim
-the loop is unrolled into the body's tensor graph at compile
-time. Standard PyTorch tracing handles a Python while-loop
-wrapping pure tensor ops fine — autograd records each
-iteration's operations as it executes (this is the mechanism
-§3.6 relies on for end-to-end backprop through the cell). The
-`torch.compile` wrapping (opt-in, §3.6) may further fuse the
-per-call iteration at trace time, but the language semantics do
-not require that fusion: the default runtime is a Python loop
-calling normal-form bodies until convergence.
+**Loop body vs loop driver.** Tensor normal form applies to the
+body of each tick, not to the loop itself: standard PyTorch
+tracing handles a Python while-loop wrapping pure tensor ops, and
+autograd records each iteration as it executes — the mechanism
+§3.6 relies on for end-to-end backprop through the cell.
 
-(The recurrent computational substrate that emerges from this
-construction is the same shape Siegelmann & Sontag (1992)
-analyzed when they showed recurrent neural networks with rational
-weights can compute any Turing-machine-computable function. We
-mention this for completeness — the result is well-established
-and assumed for any general-purpose programming language; we do
-not lean on it as a contribution.)
-
-**Constant memory in recursion depth.** The state vector the
-loop body updates is fixed-width: `[semantic | synthetic]`,
-total dimensionality set at compile time and unchanged across
-all iterations. A tail-recursive loop in Sutra therefore consumes
-**O(1) memory in the state vector** regardless of how many
-iterations it runs — no per-step stack frame, no growing context,
-no heap allocation keyed by depth. Compute scales linearly in
-the number of iterations actually executed (each tick runs the
-fused body once), and during training the autograd tape grows
-linearly in the number of iterations executed up to the
-`backward()` call (standard PyTorch behavior, freed after the
-backward pass). The summary is therefore: **O(1) state, O(N)
-compute, O(N) gradient tape during training**, where N is
-*iterations actually executed* rather than a compile-time budget.
-For inference (no training) the gradient tape is not built and
-the only memory cost is the fixed-width state vector. Compared
-with sequence models that accumulate a context window linearly
-with input length and with stack-based recursive languages whose
-memory footprint grows with call depth, Sutra's recurrent-tail-
-recursive form folds an arbitrary execution trajectory into a
-single fixed-width vector via VSA superposition.
-
-To the authors' knowledge, no other HDC system or HDC compiler
-exposes user-program-level recursion at all (HDCC compiles
-classification pipelines only, with no general control flow;
-TorchHD requires the user to write Python loops over
-hypervectors, which are not constant-memory in either depth or
-context).
+**Constant memory in recursion depth.** The state vector is
+fixed-width and shared across iterations, so a tail-recursive
+loop consumes O(1) memory in the state vector regardless of trip
+count: no per-step stack frame, no growing context. Compute is
+O(N) and the autograd tape during training is O(N) in iterations
+actually executed (standard PyTorch behavior, freed after
+backward). To the authors' knowledge no other HDC system or
+compiler exposes user-program-level recursion: HDCC is scoped to
+classification pipelines, TorchHD requires the user to write
+Python loops over hypervectors. The recurrent shape that emerges
+is the same one Siegelmann & Sontag (1992) showed can compute any
+Turing-machine-computable function with rational weights.
 
 ### 3.5 Embedded codebook store
 
