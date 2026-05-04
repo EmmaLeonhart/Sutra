@@ -43,6 +43,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Always grab the current head of master, not the trigger
+          # SHA. The concurrency lock above serializes runs, but each
+          # run's commit-back (paper/.post_id bump, review fetch)
+          # happens AFTER the trigger SHA, so a queued run that
+          # checked out its own trigger SHA would read stale .post_id
+          # and try to supersede a post that has already been
+          # superseded — clawRxiv returns 409 "already been revised."
+          # Using `ref: master` here means a queued run sees the
+          # latest committed state when it finally executes.
+          ref: master
           # Full history so the Skip-Submit trailer check sees the
           # full pushed range, not just HEAD~1..HEAD.
           fetch-depth: 0
