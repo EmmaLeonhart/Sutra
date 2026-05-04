@@ -707,52 +707,18 @@ neural-network weights are constants at inference time. With
 tracer further folds the per-tick loop body into a single fused
 kernel.
 
-### 4.3 A worked lowering: a two-field bundled record
+### 4.3 A worked lowering
 
-We trace one small program — `encode2(r_a, f_a, r_b, f_b) :=
-bundle(bind(r_a, f_a), bind(r_b, f_b))` — stage by stage.
-
-**Stage 1 — AST after parse.** A tree of `Call` nodes over named
-identifiers: `Call("bundle", Call("bind", r_a, f_a),
-Call("bind", r_b, f_b))`.
-
-**Stage 2 — beta reduction by stdlib inlining.** `bind`,
-`bundle`, and `normalize` are stdlib functions:
-`bind(r,f) ≡ RotationFor(r) @ f`, `bundle(x,y) ≡ normalize(x+y)`,
-`normalize(v) ≡ v / (‖v‖ + ε)`. After substitution the body
-becomes `normalize(RotationFor(r_a) @ f_a + RotationFor(r_b) @ f_b)`.
-No `bind` or `bundle` symbol remains; the residual is straight-
-line algebra over four tensor primitives.
-
-**Stage 3 — compile-time constant resolution.** `RotationFor(r)`
-is a compile-time function returning `R = QR(seed = hash(r))[Q]`.
-The compiler evaluates it for each role at compile time, freezes
-the results as constant tensors `R_a` and `R_b`, and stores them
-in the rotation cache. The body becomes `normalize(R_a @ f_a +
-R_b @ f_b)` — `R_a` and `R_b` are now load-bearing constants in
-the same sense as the weight matrices of a feed-forward network.
-
-**Stage 4 — peephole fusion.** The simplifier recognizes
-`normalize(Σᵢ Rᵢ @ fᵢ)` as the bundle-of-binds pattern and
-rewrites it to `_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])` —
-one kernel launch instead of two matmuls + add + norm.
-
-**Stage 5 — leaf tensor ops at runtime.** `bundle_of_binds`
-stacks rotations into a `(k, d, d)` tensor, stacks fillers into
-`(k, d)`, runs one batched einsum + sum + L2-normalize:
-
-```
-encode2 ≡ v / (‖v‖ + ε)
-where  v = einsum("kij,kj->i", stack([R_a, R_b]), stack([f_a, f_b]))
-```
-
-The compiled forward pass for `encode2` is exactly those three
-torch calls — einsum, linalg.norm, divide — over precomputed
-`R_a, R_b` and runtime-supplied `f_a, f_b`. No `bind`, no
-`bundle`, no `normalize` symbol, no Python control flow, no
-string-keyed dispatch. The lambda calculus at the surface and
-the tensor arithmetic at the leaves are two notations for the
-same computation.
+A two-field bundled record `encode2(r_a, f_a, r_b, f_b) :=
+bundle(bind(r_a, f_a), bind(r_b, f_b))` lowers in five stages
+(parse → stdlib beta-substitution → compile-time `RotationFor`
+resolution → peephole fusion to `_VSA.bundle_of_binds` → leaf
+tensor ops `einsum + linalg.norm + divide`) over rotations
+materialized at compile time. Appendix G traces each stage with
+the residual after every reduction. The bottom of the chain
+contains no `bind`/`bundle`/`normalize` symbol and no Python
+control flow; surface lambda calculus and runtime tensor
+arithmetic are two notations for the same computation.
 
 ---
 
@@ -868,3 +834,51 @@ programs to write rather than scripts to glue together.
   space. *ICLR*.
 - Wang, Z., Zhang, J., Feng, J., & Chen, Z. (2014). Knowledge
   graph embedding by translating on hyperplanes. *AAAI*.
+
+---
+
+## Appendix
+
+### Appendix G — Worked lowering of a two-field bundled record
+
+The body §4.3 sketches the lowering of `encode2(r_a, f_a, r_b,
+f_b) := bundle(bind(r_a, f_a), bind(r_b, f_b))`. Here we trace
+each stage with the explicit residual.
+
+**Stage 1 — AST after parse.** A tree of `Call` nodes over named
+identifiers: `Call("bundle", Call("bind", r_a, f_a),
+Call("bind", r_b, f_b))`.
+
+**Stage 2 — beta reduction by stdlib inlining.** `bind`,
+`bundle`, and `normalize` are stdlib functions:
+`bind(r,f) ≡ RotationFor(r) @ f`, `bundle(x,y) ≡ normalize(x+y)`,
+`normalize(v) ≡ v / (‖v‖ + ε)`. After substitution the body
+becomes `normalize(RotationFor(r_a) @ f_a + RotationFor(r_b) @ f_b)`.
+No `bind` or `bundle` symbol remains; the residual is straight-
+line algebra over four tensor primitives.
+
+**Stage 3 — compile-time constant resolution.** `RotationFor(r)`
+is a compile-time function returning `R = QR(seed = hash(r))[Q]`.
+The compiler evaluates it for each role at compile time, freezes
+the results as constant tensors `R_a` and `R_b`, and stores them
+in the rotation cache. The body becomes `normalize(R_a @ f_a +
+R_b @ f_b)` — `R_a` and `R_b` are now load-bearing constants in
+the same sense as the weight matrices of a feed-forward network.
+
+**Stage 4 — peephole fusion.** The simplifier recognizes
+`normalize(Σᵢ Rᵢ @ fᵢ)` as the bundle-of-binds pattern and
+rewrites it to `_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])` —
+one kernel launch instead of two matmuls + add + norm.
+
+**Stage 5 — leaf tensor ops at runtime.** `bundle_of_binds`
+stacks rotations into a `(k, d, d)` tensor, stacks fillers into
+`(k, d)`, runs one batched einsum + sum + L2-normalize:
+
+```
+encode2 ≡ v / (‖v‖ + ε)
+where  v = einsum("kij,kj->i", stack([R_a, R_b]), stack([f_a, f_b]))
+```
+
+The compiled forward pass for `encode2` is exactly those three
+torch calls — einsum, linalg.norm, divide — over precomputed
+`R_a, R_b` and runtime-supplied `f_a, f_b`.
