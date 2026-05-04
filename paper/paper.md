@@ -555,38 +555,26 @@ operation, the compiled graph supports standard PyTorch
 training learnable parameters through a fuzzy-logic classifier
 built entirely from Sutra operations.
 
-**Setup.** 992 words spanning twenty categories (animal,
-vehicle, food, color, clothing, weather, emotion, tool,
-instrument, profession, body-part, plant, furniture, building,
-country, sport, drink, metal, shape, fabric — fifty words per
-category, eight de-duplicated where the same surface form fits
-two categories) are embedded via nomic-embed-text (768-d,
-frozen). Twenty learnable prototype vectors are initialized
-randomly. The classifier computes cosine similarity between an
-input and each prototype, then applies Lagrange-interpolated
-fuzzy AND/NOT gates to produce per-class scores:
+**Setup.** 992 words across twenty semantic categories
+(50 each, deduplicated; full list in Appendix F) are embedded
+via nomic-embed-text (768-d, frozen). Twenty learnable prototype
+vectors are initialized randomly. The classifier computes cosine
+similarity between input and each prototype and applies a
+Lagrange-interpolated fuzzy if-then rule:
 
-    rule_i = AND(sim(x, proto_i),
-                 AND_{j ≠ i} NOT(sim(x, proto_j)))
+    rule_i = AND(sim(x, proto_i), AND_{j ≠ i} NOT(sim(x, proto_j)))
 
-generalizing to arbitrary K ≥ 2 by left-folding the AND-of-NOTs
-over the K−1 other classes. Each gate is a polynomial (§1.1-1,
-Lagrange interpolation on the Kleene {−1, 0, +1} grid), so the
-full forward pass is a composition of polynomial and rational
-tensor operations with well-defined gradients everywhere — even
-when the rule structure for K=20 nests nineteen ANDs deep.
-Full-batch cross-entropy loss over the twenty rule scores drives
-Adam updates (lr=0.005) on the prototype embeddings.
+with the AND-of-NOTs left-folded across K−1 other classes (so
+the K=20 rule nests nineteen ANDs deep). Full-batch cross-entropy
+over the twenty rule scores drives Adam updates (lr=0.005) on
+the prototype embeddings.
 
-**Results.** Before training (random prototypes), accuracy is 4%
-(chance = 5%). Training reaches 95% accuracy by epoch 50 and
-holds it through epoch 299, with loss converging to 1.154.
-Gradient norms for all twenty prototypes are nonzero at every
-step (range 0.94–4.20), confirming that backpropagation reaches
-every learnable parameter through the full chain of Sutra
-operations: `similarity` (cosine dot product) → `fuzzy_not`
-(Kleene negation) → nineteen nested `fuzzy_and` calls (Lagrange
-min polynomial) → cross-entropy.
+**Results.** Random init: 4% accuracy (chance = 5%). Training
+reaches 95% by epoch 50 and holds through epoch 299, loss
+converging to 1.154. Gradient norms at all twenty prototypes are
+nonzero throughout (range 0.94–4.20), so backprop reaches every
+learnable parameter through `similarity` → `fuzzy_not` →
+nineteen nested `fuzzy_and` → cross-entropy.
 
 | Phase  | Accuracy | Loss  |
 |--------|---------:|------:|
