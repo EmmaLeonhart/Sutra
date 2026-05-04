@@ -550,46 +550,14 @@ are all baked into the emitted source. Re-running a compiled
 module hits the disk-cached embeddings and the precomputed
 rotations on second-and-later runs.
 
-**Figure 1: Sutra compilation pipeline.** Stages 1–4 run at
-compile time; stage 5 is the runtime forward pass. The boundary
-between compile-time and runtime is exactly where neural-network
-training versus inference draws the line — pre-execution work
-becomes constants in the running graph.
-
-```
-   source code  (.su)
-        │
-        │   (1) lex + parse
-        ▼
-   AST   (Call / Var / Function / ClassDecl nodes)
-        │
-        │   (2) inline stdlib + egglog simplify
-        │       (bind, bundle, similarity → primitive tensor ops)
-        ▼
-   simplified AST   (residual: leaf tensor-op composition)
-        │
-        │   (3) codegen
-        │       (emit Python module + inline _VSA class source)
-        ▼
-   Python module text   (self-contained, no Sutra-runtime import)
-        │
-        │   (4) compile-time substrate population
-        │       embed_batch · prewarm_rotation_cache · populate_sutradb
-        ▼
-   warm runtime   (module loaded, .sdb codebook, cached R_role tensors)
-   ──── compile time ────────────────────────────────────────────────
-   ────── runtime ───────────────────────────────────────────────────
-        │
-        │   (5) forward pass on input tensors
-        ▼
-   output vector → nearest_string lookup → label
-```
-
-The dividing line is load-bearing for the program-network
-identity: by the time stage 5 begins, every role rotation,
-codebook entry, and stdlib reduction has been resolved to a
-constant tensor or a primitive op, exactly as a feed-forward
-neural network's weights are constants by inference time.
+Stages 1–4 run at compile time; stage 5 is the runtime forward
+pass. The compile-time/runtime boundary is exactly where
+neural-network training versus inference draws the line — by
+the time stage 5 begins, every role rotation, codebook entry,
+and stdlib reduction has been resolved to a constant tensor or
+a primitive op, the same way a feed-forward network's weights
+are constants by inference time. Appendix J shows the pipeline
+as a vertical flow with the residual at each stage.
 
 ### 4.1 Substrate-purity invariants
 
@@ -749,6 +717,40 @@ programs to write rather than scripts to glue together.
 ---
 
 ## Appendix
+
+### Appendix J — Compilation pipeline diagram
+
+The five-stage compilation pipeline of §4, drawn as a vertical
+flow with the residual at each stage:
+
+```
+   source code  (.su)
+        │
+        │   (1) lex + parse
+        ▼
+   AST   (Call / Var / Function / ClassDecl nodes)
+        │
+        │   (2) inline stdlib + egglog simplify
+        │       (bind, bundle, similarity → primitive tensor ops)
+        ▼
+   simplified AST   (residual: leaf tensor-op composition)
+        │
+        │   (3) codegen
+        │       (emit Python module + inline _VSA class source)
+        ▼
+   Python module text   (self-contained, no Sutra-runtime import)
+        │
+        │   (4) compile-time substrate population
+        │       embed_batch · prewarm_rotation_cache · populate_sutradb
+        ▼
+   warm runtime   (module loaded, .sdb codebook, cached R_role tensors)
+   ──── compile time ────────────────────────────────────────────────
+   ────── runtime ───────────────────────────────────────────────────
+        │
+        │   (5) forward pass on input tensors
+        ▼
+   output vector → nearest_string lookup → label
+```
 
 ### Appendix I — The K=3 rule pipeline as a tensor-op graph
 
