@@ -650,50 +650,20 @@ per-substrate L-sweep tables in Appendix A.
 
 ### 3.3 The extended-state-vector layout
 
-Every value in a Sutra program is a vector with a fixed extended
-layout: `[semantic | synthetic]`. The semantic block holds the
-LLM embedding for vector-shaped values; the synthetic block
-reserves canonical axes for primitive types and slot machinery:
-
-```
-          +-------------------------+----+----+----+----+----+----------+
-   value  | semantic block          | R  | I  | T  | C  | L  | slots... |
-          +-------------------------+----+----+----+----+----+----------+
-          |<-- semantic_dim ------->|<--- synthetic_dim ----------------|>
-                                       0    1    2    3    4    5..
-                                      REAL IMAG TRUTH CHAR LOOP_DONE
-                                                      _FLAG
-```
-
-The semantic block is the LLM embedding (frozen, mean-centered,
-L2-normalized). The synthetic block reserves canonical axes for
-the primitive types and the loop-completion flag, then 2D Givens
-planes (one slot per pair of axes) for variable storage. Default
-sizing: 768 semantic dims (nomic-embed-text) + 100 synthetic dims
-= 868 total. The 100-dim synthetic block accommodates the five
-canonical axes plus 47 disjoint Givens slots. Per-axis purposes:
-
-| Index             | Purpose                                  |
-|-------------------|------------------------------------------|
-| `synthetic[0]`    | `AXIS_REAL` (real component for int/float/complex) |
-| `synthetic[1]`    | `AXIS_IMAG` (imaginary component for complex) |
-| `synthetic[2]`    | `AXIS_TRUTH` (fuzzy truth scalar, used by bool/comparisons) |
-| `synthetic[3]`    | `AXIS_CHAR_FLAG` (marks char primitives) |
-| `synthetic[4]`    | `AXIS_LOOP_DONE` (substrate-side completion flag) |
-| `synthetic[5..]`  | `SLOT_BASE` — disjoint 2D Givens slots for variable storage |
-
-The uniformity is load-bearing: every value has the same shape, so
-every operation is one tensor op, and the compiler can treat the
-whole program as a dataflow graph of tensor operations. There is
-no type dispatch at the leaves.
-
-Rotation binding is block-diagonal across this split: bind's
-`Q_role` is Haar-random in the semantic block and identity in the
-synthetic block, so binding only mixes semantic content and the
-canonical synthetic axes pass through bind/unbind unchanged. That
-disjointness is what lets a fuzzy-truth scalar coexist with a
-semantic vector inside the same value without bind smearing them
-into each other.
+Every value carries a fixed `[semantic | synthetic]` layout:
+the d-dimensional semantic block holds the substrate embedding
+for vector-shaped values, and a small synthetic block reserves
+canonical axes for primitive types (real, imag, truth, char) and
+a loop-completion flag, with the remaining axes paired into 2D
+Givens planes for variable slots. Default at d = 768
+(nomic-embed-text): a 100-dim synthetic block accommodates the
+five canonical axes plus 47 disjoint slots. Rotation binding is
+block-diagonal across the split (`Q_role` is Haar-random in the
+semantic block, identity on the synthetic block), so the
+synthetic axes pass through bind/unbind unchanged — a fuzzy-truth
+scalar can coexist with a semantic vector inside the same value
+without bind smearing them. Full per-axis purpose table and slot
+allocator details in Appendix D.
 
 ### 3.4 First-class loops as RNN cells
 
