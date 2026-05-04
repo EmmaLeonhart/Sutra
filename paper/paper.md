@@ -388,60 +388,32 @@ allocator details in Appendix D.
 ### 3.4 First-class loops as RNN cells
 
 Runtime data-dependent loops compile to **self-halting RNN
-cells**. Each tick: snapshot pre-step state, evaluate the halt
-condition on the substrate (truth-axis read → heaviside step →
-cumulative saturating sum), run the cell body, then a soft-mux
-blends pre-step and new-step state weighted by the halt
-accumulator. A Python `while True:` driver breaks the moment
-`halt_cum` saturates.
-
-```
-            state_in
-               |
-        +------+------+
-        |             |
-        v             v
-    pre_state    cell body (pure tensor ops)
-                      |
-                      v
-                 new_state, halt_signal
-                      |
-              halt_cum  ← saturating sum
-                      |
-                      v
-              soft-mux freeze:
-              state_out = (1 - halt_cum) · new_state
-                        +     halt_cum  · pre_state
-```
-
-Once `halt_cum` saturates, the soft-mux output is `pre_state` —
-the loop has frozen. The Python driver checks `halt_cum` once per
-tick and breaks; this is the only host-side branch in the loop
-machinery. Inside the cell body, every operation is a substrate
-tensor op. There is no compile-time iteration cap — programs
-terminate when their halt condition fires, exactly the way any
-other programming language's `while` loop does. The halt-cum read
-is a boundary operation of the same shape as the codebook decode
-(§3.5).
-
-**Loop body vs loop driver.** Tensor normal form applies to the
-body of each tick, not to the loop itself: standard PyTorch
-tracing handles a Python while-loop wrapping pure tensor ops, and
-autograd records each iteration as it executes — the mechanism
-§3.6 relies on for end-to-end backprop through the cell.
+cells**. Each tick: snapshot pre-step state, evaluate halt on
+the substrate (truth-axis read → heaviside → cumulative
+saturating sum to `halt_cum`), run the cell body, soft-mux
+between pre- and new-step state by `halt_cum`. A Python
+`while True:` driver breaks the moment `halt_cum` saturates;
+this is the only host-side branch in the loop machinery. Inside
+the cell body, every operation is a substrate tensor op. No
+compile-time iteration cap — programs terminate when their halt
+condition fires. Standard PyTorch tracing handles a Python
+while-loop wrapping pure tensor ops; autograd records each
+iteration as it executes, which is the mechanism §3.6 relies on
+for backprop through the cell. Appendix K shows the per-tick
+dataflow.
 
 **Constant memory in recursion depth.** The state vector is
 fixed-width and shared across iterations, so a tail-recursive
-loop consumes O(1) memory in the state vector regardless of trip
-count: no per-step stack frame, no growing context. Compute is
-O(N) and the autograd tape during training is O(N) in iterations
-actually executed (standard PyTorch behavior, freed after
-backward). To the authors' knowledge no other HDC system or
-compiler exposes user-program-level recursion: HDCC is scoped to
-classification pipelines, TorchHD requires the user to write
-Python loops over hypervectors. The recurrent shape that emerges
-is the same one Siegelmann & Sontag (1992) showed can compute any
-Turing-machine-computable function with rational weights.
+loop consumes O(1) memory in the state vector regardless of
+trip count. Compute is O(N) and the autograd tape during
+training is O(N) in iterations actually executed (standard
+PyTorch, freed after backward). To the authors' knowledge no
+other HDC system or compiler exposes user-program-level
+recursion: HDCC is scoped to classification pipelines, TorchHD
+requires the user to write Python loops over hypervectors. The
+recurrent shape that emerges is what Siegelmann & Sontag (1992)
+showed computes any Turing-machine-computable function with
+rational weights.
 
 ### 3.5 Embedded codebook store
 
@@ -717,6 +689,33 @@ programs to write rather than scripts to glue together.
 ---
 
 ## Appendix
+
+### Appendix K — Per-tick dataflow of the soft-halt loop cell
+
+The §3.4 RNN-cell tick visualized:
+
+```
+            state_in
+               |
+        +------+------+
+        |             |
+        v             v
+    pre_state    cell body (pure tensor ops)
+                      |
+                      v
+                 new_state, halt_signal
+                      |
+              halt_cum  ← saturating sum
+                      |
+                      v
+              soft-mux freeze:
+              state_out = (1 - halt_cum) · new_state
+                        +     halt_cum  · pre_state
+```
+
+Once `halt_cum` saturates the soft-mux output is `pre_state` —
+the loop has frozen. The halt-cum read is a boundary operation
+of the same shape as the codebook decode (§3.5).
 
 ### Appendix J — Compilation pipeline diagram
 
