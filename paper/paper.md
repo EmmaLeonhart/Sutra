@@ -167,60 +167,31 @@ The four core technical contributions of this paper are:
    a concrete program, and Figure 1 shows the corresponding
    compilation pipeline.
 
-3. **Tail recursion as the loop primitive, with no in-graph
-   control flow and O(1) state vector width in recursion depth.**
-   Loops are not `for`/`while` constructs over a host-side
-   iterator. They are tail-recursive function declarations
-   (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`)
-   whose body's `return NAME(args)` becomes the recurrent step.
-   Each loop compiles to a soft-halt RNN cell with
-   substrate-pure halt detection (heaviside step → cumulative
-   monotone halt → soft-mux state freeze).
-
-   "No control flow" here is a claim about the *compiled
-   program*: the body of every loop and conditional is one
-   straight-line tensor pipeline with no branch instructions, no
-   graph control-flow operators (no If-node, no While-node, no
-   Switch-node), no in-tensor jumps. There is still a Python
-   `while True: … break` driver around each loop tick on the
-   host (§3.4), the same way any compiled program has a host
-   process around it; the claim is that the *substrate-resident*
-   computation has no control flow, not that the entire process
-   is in tensor land.
-
-   The state vector h_t carries the execution context in
-   superposition over a fixed-width vector, so the **state
-   vector width is O(1) in recursion depth**: a Sutra program
-   that runs N loop ticks does not grow its state vector,
-   regardless of how large N becomes. There is no per-iteration
-   stack frame, no growing context, no heap allocation keyed by
-   depth — the loop body updates the same state tensor each
-   tick. Compute scales O(N) (each tick runs the body once); the
-   autograd tape during training scales O(N) up to the
-   `backward()` call (standard PyTorch, freed after the backward
-   pass). Inference does not build a tape and pays only the
-   fixed-width state vector. Halt completion propagates through
-   nested calls to the program's final output.
+3. **Tail recursion as the loop primitive.** Loops are
+   tail-recursive function declarations (`do_while`,
+   `while_loop`, `iterative_loop`, `foreach_loop`) whose body's
+   `return NAME(args)` becomes the recurrent step. Each loop
+   compiles to a soft-halt RNN cell with substrate-pure halt
+   detection (heaviside → cumulative monotone halt → soft-mux
+   state freeze). The body of every loop tick is one
+   straight-line tensor pipeline with no in-graph branches; a
+   thin Python `while True: … break` driver wraps the body and
+   terminates when the halt scalar saturates (§3.4). The state
+   vector is fixed-width across iterations — **O(1) state, O(N)
+   compute, O(N) gradient tape during training**, where N is
+   iterations actually executed.
 
 4. **Synthetic-dimension rotation binding as an angular hash map.**
-   The compiler maps a high-dimensional codebook onto a set of
-   reserved synthetic dimensions and uses Haar-random orthogonal
-   rotations (seeded from the role's content hash) to bind keys
-   to slots. This is, to the authors' knowledge, the first use of
-   a high-dimensional rotation pattern as the substrate for a
-   functional hash-map primitive. After binding, the resulting
-   structure participates in the same beta-reduction pass as the
-   rest of the program and is reduced to (recurrent) tensor
-   normal form alongside everything else.
+   The compiler reserves a synthetic block of canonical
+   dimensions and uses Haar-orthogonal rotations seeded from the
+   role's content hash to bind keys to slots. To the authors'
+   knowledge this is the first use of a high-dimensional
+   rotation pattern as the substrate for a functional hash-map
+   primitive.
 
-These four primitives are integrated into a single working
-compiler that lowers `.su` source to a self-contained PyTorch
-module and runs on CPU or CUDA. Loops are **self-halting**:
-each iteration computes a halt-cum scalar, and the Python loop
-driver breaks the moment that scalar saturates. There is no
-compile-time iteration cap — programs terminate when their halt
-condition fires, exactly the way any other programming
-language's `while` loop terminates.
+These four primitives integrate into a single working compiler
+that lowers `.su` source to a self-contained PyTorch module on
+CPU or CUDA.
 
 A fifth result is engineering, not theoretical: **end-to-end
 string I/O through the substrate via a compile-time codebook +
