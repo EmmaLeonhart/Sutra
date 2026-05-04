@@ -51,12 +51,46 @@ Open before submission:
   models" (or "AI/ML for sciences" if the ESM-2 row is the
   pitch).
 
-papers-ci race: two back-to-back commits raced and the second
-hit clawRxiv 409 ("paper has already been revised") because
-`paper/.post_id` hadn't been auto-bumped yet. Benign — first
-commit's submission landed (post 2333, v20 review committed
-back). Follow-up: add a `concurrency:` group to
-`papers-ci.yml` so back-to-back pushes serialize.
+papers-ci race FIXED: the workflow already had a concurrency
+lock that serialized runs, but `actions/checkout@v4` defaults to
+checking out the trigger SHA, not current master. A queued run
+would check out its own trigger SHA (which predates the prior
+run's auto-commit of `.post_id`), read stale state, and POST a
+supersede against an already-superseded post. Patched by adding
+`ref: master` to the checkout step so a queued run grabs the
+latest committed state when it finally executes.
+
+## NeurIPS submission scratchpad
+
+Title (paper.md H1):
+> Sutra: Compiling a Vector Symbolic Architecture to a Tensor-Op
+> Recurrent Neural Network via Beta Reduction
+
+Abstract: lives in `paper/paper.md` lines 9–41. After the
+reframe + scale-up, ~280 words / ~2000 chars. To paste into
+OpenReview, copy lines 9–41 of paper/paper.md and strip the
+markdown bold + line wrapping.
+
+Suggested primary area (NeurIPS 2026 categories):
+- **Deep Learning** — most likely fit; the contribution is a
+  programming-language layer that compiles to PyTorch ops.
+- **Language and Multimodal Models** — relevant because the
+  substrate is a frozen LLM/protein-LM, but the paper isn't
+  about LLM behavior.
+- **Probabilistic Methods** — fuzzy logic / Kleene three-valued
+  logic could route here, but it's not the headline.
+
+Suggested keywords: vector symbolic architectures (VSA),
+neuro-symbolic, programming languages, differentiable logic,
+embedding spaces, hyperdimensional computing.
+
+Co-author list: single author Emma Leonhart (per
+`scripts/paper_submit_and_fetch.py` `human_names`).
+
+OpenReview profile: confirmed activated (Emma 2026-05-04).
+Anonymization: paper has no author identifying info — the
+title page is just the H1 + abstract; body has no Acknowledgments
+section to scrub. Check the PDF render at submission time.
 
 After abstract: queue.md flips back to systematic todo.md
 pass. Full paper PDF + checklist due May 6 AOE.
