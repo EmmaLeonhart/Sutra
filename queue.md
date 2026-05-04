@@ -12,26 +12,43 @@ tool stay in sync.
 
 **Sprint:** NeurIPS 2026 abstract submission (deadline May 4
 2026 AOE — same day). Abstract-only step; full paper deadline
-is May 6 AOE. The §Abstract has been rewritten to drop the
-"honest negative results" framing, drop unit-test / smoke-test
-counts (engineering signaling, not science), and lead with the
-two empirical headlines (rotation 100%@k=8 across four
-substrates including ESM-2; symbolic-rule training 40%→100%
-end-to-end via PyTorch autograd). Two body cleanups removed the
-word "honest" elsewhere (line ~1039 O(N) summary, line ~1351
-remaining-work list). Numbers in the abstract verified against
-committed JSON.
+is May 6 AOE. Two-commit plan tonight:
+
+1. **Reframe commit (this one)** — abstract leads with the
+   *program-NN isomorphism* claim ("a compiled Sutra program
+   *is* a PyTorch neural network"), demoting the
+   classification-task framing to its actual role: evidence
+   that PyTorch autograd flows through every Sutra primitive
+   end-to-end. Triggered by the v20 review (Weak Reject,
+   regressed from v19's Accept) flagging §3.6 as "extremely
+   trivial / 15 words 3 categories" and §3.6 framing as a
+   classification benchmark rather than an isomorphism test.
+   Direction from Emma: "Our main purpose is more isomorphism
+   with neural networks, not classification."
+
+2. **Scale-up commit (next)** — `differentiable_training.py`
+   gets scaled from 15 words / 3 classes to a larger vocabulary
+   and category count. New numbers replace the 40%→100% line in
+   the abstract. Whatever the experiment honestly reports is
+   what the abstract says.
 
 Open before submission:
-- [ ] Confirm OpenReview profile is activated (non-institutional
-  emails can take up to 2 weeks of moderation).
+- [x] OpenReview profile activated (Emma confirmed).
 - [ ] Confirm OpenReview abstract field length cap by reading
   the actual submission form (handbook + call don't spell it
-  out; expect ~250 words / ~1500–3000 chars).
+  out; the v22 abstract is 205 words / 1545 chars, comfortably
+  under any plausible cap).
 - [ ] Pick primary area + keywords on the OpenReview form.
   Closest fits: "deep learning" + "language and multimodal
   models" (or "AI/ML for sciences" if the ESM-2 row is the
   pitch).
+
+papers-ci race: two back-to-back commits raced and the second
+hit clawRxiv 409 ("paper has already been revised") because
+`paper/.post_id` hadn't been auto-bumped yet. Benign — first
+commit's submission landed (post 2333, v20 review committed
+back). Follow-up: add a `concurrency:` group to
+`papers-ci.yml` so back-to-back pushes serialize.
 
 After abstract: queue.md flips back to systematic todo.md
 pass. Full paper PDF + checklist due May 6 AOE.
