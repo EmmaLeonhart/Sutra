@@ -305,52 +305,15 @@ matmul against a precomputed matrix.
 
 ### 3.1 Notation
 
-We work in a fixed-dimensional real vector space ℝᵈ where d is
-the substrate's embedding dimension (768 for nomic-embed-text,
-384 for all-minilm, 1024 for mxbai-embed-large, 320 for ESM-2).
-Every Sutra value carries the extended layout `[semantic |
-synthetic]` — a `d`-dimensional semantic block holding the
-substrate embedding, concatenated with a small fixed-width
-synthetic block reserving canonical axes for primitive types
-(real, imag, truth, char, loop-done) and slot machinery (§3.3).
-Where notation does not distinguish, "vector" means "the full
-extended-layout tensor."
-
-The seven primitive operations are:
-
-| Op             | Signature                              | Definition                                                 |
-|----------------|----------------------------------------|------------------------------------------------------------|
-| `bind`         | (vector, vector) → vector              | `Rᵣ · f` where `Rᵣ = QR(seed = hash(r))[Q]`               |
-| `unbind`       | (vector, vector) → vector              | `Rᵣᵀ · v`                                                  |
-| `bundle`       | (vector, vector) → vector              | `(x + y) / (‖x + y‖ + ε)`                                  |
-| `similarity`   | (vector, vector) → scalar              | `(x · y) / (‖x‖ · ‖y‖ + ε)`                                |
-| `normalize`    | vector → vector                        | `v / (‖v‖ + ε)`                                            |
-| Lagrange gates | (scalar, scalar) → scalar              | exact polynomials on the {−1, 0, +1}² Kleene grid (§1.1-1) |
-| soft-halt cell | (state, halt_prev) → (state', halt_cum)| rotation step + halt accumulator (§3.4)                    |
-
-The Lagrange gates are reproduced compactly here for reference:
-
-```
-AND(a, b)  =  (a + b + ab − a² − b² + a²b²) / 2
-OR(a, b)   =  (a + b − ab + a² + b² − a²b²) / 2
-NOT(a)     =  −a
-XOR(a, b)  =  −ab
-XNOR(a, b) =  ab
-```
-
-The soft-halt cell update (§3.4) is, in compact form,
-
-```
-   sₜ₊₁  =  R · sₜ                               (rotation step)
-   hₜ    =  Heaviside( cond(sₜ) )                (per-tick halt signal)
-   Hₜ    =  saturate_unit( Σₖ≤ₜ hₖ )             (cumulative monotone halt)
-   ŝₜ₊₁  =  Hₜ · sₜ + (1 − Hₜ) · sₜ₊₁           (soft-mux freeze)
-```
-
-Every right-hand side is a tensor expression with no Python
-control flow. The compile-time primitives `RotationFor` and
-`embed` produce constants `Rᵣ` and basis vectors at compile
-time and are not part of the runtime tensor graph.
+We work in ℝᵈ with d the substrate's embedding dimension (768
+for nomic-embed-text). Every value has the layout
+`[semantic | synthetic]`. The seven primitive operations:
+`bind(r,f) = Rᵣ·f` where `Rᵣ = QR(hash(r))[Q]` is Haar-orthogonal,
+`unbind(r,v) = Rᵣᵀ·v`, `bundle(x,y) = (x+y)/(‖x+y‖+ε)`,
+`similarity(x,y) = (x·y)/(‖x‖·‖y‖+ε)`, `normalize(v) = v/(‖v‖+ε)`,
+the Lagrange Kleene gates as in §1.1-1, and the soft-halt cell
+of §3.4. Full signature/definition table and the soft-halt cell
+update equations are in Appendix H.
 
 ### 3.2 Capacity of rotation versus Hadamard binding across substrates
 
@@ -838,6 +801,55 @@ programs to write rather than scripts to glue together.
 ---
 
 ## Appendix
+
+### Appendix H — Notation: extended layout and primitive operations
+
+We work in a fixed-dimensional real vector space ℝᵈ where d is
+the substrate's embedding dimension (768 for nomic-embed-text,
+384 for all-minilm, 1024 for mxbai-embed-large, 320 for ESM-2).
+Every Sutra value carries the extended layout `[semantic |
+synthetic]` — a `d`-dimensional semantic block holding the
+substrate embedding, concatenated with a small fixed-width
+synthetic block reserving canonical axes for primitive types
+(real, imag, truth, char, loop-done) and slot machinery (§3.3).
+Where notation does not distinguish, "vector" means "the full
+extended-layout tensor."
+
+The seven primitive operations are:
+
+| Op             | Signature                              | Definition                                                 |
+|----------------|----------------------------------------|------------------------------------------------------------|
+| `bind`         | (vector, vector) → vector              | `Rᵣ · f` where `Rᵣ = QR(seed = hash(r))[Q]`               |
+| `unbind`       | (vector, vector) → vector              | `Rᵣᵀ · v`                                                  |
+| `bundle`       | (vector, vector) → vector              | `(x + y) / (‖x + y‖ + ε)`                                  |
+| `similarity`   | (vector, vector) → scalar              | `(x · y) / (‖x‖ · ‖y‖ + ε)`                                |
+| `normalize`    | vector → vector                        | `v / (‖v‖ + ε)`                                            |
+| Lagrange gates | (scalar, scalar) → scalar              | exact polynomials on the {−1, 0, +1}² Kleene grid (§1.1-1) |
+| soft-halt cell | (state, halt_prev) → (state', halt_cum)| rotation step + halt accumulator (§3.4)                    |
+
+The Lagrange gates compactly:
+
+```
+AND(a, b)  =  (a + b + ab − a² − b² + a²b²) / 2
+OR(a, b)   =  (a + b − ab + a² + b² − a²b²) / 2
+NOT(a)     =  −a
+XOR(a, b)  =  −ab
+XNOR(a, b) =  ab
+```
+
+The soft-halt cell update is, in compact form,
+
+```
+   sₜ₊₁  =  R · sₜ                               (rotation step)
+   hₜ    =  Heaviside( cond(sₜ) )                (per-tick halt signal)
+   Hₜ    =  saturate_unit( Σₖ≤ₜ hₖ )             (cumulative monotone halt)
+   ŝₜ₊₁  =  Hₜ · sₜ + (1 − Hₜ) · sₜ₊₁           (soft-mux freeze)
+```
+
+Every right-hand side is a tensor expression with no Python
+control flow. The compile-time primitives `RotationFor` and
+`embed` produce constants `Rᵣ` and basis vectors at compile
+time and are not part of the runtime tensor graph.
 
 ### Appendix G — Worked lowering of a two-field bundled record
 
