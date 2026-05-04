@@ -132,7 +132,7 @@ The four core technical contributions of this paper are:
    logic compose with the rest of the substrate-pure runtime: a
    symbolic if-then rule built from these gates is one fused
    subgraph that PyTorch autograd can backprop through end-to-
-   end (§3.7).
+   end (§3.6).
 
 2. **Beta reduction to tensor normal form, used as the compiler
    architecture.** The compiler inlines stdlib operator
@@ -153,7 +153,7 @@ The four core technical contributions of this paper are:
      polynomials. There are no jumps, no branches, no `if`
      opcodes in the compiled artifact. This is what lets
      PyTorch autograd backprop through symbolic if-then rules
-     (§3.7).
+     (§3.6).
    - *Rotation-matrix precomputation.* Every Haar-orthogonal
      binding rotation `R_role` is materialized at compile time
      keyed by the role's content hash, so runtime `bind` is one
@@ -950,7 +950,7 @@ the loop is unrolled into the body's tensor graph at compile
 time. Standard PyTorch tracing handles a Python while-loop
 wrapping pure tensor ops fine — autograd records each
 iteration's operations as it executes (this is the mechanism
-§3.7 relies on for end-to-end backprop through the cell). The
+§3.6 relies on for end-to-end backprop through the cell). The
 `torch.compile` wrapping (opt-in, §3.6) may further fuse the
 per-call iteration at trace time, but the language semantics do
 not require that fusion: the default runtime is a Python loop
@@ -1008,39 +1008,7 @@ substrate purity forbids. Implementation details (RDF triple
 layout, HNSW graph parameters, `.sdb` file format, complexity
 analysis) are in Appendix B.
 
-### 3.6 Project manifest (`atman.toml`)
-
-A Sutra project is described by an `atman.toml` manifest at the
-project root. The manifest declares the entry source file, the
-embedding substrate (provider, model, dimensionality, and whether
-to mean-center), and compile-time settings. A minimal example:
-
-```toml
-[project]
-name = "sutra-examples"
-entry = "hello_world.su"
-substrate = "silicon"
-
-[project.embedding]
-provider = "ollama"
-model = "nomic-embed-text"
-dim = 768
-mean_center = true
-```
-
-The compiler reads `[project.embedding]` to know which LLM to
-query for `embed("...")` and `basis_vector("...")` calls at
-compile time and to fix the dimensionality of the runtime
-tensor-op graph. Changing the substrate (e.g. swapping
-`nomic-embed-text` for a different 768-d model, or for a 1536-d
-model with a corresponding `dim` update) re-runs the embed step
-at compile time and produces a different `.sdb` codebook; the
-source code does not change. The manifest format is
-intentionally narrow — it covers what the compiler needs to
-deterministically produce a `.sdb` and emit a PyTorch module,
-and nothing else.
-
-### 3.7 End-to-end differentiable training through Sutra operations
+### 3.6 End-to-end differentiable training through Sutra operations
 
 Because every Sutra primitive compiles to a differentiable tensor
 operation, the compiled graph supports standard PyTorch
