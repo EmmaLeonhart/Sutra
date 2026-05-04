@@ -222,35 +222,16 @@ compile-time iteration cap — programs terminate when their halt
 condition fires, exactly the way any other programming
 language's `while` loop terminates.
 
-In addition to the four technical contributions above, this paper
-also reports an **engineering / execution result**:
-
-- **End-to-end string I/O through the substrate, via a
-  compile-time codebook + nearest-string decode.** Every embedded
-  string in a `.su` program is embedded once at compile time via
-  the project's configured frozen LLM and stored in an embedded
-  codebook store alongside its label. At runtime, the inverse
-  operation `nearest_string(vector)` returns the label whose
-  embedding is closest to the queried vector. The frozen LLM is
-  load-bearing for this design: a deterministic, reproducible,
-  dense-enough string-to-vector map is what makes the codebook
-  practical and the inverse decode reliable. Replacing the
-  embedding with the random hypervectors that classical VSA
-  literature assumes would still yield a working algebra but
-  would leave the language with no I/O story — strings would have
-  no canonical mapping to vectors and the substrate would have
-  nowhere to decode labels from. To the authors' knowledge, Sutra
-  is therefore the only HDC implementation that ships a practical
-  end-to-end string-in / string-out path as a built-in compiler
-  concern. Existing HDC libraries (TorchHD and similar) expose
-  the algebra over user-supplied hypervectors but require users
-  to maintain their own string-to-vector mapping and codebook
-  by hand; that boilerplate is what makes most HDC code stay
-  research-tooling-shaped rather than program-shaped. This is
-  not a new theoretical primitive but a working integration: the
-  compiler, the runtime, the embedded codebook, and 13
-  demonstration programs in the smoke test (with 23 `.su` files
-  in the `examples/` directory) exercise the end-to-end pipeline.
+A fifth result is engineering, not theoretical: **end-to-end
+string I/O through the substrate via a compile-time codebook +
+`nearest_string` decode** (§3.5). The frozen-LLM embedding gives
+a deterministic string-to-vector map that the compiler bakes
+into a `.sdb` codebook at build time; the inverse decode runs at
+the program output boundary. Existing HDC libraries (TorchHD and
+similar) require the user to maintain a string-to-vector
+dictionary and codebook tensor by hand. To the authors'
+knowledge Sutra is the only HDC implementation that ships this
+as a built-in compiler concern.
 
 ### 1.2 What this paper is not
 
