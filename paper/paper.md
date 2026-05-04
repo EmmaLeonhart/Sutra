@@ -1306,67 +1306,18 @@ computation; the compiler is the proof.
 
 ---
 
-## 5. Demonstration Programs
+## 5. Demonstration corpus
 
 The smoke test (`examples/_smoke_test.py`) runs 10 demonstration
-programs end-to-end against the compiler+runtime pipeline; the
-full `examples/` directory holds 27 `.su` files including
-class-as-namespace demos, the operator-spelling tour, the tensor-
-op transparency walkthrough, and feature exercises. The 10
-smoke-tested programs are: hello-world, fuzzy branching,
-role-filler record, classifier, analogy, knowledge graph,
-predicate lookup, fuzzy dispatch, nearest-phrase retrieval, and
-sequence reduction. Loop coverage moved out of the smoke-test
-asserted set when the C-style `loop (cond) { body }` surface was
-retired in favor of the declared-function loop forms (`do_while`
-NAME, `while_loop` NAME, `iterative_loop` NAME, `foreach_loop`
-NAME); it now lives in `examples/do_while_adder.su` plus the
-`test_loop_function_decl.py` test suite (23 tests). Each
-remaining smoke-tested program exercises a different part of the
-language; the subsections below describe four canonical examples
-in detail.
-
-### 5.1 Hello world
-
-```sutra
-function vector main() {
-    return embed("hello world");
-}
-```
-
-Compiles to a single-call program that returns the
-`nomic-embed-text` embedding of the literal string. The compile-
-time disk cache makes second-run cost approximately zero.
-
-### 5.2 Fuzzy dispatch
-
-A program that compares an input string's embedding against
-several prototype embeddings via similarity, then routes through
-a soft-mux on the resulting truth-axis scores. All arithmetic is
-substrate-pure; the dispatch is differentiable end-to-end (every
-intermediate is a tensor on the substrate).
-
-### 5.3 Role-filler record
-
-A bundled role-filler structure (`agent: "cat", action: "sit"`)
-that supports unbind-snap retrieval. Demonstrates that the VSA
-algebra works as a structured-data primitive in the language:
-construction, retrieval, and multi-hop composition (extract a
-filler from one structure, insert it into another, retrieve from
-the second) all return correct results.
-
-### 5.4 Loop demonstrations
-
-The loop demos confirm substrate-pure recurrent computation:
-
-- `do_while addNumber(x < 11, int x) { return addNumber(x + 1); }`
-  starting from `x = 9` returns `11` after the soft-halt cell
-  runs to convergence.
-- A loop whose halt condition has not yet fired returns
-  `total * _program_halt`, where `_program_halt ≈ 0` until the
-  cell saturates. A non-converging trajectory therefore yields
-  near-zero output — the substrate-side signal that the loop has
-  not finished, in place of a host-side exception.
+programs end-to-end (`hello-world`, fuzzy branching, role-filler
+record, classifier, analogy, knowledge graph, predicate lookup,
+fuzzy dispatch, nearest-phrase retrieval, sequence reduction)
+across 27 `.su` files in `examples/`. Loop coverage lives in
+`examples/do_while_adder.su` and the 23-case
+`test_loop_function_decl.py` suite. Each program exercises a
+different language feature; the §3.6 differentiable-training
+experiment uses the same primitive set those programs are built
+from.
 
 ---
 
