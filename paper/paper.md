@@ -359,136 +359,22 @@ is the construction that compiles a separate source language to
 the same primitive set with no host-side residue, which TorchHD
 is not designed to do.
 
-A second axis on which the two systems differ, and where to the
-authors' knowledge Sutra is uniquely positioned within the broader
-HDC ecosystem, is **string I/O**. TorchHD and other HDC libraries
-expose the algebra over user-supplied hypervectors: the user
-constructs random or hash-derived vectors for whatever they want
-to represent, maintains a `dict[str, hypervector]` mapping by
-hand, and decodes by cosine similarity against a manually
-assembled codebook tensor. There is no built-in path from external
-strings into the substrate or from the substrate back to strings.
+A second axis where Sutra differs from existing HDC software is
+**string I/O**. TorchHD and similar libraries expose the algebra
+over user-supplied hypervectors; the user maintains a
+`dict[str, hypervector]` and an explicit codebook tensor by hand.
 Sutra's compile-time codebook (§3.5) closes that loop: every
 embedded string in `.su` source is embedded once at compile time
-via the configured frozen LLM (e.g. `nomic-embed-text`, 768-d) and
-stored in the project's `.sdb` codebook, and the runtime
-`nearest_string` operation is the inverse — given any vector, it
-returns the nearest known label. The frozen LLM embedding is
-load-bearing for this: it is what gives the compile-time codebook
-a deterministic, reproducible, and dense-enough mapping for
-nearest-neighbor decode to be practical. Replacing the embedding
-with random hypervectors would still yield a working VSA algebra
-but would have no I/O story — strings would have no canonical
-mapping to vectors and decoding would have nowhere to look up
-labels. To the authors' knowledge, Sutra is the only HDC
-implementation that ships an end-to-end string-in / string-out
-path as a built-in compiler concern rather than as user-supplied
-boilerplate.
+via the configured frozen LLM, stored in the project's `.sdb`
+codebook, and decoded at the program output via `nearest_string`.
+The frozen-LLM embedding is load-bearing — random hypervectors
+yield a working VSA algebra with no I/O story.
 
-A side-by-side comparison concretizes the difference. The same
-role-filler-record task — encode a 3-field record (name, color,
-shape) as a single bundled vector, then decode the color field —
-written in both systems:
-
-**Sutra** (`examples/role_filler_record.su`, the entire program):
-
-```sutra
-vector r_name  = basis_vector("role_name");
-vector r_color = basis_vector("role_color");
-vector r_shape = basis_vector("role_shape");
-
-vector f_alice  = basis_vector("filler_alice");
-vector f_red    = basis_vector("filler_red");
-vector f_circle = basis_vector("filler_circle");
-// (... three more fillers omitted ...)
-
-map<vector, string> FILLER_NAME = {
-    f_alice: "alice", f_red: "red", f_circle: "circle",
-    /* ... */
-};
-
-function vector make_record(vector name, vector color, vector shape) {
-    return bundle(
-        bind(r_name, name), bind(r_color, color), bind(r_shape, shape)
-    );
-}
-
-function string decode_field(vector record, vector role) {
-    vector recovered = unbind(role, record);
-    vector winner = argmax_cosine(recovered,
-        [f_alice, f_red, f_circle, /* ... */]);
-    return FILLER_NAME[winner];
-}
-
-function string main() {
-    vector rec = make_record(f_alice, f_red, f_circle);
-    return decode_field(rec, r_color);
-}
-```
-
-The compiler reduces this whole program to a fused tensor-op
-graph: every `basis_vector` call is resolved at compile time
-(strings embedded into the substrate, stored in the compile-time
-codebook); `bind` and `unbind` lower to a single matmul each;
-`argmax_cosine` lowers to one cosine-similarity matmul plus an
-argmax; the `FILLER_NAME` map lowers to the substrate-resident
-codebook. The runtime decodes by `nearest_string` against the
-embedded codebook — the string `"red"` comes out without the
-program ever leaving the tensor graph at the program-semantics
-level.
-
-**TorchHD equivalent** (`experiments/role_filler_record_torchhd.py`,
-abridged):
-
-```python
-import torch, torchhd
-
-torch.manual_seed(42)
-
-# 1. MANUAL hypervector creation. There is no "embed string";
-#    the user maintains the string-to-vector mapping.
-roles = {n: torchhd.random(1, 768, vsa="MAP")
-         for n in ["name", "color", "shape"]}
-fillers = {n: torchhd.random(1, 768, vsa="MAP")
-           for n in ["alice", "bob", "red", "blue", "circle", "square"]}
-
-# 2. MANUAL codebook tensor for decoding.
-filler_names = ["alice", "bob", "red", "blue", "circle", "square"]
-codebook = torch.cat([fillers[n] for n in filler_names], dim=0)
-
-# 3. Build the record (Python control flow).
-record = torchhd.bundle(
-    torchhd.bind(roles["name"],  fillers["alice"]),
-    torchhd.bundle(
-        torchhd.bind(roles["color"], fillers["red"]),
-        torchhd.bind(roles["shape"], fillers["circle"]),
-    ),
-)
-
-# 4. Decode (Python control flow).
-recovered = torchhd.bind(record, torchhd.inverse(roles["color"]))
-sims = torchhd.cosine_similarity(recovered, codebook)
-result = filler_names[int(torch.argmax(sims))]
-```
-
-Both programs return `"red"`. The differences are structural:
-
-- The Sutra program contains no Python; the TorchHD program *is*
-  Python with library calls.
-- The Sutra string-to-vector mapping is automatic via
-  `basis_vector("filler_alice")`; in TorchHD the user constructs
-  hypervectors and maintains a `dict[str, hypervector]` by hand.
-- The Sutra codebook is implicit (the compiler constructs it from
-  the literals in the source); in TorchHD the user stacks vectors
-  into a codebook tensor explicitly.
-- The Sutra program lowers to one tensor-op graph; the TorchHD
-  program is a Python function whose control flow stays in Python
-  even after the library calls dispatch to PyTorch.
-
-These are differences in *what kind of artifact* the user
-writes, not in *which library is faster*. The CUDA kernels both
-systems eventually call into are largely the same — it's the
-shape of the program before it hits CUDA that differs.
+A worked side-by-side of the same 3-field role-filler-record
+task in Sutra and TorchHD is in Appendix C; the structural
+differences (Sutra contains no Python, automatic string-to-vector
+mapping, implicit codebook construction, single fused tensor-op
+graph) are differences in artifact shape, not library speed.
 
 ### 2.2 Comparison to other neuro-symbolic languages
 
