@@ -318,58 +318,39 @@ update equations are in Appendix H.
 ### 3.2 Capacity of rotation versus Hadamard binding across substrates
 
 We measure decode accuracy as a function of bundle width k on
-real embeddings — not on random fillers — across **four
-substrates spanning two modalities**: three frozen LLM text
-encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and
-one frozen protein language model (ESM-2 small,
-`facebook/esm2_t6_8M_UR50D`). The protein-LM substrate
-embeds an 84-sequence amino-acid vocabulary (canonical signal
-peptides, cell-penetrating peptides, antimicrobial peptides,
-classic affinity-tag motifs, and deterministic random k-mers);
-the LLM substrates each embed the same 84-word noun vocabulary
-(animals, foods, objects, places, abstract nouns) via Ollama.
-All embeddings are unit-normalized; nomic-embed-text and ESM-2
-are additionally mean-centered. For each bundle width and each
-binding scheme we run 10 trials, each sampling k random (role,
-filler) pairs without replacement, forming the bundle, and
-decoding by unbind + argmax-cosine against the full codebook.
-The two binding schemes compared are *rotation binding*
-(`R_role @ filler`, role-seeded Haar-random orthogonal `R_role`)
-and *Hadamard binding* (elementwise product `role .* filler`,
-the textbook MAP-VSA choice).
+real embeddings across four substrates spanning two modalities:
+three frozen LLM text encoders (nomic-embed-text, all-minilm,
+mxbai-embed-large) and one frozen protein language model (ESM-2
+small, `facebook/esm2_t6_8M_UR50D`). LLM substrates embed an
+84-word noun vocabulary; the ESM-2 substrate embeds an
+84-sequence amino-acid vocabulary (full protocol in Appendix E).
+For each bundle width and binding scheme we run 10 trials,
+sampling k random (role, filler) pairs without replacement,
+forming the bundle, and decoding by unbind + argmax-cosine
+against the full codebook. *Rotation binding* uses a role-seeded
+Haar-orthogonal `R_role`; *Hadamard binding* is the textbook
+elementwise product (MAP-VSA).
 
-Cross-substrate decode accuracy at representative bundle widths
-(per-substrate full k ∈ {2, 4, 8, 16, 24, 32, 48} sweeps in
-Appendix E):
+Cross-substrate decode accuracy at representative widths (full
+k ∈ {2, 4, 8, 16, 24, 32, 48} sweeps in Appendix E):
 
-| substrate (dim)         | rotation k=8 | rotation k=16 | rotation k=48 | Hadamard k=2 | Hadamard k=8 | Hadamard k=48 |
-|-------------------------|---:|---:|---:|---:|---:|---:|
-| nomic-embed-text (768)  | 100.0% | 100.0% | 93.3% | 95.0% | 87.5% | 48.3% |
-| all-minilm (384)        | 100.0% |  92.5% | 42.3% | 45.0% |  7.5% |  1.7% |
-| mxbai-embed-large (1024)| 100.0% |  98.8% | 72.1% | 15.0% |  2.5% |  1.0% |
-| ESM-2 (320)             | 100.0% |  90.6% | 44.2% | 75.0% | 28.7% |  4.2% |
+| substrate (dim)         | rotation k=8 | rotation k=48 | Hadamard k=8 | Hadamard k=48 |
+|-------------------------|---:|---:|---:|---:|
+| nomic-embed-text (768)  | 100.0% | 93.3% | 87.5% | 48.3% |
+| all-minilm (384)        | 100.0% | 42.3% |  7.5% |  1.7% |
+| mxbai-embed-large (1024)| 100.0% | 72.1% |  2.5% |  1.0% |
+| ESM-2 (320)             | 100.0% | 44.2% | 28.7% |  4.2% |
 
 ESM-2 (Lin et al., Science 2023) is a frozen protein language
-model trained on UniRef sequences with no exposure to natural
-language; its embedding space encodes amino-acid context, not
-word semantics. The same rotation-vs-Hadamard separation appears
-in this entirely different modality: rotation holds 100% accuracy
-through k=8 and degrades gracefully; Hadamard collapses fast.
-
-**Reversibility round-trip (rotation):** mean
-‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ across all four
-substrates — floating-point round-off, since Haar-random Q is
-orthogonal so QᵀQ = I.
-
-The substrate-agnosticism claim is not a hedge: the same shape
-(rotation graceful-degradation, Hadamard fast-collapse)
-reproduces on a dense vector space from a protein language
-model that has never seen natural-language text. Sutra's
-rotation primitive is sensitive to dense high-dimensionality,
-not to whether the substrate was trained on words. Reproduction
-scripts: `experiments/rotation_binding_capacity_llm.py` (LLM
-substrates) and `experiments/rotation_binding_capacity_bioinformatics.py`
-(ESM-2); raw JSON committed alongside.
+model trained on UniRef sequences with no natural-language
+exposure; the same rotation-vs-Hadamard separation appears in
+this entirely different modality. Reversibility round-trip:
+mean ‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ across all four
+substrates (floating-point round-off — `Q` is orthogonal so
+`QᵀQ = I`). Sutra's rotation primitive is sensitive to dense
+high-dimensionality, not to whether the substrate was trained
+on words. Reproduction:
+`experiments/rotation_binding_capacity_{llm,bioinformatics}.py`.
 
 #### 3.2.1 Noise accumulation across chained bind/unbind cycles
 
