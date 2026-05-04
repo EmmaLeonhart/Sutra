@@ -492,51 +492,18 @@ nineteen nested `fuzzy_and` → cross-entropy.
 | Before |     4%   |  3.01 |
 | After  |    95%   |  1.15 |
 
-**Figure 2: The rule pipeline as a tensor-op graph.** Drawn for
-K=3 to fit on the page; the K=20 graph used in the experiment
-has the same shape with twenty learnable prototypes and the
-AND-of-NOTs left-folded across nineteen `NOT(sim)` terms (so
-the rule for class i nests nineteen ANDs deep). Every box is a
-PyTorch tensor op; every edge carries either a vector
-(d-dimensional) or a scalar. There are no Python branches, no
-host-side dispatch, and no string-keyed lookup — backprop
-reaches every learnable parameter through the same compiled
-graph that runs at inference.
-
-```
-                         input  x ∈ ℝᵈ
-                              │
-            ┌─────────────────┼─────────────────┐
-            │                 │                 │
-            │   p₁ (learnable)│   p₂ (learnable)│   p₃ (learnable)
-            │                 │                 │
-            ▼                 ▼                 ▼
-       cos(x, p₁)         cos(x, p₂)        cos(x, p₃)
-            │                 │                 │
-         sim₁ (∈ℝ)         sim₂ (∈ℝ)        sim₃ (∈ℝ)
-            │                 │                 │
-            │                 ▼                 ▼
-            │             NOT (= −·)        NOT (= −·)
-            │                 │                 │
-            │              −sim₂             −sim₃
-            │                 │                 │
-            │                 └──── AND ────────┘
-            │                          │
-            │                     neg_others
-            │                          │
-            └────── AND  ──────────────┘     ← Lagrange polynomial:
-                          │                    AND(a,b) = (a+b+ab
-                          ▼                         −a²−b²+a²b²)/2
-                       rule₁ (∈ℝ)
-                          ⋮
-        (rule₁, rule₂, rule₃)  ─────►  × temperature  ─────►  softmax
-                                                                  │
-                                                                  ▼
-                                                       cross-entropy(label)
-                                                                  │
-                                                                  ▼
-                                                                 loss
-```
+As a tensor-op graph (drawn explicitly for K=3 in Appendix I,
+the K=20 case has the same shape but with the AND-of-NOTs
+left-folded over nineteen terms): the input embedding fans out
+to K cosine-similarity nodes against the K learnable prototypes,
+each `sim_i` enters one branch of an AND-tree (the i-th rule
+takes `sim_i` directly and `NOT(sim_j)` for j ≠ i), the K rule
+scores are stacked, scaled by temperature, softmaxed, and
+cross-entropied against the label. Every node is a PyTorch
+tensor op; every edge carries a vector or scalar. There are no
+Python branches, no host-side dispatch, no string-keyed lookup
+— backprop reaches every learnable parameter through the same
+compiled graph that runs at inference.
 
 At K=20 the rule for class i is an AND of `sim(x, proto_i)`
 with a left-folded chain of nineteen `NOT(sim)` terms — a tensor
@@ -782,6 +749,48 @@ programs to write rather than scripts to glue together.
 ---
 
 ## Appendix
+
+### Appendix I — The K=3 rule pipeline as a tensor-op graph
+
+Body §3.6 describes the rule pipeline in prose. The explicit
+graph for K=3 (the K=20 graph used in the experiment has the
+same shape with twenty learnable prototypes and the AND-of-NOTs
+left-folded across nineteen `NOT(sim)` terms):
+
+```
+                         input  x ∈ ℝᵈ
+                              │
+            ┌─────────────────┼─────────────────┐
+            │                 │                 │
+            │   p₁ (learnable)│   p₂ (learnable)│   p₃ (learnable)
+            │                 │                 │
+            ▼                 ▼                 ▼
+       cos(x, p₁)         cos(x, p₂)        cos(x, p₃)
+            │                 │                 │
+         sim₁ (∈ℝ)         sim₂ (∈ℝ)        sim₃ (∈ℝ)
+            │                 │                 │
+            │                 ▼                 ▼
+            │             NOT (= −·)        NOT (= −·)
+            │                 │                 │
+            │              −sim₂             −sim₃
+            │                 │                 │
+            │                 └──── AND ────────┘
+            │                          │
+            │                     neg_others
+            │                          │
+            └────── AND  ──────────────┘     ← Lagrange polynomial:
+                          │                    AND(a,b) = (a+b+ab
+                          ▼                         −a²−b²+a²b²)/2
+                       rule₁ (∈ℝ)
+                          ⋮
+        (rule₁, rule₂, rule₃)  ─────►  × temperature  ─────►  softmax
+                                                                  │
+                                                                  ▼
+                                                       cross-entropy(label)
+                                                                  │
+                                                                  ▼
+                                                                 loss
+```
 
 ### Appendix H — Notation: extended layout and primitive operations
 
