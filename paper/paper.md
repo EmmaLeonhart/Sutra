@@ -779,23 +779,15 @@ neural network's weights are constants by inference time.
 
 ### 4.1 Substrate-purity invariants
 
-Three invariants the compiler enforces:
-
-1. **Every primitive runs on the substrate.** Numpy is allowed
-   only at compile time (codebook construction, role-rotation
-   pre-warm, SutraDB ingestion) and in monitoring/decoding
-   (cosine for debugging output). Numpy on the runtime hot path
-   is forbidden.
-2. **No scalar extraction inside an operation.** Operations may
-   not pull a Python float out of a substrate vector, do scalar
-   arithmetic on it, and pack the result back. Historical bug
-   fixed: complex multiplication had been implemented with
-   scalar extraction; correct implementation is three cached
-   matrices and two tensor multiplies.
-3. **No Python control flow inside an operation.** `if`, `for`,
-   `while` on scalar predicates break uniformity. Loop halt uses
-   substrate primitives (`heaviside`, `saturate_unit`) instead of
-   Python ternaries.
+Three invariants the compiler enforces: (1) every primitive runs
+on the substrate (numpy is allowed only at compile time for
+codebook construction and rotation pre-warm, never on the runtime
+hot path); (2) no scalar extraction inside an operation —
+operations may not unpack a Python float from a substrate vector,
+do scalar arithmetic, and pack the result back; (3) no Python
+control flow inside an operation — loop halt uses substrate
+primitives (`heaviside`, `saturate_unit`) instead of Python
+ternaries.
 
 ### 4.2 Compile-time resolution to tensor normal form
 
@@ -814,105 +806,50 @@ kernel.
 
 ### 4.3 A worked lowering: a two-field bundled record
 
-To make beta reduction to tensor normal form concrete, we trace
-one small program through every stage of the pipeline.
+We trace one small program — `encode2(r_a, f_a, r_b, f_b) :=
+bundle(bind(r_a, f_a), bind(r_b, f_b))` — stage by stage.
 
-**Source program** (`encode2.su`):
+**Stage 1 — AST after parse.** A tree of `Call` nodes over named
+identifiers: `Call("bundle", Call("bind", r_a, f_a),
+Call("bind", r_b, f_b))`.
 
-```sutra
-function vector encode2(
-    vector role_a, vector filler_a,
-    vector role_b, vector filler_b,
-) {
-    return bundle(
-        bind(role_a, filler_a),
-        bind(role_b, filler_b),
-    );
-}
-```
+**Stage 2 — beta reduction by stdlib inlining.** `bind`,
+`bundle`, and `normalize` are stdlib functions:
+`bind(r,f) ≡ RotationFor(r) @ f`, `bundle(x,y) ≡ normalize(x+y)`,
+`normalize(v) ≡ v / (‖v‖ + ε)`. After substitution the body
+becomes `normalize(RotationFor(r_a) @ f_a + RotationFor(r_b) @ f_b)`.
+No `bind` or `bundle` symbol remains; the residual is straight-
+line algebra over four tensor primitives.
 
-**Stage 1 — AST after parse.** The parser produces a tree of
-`Call` nodes over named identifiers, with the four parameters
-bound at the function head. We write the AST in inline form:
-
-```
-encode2(r_a, f_a, r_b, f_b) :=
-  Call("bundle",
-    Call("bind", Var("r_a"), Var("f_a")),
-    Call("bind", Var("r_b"), Var("f_b")))
-```
-
-**Stage 2 — beta reduction by stdlib inlining.** `bind` and
-`bundle` are stdlib functions whose bodies the inliner
-substitutes textually at every call site. Their definitions are:
-
-```
-bind(role, filler)    ≡   RotationFor(role) @ filler
-bundle(x, y)          ≡   normalize(x + y)
-normalize(v)          ≡   v / (‖v‖ + ε)
-```
-
-After two beta-substitutions, the body of `encode2` becomes:
-
-```
-normalize(
-    RotationFor(r_a) @ f_a
-  + RotationFor(r_b) @ f_b
-)
-```
-
-No `bind` or `bundle` symbol remains; every call has been
-replaced by its body, and the residual is a straight-line
-algebraic expression over four tensor primitives (matmul, add,
-norm, divide).
-
-**Stage 3 — compile-time constant resolution.** `RotationFor` is
-a compile-time function: given a role vector `r`, it returns the
-Haar-orthogonal matrix `R = QR(seed = hash(r))[Q]`. The compiler
-evaluates `RotationFor(r_a)` and `RotationFor(r_b)` at compile
-time, freezes the results as constant tensors `R_a` and `R_b`,
-and stores them in the role-rotation cache. After resolution:
-
-```
-normalize(R_a @ f_a + R_b @ f_b)
-```
-
-`R_a` and `R_b` are now load-bearing constants in the same sense
-as the weight matrices of a feed-forward neural network: their
-values are decided before the runtime graph executes, and the
-forward pass references them by lookup, not by recomputation.
+**Stage 3 — compile-time constant resolution.** `RotationFor(r)`
+is a compile-time function returning `R = QR(seed = hash(r))[Q]`.
+The compiler evaluates it for each role at compile time, freezes
+the results as constant tensors `R_a` and `R_b`, and stores them
+in the rotation cache. The body becomes `normalize(R_a @ f_a +
+R_b @ f_b)` — `R_a` and `R_b` are now load-bearing constants in
+the same sense as the weight matrices of a feed-forward network.
 
 **Stage 4 — peephole fusion.** The simplifier recognizes
 `normalize(Σᵢ Rᵢ @ fᵢ)` as the bundle-of-binds pattern and
-rewrites it to a single fused intrinsic:
+rewrites it to `_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])` —
+one kernel launch instead of two matmuls + add + norm.
+
+**Stage 5 — leaf tensor ops at runtime.** `bundle_of_binds`
+stacks rotations into a `(k, d, d)` tensor, stacks fillers into
+`(k, d)`, runs one batched einsum + sum + L2-normalize:
 
 ```
-_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])
+encode2 ≡ v / (‖v‖ + ε)
+where  v = einsum("kij,kj->i", stack([R_a, R_b]), stack([f_a, f_b]))
 ```
 
-This fusion is what makes the pattern one kernel launch instead
-of two matmuls + an add + a norm.
-
-**Stage 5 — leaf tensor ops at runtime.** `_VSA.bundle_of_binds`
-is the lowest-level intrinsic the runtime exposes. It stacks the
-rotation matrices into a single (k, d, d) tensor, stacks the
-filler vectors into a (k, d) tensor, executes one batched
-einsum, sums along the batch axis, and L2-normalizes the result.
-In leaf tensor ops:
-
-```
-encode2 ≡  v / (‖v‖ + ε)
-where  v  =  einsum("kij,kj->i", stack([R_a, R_b]), stack([f_a, f_b]))
-```
-
-The compiled module's forward pass for `encode2` is exactly
-those three torch calls — `einsum`, `linalg.norm`, an elementwise
-divide — over inputs that include the precomputed `R_a, R_b` and
-the runtime-supplied `f_a, f_b`. There is no `bind`, no `bundle`,
-no `normalize`, no Python control flow, no string-keyed
-dispatch. The lambda calculus at the surface and the tensor
-arithmetic at the leaves are two notations for the same
-computation; the compiler is the proof.
+The compiled forward pass for `encode2` is exactly those three
+torch calls — einsum, linalg.norm, divide — over precomputed
+`R_a, R_b` and runtime-supplied `f_a, f_b`. No `bind`, no
+`bundle`, no `normalize` symbol, no Python control flow, no
+string-keyed dispatch. The lambda calculus at the surface and
+the tensor arithmetic at the leaves are two notations for the
+same computation.
 
 ---
 
