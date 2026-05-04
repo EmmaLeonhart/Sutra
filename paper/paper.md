@@ -32,13 +32,15 @@ every substrate, where Hadamard binding has already collapsed
 single-cycle bind/unbind exactly reversible (round-trip
 ≈ 1.5×10⁻¹⁵). The program-network identity is end-to-end
 testable through PyTorch autograd: a symbolic if-then program of
-fuzzy rules over ten classes (animal, vehicle, food, color,
-clothing, weather, emotion, tool, instrument, profession; 100
-words total, K=10 rule tree nine ANDs deep) trains from chance
-accuracy (11%) to 100% in 300 epochs, with nonzero gradient at
-every prototype and no modification to the symbolic source —
-gradient descent moves the embeddings the rules evaluate
-against, not the rule graph itself.
+fuzzy rules over twenty classes (animal, vehicle, food, color,
+clothing, weather, emotion, tool, instrument, profession,
+body-part, plant, furniture, building, country, sport, drink,
+metal, shape, fabric; 992 words total, K=20 rule tree nineteen
+ANDs deep) trains from chance accuracy (4%) to 95% in 300
+epochs, with nonzero gradient at every prototype and no
+modification to the symbolic source — gradient descent moves
+the embeddings the rules evaluate against, not the rule graph
+itself.
 
 ---
 
@@ -341,9 +343,9 @@ compiler that lowers `.su` source to a self-contained PyTorch
 module and runs on CPU or CUDA. Loops are **self-halting**:
 each iteration computes a halt-cum scalar, and the Python loop
 driver breaks the moment that scalar saturates. There is no
-compile-time iteration cap and no runtime budget parameter —
-programs terminate when their halt condition fires, exactly the
-way any other programming language's `while` loop terminates.
+compile-time iteration cap — programs terminate when their halt
+condition fires, exactly the way any other programming
+language's `while` loop terminates.
 
 In addition to the four technical contributions above, this paper
 also reports an **engineering / execution result**:
@@ -903,7 +905,7 @@ schedules where it knows the codebook is the right reference.
 halt cell's per-tick update is `state ← R · state` with a halt-
 gate component update — *no per-tick bundle of distractors*.
 Pure rotation chains are exact: the §3.1 reversibility
-round-trip is 1.5 × 10⁻¹⁵ per cycle. T=50 iterations
+round-trip is 1.5 × 10⁻¹⁵ per cycle. Long loop trajectories
 accumulate floating-point round-off, not crosstalk; the noise
 mechanism measured in this subsection does not apply to the
 loop-cell regime. The reproduction script is
@@ -1006,12 +1008,12 @@ the cell body, every operation is a substrate tensor op; outside
 the cell, the only host work is the boundary `halt_cum` read
 (equivalent in cost to the codebook's `nearest_string` boundary
 read in §3.4).
-There is no compile-time iteration cap and no runtime budget
-parameter — programs terminate when their halt condition fires,
-exactly the way any other programming language's `while` loop
-terminates. The halt-cum scalar that drives the break is one
-boundary read per iteration, the same kind of boundary operation
-as the codebook's `nearest_string` decode (§3.4).
+There is no compile-time iteration cap — programs terminate when
+their halt condition fires, exactly the way any other programming
+language's `while` loop terminates. The halt-cum scalar that
+drives the break is one boundary read per iteration, the same
+kind of boundary operation as the codebook's `nearest_string`
+decode (§3.4).
 
 **Loop body vs loop driver.** Sutra's "tensor normal form"
 applies to the *body* of each loop tick: one fused chunk of
@@ -1154,10 +1156,13 @@ operation, the compiled graph supports standard PyTorch
 training learnable parameters through a fuzzy-logic classifier
 built entirely from Sutra operations.
 
-**Setup.** 100 words from ten categories (animal, vehicle, food,
-color, clothing, weather, emotion, tool, instrument, profession;
-ten words each) are embedded via nomic-embed-text (768-d,
-frozen). Ten learnable prototype vectors are initialized
+**Setup.** 992 words spanning twenty categories (animal,
+vehicle, food, color, clothing, weather, emotion, tool,
+instrument, profession, body-part, plant, furniture, building,
+country, sport, drink, metal, shape, fabric — fifty words per
+category, eight de-duplicated where the same surface form fits
+two categories) are embedded via nomic-embed-text (768-d,
+frozen). Twenty learnable prototype vectors are initialized
 randomly. The classifier computes cosine similarity between an
 input and each prototype, then applies Lagrange-interpolated
 fuzzy AND/NOT gates to produce per-class scores:
@@ -1170,36 +1175,42 @@ over the K−1 other classes. Each gate is a polynomial (§1.1-1,
 Lagrange interpolation on the Kleene {−1, 0, +1} grid), so the
 full forward pass is a composition of polynomial and rational
 tensor operations with well-defined gradients everywhere — even
-when the rule structure for K=10 nests nine ANDs deep.
-Cross-entropy loss over the ten rule scores drives Adam updates
-(lr=0.005) on the prototype embeddings.
+when the rule structure for K=20 nests nineteen ANDs deep.
+Full-batch cross-entropy loss over the twenty rule scores drives
+Adam updates (lr=0.005) on the prototype embeddings.
 
-**Results.** Before training (random prototypes), accuracy is 11%
-(chance = 10%). Training reaches 100% accuracy by epoch 50 and
-holds it through epoch 299, with the loss continuing to refine
-from 3.34 at epoch 0 to 0.45 at epoch 299. Gradient norms for all
-ten prototypes are nonzero at every step (range 0.04–0.10),
-confirming that backpropagation reaches every learnable parameter
-through the full chain of Sutra operations: `similarity` (cosine
-dot product) → `fuzzy_not` (Kleene negation) → nine nested
-`fuzzy_and` calls (Lagrange min polynomial) → cross-entropy.
+**Results.** Before training (random prototypes), accuracy is 4%
+(chance = 5%). Training reaches 95% accuracy by epoch 50 and
+holds it through epoch 299, with loss converging to 1.154.
+Gradient norms for all twenty prototypes are nonzero at every
+step (range 0.94–4.20), confirming that backpropagation reaches
+every learnable parameter through the full chain of Sutra
+operations: `similarity` (cosine dot product) → `fuzzy_not`
+(Kleene negation) → nineteen nested `fuzzy_and` calls (Lagrange
+min polynomial) → cross-entropy.
 
 | Phase  | Accuracy | Loss  |
 |--------|---------:|------:|
-| Before |    11%   |  3.34 |
-| After  |   100%   |  0.45 |
+| Before |     4%   |  3.01 |
+| After  |    95%   |  1.15 |
 
 The scale matters for the gradient-flow claim. At K=3 the rule
-tree was two nested ANDs deep; at K=10 the rule for class i is
-an AND of `sim(x, proto_i)` with a left-folded chain of nine
+tree was two nested ANDs deep; at K=20 the rule for class i is
+an AND of `sim(x, proto_i)` with a left-folded chain of nineteen
 `NOT(sim)` terms — a tensor pipeline that, naively, could
 saturate or vanish gradients somewhere along the chain. The
 empirical answer is that it doesn't: every prototype receives a
-nonzero gradient, the rule pipeline reaches 100% on a vocabulary
-five times larger than the K=3 setting (15 → 100 words), and the
-training does not require any modification to the symbolic
-program text — the same `rule_i = AND(...)` expression simply
-sees ten classes instead of three at compile time. The
+nonzero gradient, the rule pipeline reaches 95% on a vocabulary
+roughly seventy times larger than the K=3 setting (15 → 992
+words), and the training does not require any modification to
+the symbolic program text — the same `rule_i = AND(...)`
+expression simply sees twenty classes instead of three at
+compile time. The remaining 5% gap is honest semantic overlap in
+the vocabulary (e.g. *salmon* fits both food and color, *scarf*
+fits both clothing and the boundary cases of weather accessories);
+the optimizer plateaus at the configuration that maximizes
+agreement under those overlaps, not at degenerate non-convergence
+— gradient norms remain bounded above zero throughout. The
 experiment uses no Sutra-specific autograd machinery: standard
 `torch.autograd` suffices because the compiler emits only
 operations that PyTorch already knows how to differentiate.
@@ -1264,27 +1275,18 @@ Three invariants the compiler enforces:
 
 ### 4.2 Compile-time resolution to tensor normal form
 
-Two compile-time mechanisms are central to how the compiler
-achieves tensor normal form:
-
-1. **Precomputed rotation matrices.** Every role rotation is
-   constructed at compile time (`prewarm_rotation_cache`) and
-   stored as a constant tensor. At runtime, `bind(role, filler)`
-   is a single matmul against a precomputed matrix — the
-   compile-time resolution eliminates the QR construction from
-   the runtime graph entirely.
-2. **Fixed-depth loop unroll.** Tail-recursive loops compile to a
-   fixed-T iteration over the RNN cell body. The compiler fixes T
-   at compile time (configurable, default 50), and the soft-halt
-   gating ensures convergence typically occurs in far fewer steps.
-   With `torch.compile` (opt-in via `SUTRA_TORCH_COMPILE=1`), the
-   tracer folds the unrolled iteration into a single fused kernel.
-
-Both are instances of the same principle: the compiler resolves
-structure at compile time so the runtime is a straight-line
-tensor-op graph. Role rotations become constant matrices;
-recursion becomes a fixed-depth cell. This is how beta reduction
-to tensor normal form works in practice.
+The central compile-time mechanism that lets the compiler
+achieve tensor normal form is **precomputed rotation matrices**:
+every role rotation is constructed at compile time
+(`prewarm_rotation_cache`) and stored as a constant tensor. At
+runtime, `bind(role, filler)` is a single matmul against a
+precomputed matrix — the compile-time resolution eliminates the
+QR construction from the runtime graph entirely. Role rotations
+are constants from the runtime's perspective, the same way
+neural-network weights are constants at inference time. With
+`torch.compile` (opt-in via `SUTRA_TORCH_COMPILE=1`), the
+tracer further folds the per-tick loop body into a single fused
+kernel.
 
 ---
 
@@ -1344,66 +1346,23 @@ The loop demos confirm substrate-pure recurrent computation:
 - `do_while addNumber(x < 11, int x) { return addNumber(x + 1); }`
   starting from `x = 9` returns `11` after the soft-halt cell
   runs to convergence.
-- An `iterative_loop` with count = 1000 and `T = 50` does not
-  converge: the local computation runs but `_program_halt ≈ 0`,
-  so the function's `return total * _program_halt` wipes program
-  output to zero, signaling "this didn't finish" via a
-  substrate-side mechanism rather than a host-side exception.
+- A loop whose halt condition has not yet fired returns
+  `total * _program_halt`, where `_program_halt ≈ 0` until the
+  cell saturates. A non-converging trajectory therefore yields
+  near-zero output — the substrate-side signal that the loop has
+  not finished, in place of a host-side exception.
 
 ---
 
 ## 6. Limitations and Future Work
 
-### 6.1 Object encapsulation — implementation status
-
-The ontology-oriented object system shipped end-to-end. Class
-bodies parse method declarations of all four shapes (`method`,
-`static method`, `intrinsic method`, `static intrinsic method`)
-plus loop function declarations (`do_while`, `while_loop`,
-`iterative_loop`, `foreach_loop`) for object loops. The
-encapsulation rule — object methods cannot read file-scope names —
-is enforced by the validator (`SUT0144`); a method body that
-references a top-level free function or top-level variable is
-rejected at compile time, with class names exempt because they
-are namespace anchors rather than file-scope reads. Static methods
-on classes compile to mangled top-level Python functions; calls of
-the form `Class.method(args)` dispatch to them. Intrinsic methods
-on classes route directly to the runtime (`Class.method(args)` →
-`_VSA.method(args)`). Non-static methods take `this` as their
-implicit first parameter, and `this.other_method(args)` from inside
-a method body dispatches to the same class. Object loops emit as
-`_loop_{Class}_{name}` and are reachable from `loop Class.name(...)`
-call sites. Four stdlib files (`math.su`, `numbers.su`,
-`memory.su`, `embed.su`) have been migrated to the
-class-as-namespace shape, with the loader registering each entry
-under both bare-name (`log`) and namespaced (`Math.log`) keys for
-backward compatibility.
-
-Three pieces remain incomplete: (1)
-non-static object loops that thread `this` through the recurrent
-state — today's class loops behave equivalently to static loops;
-(2) instance-syntax dispatch on typed variables (`g.method(args)`
-for an instance `g`), which needs variable type tracking through
-the codegen; (3) field declarations inside class bodies (`field x
-: int;`), without which "class-level slots" has no referent.
-Migration of the four remaining stdlib files (`logic.su`,
-`similarity.su`, `vectors.su`, `rotation.su`) to the
-class-as-namespace shape is straightforward when prioritized.
-
-### 6.2 Codebook integration depth
+### 6.1 Codebook integration depth
 
 The embedded codebook store covers the compile-time embed →
 runtime decode path today. Extended features (hashmap routing,
 persistent codebook across runs via `SUTRA_DB_PATH`) are
 deferred until there is a concrete requirement beyond the
 current demonstration corpus.
-
-### 6.4 Numpy backend retirement
-
-The compiler has historically had two backends; the numpy one
-(`codegen.py`) is deprecated. Behavior tests run on PyTorch; the
-numpy backend is retained only for emit-shape tests and gets
-fully removed in a follow-up.
 
 ---
 

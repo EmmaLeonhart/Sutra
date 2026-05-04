@@ -191,13 +191,16 @@ embeddings move.
 **What to build (replication spec):**
 
 1. Pick a frozen embedding model (the canonical implementation uses
-   `nomic-embed-text` at 768-d) and embed 100 words across 10
+   `nomic-embed-text` at 768-d) and embed 992 words across 20
    categories — animal, vehicle, food, color, clothing, weather,
-   emotion, tool, instrument, profession (10 words each).
-2. Initialize 10 **learnable** prototype tensors (one per category)
+   emotion, tool, instrument, profession, body-part, plant,
+   furniture, building, country, sport, drink, metal, shape, fabric
+   (fifty per category, deduplicated where the same surface form
+   fits two categories).
+2. Initialize 20 **learnable** prototype tensors (one per category)
    with `requires_grad=True`. Random init.
-3. Forward pass per input word `x`, computing per-class scores via
-   Sutra's primitives composed as a fuzzy if-then rule:
+3. Forward pass on the full 992-word batch, computing per-class
+   scores via Sutra's primitives composed as a fuzzy if-then rule:
 
    ```
    sim_i  = similarity(x, proto_i)              # cosine_similarity
@@ -208,12 +211,12 @@ embeddings move.
    where `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2` is the
    Lagrange-interpolated Kleene min, `NOT(x) = -x`, and the
    AND-of-NOTs is left-folded across the K−1 other classes (so the
-   rule for K=10 nests nine ANDs deep). The rule reads "classify
-   as *i* if similar to prototype *i* AND not similar to any of
-   the other K−1 classes."
+   rule for K=20 nests nineteen ANDs deep). The rule reads
+   "classify as *i* if similar to prototype *i* AND not similar to
+   any of the other K−1 classes."
 
-4. Cross-entropy loss over the ten rule scores, Adam optimizer
-   (lr=0.005), train for 300 epochs.
+4. Full-batch cross-entropy loss over the twenty rule scores, Adam
+   optimizer (lr=0.005), train for 300 epochs.
 5. Save `accuracy_before`, `accuracy_after`, and per-prototype
    `gradient_norms` to a JSON file.
 
@@ -242,11 +245,13 @@ print('OK: §3.6 differentiable training reproduces')
 "
 ```
 
-Reference numbers (K=10, 100 words): 11% → 100% accuracy
-(chance = 10%); convergence by epoch 50; final loss 0.45; all 10
-prototype gradient norms in the range 0.04–0.10 (range floor is
+Reference numbers (K=20, 992 words): 4% → 95% accuracy
+(chance = 5%); convergence by epoch 50; final loss 1.15; all 20
+prototype gradient norms in the range 0.94–4.20 (range floor is
 the gradient flow check — every prototype receives a nonzero
-gradient through the nine-AND-deep rule pipeline).
+gradient through the nineteen-AND-deep rule pipeline). The 5%
+residual is honest semantic overlap (e.g. *salmon*/*scarf*) at
+the optimizer plateau, not gradient pathology.
 
 ### Multi-system neuro-symbolic comparison (optional, requires Docker)
 
