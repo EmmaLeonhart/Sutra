@@ -172,21 +172,7 @@ dictionary and codebook tensor by hand. To the authors'
 knowledge Sutra is the only HDC implementation that ships this
 as a built-in compiler concern.
 
-### 1.2 What this paper is not
-
-This paper is not a survey of VSA binding operations; the
-contribution is *not* a new binding scheme in isolation, but the
-integration of the four primitives in §1.1 into a single typed,
-purely functional language with a working compiler. The
-soft-halt RNN cell is straightforward in the abstract; what is
-not straightforward is making it the loop primitive of a
-programming language whose entire program lowers to one
-tensor-op graph through beta reduction. The paper is neither a
-deep-learning architecture paper nor a pure programming-language
-theory paper; it is the specific construction that ties the two
-together.
-
-### 1.3 The substrate is the architecture target
+### 1.2 The substrate is the architecture target
 
 A Sutra program is compiled for an *embedding-space architecture*,
 the way a C program is compiled for x86 and a CUDA kernel for an
