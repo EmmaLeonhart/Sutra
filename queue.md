@@ -27,18 +27,36 @@ is May 6 AOE. Two-commit plan tonight:
    with neural networks, not classification."
 
 2. **Scale-up commit (this one)** — `differentiable_training.py`
-   scaled from 15 words / 3 classes (K=3) to **100 words / 10
-   classes (K=10)**: animal, vehicle, food, color, clothing,
-   weather, emotion, tool, instrument, profession. Generalized
-   `classify()` for arbitrary K via left-fold AND-of-NOTs. Honest
-   measurement: **11% → 100%** accuracy in 300 epochs (chance =
-   10%); convergence by epoch 50; final loss 0.45 (down from
-   3.34); all 10 prototype gradient norms nonzero (range
-   0.04–0.10) confirming gradient flow through a nine-AND-deep
-   rule pipeline. §3.6 rewritten with new numbers and explicit
-   K=3 → K=10 scale comparison; SKILL.md replication spec
-   updated; abstract folded in the K=10 / 100-word claim
-   (animal–profession enumeration kept short for headline).
+   scaled from 15 words / 3 classes (K=3) to **992 words / 20
+   classes (K=20)**: animal, vehicle, food, color, clothing,
+   weather, emotion, tool, instrument, profession, body-part,
+   plant, furniture, building, country, sport, drink, metal,
+   shape, fabric. Generalized `classify()` for arbitrary K via
+   left-fold AND-of-NOTs, then refactored to a vectorized
+   batch forward pass so 1000-word epochs run in milliseconds
+   instead of 40s. Honest measurement: **4% → 95%** accuracy in
+   300 epochs (chance = 5%); convergence by epoch 50; final
+   loss 1.15; all 20 prototype gradient norms nonzero (range
+   0.94–4.20) confirming gradient flow through a nineteen-AND-
+   deep rule pipeline. The 5% residual is honest semantic
+   overlap (e.g. salmon/scarf) at the optimizer plateau, not
+   gradient pathology. §3.6 rewritten with new numbers and
+   explicit K=3 → K=20 scale comparison; SKILL.md replication
+   spec updated; abstract folded in the K=20 / 992-word claim.
+
+   Body fixes bundled in the same commit:
+   - **T=50 contradiction resolved**: §1.1, §3.3, §3.1.1, §4.2,
+     §5.4 all consistently say iteration is unbounded by language
+     semantics (no compile-time iteration cap, halt-flag stops
+     it). T=50 is an implementation detail of the autograd-tape
+     budget and doesn't appear in the paper.
+   - **§6.1 (object encapsulation status, 60 lines) deleted** and
+     **§6.4 (numpy backend retirement, 5 lines) deleted** — both
+     were voluntary disclosure of in-progress work that didn't
+     support any paper contribution; reviewers v18/v20/v22 all
+     cited them as evidence of "prototype not production-ready."
+     The remaining §6 is a single short paragraph on codebook
+     integration depth (renumbered §6.1).
 
 Open before submission:
 - [x] OpenReview profile activated (Emma confirmed).
