@@ -135,89 +135,42 @@ The four core technical contributions of this paper are:
    end (§3.7).
 
 2. **Beta reduction to tensor normal form, used as the compiler
-   architecture.** Sutra inverts what conventional compilers do:
-   instead of progressively lowering a high-level program toward
-   machine instructions, the compiler aggressively *expands* the
-   program — inlining operator definitions, unfolding constants,
-   beta-reducing through bound names — until the residual is a
-   straight-line algebraic expression over the VSA primitives.
-   That residual is then algebraically reduced to *tensor normal
-   form*: a fused sequence of matmul / element-wise / nonlinear
+   architecture.** The compiler inlines stdlib operator
+   definitions, beta-reduces through bound names, then runs an
+   algebraic-simplification pass over the residual. What's left
+   is a fused tensor-op graph: matmul / element-wise / nonlinear
    tensor ops with no remaining named bindings or function calls.
-   In the recurrent case the form generalizes to *recurrent
-   tensor normal form*, where the RNN cell body is itself in
-   tensor normal form and the recurrence is a separate top-level
-   operator.
+   In the recurrent case the body of each loop tick is in this
+   form and the recurrence is a separate top-level operator.
 
-   "Tensor normal form" names a specific shape that is stronger
-   than the standard compiler passes it generalizes. Constant
-   folding eliminates literal arithmetic; function inlining
-   substitutes call bodies; beta reduction substitutes named
-   arguments. Sutra runs all three plus three things standard
-   compiler passes do not do:
+   Three things the compiler does that standard inlining +
+   constant-folding does not:
 
    - *Conditional-as-tensor lowering.* A Sutra `if cond then a
-     else b` does not become a control-flow branch in the IR. It
-     becomes the polynomial `(1 + cond) / 2 · a + (1 − cond) / 2
-     · b` (the soft-mux derived from the `cond` value's
-     truth-axis coordinate via the §1.1 Lagrange polynomials).
-     The compiled output has no jumps, no branches, no `if`
-     opcodes — every conditional is one tensor expression. This
-     is what lets PyTorch autograd backprop through symbolic
-     if-then rules in §3.7.
+     else b` becomes the polynomial `(1 + cond) / 2 · a +
+     (1 − cond) / 2 · b` — the soft-mux derived from the `cond`
+     value's truth-axis coordinate via the §1.1 Lagrange
+     polynomials. There are no jumps, no branches, no `if`
+     opcodes in the compiled artifact. This is what lets
+     PyTorch autograd backprop through symbolic if-then rules
+     (§3.7).
    - *Rotation-matrix precomputation.* Every Haar-orthogonal
      binding rotation `R_role` is materialized at compile time
      keyed by the role's content hash, so runtime `bind` is one
-     matmul, not a Haar-sample-then-matmul.
+     matmul against a constant matrix.
    - *Synthetic-axis slot allocation.* Canonical dimensions for
      primitive types are assigned compile-time, so every
      read/write is a known index rather than a hashtable lookup.
 
-   The output is not "the program with constants folded"; it is
-   a single dense tensor pipeline whose only inputs are the
-   substrate-resident variables and whose only outputs are the
-   substrate-resident return value. There is no Python control
-   flow inside any operation, no host-side dispatch, no
-   string-keyed lookup at runtime, **and no branches** — the
-   conditional-as-tensor lowering means the compiled artifact is
-   straight-line dataflow over the VSA primitives. That's what
-   makes the form a normal form, and it's what makes the body of
-   every loop fit inside one fused subgraph for `torch.compile`
-   consumption.
+   The result is a single dense tensor pipeline whose inputs are
+   the substrate-resident parameters and whose outputs are the
+   substrate-resident return value — no Python control flow
+   inside any operation, no string-keyed lookup at runtime, no
+   branches in the IR.
 
-   **Worked example.** The XOR pattern `(a && !b) || (!a && b)`
-   in `.su` source compiles, after the simplify pass, into five
-   composed polynomial calls:
-
-   ```
-   logical_or(
-     logical_and(a, logical_not(b)),
-     logical_and(logical_not(a), b)
-   )
-   ```
-
-   Each call evaluates a degree-≤4 polynomial at runtime — five
-   kernel launches if executed naively. But the *composition* of
-   those five polynomials, expanded symbolically, simplifies to
-   the closed XOR form from §1.1: `−ab`. A pattern-matching pass
-   in the simplifier (queued, not yet shipped) recognizes the
-   composed expression and rewrites it to the single
-   multiplication. This is what "aggressive" means here: not
-   just folding numeric literals, but recognizing that an entire
-   five-step polynomial pipeline collapses to one tensor op
-   because we have closed forms for every connective. Standard
-   constant folding does not do this; standard inlining does not
-   do this. The whole language is structured to make these
-   collapses visible to the compiler — the surface lets the
-   programmer write the obvious form, and the runtime executes
-   the minimal one.
-
-   **Reduction chain — the same idea for VSA primitives.** Every
-   surface operation has a function-expansion form that bottoms
-   out at substrate primitives. The compiler can read this chain
-   end-to-end, and the user can read it too — either as
-   transparency into what `bind` actually computes, or as an
-   explicit alternative spelling.
+   **Reduction chain.** Every surface operation has a
+   function-expansion form that bottoms out at substrate
+   primitives:
 
    ```
        user code:    bundle(bind(role_a, filler_a),
@@ -242,55 +195,11 @@ The four core technical contributions of this paper are:
                             element-wise add and divide.
    ```
 
-   The leaves at the bottom of every chain are the same five-or-six
-   tensor verbs: matmul, kron, outer, dot, transpose, plus
-   element-wise add/sub/mul/div. Every higher-level operation —
-   `bind`, `unbind`, `bundle`, `similarity`, the polynomial fuzzy
-   gates, the loop cells — reduces to a chain of these. We surface
-   the leaves directly as `Tensor.MatrixMul(a, b)` /
-   `Tensor.Outer(a, b)` etc. so the user can spell the bottom of
-   the chain explicitly when they want to bypass the higher-level
-   convenience names.
-
-   **Where TNF sits relative to standard compiler concepts.** A
-   reasonable read of "we beta-reduce, we inline, we fold" is
-   "this is just AOT compilation rebadged." The distinction we
-   are drawing is ontological, not quantitative. Compare:
-
-   - *Constant propagation* substitutes specific values known at
-     compile time. The residual program still runs on a
-     conventional machine; you removed some work.
-   - *Partial evaluation* (Futamura) specializes a program against
-     known inputs, producing a residual program over the unknown
-     ones. The output is still a program in the same
-     computational model.
-   - *Staging* (MetaML, Lean `#eval`) makes the compile-time vs
-     runtime boundary explicit. Same model underneath, with
-     temporal layering.
-   - *Tensor normal form* asserts that the runtime *is* matrix
-     arithmetic on the substrate. There is no residual program
-     in the conventional sense — no jump table, no register
-     file, no instruction stream. Compilation produces a weight
-     structure; execution is a forward pass.
-
-   Neural-network inference is the closest existing analogy:
-   weights are matrices fixed at inference time; the forward
-   pass is chained matmuls; nobody calls that constant folding,
-   even though every weight is constant. The matrices *are* the
-   computation, not an optimization of it. Sutra extends this to
-   arbitrary programs: the compilation step produces the weight
-   structure, execution is the forward pass, and the reason it
-   does not feel like constant folding is that there is no
-   "un-folded" version lurking underneath. Matrix operations are
-   not an optimization applied to some more primitive semantics
-   — they are the ground level. In the limiting sense, TNF is
-   the *most* constant-folded a program can be: compile-time
-   work has consumed the entire computational model, leaving
-   only linear algebra. Whether one calls that "still constant
-   folding" or "no longer constant folding" is a matter of
-   taste; what the paper claims is the construction, the
-   primitives, and that the construction reaches that limit on
-   real programs.
+   The leaves are the same five-or-six tensor verbs (matmul,
+   kron, outer, dot, transpose, plus element-wise
+   add/sub/mul/div); §4.3 traces this lowering stage-by-stage on
+   a concrete program, and Figure 1 shows the corresponding
+   compilation pipeline.
 
 3. **Tail recursion as the loop primitive, with no in-graph
    control flow and O(1) state vector width in recursion depth.**
