@@ -60,14 +60,14 @@ is May 6 AOE. Two-commit plan tonight:
 
 Open before submission:
 - [x] OpenReview profile activated (Emma confirmed).
-- [ ] Confirm OpenReview abstract field length cap by reading
-  the actual submission form (handbook + call don't spell it
-  out; the v22 abstract is 205 words / 1545 chars, comfortably
-  under any plausible cap).
-- [ ] Pick primary area + keywords on the OpenReview form.
-  Closest fits: "deep learning" + "language and multimodal
-  models" (or "AI/ML for sciences" if the ESM-2 row is the
-  pitch).
+- [x] clawRxiv review trajectory v20→v23: Weak Reject → Weak
+  Accept → Weak Accept → **Accept** (v23 / post 2336).
+- [ ] Submit at 4 AM local 2026-05-04 → 2026-05-05.
+- [ ] On the OpenReview form: confirm abstract-field length cap
+  accepts 286 words / 2058 chars. If it caps at 250 words, use
+  the trim variant below.
+- [ ] On the OpenReview form: pick primary area + keywords. See
+  scratchpad below.
 
 papers-ci race FIXED: the workflow already had a concurrency
 lock that serialized runs, but `actions/checkout@v4` defaults to
@@ -78,40 +78,73 @@ supersede against an already-superseded post. Patched by adding
 `ref: master` to the checkout step so a queued run grabs the
 latest committed state when it finally executes.
 
-## NeurIPS submission scratchpad
+## NeurIPS submission scratchpad — paste-ready
 
-Title (paper.md H1):
-> Sutra: Compiling a Vector Symbolic Architecture to a Tensor-Op
-> Recurrent Neural Network via Beta Reduction
+### Title
 
-Abstract: lives in `paper/paper.md` lines 9–41. After the
-reframe + scale-up, ~280 words / ~2000 chars. To paste into
-OpenReview, copy lines 9–41 of paper/paper.md and strip the
-markdown bold + line wrapping.
+```
+Sutra: Compiling a Vector Symbolic Architecture to a Tensor-Op Recurrent Neural Network via Beta Reduction
+```
 
-Suggested primary area (NeurIPS 2026 categories):
-- **Deep Learning** — most likely fit; the contribution is a
-  programming-language layer that compiles to PyTorch ops.
-- **Language and Multimodal Models** — relevant because the
-  substrate is a frozen LLM/protein-LM, but the paper isn't
-  about LLM behavior.
-- **Probabilistic Methods** — fuzzy logic / Kleene three-valued
-  logic could route here, but it's not the headline.
+### Abstract (full, 286 words / 2058 chars)
 
-Suggested keywords: vector symbolic architectures (VSA),
-neuro-symbolic, programming languages, differentiable logic,
-embedding spaces, hyperdimensional computing.
+This is the canonical version. Use it unless the OpenReview field
+caps below 286 words.
 
-Co-author list: single author Emma Leonhart (per
-`scripts/paper_submit_and_fetch.py` `human_names`).
+```
+Sutra is a typed, purely functional programming language; a compiled Sutra program is a PyTorch neural network. Every primitive — rotation binding, unbind, bundle, similarity, soft-halt RNN cells, polynomial Kleene three-valued logic — compiles to a tensor op, and the compiler beta-reduces the whole program (control flow included) to a fused tensor-op graph whose substrate-resident computation is straight-line dataflow: no in-graph branches inside any operation, no string-keyed lookup at runtime, and no Python control flow inside the body of a loop cell — the only remaining host-side control flow is a thin tick-loop that breaks when a substrate-computed halt scalar saturates (§3.3). The contribution is the construction that makes this isomorphism land: a symbolic source language whose compiled forward pass is a substrate-pure neural network, autograd-compatible by construction, executable wherever PyTorch executes. We validate the language across four frozen embedding substrates spanning two modalities — three text encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and one protein language model (ESM-2) — and observe the same rotation-vs-Hadamard separation across modalities: rotation binding decodes at 100% accuracy through bundle width k=8 on every substrate, where Hadamard binding has already collapsed (e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2), with single-cycle bind/unbind exactly reversible (round-trip ≈ 1.5×10⁻¹⁵). The program-network identity is end-to-end testable through PyTorch autograd: a symbolic if-then program of fuzzy rules over twenty classes (animal, vehicle, food, color, clothing, weather, emotion, tool, instrument, profession, body-part, plant, furniture, building, country, sport, drink, metal, shape, fabric; 992 words total, K=20 rule tree nineteen ANDs deep) trains from chance accuracy (4%) to 95% in 300 epochs, with nonzero gradient at every prototype and no modification to the symbolic source — gradient descent moves the embeddings the rules evaluate against, not the rule graph itself.
+```
 
-OpenReview profile: confirmed activated (Emma 2026-05-04).
-Anonymization: paper has no author identifying info — the
-title page is just the H1 + abstract; body has no Acknowledgments
-section to scrub. Check the PDF render at submission time.
+### Abstract — short variant (212 words / 1543 chars)
 
-After abstract: queue.md flips back to systematic todo.md
-pass. Full paper PDF + checklist due May 6 AOE.
+Safety variant for any plausible cap. Drops the twenty-class
+enumeration, the §3.3 tick-loop qualification (the body still
+covers it), and a small amount of redundant phrasing. Same five
+quantitative claims as the full variant.
+
+```
+Sutra is a typed, purely functional programming language; a compiled Sutra program is a PyTorch neural network. Every primitive — rotation binding, unbind, bundle, similarity, soft-halt RNN cells, polynomial Kleene three-valued logic — compiles to a tensor op, and the compiler beta-reduces the whole program, control flow included, to a fused tensor-op graph whose substrate-resident computation is straight-line dataflow with no in-graph branches and no string-keyed lookup at runtime. The contribution is the construction that makes this isomorphism land: a symbolic source language whose compiled forward pass is a substrate-pure neural network, autograd-compatible by construction. We validate across four frozen embedding substrates spanning two modalities — three text encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and one protein language model (ESM-2) — and observe the same rotation-vs-Hadamard separation across modalities: rotation binding decodes at 100% accuracy through bundle width k=8 on every substrate, where Hadamard binding has already collapsed (e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2), with single-cycle bind/unbind exactly reversible (round-trip ≈ 1.5×10⁻¹⁵). The program-network identity is end-to-end testable through PyTorch autograd: a symbolic if-then program of fuzzy rules over twenty semantic categories (992 words, K=20 rule tree nineteen ANDs deep) trains from chance accuracy (4%) to 95% in 300 epochs, with nonzero gradient at every prototype and no modification to the symbolic source.
+```
+
+### Primary area (NeurIPS 2026 list)
+
+Recommend **Deep Learning** (the contribution is a programming-
+language layer that compiles to PyTorch ops; the empirical
+claims are about gradient flow, capacity, and convergence on
+PyTorch). Alternates if "Deep Learning" feels too broad:
+
+- **Language and Multimodal Models** — relevant because three of
+  four substrates are LLMs, but the paper isn't about LLM
+  behavior so this risks misrouting to LLM-application reviewers.
+- **Probabilistic Methods** — fuzzy logic / Kleene routes here,
+  but it's not the headline; the paper is about compilation, not
+  inference under uncertainty.
+
+### Keywords (suggest five; the form usually allows up to ~6)
+
+- vector symbolic architectures (VSA)
+- neuro-symbolic
+- programming languages
+- differentiable logic
+- embedding spaces
+
+(Sixth optional: hyperdimensional computing — overlaps with VSA;
+include only if the form has space and the secondary tag adds
+discoverability.)
+
+### Authors
+
+Single author: Emma Leonhart. OpenReview profile activated
+(confirmed 2026-05-04). Anonymization: the paper has no
+identifying information — title page is just the H1 + abstract,
+body has no Acknowledgments to scrub. Verify the PDF render at
+submission time.
+
+### After abstract
+
+queue.md flips back to a systematic todo.md pass once the May 4
+AOE submission is in. Full paper PDF + checklist still due May 6
+AOE.
 
 ### Done in this sprint (2026-05-01)
 
