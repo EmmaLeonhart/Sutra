@@ -602,20 +602,15 @@ current demonstration corpus.
 
 ## 7. Conclusion
 
-Sutra demonstrates that a programming language whose compile
-target is a single tensor-op graph over a frozen embedding
-substrate is a tractable design — not a research thought
-experiment but a working compiler with running demonstration
-programs. The design choice that makes it tractable is uniform
-shape: every value is the same vector layout, every operation is
-one tensor op, the compiler treats the whole program as a
-dataflow graph with no type dispatch at the leaves.
-
-The substrate-purity story is what makes the language useful for
-the empirical question we built it to address: which embedding
-operations actually compose, at what capacity, on which
-substrates. With the language in hand, those questions become
-programs to write rather than scripts to glue together.
+Sutra is a working compiler from a typed pure-functional source
+language to a substrate-pure PyTorch tensor-op graph. The design
+choice that makes it tractable is uniform shape: every value is
+the same vector layout, every operation is one tensor op, the
+whole program is a dataflow graph with no type dispatch at the
+leaves. With the language in hand, the question of which
+embedding operations actually compose at what capacity on which
+substrates becomes a program to write rather than a script to
+glue together.
 
 ---
 
