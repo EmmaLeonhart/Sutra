@@ -132,40 +132,8 @@ The four core technical contributions of this paper are:
    the substrate-resident parameters and whose outputs are the
    substrate-resident return value — no Python control flow
    inside any operation, no string-keyed lookup at runtime, no
-   branches in the IR.
-
-   **Reduction chain.** Every surface operation has a
-   function-expansion form that bottoms out at substrate
-   primitives:
-
-   ```
-       user code:    bundle(bind(role_a, filler_a),
-                            bind(role_b, filler_b))
-                                |
-                                |  inliner: bind / bundle have stdlib defns
-                                v
-                     normalize(  RotationFor(role_a) @ filler_a
-                               + RotationFor(role_b) @ filler_b )
-                                |
-                                |  fusion: bundle-of-binds peephole
-                                v
-                       _VSA.bundle_of_binds(
-                            (role_a, filler_a),
-                            (role_b, filler_b))
-                                |
-                                |  runtime: stack rotations, batched einsum,
-                                |          L2 normalize
-                                v
-                       leaf tensor ops:
-                            torch.matmul, torch.linalg.norm,
-                            element-wise add and divide.
-   ```
-
-   The leaves are the same five-or-six tensor verbs (matmul,
-   kron, outer, dot, transpose, plus element-wise
-   add/sub/mul/div); §4.3 traces this lowering stage-by-stage on
-   a concrete program, and Figure 1 shows the corresponding
-   compilation pipeline.
+   branches in the IR. §4.3 traces this lowering stage-by-stage
+   on a concrete program; Figure 1 shows the compilation pipeline.
 
 3. **Tail recursion as the loop primitive.** Loops are
    tail-recursive function declarations (`do_while`,
