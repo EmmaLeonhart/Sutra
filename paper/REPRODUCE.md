@@ -75,9 +75,9 @@ when convergent, near zero when not.
   (slower first call; cached afterward).
 - Memory: 8 GB sufficient for the demonstration programs.
 
-## Honest limitations
+## Known limitations
 
-These are real and disclosed in the paper:
+These are disclosed in the paper:
 
 - Numpy backend (`codegen.py`) is deprecated but retained for
   emit-shape tests. Behavior tests run on PyTorch.
