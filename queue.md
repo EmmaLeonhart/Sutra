@@ -10,9 +10,31 @@ tool stay in sync.
 
 ## Active
 
-**Sprint:** systematic pass through `todo.md`, treating it as a
-queue. Implement → commit → push → remove from `todo.md` in the
-same commit. Repeat.
+**Sprint:** NeurIPS 2026 abstract submission (deadline May 4
+2026 AOE — same day). Abstract-only step; full paper deadline
+is May 6 AOE. The §Abstract has been rewritten to drop the
+"honest negative results" framing, drop unit-test / smoke-test
+counts (engineering signaling, not science), and lead with the
+two empirical headlines (rotation 100%@k=8 across four
+substrates including ESM-2; symbolic-rule training 40%→100%
+end-to-end via PyTorch autograd). Two body cleanups removed the
+word "honest" elsewhere (line ~1039 O(N) summary, line ~1351
+remaining-work list). Numbers in the abstract verified against
+committed JSON.
+
+Open before submission:
+- [ ] Confirm OpenReview profile is activated (non-institutional
+  emails can take up to 2 weeks of moderation).
+- [ ] Confirm OpenReview abstract field length cap by reading
+  the actual submission form (handbook + call don't spell it
+  out; expect ~250 words / ~1500–3000 chars).
+- [ ] Pick primary area + keywords on the OpenReview form.
+  Closest fits: "deep learning" + "language and multimodal
+  models" (or "AI/ML for sciences" if the ESM-2 row is the
+  pitch).
+
+After abstract: queue.md flips back to systematic todo.md
+pass. Full paper PDF + checklist due May 6 AOE.
 
 ### Done in this sprint (2026-05-01)
 

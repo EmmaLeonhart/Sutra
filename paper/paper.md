@@ -17,17 +17,16 @@ form. The substrate is *any* dense high-dimensional vector
 space — empirically validated on three frozen LLM embeddings
 (nomic-embed-text, all-minilm, mxbai-embed-large) and on ESM-2
 protein-language-model embeddings, with the same characteristic
-rotation-vs-Hadamard separation in every case. Sutra is a
-working compiler: parser, type checker, codegen, runtime,
-embedded SutraDB codebook, opt-in `torch.compile` wrapping. The
-example corpus is a 10-program smoke test (with 27 `.su` files
-total), and 276 passing unit tests. We report honest negative
-results alongside the positive ones — most notably the §3.1.1
-crosstalk analysis, which scopes the rotation-binding capacity
-claim to single-cycle records, and we close with §3.6, which
-demonstrates that symbolic if-then rules built from those
-primitives remain end-to-end differentiable through standard
-PyTorch autograd.
+rotation-vs-Hadamard separation across modalities. Rotation
+binding decodes at 100% accuracy through bundle width k=8 on
+every substrate; Hadamard binding has already collapsed at the
+same setting (e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2).
+A symbolic Sutra program of fuzzy if-then rules, built from
+these primitives, remains end-to-end differentiable: PyTorch
+autograd trains the prototype embeddings the rules evaluate
+against from random (~40%) to perfect (100%) classification
+accuracy in 300 epochs, with the symbolic program text
+unchanged across training.
 
 ---
 
@@ -1036,7 +1035,7 @@ the number of iterations actually executed (each tick runs the
 fused body once), and during training the autograd tape grows
 linearly in the number of iterations executed up to the
 `backward()` call (standard PyTorch behavior, freed after the
-backward pass). So a more honest summary is: **O(1) state, O(N)
+backward pass). The summary is therefore: **O(1) state, O(N)
 compute, O(N) gradient tape during training**, where N is
 *iterations actually executed* rather than a compile-time budget.
 For inference (no training) the gradient tape is not built and
@@ -1348,7 +1347,7 @@ class-as-namespace shape, with the loader registering each entry
 under both bare-name (`log`) and namespaced (`Math.log`) keys for
 backward compatibility.
 
-Three pieces remain incomplete and are honest future work: (1)
+Three pieces remain incomplete: (1)
 non-static object loops that thread `this` through the recurrent
 state — today's class loops behave equivalently to static loops;
 (2) instance-syntax dispatch on typed variables (`g.method(args)`
