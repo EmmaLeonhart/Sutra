@@ -100,40 +100,21 @@ The four core technical contributions of this paper are:
    these gates is one fused subgraph that PyTorch autograd
    backprops through end-to-end (§3.6).
 
-2. **Beta reduction to tensor normal form, used as the compiler
-   architecture.** The compiler inlines stdlib operator
-   definitions, beta-reduces through bound names, then runs an
-   algebraic-simplification pass over the residual. What's left
-   is a fused tensor-op graph: matmul / element-wise / nonlinear
-   tensor ops with no remaining named bindings or function calls.
-   In the recurrent case the body of each loop tick is in this
-   form and the recurrence is a separate top-level operator.
-
-   Three things the compiler does that standard inlining +
-   constant-folding does not:
-
-   - *Conditional-as-tensor lowering.* A Sutra `if cond then a
-     else b` becomes the polynomial `(1 + cond) / 2 · a +
-     (1 − cond) / 2 · b` — the soft-mux derived from the `cond`
-     value's truth-axis coordinate via the §1.1 Lagrange
-     polynomials. There are no jumps, no branches, no `if`
-     opcodes in the compiled artifact. This is what lets
-     PyTorch autograd backprop through symbolic if-then rules
-     (§3.6).
-   - *Rotation-matrix precomputation.* Every Haar-orthogonal
-     binding rotation `R_role` is materialized at compile time
-     keyed by the role's content hash, so runtime `bind` is one
-     matmul against a constant matrix.
-   - *Synthetic-axis slot allocation.* Canonical dimensions for
-     primitive types are assigned compile-time, so every
-     read/write is a known index rather than a hashtable lookup.
-
-   The result is a single dense tensor pipeline whose inputs are
-   the substrate-resident parameters and whose outputs are the
-   substrate-resident return value — no Python control flow
-   inside any operation, no string-keyed lookup at runtime, no
-   branches in the IR. §4.3 traces this lowering stage-by-stage
-   on a concrete program; Figure 1 shows the compilation pipeline.
+2. **Beta reduction to tensor normal form.** The compiler
+   inlines stdlib operator definitions, beta-reduces through
+   bound names, then runs an algebraic-simplification pass over
+   the residual. What's left is a fused tensor-op graph (matmul
+   / element-wise / nonlinear) with no named bindings or
+   function calls. Three concrete moves go beyond standard
+   inlining + constant folding: conditionals lower to soft-mux
+   polynomials (`(1+cond)/2·a + (1−cond)/2·b`) so the compiled
+   artifact has no `if` opcodes; Haar-orthogonal binding
+   rotations `R_role` are materialized at compile time so
+   runtime `bind` is one matmul against a constant matrix;
+   canonical synthetic axes are assigned compile-time so every
+   primitive-type read/write is a known index, not a hashtable
+   lookup. §4.3 traces this lowering stage-by-stage on a
+   concrete program; Figure 1 shows the compilation pipeline.
 
 3. **Tail recursion as the loop primitive.** Loops are
    tail-recursive function declarations (`do_while`,
