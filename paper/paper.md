@@ -6,27 +6,32 @@
 
 ## Abstract
 
-**Sutra** is a typed, purely functional programming language
-whose values are vectors in a dense embedding space and whose
-compile target is a single tensor-op graph. The contribution is
-algorithmic: a consolidated set of vector-symbolic primitives
-(rotation binding, unbind, bundle, similarity, soft-halt RNN
-cells, polynomial Kleene three-valued logic) lowered through a
-compiler that beta-reduces the whole program to tensor normal
-form. The substrate is *any* dense high-dimensional vector
-space — empirically validated on three frozen LLM embeddings
-(nomic-embed-text, all-minilm, mxbai-embed-large) and on ESM-2
-protein-language-model embeddings, with the same characteristic
-rotation-vs-Hadamard separation across modalities. Rotation
+**Sutra** is a typed, purely functional programming language;
+a compiled Sutra program *is* a PyTorch neural network. Every
+primitive — rotation binding, unbind, bundle, similarity,
+soft-halt RNN cells, polynomial Kleene three-valued logic —
+compiles to a tensor op, and the compiler beta-reduces the
+whole program (control flow included) to a single fused
+tensor-op graph with no host-side branches and no string-keyed
+lookup at runtime. The contribution is the construction that
+makes this isomorphism land: a symbolic source language whose
+compiled forward pass is a substrate-pure neural network,
+autograd-compatible by construction, executable wherever
+PyTorch executes. We validate the language across four frozen
+embedding substrates spanning two modalities — three text
+encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and
+one protein language model (ESM-2) — and observe the same
+rotation-vs-Hadamard separation across modalities: rotation
 binding decodes at 100% accuracy through bundle width k=8 on
-every substrate; Hadamard binding has already collapsed at the
-same setting (e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2).
-A symbolic Sutra program of fuzzy if-then rules, built from
-these primitives, remains end-to-end differentiable: PyTorch
-autograd trains the prototype embeddings the rules evaluate
-against from random (~40%) to perfect (100%) classification
-accuracy in 300 epochs, with the symbolic program text
-unchanged across training.
+every substrate, where Hadamard binding has already collapsed
+(e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2), with
+single-cycle bind/unbind exactly reversible (round-trip
+≈ 1.5×10⁻¹⁵). The program-network identity is end-to-end
+testable through PyTorch autograd: gradients flow through every
+Sutra primitive — through Lagrange-polynomial Kleene gates,
+cosine-similarity, bind/unbind — to the prototype embeddings a
+symbolic if-then program evaluates against, training those
+embeddings with no modification to the symbolic source.
 
 ---
 
