@@ -191,27 +191,29 @@ embeddings move.
 **What to build (replication spec):**
 
 1. Pick a frozen embedding model (the canonical implementation uses
-   `nomic-embed-text` at 768-d) and embed 15 words across 3
-   categories — e.g. `{cat, dog, horse, ...}` (animals),
-   `{car, bus, train, ...}` (vehicles), `{apple, bread, ...}` (foods).
-2. Initialize 3 **learnable** prototype tensors (one per category)
+   `nomic-embed-text` at 768-d) and embed 100 words across 10
+   categories — animal, vehicle, food, color, clothing, weather,
+   emotion, tool, instrument, profession (10 words each).
+2. Initialize 10 **learnable** prototype tensors (one per category)
    with `requires_grad=True`. Random init.
 3. Forward pass per input word `x`, computing per-class scores via
    Sutra's primitives composed as a fuzzy if-then rule:
 
    ```
-   sim_i  = similarity(x, proto_i)          # cosine_similarity
+   sim_i  = similarity(x, proto_i)              # cosine_similarity
    rule_i = AND(sim_i,
-                AND(NOT(sim_j), NOT(sim_k)))  # Lagrange polynomials
+                AND_{j ≠ i} NOT(sim_j))         # K-1 nested ANDs of NOTs
    ```
 
    where `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2` is the
-   Lagrange-interpolated Kleene min, and `NOT(x) = -x`. The rule
-   reads "classify as *i* if similar to prototype *i* AND not
-   similar to the other two."
+   Lagrange-interpolated Kleene min, `NOT(x) = -x`, and the
+   AND-of-NOTs is left-folded across the K−1 other classes (so the
+   rule for K=10 nests nine ANDs deep). The rule reads "classify
+   as *i* if similar to prototype *i* AND not similar to any of
+   the other K−1 classes."
 
-4. Cross-entropy loss over the three rule scores, Adam optimizer,
-   train for 300 epochs.
+4. Cross-entropy loss over the ten rule scores, Adam optimizer
+   (lr=0.005), train for 300 epochs.
 5. Save `accuracy_before`, `accuracy_after`, and per-prototype
    `gradient_norms` to a JSON file.
 
@@ -240,8 +242,11 @@ print('OK: §3.6 differentiable training reproduces')
 "
 ```
 
-Reference numbers: 40% → 100% after 300 epochs;
-gradient norms `{animal: ~0.05, vehicle: ~0.07, food: ~0.10}`.
+Reference numbers (K=10, 100 words): 11% → 100% accuracy
+(chance = 10%); convergence by epoch 50; final loss 0.45; all 10
+prototype gradient norms in the range 0.04–0.10 (range floor is
+the gradient flow check — every prototype receives a nonzero
+gradient through the nine-AND-deep rule pipeline).
 
 ### Multi-system neuro-symbolic comparison (optional, requires Docker)
 
