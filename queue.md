@@ -26,11 +26,19 @@ is May 6 AOE. Two-commit plan tonight:
    Direction from Emma: "Our main purpose is more isomorphism
    with neural networks, not classification."
 
-2. **Scale-up commit (next)** — `differentiable_training.py`
-   gets scaled from 15 words / 3 classes to a larger vocabulary
-   and category count. New numbers replace the 40%→100% line in
-   the abstract. Whatever the experiment honestly reports is
-   what the abstract says.
+2. **Scale-up commit (this one)** — `differentiable_training.py`
+   scaled from 15 words / 3 classes (K=3) to **100 words / 10
+   classes (K=10)**: animal, vehicle, food, color, clothing,
+   weather, emotion, tool, instrument, profession. Generalized
+   `classify()` for arbitrary K via left-fold AND-of-NOTs. Honest
+   measurement: **11% → 100%** accuracy in 300 epochs (chance =
+   10%); convergence by epoch 50; final loss 0.45 (down from
+   3.34); all 10 prototype gradient norms nonzero (range
+   0.04–0.10) confirming gradient flow through a nine-AND-deep
+   rule pipeline. §3.6 rewritten with new numbers and explicit
+   K=3 → K=10 scale comparison; SKILL.md replication spec
+   updated; abstract folded in the K=10 / 100-word claim
+   (animal–profession enumeration kept short for headline).
 
 Open before submission:
 - [x] OpenReview profile activated (Emma confirmed).

@@ -11,9 +11,13 @@ a compiled Sutra program *is* a PyTorch neural network. Every
 primitive — rotation binding, unbind, bundle, similarity,
 soft-halt RNN cells, polynomial Kleene three-valued logic —
 compiles to a tensor op, and the compiler beta-reduces the
-whole program (control flow included) to a single fused
-tensor-op graph with no host-side branches and no string-keyed
-lookup at runtime. The contribution is the construction that
+whole program (control flow included) to a fused tensor-op
+graph whose substrate-resident computation is straight-line
+dataflow: no in-graph branches inside any operation, no
+string-keyed lookup at runtime, and no Python control flow
+inside the body of a loop cell — the only remaining host-side
+control flow is a thin tick-loop that breaks when a
+substrate-computed halt scalar saturates (§3.3). The contribution is the construction that
 makes this isomorphism land: a symbolic source language whose
 compiled forward pass is a substrate-pure neural network,
 autograd-compatible by construction, executable wherever
@@ -27,11 +31,14 @@ every substrate, where Hadamard binding has already collapsed
 (e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2), with
 single-cycle bind/unbind exactly reversible (round-trip
 ≈ 1.5×10⁻¹⁵). The program-network identity is end-to-end
-testable through PyTorch autograd: gradients flow through every
-Sutra primitive — through Lagrange-polynomial Kleene gates,
-cosine-similarity, bind/unbind — to the prototype embeddings a
-symbolic if-then program evaluates against, training those
-embeddings with no modification to the symbolic source.
+testable through PyTorch autograd: a symbolic if-then program of
+fuzzy rules over ten classes (animal, vehicle, food, color,
+clothing, weather, emotion, tool, instrument, profession; 100
+words total, K=10 rule tree nine ANDs deep) trains from chance
+accuracy (11%) to 100% in 300 epochs, with nonzero gradient at
+every prototype and no modification to the symbolic source —
+gradient descent moves the embeddings the rules evaluate
+against, not the rule graph itself.
 
 ---
 
@@ -1147,44 +1154,64 @@ operation, the compiled graph supports standard PyTorch
 training learnable parameters through a fuzzy-logic classifier
 built entirely from Sutra operations.
 
-**Setup.** 15 words from three categories (animals, vehicles,
-foods) are embedded via nomic-embed-text (768-d, frozen). Three
-learnable prototype vectors are initialized randomly. The
-classifier computes cosine similarity between an input and each
-prototype, then applies Lagrange-interpolated fuzzy AND/NOT gates
-to produce per-class scores:
+**Setup.** 100 words from ten categories (animal, vehicle, food,
+color, clothing, weather, emotion, tool, instrument, profession;
+ten words each) are embedded via nomic-embed-text (768-d,
+frozen). Ten learnable prototype vectors are initialized
+randomly. The classifier computes cosine similarity between an
+input and each prototype, then applies Lagrange-interpolated
+fuzzy AND/NOT gates to produce per-class scores:
 
-    rule_i = AND(sim(x, proto_i), AND(NOT(sim(x, proto_j)),
-                                      NOT(sim(x, proto_k))))
+    rule_i = AND(sim(x, proto_i),
+                 AND_{j ≠ i} NOT(sim(x, proto_j)))
 
-Each gate is a polynomial (§3, Lagrange interpolation on the
-Kleene {-1, 0, +1} grid), so the full forward pass is a
-composition of polynomial and rational tensor operations with
-well-defined gradients everywhere. Cross-entropy loss over the
-three rule scores drives Adam updates on the prototype
-embeddings.
+generalizing to arbitrary K ≥ 2 by left-folding the AND-of-NOTs
+over the K−1 other classes. Each gate is a polynomial (§1.1-1,
+Lagrange interpolation on the Kleene {−1, 0, +1} grid), so the
+full forward pass is a composition of polynomial and rational
+tensor operations with well-defined gradients everywhere — even
+when the rule structure for K=10 nests nine ANDs deep.
+Cross-entropy loss over the ten rule scores drives Adam updates
+(lr=0.005) on the prototype embeddings.
 
-**Results.** Before training (random prototypes), accuracy is 40%
-(chance = 33%). After 300 epochs, accuracy reaches 100%. Gradient
-norms for all three prototypes are nonzero at every step,
+**Results.** Before training (random prototypes), accuracy is 11%
+(chance = 10%). Training reaches 100% accuracy by epoch 50 and
+holds it through epoch 299, with the loss continuing to refine
+from 3.34 at epoch 0 to 0.45 at epoch 299. Gradient norms for all
+ten prototypes are nonzero at every step (range 0.04–0.10),
 confirming that backpropagation reaches every learnable parameter
 through the full chain of Sutra operations: `similarity` (cosine
-dot product) -> `fuzzy_not` (Kleene negation) -> `fuzzy_and`
-(Lagrange min polynomial) -> cross-entropy.
+dot product) → `fuzzy_not` (Kleene negation) → nine nested
+`fuzzy_and` calls (Lagrange min polynomial) → cross-entropy.
 
-| Phase  | Accuracy | Loss   |
-|--------|----------|--------|
-| Before |     40%  |  1.93  |
-| After  |    100%  |  0.04  |
+| Phase  | Accuracy | Loss  |
+|--------|---------:|------:|
+| Before |    11%   |  3.34 |
+| After  |   100%   |  0.45 |
 
-This is the minimal demonstration that Sutra's compiled
-tensor-op graph is not merely structurally differentiable but
-*trainable*: gradient descent through the fuzzy-logic gates
-learns to position the prototypes so that the AND/NOT rules
-correctly classify all inputs. The experiment uses no
-Sutra-specific autograd machinery — standard `torch.autograd`
-suffices because the compiler emits only operations that PyTorch
-already knows how to differentiate.
+The scale matters for the gradient-flow claim. At K=3 the rule
+tree was two nested ANDs deep; at K=10 the rule for class i is
+an AND of `sim(x, proto_i)` with a left-folded chain of nine
+`NOT(sim)` terms — a tensor pipeline that, naively, could
+saturate or vanish gradients somewhere along the chain. The
+empirical answer is that it doesn't: every prototype receives a
+nonzero gradient, the rule pipeline reaches 100% on a vocabulary
+five times larger than the K=3 setting (15 → 100 words), and the
+training does not require any modification to the symbolic
+program text — the same `rule_i = AND(...)` expression simply
+sees ten classes instead of three at compile time. The
+experiment uses no Sutra-specific autograd machinery: standard
+`torch.autograd` suffices because the compiler emits only
+operations that PyTorch already knows how to differentiate.
+
+This is what the program-network identity buys us in practice. A
+symbolic if-then program is a valid neural-network forward pass,
+backprop reaches every learnable parameter, and the symbolic
+source remains the source — gradient descent moves the
+substrate-resident embeddings the rules evaluate against, not the
+rule graph itself. Reproduction script:
+`experiments/differentiable_training.py`; raw JSON in
+`experiments/differentiable_training_results.json`.
 
 ---
 

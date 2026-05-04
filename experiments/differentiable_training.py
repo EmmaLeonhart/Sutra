@@ -111,9 +111,26 @@ def embed_all(
 # ---------------------------------------------------------------------------
 
 CATEGORIES = [
-    ("animal",  ["dog", "cat", "bird", "fish", "horse"]),
-    ("vehicle", ["car", "truck", "airplane", "boat", "bicycle"]),
-    ("food",    ["apple", "bread", "cheese", "rice", "pasta"]),
+    ("animal",     ["dog", "cat", "bird", "fish", "horse",
+                    "lion", "tiger", "elephant", "rabbit", "monkey"]),
+    ("vehicle",    ["car", "truck", "airplane", "boat", "bicycle",
+                    "motorcycle", "bus", "train", "ship", "helicopter"]),
+    ("food",       ["apple", "bread", "cheese", "rice", "pasta",
+                    "banana", "salad", "soup", "meat", "fruit"]),
+    ("color",      ["red", "blue", "green", "yellow", "orange",
+                    "purple", "black", "white", "brown", "pink"]),
+    ("clothing",   ["shirt", "pants", "dress", "hat", "shoes",
+                    "jacket", "socks", "gloves", "scarf", "belt"]),
+    ("weather",    ["rain", "snow", "wind", "sun", "cloud",
+                    "storm", "fog", "frost", "hail", "thunder"]),
+    ("emotion",    ["joy", "sadness", "anger", "fear", "love",
+                    "hope", "surprise", "disgust", "pride", "envy"]),
+    ("tool",       ["hammer", "saw", "drill", "wrench", "screwdriver",
+                    "knife", "scissors", "pliers", "axe", "shovel"]),
+    ("instrument", ["guitar", "piano", "drum", "violin", "flute",
+                    "trumpet", "saxophone", "harp", "cello", "clarinet"]),
+    ("profession", ["doctor", "teacher", "lawyer", "engineer", "nurse",
+                    "chef", "artist", "scientist", "farmer", "plumber"]),
 ]
 
 
@@ -153,16 +170,16 @@ def classify(
         s = torch.dot(x, p) / (x.norm() * p.norm() + 1e-12)
         sims.append(s)
 
-    # Fuzzy classification rules using AND/NOT
+    # Fuzzy classification rules using AND/NOT, generalized to arbitrary K.
+    # rule_i = AND(sim_i, AND_{j != i} NOT(sim_j))
+    # — "similar to this class AND not similar to any of the other K-1 classes"
+    # The AND-of-K-1-NOTs is left-folded so the gate count stays linear in K.
     rules = []
     for i in range(K):
         others = [j for j in range(K) if j != i]
-        # NOT similar to the other two classes
-        neg_others = fuzzy_and(
-            fuzzy_not(sims[others[0]]),
-            fuzzy_not(sims[others[1]]),
-        )
-        # AND: similar to this class AND not similar to others
+        neg_others = fuzzy_not(sims[others[0]])
+        for j in others[1:]:
+            neg_others = fuzzy_and(neg_others, fuzzy_not(sims[j]))
         rule = fuzzy_and(sims[i], neg_others)
         rules.append(rule)
 
@@ -294,9 +311,12 @@ def main() -> None:
     print("Step 5: Gradient flow verification")
     print("  (nonzero gradient => backprop reaches the parameter)")
     grad_norms = {}
-    for i, (cat_name, _) in enumerate(CATEGORIES):
+    # Cumulative offset of the first word in each category, so the index
+    # is correct whether or not all categories have the same word count.
+    offset = 0
+    for i, (cat_name, words) in enumerate(CATEGORIES):
         optimizer.zero_grad()
-        x, label = data[i * 5]  # first word from this category
+        x, label = data[offset]  # first word from this category
         logits = classify(x, prototypes)
         loss = F.cross_entropy(
             logits.unsqueeze(0), torch.tensor([label])
@@ -306,11 +326,14 @@ def main() -> None:
         grad_norms[cat_name] = round(gn, 8)
         ok = "nonzero" if gn > 0 else "ZERO — gradient blocked!"
         print(f"  d(loss)/d(proto_{cat_name}) norm = {gn:.6f}  ({ok})")
+        offset += len(words)
 
     # ---- Step 8: Save results ----
     results = {
         "experiment": "end-to-end differentiable training through Sutra ops",
-        "task": "3-category word classification (animals / vehicles / foods)",
+        "task": (f"{len(CATEGORIES)}-category word classification "
+                 f"({len(data)} words across {len(CATEGORIES)} classes; "
+                 f"chance = {1/len(CATEGORIES):.0%})"),
         "sutra_operations_in_forward_pass": [
             "cosine_similarity (torch.dot / norm — Sutra's similarity())",
             "fuzzy_and (Lagrange min polynomial — Sutra's && operator)",
