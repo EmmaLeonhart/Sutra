@@ -356,37 +356,17 @@ position.
 
 ## 3. Consolidation into Canonical Primitives
 
-The central design move: hold the operation interface fixed
-(`bind`, `unbind`, `bundle`, `similarity`, `rotate`) and pick a
-binding implementation that works on the LLM substrates we use.
-Standard VSA's Hadamard product is not robust here because
-elementwise multiplication of correlated real-valued vectors
-produces destructive crosstalk on bundled retrieval (§3.2
-measures this directly). Rotation binding works: each role gets
-a Haar-random orthogonal matrix, seeded by a hash of the
-role-vector content, and `bind(filler, role) = R_role @ filler`.
-Unbind is the matrix transpose. The rotation is invertible by
-construction and stays well-conditioned on the substrates we
-tested.
-
-The compiler emits role rotations as cached matrices, pre-warmed
-at module init from the codebook so the runtime never pays the
-QR-construction cost on the hot path. Binding becomes a single
-matmul against a precomputed matrix — the GPU-friendly shape that
-fuses with surrounding tensor ops.
-
-The role of the LLM substrate in Sutra is to provide a
-deterministic I/O mapping: a string in the source program embeds
-to a specific 768-d vector via the configured frozen LLM, and at
-runtime the inverse `nearest_string` lookup decodes any vector
-back to the closest known label. The substrate is what makes
-program input and output expressible as ordinary strings while
-the runtime computes in vector space. Sutra does not depend on
-any particular semantic property of the embedding beyond the
-mapping being stable and the dimensionality being fixed; the
-binding, bundling, and similarity primitives operate on the
-vectors as opaque dense tensors and are correct under any
-substrate that ships the same dimensionality.
+The central design move: hold the operation interface fixed and
+pick a binding implementation that works on dense
+externally-trained substrates. Standard VSA's Hadamard product
+fails here — elementwise multiplication of correlated real-valued
+vectors produces destructive crosstalk on bundled retrieval (§3.2
+measures this directly). Rotation binding works: each role gets a
+Haar-random orthogonal `R_role` seeded by `hash(role)`, and
+`bind(role, filler) = R_role @ filler` is invertible (unbind is
+the transpose) and well-conditioned. The compiler caches
+`R_role` per-role at module init so runtime bind is a single
+matmul against a precomputed matrix.
 
 ### 3.1 Notation
 
