@@ -720,35 +720,21 @@ graph that runs at inference.
                                                                  loss
 ```
 
-The scale matters for the gradient-flow claim. At K=3 the rule
-tree was two nested ANDs deep; at K=20 the rule for class i is
-an AND of `sim(x, proto_i)` with a left-folded chain of nineteen
-`NOT(sim)` terms — a tensor pipeline that, naively, could
-saturate or vanish gradients somewhere along the chain. The
-empirical answer is that it doesn't: every prototype receives a
-nonzero gradient, the rule pipeline reaches 95% on a vocabulary
-roughly seventy times larger than the K=3 setting (15 → 992
-words), and the training does not require any modification to
-the symbolic program text — the same `rule_i = AND(...)`
-expression simply sees twenty classes instead of three at
-compile time. The remaining 5% gap is honest semantic overlap in
-the vocabulary (e.g. *salmon* fits both food and color, *scarf*
-fits both clothing and the boundary cases of weather accessories);
-the optimizer plateaus at the configuration that maximizes
-agreement under those overlaps, not at degenerate non-convergence
-— gradient norms remain bounded above zero throughout. The
-experiment uses no Sutra-specific autograd machinery: standard
-`torch.autograd` suffices because the compiler emits only
-operations that PyTorch already knows how to differentiate.
-
-This is what the program-network identity buys us in practice. A
-symbolic if-then program is a valid neural-network forward pass,
-backprop reaches every learnable parameter, and the symbolic
-source remains the source — gradient descent moves the
-substrate-resident embeddings the rules evaluate against, not the
-rule graph itself. Reproduction script:
-`experiments/differentiable_training.py`; raw JSON in
-`experiments/differentiable_training_results.json`.
+At K=20 the rule for class i is an AND of `sim(x, proto_i)`
+with a left-folded chain of nineteen `NOT(sim)` terms — a tensor
+pipeline that could naively saturate or vanish gradients
+somewhere along the chain. Empirically it doesn't: every
+prototype receives a nonzero gradient, accuracy reaches 95% on a
+vocabulary 70× larger than the K=3 setting (15 → 992 words), and
+the symbolic program text is unchanged across training. The
+remaining 5% gap is honest semantic overlap (e.g. *salmon* fits
+food and color); gradient norms remain bounded above zero
+throughout, so this is the optimizer plateauing under those
+overlaps, not gradient pathology. Standard `torch.autograd`
+suffices — no Sutra-specific autograd machinery — because the
+compiler emits only operations PyTorch already knows how to
+differentiate. Reproduction:
+`experiments/differentiable_training.py` + raw JSON.
 
 ---
 
