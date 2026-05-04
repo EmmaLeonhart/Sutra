@@ -73,66 +73,32 @@ Pāṇini's foundational Sanskrit grammar.
 The four core technical contributions of this paper are:
 
 1. **Polynomial fuzzy logic via Lagrange interpolation of
-   Kleene's three-valued truth tables, with functional completeness.**
-   The truth axis encodes three values: T = +1, U = 0, F = −1.
-   The logical connectives are taken from Kleene's strong
-   three-valued logic (Kleene 1952): on the discrete grid
-   {−1, 0, +1}, AND is the minimum of its operands, OR is the
-   maximum, NOT is negation. This is the same choice that **Gödel
-   fuzzy logic** makes for its t-norm and t-conorm in the
-   continuous setting (AND = min, OR = max), as opposed to
-   Łukasiewicz logic (AND = max(0, x+y−1), OR = min(1, x+y)) or
-   product logic (AND = x·y, OR = x+y−xy); see Hájek (1998) for
-   the standard t-norm-fuzzy-logic survey. The min/max choice is
-   correct as stated, but is piecewise-linear and non-
-   differentiable at the diagonal `a = b`, which breaks gradient
-   flow when the connectives compose with the rest of the
-   tensor-op graph — a well-known issue in the differentiable
-   fuzzy logic literature (van Krieken, Acar & van Harmelen 2022
-   survey several t-norm-derived operators in the
-   neural-symbolic context).
-
-   Sutra resolves this by Lagrange-interpolating each operator's
-   truth table as a polynomial that is *exact* on the {−1, 0, +1}²
-   grid and C^∞ everywhere else. For two operands, a 2-D Lagrange
-   interpolant on a 3×3 grid is uniquely determined by the nine
-   values it must take, so each connective has a single closed
-   polynomial form.
-
-   **Basis.** {AND, OR, NOT} is the basis from which every other
-   Kleene-valid connective derives. Their closed polynomials are:
+   Kleene's three-valued truth tables.** The truth axis encodes
+   T = +1, U = 0, F = −1. On the discrete {−1, 0, +1} grid, the
+   Kleene connectives are AND = min, OR = max, NOT = −·. The
+   min/max forms (the standard Gödel t-norm/t-conorm choice;
+   Hájek 1998) are non-differentiable at the diagonal `a = b`,
+   which breaks gradient flow when connectives compose with the
+   tensor-op graph (van Krieken, Acar & van Harmelen 2022 survey
+   the issue across t-norm-derived neural-symbolic operators).
+   Sutra resolves this by Lagrange-interpolating each connective
+   as a polynomial that is exact on the 3×3 Kleene grid and C^∞
+   elsewhere:
 
    - `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2`
    - `OR(a, b)  = (a + b − ab + a² + b² − a²b²) / 2`
    - `NOT(a)    = −a`
+   - `XOR(a, b) = −ab`,  `XNOR(a, b) = ab`
 
-   On the discrete grid these match Gödel fuzzy logic's min/max
-   behavior exactly; off the grid they are smooth interpolants
-   rather than piecewise functions.
-
-   **Derived connectives.** Every other connective in the Kleene
-   fragment is both a logical composition of the basis and a
-   closed polynomial in its own right:
-
-   | Connective   | Derivation in {AND, OR, NOT}        | Closed polynomial |
-   |---|---|---|
-   | `NAND(a, b)` | `NOT(AND(a, b))`                    | `−(a + b + ab − a² − b² + a²b²) / 2` |
-   | `NOR(a, b)`  | `NOT(OR(a, b))`                     | `−(a + b − ab + a² + b² − a²b²) / 2` |
-   | `XOR(a, b)`  | `OR(AND(a, NOT(b)), AND(NOT(a), b))` | `−ab` |
-   | `XNOR(a, b)` | `NOT(XOR(a, b))`                    | `ab` |
-
-   The XOR and XNOR rows are the surprise of the table: their
-   3×3 Lagrange interpolant collapses to a single multiplicative
-   term because the value is zero whenever either input is the
-   unknown U=0 and bilinear in the remaining {−1, +1} corners.
-   So `&&`, `||`, `!`, and any derived Kleene-valid connective
-   are polynomial tensor-op-graph fragments — gradient-compatible,
-   branchless, and exact on the discrete-logic regime. The
-   differentiability of these polynomials is what lets fuzzy
-   logic compose with the rest of the substrate-pure runtime: a
-   symbolic if-then rule built from these gates is one fused
-   subgraph that PyTorch autograd can backprop through end-to-
-   end (§3.6).
+   {AND, OR, NOT} is functionally complete for the Kleene
+   fragment; XOR/XNOR collapse to a single multiplicative term
+   because their interpolant is zero whenever either input is U
+   and bilinear in the {−1, +1} corners. Every Kleene-valid
+   connective is therefore a polynomial tensor-op-graph fragment
+   — gradient-compatible, branchless, and exact on the
+   discrete-logic regime. A symbolic if-then rule built from
+   these gates is one fused subgraph that PyTorch autograd
+   backprops through end-to-end (§3.6).
 
 2. **Beta reduction to tensor normal form, used as the compiler
    architecture.** The compiler inlines stdlib operator
