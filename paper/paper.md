@@ -302,49 +302,16 @@ together.
 
 ### 1.3 The substrate is the architecture target
 
-A Sutra program is not "an LLM-dependent program." It is a
-program **compiled for an embedding-space architecture**, in
-the same sense that a C program is compiled for x86 or ARM,
-and a CUDA kernel is compiled for an NVIDIA SM versus an AMD
-CDNA target. The embedding model named in `atman.toml` is the
-*architecture target*: it fixes the dimensionality, the
-geometry of the semantic block, and the meaning of every
-basis-vector lookup, just as a CPU target fixes register width,
-addressing modes, and the meaning of every load.
-
-Swap to a different embedding model — a different LLM, a
-protein language model (§3.2 demonstrates ESM-2), a CNN feature
-extractor, a knowledge-graph encoder, or the hidden state of an
-arbitrary trained network — and the compiled `.sdb` codebook
-re-materializes deterministically, the program re-binds against
-the new substrate, and the program's similarity comparisons
-inherit the new architecture's geometry. The source code does
-not change. This is exactly the architecture-target pattern:
-one source, one toolchain, multiple deployment targets.
-
-A consequence is that **Sutra programs can compile to a
-substrate that is itself a trained neural network**. The
-embedding space need not come from a frozen LLM exposed via an
-API; it can come from any neural network that produces a dense
-vector representation. A Sutra program compiled against a
-particular network's hidden state is, in effect, a symbolic
-operator graph wired into that network — the substrate is the
-network, the program is the symbolic computation that runs on
-it. This is the literal connection §3 builds toward: not LLM
-compatibility per se, but neural-network-as-substrate
-compatibility, with frozen LLMs as one well-tooled instance.
-
-The compile-time codebook makes the substrate dependency
-explicit: every embedded string in the source is materialized
-into a `.sdb` file at compile time using the manifest-declared
-substrate, and the `.sdb` ships alongside the compiled module.
-Re-running on the same `.sdb` produces bit-identical output.
-Re-running on a fresh `.sdb` from a different substrate
-produces output keyed to that substrate's geometry. There is
-no implicit dependency on a specific model version; the
-dependency is the manifest and the `.sdb`, which together pin
-the architecture target as deterministically as a CPU triple
-pins a binary.
+A Sutra program is compiled for an *embedding-space architecture*,
+the way a C program is compiled for x86 and a CUDA kernel for an
+NVIDIA SM. The embedding model fixes dimensionality, the geometry
+of the semantic block, and the meaning of every basis-vector
+lookup; swap the model and the same source recompiles to a
+different `.sdb` codebook against a different geometry. The
+substrate need not be an LLM — it can be any network producing a
+dense vector representation, including the hidden state of a
+trained model. §3.2's ESM-2 protein-LM row demonstrates this
+substrate-agnostically.
 
 ---
 
