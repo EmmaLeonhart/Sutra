@@ -995,52 +995,18 @@ context).
 
 ### 3.5 Embedded codebook store
 
-The compile-time codebook is stored in an embedded vector
-database (internally called SutraDB) that ships as part of the
-compiler — analogous to SQLite being embedded in an application
-rather than run as a separate service. It holds the (embedding,
-label) pairs that arise from `basis_vector("...")` and
-`embed("...")` calls in the source. The data model is RDF
-triples with f32-vector literals as the object position, indexed
-by a built-in HNSW index for nearest-neighbor decode. The
-on-disk format is a `.sdb` file that travels alongside the
-compiled Python module. There is no external service, no
-separate install, and no network dependency.
-
-Every embedded string in a Sutra program is inserted into the
-compile-time `.sdb` codebook, with the embedding as the object
-of a triple typed `<http://sutra.dev/f32vec>`. The runtime decode
-operation `_VSA.nearest_string(query)` is the inverse of `embed`:
-given any vector, return the nearest-string label from the
-substrate-resident codebook. Strings declared but unused in
-expressions are still inserted, so they remain decodable. The
-compiled module's Python data section never carries the
-embeddings — they live in the `.sdb` file, which is an artifact
-of compilation, not a service the runtime contacts.
-
-**Decode complexity.** `nearest_string` runs over an HNSW
-(Hierarchical Navigable Small World) approximate-nearest-neighbor
-graph maintained by the triplestore. HNSW (Malkov & Yashunin,
-TPAMI 2020) is a well-established ANN structure with **O(log N)
-expected query time and O(log N) worst-case query time** under
-standard graph-construction parameters — it has displaced
-linear scan as the default ANN index in Faiss, Milvus, Weaviate,
-Qdrant, and most production vector databases for this exact
-reason. So a 100-string codebook and a 100,000-string codebook
-have comparable decode latency at runtime, modulo the HNSW's
-tunable `M` (graph degree) and `ef_search` (beam width)
-parameters; the cost difference is roughly one extra graph hop
-per 10× growth in N.
-
-**HNSW is a boundary operation, not part of the in-graph tensor
-pipeline.** The body-vs-driver distinction from §3.4 applies
-here too: the tensor-op graph computes a query vector; the HNSW
-lookup happens at the *output boundary*, returning a host string
-that hands off to Python the way any compiled program returns a
-host value. Calling out to a well-engineered Rust ANN library
-for the codebook decode is the same shape as calling out to
-PyTorch for a matmul — both are the runtime's substrate, neither
-is "host-side control flow" of the kind substrate purity forbids.
+Every embedded string in a Sutra program is embedded once at
+compile time and stored in a `.sdb` codebook that ships
+alongside the compiled module. The runtime decode
+`_VSA.nearest_string(query)` returns the nearest-string label
+for any query vector; the lookup runs at the program's *output
+boundary*, returning a host string the same way any compiled
+program returns a host value. Calling a well-engineered ANN
+library at this boundary is shape-equivalent to calling PyTorch
+for a matmul — neither is the kind of host-side control flow
+substrate purity forbids. Implementation details (RDF triple
+layout, HNSW graph parameters, `.sdb` file format, complexity
+analysis) are in Appendix B.
 
 ### 3.6 Project manifest (`atman.toml`)
 
