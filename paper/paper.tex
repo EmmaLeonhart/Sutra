@@ -20,7 +20,16 @@
 % Built with lualatex so Unicode (−, ≈, ∞, ⁹, etc.) lands as-is.
 \documentclass[11pt]{article}
 \usepackage{fontspec}
-\usepackage{microtype}
+% microtype is intentionally not loaded: it queries character-level
+% protrusion factors for every glyph it sees, and the
+% \newunicodechar block below substitutes some characters with
+% multi-token math expressions (\ensuremath{\approx} etc.) that
+% microtype can't resolve into a single slot. The result was a
+% "! Missing number" error per substituted glyph occurrence —
+% non-fatal under nonstopmode, but they accumulated and pushed
+% lualatex to exit code 1 even after a clean PDF was written.
+% Without microtype, lualatex exits 0 cleanly. The cost is some
+% hairline kerning improvements; the paper renders fine without it.
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{xcolor}
