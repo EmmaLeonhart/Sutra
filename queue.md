@@ -8,6 +8,8 @@ work lives in `todo.md`.
 See CLAUDE.md §"Workflow Rules" for how queue.md and the task
 tool stay in sync.
 
+## Abstract just submitted
+
 ## Active
 
 **Sprint:** NeurIPS 2026 abstract submission (deadline May 4
