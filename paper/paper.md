@@ -25,10 +25,7 @@ mxbai-embed-large) and one protein language model (ESM-2) — and
 decodes bundles at 100% accuracy through width k=8 on every one,
 where the textbook Hadamard product has already collapsed (2.5%
 on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. String I/O closes through an embedded
-vector database the compiler ships with the program — without the
-host-side dictionary existing HDC libraries require. (2) PyTorch
-autograd flows through
+round-trips at ≈ 1.5×10⁻¹⁵. (2) PyTorch autograd flows through
 the compiled graph end-to-end: a symbolic if-then program of fuzzy
 rules over 20 classes / 992 words, with a rule tree nineteen ANDs
 deep, trains from chance accuracy (4%) to 95% in 300 epochs without
@@ -143,9 +140,9 @@ The four core technical contributions of this paper are:
 
 These four primitives integrate into a single working compiler
 that lowers `.su` source to a self-contained PyTorch module on
-CPU or CUDA. String I/O at the program boundary is handled by an
-embedded vector database that ships with the compiled module
-(§3.5).
+CPU or CUDA. String I/O at the program boundary uses a
+compile-time codebook (implemented with an embedded vector
+database, §3.5).
 
 ### 1.2 The substrate is the architecture target
 
@@ -432,21 +429,21 @@ recurrent shape that emerges is what Siegelmann & Sontag (1992)
 showed computes any Turing-machine-computable function with
 rational weights.
 
-### 3.5 Embedded vector database for string I/O
+### 3.5 Compile-time codebook for string I/O
 
 Every embedded string in a Sutra program is embedded once at
-compile time and stored in an **embedded vector database** — a
-`.sdb` file with an HNSW index over the substrate's embeddings —
-that ships alongside the compiled module the way SQLite ships
-inside an application. The runtime decode
+compile time and stored in a **codebook** (implemented as an
+embedded vector database with an HNSW index, on disk as a `.sdb`
+file shipped alongside the compiled module). The runtime decode
 `_VSA.nearest_string(query)` returns the nearest-string label
 for any query vector; the lookup runs at the program's *output
 boundary*, returning a host string the same way any compiled
-program returns a host value. Calling the embedded vector
-database at this boundary is shape-equivalent to calling PyTorch
-for a matmul — neither is the kind of host-side control flow
-substrate purity forbids. Implementation details (RDF triple
-layout, HNSW graph parameters, `.sdb` file format, complexity
+program returns a host value. Calling the codebook at this
+boundary is shape-equivalent to calling PyTorch for a matmul —
+neither is the kind of host-side control flow substrate purity
+forbids. This is engineering, not a research contribution;
+implementation details (RDF triple layout, HNSW parameters,
+`.sdb` file format, complexity
 analysis) are in Appendix E.
 
 ### 3.6 End-to-end differentiable training through Sutra operations
@@ -955,11 +952,12 @@ where it knows the codebook is the right reference. Reproduction
 script: `experiments/crosstalk_chain.py`; raw JSON in
 `experiments/crosstalk_chain_results.json`.
 
-### Appendix E — Embedded vector database: implementation details
+### Appendix E — Codebook implementation details
 
-The §3.5 embedded vector database (internally SutraDB) ships as
-part of the compiler — analogous to SQLite being embedded in an
-application rather than run as a separate service. The data model is RDF
+The §3.5 codebook is implemented as an embedded vector database
+(internally SutraDB) shipped as part of the compiler — analogous
+to SQLite being embedded in an application rather than run as a
+separate service. The data model is RDF
 triples with f32-vector literals as the object position, indexed
 by a built-in HNSW index for nearest-neighbor decode. The
 on-disk format is a `.sdb` file that travels alongside the
