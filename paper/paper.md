@@ -25,11 +25,12 @@ mxbai-embed-large) and one protein language model (ESM-2) — and
 decodes bundles at 100% accuracy through width k=8 on every one,
 where the textbook Hadamard product has already collapsed (2.5%
 on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. End-to-end string I/O is built in: a
-compile-time codebook stores every embedded literal in a `.sdb`
-file shipped with the compiled module, decoded at the program
-output via nearest-string lookup — without the host-side
-dictionary existing HDC libraries require. (2) PyTorch autograd
+round-trips at ≈ 1.5×10⁻¹⁵. End-to-end string I/O is built in: an embedded vector database
+(HNSW-indexed, shipped with the compiled module the way SQLite
+is shipped inside an application) stores every embedded literal
+at compile time and answers nearest-string lookups at the
+program output — without the host-side dictionary existing HDC
+libraries require. (2) PyTorch autograd
 flows through the compiled graph end-to-end: a symbolic if-then
 program of fuzzy rules over 20 classes / 992 words, with a rule
 tree nineteen ANDs deep, trains from chance accuracy (4%) to 95%
@@ -147,15 +148,16 @@ that lowers `.su` source to a self-contained PyTorch module on
 CPU or CUDA.
 
 A fifth result is engineering, not theoretical: **end-to-end
-string I/O through the substrate via a compile-time codebook +
-`nearest_string` decode** (§3.5). The frozen-LLM embedding gives
-a deterministic string-to-vector map that the compiler bakes
-into a `.sdb` codebook at build time; the inverse decode runs at
-the program output boundary. Existing HDC libraries (TorchHD and
-similar) require the user to maintain a string-to-vector
-dictionary and codebook tensor by hand. To the authors'
-knowledge Sutra is the only HDC implementation that ships this
-as a built-in compiler concern.
+string I/O via an embedded vector database the compiler ships
+with the program** (§3.5). The frozen-LLM embedding gives a
+deterministic string-to-vector map that the compiler bakes into
+a `.sdb` file (HNSW-indexed, embedded in the application the way
+SQLite is); the inverse decode at program output is a
+nearest-neighbour query against that database. Existing HDC
+libraries (TorchHD and similar) require the user to maintain a
+string-to-vector dictionary and codebook tensor by hand. To the
+authors' knowledge Sutra is the only HDC implementation that
+ships this as a built-in compiler concern.
 
 ### 1.2 The substrate is the architecture target
 
@@ -442,16 +444,18 @@ recurrent shape that emerges is what Siegelmann & Sontag (1992)
 showed computes any Turing-machine-computable function with
 rational weights.
 
-### 3.5 Embedded codebook store
+### 3.5 Embedded vector database for string I/O
 
 Every embedded string in a Sutra program is embedded once at
-compile time and stored in a `.sdb` codebook that ships
-alongside the compiled module. The runtime decode
+compile time and stored in an **embedded vector database** — a
+`.sdb` file with an HNSW index over the substrate's embeddings —
+that ships alongside the compiled module the way SQLite ships
+inside an application. The runtime decode
 `_VSA.nearest_string(query)` returns the nearest-string label
 for any query vector; the lookup runs at the program's *output
 boundary*, returning a host string the same way any compiled
-program returns a host value. Calling a well-engineered ANN
-library at this boundary is shape-equivalent to calling PyTorch
+program returns a host value. Calling the embedded vector
+database at this boundary is shape-equivalent to calling PyTorch
 for a matmul — neither is the kind of host-side control flow
 substrate purity forbids. Implementation details (RDF triple
 layout, HNSW graph parameters, `.sdb` file format, complexity
@@ -963,12 +967,11 @@ where it knows the codebook is the right reference. Reproduction
 script: `experiments/crosstalk_chain.py`; raw JSON in
 `experiments/crosstalk_chain_results.json`.
 
-### Appendix E — Codebook store implementation details
+### Appendix E — Embedded vector database: implementation details
 
-The compile-time codebook is stored in an embedded vector
-database (internally called SutraDB) that ships as part of the
-compiler — analogous to SQLite being embedded in an application
-rather than run as a separate service. The data model is RDF
+The §3.5 embedded vector database (internally SutraDB) ships as
+part of the compiler — analogous to SQLite being embedded in an
+application rather than run as a separate service. The data model is RDF
 triples with f32-vector literals as the object position, indexed
 by a built-in HNSW index for nearest-neighbor decode. The
 on-disk format is a `.sdb` file that travels alongside the
