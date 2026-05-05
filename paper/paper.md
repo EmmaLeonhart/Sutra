@@ -622,21 +622,21 @@ stage.
   node distance=4mm,
   every node/.style={font=\footnotesize},
   res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
-  step/.style={draw=none, font=\scriptsize\itshape, align=center},
+  stage/.style={draw=none, font=\scriptsize\itshape, align=center},
   arr/.style={-{Latex[length=2mm]}, thick},
   divider/.style={dashed, gray}
 ]
   \node[res] (src)   {source code (\texttt{.su})};
-  \node[step, below=of src]   (s1) {(1) lex + parse};
+  \node[stage, below=of src]   (s1) {(1) lex + parse};
   \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
-  \node[step, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
+  \node[stage, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
   \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
-  \node[step, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
+  \node[stage, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
   \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
-  \node[step, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
+  \node[stage, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
   \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
   \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
-  \node[step, below=of cline] (s5) {(5) forward pass on input tensors};
+  \node[stage, below=of cline] (s5) {(5) forward pass on input tensors};
   \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
 
   \draw[arr] (src) -- (ast);
