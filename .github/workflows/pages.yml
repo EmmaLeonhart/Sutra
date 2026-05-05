@@ -84,8 +84,13 @@ jobs:
           # --no-highlight: emit code blocks as plain Verbatim instead
           #   of pandoc's Highlighting + token-color macros, which
           #   would otherwise need pandoc's full default preamble.
+          # --from=markdown-smart (not gfm): pandoc's gfm reader does
+          # not support raw_tex, so \begin{align*}/\begin{figure}/
+          # \begin{tikzpicture} blocks in paper.md were being escaped
+          # into \textbackslash literals and typeset as source-code
+          # gibberish. The markdown reader passes raw LaTeX through.
           pandoc paper.md \
-            --from=gfm \
+            --from=markdown-smart \
             --to=latex \
             --output=paper.tex.body \
             --wrap=preserve \
