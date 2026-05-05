@@ -10,9 +10,9 @@ implementation:
 - Uses a soft halt (sigmoid + monotone cumulative) to freeze state once
   convergence is reached
 - Gates the value-bearing axes by the cumulative halt so a non-converging
-  loop emits a zero-vector with AXIS_LOOP_DONE = halt_cum < 1 marking
+  loop emits a zero-vector with AXIS_LOOP_DONE = halted < 1 marking
   the incomplete-output exception condition
-- Returns iters_active (a tensor scalar accumulating (1 - halt_cum) per
+- Returns iters_active (a tensor scalar accumulating (1 - halted) per
   step) instead of a Python int counter
 
 Tests verify each of these properties.
@@ -118,7 +118,7 @@ class TestNoHostControlFlow(unittest.TestCase):
 
 
 class TestSoftHaltFreeze(unittest.TestCase):
-    """Once halt_cum saturates at 1, state should stop changing.
+    """Once halted saturates at 1, state should stop changing.
 
     Build a setup where the rotation drives state toward the target
     quickly, then verify state at step T equals state at step T/2.
@@ -151,7 +151,7 @@ class TestSoftHaltFreeze(unittest.TestCase):
         )
 
         # State at T=10 should match state at T=20 within tight tolerance,
-        # because halt_cum saturates by ~step 1 (sim is exactly 1 from step 0)
+        # because halted saturates by ~step 1 (sim is exactly 1 from step 0)
         # so all steps after halt are frozen.
         diff = np.linalg.norm(state_T20 - state_T10)
         self.assertLess(diff, 1e-6, f"state changed past convergence: {diff}")
@@ -173,7 +173,7 @@ class TestOutputGatingOnNonConvergence(unittest.TestCase):
         import numpy as np
         # State = e_0, target = e_1 (orthogonal). Identity rotation
         # never moves state. cosine = 0 forever, sigmoid(20*(0-0.5)) ~ 5e-5.
-        # halt_cum stays near 0.
+        # halted stays near 0.
         state_init = np.zeros(self.vsa.dim, dtype=np.float64)
         state_init[0] = 1.0
         target = np.zeros(self.vsa.dim, dtype=np.float64)
@@ -186,14 +186,14 @@ class TestOutputGatingOnNonConvergence(unittest.TestCase):
             target_name="target", threshold=0.5, max_iters=10, k=20.0,
         )
 
-        # halt_cum ends up tiny (sigmoid(20 * -0.5) ~ 5e-5 per step,
+        # halted ends up tiny (sigmoid(20 * -0.5) ~ 5e-5 per step,
         # accumulated for 10 steps ~ 5e-4). AXIS_LOOP_DONE reflects this.
         halt_done = state_out[self.vsa.semantic_dim + self.vsa.AXIS_LOOP_DONE]
         self.assertLess(halt_done, 0.5,
                         f"AXIS_LOOP_DONE should be low for non-convergence, got {halt_done}")
 
         # Value axes (everything except AXIS_LOOP_DONE) should be scaled
-        # by halt_cum, so total magnitude is small.
+        # by halted, so total magnitude is small.
         # We zero out AXIS_LOOP_DONE before measuring magnitude:
         masked = state_out.copy()
         masked[self.vsa.semantic_dim + self.vsa.AXIS_LOOP_DONE] = 0.0

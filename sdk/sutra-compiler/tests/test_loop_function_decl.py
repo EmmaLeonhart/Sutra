@@ -122,16 +122,16 @@ class TestCodegenShape(unittest.TestCase):
         py = _compile(SIMPLE_DO_WHILE_ADDER)
         self.assertIn("def _loop_addNumber(_init_x):", py)
         # Loops are now self-halting `while True:` driven by
-        # `if float(_halt_cum) >= 0.99: break`. There is no fixed
+        # `if float(_halted) >= 0.99: break`. There is no fixed
         # iteration cap — programs terminate when their halt
         # condition fires, same as any other programming language.
         self.assertIn("while True:", py)
-        self.assertIn("if float(_halt_cum) >= 0.99:", py)
+        self.assertIn("if float(_halted) >= 0.99:", py)
         self.assertIn("_pre_x = x", py)
         # Substrate-pure halt accumulator (queue item 4 fix, 2026-04-30):
         # uses _VSA.saturate_unit instead of Python's min().
-        self.assertIn("_halt_cum = _VSA.saturate_unit(_halt_cum + _halt_term)", py)
-        self.assertIn("x = (1.0 - _halt_cum) * x + _halt_cum * _pre_x", py)
+        self.assertIn("_halted = _VSA.saturate_unit(_halted + _halt_term)", py)
+        self.assertIn("x = (1.0 - _halted) * x + _halted * _pre_x", py)
 
 
 class TestDoWhile(unittest.TestCase):
@@ -350,9 +350,9 @@ function int main() {
 
 class TestProgramHaltPropagation(unittest.TestCase):
     """Program-level halt propagation (Emma 2026-04-30): a loop that
-    runs out of T-step budget without converging emits halt_cum≈0,
+    runs out of T-step budget without converging emits halted≈0,
     which multiplies through to wipe the function's output. Loops that
-    do converge leave halt_cum≈1.0 and the output is preserved."""
+    do converge leave halted≈1.0 and the output is preserved."""
 
     def test_converged_loop_preserves_output(self):
         # Sanity check: existing converging case still returns the

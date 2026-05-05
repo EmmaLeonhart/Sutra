@@ -102,7 +102,7 @@ def _cell(state):
     state = self.bind(state, v_step)   # ← body translated literally
     return state
 
-state, halt_cum, iters = _VSA.while_loop(
+state, halted, iters = _VSA.while_loop(
     state, _cell, target=v_dog, threshold=0.9, max_iters=50,
     k=20.0,
 )
@@ -113,8 +113,8 @@ And `_VSA.while_loop` runs T fixed steps of:
 cand = _cell(state)
 sim = cosine(cand, target)
 halt = sigmoid(k * (sim - threshold))
-halt_cum = min(halt_cum + halt, 1)
-state = (1 - halt_cum) * cand + halt_cum * state
+halted = min(halted + halt, 1)
+state = (1 - halted) * cand + halted * state
 ```
 
 Notice the cell can be **any** sequence of substrate operations
@@ -180,7 +180,7 @@ example programs use no-op bodies. New tests need to:
   function)? Is the cell still a pure tensor op, or do we
   accept that the user's body might escape the substrate-
   purity guarantee?
-- The output-gating pattern (multiply value axes by halt_cum)
+- The output-gating pattern (multiply value axes by halted)
   was designed for the current "rotation only" cell. Does it
   still make sense for arbitrary user bodies? What does
   "incomplete output" mean when the body did N partial bind

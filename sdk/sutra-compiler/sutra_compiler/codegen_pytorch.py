@@ -1170,7 +1170,7 @@ class PyTorchCodegen(Codegen):
         self._emit("return dict(prototype_vectors)")
         self._indent -= 1
         self._emit()
-        self._emit("def _step(self, state, R, target, halt_cum, k, threshold, eps=1e-12):")
+        self._emit("def _step(self, state, R, target, halted, k, threshold, eps=1e-12):")
         self._indent += 1
         self._emit('"""RNN cell: one branchless eigenrotation step (torch tensor ops)."""')
         self._emit("cand = R @ state")
@@ -1178,9 +1178,9 @@ class PyTorchCodegen(Codegen):
         self._emit("sim = _torch.dot(cand, target) / (_torch.linalg.norm(target) + eps)")
         self._emit("halt = 1.0 / (1.0 + _torch.exp(-k * (sim - threshold)))")
         self._emit("one = _torch.tensor(1.0, dtype=self.dtype, device=self.device)")
-        self._emit("halt_cum = _torch.minimum(halt_cum + halt, one)")
-        self._emit("state = (1.0 - halt_cum) * cand + halt_cum * state")
-        self._emit("return state, halt_cum")
+        self._emit("halted = _torch.minimum(halted + halt, one)")
+        self._emit("state = (1.0 - halted) * cand + halted * state")
+        self._emit("return state, halted")
         self._indent -= 1
         self._emit()
         self._emit("def loop(self, initial_state, rotation, compiled_prototypes,")
@@ -1193,7 +1193,7 @@ class PyTorchCodegen(Codegen):
         self._emit("every op is differentiable with respect to state, target, threshold.")
         self._emit('"""')
         self._emit("state = initial_state.clone()")
-        self._emit("halt_cum = _torch.tensor(0.0, dtype=self.dtype, device=self.device)")
+        self._emit("halted = _torch.tensor(0.0, dtype=self.dtype, device=self.device)")
         self._emit("iters_active = _torch.tensor(0.0, dtype=self.dtype, device=self.device)")
         self._emit("if target_name is not None:")
         self._indent += 1
@@ -1205,12 +1205,12 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("for _t in range(max_iters):")
         self._indent += 1
-        self._emit("iters_active = iters_active + (1.0 - halt_cum)")
-        self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
+        self._emit("iters_active = iters_active + (1.0 - halted)")
+        self._emit("state, halted = self._step(state, rotation, target, halted, k, threshold)")
         self._indent -= 1
-        self._emit("# Output gating: scale value axes by halt_cum; mark AXIS_LOOP_DONE.")
-        self._emit("gated = state * halt_cum")
-        self._emit("gated[self.semantic_dim + self.AXIS_LOOP_DONE] = halt_cum")
+        self._emit("# Output gating: scale value axes by halted; mark AXIS_LOOP_DONE.")
+        self._emit("gated = state * halted")
+        self._emit("gated[self.semantic_dim + self.AXIS_LOOP_DONE] = halted")
         self._emit("return target_name, gated, iters_active")
         self._indent -= 1
         self._indent -= 1

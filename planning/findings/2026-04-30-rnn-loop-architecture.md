@@ -50,14 +50,14 @@ textbook instance.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Outer shell: output gating ("exception handler")            │
-│    gated = state * halt_cum                                  │
-│    gated[AXIS_LOOP_DONE] = halt_cum                          │
+│    gated = state * halted                                  │
+│    gated[AXIS_LOOP_DONE] = halted                          │
 │    return gated                                              │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │  Middle shell: T-step compile-time unroll              │  │
 │  │    for _t in range(max_iters):    ← meta-iter, not data│  │
-│  │      state, halt_cum = _step(...)                      │  │
+│  │      state, halted = _step(...)                      │  │
 │  │                                                         │  │
 │  │  ┌──────────────────────────────────────────────────┐  │  │
 │  │  │  Inner shell: the RNN cell (_step)               │  │  │
@@ -65,9 +65,9 @@ textbook instance.
 │  │  │    cand    /= ||cand||                           │  │  │
 │  │  │    sim      = cos(cand, target)                  │  │  │
 │  │  │    halt     = sigmoid(k · (sim − threshold))     │  │  │
-│  │  │    halt_cum = min(halt_cum + halt, 1)            │  │  │
-│  │  │    state    = (1 − halt_cum)·cand                │  │  │
-│  │  │             + halt_cum·state                     │  │  │
+│  │  │    halted = min(halted + halt, 1)            │  │  │
+│  │  │    state    = (1 − halted)·cand                │  │  │
+│  │  │             + halted·state                     │  │  │
 │  │  └──────────────────────────────────────────────────┘  │  │
 │  └────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
@@ -77,13 +77,13 @@ textbook instance.
 
 One timestep of the recurrence. Pure tensor ops: matmul, divide,
 sigmoid (one exp), minimum, weighted sum. No data-dependent
-control flow — `min(halt_cum + halt, 1)` uses `np.minimum`/
+control flow — `min(halted + halt, 1)` uses `np.minimum`/
 `torch.minimum` which are tensor ops, not branches.
 
 The soft halt (sigmoid of `sim − threshold`, with sharpness `k`)
 is the key trick: it produces a continuous "are we there yet?"
-indicator in `(0, 1)` instead of a hard boolean. Once `halt_cum`
-saturates at 1, the soft mux `(1 − halt_cum)·cand + halt_cum·state`
+indicator in `(0, 1)` instead of a hard boolean. Once `halted`
+saturates at 1, the soft mux `(1 − halted)·cand + halted·state`
 freezes state at its current value — branchlessly.
 
 ### Middle shell: T-step unroll
@@ -101,16 +101,16 @@ substrate-purity gain.
 
 ### Outer shell: output gating
 
-After T steps, `halt_cum ∈ [0, 1]` is a tensor scalar:
-- `halt_cum ≈ 1` → loop converged at some step t* ≤ T → output valid.
-- `halt_cum < 1` → loop did not converge within T → output
+After T steps, `halted ∈ [0, 1]` is a tensor scalar:
+- `halted ≈ 1` → loop converged at some step t* ≤ T → output valid.
+- `halted < 1` → loop did not converge within T → output
   "incomplete."
 
 Two layers of gating:
-1. **Marker**: `state[AXIS_LOOP_DONE] = halt_cum`. Downstream code
+1. **Marker**: `state[AXIS_LOOP_DONE] = halted`. Downstream code
    reads this synthetic axis as a tensor scalar — no host
    conditional needed to detect non-convergence.
-2. **Wipe**: `state = state * halt_cum`. The value-bearing axes
+2. **Wipe**: `state = state * halted`. The value-bearing axes
    get scaled toward zero on non-convergence, so a downstream
    consumer that ignores the flag still sees a near-zero
    (detectably wrong) result rather than a misleading partial
@@ -278,7 +278,7 @@ PASS):
   patterns. Both backends checked.
 - `TestSoftHaltFreeze`: state at unroll step T equals state at
   step T/2 within 1e-6 when convergence happens early.
-- `TestOutputGatingOnNonConvergence`: orthogonal target → halt_cum
+- `TestOutputGatingOnNonConvergence`: orthogonal target → halted
   stays low → value axes scale toward zero → AXIS_LOOP_DONE < 0.5.
 - `TestConvergenceMarksDoneAxis`: converged loop → AXIS_LOOP_DONE
   near 1.

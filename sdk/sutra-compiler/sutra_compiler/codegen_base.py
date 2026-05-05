@@ -782,9 +782,9 @@ class BaseCodegen:
         outer_return_type = self._current_return_type
         self._current_return_type = decl.return_type.name if decl.return_type else None
         # Program-level halt accumulator (Emma 2026-04-30): every loop
-        # call multiplies its halt_cum into _program_halt; every return
+        # call multiplies its halted into _program_halt; every return
         # multiplies the returned value by _program_halt. A loop that
-        # ran out of T-step budget without converging emits halt_cum≈0,
+        # ran out of T-step budget without converging emits halted≈0,
         # which wipes the function's output. No-op in functions with no
         # loop calls (1.0 * value). The local is always defined so
         # LoopCallStmt accumulation is safe; only vector-returning
@@ -856,13 +856,13 @@ class BaseCodegen:
         )
         self._emit(f"")
         self._emit(
-            f"T-step soft-halt cell. Returns ({', '.join(state_names) or 'no state'}, halt_cum)."
+            f"T-step soft-halt cell. Returns ({', '.join(state_names) or 'no state'}, halted)."
         )
         self._emit(f'"""')
         # State locals init from caller args.
         for state_name, init_name in zip(state_names, init_param_names):
             self._emit(f"{state_name} = {init_name}")
-        self._emit("_halt_cum = 0.0")
+        self._emit("_halted = 0.0")
 
         # Push (loop_name, state_names) so PassStmt and tail-call
         # ReturnStmt translation know what to assign and which loop
@@ -884,7 +884,7 @@ class BaseCodegen:
                 self._translate_stmt(inner)
 
         # Loop driver (Python). The body is substrate-pure; the driver
-        # is Python and reads `_halt_cum` at iteration boundary to
+        # is Python and reads `_halted` at iteration boundary to
         # decide whether to continue — the same kind of boundary scalar
         # read as the codebook nearest_string lookup. There is no
         # compile-time iteration count: programs halt themselves when
@@ -948,8 +948,8 @@ class BaseCodegen:
             )
         self._emit(f"_halt_term = 1.0 - _keep")
         # Substrate-pure saturation: numpy.minimum / torch.minimum, not
-        # Python's min(). Keeps _halt_cum a substrate scalar.
-        self._emit(f"_halt_cum = _VSA.saturate_unit(_halt_cum + _halt_term)")
+        # Python's min(). Keeps _halted a substrate scalar.
+        self._emit(f"_halted = _VSA.saturate_unit(_halted + _halt_term)")
         # Body re-runs each tick; PassStmt updates state locals.
         for inner in decl.body.statements:
             self._translate_stmt(inner)
@@ -959,17 +959,17 @@ class BaseCodegen:
         # below exits with the converged value.
         for state_name in state_names:
             self._emit(
-                f"{state_name} = (1.0 - _halt_cum) * {state_name} "
-                f"+ _halt_cum * _pre_{state_name}"
+                f"{state_name} = (1.0 - _halted) * {state_name} "
+                f"+ _halted * _pre_{state_name}"
             )
         # Self-halt: programs terminate when the loop's halt condition
-        # fires. `float(_halt_cum)` is one boundary scalar read per
+        # fires. `float(_halted)` is one boundary scalar read per
         # iteration (same kind of boundary op as the codebook lookup).
         # No fixed iteration cap; if the program writes a non-
         # converging loop, that's a programmer bug — same as any
         # `while True` in any other language.
         self._emit("_t += 1")
-        self._emit("if float(_halt_cum) >= 0.99:")
+        self._emit("if float(_halted) >= 0.99:")
         self._indent += 1
         self._emit("break")
         self._indent -= 1
@@ -980,8 +980,8 @@ class BaseCodegen:
         self._iterator_runtime_in_scope = prior_iter_runtime
         self._element_runtime_in_scope = prior_elem_runtime
 
-        # Return final state values + halt_cum (last).
-        return_items = state_names + ["_halt_cum"]
+        # Return final state values + halted (last).
+        return_items = state_names + ["_halted"]
         self._emit(f"return ({', '.join(return_items)},)")
         self._indent -= 1  # close the function
 
@@ -1073,7 +1073,7 @@ class BaseCodegen:
                 f"_slot_state = _VSA.slot_store(_slot_state, {idx}, "
                 f"{ret_name})"
             )
-        # Accumulate halt_cum into the function-scope program-halt so
+        # Accumulate halted into the function-scope program-halt so
         # this loop's completion gates the function's return value.
         self._emit("_program_halt = _program_halt * _loopret_halt")
 
@@ -1147,7 +1147,7 @@ class BaseCodegen:
                 self._emit("return")
             else:
                 # Multiply the returned value by _program_halt so that
-                # any unconverged loop in this function (halt_cum≈0)
+                # any unconverged loop in this function (halted≈0)
                 # wipes the output. For functions without loops the
                 # accumulator stays 1.0 and this is a no-op. String
                 # returns can't be multiplied by a float (codebook
