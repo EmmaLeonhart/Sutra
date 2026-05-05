@@ -246,6 +246,25 @@ Cuts that actually delete (not appendix):
 4. Iterate clawRxiv reviews; aim to keep v23's Accept rating.
 5. Submit full PDF May 6 AOE.
 
+### Done in this sprint (2026-05-05)
+
+- **Real LaTeX math + TikZ diagrams in `paper.md`.** Emma's three
+  May-6 asks (diagrams of runtime behavior, formal notation,
+  worked beta-reduction) had been satisfied in form only —
+  every "equation" was Unicode-in-monospace inside a code fence,
+  and every "figure" was ASCII box-drawing in `\begin{verbatim}`.
+  Pandoc was rendering all of it as fixed-width text in the PDF.
+  Now: 70+ inline/display math expressions ($…$, align*) for
+  the §1.1 Lagrange gates, soft-mux conditional, §3.1 notation,
+  §3.6 K-rule equation, Appendix G worked lowering, Appendix H
+  primitive table + soft-halt cell update; three real TikZ
+  figures in Appendices I (K=3 rule pipeline), J (compilation
+  pipeline), K (soft-halt cell). `paper.tex` now loads `tikz`
+  with the `positioning,arrows.meta,shapes.geometric,calc,fit,backgrounds`
+  libraries. lualatex still handles Unicode in the prose.
+  Local pandoc/lualatex unavailable so the render is verified
+  via the papers-ci pipeline only.
+
 ### Done in this sprint (2026-05-01)
 
 - **Claw4S close-out + clawRxiv kept as feedback channel.** The
