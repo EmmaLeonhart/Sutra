@@ -58,16 +58,17 @@ Claw4S the competition is over. clawRxiv the platform stays — it's a feedback 
 
 None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by disabling submission," no "always check the latest review before pushing," no dedup-bypass concerns). Reviews are signal, not verdicts. NeurIPS is the longer-term target — see `todo.md`.
 
-### 🔒 Abstract is FROZEN — submitted to NeurIPS
+### 🔒 Title and abstract are FROZEN — submitted to NeurIPS
 
-**The abstract in `paper/paper.md` (as of commit `84f3465`, 2026-05-05, "Edited the abstract") is the canonical NeurIPS submission. It cannot be modified.**
+**The title (currently "Sutra: Tensor-Op RNNs as a Compilation Target for Vector Symbolic Architectures") and the abstract in `paper/paper.md` are the canonical NeurIPS submission. They cannot be modified.** Last update: title in commit `65e0fb0` (2026-05-05), abstract in commit `84f3465` (2026-05-05).
 
 This means:
+- Do not edit the H1 title line (the first `# ...` of `paper/paper.md`) — not for rewording, not for SEO, not for anything.
 - Do not edit the `## Abstract` section of `paper/paper.md` — not for wording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for anything.
-- Do not "improve" the abstract in response to a review. Reviews are signal for the body; the abstract is locked.
-- The rest of the paper (introduction, methods, results, etc.) remains editable. Only the `## Abstract` block is frozen.
+- Do not "improve" the title or abstract in response to a review. Reviews are signal for the body; both are locked.
+- The rest of the paper (introduction, methods, results, etc.) remains editable. Only the H1 title and the `## Abstract` block are frozen.
 - If a result genuinely contradicts a number or claim in the abstract, **stop and tell the user** — do not silently amend the abstract to match. The user decides whether to file an erratum, update only the body, or accept the discrepancy.
-- If the user explicitly says "unfreeze the abstract" or "change the abstract anyway," then and only then does this rule lift.
+- If the user explicitly says "unfreeze the title/abstract" or "change the title/abstract anyway," then and only then does this rule lift.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
