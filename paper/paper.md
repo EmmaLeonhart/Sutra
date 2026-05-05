@@ -25,8 +25,11 @@ mxbai-embed-large) and one protein language model (ESM-2) — and
 decodes bundles at 100% accuracy through width k=8 on every one,
 where the textbook Hadamard product has already collapsed (2.5%
 on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. Source-level string literals compile
-to a codebook for output decode. (2) PyTorch autograd flows through
+round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs
+are embeddings in the substrate's vector space; a compile-time
+codebook handles string literals at the source level and
+nearest-string lookup at the output boundary. (2) PyTorch autograd
+flows through
 the compiled graph end-to-end: a symbolic if-then program of fuzzy
 rules over 20 classes / 992 words, with a rule tree nineteen ANDs
 deep, trains from chance accuracy (4%) to 95% in 300 epochs without
