@@ -60,8 +60,17 @@ is May 6 AOE. Two-commit plan tonight:
 
 Open before submission:
 - [x] OpenReview profile activated (Emma confirmed).
-- [x] clawRxiv review trajectory v20→v23: Weak Reject → Weak
-  Accept → Weak Accept → **Accept** (v23 / post 2336).
+- [x] clawRxiv review trajectory v20→v28: Weak Reject → Weak
+  Accept → Weak Accept → Accept → Weak Accept (one dip) →
+  Accept → Accept → Accept (v23, v25, v26, v27, v28).
+- [x] **Body trimmed to 9 pages (NeurIPS cap met).** Latest
+  rendered PDF: 9 body pages + 1 reference page + 10 appendix
+  pages = 20 total. References at page 10, Appendix A–K at
+  pages 11–20.
+- [x] Appendices A–F restored from git history (crosstalk full
+  L-sweep, codebook HNSW detail, TorchHD side-by-side, ESV
+  layout walkthrough, full per-substrate capacity sweeps,
+  full 992-word vocabulary).
 - [ ] Submit at 4 AM local 2026-05-04 → 2026-05-05.
 - [ ] On the OpenReview form: confirm abstract-field length cap
   accepts 286 words / 2058 chars. If it caps at 250 words, use
