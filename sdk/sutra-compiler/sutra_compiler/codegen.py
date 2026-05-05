@@ -902,7 +902,7 @@ class Codegen(BaseCodegen):
         self._indent += 1
         self._emit('"""min(x, 1.0) implemented as a substrate op rather than Python\'s min().')
         self._emit('')
-        self._emit("Used by the halt accumulator: halt_cum = saturate_unit(halt_cum +")
+        self._emit("Used by the halt accumulator: halted = saturate_unit(halted +")
         self._emit("halt_term). Numpy minimum() preserves the substrate-scalar dtype")
         self._emit("rather than coercing to Python float.")
         self._emit('"""')
@@ -1676,7 +1676,7 @@ class Codegen(BaseCodegen):
         self._emit("return dict(prototype_vectors)")
         self._indent -= 1
         self._emit()
-        self._emit("def _step(self, state, R, target, halt_cum, k, threshold, eps=1e-12):")
+        self._emit("def _step(self, state, R, target, halted, k, threshold, eps=1e-12):")
         self._indent += 1
         self._emit('"""RNN cell: one branchless eigenrotation step with soft halt.')
         self._emit('')
@@ -1689,9 +1689,9 @@ class Codegen(BaseCodegen):
         self._emit("cand = cand / (_np.linalg.norm(cand) + eps)")
         self._emit("sim = _np.dot(cand, target) / (_np.linalg.norm(target) + eps)")
         self._emit("halt = 1.0 / (1.0 + _np.exp(-k * (sim - threshold)))")
-        self._emit("halt_cum = _np.minimum(halt_cum + halt, 1.0)")
-        self._emit("state = (1.0 - halt_cum) * cand + halt_cum * state")
-        self._emit("return state, halt_cum")
+        self._emit("halted = _np.minimum(halted + halt, 1.0)")
+        self._emit("state = (1.0 - halted) * cand + halted * state")
+        self._emit("return state, halted")
         self._indent -= 1
         self._emit()
         self._emit("def loop(self, initial_state, rotation, compiled_prototypes,")
@@ -1709,8 +1709,8 @@ class Codegen(BaseCodegen):
         self._emit("scalar approximating the step at which convergence happened.")
         self._emit('"""')
         self._emit("state = initial_state.copy()")
-        self._emit("halt_cum = 0.0")
-        self._emit("# iters_active accumulates (1 - halt_cum) each step — counts the steps")
+        self._emit("halted = 0.0")
+        self._emit("# iters_active accumulates (1 - halted) each step — counts the steps")
         self._emit("# the cell was 'active' (not yet saturated). Approximates the step at")
         self._emit("# which convergence happened, as a tensor scalar (no Python int counter).")
         self._emit("iters_active = 0.0")
@@ -1728,15 +1728,15 @@ class Codegen(BaseCodegen):
         self._emit("# data-dependent branches.")
         self._emit("for _t in range(max_iters):")
         self._indent += 1
-        self._emit("iters_active = iters_active + (1.0 - float(halt_cum))")
-        self._emit("state, halt_cum = self._step(state, rotation, target, halt_cum, k, threshold)")
+        self._emit("iters_active = iters_active + (1.0 - float(halted))")
+        self._emit("state, halted = self._step(state, rotation, target, halted, k, threshold)")
         self._indent -= 1
-        self._emit("# Output gating: multiply value-bearing axes by halt_cum so an")
+        self._emit("# Output gating: multiply value-bearing axes by halted so an")
         self._emit("# incomplete loop emits a near-zero output. AXIS_LOOP_DONE itself")
         self._emit("# carries the cumulative halt as a tensor scalar for downstream")
         self._emit("# code that wants to read the convergence confidence.")
-        self._emit("gated = state * float(halt_cum)")
-        self._emit("gated[self.semantic_dim + self.AXIS_LOOP_DONE] = float(halt_cum)")
+        self._emit("gated = state * float(halted)")
+        self._emit("gated[self.semantic_dim + self.AXIS_LOOP_DONE] = float(halted)")
         self._emit("return target_name, gated, iters_active")
         self._indent -= 1
         self._indent -= 1

@@ -148,14 +148,14 @@ fixed cell steps. T defaults to 50 (compile-time-fixed). Each step:
    iterative) or fetch next array element (for foreach).
 2. Compute soft halt indicator: a sigmoid that goes to 1 when condition
    becomes false (or tick exceeds count, or array exhausted).
-3. Accumulate cumulative halt: `halt_cum = min(halt_cum + halt, 1)`.
+3. Accumulate cumulative halt: `halted = min(halted + halt, 1)`.
 4. Run the body. The body's `pass` updates the recurrent state params.
-5. Soft-mux: state ← (1 − halt_cum) · new_state + halt_cum · old_state.
-   Once `halt_cum` saturates at 1, the state is frozen at its last
+5. Soft-mux: state ← (1 − halted) · new_state + halted · old_state.
+   Once `halted` saturates at 1, the state is frozen at its last
    pre-halt value.
 
 After T steps:
-- `AXIS_LOOP_DONE = halt_cum` is set on the output (for the program-level
+- `AXIS_LOOP_DONE = halted` is set on the output (for the program-level
   completion-flag propagation, eventually).
 - Each state param's final value is written back to the caller's variable.
 
