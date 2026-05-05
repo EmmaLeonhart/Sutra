@@ -31,6 +31,16 @@
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{array}
+% pandoc's longtable column-width syntax uses arithmetic on
+% \linewidth ("(\linewidth - 8\tabcolsep) * \real{0.6098}") which
+% needs both the calc package AND the \real macro from pandoc's
+% default preamble. Without these, every multi-column table
+% (capacity sweeps, per-axis layout, Appendix E sweeps, Appendix A
+% L-sweep) renders the column-width fractions as literal text and
+% the cells collapse into one wrapped column ("() * 0.0976 ro- ta-
+% tion k=8"). With them, the tables render cleanly.
+\usepackage{calc}
+\providecommand{\real}[1]{#1}
 \usepackage{caption}
 \usepackage{enumitem}
 \usepackage{verbatim}
