@@ -36,6 +36,34 @@
 \usepackage{verbatim}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,shapes.geometric,calc,fit,backgrounds}
+% Map the math-style Unicode used in prose ($\approx$, $\times$, $\in$,
+% superscript digits, etc.) onto the LaTeX equivalents lmroman has
+% glyphs for. Without this, lualatex emits "missing character" warnings
+% and (when combined with cross-reference resolution passes) returns
+% exit code 1, which kills latexmk. lualatex DOES handle unicode
+% natively, but only for glyphs the loaded font actually contains —
+% lmroman has no text-mode ≈ / ⁻ / ⁵ / ∈ / ≠ / ‖ / → / − etc.
+\usepackage{newunicodechar}
+\newunicodechar{≈}{\ensuremath{\approx}}
+\newunicodechar{≠}{\ensuremath{\neq}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{−}{\ensuremath{-}}
+\newunicodechar{∈}{\ensuremath{\in}}
+\newunicodechar{‖}{\ensuremath{\Vert}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{…}{\ensuremath{\ldots}}
+\newunicodechar{‑}{-}
+\newunicodechar{⁰}{\textsuperscript{0}}
+\newunicodechar{¹}{\textsuperscript{1}}
+\newunicodechar{²}{\textsuperscript{2}}
+\newunicodechar{³}{\textsuperscript{3}}
+\newunicodechar{⁴}{\textsuperscript{4}}
+\newunicodechar{⁵}{\textsuperscript{5}}
+\newunicodechar{⁶}{\textsuperscript{6}}
+\newunicodechar{⁷}{\textsuperscript{7}}
+\newunicodechar{⁸}{\textsuperscript{8}}
+\newunicodechar{⁹}{\textsuperscript{9}}
+\newunicodechar{⁻}{\textsuperscript{\ensuremath{-}}}
 % pandoc emission shims:
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \providecommand{\pandocbounded}[1]{#1}
