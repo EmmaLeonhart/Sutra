@@ -25,18 +25,18 @@ mxbai-embed-large) and one protein language model (ESM-2) — and
 decodes bundles at 100% accuracy through width k=8 on every one,
 where the textbook Hadamard product has already collapsed (2.5%
 on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. End-to-end string I/O is built in: an embedded vector database
-(HNSW-indexed, shipped with the compiled module the way SQLite
-is shipped inside an application) stores every embedded literal
-at compile time and answers nearest-string lookups at the
-program output — without the host-side dictionary existing HDC
-libraries require. (2) PyTorch autograd
-flows through the compiled graph end-to-end: a symbolic if-then
-program of fuzzy rules over 20 classes / 992 words, with a rule
-tree nineteen ANDs deep, trains from chance accuracy (4%) to 95%
-in 300 epochs without any modification to the symbolic source —
-gradient descent moves the embeddings the rules evaluate
-against, leaving the rule graph itself untouched.
+round-trips at ≈ 1.5×10⁻¹⁵. String I/O is handled by an embedded
+vector database — HNSW-indexed, shipped with the compiled module
+the way SQLite is shipped inside an application — that stores
+every embedded literal at compile time and answers nearest-string
+lookups at the program output, without the host-side dictionary
+existing HDC libraries require. (2) PyTorch autograd flows through
+the compiled graph end-to-end: a symbolic if-then program of fuzzy
+rules over 20 classes / 992 words, with a rule tree nineteen ANDs
+deep, trains from chance accuracy (4%) to 95% in 300 epochs without
+any modification to the symbolic source — gradient descent moves
+the embeddings the rules evaluate against, leaving the rule graph
+itself untouched.
 
 This collapses the boundary between writing a logic program and
 training a neural network: one artifact, two interpretations.
