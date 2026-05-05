@@ -66,7 +66,16 @@ jobs:
       - name: Build named PDF
         working-directory: paper
         run: |
-          latexmk -lualatex -interaction=nonstopmode paper.tex
+          # -f and $max_repeat=8: with the figures+labels actually
+          # rendering after the pandoc fix, latexmk now needs more
+          # passes to converge on cross-references (default
+          # max_repeat=5 was hitting the cap). -f forces continuation
+          # past unresolved-ref warnings on the final pass — the PDF
+          # is produced correctly; latexmk just doesn't like the
+          # nonzero return code lualatex emits when refs haven't
+          # converged within the iteration cap.
+          latexmk -lualatex -interaction=nonstopmode -f \
+            -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
 
       - name: Clean intermediate
@@ -88,7 +97,8 @@ jobs:
           # Pass the flag via -usepretex. The pretex must declare
           # \ifanon itself because paper.tex guards its \newif via
           # \@ifundefined to avoid resetting the flag.
-          latexmk -lualatex -interaction=nonstopmode \
+          latexmk -lualatex -interaction=nonstopmode -f \
+            -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 

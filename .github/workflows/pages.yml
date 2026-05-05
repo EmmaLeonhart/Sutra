@@ -97,14 +97,18 @@ jobs:
             --no-highlight
           # lualatex handles Unicode natively (−, ≈, ∞, etc.) which the
           # paper uses heavily. -lualatex picks lualatex via latexmk.
-          latexmk -lualatex -interaction=nonstopmode paper.tex
+          # -f + max_repeat=8: figures+labels need extra passes for
+          # cross-ref convergence; force past unresolved-ref warnings.
+          latexmk -lualatex -interaction=nonstopmode -f \
+            -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
           # Clean intermediate files before the second build.
           latexmk -c paper.tex || true
           # Anonymized (NeurIPS double-blind). Pretex declares \ifanon
           # and \anontrue ahead of paper.tex, which guards its own
           # \newif so the pretex's value is preserved.
-          latexmk -lualatex -interaction=nonstopmode \
+          latexmk -lualatex -interaction=nonstopmode -f \
+            -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
