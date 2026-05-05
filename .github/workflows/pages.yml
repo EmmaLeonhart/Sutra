@@ -95,32 +95,17 @@ jobs:
             --output=paper.tex.body \
             --wrap=preserve \
             --no-highlight
-          # lualatex returns code 1 when microtype + newunicodechar
-          # accumulate non-fatal protrusion-computation errors even
-          # though the PDF is produced correctly. -f keeps latexmk
-          # iterating; `|| true` and a PDF-existence assertion
-          # replace latexmk's exit code as the success criterion.
-          latexmk -lualatex -interaction=nonstopmode -f \
-            -e '$max_repeat=8' paper.tex || true
-          test -s paper.pdf
-          size=$(stat -c%s paper.pdf)
-          if [ "$size" -lt 50000 ]; then
-            echo "ERROR: paper.pdf is only $size bytes."; exit 1
-          fi
-          echo "paper.pdf: $size bytes"
+          # max_repeat=8 gives latexmk extra passes to converge on
+          # cross-references with floating figures.
+          latexmk -lualatex -interaction=nonstopmode \
+            -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
           # Clean intermediate files before the second build.
           latexmk -c paper.tex || true
           # Anonymized (NeurIPS double-blind).
-          latexmk -lualatex -interaction=nonstopmode -f \
+          latexmk -lualatex -interaction=nonstopmode \
             -e '$max_repeat=8' \
-            -usepretex='\newif\ifanon\anontrue' paper.tex || true
-          test -s paper.pdf
-          size=$(stat -c%s paper.pdf)
-          if [ "$size" -lt 50000 ]; then
-            echo "ERROR: anonymized paper.pdf is only $size bytes."; exit 1
-          fi
-          echo "anonymized paper.pdf: $size bytes"
+            -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
       - name: Stage paper PDFs into docs/ for MkDocs link validation

@@ -66,26 +66,10 @@ jobs:
       - name: Build named PDF
         working-directory: paper
         run: |
-          # latexmk + lualatex cooperate poorly with our combo of
-          # microtype + newunicodechar substitutions: lualatex
-          # accumulates non-fatal "! Missing number" errors when
-          # microtype tries to compute protrusion for substituted
-          # Unicode chars, then exits with code 1 even though the PDF
-          # is produced correctly. -f tells latexmk to keep going,
-          # but it still propagates lualatex's exit code at the end.
-          # Run it with `|| true` and assert PDF existence + size as
-          # the success criterion instead.
-          latexmk -lualatex -interaction=nonstopmode -f \
-            -e '$max_repeat=8' paper.tex || true
-          # PDF must exist and be non-trivial (>= 50 KB rules out an
-          # early-exit half-built file).
-          test -s paper.pdf
-          size=$(stat -c%s paper.pdf)
-          if [ "$size" -lt 50000 ]; then
-            echo "ERROR: paper.pdf is only $size bytes; build is broken."
-            exit 1
-          fi
-          echo "paper.pdf: $size bytes"
+          # max_repeat=8 gives latexmk extra passes to converge on
+          # cross-references with floating figures.
+          latexmk -lualatex -interaction=nonstopmode \
+            -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
 
       - name: Clean intermediate
@@ -107,16 +91,9 @@ jobs:
           # Pass the flag via -usepretex. The pretex must declare
           # \ifanon itself because paper.tex guards its \newif via
           # \@ifundefined to avoid resetting the flag.
-          latexmk -lualatex -interaction=nonstopmode -f \
+          latexmk -lualatex -interaction=nonstopmode \
             -e '$max_repeat=8' \
-            -usepretex='\newif\ifanon\anontrue' paper.tex || true
-          test -s paper.pdf
-          size=$(stat -c%s paper.pdf)
-          if [ "$size" -lt 50000 ]; then
-            echo "ERROR: anonymized paper.pdf is only $size bytes."
-            exit 1
-          fi
-          echo "anonymized paper.pdf: $size bytes"
+            -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
       - name: Upload PDFs as artifacts
