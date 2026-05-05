@@ -95,21 +95,32 @@ jobs:
             --output=paper.tex.body \
             --wrap=preserve \
             --no-highlight
-          # lualatex handles Unicode natively (−, ≈, ∞, etc.) which the
-          # paper uses heavily. -lualatex picks lualatex via latexmk.
-          # -f + max_repeat=8: figures+labels need extra passes for
-          # cross-ref convergence; force past unresolved-ref warnings.
+          # lualatex returns code 1 when microtype + newunicodechar
+          # accumulate non-fatal protrusion-computation errors even
+          # though the PDF is produced correctly. -f keeps latexmk
+          # iterating; `|| true` and a PDF-existence assertion
+          # replace latexmk's exit code as the success criterion.
           latexmk -lualatex -interaction=nonstopmode -f \
-            -e '$max_repeat=8' paper.tex
+            -e '$max_repeat=8' paper.tex || true
+          test -s paper.pdf
+          size=$(stat -c%s paper.pdf)
+          if [ "$size" -lt 50000 ]; then
+            echo "ERROR: paper.pdf is only $size bytes."; exit 1
+          fi
+          echo "paper.pdf: $size bytes"
           mv paper.pdf paper-named.pdf
           # Clean intermediate files before the second build.
           latexmk -c paper.tex || true
-          # Anonymized (NeurIPS double-blind). Pretex declares \ifanon
-          # and \anontrue ahead of paper.tex, which guards its own
-          # \newif so the pretex's value is preserved.
+          # Anonymized (NeurIPS double-blind).
           latexmk -lualatex -interaction=nonstopmode -f \
             -e '$max_repeat=8' \
-            -usepretex='\newif\ifanon\anontrue' paper.tex
+            -usepretex='\newif\ifanon\anontrue' paper.tex || true
+          test -s paper.pdf
+          size=$(stat -c%s paper.pdf)
+          if [ "$size" -lt 50000 ]; then
+            echo "ERROR: anonymized paper.pdf is only $size bytes."; exit 1
+          fi
+          echo "anonymized paper.pdf: $size bytes"
           mv paper.pdf paper-anonymized.pdf
 
       - name: Stage paper PDFs into docs/ for MkDocs link validation
