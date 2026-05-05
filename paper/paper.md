@@ -6,41 +6,32 @@
 
 ## Abstract
 
-**Sutra** is a typed, purely functional programming language;
-a compiled Sutra program *is* a PyTorch neural network. Every
-primitive — rotation binding, unbind, bundle, similarity,
-soft-halt RNN cells, polynomial Kleene three-valued logic —
-compiles to a tensor op, and the compiler beta-reduces the
-whole program (control flow included) to a fused tensor-op
-graph whose substrate-resident computation is straight-line
-dataflow: no in-graph branches inside any operation, no
-string-keyed lookup at runtime, and no Python control flow
-inside the body of a loop cell — the only remaining host-side
-control flow is a thin tick-loop that breaks when a
-substrate-computed halt scalar saturates (§3.4). The contribution is the construction that
-makes this isomorphism land: a symbolic source language whose
-compiled forward pass is a substrate-pure neural network,
-autograd-compatible by construction, executable wherever
-PyTorch executes. We validate the language across four frozen
-embedding substrates spanning two modalities — three text
-encoders (nomic-embed-text, all-minilm, mxbai-embed-large) and
-one protein language model (ESM-2) — and observe the same
-rotation-vs-Hadamard separation across modalities: rotation
-binding decodes at 100% accuracy through bundle width k=8 on
-every substrate, where Hadamard binding has already collapsed
-(e.g. 2.5% on mxbai-embed-large, 28.7% on ESM-2), with
-single-cycle bind/unbind exactly reversible (round-trip
-≈ 1.5×10⁻¹⁵). The program-network identity is end-to-end
-testable through PyTorch autograd: a symbolic if-then program of
-fuzzy rules over twenty classes (animal, vehicle, food, color,
-clothing, weather, emotion, tool, instrument, profession,
-body-part, plant, furniture, building, country, sport, drink,
-metal, shape, fabric; 992 words total, K=20 rule tree nineteen
-ANDs deep) trains from chance accuracy (4%) to 95% in 300
-epochs, with nonzero gradient at every prototype and no
-modification to the symbolic source — gradient descent moves
-the embeddings the rules evaluate against, not the rule graph
-itself.
+**Sutra** is a typed, purely functional programming language
+whose compiled forward pass is a PyTorch neural network. The
+compiler beta-reduces the whole program — primitives, control
+flow, and string I/O — to a fused tensor-op graph: rotation
+binding, unbind, bundle, polynomial Kleene three-valued logic,
+and tail-recursive loops all lower to substrate tensor
+operations, with the only remaining host-side control flow a
+thin tick-loop that breaks when a halt scalar saturates.
+
+The validation is a single fact testable two ways. (1) The same
+program runs on four frozen embedding substrates spanning two
+modalities — three text encoders (nomic-embed-text, all-minilm,
+mxbai-embed-large) and one protein language model (ESM-2) —
+and decodes bundles at 100% accuracy through width k=8 on every
+one, where the textbook Hadamard product has already collapsed
+(2.5% on mxbai-embed-large, 28.7% on ESM-2). (2) PyTorch
+autograd flows through the compiled graph end-to-end: a
+symbolic if-then program of fuzzy rules over 20 classes / 992
+words, with a rule tree nineteen ANDs deep, trains from chance
+accuracy (4%) to 95% in 300 epochs without any modification to
+the symbolic source — gradient descent moves the embeddings the
+rules evaluate against, leaving the rule graph itself untouched.
+
+This collapses the boundary between "writing a logic program"
+and "training a neural network": one artifact, two
+interpretations.
 
 ---
 
