@@ -1,4 +1,4 @@
-# Sutra: Compiling a Vector Symbolic Architecture to a Tensor-Op Recurrent Neural Network via Beta Reduction
+# Sutra: Tensor-Op RNNs as a Compilation Target for Vector Symbolic Architectures
 
 
 
