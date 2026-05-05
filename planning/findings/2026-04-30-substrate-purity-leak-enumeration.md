@@ -41,7 +41,7 @@ _cond_truth = (float(_cond[_VSA.semantic_dim + _VSA.AXIS_TRUTH])
                if hasattr(_cond, '__len__') else float(_cond))
 _keep = 1.0 if _cond_truth > 0 else 0.0
 _halt_term = 1.0 - _keep
-_halt_cum = min(_halt_cum + _halt_term, 1.0)
+_halted = min(_halted + _halt_term, 1.0)
 ```
 
 **Why it's a leak:** `float()` casts a numpy/torch scalar to a
@@ -78,10 +78,10 @@ Then the emitted body becomes:
 ```python
 _cond_truth = _VSA.truth_of(_cond)
 _keep = _VSA.heaviside(_cond_truth)
-_halt_cum = _VSA.saturating_add_one(_halt_cum, 1.0 - _keep)
+_halted = _VSA.saturating_add_one(_halted, 1.0 - _keep)
 ```
 
-Three substrate operations, no Python branches. `_halt_cum` becomes
+Three substrate operations, no Python branches. `_halted` becomes
 a substrate scalar (numpy/torch 0-dim) instead of a Python float.
 
 The downstream soft-mux already does substrate arithmetic, so the

@@ -75,16 +75,16 @@ When the loop's termination is data-dependent (`loop (cond)` where
 2. Emits a Haar-random orthogonal rotation `R` seeded by the
    runtime seed.
 3. Calls `_VSA.loop()`, which runs **T fixed cell steps unconditionally**:
-   - Cell: `state, halt_cum = _step(state, R, target, halt_cum, k, threshold)`
+   - Cell: `state, halted = _step(state, R, target, halted, k, threshold)`
    - `_step` computes `cand = R · state`, normalizes, computes
      `sim = cos(cand, target)`, computes soft halt
      `halt = sigmoid(k · (sim - threshold))`, accumulates monotonically
-     `halt_cum = min(halt_cum + halt, 1)`, and freezes via soft mux
-     `state = (1 - halt_cum) · cand + halt_cum · state`.
+     `halted = min(halted + halt, 1)`, and freezes via soft mux
+     `state = (1 - halted) · cand + halted · state`.
    - Pure tensor ops at every step: multiply, add, divide, exp, minimum.
      **No host-side `if`, no host-side `while`, no host-side iteration
      count** in the cell.
-4. After T steps, gates the value-bearing axes by `halt_cum` so a
+4. After T steps, gates the value-bearing axes by `halted` so a
    non-converging loop emits a near-zero output. The cumulative
    halt is written to `synthetic[AXIS_LOOP_DONE]` as the
    substrate-side completion flag.
@@ -97,11 +97,11 @@ Defaults: `T = max_iters = 50`, `k = 20.0` (sigmoid sharpness),
 `threshold = 0.5` (cosine convergence gate).
 
 **Output gating + AXIS_LOOP_DONE.** The reserved synthetic axis at
-index 4 carries the cumulative halt (`halt_cum ∈ [0, 1]`):
-- `halt_cum ≈ 1` → loop converged; output is valid; value axes
+index 4 carries the cumulative halt (`halted ∈ [0, 1]`):
+- `halted ≈ 1` → loop converged; output is valid; value axes
   are unchanged.
-- `halt_cum < 1` → loop did not converge within T steps; value
-  axes are scaled by `halt_cum` (toward zero), so downstream code
+- `halted < 1` → loop did not converge within T steps; value
+  axes are scaled by `halted` (toward zero), so downstream code
   sees a near-zero output it can detect as "incomplete." This is
   the loop-specific instance of the broader **exception channel**
   pattern (divide-by-zero, NaN propagation; see `todo.md`).
