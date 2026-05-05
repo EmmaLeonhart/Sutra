@@ -74,21 +74,24 @@ The four core technical contributions of this paper are:
 
 1. **Polynomial fuzzy logic via Lagrange interpolation of
    Kleene's three-valued truth tables.** The truth axis encodes
-   T = +1, U = 0, F = −1. On the discrete {−1, 0, +1} grid, the
-   Kleene connectives are AND = min, OR = max, NOT = −·. The
-   min/max forms (the standard Gödel t-norm/t-conorm choice;
-   Hájek 1998) are non-differentiable at the diagonal `a = b`,
+   $T = +1$, $U = 0$, $F = -1$. On the discrete
+   $\{-1, 0, +1\}$ grid, the Kleene connectives are
+   $\mathrm{AND} = \min$, $\mathrm{OR} = \max$, $\mathrm{NOT} = -\,\cdot\,$.
+   The min/max forms (the standard Gödel t-norm/t-conorm choice;
+   Hájek 1998) are non-differentiable at the diagonal $a = b$,
    which breaks gradient flow when connectives compose with the
    tensor-op graph (van Krieken, Acar & van Harmelen 2022 survey
    the issue across t-norm-derived neural-symbolic operators).
    Sutra resolves this by Lagrange-interpolating each connective
-   as a polynomial that is exact on the 3×3 Kleene grid and C^∞
-   elsewhere:
+   as a polynomial that is exact on the $3\times 3$ Kleene grid
+   and $C^{\infty}$ elsewhere:
 
-   - `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2`
-   - `OR(a, b)  = (a + b − ab + a² + b² − a²b²) / 2`
-   - `NOT(a)    = −a`
-   - `XOR(a, b) = −ab`,  `XNOR(a, b) = ab`
+   \begin{align*}
+   \mathrm{AND}(a, b) &= \tfrac{1}{2}(a + b + ab - a^2 - b^2 + a^2 b^2) \\
+   \mathrm{OR}(a, b)  &= \tfrac{1}{2}(a + b - ab + a^2 + b^2 - a^2 b^2) \\
+   \mathrm{NOT}(a)    &= -a \\
+   \mathrm{XOR}(a, b) &= -ab, \qquad \mathrm{XNOR}(a, b) = ab
+   \end{align*}
 
    {AND, OR, NOT} is functionally complete for the Kleene
    fragment; XOR/XNOR collapse to a single multiplicative term
@@ -107,14 +110,14 @@ The four core technical contributions of this paper are:
    / element-wise / nonlinear) with no named bindings or
    function calls. Three concrete moves go beyond standard
    inlining + constant folding: conditionals lower to soft-mux
-   polynomials (`(1+cond)/2·a + (1−cond)/2·b`) so the compiled
+   polynomials ($\tfrac{1+\mathrm{cond}}{2}\,a + \tfrac{1-\mathrm{cond}}{2}\,b$) so the compiled
    artifact has no `if` opcodes; Haar-orthogonal binding
    rotations `R_role` are materialized at compile time so
    runtime `bind` is one matmul against a constant matrix;
    canonical synthetic axes are assigned compile-time so every
    primitive-type read/write is a known index, not a hashtable
    lookup. §4.3 traces this lowering stage-by-stage on a
-   concrete program; Figure 1 shows the compilation pipeline.
+   concrete program; Figure~\ref{fig:compile-pipeline} (Appendix J) shows the compilation pipeline.
 
 3. **Tail recursion as the loop primitive.** Loops are
    tail-recursive function declarations (`do_while`,
@@ -299,12 +302,15 @@ matmul against a precomputed matrix.
 
 ### 3.1 Notation
 
-We work in ℝᵈ with d the substrate's embedding dimension (768
-for nomic-embed-text). Every value has the layout
-`[semantic | synthetic]`. The seven primitive operations:
-`bind(r,f) = Rᵣ·f` where `Rᵣ = QR(hash(r))[Q]` is Haar-orthogonal,
-`unbind(r,v) = Rᵣᵀ·v`, `bundle(x,y) = (x+y)/(‖x+y‖+ε)`,
-`similarity(x,y) = (x·y)/(‖x‖·‖y‖+ε)`, `normalize(v) = v/(‖v‖+ε)`,
+We work in $\mathbb{R}^d$ with $d$ the substrate's embedding
+dimension (768 for nomic-embed-text). Every value has the layout
+$[\,\text{semantic}\mid\text{synthetic}\,]$. The seven primitive
+operations: $\mathrm{bind}(r,f) = R_r f$ where
+$R_r = \mathrm{QR}(\mathrm{hash}(r)).Q$ is Haar-orthogonal,
+$\mathrm{unbind}(r,v) = R_r^{\!\top} v$,
+$\mathrm{bundle}(x,y) = (x+y)/(\lVert x+y\rVert + \varepsilon)$,
+$\mathrm{similarity}(x,y) = (x\cdot y)/(\lVert x\rVert\,\lVert y\rVert + \varepsilon)$,
+$\mathrm{normalize}(v) = v/(\lVert v\rVert + \varepsilon)$,
 the Lagrange Kleene gates as in §1.1-1, and the soft-halt cell
 of §3.4. Full signature/definition table and the soft-halt cell
 update equations are in Appendix H.
@@ -436,10 +442,12 @@ vectors are initialized randomly. The classifier computes cosine
 similarity between input and each prototype and applies a
 Lagrange-interpolated fuzzy if-then rule:
 
-    rule_i = AND(sim(x, proto_i), AND_{j ≠ i} NOT(sim(x, proto_j)))
+$$
+\mathrm{rule}_i \;=\; \mathrm{AND}\!\Bigl(\mathrm{sim}(x, p_i),\;\bigwedge_{j \ne i} \mathrm{NOT}\!\bigl(\mathrm{sim}(x, p_j)\bigr)\Bigr)
+$$
 
-with the AND-of-NOTs left-folded across K−1 other classes (so
-the K=20 rule nests nineteen ANDs deep). Full-batch cross-entropy
+with the AND-of-NOTs left-folded across $K-1$ other classes (so
+the $K=20$ rule nests nineteen ANDs deep). Full-batch cross-entropy
 over the twenty rule scores drives Adam updates (lr=0.005) on
 the prototype embeddings.
 
@@ -957,161 +965,195 @@ deduplication), embedded via nomic-embed-text:
 
 ### Appendix K — Per-tick dataflow of the soft-halt loop cell
 
-The §3.4 RNN-cell tick visualized:
+Figure~\ref{fig:halt-cell} visualizes the §3.4 RNN-cell tick.
 
-```
-            state_in
-               |
-        +------+------+
-        |             |
-        v             v
-    pre_state    cell body (pure tensor ops)
-                      |
-                      v
-                 new_state, halt_signal
-                      |
-              halt_cum  ← saturating sum
-                      |
-                      v
-              soft-mux freeze:
-              state_out = (1 - halt_cum) · new_state
-                        +     halt_cum  · pre_state
-```
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=7mm,
+  every node/.style={font=\footnotesize},
+  io/.style={draw, rounded corners, minimum width=22mm, minimum height=6mm, align=center},
+  op/.style={draw, minimum width=32mm, minimum height=7mm, align=center},
+  acc/.style={draw, double, minimum width=32mm, minimum height=7mm, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+  \node[io] (sin) {state\textsubscript{in} $s_t$};
+  \node[op, below left=8mm and 6mm of sin]  (pre)  {snapshot $\to s_t^{\mathrm{pre}}$};
+  \node[op, below right=8mm and 6mm of sin] (body) {cell body \\ \scriptsize{$s_{t+1} = R\,s_t$;\;\; $h_t = \mathrm{Heaviside}(\mathrm{cond}(s_t))$}};
+  \node[acc, below=of body] (acc) {$H_t = \mathrm{sat}_{[0,1]}\!\bigl(H_{t-1} + h_t\bigr)$};
+  \node[op, below=of acc, xshift=-20mm] (mux) {soft-mux freeze \\ \scriptsize{$\hat{s}_{t+1} = H_t\, s_t^{\mathrm{pre}} + (1-H_t)\,s_{t+1}$}};
+  \node[io, below=of mux] (sout) {state\textsubscript{out} $\hat{s}_{t+1}$};
 
-Once `halt_cum` saturates the soft-mux output is `pre_state` —
-the loop has frozen. The halt-cum read is a boundary operation
-of the same shape as the codebook decode (§3.5).
+  \draw[arr] (sin) -- (pre);
+  \draw[arr] (sin) -- (body);
+  \draw[arr] (body) -- (acc);
+  \draw[arr] (acc) -- (mux);
+  \draw[arr] (pre) |- (mux);
+  \draw[arr] (body.south) to[bend left=15] (mux.east);
+  \draw[arr] (mux) -- (sout);
+\end{tikzpicture}
+\caption{Per-tick dataflow of the soft-halt RNN cell. Once $H_t$ saturates at $1$, the soft-mux output equals $s_t^{\mathrm{pre}}$ — the loop has frozen. The halt-cum read is a boundary operation of the same shape as the codebook decode (§3.5).}
+\label{fig:halt-cell}
+\end{figure}
 
 ### Appendix J — Compilation pipeline diagram
 
-The five-stage compilation pipeline of §4, drawn as a vertical
-flow with the residual at each stage:
+Figure~\ref{fig:compile-pipeline} draws the five-stage
+compilation pipeline of §4 as a vertical flow with the residual
+at each stage.
 
-```
-   source code  (.su)
-        │
-        │   (1) lex + parse
-        ▼
-   AST   (Call / Var / Function / ClassDecl nodes)
-        │
-        │   (2) inline stdlib + egglog simplify
-        │       (bind, bundle, similarity → primitive tensor ops)
-        ▼
-   simplified AST   (residual: leaf tensor-op composition)
-        │
-        │   (3) codegen
-        │       (emit Python module + inline _VSA class source)
-        ▼
-   Python module text   (self-contained, no Sutra-runtime import)
-        │
-        │   (4) compile-time substrate population
-        │       embed_batch · prewarm_rotation_cache · populate_sutradb
-        ▼
-   warm runtime   (module loaded, .sdb codebook, cached R_role tensors)
-   ──── compile time ────────────────────────────────────────────────
-   ────── runtime ───────────────────────────────────────────────────
-        │
-        │   (5) forward pass on input tensors
-        ▼
-   output vector → nearest_string lookup → label
-```
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm,
+  every node/.style={font=\footnotesize},
+  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
+  step/.style={draw=none, font=\scriptsize\itshape, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick},
+  divider/.style={dashed, gray}
+]
+  \node[res] (src)   {source code (\texttt{.su})};
+  \node[step, below=of src]   (s1) {(1) lex + parse};
+  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
+  \node[step, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
+  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
+  \node[step, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
+  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
+  \node[step, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
+  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
+  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
+  \node[step, below=of cline] (s5) {(5) forward pass on input tensors};
+  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
+
+  \draw[arr] (src) -- (ast);
+  \draw[arr] (ast) -- (sast);
+  \draw[arr] (sast) -- (mod);
+  \draw[arr] (mod) -- (warm);
+  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
+  \draw[arr] (warm) -- (out);
+\end{tikzpicture}
+\caption{Five-stage compilation pipeline of §4. Boxes are intermediate artifacts; italic labels are the compiler passes that connect them. Stages (1)--(4) run at compile time; the dashed line marks the compile/runtime boundary; stage (5) is the runtime forward pass.}
+\label{fig:compile-pipeline}
+\end{figure}
 
 ### Appendix I — The K=3 rule pipeline as a tensor-op graph
 
-Body §3.6 describes the rule pipeline in prose. The explicit
-graph for K=3 (the K=20 graph used in the experiment has the
-same shape with twenty learnable prototypes and the AND-of-NOTs
-left-folded across nineteen `NOT(sim)` terms):
+Body §3.6 describes the rule pipeline in prose. Figure~\ref{fig:k3-pipeline}
+draws the explicit graph for $K=3$ (the $K=20$ graph used in the
+experiment has the same shape with twenty learnable prototypes
+and the AND-of-NOTs left-folded across nineteen $\mathrm{NOT}(\mathrm{sim})$
+terms).
 
-```
-                         input  x ∈ ℝᵈ
-                              │
-            ┌─────────────────┼─────────────────┐
-            │                 │                 │
-            │   p₁ (learnable)│   p₂ (learnable)│   p₃ (learnable)
-            │                 │                 │
-            ▼                 ▼                 ▼
-       cos(x, p₁)         cos(x, p₂)        cos(x, p₃)
-            │                 │                 │
-         sim₁ (∈ℝ)         sim₂ (∈ℝ)        sim₃ (∈ℝ)
-            │                 │                 │
-            │                 ▼                 ▼
-            │             NOT (= −·)        NOT (= −·)
-            │                 │                 │
-            │              −sim₂             −sim₃
-            │                 │                 │
-            │                 └──── AND ────────┘
-            │                          │
-            │                     neg_others
-            │                          │
-            └────── AND  ──────────────┘     ← Lagrange polynomial:
-                          │                    AND(a,b) = (a+b+ab
-                          ▼                         −a²−b²+a²b²)/2
-                       rule₁ (∈ℝ)
-                          ⋮
-        (rule₁, rule₂, rule₃)  ─────►  × temperature  ─────►  softmax
-                                                                  │
-                                                                  ▼
-                                                       cross-entropy(label)
-                                                                  │
-                                                                  ▼
-                                                                 loss
-```
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm and 9mm,
+  every node/.style={font=\footnotesize},
+  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
+  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
+  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+  \node[io] (x) {input $x \in \mathbb{R}^d$};
+  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
+  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
+  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
+
+  \node[proto, left=4mm of cos1] (p1) {$p_1$};
+  \node[proto, left=4mm of cos2] (p2) {$p_2$};
+  \node[proto, left=4mm of cos3] (p3) {$p_3$};
+
+  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
+  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
+  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
+  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
+
+  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
+  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
+
+  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
+  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
+  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
+  \node[io, below=6mm of ce]      (loss) {loss};
+
+  \draw[arr] (x) -- (cos1);
+  \draw[arr] (x) -- (cos2);
+  \draw[arr] (x) -- (cos3);
+  \draw[arr] (p1) -- (cos1);
+  \draw[arr] (p2) -- (cos2);
+  \draw[arr] (p3) -- (cos3);
+  \draw[arr] (cos2) -- (not2);
+  \draw[arr] (cos3) -- (not3);
+  \draw[arr] (not2) -- (andneg);
+  \draw[arr] (not3) -- (andneg);
+  \draw[arr] (cos1) -- (and1);
+  \draw[arr] (andneg) -| (and1);
+  \draw[arr] (and1) -- (rule1);
+  \draw[arr] (rule1) -- (stack);
+  \draw[arr] (stack) -- (sm);
+  \draw[arr] (sm) -- (ce);
+  \draw[arr] (ce) -- (loss);
+\end{tikzpicture}
+\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
+\label{fig:k3-pipeline}
+\end{figure}
 
 ### Appendix H — Notation: extended layout and primitive operations
 
-We work in a fixed-dimensional real vector space ℝᵈ where d is
-the substrate's embedding dimension (768 for nomic-embed-text,
-384 for all-minilm, 1024 for mxbai-embed-large, 320 for ESM-2).
-Every Sutra value carries the extended layout `[semantic |
-synthetic]` — a `d`-dimensional semantic block holding the
-substrate embedding, concatenated with a small fixed-width
-synthetic block reserving canonical axes for primitive types
-(real, imag, truth, char, loop-done) and slot machinery (§3.3).
-Where notation does not distinguish, "vector" means "the full
-extended-layout tensor."
+We work in a fixed-dimensional real vector space $\mathbb{R}^d$
+where $d$ is the substrate's embedding dimension (768 for
+nomic-embed-text, 384 for all-minilm, 1024 for mxbai-embed-large,
+320 for ESM-2). Every Sutra value carries the extended layout
+$[\,\text{semantic}\mid\text{synthetic}\,]$ — a $d$-dimensional
+semantic block holding the substrate embedding, concatenated with
+a small fixed-width synthetic block reserving canonical axes for
+primitive types (real, imag, truth, char, loop-done) and slot
+machinery (§3.3). Where notation does not distinguish, "vector"
+means "the full extended-layout tensor."
 
 The seven primitive operations are:
 
-| Op             | Signature                              | Definition                                                 |
-|----------------|----------------------------------------|------------------------------------------------------------|
-| `bind`         | (vector, vector) → vector              | `Rᵣ · f` where `Rᵣ = QR(seed = hash(r))[Q]`               |
-| `unbind`       | (vector, vector) → vector              | `Rᵣᵀ · v`                                                  |
-| `bundle`       | (vector, vector) → vector              | `(x + y) / (‖x + y‖ + ε)`                                  |
-| `similarity`   | (vector, vector) → scalar              | `(x · y) / (‖x‖ · ‖y‖ + ε)`                                |
-| `normalize`    | vector → vector                        | `v / (‖v‖ + ε)`                                            |
-| Lagrange gates | (scalar, scalar) → scalar              | exact polynomials on the {−1, 0, +1}² Kleene grid (§1.1-1) |
-| soft-halt cell | (state, halt_prev) → (state', halt_cum)| rotation step + halt accumulator (§3.4)                    |
+\begin{align*}
+\mathrm{bind}(r, f)        &\;=\; R_r \, f, \qquad R_r = \mathrm{QR}\!\left(\mathrm{seed}=\mathrm{hash}(r)\right)\!.Q \\
+\mathrm{unbind}(r, v)      &\;=\; R_r^{\!\top} v \\
+\mathrm{bundle}(x, y)      &\;=\; \frac{x + y}{\lVert x + y \rVert + \varepsilon} \\
+\mathrm{similarity}(x, y)  &\;=\; \frac{x \cdot y}{\lVert x \rVert \, \lVert y \rVert + \varepsilon} \\
+\mathrm{normalize}(v)      &\;=\; \frac{v}{\lVert v \rVert + \varepsilon}
+\end{align*}
 
-The Lagrange gates compactly:
+plus the Lagrange Kleene gates (scalar $\to$ scalar, exact on the
+$\{-1,0,+1\}^2$ grid, §1.1‑1) and the soft-halt cell
+(state, halt $\to$ state$'$, halt$'$, §3.4).
 
-```
-AND(a, b)  =  (a + b + ab − a² − b² + a²b²) / 2
-OR(a, b)   =  (a + b − ab + a² + b² − a²b²) / 2
-NOT(a)     =  −a
-XOR(a, b)  =  −ab
-XNOR(a, b) =  ab
-```
+The Lagrange gates in closed form:
+
+\begin{align*}
+\mathrm{AND}(a, b)  &\;=\; \tfrac{1}{2}\!\left(a + b + ab - a^2 - b^2 + a^2 b^2\right) \\
+\mathrm{OR}(a, b)   &\;=\; \tfrac{1}{2}\!\left(a + b - ab + a^2 + b^2 - a^2 b^2\right) \\
+\mathrm{NOT}(a)     &\;=\; -a \\
+\mathrm{XOR}(a, b)  &\;=\; -ab \\
+\mathrm{XNOR}(a, b) &\;=\; ab
+\end{align*}
 
 The soft-halt cell update is, in compact form,
 
-```
-   sₜ₊₁  =  R · sₜ                               (rotation step)
-   hₜ    =  Heaviside( cond(sₜ) )                (per-tick halt signal)
-   Hₜ    =  saturate_unit( Σₖ≤ₜ hₖ )             (cumulative monotone halt)
-   ŝₜ₊₁  =  Hₜ · sₜ + (1 − Hₜ) · sₜ₊₁           (soft-mux freeze)
-```
+\begin{align*}
+s_{t+1}      &\;=\; R \, s_t                                && \text{(rotation step)} \\
+h_t          &\;=\; \mathrm{Heaviside}\!\left(\mathrm{cond}(s_t)\right) && \text{(per-tick halt signal)} \\
+H_t          &\;=\; \mathrm{sat}_{[0,1]}\!\left(\textstyle\sum_{k\le t} h_k\right) && \text{(cumulative monotone halt)} \\
+\hat{s}_{t+1}&\;=\; H_t \, s_t + (1 - H_t)\, s_{t+1}        && \text{(soft-mux freeze)}
+\end{align*}
 
 Every right-hand side is a tensor expression with no Python
 control flow. The compile-time primitives `RotationFor` and
-`embed` produce constants `Rᵣ` and basis vectors at compile
+`embed` produce constants $R_r$ and basis vectors at compile
 time and are not part of the runtime tensor graph.
 
 ### Appendix G — Worked lowering of a two-field bundled record
 
-The body §4.3 sketches the lowering of `encode2(r_a, f_a, r_b,
-f_b) := bundle(bind(r_a, f_a), bind(r_b, f_b))`. Here we trace
-each stage with the explicit residual.
+The body §4.3 sketches the lowering of
+$\mathrm{encode2}(r_a, f_a, r_b, f_b) \,:=\, \mathrm{bundle}(\mathrm{bind}(r_a, f_a),\,\mathrm{bind}(r_b, f_b))$.
+Here we trace each stage with the explicit residual.
 
 **Stage 1 — AST after parse.** A tree of `Call` nodes over named
 identifiers: `Call("bundle", Call("bind", r_a, f_a),
@@ -1119,34 +1161,43 @@ Call("bind", r_b, f_b))`.
 
 **Stage 2 — beta reduction by stdlib inlining.** `bind`,
 `bundle`, and `normalize` are stdlib functions:
-`bind(r,f) ≡ RotationFor(r) @ f`, `bundle(x,y) ≡ normalize(x+y)`,
-`normalize(v) ≡ v / (‖v‖ + ε)`. After substitution the body
-becomes `normalize(RotationFor(r_a) @ f_a + RotationFor(r_b) @ f_b)`.
+$\mathrm{bind}(r, f) \equiv \mathrm{RotationFor}(r)\,f$,
+$\mathrm{bundle}(x, y) \equiv \mathrm{normalize}(x + y)$,
+$\mathrm{normalize}(v) \equiv v / (\lVert v\rVert + \varepsilon)$.
+After substitution the body becomes
+
+$$
+\mathrm{normalize}\!\bigl(\mathrm{RotationFor}(r_a)\,f_a \;+\; \mathrm{RotationFor}(r_b)\,f_b\bigr).
+$$
+
 No `bind` or `bundle` symbol remains; the residual is straight-
 line algebra over four tensor primitives.
 
-**Stage 3 — compile-time constant resolution.** `RotationFor(r)`
-is a compile-time function returning `R = QR(seed = hash(r))[Q]`.
-The compiler evaluates it for each role at compile time, freezes
-the results as constant tensors `R_a` and `R_b`, and stores them
-in the rotation cache. The body becomes `normalize(R_a @ f_a +
-R_b @ f_b)` — `R_a` and `R_b` are now load-bearing constants in
-the same sense as the weight matrices of a feed-forward network.
+**Stage 3 — compile-time constant resolution.**
+$\mathrm{RotationFor}(r)$ is a compile-time function returning
+$R = \mathrm{QR}(\mathrm{seed}=\mathrm{hash}(r)).Q$. The compiler
+evaluates it for each role at compile time, freezes the results
+as constant tensors $R_a$ and $R_b$, and stores them in the
+rotation cache. The body becomes
+$\mathrm{normalize}(R_a\,f_a + R_b\,f_b)$ — $R_a$ and $R_b$ are
+now load-bearing constants in the same sense as the weight
+matrices of a feed-forward network.
 
 **Stage 4 — peephole fusion.** The simplifier recognizes
-`normalize(Σᵢ Rᵢ @ fᵢ)` as the bundle-of-binds pattern and
-rewrites it to `_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])` —
-one kernel launch instead of two matmuls + add + norm.
+$\mathrm{normalize}\!\bigl(\textstyle\sum_i R_i\,f_i\bigr)$ as the
+bundle-of-binds pattern and rewrites it to
+`_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])` — one kernel
+launch instead of two matmuls + add + norm.
 
 **Stage 5 — leaf tensor ops at runtime.** `bundle_of_binds`
-stacks rotations into a `(k, d, d)` tensor, stacks fillers into
-`(k, d)`, runs one batched einsum + sum + L2-normalize:
+stacks rotations into a $(k, d, d)$ tensor, stacks fillers into
+$(k, d)$, runs one batched einsum + sum + L2-normalize:
 
-```
-encode2 ≡ v / (‖v‖ + ε)
-where  v = einsum("kij,kj->i", stack([R_a, R_b]), stack([f_a, f_b]))
-```
+\begin{align*}
+v          &\;=\; \sum_{k} R_k\,f_k \;=\; \mathtt{einsum("kij,kj->i",\; \mathrm{stack}([R_a, R_b]),\; \mathrm{stack}([f_a, f_b]))} \\
+\mathrm{encode2} &\;=\; v \,/\, (\lVert v\rVert + \varepsilon)
+\end{align*}
 
 The compiled forward pass for `encode2` is exactly those three
 torch calls — einsum, linalg.norm, divide — over precomputed
-`R_a, R_b` and runtime-supplied `f_a, f_b`.
+$R_a, R_b$ and runtime-supplied $f_a, f_b$.
