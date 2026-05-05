@@ -60,7 +60,7 @@ None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by di
 
 ### 🔒 Abstract is FROZEN — submitted to NeurIPS
 
-**The abstract in `paper/paper.md` (as of commit `766cbf0`, 2026-05-05, "Edited the abstract") is the canonical NeurIPS submission. It cannot be modified.**
+**The abstract in `paper/paper.md` (as of commit `84f3465`, 2026-05-05, "Edited the abstract") is the canonical NeurIPS submission. It cannot be modified.**
 
 This means:
 - Do not edit the `## Abstract` section of `paper/paper.md` — not for wording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for anything.
