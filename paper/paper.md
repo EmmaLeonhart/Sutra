@@ -388,9 +388,9 @@ allocator details in Appendix B.
 Runtime data-dependent loops compile to **self-halting RNN
 cells**. Each tick: snapshot pre-step state, evaluate halt on
 the substrate (truth-axis read → heaviside → cumulative
-saturating sum to `halt_cum`), run the cell body, soft-mux
-between pre- and new-step state by `halt_cum`. A Python
-`while True:` driver breaks the moment `halt_cum` saturates;
+saturating sum to `halted`), run the cell body, soft-mux
+between pre- and new-step state by `halted`. A Python
+`while True:` driver breaks the moment `halted` saturates;
 this is the only host-side branch in the loop machinery. Inside
 the cell body, every operation is a substrate tensor op. No
 compile-time iteration cap — programs terminate when their halt
@@ -855,12 +855,11 @@ control flow. The compile-time primitives `RotationFor` and
 `embed` produce constants $R_r$ and basis vectors at compile
 time and are not part of the runtime tensor graph.
 
-### Appendix B — Extended-state-vector layout
+### Appendix B — Extended-state-vector layout: per-axis assignments
 
-Every value in a Sutra program is a vector with a fixed extended
-layout: `[semantic | synthetic]`. The semantic block holds the
-LLM embedding for vector-shaped values; the synthetic block
-reserves canonical axes for primitive types and slot machinery:
+§3.3 describes the `[semantic | synthetic]` layout in prose. The
+diagram and per-axis purpose table below give the concrete
+allocation referenced in `codegen_pytorch.py`:
 
 ```
           +-------------------------+----+----+----+----+----+----------+
@@ -872,15 +871,6 @@ reserves canonical axes for primitive types and slot machinery:
                                                       _FLAG
 ```
 
-The semantic block is the substrate embedding (frozen,
-mean-centered, L2-normalized). The synthetic block reserves
-canonical axes for the primitive types and the loop-completion
-flag, then 2D Givens planes (one slot per pair of axes) for
-variable storage. Default sizing at semantic_dim = 768
-(nomic-embed-text): 100-dim synthetic block accommodating the
-five canonical axes plus 47 disjoint Givens slots. Per-axis
-purposes:
-
 | Index             | Purpose                                                     |
 |-------------------|-------------------------------------------------------------|
 | `synthetic[0]`    | `AXIS_REAL` (real component for int/float/complex)          |
@@ -890,12 +880,8 @@ purposes:
 | `synthetic[4]`    | `AXIS_LOOP_DONE` (substrate-side completion flag)           |
 | `synthetic[5..]`  | `SLOT_BASE` — disjoint 2D Givens slots for variable storage |
 
-The uniformity is load-bearing: every value has the same shape,
-so every operation is one tensor op, and the compiler can treat
-the whole program as a dataflow graph of tensor operations with
-no type dispatch at the leaves. Rotation binding is
-block-diagonal across the split: bind's `Q_role` is Haar-random
-in the semantic block and identity in the synthetic block.
+At `semantic_dim = 768` (nomic-embed-text), `synthetic_dim = 100`
+accommodates the five canonical axes plus 47 disjoint Givens slots.
 
 ### Appendix C — Capacity: full per-substrate sweeps
 
@@ -1070,6 +1056,7 @@ v          &\;=\; \sum_{k} R_k\,f_k \;=\; \mathtt{einsum("kij,kj->i",\; \mathrm{
 The compiled forward pass for `encode2` is exactly those three
 torch calls — einsum, linalg.norm, divide — over precomputed
 $R_a, R_b$ and runtime-supplied $f_a, f_b$.
+
 ### Appendix G — §3.6 differentiable-training vocabulary
 
 Twenty categories of fifty words each (992 unique after
@@ -1095,4 +1082,62 @@ deduplication), embedded via nomic-embed-text:
 - **metal**: gold, silver, copper, iron, steel, aluminum, brass, bronze, tin, lead, zinc, nickel, platinum, titanium, chromium, mercury, magnesium, lithium, sodium, potassium, calcium, uranium, plutonium, palladium, tungsten, vanadium, cobalt, manganese, beryllium, gallium, indium, antimony, bismuth, cadmium, cerium, neodymium, osmium, rhodium, ruthenium, tantalum, thallium, thorium, yttrium, scandium, hafnium, niobium, molybdenum, rhenium, iridium, rubidium
 - **shape**: circle, square, triangle, rectangle, oval, ellipse, pentagon, hexagon, octagon, diamond, rhombus, trapezoid, parallelogram, polygon, sphere, cube, cylinder, cone, pyramid, prism, cuboid, tetrahedron, dodecahedron, icosahedron, octahedron, torus, helix, spiral, crescent, star, heart, arrow, cross, line, curve, arc, ring, loop, knot, dot, vertex, edge, angle, parabola, hyperbola, sine, wave, zigzag, scallop, annulus
 - **fabric**: cotton, wool, silk, linen, polyester, nylon, denim, leather, suede, velvet, satin, lace, tweed, cashmere, mohair, fleece, fur, canvas, burlap, jute, flannel, chiffon, organza, taffeta, brocade, damask, paisley, gingham, plaid, herringbone, corduroy, microfiber, spandex, lycra, rayon, viscose, acrylic, polypropylene, jersey, knit, sherpa, gabardine, twill, muslin, gauze, mesh, vinyl, tulle, georgette, voile
+
+### Appendix H — Reproduction details and hyperparameters
+
+Per-experiment configuration. All scripts live under `experiments/`
+in the source repository; each writes a JSON results file to the
+same directory on completion. RNG seeds are fixed in the source
+files cited; re-running reproduces the numbers reported in the
+body to the precision reported.
+
+| Experiment | §  | Script | Trials / k | Embedding | Optimizer | Seed |
+|---|---|---|---|---|---|---|
+| Rotation vs Hadamard, LLM | 3.2 | `rotation_binding_capacity_llm.py` | 10 / k | nomic-embed-text, all-minilm, mxbai-embed-large | — | per-script |
+| Rotation vs Hadamard, ESM-2 | 3.2 | `rotation_binding_capacity_bioinformatics.py` | 10 / k | facebook/esm2\_t6\_8M\_UR50D | — | 1729, 2718 |
+| Crosstalk depth | 3.2.1 | `crosstalk_chain.py` | 20 / L | three LLM substrates | — | per-script |
+| Differentiable training | 3.6 | `differentiable_training.py` | 1 run × 300 epochs | nomic-embed-text (frozen) | Adam, lr=0.005 | 42 |
+
+The differentiable-training run loads twenty learnable prototype
+vectors (initialized via `torch.randn` × 0.1) and minimizes
+full-batch cross-entropy over the 992-word vocabulary of
+Appendix G. Vocabulary embeddings are precomputed once and cached
+to `.diff_train_embeddings.pt` (3.3 MB) so subsequent runs skip
+the embed step. Output: weights → `differentiable_training_weights.pt`
+(3.3 MB), per-epoch metrics → `differentiable_training_results.json`.
+
+Hardware used for the numbers in the body: CPU torch on a single
+laptop (no CUDA). The full §3.6 run completes in ~3 min wall-clock;
+the §3.2 capacity sweeps complete in ~2 min per substrate; the
+§3.2.1 crosstalk sweep completes in ~5 min. Re-running on CUDA
+should reproduce the same accuracy numbers since the operations
+are deterministic given a seed.
+
+### Appendix I — Demonstration corpus
+
+The smoke test (`examples/_smoke_test.py`) compiles and runs ten
+`.su` programs end-to-end and asserts each output against a
+hardcoded expected value. The programs collectively exercise the
+language features the body claims, with no Python control flow on
+the runtime path:
+
+| Program | Feature exercised |
+|---|---|
+| `hello_world.su`           | embed + retrieve (minimal program) |
+| `fuzzy_branching.su`       | weighted-superposition conditional |
+| `role_filler_record.su`    | bind / bundle / unbind on a 3-field record (§2.1) |
+| `classifier.su`            | cosine-similarity classifier over a small codebook |
+| `analogy.su`               | `king − man + woman ≈ queen` style nearest-neighbour |
+| `knowledge_graph.su`       | (subject, relation, object) triple encode + decode |
+| `predicate_lookup.su`      | bind-keyed dictionary read |
+| `fuzzy_dispatch.su`        | Lagrange-Kleene-gated dispatch among handlers |
+| `nearest_phrase.su`        | top-1 phrase retrieval over a `.sdb` codebook |
+| `sequence.su`              | foreach reduction over a list |
+
+Loop coverage lives in `examples/do_while_adder.su` and the
+23-case `tests/test_loop_function_decl.py` suite. The §3.6
+differentiable-training experiment uses the same primitive set
+the smoke-test programs are built from — no Sutra-runtime
+extensions, just compilation of `.su` source to PyTorch
+tensor ops.
 
