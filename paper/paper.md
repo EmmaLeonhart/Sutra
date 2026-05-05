@@ -6,42 +6,11 @@
 
 ## Abstract
 
-**Sutra** is a typed, purely functional programming language
-whose compiled forward pass is a PyTorch neural network. The
-compiler beta-reduces the whole program — primitives, control
-flow, string I/O — to a fused tensor-op graph: rotation binding,
-unbind, bundle, polynomial Kleene three-valued logic, and
-tail-recursive loops all lower to tensor operations on a frozen
-embedding substrate, with the only remaining host-side control
-flow a thin tick-loop that breaks when a halt scalar saturates.
-The Kleene connectives are Lagrange-interpolated polynomials
-exact on the {−1, 0, +1} truth grid; rotation binding doubles as
-the language's hash-map primitive (Haar-orthogonal role rotations
-seeded by content hash). The substrate is the architecture
-target: swap the embedding model and the same source recompiles
-against a different geometry.
+**Sutra** is a typed, purely functional programming language whose compiled forward pass is a PyTorch neural network. The compiler beta-reduces the whole program (primitives, control flow, string I/O) to a fused tensor-op graph: rotation binding, unbind, bundle, polynomial Kleene three-valued logic, and tail-recursive loops all lower to tensor operations on a frozen embedding substrate, with the only remaining host-side control flow a thin tick-loop that breaks when a halt scalar saturates. The Kleene connectives are Lagrange-interpolated polynomials exact on the {−1, 0, +1} truth grid; rotation binding doubles as the language's hash-map primitive (Haar-orthogonal role rotations seeded by content hash). The substrate is the architecture target: swap the embedding model and the same source recompiles against a different geometry.
 
-The validation is a single fact testable two ways. (1) The same
-program runs on four frozen embedding substrates spanning two
-modalities — three text encoders (nomic-embed-text, all-minilm,
-mxbai-embed-large) and one protein language model (ESM-2) — and
-decodes bundles at 100% accuracy through width k=8 on every one,
-where the textbook Hadamard product has already collapsed (2.5%
-on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs
-are embeddings in the substrate's vector space; a compile-time
-codebook handles string literals at the source level and
-nearest-string lookup at the output boundary. (2) PyTorch autograd
-flows through
-the compiled graph end-to-end: a symbolic if-then program of fuzzy
-rules over 20 classes / 992 words, with a rule tree nineteen ANDs
-deep, trains from random init (4%; chance = 5%) to 95% within
-50 epochs and holds through 300 without any modification to the
-symbolic source — gradient descent moves the embeddings the rules
-evaluate against, leaving the rule graph itself untouched.
+The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the compiled graph end-to-end: a symbolic if-then program of fuzzy rules over 20 classes / 992 words, with a rule tree nineteen ANDs deep, trains from random init (4%; chance = 5%) to 95% within 50 epochs and holds through 300 without any modification to the symbolic source. Gradient descent moves the embeddings the rules evaluate against, leaving the rule graph itself untouched.
 
-This collapses the boundary between writing a logic program and
-training a neural network: one artifact, two interpretations.
+This collapses the boundary between writing a logic program and training a neural network: one artifact, two interpretations.
 
 ---
 
