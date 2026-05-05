@@ -801,7 +801,7 @@ semantic block holding the substrate embedding, concatenated with
 a small fixed-width synthetic block reserving canonical axes for
 primitive types (real, imag, truth, char, loop-done) and slot
 machinery (§3.3). Where notation does not distinguish, "vector"
-means "the full extended-layout tensor."
+means "the full extended-layout tensor." 
 
 The seven primitive operations are:
 
