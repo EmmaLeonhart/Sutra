@@ -25,12 +25,10 @@ mxbai-embed-large) and one protein language model (ESM-2) — and
 decodes bundles at 100% accuracy through width k=8 on every one,
 where the textbook Hadamard product has already collapsed (2.5%
 on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. String I/O is handled by an embedded
-vector database — HNSW-indexed, shipped with the compiled module
-the way SQLite is shipped inside an application — that stores
-every embedded literal at compile time and answers nearest-string
-lookups at the program output, without the host-side dictionary
-existing HDC libraries require. (2) PyTorch autograd flows through
+round-trips at ≈ 1.5×10⁻¹⁵. String I/O closes through an embedded
+vector database the compiler ships with the program — without the
+host-side dictionary existing HDC libraries require. (2) PyTorch
+autograd flows through
 the compiled graph end-to-end: a symbolic if-then program of fuzzy
 rules over 20 classes / 992 words, with a rule tree nineteen ANDs
 deep, trains from chance accuracy (4%) to 95% in 300 epochs without
@@ -145,19 +143,9 @@ The four core technical contributions of this paper are:
 
 These four primitives integrate into a single working compiler
 that lowers `.su` source to a self-contained PyTorch module on
-CPU or CUDA.
-
-A fifth result is engineering, not theoretical: **end-to-end
-string I/O via an embedded vector database the compiler ships
-with the program** (§3.5). The frozen-LLM embedding gives a
-deterministic string-to-vector map that the compiler bakes into
-a `.sdb` file (HNSW-indexed, embedded in the application the way
-SQLite is); the inverse decode at program output is a
-nearest-neighbour query against that database. Existing HDC
-libraries (TorchHD and similar) require the user to maintain a
-string-to-vector dictionary and codebook tensor by hand. To the
-authors' knowledge Sutra is the only HDC implementation that
-ships this as a built-in compiler concern.
+CPU or CUDA. String I/O at the program boundary is handled by an
+embedded vector database that ships with the compiled module
+(§3.5).
 
 ### 1.2 The substrate is the architecture target
 
