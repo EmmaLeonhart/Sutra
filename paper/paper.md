@@ -675,7 +675,51 @@ from.
 
 ## 6. Limitations and Future Work
 
-### 6.1 Codebook integration depth
+### 6.1 Capacity ceilings on bundled and chained records
+
+The §3.2 sweeps establish rotation-binding decode at 100% accuracy
+through bundle width $k = 8$ on every substrate and identify the
+per-substrate degradation beyond that. The §3.2.1 chain sweep
+extends this: nested records (a recovered filler becoming the
+role of a sub-record) accumulate bundle noise per level and fall
+to chance by $L = 8$. The demonstrated regime is therefore
+bundle-of-records up to $k \approx 8$ and chain depth up to
+$L \approx 2$; deeper structures need either a wider substrate,
+a different bundling scheme, or an attractor-based denoiser
+between levels. Pure-rotation chains without per-step distractor
+bundling — the mechanism the §3.4 loop cell uses — do not
+accumulate this noise (round-trip $1.5\times 10^{-15}$ per
+cycle), so the ceiling here is specific to bundled records, not
+to the substrate.
+
+### 6.2 Evaluation scope
+
+The largest end-to-end program is the §3.6 differentiable
+trainer: 992 words across twenty semantic categories with a rule
+tree nineteen ANDs deep. That probes the differentiable-substrate
+identity and rule-graph composition across two orders of magnitude
+more inputs than the smoke-test corpus (Appendix I), but it is not
+a software-engineering-scale benchmark. We also do not present a
+head-to-head comparison against a parameter-matched neural
+classifier on a standard NLP dataset; §3.6 establishes that
+gradient flows through the symbolic rule pipeline end-to-end, not
+that this composition is competitive with conventional
+architectures on complex tasks.
+
+### 6.3 Synthetic-dim allocation is fixed at compile time
+
+The extended-state-vector layout (§3.3) reserves a fixed-size
+synthetic block — 100 axes at the $d = 768$ nomic-embed-text
+default — for primitive-type axes plus 47 disjoint Givens slots.
+The allocator picks the slot count at compile time from the
+substrate dimension and a target budget; it does not currently
+grow with program size or spill when a program would overflow.
+This is a design knob, not a fundamental limit (size inference
+per program, or a fallback to a second value when the budget is
+exhausted, are both straightforward extensions), but it is a
+real constraint on programs as written today.
+
+### 6.4 Codebook integration depth
 
 The embedded codebook store covers the compile-time embed →
 runtime decode path today. Extended features (hashmap routing,
