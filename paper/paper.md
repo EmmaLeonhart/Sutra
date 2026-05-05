@@ -25,7 +25,12 @@ mxbai-embed-large) and one protein language model (ESM-2) — and
 decodes bundles at 100% accuracy through width k=8 on every one,
 where the textbook Hadamard product has already collapsed (2.5%
 on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
-round-trips at ≈ 1.5×10⁻¹⁵. (2) PyTorch autograd flows through
+round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs
+are embeddings in the substrate's vector space; a compile-time
+codebook (implemented as an embedded vector database) handles the
+convenience of writing string literals at the source level and
+recovering the nearest string at the output boundary. (2) PyTorch
+autograd flows through
 the compiled graph end-to-end: a symbolic if-then program of fuzzy
 rules over 20 classes / 992 words, with a rule tree nineteen ANDs
 deep, trains from chance accuracy (4%) to 95% in 300 epochs without
@@ -140,9 +145,10 @@ The four core technical contributions of this paper are:
 
 These four primitives integrate into a single working compiler
 that lowers `.su` source to a self-contained PyTorch module on
-CPU or CUDA. String I/O at the program boundary uses a
-compile-time codebook (implemented with an embedded vector
-database, §3.5).
+CPU or CUDA. Program inputs and outputs are embeddings in the
+substrate's vector space; a compile-time codebook (implemented
+with an embedded vector database, §3.5) handles the convenience
+of source-level string literals and nearest-string output.
 
 ### 1.2 The substrate is the architecture target
 
@@ -429,22 +435,23 @@ recurrent shape that emerges is what Siegelmann & Sontag (1992)
 showed computes any Turing-machine-computable function with
 rational weights.
 
-### 3.5 Compile-time codebook for string I/O
+### 3.5 I/O is in the embedding space; the codebook is a comfort layer
 
-Every embedded string in a Sutra program is embedded once at
-compile time and stored in a **codebook** (implemented as an
-embedded vector database with an HNSW index, on disk as a `.sdb`
-file shipped alongside the compiled module). The runtime decode
-`_VSA.nearest_string(query)` returns the nearest-string label
-for any query vector; the lookup runs at the program's *output
-boundary*, returning a host string the same way any compiled
-program returns a host value. Calling the codebook at this
-boundary is shape-equivalent to calling PyTorch for a matmul —
-neither is the kind of host-side control flow substrate purity
-forbids. This is engineering, not a research contribution;
-implementation details (RDF triple layout, HNSW parameters,
-`.sdb` file format, complexity
-analysis) are in Appendix E.
+A Sutra program's inputs and outputs are embeddings in the
+substrate's vector space. Strings are a convenience for writing
+source-level literals: every string literal in `.su` source is
+embedded once at compile time and stored in a **codebook**
+(implemented as an embedded vector database with an HNSW index,
+on disk as a `.sdb` file shipped alongside the compiled module).
+At the program's output boundary, the runtime decode
+`_VSA.nearest_string(query)` maps a query embedding to the
+nearest stored string when the program's caller wants a string
+back. Calling the codebook at this boundary is shape-equivalent
+to calling PyTorch for a matmul — neither is the kind of
+host-side control flow substrate purity forbids. The codebook is
+engineering, not a research contribution; implementation details
+(RDF triple layout, HNSW parameters, `.sdb` file format,
+complexity analysis) are in Appendix E.
 
 ### 3.6 End-to-end differentiable training through Sutra operations
 
