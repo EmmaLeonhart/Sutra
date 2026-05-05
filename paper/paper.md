@@ -448,9 +448,8 @@ At the program's output boundary, the runtime decode
 nearest stored string when the program's caller wants a string
 back. Calling the codebook at this boundary is shape-equivalent
 to calling PyTorch for a matmul — neither is the kind of
-host-side control flow substrate purity forbids. The codebook is
-engineering, not a research contribution; implementation details
-(RDF triple layout, HNSW parameters, `.sdb` file format,
+host-side control flow substrate purity forbids. Implementation
+details (RDF triple layout, HNSW parameters, `.sdb` file format,
 complexity analysis) are in Appendix E.
 
 ### 3.6 End-to-end differentiable training through Sutra operations
