@@ -685,6 +685,285 @@ glue together.
 
 ## Appendix
 
+### Appendix A — Crosstalk depth: full per-substrate L-sweep
+
+The §3.2.1 protocol: chain length L ∈ {1, 2, 4, 8, 16, 32}, 20
+trials, bundle width 4 (3 distractors per cycle). Forward-bind
+through L role rotations bundling 3 distractor (role, filler)
+pairs at each step; unbind in reverse and decode. Two flavors:
+*raw* (no cleanup) and *snap* (argmax-cosine cleanup against the
+codebook after each unbind step).
+
+| substrate         | L=1 raw | L=2 raw | L=4 raw | L=1 snap | L=2 snap | L=4 snap |
+|-------------------|--------:|--------:|--------:|---------:|---------:|---------:|
+| nomic-embed-text  | 100%    | 100%    | 20%     | 100%     | 10%      | 0%       |
+| all-minilm        | 100%    | 100%    | 5%      | 100%     | 0%       | 0%       |
+| mxbai-embed-large | 100%    | 100%    | 5%      | 100%     | 0%       | 0%       |
+
+By chain length 8 raw accuracy is at chance (1/84) on all three
+substrates. Snap is *worse* than raw past chain length 1: a
+hard codebook commitment converts soft noise into a
+high-confidence wrong answer that the next unbind cannot
+recover from. The runtime does not implicitly snap between
+operations; cleanup is an explicit step the program schedules
+where it knows the codebook is the right reference. Reproduction
+script: `experiments/crosstalk_chain.py`; raw JSON in
+`experiments/crosstalk_chain_results.json`.
+
+### Appendix B — Codebook store implementation details
+
+The compile-time codebook is stored in an embedded vector
+database (internally called SutraDB) that ships as part of the
+compiler — analogous to SQLite being embedded in an application
+rather than run as a separate service. The data model is RDF
+triples with f32-vector literals as the object position, indexed
+by a built-in HNSW index for nearest-neighbor decode. The
+on-disk format is a `.sdb` file that travels alongside the
+compiled Python module; no external service, no separate
+install, no network dependency. Every embedded string in a
+Sutra program is inserted with the embedding as the object of a
+triple typed `<http://sutra.dev/f32vec>`. Strings declared but
+unused in expressions are still inserted, so they remain
+decodable. The compiled module's Python data section never
+carries the embeddings — they live in the `.sdb` file, an
+artifact of compilation, not a service the runtime contacts.
+
+`nearest_string` runs over an HNSW (Hierarchical Navigable
+Small World) approximate-nearest-neighbor graph maintained by
+the triplestore. HNSW (Malkov & Yashunin, TPAMI 2020) has
+**O(log N) expected and worst-case query time** under standard
+graph-construction parameters; it has displaced linear scan as
+the default ANN index in Faiss, Milvus, Weaviate, Qdrant, and
+most production vector databases. A 100-string codebook and a
+100,000-string codebook have comparable decode latency at
+runtime, modulo HNSW's tunable `M` (graph degree) and
+`ef_search` (beam width); the cost difference is roughly one
+extra graph hop per 10× growth in N.
+
+### Appendix C — Sutra and TorchHD: side-by-side
+
+The same 3-field role-filler-record task — encode a record
+(name, color, shape) as a single bundled vector, then decode
+the color field — written in both systems.
+
+**Sutra** (`examples/role_filler_record.su`, the entire program):
+
+```sutra
+vector r_name  = basis_vector("role_name");
+vector r_color = basis_vector("role_color");
+vector r_shape = basis_vector("role_shape");
+
+vector f_alice  = basis_vector("filler_alice");
+vector f_red    = basis_vector("filler_red");
+vector f_circle = basis_vector("filler_circle");
+// (... three more fillers omitted ...)
+
+map<vector, string> FILLER_NAME = {
+    f_alice: "alice", f_red: "red", f_circle: "circle",
+    /* ... */
+};
+
+function vector make_record(vector name, vector color, vector shape) {
+    return bundle(
+        bind(r_name, name), bind(r_color, color), bind(r_shape, shape)
+    );
+}
+
+function string decode_field(vector record, vector role) {
+    vector recovered = unbind(role, record);
+    vector winner = argmax_cosine(recovered,
+        [f_alice, f_red, f_circle, /* ... */]);
+    return FILLER_NAME[winner];
+}
+
+function string main() {
+    vector rec = make_record(f_alice, f_red, f_circle);
+    return decode_field(rec, r_color);
+}
+```
+
+The compiler reduces this whole program to a fused tensor-op
+graph: every `basis_vector` call is resolved at compile time;
+`bind` and `unbind` lower to one matmul each; `argmax_cosine`
+to one cosine-similarity matmul plus argmax; the `FILLER_NAME`
+map to the substrate-resident codebook. The runtime decodes by
+`nearest_string` against the embedded codebook — `"red"` comes
+out without the program ever leaving the tensor graph at the
+program-semantics level.
+
+**TorchHD equivalent** (`experiments/role_filler_record_torchhd.py`,
+abridged):
+
+```python
+import torch, torchhd
+
+torch.manual_seed(42)
+
+# 1. MANUAL hypervector creation. There is no "embed string";
+#    the user maintains the string-to-vector mapping.
+roles = {n: torchhd.random(1, 768, vsa="MAP")
+         for n in ["name", "color", "shape"]}
+fillers = {n: torchhd.random(1, 768, vsa="MAP")
+           for n in ["alice", "bob", "red", "blue", "circle", "square"]}
+
+# 2. MANUAL codebook tensor for decoding.
+filler_names = ["alice", "bob", "red", "blue", "circle", "square"]
+codebook = torch.cat([fillers[n] for n in filler_names], dim=0)
+
+# 3. Build the record (Python control flow).
+record = torchhd.bundle(
+    torchhd.bind(roles["name"],  fillers["alice"]),
+    torchhd.bundle(
+        torchhd.bind(roles["color"], fillers["red"]),
+        torchhd.bind(roles["shape"], fillers["circle"]),
+    ),
+)
+
+# 4. Decode (Python control flow).
+recovered = torchhd.bind(record, torchhd.inverse(roles["color"]))
+sims = torchhd.cosine_similarity(recovered, codebook)
+result = filler_names[int(torch.argmax(sims))]
+```
+
+Both programs return `"red"`. The CUDA kernels they eventually
+call into are largely the same; what differs is what the user
+writes — a `.su` source program vs. a Python function calling a
+library — and what the compiler has to chew on.
+
+### Appendix D — Extended-state-vector layout
+
+Every value in a Sutra program is a vector with a fixed extended
+layout: `[semantic | synthetic]`. The semantic block holds the
+LLM embedding for vector-shaped values; the synthetic block
+reserves canonical axes for primitive types and slot machinery:
+
+```
+          +-------------------------+----+----+----+----+----+----------+
+   value  | semantic block          | R  | I  | T  | C  | L  | slots... |
+          +-------------------------+----+----+----+----+----+----------+
+          |<-- semantic_dim ------->|<--- synthetic_dim ----------------|>
+                                       0    1    2    3    4    5..
+                                      REAL IMAG TRUTH CHAR LOOP_DONE
+                                                      _FLAG
+```
+
+The semantic block is the substrate embedding (frozen,
+mean-centered, L2-normalized). The synthetic block reserves
+canonical axes for the primitive types and the loop-completion
+flag, then 2D Givens planes (one slot per pair of axes) for
+variable storage. Default sizing at semantic_dim = 768
+(nomic-embed-text): 100-dim synthetic block accommodating the
+five canonical axes plus 47 disjoint Givens slots. Per-axis
+purposes:
+
+| Index             | Purpose                                                     |
+|-------------------|-------------------------------------------------------------|
+| `synthetic[0]`    | `AXIS_REAL` (real component for int/float/complex)          |
+| `synthetic[1]`    | `AXIS_IMAG` (imaginary component for complex)               |
+| `synthetic[2]`    | `AXIS_TRUTH` (fuzzy truth scalar; bool/comparisons)         |
+| `synthetic[3]`    | `AXIS_CHAR_FLAG` (marks char primitives)                    |
+| `synthetic[4]`    | `AXIS_LOOP_DONE` (substrate-side completion flag)           |
+| `synthetic[5..]`  | `SLOT_BASE` — disjoint 2D Givens slots for variable storage |
+
+The uniformity is load-bearing: every value has the same shape,
+so every operation is one tensor op, and the compiler can treat
+the whole program as a dataflow graph of tensor operations with
+no type dispatch at the leaves. Rotation binding is
+block-diagonal across the split: bind's `Q_role` is Haar-random
+in the semantic block and identity in the synthetic block.
+
+### Appendix E — Capacity: full per-substrate sweeps
+
+Cross-substrate decode accuracy at full bundle widths
+k ∈ {2, 4, 8, 16, 24, 32, 48}. The four substrates use 84-entry
+vocabularies (LLM substrates: 84-word noun set spanning animals,
+foods, objects, places, abstract nouns; ESM-2: 84-sequence
+amino-acid set covering canonical signal peptides,
+cell-penetrating peptides, antimicrobial peptides, classic
+affinity-tag motifs, and deterministic random k-mers). All
+embeddings are unit-normalized; nomic-embed-text and ESM-2 are
+additionally mean-centered.
+
+**nomic-embed-text (768-d, mean-centered):**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.703 | 95.0% | +0.488 |
+| 4  | 100.0% | +0.497 | 95.0% | +0.400 |
+| 8  | 100.0% | +0.354 | 87.5% | +0.307 |
+| 16 | 100.0% | +0.251 | 84.4% | +0.230 |
+| 24 | 100.0% | +0.203 | 60.8% | +0.189 |
+| 32 |  99.1% | +0.176 | 63.1% | +0.167 |
+| 48 |  93.3% | +0.144 | 48.3% | +0.136 |
+
+**all-minilm (384-d):**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.711 | 45.0% | +0.386 |
+| 4  | 100.0% | +0.506 | 10.0% | +0.335 |
+| 8  | 100.0% | +0.356 |  7.5% | +0.315 |
+| 16 |  92.5% | +0.252 |  3.1% | +0.299 |
+| 24 |  76.2% | +0.203 |  2.9% | +0.300 |
+| 32 |  66.9% | +0.179 |  2.5% | +0.297 |
+| 48 |  42.3% | +0.144 |  1.7% | +0.294 |
+
+**mxbai-embed-large (1024-d):**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.708 | 15.0% | +0.311 |
+| 4  | 100.0% | +0.500 |  2.5% | +0.304 |
+| 8  | 100.0% | +0.353 |  2.5% | +0.295 |
+| 16 |  98.8% | +0.251 |  1.2% | +0.294 |
+| 24 |  95.8% | +0.203 |  0.8% | +0.293 |
+| 32 |  85.3% | +0.176 |  0.9% | +0.292 |
+| 48 |  72.1% | +0.146 |  1.0% | +0.291 |
+
+**ESM-2 small protein language model (320-d, mean-centered):**
+
+| k | rotation accuracy | rotation signal cos | Hadamard accuracy | Hadamard signal cos |
+|---:|---:|---:|---:|---:|
+| 2  | 100.0% | +0.713 | 75.0% | +0.470 |
+| 4  | 100.0% | +0.501 | 50.0% | +0.323 |
+| 8  | 100.0% | +0.349 | 28.7% | +0.257 |
+| 16 |  90.6% | +0.252 | 16.2% | +0.185 |
+| 24 |  77.1% | +0.205 | 11.2% | +0.171 |
+| 32 |  61.9% | +0.174 |  6.2% | +0.141 |
+| 48 |  44.2% | +0.143 |  4.2% | +0.117 |
+
+The signal cosine for Hadamard is comparable to rotation's, but
+the noise floor is much higher because the elementwise product
+of correlated real-valued embeddings produces a result that
+overlaps with many distractors in the codebook rather than
+near-orthogonally with one.
+
+### Appendix F — §3.6 differentiable-training vocabulary
+
+Twenty categories of fifty words each (992 unique after
+deduplication), embedded via nomic-embed-text:
+
+- **animal**: dog, cat, bird, fish, horse, lion, tiger, elephant, rabbit, monkey, bear, wolf, fox, deer, mouse, snake, frog, turtle, dolphin, whale, shark, eagle, owl, sparrow, crow, robin, parrot, swan, duck, goose, chicken, cow, pig, sheep, goat, donkey, camel, giraffe, kangaroo, koala, panda, leopard, cheetah, hippopotamus, rhinoceros, antelope, buffalo, hedgehog, squirrel, raccoon
+- **vehicle**: car, truck, airplane, boat, bicycle, motorcycle, bus, train, ship, helicopter, tractor, scooter, van, taxi, jeep, sailboat, kayak, canoe, raft, submarine, glider, jet, rocket, spaceship, sled, skateboard, wagon, carriage, chariot, ambulance, firetruck, limousine, minivan, hatchback, sedan, coupe, convertible, pickup, trailer, ferry, yacht, dinghy, blimp, balloon, hovercraft, tram, moped, tricycle, rollerblade, unicycle
+- **food**: apple, bread, cheese, rice, pasta, banana, salad, soup, meat, pizza, sandwich, burger, taco, sushi, cake, cookie, pie, donut, muffin, pancake, waffle, bagel, croissant, omelet, salmon, tuna, beef, pork, lamb, bacon, ham, sausage, steak, lobster, shrimp, crab, oyster, clam, broccoli, carrot, lettuce, tomato, potato, cucumber, onion, garlic, pepper, eggplant, spinach, mushroom
+- **color**: red, blue, green, yellow, orange, purple, black, white, brown, pink, gray, cyan, magenta, violet, indigo, turquoise, teal, lavender, maroon, crimson, scarlet, ruby, gold, silver, bronze, copper, beige, tan, ivory, charcoal, navy, sapphire, emerald, jade, olive, lime, mint, coral, peach, plum, mauve, fuchsia, amber, ochre, sienna, mahogany, chocolate, caramel, mustard, azure
+- **clothing**: shirt, pants, dress, hat, shoes, jacket, socks, gloves, scarf, belt, sweater, hoodie, jeans, shorts, skirt, blouse, coat, cap, beanie, mittens, tights, leggings, vest, blazer, suit, tuxedo, gown, robe, kimono, kilt, poncho, cloak, cape, sneakers, boots, sandals, slippers, heels, loafers, tie, bowtie, cufflinks, watch, ring, necklace, earrings, bracelet, anklet, brooch, headband
+- **weather**: rain, snow, wind, cloud, storm, fog, frost, hail, thunder, lightning, drizzle, downpour, blizzard, hurricane, tornado, cyclone, typhoon, sleet, mist, haze, smog, sunshine, sunlight, sunset, sunrise, dawn, dusk, twilight, breeze, gust, gale, humidity, drought, flood, monsoon, snowfall, snowstorm, rainstorm, sandstorm, heatwave, chill, dew, hailstorm, thaw, overcast, sunny, cloudy, rainy, snowy, windy
+- **emotion**: joy, sadness, anger, fear, love, hope, surprise, disgust, pride, envy, happiness, grief, rage, anxiety, affection, despair, delight, shame, guilt, confidence, contentment, jealousy, regret, sorrow, frustration, satisfaction, awe, wonder, gratitude, compassion, sympathy, empathy, irritation, boredom, excitement, enthusiasm, calm, serenity, melancholy, nostalgia, longing, embarrassment, humiliation, indifference, ecstasy, bliss, dread, terror, amusement, loneliness
+- **tool**: hammer, saw, drill, wrench, screwdriver, knife, scissors, pliers, axe, shovel, rake, hoe, spade, pickaxe, crowbar, mallet, chisel, sander, level, ruler, vise, clamp, ratchet, socket, awl, scraper, trowel, broom, mop, sponge, bucket, ladder, jackhammer, sledgehammer, paintbrush, roller, stapler, tongs, tweezers, calipers, magnifier, flashlight, multimeter, wirecutter, hacksaw, router, torch, soldering_iron, drillbit, screwbit
+- **instrument**: guitar, piano, drum, violin, flute, trumpet, saxophone, harp, cello, clarinet, banjo, mandolin, ukulele, harmonica, accordion, organ, keyboard, synthesizer, xylophone, tambourine, maracas, bongos, marimba, vibraphone, glockenspiel, bagpipes, oboe, bassoon, trombone, tuba, lute, sitar, koto, zither, dulcimer, cymbal, gong, triangle, cowbell, snare, kettledrum, recorder, piccolo, fife, didgeridoo, theremin, viola, double_bass, fiddle, ocarina
+- **profession**: doctor, teacher, lawyer, engineer, nurse, chef, artist, scientist, farmer, plumber, electrician, carpenter, mechanic, pilot, sailor, soldier, judge, journalist, writer, poet, painter, sculptor, musician, actor, dancer, singer, photographer, architect, dentist, surgeon, pharmacist, veterinarian, librarian, accountant, banker, broker, programmer, designer, manager, secretary, butcher, baker, gardener, tailor, jeweler, barber, chemist, biologist, physicist, mathematician
+- **body_part**: head, hand, foot, eye, ear, nose, mouth, leg, arm, finger, toe, knee, elbow, shoulder, hip, neck, back, chest, stomach, heart, brain, lung, liver, kidney, bone, muscle, skin, hair, throat, jaw, chin, cheek, forehead, eyebrow, eyelash, lip, tongue, palm, wrist, ankle, thumb, heel, spine, rib, scalp, nostril, gum, knuckle, tendon, vein
+- **plant**: tree, flower, grass, bush, vine, fern, moss, herb, weed, leaf, stem, branch, bark, blossom, petal, oak, maple, willow, birch, cedar, bamboo, cactus, rose, tulip, daisy, lily, sunflower, orchid, ivy, basil, rosemary, thyme, sage, lavender, dandelion, clover, lotus, magnolia, sycamore, redwood, baobab, eucalyptus, juniper, hemlock, fir, spruce, ash, elm, poplar, chestnut
+- **furniture**: chair, table, sofa, bed, desk, shelf, drawer, cabinet, wardrobe, dresser, nightstand, ottoman, bench, stool, recliner, futon, couch, armchair, bookcase, sideboard, buffet, cupboard, hutch, vanity, headboard, footboard, mattress, pillow, cushion, blanket, quilt, comforter, lamp, mirror, rug, carpet, curtain, blind, shutter, hammock, cradle, crib, bassinet, highchair, rocker, loveseat, settee, divan, chaise, headrest
+- **building**: house, apartment, mansion, cottage, cabin, hut, igloo, tent, palace, castle, fortress, tower, skyscraper, office, factory, warehouse, store, mall, restaurant, hotel, motel, hospital, school, university, library, museum, theater, stadium, arena, church, temple, mosque, synagogue, cathedral, chapel, monastery, abbey, barn, shed, garage, basement, attic, cellar, lobby, lounge, hallway, corridor, atrium, foyer, balcony
+- **country**: France, Germany, Italy, Spain, Portugal, England, Scotland, Ireland, Norway, Sweden, Finland, Denmark, Iceland, Russia, Poland, Greece, Turkey, Egypt, Morocco, Algeria, Kenya, Nigeria, Ethiopia, Ghana, Senegal, Mali, Sudan, Uganda, Tanzania, Madagascar, China, Japan, Korea, Vietnam, Thailand, Malaysia, Indonesia, India, Pakistan, Bangladesh, Iran, Iraq, Israel, Lebanon, Australia, Canada, Mexico, Brazil, Argentina, Chile
+- **sport**: football, basketball, baseball, soccer, tennis, golf, hockey, rugby, cricket, volleyball, swimming, running, cycling, skiing, snowboarding, surfing, sailing, rowing, kayaking, climbing, hiking, boxing, wrestling, fencing, archery, shooting, fishing, hunting, polo, badminton, ping_pong, squash, racquetball, lacrosse, handball, dodgeball, kickball, gymnastics, diving, weightlifting, judo, karate, taekwondo, sumo, marathon, triathlon, decathlon, biathlon, skating, bowling
+- **drink**: water, juice, milk, tea, coffee, soda, beer, wine, whiskey, vodka, rum, gin, tequila, brandy, cognac, champagne, cocktail, smoothie, milkshake, lemonade, cider, ale, lager, stout, bourbon, scotch, sake, mead, punch, eggnog, kombucha, kefir, espresso, latte, cappuccino, mocha, americano, macchiato, frappe, hot_chocolate, cordial, shake, slushie, syrup, fizz, brew, tonic, infusion, ginger_ale, root_beer
+- **metal**: gold, silver, copper, iron, steel, aluminum, brass, bronze, tin, lead, zinc, nickel, platinum, titanium, chromium, mercury, magnesium, lithium, sodium, potassium, calcium, uranium, plutonium, palladium, tungsten, vanadium, cobalt, manganese, beryllium, gallium, indium, antimony, bismuth, cadmium, cerium, neodymium, osmium, rhodium, ruthenium, tantalum, thallium, thorium, yttrium, scandium, hafnium, niobium, molybdenum, rhenium, iridium, rubidium
+- **shape**: circle, square, triangle, rectangle, oval, ellipse, pentagon, hexagon, octagon, diamond, rhombus, trapezoid, parallelogram, polygon, sphere, cube, cylinder, cone, pyramid, prism, cuboid, tetrahedron, dodecahedron, icosahedron, octahedron, torus, helix, spiral, crescent, star, heart, arrow, cross, line, curve, arc, ring, loop, knot, dot, vertex, edge, angle, parabola, hyperbola, sine, wave, zigzag, scallop, annulus
+- **fabric**: cotton, wool, silk, linen, polyester, nylon, denim, leather, suede, velvet, satin, lace, tweed, cashmere, mohair, fleece, fur, canvas, burlap, jute, flannel, chiffon, organza, taffeta, brocade, damask, paisley, gingham, plaid, herringbone, corduroy, microfiber, spandex, lycra, rayon, viscose, acrylic, polypropylene, jersey, knit, sherpa, gabardine, twill, muslin, gauze, mesh, vinyl, tulle, georgette, voile
+
 ### Appendix K — Per-tick dataflow of the soft-halt loop cell
 
 The §3.4 RNN-cell tick visualized:
