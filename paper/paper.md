@@ -117,7 +117,8 @@ The four core technical contributions of this paper are:
    canonical synthetic axes are assigned compile-time so every
    primitive-type read/write is a known index, not a hashtable
    lookup. §4.3 traces this lowering stage-by-stage on a
-   concrete program; Figure~\ref{fig:compile-pipeline} (Appendix J) shows the compilation pipeline.
+   concrete program; the compilation pipeline as a whole is
+   Figure~\ref{fig:compile-pipeline} (§4).
 
 3. **Tail recursion as the loop primitive.** Loops are
    tail-recursive function declarations (`do_while`,
@@ -220,11 +221,11 @@ codebook, and decoded at the program output via `nearest_string`.
 The frozen-LLM embedding is load-bearing — random hypervectors
 yield a working VSA algebra with no I/O story.
 
-A worked side-by-side of the same 3-field role-filler-record
-task in Sutra and TorchHD is in Appendix C; the structural
-differences (Sutra contains no Python, automatic string-to-vector
-mapping, implicit codebook construction, single fused tensor-op
-graph) are differences in artifact shape, not library speed.
+The structural differences — Sutra contains no Python, the
+string-to-vector map and codebook are constructed by the compiler
+rather than by the user, and the whole program reduces to a single
+fused tensor-op graph — are differences in artifact shape, not
+library speed.
 
 ### 2.2 Comparison to other neuro-symbolic languages
 
@@ -313,7 +314,7 @@ $\mathrm{similarity}(x,y) = (x\cdot y)/(\lVert x\rVert\,\lVert y\rVert + \vareps
 $\mathrm{normalize}(v) = v/(\lVert v\rVert + \varepsilon)$,
 the Lagrange Kleene gates as in §1.1-1, and the soft-halt cell
 of §3.4. Full signature/definition table and the soft-halt cell
-update equations are in Appendix H.
+update equations are in Appendix A.
 
 ### 3.2 Capacity of rotation versus Hadamard binding across substrates
 
@@ -323,7 +324,7 @@ three frozen LLM text encoders (nomic-embed-text, all-minilm,
 mxbai-embed-large) and one frozen protein language model (ESM-2
 small, `facebook/esm2_t6_8M_UR50D`). LLM substrates embed an
 84-word noun vocabulary; the ESM-2 substrate embeds an
-84-sequence amino-acid vocabulary (full protocol in Appendix E).
+84-sequence amino-acid vocabulary (full protocol in Appendix C).
 For each bundle width and binding scheme we run 10 trials,
 sampling k random (role, filler) pairs without replacement,
 forming the bundle, and decoding by unbind + argmax-cosine
@@ -332,7 +333,7 @@ Haar-orthogonal `R_role`; *Hadamard binding* is the textbook
 elementwise product (MAP-VSA).
 
 Cross-substrate decode accuracy at representative widths (full
-k ∈ {2, 4, 8, 16, 24, 32, 48} sweeps in Appendix E):
+k ∈ {2, 4, 8, 16, 24, 32, 48} sweeps in Appendix C):
 
 | substrate (dim)         | rotation k=8 | rotation k=48 | Hadamard k=8 | Hadamard k=48 |
 |-------------------------|---:|---:|---:|---:|
@@ -363,7 +364,7 @@ demos. Pure rotation chains without per-step distractor bundling
 remain exact (round-trip 1.5×10⁻¹⁵ per cycle), so the noise
 mechanism here does not apply to the soft-halt loop cell of §3.4.
 Reproduction script: `experiments/crosstalk_chain.py`; full
-per-substrate L-sweep tables in Appendix A.
+per-substrate L-sweep tables in Appendix D.
 
 ### 3.3 The extended-state-vector layout
 
@@ -380,7 +381,7 @@ semantic block, identity on the synthetic block), so the
 synthetic axes pass through bind/unbind unchanged — a fuzzy-truth
 scalar can coexist with a semantic vector inside the same value
 without bind smearing them. Full per-axis purpose table and slot
-allocator details in Appendix D.
+allocator details in Appendix B.
 
 ### 3.4 First-class loops as RNN cells
 
@@ -396,8 +397,37 @@ compile-time iteration cap — programs terminate when their halt
 condition fires. Standard PyTorch tracing handles a Python
 while-loop wrapping pure tensor ops; autograd records each
 iteration as it executes, which is the mechanism §3.6 relies on
-for backprop through the cell. Appendix K shows the per-tick
-dataflow.
+for backprop through the cell. Figure~\ref{fig:halt-cell}
+visualizes one tick.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=7mm,
+  every node/.style={font=\footnotesize},
+  io/.style={draw, rounded corners, minimum width=22mm, minimum height=6mm, align=center},
+  op/.style={draw, minimum width=32mm, minimum height=7mm, align=center},
+  acc/.style={draw, double, minimum width=32mm, minimum height=7mm, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+  \node[io] (sin) {state\textsubscript{in} $s_t$};
+  \node[op, below left=8mm and 6mm of sin]  (pre)  {snapshot $\to s_t^{\mathrm{pre}}$};
+  \node[op, below right=8mm and 6mm of sin] (body) {cell body \\ \scriptsize{$s_{t+1} = R\,s_t$;\;\; $h_t = \mathrm{Heaviside}(\mathrm{cond}(s_t))$}};
+  \node[acc, below=of body] (acc) {$H_t = \mathrm{sat}_{[0,1]}\!\bigl(H_{t-1} + h_t\bigr)$};
+  \node[op, below=of acc, xshift=-20mm] (mux) {soft-mux freeze \\ \scriptsize{$\hat{s}_{t+1} = H_t\, s_t^{\mathrm{pre}} + (1-H_t)\,s_{t+1}$}};
+  \node[io, below=of mux] (sout) {state\textsubscript{out} $\hat{s}_{t+1}$};
+
+  \draw[arr] (sin) -- (pre);
+  \draw[arr] (sin) -- (body);
+  \draw[arr] (body) -- (acc);
+  \draw[arr] (acc) -- (mux);
+  \draw[arr] (pre) |- (mux);
+  \draw[arr] (body.south) to[bend left=15] (mux.east);
+  \draw[arr] (mux) -- (sout);
+\end{tikzpicture}
+\caption{Per-tick dataflow of the soft-halt RNN cell. Once $H_t$ saturates at $1$, the soft-mux output equals $s_t^{\mathrm{pre}}$ — the loop has frozen. The cumulative halt $H_t$ acts as a boundary read of the same shape as the codebook decode (§3.5).}
+\label{fig:halt-cell}
+\end{figure}
 
 **Constant memory in recursion depth.** The state vector is
 fixed-width and shared across iterations, so a tail-recursive
@@ -425,7 +455,7 @@ library at this boundary is shape-equivalent to calling PyTorch
 for a matmul — neither is the kind of host-side control flow
 substrate purity forbids. Implementation details (RDF triple
 layout, HNSW graph parameters, `.sdb` file format, complexity
-analysis) are in Appendix B.
+analysis) are in Appendix E.
 
 ### 3.6 End-to-end differentiable training through Sutra operations
 
@@ -436,7 +466,7 @@ training learnable parameters through a fuzzy-logic classifier
 built entirely from Sutra operations.
 
 **Setup.** 992 words across twenty semantic categories
-(50 each, deduplicated; full list in Appendix F) are embedded
+(50 each, deduplicated; full list in Appendix G) are embedded
 via nomic-embed-text (768-d, frozen). Twenty learnable prototype
 vectors are initialized randomly. The classifier computes cosine
 similarity between input and each prototype and applies a
@@ -463,18 +493,73 @@ nineteen nested `fuzzy_and` → cross-entropy.
 | Before |     4%   |  3.01 |
 | After  |    95%   |  1.15 |
 
-As a tensor-op graph (drawn explicitly for K=3 in Appendix I,
-the K=20 case has the same shape but with the AND-of-NOTs
-left-folded over nineteen terms): the input embedding fans out
-to K cosine-similarity nodes against the K learnable prototypes,
-each `sim_i` enters one branch of an AND-tree (the i-th rule
-takes `sim_i` directly and `NOT(sim_j)` for j ≠ i), the K rule
-scores are stacked, scaled by temperature, softmaxed, and
-cross-entropied against the label. Every node is a PyTorch
-tensor op; every edge carries a vector or scalar. There are no
-Python branches, no host-side dispatch, no string-keyed lookup
-— backprop reaches every learnable parameter through the same
-compiled graph that runs at inference.
+Figure~\ref{fig:k3-pipeline} draws the explicit graph for $K=3$;
+the $K=20$ graph used in the experiment has the same shape with
+twenty learnable prototypes and the AND-of-NOTs left-folded across
+nineteen $\mathrm{NOT}(\mathrm{sim})$ terms. The input embedding
+fans out to K cosine-similarity nodes against the K learnable
+prototypes, each `sim_i` enters one branch of an AND-tree (the
+i-th rule takes `sim_i` directly and `NOT(sim_j)` for j ≠ i), the
+K rule scores are stacked, scaled by temperature, softmaxed, and
+cross-entropied against the label. Every node is a PyTorch tensor
+op; every edge carries a vector or scalar. There are no Python
+branches, no host-side dispatch, no string-keyed lookup — backprop
+reaches every learnable parameter through the same compiled graph
+that runs at inference.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm and 9mm,
+  every node/.style={font=\footnotesize},
+  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
+  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
+  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+  \node[io] (x) {input $x \in \mathbb{R}^d$};
+  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
+  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
+  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
+
+  \node[proto, left=4mm of cos1] (p1) {$p_1$};
+  \node[proto, left=4mm of cos2] (p2) {$p_2$};
+  \node[proto, left=4mm of cos3] (p3) {$p_3$};
+
+  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
+  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
+  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
+  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
+
+  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
+  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
+
+  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
+  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
+  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
+  \node[io, below=6mm of ce]      (loss) {loss};
+
+  \draw[arr] (x) -- (cos1);
+  \draw[arr] (x) -- (cos2);
+  \draw[arr] (x) -- (cos3);
+  \draw[arr] (p1) -- (cos1);
+  \draw[arr] (p2) -- (cos2);
+  \draw[arr] (p3) -- (cos3);
+  \draw[arr] (cos2) -- (not2);
+  \draw[arr] (cos3) -- (not3);
+  \draw[arr] (not2) -- (andneg);
+  \draw[arr] (not3) -- (andneg);
+  \draw[arr] (cos1) -- (and1);
+  \draw[arr] (andneg) -| (and1);
+  \draw[arr] (and1) -- (rule1);
+  \draw[arr] (rule1) -- (stack);
+  \draw[arr] (stack) -- (sm);
+  \draw[arr] (sm) -- (ce);
+  \draw[arr] (ce) -- (loss);
+\end{tikzpicture}
+\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
+\label{fig:k3-pipeline}
+\end{figure}
 
 At K=20 the rule for class i is an AND of `sim(x, proto_i)`
 with a left-folded chain of nineteen `NOT(sim)` terms — a tensor
@@ -527,8 +612,43 @@ neural-network training versus inference draws the line — by
 the time stage 5 begins, every role rotation, codebook entry,
 and stdlib reduction has been resolved to a constant tensor or
 a primitive op, the same way a feed-forward network's weights
-are constants by inference time. Appendix J shows the pipeline
-as a vertical flow with the residual at each stage.
+are constants by inference time. Figure~\ref{fig:compile-pipeline}
+draws the pipeline as a vertical flow with the residual at each
+stage.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm,
+  every node/.style={font=\footnotesize},
+  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
+  step/.style={draw=none, font=\scriptsize\itshape, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick},
+  divider/.style={dashed, gray}
+]
+  \node[res] (src)   {source code (\texttt{.su})};
+  \node[step, below=of src]   (s1) {(1) lex + parse};
+  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
+  \node[step, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
+  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
+  \node[step, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
+  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
+  \node[step, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
+  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
+  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
+  \node[step, below=of cline] (s5) {(5) forward pass on input tensors};
+  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
+
+  \draw[arr] (src) -- (ast);
+  \draw[arr] (ast) -- (sast);
+  \draw[arr] (sast) -- (mod);
+  \draw[arr] (mod) -- (warm);
+  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
+  \draw[arr] (warm) -- (out);
+\end{tikzpicture}
+\caption{Five-stage compilation pipeline of §4. Boxes are intermediate artifacts; italic labels are the compiler passes that connect them. Stages (1)--(4) run at compile time; the dashed line marks the compile/runtime boundary; stage (5) is the runtime forward pass.}
+\label{fig:compile-pipeline}
+\end{figure}
 
 ### 4.1 Substrate-purity invariants
 
@@ -564,7 +684,7 @@ bundle(bind(r_a, f_a), bind(r_b, f_b))` lowers in five stages
 (parse → stdlib beta-substitution → compile-time `RotationFor`
 resolution → peephole fusion to `_VSA.bundle_of_binds` → leaf
 tensor ops `einsum + linalg.norm + divide`) over rotations
-materialized at compile time. Appendix G traces each stage with
+materialized at compile time. Appendix F traces each stage with
 the residual after every reduction. The bottom of the chain
 contains no `bind`/`bundle`/`normalize` symbol and no Python
 control flow; surface lambda calculus and runtime tensor
@@ -684,152 +804,58 @@ glue together.
 
 ## Appendix
 
-### Appendix A — Crosstalk depth: full per-substrate L-sweep
+### Appendix A — Notation: extended layout and primitive operations
 
-The §3.2.1 protocol: chain length L ∈ {1, 2, 4, 8, 16, 32}, 20
-trials, bundle width 4 (3 distractors per cycle). Forward-bind
-through L role rotations bundling 3 distractor (role, filler)
-pairs at each step; unbind in reverse and decode. Two flavors:
-*raw* (no cleanup) and *snap* (argmax-cosine cleanup against the
-codebook after each unbind step).
+We work in a fixed-dimensional real vector space $\mathbb{R}^d$
+where $d$ is the substrate's embedding dimension (768 for
+nomic-embed-text, 384 for all-minilm, 1024 for mxbai-embed-large,
+320 for ESM-2). Every Sutra value carries the extended layout
+$[\,\text{semantic}\mid\text{synthetic}\,]$ — a $d$-dimensional
+semantic block holding the substrate embedding, concatenated with
+a small fixed-width synthetic block reserving canonical axes for
+primitive types (real, imag, truth, char, loop-done) and slot
+machinery (§3.3). Where notation does not distinguish, "vector"
+means "the full extended-layout tensor."
 
-| substrate         | L=1 raw | L=2 raw | L=4 raw | L=1 snap | L=2 snap | L=4 snap |
-|-------------------|--------:|--------:|--------:|---------:|---------:|---------:|
-| nomic-embed-text  | 100%    | 100%    | 20%     | 100%     | 10%      | 0%       |
-| all-minilm        | 100%    | 100%    | 5%      | 100%     | 0%       | 0%       |
-| mxbai-embed-large | 100%    | 100%    | 5%      | 100%     | 0%       | 0%       |
+The seven primitive operations are:
 
-By chain length 8 raw accuracy is at chance (1/84) on all three
-substrates. Snap is *worse* than raw past chain length 1: a
-hard codebook commitment converts soft noise into a
-high-confidence wrong answer that the next unbind cannot
-recover from. The runtime does not implicitly snap between
-operations; cleanup is an explicit step the program schedules
-where it knows the codebook is the right reference. Reproduction
-script: `experiments/crosstalk_chain.py`; raw JSON in
-`experiments/crosstalk_chain_results.json`.
+\begin{align*}
+\mathrm{bind}(r, f)        &\;=\; R_r \, f, \qquad R_r = \mathrm{QR}\!\left(\mathrm{seed}=\mathrm{hash}(r)\right)\!.Q \\
+\mathrm{unbind}(r, v)      &\;=\; R_r^{\!\top} v \\
+\mathrm{bundle}(x, y)      &\;=\; \frac{x + y}{\lVert x + y \rVert + \varepsilon} \\
+\mathrm{similarity}(x, y)  &\;=\; \frac{x \cdot y}{\lVert x \rVert \, \lVert y \rVert + \varepsilon} \\
+\mathrm{normalize}(v)      &\;=\; \frac{v}{\lVert v \rVert + \varepsilon}
+\end{align*}
 
-### Appendix B — Codebook store implementation details
+plus the Lagrange Kleene gates (scalar $\to$ scalar, exact on the
+$\{-1,0,+1\}^2$ grid, §1.1‑1) and the soft-halt cell
+(state, halt $\to$ state$'$, halt$'$, §3.4).
 
-The compile-time codebook is stored in an embedded vector
-database (internally called SutraDB) that ships as part of the
-compiler — analogous to SQLite being embedded in an application
-rather than run as a separate service. The data model is RDF
-triples with f32-vector literals as the object position, indexed
-by a built-in HNSW index for nearest-neighbor decode. The
-on-disk format is a `.sdb` file that travels alongside the
-compiled Python module; no external service, no separate
-install, no network dependency. Every embedded string in a
-Sutra program is inserted with the embedding as the object of a
-triple typed `<http://sutra.dev/f32vec>`. Strings declared but
-unused in expressions are still inserted, so they remain
-decodable. The compiled module's Python data section never
-carries the embeddings — they live in the `.sdb` file, an
-artifact of compilation, not a service the runtime contacts.
+The Lagrange gates in closed form:
 
-`nearest_string` runs over an HNSW (Hierarchical Navigable
-Small World) approximate-nearest-neighbor graph maintained by
-the triplestore. HNSW (Malkov & Yashunin, TPAMI 2020) has
-**O(log N) expected and worst-case query time** under standard
-graph-construction parameters; it has displaced linear scan as
-the default ANN index in Faiss, Milvus, Weaviate, Qdrant, and
-most production vector databases. A 100-string codebook and a
-100,000-string codebook have comparable decode latency at
-runtime, modulo HNSW's tunable `M` (graph degree) and
-`ef_search` (beam width); the cost difference is roughly one
-extra graph hop per 10× growth in N.
+\begin{align*}
+\mathrm{AND}(a, b)  &\;=\; \tfrac{1}{2}\!\left(a + b + ab - a^2 - b^2 + a^2 b^2\right) \\
+\mathrm{OR}(a, b)   &\;=\; \tfrac{1}{2}\!\left(a + b - ab + a^2 + b^2 - a^2 b^2\right) \\
+\mathrm{NOT}(a)     &\;=\; -a \\
+\mathrm{XOR}(a, b)  &\;=\; -ab \\
+\mathrm{XNOR}(a, b) &\;=\; ab
+\end{align*}
 
-### Appendix C — Sutra and TorchHD: side-by-side
+The soft-halt cell update is, in compact form,
 
-The same 3-field role-filler-record task — encode a record
-(name, color, shape) as a single bundled vector, then decode
-the color field — written in both systems.
+\begin{align*}
+s_{t+1}      &\;=\; R \, s_t                                && \text{(rotation step)} \\
+h_t          &\;=\; \mathrm{Heaviside}\!\left(\mathrm{cond}(s_t)\right) && \text{(per-tick halt signal)} \\
+H_t          &\;=\; \mathrm{sat}_{[0,1]}\!\left(\textstyle\sum_{k\le t} h_k\right) && \text{(cumulative monotone halt)} \\
+\hat{s}_{t+1}&\;=\; H_t \, s_t + (1 - H_t)\, s_{t+1}        && \text{(soft-mux freeze)}
+\end{align*}
 
-**Sutra** (`examples/role_filler_record.su`, the entire program):
+Every right-hand side is a tensor expression with no Python
+control flow. The compile-time primitives `RotationFor` and
+`embed` produce constants $R_r$ and basis vectors at compile
+time and are not part of the runtime tensor graph.
 
-```sutra
-vector r_name  = basis_vector("role_name");
-vector r_color = basis_vector("role_color");
-vector r_shape = basis_vector("role_shape");
-
-vector f_alice  = basis_vector("filler_alice");
-vector f_red    = basis_vector("filler_red");
-vector f_circle = basis_vector("filler_circle");
-// (... three more fillers omitted ...)
-
-map<vector, string> FILLER_NAME = {
-    f_alice: "alice", f_red: "red", f_circle: "circle",
-    /* ... */
-};
-
-function vector make_record(vector name, vector color, vector shape) {
-    return bundle(
-        bind(r_name, name), bind(r_color, color), bind(r_shape, shape)
-    );
-}
-
-function string decode_field(vector record, vector role) {
-    vector recovered = unbind(role, record);
-    vector winner = argmax_cosine(recovered,
-        [f_alice, f_red, f_circle, /* ... */]);
-    return FILLER_NAME[winner];
-}
-
-function string main() {
-    vector rec = make_record(f_alice, f_red, f_circle);
-    return decode_field(rec, r_color);
-}
-```
-
-The compiler reduces this whole program to a fused tensor-op
-graph: every `basis_vector` call is resolved at compile time;
-`bind` and `unbind` lower to one matmul each; `argmax_cosine`
-to one cosine-similarity matmul plus argmax; the `FILLER_NAME`
-map to the substrate-resident codebook. The runtime decodes by
-`nearest_string` against the embedded codebook — `"red"` comes
-out without the program ever leaving the tensor graph at the
-program-semantics level.
-
-**TorchHD equivalent** (`experiments/role_filler_record_torchhd.py`,
-abridged):
-
-```python
-import torch, torchhd
-
-torch.manual_seed(42)
-
-# 1. MANUAL hypervector creation. There is no "embed string";
-#    the user maintains the string-to-vector mapping.
-roles = {n: torchhd.random(1, 768, vsa="MAP")
-         for n in ["name", "color", "shape"]}
-fillers = {n: torchhd.random(1, 768, vsa="MAP")
-           for n in ["alice", "bob", "red", "blue", "circle", "square"]}
-
-# 2. MANUAL codebook tensor for decoding.
-filler_names = ["alice", "bob", "red", "blue", "circle", "square"]
-codebook = torch.cat([fillers[n] for n in filler_names], dim=0)
-
-# 3. Build the record (Python control flow).
-record = torchhd.bundle(
-    torchhd.bind(roles["name"],  fillers["alice"]),
-    torchhd.bundle(
-        torchhd.bind(roles["color"], fillers["red"]),
-        torchhd.bind(roles["shape"], fillers["circle"]),
-    ),
-)
-
-# 4. Decode (Python control flow).
-recovered = torchhd.bind(record, torchhd.inverse(roles["color"]))
-sims = torchhd.cosine_similarity(recovered, codebook)
-result = filler_names[int(torch.argmax(sims))]
-```
-
-Both programs return `"red"`. The CUDA kernels they eventually
-call into are largely the same; what differs is what the user
-writes — a `.su` source program vs. a Python function calling a
-library — and what the compiler has to chew on.
-
-### Appendix D — Extended-state-vector layout
+### Appendix B — Extended-state-vector layout
 
 Every value in a Sutra program is a vector with a fixed extended
 layout: `[semantic | synthetic]`. The semantic block holds the
@@ -871,7 +897,7 @@ no type dispatch at the leaves. Rotation binding is
 block-diagonal across the split: bind's `Q_role` is Haar-random
 in the semantic block and identity in the synthetic block.
 
-### Appendix E — Capacity: full per-substrate sweeps
+### Appendix C — Capacity: full per-substrate sweeps
 
 Cross-substrate decode accuracy at full bundle widths
 k ∈ {2, 4, 8, 16, 24, 32, 48}. The four substrates use 84-entry
@@ -937,219 +963,62 @@ of correlated real-valued embeddings produces a result that
 overlaps with many distractors in the codebook rather than
 near-orthogonally with one.
 
-### Appendix F — §3.6 differentiable-training vocabulary
+### Appendix D — Crosstalk depth: full per-substrate L-sweep
 
-Twenty categories of fifty words each (992 unique after
-deduplication), embedded via nomic-embed-text:
+The §3.2.1 protocol: chain length L ∈ {1, 2, 4, 8, 16, 32}, 20
+trials, bundle width 4 (3 distractors per cycle). Forward-bind
+through L role rotations bundling 3 distractor (role, filler)
+pairs at each step; unbind in reverse and decode. Two flavors:
+*raw* (no cleanup) and *snap* (argmax-cosine cleanup against the
+codebook after each unbind step).
 
-- **animal**: dog, cat, bird, fish, horse, lion, tiger, elephant, rabbit, monkey, bear, wolf, fox, deer, mouse, snake, frog, turtle, dolphin, whale, shark, eagle, owl, sparrow, crow, robin, parrot, swan, duck, goose, chicken, cow, pig, sheep, goat, donkey, camel, giraffe, kangaroo, koala, panda, leopard, cheetah, hippopotamus, rhinoceros, antelope, buffalo, hedgehog, squirrel, raccoon
-- **vehicle**: car, truck, airplane, boat, bicycle, motorcycle, bus, train, ship, helicopter, tractor, scooter, van, taxi, jeep, sailboat, kayak, canoe, raft, submarine, glider, jet, rocket, spaceship, sled, skateboard, wagon, carriage, chariot, ambulance, firetruck, limousine, minivan, hatchback, sedan, coupe, convertible, pickup, trailer, ferry, yacht, dinghy, blimp, balloon, hovercraft, tram, moped, tricycle, rollerblade, unicycle
-- **food**: apple, bread, cheese, rice, pasta, banana, salad, soup, meat, pizza, sandwich, burger, taco, sushi, cake, cookie, pie, donut, muffin, pancake, waffle, bagel, croissant, omelet, salmon, tuna, beef, pork, lamb, bacon, ham, sausage, steak, lobster, shrimp, crab, oyster, clam, broccoli, carrot, lettuce, tomato, potato, cucumber, onion, garlic, pepper, eggplant, spinach, mushroom
-- **color**: red, blue, green, yellow, orange, purple, black, white, brown, pink, gray, cyan, magenta, violet, indigo, turquoise, teal, lavender, maroon, crimson, scarlet, ruby, gold, silver, bronze, copper, beige, tan, ivory, charcoal, navy, sapphire, emerald, jade, olive, lime, mint, coral, peach, plum, mauve, fuchsia, amber, ochre, sienna, mahogany, chocolate, caramel, mustard, azure
-- **clothing**: shirt, pants, dress, hat, shoes, jacket, socks, gloves, scarf, belt, sweater, hoodie, jeans, shorts, skirt, blouse, coat, cap, beanie, mittens, tights, leggings, vest, blazer, suit, tuxedo, gown, robe, kimono, kilt, poncho, cloak, cape, sneakers, boots, sandals, slippers, heels, loafers, tie, bowtie, cufflinks, watch, ring, necklace, earrings, bracelet, anklet, brooch, headband
-- **weather**: rain, snow, wind, cloud, storm, fog, frost, hail, thunder, lightning, drizzle, downpour, blizzard, hurricane, tornado, cyclone, typhoon, sleet, mist, haze, smog, sunshine, sunlight, sunset, sunrise, dawn, dusk, twilight, breeze, gust, gale, humidity, drought, flood, monsoon, snowfall, snowstorm, rainstorm, sandstorm, heatwave, chill, dew, hailstorm, thaw, overcast, sunny, cloudy, rainy, snowy, windy
-- **emotion**: joy, sadness, anger, fear, love, hope, surprise, disgust, pride, envy, happiness, grief, rage, anxiety, affection, despair, delight, shame, guilt, confidence, contentment, jealousy, regret, sorrow, frustration, satisfaction, awe, wonder, gratitude, compassion, sympathy, empathy, irritation, boredom, excitement, enthusiasm, calm, serenity, melancholy, nostalgia, longing, embarrassment, humiliation, indifference, ecstasy, bliss, dread, terror, amusement, loneliness
-- **tool**: hammer, saw, drill, wrench, screwdriver, knife, scissors, pliers, axe, shovel, rake, hoe, spade, pickaxe, crowbar, mallet, chisel, sander, level, ruler, vise, clamp, ratchet, socket, awl, scraper, trowel, broom, mop, sponge, bucket, ladder, jackhammer, sledgehammer, paintbrush, roller, stapler, tongs, tweezers, calipers, magnifier, flashlight, multimeter, wirecutter, hacksaw, router, torch, soldering_iron, drillbit, screwbit
-- **instrument**: guitar, piano, drum, violin, flute, trumpet, saxophone, harp, cello, clarinet, banjo, mandolin, ukulele, harmonica, accordion, organ, keyboard, synthesizer, xylophone, tambourine, maracas, bongos, marimba, vibraphone, glockenspiel, bagpipes, oboe, bassoon, trombone, tuba, lute, sitar, koto, zither, dulcimer, cymbal, gong, triangle, cowbell, snare, kettledrum, recorder, piccolo, fife, didgeridoo, theremin, viola, double_bass, fiddle, ocarina
-- **profession**: doctor, teacher, lawyer, engineer, nurse, chef, artist, scientist, farmer, plumber, electrician, carpenter, mechanic, pilot, sailor, soldier, judge, journalist, writer, poet, painter, sculptor, musician, actor, dancer, singer, photographer, architect, dentist, surgeon, pharmacist, veterinarian, librarian, accountant, banker, broker, programmer, designer, manager, secretary, butcher, baker, gardener, tailor, jeweler, barber, chemist, biologist, physicist, mathematician
-- **body_part**: head, hand, foot, eye, ear, nose, mouth, leg, arm, finger, toe, knee, elbow, shoulder, hip, neck, back, chest, stomach, heart, brain, lung, liver, kidney, bone, muscle, skin, hair, throat, jaw, chin, cheek, forehead, eyebrow, eyelash, lip, tongue, palm, wrist, ankle, thumb, heel, spine, rib, scalp, nostril, gum, knuckle, tendon, vein
-- **plant**: tree, flower, grass, bush, vine, fern, moss, herb, weed, leaf, stem, branch, bark, blossom, petal, oak, maple, willow, birch, cedar, bamboo, cactus, rose, tulip, daisy, lily, sunflower, orchid, ivy, basil, rosemary, thyme, sage, lavender, dandelion, clover, lotus, magnolia, sycamore, redwood, baobab, eucalyptus, juniper, hemlock, fir, spruce, ash, elm, poplar, chestnut
-- **furniture**: chair, table, sofa, bed, desk, shelf, drawer, cabinet, wardrobe, dresser, nightstand, ottoman, bench, stool, recliner, futon, couch, armchair, bookcase, sideboard, buffet, cupboard, hutch, vanity, headboard, footboard, mattress, pillow, cushion, blanket, quilt, comforter, lamp, mirror, rug, carpet, curtain, blind, shutter, hammock, cradle, crib, bassinet, highchair, rocker, loveseat, settee, divan, chaise, headrest
-- **building**: house, apartment, mansion, cottage, cabin, hut, igloo, tent, palace, castle, fortress, tower, skyscraper, office, factory, warehouse, store, mall, restaurant, hotel, motel, hospital, school, university, library, museum, theater, stadium, arena, church, temple, mosque, synagogue, cathedral, chapel, monastery, abbey, barn, shed, garage, basement, attic, cellar, lobby, lounge, hallway, corridor, atrium, foyer, balcony
-- **country**: France, Germany, Italy, Spain, Portugal, England, Scotland, Ireland, Norway, Sweden, Finland, Denmark, Iceland, Russia, Poland, Greece, Turkey, Egypt, Morocco, Algeria, Kenya, Nigeria, Ethiopia, Ghana, Senegal, Mali, Sudan, Uganda, Tanzania, Madagascar, China, Japan, Korea, Vietnam, Thailand, Malaysia, Indonesia, India, Pakistan, Bangladesh, Iran, Iraq, Israel, Lebanon, Australia, Canada, Mexico, Brazil, Argentina, Chile
-- **sport**: football, basketball, baseball, soccer, tennis, golf, hockey, rugby, cricket, volleyball, swimming, running, cycling, skiing, snowboarding, surfing, sailing, rowing, kayaking, climbing, hiking, boxing, wrestling, fencing, archery, shooting, fishing, hunting, polo, badminton, ping_pong, squash, racquetball, lacrosse, handball, dodgeball, kickball, gymnastics, diving, weightlifting, judo, karate, taekwondo, sumo, marathon, triathlon, decathlon, biathlon, skating, bowling
-- **drink**: water, juice, milk, tea, coffee, soda, beer, wine, whiskey, vodka, rum, gin, tequila, brandy, cognac, champagne, cocktail, smoothie, milkshake, lemonade, cider, ale, lager, stout, bourbon, scotch, sake, mead, punch, eggnog, kombucha, kefir, espresso, latte, cappuccino, mocha, americano, macchiato, frappe, hot_chocolate, cordial, shake, slushie, syrup, fizz, brew, tonic, infusion, ginger_ale, root_beer
-- **metal**: gold, silver, copper, iron, steel, aluminum, brass, bronze, tin, lead, zinc, nickel, platinum, titanium, chromium, mercury, magnesium, lithium, sodium, potassium, calcium, uranium, plutonium, palladium, tungsten, vanadium, cobalt, manganese, beryllium, gallium, indium, antimony, bismuth, cadmium, cerium, neodymium, osmium, rhodium, ruthenium, tantalum, thallium, thorium, yttrium, scandium, hafnium, niobium, molybdenum, rhenium, iridium, rubidium
-- **shape**: circle, square, triangle, rectangle, oval, ellipse, pentagon, hexagon, octagon, diamond, rhombus, trapezoid, parallelogram, polygon, sphere, cube, cylinder, cone, pyramid, prism, cuboid, tetrahedron, dodecahedron, icosahedron, octahedron, torus, helix, spiral, crescent, star, heart, arrow, cross, line, curve, arc, ring, loop, knot, dot, vertex, edge, angle, parabola, hyperbola, sine, wave, zigzag, scallop, annulus
-- **fabric**: cotton, wool, silk, linen, polyester, nylon, denim, leather, suede, velvet, satin, lace, tweed, cashmere, mohair, fleece, fur, canvas, burlap, jute, flannel, chiffon, organza, taffeta, brocade, damask, paisley, gingham, plaid, herringbone, corduroy, microfiber, spandex, lycra, rayon, viscose, acrylic, polypropylene, jersey, knit, sherpa, gabardine, twill, muslin, gauze, mesh, vinyl, tulle, georgette, voile
+| substrate         | L=1 raw | L=2 raw | L=4 raw | L=1 snap | L=2 snap | L=4 snap |
+|-------------------|--------:|--------:|--------:|---------:|---------:|---------:|
+| nomic-embed-text  | 100%    | 100%    | 20%     | 100%     | 10%      | 0%       |
+| all-minilm        | 100%    | 100%    | 5%      | 100%     | 0%       | 0%       |
+| mxbai-embed-large | 100%    | 100%    | 5%      | 100%     | 0%       | 0%       |
 
-### Appendix K — Per-tick dataflow of the soft-halt loop cell
+By chain length 8 raw accuracy is at chance (1/84) on all three
+substrates. Snap is *worse* than raw past chain length 1: a
+hard codebook commitment converts soft noise into a
+high-confidence wrong answer that the next unbind cannot
+recover from. The runtime does not implicitly snap between
+operations; cleanup is an explicit step the program schedules
+where it knows the codebook is the right reference. Reproduction
+script: `experiments/crosstalk_chain.py`; raw JSON in
+`experiments/crosstalk_chain_results.json`.
 
-Figure~\ref{fig:halt-cell} visualizes the §3.4 RNN-cell tick.
+### Appendix E — Codebook store implementation details
 
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=7mm,
-  every node/.style={font=\footnotesize},
-  io/.style={draw, rounded corners, minimum width=22mm, minimum height=6mm, align=center},
-  op/.style={draw, minimum width=32mm, minimum height=7mm, align=center},
-  acc/.style={draw, double, minimum width=32mm, minimum height=7mm, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick}
-]
-  \node[io] (sin) {state\textsubscript{in} $s_t$};
-  \node[op, below left=8mm and 6mm of sin]  (pre)  {snapshot $\to s_t^{\mathrm{pre}}$};
-  \node[op, below right=8mm and 6mm of sin] (body) {cell body \\ \scriptsize{$s_{t+1} = R\,s_t$;\;\; $h_t = \mathrm{Heaviside}(\mathrm{cond}(s_t))$}};
-  \node[acc, below=of body] (acc) {$H_t = \mathrm{sat}_{[0,1]}\!\bigl(H_{t-1} + h_t\bigr)$};
-  \node[op, below=of acc, xshift=-20mm] (mux) {soft-mux freeze \\ \scriptsize{$\hat{s}_{t+1} = H_t\, s_t^{\mathrm{pre}} + (1-H_t)\,s_{t+1}$}};
-  \node[io, below=of mux] (sout) {state\textsubscript{out} $\hat{s}_{t+1}$};
+The compile-time codebook is stored in an embedded vector
+database (internally called SutraDB) that ships as part of the
+compiler — analogous to SQLite being embedded in an application
+rather than run as a separate service. The data model is RDF
+triples with f32-vector literals as the object position, indexed
+by a built-in HNSW index for nearest-neighbor decode. The
+on-disk format is a `.sdb` file that travels alongside the
+compiled Python module; no external service, no separate
+install, no network dependency. Every embedded string in a
+Sutra program is inserted with the embedding as the object of a
+triple typed `<http://sutra.dev/f32vec>`. Strings declared but
+unused in expressions are still inserted, so they remain
+decodable. The compiled module's Python data section never
+carries the embeddings — they live in the `.sdb` file, an
+artifact of compilation, not a service the runtime contacts.
 
-  \draw[arr] (sin) -- (pre);
-  \draw[arr] (sin) -- (body);
-  \draw[arr] (body) -- (acc);
-  \draw[arr] (acc) -- (mux);
-  \draw[arr] (pre) |- (mux);
-  \draw[arr] (body.south) to[bend left=15] (mux.east);
-  \draw[arr] (mux) -- (sout);
-\end{tikzpicture}
-\caption{Per-tick dataflow of the soft-halt RNN cell. Once $H_t$ saturates at $1$, the soft-mux output equals $s_t^{\mathrm{pre}}$ — the loop has frozen. The halt-cum read is a boundary operation of the same shape as the codebook decode (§3.5).}
-\label{fig:halt-cell}
-\end{figure}
+`nearest_string` runs over an HNSW (Hierarchical Navigable
+Small World) approximate-nearest-neighbor graph maintained by
+the triplestore. HNSW (Malkov & Yashunin, TPAMI 2020) has
+**O(log N) expected and worst-case query time** under standard
+graph-construction parameters; it has displaced linear scan as
+the default ANN index in Faiss, Milvus, Weaviate, Qdrant, and
+most production vector databases. A 100-string codebook and a
+100,000-string codebook have comparable decode latency at
+runtime, modulo HNSW's tunable `M` (graph degree) and
+`ef_search` (beam width); the cost difference is roughly one
+extra graph hop per 10× growth in N.
 
-### Appendix J — Compilation pipeline diagram
-
-Figure~\ref{fig:compile-pipeline} draws the five-stage
-compilation pipeline of §4 as a vertical flow with the residual
-at each stage.
-
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=4mm,
-  every node/.style={font=\footnotesize},
-  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
-  step/.style={draw=none, font=\scriptsize\itshape, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick},
-  divider/.style={dashed, gray}
-]
-  \node[res] (src)   {source code (\texttt{.su})};
-  \node[step, below=of src]   (s1) {(1) lex + parse};
-  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
-  \node[step, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
-  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
-  \node[step, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
-  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
-  \node[step, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
-  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
-  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
-  \node[step, below=of cline] (s5) {(5) forward pass on input tensors};
-  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
-
-  \draw[arr] (src) -- (ast);
-  \draw[arr] (ast) -- (sast);
-  \draw[arr] (sast) -- (mod);
-  \draw[arr] (mod) -- (warm);
-  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
-  \draw[arr] (warm) -- (out);
-\end{tikzpicture}
-\caption{Five-stage compilation pipeline of §4. Boxes are intermediate artifacts; italic labels are the compiler passes that connect them. Stages (1)--(4) run at compile time; the dashed line marks the compile/runtime boundary; stage (5) is the runtime forward pass.}
-\label{fig:compile-pipeline}
-\end{figure}
-
-### Appendix I — The K=3 rule pipeline as a tensor-op graph
-
-Body §3.6 describes the rule pipeline in prose. Figure~\ref{fig:k3-pipeline}
-draws the explicit graph for $K=3$ (the $K=20$ graph used in the
-experiment has the same shape with twenty learnable prototypes
-and the AND-of-NOTs left-folded across nineteen $\mathrm{NOT}(\mathrm{sim})$
-terms).
-
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=6mm and 9mm,
-  every node/.style={font=\footnotesize},
-  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
-  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
-  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick}
-]
-  \node[io] (x) {input $x \in \mathbb{R}^d$};
-  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
-  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
-  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
-
-  \node[proto, left=4mm of cos1] (p1) {$p_1$};
-  \node[proto, left=4mm of cos2] (p2) {$p_2$};
-  \node[proto, left=4mm of cos3] (p3) {$p_3$};
-
-  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
-  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
-  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
-  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
-
-  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
-  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
-
-  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
-  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
-  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
-  \node[io, below=6mm of ce]      (loss) {loss};
-
-  \draw[arr] (x) -- (cos1);
-  \draw[arr] (x) -- (cos2);
-  \draw[arr] (x) -- (cos3);
-  \draw[arr] (p1) -- (cos1);
-  \draw[arr] (p2) -- (cos2);
-  \draw[arr] (p3) -- (cos3);
-  \draw[arr] (cos2) -- (not2);
-  \draw[arr] (cos3) -- (not3);
-  \draw[arr] (not2) -- (andneg);
-  \draw[arr] (not3) -- (andneg);
-  \draw[arr] (cos1) -- (and1);
-  \draw[arr] (andneg) -| (and1);
-  \draw[arr] (and1) -- (rule1);
-  \draw[arr] (rule1) -- (stack);
-  \draw[arr] (stack) -- (sm);
-  \draw[arr] (sm) -- (ce);
-  \draw[arr] (ce) -- (loss);
-\end{tikzpicture}
-\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
-\label{fig:k3-pipeline}
-\end{figure}
-
-### Appendix H — Notation: extended layout and primitive operations
-
-We work in a fixed-dimensional real vector space $\mathbb{R}^d$
-where $d$ is the substrate's embedding dimension (768 for
-nomic-embed-text, 384 for all-minilm, 1024 for mxbai-embed-large,
-320 for ESM-2). Every Sutra value carries the extended layout
-$[\,\text{semantic}\mid\text{synthetic}\,]$ — a $d$-dimensional
-semantic block holding the substrate embedding, concatenated with
-a small fixed-width synthetic block reserving canonical axes for
-primitive types (real, imag, truth, char, loop-done) and slot
-machinery (§3.3). Where notation does not distinguish, "vector"
-means "the full extended-layout tensor."
-
-The seven primitive operations are:
-
-\begin{align*}
-\mathrm{bind}(r, f)        &\;=\; R_r \, f, \qquad R_r = \mathrm{QR}\!\left(\mathrm{seed}=\mathrm{hash}(r)\right)\!.Q \\
-\mathrm{unbind}(r, v)      &\;=\; R_r^{\!\top} v \\
-\mathrm{bundle}(x, y)      &\;=\; \frac{x + y}{\lVert x + y \rVert + \varepsilon} \\
-\mathrm{similarity}(x, y)  &\;=\; \frac{x \cdot y}{\lVert x \rVert \, \lVert y \rVert + \varepsilon} \\
-\mathrm{normalize}(v)      &\;=\; \frac{v}{\lVert v \rVert + \varepsilon}
-\end{align*}
-
-plus the Lagrange Kleene gates (scalar $\to$ scalar, exact on the
-$\{-1,0,+1\}^2$ grid, §1.1‑1) and the soft-halt cell
-(state, halt $\to$ state$'$, halt$'$, §3.4).
-
-The Lagrange gates in closed form:
-
-\begin{align*}
-\mathrm{AND}(a, b)  &\;=\; \tfrac{1}{2}\!\left(a + b + ab - a^2 - b^2 + a^2 b^2\right) \\
-\mathrm{OR}(a, b)   &\;=\; \tfrac{1}{2}\!\left(a + b - ab + a^2 + b^2 - a^2 b^2\right) \\
-\mathrm{NOT}(a)     &\;=\; -a \\
-\mathrm{XOR}(a, b)  &\;=\; -ab \\
-\mathrm{XNOR}(a, b) &\;=\; ab
-\end{align*}
-
-The soft-halt cell update is, in compact form,
-
-\begin{align*}
-s_{t+1}      &\;=\; R \, s_t                                && \text{(rotation step)} \\
-h_t          &\;=\; \mathrm{Heaviside}\!\left(\mathrm{cond}(s_t)\right) && \text{(per-tick halt signal)} \\
-H_t          &\;=\; \mathrm{sat}_{[0,1]}\!\left(\textstyle\sum_{k\le t} h_k\right) && \text{(cumulative monotone halt)} \\
-\hat{s}_{t+1}&\;=\; H_t \, s_t + (1 - H_t)\, s_{t+1}        && \text{(soft-mux freeze)}
-\end{align*}
-
-Every right-hand side is a tensor expression with no Python
-control flow. The compile-time primitives `RotationFor` and
-`embed` produce constants $R_r$ and basis vectors at compile
-time and are not part of the runtime tensor graph.
-
-### Appendix G — Worked lowering of a two-field bundled record
+### Appendix F — Worked lowering of a two-field bundled record
 
 The body §4.3 sketches the lowering of
 $\mathrm{encode2}(r_a, f_a, r_b, f_b) \,:=\, \mathrm{bundle}(\mathrm{bind}(r_a, f_a),\,\mathrm{bind}(r_b, f_b))$.
@@ -1201,3 +1070,29 @@ v          &\;=\; \sum_{k} R_k\,f_k \;=\; \mathtt{einsum("kij,kj->i",\; \mathrm{
 The compiled forward pass for `encode2` is exactly those three
 torch calls — einsum, linalg.norm, divide — over precomputed
 $R_a, R_b$ and runtime-supplied $f_a, f_b$.
+### Appendix G — §3.6 differentiable-training vocabulary
+
+Twenty categories of fifty words each (992 unique after
+deduplication), embedded via nomic-embed-text:
+
+- **animal**: dog, cat, bird, fish, horse, lion, tiger, elephant, rabbit, monkey, bear, wolf, fox, deer, mouse, snake, frog, turtle, dolphin, whale, shark, eagle, owl, sparrow, crow, robin, parrot, swan, duck, goose, chicken, cow, pig, sheep, goat, donkey, camel, giraffe, kangaroo, koala, panda, leopard, cheetah, hippopotamus, rhinoceros, antelope, buffalo, hedgehog, squirrel, raccoon
+- **vehicle**: car, truck, airplane, boat, bicycle, motorcycle, bus, train, ship, helicopter, tractor, scooter, van, taxi, jeep, sailboat, kayak, canoe, raft, submarine, glider, jet, rocket, spaceship, sled, skateboard, wagon, carriage, chariot, ambulance, firetruck, limousine, minivan, hatchback, sedan, coupe, convertible, pickup, trailer, ferry, yacht, dinghy, blimp, balloon, hovercraft, tram, moped, tricycle, rollerblade, unicycle
+- **food**: apple, bread, cheese, rice, pasta, banana, salad, soup, meat, pizza, sandwich, burger, taco, sushi, cake, cookie, pie, donut, muffin, pancake, waffle, bagel, croissant, omelet, salmon, tuna, beef, pork, lamb, bacon, ham, sausage, steak, lobster, shrimp, crab, oyster, clam, broccoli, carrot, lettuce, tomato, potato, cucumber, onion, garlic, pepper, eggplant, spinach, mushroom
+- **color**: red, blue, green, yellow, orange, purple, black, white, brown, pink, gray, cyan, magenta, violet, indigo, turquoise, teal, lavender, maroon, crimson, scarlet, ruby, gold, silver, bronze, copper, beige, tan, ivory, charcoal, navy, sapphire, emerald, jade, olive, lime, mint, coral, peach, plum, mauve, fuchsia, amber, ochre, sienna, mahogany, chocolate, caramel, mustard, azure
+- **clothing**: shirt, pants, dress, hat, shoes, jacket, socks, gloves, scarf, belt, sweater, hoodie, jeans, shorts, skirt, blouse, coat, cap, beanie, mittens, tights, leggings, vest, blazer, suit, tuxedo, gown, robe, kimono, kilt, poncho, cloak, cape, sneakers, boots, sandals, slippers, heels, loafers, tie, bowtie, cufflinks, watch, ring, necklace, earrings, bracelet, anklet, brooch, headband
+- **weather**: rain, snow, wind, cloud, storm, fog, frost, hail, thunder, lightning, drizzle, downpour, blizzard, hurricane, tornado, cyclone, typhoon, sleet, mist, haze, smog, sunshine, sunlight, sunset, sunrise, dawn, dusk, twilight, breeze, gust, gale, humidity, drought, flood, monsoon, snowfall, snowstorm, rainstorm, sandstorm, heatwave, chill, dew, hailstorm, thaw, overcast, sunny, cloudy, rainy, snowy, windy
+- **emotion**: joy, sadness, anger, fear, love, hope, surprise, disgust, pride, envy, happiness, grief, rage, anxiety, affection, despair, delight, shame, guilt, confidence, contentment, jealousy, regret, sorrow, frustration, satisfaction, awe, wonder, gratitude, compassion, sympathy, empathy, irritation, boredom, excitement, enthusiasm, calm, serenity, melancholy, nostalgia, longing, embarrassment, humiliation, indifference, ecstasy, bliss, dread, terror, amusement, loneliness
+- **tool**: hammer, saw, drill, wrench, screwdriver, knife, scissors, pliers, axe, shovel, rake, hoe, spade, pickaxe, crowbar, mallet, chisel, sander, level, ruler, vise, clamp, ratchet, socket, awl, scraper, trowel, broom, mop, sponge, bucket, ladder, jackhammer, sledgehammer, paintbrush, roller, stapler, tongs, tweezers, calipers, magnifier, flashlight, multimeter, wirecutter, hacksaw, router, torch, soldering_iron, drillbit, screwbit
+- **instrument**: guitar, piano, drum, violin, flute, trumpet, saxophone, harp, cello, clarinet, banjo, mandolin, ukulele, harmonica, accordion, organ, keyboard, synthesizer, xylophone, tambourine, maracas, bongos, marimba, vibraphone, glockenspiel, bagpipes, oboe, bassoon, trombone, tuba, lute, sitar, koto, zither, dulcimer, cymbal, gong, triangle, cowbell, snare, kettledrum, recorder, piccolo, fife, didgeridoo, theremin, viola, double_bass, fiddle, ocarina
+- **profession**: doctor, teacher, lawyer, engineer, nurse, chef, artist, scientist, farmer, plumber, electrician, carpenter, mechanic, pilot, sailor, soldier, judge, journalist, writer, poet, painter, sculptor, musician, actor, dancer, singer, photographer, architect, dentist, surgeon, pharmacist, veterinarian, librarian, accountant, banker, broker, programmer, designer, manager, secretary, butcher, baker, gardener, tailor, jeweler, barber, chemist, biologist, physicist, mathematician
+- **body_part**: head, hand, foot, eye, ear, nose, mouth, leg, arm, finger, toe, knee, elbow, shoulder, hip, neck, back, chest, stomach, heart, brain, lung, liver, kidney, bone, muscle, skin, hair, throat, jaw, chin, cheek, forehead, eyebrow, eyelash, lip, tongue, palm, wrist, ankle, thumb, heel, spine, rib, scalp, nostril, gum, knuckle, tendon, vein
+- **plant**: tree, flower, grass, bush, vine, fern, moss, herb, weed, leaf, stem, branch, bark, blossom, petal, oak, maple, willow, birch, cedar, bamboo, cactus, rose, tulip, daisy, lily, sunflower, orchid, ivy, basil, rosemary, thyme, sage, lavender, dandelion, clover, lotus, magnolia, sycamore, redwood, baobab, eucalyptus, juniper, hemlock, fir, spruce, ash, elm, poplar, chestnut
+- **furniture**: chair, table, sofa, bed, desk, shelf, drawer, cabinet, wardrobe, dresser, nightstand, ottoman, bench, stool, recliner, futon, couch, armchair, bookcase, sideboard, buffet, cupboard, hutch, vanity, headboard, footboard, mattress, pillow, cushion, blanket, quilt, comforter, lamp, mirror, rug, carpet, curtain, blind, shutter, hammock, cradle, crib, bassinet, highchair, rocker, loveseat, settee, divan, chaise, headrest
+- **building**: house, apartment, mansion, cottage, cabin, hut, igloo, tent, palace, castle, fortress, tower, skyscraper, office, factory, warehouse, store, mall, restaurant, hotel, motel, hospital, school, university, library, museum, theater, stadium, arena, church, temple, mosque, synagogue, cathedral, chapel, monastery, abbey, barn, shed, garage, basement, attic, cellar, lobby, lounge, hallway, corridor, atrium, foyer, balcony
+- **country**: France, Germany, Italy, Spain, Portugal, England, Scotland, Ireland, Norway, Sweden, Finland, Denmark, Iceland, Russia, Poland, Greece, Turkey, Egypt, Morocco, Algeria, Kenya, Nigeria, Ethiopia, Ghana, Senegal, Mali, Sudan, Uganda, Tanzania, Madagascar, China, Japan, Korea, Vietnam, Thailand, Malaysia, Indonesia, India, Pakistan, Bangladesh, Iran, Iraq, Israel, Lebanon, Australia, Canada, Mexico, Brazil, Argentina, Chile
+- **sport**: football, basketball, baseball, soccer, tennis, golf, hockey, rugby, cricket, volleyball, swimming, running, cycling, skiing, snowboarding, surfing, sailing, rowing, kayaking, climbing, hiking, boxing, wrestling, fencing, archery, shooting, fishing, hunting, polo, badminton, ping_pong, squash, racquetball, lacrosse, handball, dodgeball, kickball, gymnastics, diving, weightlifting, judo, karate, taekwondo, sumo, marathon, triathlon, decathlon, biathlon, skating, bowling
+- **drink**: water, juice, milk, tea, coffee, soda, beer, wine, whiskey, vodka, rum, gin, tequila, brandy, cognac, champagne, cocktail, smoothie, milkshake, lemonade, cider, ale, lager, stout, bourbon, scotch, sake, mead, punch, eggnog, kombucha, kefir, espresso, latte, cappuccino, mocha, americano, macchiato, frappe, hot_chocolate, cordial, shake, slushie, syrup, fizz, brew, tonic, infusion, ginger_ale, root_beer
+- **metal**: gold, silver, copper, iron, steel, aluminum, brass, bronze, tin, lead, zinc, nickel, platinum, titanium, chromium, mercury, magnesium, lithium, sodium, potassium, calcium, uranium, plutonium, palladium, tungsten, vanadium, cobalt, manganese, beryllium, gallium, indium, antimony, bismuth, cadmium, cerium, neodymium, osmium, rhodium, ruthenium, tantalum, thallium, thorium, yttrium, scandium, hafnium, niobium, molybdenum, rhenium, iridium, rubidium
+- **shape**: circle, square, triangle, rectangle, oval, ellipse, pentagon, hexagon, octagon, diamond, rhombus, trapezoid, parallelogram, polygon, sphere, cube, cylinder, cone, pyramid, prism, cuboid, tetrahedron, dodecahedron, icosahedron, octahedron, torus, helix, spiral, crescent, star, heart, arrow, cross, line, curve, arc, ring, loop, knot, dot, vertex, edge, angle, parabola, hyperbola, sine, wave, zigzag, scallop, annulus
+- **fabric**: cotton, wool, silk, linen, polyester, nylon, denim, leather, suede, velvet, satin, lace, tweed, cashmere, mohair, fleece, fur, canvas, burlap, jute, flannel, chiffon, organza, taffeta, brocade, damask, paisley, gingham, plaid, herringbone, corduroy, microfiber, spandex, lycra, rayon, viscose, acrylic, polypropylene, jersey, knit, sherpa, gabardine, twill, muslin, gauze, mesh, vinyl, tulle, georgette, voile
+
