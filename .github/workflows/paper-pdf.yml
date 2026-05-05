@@ -46,8 +46,18 @@ jobs:
       - name: Generate paper.tex.body from paper.md
         working-directory: paper
         run: |
+          # --from=markdown-smart (not gfm): pandoc's gfm reader does
+          # not support the raw_tex extension, so every \begin{align*}
+          # / \begin{figure} / \begin{tikzpicture} block in paper.md
+          # was being escaped to literal \textbackslash text and then
+          # typeset as monospace gibberish — every display-math block
+          # and all three TikZ figures rendered as their LaTeX source
+          # rather than as math/figures. The markdown reader
+          # passes raw LaTeX through untouched. `-smart` keeps
+          # straight quotes (paper source already uses em-dashes
+          # directly).
           pandoc paper.md \
-            --from=gfm \
+            --from=markdown-smart \
             --to=latex \
             --output=paper.tex.body \
             --wrap=preserve \
