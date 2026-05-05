@@ -9,55 +9,64 @@
 **Sutra** is a typed, purely functional programming language
 whose compiled forward pass is a PyTorch neural network. The
 compiler beta-reduces the whole program — primitives, control
-flow, and string I/O — to a fused tensor-op graph: rotation
-binding, unbind, bundle, polynomial Kleene three-valued logic,
-and tail-recursive loops all lower to substrate tensor
-operations, with the only remaining host-side control flow a
-thin tick-loop that breaks when a halt scalar saturates.
+flow, string I/O — to a fused tensor-op graph: rotation binding,
+unbind, bundle, polynomial Kleene three-valued logic, and
+tail-recursive loops all lower to tensor operations on a frozen
+embedding substrate, with the only remaining host-side control
+flow a thin tick-loop that breaks when a halt scalar saturates.
+The substrate is the architecture target: swap the embedding
+model and the same source recompiles against a different
+geometry.
 
 The validation is a single fact testable two ways. (1) The same
 program runs on four frozen embedding substrates spanning two
 modalities — three text encoders (nomic-embed-text, all-minilm,
-mxbai-embed-large) and one protein language model (ESM-2) —
-and decodes bundles at 100% accuracy through width k=8 on every
-one, where the textbook Hadamard product has already collapsed
-(2.5% on mxbai-embed-large, 28.7% on ESM-2). (2) PyTorch
-autograd flows through the compiled graph end-to-end: a
-symbolic if-then program of fuzzy rules over 20 classes / 992
-words, with a rule tree nineteen ANDs deep, trains from chance
-accuracy (4%) to 95% in 300 epochs without any modification to
-the symbolic source — gradient descent moves the embeddings the
-rules evaluate against, leaving the rule graph itself untouched.
+mxbai-embed-large) and one protein language model (ESM-2) — and
+decodes bundles at 100% accuracy through width k=8 on every one,
+where the textbook Hadamard product has already collapsed (2.5%
+on mxbai-embed-large, 28.7% on ESM-2); single-cycle bind/unbind
+round-trips at ≈ 1.5×10⁻¹⁵. End-to-end string I/O is built in: a
+compile-time codebook stores every embedded literal in a `.sdb`
+file shipped with the compiled module, decoded at the program
+output via nearest-string lookup — without the host-side
+dictionary existing HDC libraries require. (2) PyTorch autograd
+flows through the compiled graph end-to-end: a symbolic if-then
+program of fuzzy rules over 20 classes / 992 words, with a rule
+tree nineteen ANDs deep, trains from chance accuracy (4%) to 95%
+in 300 epochs without any modification to the symbolic source —
+gradient descent moves the embeddings the rules evaluate
+against, leaving the rule graph itself untouched.
 
-This collapses the boundary between "writing a logic program"
-and "training a neural network": one artifact, two
-interpretations.
+This collapses the boundary between writing a logic program and
+training a neural network: one artifact, two interpretations.
 
 ---
 
 ## 1. Introduction
 
-The discovery that general-purpose language model embeddings
-encode relational structure as vector arithmetic — `king − man +
-woman ≈ queen`, formalized through TransE, RotatE, and the
-broader knowledge-graph embedding literature — established that
-there is genuine algebraic content in the geometry of pre-trained
-models. Given that algebraic structure exists, two questions
-follow:
+A frozen embedding model maps strings — or amino-acid sequences,
+or any other input the model was trained on — into a
+deterministic continuous vector space. Given such a substrate,
+two technical questions follow:
 
 1. **Which operations on these embeddings are reliable enough to
    be used as primitives** of a compositional algebra over the
-   embedding space, rather than as one-off lexical facts?
-2. **What is the correct binding operation** to compose those
-   primitives into structured representations — i.e. how do we
-   build a working vector-symbolic architecture (VSA) on top of
-   substrates the standard VSA literature was not designed for?
+   substrate's vector space?
+2. **What is the correct binding operation?** Hyperdimensional
+   computing's textbook bind operators — Hadamard product,
+   circular convolution — were derived assuming hypervectors
+   drawn from a controlled random distribution. Frozen LLM
+   embeddings are not such a distribution. §3.2 measures four
+   substrates and reports that rotation binding decodes at 100%
+   accuracy through bundle widths where Hadamard has already
+   collapsed.
 
 This paper answers both questions in the form of a working
-programming language, **Sutra**, whose primitives are exactly
-these consolidated operations. The naming: **Sutra** is the
-Sanskrit *sūtra* — thread, rule, aphorism — the term for
-Pāṇini's foundational Sanskrit grammar.
+programming language, **Sutra**, whose primitives are these
+consolidated operations and whose compiled forward pass is a
+PyTorch neural network. The naming: **Sutra** is the Sanskrit
+*sūtra* — thread, rule, aphorism — the term for Pāṇini's
+foundational Sanskrit grammar.
 
 ### 1.1 Contributions
 
@@ -726,9 +735,6 @@ glue together.
 
 ## References
 
-- Bordes, A., Usunier, N., García-Durán, A., Weston, J., &
-  Yakhnenko, O. (2013). Translating embeddings for modeling
-  multi-relational data. *NeurIPS*.
 - Darwiche, A., & Marquis, P. (2002). A knowledge compilation
   map. *JAIR* 17:229–264.
 - Gayler, R. W. (2003). Vector symbolic architectures answer
@@ -740,9 +746,6 @@ glue together.
 - Kleene, S. C. (1952). *Introduction to Metamathematics*. North-
   Holland. The strong three-valued logic system used as the
   ground for Sutra's polynomial fuzzy connectives (§1.1-1).
-- Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013). Efficient
-  estimation of word representations in vector space. *ICLR
-  Workshop*.
 - Badreddine, S., Garcez, A. d., Serafini, L., & Spranger, M.
   (2022). Logic Tensor Networks. *Artificial Intelligence* 303.
 - Hájek, P. (1998). *Metamathematics of Fuzzy Logic*. Trends in
@@ -785,11 +788,6 @@ glue together.
 - Smolensky, P. (1990). Tensor product variable binding and the
   representation of symbolic structures in connectionist systems.
   *Artificial Intelligence* 46(1–2):159–216.
-- Sun, Z., Deng, Z. H., Nie, J. Y., & Tang, J. (2019). RotatE:
-  Knowledge graph embedding by relational rotation in complex
-  space. *ICLR*.
-- Wang, Z., Zhang, J., Feng, J., & Chen, Z. (2014). Knowledge
-  graph embedding by translating on hyperplanes. *AAAI*.
 
 ---
 
@@ -1118,7 +1116,7 @@ the runtime path:
 | `fuzzy_branching.su`       | weighted-superposition conditional |
 | `role_filler_record.su`    | bind / bundle / unbind on a 3-field record (§2.1) |
 | `classifier.su`            | cosine-similarity classifier over a small codebook |
-| `analogy.su`               | `king − man + woman ≈ queen` style nearest-neighbour |
+| `analogy.su`               | associative pair memory: capital → country recovery via unbind |
 | `knowledge_graph.su`       | (subject, relation, object) triple encode + decode |
 | `predicate_lookup.su`      | bind-keyed dictionary read |
 | `fuzzy_dispatch.su`        | Lagrange-Kleene-gated dispatch among handlers |
