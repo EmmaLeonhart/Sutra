@@ -206,12 +206,6 @@ compiler does:
   `if`. Hash-map structure is implemented via synthetic-dimension
   rotation, not via a host-side dictionary.
 
-This is not a "TorchHD is bad" claim; TorchHD is the right tool
-for using VSA primitives as a library in a Python program. Sutra
-is the construction that compiles a separate source language to
-the same primitive set with no host-side residue, which TorchHD
-is not designed to do.
-
 A second axis where Sutra differs from existing HDC software is
 **string I/O**. TorchHD and similar libraries expose the algebra
 over user-supplied hypervectors; the user maintains a
@@ -341,15 +335,12 @@ k ∈ {2, 4, 8, 16, 24, 32, 48} sweeps in Appendix E):
 | mxbai-embed-large (1024)| 100.0% | 72.1% |  2.5% |  1.0% |
 | ESM-2 (320)             | 100.0% | 44.2% | 28.7% |  4.2% |
 
-ESM-2 (Lin et al., Science 2023) is a frozen protein language
-model trained on UniRef sequences with no natural-language
-exposure; the same rotation-vs-Hadamard separation appears in
-this entirely different modality. Reversibility round-trip:
-mean ‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ across all four
-substrates (floating-point round-off — `Q` is orthogonal so
-`QᵀQ = I`). Sutra's rotation primitive is sensitive to dense
-high-dimensionality, not to whether the substrate was trained
-on words. Reproduction:
+ESM-2 (Lin et al., Science 2023) is a protein language model
+trained on UniRef with no natural-language exposure; the same
+rotation-vs-Hadamard pattern reproduces in that modality.
+Rotation reversibility round-trip across all four substrates:
+mean ‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ (floating-point
+round-off, Q orthogonal). Reproduction:
 `experiments/rotation_binding_capacity_{llm,bioinformatics}.py`.
 
 #### 3.2.1 Noise accumulation across chained bind/unbind cycles
