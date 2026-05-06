@@ -82,3 +82,6 @@ paper/paper.tex.body
 # via `gh run download` for page-count / typography review).
 .pdf-check/
 .pdf-prev/
+
+# NeurIPS style file extraction cache
+.neurips-style/

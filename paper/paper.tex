@@ -1,40 +1,49 @@
-% paper.tex — Sutra paper LaTeX wrapper.
+% paper.tex — Sutra paper, NeurIPS 2026 submission wrapper.
 %
-% The substantive paper content lives in paper/paper.md. The pages.yml
-% workflow runs `pandoc paper.md -t latex -o paper.tex.body` before
-% latexmk, so the entire body of the markdown lands here at \input
-% time. paper.tex itself is a thin wrapper that supplies the
-% documentclass, packages, anonymization switch, title, and author
-% block.
+% The substantive paper content lives in paper/paper.md. The
+% paper-pdf.yml workflow runs `pandoc paper.md -t latex -o
+% paper.tex.body` before pdflatex, so the entire body of the
+% markdown lands here at \input time. paper.tex itself is the
+% NeurIPS-2026 wrapper that supplies the documentclass, style
+% file options, packages, anonymization switch, title, and
+% author block.
 %
 % Two builds from the same source via the \ifanon switch:
-%   pdflatex paper.tex                                    -> named (full)
-%   pdflatex -usepretex='\newif\ifanon\anontrue' paper.tex -> anonymized
+%   pdflatex paper.tex                                     -> named (preprint, no line numbers)
+%   pdflatex -usepretex='\newif\ifanon\anontrue' paper.tex -> anonymized submission (line numbers)
 %
 % Build chain:
-%   pages.yml  -> pandoc paper.md -t latex -o paper.tex.body
-%              -> latexmk -pdf paper.tex      (named)
-%              -> latexmk -pdf -usepretex=... paper.tex (anonymized)
-%              -> docs/paper.pdf staged for the GitHub Pages deploy
+%   paper-pdf.yml -> pandoc paper.md -t latex -o paper.tex.body
+%                 -> latexmk -pdf paper.tex                      (named/preprint)
+%                 -> latexmk -pdf -usepretex='...' paper.tex     (anonymized submission)
 
-% Built with lualatex so Unicode (−, ≈, ∞, ⁹, etc.) lands as-is.
-\documentclass[11pt]{article}
-\usepackage{fontspec}
-% microtype is intentionally not loaded: it queries character-level
-% protrusion factors for every glyph it sees, and the
-% \newunicodechar block below substitutes some characters with
-% multi-token math expressions (\ensuremath{\approx} etc.) that
-% microtype can't resolve into a single slot. The result was a
-% "! Missing number" error per substituted glyph occurrence —
-% non-fatal under nonstopmode, but they accumulated and pushed
-% lualatex to exit code 1 even after a clean PDF was written.
-% Without microtype, lualatex exits 0 cleanly. The cost is some
-% hairline kerning improvements; the paper renders fine without it.
+\documentclass{article}
+
+% Anonymization switch — set to true via -usepretex for the
+% submission build. Default is named/preprint.
+\makeatletter
+\@ifundefined{ifanon}{\newif\ifanon}{}
+\makeatother
+
+% Load the official NeurIPS 2026 style file.
+%   - default (no option): anonymous + line numbers, for submission
+%   - [preprint]: non-anonymous, no line numbers, for arXiv/clawRxiv
+% nonatbib disables the natbib package because the paper uses an
+% unnumbered bullet-list References section, not natbib citations.
+\ifanon
+  \usepackage[nonatbib]{neurips_2026}
+\else
+  \usepackage[preprint,nonatbib]{neurips_2026}
+\fi
+
+% pdflatex Unicode handling.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% Standard packages we use throughout the body.
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{xcolor}
-\usepackage{geometry}
-\geometry{margin=1in}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{booktabs}
@@ -42,12 +51,9 @@
 \usepackage{array}
 % pandoc's longtable column-width syntax uses arithmetic on
 % \linewidth ("(\linewidth - 8\tabcolsep) * \real{0.6098}") which
-% needs both the calc package AND the \real macro from pandoc's
-% default preamble. Without these, every multi-column table
-% (capacity sweeps, per-axis layout, Appendix E sweeps, Appendix A
-% L-sweep) renders the column-width fractions as literal text and
-% the cells collapse into one wrapped column ("() * 0.0976 ro- ta-
-% tion k=8"). With them, the tables render cleanly.
+% needs the calc package and the \real macro from pandoc's default
+% preamble. Without these, every multi-column table renders the
+% column-width fractions as literal text.
 \usepackage{calc}
 \providecommand{\real}[1]{#1}
 \usepackage{caption}
@@ -55,13 +61,13 @@
 \usepackage{verbatim}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,shapes.geometric,calc,fit,backgrounds}
-% Map the math-style Unicode used in prose ($\approx$, $\times$, $\in$,
-% superscript digits, etc.) onto the LaTeX equivalents lmroman has
-% glyphs for. Without this, lualatex emits "missing character" warnings
-% and (when combined with cross-reference resolution passes) returns
-% exit code 1, which kills latexmk. lualatex DOES handle unicode
-% natively, but only for glyphs the loaded font actually contains —
-% lmroman has no text-mode ≈ / ⁻ / ⁵ / ∈ / ≠ / ‖ / → / − etc.
+
+% Map the math-style Unicode used in the body prose (≈, ×, ∈,
+% superscript digits, etc.) onto the LaTeX equivalents Times
+% Roman + T1 fontenc has glyphs for. Without this, pdflatex
+% emits "missing character" warnings and the glyphs render as
+% blanks. newunicodechar works under pdflatex when used after
+% inputenc.
 \usepackage{newunicodechar}
 \newunicodechar{≈}{\ensuremath{\approx}}
 \newunicodechar{≠}{\ensuremath{\neq}}
@@ -83,13 +89,11 @@
 \newunicodechar{⁸}{\textsuperscript{8}}
 \newunicodechar{⁹}{\textsuperscript{9}}
 \newunicodechar{⁻}{\textsuperscript{\ensuremath{-}}}
+
 % pandoc emission shims:
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \providecommand{\pandocbounded}[1]{#1}
-% pandoc's `Shaded` (background-shaded code block) — minimal definition
-% so the workflow doesn't need pandoc's full default preamble. We just
-% wrap code in a `quote`-styled block; full syntax highlighting is
-% disabled via pandoc's --no-highlight.
+% pandoc's `Shaded` (background-shaded code block).
 \usepackage{framed}
 \definecolor{shadecolor}{RGB}{248,248,248}
 \newenvironment{Shaded}{\begin{snugshade*}}{\end{snugshade*}}
@@ -101,32 +105,29 @@
   citecolor=blue,
 }
 
-% Anonymization switch for NeurIPS double-blind. Build with
-% `-usepretex='\newif\ifanon\anontrue'`. Default is named.
-\makeatletter
-\@ifundefined{ifanon}{\newif\ifanon}{}
-\makeatother
+\title{Sutra: Tensor-Op RNNs as a Compilation Target\\
+  for Vector Symbolic Architectures}
 
+% NeurIPS submission: \author block is rendered as "Anonymous
+% Authors" automatically by neurips_2026.sty when \ifanon is set
+% (no [preprint] option). For the named/preprint build, list the
+% real author info.
 \ifanon
-  \title{Sutra: Tensor-Op RNNs as a Compilation Target\\
-    for Vector Symbolic Architectures}
   \author{Anonymous Authors}
 \else
-  \title{Sutra: Tensor-Op RNNs as a Compilation Target\\
-    for Vector Symbolic Architectures}
-  \author{Emma Leonhart\\
-    \texttt{EmmaLeonhart999@gmail.com}}
+  \author{%
+    Emma Leonhart\\
+    \texttt{EmmaLeonhart999@gmail.com}%
+  }
 \fi
-
-\date{}
 
 \begin{document}
 \maketitle
 
-% The paper body comes from `pandoc paper.md -t latex -o paper.tex.body`,
-% generated by the pages.yml workflow before latexmk runs. Everything
-% below this line — Abstract, sections 1-5, references — is sourced
-% from paper.md.
+% The paper body comes from `pandoc paper.md -t latex -o
+% paper.tex.body`, generated by the paper-pdf.yml workflow before
+% pdflatex runs. Everything below — Abstract, sections 1-6,
+% references, appendices A-K — is sourced from paper.md.
 \input{paper.tex.body}
 
 \end{document}

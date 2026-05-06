@@ -66,9 +66,12 @@ jobs:
       - name: Build named PDF
         working-directory: paper
         run: |
+          # NeurIPS 2026 requires pdflatex per the official CFP.
+          # The named build uses [preprint]neurips_2026 (non-
+          # anonymous, no line numbers).
           # max_repeat=8 gives latexmk extra passes to converge on
           # cross-references with floating figures.
-          latexmk -lualatex -interaction=nonstopmode \
+          latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
 
@@ -80,18 +83,14 @@ jobs:
       - name: Build anonymized PDF
         working-directory: paper
         run: |
-          # Inject \anontrue at the start of the document via a
-          # wrapper file so the source remains unchanged. The
-          # wrapper sets the flag, then \input{paper.tex} which
-          # detects it via \ifanon.
-          cat > paper-anon.tex <<'EOF'
-          \PassOptionsToPackage{anonymous}{}
-          \input{paper.tex}
-          EOF
-          # Pass the flag via -usepretex. The pretex must declare
-          # \ifanon itself because paper.tex guards its \newif via
-          # \@ifundefined to avoid resetting the flag.
-          latexmk -lualatex -interaction=nonstopmode \
+          # NeurIPS submission build: default neurips_2026 (no
+          # [preprint]) renders authors as "Anonymous Authors" and
+          # adds line numbers via the lineno package.
+          # Pass the flag via -usepretex; paper.tex detects via
+          # \ifanon and chooses the [preprint]-less style option.
+          # paper.tex guards its \newif via \@ifundefined so the
+          # pretex \newif does not collide.
+          latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
