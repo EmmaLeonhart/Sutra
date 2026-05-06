@@ -626,41 +626,32 @@ arithmetic are two notations for the same computation.
 ## 5. Demonstration corpus
 
 The smoke test (`examples/_smoke_test.py`) runs 10 demonstration
-programs end-to-end (`hello-world`, fuzzy branching, role-filler
-record, classifier, analogy, knowledge graph, predicate lookup,
-fuzzy dispatch, nearest-phrase retrieval, sequence reduction)
-across 27 `.su` files in `examples/`. Loop coverage lives in
+programs end-to-end across 27 `.su` files in `examples/`; each
+exercises a distinct language feature, and the per-program
+breakdown is in Appendix I. Loop coverage lives in
 `examples/do_while_adder.su` and the 23-case
-`test_loop_function_decl.py` suite. Each program exercises a
-different language feature; the §3.6 differentiable-training
-experiment uses the same primitive set those programs are built
-from.
+`test_loop_function_decl.py` suite. The §3.6 differentiable-
+training experiment uses the same primitive set.
 
 ---
 
 ## 6. Limitations and Future Work
 
-### 6.1 Codebook integration depth
-
-The embedded codebook store covers the compile-time embed →
-runtime decode path today. Extended features (hashmap routing,
-persistent codebook across runs via `SUTRA_DB_PATH`) are
-deferred until there is a concrete requirement beyond the
-current demonstration corpus.
+The embedded codebook covers the compile-time embed → runtime
+decode path. Extended features (hashmap routing, persistent
+codebook via `SUTRA_DB_PATH`) are deferred pending a concrete
+requirement.
 
 ---
 
 ## 7. Conclusion
 
-Sutra is a working compiler from a typed pure-functional source
-language to a substrate-pure PyTorch tensor-op graph. The design
-choice that makes it tractable is uniform shape: every value is
-the same vector layout, every operation is one tensor op, the
-whole program is a dataflow graph with no type dispatch at the
-leaves. With the language in hand, the question of which
-embedding operations actually compose at what capacity on which
-substrates becomes a program to write rather than a script to
-glue together.
+Sutra compiles a typed pure-functional source language to a
+substrate-pure PyTorch tensor-op graph: one vector layout per
+value, one tensor op per primitive, one dataflow graph per
+program, no type dispatch at the leaves. With the language in
+hand, asking which embedding operations compose at what capacity
+on which substrates becomes a program to write.
 
 ---
 
