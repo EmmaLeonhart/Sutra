@@ -15,20 +15,17 @@ CLAUDE.md §"Title and abstract are FROZEN — submitted to
 NeurIPS." Body remains editable.
 
 Current paper state (post-abstract-submission, 2026-05-06):
-- Latest build (`paper-pdf.yml` run 25431729331, post merge of
-  PR #31): **20 total PDF pages** — **10 body pages, 1 reference
-  page, 9 appendix pages**. References now starts on **page 11**.
-  NeurIPS 9-page body cap is **violated**: PR #31's two reviewer-
-  targeted polish paragraphs (§3.4 gradient-stability, §6
-  MNIST/CLEVR pointer) pushed the body back over the cap. The PR
-  description and queue update both incorrectly claimed the
-  additions fit. Same regression pattern as commit `131d4c7` two
-  days ago.
-- v46 review (2026-05-06, post 2360): **Strong Accept** (rating
-  unchanged from v45). The two cons that PR #31 specifically
-  targeted (gradient-stability and MNIST/CLEVR comparison) are
-  **still listed** in v46, so the additions did not move the
-  reviewer but did cost a page.
+- PR #31's two reviewer-targeted polish paragraphs (§3.4
+  gradient-stability, §6 MNIST/CLEVR pointer) reverted in body
+  to restore the 9-page cap. Both v46 and v47 still listed the
+  same cons unchanged, so the additions cost a page without
+  moving reviewer signal. Awaiting `paper-pdf.yml` confirmation
+  that body is back to 9.
+- v47 review (2026-05-06, post 2361): **Accept** (Gemini 3 Flash).
+  Cons unchanged from v46; gradient-stability and MNIST-Addition /
+  CLEVR-Hans still flagged, confirming the two paragraphs were
+  not buying the rating.
+- v46 review (2026-05-06, post 2360): **Strong Accept**.
 - Two TikZ figures still in body: `fig:halt-cell` (§3.4),
   `fig:k3-pipeline` (§3.6).
 - 70+ inline/display math expressions render correctly via
@@ -50,17 +47,9 @@ Current paper state (post-abstract-submission, 2026-05-06):
 
 ## Active
 
-**MUST trim body from 10 pages back to 9 pages before submit.**
-Time remaining: ~36 hours to May 6 AOE (≈ May 7 12:00 UTC).
-Reviewers stabilized at Accept / Strong Accept since v23 (v46:
-Strong Accept). Options for the trim:
-- Revert PR #31 entirely (loses the §3.4 gradient-stability
-  paragraph and §6 MNIST/CLEVR pointer; v46 cons stayed the same
-  with them, so they aren't moving the reviewer anyway).
-- Keep one addition, drop the other. The §3.4 paragraph is
-  longer (~3 lines) and the bigger contributor to the overflow.
-- Tighten elsewhere in §5/§6/§7. Headroom is thin — we already
-  did this for the prior overflow in commit `e30ca6b`.
+- Confirm `paper-pdf.yml` shows body back at 9 pages after the
+  PR #31 paragraph revert. If it does, the page-count blocker is
+  cleared for the May 6 AOE NeurIPS submission window.
 
 ## Open issues to address (not blocking paper deadline)
 
@@ -96,12 +85,11 @@ Strong Accept). Options for the trim:
   post 2360): Strong Accept; the two cons PR #31 targeted are
   still listed.
 - **§3.4 gradient-stability paragraph + §6 MNIST-Addition /
-  CLEVR-Hans pointer.** Two optional polish items landed in
-  response to v44/v45 cons. §3.4 addition is hedged: §3.6's
-  nineteen-AND-deep pipeline is polynomial-gate evidence, not
-  loop-cell evidence; training-through-the-cell stability for
-  long-running tail-recursive loops is explicitly marked open.
-  v46 cons did not move, so reverting these is on the table.
+  CLEVR-Hans pointer landed then reverted.** Two optional polish
+  items landed in PR #31 in response to v44/v45 cons, then
+  reverted today after v46 (Strong Accept) and v47 (Accept) both
+  listed the same cons unchanged: the additions cost a page and
+  bought no reviewer movement.
 - **paper.tex title sync to canonical.** `\title{}` had the old
   PR-#28 title (`Compiling a Vector Symbolic Architecture to a
   Tensor-Op Recurrent Neural Network via Beta Reduction`); now
