@@ -15,8 +15,15 @@ CLAUDE.md §"Title and abstract are FROZEN — submitted to
 NeurIPS." Body remains editable.
 
 Current paper state (post-abstract-submission, 2026-05-05):
-- 1098 lines of `paper.md`; 9 body pages + references + 9
-  appendices (A–I) by the latest `paper-pdf.yml` build.
+- 1098 lines of `paper.md`. Latest build (`paper-pdf.yml` run
+  25375551372 on commit `21c8b21`): **20 total PDF pages** —
+  10 body pages, 1 reference page, 9 appendix pages (A–I).
+- ⚠️  **Body is currently 10 pages, NeurIPS hard cap is 9.** A
+  prior queue.md note claimed body was 9 pages but actual PDF
+  measurement places References on page 11. The 70+ math
+  expressions and three TikZ figures landed earlier this sprint
+  pushed body 1 page over without anyone noticing. Fix needed
+  before the May-6 submission.
 - Three TikZ figures in body: `fig:halt-cell` (§3.4),
   `fig:k3-pipeline` (§3.6), `fig:compile-pipeline` (§4).
 - 70+ inline/display math expressions render correctly via
@@ -29,37 +36,36 @@ Current paper state (post-abstract-submission, 2026-05-05):
 ## Active
 
 Time remaining: ~45–48 hours to May 6 AOE (≈ May 7 12:00 UTC).
-The work below is paper polish only. No structural changes; the
-abstract is locked, the body argument is intact, the figures
-build, and reviewers have stabilized at Accept / Strong Accept
-since v23.
+Body argument is intact, figures build, reviewers stabilized at
+Accept / Strong Accept since v23. Two real items remain.
 
-- [ ] **Strengthen §6 Limitations.** It's currently 8 lines (just
-  §6.1 codebook integration depth). Latest reviewer (v43) flagged
-  four cons that the body acknowledges scattered across §3.2.1
-  and §3.6 but §6 doesn't surface honestly:
-  - Capacity ceiling: bundle decoding collapses by k≈8 on the
-    weakest substrates; chain capacity drops to chance by L=8
-    (§3.2.1 has the per-substrate sweep).
-  - Evaluation scope: 992 words / K=20 is the largest end-to-end
-    program; SE-scale benchmarks are future work.
-  - Synthetic-dim allocation is fixed at compile time today
-    (acknowledged elsewhere; should also surface in §6 as a
-    revisitable design knob).
-  - No head-to-head vs. a standard NN architecture on a complex
-    benchmark — the K=20 result is the largest claim.
+- [ ] ⚠️  **Cut body from 10 pages to 9.** NeurIPS hard cap is 9
+  content pages; refs and appendix unlimited. This pre-existed
+  the current sprint but the queue's "9 pages" claim was stale.
+  Decision needed on which lever:
+  - **(a)** Move `fig:compile-pipeline` (§4) to appendix. The
+    figure is a flowchart of the five-stage compile pipeline and
+    is essentially redundant with the prose right above it.
+    Lowest-cost cut; saves ~⅓ page of vertical space.
+  - **(b)** Move `fig:halt-cell` (§3.4) to appendix. Figure is
+    illustrative but the prose stands on its own. Saves another
+    ~⅓ page.
+  - **(c)** Trim §3.6 prose around the K=20 result. Some of the
+    rule-graph walk-through could compress.
+  - **(d)** Trim §1.1 contribution #2's TNF defense + §2.3's
+    differentiable-programming/AOT compilation comparisons.
+  - **(e)** Some combination of the above.
 
-  Add §6.2 / §6.3 / §6.4 covering these honestly. **Do not touch
-  the abstract.**
+  Need to land on something that produces a build with References
+  starting on page 10 or earlier.
 
-- [ ] **End-to-end pre-submission read of `paper.md`.** Cover-to-
-  cover pass for typos, broken `\ref{}`s, inconsistent numbers
-  across body and abstract, and stale claims. Specifically check
-  that §3.6 numbers (4% → 95%, 50/300 epochs, 992 words, K=20)
-  match the abstract verbatim, §3.2 capacity numbers match (100%
-  through k=8; Hadamard 2.5% on mxbai, 7.5% on minilm, 28.7% on
-  ESM-2 in the long abstract / 2.5% in body), and every appendix
-  citation lands on a real label.
+- [ ] **End-to-end pre-submission read of `paper.md`.** Mostly
+  done as of 2026-05-05 — all `\ref{}` resolve, all abstract↔body
+  numbers match (§3.6: 4%→95%, 50/300 epochs, 992 words, K=20;
+  §3.2: 100% through k=8, Hadamard 2.5% on mxbai / 7.5% on minilm
+  / 28.7% on ESM-2; round-trip 1.5×10⁻¹⁵). One inconsistency
+  fixed: SKILL.md said "13-program smoke test" but actual is 10
+  (matches body §5 / Appendix I).
 
 ## Open issues to address (not blocking paper deadline)
 
