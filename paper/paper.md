@@ -88,7 +88,7 @@ The four core technical contributions of this paper are:
    runtime `bind` is one matmul against a constant matrix;
    canonical synthetic axes are assigned compile-time so every
    primitive-type read/write is a known index, not a hashtable
-   lookup. §4.3 traces this lowering stage-by-stage on a
+   lookup. §4.2 traces this lowering stage-by-stage on a
    concrete program; the compilation pipeline as a whole is
    diagrammed in Appendix J.
 
@@ -565,21 +565,12 @@ The compiler is a five-stage pipeline:
    returned.
 
 The runtime class is emitted inline rather than imported because
-the emitted module *is* the substrate-pure tensor-op graph; the
-compile-time decisions (extended-state-vector dimensions, codebook
+the emitted module *is* the substrate-pure tensor-op graph; every
+compile-time decision (extended-state-vector dimensions, codebook
 contents, role rotations, SutraDB path, optional `torch.compile`)
-are all baked into the emitted source. Re-running a compiled
-module hits the disk-cached embeddings and the precomputed
-rotations on second-and-later runs.
-
-Stages 1–4 run at compile time; stage 5 is the runtime forward
-pass. The compile-time/runtime boundary is exactly where
-neural-network training versus inference draws the line, by
-the time stage 5 begins, every role rotation, codebook entry,
-and stdlib reduction has been resolved to a constant tensor or
-a primitive op, the same way a feed-forward network's weights
-are constants by inference time. Appendix J diagrams the pipeline
-as a vertical flow with the residual at each stage.
+is baked into the emitted source. Stages 1–4 run at compile time
+and stage 5 is the runtime forward pass; Appendix J diagrams the
+pipeline as a vertical flow with the residual at each stage.
 
 ### 4.1 Substrate-purity invariants
 
@@ -604,42 +595,30 @@ precomputed matrix, the compile-time resolution eliminates the
 QR construction from the runtime graph entirely. Role rotations
 are runtime constants, like neural-network weights at inference;
 opt-in `torch.compile` (`SUTRA_TORCH_COMPILE=1`) further folds
-the per-tick loop body into a single fused kernel.
-
-### 4.3 A worked lowering
-
-Appendix F traces a two-field bundled record `encode2(r_a, f_a,
-r_b, f_b) := bundle(bind(r_a, f_a), bind(r_b, f_b))` through
-five reduction stages (parse, stdlib beta, `RotationFor`
-resolution, peephole fusion, leaf tensor ops). The bottom of the
-chain contains no `bind`/`bundle`/`normalize` symbol and no
-Python control flow, so surface lambda calculus and runtime
-tensor arithmetic are two notations for the same computation.
+the per-tick loop body into a single fused kernel. Appendix F
+traces the lowering of `encode2(r_a, f_a, r_b, f_b) :=
+bundle(bind(r_a, f_a), bind(r_b, f_b))` through every reduction
+stage; the bottom of the chain contains no `bind`/`bundle`/
+`normalize` symbol and no Python control flow, so surface lambda
+calculus and runtime tensor arithmetic are two notations for the
+same computation.
 
 ---
 
-## 5. Demonstration corpus
+## 5. Demonstration, limitations, and future work
 
 The smoke test (`examples/_smoke_test.py`) runs 10 demonstration
-programs end-to-end across 27 `.su` files in `examples/`; each
-exercises a distinct language feature, and the per-program
-breakdown is in Appendix I. Loop coverage lives in
-`examples/do_while_adder.su` and the 23-case
-`test_loop_function_decl.py` suite. The §3.6 differentiable-
-training experiment uses the same primitive set.
+programs end-to-end across 27 `.su` files (Appendix I); loop
+coverage lives in `examples/do_while_adder.su` and the 23-case
+`test_loop_function_decl.py` suite, and the §3.6 differentiable-
+training experiment uses the same primitive set. The embedded
+codebook covers the compile-time embed → runtime decode path;
+extended features (hashmap routing, persistent codebook via
+`SUTRA_DB_PATH`) are deferred pending a concrete requirement.
 
 ---
 
-## 6. Limitations and Future Work
-
-The embedded codebook covers the compile-time embed → runtime
-decode path. Extended features (hashmap routing, persistent
-codebook via `SUTRA_DB_PATH`) are deferred pending a concrete
-requirement.
-
----
-
-## 7. Conclusion
+## 6. Conclusion
 
 Sutra compiles a typed pure-functional source language to a
 substrate-pure PyTorch tensor-op graph: one vector layout per
@@ -914,7 +893,7 @@ extra graph hop per 10× growth in N.
 
 ### Appendix F. Worked lowering of a two-field bundled record
 
-The body §4.3 sketches the lowering of
+The body §4.2 sketches the lowering of
 $\mathrm{encode2}(r_a, f_a, r_b, f_b) \,:=\, \mathrm{bundle}(\mathrm{bind}(r_a, f_a),\,\mathrm{bind}(r_b, f_b))$.
 Here we trace each stage with the explicit residual.
 
