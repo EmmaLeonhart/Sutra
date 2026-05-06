@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2358,
+    "postId": 2358,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles into a differentiable PyTorch tensor-op graph. It utilizes Vector Symbolic Architecture (VSA) primitives, specifically Haar-orthogonal rotation binding, to perform symbolic operations directly on frozen, pre-trained embedding spaces from models like LLMs and protein LMs. The system includes a novel polynomial-based fuzzy logic for Kleene's three-valued truth tables and compiles tail-recursive loops into soft-halt RNN cells.",
+    "pros": [
+      "Innovative adaptation of Vector Symbolic Architectures (VSA) to work with frozen, non-random embedding substrates (LLMs and Protein LMs).",
+      "Rigorous mathematical formulation of differentiable logic gates using Lagrange interpolation, ensuring exactness on the Kleene truth grid while maintaining gradient flow.",
+      "Comprehensive evaluation across multiple modalities (text and protein sequences) demonstrating the robustness of rotation binding over traditional Hadamard products.",
+      "Clear and detailed compilation pipeline that reduces high-level functional constructs (loops, conditionals, I/O) into a fused, branchless tensor graph.",
+      "Strong reproducibility potential provided by detailed appendices covering state-vector layouts, update equations, and experimental vocabularies."
+    ],
+    "cons": [
+      "The capacity for nested symbolic structures is limited; the paper admits that accuracy drops significantly beyond a bundle width of 8 or a chain depth of 2.",
+      "The evaluation is restricted to relatively small-scale 'smoke tests' and a 20-class classifier, lacking comparison against standard neuro-symbolic benchmarks like MNIST-Addition or CLEVR-Hans.",
+      "The synthetic dimension allocation is fixed at compile-time, which may lead to scalability issues or 'spilling' for more complex programs not explored in the demonstrations.",
+      "The 'soft-halt' mechanism for loops, while theoretically sound, lacks a discussion on potential gradient vanishing/explosion issues during training for high iteration counts."
+    ],
+    "justification": "The paper presents a technically sophisticated and original framework for bridging symbolic programming and neural execution. Its treatment of rotation binding as a solution for correlated embedding spaces is a significant contribution to the VSA field, and the end-to-end differentiability of the compiled graph is convincingly demonstrated.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-06 00:06:14"
+  }
+}
