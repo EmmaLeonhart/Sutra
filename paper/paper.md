@@ -90,7 +90,7 @@ The four core technical contributions of this paper are:
    primitive-type read/write is a known index, not a hashtable
    lookup. §4.3 traces this lowering stage-by-stage on a
    concrete program; the compilation pipeline as a whole is
-   Figure~\ref{fig:compile-pipeline} (§4).
+   diagrammed in Appendix J.
 
 3. **Tail recursion as the loop primitive.** Loops are
    tail-recursive function declarations (`do_while`,
@@ -578,43 +578,8 @@ neural-network training versus inference draws the line — by
 the time stage 5 begins, every role rotation, codebook entry,
 and stdlib reduction has been resolved to a constant tensor or
 a primitive op, the same way a feed-forward network's weights
-are constants by inference time. Figure~\ref{fig:compile-pipeline}
-draws the pipeline as a vertical flow with the residual at each
-stage.
-
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=4mm,
-  every node/.style={font=\footnotesize},
-  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
-  stage/.style={draw=none, font=\scriptsize\itshape, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick},
-  divider/.style={dashed, gray}
-]
-  \node[res] (src)   {source code (\texttt{.su})};
-  \node[stage, below=of src]   (s1) {(1) lex + parse};
-  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
-  \node[stage, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
-  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
-  \node[stage, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
-  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
-  \node[stage, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
-  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
-  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
-  \node[stage, below=of cline] (s5) {(5) forward pass on input tensors};
-  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
-
-  \draw[arr] (src) -- (ast);
-  \draw[arr] (ast) -- (sast);
-  \draw[arr] (sast) -- (mod);
-  \draw[arr] (mod) -- (warm);
-  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
-  \draw[arr] (warm) -- (out);
-\end{tikzpicture}
-\caption{Five-stage compilation pipeline of §4. Boxes are intermediate artifacts; italic labels are the compiler passes that connect them. Stages (1)--(4) run at compile time; the dashed line marks the compile/runtime boundary; stage (5) is the runtime forward pass.}
-\label{fig:compile-pipeline}
-\end{figure}
+are constants by inference time. Appendix J diagrams the pipeline
+as a vertical flow with the residual at each stage.
 
 ### 4.1 Substrate-purity invariants
 
@@ -1095,4 +1060,45 @@ differentiable-training experiment uses the same primitive set
 the smoke-test programs are built from — no Sutra-runtime
 extensions, just compilation of `.su` source to PyTorch
 tensor ops.
+
+### Appendix J — Compilation pipeline diagram
+
+The five stages of §4 visualized as a vertical flow with the
+residual artifact at each stage. Stages (1)–(4) run at compile
+time; the dashed line marks the compile/runtime boundary; stage
+(5) is the runtime forward pass.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm,
+  every node/.style={font=\footnotesize},
+  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
+  stage/.style={draw=none, font=\scriptsize\itshape, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick},
+  divider/.style={dashed, gray}
+]
+  \node[res] (src)   {source code (\texttt{.su})};
+  \node[stage, below=of src]   (s1) {(1) lex + parse};
+  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
+  \node[stage, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
+  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
+  \node[stage, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
+  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
+  \node[stage, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
+  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
+  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
+  \node[stage, below=of cline] (s5) {(5) forward pass on input tensors};
+  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
+
+  \draw[arr] (src) -- (ast);
+  \draw[arr] (ast) -- (sast);
+  \draw[arr] (sast) -- (mod);
+  \draw[arr] (mod) -- (warm);
+  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
+  \draw[arr] (warm) -- (out);
+\end{tikzpicture}
+\caption{Five-stage compilation pipeline (§4). Boxes are intermediate artifacts; italic labels are the compiler passes that connect them.}
+\label{fig:compile-pipeline}
+\end{figure}
 
