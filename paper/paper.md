@@ -654,7 +654,9 @@ hand, asking which embedding operations compose at what capacity
 on which substrates becomes a program to write.
 
 ---
+
 \newpage
+
 ## References
 
 - Darwiche, A., & Marquis, P. (2002). A knowledge compilation
