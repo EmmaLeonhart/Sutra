@@ -15,6 +15,71 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-06: NeurIPS sprint, 10-page body misreport correction, paper trim
+
+**Abstract + title submitted to NeurIPS 2026.** Title in commit
+`65e0fb0`, abstract in commit `84f3465`; both frozen per a new
+CLAUDE.md §"Title and abstract are FROZEN" rule. The full-paper
+deadline is May 6 AOE.
+
+**The "9-page body achieved" claim was never true.** A long-
+running misreport in earlier queue.md entries and several commit
+messages (e.g. `68fcbcc` "restore 9-page cap", `e30ca6b` "pull
+body back under the 9-page cap", `9f642f2` "reclaim a body
+page") all asserted that the body had been or could be brought
+to 9 pages. Verification by downloading the actual
+`paper-pdf.yml` artifacts on 2026-05-06 showed every one of
+those commits actually produced a 20-page PDF (10 body + 1
+references + 9 appendix). The body had been 10 pages on every
+real CI build for the duration of those entries. PR #31 did not
+cause a "10-page regression" because there was nothing to
+regress from; reverting PR #31's two paragraphs (commit
+`68fcbcc`) reduced body length but did not drop the page count.
+
+The error was trusting prior session notes (queue.md and
+PR-description claims) over the actual artifact. Lesson recorded:
+when the page-count rule is the constraint, download the PDF
+and count pages before claiming compliance. Do not paraphrase
+queue.md.
+
+The actual trim that started moving the page count happened
+later 2026-05-06: dissolve §4.3 into §4.2, merge §5 + §6 into a
+single "Demonstration, limitations, and future work" section,
+move the K=3 pipeline figure (~50 lines of TikZ) to a new
+Appendix K. See `git log` for the per-commit story.
+
+Also landed:
+- **clawRxiv review trajectory v20 → v50.** Stable at Accept /
+  Strong Accept since v23. v44 (Accept), v45 (Strong Accept),
+  v46 (Strong Accept), v47 (Accept), v50 (Accept). The
+  reviewer-targeted polish paragraphs added in PR #31 (§3.4
+  gradient-stability + §6 MNIST/CLEVR pointer) did not move the
+  rating; reverted in `68fcbcc`.
+- **Em-dashes stripped from body.** Commit `eed621d`. 66 U+2014
+  rewritten to natural punctuation (parens, colons, commas).
+  Frozen title and abstract untouched.
+- **paper.tex \\title{} sync.** Same commit. The hardcoded
+  `\\title{}` in `paper/paper.tex` was the old PR-#28 rename
+  ("Compiling a Vector Symbolic Architecture..."); the H1 in
+  paper.md had the canonical post-revert title. PDF title page
+  was therefore showing the wrong title. Both now read "Sutra:
+  Tensor-Op RNNs as a Compilation Target for Vector Symbolic
+  Architectures."
+- **`\\newpage` before `## References`** added by Emma in
+  `a160632`, then needed blank lines around it (commit `a2ccdfc`)
+  so pandoc's markdown reader didn't parse `---\\n\\newpage` as
+  a YAML metadata block (it threw "did not find expected
+  <document start>" at line 4 col 0 and broke the build).
+- **Repo cleanup:** CHANGELOG.md folded into DEVLOG.md as a
+  v0.2.0 subsection (commit `a07dd8c`); root-level
+  `combinatorics_results.json` and `combinatorics_summary.md`
+  deleted (commit `946279f`, finding preserved in
+  `planning/findings/2026-04-30-combinatorics-flat-gradient.md`);
+  queue.md cleaned up to match its own "queue, not state
+  snapshot" header (commit `c958f75`).
+
+---
+
 ## 2026-04-30: Loop redesign apex + substrate-purity sweep + numpy backend deprecated
 
 The day's work formalized loops as first-class declared functions
