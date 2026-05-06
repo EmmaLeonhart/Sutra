@@ -1,6 +1,6 @@
 ---
 name: sutra-language
-description: Reproduce results from the Sutra paper — build the compiler, run the 13-program smoke test, run the rotation-vs-Hadamard capacity tables (LLM + ESM-2 protein-LM substrates), the chained-bind crosstalk experiment, plus the loop function decl + codebook test suites.
+description: Reproduce results from the Sutra paper — build the compiler, run the 10-program smoke test, run the rotation-vs-Hadamard capacity tables (LLM + ESM-2 protein-LM substrates), the chained-bind crosstalk experiment, plus the loop function decl + codebook test suites.
 allowed-tools: Bash(python *), Bash(pip *), Bash(cd *), Bash(cargo *), Bash(git *), Bash(ollama *)
 ---
 
@@ -54,7 +54,7 @@ claim does not reproduce; the assertion captures the success
 condition the paper claims.
 
 ```bash
-# Smoke-test corpus: all 13 demonstration programs run end-to-end.
+# Smoke-test corpus: all 10 demonstration programs run end-to-end.
 python examples/_smoke_test.py
 test $? -eq 0 || { echo "FAIL: smoke test"; exit 1; }
 ```
