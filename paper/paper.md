@@ -393,6 +393,14 @@ visualizes one tick.
 \label{fig:halt-cell}
 \end{figure}
 
+**Gradient stability.** The closest training-regime gradient
+measurement we have is §3.6's nineteen-AND-deep polynomial-gate
+pipeline (no loop): gradient norms remain in 0.94–4.20 across all
+twenty learnable prototypes through 300 epochs. That bears on the
+polynomial gate stack rather than the soft-mux freeze directly;
+training-through-the-cell stability for long-running tail-recursive
+loops is open.
+
 **Constant memory in recursion depth.** The state vector is
 fixed-width and shared across iterations, so a tail-recursive
 loop consumes O(1) memory in the state vector regardless of
@@ -640,7 +648,12 @@ training experiment uses the same primitive set.
 The embedded codebook covers the compile-time embed → runtime
 decode path. Extended features (hashmap routing, persistent
 codebook via `SUTRA_DB_PATH`) are deferred pending a concrete
-requirement.
+requirement. Direct comparison against the standard
+neuro-symbolic benchmarks (MNIST-Addition, CLEVR-Hans) is left
+to future work; those benchmarks assume the perception →
+reasoning split that Sutra's continuous-substrate shape (§2.2)
+does not factor along, so the comparison protocol needs to be
+designed before the numbers are meaningful.
 
 ---
 
