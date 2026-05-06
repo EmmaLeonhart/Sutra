@@ -14,58 +14,51 @@ tool stay in sync.
 CLAUDE.md §"Title and abstract are FROZEN — submitted to
 NeurIPS." Body remains editable.
 
-Current paper state (post-abstract-submission, 2026-05-05):
-- 1098 lines of `paper.md`. Latest build (`paper-pdf.yml` run
-  25375551372 on commit `21c8b21`): **20 total PDF pages** —
-  10 body pages, 1 reference page, 9 appendix pages (A–I).
-- ⚠️  **Body is currently 10 pages, NeurIPS hard cap is 9.** A
-  prior queue.md note claimed body was 9 pages but actual PDF
-  measurement places References on page 11. The 70+ math
-  expressions and three TikZ figures landed earlier this sprint
-  pushed body 1 page over without anyone noticing. Fix needed
-  before the May-6 submission.
-- Three TikZ figures in body: `fig:halt-cell` (§3.4),
-  `fig:k3-pipeline` (§3.6), `fig:compile-pipeline` (§4).
+Current paper state (post-abstract-submission, 2026-05-06):
+- Latest build (`paper-pdf.yml` run 25409986512): **20 total PDF
+  pages** — **9 body pages, 1 reference page, 10 appendix pages
+  (A–J)**. References starts on page 10. NeurIPS 9-page body cap
+  met as of commit `e30ca6b`.
+- The earlier queue claim of "9 body pages" was stale — the
+  actual prior state was 10. Bringing body to 9 took two cuts:
+  (a) `fig:compile-pipeline` moved to Appendix J, and (b) §5/§6/§7
+  prose tightened to pull §7 conclusion onto page 9.
+- Two TikZ figures still in body: `fig:halt-cell` (§3.4),
+  `fig:k3-pipeline` (§3.6).
 - 70+ inline/display math expressions render correctly via
   pandoc `markdown-smart` → lualatex.
-- `paper-pdf.yml` build is green on every push since 2026-05-04;
-  `papers-ci.yml` auto-submission to clawRxiv is also green.
-- Latest review (v43, 2026-05-05 12:11 UTC, post 2356):
-  **Strong Accept**.
+- `paper-pdf.yml` and `papers-ci.yml` both green on master.
+  CI is unusually slow today (3-15min vs the usual 1.5min).
+- Latest review (v44, 2026-05-06, post 2358): **Accept** (down
+  one step from v43 Strong Accept after my reverted §6 expansion;
+  reviewer cons unchanged from v43, so the §6 expansion didn't
+  move the reviewer's mind but did cost a page).
 
 ## Active
 
-Time remaining: ~45–48 hours to May 6 AOE (≈ May 7 12:00 UTC).
-Body argument is intact, figures build, reviewers stabilized at
-Accept / Strong Accept since v23. Two real items remain.
+Time remaining: ~36 hours to May 6 AOE (≈ May 7 12:00 UTC).
+Body is at 9 pages; abstract is locked; reviewers stabilized at
+Accept / Strong Accept since v23. Pre-submission state is
+acceptable as-is. Optional polish below.
 
-- [ ] ⚠️  **Cut body from 10 pages to 9.** NeurIPS hard cap is 9
-  content pages; refs and appendix unlimited. This pre-existed
-  the current sprint but the queue's "9 pages" claim was stale.
-  Decision needed on which lever:
-  - **(a)** Move `fig:compile-pipeline` (§4) to appendix. The
-    figure is a flowchart of the five-stage compile pipeline and
-    is essentially redundant with the prose right above it.
-    Lowest-cost cut; saves ~⅓ page of vertical space.
-  - **(b)** Move `fig:halt-cell` (§3.4) to appendix. Figure is
-    illustrative but the prose stands on its own. Saves another
-    ~⅓ page.
-  - **(c)** Trim §3.6 prose around the K=20 result. Some of the
-    rule-graph walk-through could compress.
-  - **(d)** Trim §1.1 contribution #2's TNF defense + §2.3's
-    differentiable-programming/AOT compilation comparisons.
-  - **(e)** Some combination of the above.
+- [ ] **Optional: address v44 reviewer's new "soft-halt gradient
+  vanishing/explosion" concern in §3.4 prose.** v44 raised this
+  as a NEW con (v43 didn't flag it). The §3.4 prose mentions
+  autograd records each iteration as it executes but doesn't say
+  anything about the gradient stability of the soft-mux freeze.
+  Could add one or two sentences to §3.4 noting that the §3.6
+  K=20 result (gradient norms 0.94–4.20 across all twenty
+  prototypes through 300 epochs of nineteen-AND-deep rule
+  pipelines) is the strongest empirical evidence we have against
+  pathological gradient flow through the cell. ~3 lines, doesn't
+  push back over the 9-page cap.
 
-  Need to land on something that produces a build with References
-  starting on page 10 or earlier.
-
-- [ ] **End-to-end pre-submission read of `paper.md`.** Mostly
-  done as of 2026-05-05 — all `\ref{}` resolve, all abstract↔body
-  numbers match (§3.6: 4%→95%, 50/300 epochs, 992 words, K=20;
-  §3.2: 100% through k=8, Hadamard 2.5% on mxbai / 7.5% on minilm
-  / 28.7% on ESM-2; round-trip 1.5×10⁻¹⁵). One inconsistency
-  fixed: SKILL.md said "13-program smoke test" but actual is 10
-  (matches body §5 / Appendix I).
+- [ ] **Optional: add a one-sentence pointer to MNIST-Addition /
+  CLEVR-Hans benchmarks in §6 as future work.** v44 specifically
+  named these as the standard neuro-symbolic benchmarks Sutra
+  doesn't compare against. Acknowledging them by name in §6
+  would address the reviewer's specific phrasing without
+  changing the substantive evaluation. ~1 line.
 
 ## Open issues to address (not blocking paper deadline)
 
@@ -76,24 +69,26 @@ Accept / Strong Accept since v23. Two real items remain.
   245+ tests pass without this. Carries no paper-submission
   weight; fix when convenient.
 
-## Done this sprint (2026-05-05)
+## Done this sprint (2026-05-05 → 2026-05-06)
 
 - **Abstract + title submitted to NeurIPS.** Title in commit
   `65e0fb0`, abstract in commit `84f3465`; both frozen per
   CLAUDE.md.
 - **Real LaTeX math + TikZ diagrams in `paper.md`.** Emma's three
   May-6 asks (diagrams of runtime behavior, formal notation,
-  worked beta-reduction) are satisfied with rendering, not just
-  in form. 70+ math expressions; three real TikZ figures
-  (halt-cell, K=3 pipeline, compile pipeline). lualatex render
-  verified via the `paper-pdf.yml` CI pipeline.
-- **Body trimmed to 9 pages.** Latest rendered PDF: 9 body + 1
-  reference + 9 appendix = 19 total. References at p.10,
-  Appendix A–I at pp.11–19.
-- **clawRxiv review trajectory v20→v43.** Stable at Accept /
-  Strong Accept since v23. v43 (today): Strong Accept by
-  Gemini 3 Flash. Reviewer cons map onto the §6 Limitations
-  strengthening item above.
+  worked beta-reduction) satisfied. 70+ math expressions; three
+  TikZ figures (halt-cell, K=3 pipeline, compile pipeline).
+- **Body actually at 9 pages.** Two cuts landed 2026-05-06:
+  `fig:compile-pipeline` moved to a new Appendix J (commit
+  `9f642f2`), and §5 / §6 / §7 prose tightened to pull the
+  conclusion onto page 9 (commit `e30ca6b`). PDF at run
+  25409986512 confirms References on page 10.
+- **SKILL.md "13-program smoke test" → "10-program"** to match
+  body §5 and Appendix I (the actual `_smoke_test.py` has
+  exactly 10 `run_*` functions). Commit `131d4c7`.
+- **clawRxiv review trajectory v20→v44.** Stable at Accept /
+  Strong Accept since v23. v44 (2026-05-06): Accept (one step
+  down from v43's Strong Accept); cons unchanged.
 
 ## Pointers
 
