@@ -683,6 +683,10 @@ work happens, the natural follow-on items are:
 - [ ] Diagnose why `!editor.bat` fails (likely JAVA_HOME or Gradle daemon
   issue). Get `sdk/intellij-sutra` `runIde` task working, verify `.su`
   syntax highlighting and completion in the sandbox IDE.
+- [ ] Build `sutra_ffi.dll` so `tests/test_sutradb_embedded.py` stops
+  raising `FileNotFoundError`. Local fix: `cd sutraDB && cargo build
+  --release -p sutra-ffi`. All 245+ other tests pass without it; not
+  paper-blocking, fix when convenient.
 - [ ] **Class system as autocomplete recommendation, not enforcement.**
   Originally surfaced in the project-genesis chat: the
   implicit class system in Sutra is meant to *suggest* meaningful ways
