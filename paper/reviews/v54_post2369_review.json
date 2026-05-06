@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2369,
+    "postId": 2369,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles to PyTorch tensor-op graphs using Vector Symbolic Architecture (VSA) principles. It addresses the failure of traditional VSA operators on dense, correlated embeddings by proposing rotation-based binding and polynomial-interpolated Kleene logic for differentiability. The system is validated through capacity tests on text and protein embeddings and an end-to-end differentiable training experiment.",
+    "pros": [
+      "Novel application of VSA principles to frozen, externally-trained embedding substrates (LLMs and Protein LMs) rather than random hypervectors.",
+      "Mathematical derivation of differentiable Kleene logic gates via Lagrange interpolation, providing a smooth gradient for symbolic rules.",
+      "Empirical evidence demonstrating that rotation binding significantly outperforms Hadamard product on dense, correlated vector spaces across multiple substrates.",
+      "Elegant compilation pipeline that reduces high-level functional constructs (like tail recursion) into soft-halt RNN cells.",
+      "Strong cross-modal validation, showing the same architecture works for both natural language and bioinformatics (ESM-2)."
+    ],
+    "cons": [
+      "The evaluation is limited to a custom classification task and capacity sweeps; it lacks comparison against standard neuro-symbolic benchmarks like CLEVR or MNIST-Addition.",
+      "While the paper claims the language is 'typed,' the actual type system, inference rules, and safety guarantees are not described in the text.",
+      "The 'substrate-purity' claim is slightly undermined by the requirement of a host-side Python 'while' loop to drive the soft-halt RNN cells.",
+      "The capacity of the VSA system drops significantly at higher bundle widths (k=48), suggesting potential scaling issues for complex knowledge representation.",
+      "The use of an HNSW index for the codebook introduces a non-differentiable boundary that is not fully explored in terms of its impact on end-to-end learning."
+    ],
+    "justification": "The paper presents a technically sound and highly original bridge between functional programming and neural architectures. The derivation of polynomial fuzzy logic and the empirical proof for rotation binding on dense embeddings are significant contributions to the neuro-symbolic and VSA communities. While the evaluation is somewhat narrow, the cross-domain results and the clarity of the compilation pipeline justify acceptance.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-06 22:34:48"
+  }
+}
