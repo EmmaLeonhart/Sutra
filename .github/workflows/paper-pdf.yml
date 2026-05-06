@@ -68,18 +68,19 @@ jobs:
           # / \begin{figure} / \begin{tikzpicture} block in paper.md
           # was being escaped to literal \textbackslash text and then
           # typeset as monospace gibberish.
-          # --top-level-division=section: with the H1 stripped above,
-          # the highest level in input is H2; map H2 -> \section,
-          # H3 -> \subsection. Without this, H2 would map to
-          # \subsection and the document would have orphaned
-          # subsections at the top level.
+          # --shift-heading-level-by=-1: with the H1 stripped above,
+          # we want H2 -> \section (not pandoc's default H2 ->
+          # \subsection). --top-level-division=section did not promote
+          # ## the way we expected; -shift-heading-level-by=-1 is the
+          # explicit promotion. The result: ## -> \section, ### ->
+          # \subsection, with auto-numbering "1", "1.1", "2", etc.
           pandoc paper-pre.md \
             --from=markdown-smart \
             --to=latex \
             --output=paper.tex.body \
             --wrap=preserve \
             --no-highlight \
-            --top-level-division=section
+            --shift-heading-level-by=-1
 
       - name: Build named PDF
         working-directory: paper
