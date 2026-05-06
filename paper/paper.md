@@ -459,73 +459,18 @@ nineteen nested `fuzzy_and` → cross-entropy.
 | Before |     4%   |  3.01 |
 | After  |    95%   |  1.15 |
 
-Figure~\ref{fig:k3-pipeline} draws the explicit graph for $K=3$;
-the $K=20$ graph used in the experiment has the same shape with
-twenty learnable prototypes and the AND-of-NOTs left-folded across
+Appendix K diagrams the explicit graph for $K=3$; the $K=20$
+graph used in the experiment has the same shape with twenty
+learnable prototypes and the AND-of-NOTs left-folded across
 nineteen $\mathrm{NOT}(\mathrm{sim})$ terms. The input embedding
-fans out to K cosine-similarity nodes against the K learnable
-prototypes, each `sim_i` enters one branch of an AND-tree (the
-i-th rule takes `sim_i` directly and `NOT(sim_j)` for j ≠ i), the
-K rule scores are stacked, scaled by temperature, softmaxed, and
-cross-entropied against the label. Every node is a PyTorch tensor
-op; every edge carries a vector or scalar. There are no Python
-branches, no host-side dispatch, no string-keyed lookup, backprop
-reaches every learnable parameter through the same compiled graph
-that runs at inference.
-
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=6mm and 9mm,
-  every node/.style={font=\footnotesize},
-  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
-  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
-  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick}
-]
-  \node[io] (x) {input $x \in \mathbb{R}^d$};
-  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
-  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
-  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
-
-  \node[proto, left=4mm of cos1] (p1) {$p_1$};
-  \node[proto, left=4mm of cos2] (p2) {$p_2$};
-  \node[proto, left=4mm of cos3] (p3) {$p_3$};
-
-  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
-  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
-  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
-  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
-
-  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
-  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
-
-  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
-  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
-  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
-  \node[io, below=6mm of ce]      (loss) {loss};
-
-  \draw[arr] (x) -- (cos1);
-  \draw[arr] (x) -- (cos2);
-  \draw[arr] (x) -- (cos3);
-  \draw[arr] (p1) -- (cos1);
-  \draw[arr] (p2) -- (cos2);
-  \draw[arr] (p3) -- (cos3);
-  \draw[arr] (cos2) -- (not2);
-  \draw[arr] (cos3) -- (not3);
-  \draw[arr] (not2) -- (andneg);
-  \draw[arr] (not3) -- (andneg);
-  \draw[arr] (cos1) -- (and1);
-  \draw[arr] (andneg) -| (and1);
-  \draw[arr] (and1) -- (rule1);
-  \draw[arr] (rule1) -- (stack);
-  \draw[arr] (stack) -- (sm);
-  \draw[arr] (sm) -- (ce);
-  \draw[arr] (ce) -- (loss);
-\end{tikzpicture}
-\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
-\label{fig:k3-pipeline}
-\end{figure}
+fans out to K cosine-similarity nodes against K learnable
+prototypes; each `sim_i` enters one branch of an AND-tree (the
+i-th rule takes `sim_i` directly and `NOT(sim_j)` for j ≠ i);
+the K rule scores are stacked, scaled by temperature, softmaxed,
+and cross-entropied against the label. Every node is a PyTorch
+tensor op, no Python branches and no string-keyed lookup, and
+backprop reaches every learnable parameter through the same
+compiled graph that runs at inference.
 
 At K=20 the rule for class i is an AND of `sim(x, proto_i)`
 with a left-folded chain of nineteen `NOT(sim)` terms, a tensor
@@ -1067,6 +1012,67 @@ time; the dashed line marks the compile/runtime boundary; stage
 \end{tikzpicture}
 \caption{Five-stage compilation pipeline (§4). Boxes are intermediate artifacts; italic labels are the compiler passes that connect them.}
 \label{fig:compile-pipeline}
+\end{figure}
+
+### Appendix K. K=3 rule pipeline diagram
+
+The explicit pipeline graph for the §3.6 differentiable-training
+classifier at K=3, the smallest setting that exhibits the AND /
+AND-of-NOTs / softmax / cross-entropy shape that scales unchanged
+to K=20.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm and 9mm,
+  every node/.style={font=\footnotesize},
+  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
+  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
+  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+  \node[io] (x) {input $x \in \mathbb{R}^d$};
+  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
+  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
+  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
+
+  \node[proto, left=4mm of cos1] (p1) {$p_1$};
+  \node[proto, left=4mm of cos2] (p2) {$p_2$};
+  \node[proto, left=4mm of cos3] (p3) {$p_3$};
+
+  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
+  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
+  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
+  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
+
+  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
+  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
+
+  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
+  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
+  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
+  \node[io, below=6mm of ce]      (loss) {loss};
+
+  \draw[arr] (x) -- (cos1);
+  \draw[arr] (x) -- (cos2);
+  \draw[arr] (x) -- (cos3);
+  \draw[arr] (p1) -- (cos1);
+  \draw[arr] (p2) -- (cos2);
+  \draw[arr] (p3) -- (cos3);
+  \draw[arr] (cos2) -- (not2);
+  \draw[arr] (cos3) -- (not3);
+  \draw[arr] (not2) -- (andneg);
+  \draw[arr] (not3) -- (andneg);
+  \draw[arr] (cos1) -- (and1);
+  \draw[arr] (andneg) -| (and1);
+  \draw[arr] (and1) -- (rule1);
+  \draw[arr] (rule1) -- (stack);
+  \draw[arr] (stack) -- (sm);
+  \draw[arr] (sm) -- (ce);
+  \draw[arr] (ce) -- (loss);
+\end{tikzpicture}
+\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
+\label{fig:k3-pipeline}
 \end{figure}
 
 
