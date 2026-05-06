@@ -46,22 +46,40 @@ jobs:
       - name: Generate paper.tex.body from paper.md
         working-directory: paper
         run: |
+          # Pre-process paper.md before handing to pandoc:
+          # 1. Strip the first H1 line (the title is rendered by
+          #    paper.tex's \maketitle; emitting the H1 as a section
+          #    duplicates the title on page 1).
+          # 2. Tag the meta-sections (Abstract / References /
+          #    Appendix parent / per-letter Appendix headings) with
+          #    pandoc's {-} unnumbered-heading attribute so they
+          #    render as \section*/\subsection* (no auto number).
+          #    Keeps paper.md's frozen `## Abstract` line literally
+          #    unchanged on disk; transformation is per-build only.
+          sed \
+            -e '1{/^# /d}' \
+            -e 's|^## Abstract$|## Abstract {-}|' \
+            -e 's|^## References$|## References {-}|' \
+            -e 's|^## Appendix$|## Appendix {-}|' \
+            -e 's|^### Appendix \([A-Z]\)\. \(.*\)$|### Appendix \1. \2 {-}|' \
+            paper.md > paper-pre.md
           # --from=markdown-smart (not gfm): pandoc's gfm reader does
           # not support the raw_tex extension, so every \begin{align*}
           # / \begin{figure} / \begin{tikzpicture} block in paper.md
           # was being escaped to literal \textbackslash text and then
-          # typeset as monospace gibberish — every display-math block
-          # and all three TikZ figures rendered as their LaTeX source
-          # rather than as math/figures. The markdown reader
-          # passes raw LaTeX through untouched. `-smart` keeps
-          # straight quotes (paper source already uses em-dashes
-          # directly).
-          pandoc paper.md \
+          # typeset as monospace gibberish.
+          # --top-level-division=section: with the H1 stripped above,
+          # the highest level in input is H2; map H2 -> \section,
+          # H3 -> \subsection. Without this, H2 would map to
+          # \subsection and the document would have orphaned
+          # subsections at the top level.
+          pandoc paper-pre.md \
             --from=markdown-smart \
             --to=latex \
             --output=paper.tex.body \
             --wrap=preserve \
-            --no-highlight
+            --no-highlight \
+            --top-level-division=section
 
       - name: Build named PDF
         working-directory: paper

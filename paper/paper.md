@@ -14,7 +14,7 @@ This collapses the boundary between writing a logic program and training a neura
 
 ---
 
-## 1. Introduction
+## Introduction
 
 A frozen embedding model maps strings (or amino-acid sequences,
 or any other input the model was trained on) into a
@@ -40,7 +40,7 @@ PyTorch neural network. The naming: **Sutra** is the Sanskrit
 *sūtra* (thread, rule, aphorism), the term for Pāṇini's
 foundational Sanskrit grammar.
 
-### 1.1 Contributions
+### Contributions
 
 The four core technical contributions of this paper are:
 
@@ -121,7 +121,7 @@ substrate's vector space; a compile-time codebook (implemented
 with an embedded vector database, §3.5) handles the convenience
 of source-level string literals and nearest-string output.
 
-### 1.2 The substrate is the architecture target
+### The substrate is the architecture target
 
 A Sutra program is compiled for an *embedding-space architecture*,
 the way a C program is compiled for x86 and a CUDA kernel for an
@@ -136,9 +136,9 @@ substrate-agnostically.
 
 ---
 
-## 2. Related Work
+## Related Work
 
-### 2.1 Vector Symbolic Architectures
+### Vector Symbolic Architectures
 
 VSA is a family of algebraic frameworks for computing with high-
 dimensional vectors (Kanerva 2009; Plate 1995; Gayler 2003). The
@@ -191,7 +191,7 @@ rather than by the user, and the whole program reduces to a single
 fused tensor-op graph) are differences in artifact shape, not
 library speed.
 
-### 2.2 Comparison to other neuro-symbolic languages
+### Comparison to other neuro-symbolic languages
 
 The closest neuro-symbolic-language peers are **Scallop** (Li et
 al. 2023, Datalog with provenance-semiring differentiability),
@@ -230,7 +230,7 @@ soft-halt RNN cells with constant state-vector width in
 recursion depth. The combination is what distinguishes Sutra,
 not any one of those properties in isolation.
 
-### 2.3 Differentiable Programming, AOT Compilation, and Knowledge
+### Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
 
 The closest design ancestors are partial-evaluation systems that
@@ -251,7 +251,7 @@ position.
 
 ---
 
-## 3. Consolidation into Canonical Primitives
+## Consolidation into Canonical Primitives
 
 The central design move: hold the operation interface fixed and
 pick a binding implementation that works on dense
@@ -265,7 +265,7 @@ the transpose) and well-conditioned. The compiler caches
 `R_role` per-role at module init so runtime bind is a single
 matmul against a precomputed matrix.
 
-### 3.1 Notation
+### Notation
 
 We work in $\mathbb{R}^d$ with $d$ the substrate's embedding
 dimension (768 for nomic-embed-text). Every value has the layout
@@ -280,7 +280,7 @@ the Lagrange Kleene gates as in §1.1-1, and the soft-halt cell
 of §3.4. Full signature/definition table and the soft-halt cell
 update equations are in Appendix A.
 
-### 3.2 Capacity of rotation versus Hadamard binding across substrates
+### Capacity of rotation versus Hadamard binding across substrates
 
 We measure decode accuracy as a function of bundle width k on
 real embeddings across four substrates spanning two modalities:
@@ -330,7 +330,7 @@ mechanism here does not apply to the soft-halt loop cell of §3.4.
 Reproduction script: `experiments/crosstalk_chain.py`; full
 per-substrate L-sweep tables in Appendix D.
 
-### 3.3 The extended-state-vector layout
+### The extended-state-vector layout
 
 Every value carries a fixed `[semantic | synthetic]` layout:
 the d-dimensional semantic block holds the substrate embedding
@@ -347,7 +347,7 @@ scalar can coexist with a semantic vector inside the same value
 without bind smearing them. Full per-axis purpose table and slot
 allocator details in Appendix B.
 
-### 3.4 First-class loops as RNN cells
+### First-class loops as RNN cells
 
 Runtime data-dependent loops compile to **self-halting RNN
 cells**. Each tick: snapshot pre-step state, evaluate halt on
@@ -406,7 +406,7 @@ recurrent shape that emerges is what Siegelmann & Sontag (1992)
 showed computes any Turing-machine-computable function with
 rational weights.
 
-### 3.5 I/O is in the embedding space; the codebook is a comfort layer
+### I/O is in the embedding space; the codebook is a comfort layer
 
 A Sutra program's inputs and outputs are embeddings in the
 substrate's vector space. Strings are a convenience for writing
@@ -423,7 +423,7 @@ host-side control flow substrate purity forbids. Implementation
 details (RDF triple layout, HNSW parameters, `.sdb` file format,
 complexity analysis) are in Appendix E.
 
-### 3.6 End-to-end differentiable training through Sutra operations
+### End-to-end differentiable training through Sutra operations
 
 Because every Sutra primitive compiles to a differentiable tensor
 operation, the compiled graph supports standard PyTorch
@@ -490,7 +490,7 @@ differentiate. Reproduction:
 
 ---
 
-## 4. The Sutra Compiler
+## The Sutra Compiler
 
 The compiler is a five-stage pipeline:
 
@@ -517,7 +517,7 @@ is baked into the emitted source. Stages 1–4 run at compile time
 and stage 5 is the runtime forward pass; Appendix J diagrams the
 pipeline as a vertical flow with the residual at each stage.
 
-### 4.1 Substrate-purity invariants
+### Substrate-purity invariants
 
 Three invariants the compiler enforces: (1) every primitive runs
 on the substrate (numpy is allowed only at compile time for
@@ -529,7 +529,7 @@ control flow inside an operation: loop halt uses substrate
 primitives (`heaviside`, `saturate_unit`) instead of Python
 ternaries.
 
-### 4.2 Compile-time resolution to tensor normal form
+### Compile-time resolution to tensor normal form
 
 The central compile-time mechanism that lets the compiler
 achieve tensor normal form is **precomputed rotation matrices**:
@@ -550,7 +550,7 @@ same computation.
 
 ---
 
-## 5. Demonstration, limitations, and future work
+## Demonstration, limitations, and future work
 
 The smoke test (`examples/_smoke_test.py`) runs 10 demonstration
 programs end-to-end across 27 `.su` files (Appendix I); loop
@@ -563,7 +563,7 @@ extended features (hashmap routing, persistent codebook via
 
 ---
 
-## 6. Conclusion
+## Conclusion
 
 Sutra compiles a typed pure-functional source language to a
 substrate-pure PyTorch tensor-op graph: one vector layout per
