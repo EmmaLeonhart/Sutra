@@ -16,8 +16,8 @@ This collapses the boundary between writing a logic program and training a neura
 
 ## 1. Introduction
 
-A frozen embedding model maps strings — or amino-acid sequences,
-or any other input the model was trained on — into a
+A frozen embedding model maps strings (or amino-acid sequences,
+or any other input the model was trained on) into a
 deterministic continuous vector space. Given such a substrate,
 two technical questions follow:
 
@@ -25,8 +25,8 @@ two technical questions follow:
    be used as primitives** of a compositional algebra over the
    substrate's vector space?
 2. **What is the correct binding operation?** Hyperdimensional
-   computing's textbook bind operators — Hadamard product,
-   circular convolution — were derived assuming hypervectors
+   computing's textbook bind operators (Hadamard product,
+   circular convolution) were derived assuming hypervectors
    drawn from a controlled random distribution. Frozen LLM
    embeddings are not such a distribution. §3.2 measures four
    substrates and reports that rotation binding decodes at 100%
@@ -37,7 +37,7 @@ This paper answers both questions in the form of a working
 programming language, **Sutra**, whose primitives are these
 consolidated operations and whose compiled forward pass is a
 PyTorch neural network. The naming: **Sutra** is the Sanskrit
-*sūtra* — thread, rule, aphorism — the term for Pāṇini's
+*sūtra* (thread, rule, aphorism), the term for Pāṇini's
 foundational Sanskrit grammar.
 
 ### 1.1 Contributions
@@ -69,8 +69,8 @@ The four core technical contributions of this paper are:
    fragment; XOR/XNOR collapse to a single multiplicative term
    because their interpolant is zero whenever either input is U
    and bilinear in the {−1, +1} corners. Every Kleene-valid
-   connective is therefore a polynomial tensor-op-graph fragment
-   — gradient-compatible, branchless, and exact on the
+   connective is therefore a polynomial tensor-op-graph fragment,
+   gradient-compatible, branchless, and exact on the
    discrete-logic regime. A symbolic if-then rule built from
    these gates is one fused subgraph that PyTorch autograd
    backprops through end-to-end (§3.6).
@@ -102,7 +102,7 @@ The four core technical contributions of this paper are:
    straight-line tensor pipeline with no in-graph branches; a
    thin Python `while True: … break` driver wraps the body and
    terminates when the halt scalar saturates (§3.4). The state
-   vector is fixed-width across iterations — **O(1) state, O(N)
+   vector is fixed-width across iterations, **O(1) state, O(N)
    compute, O(N) gradient tape during training**, where N is
    iterations actually executed.
 
@@ -129,7 +129,7 @@ NVIDIA SM. The embedding model fixes dimensionality, the geometry
 of the semantic block, and the meaning of every basis-vector
 lookup; swap the model and the same source recompiles to a
 different `.sdb` codebook against a different geometry. The
-substrate need not be an LLM — it can be any network producing a
+substrate need not be an LLM, it can be any network producing a
 dense vector representation, including the hidden state of a
 trained model. §3.2's ESM-2 protein-LM row demonstrates this
 substrate-agnostically.
@@ -182,30 +182,30 @@ Sutra's compile-time codebook (§3.5) closes that loop: every
 embedded string in `.su` source is embedded once at compile time
 via the configured frozen LLM, stored in the project's `.sdb`
 codebook, and decoded at the program output via `nearest_string`.
-The frozen-LLM embedding is load-bearing — random hypervectors
+The frozen-LLM embedding is load-bearing, random hypervectors
 yield a working VSA algebra with no I/O story.
 
-The structural differences — Sutra contains no Python, the
+The structural differences (Sutra contains no Python, the
 string-to-vector map and codebook are constructed by the compiler
 rather than by the user, and the whole program reduces to a single
-fused tensor-op graph — are differences in artifact shape, not
+fused tensor-op graph) are differences in artifact shape, not
 library speed.
 
 ### 2.2 Comparison to other neuro-symbolic languages
 
-The closest neuro-symbolic-language peers — **Scallop** (Li et
+The closest neuro-symbolic-language peers are **Scallop** (Li et
 al. 2023, Datalog with provenance-semiring differentiability),
 **DeepProbLog** (Manhaeve et al. 2018, ProbLog with neural
 predicates), **Logic Tensor Networks** (Badreddine et al. 2022,
 first-order logic compiled to t-norm losses), and **NeurASP**
-(Yang et al. 2020, Answer Set Programming with neural predicates)
-— all share a two-stage perception-then-reasoning shape: a
+(Yang et al. 2020, Answer Set Programming with neural predicates).
+All share a two-stage perception-then-reasoning shape: a
 neural model extracts discrete symbols from raw input, and a
 symbolic program reasons over those symbols. Sutra's shape is
 different at this architectural level: the substrate is a
 continuous embedding space throughout, primitives operate on
-vectors end-to-end, and the whole program — including what would
-be the logic program in Scallop — compiles to a single fused
+vectors end-to-end, and the whole program (including what would
+be the logic program in Scallop) compiles to a single fused
 tensor-op graph through beta reduction. There is no discrete
 symbolic stratum to extract into or reason over; differentiability
 is inherited from the tensor-op graph itself, not from a
@@ -218,7 +218,7 @@ decodes strings out of.
 
 The closest HDC peer with compiler infrastructure is **HDCC**
 (Vergés et al. 2023), a description-file DSL targeting
-self-contained C for embedded classification — random/level
+self-contained C for embedded classification, random/level
 hypervectors only, no general control flow, scoped to
 classification. **TorchHD** and OpenHD / HDTorch are libraries
 without a language-level loop primitive. To the authors'
@@ -244,9 +244,9 @@ does not bake source literals into weights; partial evaluation
 specializes for compile-time-known values but does not target a
 neural-network-shaped artifact; knowledge compilation targets
 Boolean circuits, not continuous embedding spaces. Sutra's
-combination — fold source literals into the weight structure,
+combination (fold source literals into the weight structure,
 compile control flow to RNN cells, run the whole program as one
-tensor-op graph over a *continuous* substrate — is the novel
+tensor-op graph over a *continuous* substrate) is the novel
 position.
 
 ---
@@ -256,7 +256,7 @@ position.
 The central design move: hold the operation interface fixed and
 pick a binding implementation that works on dense
 externally-trained substrates. Standard VSA's Hadamard product
-fails here — elementwise multiplication of correlated real-valued
+fails here, elementwise multiplication of correlated real-valued
 vectors produces destructive crosstalk on bundled retrieval (§3.2
 measures this directly). Rotation binding works: each role gets a
 Haar-random orthogonal `R_role` seeded by `hash(role)`, and
@@ -317,7 +317,7 @@ round-off, Q orthogonal). Reproduction:
 #### 3.2.1 Noise accumulation across chained bind/unbind cycles
 
 The §3.2 protocol measures one bind+bundle+unbind cycle. Nested
-records — a recovered filler becoming the role of a sub-record —
+records (a recovered filler becoming the role of a sub-record)
 add bundle noise per level. We measured this directly: chain
 lengths L ∈ {1, 2, 4, 8, ...}, 20 trials, bundle width 4. Raw
 accuracy holds at 100% through L=2 on every substrate and falls
@@ -342,7 +342,7 @@ Givens planes for variable slots. Default at d = 768
 five canonical axes plus 47 disjoint slots. Rotation binding is
 block-diagonal across the split (`Q_role` is Haar-random in the
 semantic block, identity on the synthetic block), so the
-synthetic axes pass through bind/unbind unchanged — a fuzzy-truth
+synthetic axes pass through bind/unbind unchanged, a fuzzy-truth
 scalar can coexist with a semantic vector inside the same value
 without bind smearing them. Full per-axis purpose table and slot
 allocator details in Appendix B.
@@ -357,7 +357,7 @@ between pre- and new-step state by `halted`. A Python
 `while True:` driver breaks the moment `halted` saturates;
 this is the only host-side branch in the loop machinery. Inside
 the cell body, every operation is a substrate tensor op. No
-compile-time iteration cap — programs terminate when their halt
+compile-time iteration cap, programs terminate when their halt
 condition fires. Standard PyTorch tracing handles a Python
 while-loop wrapping pure tensor ops; autograd records each
 iteration as it executes, which is the mechanism §3.6 relies on
@@ -389,7 +389,7 @@ visualizes one tick.
   \draw[arr] (body.south) to[bend left=15] (mux.east);
   \draw[arr] (mux) -- (sout);
 \end{tikzpicture}
-\caption{Per-tick dataflow of the soft-halt RNN cell. Once $H_t$ saturates at $1$, the soft-mux output equals $s_t^{\mathrm{pre}}$ — the loop has frozen. The cumulative halt $H_t$ acts as a boundary read of the same shape as the codebook decode (§3.5).}
+\caption{Per-tick dataflow of the soft-halt RNN cell. Once $H_t$ saturates at $1$, the soft-mux output equals $s_t^{\mathrm{pre}}$, the loop has frozen. The cumulative halt $H_t$ acts as a boundary read of the same shape as the codebook decode (§3.5).}
 \label{fig:halt-cell}
 \end{figure}
 
@@ -426,7 +426,7 @@ At the program's output boundary, the runtime decode
 `_VSA.nearest_string(query)` maps a query embedding to the
 nearest stored string when the program's caller wants a string
 back. Calling the codebook at this boundary is shape-equivalent
-to calling PyTorch for a matmul — neither is the kind of
+to calling PyTorch for a matmul, neither is the kind of
 host-side control flow substrate purity forbids. Implementation
 details (RDF triple layout, HNSW parameters, `.sdb` file format,
 complexity analysis) are in Appendix E.
@@ -477,7 +477,7 @@ i-th rule takes `sim_i` directly and `NOT(sim_j)` for j ≠ i), the
 K rule scores are stacked, scaled by temperature, softmaxed, and
 cross-entropied against the label. Every node is a PyTorch tensor
 op; every edge carries a vector or scalar. There are no Python
-branches, no host-side dispatch, no string-keyed lookup — backprop
+branches, no host-side dispatch, no string-keyed lookup, backprop
 reaches every learnable parameter through the same compiled graph
 that runs at inference.
 
@@ -536,7 +536,7 @@ that runs at inference.
 \end{figure}
 
 At K=20 the rule for class i is an AND of `sim(x, proto_i)`
-with a left-folded chain of nineteen `NOT(sim)` terms — a tensor
+with a left-folded chain of nineteen `NOT(sim)` terms, a tensor
 pipeline that could naively saturate or vanish gradients
 somewhere along the chain. Empirically it doesn't: every
 prototype receives a nonzero gradient, accuracy reaches 95% on a
@@ -546,7 +546,7 @@ remaining 5% gap is honest semantic overlap (e.g. *salmon* fits
 food and color); gradient norms remain bounded above zero
 throughout, so this is the optimizer plateauing under those
 overlaps, not gradient pathology. Standard `torch.autograd`
-suffices — no Sutra-specific autograd machinery — because the
+suffices (no Sutra-specific autograd machinery) because the
 compiler emits only operations PyTorch already knows how to
 differentiate. Reproduction:
 `experiments/differentiable_training.py` + raw JSON.
@@ -557,18 +557,18 @@ differentiate. Reproduction:
 
 The compiler is a five-stage pipeline:
 
-1. **Lex + parse** — `.su` source → AST.
-2. **Inline + simplify** — stdlib operator definitions inlined; an
+1. **Lex + parse**: `.su` source → AST.
+2. **Inline + simplify**: stdlib operator definitions inlined; an
    egglog-based simplifier folds equivalent expressions and runs
    common-subexpression elimination over the algebra.
-3. **Codegen** — AST → Python source emitting PyTorch tensor ops.
+3. **Codegen**: AST → Python source emitting PyTorch tensor ops.
    The emitted module includes the runtime class (`_TorchVSA`) as
    inline source so the artifact is self-contained.
-4. **Compile-time substrate population** — embed_batch fetches
+4. **Compile-time substrate population**: embed_batch fetches
    embeddings for every string literal; `populate_sutradb` pushes
    the codebook into SutraDB; `prewarm_rotation_cache` precomputes
    role rotations.
-5. **Execute** — emitted module loaded; chosen device (CUDA or
+5. **Execute**: emitted module loaded; chosen device (CUDA or
    CPU) initialized at module import; `main()` called; result
    returned.
 
@@ -582,7 +582,7 @@ rotations on second-and-later runs.
 
 Stages 1–4 run at compile time; stage 5 is the runtime forward
 pass. The compile-time/runtime boundary is exactly where
-neural-network training versus inference draws the line — by
+neural-network training versus inference draws the line, by
 the time stage 5 begins, every role rotation, codebook entry,
 and stdlib reduction has been resolved to a constant tensor or
 a primitive op, the same way a feed-forward network's weights
@@ -594,10 +594,10 @@ as a vertical flow with the residual at each stage.
 Three invariants the compiler enforces: (1) every primitive runs
 on the substrate (numpy is allowed only at compile time for
 codebook construction and rotation pre-warm, never on the runtime
-hot path); (2) no scalar extraction inside an operation —
+hot path); (2) no scalar extraction inside an operation:
 operations may not unpack a Python float from a substrate vector,
 do scalar arithmetic, and pack the result back; (3) no Python
-control flow inside an operation — loop halt uses substrate
+control flow inside an operation: loop halt uses substrate
 primitives (`heaviside`, `saturate_unit`) instead of Python
 ternaries.
 
@@ -608,7 +608,7 @@ achieve tensor normal form is **precomputed rotation matrices**:
 every role rotation is constructed at compile time
 (`prewarm_rotation_cache`) and stored as a constant tensor. At
 runtime, `bind(role, filler)` is a single matmul against a
-precomputed matrix — the compile-time resolution eliminates the
+precomputed matrix, the compile-time resolution eliminates the
 QR construction from the runtime graph entirely. Role rotations
 are constants from the runtime's perspective, the same way
 neural-network weights are constants at inference time. With
@@ -728,13 +728,13 @@ on which substrates becomes a program to write.
 
 ## Appendix
 
-### Appendix A — Notation: extended layout and primitive operations
+### Appendix A. Notation: extended layout and primitive operations
 
 We work in a fixed-dimensional real vector space $\mathbb{R}^d$
 where $d$ is the substrate's embedding dimension (768 for
 nomic-embed-text, 384 for all-minilm, 1024 for mxbai-embed-large,
 320 for ESM-2). Every Sutra value carries the extended layout
-$[\,\text{semantic}\mid\text{synthetic}\,]$ — a $d$-dimensional
+$[\,\text{semantic}\mid\text{synthetic}\,]$, a $d$-dimensional
 semantic block holding the substrate embedding, concatenated with
 a small fixed-width synthetic block reserving canonical axes for
 primitive types (real, imag, truth, char, loop-done) and slot
@@ -779,7 +779,7 @@ control flow. The compile-time primitives `RotationFor` and
 `embed` produce constants $R_r$ and basis vectors at compile
 time and are not part of the runtime tensor graph.
 
-### Appendix B — Extended-state-vector layout: per-axis assignments
+### Appendix B. Extended-state-vector layout: per-axis assignments
 
 §3.3 describes the `[semantic | synthetic]` layout in prose. The
 diagram and per-axis purpose table below give the concrete
@@ -802,12 +802,12 @@ allocation referenced in `codegen_pytorch.py`:
 | `synthetic[2]`    | `AXIS_TRUTH` (fuzzy truth scalar; bool/comparisons)         |
 | `synthetic[3]`    | `AXIS_CHAR_FLAG` (marks char primitives)                    |
 | `synthetic[4]`    | `AXIS_LOOP_DONE` (substrate-side completion flag)           |
-| `synthetic[5..]`  | `SLOT_BASE` — disjoint 2D Givens slots for variable storage |
+| `synthetic[5..]`  | `SLOT_BASE`: disjoint 2D Givens slots for variable storage |
 
 At `semantic_dim = 768` (nomic-embed-text), `synthetic_dim = 100`
 accommodates the five canonical axes plus 47 disjoint Givens slots.
 
-### Appendix C — Capacity: full per-substrate sweeps
+### Appendix C. Capacity: full per-substrate sweeps
 
 Cross-substrate decode accuracy at full bundle widths
 k ∈ {2, 4, 8, 16, 24, 32, 48}. The four substrates use 84-entry
@@ -873,7 +873,7 @@ of correlated real-valued embeddings produces a result that
 overlaps with many distractors in the codebook rather than
 near-orthogonally with one.
 
-### Appendix D — Crosstalk depth: full per-substrate L-sweep
+### Appendix D. Crosstalk depth: full per-substrate L-sweep
 
 The §3.2.1 protocol: chain length L ∈ {1, 2, 4, 8, 16, 32}, 20
 trials, bundle width 4 (3 distractors per cycle). Forward-bind
@@ -898,10 +898,10 @@ where it knows the codebook is the right reference. Reproduction
 script: `experiments/crosstalk_chain.py`; raw JSON in
 `experiments/crosstalk_chain_results.json`.
 
-### Appendix E — Codebook implementation details
+### Appendix E. Codebook implementation details
 
 The §3.5 codebook is implemented as an embedded vector database
-(internally SutraDB) shipped as part of the compiler — analogous
+(internally SutraDB) shipped as part of the compiler, analogous
 to SQLite being embedded in an application rather than run as a
 separate service. The data model is RDF
 triples with f32-vector literals as the object position, indexed
@@ -913,7 +913,7 @@ Sutra program is inserted with the embedding as the object of a
 triple typed `<http://sutra.dev/f32vec>`. Strings declared but
 unused in expressions are still inserted, so they remain
 decodable. The compiled module's Python data section never
-carries the embeddings — they live in the `.sdb` file, an
+carries the embeddings, they live in the `.sdb` file, an
 artifact of compilation, not a service the runtime contacts.
 
 `nearest_string` runs over an HNSW (Hierarchical Navigable
@@ -928,17 +928,17 @@ runtime, modulo HNSW's tunable `M` (graph degree) and
 `ef_search` (beam width); the cost difference is roughly one
 extra graph hop per 10× growth in N.
 
-### Appendix F — Worked lowering of a two-field bundled record
+### Appendix F. Worked lowering of a two-field bundled record
 
 The body §4.3 sketches the lowering of
 $\mathrm{encode2}(r_a, f_a, r_b, f_b) \,:=\, \mathrm{bundle}(\mathrm{bind}(r_a, f_a),\,\mathrm{bind}(r_b, f_b))$.
 Here we trace each stage with the explicit residual.
 
-**Stage 1 — AST after parse.** A tree of `Call` nodes over named
+**Stage 1: AST after parse.** A tree of `Call` nodes over named
 identifiers: `Call("bundle", Call("bind", r_a, f_a),
 Call("bind", r_b, f_b))`.
 
-**Stage 2 — beta reduction by stdlib inlining.** `bind`,
+**Stage 2: beta reduction by stdlib inlining.** `bind`,
 `bundle`, and `normalize` are stdlib functions:
 $\mathrm{bind}(r, f) \equiv \mathrm{RotationFor}(r)\,f$,
 $\mathrm{bundle}(x, y) \equiv \mathrm{normalize}(x + y)$,
@@ -952,23 +952,23 @@ $$
 No `bind` or `bundle` symbol remains; the residual is straight-
 line algebra over four tensor primitives.
 
-**Stage 3 — compile-time constant resolution.**
+**Stage 3: compile-time constant resolution.**
 $\mathrm{RotationFor}(r)$ is a compile-time function returning
 $R = \mathrm{QR}(\mathrm{seed}=\mathrm{hash}(r)).Q$. The compiler
 evaluates it for each role at compile time, freezes the results
 as constant tensors $R_a$ and $R_b$, and stores them in the
 rotation cache. The body becomes
-$\mathrm{normalize}(R_a\,f_a + R_b\,f_b)$ — $R_a$ and $R_b$ are
+$\mathrm{normalize}(R_a\,f_a + R_b\,f_b)$, $R_a$ and $R_b$ are
 now load-bearing constants in the same sense as the weight
 matrices of a feed-forward network.
 
-**Stage 4 — peephole fusion.** The simplifier recognizes
+**Stage 4: peephole fusion.** The simplifier recognizes
 $\mathrm{normalize}\!\bigl(\textstyle\sum_i R_i\,f_i\bigr)$ as the
 bundle-of-binds pattern and rewrites it to
-`_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])` — one kernel
+`_VSA.bundle_of_binds([(R_a, f_a), (R_b, f_b)])`, one kernel
 launch instead of two matmuls + add + norm.
 
-**Stage 5 — leaf tensor ops at runtime.** `bundle_of_binds`
+**Stage 5: leaf tensor ops at runtime.** `bundle_of_binds`
 stacks rotations into a $(k, d, d)$ tensor, stacks fillers into
 $(k, d)$, runs one batched einsum + sum + L2-normalize:
 
@@ -978,10 +978,10 @@ v          &\;=\; \sum_{k} R_k\,f_k \;=\; \mathtt{einsum("kij,kj->i",\; \mathrm{
 \end{align*}
 
 The compiled forward pass for `encode2` is exactly those three
-torch calls — einsum, linalg.norm, divide — over precomputed
+torch calls (einsum, linalg.norm, divide) over precomputed
 $R_a, R_b$ and runtime-supplied $f_a, f_b$.
 
-### Appendix G — §3.6 differentiable-training vocabulary
+### Appendix G. §3.6 differentiable-training vocabulary
 
 Twenty categories of fifty words each (992 unique after
 deduplication), embedded via nomic-embed-text:
@@ -1007,7 +1007,7 @@ deduplication), embedded via nomic-embed-text:
 - **shape**: circle, square, triangle, rectangle, oval, ellipse, pentagon, hexagon, octagon, diamond, rhombus, trapezoid, parallelogram, polygon, sphere, cube, cylinder, cone, pyramid, prism, cuboid, tetrahedron, dodecahedron, icosahedron, octahedron, torus, helix, spiral, crescent, star, heart, arrow, cross, line, curve, arc, ring, loop, knot, dot, vertex, edge, angle, parabola, hyperbola, sine, wave, zigzag, scallop, annulus
 - **fabric**: cotton, wool, silk, linen, polyester, nylon, denim, leather, suede, velvet, satin, lace, tweed, cashmere, mohair, fleece, fur, canvas, burlap, jute, flannel, chiffon, organza, taffeta, brocade, damask, paisley, gingham, plaid, herringbone, corduroy, microfiber, spandex, lycra, rayon, viscose, acrylic, polypropylene, jersey, knit, sherpa, gabardine, twill, muslin, gauze, mesh, vinyl, tulle, georgette, voile
 
-### Appendix H — Reproduction details and hyperparameters
+### Appendix H. Reproduction details and hyperparameters
 
 Per-experiment configuration. All scripts live under `experiments/`
 in the source repository; each writes a JSON results file to the
@@ -1017,9 +1017,9 @@ body to the precision reported.
 
 | Experiment | §  | Script | Trials / k | Embedding | Optimizer | Seed |
 |---|---|---|---|---|---|---|
-| Rotation vs Hadamard, LLM | 3.2 | `rotation_binding_capacity_llm.py` | 10 / k | nomic-embed-text, all-minilm, mxbai-embed-large | — | per-script |
-| Rotation vs Hadamard, ESM-2 | 3.2 | `rotation_binding_capacity_bioinformatics.py` | 10 / k | facebook/esm2\_t6\_8M\_UR50D | — | 1729, 2718 |
-| Crosstalk depth | 3.2.1 | `crosstalk_chain.py` | 20 / L | three LLM substrates | — | per-script |
+| Rotation vs Hadamard, LLM | 3.2 | `rotation_binding_capacity_llm.py` | 10 / k | nomic-embed-text, all-minilm, mxbai-embed-large |  | per-script |
+| Rotation vs Hadamard, ESM-2 | 3.2 | `rotation_binding_capacity_bioinformatics.py` | 10 / k | facebook/esm2\_t6\_8M\_UR50D |  | 1729, 2718 |
+| Crosstalk depth | 3.2.1 | `crosstalk_chain.py` | 20 / L | three LLM substrates |  | per-script |
 | Differentiable training | 3.6 | `differentiable_training.py` | 1 run × 300 epochs | nomic-embed-text (frozen) | Adam, lr=0.005 | 42 |
 
 The differentiable-training run loads twenty learnable prototype
@@ -1037,7 +1037,7 @@ the §3.2 capacity sweeps complete in ~2 min per substrate; the
 should reproduce the same accuracy numbers since the operations
 are deterministic given a seed.
 
-### Appendix I — Demonstration corpus
+### Appendix I. Demonstration corpus
 
 The smoke test (`examples/_smoke_test.py`) compiles and runs ten
 `.su` programs end-to-end and asserts each output against a
@@ -1061,11 +1061,11 @@ the runtime path:
 Loop coverage lives in `examples/do_while_adder.su` and the
 23-case `tests/test_loop_function_decl.py` suite. The §3.6
 differentiable-training experiment uses the same primitive set
-the smoke-test programs are built from — no Sutra-runtime
+the smoke-test programs are built from, no Sutra-runtime
 extensions, just compilation of `.su` source to PyTorch
 tensor ops.
 
-### Appendix J — Compilation pipeline diagram
+### Appendix J. Compilation pipeline diagram
 
 The five stages of §4 visualized as a vertical flow with the
 residual artifact at each stage. Stages (1)–(4) run at compile

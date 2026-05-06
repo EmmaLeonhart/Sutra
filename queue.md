@@ -15,33 +15,52 @@ CLAUDE.md §"Title and abstract are FROZEN — submitted to
 NeurIPS." Body remains editable.
 
 Current paper state (post-abstract-submission, 2026-05-06):
-- Latest build (`paper-pdf.yml` run 25409986512): **20 total PDF
-  pages** — **9 body pages, 1 reference page, 10 appendix pages
-  (A–J)**. References starts on page 10. NeurIPS 9-page body cap
-  met as of commit `e30ca6b`.
-- The earlier queue claim of "9 body pages" was stale — the
-  actual prior state was 10. Bringing body to 9 took two cuts:
-  (a) `fig:compile-pipeline` moved to Appendix J, and (b) §5/§6/§7
-  prose tightened to pull §7 conclusion onto page 9.
+- Latest build (`paper-pdf.yml` run 25431729331, post merge of
+  PR #31): **20 total PDF pages** — **10 body pages, 1 reference
+  page, 9 appendix pages**. References now starts on **page 11**.
+  NeurIPS 9-page body cap is **violated**: PR #31's two reviewer-
+  targeted polish paragraphs (§3.4 gradient-stability, §6
+  MNIST/CLEVR pointer) pushed the body back over the cap. The PR
+  description and queue update both incorrectly claimed the
+  additions fit. Same regression pattern as commit `131d4c7` two
+  days ago.
+- v46 review (2026-05-06, post 2360): **Strong Accept** (rating
+  unchanged from v45). The two cons that PR #31 specifically
+  targeted (gradient-stability and MNIST/CLEVR comparison) are
+  **still listed** in v46, so the additions did not move the
+  reviewer but did cost a page.
 - Two TikZ figures still in body: `fig:halt-cell` (§3.4),
   `fig:k3-pipeline` (§3.6).
 - 70+ inline/display math expressions render correctly via
   pandoc `markdown-smart` → lualatex.
 - `paper-pdf.yml` and `papers-ci.yml` both green on master.
   CI is unusually slow today (3-15min vs the usual 1.5min).
-- Latest review (v44, 2026-05-06, post 2358): **Accept** (down
-  one step from v43 Strong Accept after my reverted §6 expansion;
-  reviewer cons unchanged from v43, so the §6 expansion didn't
-  move the reviewer's mind but did cost a page).
+- **Title mismatch fixed**: `paper/paper.tex` had the OLD title
+  hardcoded in `\title{}` (`Compiling a Vector Symbolic
+  Architecture to a Tensor-Op Recurrent Neural Network via Beta
+  Reduction`, from PR #28's rename); paper.md H1 had the
+  canonical post-revert title. The PDF title page was therefore
+  showing the old title while the clawRxiv-submitted title used
+  the H1. Both now use `Sutra: Tensor-Op RNNs as a Compilation
+  Target for Vector Symbolic Architectures`.
+- **Em-dashes stripped from body.** All 66 U+2014 em-dashes in the
+  body rewritten to natural punctuation (parens for parentheticals,
+  colon for label-then-description, comma for pause). Title and
+  abstract untouched (frozen, and had zero em-dashes).
 
 ## Active
 
+**MUST trim body from 10 pages back to 9 pages before submit.**
 Time remaining: ~36 hours to May 6 AOE (≈ May 7 12:00 UTC).
-Body is at 9 pages; abstract is locked; reviewers stabilized at
-Accept / Strong Accept since v23 (v45: Strong Accept). Both
-optional polish items landed; pre-submission state is acceptable
-as-is. Awaiting CI page-count confirmation that the body is
-still at 9 pages, then ready to submit.
+Reviewers stabilized at Accept / Strong Accept since v23 (v46:
+Strong Accept). Options for the trim:
+- Revert PR #31 entirely (loses the §3.4 gradient-stability
+  paragraph and §6 MNIST/CLEVR pointer; v46 cons stayed the same
+  with them, so they aren't moving the reviewer anyway).
+- Keep one addition, drop the other. The §3.4 paragraph is
+  longer (~3 lines) and the bigger contributor to the overflow.
+- Tighten elsewhere in §5/§6/§7. Headroom is thin — we already
+  did this for the prior overflow in commit `e30ca6b`.
 
 ## Open issues to address (not blocking paper deadline)
 
@@ -61,24 +80,35 @@ still at 9 pages, then ready to submit.
   May-6 asks (diagrams of runtime behavior, formal notation,
   worked beta-reduction) satisfied. 70+ math expressions; three
   TikZ figures (halt-cell, K=3 pipeline, compile pipeline).
-- **Body actually at 9 pages.** Two cuts landed 2026-05-06:
-  `fig:compile-pipeline` moved to a new Appendix J (commit
-  `9f642f2`), and §5 / §6 / §7 prose tightened to pull the
-  conclusion onto page 9 (commit `e30ca6b`). PDF at run
-  25409986512 confirms References on page 10.
+- **9-page body achieved (then regressed by PR #31).** Two cuts
+  landed 2026-05-06: `fig:compile-pipeline` moved to Appendix J
+  (commit `9f642f2`), and §5 / §6 / §7 prose tightened to pull
+  the conclusion onto page 9 (commit `e30ca6b`). PR #31 then
+  added two paragraphs and pushed the body back to 10. Trim is
+  the headline blocker — see Active section.
 - **SKILL.md "13-program smoke test" → "10-program"** to match
   body §5 and Appendix I (the actual `_smoke_test.py` has
   exactly 10 `run_*` functions). Commit `131d4c7`.
-- **clawRxiv review trajectory v20→v45.** Stable at Accept /
+- **clawRxiv review trajectory v20→v46.** Stable at Accept /
   Strong Accept since v23. v44 (2026-05-06): Accept (one step
   down from v43's Strong Accept); cons unchanged. v45
-  (2026-05-06, post 2359): Strong Accept.
+  (2026-05-06, post 2359): Strong Accept. v46 (2026-05-06,
+  post 2360): Strong Accept; the two cons PR #31 targeted are
+  still listed.
 - **§3.4 gradient-stability paragraph + §6 MNIST-Addition /
   CLEVR-Hans pointer.** Two optional polish items landed in
   response to v44/v45 cons. §3.4 addition is hedged: §3.6's
   nineteen-AND-deep pipeline is polynomial-gate evidence, not
   loop-cell evidence; training-through-the-cell stability for
   long-running tail-recursive loops is explicitly marked open.
+  v46 cons did not move, so reverting these is on the table.
+- **paper.tex title sync to canonical.** `\title{}` had the old
+  PR-#28 title (`Compiling a Vector Symbolic Architecture to a
+  Tensor-Op Recurrent Neural Network via Beta Reduction`); now
+  matches `paper.md` H1 and CLAUDE.md canonical.
+- **Em-dashes removed from body.** All 66 U+2014 stripped via
+  context-aware rewrite (parens for parentheticals, colon for
+  labels, comma for pauses). Frozen title + abstract untouched.
 
 ## Pointers
 
