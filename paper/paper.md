@@ -602,24 +602,19 @@ every role rotation is constructed at compile time
 runtime, `bind(role, filler)` is a single matmul against a
 precomputed matrix, the compile-time resolution eliminates the
 QR construction from the runtime graph entirely. Role rotations
-are constants from the runtime's perspective, the same way
-neural-network weights are constants at inference time. With
-`torch.compile` (opt-in via `SUTRA_TORCH_COMPILE=1`), the
-tracer further folds the per-tick loop body into a single fused
-kernel.
+are runtime constants, like neural-network weights at inference;
+opt-in `torch.compile` (`SUTRA_TORCH_COMPILE=1`) further folds
+the per-tick loop body into a single fused kernel.
 
 ### 4.3 A worked lowering
 
-A two-field bundled record `encode2(r_a, f_a, r_b, f_b) :=
-bundle(bind(r_a, f_a), bind(r_b, f_b))` lowers in five stages
-(parse → stdlib beta-substitution → compile-time `RotationFor`
-resolution → peephole fusion to `_VSA.bundle_of_binds` → leaf
-tensor ops `einsum + linalg.norm + divide`) over rotations
-materialized at compile time. Appendix F traces each stage with
-the residual after every reduction. The bottom of the chain
-contains no `bind`/`bundle`/`normalize` symbol and no Python
-control flow; surface lambda calculus and runtime tensor
-arithmetic are two notations for the same computation.
+Appendix F traces a two-field bundled record `encode2(r_a, f_a,
+r_b, f_b) := bundle(bind(r_a, f_a), bind(r_b, f_b))` through
+five reduction stages (parse, stdlib beta, `RotationFor`
+resolution, peephole fusion, leaf tensor ops). The bottom of the
+chain contains no `bind`/`bundle`/`normalize` symbol and no
+Python control flow, so surface lambda calculus and runtime
+tensor arithmetic are two notations for the same computation.
 
 ---
 
