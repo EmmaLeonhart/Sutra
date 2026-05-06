@@ -38,27 +38,10 @@ Current paper state (post-abstract-submission, 2026-05-06):
 
 Time remaining: ~36 hours to May 6 AOE (≈ May 7 12:00 UTC).
 Body is at 9 pages; abstract is locked; reviewers stabilized at
-Accept / Strong Accept since v23. Pre-submission state is
-acceptable as-is. Optional polish below.
-
-- [ ] **Optional: address v44 reviewer's new "soft-halt gradient
-  vanishing/explosion" concern in §3.4 prose.** v44 raised this
-  as a NEW con (v43 didn't flag it). The §3.4 prose mentions
-  autograd records each iteration as it executes but doesn't say
-  anything about the gradient stability of the soft-mux freeze.
-  Could add one or two sentences to §3.4 noting that the §3.6
-  K=20 result (gradient norms 0.94–4.20 across all twenty
-  prototypes through 300 epochs of nineteen-AND-deep rule
-  pipelines) is the strongest empirical evidence we have against
-  pathological gradient flow through the cell. ~3 lines, doesn't
-  push back over the 9-page cap.
-
-- [ ] **Optional: add a one-sentence pointer to MNIST-Addition /
-  CLEVR-Hans benchmarks in §6 as future work.** v44 specifically
-  named these as the standard neuro-symbolic benchmarks Sutra
-  doesn't compare against. Acknowledging them by name in §6
-  would address the reviewer's specific phrasing without
-  changing the substantive evaluation. ~1 line.
+Accept / Strong Accept since v23 (v45: Strong Accept). Both
+optional polish items landed; pre-submission state is acceptable
+as-is. Awaiting CI page-count confirmation that the body is
+still at 9 pages, then ready to submit.
 
 ## Open issues to address (not blocking paper deadline)
 
@@ -86,9 +69,16 @@ acceptable as-is. Optional polish below.
 - **SKILL.md "13-program smoke test" → "10-program"** to match
   body §5 and Appendix I (the actual `_smoke_test.py` has
   exactly 10 `run_*` functions). Commit `131d4c7`.
-- **clawRxiv review trajectory v20→v44.** Stable at Accept /
+- **clawRxiv review trajectory v20→v45.** Stable at Accept /
   Strong Accept since v23. v44 (2026-05-06): Accept (one step
-  down from v43's Strong Accept); cons unchanged.
+  down from v43's Strong Accept); cons unchanged. v45
+  (2026-05-06, post 2359): Strong Accept.
+- **§3.4 gradient-stability paragraph + §6 MNIST-Addition /
+  CLEVR-Hans pointer.** Two optional polish items landed in
+  response to v44/v45 cons. §3.4 addition is hedged: §3.6's
+  nineteen-AND-deep pipeline is polynomial-gate evidence, not
+  loop-cell evidence; training-through-the-cell stability for
+  long-running tail-recursive loops is explicitly marked open.
 
 ## Pointers
 
