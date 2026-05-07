@@ -105,31 +105,11 @@ runnable in order.
 `REPRODUCE.md` has the full per-section map, including hardware
 and runtime expectations.
 
-## What's deliberately not in the archive
-
-- **IDE plugins** (`intellij-sutra`, `vscode-sutra`) — language
-  tooling, not reproduction artifacts.
-- **SutraDB beyond the FFI** (`sutra-cli`, `sutra-proto`,
-  `sutra-studio`, SDKs, Docker image, benchmarks, docs site).
-  The paper only invokes the embedded FFI shared library; the
-  rest is the broader SutraDB project.
-- **Exploratory experiments** (`bound_table_transcendentals.py`,
-  `egglog_*.py`, `eigenrotation_as_trig.py`,
-  `slot_rotation_reversibility.py`,
-  `role_filler_record_torchhd.py`) — design exploration that is
-  not cited in the paper.
-- **Trained-weight binaries** (`*.pt`) — regeneratable by
-  re-running `differentiable_training.py`.
-- **Run logs** (`*.log`) — outputs from prior executions, not
-  inputs.
-- **Stray top-level `tests/` directory** — the actual test suite
-  is `sdk/sutra-compiler/tests/`.
-
-The full project tree (including the items above, plus DEVLOG,
-todo, and CI workflows) is at the upstream repository:
-`https://github.com/EmmaLeonhart/Sutra`. Reviewers should rely
-on this archive for reproduction; the upstream master branch
-continues to evolve.
+The full project tree (DEVLOG, todo, CI workflows, broader
+SutraDB project, language tooling) lives at the upstream
+repository: `https://github.com/EmmaLeonhart/Sutra`. Reviewers
+should rely on this archive for reproduction; the upstream
+master branch continues to evolve.
 
 ## Hardware / environment
 

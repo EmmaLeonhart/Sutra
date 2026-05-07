@@ -61,39 +61,6 @@ that the FFI doesn't depend on:
 Language specification (read-only reference):
     planning/sutra-spec/
 
-What's excluded (and why)
-=========================
-
-- sdk/intellij-sutra/, sdk/vscode-sutra/ — IDE plugins. Tooling, not
-  reproduction artifacts. Reviewers do not need to install IntelliJ to
-  verify §3 capacity numbers.
-- sutraDB/sutra-cli/, sutraDB/sutra-proto/, sutraDB/sutra-studio/,
-  sutraDB/sdks/, sutraDB/benchmarks/, sutraDB/docs/, sutraDB/pages/,
-  sutraDB/unstructured/, sutraDB/tools/, sutraDB/.github/ — SutraDB
-  components beyond the FFI. The SKILL.md only needs `cargo build -p
-  sutra-ffi`; everything else is unrelated to the paper.
-- sutraDB/!*.bat, sutraDB/install.{sh,bat}, sutraDB/Dockerfile,
-  sutraDB/CLAUDE.md, sutraDB/BENCHMARKS.md, sutraDB/stress_test*,
-  sutraDB/benchmark_results.json — operator scripts and project notes
-  not part of reproduction.
-- experiments/bound_table_transcendentals.py,
-  experiments/egglog_*.py, experiments/eigenrotation_as_trig.py,
-  experiments/slot_rotation_reversibility.py,
-  experiments/role_filler_record_torchhd.py — design exploration scripts
-  not cited as paper-claim reproduction sources.
-- experiments/*.log — run logs from previous executions; outputs not
-  inputs.
-- experiments/*.pt — trained weights (~3.5 MB each); regeneratable by
-  re-running differentiable_training.py.
-- examples/_*.py / examples/_*.su EXCEPT _smoke_test.py / _su_harness.py
-  — exploratory or legacy code (king/queen analogy probes, legacy
-  syntax tour).
-- examples/todo.md — internal planning note.
-- tests/ at repo root — the actual test suite is sdk/sutra-compiler/
-  tests/; the top-level tests/ has a single stray .su file.
-- __pycache__, .pytest_cache, .ruff_cache, target/, node_modules/,
-  .venv/, .git/, .pdf-check/ — build / cache / VCS noise.
-
 Cargo.toml regeneration
 =======================
 
@@ -168,11 +135,9 @@ INCLUDE_GLOBS = [
     "experiments/scallop_compare/*",
 ]
 
-# Examples that match `*.su` in INCLUDE_GLOBS but should be excluded
-# (private / scratch / legacy).
-EXAMPLES_SU_EXCLUDE = {
-    "examples/_legacy_syntax_tour.su",
-}
+# Examples to suppress from the `*.su` glob (none currently — the
+# scratch / legacy `_*.su` files were deleted from the source tree).
+EXAMPLES_SU_EXCLUDE: set[str] = set()
 
 
 # Exclusions applied during recursive walks.
