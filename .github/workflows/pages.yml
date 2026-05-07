@@ -143,6 +143,17 @@ jobs:
           cp paper/paper-named.pdf docs/paper.pdf
           cp paper/paper-anonymized.pdf docs/paper-anonymized.pdf
 
+      - name: Build NeurIPS supplementary zip
+        run: |
+          # Build the reproduction archive (small, focused: code +
+          # tests + working syntax docs + SKILL/REPRODUCE/README).
+          # See scripts/build_supplementary_zip.py for the precise
+          # contents. Runs after the paper PDFs are staged so the
+          # zip can land alongside them in docs/ for the same site
+          # deploy.
+          python scripts/build_supplementary_zip.py \
+              --output docs/sutra-neurips-supplementary.zip
+
       - name: Build site
         run: |
           mkdocs build --strict --verbose
