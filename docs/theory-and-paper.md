@@ -37,6 +37,17 @@ what the working compiler actually demonstrates.
 
     [View on clawRxiv →](https://clawrxiv.io/posts/2374){ .md-button }
 
+-   :material-zip-box: __NeurIPS supplementary archive__
+
+    ---
+
+    The reproduction zip uploaded with the NeurIPS submission.
+    Compiler source, tests, paper-claim reproduction scripts,
+    syntax docs, and the `SKILL.md` agent-runnable replication
+    skill. Built fresh on every site deploy.
+
+    [Download `sutra-neurips-supplementary.zip` →](sutra-neurips-supplementary.zip){ .md-button }
+
 </div>
 
 ---

@@ -58,8 +58,21 @@ that the FFI doesn't depend on:
     sutraDB/sutra-sparql/
     sutraDB/sutra-ffi/
 
-Language specification (read-only reference):
-    planning/sutra-spec/
+User-facing syntax and language documentation (the same pages served
+at sutralang.dev). Describes what is implemented today; speculative /
+forward-looking design docs are NOT included:
+    docs/what-is-sutra.md          overview
+    docs/primitive-classes.md      type system
+    docs/operators.md              operator surface
+    docs/loops.md                  loop forms (do_while, while_loop, etc.)
+    docs/logical-operations.md     Kleene three-valued logic
+    docs/numeric-math.md           numeric primitives
+    docs/memory.md                 extended-state-vector layout
+    docs/compilation.md            compiler pipeline
+    docs/ontology.md               class system
+    docs/paradigms.md              comparison with imperative OO
+    docs/vision.md                 the geometric-compilation framing
+    docs/tutorials/                step-by-step tutorials
 
 Cargo.toml regeneration
 =======================
@@ -96,11 +109,11 @@ TOP_LEVEL_FILES = [
 # applied during walk).
 INCLUDE_DIRS = [
     "sdk/sutra-compiler",
-    "planning/sutra-spec",
     "sutraDB/sutra-core",
     "sutraDB/sutra-hnsw",
     "sutraDB/sutra-sparql",
     "sutraDB/sutra-ffi",
+    "docs/tutorials",
 ]
 
 # Specific files to include (no recursion).
@@ -113,6 +126,22 @@ INCLUDE_FILES = [
     # below; LICENSE and Cargo.lock are taken verbatim if present).
     "sutraDB/LICENSE",
     "sutraDB/Cargo.lock",
+    # User-facing syntax / language documentation. These are the same
+    # pages served at sutralang.dev — they describe what's implemented
+    # today, not speculative design. Marketing / history / paper-link
+    # pages are left out (index.md, demos.md, history.md,
+    # theory-and-paper.md).
+    "docs/what-is-sutra.md",
+    "docs/primitive-classes.md",
+    "docs/operators.md",
+    "docs/loops.md",
+    "docs/logical-operations.md",
+    "docs/numeric-math.md",
+    "docs/memory.md",
+    "docs/compilation.md",
+    "docs/ontology.md",
+    "docs/paradigms.md",
+    "docs/vision.md",
 ]
 
 # Glob patterns relative to repo root, evaluated as "include every match."

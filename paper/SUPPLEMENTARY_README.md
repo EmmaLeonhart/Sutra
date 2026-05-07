@@ -60,8 +60,24 @@ sutra-neurips-supplementary/
 │   ├── sutra-sparql/               SPARQL+ query engine
 │   └── sutra-ffi/                  the C-compatible shared library
 │
-└── planning/sutra-spec/            Language specification (read-only
-                                    reference). Optional reading.
+└── docs/                           Syntax + language documentation
+                                    (the same pages served at
+                                    sutralang.dev). Describes what
+                                    is implemented today, not
+                                    speculative design:
+    ├── what-is-sutra.md             overview
+    ├── primitive-classes.md         type system
+    ├── operators.md                 operator surface
+    ├── loops.md                     loop forms (do_while, while_loop,
+    │                                iterative_loop, foreach_loop)
+    ├── logical-operations.md        Kleene three-valued logic
+    ├── numeric-math.md              numeric primitives
+    ├── memory.md                    extended-state-vector layout
+    ├── compilation.md               compiler pipeline
+    ├── ontology.md                  class system
+    ├── paradigms.md                 comparison with imperative OO
+    ├── vision.md                    the geometric-compilation framing
+    └── tutorials/                   step-by-step walkthroughs
 ```
 
 ## How to reproduce
