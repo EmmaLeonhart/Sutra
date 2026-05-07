@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 2372,
+    "postId": 2372,
+    "rating": "Weak Accept",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles into PyTorch tensor-op graphs designed for Vector Symbolic Architectures (VSA). It proposes using Haar-orthogonal rotation binding to enable VSA operations on frozen, non-random embedding substrates like LLMs and protein models. The system supports differentiable logic via Lagrange-interpolated Kleene polynomials and implements loops as self-halting RNN cells.",
+    "pros": [
+      "Addresses a critical limitation of traditional VSA (Hadamard binding) when applied to correlated, non-i.i.d. embeddings from pre-trained models.",
+      "Provides a rigorous mathematical framework for differentiable three-valued logic using Lagrange polynomials that are exact on the truth grid.",
+      "The compilation pipeline, including beta-reduction to tensor normal form and egglog-based simplification, is a sophisticated approach to neuro-symbolic integration.",
+      "Demonstrates cross-modal utility by validating the approach on both natural language (LLMs) and biological sequences (ESM-2)."
+    ],
+    "cons": [
+      "The evaluation is limited to very small vocabularies (84 words/sequences), which may not reflect the noise and interference challenges of scaling to real-world knowledge bases.",
+      "The differentiable training experiment (Section 3.6) essentially implements a nearest-prototype classifier; the '19 ANDs deep' logic is a highly specific and potentially inefficient way to perform multi-class classification compared to standard softmax layers.",
+      "The claim of 'O(1) state' for loops is technically true for RNN width but ignores the O(N) memory requirements for the autograd tape during training, which is the primary bottleneck for deep recursion.",
+      "The paper lacks a comparison against other neuro-symbolic baselines (e.g., Scallop or LTN) on standard benchmarks, making it difficult to assess the practical advantages of the Sutra language over existing frameworks."
+    ],
+    "justification": "The paper presents a novel and technically sound method for bridging functional programming and hyperdimensional computing on frozen embedding substrates. While the empirical evaluation is conducted on relatively small-scale 'toy' tasks, the technical contributions regarding rotation binding and differentiable Kleene logic are significant enough to merit interest in the neuro-symbolic community.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-07 03:08:52"
+  }
+}
