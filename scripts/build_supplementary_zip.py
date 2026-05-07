@@ -1,41 +1,108 @@
 """
 Build the NeurIPS 2026 supplementary-material zip for the Sutra paper.
 
-The output, `sutra-neurips-supplementary.zip`, contains a clean snapshot
-of the Sutra repository sufficient to reproduce every empirical claim
-in the paper. The agent-runnable replication skill is at the archive
-root as `SKILL.md` (copied from `paper/SKILL.md`). The archive root
-also contains a top-level `README.md` (copied from
-`paper/SUPPLEMENTARY_README.md`) explaining what is in the archive,
-where the skill lives, and how to run it.
+Output: `sutra-neurips-supplementary.zip` at the repo root, a tightly-
+scoped reproduction archive — only the files a NeurIPS reviewer needs
+to verify the paper's empirical claims. The agent-runnable replication
+skill sits at the archive root as `SKILL.md`; the human-facing
+`README.md` (from `paper/SUPPLEMENTARY_README.md`) explains the layout
+and points reviewers at the skill.
+
+Run from the repo root:
+
+    python scripts/build_supplementary_zip.py            # build
+    python scripts/build_supplementary_zip.py --check    # dry-run, list
 
 The zip is intentionally NOT committed to the repo — it is a build
-artifact regenerated each time. Run from the repo root:
+artifact regenerated each run, gitignored.
 
-    python scripts/build_supplementary_zip.py
+What's included
+===============
 
-Optional flags:
-    --output PATH  Where to write the zip (default:
-                   sutra-neurips-supplementary.zip in the repo root)
-    --check        Print what would be included without writing the zip
-
-The directories included verbatim are:
-    sdk/             compiler + plugins + tests
-    examples/        .su programs + smoke test driver
-    experiments/     paper-empirical reproduction scripts
-    sutraDB/         Rust FFI for embedded codebook
-    tests/           top-level integration tests
-    planning/sutra-spec/  language specification
-
-Files excluded everywhere:
-    .git, .gitignore, .gitattributes, __pycache__, *.pyc, .DS_Store,
-    .pytest_cache, target/ (Rust build artifacts), node_modules,
-    *.log, *.pt (regeneratable trained weights), .venv, .ruff_cache.
-
-Top-level files added:
+Top-level (copied from paper/):
     README.md       (from paper/SUPPLEMENTARY_README.md)
     SKILL.md        (from paper/SKILL.md)
     REPRODUCE.md    (from paper/REPRODUCE.md)
+
+The Python compiler and its tests (the §4 / §5 / §3 substrate of every
+paper claim):
+    sdk/sutra-compiler/
+
+The .su programs invoked by the §5 smoke test driver, plus the smoke
+test driver itself and the test harness:
+    examples/*.su
+    examples/_smoke_test.py
+    examples/_su_harness.py
+    examples/atman.toml
+
+The §3 reproduction scripts referenced in SKILL.md / REPRODUCE.md, plus
+the reference output JSONs reviewers can diff against:
+    experiments/rotation_binding_capacity*.py
+    experiments/crosstalk_chain.py
+    experiments/differentiable_training.py
+    experiments/rotation_hashmap_capacity.py
+    experiments/sutra_vs_torchhd*.py
+    experiments/synthetic_subspace_validation.py
+    experiments/scallop_compare/             (Dockerfile + run_compare.py)
+    experiments/*_results.json               (reference outputs)
+
+The Rust FFI shared library (used by `pytest test_sutradb_embedded.py`
+for the embedded-codebook test). The workspace Cargo.toml is rewritten
+at build time to drop sutra-cli / sutra-proto / sutra-studio members
+that the FFI doesn't depend on:
+    sutraDB/Cargo.toml             (regenerated, trimmed)
+    sutraDB/Cargo.lock             (if present, for reproducible build)
+    sutraDB/LICENSE
+    sutraDB/sutra-core/
+    sutraDB/sutra-hnsw/
+    sutraDB/sutra-sparql/
+    sutraDB/sutra-ffi/
+
+Language specification (read-only reference):
+    planning/sutra-spec/
+
+What's excluded (and why)
+=========================
+
+- sdk/intellij-sutra/, sdk/vscode-sutra/ — IDE plugins. Tooling, not
+  reproduction artifacts. Reviewers do not need to install IntelliJ to
+  verify §3 capacity numbers.
+- sutraDB/sutra-cli/, sutraDB/sutra-proto/, sutraDB/sutra-studio/,
+  sutraDB/sdks/, sutraDB/benchmarks/, sutraDB/docs/, sutraDB/pages/,
+  sutraDB/unstructured/, sutraDB/tools/, sutraDB/.github/ — SutraDB
+  components beyond the FFI. The SKILL.md only needs `cargo build -p
+  sutra-ffi`; everything else is unrelated to the paper.
+- sutraDB/!*.bat, sutraDB/install.{sh,bat}, sutraDB/Dockerfile,
+  sutraDB/CLAUDE.md, sutraDB/BENCHMARKS.md, sutraDB/stress_test*,
+  sutraDB/benchmark_results.json — operator scripts and project notes
+  not part of reproduction.
+- experiments/bound_table_transcendentals.py,
+  experiments/egglog_*.py, experiments/eigenrotation_as_trig.py,
+  experiments/slot_rotation_reversibility.py,
+  experiments/role_filler_record_torchhd.py — design exploration scripts
+  not cited as paper-claim reproduction sources.
+- experiments/*.log — run logs from previous executions; outputs not
+  inputs.
+- experiments/*.pt — trained weights (~3.5 MB each); regeneratable by
+  re-running differentiable_training.py.
+- examples/_*.py / examples/_*.su EXCEPT _smoke_test.py / _su_harness.py
+  — exploratory or legacy code (king/queen analogy probes, legacy
+  syntax tour).
+- examples/todo.md — internal planning note.
+- tests/ at repo root — the actual test suite is sdk/sutra-compiler/
+  tests/; the top-level tests/ has a single stray .su file.
+- __pycache__, .pytest_cache, .ruff_cache, target/, node_modules/,
+  .venv/, .git/, .pdf-check/ — build / cache / VCS noise.
+
+Cargo.toml regeneration
+=======================
+
+The workspace Cargo.toml is rewritten at zip-build time so the trimmed
+members list (`sutra-core`, `sutra-hnsw`, `sutra-sparql`, `sutra-ffi`)
+matches what the archive actually ships. Without this, `cargo build -p
+sutra-ffi` inside the unzipped archive would fail with "current package
+believes it's in a workspace when it's not" pointing at the missing
+sutra-cli / sutra-proto manifests.
 """
 
 from __future__ import annotations
@@ -47,16 +114,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+ARCHIVE_ROOT = "sutra-neurips-supplementary"
 
-# Directories included verbatim under the archive root.
-INCLUDE_DIRS = [
-    "sdk",
-    "examples",
-    "experiments",
-    "sutraDB",
-    "tests",
-    "planning/sutra-spec",
-]
 
 # Per-file additions: (source path relative to repo root, destination
 # path inside archive).
@@ -66,7 +125,57 @@ TOP_LEVEL_FILES = [
     ("paper/REPRODUCE.md", "REPRODUCE.md"),
 ]
 
-# Filename / extension exclusions applied during the walk.
+# Directories included verbatim (with the standard exclusions below
+# applied during walk).
+INCLUDE_DIRS = [
+    "sdk/sutra-compiler",
+    "planning/sutra-spec",
+    "sutraDB/sutra-core",
+    "sutraDB/sutra-hnsw",
+    "sutraDB/sutra-sparql",
+    "sutraDB/sutra-ffi",
+]
+
+# Specific files to include (no recursion).
+INCLUDE_FILES = [
+    # Examples needed by the smoke test runner.
+    "examples/_smoke_test.py",
+    "examples/_su_harness.py",
+    "examples/atman.toml",
+    # SutraDB workspace-level files we keep (Cargo.toml is regenerated
+    # below; LICENSE and Cargo.lock are taken verbatim if present).
+    "sutraDB/LICENSE",
+    "sutraDB/Cargo.lock",
+]
+
+# Glob patterns relative to repo root, evaluated as "include every match."
+INCLUDE_GLOBS = [
+    # All Sutra source programs.
+    "examples/*.su",
+    # Paper-claim reproduction scripts in experiments/.
+    "experiments/rotation_binding_capacity.py",
+    "experiments/rotation_binding_capacity_llm.py",
+    "experiments/rotation_binding_capacity_bioinformatics.py",
+    "experiments/crosstalk_chain.py",
+    "experiments/differentiable_training.py",
+    "experiments/rotation_hashmap_capacity.py",
+    "experiments/sutra_vs_torchhd.py",
+    "experiments/sutra_vs_torchhd_latency.py",
+    "experiments/synthetic_subspace_validation.py",
+    # Reference output JSONs (so reviewers can diff against their runs).
+    "experiments/*_results.json",
+    # Cross-paradigm comparison (Sutra / Scallop / DeepProbLog / TorchHD).
+    "experiments/scallop_compare/*",
+]
+
+# Examples that match `*.su` in INCLUDE_GLOBS but should be excluded
+# (private / scratch / legacy).
+EXAMPLES_SU_EXCLUDE = {
+    "examples/_legacy_syntax_tour.su",
+}
+
+
+# Exclusions applied during recursive walks.
 EXCLUDE_DIR_NAMES = {
     ".git",
     "__pycache__",
@@ -78,6 +187,7 @@ EXCLUDE_DIR_NAMES = {
     "venv",
     ".pdf-check",
     ".pdf-prev",
+    "benches",  # benchmarks for SutraDB crates — large, not paper-cited
 }
 
 EXCLUDE_FILE_SUFFIXES = {
@@ -90,13 +200,86 @@ EXCLUDE_FILE_SUFFIXES = {
 EXCLUDE_FILE_NAMES = {
     ".DS_Store",
     "Thumbs.db",
+    ".gitignore",
+    ".gitattributes",
 }
 
-ARCHIVE_ROOT = "sutra-neurips-supplementary"
 
+# The trimmed Cargo.toml written into the archive at sutraDB/Cargo.toml.
+# Original lists sutra-cli / sutra-proto / sutra-studio etc. as workspace
+# members; those crates are not in the archive, so the original would
+# fail `cargo build -p sutra-ffi` with missing-manifest errors. This
+# trimmed version lists only the four crates the archive ships.
+TRIMMED_CARGO_TOML = """\
+# Workspace Cargo.toml — trimmed for the NeurIPS supplementary archive.
+# The full SutraDB workspace lists sutra-core, sutra-hnsw, sutra-sparql,
+# sutra-proto, sutra-cli, sutra-ffi as members. The supplementary
+# archive ships only the four crates `cargo build -p sutra-ffi` needs.
+# The full project lives at https://github.com/EmmaLeonhart/SutraDB.
 
-def should_include_dir(path: Path) -> bool:
-    return path.name not in EXCLUDE_DIR_NAMES
+[workspace]
+members = [
+    "sutra-core",
+    "sutra-hnsw",
+    "sutra-sparql",
+    "sutra-ffi",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.3.7"
+edition = "2021"
+license = "Apache-2.0"
+authors = []
+repository = "https://github.com/EmmaLeonhart/SutraDB"
+description = "A lean RDF-star triplestore with native HNSW vector indexing and hybrid SPARQL"
+
+[workspace.dependencies]
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Storage
+memmap2 = "0.9"
+sled = "0.34"
+
+# Hashing
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Parallelism
+rayon = "1"
+
+# URL encoding
+urlencoding = "2"
+
+# Benchmarking (used by [dev-dependencies] in member crates)
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Intra-workspace
+sutra-core   = { path = "sutra-core" }
+sutra-hnsw   = { path = "sutra-hnsw" }
+sutra-sparql = { path = "sutra-sparql" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"
+debug = true
+"""
 
 
 def should_include_file(path: Path) -> bool:
@@ -119,8 +302,8 @@ def walk_for_zip(src_dir: Path) -> list[Path]:
         return []
     out: list[Path] = []
     for path in src_dir.rglob("*"):
-        # Reject if any ancestor directory is excluded.
-        if any(part in EXCLUDE_DIR_NAMES for part in path.relative_to(src_dir).parts):
+        rel = path.relative_to(src_dir)
+        if any(part in EXCLUDE_DIR_NAMES for part in rel.parts):
             continue
         if path.is_file() and should_include_file(path):
             out.append(path)
@@ -133,44 +316,95 @@ def build(output_path: Path, *, check_only: bool = False) -> None:
     print(f"Output:    {output_path}")
     print()
 
-    plan: list[tuple[Path, str]] = []  # (source path, archive path)
+    plan: list[tuple[str, Path | str]] = []  # (archive path, source path or content string)
 
-    # Top-level files first.
+    # Top-level files.
     for src_rel, dst_in_archive in TOP_LEVEL_FILES:
         src = REPO_ROOT / src_rel
         if not src.exists():
             print(f"  ERROR: required top-level file missing: {src_rel}",
                   file=sys.stderr)
             sys.exit(1)
-        plan.append((src, f"{ARCHIVE_ROOT}/{dst_in_archive}"))
+        plan.append((f"{ARCHIVE_ROOT}/{dst_in_archive}", src))
 
-    # Then the included directories.
+    # Directories included verbatim.
     for d in INCLUDE_DIRS:
         src_dir = REPO_ROOT / d
         files = walk_for_zip(src_dir)
         for f in files:
             arc = f"{ARCHIVE_ROOT}/{f.relative_to(REPO_ROOT).as_posix()}"
-            plan.append((f, arc))
+            plan.append((arc, f))
+
+    # Specific single files.
+    for f_rel in INCLUDE_FILES:
+        src = REPO_ROOT / f_rel
+        if not src.exists():
+            print(f"  warning: include-file {f_rel} not found, skipping",
+                  file=sys.stderr)
+            continue
+        arc = f"{ARCHIVE_ROOT}/{f_rel}"
+        plan.append((arc, src))
+
+    # Globs.
+    for pattern in INCLUDE_GLOBS:
+        for src in REPO_ROOT.glob(pattern):
+            if not src.is_file():
+                continue
+            rel_str = src.relative_to(REPO_ROOT).as_posix()
+            if rel_str in EXAMPLES_SU_EXCLUDE:
+                continue
+            if not should_include_file(src):
+                continue
+            arc = f"{ARCHIVE_ROOT}/{rel_str}"
+            plan.append((arc, src))
+
+    # Generated files: trimmed sutraDB/Cargo.toml. Append last so it
+    # appears after the verbatim sutraDB/sutra-* directories in the
+    # zip's central directory; not strictly required but readable.
+    plan.append((f"{ARCHIVE_ROOT}/sutraDB/Cargo.toml", TRIMMED_CARGO_TOML))
+
+    # Deduplicate while preserving first-occurrence order.
+    seen: set[str] = set()
+    deduped: list[tuple[str, Path | str]] = []
+    for arc, src in plan:
+        if arc in seen:
+            continue
+        seen.add(arc)
+        deduped.append((arc, src))
+    plan = deduped
 
     # Summary.
-    total_bytes = sum(src.stat().st_size for src, _ in plan)
+    total_bytes = 0
+    for arc, src in plan:
+        if isinstance(src, Path):
+            total_bytes += src.stat().st_size
+        else:
+            total_bytes += len(src.encode("utf-8"))
     print(f"Files to include: {len(plan)}")
     print(f"Uncompressed total: {total_bytes / 1024 / 1024:.1f} MB")
     print()
 
     if check_only:
-        for src, arc in plan[:30]:
-            print(f"  {arc}")
-        if len(plan) > 30:
-            print(f"  ... and {len(plan) - 30} more")
+        # Group by archive top-level dir for a readable summary.
+        from collections import defaultdict
+        by_dir: dict[str, list[str]] = defaultdict(list)
+        for arc, _ in plan:
+            parts = arc.split("/", 2)
+            key = parts[1] if len(parts) > 1 else "_root"
+            by_dir[key].append(arc)
+        for k in sorted(by_dir):
+            print(f"  {k}/  ({len(by_dir[k])} files)")
         return
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(
         output_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6
     ) as zf:
-        for src, arc in plan:
-            zf.write(src, arcname=arc)
+        for arc, src in plan:
+            if isinstance(src, Path):
+                zf.write(src, arcname=arc)
+            else:
+                zf.writestr(arc, src)
 
     out_size_mb = output_path.stat().st_size / 1024 / 1024
     print(f"Wrote {output_path} ({out_size_mb:.1f} MB compressed)")
