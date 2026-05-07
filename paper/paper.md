@@ -634,6 +634,8 @@ on which substrates becomes a program to write.
 
 ---
 
+\newpage
+
 ## Appendix
 
 ### Appendix A. Notation: extended layout and primitive operations
