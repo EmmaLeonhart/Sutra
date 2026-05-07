@@ -1,17 +1,3 @@
-// Sutra logical connectives — every spelling, every connective.
-//
-// Per the 2026-05-01 design note: NOT, AND, NAND, OR, XOR, XNOR each accept
-// multiple syntactic spellings, all producing identical AST and
-// lowering to the same stdlib polynomial body.
-//
-//    NOT:  ! ~      not (case-insensitive)
-//    AND:  & &&     and (case-insensitive)
-//    NAND: —        nand (case-insensitive)
-//    OR:   | ||     or (case-insensitive)
-//    XOR:  —        xor (case-insensitive)
-//    XNOR: —        xnor / iff (case-insensitive)
-//
-// Each function below returns a fuzzy value on the truth axis.
 
 // NOT — three spellings, all equivalent.
 function fuzzy not_via_bang(fuzzy a) { return !a; }

@@ -55,8 +55,6 @@ from sutra_compiler.lexer import Lexer  # noqa: E402
 from sutra_compiler.parser import Parser  # noqa: E402
 
 
-# Native dimension per embedding model, checked locally against
-# Ollama on 2026-04-22. Add models here as they become relevant.
 KNOWN_MODEL_DIMS = {
     "nomic-embed-text":  768,
     "mxbai-embed-large": 1024,

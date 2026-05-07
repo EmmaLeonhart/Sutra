@@ -235,11 +235,6 @@ class Parser:
 
         if tok.kind is TokenKind.KW_FUNCTION:
             return self._parse_function_decl(mods)
-        # Loop function declarations (2026-04-30 redesign).
-        # Surface: `<kind> name(condition_expr, type name (= default)?, ...) { body }`.
-        # Each is a first-class declared function whose recurrent state is
-        # the named state parameters (no outer-scope access). See
-        # planning/open-questions/loop-function-declarations.md.
         if tok.kind in (TokenKind.KW_DO_WHILE,
                         TokenKind.KW_WHILE_LOOP,
                         TokenKind.KW_ITERATIVE_LOOP,
@@ -393,9 +388,6 @@ class Parser:
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
-    # ----------------------------------------------------------------
-    # Loop function declarations (2026-04-30 redesign)
-    # ----------------------------------------------------------------
 
     _LOOP_KIND_TOKEN = {
         TokenKind.KW_DO_WHILE: "do_while",
@@ -587,15 +579,6 @@ class Parser:
             self._skip_to_statement_boundary()
             return None
 
-        # Body. As of 2026-05-01 the body can contain:
-        #   - method declarations: `method ...`, `static method ...`,
-        #     `intrinsic method ...;`, `static intrinsic method ...;`
-        #   - loop function declarations: `do_while ...`, `while_loop ...`,
-        #     `iterative_loop ...`, `foreach_loop ...` (object loops —
-        #     step 6 of the encapsulation taxonomy, 2026-05-01)
-        # Field declarations and operator overloads remain deferred.
-        # Any other declaration inside the braces still triggers
-        # SUT0140 pointing at the deferred work.
         self._expect(TokenKind.LBRACE, "`{` to open class body")
         methods: List[ast.MethodDecl] = []
         loop_functions: List[ast.LoopFunctionDecl] = []
@@ -1012,10 +995,6 @@ class Parser:
                    and keyword.lexeme == "role")
         is_var = keyword.kind is TokenKind.KW_VAR
 
-        # `var[N] x : TYPE;` — array form for rotation-bound storage
-        # slots (Candidate B from the 2026-04-21 surface-syntax
-        # decision). The bracket-size must be an integer literal;
-        # dynamic sizing would need a separate syntax.
         array_size: Optional[int] = None
         if is_var and self._check(TokenKind.LBRACKET):
             self._advance()  # [
@@ -1241,11 +1220,6 @@ class Parser:
         start = self._current_span()
         self._advance()  # loop
 
-        # New form: `loop NAME(cond, args, ...);` or
-        # `loop CLASS.NAME(cond, args, ...);` — invoke a declared loop
-        # function. The dotted form invokes a loop function declared
-        # inside a class body (object loops, step 6 of the
-        # encapsulation taxonomy 2026-05-01).
         if self._check(TokenKind.IDENT):
             name_tok = self._advance()
             full_name = name_tok.lexeme
@@ -1520,13 +1494,6 @@ class Parser:
             )
         return left
 
-    # Chained comparisons (Python-style, 2026-05-01).
-    # `a == b == c` reduces to a single `Equals(a, b, c)` call.
-    # `a < b < c` reduces to `hasOrder(a, b, c)` (strict ascending).
-    # `a > b > c` reduces to `hasOrder(c, b, a)` (always ascending in
-    # the reduction — args are reversed for descending source).
-    # Mixed chains like `a != b == c > d` expand to an AND chain of
-    # pairwise comparisons.
     _CHAIN_COMPARISON_TOKENS = frozenset({
         TokenKind.EQ, TokenKind.NEQ,
         TokenKind.LT, TokenKind.GT, TokenKind.LE, TokenKind.GE,
@@ -1574,27 +1541,6 @@ class Parser:
                     end=operands[1].span.end,
                 ),
             )
-        # 2+ ops in the chain — Python-style chained-comparison
-        # reduction. Recognized patterns produce named Call AST nodes
-        # (so the user's intent is visible at the AST level and the
-        # codegen can route them through dedicated polynomial forms);
-        # unrecognized patterns fall back to a fuzzy-AND chain of
-        # pairwise BinaryOps.
-        #
-        # Recognized patterns (2026-05-01):
-        #   a == b == c           -> Equals(a, b, c)
-        #   a < b < c             -> hasOrder(a, b, c)
-        #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
-        #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
-        #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [args reversed]
-        #   a == b > c == d > e   -> hasOrder(e, Equals(c,d), Equals(a,b))
-        #     (groups built from adjacent ==; nested Equals(...) is
-        #      "weird programming" — Equals returns a fuzzy at top
-        #      level but the same call inside hasOrder represents the
-        #      equality group. Implementation deferred; codegen
-        #      rejects when hasOrder args contain a nested Call.)
-        # Anything else (chains with `!=`, or other mixed combinations)
-        # falls back to the AND-chain expansion.
         span = SourceSpan(
             start=operands[0].span.start,
             end=operands[-1].span.end,
