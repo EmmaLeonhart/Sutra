@@ -1,33 +1,3 @@
-// Rotation-hashmap demo — runtime-keyed associative memory composed
-// from existing bind / bundle / unbind primitives. The hashmap is a
-// single bundled vector; lookup is unbind by the same key.
-//
-//   build:   m = bundle(bind(k1, v1), bind(k2, v2), ..., bind(kN, vN))
-//   lookup:  argmax_cosine(unbind(k, m), [v1, ..., vN])
-//
-// This is the library-pattern realization (Candidate B) of the open
-// question in
-// `planning/open-questions/rotation-hashmap-as-language-feature.md`.
-// No new compiler primitives, no `map<K,V>` type with subscript
-// syntax — just the existing rotation-binding surface used to
-// associate runtime-computed key vectors with value vectors.
-//
-// Limitations of this prototype (matches the Python harness in
-// `examples/_rotation_hashmap_test.py`):
-//   * Exact-lookup only. Querying with `cat` recovers `whiskers`
-//     because cat-the-vector is bit-identical to the cat used at
-//     write time.
-//   * Soft lookup does NOT work. Querying with `kitten` (semantically
-//     near `cat`) does not recover `whiskers`, because the role-to-
-//     rotation map seeds Q from a bit-hash of the key vector's bytes
-//     — semantically nearby keys produce uncorrelated rotations.
-//     Continuous-hash variants (Householder reflection by key vector,
-//     learned projection to angles) are future work; see the open-
-//     question doc.
-//   * Capacity is finite. With N stored entries on a d-dim substrate,
-//     recovered signal-to-noise is ~1/sqrt(N). At d=868 the capacity
-//     curve is documented in
-//     planning/findings/2026-04-23-rotation-hashmap-capacity-extended-state.md.
 
 // --- Five (concept, attribute) pairs. Concepts are keys; attributes
 // are stored values retrieved by concept lookup. ---

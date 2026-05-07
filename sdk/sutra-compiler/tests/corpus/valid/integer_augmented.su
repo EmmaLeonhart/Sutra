@@ -1,16 +1,3 @@
-// Integer-class demo: augmented assignment on a scalar slot.
-//
-// Per the 2026-04-22 design, `int` is a compile-time class tag on
-// values that live on the synthetic subspace's number axis.
-// Everything is a float at runtime (scalar coordinate on the
-// number axis); the integer class is metadata that makes
-// augmented-assignment semantics natural and enables future
-// compile-time integer-specific checks.
-//
-// The codegen lifted the compound-assignment rejection the same
-// day; += / -= / *= / /= now emit directly to Python's native
-// compound assign (which has identical semantics for scalar
-// floats and numpy arrays).
 
 function int counter_demo() {
     var n : int = 0;

@@ -56,14 +56,6 @@ class Codegen(BaseCodegen):
     # diacritics and is treated as a known-broken baseline.
     DEFAULT_LLM_MODEL = "nomic-embed-text"
     DEFAULT_LLM_DIM = 768
-    # Extended-state-vector layout: runtime vectors are
-    # `[semantic (n) | synthetic (SYNTHETIC_DIM)]`. The synthetic block
-    # is reserved computational/symbolic space. Initial `embed()` output
-    # has zeros in the synthetic block; rotation bind is block-diagonal
-    # (Haar in the semantic block, identity in the synthetic block) so
-    # the synthetic block stays zero-preserved until something explicitly
-    # writes to it. Per user direction 2026-04-23 — spec finding at
-    # planning/findings/2026-04-21-extended-state-and-rotation-binding.md.
     DEFAULT_SYNTHETIC_DIM = 100
 
     def __init__(self, *, runtime_dim: int | None = None,
@@ -399,17 +391,6 @@ class Codegen(BaseCodegen):
         self._emit(f"target_name=\"target\", threshold={threshold}, max_iters=500)")
         self._indent -= 1
 
-    # Vector-level accessor methods that the user can call as
-    # `v.component(i)`, `v.semantic(i)`, `v.synthetic(i)` on any vector.
-    # Parsed generically as a Call(MemberAccess(...), ...) by the parser;
-    # intercepted here and lowered to `_VSA.component(v, i)` etc. because
-    # runtime vectors are numpy arrays and arrays have no `.component()`
-    # method. Purpose is introspection / debugging / teaching — see the
-    # user direction 2026-04-23 when the extended state vector landed.
-    # The shared set also includes the named canonical-axis shortcuts:
-    # `.real()` == `.synthetic(0)`, `.imag()` == `.synthetic(1)`,
-    # `.truth()` == `.synthetic(2)`. See the canonical-axis allocation in
-    # planning/findings/2026-04-21-extended-state-and-rotation-binding.md.
     _VECTOR_ACCESSORS = frozenset({
         "component", "semantic", "synthetic",
         "real", "imag", "truth",
@@ -1388,17 +1369,6 @@ class Codegen(BaseCodegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        # ---- Transcendentals: NOT IMPLEMENTED (2026-04-30) ----
-        # The 2026-04-29 implementation (Taylor + frexp + Newton + atan-Gregory
-        # over Python floats) was withdrawn because it ran as host Python
-        # scalar arithmetic at runtime, not as substrate tensor ops. The
-        # codegen at `codegen_base.py::_translate_call` rejects calls to any
-        # of {log, sqrt, exp, sin, cos, tan, pow} with CodegenNotSupported
-        # before they reach this runtime, so no _VSA.exp/_VSA.log/etc. method
-        # is needed. See `stdlib/math.su` and
-        # `planning/findings/2026-04-30-runtime-substrate-purity-audit.md`
-        # for the full rationale and the eigenrotation-as-modulus future
-        # direction.
 
         self._emit("# ---- Logical operators — smooth polynomial form ----")
         self._emit("#")

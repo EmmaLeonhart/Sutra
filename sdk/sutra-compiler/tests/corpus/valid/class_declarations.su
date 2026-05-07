@@ -1,6 +1,3 @@
-// Sutra corpus test: class declarations.
-// MVP form (2026-04-25) — empty body, single inheritance, parent
-// chain must bottom out at a primitive.
 
 // Direct subclass of a primitive.
 class Embedding extends vector { }

@@ -1008,15 +1008,6 @@ class PyTorchCodegen(Codegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
-        # ---- Transcendentals: NOT IMPLEMENTED (2026-04-30) ----
-        # The 2026-04-29 implementation (Taylor + frexp + Newton + atan-Gregory)
-        # was withdrawn because it ran as host Python scalar arithmetic at
-        # runtime, not as substrate tensor ops. The codegen at
-        # `codegen_base.py::_translate_call` rejects calls to {log, sqrt,
-        # exp, sin, cos, tan, pow} with CodegenNotSupported before they
-        # reach this runtime, so no _VSA.exp/_VSA.log/etc. method is needed.
-        # See `stdlib/math.su` and
-        # `planning/findings/2026-04-30-runtime-substrate-purity-audit.md`.
 
         self._emit("# ---- Logical operators — smooth polynomial form ----")
         self._emit("#")

@@ -1,22 +1,3 @@
-// Role-filler record under rotation binding — the simplest demo that
-// exercises the new bind/unbind machinery end-to-end on the frozen
-// LLM embedding substrate.
-//
-// Rotation binding (role-first convention):
-//   bind(role, filler) = Q_role @ filler     (Q_role is a Haar-random
-//                                              rotation seeded by the
-//                                              role vector's hash)
-//   unbind(role, record) = Q_role^T @ record
-//
-// The record is a bundle of three rotation-bindings. Each role's
-// rotation is distinct (seeded by a different role vector), so the
-// three bundled contributions decorrelate on retrieval. Retrieval
-// via the correct role exactly recovers the filler; retrieval via
-// the wrong role gives noise that's near-orthogonal to every filler
-// candidate.
-//
-// Substrate: nomic-embed-text (768-dim) via Ollama, mean-centered.
-// Backend: codegen_numpy with rotation binding as of 2026-04-22.
 
 // --- Roles (keys for the three fields) ---
 vector r_person = basis_vector("role_person");
