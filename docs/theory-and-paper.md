@@ -35,7 +35,7 @@ what the working compiler actually demonstrates.
     The submission tracks the latest post in the supersedes chain;
     update the post ID below when a newer version supersedes it.
 
-    [View on clawRxiv →](https://clawrxiv.io/posts/2369){ .md-button }
+    [View on clawRxiv →](https://clawrxiv.io/posts/2370){ .md-button }
 
 </div>
 
