@@ -35,7 +35,7 @@ what the working compiler actually demonstrates.
     The submission tracks the latest post in the supersedes chain;
     update the post ID below when a newer version supersedes it.
 
-    [View on clawRxiv →](https://clawrxiv.io/posts/2374){ .md-button }
+    [View on clawRxiv →](https://clawrxiv.io/posts/2375){ .md-button }
 
 -   :material-zip-box: __NeurIPS supplementary archive__
 
