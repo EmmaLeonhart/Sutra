@@ -1,6 +1,6 @@
 // Sutra tensor operations — general-purpose linear algebra.
 //
-// Per Emma 2026-05-01: bind/unbind/bundle/similarity are
+// Per the 2026-05-01 design note: bind/unbind/bundle/similarity are
 // VSA-specific; this file demonstrates the *general* tensor
 // primitives the language exposes on top of the runtime
 // (numpy/torch).

@@ -638,7 +638,7 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
 class TestLogicalConnectives(unittest.TestCase):
     """All logical connectives lower to stdlib polynomial bodies.
 
-    Coverage (Emma 2026-05-01 list):
+    Coverage (2026-05-01 list):
       NOT:  ! ~ not (case-insensitive)
       AND:  & && and (case-insensitive)
       OR:   | || or (case-insensitive)
@@ -749,7 +749,7 @@ class TestLogicalConnectives(unittest.TestCase):
 
 class TestChainedComparisons(unittest.TestCase):
     """Python-style chained comparisons reduce to named operations
-    per Emma 2026-05-01:
+    per the 2026-05-01 design note:
         a == b == c        -> Equals(a, b, c)
         a < b < c          -> hasOrder(a, b, c)
         a > b > c          -> hasOrder(c, b, a)
@@ -794,7 +794,7 @@ class TestChainedComparisons(unittest.TestCase):
         self.assertIn("_VSA.gt(a, b)", py)
 
     def test_grouped_equals_inside_hasOrder_reserved_throws(self):
-        # Per Emma 2026-05-01: `a == b > c == d > e` reduces to
+        # Per the 2026-05-01 design note: `a == b > c == d > e` reduces to
         # `hasOrder(e, Equals(c, d), Equals(a, b))` — the nested
         # Equals(...) form. The parser builds this; codegen rejects
         # the nested-Call args until the group-expansion semantics
@@ -837,7 +837,7 @@ class TestChainedComparisons(unittest.TestCase):
 
 
 class TestImperativeShortcuts(unittest.TestCase):
-    """++ / -- / += / -= / *= / /= as statements (Emma 2026-05-01)."""
+    """++ / -- / += / -= / *= / /= as statements (2026-05-01)."""
 
     def test_postfix_increment_compiles(self):
         src = (
