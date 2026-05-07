@@ -43,11 +43,9 @@ def _parse(src: str):
 
 
 def _compile(src: str) -> str:
-    """Return emitted Python source via inliner + PyTorchCodegen
-    (bypassing simplify_egglog post-pass so tests don't hang on its
-    import). PyTorch is Sutra's canonical compile target — see
-    CLAUDE.md and the queue-item-6 numpy-backend retirement work
-    (2026-04-30).
+    """Return emitted Python source via inliner + PyTorchCodegen.
+    Bypasses the simplify_egglog post-pass so tests don't hang on
+    its import. PyTorch is the canonical compile target.
     """
     module = _parse(src)
     inline_stdlib_calls(module)

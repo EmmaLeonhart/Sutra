@@ -8,9 +8,6 @@
 // No if/else, no control flow. All four branches contribute
 // simultaneously; defuzzification is argmax cosine against a codebook
 // of behavior vectors.
-//
-// Substrate: pure numpy matrix operations. No fly-brain, no spiking,
-// no snap. The demo path for the language.
 
 // --- State axes ---
 vector smell_present = basis_vector("smell_present");
@@ -26,8 +23,7 @@ vector b_idle     = basis_vector("idle");
 
 // --- Prototype table: 4 joint (smell, hunger) conjunctions ---
 //
-// Unlike the fly-brain variant, we do NOT snap these — no cleanup
-// circuit on this substrate. The prototype is the raw bind()ed vector.
+// The prototypes are the raw bind()ed vectors with no cleanup pass.
 vector proto_PH = bind(smell_present, hunger_hungry);
 vector proto_PF = bind(smell_present, hunger_fed);
 vector proto_AH = bind(smell_absent,  hunger_hungry);

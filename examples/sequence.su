@@ -13,10 +13,11 @@
 //       unbind(pos_i, record),
 //       token_codebook)
 //
-// Under sign-flip the *filler* (first argument to bind) retains its
-// real-valued magnitude pattern; the *role* (second argument) only
-// contributes its sign. Here the token is the filler and the
-// position is the role, so unbinding by position recovers the token.
+// In bind(filler, role), the filler (first argument) carries the
+// real-valued magnitude pattern that survives unbinding. The role
+// (second argument) is the lookup key. Here the token is the
+// filler and the position is the role, so unbinding by position
+// recovers the token.
 //
 // Two sequences share a single token codebook. Each is encoded into
 // a 256-dim vector and decoded position by position. This is the

@@ -1,8 +1,8 @@
 """Rotation-hashmap capacity — extended-state runtime (d=868).
 
-Answers queue.md's standing question: how many distinct keys can a
-rotation-hashmap store at d = 868 (post-extended-state) before
-retrieval accuracy breaks down?
+Measures how many distinct keys a rotation-hashmap can store at
+d = 868 (post-extended-state) before retrieval accuracy breaks
+down.
 
 The extended-state vector (e1ccbbe, 2026-04-23) reserves 100 synthetic
 dims alongside 768 semantic dims for a runtime vector of d = 868. The
