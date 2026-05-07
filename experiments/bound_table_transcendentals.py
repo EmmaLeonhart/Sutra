@@ -1,8 +1,6 @@
 """Proof-of-concept: bound-table lookup for transcendentals.
 
-Tests the user's design absorbed into todo.md § "Transcendental functions —
-design absorbed from voice chat" (originally explored in a 2026-04-29 voice
-chat; the chat file was deleted 2026-05-02 once the design was inlined):
+Tests a rotation-bound-table approach to evaluating exp / ln:
 
   - exp and ln stored as bound tables in a reserved 2D plane
   - x -> angle via linear map theta(x) = (x - LO) / (HI - LO) * 2*pi
@@ -12,7 +10,7 @@ chat; the chat file was deleted 2026-05-02 once the design was inlined):
   - "Natural interpolation" should fall out of the rotation algebra
 
 Goal here: measure precision vs N, characterize the cross-talk, see whether
-the interpolation behavior matches what the user described before wiring
+the interpolation behavior matches the rotation-table prediction before wiring
 this into the codegen prelude.
 
 No Sutra dependencies. Pure torch. Run directly.

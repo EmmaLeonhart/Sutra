@@ -184,7 +184,8 @@ def _builtin_select(args: List[str]) -> str:
 
 
 def _builtin_compose(args: List[str]) -> str:
-    # Composition of two sign-flip permutations is pointwise multiply.
+    # `compose` over the permutation primitive class is elementwise
+    # multiplication of the two underlying ±1 mask vectors.
     return f"({args[0]} * {args[1]})"
 
 
@@ -1206,9 +1207,9 @@ class BaseCodegen:
                 f"iterable here is a "
                 f"{type(stmt.iterable).__name__}, which would require "
                 f"runtime iteration. Dynamic `foreach` over named "
-                f"collections or computed expressions is future work — "
-                f"see todo.md. Rewrite as `foreach (x in [a, b, c]) "
-                f"{{ ... }}` or unroll by hand.",
+                f"collections or computed expressions is future work. "
+                f"Rewrite as `foreach (x in [a, b, c]) {{ ... }}` or "
+                f"unroll by hand.",
             )
         if isinstance(stmt, ast.IfStmt):
             raise CodegenNotSupported(
@@ -1522,9 +1523,8 @@ class BaseCodegen:
 
         Without a truth-axis runtime the Zadeh-min / max semantics
         can't be honored, and a silent Python `and`/`or` fallback
-        would be wrong for fuzzy operands (CLAUDE.md §"NO MATH
-        SHORTCUTS"). Base refuses; concrete backends override and
-        implement properly.
+        would be wrong for fuzzy operands. Base refuses; concrete
+        backends override and implement properly.
         """
         raise CodegenNotSupported(
             expr,

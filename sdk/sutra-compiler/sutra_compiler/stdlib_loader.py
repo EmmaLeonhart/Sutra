@@ -2,14 +2,14 @@
 
 Walks `sutra_compiler/stdlib/*.su` at compiler init, parses each file,
 and returns a symbol table mapping function names to their parsed
-`FunctionDecl` AST nodes. The inliner pass consumes this table — when
+`FunctionDecl` AST nodes. The inliner pass consumes this table: when
 it sees a `Call(Identifier(name), args)` whose name is in the table,
 it beta-reduces the function body into the caller's AST.
 
-This is step 1 of the six-step pipeline in `stdlib/README.md` / queue.md.
-Steps 2+ (inliner, unroll propagation, runtime-method deletion,
-intrinsic mechanism, fusion pass) build on top of what this module
-exposes.
+This is the first stage in the stdlib lowering pipeline. Subsequent
+stages (the inliner pass itself, unroll propagation, runtime-method
+deletion, intrinsic mechanism, fusion pass) build on the symbol
+table this module produces.
 
 The loader is deliberately simple:
   - No caching across processes. The parse is fast (7 files, ~600

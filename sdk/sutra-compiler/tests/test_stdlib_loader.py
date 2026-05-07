@@ -1,5 +1,5 @@
 """Tests for the stdlib loader — step 1 of the function-expansion
-pipeline queued in queue.md.
+pipeline.
 
 The loader walks `sutra_compiler/stdlib/*.su` and returns a symbol
 table of FunctionDecl nodes. These tests assert:

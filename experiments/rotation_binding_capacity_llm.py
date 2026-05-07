@@ -1,17 +1,14 @@
 """Rotation binding capacity on real LLM embeddings, across substrates.
 
 Why this experiment exists:
-    Reviewer post 2189 con #2 (Reject): "Section 3.1 measures binding
-    capacity using 'all-random fillers,' which fails to prove the
-    paper's central claim that Hadamard fails on the *natural*
-    anisotropic LLM embeddings the paper purports to specialize in."
-    The reviewer is correct. The original
-    `rotation_binding_capacity.py` measures capacity as a property of
-    the rotation algebra over random vectors. To support the
-    central claim, we need to run the same experiment on actual
-    LLM embeddings, and we need to compare rotation binding against
-    Hadamard binding (the textbook VSA scheme that the paper says
-    fails on these substrates) head-to-head on the same vocabulary.
+    The companion script `rotation_binding_capacity.py` measures
+    capacity as a property of the rotation algebra over random
+    vectors. The paper's central claim is about behavior on
+    natural anisotropic LLM embeddings, so the same experiment
+    is repeated here on real embedded vocabularies. Rotation
+    binding is compared head-to-head against Hadamard binding
+    (the textbook VSA scheme that the paper argues fails on
+    these substrates) on the same codebook.
 
 What this experiment measures:
     For each of three frozen LLM substrates:

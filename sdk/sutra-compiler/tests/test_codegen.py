@@ -256,7 +256,7 @@ class TestCanonicalAxes(unittest.TestCase):
     synthetic[0] = real, synthetic[1] = imag, synthetic[2] = truth.
     Accessor methods `.real()` / `.imag()` / `.truth()` and constructors
     `real_number(x)` / `complex_number(re, im)` / `truth_value(t)` lower
-    to the appropriate runtime methods. Per the 2026-04-23 design.
+    to the appropriate runtime methods.
     """
 
     def test_real_method_lowers_to_vsa_call(self):
@@ -735,8 +735,7 @@ class TestLogicalConnectives(unittest.TestCase):
 
 
 class TestChainedComparisons(unittest.TestCase):
-    """Python-style chained comparisons reduce to named operations
-    per the 2026-05-01 design note:
+    """Python-style chained comparisons reduce to named operations:
         a == b == c        -> Equals(a, b, c)
         a < b < c          -> hasOrder(a, b, c)
         a > b > c          -> hasOrder(c, b, a)

@@ -1,13 +1,11 @@
 """AST -> Python source translator — DEPRECATED numpy backend.
 
-**STATUS: DEPRECATED 2026-04-30.** Per CLAUDE.md and project memory:
-*PyTorch is Sutra's compiler library — one codegen target. Don't
-reintroduce numpy-as-backend.* This file emits a `_NumpyVSA` runtime
-class whose existence contradicts that rule. Use
-`codegen_pytorch.PyTorchCodegen` for all new code.
+**STATUS: DEPRECATED.** PyTorch is the canonical codegen target.
+This file emits a `_NumpyVSA` runtime class and is retained only
+as an emit-shape reference for the tests; new code should use
+`codegen_pytorch.PyTorchCodegen`.
 
-This file is retained until the consolidation in queue item 6 is
-complete. It still provides:
+It still provides:
 
 - The literal-lowering hooks (`_char_literal_src`, `_embed_expr_src`,
   `_bool_literal_src`, `_equality_src`, `_complex_mul_src`, etc.)
@@ -51,9 +49,10 @@ class Codegen(BaseCodegen):
     # Frozen-LLM substrate. The numpy backend runs on frozen LLM
     # embeddings via Ollama — no random-vector fallback. If Ollama is
     # unavailable or the model is missing, compiled programs raise.
-    # Default model: nomic-embed-text (768-dim). Avoid mxbai-embed-large
-    # per CLAUDE.md — it has a documented attention-sink defect on
-    # diacritics and is treated as a known-broken baseline.
+    # Default model: nomic-embed-text (768-dim). mxbai-embed-large
+    # has a documented attention-sink defect on diacritics and is
+    # used in the paper as a known-broken baseline rather than a
+    # default substrate.
     DEFAULT_LLM_MODEL = "nomic-embed-text"
     DEFAULT_LLM_DIM = 768
     DEFAULT_SYNTHETIC_DIM = 100
@@ -684,7 +683,6 @@ class Codegen(BaseCodegen):
         self._emit("# of .su demos (analogy, fuzzy_dispatch, knowledge_graph, etc.):")
         self._emit("#   bind(role, filler) = Q_role @ filler")
         self._emit("# Q_role is the Haar-random rotation seeded by the role vector.")
-        self._emit("# Replaces sign-flip (retired 2026-04-21). See spec binding.md.")
         self._emit("Q = self._rotation_for(role)")
         self._emit("return Q @ filler")
         self._indent -= 1
@@ -735,9 +733,9 @@ class Codegen(BaseCodegen):
         self._emit("for the bind, sum over N, normalize. Same result as sequential")
         self._emit("bind+sum+normalize, in a single einsum + reduce.")
         self._emit("")
-        self._emit("This is the independence-structure case the PyTorch/GPU")
-        self._emit("backend was gated on per queue.md — the fused form collapses")
-        self._emit("N small kernel launches into O(1) big ones.")
+        self._emit("This is the independence-structure case that justified")
+        self._emit("the PyTorch/GPU backend: the fused form collapses N small")
+        self._emit("kernel launches into O(1) big ones.")
         self._emit('"""')
         self._emit("if not role_filler_pairs:")
         self._indent += 1
@@ -1143,8 +1141,8 @@ class Codegen(BaseCodegen):
         self._emit("# value (in [0, 1]); programs that read this can detect non-")
         self._emit("# convergence without host-side conditionals. Output-gating multiplies")
         self._emit("# value axes by this flag so an incomplete loop emits a zero-vector.")
-        self._emit("# This is the loop-specific instance of the broader exception-channel")
-        self._emit("# pattern (see todo.md: divide-by-zero, NaN propagation).")
+        self._emit("# Same shape as the broader exception-channel pattern used for")
+        self._emit("# divide-by-zero and NaN propagation elsewhere in the runtime.")
         self._emit("AXIS_REAL = 0")
         self._emit("AXIS_IMAG = 1")
         self._emit("AXIS_TRUTH = 2")

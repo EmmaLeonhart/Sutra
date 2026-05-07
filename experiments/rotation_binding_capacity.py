@@ -10,7 +10,7 @@ for the honest design compromise).
 
 Experiments 3 and 5 from the design doc (truth-axis orthogonality
 and fuzzy composition on the truth axis) are skipped: they require
-the extended-state-vector runtime which is deferred in queue.md.
+extended-state-vector runtime support that has not yet landed.
 
 The three experiments run here:
 
