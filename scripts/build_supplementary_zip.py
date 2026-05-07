@@ -256,26 +256,32 @@ debug = true
 """
 
 
-# File extensions whose text content gets scrubbed for double-blind
-# anonymization on the way into the zip. Source files in the repo
-# retain the original author-attribution comments (useful as
-# history-tracing notes); the archive copies do not.
+# File extensions whose text content gets scrubbed on the way into the
+# zip. Two layers are applied: (1) anonymization scrubs that strip
+# author / repo identifiers, (2) comment stripping that removes ALL
+# comments (line + block + Python docstrings). The source repo is
+# untouched; only the archive copies are stripped.
 SCRUB_TEXT_SUFFIXES = {".py", ".md", ".su", ".rs", ".toml", ".txt"}
 
+# Comment stripping is applied to source files but NOT to docs. The
+# docs files at the archive root (README.md / SKILL.md / REPRODUCE.md
+# / SYNTAX.md) are themselves the documentation; markdown text is not
+# "comments" that should be removed.
+COMMENT_STRIP_SUFFIXES = {".py", ".su", ".rs", ".toml"}
 
-# Regex replacements applied in order. Patterns target the author-
-# attribution shapes that show up in this repo:
-#
-#   (Emma 2026-04-30 redesign)        ->  (2026-04-30 redesign)
-#   per Emma 2026-04-30                ->  per a 2026-04-30 design note
-#   Per Emma 2026-04-30                ->  Per a 2026-04-30 design note
-#   Emma's preferred X                 ->  the preferred X
-#   Emma observed Y                    ->  observation: Y
-#   Emma 2026-04-30: ...               ->  Design note 2026-04-30: ...
-#   bare "Emma"                        ->  removed (rare)
-#
-# Plus the repo + identity strings any maintainer URL leaves in
-# headers and module docstrings.
+
+# Path fragments where comment stripping is disabled. The test corpus
+# directories contain .su files that are deliberately malformed — an
+# unterminated /* block comment, etc. — to exercise specific parser /
+# diagnostic paths. Stripping comments from those files removes the
+# malformation the test is verifying, which then fails. Same logic
+# applies anywhere a comment is itself the test fixture content.
+COMMENT_STRIP_PATH_DISABLE = (
+    "tests/corpus/",
+    "tests\\corpus\\",
+)
+
+
 import re as _re
 
 _SCRUB_PATTERNS: list[tuple[_re.Pattern[str], str]] = [
@@ -296,17 +302,160 @@ _SCRUB_PATTERNS: list[tuple[_re.Pattern[str], str]] = [
 
 
 def scrub_text(content: str) -> str:
-    """Apply double-blind anonymization scrubs to a text payload.
-
-    Used for files added to the supplementary archive. The repo's
-    on-disk copy is untouched.
+    """Apply anonymization scrubs (author / repo identifiers) to a
+    text payload. Used for files added to the supplementary archive.
     """
     out = content
     for pat, repl in _SCRUB_PATTERNS:
         out = pat.sub(repl, out)
-    # Tidy up: collapse double spaces left by removed names.
-    out = _re.sub(r"  +", " ", out)
     return out
+
+
+def strip_comments_python(src: str) -> str:
+    """Remove ALL comments and docstrings from Python source.
+
+    Two passes:
+    1. AST-walk to drop docstrings (the first string-literal expression
+       statement of any module / class / function / async function).
+       Re-emit via ast.unparse — formatting is reset, but the program
+       is functionally identical and contains no docstrings.
+    2. tokenize-walk to drop COMMENT tokens. Run on the docstring-free
+       output of pass 1.
+
+    On parse error, falls back to tokenize-only line-comment stripping.
+    """
+    import ast
+    import io
+    import tokenize as _tokenize
+
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return _strip_python_line_comments_only(src)
+
+    for node in ast.walk(tree):
+        if isinstance(
+            node,
+            (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+        ):
+            if (
+                node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            ):
+                node.body.pop(0)
+                if not node.body:
+                    node.body.append(ast.Pass())
+
+    docstring_free = ast.unparse(tree)
+
+    try:
+        tokens = []
+        for tok in _tokenize.generate_tokens(
+            io.StringIO(docstring_free).readline
+        ):
+            if tok.type == _tokenize.COMMENT:
+                continue
+            tokens.append(tok)
+        return _tokenize.untokenize(tokens)
+    except (_tokenize.TokenizeError, IndentationError):
+        return docstring_free
+
+
+def _strip_python_line_comments_only(src: str) -> str:
+    import io
+    import tokenize as _tokenize
+    try:
+        tokens = []
+        for tok in _tokenize.generate_tokens(io.StringIO(src).readline):
+            if tok.type == _tokenize.COMMENT:
+                continue
+            tokens.append(tok)
+        return _tokenize.untokenize(tokens)
+    except (_tokenize.TokenizeError, IndentationError):
+        return src
+
+
+def strip_comments_clike(src: str) -> str:
+    """Remove // line comments and /* */ block comments. Aware of
+    string literals so // inside a string is preserved. Used for .su
+    and .rs sources.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(src)
+    while i < n:
+        c = src[i]
+        if c in '"\'':
+            quote = c
+            out.append(c)
+            i += 1
+            while i < n and src[i] != quote:
+                if src[i] == "\\" and i + 1 < n:
+                    out.append(src[i])
+                    out.append(src[i + 1])
+                    i += 2
+                else:
+                    out.append(src[i])
+                    i += 1
+            if i < n:
+                out.append(src[i])
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and src[i + 1] == "/":
+            while i < n and src[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and src[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (src[i] == "*" and src[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    result = "".join(out)
+    # Collapse runs of blank lines left by removed block comments.
+    result = _re.sub(r"\n{3,}", "\n\n", result)
+    return result
+
+
+def strip_comments_toml(src: str) -> str:
+    """Remove # line comments from TOML, preserving in-string #."""
+    out_lines: list[str] = []
+    for line in src.splitlines(keepends=True):
+        in_string = False
+        quote = None
+        i = 0
+        while i < len(line):
+            c = line[i]
+            if c in '"\'':
+                if not in_string:
+                    in_string = True
+                    quote = c
+                elif c == quote:
+                    in_string = False
+                    quote = None
+            elif c == "#" and not in_string:
+                trailing_nl = "\n" if line.endswith("\n") else ""
+                line = line[:i].rstrip() + trailing_nl
+                break
+            i += 1
+        if line.strip() or not out_lines or out_lines[-1].strip():
+            out_lines.append(line)
+    return "".join(out_lines)
+
+
+def strip_comments(src: str, suffix: str) -> str:
+    """Dispatch comment stripping by file suffix."""
+    if suffix == ".py":
+        return strip_comments_python(src)
+    if suffix in (".su", ".rs"):
+        return strip_comments_clike(src)
+    if suffix == ".toml":
+        return strip_comments_toml(src)
+    return src
 
 
 def should_include_file(path: Path) -> bool:
@@ -430,16 +579,28 @@ def build(output_path: Path, *, check_only: bool = False) -> None:
         for arc, src in plan:
             if isinstance(src, Path):
                 if src.suffix in SCRUB_TEXT_SUFFIXES:
-                    # Read text + scrub author-identifying strings before
-                    # writing to the archive. Source repo is untouched.
+                    # Two-pass scrub: anonymize first, then strip
+                    # comments (where applicable). Source repo
+                    # untouched; only the archive copy is stripped.
                     raw = src.read_text(encoding="utf-8")
-                    zf.writestr(arc, scrub_text(raw))
+                    raw = scrub_text(raw)
+                    if src.suffix in COMMENT_STRIP_SUFFIXES and not any(
+                        seg in arc for seg in COMMENT_STRIP_PATH_DISABLE
+                    ):
+                        raw = strip_comments(raw, src.suffix)
+                    zf.writestr(arc, raw)
                 else:
                     zf.write(src, arcname=arc)
             else:
-                # Generated content (e.g. TRIMMED_CARGO_TOML) — already
-                # written without identifying strings.
-                zf.writestr(arc, src)
+                # Generated content (e.g. TRIMMED_CARGO_TOML). Apply
+                # comment stripping if it's a comment-stripped suffix
+                # so the workspace Cargo.toml is consistent with the
+                # rest of the .toml files in the archive.
+                content = src
+                ext = "." + arc.rsplit(".", 1)[-1] if "." in arc else ""
+                if ext in COMMENT_STRIP_SUFFIXES:
+                    content = strip_comments(content, ext)
+                zf.writestr(arc, content)
 
     out_size_mb = output_path.stat().st_size / 1024 / 1024
     print(f"Wrote {output_path} ({out_size_mb:.1f} MB compressed)")
