@@ -346,7 +346,7 @@ class TryStmt(Stmt):
     catch_body: Block
 
 
-# Loop function declaration nodes (Emma 2026-04-30 redesign).
+# Loop function declaration nodes (2026-04-30 redesign).
 # Loops with runtime data dependence are first-class declared functions
 # that compile to substrate-native RNN cells. Distinguished from the
 # compile-time-unroll loop forms (LoopStmt) by the function-declaration

@@ -1,4 +1,4 @@
-"""Tests for the function-declaration loop form (Emma 2026-04-30).
+"""Tests for the function-declaration loop form (2026-04-30).
 
 Loops are first-class declared functions whose recurrent state is the
 named state parameters. Body uses `pass` for tail-recursive yield.
@@ -287,7 +287,7 @@ function int main() {
 
 
 class TestReturnTailCallSurface(unittest.TestCase):
-    """`return NAME(args)` (Emma 2026-04-30) is a prettier alternative
+    """`return NAME(args)` (2026-04-30) is a prettier alternative
     to `pass values` inside a loop function body — same semantics as
     PassStmt, just expressed as tail recursion. Confirms semantic
     equivalence between the two surfaces."""
@@ -349,7 +349,7 @@ function int main() {
 
 
 class TestProgramHaltPropagation(unittest.TestCase):
-    """Program-level halt propagation (Emma 2026-04-30): a loop that
+    """Program-level halt propagation (2026-04-30): a loop that
     runs out of T-step budget without converging emits halted≈0,
     which multiplies through to wipe the function's output. Loops that
     do converge leave halted≈1.0 and the output is preserved."""

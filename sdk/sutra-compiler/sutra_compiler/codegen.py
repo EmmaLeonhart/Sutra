@@ -1078,7 +1078,7 @@ class Codegen(BaseCodegen):
         self._emit("return self._rotation_for(role)")
         self._indent -= 1
         self._emit()
-        # PascalCase aliases — Emma's preferred Sutra-side spelling.
+        # PascalCase aliases — the preferred Sutra-side spelling.
         # Bound at the class level so `_VSA.MatrixMul(a, b)` resolves
         # via Python's descriptor protocol and binds self correctly.
         self._emit("MatrixMul = matmul")

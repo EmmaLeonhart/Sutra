@@ -97,7 +97,7 @@ function fuzzy logical_nand(fuzzy a, fuzzy b) {
 //   (1,  0)   ->  0   (T XOR U = U)
 //
 // Equivalent to the longer composition `(a && !b) || (!a && b)`,
-// which Emma observed reduces to `-a·b` after polynomial folding —
+// which observation: reduces to `-a·b` after polynomial folding —
 // see docs/compilation.md § "Worked examples". Shipping the closed
 // form directly so the simplifier doesn't have to discover it.
 function fuzzy logical_xor(fuzzy a, fuzzy b) {

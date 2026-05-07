@@ -1,6 +1,6 @@
 // do_while body-as-cell demo: increment x until it passes a threshold.
 //
-// Per Emma 2026-04-30: loops are first-class declared functions whose
+// Per the 2026-04-30 design note: loops are first-class declared functions whose
 // recurrent state is the named state parameters. The body uses `pass`
 // for tail-recursive yield. The loop is invoked with the `loop` prefix;
 // caller's slot variables get mutated by reference on completion.

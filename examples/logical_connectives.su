@@ -1,6 +1,6 @@
 // Sutra logical connectives — every spelling, every connective.
 //
-// Per Emma 2026-05-01: NOT, AND, NAND, OR, XOR, XNOR each accept
+// Per the 2026-05-01 design note: NOT, AND, NAND, OR, XOR, XNOR each accept
 // multiple syntactic spellings, all producing identical AST and
 // lowering to the same stdlib polynomial body.
 //

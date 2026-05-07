@@ -247,7 +247,7 @@ BUILTINS = {
     "zero_vector": (_builtin_zero_vector, 0),
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
-    # Chained-comparison reductions (Emma 2026-05-01). The parser
+    # Chained-comparison reductions (2026-05-01). The parser
     # produces these for the recognized patterns. All reductions
     # pass args in ASCENDING order regardless of source direction —
     # for descending source the parser reverses operands before
@@ -360,7 +360,7 @@ class BaseCodegen:
         # though loop-inside-loop bodies are an open question per the
         # design doc. Each entry is (loop_name, [state_names...]) so the
         # `return NAME(args)` tail-call surface (alternative to `pass
-        # values`, Emma 2026-04-30) can verify the call targets the
+        # values`, 2026-04-30) can verify the call targets the
         # enclosing loop function.
         self._loop_state_stack: List[tuple[str, List[str]]] = []
         # Registry of loop function declarations seen so far in the
@@ -781,7 +781,7 @@ class BaseCodegen:
         self._slot_vars = {}
         outer_return_type = self._current_return_type
         self._current_return_type = decl.return_type.name if decl.return_type else None
-        # Program-level halt accumulator (Emma 2026-04-30): every loop
+        # Program-level halt accumulator (2026-04-30): every loop
         # call multiplies its halted into _program_halt; every return
         # multiplies the returned value by _program_halt. A loop that
         # ran out of T-step budget without converging emits halted≈0,
@@ -803,7 +803,7 @@ class BaseCodegen:
         self._current_return_type = outer_return_type
         self._indent -= 1
 
-    # -- loop function declarations (Emma 2026-04-30) --------------------
+    # -- loop function declarations (2026-04-30) --------------------
     #
     # Loops with runtime data dependence are first-class declared functions
     # whose recurrent state is the named state parameters. Compiles to a
@@ -1115,7 +1115,7 @@ class BaseCodegen:
             self._translate_var_decl(stmt, at_top_level=False)
             return
         if isinstance(stmt, ast.ReturnStmt):
-            # Tail-call surface (Emma 2026-04-30): inside a loop function
+            # Tail-call surface (2026-04-30): inside a loop function
             # body, `return NAME(args)` where NAME is the enclosing loop
             # is the prettier alternative to `pass args`. Same semantics
             # as PassStmt — assigns each arg to the corresponding state
@@ -1245,7 +1245,7 @@ class BaseCodegen:
             return
         if isinstance(stmt, ast.LoopStmt):
             # loop(N) literal N: compile-time unroll. Cheap easy form.
-            # Stays — Emma 2026-04-30: "pure compile-time loops where
+            # Stays — Design note 2026-04-30: "pure compile-time loops where
             # you just give an integer literal as the thing in it" are
             # the cheap easy form for arrays-of-known-size.
             if stmt.count is not None:
@@ -2006,7 +2006,7 @@ class BaseCodegen:
                 # Reject the nested-Equals "group" form for now.
                 # Source `a == b > c == d > e` becomes
                 # `hasOrder(e, Equals(c,d), Equals(a,b))` at parse
-                # time (Emma 2026-05-01) — the syntax is recognized
+                # time (2026-05-01) — the syntax is recognized
                 # but the codegen for the group expansion isn't
                 # wired. Bare-operand args still work via the
                 # standard BUILTIN emitter.
