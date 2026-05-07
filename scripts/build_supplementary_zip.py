@@ -19,10 +19,11 @@ artifact regenerated each run, gitignored.
 What's included
 ===============
 
-Top-level (copied from paper/):
-    README.md       (from paper/SUPPLEMENTARY_README.md)
-    SKILL.md        (from paper/SKILL.md)
-    REPRODUCE.md    (from paper/REPRODUCE.md)
+Top-level (copied from paper/supplementary/):
+    README.md       (from paper/supplementary/README.md)
+    SKILL.md        (from paper/supplementary/SKILL.md)
+    REPRODUCE.md    (from paper/supplementary/REPRODUCE.md)
+    SYNTAX.md       (from paper/supplementary/SYNTAX.md)
 
 The Python compiler and its tests (the §4 / §5 / §3 substrate of every
 paper claim):
@@ -58,20 +59,11 @@ that the FFI doesn't depend on:
     sutraDB/sutra-sparql/
     sutraDB/sutra-ffi/
 
-User-facing syntax and language documentation (the same pages served
-at sutralang.dev). Describes what is implemented today; speculative /
-forward-looking design docs are NOT included:
-    docs/what-is-sutra.md          overview
-    docs/primitive-classes.md      type system
-    docs/operators.md              operator surface
-    docs/loops.md                  loop forms (do_while, while_loop, etc.)
-    docs/logical-operations.md     Kleene three-valued logic
-    docs/numeric-math.md           numeric primitives
-    docs/memory.md                 extended-state-vector layout
-    docs/compilation.md            compiler pipeline
-    docs/ontology.md               class system
-    docs/paradigms.md              comparison with imperative OO
-    docs/vision.md                 the geometric-compilation framing
+Language reference at the archive root, written specifically for
+the anonymized supplementary (no author / repo identification, no
+live-site references):
+    SYNTAX.md                      types, operators, loops,
+                                   compilation pipeline
 
 Cargo.toml regeneration
 =======================
@@ -97,11 +89,16 @@ ARCHIVE_ROOT = "sutra-neurips-supplementary"
 
 
 # Per-file additions: (source path relative to repo root, destination
-# path inside archive).
+# path inside archive). All four supplementary docs live under
+# paper/supplementary/ and are written specifically for the
+# anonymized archive (no author / repo identification, no live-
+# site references). They are not the same as the docs/ pages
+# served at the public site.
 TOP_LEVEL_FILES = [
-    ("paper/SUPPLEMENTARY_README.md", "README.md"),
-    ("paper/SKILL.md", "SKILL.md"),
-    ("paper/REPRODUCE.md", "REPRODUCE.md"),
+    ("paper/supplementary/README.md", "README.md"),
+    ("paper/supplementary/SKILL.md", "SKILL.md"),
+    ("paper/supplementary/REPRODUCE.md", "REPRODUCE.md"),
+    ("paper/supplementary/SYNTAX.md", "SYNTAX.md"),
 ]
 
 # Directories included verbatim (with the standard exclusions below
@@ -124,22 +121,6 @@ INCLUDE_FILES = [
     # below; LICENSE and Cargo.lock are taken verbatim if present).
     "sutraDB/LICENSE",
     "sutraDB/Cargo.lock",
-    # User-facing syntax / language documentation. These are the same
-    # pages served at sutralang.dev — they describe what's implemented
-    # today, not speculative design. Marketing / history / paper-link
-    # pages are left out (index.md, demos.md, history.md,
-    # theory-and-paper.md).
-    "docs/what-is-sutra.md",
-    "docs/primitive-classes.md",
-    "docs/operators.md",
-    "docs/loops.md",
-    "docs/logical-operations.md",
-    "docs/numeric-math.md",
-    "docs/memory.md",
-    "docs/compilation.md",
-    "docs/ontology.md",
-    "docs/paradigms.md",
-    "docs/vision.md",
 ]
 
 # Glob patterns relative to repo root, evaluated as "include every match."
@@ -202,12 +183,14 @@ EXCLUDE_FILE_NAMES = {
 # members; those crates are not in the archive, so the original would
 # fail `cargo build -p sutra-ffi` with missing-manifest errors. This
 # trimmed version lists only the four crates the archive ships.
+# Repository / author identification is omitted for double-blind
+# review; the full project metadata lives upstream.
 TRIMMED_CARGO_TOML = """\
-# Workspace Cargo.toml — trimmed for the NeurIPS supplementary archive.
-# The full SutraDB workspace lists sutra-core, sutra-hnsw, sutra-sparql,
-# sutra-proto, sutra-cli, sutra-ffi as members. The supplementary
-# archive ships only the four crates `cargo build -p sutra-ffi` needs.
-# The full project lives at https://github.com/EmmaLeonhart/SutraDB.
+# Workspace Cargo.toml — trimmed for the supplementary archive.
+# The full upstream workspace lists sutra-core, sutra-hnsw,
+# sutra-sparql, sutra-proto, sutra-cli, sutra-ffi as members. The
+# archive ships only the four crates `cargo build -p sutra-ffi`
+# needs.
 
 [workspace]
 members = [
@@ -223,7 +206,6 @@ version = "0.3.7"
 edition = "2021"
 license = "Apache-2.0"
 authors = []
-repository = "https://github.com/EmmaLeonhart/SutraDB"
 description = "A lean RDF-star triplestore with native HNSW vector indexing and hybrid SPARQL"
 
 [workspace.dependencies]
@@ -272,6 +254,59 @@ codegen-units = 1
 inherits = "release"
 debug = true
 """
+
+
+# File extensions whose text content gets scrubbed for double-blind
+# anonymization on the way into the zip. Source files in the repo
+# retain the original author-attribution comments (useful as
+# history-tracing notes); the archive copies do not.
+SCRUB_TEXT_SUFFIXES = {".py", ".md", ".su", ".rs", ".toml", ".txt"}
+
+
+# Regex replacements applied in order. Patterns target the author-
+# attribution shapes that show up in this repo:
+#
+#   (Emma 2026-04-30 redesign)        ->  (2026-04-30 redesign)
+#   per Emma 2026-04-30                ->  per a 2026-04-30 design note
+#   Per Emma 2026-04-30                ->  Per a 2026-04-30 design note
+#   Emma's preferred X                 ->  the preferred X
+#   Emma observed Y                    ->  observation: Y
+#   Emma 2026-04-30: ...               ->  Design note 2026-04-30: ...
+#   bare "Emma"                        ->  removed (rare)
+#
+# Plus the repo + identity strings any maintainer URL leaves in
+# headers and module docstrings.
+import re as _re
+
+_SCRUB_PATTERNS: list[tuple[_re.Pattern[str], str]] = [
+    (_re.compile(r"\(Emma (\d{4}-\d{2}-\d{2})([^)]*)\)"), r"(\1\2)"),
+    (_re.compile(r"\bper Emma (\d{4}-\d{2}-\d{2})\b"), r"per a \1 design note"),
+    (_re.compile(r"\bPer Emma (\d{4}-\d{2}-\d{2})\b"), r"Per a \1 design note"),
+    (_re.compile(r"\bEmma (\d{4}-\d{2}-\d{2}):"), r"Design note \1:"),
+    (_re.compile(r"\bEmma (\d{4}-\d{2}-\d{2})\b"), r"\1"),
+    (_re.compile(r"\bEmma's\b"), "the"),
+    (_re.compile(r"\bEmma observed\b"), "observation:"),
+    (_re.compile(r"\bEmma\b"), ""),
+    (_re.compile(r"https?://github\.com/EmmaLeonhart/[A-Za-z0-9_.-]+"), "(upstream repository)"),
+    (_re.compile(r"\bEmmaLeonhart\b"), ""),
+    (_re.compile(r"\bImmanuelle\b"), ""),
+    (_re.compile(r"\bambie\b"), ""),
+    (_re.compile(r"\bsutralang\.dev\b"), "(project site)"),
+]
+
+
+def scrub_text(content: str) -> str:
+    """Apply double-blind anonymization scrubs to a text payload.
+
+    Used for files added to the supplementary archive. The repo's
+    on-disk copy is untouched.
+    """
+    out = content
+    for pat, repl in _SCRUB_PATTERNS:
+        out = pat.sub(repl, out)
+    # Tidy up: collapse double spaces left by removed names.
+    out = _re.sub(r"  +", " ", out)
+    return out
 
 
 def should_include_file(path: Path) -> bool:
@@ -394,8 +429,16 @@ def build(output_path: Path, *, check_only: bool = False) -> None:
     ) as zf:
         for arc, src in plan:
             if isinstance(src, Path):
-                zf.write(src, arcname=arc)
+                if src.suffix in SCRUB_TEXT_SUFFIXES:
+                    # Read text + scrub author-identifying strings before
+                    # writing to the archive. Source repo is untouched.
+                    raw = src.read_text(encoding="utf-8")
+                    zf.writestr(arc, scrub_text(raw))
+                else:
+                    zf.write(src, arcname=arc)
             else:
+                # Generated content (e.g. TRIMMED_CARGO_TOML) — already
+                # written without identifying strings.
                 zf.writestr(arc, src)
 
     out_size_mb = output_path.stat().st_size / 1024 / 1024
