@@ -1,105 +1,150 @@
 # Sutra — NeurIPS 2026 Supplementary Material
 
-This archive contains the source code and reproduction
-instructions for the paper *Sutra: Tensor-Op RNNs as a
-Compilation Target for Vector Symbolic Architectures*.
+This archive is a tightly-scoped reproduction package for the
+paper *Sutra: Tensor-Op RNNs as a Compilation Target for Vector
+Symbolic Architectures*. Every file in here is something a
+NeurIPS reviewer needs to verify a paper claim. Tooling
+(IDE plugins), unrelated SutraDB sub-projects, exploratory
+scripts, run logs, and trained-weight binaries have all been
+left out.
 
-## What's here
+## Layout
 
 ```
 sutra-neurips-supplementary/
-├── README.md                  This file.
-├── SKILL.md                   Replication skill — agent-runnable
-│                              shell blocks that reproduce every
-│                              empirical claim in the paper.
-├── REPRODUCE.md               Companion narrative: which paper
-│                              section maps to which command.
-├── sdk/
-│   ├── sutra-compiler/        Compiler (Python). Lexer, parser,
-│   │                          type system, codegen, stdlib,
-│   │                          test suite (245+ tests).
-│   ├── intellij-sutra/        IntelliJ language plugin.
-│   └── vscode-sutra/          VS Code TextMate grammar.
-├── examples/                  27 .su programs covering every
-│                              language feature, plus the
-│                              10-program smoke test driver
-│                              (_smoke_test.py).
-├── experiments/               Reproduction scripts for §3
-│                              capacity, crosstalk, and
-│                              differentiable-training results.
-│                              JSON reference outputs included
-│                              for diff-against-yours comparison.
-├── sutraDB/                   Rust FFI for the embedded
-│                              vector-database codebook
-│                              (test_sutradb_embedded.py).
-├── tests/                     Top-level test scripts.
-└── planning/sutra-spec/       Language specification.
+├── README.md                       This file.
+├── SKILL.md                        Replication skill — agent-runnable
+│                                   shell blocks that reproduce every
+│                                   empirical claim in the paper.
+├── REPRODUCE.md                    Companion narrative: which paper
+│                                   section maps to which command.
+│
+├── sdk/sutra-compiler/             The compiler. Lexer, parser, type
+│                                   system, simplifier, codegen, stdlib,
+│                                   plus the 245+ test suite that
+│                                   verifies the §4 pipeline. Pure
+│                                   Python; no build step.
+│
+├── examples/                       26 .su programs covering every
+│                                   language feature, plus the smoke
+│                                   test driver and harness:
+│   ├── *.su                        the language demos
+│   ├── _smoke_test.py              the 10-program smoke test (§5)
+│   ├── _su_harness.py              shared test helper
+│   └── atman.toml                  example program config
+│
+├── experiments/                    Reproduction scripts for §3 results
+│                                   and the optional cross-paradigm
+│                                   comparison:
+│   ├── rotation_binding_capacity.py
+│   ├── rotation_binding_capacity_llm.py
+│   ├── rotation_binding_capacity_bioinformatics.py
+│   ├── crosstalk_chain.py
+│   ├── differentiable_training.py
+│   ├── rotation_hashmap_capacity.py
+│   ├── sutra_vs_torchhd.py
+│   ├── sutra_vs_torchhd_latency.py
+│   ├── synthetic_subspace_validation.py
+│   ├── *_results.json              reference outputs (diff vs your run)
+│   └── scallop_compare/            optional Docker image — Sutra vs
+│                                   Scallop / DeepProbLog / TorchHD on
+│                                   the same 1-hop KG query
+│
+├── sutraDB/                        Rust source for the embedded-codebook
+│                                   FFI shared library (used by
+│                                   tests/test_sutradb_embedded.py):
+│   ├── Cargo.toml                  workspace, trimmed to the four
+│                                   crates the FFI needs
+│   ├── sutra-core/                 triple storage engine
+│   ├── sutra-hnsw/                 HNSW index
+│   ├── sutra-sparql/               SPARQL+ query engine
+│   └── sutra-ffi/                  the C-compatible shared library
+│
+└── planning/sutra-spec/            Language specification (read-only
+                                    reference). Optional reading.
 ```
 
-## Replication via the skill file
-
-`SKILL.md` is the canonical reproduction surface. It is
-designed for an agent (Claude Code, Cursor, etc.) but reads
-fine to a human: each section is a self-contained shell block
-that runs one paper claim, with the assertion line that
-captures the success condition the paper states.
-
-To run the full reproduction by hand:
+## How to reproduce
 
 ```bash
-# 1. Install Python deps
+# 1. Install Python deps.
 pip install torch torchhd transformers
 
-# 2. Pull the embedding models (Ollama runs locally)
+# 2. Pull the embedding models (Ollama runs locally).
 ollama pull nomic-embed-text
 ollama pull all-minilm
 ollama pull mxbai-embed-large
 
-# 3. (Optional) Build the SutraDB FFI for the embedded
-#    codebook tests; without it, those tests skip.
+# 3. Build the SutraDB FFI for the embedded-codebook test
+#    (optional — the test skips gracefully without it).
 cd sutraDB && cargo build --release -p sutra-ffi && cd ..
 
-# 4. Walk SKILL.md top-to-bottom. Each block is independent;
-#    a non-zero exit code from any block means that claim
-#    does not reproduce.
+# 4. Walk SKILL.md top-to-bottom. Each shell block is independent
+#    and asserts the paper's success condition; a non-zero exit
+#    code means that claim does not reproduce.
 ```
 
-To delegate to an agent: point the agent at `SKILL.md` and
-say "run this skill against the supplementary archive." The
-shell blocks are designed to be cut-and-paste runnable in
-order.
+To delegate to an agent: point Claude Code or a similar agent at
+`SKILL.md` and say "run this skill against the supplementary
+archive." The shell blocks are designed to be cut-and-paste
+runnable in order.
 
-## Paper claims this archive reproduces
+## Paper claim → command map
 
-| Paper section | What runs |
+| Paper section | Reproduction command |
 |---|---|
 | §3.2 capacity sweep (rotation vs. Hadamard, three LLM substrates) | `experiments/rotation_binding_capacity_llm.py` |
 | §3.2 protein-LM substrate (ESM-2) | `experiments/rotation_binding_capacity_bioinformatics.py` |
-| §3.2.1 chained-bind crosstalk | `experiments/crosstalk_chain.py` |
+| §3.2.1 chained-bind crosstalk depth | `experiments/crosstalk_chain.py` |
 | §3.4 first-class loops (soft-halt RNN cells) | `pytest sdk/sutra-compiler/tests/test_loop_function_decl.py` (23 tests) |
 | §3.5 embedded SutraDB codebook | `pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py` |
 | §3.6 end-to-end differentiable training (19 ANDs deep, 95% accuracy) | `experiments/differentiable_training.py` |
 | §4 compiler pipeline (245+ tests, full suite green) | `pytest sdk/sutra-compiler/tests/` |
-| §5 10-program smoke test | `python examples/_smoke_test.py` |
+| §5 ten-program smoke test | `python examples/_smoke_test.py` |
 
-`REPRODUCE.md` has the full per-section map, including the
-hardware/runtime expectations.
+`REPRODUCE.md` has the full per-section map, including hardware
+and runtime expectations.
+
+## What's deliberately not in the archive
+
+- **IDE plugins** (`intellij-sutra`, `vscode-sutra`) — language
+  tooling, not reproduction artifacts.
+- **SutraDB beyond the FFI** (`sutra-cli`, `sutra-proto`,
+  `sutra-studio`, SDKs, Docker image, benchmarks, docs site).
+  The paper only invokes the embedded FFI shared library; the
+  rest is the broader SutraDB project.
+- **Exploratory experiments** (`bound_table_transcendentals.py`,
+  `egglog_*.py`, `eigenrotation_as_trig.py`,
+  `slot_rotation_reversibility.py`,
+  `role_filler_record_torchhd.py`) — design exploration that is
+  not cited in the paper.
+- **Trained-weight binaries** (`*.pt`) — regeneratable by
+  re-running `differentiable_training.py`.
+- **Run logs** (`*.log`) — outputs from prior executions, not
+  inputs.
+- **Stray top-level `tests/` directory** — the actual test suite
+  is `sdk/sutra-compiler/tests/`.
+
+The full project tree (including the items above, plus DEVLOG,
+todo, and CI workflows) is at the upstream repository:
+`https://github.com/EmmaLeonhart/Sutra`. Reviewers should rely
+on this archive for reproduction; the upstream master branch
+continues to evolve.
 
 ## Hardware / environment
 
-- **CPU:** 64-bit, ~14 s for the unit suite.
-- **GPU:** CUDA optional. Runtime auto-detects; falls back to
-  CPU for both the embedding model (Ollama) and the compiled
-  Sutra graph.
+- **CPU:** any 64-bit; the unit suite finishes in ~14 s on a
+  modern desktop.
+- **GPU:** CUDA optional. Both the embedding model (Ollama) and
+  the compiled Sutra graph fall back to CPU automatically.
 - **Memory:** 8 GB sufficient.
 - **Python:** 3.11+.
-- **Disk:** ~3 GB after embedding-model + PyTorch downloads.
+- **Rust:** stable; only required if you want to run the
+  embedded-codebook test (otherwise it skips).
+- **Disk:** ~3 GB after downloading PyTorch and the three
+  embedding models.
 
-## License + provenance
+## License
 
-Sutra is open source under the MIT license. The canonical
-upstream repository is
-`https://github.com/EmmaLeonhart/Sutra`; this archive is the
-state of `master` at submission time. The repository continues
-to evolve; reviewers should rely on this archive for
-reproduction rather than the live `master` branch.
+Sutra is open source under the MIT license. SutraDB (the Rust
+crates in `sutraDB/`) is Apache-2.0 (see `sutraDB/LICENSE`).
