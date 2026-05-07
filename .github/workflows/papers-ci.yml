@@ -24,7 +24,7 @@ on:
     branches: [master]
     paths:
       - 'paper/paper.md'
-      - 'paper/SKILL.md'
+      - 'paper/supplementary/SKILL.md'
   workflow_dispatch:
 
 concurrency:

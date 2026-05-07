@@ -12,22 +12,19 @@ PyTorch tensor ops; programs execute as one tensor computation.
 
 ## Setup
 
-This is a **reproduction skill**: the goal is to clone the
-canonical Sutra repository and run its bundled tests / examples
-to verify the paper's claims hold on your machine. You are not
-asked to reimplement the language from scratch.
+This is a **reproduction skill**: run the bundled tests and
+examples in this archive to verify the paper's empirical
+claims. Reimplementation is not required.
 
 ```bash
-# 1. Clone the canonical repository. ALL subsequent commands
-#    assume your shell's working directory is the cloned
-#    `Sutra/` root (the one that contains `paper/`, `sdk/`,
-#    `examples/`, `experiments/`, and `sutraDB/`).
-git clone https://github.com/EmmaLeonhart/Sutra
-cd Sutra
+# 1. Working directory: the unzipped archive root (the
+#    directory that contains paper/, sdk/, examples/,
+#    experiments/, sutraDB/). All subsequent commands assume
+#    this is the current directory.
 
-# 2. Install Python deps and pull the embedding models. nomic-
-#    embed-text is the primary substrate; all-minilm and
-#    mxbai-embed-large are needed for the §3.1 capacity table.
+# 2. Install Python deps and pull the embedding models.
+#    nomic-embed-text is the primary substrate; all-minilm and
+#    mxbai-embed-large are needed for the capacity sweep.
 pip install torch torchhd transformers
 ollama pull nomic-embed-text
 ollama pull all-minilm
@@ -44,8 +41,7 @@ ollama pull mxbai-embed-large
   print a version, no traceback.
 - `curl -s http://localhost:11434/api/tags | head -c 50` should
   show `{"models":[...` (Ollama running locally).
-- Run from the repo root. Every shell block below assumes the
-  current directory is the cloned `Sutra/`.
+- Every shell block below runs from the archive root.
 
 ## Compiler + program tests
 
