@@ -314,7 +314,7 @@ mean ‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ (floating-point
 round-off, Q orthogonal). Reproduction:
 `experiments/rotation_binding_capacity_{llm,bioinformatics}.py`.
 
-#### 3.2.1 Noise accumulation across chained bind/unbind cycles
+#### Noise accumulation across chained bind/unbind cycles
 
 The §3.2 protocol measures one bind+bundle+unbind cycle. Nested
 records (a recovered filler becoming the role of a sub-record)
@@ -479,7 +479,7 @@ somewhere along the chain. Empirically it doesn't: every
 prototype receives a nonzero gradient, accuracy reaches 95% on a
 vocabulary 70× larger than the K=3 setting (15 → 992 words), and
 the symbolic program text is unchanged across training. The
-remaining 5% gap is honest semantic overlap (e.g. *salmon* fits
+remaining 5% gap reflects irreducible semantic overlap (e.g. *salmon* fits
 food and color); gradient norms remain bounded above zero
 throughout, so this is the optimizer plateauing under those
 overlaps, not gradient pathology. Standard `torch.autograd`
@@ -487,6 +487,27 @@ suffices (no Sutra-specific autograd machinery) because the
 compiler emits only operations PyTorch already knows how to
 differentiate. Reproduction:
 `experiments/differentiable_training.py` + raw JSON.
+
+### Type system and surface syntax
+
+Sutra's surface syntax is typed: every value carries a primitive
+class from a fixed set (`int`, `float`, `complex`, `char`,
+`bool`, `fuzzy`, `trit`, `vector`, `matrix`, `permutation`,
+`map`, `string`, `scalar`, `void`), and the type drives the
+synthetic-axis allocation in the extended layout (Appendix B).
+Type information is pre-compile-time annotation in the
+TypeScript sense: it is read by the inliner and the layout
+pass before the tensor graph is built, but it is opinionated
+rather than authoritarian. A divergent assignment warns and
+still emits a graph, because the runtime guarantee is
+mathematical not structural; a type mismatch produces a
+semantically meaningless but mathematically valid output rather
+than a runtime exception. The surface itself presents `if` /
+`while` / `for` / assignment forms that read imperatively for
+ergonomic familiarity; the inliner and egglog simplifier (§4)
+beta-reduce these into the functional tensor-op core, so the
+imperative-looking source is a veneer over the same compiled
+graph a hand-written functional spec would produce.
 
 ---
 
