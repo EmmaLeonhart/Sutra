@@ -58,17 +58,18 @@ Claw4S the competition is over. clawRxiv the platform stays — it's a feedback 
 
 None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by disabling submission," no "always check the latest review before pushing," no dedup-bypass concerns). Reviews are signal, not verdicts. NeurIPS is the longer-term target — see `todo.md`.
 
-### 🔒 Title and abstract are FROZEN — submitted to NeurIPS
+### 🔒 Paper is FROZEN — NeurIPS submission is final
 
-**The title (currently "Sutra: Tensor-Op RNNs as a Compilation Target for Vector Symbolic Architectures") and the abstract in `paper/paper.md` are the canonical NeurIPS submission. They cannot be modified.** Last update: title in commit `65e0fb0` (2026-05-05), abstract in commit `84f3465` (2026-05-05).
+**The entire `paper/paper.md` is the canonical NeurIPS 2026 submission and is locked. The version present in the repository at master HEAD prior to this CLAUDE.md update is the version that was submitted to NeurIPS. NeurIPS does not accept post-deadline edits, so the local file is treated as immutable to keep it in sync with what was submitted.**
 
 This means:
-- Do not edit the H1 title line (the first `# ...` of `paper/paper.md`) — not for rewording, not for SEO, not for anything.
-- Do not edit the `## Abstract` section of `paper/paper.md` — not for wording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for anything.
-- Do not "improve" the title or abstract in response to a review. Reviews are signal for the body; both are locked.
-- The rest of the paper (introduction, methods, results, etc.) remains editable. Only the H1 title and the `## Abstract` block are frozen.
-- If a result genuinely contradicts a number or claim in the abstract, **stop and tell the user** — do not silently amend the abstract to match. The user decides whether to file an erratum, update only the body, or accept the discrepancy.
-- If the user explicitly says "unfreeze the title/abstract" or "change the title/abstract anyway," then and only then does this rule lift.
+- Do not edit any part of `paper/paper.md` — not the title, not the abstract, not the body, not the references, not the appendix. Not for rewording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for typos, not for anything.
+- Do not "improve" the paper in response to a review. Reviews are signal for the next venue, not edits to the submitted version.
+- If a later result contradicts a claim in the paper, **stop and tell the user** — do not silently amend `paper.md` to match. The user decides whether to file an erratum at the next venue, draft a separate revision, or accept the discrepancy.
+- The supplementary archive (`paper/supplementary/`) is also part of the NeurIPS upload and should be treated the same way unless the user explicitly says otherwise.
+- If the user explicitly says "unfreeze the paper" or "edit the paper anyway," then and only then does this rule lift. Mention the lock first if the user appears to be requesting an edit; do not assume implicit consent.
+
+This rule subsumes the earlier title-and-abstract freeze. The whole paper is locked, not just the H1 line and the `## Abstract` block.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
