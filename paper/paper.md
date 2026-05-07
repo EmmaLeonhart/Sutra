@@ -75,12 +75,12 @@ The four core technical contributions of this paper are:
    these gates is one fused subgraph that PyTorch autograd
    backprops through end-to-end (§3.6).
 
-2. **Beta reduction to tensor normal form.** The compiler
-   inlines stdlib operator definitions, beta-reduces through
-   bound names, then runs an algebraic-simplification pass over
-   the residual. What's left is a fused tensor-op graph (matmul
-   / element-wise / nonlinear) with no named bindings or
-   function calls. Three concrete moves go beyond standard
+2. **Beta reduction to a substrate-pure tensor-op graph.**
+   The compiler inlines stdlib operator definitions,
+   beta-reduces through bound names, then runs an
+   algebraic-simplification pass over the residual. What's
+   left is a fused tensor-op graph (matmul / element-wise /
+   nonlinear) with no named bindings or function calls. Three concrete moves go beyond standard
    inlining + constant folding: conditionals lower to soft-mux
    polynomials ($\tfrac{1+\mathrm{cond}}{2}\,a + \tfrac{1-\mathrm{cond}}{2}\,b$) so the compiled
    artifact has no `if` opcodes; Haar-orthogonal binding
@@ -166,9 +166,10 @@ compiler does:
   itself is a Python function with whatever control flow the
   user wrote.
 - **Sutra is a *language with a compiler*.** The user writes
-  `.su` source which the compiler beta-reduces to tensor normal
-  form (§1.1-2): a single straight-line tensor-op graph with no
-  Python control flow. Loops are tail-recursive function
+  `.su` source which the compiler beta-reduces to a
+  substrate-pure tensor-op graph (§1.1-2): a single
+  straight-line graph of matmul / element-wise / nonlinear ops
+  with no Python control flow. Loops are tail-recursive function
   declarations that lower to soft-halt RNN cells; conditionals
   are differentiable fuzzy interpolations rather than Python
   `if`. Hash-map structure is implemented via synthetic-dimension
@@ -550,10 +551,11 @@ control flow inside an operation: loop halt uses substrate
 primitives (`heaviside`, `saturate_unit`) instead of Python
 ternaries.
 
-### Compile-time resolution to tensor normal form
+### Compile-time resolution of role rotations
 
 The central compile-time mechanism that lets the compiler
-achieve tensor normal form is **precomputed rotation matrices**:
+emit a substrate-pure tensor-op graph is **precomputed
+rotation matrices**:
 every role rotation is constructed at compile time
 (`prewarm_rotation_cache`) and stored as a constant tensor. At
 runtime, `bind(role, filler)` is a single matmul against a
