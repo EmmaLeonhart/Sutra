@@ -5,7 +5,7 @@ labeled vectors, (c) nearest-neighbor query returns the expected
 label. If sutra_ffi.dll isn't built, all tests are skipped — they
 don't fail the suite.
 
-Per Emma 2026-04-30 (queue item 2): SutraDB embedded in compiled
+Per the 2026-04-30 design note (queue item 2): SutraDB embedded in compiled
 Sutra programs replaces argmax_cosine. This test pins the
 embedded API so codegen wiring (separate task) has a known-good
 shape to call.
@@ -93,7 +93,7 @@ class TestSutraDBEmbedded(unittest.TestCase):
 class TestSutraDBCodebookIntegration(unittest.TestCase):
     """Compile-time SutraDB population + nearest_string decode.
 
-    Per Emma 2026-04-30: every embedded string in a Sutra program
+    Per the 2026-04-30 design note: every embedded string in a Sutra program
     goes into SutraDB at compile time. The runtime can decode any
     query vector back to the nearest string via
     `_VSA.nearest_string(query)`. Strings declared but not used in

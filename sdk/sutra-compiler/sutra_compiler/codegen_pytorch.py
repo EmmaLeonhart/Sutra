@@ -92,7 +92,7 @@ class PyTorchCodegen(Codegen):
         every loop function (queue item 1: 'Python is just IO'). Gated
         on env var SUTRA_TORCH_COMPILE=1 — default off because the
         first call pays a graph-capture cost that dwarfs the runtime
-        for tiny loops, and per Emma 2026-04-30 'commit and push
+        for tiny loops, and per the 2026-04-30 design note 'commit and push
         frequently' we want to ship the opt-in version first.
         """
         out = super().translate(module)
@@ -363,7 +363,7 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit()
         self._emit("# ---- Embedded SutraDB (compile-time string codebook) ----")
-        self._emit("# Per Emma 2026-04-30 (queue item 2): every embedded string in a")
+        self._emit("# Per the 2026-04-30 design note (queue item 2): every embedded string in a")
         self._emit("# Sutra program goes into SutraDB at compile time. The embeddings")
         self._emit("# don't live in the Python module's data section — they live in")
         self._emit("# the .sdb file SutraDB manages. Runtime can decode any query")
@@ -447,7 +447,7 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""Pre-compute rotation matrices for every codebook entry.')
         self._emit('')
-        self._emit("Per Emma 2026-04-30 (queue item 3): the runtime should never")
+        self._emit("Per the 2026-04-30 design note (queue item 3): the runtime should never")
         self._emit("pay the QR construction cost on the hot path. Pre-warming at")
         self._emit("module init means every bind/unbind hits the cache. Conservative")
         self._emit("over the codebook (some entries are fillers, not roles); the")
@@ -816,7 +816,7 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._rotation_for(role)")
         self._indent -= 1
         self._emit()
-        # PascalCase aliases — Emma's preferred Sutra-side spelling.
+        # PascalCase aliases — the preferred Sutra-side spelling.
         self._emit("MatrixMul = matmul")
         self._emit("TensorProduct = tensor_product")
         self._emit("Outer = outer")

@@ -1,6 +1,6 @@
 """Embedded SutraDB wrapper — ctypes binding to sutra_ffi.dll.
 
-Per Emma 2026-04-30: SutraDB embedded in compiled Sutra programs is
+Per the 2026-04-30 design note: SutraDB embedded in compiled Sutra programs is
 the queue's item-2 plan. This module is the **first step**: a thin
 Python class around the SutraDB FFI that opens a `.sdb` file, inserts
 labeled embeddings, and runs nearest-neighbor queries via SPARQL+'s

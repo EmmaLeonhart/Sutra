@@ -29,7 +29,7 @@
 //   - planning/findings/2026-04-30-runtime-substrate-purity-audit.md
 //     — why the Taylor-on-Python-floats implementation was withdrawn.
 //
-// **Future direction: eigenrotation-as-modulus** (Emma 2026-04-30).
+// **Future direction: eigenrotation-as-modulus** (2026-04-30).
 // The unit-circle rotation is naturally periodic — applying R(θ)
 // arbitrarily many times wraps around the circle without needing
 // floor-based range reduction. This might be a path to substrate-pure

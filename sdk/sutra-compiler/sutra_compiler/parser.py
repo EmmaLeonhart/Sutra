@@ -235,7 +235,7 @@ class Parser:
 
         if tok.kind is TokenKind.KW_FUNCTION:
             return self._parse_function_decl(mods)
-        # Loop function declarations (Emma 2026-04-30 redesign).
+        # Loop function declarations (2026-04-30 redesign).
         # Surface: `<kind> name(condition_expr, type name (= default)?, ...) { body }`.
         # Each is a first-class declared function whose recurrent state is
         # the named state parameters (no outer-scope access). See
@@ -394,7 +394,7 @@ class Parser:
         )
 
     # ----------------------------------------------------------------
-    # Loop function declarations (Emma 2026-04-30 redesign)
+    # Loop function declarations (2026-04-30 redesign)
     # ----------------------------------------------------------------
 
     _LOOP_KIND_TOKEN = {
@@ -1231,7 +1231,7 @@ class Parser:
           loop (10 as i) { ... }       bounded with index variable
           loop (expr) { ... }          eigenrotation (condition-based)
           loop NAME(cond, args, ...);  invoke a loop function
-                                       (Emma 2026-04-30 redesign — see
+                                       (2026-04-30 redesign — see
                                        _parse_loop_function_decl)
 
         Disambiguation by what follows `loop`:
@@ -1520,7 +1520,7 @@ class Parser:
             )
         return left
 
-    # Chained comparisons (Python-style, Emma 2026-05-01).
+    # Chained comparisons (Python-style, 2026-05-01).
     # `a == b == c` reduces to a single `Equals(a, b, c)` call.
     # `a < b < c` reduces to `hasOrder(a, b, c)` (strict ascending).
     # `a > b > c` reduces to `hasOrder(c, b, a)` (always ascending in
@@ -1581,7 +1581,7 @@ class Parser:
         # unrecognized patterns fall back to a fuzzy-AND chain of
         # pairwise BinaryOps.
         #
-        # Recognized patterns (Emma 2026-05-01):
+        # Recognized patterns (2026-05-01):
         #   a == b == c           -> Equals(a, b, c)
         #   a < b < c             -> hasOrder(a, b, c)
         #   a > b > c             -> hasOrder(c, b, a)         [args reversed]
