@@ -77,33 +77,58 @@ jobs:
       - name: Build paper PDFs (named + anonymized)
         working-directory: paper
         run: |
-          # Generate the LaTeX body from paper.md. paper.tex \input's
-          # paper.tex.body, so the actual paper content (abstract,
-          # sections 1-5, references, all 1100+ lines) lands in the
-          # PDF rather than just the title-page skeleton.
-          # --no-highlight: emit code blocks as plain Verbatim instead
-          #   of pandoc's Highlighting + token-color macros, which
-          #   would otherwise need pandoc's full default preamble.
+          # This step mirrors paper-pdf.yml's build pipeline so
+          # docs/paper.pdf and docs/paper-anonymized.pdf land on the
+          # GitHub Pages site with the same NeurIPS 2026 formatting
+          # the workflow-artifact build produces. Any change here
+          # must be mirrored in paper-pdf.yml (and vice versa).
+          #
+          # Pre-process paper.md before pandoc:
+          # 1. Strip the first H1 line — it is rendered by paper.tex's
+          #    \maketitle, so emitting it as a section duplicates
+          #    the title on page 1.
+          # 2. Tag meta-sections with pandoc's {-} unnumbered
+          #    attribute (Abstract / References / Appendix parent /
+          #    per-letter Appendix headings).
+          sed \
+            -e '1{/^# /d}' \
+            -e 's|^## Abstract$|## Abstract {-}|' \
+            -e 's|^## References$|## References {-}|' \
+            -e 's|^## Appendix$|## Appendix {-}|' \
+            -e 's|^### Appendix \([A-Z]\)\. \(.*\)$|### Appendix \1. \2 {-}|' \
+            paper.md > paper-pre.md
           # --from=markdown-smart (not gfm): pandoc's gfm reader does
           # not support raw_tex, so \begin{align*}/\begin{figure}/
-          # \begin{tikzpicture} blocks in paper.md were being escaped
-          # into \textbackslash literals and typeset as source-code
-          # gibberish. The markdown reader passes raw LaTeX through.
-          pandoc paper.md \
+          # \begin{tikzpicture} blocks would be escaped to literal
+          # \textbackslash text. The markdown reader passes raw LaTeX
+          # through.
+          # --shift-heading-level-by=-1: with the H1 stripped above,
+          # we want H2 -> \section (not pandoc's default H2 ->
+          # \subsection). Auto-numbering produces "1", "1.1", "2",
+          # etc. — matching prose cross-refs (§3.6, §4.2).
+          # --no-highlight: emit code blocks as plain Verbatim instead
+          # of pandoc's Highlighting + token-color macros.
+          pandoc paper-pre.md \
             --from=markdown-smart \
             --to=latex \
             --output=paper.tex.body \
             --wrap=preserve \
-            --no-highlight
+            --no-highlight \
+            --shift-heading-level-by=-1
+          # NeurIPS 2026 requires pdflatex per the official CFP.
           # max_repeat=8 gives latexmk extra passes to converge on
           # cross-references with floating figures.
-          latexmk -lualatex -interaction=nonstopmode \
+          latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
           # Clean intermediate files before the second build.
           latexmk -c paper.tex || true
-          # Anonymized (NeurIPS double-blind).
-          latexmk -lualatex -interaction=nonstopmode \
+          # Anonymized submission build: default neurips_2026 (no
+          # [preprint]) renders authors as "Anonymous Author(s)" and
+          # adds line numbers via the lineno package. Pass the flag
+          # via -usepretex; paper.tex detects via \ifanon and chooses
+          # the [preprint]-less style option.
+          latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
