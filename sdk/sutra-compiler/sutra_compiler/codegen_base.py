@@ -23,13 +23,6 @@ from typing import List, Optional
 from . import ast_nodes as ast
 
 
-# Transcendental intrinsic names that the codegen actively rejects.
-# The 2026-04-29 implementation was withdrawn 2026-04-30 because it
-# ran as host Python scalar arithmetic at runtime, not as substrate
-# tensor ops. The intrinsic declarations remain in `stdlib/math.su`
-# (so the parser knows the names exist) but the codegen rejects any
-# call before it reaches a backend. See
-# `planning/findings/2026-04-30-runtime-substrate-purity-audit.md`.
 _TRANSCENDENTALS_DISABLED = frozenset({
     "log", "sqrt", "exp", "sin", "cos", "tan", "pow",
 })
@@ -247,22 +240,6 @@ BUILTINS = {
     "zero_vector": (_builtin_zero_vector, 0),
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
-    # Chained-comparison reductions (2026-05-01). The parser
-    # produces these for the recognized patterns. All reductions
-    # pass args in ASCENDING order regardless of source direction —
-    # for descending source the parser reverses operands before
-    # building the call.
-    #   a == b == c           -> Equals(a, b, c)
-    #   a < b < c             -> hasOrder(a, b, c)
-    #   a > b > c             -> hasOrder(c, b, a)         [reversed]
-    #   a <= b <= c           -> hasOrderOrEqual(a, b, c)
-    #   a >= b >= c           -> hasOrderOrEqual(c, b, a)  [reversed]
-    #   a == b > c == d > e   -> hasOrder(e, Equals(c,d), Equals(a,b))
-    # Equals lowers to fuzzy-AND of `_VSA.eq` over adjacent pairs.
-    # hasOrder / hasOrderOrEqual lower to fuzzy-AND of `_VSA.gt`
-    # over adjacent pairs IF every arg is a bare operand; if any
-    # arg is itself a Call (the nested-Equals "group" case), the
-    # codegen rejects with a clear "reserved" diagnostic.
     "Equals": (_builtin_equals, None),
     "hasOrder": (_builtin_has_order, None),
     "hasOrderOrEqual": (_builtin_has_order_or_equal, None),
@@ -352,16 +329,6 @@ class BaseCodegen:
         # so the `element` keyword translates to the runtime Python local
         # `_element` (the current array element this tick).
         self._element_runtime_in_scope: bool = False
-        # Stack of state-parameter name lists, pushed when entering a
-        # loop function body and popped on exit. Used by PassStmt
-        # translation to know which Python locals to assign. Outside a
-        # loop body the stack is empty and `pass` is a compile error.
-        # Stack (not single value) so nested loop calls don't collide,
-        # though loop-inside-loop bodies are an open question per the
-        # design doc. Each entry is (loop_name, [state_names...]) so the
-        # `return NAME(args)` tail-call surface (alternative to `pass
-        # values`, 2026-04-30) can verify the call targets the
-        # enclosing loop function.
         self._loop_state_stack: List[tuple[str, List[str]]] = []
         # Registry of loop function declarations seen so far in the
         # module, name -> LoopFunctionDecl. Used by LoopCallStmt
@@ -510,17 +477,6 @@ class BaseCodegen:
                 item, "method declarations are not supported by the V1 codegen"
             )
         elif isinstance(item, ast.ClassDecl):
-            # Class declarations: instances of a user class are plain
-            # vectors at runtime, same as the primitive parent.
-            # If the class body has methods (the 2026-05-01 extension),
-            # static methods get emitted as mangled top-level Python
-            # functions (`{ClassName}_{method_name}`) so call sites
-            # like `Math.log(x)` can dispatch to them. Non-static
-            # methods take `this` as their first param.
-            # If the class body has loop function declarations (object
-            # loops, step 6 of the encapsulation taxonomy), they emit
-            # as `_loop_{ClassName}_{name}` and are reachable from
-            # `loop ClassName.name(...)` call sites.
             for method in item.methods:
                 self._translate_class_method(item.name, method)
             for lf in item.loop_functions:
@@ -552,11 +508,6 @@ class BaseCodegen:
         return None
 
     def _translate_var_decl(self, decl: ast.VarDecl, *, at_top_level: bool) -> None:
-        # `slot TYPE name = expr;` — rotation-bound storage in the
-        # synthetic subspace. Allocates a 2D Givens plane in the
-        # function-scope slot state and emits slot_store / slot_load
-        # for assignments / reads. The runtime primitives landed
-        # 2026-04-24; this codegen integration landed 2026-04-25.
         if decl.is_slot:
             if at_top_level:
                 raise CodegenNotSupported(
@@ -599,9 +550,6 @@ class BaseCodegen:
                 self._emit(f"{decl.name} = _VSA.hashmap_new()")
                 return
 
-        # Implicit fuzzy typing — `fuzzy x = 0.7;` compiles to a truth-axis
-        # vector per the 2026-04-23 literals design. The backend hook
-        # decides whether this applies and what RHS to emit.
         fuzzy_src = self._fuzzy_literal_init_src(decl)
         if fuzzy_src is not None:
             self._emit(f"{decl.name} = {fuzzy_src}")
@@ -617,11 +565,6 @@ class BaseCodegen:
         # treats `wait` differently from "no initializer."
         is_wait_init = isinstance(decl.initializer, ast.WaitLiteral)
 
-        # `var x : TYPE;` without an initializer — the rotation-bound
-        # storage-slot form from the 2026-04-21 surface-syntax decision
-        # (Candidate B: role/var). Emit a zero-valued slot of the
-        # declared type. `var[N] x : TYPE;` emits a Python list of N
-        # zero slots.
         if (decl.initializer is None and decl.is_var_colon) or is_wait_init:
             type_name = decl.type_ref.name if decl.type_ref is not None else "vector"
             # Vector types get a zero d-dim array per slot.
@@ -781,16 +724,6 @@ class BaseCodegen:
         self._slot_vars = {}
         outer_return_type = self._current_return_type
         self._current_return_type = decl.return_type.name if decl.return_type else None
-        # Program-level halt accumulator (2026-04-30): every loop
-        # call multiplies its halted into _program_halt; every return
-        # multiplies the returned value by _program_halt. A loop that
-        # ran out of T-step budget without converging emits halted≈0,
-        # which wipes the function's output. No-op in functions with no
-        # loop calls (1.0 * value). The local is always defined so
-        # LoopCallStmt accumulation is safe; only vector-returning
-        # functions actually multiply the return value by it (host-
-        # language types like string/int/bool can't be multiplied by
-        # a float scalar).
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
@@ -803,14 +736,6 @@ class BaseCodegen:
         self._current_return_type = outer_return_type
         self._indent -= 1
 
-    # -- loop function declarations (2026-04-30) --------------------
-    #
-    # Loops with runtime data dependence are first-class declared functions
-    # whose recurrent state is the named state parameters. Compiles to a
-    # T-step soft-halt cell: each tick evaluates the condition, runs the
-    # body (which uses `pass` to update state locals), accumulates a soft
-    # halt indicator, and freezes state via soft-mux once halt saturates.
-    # Spec: planning/open-questions/loop-function-declarations.md.
 
     # _LOOP_T is now a per-instance attribute set in __init__ from the
     # `loop_max_iterations` kwarg (default 50). The class attribute is
@@ -900,12 +825,6 @@ class BaseCodegen:
         # Evaluate condition (semantics depend on kind).
         if decl.kind in ("do_while", "while_loop"):
             cond_src = self._translate_expr(decl.condition)
-            # Comparisons inline to fuzzy-vector operations (e.g. gt
-            # returns a vector with truth on AXIS_TRUTH). Extract the
-            # truth-axis scalar via _VSA.truth_axis (substrate scalar
-            # return), then heaviside it to a keep-mask — both
-            # substrate-pure. See planning/findings/2026-04-30-
-            # substrate-purity-leak-enumeration.md (Leak 1).
             self._emit(f"_cond = {cond_src}")
             self._emit(f"_cond_truth = _VSA.truth_axis(_cond)")
             self._emit(f"_keep = _VSA.heaviside(_cond_truth)")
@@ -1115,12 +1034,6 @@ class BaseCodegen:
             self._translate_var_decl(stmt, at_top_level=False)
             return
         if isinstance(stmt, ast.ReturnStmt):
-            # Tail-call surface (2026-04-30): inside a loop function
-            # body, `return NAME(args)` where NAME is the enclosing loop
-            # is the prettier alternative to `pass args`. Same semantics
-            # as PassStmt — assigns each arg to the corresponding state
-            # local. Outside a loop body or for any other return value,
-            # falls through to the regular return-with-_program_halt.
             if (self._loop_state_stack
                     and stmt.value is not None
                     and isinstance(stmt.value, ast.Call)
@@ -1213,14 +1126,6 @@ class BaseCodegen:
                         f"{idx}, {value_src})"
                     )
                     return
-                # 2026-04-22: compound assignment (+=, -=, *=, /=) is
-                # emitted directly to Python. Python's semantics match
-                # Sutra's for scalars (float) and for numpy vectors (in-
-                # place). The user's number-axis + integer-class design
-                # makes augmented assignment a first-class operation on
-                # scalars; emitting Python's native form is the direct
-                # implementation. `=` is the simple case that always
-                # worked.
                 target_src = self._translate_expr(expr.target)
                 value_src = self._translate_expr(expr.value)
                 self._emit(f"{target_src} {expr.op} {value_src}")
@@ -1244,10 +1149,6 @@ class BaseCodegen:
                 self._translate_stmt(inner)
             return
         if isinstance(stmt, ast.LoopStmt):
-            # loop(N) literal N: compile-time unroll. Cheap easy form.
-            # Stays — Design note 2026-04-30: "pure compile-time loops where
-            # you just give an integer literal as the thing in it" are
-            # the cheap easy form for arrays-of-known-size.
             if stmt.count is not None:
                 self._translate_bounded_loop(stmt)
                 return
@@ -1291,13 +1192,6 @@ class BaseCodegen:
                 "planning/open-questions/loop-function-declarations.md.",
             )
         if isinstance(stmt, ast.ForeachStmt):
-            # `foreach (x in [a, b, c]) { body }` unrolls at compile time
-            # — one body emission per element, with the loop variable
-            # bound to each element's translated source. User direction
-            # 2026-04-22: compile-time-known collections only; anything
-            # else (e.g. a non-literal expression in the iterable
-            # position) is a compile-time error pending the dynamic-
-            # foreach design (see todo.md).
             if isinstance(stmt.iterable, ast.ArrayLiteral):
                 for element_expr in stmt.iterable.elements:
                     element_src = self._translate_expr(element_expr)
@@ -1984,15 +1878,6 @@ class BaseCodegen:
         callee = call.callee
         if isinstance(callee, ast.Identifier):
             name = callee.name
-            # Fused bundle-of-binds: `bundle(bind(r1,f1), ..., bind(rN,fN))`
-            # where every argument is a literal bind call. Emit the runtime's
-            # `bundle_of_binds` primitive so the rotation stack + batched
-            # matmul + sum can execute as three kernels (GPU) or one numpy
-            # einsum (CPU), instead of N separate bind calls plus an N-arg
-            # bundle. This is the independence structure of a role-filler
-            # record: every (role, filler) pair is completely independent of
-            # the others. Matches the 2026-04-22 "PyTorch/GPU gated on
-            # scheduled parallel evaluation" item from queue.md.
             if (name == "bundle"
                     and len(call.args) >= 2
                     and all(_is_bind_call(a) for a in call.args)):
@@ -2003,13 +1888,6 @@ class BaseCodegen:
                     pair_srcs.append(f"({role_src}, {filler_src})")
                 return f"_VSA.bundle_of_binds({', '.join(pair_srcs)})"
             if name in ("hasOrder", "hasOrderOrEqual"):
-                # Reject the nested-Equals "group" form for now.
-                # Source `a == b > c == d > e` becomes
-                # `hasOrder(e, Equals(c,d), Equals(a,b))` at parse
-                # time (2026-05-01) — the syntax is recognized
-                # but the codegen for the group expansion isn't
-                # wired. Bare-operand args still work via the
-                # standard BUILTIN emitter.
                 for arg in call.args:
                     if isinstance(arg, ast.Call):
                         raise CodegenNotSupported(
@@ -2035,13 +1913,6 @@ class BaseCodegen:
                     )
                 arg_srcs = [self._translate_expr(a) for a in call.args]
                 return emitter(arg_srcs)
-            # Transcendental intrinsics — disabled 2026-04-30. The
-            # 2026-04-29 implementation ran as Python scalar arithmetic at
-            # runtime, not as substrate tensor ops. Withdrawn rather than
-            # left as a working-but-architecturally-wrong impl. The future
-            # direction is eigenrotation-as-modulus (see stdlib/math.su
-            # and planning/findings/2026-04-30-runtime-substrate-purity-audit.md).
-            # Programs that use these names fail to compile here.
             if name in _TRANSCENDENTALS_DISABLED:
                 raise CodegenNotSupported(
                     call,

@@ -1,11 +1,3 @@
-// Sutra corpus test: character literals.
-//
-// Per the 2026-04-23 literals design, `'a'` is a single-quoted
-// character literal. At compile time it types as an int (chars live
-// on the number axis same as ints). At runtime it's a vector with
-// synthetic[AXIS_REAL] set to the Unicode code point and
-// synthetic[AXIS_CHAR_FLAG] = 1.0. The flag is the only thing that
-// distinguishes `'a'` from the plain int `97`.
 
 function int PlainChar() {
     return 'a';

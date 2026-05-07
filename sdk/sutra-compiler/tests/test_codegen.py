@@ -175,11 +175,6 @@ class TestEmbeddingDiskCache(unittest.TestCase):
     def test_cache_path_uses_model_and_dim(self):
         src = "function vector main() { return basis_vector(\"x\"); }\n"
         py = _compile(src)
-        # Filename template for cache entries — (model, total dim) keyed
-        # so changing either produces a different file. Uses `self.dim`
-        # (= semantic_dim + synthetic_dim after the 2026-04-23 extended-
-        # state-vector change), so extending or shrinking the synthetic
-        # block invalidates the cache automatically.
         self.assertIn("f'{_safe_model}-d{self.dim}.npz'", py)
 
     def test_embed_writes_back_to_disk(self):
@@ -528,10 +523,6 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         self.assertIn("Math_twice(3)", py)
 
     def test_non_static_method_emits_with_this_param(self):
-        # Step 4 of the encapsulation taxonomy (2026-05-01): non-static
-        # methods compile to `def Class_method(this, *params):`. The
-        # `this` keyword inside the body translates to the local
-        # Python identifier `this`.
         src = (
             "class Greeter extends vector {\n"
             "  method string Hello() {\n"
@@ -571,10 +562,6 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         self.assertIn("Greeter_Self(g)", py)
 
     def test_class_body_loop_function_emits_with_class_mangling(self):
-        # Step 6 of the encapsulation taxonomy (2026-05-01): a loop
-        # function declared inside a class body emits as
-        # `_loop_{Class}_{name}`. The LoopCallStmt for `loop
-        # Class.name(...)` dispatches to the same mangled name.
         src = (
             "class Counter extends vector {\n"
             "  do_while addOne(x < 5, int x) {\n"
@@ -794,11 +781,6 @@ class TestChainedComparisons(unittest.TestCase):
         self.assertIn("_VSA.gt(a, b)", py)
 
     def test_grouped_equals_inside_hasOrder_reserved_throws(self):
-        # Per the 2026-05-01 design note: `a == b > c == d > e` reduces to
-        # `hasOrder(e, Equals(c, d), Equals(a, b))` — the nested
-        # Equals(...) form. The parser builds this; codegen rejects
-        # the nested-Call args until the group-expansion semantics
-        # is wired.
         from sutra_compiler.codegen_base import CodegenNotSupported
         src = (
             "function fuzzy main(fuzzy a, fuzzy b, fuzzy c, fuzzy d, fuzzy e) {\n"

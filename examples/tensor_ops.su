@@ -1,15 +1,3 @@
-// Sutra tensor operations — general-purpose linear algebra.
-//
-// Per the 2026-05-01 design note: bind/unbind/bundle/similarity are
-// VSA-specific; this file demonstrates the *general* tensor
-// primitives the language exposes on top of the runtime
-// (numpy/torch).
-//
-// Both PascalCase and snake_case names are accepted; both forms
-// route to the same _VSA runtime method. Either style works:
-//
-//     vector y = Tensor.MatrixMul(M, x);    // preferred
-//     vector y = Tensor.matmul(M, x);       // also works
 
 // MatrixMul — matrix-vector multiply for the 2-D-times-1-D case.
 // In a real program M would come from a learned matrix or a

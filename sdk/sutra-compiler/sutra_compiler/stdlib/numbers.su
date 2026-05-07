@@ -90,19 +90,6 @@
 // needs matmul + matrix-literal surfaces.
 
 
-// ==========================================================================
-// Section 3 — intrinsic declarations (class-as-namespace form)
-// ==========================================================================
-//
-// Leaf constructors and complex multiplication that live in the
-// runtime class. Stdlib functions that want to build on them can
-// reference these by name; the codegen routes the calls to
-// `_VSA.<name>(...)`.
-//
-// Migrated 2026-05-01 from top-level `intrinsic function` declarations
-// to the class-as-namespace shape per the encapsulation taxonomy. The
-// stdlib_loader registers each entry under both the bare name
-// (`make_real`) and the namespaced name (`Numbers.make_real`).
 
 class Numbers extends vector {
     static intrinsic method complex make_real(scalar x);
