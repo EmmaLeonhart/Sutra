@@ -72,7 +72,6 @@ forward-looking design docs are NOT included:
     docs/ontology.md               class system
     docs/paradigms.md              comparison with imperative OO
     docs/vision.md                 the geometric-compilation framing
-    docs/tutorials/                step-by-step tutorials
 
 Cargo.toml regeneration
 =======================
@@ -113,7 +112,6 @@ INCLUDE_DIRS = [
     "sutraDB/sutra-hnsw",
     "sutraDB/sutra-sparql",
     "sutraDB/sutra-ffi",
-    "docs/tutorials",
 ]
 
 # Specific files to include (no recursion).
