@@ -1,11 +1,10 @@
 // Analogical pair memory — VSA version of "A is to B as C is to ?".
 //
-// Under sign-flip binding there is no group-theoretic "relation
-// vector" the way HRR has one, but the analogical shape reduces to
-// associative pair lookup: store (A, B) pairs as bind(A, B) in a
-// single bundled memory vector, query by unbinding A to recover
-// B. Each stored pair is a "known analog"; an unbind at query time
-// answers "given this new input, what plays the role B played?".
+// The analogical shape reduces to associative pair lookup: store
+// (A, B) pairs as bind(A, B) in a single bundled memory vector,
+// query by unbinding A to recover B. Each stored pair is a
+// "known analog"; an unbind at query time answers "given this new
+// input, what plays the role B played?".
 //
 // Concrete setting: five (capital, country) pairs. Query a capital,
 // recover the country. The entire memory is one 256-dim vector; all

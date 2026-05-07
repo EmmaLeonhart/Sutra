@@ -31,9 +31,8 @@ atman.toml schema (project-level; example in examples/atman.toml):
     mean_center = true
 
 `main(embedding_space: string)` as a runtime-override at the .su
-language level is deferred — see queue.md #1 "richer embedding-
-space declaration" for the full design; this file implements the
-file-level and project-level halves only.
+language level is deferred. This file implements the file-level
+and project-level halves only.
 """
 from __future__ import annotations
 

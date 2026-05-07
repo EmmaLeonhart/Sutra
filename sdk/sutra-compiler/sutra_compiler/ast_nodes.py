@@ -420,8 +420,6 @@ class LoopCallStmt(Stmt):
     The state_args MUST be identifiers (slot variable names in the
     caller scope); on loop completion, the loop's final state values
     are written back into those caller variables (by-reference).
-
-    Acknowledged non-idiomatic; idiomatic-cleanup tracked in todo.md.
     """
     name: str
     condition_arg: Expr
@@ -458,10 +456,9 @@ class VarDecl(Stmt):
     - `is_role`: this is a semantic role binding. `role X = expr;`
       produces a value that semantically should be treated as a
       learned matrix operator; today it behaves identically to
-      `vector X = expr;` (no learned_from yet — see queue.md
-      "Deferred" section). When learned-matrix binding lands, the
-      is_role flag is what tells the codegen to emit the matrix-fit
-      path.
+      `vector X = expr;` because learned-matrix binding is deferred.
+      When learned-matrix binding lands, the is_role flag is what
+      tells the codegen to emit the matrix-fit path.
     - `is_var_colon`: declared via `var X : TYPE` (the new
       rotation-bound form, with optional initializer). Uninitialized
       form allocates a zero value of the given type — this is the
@@ -521,11 +518,8 @@ class ClassDecl(Node):
     """`class Name extends Parent { ... }` — user-defined ontology
     class.
 
-    Body content (extended 2026-05-01 from the empty-only MVP):
-    method declarations are now accepted inside the body. Field
-    declarations and operator implementations remain deferred —
-    see `todo.md` § "Object encapsulation" and
-    `planning/open-questions/function-taxonomy-and-closure.md`.
+    Body content: method declarations are accepted inside the body.
+    Field declarations and operator implementations remain deferred.
 
     Methods declared inside a class body land on this node's
     `methods` list. They're validator-visited (per the existing
