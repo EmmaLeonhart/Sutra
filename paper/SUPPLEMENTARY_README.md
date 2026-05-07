@@ -76,8 +76,7 @@ sutra-neurips-supplementary/
     ├── compilation.md               compiler pipeline
     ├── ontology.md                  class system
     ├── paradigms.md                 comparison with imperative OO
-    ├── vision.md                    the geometric-compilation framing
-    └── tutorials/                   step-by-step walkthroughs
+    └── vision.md                    the geometric-compilation framing
 ```
 
 ## How to reproduce
