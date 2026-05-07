@@ -128,8 +128,6 @@ class TestCodegenShape(unittest.TestCase):
         self.assertIn("while True:", py)
         self.assertIn("if float(_halted) >= 0.99:", py)
         self.assertIn("_pre_x = x", py)
-        # Substrate-pure halt accumulator (queue item 4 fix, 2026-04-30):
-        # uses _VSA.saturate_unit instead of Python's min().
         self.assertIn("_halted = _VSA.saturate_unit(_halted + _halt_term)", py)
         self.assertIn("x = (1.0 - _halted) * x + _halted * _pre_x", py)
 

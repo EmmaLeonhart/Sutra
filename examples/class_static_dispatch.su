@@ -1,14 +1,3 @@
-// class-as-namespace static method dispatch (slice 1, 2026-05-01).
-//
-// `class Math { static method ... }` declares static methods inside a
-// class body. The codegen emits each as a top-level Python function
-// with mangled name `Math_<method>`, and call sites of the form
-// `Math.foo(x)` dispatch to the mangled name.
-//
-// This is the parser+validator+codegen surface that future stdlib
-// migration targets — `stdlib/math.su` and `stdlib/rotation.su` will
-// be rewritten in this form so user-facing names are scoped under
-// `Math.` / `VSA.` / etc.
 
 class Math extends vector {
     static method scalar twice(scalar x) {

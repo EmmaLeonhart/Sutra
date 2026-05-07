@@ -1,9 +1,3 @@
-// do-while desugars to a single body execution followed by a while
-// loop with the same body + condition. User direction 2026-04-22.
-//
-// The while-half compiles to eigenrotation via the existing
-// WhileStmt lowering, so this test just exercises the
-// decompose-and-translate path.
 
 vector v_cat = basis_vector("cat");
 vector v_dog = basis_vector("dog");

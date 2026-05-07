@@ -1,12 +1,3 @@
-// Sutra corpus test: classes with method bodies.
-//
-// Class bodies can contain method declarations as of 2026-05-01
-// (extending the empty-body MVP). Static and non-static methods are
-// both accepted; static intrinsic methods (signature-only, runtime
-// implements them) also parse. Field declarations and operator
-// overloads remain deferred. Static methods compile end-to-end with
-// `Class.method(...)` dispatch; non-static method codegen is
-// deferred (validator accepts them, codegen rejects).
 
 class VSA extends vector {
     static intrinsic method vector zero_vector();

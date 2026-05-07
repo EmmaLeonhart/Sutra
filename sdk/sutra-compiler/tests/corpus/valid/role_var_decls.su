@@ -1,15 +1,3 @@
-// Exercises the 2026-04-22 role/var declaration forms (Candidate B
-// from the surface-syntax decision — see planning/sutra-spec/
-// binding.md §"Surface syntax"). Lives in the valid corpus so a
-// change that breaks parsing is caught by the existing test runner.
-//
-// Forms demonstrated here:
-//   role X = ...;        // semantic binding (behaves like vector today)
-//   var X : TYPE;        // zero-initialized rotation-bound slot
-//   var X : TYPE = ...;  // explicit-type with initializer
-//   var[N] X : TYPE;     // array of N rotation-bound slots
-//
-// All five declarations below should parse without diagnostics.
 
 // Semantic role declaration (is_role=True in the AST).
 role capital_of = basis_vector("capital_of");

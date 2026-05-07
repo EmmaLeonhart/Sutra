@@ -1,13 +1,3 @@
-// Exercises the AST simplification pass (2026-04-22).
-//
-// bundle(v) with a single argument folds to v.
-// bundle(bundle(a, b), c, bundle(d)) flattens to bundle(a, b, c, d).
-// Both are algebraic identities — the simplified program is
-// indistinguishable from the written form at runtime.
-//
-// Implementation: sdk/sutra-compiler/sutra_compiler/simplify.py runs
-// between parse and codegen; this corpus file confirms the rewrites
-// don't introduce parse/validate errors.
 
 vector v_a = basis_vector("a");
 vector v_b = basis_vector("b");

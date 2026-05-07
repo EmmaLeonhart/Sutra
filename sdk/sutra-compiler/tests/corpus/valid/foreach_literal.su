@@ -1,11 +1,3 @@
-// foreach over a compile-time-known array literal unrolls at
-// compile time. One body emission per element, with the loop
-// variable bound to the element's source. User direction
-// 2026-04-22.
-//
-// Dynamic foreach (over a named collection or an expression
-// computed at runtime) is a compile-time error and future
-// work; see todo.md.
 
 vector v_cat = basis_vector("cat");
 vector v_dog = basis_vector("dog");

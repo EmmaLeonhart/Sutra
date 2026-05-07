@@ -123,11 +123,6 @@ def _rewrite_top_level(item, table) -> None:
         item.condition = _rewrite_expr(item.condition, table)
         _rewrite_block(item.body, table)
     elif isinstance(item, ast.ClassDecl):
-        # Class bodies (2026-05-01): walk every method and every loop
-        # function declared inside, applying the same inlining as if
-        # they were top-level decls. Without this pass, stdlib calls
-        # inside class methods or class loops would compile through
-        # the bare-name path which is not always wired.
         for m in item.methods:
             _rewrite_block(m.body, table)
         for lf in item.loop_functions:
@@ -437,9 +432,6 @@ def _lower_ops_top_level(item, inlineable) -> None:
         item.condition = _lower_ops_expr(item.condition, inlineable)
         _lower_ops_block(item.body, inlineable)
     elif isinstance(item, ast.ClassDecl):
-        # Class bodies (2026-05-01): same op-lowering as top-level
-        # decls. Without this, e.g. `<` inside a class method or
-        # class loop body wouldn't get rewritten to `lt(a, b)`.
         for m in item.methods:
             _lower_ops_block(m.body, inlineable)
         for lf in item.loop_functions:
