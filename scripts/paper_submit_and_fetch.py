@@ -69,15 +69,24 @@ def read_paper(paper_dir: Path) -> tuple[str, str | None, str]:
         print(f"WARNING: {skill_path} does not exist — submitting without SKILL.md",
               file=sys.stderr)
 
-    # Extract the abstract section. Most paper.md files have:
+    # Extract the abstract section. paper.md has:
     #     ## Abstract
     #     <paragraphs>
-    #     ## 1. Introduction
+    #     ## <next section>
     # The regex captures the content between `## Abstract` and the next
-    # numbered heading. Falls back to the first 500 characters if no
-    # abstract section is found — the fly-brain paper currently has
+    # H2 heading, regardless of whether that heading text starts with a
+    # digit. Falls back to the first 500 characters if no abstract
+    # section is found — the fly-brain paper currently has
     # "## What We Did" instead of "## Abstract", so the fallback matters.
-    match = re.search(r'## Abstract\s*\n(.*?)(?=\n## [0-9])', content, re.DOTALL)
+    #
+    # Note: an earlier version of this regex required the next heading
+    # to start with a digit (`## [0-9]`), matching `## 1. Introduction`
+    # style. When the body section numbering was stripped (paper commit
+    # b3e5320, `## 1. Introduction` -> `## Introduction`), that pattern
+    # stopped matching, the regex fell through to the 500-char fallback,
+    # and clawRxiv reviewers flagged the abstract as "truncated mid-
+    # sentence ('with th')." Match any `\n## ` now.
+    match = re.search(r'## Abstract\s*\n(.*?)(?=\n## )', content, re.DOTALL)
     abstract = match.group(1).strip() if match else content[:500]
     return content, skill, abstract
 
