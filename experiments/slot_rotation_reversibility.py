@@ -21,9 +21,9 @@ This script loads the real compiled `_VSA` from the demo harness
    rotate_slot calls forward, then the inverses in reverse; state
    returns to the starting point at FP roundoff.
 
-Uses hello_world.su as a harness because we only need a compiled
-_VSA — no Sutra-language syntax for slot primitives exists yet (the
-compiler-side allocation is the follow-on task from queue.md #3).
+Uses hello_world.su as a harness because only a compiled `_VSA`
+is needed — no Sutra-language syntax for slot primitives exists
+yet (the compiler-side allocation is follow-on work).
 
 Usage: python experiments/slot_rotation_reversibility.py
 """

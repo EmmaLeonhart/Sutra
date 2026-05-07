@@ -1,14 +1,12 @@
 """Embedded SutraDB wrapper — ctypes binding to sutra_ffi.dll.
 
-Per the 2026-04-30 design note: SutraDB embedded in compiled Sutra programs is
-the queue's item-2 plan. This module is the **first step**: a thin
-Python class around the SutraDB FFI that opens a `.sdb` file, inserts
-labeled embeddings, and runs nearest-neighbor queries via SPARQL+'s
-`VECTOR_SIMILAR` operator.
+Thin Python class around the SutraDB FFI: opens a `.sdb` file,
+inserts labeled embeddings, and runs nearest-neighbor queries via
+SPARQL+'s `VECTOR_SIMILAR` operator.
 
-Scope today: prove the embedding works standalone. The Sutra runtime
-does NOT yet route `argmax_cosine` through this — that's the next
-step. This file gives codegen something to call when it's wired up.
+This module proves the embedding path works standalone. The Sutra
+runtime does not yet route `argmax_cosine` through it; this file
+gives codegen something to call once that wiring lands.
 
 ## Architecture
 

@@ -75,8 +75,9 @@
 // function becomes real.
 
 
-// permute — apply a permutation key to a vector. Default permutation
-// scheme is sign-flip: a deterministic ±1 mask XOR'd with the vector.
+// permute — apply a permutation key to a vector. The permutation
+// scheme is a deterministic ±1 mask multiplied elementwise with
+// the vector.
 //
 //   function vector permute(vector v, permutation key) {
 //       return v * sign_flip_mask(key);
@@ -107,8 +108,9 @@
 // Blocked on: `ones_mask` primitive (a ±1 mask that's all +1).
 
 
-// compose — compose two permutations. For the sign-flip scheme this
-// is element-wise multiply of the two masks.
+// compose — compose two permutations. With the ±1-mask
+// representation, composition is element-wise multiply of the
+// two masks.
 //
 //   function permutation compose(permutation p, permutation q) {
 //       return p * q;

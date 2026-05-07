@@ -22,9 +22,8 @@ a soundness-preserving structural match. No approximate rewrites.
    independent leaves.
 
 3. **compose flattening.** `compose(compose(a,b), c)` → `compose(a,b,c)`.
-   Same motivation as bundle flattening — `compose` is associative
-   pointwise multiply on sign-flip keys, and nested forms hide
-   parallelism.
+   Same motivation as bundle flattening: `compose` is associative,
+   and nested forms hide parallelism from the scheduling pass.
 
 4. **similarity of self.** `similarity(a, a)` → `1.0`. Cosine of a
    vector with itself is 1 for any non-zero vector. The rare
@@ -98,11 +97,10 @@ a soundness-preserving structural match. No approximate rewrites.
   norm, so `bundle(x, x) = (x+x)/|x+x| = x/|x| = x` for unit x.
   True algebraically, but the rewrite requires reasoning about
   norms we don't track statically. Skipped.
-- `bind(R1, bind(R2, x))` → `bind(compose(R1,R2), x)`. Would be
-  correct if `bind`'s semantics were the sign-flip composition we
-  had pre-2026-04-21, but rotation binding has different composition
-  semantics (the product of two Haar rotations isn't a single cached
-  role). Retired with the sign-flip removal.
+- `bind(R1, bind(R2, x))` → `bind(compose(R1,R2), x)`. The product
+  of two Haar rotations is not itself a single cached role, so the
+  rewrite would require materializing a composite rotation at
+  runtime rather than at compile time. Skipped.
 
 ### Design invariants
 
@@ -276,7 +274,8 @@ def _egglog_post_pass(module: ast.Module) -> None:
 def _auto_embed_var_decl_init(decl: ast.VarDecl) -> None:
     """Type-directed rewrite of StringLiteral initializers.
 
-    Per the 2026-04-23 literals design:
+    String literals are interpreted by the type they are being
+    assigned into:
 
     - `vector v = "foo"` — the string is implicitly embedded. We wrap
       it in `EmbedExpr` so the codegen emits `_VSA.embed("foo")`.
@@ -851,9 +850,10 @@ def _rewrite_call(call: ast.Call):
                       _mk_zero_vector(call.span))
 
     # Rule 14: compose with identity_permutation() on either side →
-    # drop the identity. compose is elementwise multiply on sign-flip
-    # keys, so multiplying by the all-ones vector is the identity.
-    # Works after rule 3 has flattened nested composes.
+    # drop the identity. `identity_permutation()` is the all-ones
+    # vector and `compose` is elementwise multiply, so multiplying
+    # by all-ones is the identity. Works after rule 3 has flattened
+    # nested composes.
     if name == "compose" and len(call.args) >= 2:
         non_identity = [
             a for a in call.args if not _is_call_named(a, "identity_permutation", arity=0)

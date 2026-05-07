@@ -2,15 +2,9 @@
 binding schemes (MAP / HRR / FHRR) on the same role-filler retrieval
 task, same dimensionality, same codebook.
 
-Why this experiment:
-    The reviewer cons across the v3 review and the 14-variant
-    combinatorics run consistently flagged "no comparison against
-    standard VSA libraries (e.g., torchhd)." This script provides
-    that comparison with real numbers.
-
-    The qualitative-prose framework_comparison fix (mask 32 in the
-    combinatorics run) did not move the rating — the reviewer wants
-    measurements. This is the measurement.
+Reports decode accuracy and signal/noise cosine for each scheme so
+the comparison against the standard VSA library is on real numbers
+rather than prose.
 
 The task:
     Standard VSA bundled-role-filler retrieval. For a bundle width

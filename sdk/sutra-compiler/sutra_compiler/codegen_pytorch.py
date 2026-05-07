@@ -89,11 +89,10 @@ class PyTorchCodegen(Codegen):
         emitted directly as torch via `_emit_prelude`.
 
         Then optionally appends a `torch.compile` wrapping block for
-        every loop function (queue item 1: 'Python is just IO'). Gated
-        on env var SUTRA_TORCH_COMPILE=1 — default off because the
-        first call pays a graph-capture cost that dwarfs the runtime
-        for tiny loops, and per the 2026-04-30 design note 'commit and push
-        frequently' we want to ship the opt-in version first.
+        every loop function. Gated on env var SUTRA_TORCH_COMPILE=1 —
+        default off because the first call pays a graph-capture cost
+        that dwarfs the runtime for tiny loops; opt-in for the cases
+        where the speedup pays back the warmup.
         """
         out = super().translate(module)
         out = out.replace(
@@ -109,8 +108,8 @@ class PyTorchCodegen(Codegen):
             wrap_lines = [
                 "",
                 "",
-                "# Optional torch.compile wrapping for loop functions (queue item 1).",
-                "# Enable via SUTRA_TORCH_COMPILE=1 — see CLAUDE.md / DEVLOG.md.",
+                "# Optional torch.compile wrapping for loop functions.",
+                "# Enable via SUTRA_TORCH_COMPILE=1.",
                 "import os as _sutra_compile_os",
                 "if _sutra_compile_os.environ.get('SUTRA_TORCH_COMPILE'):",
                 "    try:",
@@ -363,20 +362,19 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit()
         self._emit("# ---- Embedded SutraDB (compile-time string codebook) ----")
-        self._emit("# Per the 2026-04-30 design note (queue item 2): every embedded string in a")
-        self._emit("# Sutra program goes into SutraDB at compile time. The embeddings")
-        self._emit("# don't live in the Python module's data section — they live in")
-        self._emit("# the .sdb file SutraDB manages. Runtime can decode any query")
-        self._emit("# vector back to a string via nearest_string() — the inverse of")
-        self._emit("# embed(). Strings declared but not used in expressions still get")
-        self._emit("# inserted, so they remain decodable.")
+        self._emit("# Every embedded string in a Sutra program goes into SutraDB")
+        self._emit("# at compile time. The embeddings live in the .sdb file SutraDB")
+        self._emit("# manages, not in the Python module's data section. The runtime")
+        self._emit("# decodes a query vector back to a string via nearest_string()")
+        self._emit("# (the inverse of embed()). Strings declared but not used in")
+        self._emit("# expressions are still inserted so they remain decodable.")
         self._emit()
         self._emit("def _ensure_sutradb(self):")
         self._indent += 1
         self._emit('"""Lazy-init the SutraDB handle on first use. Returns None if the')
         self._emit("FFI DLL isn't built (caller decides what to do).")
         self._emit('')
-        self._emit("Path resolution (queue item 2 piece 5):")
+        self._emit("Path resolution:")
         self._emit("  1. env var SUTRA_DB_PATH if set (persistent across runs)")
         self._emit("  2. else a tempdir (ephemeral; freed at process exit)")
         self._emit('')
@@ -447,11 +445,11 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""Pre-compute rotation matrices for every codebook entry.')
         self._emit('')
-        self._emit("Per the 2026-04-30 design note (queue item 3): the runtime should never")
-        self._emit("pay the QR construction cost on the hot path. Pre-warming at")
-        self._emit("module init means every bind/unbind hits the cache. Conservative")
-        self._emit("over the codebook (some entries are fillers, not roles); the")
-        self._emit("cost is one-time and proportional to codebook size.")
+        self._emit("The runtime never pays the QR construction cost on the hot")
+        self._emit("path: pre-warming at module init means every bind/unbind hits")
+        self._emit("the cache. Conservative over the codebook (some entries are")
+        self._emit("fillers, not roles); the cost is one-time and proportional")
+        self._emit("to codebook size.")
         self._emit('"""')
         self._emit("for name, vec in self._codebook.items():")
         self._indent += 1
@@ -626,8 +624,8 @@ class PyTorchCodegen(Codegen):
         self._emit()
         # ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----
         # Mirrors the numpy backend's slot block. See codegen.py for the
-        # full design notes; this is the pytorch realization with
-        # `_torch.zeros` and `tensor.clone()` instead of `_np.copy()`.
+        # block; this is the pytorch realization, with `_torch.zeros`
+        # and `tensor.clone()` instead of `_np.copy()`.
         self._emit("# ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----")
         self._emit("# Mirrors the numpy backend slot block; see codegen.py.")
         self._emit("# SLOT_BASE = 5 to leave room for AXIS_LOOP_DONE at synthetic[4].")

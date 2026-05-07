@@ -634,8 +634,7 @@ class Parser:
                 self.diagnostics.error(
                     "class bodies accept method and loop-function "
                     "declarations only. Field declarations and operator "
-                    "overloads are deferred — see `todo.md` § \"Object "
-                    "encapsulation\"",
+                    "overloads are deferred",
                     self._current_span(),
                     code="SUT0140",
                     hint="declare the body member as `method <ret> "
@@ -681,8 +680,7 @@ class Parser:
         The runtime primitives (slot_store / slot_load / rotate_slot)
         are wired in `_VSA`; the codegen integration that threads slot
         state through function scopes is deferred. The parser accepts
-        the form and the codegen rejects with SUT0150 pointing at the
-        queue.md entry.
+        the form; codegen rejects with SUT0150.
         """
         start_span = self._current_span()
         self._expect(TokenKind.KW_SLOT, "`slot`")
