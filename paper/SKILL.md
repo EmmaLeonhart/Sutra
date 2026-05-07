@@ -250,8 +250,9 @@ Reference numbers (K=20, 992 words): 4% → 95% accuracy
 prototype gradient norms in the range 0.94–4.20 (range floor is
 the gradient flow check — every prototype receives a nonzero
 gradient through the nineteen-AND-deep rule pipeline). The 5%
-residual is honest semantic overlap (e.g. *salmon*/*scarf*) at
-the optimizer plateau, not gradient pathology.
+residual reflects irreducible semantic overlap (e.g.
+*salmon*/*scarf*) at the optimizer plateau, not gradient
+pathology.
 
 ### Multi-system neuro-symbolic comparison (optional, requires Docker)
 
