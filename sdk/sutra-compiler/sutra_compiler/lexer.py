@@ -116,7 +116,7 @@ class TokenKind(Enum):
     KW_IN = auto()
     KW_DO = auto()
     KW_LOOP = auto()
-    # Function-declaration loop kinds (Emma 2026-04-30 redesign).
+    # Function-declaration loop kinds (2026-04-30 redesign).
     # Loops are first-class declared functions with a kind prefix:
     #   do_while name(cond, ...state) { body; pass ...; }
     #   while_loop name(cond, ...state) { ... }
