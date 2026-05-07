@@ -28,6 +28,21 @@ on:
       - 'sutraDB/pages/**'
       - 'paper/**'
       - '.github/workflows/pages.yml'
+      # The supplementary zip is built and deployed here too, so any
+      # change that affects what goes into it should retrigger the
+      # workflow. Without these, sutralang.dev/sutra-neurips-
+      # supplementary.zip stays stale across `sdk/`-only or
+      # `scripts/`-only commits.
+      - 'scripts/build_supplementary_zip.py'
+      - 'sdk/sutra-compiler/**'
+      - 'examples/**'
+      - 'experiments/**'
+      - 'sutraDB/sutra-core/**'
+      - 'sutraDB/sutra-hnsw/**'
+      - 'sutraDB/sutra-sparql/**'
+      - 'sutraDB/sutra-ffi/**'
+      - 'sutraDB/Cargo.lock'
+      - 'sutraDB/LICENSE'
   workflow_dispatch:
 
 # A single deploy at a time. The "pages" group is the conventional one
