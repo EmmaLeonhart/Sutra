@@ -49,7 +49,7 @@ What it isn't good at is being a portable general-purpose language. You do not w
 
 ## What about the other substrates
 
-Earlier Sutra work explored compiling to a Brian2 spiking simulation of the *Drosophila* mushroom body, and later to the Shiu et al. 2024 whole-brain LIF model. That research line was retired on 2026-04-26 — the substrate work outpaced the language's maturity, and keeping the half-finished compile-to-connectome path in the repo wasn't paying for itself. Findings from that work (real FlyWire weight matrices do not function as rotation operators; CX ring-attractor circuits did not discriminate direction on real connectivity) are preserved under [`planning/findings/`](https://github.com/EmmaLeonhart/Sutra/tree/master/planning/findings) as historical record.
+Earlier Sutra work explored compiling to a Brian2 spiking simulation of the *Drosophila* mushroom body, and later to the Shiu et al. 2024 whole-brain LIF model. That research line was retired on 2026-04-26 — the substrate work outpaced the language's maturity, and keeping the half-finished compile-to-connectome path in the codebase wasn't paying for itself. The findings from that work (real FlyWire weight matrices do not function as rotation operators; CX ring-attractor circuits did not discriminate direction on real connectivity) stand as a record of which connectome substrates were tried.
 
 The current compile target is PyTorch on the frozen-LLM semantic subspace, and that is the substrate the language reference and the demos describe.
 

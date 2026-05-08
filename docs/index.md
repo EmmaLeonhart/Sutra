@@ -13,10 +13,7 @@ hide:
 [:material-file-pdf-box: Paper (PDF)](paper.pdf){ .md-button .md-button--primary }
 [:material-text-box: Paper (HTML)](theory-and-paper.md){ .md-button }
 
-!!! tip "AI agents — read this first"
-    The canonical, fullest-fidelity source of these docs is the Markdown in [`docs/`](https://github.com/EmmaLeonhart/Sutra/tree/master/docs) on GitHub, not the rendered HTML you may be scraping. The site uses some interactive widgets (bind/unbind, snap-to-nearest, fuzzy-logic explorer) that need JavaScript to render — agents that don't run JS will miss them. Pull the raw `.md` files instead. The language spec proper is in [`planning/sutra-spec/`](https://github.com/EmmaLeonhart/Sutra/tree/master/planning/sutra-spec/).
-
-Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime (`_VSA`) implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
+Sutra source looks like TypeScript — functions, classes, variables, `&&` / `||`, string and numeric literals. The compiler emits self-contained Python that calls a small runtime implementing the Sutra primitives: `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop`. Each primitive is a tensor operation. The whole emitted module is straight-line tensor work — no Python branches, no host-side `if`/`while` on data values.
 
 ## Why this is interesting
 
@@ -32,7 +29,7 @@ The language has loops and conditionals, but neither compiles to a host-side bra
 
 ## What runs today
 
-A reference compiler with two emitter backends (numpy-flavored and PyTorch tensor ops, the latter picking CUDA at module init if available), an IntelliJ plugin with syntax highlighting / completion / external annotator, a VS Code extension with TextMate grammar and snippets, and ten demo `.su` programs that compile and execute end-to-end through the smoke test.
+A reference compiler that emits PyTorch tensor ops (picking CUDA at module init if available), an IntelliJ plugin with syntax highlighting, completion, and an external annotator, a VS Code extension with TextMate grammar and snippets, and ten demo `.su` programs that compile and execute end-to-end through the smoke test.
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
@@ -70,11 +67,11 @@ python -m sutra_compiler --emit examples/hello_world.su
 
     [→ Hello Sutra](tutorials/01-hello-sutra.md)
 
--   :material-file-document-outline:{ .lg .middle } __Read the spec__
+-   :material-file-document-outline:{ .lg .middle } __Read the language reference__
 
     ---
 
-    The language specification — vision, operations, binding, control flow, equality and defuzzification, types, program structure — is in the repo at `planning/sutra-spec/` and is the source of truth for what each operation computes.
+    Operations, operators, loops, ontology, primitive classes, and how `.su` source compiles to tensor ops — the language reference walks through what each piece of the language computes.
 
     [→ Compilation](compilation.md)
 
@@ -92,4 +89,4 @@ It is also not a neural network. The compiler does not learn anything; it lowers
 
 ## Project status
 
-Sutra is **research-grade** software. The work-in-progress queue lives in [`queue.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/queue.md). The paper that grounds the language is on the [Theory and Paper page](theory-and-paper.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).
+Sutra is **research-grade** software. The paper that grounds the language is on the [Theory and Paper page](theory-and-paper.md). The language, the compiler, and the IntelliJ plugin are open source and live in one repo: [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).

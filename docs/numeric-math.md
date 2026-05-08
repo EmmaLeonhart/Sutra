@@ -187,7 +187,7 @@ Most languages handle `log`, `sqrt`, `sin`, `exp`, etc. by deferring to a runtim
 
 ### The reduction chain
 
-The design (absorbed from a 2026-04 voice chat into `todo.md` § "Transcendental functions — design absorbed from voice chat") is built around two primitives: **`exp`** and **`ln`**, both backed by lookup tables on a bounded domain. Everything else beta-reduces:
+The design is built around two primitives: **`exp`** and **`ln`**, both backed by lookup tables on a bounded domain. Everything else beta-reduces:
 
 - `x ^ p` (Sutra has no bit-fiddling, so `^` is exponentiation) → `pow(x, p)` → `exp(p * ln(x))`.
 - `sqrt(x)` → `pow(x, 0.5)` → `exp(0.5 * ln(x))`.
@@ -197,11 +197,11 @@ So at the substrate level, the transcendentals collapse to two lookup tables (fo
 
 ### Status: disabled
 
-This is **not currently implemented**. An earlier attempt (commit `e45d373`, withdrawn 2026-04-30) ran Taylor + Newton refinement on host-side Python floats inside what claimed to be substrate-pure code. It was reverted because biomedical-hardware downstream uses cannot tolerate that lie about where the math executes. A bound-table approach was then explored for `exp` and `ln` and produced ~85% relative error on `exp` due to a 2-scalar bundle capacity limit and Gibbs phenomenon at the periodic boundary (see `planning/findings/2026-04-29-bound-table-capacity-limit.md`).
+This is **not currently implemented**. An earlier attempt (withdrawn 2026-04-30) ran Taylor + Newton refinement on host-side Python floats inside what claimed to be substrate-pure code. It was reverted because biomedical-hardware downstream uses cannot tolerate that lie about where the math executes. A bound-table approach was then explored for `exp` and `ln` and produced ~85% relative error on `exp` due to a 2-scalar bundle capacity limit and Gibbs phenomenon at the periodic boundary.
 
-Today the codegen rejects calls to `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`, `pow` with a `CodegenNotSupported` error pointing at `stdlib/math.su`. The intrinsic declarations remain so the parser knows the names; the rejection is in `_translate_call` under `_TRANSCENDENTALS_DISABLED`.
+Today the codegen rejects calls to `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`, `pow` with a `CodegenNotSupported` error. The intrinsic declarations remain so the parser knows the names; the rejection happens at code generation.
 
-The path forward — sketched but not implemented — is **eigenrotation-as-modulus**: the unit-circle rotation is naturally periodic without floor-based range reduction, which sidesteps the wrap-around crosstalk that broke the bound-table experiments. Tracked in `todo.md` under "Transcendental functions — design absorbed from voice chat."
+The path forward — sketched but not implemented — is **eigenrotation-as-modulus**: the unit-circle rotation is naturally periodic without floor-based range reduction, which sidesteps the wrap-around crosstalk that broke the bound-table experiments.
 
 ---
 

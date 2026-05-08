@@ -118,7 +118,7 @@ vector japan = "Japan";
 vector tokyo = japan.get_capital();
 ```
 
-Today the MVP only allows empty class bodies (`class Country extends vector { }`); the method-on-class form above is the deferred design (see [the ontology page](ontology.md) and `todo.md` § "Ontology — make the class system real").
+Today the MVP only allows empty class bodies (`class Country extends vector { }`); the method-on-class form above is the deferred design (see [the ontology page](ontology.md)).
 
 **Sutra structurally cannot package mutable state.** There are no fields. There is no "inside" of an instance to encapsulate. An instance of `Country` is *just* a vector — the same kind of vector everything else in the program is. The class declaration adds no per-instance storage.
 

@@ -11,9 +11,9 @@ The principle: **basically all functions beta-reduce to their components, except
 
 Status legend:
 
-- **In Sutra** — the body is in `sdk/sutra-compiler/sutra_compiler/stdlib/`, gets inlined into user code.
-- **Intrinsic** — declared in stdlib without a body; the codegen routes the call to a runtime method on `_VSA`.
-- **Blocked** — the target Sutra-level body is sketched in stdlib but a primitive surface (matrix literals, `@` matmul as an operator, indexed axis write, etc.) needs to land before the body can replace the runtime method. The runtime method works today; only the compile-time inlining is blocked.
+- **In Sutra** — the body is written in Sutra's standard library and gets inlined into user code.
+- **Intrinsic** — declared in the standard library without a body; the codegen routes the call to a runtime method.
+- **Blocked** — the Sutra-level body is sketched but a primitive surface (matrix literals, `@` matmul as an operator, indexed axis write, etc.) needs to land before the body can replace the runtime method. The runtime method works today; only the compile-time inlining is blocked.
 - **Disabled** — declared but the codegen rejects calls with `CodegenNotSupported`.
 
 ---
@@ -243,7 +243,7 @@ argmax_cosine(q, [a, b, c]) -> a/b/c with the largest similarity(q, .)
 
 There's nothing else underneath. Every Sutra program is some chain of these five leaf operations plus element-wise `+`, `-`, `*`, `/` and the polynomial logical-connective forms.
 
-Worked example: `examples/tensor_ops.su` calls each of the five primitives directly. Source for the namespace declaration: `sdk/sutra-compiler/sutra_compiler/stdlib/tensor.su`.
+Worked example: `examples/tensor_ops.su` calls each of the five primitives directly.
 
 ---
 
@@ -386,7 +386,7 @@ Iterates cosine equality with `true` ten times. Inputs with `truth = 0` stay at 
 
 ### `is_true(v)` and `defuzzify(v)`
 
-`defuzzify` is the same operation as `defuzzy` — both names are accepted. `is_true(v)` is `defuzzify(v)` followed by a positive-axis projection. Both keep the value fuzzy and differentiable; neither binarizes. See `planning/sutra-spec/equality-and-defuzzification.md` for the spec.
+`defuzzify` is the same operation as `defuzzy` — both names are accepted. `is_true(v)` is `defuzzify(v)` followed by a positive-axis projection. Both keep the value fuzzy and differentiable; neither binarizes.
 
 ---
 
@@ -430,4 +430,3 @@ Each arrow is the inliner replacing a function call with its body. The chain sto
 - [Numeric math](numeric-math.md) — how integers, floats, complex numbers live on the substrate.
 - [Memory](memory.md) — bind / unbind / bundle in detail.
 - [Compilation](compilation.md) — the function-expansion / inlining / fusion pipeline.
-- `sdk/sutra-compiler/sutra_compiler/stdlib/` — canonical Sutra source for every operator listed here.

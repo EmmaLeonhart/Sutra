@@ -65,10 +65,10 @@ Closest existing analogy: SQL is to a relational database what Sutra is to a vec
 
 The vision the language is part of is bigger than the language itself. The full stack we're building, in rough priority order:
 
-1. **The Sutra language** — compiler, type system, semantics, the `.su` source format. ([SDK in `sdk/sutra-compiler/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sdk/sutra-compiler))
-2. **The Sutra runtime** — the substrate execution layer. Exposes the language's primitive operations as tensor ops on the substrate. The runtime is emitted into each compiled module as a small `_VSA` class; the templates live in [`sdk/sutra-compiler/sutra_compiler/codegen.py`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/sutra_compiler/codegen.py) (numpy reference) and [`codegen_pytorch.py`](https://github.com/EmmaLeonhart/Sutra/blob/master/sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py) (PyTorch, picks CUDA at module init).
-3. **The Sutra IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer. ([`sdk/intellij-sutra/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sdk/intellij-sutra))
-4. **SutraDB** — the lightweight bundled vector database, brought into this monorepo as a subtree at [`sutraDB/`](https://github.com/EmmaLeonhart/Sutra/tree/master/sutraDB). The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Sutra emits.
+1. **The Sutra language** — compiler, type system, semantics, the `.su` source format.
+2. **The Sutra runtime** — the substrate execution layer. Exposes the language's primitive operations as tensor ops on the substrate. The runtime is emitted into each compiled module as a small class that targets PyTorch (picking CUDA at module init if available).
+3. **The Sutra IDE** — IntelliJ Platform plugin with syntax highlighting, completion, diagnostics, settings, and a planned 2D/3D embedding-space visualizer.
+4. **SutraDB** — a lightweight bundled vector database. The SQLite-of-vector-databases idea: zero-config, embedded, optimized for the kinds of queries Sutra emits.
 5. **A bundled vertical stack installer** — one download gives you the language, runtime, IDE, embedded vector database, default embedding model, and a small curated default corpus. Hello-world-without-config is the goal — the same affordance that made SQLite the most-deployed database in the world.
 
 All of it is open source. All of it lives in [github.com/EmmaLeonhart/Sutra](https://github.com/EmmaLeonhart/Sutra).
