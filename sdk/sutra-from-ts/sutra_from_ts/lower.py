@@ -1,22 +1,41 @@
-"""Minimal JS / TS → Sutra lowering pass.
+"""TS / JS → Sutra lowering pass.
 
-Walks a tree-sitter parse tree and emits Sutra (.su) source. Scope
-is intentionally tiny for the first cut: function declarations,
-parameters with simple types, return statements, number / string /
-boolean literals, basic binary operators, identifier references.
+Walks a tree-sitter parse tree and emits Sutra (.su) source. Two-pass
+design: a pre-pass collects top-level type and function declarations
+(so cross-references resolve regardless of source order), then the main
+pass walks each function body emitting Sutra syntax with type
+information available.
+
+Scope today:
+
+- Function declarations with typed or implicit-`any` parameters.
+- `const` / `let` / `var` declarations, including object-literal RHS
+  that targets an interface-shaped type (lowered to `Axon` + `add`).
+- `interface` and `type` declarations are erased (their only effect is
+  registering "this name is Axon-shaped" in the context).
+- Member access: `p.x` lowers to `p.item("x")` when `p` is Axon-typed,
+  passes through otherwise.
+- Binary `+`: lowers to `JavaScriptObject.add(a, b)` when either operand
+  is JavaScriptObject-typed (JS coercive `+` semantics); plain numeric
+  `+` otherwise.
+- Function call argument coercion: a primitive literal passed to a
+  JavaScriptObject parameter is wrapped as `JavaScriptObject.from(...)`.
+- The if-then-implicit-else statement pattern lowers to a strong-defuzz
+  blend; statement-form if without a trailing return falls through to a
+  diagnostic comment.
 
 Anything outside this scope falls through to a `// UNSUPPORTED:
-<node-type>` comment in the output, so the caller can see what
-features blocked translation. This is by design — see DESIGN.md
-for the full intended scope.
+<node-type>` comment in the output, so the caller can see what features
+blocked translation. See DESIGN.md for the full intended scope.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Optional
 
 
-_TS_TO_SUTRA_TYPE = {
+_TS_PRIMITIVE_TO_SUTRA = {
     "number": "int",      # default; float-vs-int inference is future work
     "string": "String",
     "boolean": "bool",
@@ -26,22 +45,47 @@ _TS_TO_SUTRA_TYPE = {
 }
 
 
+@dataclass
+class Context:
+    """Compile-time information collected by the pre-pass and used during
+    the main lowering walk.
+
+    `interface_names` and `type_alias_names` map a TS-side type name to
+    "this name is Axon-shaped." `function_param_types` is a name → list-
+    of-Sutra-types map for resolving call-site coercions. `local_types`
+    is updated as the main pass walks function bodies.
+    """
+
+    interface_names: set[str] = field(default_factory=set)
+    type_alias_names: set[str] = field(default_factory=set)
+    function_param_types: dict[str, list[str]] = field(default_factory=dict)
+    local_types: dict[str, str] = field(default_factory=dict)
+
+    def is_axon_typed(self, type_name: str) -> bool:
+        return (
+            type_name in self.interface_names
+            or type_name in self.type_alias_names
+        )
+
+    def lookup_local(self, name: str) -> Optional[str]:
+        return self.local_types.get(name)
+
+    def child_scope(self) -> "Context":
+        """Return a context with the same global state and a fresh local
+        scope."""
+        return Context(
+            interface_names=self.interface_names,
+            type_alias_names=self.type_alias_names,
+            function_param_types=self.function_param_types,
+            local_types={},
+        )
+
+
 def _node_text(node, source: bytes) -> str:
     return source[node.start_byte:node.end_byte].decode("utf-8")
 
 
-def _child_named(node, kind: str):
-    for c in node.named_children:
-        if c.type == kind:
-            return c
-    return None
-
-
-def _children_named(node, kind: str):
-    return [c for c in node.named_children if c.type == kind]
-
-
-def _ts_type_to_sutra(annotation_node, source: bytes) -> str:
+def _ts_type_to_sutra(annotation_node, source: bytes, ctx: Context) -> str:
     """Given a `type_annotation` node, return the Sutra type name."""
     if annotation_node is None:
         return "JavaScriptObject"
@@ -50,18 +94,62 @@ def _ts_type_to_sutra(annotation_node, source: bytes) -> str:
         return "JavaScriptObject"
     if inner.type == "predefined_type":
         text = _node_text(inner, source)
-        return _TS_TO_SUTRA_TYPE.get(text, "JavaScriptObject")
+        return _TS_PRIMITIVE_TO_SUTRA.get(text, "JavaScriptObject")
     if inner.type == "type_identifier":
-        return _node_text(inner, source)
+        name = _node_text(inner, source)
+        if ctx.is_axon_typed(name):
+            return "Axon"
+        return name
     return "JavaScriptObject"
 
 
-def _lower_expression(node, source: bytes) -> str:
+def _expr_type(node, source: bytes, ctx: Context) -> Optional[str]:
+    """Best-effort type of an expression. Returns None when the type
+    cannot be determined locally."""
+    if node.type == "identifier":
+        return ctx.lookup_local(_node_text(node, source))
+    if node.type == "number":
+        return "int"
+    if node.type == "string":
+        return "String"
+    if node.type in ("true", "false"):
+        return "bool"
+    if node.type == "parenthesized_expression" and node.named_children:
+        return _expr_type(node.named_children[0], source, ctx)
+    return None
+
+
+def _lower_object_literal_into_axon(
+    obj_node, target_name: str, source: bytes, ctx: Context, indent: str,
+) -> str:
+    """Lower an object literal `{ k1: v1, k2: v2 }` as a sequence of
+    `target_name.add(k, v)` augmented-assignment statements. Used when
+    the object literal is the RHS of a typed-variable declaration whose
+    type is Axon-shaped."""
+    out = ""
+    for child in obj_node.named_children:
+        if child.type != "pair":
+            continue
+        key = child.child_by_field_name("key")
+        value = child.child_by_field_name("value")
+        if key is None or value is None:
+            continue
+        key_text = _node_text(key, source)
+        if key.type == "property_identifier":
+            key_str = f'"{key_text}"'
+        elif key.type == "string":
+            key_str = key_text
+        else:
+            key_str = f'"{key_text}"'
+        value_src = _lower_expression(value, source, ctx)
+        out += f"{indent}{target_name}.add({key_str}, {value_src});\n"
+    return out
+
+
+def _lower_expression(node, source: bytes, ctx: Context) -> str:
     if node.type == "number":
         return _node_text(node, source)
     if node.type == "string":
-        # `"hello"` -> wrap in String.make_string per the deferred-string
-        # rule from DESIGN.md.
         text = _node_text(node, source)
         return f"String.make_string({text})"
     if node.type == "true":
@@ -71,41 +159,57 @@ def _lower_expression(node, source: bytes) -> str:
     if node.type == "identifier":
         return _node_text(node, source)
     if node.type == "binary_expression":
-        # Children: left, operator, right (the operator is between
-        # named children but accessible as a string field too).
         left = node.child_by_field_name("left")
         right = node.child_by_field_name("right")
         op = node.child_by_field_name("operator")
         op_text = _node_text(op, source) if op is not None else "+"
-        # JS `===` and `!==` map to Sutra `==` / `!=`. Sutra is fuzzy,
-        # so strict / loose equality collapse here.
         op_text = {"===": "==", "!==": "!="}.get(op_text, op_text)
-        return f"({_lower_expression(left, source)} {op_text} {_lower_expression(right, source)})"
+        left_src = _lower_expression(left, source, ctx)
+        right_src = _lower_expression(right, source, ctx)
+        if op_text == "+":
+            left_t = _expr_type(left, source, ctx)
+            right_t = _expr_type(right, source, ctx)
+            if left_t == "JavaScriptObject" or right_t == "JavaScriptObject":
+                return f"JavaScriptObject.add({left_src}, {right_src})"
+        return f"{left_src} {op_text} {right_src}"
     if node.type == "unary_expression":
         op = node.child_by_field_name("operator")
         arg = node.child_by_field_name("argument")
         op_text = _node_text(op, source) if op is not None else "-"
-        return f"({op_text}{_lower_expression(arg, source)})"
+        return f"({op_text}{_lower_expression(arg, source, ctx)})"
     if node.type == "parenthesized_expression":
         inner = node.named_children[0]
-        return _lower_expression(inner, source)
+        # Preserve source-level grouping. Binary expressions don't auto-
+        # parenthesize anymore (precedence is left to the Sutra parser),
+        # so an explicit `(a+b)*c` in the source must keep its parens to
+        # not be reparsed as `a + b*c`.
+        return f"({_lower_expression(inner, source, ctx)})"
     if node.type == "call_expression":
         func = node.child_by_field_name("function")
         args_node = node.child_by_field_name("arguments")
-        func_src = _lower_expression(func, source)
-        arg_srcs = [
-            _lower_expression(a, source)
-            for a in (args_node.named_children if args_node else [])
-        ]
+        func_src = _lower_expression(func, source, ctx)
+        callee_param_types = None
+        if func is not None and func.type == "identifier":
+            callee_param_types = ctx.function_param_types.get(_node_text(func, source))
+        arg_nodes = list(args_node.named_children) if args_node else []
+        arg_srcs = []
+        for i, a in enumerate(arg_nodes):
+            arg_src = _lower_expression(a, source, ctx)
+            if (callee_param_types is not None
+                    and i < len(callee_param_types)
+                    and callee_param_types[i] == "JavaScriptObject"
+                    and a.type in ("number", "string", "true", "false")):
+                arg_src = f"JavaScriptObject.from({arg_src})"
+            arg_srcs.append(arg_src)
         return f"{func_src}({', '.join(arg_srcs)})"
     if node.type == "member_expression":
         obj = node.child_by_field_name("object")
         prop = node.child_by_field_name("property")
-        obj_src = _lower_expression(obj, source)
+        obj_src = _lower_expression(obj, source, ctx)
         prop_text = _node_text(prop, source) if prop is not None else ""
-        # JS / TS property accesses that have a Sutra-side method
-        # equivalent. `.length` on a string is the most common one;
-        # add more here as needed.
+        obj_t = _expr_type(obj, source, ctx) if obj is not None else None
+        if obj_t == "Axon":
+            return f'{obj_src}.item("{prop_text}")'
         _PROPERTY_TO_METHOD = {
             "length": "string_length",
         }
@@ -115,92 +219,113 @@ def _lower_expression(node, source: bytes) -> str:
     return f"/* UNSUPPORTED-EXPR: {node.type} */"
 
 
-def _lower_statement(node, source: bytes, indent: str = "    ") -> str:
+def _lower_lexical_declaration(
+    node, source: bytes, ctx: Context, indent: str
+) -> str:
+    """Lower `const x: T = expr;` / `let x: T = expr;` / `var x: T = expr;`
+    to a Sutra typed declaration. When `expr` is an object literal and
+    `T` is Axon-shaped, emit a multi-statement axon construction."""
+    out = ""
+    for declarator in node.named_children:
+        if declarator.type != "variable_declarator":
+            continue
+        name_node = declarator.child_by_field_name("name")
+        type_node = declarator.child_by_field_name("type")
+        value_node = declarator.child_by_field_name("value")
+        if name_node is None:
+            continue
+        name = _node_text(name_node, source)
+        sutra_type = _ts_type_to_sutra(type_node, source, ctx)
+        ctx.local_types[name] = sutra_type
+        if (value_node is not None
+                and value_node.type == "object"
+                and sutra_type == "Axon"):
+            out += f"{indent}Axon {name};\n"
+            out += _lower_object_literal_into_axon(
+                value_node, name, source, ctx, indent
+            )
+        elif value_node is not None:
+            value_src = _lower_expression(value_node, source, ctx)
+            out += f"{indent}{sutra_type} {name} = {value_src};\n"
+        else:
+            out += f"{indent}{sutra_type} {name};\n"
+    return out
+
+
+def _lower_statement(
+    node, source: bytes, ctx: Context, indent: str = "    "
+) -> str:
     if node.type == "return_statement":
-        # `return <expr>;`
         if node.named_children:
             expr_node = node.named_children[0]
-            return f"{indent}return {_lower_expression(expr_node, source)};\n"
+            return f"{indent}return {_lower_expression(expr_node, source, ctx)};\n"
         return f"{indent}return;\n"
     if node.type == "expression_statement":
         inner = node.named_children[0] if node.named_children else None
         if inner is None:
             return ""
-        return f"{indent}{_lower_expression(inner, source)};\n"
+        return f"{indent}{_lower_expression(inner, source, ctx)};\n"
+    if node.type in ("lexical_declaration", "variable_declaration"):
+        return _lower_lexical_declaration(node, source, ctx, indent)
     if node.type == "if_statement":
-        # `if (cond) X else Y` lowers to a select over a strongly
-        # defuzzified condition: `select(is_true(cond), X, Y)`. Sutra
-        # has no statement-form `if` — it's expression-form only —
-        # so the branches need to produce values. The two patterns
-        # we recognize:
-        #   1. if-then-else, both branches `return <expr>;`
-        #   2. if-then with no else, treated by the function-body
-        #      rewrite below: the next statement after the if is
-        #      taken as the implicit else.
         cond = node.child_by_field_name("condition")
         cons = node.child_by_field_name("consequence")
         alt = node.child_by_field_name("alternative")
-        cond_src = _lower_expression(cond.named_children[0], source) if cond else "false"
-        cons_src = _lower_branch_result(cons, source)
+        cond_src = (
+            _lower_expression(cond.named_children[0], source, ctx)
+            if cond and cond.named_children else "false"
+        )
+        cons_src = _lower_branch_result(cons, source, ctx)
         if alt is not None:
-            alt_src = _lower_branch_result(alt, source)
+            alt_src = _lower_branch_result(alt, source, ctx)
             return (
                 f"{indent}return ((1 + truth_axis(defuzzy({cond_src}))) "
                 f"* ({cons_src}) + (1 - truth_axis(defuzzy({cond_src}))) "
                 f"* ({alt_src})) / 2;\n"
             )
-        # if-only — left as-is here; the function-body rewrite at
-        # _lower_function_body merges this with the trailing return.
-        # If we're not inside such a body, flag explicitly.
         return f"{indent}// UNSUPPORTED-STMT: if without else; place a `return` after the if\n"
     if node.type == "statement_block":
         out = ""
         for child in node.named_children:
-            out += _lower_statement(child, source, indent)
+            out += _lower_statement(child, source, ctx, indent)
         return out
+    if node.type == "comment":
+        return ""
     return f"{indent}// UNSUPPORTED-STMT: {node.type}\n"
 
 
-def _lower_branch_result(node, source: bytes) -> str:
-    """For `if/else` branches: extract the value the branch produces.
-    A statement block whose only statement is `return <expr>;` lowers
-    to `<expr>`.
-    """
+def _lower_branch_result(node, source: bytes, ctx: Context) -> str:
+    """For `if/else` branches: extract the value the branch produces."""
     if node.type == "statement_block":
         if len(node.named_children) == 1:
             inner = node.named_children[0]
             if inner.type == "return_statement" and inner.named_children:
-                return _lower_expression(inner.named_children[0], source)
+                return _lower_expression(inner.named_children[0], source, ctx)
     if node.type == "return_statement" and node.named_children:
-        return _lower_expression(node.named_children[0], source)
-    return _lower_expression(node, source)
+        return _lower_expression(node.named_children[0], source, ctx)
+    return _lower_expression(node, source, ctx)
 
 
-def _lower_function_body(body_node, source: bytes) -> str:
+def _branch_return_expr(node, source: bytes, ctx: Context) -> Optional[str]:
+    if node is None:
+        return None
+    if node.type == "return_statement":
+        if node.named_children:
+            return _lower_expression(node.named_children[0], source, ctx)
+        return None
+    if node.type == "statement_block" and len(node.named_children) == 1:
+        return _branch_return_expr(node.named_children[0], source, ctx)
+    return None
+
+
+def _lower_function_body(body_node, source: bytes, ctx: Context) -> str:
     """Lower a statement_block as a function body. Recognizes the
-    if-then-(implicit-else) pattern:
-
-        if (cond) return X;
-        return Y;
-
-    and rewrites it to `return select(is_true(cond), X, Y);` — the
-    user's "strong defuzz then select" rule for `if/else`. Without
-    the rewrite, Sutra has no idiomatic way to express conditional
-    returns (the language is expression-form, no statement-form
-    `if`).
-
-    Statement order in JS is meaningful: the rewrite is only safe
-    when both branches are pure expressions. If a branch has side
-    effects, the rewrite changes semantics (Sutra's `select`
-    evaluates BOTH arms eagerly). For the demo subset that's fine;
-    the limitation is documented.
-    """
+    if-then-(implicit-else) pattern and rewrites it to a strong-defuzz
+    blend over the truth axis. See axes-of-strong-defuzz comments
+    inline."""
     if body_node is None or body_node.type != "statement_block":
-        return _lower_statement(body_node, source) if body_node else ""
+        return _lower_statement(body_node, source, ctx) if body_node else ""
     stmts = list(body_node.named_children)
-    # Pattern: [if_stmt(no-alt, return X), return Y] — possibly with
-    # other statements before. We only rewrite when an if-with-no-alt
-    # is immediately followed by a return.
     out_lines = []
     i = 0
     while i < len(stmts):
@@ -210,62 +335,46 @@ def _lower_function_body(body_node, source: bytes) -> str:
                 and cur.child_by_field_name("alternative") is None
                 and nxt is not None
                 and nxt.type == "return_statement"):
-            # Check the consequence is a single return.
             cons = cur.child_by_field_name("consequence")
-            cons_ret = _branch_return_expr(cons, source)
+            cons_ret = _branch_return_expr(cons, source, ctx)
             if cons_ret is not None and nxt.named_children:
                 cond_node = cur.child_by_field_name("condition")
                 cond_src = (
-                    _lower_expression(cond_node.named_children[0], source)
-                    if cond_node else "false"
+                    _lower_expression(cond_node.named_children[0], source, ctx)
+                    if cond_node and cond_node.named_children else "false"
                 )
-                else_src = _lower_expression(nxt.named_children[0], source)
-                # if/else lowering: strong-defuzz the condition,
-                # extract the truth-axis scalar (in [-1, 1] after
-                # polarization), and blend the branches:
+                else_src = _lower_expression(nxt.named_children[0], source, ctx)
+                # if/else lowering: strong-defuzz the condition, extract
+                # the truth-axis scalar in [-1, 1] after polarization, and
+                # blend the branches:
                 #   weight = (1 + truth_axis(defuzzy(cond))) / 2
                 #   return weight * X + (1 - weight) * Y
-                # Conceptually identical to a 2-option softmax with
-                # weights derived from the truth axis. Used instead of
-                # `select(scores, options)` because select is built for
-                # vector options — for scalar branches it broadcasts
-                # incorrectly. The linear-blend form works for both
-                # scalar and vector branches via PyTorch broadcasting.
+                # Conceptually a 2-option softmax with weights derived
+                # from the truth axis. Used instead of `select(scores,
+                # options)` because select is built for vector options;
+                # for scalar branches it broadcasts incorrectly.
                 out_lines.append(
                     f"    return ((1 + truth_axis(defuzzy({cond_src}))) "
                     f"* ({cons_ret}) + (1 - truth_axis(defuzzy({cond_src}))) "
                     f"* ({else_src})) / 2;\n"
                 )
-                # Consume both statements.
                 i += 2
                 continue
-        out_lines.append(_lower_statement(cur, source))
+        out_lines.append(_lower_statement(cur, source, ctx))
         i += 1
     return "".join(out_lines)
 
 
-def _branch_return_expr(node, source: bytes) -> Optional[str]:
-    """If `node` is a `return <expr>;` (or a block whose only stmt is
-    such a return), return the lowered expression source. Else return
-    None — meaning the branch isn't a single value-returning return."""
-    if node is None:
-        return None
-    if node.type == "return_statement":
-        if node.named_children:
-            return _lower_expression(node.named_children[0], source)
-        return None
-    if node.type == "statement_block" and len(node.named_children) == 1:
-        return _branch_return_expr(node.named_children[0], source)
-    return None
-
-
-def _lower_function(node, source: bytes) -> str:
+def _lower_function(node, source: bytes, ctx: Context) -> str:
     name_node = node.child_by_field_name("name")
     params_node = node.child_by_field_name("parameters")
     return_type_node = node.child_by_field_name("return_type")
     body_node = node.child_by_field_name("body")
     name = _node_text(name_node, source) if name_node else "anonymous"
-    return_type = _ts_type_to_sutra(return_type_node, source)
+    return_type = _ts_type_to_sutra(return_type_node, source, ctx)
+
+    fn_ctx = ctx.child_scope()
+
     param_parts = []
     if params_node is not None:
         for p in params_node.named_children:
@@ -273,15 +382,47 @@ def _lower_function(node, source: bytes) -> str:
                 pat = p.child_by_field_name("pattern")
                 ann = p.child_by_field_name("type")
                 pname = _node_text(pat, source) if pat else "_arg"
-                ptype = _ts_type_to_sutra(ann, source)
+                ptype = _ts_type_to_sutra(ann, source, ctx)
                 param_parts.append(f"{ptype} {pname}")
+                fn_ctx.local_types[pname] = ptype
             elif p.type == "identifier":
-                # Untyped JS parameter
                 pname = _node_text(p, source)
                 param_parts.append(f"JavaScriptObject {pname}")
+                fn_ctx.local_types[pname] = "JavaScriptObject"
     params_src = ", ".join(param_parts)
-    body_src = _lower_function_body(body_node, source)
+    body_src = _lower_function_body(body_node, source, fn_ctx)
     return f"function {return_type} {name}({params_src}) {{\n{body_src}}}\n"
+
+
+def _prepass(root, source: bytes, ctx: Context) -> None:
+    """Two-phase walk over top-level declarations: phase 1 collects
+    interface and type-alias names, phase 2 collects function signatures
+    (which depend on knowing which TS type names are Axon-shaped)."""
+    for child in root.named_children:
+        if child.type == "interface_declaration":
+            name_node = child.child_by_field_name("name")
+            if name_node is not None:
+                ctx.interface_names.add(_node_text(name_node, source))
+        elif child.type == "type_alias_declaration":
+            name_node = child.child_by_field_name("name")
+            if name_node is not None:
+                ctx.type_alias_names.add(_node_text(name_node, source))
+
+    for child in root.named_children:
+        if child.type == "function_declaration":
+            name_node = child.child_by_field_name("name")
+            params_node = child.child_by_field_name("parameters")
+            if name_node is None or params_node is None:
+                continue
+            name = _node_text(name_node, source)
+            ptypes = []
+            for p in params_node.named_children:
+                if p.type in ("required_parameter", "optional_parameter"):
+                    ann = p.child_by_field_name("type")
+                    ptypes.append(_ts_type_to_sutra(ann, source, ctx))
+                elif p.type == "identifier":
+                    ptypes.append("JavaScriptObject")
+            ctx.function_param_types[name] = ptypes
 
 
 def lower(source: str) -> str:
@@ -292,6 +433,10 @@ def lower(source: str) -> str:
     parser = tree_sitter.Parser(lang)
     src_bytes = source.encode("utf-8")
     tree = parser.parse(src_bytes)
+
+    ctx = Context()
+    _prepass(tree.root_node, src_bytes, ctx)
+
     out_parts = [
         "// Generated by sutra-from-ts. See sdk/sutra-from-ts/DESIGN.md.\n",
         "// Note: JavaScriptObject is referenced in places where a TS type\n",
@@ -301,7 +446,13 @@ def lower(source: str) -> str:
     ]
     for child in tree.root_node.named_children:
         if child.type == "function_declaration":
-            out_parts.append(_lower_function(child, src_bytes))
+            out_parts.append(_lower_function(child, src_bytes, ctx))
+        elif child.type in ("interface_declaration", "type_alias_declaration"):
+            # Erased — only effect was registering the name as Axon-shaped
+            # in the pre-pass.
+            pass
+        elif child.type == "comment":
+            pass
         else:
             out_parts.append(f"// UNSUPPORTED-TOP-LEVEL: {child.type}\n")
     return "".join(out_parts)
