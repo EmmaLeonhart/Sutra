@@ -44,11 +44,8 @@ That's the entire program. Five things to notice:
 
 ## Validate it
 
-The compiler ships as a Python module. From the repo root:
-
 ```bash
-cd sdk/sutra-compiler
-python -m sutra_compiler ../../examples/hello.su
+sutrac examples/hello.su
 ```
 
 If the file is well-formed you should see:

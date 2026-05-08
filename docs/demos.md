@@ -65,7 +65,7 @@ The `.su` files are deliberately short (30–100 lines each including comments) 
 To inspect the generated Python for any demo:
 
 ```bash
-python -m sutra_compiler --emit examples/knowledge_graph.su
+sutrac --emit examples/knowledge_graph.su
 ```
 
 The emitted module is self-contained — it instantiates a small `_VSA` runtime class and calls into it for every Sutra primitive.
