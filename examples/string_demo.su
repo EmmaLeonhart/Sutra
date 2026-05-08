@@ -1,0 +1,18 @@
+// String demo — round-trip a string value through the Sutra
+// substrate.
+//
+// Encoding: characters pack into the synthetic axes per
+// planning/sutra-spec/strings.md. AXIS_STRING_FLAG marks the
+// vector as a String. Length is recovered by walking from the
+// highest possible char position down to the first non-zero.
+
+function int main() {
+    String greeting = String.make_string("hello");
+    // char[0] = 'h' = codepoint 104.
+    // char[1] = 'e' = codepoint 101.
+    // char[2] = 'l' = codepoint 108. (synthetic[5])
+    // char[3] = 'l' = codepoint 108. (synthetic[6])
+    // char[4] = 'o' = codepoint 111. (synthetic[7])
+    int second_char = greeting.string_char_at(1);
+    return second_char;
+}

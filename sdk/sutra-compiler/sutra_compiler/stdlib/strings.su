@@ -1,0 +1,56 @@
+// Canonical Sutra declaration for the String class and its
+// 1-length subclass Character.
+//
+// Spec: planning/sutra-spec/strings.md.
+//
+// A String is a synthetic-axis-encoded array of codepoints:
+//   - AXIS_STRING_FLAG (synthetic[3]) = 1.0 marks the value as a String.
+//   - char[0] at AXIS_REAL (synthetic[0]).
+//   - char[1] at AXIS_IMAG (synthetic[1]).
+//   - char[k] for k >= 2 at synthetic[k + 3].
+//   - Trailing zero codepoints are treated as end-of-string.
+// At the substrate level a String is "the same shape as a complex
+// vector" — pairs of codepoints occupy the real/imag positions of
+// each successive 2D slot.
+//
+// A Character is a String of length 1. Same flag, same encoding,
+// just a typing refinement so the type system can say "this slot
+// holds exactly one codepoint" where useful. Character is a
+// subclass of String.
+//
+// Surface forms wired today:
+//   - `String.make_string("hello")` builds a String from a Sutra
+//     string literal.
+//   - `s.string_length()` returns the length as an int.
+//   - `s.string_char_at(i)` returns the codepoint at position i.
+//   - `String.is_string(v)` checks whether a vector is flag-set.
+//
+// Method-syntax-without-prefix (`s.length()`, `s[i]`, `s == t`) is
+// the eventual user-facing target; today the prefixed runtime names
+// are what dispatch.
+//
+// What is deferred:
+//   - String concatenation: `String.concat(a, b)` — would build a
+//     new String whose chars are the chars of a followed by the
+//     chars of b. Need to decide overflow semantics.
+//   - String equality: `String.equals(a, b)` — bit-equality on the
+//     codepoint axes, ignoring everything else.
+//   - String indexing as `s[i]` — sugar for string_char_at; needs
+//     the existing subscript dispatch to recognize String-typed
+//     locals.
+//   - Operator overloading for `+` (concat) and `==`. Sutra's
+//     operator-method support is partial; this is a class-system
+//     follow-up.
+
+class String extends vector {
+    static intrinsic method String make_string(string s);
+    static intrinsic method int string_length(String v);
+    static intrinsic method int string_char_at(String v, int i);
+    static intrinsic method bool is_string(vector v);
+}
+
+// A Character is a 1-length String. Same substrate encoding, same
+// AXIS_STRING_FLAG, just narrower static type. Today the only thing
+// that distinguishes them statically is the declared type; the
+// runtime returns the same vector shape from make_char and make_string.
+class Character extends String { }

@@ -175,13 +175,20 @@ class PyTorchCodegen(Codegen):
         self._emit('"""')
         self._emit()
         self._emit("# Canonical synthetic-axis allocation — real, imag, truth at")
-        self._emit("# synthetic[0..2], char-flag at synthetic[3], loop-done at")
+        self._emit("# synthetic[0..2], string-flag at synthetic[3], loop-done at")
         self._emit("# synthetic[4]. Mirrored from the CPU runtime so the two agree")
         self._emit("# bit-for-bit on layout. AXIS_LOOP_DONE is the substrate-side")
         self._emit("# completion flag set by the RNN-style branchless loop.")
+        self._emit("# AXIS_STRING_FLAG marks a vector as a String value (a")
+        self._emit("# packed array of codepoints — 1-character strings are the")
+        self._emit("# new home for what was formerly the `char` type). See")
+        self._emit("# planning/sutra-spec/strings.md.")
         self._emit("AXIS_REAL = 0")
         self._emit("AXIS_IMAG = 1")
         self._emit("AXIS_TRUTH = 2")
+        self._emit("AXIS_STRING_FLAG = 3")
+        self._emit("# Backwards-compat alias for code that still references")
+        self._emit("# AXIS_CHAR_FLAG. New code should use AXIS_STRING_FLAG.")
         self._emit("AXIS_CHAR_FLAG = 3")
         self._emit("AXIS_LOOP_DONE = 4")
         self._emit()
@@ -1003,17 +1010,122 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def make_char(self, codepoint):")
         self._indent += 1
-        self._emit('"""Character literal: code point at AXIS_REAL, flag at AXIS_CHAR_FLAG."""')
-        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
-        self._emit("v[self.semantic_dim + self.AXIS_REAL] = float(codepoint)")
-        self._emit("v[self.semantic_dim + self.AXIS_CHAR_FLAG] = 1.0")
-        self._emit("return v")
+        self._emit('"""Character literal: a 1-character String. Equivalent to')
+        self._emit('make_string(chr(codepoint)). The `char` type is now a')
+        self._emit('1-character String; AXIS_CHAR_FLAG is an alias for')
+        self._emit('AXIS_STRING_FLAG."""')
+        self._emit("return self.make_string(chr(int(codepoint)))")
         self._indent -= 1
         self._emit()
         self._emit("def is_char(self, v):")
         self._indent += 1
-        self._emit('"""True iff v was produced as a character literal."""')
-        self._emit("return bool(v[self.semantic_dim + self.AXIS_CHAR_FLAG].item() >= 0.5)")
+        self._emit('"""True iff v is a String value (kept as `is_char` for')
+        self._emit('backward-compat with code that pre-dated the rename to')
+        self._emit('AXIS_STRING_FLAG; new code should use is_string)."""')
+        self._emit("return bool(v[self.semantic_dim + self.AXIS_STRING_FLAG].item() >= 0.5)")
+        self._indent -= 1
+        self._emit()
+        self._emit("# ---- String runtime methods ----")
+        self._emit("# Encoding: AXIS_STRING_FLAG marks the vector as a String.")
+        self._emit("# Characters pack into the synthetic axes — char[0] at")
+        self._emit("# AXIS_REAL (=synthetic[0]), char[1] at AXIS_IMAG")
+        self._emit("# (=synthetic[1]), char[k] for k>=2 at synthetic[k+3]")
+        self._emit("# (skipping AXIS_TRUTH/STRING_FLAG/LOOP_DONE at synthetic")
+        self._emit("# [2..4]). Length is recovered by walking from the highest")
+        self._emit("# possible char position down to the first non-zero. See")
+        self._emit("# planning/sutra-spec/strings.md.")
+        self._emit("def _string_axis(self, char_index):")
+        self._indent += 1
+        self._emit('"""Map a character index k into the absolute axis offset')
+        self._emit('inside the synthetic block (relative to semantic_dim)."""')
+        self._emit("return char_index if char_index < 2 else char_index + 3")
+        self._indent -= 1
+        self._emit()
+        self._emit("def string_max_length(self):")
+        self._indent += 1
+        self._emit('"""Maximum string length that fits in the current')
+        self._emit('synthetic_dim. char positions occupy synthetic[0,1] plus')
+        self._emit('synthetic[5..synthetic_dim-1]."""')
+        self._emit("if self.synthetic_dim < 5:")
+        self._indent += 1
+        self._emit("return min(self.synthetic_dim, 2)")
+        self._indent -= 1
+        self._emit("return 2 + (self.synthetic_dim - 5)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def make_string(self, s):")
+        self._indent += 1
+        self._emit('"""Construct a String value from a Python str."""')
+        self._emit("if not isinstance(s, str):")
+        self._indent += 1
+        self._emit("s = str(s)")
+        self._indent -= 1
+        self._emit("max_len = self.string_max_length()")
+        self._emit("if len(s) > max_len:")
+        self._indent += 1
+        self._emit("raise ValueError(")
+        self._emit('"string %r length %d exceeds synthetic-axis budget %d; '
+                   'increase synthetic_dim" % (s, len(s), max_len))')
+        self._indent -= 1
+        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("v[self.semantic_dim + self.AXIS_STRING_FLAG] = 1.0")
+        self._emit("for k, ch in enumerate(s):")
+        self._indent += 1
+        self._emit("axis = self._string_axis(k)")
+        self._emit("v[self.semantic_dim + axis] = float(ord(ch))")
+        self._indent -= 1
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def is_string(self, v):")
+        self._indent += 1
+        self._emit('"""True iff v has the AXIS_STRING_FLAG set."""')
+        self._emit("return bool(v[self.semantic_dim + self.AXIS_STRING_FLAG].item() >= 0.5)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def string_length(self, v):")
+        self._indent += 1
+        self._emit('"""Return the length of String v by scanning from the')
+        self._emit('highest possible char position down to the first non-zero')
+        self._emit('codepoint. Trailing-zero-as-sentinel: a string with')
+        self._emit('codepoint 0 in its tail will read shorter than written."""')
+        self._emit("max_k = self.string_max_length()")
+        self._emit("for k in range(max_k - 1, -1, -1):")
+        self._indent += 1
+        self._emit("axis = self._string_axis(k)")
+        self._emit("if v[self.semantic_dim + axis].item() != 0.0:")
+        self._indent += 1
+        self._emit("return k + 1")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return 0")
+        self._indent -= 1
+        self._emit()
+        self._emit("def string_char_at(self, v, i):")
+        self._indent += 1
+        self._emit('"""Return the codepoint at position i (as an int). Out-of-')
+        self._emit('range positions return 0."""')
+        self._emit("i = int(i) if not isinstance(i, int) else i")
+        self._emit("if i < 0 or i >= self.string_max_length():")
+        self._indent += 1
+        self._emit("return 0")
+        self._indent -= 1
+        self._emit("axis = self._string_axis(i)")
+        self._emit("return int(v[self.semantic_dim + axis].item())")
+        self._indent -= 1
+        self._emit()
+        self._emit("def string_to_python(self, v):")
+        self._indent += 1
+        self._emit('"""Decode a String value back to a Python str. Useful for')
+        self._emit('returning string-valued results to the host."""')
+        self._emit("n = self.string_length(v)")
+        self._emit("chars = []")
+        self._emit("for i in range(n):")
+        self._indent += 1
+        self._emit("axis = self._string_axis(i)")
+        self._emit("chars.append(chr(int(v[self.semantic_dim + axis].item())))")
+        self._indent -= 1
+        self._emit('return "".join(chars)')
         self._indent -= 1
         self._emit()
         self._emit("def make_trit(self, t):")
