@@ -202,6 +202,36 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
                 arg_src = f"JavaScriptObject.from({arg_src})"
             arg_srcs.append(arg_src)
         return f"{func_src}({', '.join(arg_srcs)})"
+    if node.type == "assignment_expression":
+        # `x = expr` — plain reassignment. The Sutra-side slot machinery
+        # is what makes this compile; lowering emits the bare assignment
+        # form and trusts the upstream `let` lowering to have declared
+        # the LHS as `slot TYPE`.
+        left = node.child_by_field_name("left")
+        right = node.child_by_field_name("right")
+        return f"{_lower_expression(left, source, ctx)} = {_lower_expression(right, source, ctx)}"
+    if node.type == "augmented_assignment_expression":
+        # `x += expr` desugars to `x = x + expr`. Operator is one of
+        # `+=`, `-=`, `*=`, `/=`, `%=`. We strip the trailing `=`.
+        left = node.child_by_field_name("left")
+        right = node.child_by_field_name("right")
+        op = node.child_by_field_name("operator")
+        op_text = _node_text(op, source) if op is not None else "+="
+        bin_op = op_text.rstrip("=")
+        left_src = _lower_expression(left, source, ctx)
+        right_src = _lower_expression(right, source, ctx)
+        return f"{left_src} = {left_src} {bin_op} {right_src}"
+    if node.type == "update_expression":
+        # `i++` / `i--` desugar to `i = i + 1` / `i = i - 1`. Prefix and
+        # postfix forms are not distinguished — Sutra has no notion of
+        # an expression's pre- vs post-increment value, so we treat both
+        # as the statement form.
+        arg = node.child_by_field_name("argument")
+        op = node.child_by_field_name("operator")
+        op_text = _node_text(op, source) if op is not None else "++"
+        bin_op = "+" if op_text == "++" else "-"
+        arg_src = _lower_expression(arg, source, ctx)
+        return f"{arg_src} = {arg_src} {bin_op} 1"
     if node.type == "member_expression":
         obj = node.child_by_field_name("object")
         prop = node.child_by_field_name("property")
@@ -224,7 +254,20 @@ def _lower_lexical_declaration(
 ) -> str:
     """Lower `const x: T = expr;` / `let x: T = expr;` / `var x: T = expr;`
     to a Sutra typed declaration. When `expr` is an object literal and
-    `T` is Axon-shaped, emit a multi-statement axon construction."""
+    `T` is Axon-shaped, emit a multi-statement axon construction.
+
+    `const` lowers to a plain typed declaration (immutable). `let` and
+    `var` lower with the `slot` keyword so subsequent reassignments
+    compile (the Sutra-side slot codegen does the SSA-elision/state-
+    threading internally)."""
+    # Detect const vs let/var by looking at the leading keyword in the
+    # source span. Tree-sitter exposes a `kind` field on some grammars,
+    # but it's more reliable across versions to read the first
+    # non-whitespace token.
+    head = _node_text(node, source).lstrip()
+    is_mutable = head.startswith("let") or head.startswith("var")
+    type_prefix = "slot " if is_mutable else ""
+
     out = ""
     for declarator in node.named_children:
         if declarator.type != "variable_declarator":
@@ -235,20 +278,28 @@ def _lower_lexical_declaration(
         if name_node is None:
             continue
         name = _node_text(name_node, source)
-        sutra_type = _ts_type_to_sutra(type_node, source, ctx)
+        if type_node is not None:
+            sutra_type = _ts_type_to_sutra(type_node, source, ctx)
+        else:
+            # No explicit annotation — infer from the initializer if it's
+            # a primitive literal. Falls back to JavaScriptObject.
+            inferred = _expr_type(value_node, source, ctx) if value_node else None
+            sutra_type = inferred if inferred is not None else "JavaScriptObject"
         ctx.local_types[name] = sutra_type
         if (value_node is not None
                 and value_node.type == "object"
                 and sutra_type == "Axon"):
+            # Object-literal axon construction is inherently mutable
+            # (we emit `add` calls into it), so `slot` is implicit.
             out += f"{indent}Axon {name};\n"
             out += _lower_object_literal_into_axon(
                 value_node, name, source, ctx, indent
             )
         elif value_node is not None:
             value_src = _lower_expression(value_node, source, ctx)
-            out += f"{indent}{sutra_type} {name} = {value_src};\n"
+            out += f"{indent}{type_prefix}{sutra_type} {name} = {value_src};\n"
         else:
-            out += f"{indent}{sutra_type} {name};\n"
+            out += f"{indent}{type_prefix}{sutra_type} {name};\n"
     return out
 
 
@@ -267,6 +318,32 @@ def _lower_statement(
         return f"{indent}{_lower_expression(inner, source, ctx)};\n"
     if node.type in ("lexical_declaration", "variable_declaration"):
         return _lower_lexical_declaration(node, source, ctx, indent)
+    if node.type == "while_statement":
+        cond = node.child_by_field_name("condition")
+        body = node.child_by_field_name("body")
+        cond_inner = (
+            cond.named_children[0]
+            if cond and cond.named_children else None
+        )
+        cond_src = (
+            _lower_expression(cond_inner, source, ctx)
+            if cond_inner else "false"
+        )
+        body_src = _lower_statement(body, source, ctx, indent + "    ") if body else ""
+        return f"{indent}while ({cond_src}) {{\n{body_src}{indent}}}\n"
+    if node.type == "do_statement":
+        body = node.child_by_field_name("body")
+        cond = node.child_by_field_name("condition")
+        cond_inner = (
+            cond.named_children[0]
+            if cond and cond.named_children else None
+        )
+        cond_src = (
+            _lower_expression(cond_inner, source, ctx)
+            if cond_inner else "false"
+        )
+        body_src = _lower_statement(body, source, ctx, indent + "    ") if body else ""
+        return f"{indent}do {{\n{body_src}{indent}}} while ({cond_src});\n"
     if node.type == "if_statement":
         cond = node.child_by_field_name("condition")
         cons = node.child_by_field_name("consequence")
