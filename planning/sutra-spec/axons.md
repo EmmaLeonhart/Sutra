@@ -1,193 +1,476 @@
 # Axons
 
-> **First cut.** The axon as a Sutra concept is under-specified relative to
-> the rest of the language. This doc captures the user's expressed position
-> as of 2026-05-07; the rest of the design space is marked as open
-> questions inline (and indexed in `open-questions.md`).
+> **Second cut, 2026-05-07.** This replaces the morning's first cut
+> with the user's expanded position from later the same day. The
+> surface API resembles a hash map *syntactically*, but axons are
+> not hash maps — they're a bundle of named variables (closer to a
+> Haskell-monad-style structuring construct than a runtime dict).
 
-## What an axon is
+## What an axon actually is
 
-An **axon** is a structured embedding: a fixed-width vector whose contents
-are produced by **rotation binding** over a known **codebook of roles**.
+An axon is **a bundle of named variables that gets passed as a single
+value**. Think of it as a structured environment, or a control object
+that carries the named values one piece of code wants to hand to
+another. The user's tightest framing: *"an axon is just a collection
+of defined objects — they're a bundle of variables and control
+objects. They look like hash maps superficially, but they aren't.
+They're closer to what Haskell monads are."*
+
+### No declared schema
+
+There is no compile-time declaration of which keys an axon contains.
+There is one `Axon` class, with no type parameter; an axon value is
+just a bundle of whatever the program added to it. The compiler does
+not track "axon A has declared keys X, Y, Z." There is no
+`interface FooAxon { x: int; y: int }`. There is no
+`Axon<{x: int, y: int}>`.
+
+The only thing the compiler tracks is **dataflow**: which keys the
+receiving code reads, and which keys the producing code writes. That
+analysis drives the lazy evaluation rule below, but it is not a
+type-system feature — there is no error class for "this function
+returns an axon missing the `cat` key." A function that reads a key
+that was never added gets whatever the substrate produces from
+unbinding a slot that was never bound (typically noise; see
+§"Behavior on missing key" in the open questions).
+
+This is what the user means by *"axons do not exist at compile time
+[as schemas]."* Each axon is a runtime value (the materialized
+bundle); at the type level it is just `Axon`, with no further
+structure.
+
+### Like a Haskell monad
+
+The closest existing-language analogy the user has reached for is
+Haskell monads. The point of the analogy is:
+
+- A Haskell `IO` value isn't a compile-time-known structured object
+  with declared internal fields; it's a value that flows through
+  monadic composition, with no schema you can interrogate. Likewise
+  for `Maybe`, `State`, or anything else in the `Monad` type class.
+- A Sutra axon flows through axon-passing functions the same way.
+  The function takes an axon, possibly reads some keys, possibly
+  writes some keys, and returns an axon. Composition is just
+  function composition. There is no axon-shape contract that the
+  type system enforces.
+
+The analogy isn't a category-theory claim. Sutra is not asserting
+that axons satisfy the monad laws. It is recording how the user
+thinks axons should *feel* to program against: a way to carry
+structure through code, not a typed container with a fixed schema.
+
+### Axons are not hash maps
+
+This needs stating up front because the surface API in the next
+section looks hash-map-shaped and the temptation to treat axons as
+dicts will be permanent.
+
+A hash map's defining operation is **runtime input → runtime output**:
+you give it a key value computed at runtime, it returns the
+corresponding stored value. That operation does not exist on axons.
+There is no axon equivalent of:
 
 ```
-axon = bundle( bind(R_subject, F_alice),
-               bind(R_action,  F_send),
-               bind(R_object,  F_message_42) )
+String s = compute_key();
+Object v = my_hash_map.get(s);    // hash map: legal
+Object v = my_axon.item(s);       // axon: NOT a thing the language does
 ```
 
-`R_*` are unit-norm rotation operators (one per role, drawn from a
-codebook fixed at compile time). `F_*` are fillers — vectors that may
-themselves come from an embedding model, a Sutra-compiled symbol, or
-another axon. All of these are the same shape, which is what lets an
-axon's fillers be other axons without a type ladder.
+The string in `a.item("cat")` is **a compile-time identifier**, not a
+runtime key. It is closer to the field name in `a.cat` than to a
+hash-map lookup — the two forms compile to the same operation, and
+both are field access on a compile-time-known name. The quote marks
+in the string-form exist for ergonomic / transpilation reasons (a
+transpiler can emit `a.item("varname")` mechanically without parsing
+identifier rules), not because there's a runtime key resolution
+happening.
 
-This is the same `bind` / `unbind` / `bundle` primitives the rest of the
-spec defines (see `binding.md`, `operations.md`). An axon is not a new
-primitive; it is the user-facing name for a particular *use* of those
-primitives — a role/filler bundle whose role set is part of the axon's
-type.
+A handful of consequences fall directly out of "no runtime key
+lookup":
 
-## Why axons, not records or structs
+- No iteration over an axon's contents. There is no `for (k in a)`,
+  no `keys()`, no `entries()`, and there will not be.
+- No dynamic membership test. `a.has("cat")` where the key is
+  computed at runtime is not a thing.
+- No size query. `a.length` is not a thing — the runtime doesn't
+  carry a registry of which names have been added.
+- No key-set comparison between axons. Two axons aren't compared by
+  their materialized key sets at runtime.
 
-A program could in principle pass a Python dict, a flat tuple, or a
-serialized JSON blob between functions. Sutra's position is that the
-right unit is the axon. Three properties carry that argument:
+These restrictions are what **enables** the lazy evaluation rule
+below. A real hash map could not be lazy-across-boundaries, because
+the receiver could ask "what keys do I have" and force materialization
+of everything. An axon is closed enough at compile time that the
+compiler can prune the whole graph of unreferenced names safely.
+
+The cleanest one-line framing the user has given is: **axons are just
+variables — they look like hash maps but they're really control
+objects.** Treat them that way and the rest of the design falls out.
+
+## The surface API
+
+The user-facing API resembles a dict in *syntax*, even though the
+operational semantics aren't dict semantics:
+
+```
+Axon a = new Axon();
+a.add("cat", cat);
+Cat c = a.item("cat");
+```
+
+The accessor is **`item`**, not `get`. `item` is settable, so it works
+on the left-hand side too:
+
+```
+a.item("i") = a.item("i") + 1;
+a.item("i")++;                 // sugar for the line above
+```
+
+Property-style access — `a.cat` — is preferred where it's ergonomic and
+the key is statically known. The compiler is allowed to lower
+property-style access to the same `item` mechanism; programs should not
+depend on the two forms being observably distinct.
+
+There is deliberately no `get` method. The user has flagged `get` as
+unintuitive and it should not appear in any code-gen path or stdlib
+shim.
+
+### The mutating-looking syntax is sugar; axons are immutable
+
+The surface API *looks* imperative — `add`, `item(k) = ...`,
+`item(k)++` — but that appearance is **ergonomic sugar over an
+immutable substrate value**. Sutra is purely functional. Every
+"mutation" actually produces a new axon and rebinds the local
+variable to it.
+
+```
+a.item("i") = a.item("i") + 1;
+```
+
+reads as: read the `"i"` value, compute the new value, produce a new
+axon that has the updated `"i"` slot, rebind the local name `a` to
+the new axon. The original axon — the one any other reference still
+points to — is unchanged.
+
+This is the same shape as a state monad in a functional language:
+the *appearance* of mutation, achieved through threading values
+forward, with a sugar layer that lets the surface look imperative.
+The compiler can fuse a chain of such rebinds at compile time, so
+the runtime doesn't actually allocate N intermediate axons in a
+loop body.
+
+Stating this rule directly: **axons are completely un-imperative
+aside from the ergonomics.** Don't take the imperative-looking
+surface as license to assume there is a mutable hash map
+underneath. There isn't. Treat `a.item(k) = v` the way Haskell
+would treat a state-monad update — a step in a functional
+computation, not a write to a memory cell.
+
+The reason the surface is sugared at all is to make transpiling
+side-effect-heavy languages (C, JS) tractable. Hand-written Sutra
+can stay closer to the value-passing form (`a = a.with("i",
+a.item("i") + 1)`-style) without losing anything semantically.
+
+## No generics
+
+`Axon` is a single non-generic class. There is no `Axon<Cat>`. Values
+inside an axon can be of any type. Each stored value carries an
+implicit type tag (the class of the value at the time of insertion),
+and the compiler resolves the static type of `a.item("cat")` at the
+call site using that tag.
+
+This is the same surface shape as Java's `Map<String, Object>` or
+Python's `dict[str, Any]`: the carrier is monomorphic, the values are
+heterogeneous, the type discipline lives at the access boundary.
+
+> **Open question.** How exactly the type tag is represented and
+> resolved. Two candidates: (a) tag is inline with the bundled filler,
+> resolved at runtime cast time; (b) tag is compile-time-only and the
+> retrieval is type-checked statically when the key is a literal,
+> erroring at compile time on a missing or mistyped key. Today neither
+> is implemented.
+
+## Why bundle-of-variables, not a record or a real hash map
+
+A program could in principle pass values through a declared record
+type (Java struct, Haskell record, TS interface) or through a real
+runtime hash map. Sutra picks neither, and the bundle-of-variables
+shape gives it three properties that the alternatives don't:
 
 1. **Composable without parsing.** Two axons combine into a third by
    bundling. No serialization, no schema validation, no version
-   negotiation at the boundary. The receiver decodes the role it needs
-   by `unbind(role, axon)`.
-2. **Differentiable end-to-end.** Gradients flow through `bind` /
-   `bundle` exactly the way they flow through any other tensor
-   operation. A computation that crosses many function calls remains
-   one smooth function.
-3. **Same shape as model inputs.** A model that consumes embeddings is
-   already prepared to consume axons. An LLM activation residual, an
-   embedding-model output, and a structured Sutra return value are all
-   the same kind of tensor.
+   negotiation. The receiver decodes the key it needs by `item("cat")`.
+   A declared record can't compose two records of different declared
+   shapes; an axon can.
+2. **Differentiable end-to-end.** Gradients flow through `add` and
+   `item` exactly the way they flow through any tensor operation. A
+   computation that crosses many function calls remains one smooth
+   function. A real hash map breaks differentiability at every
+   lookup.
+3. **Same shape as model inputs.** A model that consumes embeddings
+   is already prepared to consume what an `item` call extracts. An
+   LLM's activation residual, an embedding-model output, and a Sutra
+   structured return value are the same kind of tensor.
 
-These three together are the user's reason for treating axons as the
-*currency* of Sutra: in 95% of programs, a `.su` function takes an axon
-and returns an axon.
+These three are the user's reason for treating axons as the *currency*
+of Sutra: in 95% of programs, a `.su` function takes an axon and
+returns an axon.
 
-## Hardware-linked monad framing
+## How axons are stored on the substrate
 
-The user's framing for axons is *"kind of like monads in Haskell, a bit,
-but extremely hardware-linked."* The analogy is hedged on purpose — this
-is a thinking aid, not a theoretical claim that axons are monads in the
-category-theory sense.
+Underneath the surface API, an axon is a fixed-width vector produced
+by **rotation binding** over a codebook of roles:
+
+```
+axon = bundle( bind(R_cat, F_cat),
+               bind(R_dog, F_dog),
+               bind(R_mouse, F_mouse) )
+```
+
+The string key (`"cat"`) maps at compile time to a unit-norm rotation
+operator (`R_cat`); the stored value (`cat`) is the filler. Insertion
+is `bundle + bind`; retrieval is `unbind`; the compile-time simplifier
+folds chains into cached matrices.
+
+This is the same `bind` / `unbind` / `bundle` machinery `binding.md`
+and `operations.md` define. The surface API is a thin user-facing
+layer over those primitives — `add` lowers to `bundle + bind`, `item`
+lowers to `unbind`, both running as substrate tensor ops.
+
+The user-facing surface should not require thinking about the
+rotation operators directly. They are an implementation detail that
+comes back into view only when the program does something the
+substrate operations don't directly support — e.g. capability
+transfer, cross-codebook composition, or low-level inspection.
+
+## Lazy evaluation across boundaries
+
+**Only the keys referenced in the receiving code are materialized.**
+
+```
+function getCat(axon a) {
+    return a.item("cat");
+}
+```
+
+If a caller hands `getCat` an axon with a million keys, the wire and
+the substrate computation only carry the `"cat"` entry. The other
+999,999 fillers are never bundled, never bound, never read. The
+compiler does this analysis at the function (and program) boundary:
+it sees which keys the receiving code references and prunes the rest
+from the materialized axon.
+
+This is the rule that makes axons workable as IPC currency. A program
+can publish a giant structured state — the equivalent of
+all-of-systemd's view of the world — and a downstream consumer pays
+only for the slice it actually reads. Conceptually:
+
+```
+axon out = systemd.publish_state();    // 10,000-key state
+screen.consume(out);                   // screen reads the 4 keys it needs
+                                       // → only those 4 cross the boundary
+```
+
+> **Open question.** How far the lazy analysis propagates. Through a
+> single function call: clearly yes. Through nested axon-valued
+> entries (an axon that contains another axon): unclear. Across a
+> dynamic-dispatch boundary where the receiving code isn't visible at
+> compile time: probably not, but the failure mode (over-materialize
+> conservatively, or refuse to compile) is unspecified.
+
+## Axons as loop carriers
+
+This is the load-bearing use case for the C / TypeScript transpilers.
+A side-effect-heavy loop like
+
+```c
+int sum = 0;
+for (int i = 0; i < 10; i++) {
+    sum += i;
+}
+```
+
+cannot stay in its imperative shape on a Sutra substrate — Sutra has
+no host-side mutation, no host-side `for`. The transpiler lowers it to
+a tail-recursive function whose state is an axon:
+
+```
+function axon loop_body(axon a) {
+    if (a.item("i") >= 10) return a;
+    a.item("sum") = a.item("sum") + a.item("i");
+    a.item("i") = a.item("i") + 1;
+    return loop_body(a);
+}
+
+Axon state = new Axon();
+state.add("sum", 0);
+state.add("i", 0);
+state = loop_body(state);
+int total = state.item("sum");
+```
+
+The pattern is intentionally heavy-handed: **every variable referenced
+inside the loop body becomes an axon entry**. The loop body's mutations
+become `item(key) = ...` assignments on the axon. The axon is threaded
+through the tail call as the loop's state vector. This is the user's
+"cheat way of doing tail recursion" — a smarter analysis can prune
+variables that don't escape the loop, but the dumb form is enough to
+get a working translation, and it's robust to side effects the
+analyzer might not catch.
+
+When working in idiomatic Sutra (not transpiled), programs typically
+destructure axons promptly rather than threading them through long
+chains. The fat-axon-as-loop-state pattern is specifically a
+transpilation accommodation for languages where everything mutates.
+
+## Axons as function I/O
+
+The general case generalizes the loop pattern. A Sutra function
+typically takes an axon and returns one:
+
+```
+function axon process(axon input) {
+    Cat c = input.item("subject");
+    String r = input.item("response");
+    Axon out = new Axon();
+    out.add("status", "ok");
+    out.add("payload", make_payload(c, r));
+    return out;
+}
+```
+
+Functions composed this way build up larger environments by extending
+or replacing axons as they go. The bundle-of-variables shape keeps
+each function's local contract local — what keys it reads, what keys
+it writes — without forcing a single global record type that every
+function has to agree on.
+
+## Axons correspond to memory points
+
+When an axon crosses a process or program boundary, it corresponds
+pretty directly to an actual addressable region: the bundle that
+encodes the materialized keys at that boundary. The fact that
+"materialized" is determined by the receiver's lazy analysis (above)
+means the *size* of that region is set by what the receiver reads,
+not by what the sender stuffed in.
+
+This is the property that load-bearing downstream systems (Yantra
+above all) lean on. A scheduler can know in advance how much GPU
+each axon-passing call costs, because the axon's materialized width is
+a function of the receiver's compiled code, not a function of dynamic
+runtime decisions.
+
+## The hardware-linked-monad framing
+
+The user's framing for axons in this conversation has been *"kind of
+like monads in Haskell, a bit, but extremely hardware-linked."* The
+analogy is hedged on purpose — this is a thinking aid, not a
+category-theoretic claim that axons are monads.
 
 What the analogy is pointing at:
 
-- A Haskell monad like `IO` encapsulates effect: the effect happens
-  outside the language, the monad gives a structured way to compose
-  those effects. The monad's structure is independent of what hardware
-  is underneath.
+- A Haskell monad like `IO` encapsulates effect; the effect happens
+  outside the language and the monad gives a structured way to
+  compose those effects. The monad's structure is independent of what
+  hardware is underneath.
 - A Sutra axon encapsulates structure too — every value has the same
-  shape, every operation is the same kind of tensor op, and a function
-  that takes an axon and returns one composes the same way regardless
-  of what the role/filler positions mean.
+  shape, every operation is the same kind of tensor op, and a
+  function that takes an axon and returns one composes the same way
+  regardless of what the keys mean.
 
-The "hardware-linked" part is where the analogy breaks. In Haskell, the
-fact that `IO` ultimately talks to a disk is invisible to a program
-manipulating `IO Int`. In Sutra, the role operators *are* the keys —
-possessing the rotation operator `R_x` is the only way to read or write
-the `x` slot of an axon. When a downstream system (the OS in Yantra,
-hardware drivers, IO surfaces) ties a role to a physical resource, the
-role doesn't *represent* that resource symbolically — it *is* the
-operator the runtime uses to talk to it. There's no separate handle.
+The "hardware-linked" part is where the analogy breaks. In Haskell,
+the fact that `IO` ultimately talks to a disk is invisible to a
+program manipulating `IO Int`. In Sutra, when a downstream system
+ties a key to a physical resource, the key's underlying rotation
+operator *is* the operator the runtime uses to talk to it — there's
+no separate handle. Possessing the operator is the only way to read
+or write the slot. That's where the hardware link sits, even though
+the user-facing surface is just `add` / `item` calls.
 
-This is the property that makes axons load-bearing for downstream
-systems work, and it is the property that distinguishes axons from
-"records that happen to be vectors."
+The user has emphasized this hardware-correspondence as one of the
+two defining properties of axons (the other being that they are
+*completely un-imperative aside from the ergonomics*): **axons are
+one of the most literal things in Sutra that corresponds to a
+physical part of the computer.** The `add` / `item` surface is a
+user-facing convenience; what those calls compile to is operations
+on a vector that, at the wire and substrate boundary, is real,
+addressable, and physically realized.
 
-> **Open question.** What does "hardware-linked" cash out to inside the
-> Sutra language proper, vs. what is purely a downstream concern of the
-> system that hosts a Sutra runtime? Today the user's position is the
-> mid-position — Sutra defines what a role/operator is, downstream
-> systems decide which roles are tied to which physical resources — but
-> the boundary has not been worked through end-to-end.
-
-## Roles are operators, not labels
-
-A role in Sutra is not a string key. It is a unit-norm rotation matrix.
-You don't "have a name for the slot"; you have *the only key that opens
-the slot*.
-
-This means:
-
-- A function that does not have `R_x` in its scope cannot read or write
-  the `x` slot of an axon, because the operator is the unbinder.
-- Capability transfer happens by bundling the operator (or a derived
-  child operator) into another axon and handing the receiving axon to
-  another part of the program. This is the same machinery that does
-  ordinary axon construction, used reflectively.
-- "Revoking" a role amounts to rotating the parent operator; child
-  copies decode to noise.
-
-The Sutra spec defines this mechanism. Whether and how a host system
-exposes role transfer as a security primitive (process isolation,
-sandboxing, capability revocation) is the host's call — Yantra's
-`08-security-and-isolation.md` is one such design.
-
-## Axon types
-
-A type for an axon is a contract about *which roles are expected to be
-bound* on entry and exit. A type signature looks like:
-
-```
-ProcessFoo : { R_input_query, R_caller_ctx } -> { R_response, R_provenance }
-```
-
-Read: "this function reads roles `R_input_query` and `R_caller_ctx` from
-its input axon and writes roles `R_response` and `R_provenance` into
-its output axon."
-
-The compiler can statically check that the body only reads roles
-guaranteed by the input type and only writes roles its output type
-promises. This is structural typing on a vector — the "type" is which
-rotation slots are populated, with what fillers, drawn from what
-codebooks.
-
-> **Open question.** How tightly does the surface syntax need to mirror
-> the type signature shown above? Today there is no surface form for
-> declaring an axon type. Candidates include record-shaped declarations
-> (`type Foo = { R_x: vector, R_y: vector }`), inline annotations on
-> functions, and inferred-only typing. See `types.md` for the broader
-> typing question.
+> **Open question.** What "hardware-linked" cashes out to inside the
+> Sutra spec proper, vs. what is purely a downstream concern of the
+> system that hosts a Sutra runtime (Yantra). Today the boundary is
+> unstated.
 
 ## Constraints
 
-- **Fixed-width state per program.** A program's value at any instant
-  is one axon (plus the program itself). The width is part of the
-  program's compile-time configuration. This is what makes a downstream
-  scheduler able to know in advance how much GPU it owes the program.
+- **Fixed width per program.** A program's axon-valued state at any
+  instant fits a fixed bundle width set at compile time. The width
+  goes in the program's compile-time configuration. This is what
+  lets a downstream scheduler know in advance how much GPU it owes
+  the program — the answer doesn't depend on which keys the program
+  inserts at runtime.
 - **No higher-order axons (yet).** Sutra today does not bind programs
-  *as* fillers — a program can pass an embedding *of* a program, but
-  not a program-as-axon that another program can apply. Lifting this
-  is research-grade.
-- **Crosstalk grows with codebook depth.** Nesting too many bind/bundle
-  layers in a single axon eventually degrades decoding. A program that
-  needs more compositional depth than the substrate supports gets
-  noisy output, not a clean error. The depth limit is substrate-
-  dependent.
+  *as* values inside an axon — a program can store an embedding *of*
+  a program, but not a program-as-axon-entry that another program
+  can apply. Lifting this is research-grade.
+- **Crosstalk grows with codebook depth.** Nesting too many bind /
+  bundle layers in a single axon eventually degrades decoding. A
+  program that needs more compositional depth than the substrate
+  supports gets noisy retrieval, not a clean error. The depth limit
+  is substrate-dependent.
 
 ## Error handling across axon boundaries
 
-> **Open question.** Sutra does not yet specify how an error propagates
-> through a chain of axon-passing functions. Two candidates:
+> **Open question.** Sutra does not yet specify how an error
+> propagates through a chain of axon-passing functions. Two
+> candidates:
 >
-> - **Error as a sentinel filler in a status role.** The output type
->   carries a status role (`R_status`), the body writes a "failure"
->   filler into it, downstream functions decode it.
-> - **Error as a special-shape axon.** A separate axon type for errors,
->   distinguished from normal axons by which role set is bound.
+> - **Sentinel filler in a status key.** The output type carries a
+>   `"status"` key, the body writes a "failure" filler into it,
+>   downstream functions decode it and branch.
+> - **Error-shaped axon.** A separate axon "shape" for errors,
+>   distinguished from normal axons by which keys are populated.
 >
-> Both are workable. The user has not picked one. Today error handling
-> in Sutra is whatever the program's author writes by hand.
+> Both are workable. The user has not picked one. Today error
+> handling in Sutra is whatever the program's author writes by hand.
 
 ## Open questions
 
 (Also indexed in `open-questions.md`.)
 
-- Default axon width. Embedding models vary (768, 1024, 4096). Pick one
-  and force converters at substrate boundaries, or carry width as part
-  of the axon's type?
-- Should every axon carry an explicit provenance role by default?
-  Useful for debugging and downstream alignment monitors, but it costs
-  a codebook entry and adds compile-time overhead to every program.
-- One global codebook with namespaced roles, vs. per-program (or
-  per-tenant) codebooks that share a hashing convention. Affects
-  isolation guarantees and link-time costs.
-- How `R_x`-style role notation maps onto Sutra surface syntax. The
-  examples in this doc use `R_*` and `F_*` as a thinking shorthand;
-  the actual `.su` source today writes roles as identifiers without
-  the prefix.
+Resolved in this cut:
+- ~~Surface accessor~~: **`add` / `item`, no `get`. `item` is settable.
+  Property-style access (`a.cat`) where ergonomic.**
+- ~~Generics~~: **None. Axon is a single non-generic class; values are
+  heterogeneous; type tags resolve at the access boundary.**
+- ~~Whether the surface is dict-like or record-like~~: **neither — a
+  bundle of named variables / control object. Looks dict-shaped
+  syntactically; isn't a hash map (no runtime input→output lookup),
+  isn't a declared record (no compile-time schema).**
+- ~~Whether axons are lazy across boundaries~~: **yes. Only referenced
+  keys materialize.**
+- ~~Whether the appearance of mutation is real~~: **no. Axons are
+  immutable; `item(k) = v` rebinds the local variable to a new axon.
+  The imperative-looking syntax is sugar for transpiling side-effect-
+  heavy languages.**
+
+Still open:
+- How the per-entry type tag is represented and resolved (runtime cast
+  vs compile-time-erased static check, with what failure mode).
+- How far the lazy analysis propagates (through nested axons, across
+  dynamic dispatch).
+- What "hardware-linked" cashes out to inside the Sutra spec vs. in
+  downstream systems.
+- Default axon width — single fixed width vs. width-as-part-of-the-
+  program-configuration.
+- How property-style access (`a.cat`) lowers when the key is *not*
+  statically known. (For statically-known keys: same as `item("cat")`.
+  For dynamically-computed keys: probably an error, but unspecified.)
+- Behavior on missing key: compile error for statically-known-missing,
+  runtime error, or noise-decoded value? Likely depends on whether
+  the substrate has a probe for "this role was never bound."
+- Whether `Axon` is a new built-in class added to the surface, vs. a
+  special syntactic form. Either is workable but they have different
+  ergonomics for class-related features (inheritance, methods).
 - Whether role-as-operator transfer should have a first-class surface
-  form (a "give role" / "receive role" syntax) or stay implicit in
-  bundling.
-- What downstream-system properties (OS-level capability transfer,
-  hardware-link semantics, IO surfaces) the Sutra spec should
-  *constrain* vs. *leave to the host*. Today the boundary is
-  unstated.
+  form, or stay implicit in the `add` mechanism.

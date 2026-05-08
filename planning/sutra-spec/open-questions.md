@@ -106,22 +106,45 @@ lives here.
 
 ## Axons — `axons.md`
 
-- What "hardware-linked" cashes out to inside the Sutra language proper,
+Resolved 2026-05-07 (second cut):
+
+- ~~Surface syntax for axon types (record-shaped, inline annotations,
+  inferred)~~ — **none of those. There is no axon type with a
+  declared key set; `Axon` is a single non-generic class. The
+  compiler does dataflow analysis (for lazy evaluation) but does
+  not type-check key sets.**
+- ~~How `R_x` / `F_x` shorthand maps onto surface syntax~~ —
+  **string-literal keys (`a.add("cat", c)`, `a.item("cat")`)
+  syntactically, with property-style access (`a.cat`) preferred when
+  ergonomic. Both forms compile to the same operation. The `R_x`
+  notation is substrate-implementation shorthand only.**
+
+Still open:
+
+- How the per-entry type tag is represented and resolved (runtime
+  cast vs. compile-time-erased static check, with what failure mode).
+- How far the lazy analysis propagates (through nested axons, across
+  dynamic dispatch, when the receiver's source isn't visible at
+  compile time).
+- What "hardware-linked" cashes out to inside the Sutra spec proper,
   vs. what is purely a downstream concern of the host system.
-- Surface syntax for axon types (record-shaped, inline annotations on
-  functions, inferred-only).
-- Error propagation across axon boundaries (sentinel-filler in a status
-  role vs. error-shaped axon).
-- Default axon width (single fixed width vs. width-as-part-of-type).
-- Whether axons carry an explicit provenance role by default.
-- One global codebook with namespaced roles vs. per-program codebooks.
-- How `R_x` / `F_x` thinking-shorthand notation maps onto `.su` surface
-  syntax (today roles are written as identifiers without the prefix).
-- Whether role-as-operator transfer should have a first-class surface
-  form, or stay implicit in bundling.
-- What downstream-system properties (OS-level capability transfer,
-  hardware-link semantics, IO surfaces) the Sutra spec should
-  *constrain* vs. *leave to the host*.
+- Default axon width — single fixed width vs. carried as part of
+  program configuration.
+- How property-style access (`a.cat`) lowers when the key is *not*
+  statically known. (Statically known: same as `item("cat")`.
+  Dynamically computed: probably an error, but unspecified.)
+- Behavior on missing key — compile error for statically-known-
+  missing, runtime error, or noise-decoded value.
+- Whether `Axon` is a new built-in class added to the surface vs. a
+  special syntactic form.
+- Whether role-as-operator transfer should have a first-class
+  surface form or stay implicit in `add`.
+- Error propagation across axon boundaries (sentinel-filler in a
+  status key vs. error-shaped axon).
+- Whether axons carry an explicit provenance role by default
+  (Yantra-side question, not Sutra-side).
+- One global codebook with namespaced roles vs. per-program
+  codebooks (Yantra-side question, not Sutra-side).
 
 ## Concurrency — `concurrency.md`
 
