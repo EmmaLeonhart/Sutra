@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sutra-compiler"
+version = "0.2.0"
+description = "Compiler for the Sutra programming language — tensor ops on frozen-LLM embedding vectors."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Emma Leonhart" },
+]
+keywords = [
+  "compiler",
+  "embeddings",
+  "vector-symbolic",
+  "vsa",
+  "hyperdimensional",
+  "pytorch",
+  "rotation-binding",
+  "sutra",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Compilers",
+]
+# License intentionally unset — pending the repository's choice of an
+# OSI license file at the top level. Set the `license` field and add a
+# matching LICENSE file before publishing to PyPI.
+dependencies = [
+  "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# torch is needed for --emit, --run, and --run-viz (the codegen produces
+# self-contained PyTorch source). Install with: pip install sutra-compiler[runtime]
+runtime = [
+  "torch>=2.1",
+]
+# Dev tools for working on the compiler itself.
+dev = [
+  "pytest>=7",
+  "pytest-cov",
+]
+
+[project.scripts]
+sutrac = "sutra_compiler.__main__:main"
+
+[project.urls]
+Homepage = "https://sutralang.dev"
+Repository = "https://github.com/EmmaLeonhart/Sutra"
+Issues = "https://github.com/EmmaLeonhart/Sutra/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["sutra_compiler*"]
+
+[tool.setuptools.package-data]
+# Ship the .su standard-library source so the inliner can find it after install.
+sutra_compiler = ["stdlib/*.su"]
