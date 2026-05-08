@@ -104,6 +104,25 @@ lives here.
 - Fate of parsed-but-rejected module-level items (methods,
   operator overloads, generic functions).
 
+## Axons — `axons.md`
+
+- What "hardware-linked" cashes out to inside the Sutra language proper,
+  vs. what is purely a downstream concern of the host system.
+- Surface syntax for axon types (record-shaped, inline annotations on
+  functions, inferred-only).
+- Error propagation across axon boundaries (sentinel-filler in a status
+  role vs. error-shaped axon).
+- Default axon width (single fixed width vs. width-as-part-of-type).
+- Whether axons carry an explicit provenance role by default.
+- One global codebook with namespaced roles vs. per-program codebooks.
+- How `R_x` / `F_x` thinking-shorthand notation maps onto `.su` surface
+  syntax (today roles are written as identifiers without the prefix).
+- Whether role-as-operator transfer should have a first-class surface
+  form, or stay implicit in bundling.
+- What downstream-system properties (OS-level capability transfer,
+  hardware-link semantics, IO surfaces) the Sutra spec should
+  *constrain* vs. *leave to the host*.
+
 ## Concurrency — `concurrency.md`
 
 - Explicit-mode surface syntax for the two shapes that need
