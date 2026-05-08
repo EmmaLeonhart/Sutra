@@ -117,7 +117,7 @@ loop NAME(cond_or_count_or_array, state1, state2, ...);
 - The call site mutates the caller's named variables for each state param. The state vars must be `slot`-declared at the caller.
 - Loop functions have **no outer-scope access** — they're pure functions over their declared parameters only.
 
-The by-reference call shape is acknowledged non-idiomatic; the cleanup direction (return tuples, no by-ref mutation) is in `todo.md` § "Make loops idiomatic" for later.
+The by-reference call shape is acknowledged non-idiomatic; the planned cleanup is to return tuples instead of mutating by reference.
 
 ---
 
@@ -129,7 +129,7 @@ Under the hood, each loop kind compiles to a fixed-T tensor-op unroll where T is
 - Soft-halt sigmoid + monotone cumulative + soft-mux freeze: once `done` crosses the threshold, subsequent ticks copy the current state forward, so the final output is the state at the moment of completion.
 - `AXIS_LOOP_DONE` (a reserved synthetic axis) carries the completion flag through the unroll.
 
-Result: the host runs the unroll once; the substrate sees T inline cell evaluations regardless of when the logical loop terminated. No counter lives on the host. See `planning/findings/2026-04-30-rnn-loop-architecture.md` for the design rationale.
+Result: the host runs the unroll once; the substrate sees T inline cell evaluations regardless of when the logical loop terminated. No counter lives on the host.
 
 ---
 
