@@ -13,10 +13,26 @@
 //   axon_item(a, k)   → unbind(basis_vector(k), a)
 //
 // String keys are compile-time identifiers; the runtime auto-embeds
-// them into basis vectors at the call boundary. `Axon.add` and
-// `Axon.item` are usable today via the static-class-method form
-// (`Axon.add(a, "cat", c)`); method-syntax (`a.add("cat", c)`)
-// lands when class methods land in the language MVP.
+// them into basis vectors at the call boundary.
+//
+// Surface forms wired today:
+//   - `Axon a;`             → `a = _VSA.axon_new()`
+//   - `a.add(k, v);`        → `a = _VSA.axon_add(a, k, v)`
+//                              (statement form: augmented assignment;
+//                              the instance method is "void-returning"
+//                              from the user's POV — the compiler
+//                              rebinds `a` to the returned new axon)
+//   - `a.item(k)` (expr)    → `_VSA.axon_item(a, k)`
+//   - `Axon.axon_add(a, ...)` → `_VSA.axon_add(a, ...)` also works
+//                              (static-class-method form, in case
+//                              you want to be explicit)
+//
+// The augmented-assignment rule for void-returning instance methods
+// is conceptually general (every class should work this way), but
+// the wiring in codegen_base.py is currently axon-specific. Other
+// classes still error if you try `obj.method(args)` on a
+// non-class-namespace receiver. Generalizing the rule is a separate
+// piece of work.
 //
 // What is deferred:
 //   - Per-entry class tags (the spec says they exist; today the
@@ -29,6 +45,8 @@
 //   - Lazy evaluation across function/program boundaries (the spec
 //     says only referenced keys materialize at the boundary; today
 //     the full bundle crosses).
+//   - Generalizing instance-method-as-augmented-assignment to any
+//     user-defined class with a void-returning method.
 
 
 class Axon extends vector {
