@@ -38,14 +38,31 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = p.parse_args(argv)
 
-    print(
-        f"ts2su: not yet implemented. The transpiler is at the skeleton "
-        f"stage — see sdk/sutra-from-ts/DESIGN.md for the planned "
-        f"approach and the open questions blocking implementation. "
-        f"Input was: {args.input}",
-        file=sys.stderr,
-    )
-    return 2
+    try:
+        with open(args.input, "r", encoding="utf-8") as f:
+            source = f.read()
+    except OSError as e:
+        print(f"ts2su: cannot read {args.input}: {e}", file=sys.stderr)
+        return 2
+
+    from .lower import lower
+    sutra_source = lower(source)
+
+    if args.output is None:
+        # Default: replace .ts/.js extension with .su
+        base = args.input
+        for ext in (".ts", ".tsx", ".js", ".jsx", ".mjs"):
+            if base.endswith(ext):
+                base = base[:-len(ext)]
+                break
+        out_path = base + ".su"
+    else:
+        out_path = args.output
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(sutra_source)
+    print(f"wrote {out_path}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
