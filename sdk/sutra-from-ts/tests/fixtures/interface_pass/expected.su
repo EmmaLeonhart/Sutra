@@ -1,0 +1,29 @@
+// Expected lowering of interface_pass/input.ts.
+//
+// Notes:
+//   - `interface Point { x: number; y: number }` produces no Sutra-
+//     side declaration. The interface type becomes an Axon (the
+//     carrier); the field set is implicit in which keys the program
+//     reads/writes. Same shape as the C struct lowering.
+//   - The object literal `{ x: 3, y: 4 }` becomes
+//     `Axon p; p.add("x", 3); p.add("y", 4);` — the augmented-
+//     assignment surface, which compiles to two functional updates
+//     to the underlying axon vector.
+//   - TS's `number` becomes Sutra `int` here because the inference
+//     pass sees only integer literals and integer-shaped operations.
+//     If the body did `p.x / p.y`, the inference would pick `float`.
+//   - Same scalar-extraction caveat as the C struct fixture:
+//     end-to-end the return value is a vector approximation; a
+//     `.real()` projection at the int-typed return would clean it
+//     up. That projection step is parallel work to the String class.
+
+function int distance_squared(Axon p) {
+    return p.item("x") * p.item("x") + p.item("y") * p.item("y");
+}
+
+function int main() {
+    Axon p;
+    p.add("x", 3);
+    p.add("y", 4);
+    return distance_squared(p);
+}

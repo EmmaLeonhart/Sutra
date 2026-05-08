@@ -1,0 +1,36 @@
+// Expected lowering of struct_pass/input.c.
+//
+// Notes:
+//   - `struct Point` produces no Sutra-side declaration. The struct
+//     type becomes an Axon (the carrier); the field set is implicit
+//     in which keys the program reads/writes. Optionally the
+//     transpiler may emit `class Point extends vector { }` as
+//     documentation, but it's not needed for the lowering.
+//   - Each field access `p.x` becomes `p.item("x")`.
+//   - The aggregate initializer `{ .x = 3, .y = 4 }` becomes
+//     `Axon p; p.add("x", 3); p.add("y", 4);` — the augmented-
+//     assignment surface, which reduces to two functional updates
+//     to the underlying axon vector.
+//   - Within-function SSA-elision applies: in this example
+//     distance_squared reads both "x" and "y", and main passes p to
+//     distance_squared (so p escapes), so all adds materialize.
+//
+// What this fixture does today:
+//   - Parses + validates cleanly (`sutrac` reports 0 diagnostics).
+//   - Runs end-to-end but the return value is a vector, not a clean
+//     int. Scalars stored in an axon round-trip back as vector
+//     approximations (fuzzy by default per Sutra's substrate
+//     semantics). To recover a crisp int, the lowering would need
+//     an explicit `.real()` projection at the use site — that's a
+//     separate piece of work, parallel to the String class.
+
+function int distance_squared(Axon p) {
+    return p.item("x") * p.item("x") + p.item("y") * p.item("y");
+}
+
+function int main() {
+    Axon p;
+    p.add("x", 3);
+    p.add("y", 4);
+    return distance_squared(p);
+}

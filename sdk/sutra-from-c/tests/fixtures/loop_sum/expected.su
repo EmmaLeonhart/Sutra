@@ -1,0 +1,63 @@
+// Expected lowering of loop_sum/input.c.
+//
+// Two equivalent forms exist for lowering a C loop. Which one the
+// transpiler emits is an open question; both are sketched below.
+//
+// FORM A — axon as loop state, native Sutra do_while/loop surface
+// ---------------------------------------------------------------
+// Per the axon spec ("axons appear in exactly four positions" — input
+// of function, output of function, start of loop, end of loop), the
+// loop's state is an Axon threaded through each iteration. Every
+// variable the body references becomes a key on that axon.
+//
+// This form is the user's recommended pattern (the "cheat way of
+// doing tail recursion"). It's robust to side effects the analyzer
+// might not catch.
+//
+//   do_while sum_to_ten_body(a.item("i") < 10, Axon a) {
+//       a.item("sum") = a.item("sum") + a.item("i");
+//       a.item("i") = a.item("i") + 1;
+//       pass a;
+//   }
+//
+//   function int sum_to_ten() {
+//       Axon a;
+//       a.add("i", 0);
+//       a.add("sum", 0);
+//       loop sum_to_ten_body(a.item("i") < 10, a);
+//       return a.item("sum");
+//   }
+//
+// Status: this surface assumes Sutra's `do_while`/`loop` form accepts
+// an Axon-typed state parameter. Today the form supports primitive
+// scalar slots; whether `slot Axon a` and Axon-as-loop-state work is
+// an open question. The form parses but may need codegen extension
+// for the loop machinery to thread axons.
+//
+// FORM B — slot-per-variable, Sutra's native form
+// -----------------------------------------------
+// When the loop has only a few primitive-typed variables, the cleanest
+// lowering uses Sutra's existing slot-based loop surface directly,
+// without going through an axon at all. This form runs end-to-end
+// today but doesn't extend to bodies with non-scalar variables.
+
+do_while sum_to_ten_body(i < 10, int i, int sum) {
+    pass i + 1, sum + i;
+}
+
+function int sum_to_ten() {
+    slot int i = 0;
+    slot int sum = 0;
+    loop sum_to_ten_body(i < 10, i, sum);
+    return sum;
+}
+
+// Notes:
+//   - The transpiler picks Form B when every loop-body variable has a
+//     primitive Sutra type (int, float, bool, vector). It picks Form A
+//     when the body references something that doesn't have a clean
+//     slot type (a struct, a String, a value of unresolved type).
+//   - If the user's spec position is "always use the axon form for
+//     consistency," the transpiler can be configured to always emit
+//     Form A. Form B is then a peephole that could compress an
+//     all-scalars axon back into slots — purely an optimization.
