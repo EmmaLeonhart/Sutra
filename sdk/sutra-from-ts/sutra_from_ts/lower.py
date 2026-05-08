@@ -128,19 +128,31 @@ def _lower_statement(node, source: bytes, indent: str = "    ") -> str:
             return ""
         return f"{indent}{_lower_expression(inner, source)};\n"
     if node.type == "if_statement":
+        # `if (cond) X else Y` lowers to a select over a strongly
+        # defuzzified condition: `select(is_true(cond), X, Y)`. Sutra
+        # has no statement-form `if` — it's expression-form only —
+        # so the branches need to produce values. The two patterns
+        # we recognize:
+        #   1. if-then-else, both branches `return <expr>;`
+        #   2. if-then with no else, treated by the function-body
+        #      rewrite below: the next statement after the if is
+        #      taken as the implicit else.
         cond = node.child_by_field_name("condition")
         cons = node.child_by_field_name("consequence")
         alt = node.child_by_field_name("alternative")
-        # `if (x) y else z` -> `select(x, y, z)`. For simple
-        # value-returning branches this lowers cleanly. Statement-
-        # block consequents need return statements inside; we lift
-        # them into the branch result.
         cond_src = _lower_expression(cond.named_children[0], source) if cond else "false"
         cons_src = _lower_branch_result(cons, source)
         if alt is not None:
             alt_src = _lower_branch_result(alt, source)
-            return f"{indent}return select({cond_src}, {cons_src}, {alt_src});\n"
-        return f"{indent}if ({cond_src}) {{ return {cons_src}; }}\n"
+            return (
+                f"{indent}return ((1 + truth_axis(defuzzy({cond_src}))) "
+                f"* ({cons_src}) + (1 - truth_axis(defuzzy({cond_src}))) "
+                f"* ({alt_src})) / 2;\n"
+            )
+        # if-only — left as-is here; the function-body rewrite at
+        # _lower_function_body merges this with the trailing return.
+        # If we're not inside such a body, flag explicitly.
+        return f"{indent}// UNSUPPORTED-STMT: if without else; place a `return` after the if\n"
     if node.type == "statement_block":
         out = ""
         for child in node.named_children:
@@ -164,6 +176,89 @@ def _lower_branch_result(node, source: bytes) -> str:
     return _lower_expression(node, source)
 
 
+def _lower_function_body(body_node, source: bytes) -> str:
+    """Lower a statement_block as a function body. Recognizes the
+    if-then-(implicit-else) pattern:
+
+        if (cond) return X;
+        return Y;
+
+    and rewrites it to `return select(is_true(cond), X, Y);` — the
+    user's "strong defuzz then select" rule for `if/else`. Without
+    the rewrite, Sutra has no idiomatic way to express conditional
+    returns (the language is expression-form, no statement-form
+    `if`).
+
+    Statement order in JS is meaningful: the rewrite is only safe
+    when both branches are pure expressions. If a branch has side
+    effects, the rewrite changes semantics (Sutra's `select`
+    evaluates BOTH arms eagerly). For the demo subset that's fine;
+    the limitation is documented.
+    """
+    if body_node is None or body_node.type != "statement_block":
+        return _lower_statement(body_node, source) if body_node else ""
+    stmts = list(body_node.named_children)
+    # Pattern: [if_stmt(no-alt, return X), return Y] — possibly with
+    # other statements before. We only rewrite when an if-with-no-alt
+    # is immediately followed by a return.
+    out_lines = []
+    i = 0
+    while i < len(stmts):
+        cur = stmts[i]
+        nxt = stmts[i + 1] if i + 1 < len(stmts) else None
+        if (cur.type == "if_statement"
+                and cur.child_by_field_name("alternative") is None
+                and nxt is not None
+                and nxt.type == "return_statement"):
+            # Check the consequence is a single return.
+            cons = cur.child_by_field_name("consequence")
+            cons_ret = _branch_return_expr(cons, source)
+            if cons_ret is not None and nxt.named_children:
+                cond_node = cur.child_by_field_name("condition")
+                cond_src = (
+                    _lower_expression(cond_node.named_children[0], source)
+                    if cond_node else "false"
+                )
+                else_src = _lower_expression(nxt.named_children[0], source)
+                # if/else lowering: strong-defuzz the condition,
+                # extract the truth-axis scalar (in [-1, 1] after
+                # polarization), and blend the branches:
+                #   weight = (1 + truth_axis(defuzzy(cond))) / 2
+                #   return weight * X + (1 - weight) * Y
+                # Conceptually identical to a 2-option softmax with
+                # weights derived from the truth axis. Used instead of
+                # `select(scores, options)` because select is built for
+                # vector options — for scalar branches it broadcasts
+                # incorrectly. The linear-blend form works for both
+                # scalar and vector branches via PyTorch broadcasting.
+                out_lines.append(
+                    f"    return ((1 + truth_axis(defuzzy({cond_src}))) "
+                    f"* ({cons_ret}) + (1 - truth_axis(defuzzy({cond_src}))) "
+                    f"* ({else_src})) / 2;\n"
+                )
+                # Consume both statements.
+                i += 2
+                continue
+        out_lines.append(_lower_statement(cur, source))
+        i += 1
+    return "".join(out_lines)
+
+
+def _branch_return_expr(node, source: bytes) -> Optional[str]:
+    """If `node` is a `return <expr>;` (or a block whose only stmt is
+    such a return), return the lowered expression source. Else return
+    None — meaning the branch isn't a single value-returning return."""
+    if node is None:
+        return None
+    if node.type == "return_statement":
+        if node.named_children:
+            return _lower_expression(node.named_children[0], source)
+        return None
+    if node.type == "statement_block" and len(node.named_children) == 1:
+        return _branch_return_expr(node.named_children[0], source)
+    return None
+
+
 def _lower_function(node, source: bytes) -> str:
     name_node = node.child_by_field_name("name")
     params_node = node.child_by_field_name("parameters")
@@ -185,7 +280,7 @@ def _lower_function(node, source: bytes) -> str:
                 pname = _node_text(p, source)
                 param_parts.append(f"JavaScriptObject {pname}")
     params_src = ", ".join(param_parts)
-    body_src = _lower_statement(body_node, source) if body_node is not None else ""
+    body_src = _lower_function_body(body_node, source)
     return f"function {return_type} {name}({params_src}) {{\n{body_src}}}\n"
 
 

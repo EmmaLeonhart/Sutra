@@ -1,0 +1,18 @@
+// JavaScriptObject — the catch-all class for values that come out of
+// JavaScript / TypeScript code without resolvable static types. A
+// transpiled `function f(x) { return x + x; }` parameter `x` is
+// declared `JavaScriptObject x` because the source had no type
+// annotation and the value could be anything.
+//
+// Today this is intentionally a near-empty class. Sutra's substrate
+// already handles vector arithmetic and the auto-promotion of
+// scalars to vectors, so for numeric JS code, treating
+// JavaScriptObject as "just a vector" is enough — `x + x` lowers to
+// tensor addition without further help. Real JS semantics (type
+// coercion in `+` between strings and numbers, ===-vs-==, prototype
+// chains, etc.) live in deferred work.
+//
+// Spec: planning/sutra-spec/javascript-object.md (TBD).
+
+class JavaScriptObject extends vector {
+}
