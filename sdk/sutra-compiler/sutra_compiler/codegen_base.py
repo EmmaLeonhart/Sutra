@@ -305,6 +305,13 @@ class BaseCodegen:
         # (expression) emits `_VSA.axon_item(a, k)`. See
         # planning/sutra-spec/axons.md.
         self._axon_declared: set[str] = set()
+        # Maps (class_name, method_name) -> return type name, for class
+        # methods declared in user code or in the stdlib. Used by the
+        # general void-method-as-augmented-assignment dispatch:
+        # `obj.m(args);` (statement) where m returns void emits
+        # `obj = Class_m(obj, args)`. Populated alongside the
+        # _class_static_methods / _class_instance_methods registers.
+        self._class_method_return_types: dict[tuple[str, str], str] = {}
         # Maps variable names to their declared primitive-class type
         # string (`"complex"`, `"int"`, `"fuzzy"`, ...). Used by
         # `*` dispatch: if either operand is known to be a complex,
@@ -438,6 +445,13 @@ class BaseCodegen:
                 for m in item.methods:
                     if m.is_operator or m.type_params:
                         continue
+                    # Track return type for the augmented-assignment
+                    # rule: void-returning instance methods called as
+                    # statements rebind their receiver.
+                    if m.return_type is not None:
+                        self._class_method_return_types[(item.name, m.name)] = (
+                            m.return_type.name
+                        )
                     if m.modifiers.is_static:
                         self._class_static_methods.setdefault(
                             item.name, set()
@@ -1129,6 +1143,43 @@ class BaseCodegen:
                             f"_VSA.{runtime_name}({', '.join(all_args)})"
                         )
                     return
+            # General void-returning-instance-method rule: for any
+            # class C, an instance method declared `method void m(...)`
+            # called as a statement `obj.m(args);` rebinds the
+            # receiver to the static form's return value. The static
+            # form (mangled `C_m` or runtime `_VSA.m` for intrinsics)
+            # takes the receiver as its first arg and returns the new
+            # receiver value. This is the user's compilation rule:
+            # "every void-returning instance method is an augmented
+            # assignment." See planning/sutra-spec/axons.md and the
+            # broader class-system note on it.
+            if (isinstance(expr, ast.Call)
+                    and isinstance(expr.callee, ast.MemberAccess)
+                    and isinstance(expr.callee.obj, ast.Identifier)
+                    and expr.callee.obj.name in self._var_type):
+                obj_name = expr.callee.obj.name
+                obj_class = self._var_type[obj_name]
+                method_name = expr.callee.member
+                return_type = self._class_method_return_types.get(
+                    (obj_class, method_name)
+                )
+                if return_type == "void":
+                    arg_srcs = [self._translate_expr(a) for a in expr.args]
+                    all_args = [obj_name] + arg_srcs
+                    if (obj_class in self._class_intrinsic_methods
+                            and method_name in self._class_intrinsic_methods[obj_class]):
+                        self._emit(
+                            f"{obj_name} = _VSA.{method_name}"
+                            f"({', '.join(all_args)})"
+                        )
+                        return
+                    if (obj_class in self._class_instance_methods
+                            and method_name in self._class_instance_methods[obj_class]):
+                        self._emit(
+                            f"{obj_name} = {obj_class}_{method_name}"
+                            f"({', '.join(all_args)})"
+                        )
+                        return
             if isinstance(expr, ast.Assignment):
                 # dict[key] = value dispatches to the rotation-hashmap
                 # runtime's functional-update form (hashmap_set returns
@@ -2035,6 +2086,32 @@ class BaseCodegen:
                         arg_srcs = [self._translate_expr(a) for a in call.args]
                         all_args = [callee.obj.name] + arg_srcs
                         return f"_VSA.{runtime_name}({', '.join(all_args)})"
+                # General instance dispatch: when `obj` is a typed
+                # local whose declared type is a known class with the
+                # called method, route to the appropriate static-form
+                # name (`_VSA.<name>` for intrinsics, `Class_<name>`
+                # for non-intrinsic instance methods). This is the
+                # generalized version of the axon hardcode above —
+                # the rule "any class's instance method is callable
+                # via dot syntax on a typed receiver" applies to all
+                # classes, not just Axon. Statement-context
+                # augmented-assignment for void-returning methods is
+                # handled in `_translate_stmt`; this path is the
+                # expression-form translation.
+                obj_name = callee.obj.name
+                if obj_name in self._var_type:
+                    obj_class = self._var_type[obj_name]
+                    method_name_g = callee.member
+                    if (obj_class in self._class_intrinsic_methods
+                            and method_name_g in self._class_intrinsic_methods[obj_class]):
+                        arg_srcs = [self._translate_expr(a) for a in call.args]
+                        all_args = [obj_name] + arg_srcs
+                        return f"_VSA.{method_name_g}({', '.join(all_args)})"
+                    if (obj_class in self._class_instance_methods
+                            and method_name_g in self._class_instance_methods[obj_class]):
+                        arg_srcs = [self._translate_expr(a) for a in call.args]
+                        all_args = [obj_name] + arg_srcs
+                        return f"{obj_class}_{method_name_g}({', '.join(all_args)})"
                 cls_name = callee.obj.name
                 method_name = callee.member
                 # Intrinsic methods on a class route directly to the
