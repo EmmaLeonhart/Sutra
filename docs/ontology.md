@@ -279,9 +279,9 @@ What remains deferred:
 - **Generics.** `class Foo<T> extends Bar { }` and `function T Identity<T>(T x)` parse but codegen rejects them.
 - **Variable-typed instance dispatch.** `g.method(args)` for `Greeter g` requires variable-type tracking across the function body; today the typed-instance path works for simple cases. The `Class.method(instance, args)` form always works.
 
-These are tracked in `todo.md` § "Ontology — make the class system real" and in `planning/open-questions/function-taxonomy-and-closure.md`.
+These are open design questions, not finalized features.
 
-Working example at `examples/classes_demo.su`. Corpus tests at `sdk/sutra-compiler/tests/corpus/{valid/class_declarations.su, invalid/17_class_extends_unknown.su, invalid/18_class_duplicate.su, invalid/20_class_no_extends.su, invalid/21_method_reads_file_scope.su}`.
+Working example at `examples/classes_demo.su`.
 
 ---
 

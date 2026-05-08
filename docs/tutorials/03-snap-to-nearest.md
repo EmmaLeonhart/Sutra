@@ -50,7 +50,7 @@ vector clean = argmax_cosine(noisy, [v_cat, v_dog, v_mouse, v_bird]);
 
 `argmax_cosine` returns the codebook vector closest to `noisy` by cosine. If you wired up the codebook with `cat`, `dog`, `mouse`, `bird`, and `noisy` is a noisy version of `cat`, you get the *exact* `cat` vector back, not the noisy one. From here on out, the noise that accumulated in the unbind is gone.
 
-The spec also defines `snap` — a more general cleanup operation backed by a real attractor / cleanup circuit (rather than an explicit candidate list). The current PyTorch substrate doesn't have such a circuit, so `snap` is rejected at codegen time; programs use `argmax_cosine` against an explicit codebook instead. See [`planning/sutra-spec/operations.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/operations.md) for the formal specification of both.
+The language also defines `snap` — a more general cleanup operation backed by a real attractor / cleanup circuit (rather than an explicit candidate list). The current PyTorch substrate doesn't have such a circuit, so `snap` is rejected at codegen time; programs use `argmax_cosine` against an explicit codebook instead.
 
 ## Cost
 
@@ -59,4 +59,4 @@ The codebook lookup is one matrix-vector multiply (against a stacked-candidate m
 ## Read next
 
 - The [Sutra paper](../theory-and-paper.md) — characterizes the chained-computation regime that depends on cleanup working.
-- The [operations spec](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/operations.md) — formal definitions of `argmax_cosine`, `snap`, and the rest of the primitive surface.
+- [Operations and operators](../operators.md) — formal definitions of `argmax_cosine`, `snap`, and the rest of the primitive surface.
