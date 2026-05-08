@@ -12,58 +12,36 @@ stay in sync.
 
 In strategic order. Top item is the current focus.
 
-1. **Make the website / repo split explicit and agent-friendly.**
-   The website (`docs/`, → `sutralang.dev`) is for a less technical
-   human audience. The Markdown elsewhere in the repo (`planning/`,
-   `queue.md`, `todo.md`, `DEVLOG.md`, root `CLAUDE.md`,
-   `paper/supplementary/`) is for AI agents and contributors. The
-   2026-05-07 sweep (commit `b98b795`) stripped scratchpad/internal
-   paths out of `docs/`; the next step is to **document the split
-   itself**: add a §"Audiences" section to `CLAUDE.md` saying the
-   repo Markdown is the agent-facing surface and `docs/` is the
-   human-facing one, and make the repo Markdown structurally
-   pleasant for an agent to navigate (a top-level index of which
-   files exist for what purpose).
+1. **Stabilize the axon spec.** `planning/sutra-spec/axons.md` is in
+   as a first cut (commit `2227d06`) but has many open questions —
+   the user has explicitly said they have not done much work on the
+   axon. Both transpilers (items 4 and 5 in the just-finished queue)
+   are blocked on this stabilizing. Outstanding axon questions are
+   indexed in `planning/sutra-spec/open-questions.md` under §Axons.
+   The most load-bearing for the transpilers: role surface syntax
+   (`R_x` vs bare identifier in `.su`), function-pointer / higher-
+   order-axon story, axon width specification.
 
-2. **Publish the Sutra compiler to PyPI.** Today `sutra-compiler`
-   only runs from a checkout of the repo. Move it to a state where
-   `pip install sutra-compiler` works and the `sutra` / `sutrac`
-   entrypoint is on PATH. Includes: package metadata, version
-   pinning, Ollama-as-optional-extra, smoke test against a built
-   wheel, GitHub Actions release workflow, and a tutorial pass to
-   replace `cd sdk/sutra-compiler && python -m sutra_compiler` with
-   the `pip`-installed surface.
+2. **Configure PyPI Trusted Publishing for `sutra-compiler`.** The
+   package, license, and release workflow are in (commits `3f74234`
+   and `9a1bd59`); `pip install -e` works locally and the wheel
+   smoke-tests cleanly. To actually publish: set up Trusted
+   Publishing on pypi.org for project `sutra-compiler` pointing at
+   `EmmaLeonhart/Sutra` + workflow `publish-sutra-compiler.yml`,
+   verify the name `sutra-compiler` is available (rename
+   `pyproject.toml` if not), then tag `sutra-compiler-v0.2.0`. This
+   is user-side action — the workflow is inert until pypi.org is
+   configured.
 
-3. **Add the axon to the Sutra spec.** Axons are a Sutra concept,
-   not a Yantra concept — Yantra uses axons because Sutra has them.
-   The canonical spec belongs in `planning/sutra-spec/axons.md`
-   and not in the Yantra repo. The closest analogy is a hardware-
-   linked monad: structured embeddings (rotation-bound role/filler
-   bundles) that compose without parsing and are differentiable
-   end-to-end. Initial doc covers: definition, codebook lifecycle,
-   hardware-link semantics (which roles tie to physical resources /
-   IO surfaces / device handles), error-as-axon convention,
-   type-of-axon vs value-of-axon. The Yantra repo's existing
-   `planning/02-axon-model.md` becomes a thin pointer to this spec
-   plus Yantra-specific OS-context notes.
+3. **C → Sutra transpiler implementation.** Skeleton landed at
+   `sdk/sutra-from-c/` (commit `6970c52`). `c2su` CLI exits 2 with a
+   pointer at `DESIGN.md`. Implementation is blocked on (1).
 
-4. **C → Sutra transpiler.** Lowers a restricted C subset (no
-   preprocessor weirdness, no inline asm, structs-as-axons,
-   function-pointers-as-axons) into `.su` source that compiles
-   cleanly through the existing Sutra compiler. Translation-unit-
-   at-a-time pass to start. Hard. Wants the axon spec from (3)
-   pinned down first so structs and function pointers have a
-   stable lowering target.
+4. **TypeScript → Sutra transpiler implementation.** Skeleton landed
+   at `sdk/sutra-from-ts/` (commit `6d8de7c`). `ts2su` CLI exits 2
+   with a pointer at `DESIGN.md`. Implementation is blocked on (1).
 
-5. **TypeScript → Sutra transpiler.** Same shape as (4) but for
-   TS/JS. Reads `.ts` and `.js` uniformly (JavaScript is treated
-   as TypeScript with annotations stripped). Initial scope: a
-   single-file pass that handles the typed core (interfaces,
-   classes, functions, narrowing) and rejects the dynamic edges
-   (eval, prototype mutation, untyped `any` chains). Wants the
-   axon spec from (3) pinned down first.
-
-Yantra (the OS) is downstream of (4) and (5) — both transpilers
+Yantra (the OS) is downstream of (3) and (4) — both transpilers
 must be in working shape before Yantra is implementable. Yantra is
 its own repo (`../Yantra/`) with its own queue; Sutra's queue ends
 at the transpilers.
