@@ -259,6 +259,22 @@ class _Walker:
         # function decls.
         for lf in node.loop_functions:
             self.visit(lf)
+        # Walk field declarations. Each field's type position is
+        # recorded for type-usage tracking; duplicate field names within
+        # the same class are flagged.
+        seen_fields: set[str] = set()
+        for fd in node.fields:
+            self._record_type_usage(fd.type_ref)
+            if fd.name in seen_fields:
+                self.diagnostics.error(
+                    f"duplicate field `{fd.name}` in class `{node.name}` — "
+                    "each field name in a class body must be unique",
+                    fd.span,
+                    code="SUT0145",
+                    hint="rename the duplicate field, or remove the "
+                         "redundant declaration",
+                )
+            seen_fields.add(fd.name)
 
     def visit_FunctionDecl(self, node: ast.FunctionDecl) -> None:
         self._check_modifier_conflict(node.modifiers, node.span)

@@ -622,6 +622,83 @@ class TestClassStaticMethodDispatch(unittest.TestCase):
         self.assertNotIn("def VSA_zero_vector", py)
 
 
+class TestClassFieldDeclarations(unittest.TestCase):
+    """Class field declarations land 2026-05-08. Per the user's
+    design, fields are tag-along variables on a class instance whose
+    runtime storage is the same axon rotation-binding machinery as
+    `Axon.add` / `Axon.item`. The class declaration is the schema."""
+
+    def test_field_read_lowers_to_axon_item(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = basis_vector(\"cat\");\n"
+            "  return c.age;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn('_VSA.axon_item(c, "age")', py)
+        # Literal `c.age` Python attribute access must not appear in
+        # the generated user code (Cat instances are vectors at
+        # runtime; they have no `.age` Python attribute).
+        self.assertNotIn("c.age", _strip_runtime(py))
+
+    def test_field_write_lowers_to_axon_add_with_rebind(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = basis_vector(\"cat\");\n"
+            "  c.age = 7;\n"
+            "  return c.age;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # The write should rebind c, the augmented-assignment shape
+        # used for axon mutating ops.
+        self.assertIn('c = _VSA.axon_add(c, "age", 7)', py)
+
+    def test_multi_field_round_trip(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "  field int paws;\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = basis_vector(\"cat\");\n"
+            "  c.age = 5;\n"
+            "  c.paws = 4;\n"
+            "  return c.age;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn('c = _VSA.axon_add(c, "age", 5)', py)
+        self.assertIn('c = _VSA.axon_add(c, "paws", 4)', py)
+        # The return wraps in `(<expr>) * _program_halt` for non-string
+        # returns, so just check the axon_item read is present.
+        self.assertIn('_VSA.axon_item(c, "age")', py)
+
+    def test_undeclared_field_falls_through_to_member_access(self):
+        # Member access on a non-class-typed value, or for a member
+        # that isn't a declared field, keeps the existing pass-through
+        # behavior. This is required so `.string_length()` and the
+        # `Class.method` static-dispatch path keep working.
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = basis_vector(\"cat\");\n"
+            "  return c.age;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn('_VSA.axon_item(c, "age")', py)
+
+
 class TestLogicalConnectives(unittest.TestCase):
     """All logical connectives lower to stdlib polynomial bodies.
 

@@ -582,6 +582,7 @@ class Parser:
         self._expect(TokenKind.LBRACE, "`{` to open class body")
         methods: List[ast.MethodDecl] = []
         loop_functions: List[ast.LoopFunctionDecl] = []
+        fields: List[ast.FieldDecl] = []
         loop_kw_set = (
             TokenKind.KW_DO_WHILE,
             TokenKind.KW_WHILE_LOOP,
@@ -630,17 +631,22 @@ class Parser:
                 lf = self._parse_loop_function_decl()
                 if lf is not None:
                     loop_functions.append(lf)
+            elif tok0.kind is TokenKind.KW_FIELD:
+                fd = self._parse_field_decl()
+                if fd is not None:
+                    fields.append(fd)
             else:
                 self.diagnostics.error(
-                    "class bodies accept method and loop-function "
-                    "declarations only. Field declarations and operator "
-                    "overloads are deferred",
+                    "class bodies accept method, loop-function, and "
+                    "field declarations only. Operator implementations "
+                    "are deferred",
                     self._current_span(),
                     code="SUT0140",
                     hint="declare the body member as `method <ret> "
                          "<name>(...) { ... }`, a loop function "
                          "(`do_while`, `while_loop`, `iterative_loop`, "
-                         "`foreach_loop`), or remove it",
+                         "`foreach_loop`), `field <type> <name>;`, or "
+                         "remove it",
                 )
                 # Skip forward to a closing brace so the rest of the
                 # file still parses.
@@ -658,6 +664,7 @@ class Parser:
                     parent_name=parent_tok.lexeme,
                     methods=methods,
                     loop_functions=loop_functions,
+                    fields=fields,
                     span=SourceSpan(start=start_span.start, end=end_span.end),
                 )
         close = self._expect(TokenKind.RBRACE, "`}` to close class body")
@@ -670,7 +677,33 @@ class Parser:
             parent_name=parent_tok.lexeme,
             methods=methods,
             loop_functions=loop_functions,
+            fields=fields,
             span=SourceSpan(start=start_span.start, end=end_span.end),
+        )
+
+    def _parse_field_decl(self) -> Optional[ast.FieldDecl]:
+        """Parse `field <type> <name>;` inside a class body. Per the
+        2026-05-08 class-field design, fields are tag-along variables
+        whose runtime storage is the same axon rotation-binding
+        machinery; the declaration is the schema."""
+        kw_tok = self._expect(TokenKind.KW_FIELD, "`field`")
+        if kw_tok is None:
+            return None
+        type_ref = self._parse_type()
+        if type_ref is None:
+            self._skip_to_statement_boundary()
+            return None
+        name_tok = self._expect(TokenKind.IDENT, "field name")
+        if name_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+        end = self._expect(TokenKind.SEMICOLON, "`;` to terminate field declaration")
+        if end is None:
+            return None
+        return ast.FieldDecl(
+            name=name_tok.lexeme,
+            type_ref=type_ref,
+            span=SourceSpan(start=kw_tok.span.start, end=end.span.end),
         )
 
     def _parse_slot_decl(self) -> Optional[ast.VarDecl]:

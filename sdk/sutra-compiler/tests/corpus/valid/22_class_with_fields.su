@@ -1,0 +1,27 @@
+// Class with field declarations. Per the 2026-05-08 class-field
+// design (planning/sutra-spec/axons.md and the user's directive in
+// chat), fields are tag-along variables on a class instance. They
+// declare schema; runtime storage uses the same axon rotation-binding
+// machinery as Axon.add / Axon.item.
+
+class Cat extends vector {
+    field string name;
+    field int age;
+}
+
+class Greeter extends vector {
+    field string greeting;
+
+    method string hello() {
+        return $"hello from {this.greeting}";
+    }
+}
+
+// Field declarations also coexist with loop functions.
+class Counter extends vector {
+    field int initial;
+
+    do_while addOne(x < 5, int x) {
+        pass x + 1;
+    }
+}
