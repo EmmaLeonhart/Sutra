@@ -40,7 +40,7 @@ python examples/_smoke_test.py
 To see what the compiler actually emits for a single program:
 
 ```bash
-python -m sutra_compiler --emit examples/hello_world.su
+sutrac --emit examples/hello_world.su
 ```
 
 [**Demos →**](demos.md) lists every program in the smoke test and what it exercises.
