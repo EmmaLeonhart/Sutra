@@ -1,0 +1,27 @@
+// Expected lowering of while_loop_sum/input.ts.
+//
+// Notes:
+//   - `let` declarations lower to `slot` so the Sutra-side compiler
+//     accepts subsequent reassignments. `const` declarations would
+//     lower to plain typed declarations.
+//   - `sum += i` desugars to `sum = sum + i`. `i++` desugars to
+//     `i = i + 1`. Both end up as plain assignment statements; the
+//     transpiler does not preserve the compound-assignment surface
+//     (Sutra has no `+=` form).
+//   - The `while` loop maps directly to Sutra's `while (cond) { body }`
+//     form; per `planning/sutra-spec/control-flow.md` Sutra's `while`
+//     compiles to an eigenrotation loop on the substrate.
+
+function int sum_up_to(int n) {
+    slot int sum = 0;
+    slot int i = 0;
+    while (i < n) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    return sum;
+}
+
+function int main() {
+    return sum_up_to(10);
+}
