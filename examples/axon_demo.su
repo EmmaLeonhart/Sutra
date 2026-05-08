@@ -1,0 +1,38 @@
+// Axon demo — round-trip through an axon.
+//
+// Axons (see planning/sutra-spec/axons.md) are bundles of named
+// variables. The surface API resembles a dict but axons are not
+// hash maps: keys are compile-time identifiers and the runtime
+// has no input → output lookup operation.
+//
+// This demo shows the substrate path that's wired today:
+//   - Construct an empty axon with `Axon.axon_new()`.
+//   - Add a key/value pair with `Axon.axon_add(a, key, value)`.
+//   - Retrieve with `Axon.axon_item(a, key)`.
+//
+// Method syntax (`a.add("cat", c)`) is the user-facing target; until
+// class methods land in the language, the static-class-method form
+// (`Axon.axon_add(a, "cat", c)`) is what works.
+
+vector v_cat = basis_vector("cat");
+vector v_dog = basis_vector("dog");
+vector v_mouse = basis_vector("mouse");
+
+map<vector, string> ANIMAL_NAME = {
+    v_cat:   "cat",
+    v_dog:   "dog",
+    v_mouse: "mouse"
+};
+
+function string main() {
+    // Build an axon with three entries.
+    Axon a = Axon.axon_new();
+    a = Axon.axon_add(a, "subject",     v_cat);
+    a = Axon.axon_add(a, "object",      v_mouse);
+    a = Axon.axon_add(a, "instrument",  v_dog);
+
+    // Pull the "subject" key back out and resolve it against the codebook.
+    vector recovered = Axon.axon_item(a, "subject");
+    vector winner = argmax_cosine(recovered, [v_cat, v_dog, v_mouse]);
+    return ANIMAL_NAME[winner];
+}

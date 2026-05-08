@@ -1,0 +1,38 @@
+// Canonical Sutra declaration for the Axon class.
+//
+// Spec: planning/sutra-spec/axons.md.
+//
+// An axon is a bundle of named variables passed as a single value —
+// closer to a Haskell-monad-shaped structuring construct than a
+// runtime hash map (no runtime input → output lookup, no iteration,
+// no schema). The user-facing API resembles a dict in syntax only.
+//
+// At the substrate level the operations route to:
+//   axon_new()        → a zero vector at runtime dim
+//   axon_add(a, k, v) → a + bind(basis_vector(k), v)
+//   axon_item(a, k)   → unbind(basis_vector(k), a)
+//
+// String keys are compile-time identifiers; the runtime auto-embeds
+// them into basis vectors at the call boundary. `Axon.add` and
+// `Axon.item` are usable today via the static-class-method form
+// (`Axon.add(a, "cat", c)`); method-syntax (`a.add("cat", c)`)
+// lands when class methods land in the language MVP.
+//
+// What is deferred:
+//   - Per-entry class tags (the spec says they exist; today the
+//     return type of `Axon.item` is `vector` and the caller is
+//     responsible for narrowing).
+//   - SSA-elision of intermediate axons (the spec says the compiler
+//     should treat `a.item(k) = v` as variable rename when no
+//     boundary crossing forces materialization; today every call
+//     is materialized).
+//   - Lazy evaluation across function/program boundaries (the spec
+//     says only referenced keys materialize at the boundary; today
+//     the full bundle crosses).
+
+
+class Axon extends vector {
+    static intrinsic method Axon axon_new();
+    static intrinsic method Axon axon_add(Axon a, string key, vector value);
+    static intrinsic method vector axon_item(Axon a, string key);
+}
