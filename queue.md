@@ -24,20 +24,7 @@ In strategic order. Top item is the current focus.
    key lowering) are calibration items the transpiler can pick a
    default for and revisit.
 
-2. **Configure PyPI Trusted Publishing for `sutra-dev`.** The
-   package, license, and release workflow are in; `pip install -e`
-   works locally and the wheel smoke-tests cleanly. The PyPI name
-   `sutra-compiler` was rejected as too similar to an existing
-   project (2026-05-08); rerolled to `sutra-dev`. The PyPI trusted-
-   publisher form was filled in with: project `sutra-dev`, owner
-   `EmmaLeonhart`, repo `Sutra`, workflow `publish-sutra-compiler.yml`,
-   environment `pypi`. Remaining user-side steps: (a) submit the
-   trusted-publisher form on pypi.org, (b) create a GitHub Actions
-   environment named `pypi` in repo settings (the workflow now
-   declares `environment: pypi`, which means GH will fail the run
-   if the env doesn't exist), (c) tag `sutra-dev-v0.2.0` and push.
-
-3. **Demonstrate multi-program axon passing with lazy evaluation.**
+2. **Demonstrate multi-program axon passing with lazy evaluation.**
    `axons.md` claims that only the keys the receiver references
    actually cross a program boundary. We have never demonstrated
    this end-to-end: every `.su` example is a single program, and
@@ -58,7 +45,7 @@ TypeScript. Skeleton stays in tree; do not delete. See `todo.md`
 for the parked entry.
 
 Yantra (the OS) is downstream of (1) — the TypeScript transpiler
-must be in working shape before Yantra is implementable. Item (3)
+must be in working shape before Yantra is implementable. Item (2)
 is also Yantra-relevant: Yantra leans on inter-program axon passing
 as the IPC currency, so a working multi-program demo is the
 prerequisite for any real Yantra IPC story. Yantra is its own repo
