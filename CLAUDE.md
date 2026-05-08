@@ -101,6 +101,7 @@ Before implementing or modifying any operation, **read the relevant spec file in
 - `control-flow.md` — conditionals and loops
 - `equality-and-defuzzification.md` — `is_true`, the undersymbolic realm
 - `axons.md` — structured embeddings, role-as-operator, the hardware-linked-monad framing
+- `strings.md` — synthetic-axis-encoded codepoint arrays; `String` and `Character` classes
 - `types.md`, `program-structure.md`, `concurrency.md`
 - `open-questions.md` — index of unresolved spec decisions
 
