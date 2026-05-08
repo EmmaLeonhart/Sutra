@@ -1,0 +1,24 @@
+// Expected lowering of for_loop_sum/input.ts.
+//
+// Notes:
+//   - The `for (init; cond; incr) body` form desugars to
+//     `init; while (cond) { body; incr; }`. The initializer becomes a
+//     standalone statement before the loop; the increment becomes the
+//     last statement inside the loop body.
+//   - `let i = 0` in the initializer becomes `slot int i = 0` (let
+//     lowers to slot; `int` is inferred from the integer-literal
+//     initializer).
+
+function int sum_to(int n) {
+    slot int sum = 0;
+    slot int i = 0;
+    while (i < n) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    return sum;
+}
+
+function int main() {
+    return sum_to(10);
+}
