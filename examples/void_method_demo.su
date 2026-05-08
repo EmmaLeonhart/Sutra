@@ -1,0 +1,17 @@
+// Demo: a user-defined class with a void-returning instance method.
+// The compiler should turn `obj.method(args);` (statement) into
+// `obj = Class.method(obj, args)` — augmented-assignment beta-reduction.
+
+class Counter extends vector {
+    method void bump(int amount) {
+        return this + basis_vector("bump");
+    }
+}
+
+vector v_initial = basis_vector("initial");
+
+function string main() {
+    Counter c = v_initial;
+    c.bump(1);                  // augmented-assigns: c = Counter.bump(c, 1)
+    return "ok";
+}
