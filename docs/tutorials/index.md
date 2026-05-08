@@ -14,17 +14,21 @@ That's it for v1 of the tutorials. More are coming as we go: cone traversal, fuz
 
 ## Prerequisites
 
-Everything below assumes:
+Everything below assumes Python 3.11 or newer.
 
-- **Python 3.13** for the reference compiler. Use Immanuelle's interpreter on Windows, not ambie's.
-- **A clone of the Sutra repository.** All paths are relative to the repo root.
-- **(Optional) JDK 21** if you want to run the IntelliJ plugin sandbox via `!editor.bat`. Not required for any of the command-line tutorials.
-
-The compiler lives at `sdk/sutra-compiler/` and runs as a Python module:
+Install the compiler from PyPI:
 
 ```bash
-cd sdk/sutra-compiler
-python -m sutra_compiler --help
+pip install sutra-compiler            # validator + codegen only
+pip install sutra-compiler[runtime]   # adds torch so --emit / --run can execute the generated module
+```
+
+After install, the `sutrac` command is on your `$PATH`:
+
+```bash
+sutrac --help
 ```
 
 If that prints a usage message, you have everything you need to start.
+
+**(Optional) JDK 21** if you want to run the IntelliJ plugin from a checkout of the source repository — not required for any of the command-line tutorials.
