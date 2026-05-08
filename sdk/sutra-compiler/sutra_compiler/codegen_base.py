@@ -299,6 +299,12 @@ class BaseCodegen:
         # dispatches to _VSA.hashmap_get, assignment (d[k] = v)
         # dispatches to _VSA.hashmap_set (functional update).
         self._dict_declared: set[str] = set()
+        # Set of variable names declared with type `Axon`. An axon's
+        # instance methods route specially: `a.add(k, v)` (statement)
+        # rebinds `a` to `_VSA.axon_add(a, k, v)`; `a.item(k)`
+        # (expression) emits `_VSA.axon_item(a, k)`. See
+        # planning/sutra-spec/axons.md.
+        self._axon_declared: set[str] = set()
         # Maps variable names to their declared primitive-class type
         # string (`"complex"`, `"int"`, `"fuzzy"`, ...). Used by
         # `*` dispatch: if either operand is known to be a complex,
@@ -549,6 +555,13 @@ class BaseCodegen:
             # Initialized form falls through to the initializer translation.
             if decl.initializer is None:
                 self._emit(f"{decl.name} = _VSA.hashmap_new()")
+                return
+        # Track Axon declarations so that a.add(...) / a.item(...) on
+        # the typed local route to the runtime axon methods.
+        if decl.type_ref is not None and decl.type_ref.name == "Axon":
+            self._axon_declared.add(decl.name)
+            if decl.initializer is None:
+                self._emit(f"{decl.name} = _VSA.axon_new()")
                 return
 
         fuzzy_src = self._fuzzy_literal_init_src(decl)
@@ -1081,6 +1094,41 @@ class BaseCodegen:
             return
         if isinstance(stmt, ast.ExprStmt):
             expr = stmt.expr
+            # `a.add(k, v);` as a statement on an Axon-typed local rebinds
+            # `a` to the new axon. This is the augmented-assignment shape
+            # for void-returning instance methods — see the spec rule in
+            # planning/sutra-spec/axons.md ("axons are completely
+            # un-imperative aside from the ergonomics"). For axons,
+            # `add` is the mutating method; `item` is read-only and does
+            # not rebind. The general "any void-returning instance method
+            # on any class is augmented assignment" rule is not yet
+            # implemented for non-axon classes.
+            if (isinstance(expr, ast.Call)
+                    and isinstance(expr.callee, ast.MemberAccess)
+                    and isinstance(expr.callee.obj, ast.Identifier)
+                    and expr.callee.obj.name in self._axon_declared):
+                obj_name = expr.callee.obj.name
+                method_name = expr.callee.member
+                runtime_name = {
+                    "add": "axon_add",
+                    "item": "axon_item",
+                }.get(method_name)
+                if runtime_name is not None:
+                    arg_srcs = [self._translate_expr(a) for a in expr.args]
+                    all_args = [obj_name] + arg_srcs
+                    if method_name == "add":
+                        # Mutating instance method → augmented assignment.
+                        self._emit(
+                            f"{obj_name} = _VSA.{runtime_name}"
+                            f"({', '.join(all_args)})"
+                        )
+                    else:
+                        # Read-only instance method as a discarded
+                        # statement (rare). Emit the call without rebind.
+                        self._emit(
+                            f"_VSA.{runtime_name}({', '.join(all_args)})"
+                        )
+                    return
             if isinstance(expr, ast.Assignment):
                 # dict[key] = value dispatches to the rotation-hashmap
                 # runtime's functional-update form (hashmap_set returns
@@ -1970,6 +2018,23 @@ class BaseCodegen:
             # native Python object that already has the method (e.g.
             # vector accessors handled in the numpy-backend override).
             if isinstance(callee.obj, ast.Identifier):
+                # Instance dispatch on an Axon-typed local:
+                # `a.add(k, v)` and `a.item(k)` route to the runtime
+                # axon methods with `a` as the first argument.
+                # Statement-context augmented-assignment (rebinding `a`
+                # for void-returning calls) is handled in
+                # `_translate_stmt`; this expression path always emits
+                # the call as a value.
+                if callee.obj.name in self._axon_declared:
+                    method_name = callee.member
+                    runtime_name = {
+                        "add": "axon_add",
+                        "item": "axon_item",
+                    }.get(method_name)
+                    if runtime_name is not None:
+                        arg_srcs = [self._translate_expr(a) for a in call.args]
+                        all_args = [callee.obj.name] + arg_srcs
+                        return f"_VSA.{runtime_name}({', '.join(all_args)})"
                 cls_name = callee.obj.name
                 method_name = callee.member
                 # Intrinsic methods on a class route directly to the
