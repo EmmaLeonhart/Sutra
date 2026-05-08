@@ -1,0 +1,20 @@
+// Class with field declarations — landed 2026-05-08.
+//
+// Per the user's class-field design, fields are tag-along variables
+// on a class instance. The field declaration is the schema; runtime
+// storage uses the same axon rotation-binding machinery as
+// Axon.add / Axon.item. Field reads lower to _VSA.axon_item; field
+// writes lower to a `c = _VSA.axon_add(c, "name", value)`
+// augmented-assignment.
+
+class Cat extends vector {
+    field int age;
+    field int paws;
+}
+
+function int main() {
+    Cat c = basis_vector("cat");
+    c.age = 7;
+    c.paws = 4;
+    return c.age + c.paws;
+}

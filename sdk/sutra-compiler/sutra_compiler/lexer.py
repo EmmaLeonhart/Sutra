@@ -168,6 +168,11 @@ class TokenKind(Enum):
     KW_CLASS = auto()
     KW_EXTENDS = auto()
     KW_SLOT = auto()
+    # `field T name;` — declares a named tag-along variable on a class
+    # instance. At runtime the field is stored via the same axon
+    # rotation-binding machinery that backs `Axon.add` / `Axon.item`;
+    # the field declaration is the schema. See docs/ontology.md.
+    KW_FIELD = auto()
 
     # ---- special ----
     EOF = auto()
@@ -213,6 +218,7 @@ KEYWORDS = {
     "class": TokenKind.KW_CLASS,
     "extends": TokenKind.KW_EXTENDS,
     "slot": TokenKind.KW_SLOT,
+    "field": TokenKind.KW_FIELD,
     "true": TokenKind.TRUE,
     "false": TokenKind.FALSE,
     # `unknown` — the neutral point on the truth axis (0.0 between
