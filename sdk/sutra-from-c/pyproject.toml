@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sutra-from-c"
+version = "0.0.1"
+description = "Transpile a restricted subset of C source into Sutra (.su) source."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Emma Leonhart" },
+]
+keywords = ["transpiler", "c", "sutra", "compiler"]
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Compilers",
+]
+dependencies = [
+  "pycparser>=2.22",
+  "sutra-compiler>=0.2.0",
+]
+
+[project.scripts]
+c2su = "sutra_from_c.__main__:main"
+
+[project.urls]
+Homepage = "https://sutralang.dev"
+Repository = "https://github.com/EmmaLeonhart/Sutra"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["sutra_from_c*"]
