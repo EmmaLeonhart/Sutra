@@ -1,32 +1,37 @@
-name: Publish sutra-compiler to PyPI
+name: Publish sutra-dev to PyPI
 
-# Trigger: push of a tag matching `sutra-compiler-vX.Y.Z`. The version in
+# Trigger: push of a tag matching `sutra-dev-vX.Y.Z`. The version in
 # the tag must match the `version =` field in sdk/sutra-compiler/pyproject.toml.
+#
+# (The PyPI distribution name is `sutra-dev`; the in-tree directory
+# `sdk/sutra-compiler/` and Python package `sutra_compiler` keep their
+# names — the rename only affects the published distribution.)
 #
 # To publish a new release:
 #   1. Bump `version =` in sdk/sutra-compiler/pyproject.toml.
 #   2. Bump `__version__` in sdk/sutra-compiler/sutra_compiler/__init__.py
 #      to match.
 #   3. Commit and push.
-#   4. Tag: `git tag sutra-compiler-vX.Y.Z && git push origin sutra-compiler-vX.Y.Z`.
+#   4. Tag: `git tag sutra-dev-vX.Y.Z && git push origin sutra-dev-vX.Y.Z`.
 #
 # Authentication uses PyPI Trusted Publishing (OpenID Connect) — no
 # long-lived API token in repo secrets. The publisher is configured at
-# https://pypi.org/manage/account/publishing/ for the sutra-compiler
-# project. Until that is set up the workflow will fail at the publish
-# step; everything before it (build, smoke test) still runs and the
-# wheel/sdist are uploaded as a workflow artifact for manual inspection.
+# https://pypi.org/manage/account/publishing/ for the sutra-dev project,
+# pointing at workflow `publish-sutra-compiler.yml` and (per the PyPI
+# trusted-publisher form) GitHub Actions environment `pypi` — that
+# environment must exist in the repo's settings → Environments.
 
 on:
   push:
     tags:
-      - "sutra-compiler-v*"
+      - "sutra-dev-v*"
   workflow_dispatch: {}
 
 jobs:
   build-and-publish:
     name: Build wheel + sdist and publish
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       # Required for PyPI Trusted Publishing.
       id-token: write
@@ -45,7 +50,7 @@ jobs:
       - name: Verify tag matches pyproject.toml version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          tag_version="${GITHUB_REF#refs/tags/sutra-compiler-v}"
+          tag_version="${GITHUB_REF#refs/tags/sutra-dev-v}"
           py_version=$(python -c "import tomllib; print(tomllib.load(open('sdk/sutra-compiler/pyproject.toml','rb'))['project']['version'])")
           if [ "$tag_version" != "$py_version" ]; then
             echo "::error::tag version ($tag_version) does not match pyproject.toml version ($py_version)"
@@ -58,14 +63,14 @@ jobs:
       - name: Smoke test the built wheel
         run: |
           python -m venv /tmp/smoke-env
-          /tmp/smoke-env/bin/pip install sdk/sutra-compiler/dist/sutra_compiler-*.whl
+          /tmp/smoke-env/bin/pip install sdk/sutra-compiler/dist/sutra_dev-*.whl
           /tmp/smoke-env/bin/sutrac --version
           /tmp/smoke-env/bin/sutrac examples/hello_world.su
 
       - name: Upload distributions as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sutra-compiler-dist
+          name: sutra-dev-dist
           path: sdk/sutra-compiler/dist/*
 
       - name: Publish to PyPI (Trusted Publishing)
