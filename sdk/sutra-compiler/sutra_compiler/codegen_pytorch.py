@@ -622,6 +622,34 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.unbind(key_vec, acc)")
         self._indent -= 1
         self._emit()
+        # ---- Axon runtime methods ----
+        # Axons share the substrate operations of the rotation hashmap
+        # (an axon is a bundle of bind(role, value) terms over a
+        # codebook of role-by-string-name) but are a distinct
+        # user-facing class — see planning/sutra-spec/axons.md. The
+        # methods below implement the substrate operations the
+        # `Axon` stdlib class declares as `static intrinsic method`.
+        self._emit("# ---- Axon runtime methods ----")
+        self._emit("def axon_new(self):")
+        self._indent += 1
+        self._emit("return _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def axon_add(self, axon, key, value):")
+        self._indent += 1
+        self._emit("# Key may arrive as a Python string (compile-time")
+        self._emit("# identifier) or as an already-embedded vector.")
+        self._emit("# Strings are auto-embedded into a basis vector.")
+        self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
+        self._emit("return axon + self.bind(key_vec, value)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def axon_item(self, axon, key):")
+        self._indent += 1
+        self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
+        self._emit("return self.unbind(key_vec, axon)")
+        self._indent -= 1
+        self._emit()
         # ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----
         # Mirrors the numpy backend's slot block. See codegen.py for the
         # block; this is the pytorch realization, with `_torch.zeros`
