@@ -331,6 +331,34 @@ def _lower_statement(
         )
         body_src = _lower_statement(body, source, ctx, indent + "    ") if body else ""
         return f"{indent}while ({cond_src}) {{\n{body_src}{indent}}}\n"
+    if node.type == "for_statement":
+        # Desugar `for (init; cond; incr) body` → `init; while (cond) {
+        # body; incr; }`. This lets us reuse the while-loop lowering and
+        # the existing initializer / increment lowerings without a
+        # separate for-form on the Sutra side. Tradeoff: a `continue` in
+        # the body would skip the increment with this desugar, but
+        # `continue` isn't supported yet anyway.
+        init = node.child_by_field_name("initializer")
+        cond = node.child_by_field_name("condition")
+        incr = node.child_by_field_name("increment")
+        body = node.child_by_field_name("body")
+        out = ""
+        if init is not None:
+            if init.type in ("lexical_declaration", "variable_declaration"):
+                out += _lower_lexical_declaration(init, source, ctx, indent)
+            else:
+                out += f"{indent}{_lower_expression(init, source, ctx)};\n"
+        cond_src = _lower_expression(cond, source, ctx) if cond else "true"
+        body_src = (
+            _lower_statement(body, source, ctx, indent + "    ")
+            if body else ""
+        )
+        incr_src = (
+            f"{indent}    {_lower_expression(incr, source, ctx)};\n"
+            if incr is not None else ""
+        )
+        out += f"{indent}while ({cond_src}) {{\n{body_src}{incr_src}{indent}}}\n"
+        return out
     if node.type == "do_statement":
         body = node.child_by_field_name("body")
         cond = node.child_by_field_name("condition")
