@@ -388,6 +388,16 @@ class BaseCodegen:
         # dispatch (`g.method(args)` for a typed variable `g`) needs
         # variable type tracking which isn't wired today.
         self._class_instance_methods: dict[str, set[str]] = {}
+        # Field declarations per class, mapping
+        # class_name -> {field_name -> Sutra type name}. Populated in
+        # the pre-pass below when seeing a ClassDecl. Used by
+        # MemberAccess and Assignment-to-MemberAccess lowering: a field
+        # read on a class-typed receiver lowers to `_VSA.axon_item(c,
+        # "name")`, a field write lowers to the augmented-assignment
+        # `c = _VSA.axon_add(c, "name", value)`. Per the 2026-05-08
+        # class-field design, fields share the axon machinery — the
+        # class declaration is just the schema.
+        self._class_fields: dict[str, dict[str, str]] = {}
         # Name of the class whose method body is currently being
         # emitted. Used by `this.method(args)` dispatch to know which
         # class to mangle with. None when not inside a class method.
@@ -453,6 +463,13 @@ class BaseCodegen:
         # class can dispatch.
         for item in module.items:
             if isinstance(item, ast.ClassDecl):
+                # Register field schema. Fields lower to axon
+                # rotation-bound entries; the class declaration is
+                # just the schema.
+                if item.fields:
+                    field_map = self._class_fields.setdefault(item.name, {})
+                    for fd in item.fields:
+                        field_map[fd.name] = fd.type_ref.name
                 for m in item.methods:
                     if m.is_operator or m.type_params:
                         continue
@@ -1416,6 +1433,33 @@ class BaseCodegen:
                         )
                         return
             if isinstance(expr, ast.Assignment):
+                # Class-field write: `c.name = value;` where c is a
+                # class-typed local and `name` is declared as a field.
+                # Lowers via the same axon machinery as field reads.
+                # Only plain `=` is supported; compound forms (`+=`, etc.)
+                # would need a read-modify-write that we leave for a
+                # follow-up — the field surface is new (2026-05-08).
+                if (isinstance(expr.target, ast.MemberAccess)
+                        and isinstance(expr.target.obj, ast.Identifier)):
+                    fld_obj_name = expr.target.obj.name
+                    fld_obj_class = self._var_type.get(fld_obj_name)
+                    fld_name = expr.target.member
+                    if (fld_obj_class is not None
+                            and fld_obj_class in self._class_fields
+                            and fld_name in self._class_fields[fld_obj_class]):
+                        if expr.op != "=":
+                            raise CodegenNotSupported(
+                                stmt,
+                                f"compound assignment on a class field "
+                                f"(`{expr.op}`) is not yet supported; use "
+                                "plain `=` for now",
+                            )
+                        value_src = self._translate_expr(expr.value)
+                        self._emit(
+                            f'{fld_obj_name} = _VSA.axon_add('
+                            f'{fld_obj_name}, "{fld_name}", {value_src})'
+                        )
+                        return
                 # dict[key] = value dispatches to the rotation-hashmap
                 # runtime's functional-update form (hashmap_set returns
                 # a new accumulator). Only simple `=` is supported on
@@ -2169,6 +2213,21 @@ class BaseCodegen:
         if isinstance(expr, ast.ThisExpr):
             return "this"
         if isinstance(expr, ast.MemberAccess):
+            # Class-field read: `c.name` where c is a class-typed local
+            # and `name` is declared as a field on that class. Per the
+            # 2026-05-08 class-field design, fields share the axon
+            # rotation-binding machinery — emit `_VSA.axon_item(c,
+            # "name")`. Falls through to the pass-through form if the
+            # member isn't a declared field (so `.string_length()`,
+            # `Class.method` static dispatch, and other patterns keep
+            # working).
+            if isinstance(expr.obj, ast.Identifier):
+                obj_name = expr.obj.name
+                obj_class = self._var_type.get(obj_name)
+                if (obj_class is not None
+                        and obj_class in self._class_fields
+                        and expr.member in self._class_fields[obj_class]):
+                    return f'_VSA.axon_item({obj_name}, "{expr.member}")'
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
         if isinstance(expr, ast.EmbedExpr):
             return self._embed_expr_src(expr)

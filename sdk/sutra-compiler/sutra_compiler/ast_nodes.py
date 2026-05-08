@@ -514,29 +514,45 @@ class MethodDecl(Node):
 
 
 @dataclass
+class FieldDecl(Node):
+    """`field T name;` — a tag-along named variable on a class instance.
+
+    Per the user's class-field design (2026-05-08): a class is an axon
+    with a declared schema. Fields are not embedded substrate state;
+    they're tag-along variables that travel with the `this` vector. At
+    runtime, field reads and writes go through the same rotation-
+    binding machinery that backs `Axon.add` / `Axon.item`. The class
+    declaration provides the field-name schema; it does not allocate
+    fixed slots in the vector.
+    """
+    name: str
+    type_ref: TypeRef
+
+
+@dataclass
 class ClassDecl(Node):
     """`class Name extends Parent { ... }` — user-defined ontology
     class.
 
-    Body content: method declarations are accepted inside the body.
-    Field declarations and operator implementations remain deferred.
+    Body content: method declarations, loop function declarations, and
+    (since 2026-05-08) field declarations are accepted inside the body.
+    Operator implementations remain deferred.
 
     Methods declared inside a class body land on this node's
-    `methods` list. They're validator-visited (per the existing
-    `visit_MethodDecl`); codegen routing for `ClassName.method(...)`
-    dispatch is the next slice and isn't wired today, so calls to
-    methods on a class fail at codegen with a clear pointer until
-    that lands.
+    `methods` list. Field declarations land on `fields`. Loop function
+    declarations land on `loop_functions`.
 
-    At runtime an instance of a user class is a plain vector. The
-    declaration is compile-time metadata: the validator registers
-    the class name and uses the extends-chain to resolve
-    type-position references.
+    At runtime an instance of a user class is a vector with optional
+    rotation-bound field entries (the axon machinery). The declaration
+    is compile-time metadata: the validator registers the class name
+    and the field schema; the codegen lowers field reads and writes
+    through the existing axon runtime methods.
     """
     name: str
     parent_name: str  # the `extends` target — required in MVP
     methods: List["MethodDecl"] = field(default_factory=list)
     loop_functions: List["LoopFunctionDecl"] = field(default_factory=list)
+    fields: List["FieldDecl"] = field(default_factory=list)
 
 
 # ============================================================
