@@ -812,6 +812,22 @@ commitments, just parking spots. Currently parked:
 - `karpathy-llm-wiki.md` — Karpathy's "LLM wiki" concept; interest is in
   the context-management angle.
 
+## C → Sutra transpiler — parked (deprioritized 2026-05-08)
+
+Skeleton landed at `sdk/sutra-from-c/` (commit `6970c52`); `c2su`
+CLI exits 2 pointing at `DESIGN.md`. Decision 2026-05-08: user no
+longer views transpiling Linux as a useful path to OS-level Sutra
+work, so the C transpiler is no longer paired with the TypeScript
+transpiler as a Yantra prerequisite. TypeScript is the sole
+transpiler gate.
+
+The skeleton stays in tree — do not delete it. If a future use case
+revives the need for C-source ingestion (some specific kernel
+component, a runtime library someone wants to lift into Sutra), the
+DESIGN.md and skeleton are the starting point.
+
+Until then this is the very back of the queue.
+
 ## [This year] Speculative
 
 - **Sutra-embedded-in-Python (`@sutra` decorator + import hook).**
