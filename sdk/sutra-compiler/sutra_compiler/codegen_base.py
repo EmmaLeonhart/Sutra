@@ -305,6 +305,17 @@ class BaseCodegen:
         # (expression) emits `_VSA.axon_item(a, k)`. See
         # planning/sutra-spec/axons.md.
         self._axon_declared: set[str] = set()
+        # For each axon-typed local in the current function scope,
+        # the set of literal-string keys whose `.add(K, V);` statements
+        # are elidable (never read via `.item(K)` and the axon doesn't
+        # escape the function). Populated by `_compute_axon_elision`
+        # at function entry; consumed by `_translate_stmt` on
+        # `obj.add(K, V);` to skip emission. The spec calls this
+        # "the compiler treats `a.item(k) = v` as SSA-rename when no
+        # boundary crossing forces materialization" — see
+        # planning/sutra-spec/axons.md §"The mutating-looking syntax
+        # is sugar; the compiler usually elides the axon entirely."
+        self._axon_elide_keys: dict[str, set[str]] = {}
         # Maps (class_name, method_name) -> return type name, for class
         # methods declared in user code or in the stdlib. Used by the
         # general void-method-as-augmented-assignment dispatch:
@@ -752,6 +763,8 @@ class BaseCodegen:
         self._slot_vars = {}
         outer_return_type = self._current_return_type
         self._current_return_type = decl.return_type.name if decl.return_type else None
+        outer_axon_elide = self._axon_elide_keys
+        self._axon_elide_keys = self._compute_axon_elision(decl)
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
@@ -762,7 +775,209 @@ class BaseCodegen:
                 self._translate_stmt(stmt)
         self._slot_vars = outer_slot_vars
         self._current_return_type = outer_return_type
+        self._axon_elide_keys = outer_axon_elide
         self._indent -= 1
+
+    def _compute_axon_elision(
+        self, decl: ast.FunctionDecl
+    ) -> dict[str, set[str]]:
+        """Pre-pass over a function body to find axon-typed locals
+        whose writes can be elided.
+
+        Within a single function body, an `a.add("k", v);` statement
+        on an axon-typed local is dead if the literal key `"k"` is
+        never read via `a.item("k")` AND the axon `a` doesn't escape
+        (return, pass to another function, etc.).
+
+        Returns: dict mapping each axon-typed local name to the set of
+        string-literal keys that are dead in that function. The
+        translator skips emission when an `add` call's key is in the
+        elide set.
+
+        Conservative: any escape causes ALL keys to stay materialized
+        for that local. Any read with a non-literal key (e.g. a
+        runtime-computed key) keeps everything materialized too.
+        """
+        # Find axon-typed parameter names + Axon-typed locals declared
+        # in the function body.
+        axon_locals: set[str] = set()
+        for p in decl.params:
+            if p.type_ref is not None and p.type_ref.name == "Axon":
+                axon_locals.add(p.name)
+        # First scan: find all `Axon` declarations + collect read/write
+        # info per axon var. Initialize every axon as conservative
+        # (not yet known to escape, no reads, no writes).
+        reads: dict[str, set[str]] = {}
+        writes: dict[str, set[str]] = {}
+        escaped: set[str] = set()
+        any_dynamic_read: set[str] = set()
+
+        def collect_decls(node):
+            if isinstance(node, ast.VarDecl):
+                if (node.type_ref is not None
+                        and node.type_ref.name == "Axon"):
+                    axon_locals.add(node.name)
+            # Walk all attribute children for nested statements.
+            for attr_name in dir(node):
+                if attr_name.startswith("_"):
+                    continue
+                try:
+                    val = getattr(node, attr_name)
+                except Exception:
+                    continue
+                if isinstance(val, ast.Node):
+                    collect_decls(val)
+                elif isinstance(val, list):
+                    for v in val:
+                        if isinstance(v, ast.Node):
+                            collect_decls(v)
+
+        for stmt in decl.body.statements:
+            collect_decls(stmt)
+
+        for v in axon_locals:
+            reads[v] = set()
+            writes[v] = set()
+
+        def visit_expr(node, position: str) -> None:
+            """position is one of:
+                 'value' — node's evaluated value flows into something
+                           (an arg, a return, an assignment RHS, etc.)
+                 'recv'  — node is the receiver of a member access
+                 'lhs'   — node is the LHS of an assignment.
+            Identifiers in `value` position that name an axon local
+            cause that axon to be marked as escaped.
+            """
+            if node is None:
+                return
+            if isinstance(node, ast.Identifier):
+                if node.name in axon_locals and position == "value":
+                    escaped.add(node.name)
+                return
+            if isinstance(node, ast.MemberAccess):
+                # `obj.member` — obj is the receiver. The member name
+                # itself is just an identifier name, not an Identifier
+                # node here (it's a string field on MemberAccess).
+                visit_expr(node.obj, "recv")
+                return
+            if isinstance(node, ast.Call):
+                callee = node.callee
+                # `a.add(K, V)` and `a.item(K)` are special-cased — they
+                # are NOT escapes for `a`. `a` is the receiver; other args
+                # are values.
+                axon_method_call = (
+                    isinstance(callee, ast.MemberAccess)
+                    and isinstance(callee.obj, ast.Identifier)
+                    and callee.obj.name in axon_locals
+                    and callee.member in ("add", "item")
+                )
+                if axon_method_call:
+                    var = callee.obj.name
+                    member = callee.member
+                    # Receiver doesn't escape.
+                    visit_expr(callee.obj, "recv")
+                    # Args are values — they DO contribute to escape if
+                    # an axon flows through them.
+                    if member == "add":
+                        # Args: (key, value). Track the literal key.
+                        if (len(node.args) >= 1
+                                and isinstance(node.args[0], ast.StringLiteral)):
+                            writes[var].add(node.args[0].value)
+                        for arg in node.args:
+                            visit_expr(arg, "value")
+                    else:  # item
+                        if (len(node.args) >= 1
+                                and isinstance(node.args[0], ast.StringLiteral)):
+                            reads[var].add(node.args[0].value)
+                        else:
+                            # Non-literal key: all writes are needed.
+                            any_dynamic_read.add(var)
+                        for arg in node.args:
+                            visit_expr(arg, "value")
+                    return
+                # Generic call: callee in 'value' position (or recv if
+                # MemberAccess, but a non-axon-method MemberAccess
+                # receiver flows on too).
+                visit_expr(callee, "value")
+                for arg in node.args:
+                    visit_expr(arg, "value")
+                return
+            if isinstance(node, ast.Assignment):
+                # LHS in 'lhs' position; RHS in 'value' position.
+                visit_expr(node.target, "lhs")
+                visit_expr(node.value, "value")
+                return
+            # Fallback: visit any sub-expression in value position. We
+            # only care about catching axon-named Identifiers in
+            # places where they'd escape, so this is safe.
+            for attr_name in dir(node):
+                if attr_name.startswith("_"):
+                    continue
+                try:
+                    val = getattr(node, attr_name)
+                except Exception:
+                    continue
+                if isinstance(val, ast.Node):
+                    visit_expr(val, "value")
+                elif isinstance(val, list):
+                    for v in val:
+                        if isinstance(v, ast.Node):
+                            visit_expr(v, "value")
+
+        def visit_stmt(stmt) -> None:
+            if isinstance(stmt, ast.VarDecl):
+                # `Axon a = expr;` — the LHS is the declared name; the
+                # initializer is in value position.
+                if stmt.initializer is not None:
+                    visit_expr(stmt.initializer, "value")
+                return
+            if isinstance(stmt, ast.ReturnStmt):
+                # Returning an axon counts as escape.
+                visit_expr(stmt.value, "value")
+                return
+            if isinstance(stmt, ast.ExprStmt):
+                expr = stmt.expr
+                # `a = expr;` — LHS is in lhs position, RHS in value.
+                if isinstance(expr, ast.Assignment):
+                    visit_expr(expr.target, "lhs")
+                    visit_expr(expr.value, "value")
+                    return
+                # `a.add(...);` / `a.item(...);` — handled in the
+                # generic Call path above (axon receiver is OK).
+                visit_expr(expr, "value")
+                return
+            # All other statement kinds: walk inner expressions and
+            # nested statements.
+            for attr_name in dir(stmt):
+                if attr_name.startswith("_"):
+                    continue
+                try:
+                    val = getattr(stmt, attr_name)
+                except Exception:
+                    continue
+                if isinstance(val, ast.Node):
+                    if isinstance(val, ast.Stmt):
+                        visit_stmt(val)
+                    else:
+                        visit_expr(val, "value")
+                elif isinstance(val, list):
+                    for v in val:
+                        if isinstance(v, ast.Node):
+                            if isinstance(v, ast.Stmt):
+                                visit_stmt(v)
+                            else:
+                                visit_expr(v, "value")
+
+        for stmt in decl.body.statements:
+            visit_stmt(stmt)
+
+        elide: dict[str, set[str]] = {}
+        for v in axon_locals:
+            if v in escaped or v in any_dynamic_read:
+                elide[v] = set()
+            else:
+                elide[v] = writes[v] - reads[v]
+        return elide
 
 
     # _LOOP_T is now a per-instance attribute set in __init__ from the
@@ -1128,6 +1343,16 @@ class BaseCodegen:
                     "item": "axon_item",
                 }.get(method_name)
                 if runtime_name is not None:
+                    # SSA-elision: if this `add` writes a literal key
+                    # that's never read in this function (and the
+                    # axon doesn't escape), skip emission entirely.
+                    # The key flows nowhere; computing the bind would
+                    # be pure waste. See `_compute_axon_elision`.
+                    if (method_name == "add"
+                            and len(expr.args) >= 1
+                            and isinstance(expr.args[0], ast.StringLiteral)
+                            and expr.args[0].value in self._axon_elide_keys.get(obj_name, set())):
+                        return
                     arg_srcs = [self._translate_expr(a) for a in expr.args]
                     all_args = [obj_name] + arg_srcs
                     if method_name == "add":
