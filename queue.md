@@ -15,12 +15,12 @@ In strategic order. Top item is the current focus.
 1. **Stabilize the axon spec.** `planning/sutra-spec/axons.md` is in
    as a first cut (commit `2227d06`) but has many open questions —
    the user has explicitly said they have not done much work on the
-   axon. Both transpilers (items 4 and 5 in the just-finished queue)
-   are blocked on this stabilizing. Outstanding axon questions are
-   indexed in `planning/sutra-spec/open-questions.md` under §Axons.
-   The most load-bearing for the transpilers: role surface syntax
-   (`R_x` vs bare identifier in `.su`), function-pointer / higher-
-   order-axon story, axon width specification.
+   axon. The TypeScript transpiler (item 3) is blocked on this
+   stabilizing. Outstanding axon questions are indexed in
+   `planning/sutra-spec/open-questions.md` under §Axons. The most
+   load-bearing for the transpiler: role surface syntax (`R_x` vs
+   bare identifier in `.su`), function-pointer / higher-order-axon
+   story, axon width specification.
 
 2. **Configure PyPI Trusted Publishing for `sutra-compiler`.** The
    package, license, and release workflow are in (commits `3f74234`
@@ -33,18 +33,23 @@ In strategic order. Top item is the current focus.
    is user-side action — the workflow is inert until pypi.org is
    configured.
 
-3. **C → Sutra transpiler implementation.** Skeleton landed at
-   `sdk/sutra-from-c/` (commit `6970c52`). `c2su` CLI exits 2 with a
-   pointer at `DESIGN.md`. Implementation is blocked on (1).
+3. **TypeScript → Sutra transpiler implementation.** Skeleton landed
+   at `sdk/sutra-from-ts/` (commit `6d8de7c`). Recent lowering work
+   in flight (commits `f3d19ab` if/else + `JavaScriptObject` +
+   `truth_axis` intrinsic; `99fcac7` minimal first-cut transpiler).
+   Implementation continues to be gated by (1) for the parts that
+   touch axon surface syntax.
 
-4. **TypeScript → Sutra transpiler implementation.** Skeleton landed
-   at `sdk/sutra-from-ts/` (commit `6d8de7c`). `ts2su` CLI exits 2
-   with a pointer at `DESIGN.md`. Implementation is blocked on (1).
+The C → Sutra transpiler skeleton at `sdk/sutra-from-c/` is parked
+(decision 2026-05-08): user no longer views transpiling Linux as a
+useful path to OS-level Sutra work, so the focus is solely on
+TypeScript. Skeleton stays in tree; do not delete. See `todo.md`
+for the parked entry.
 
-Yantra (the OS) is downstream of (3) and (4) — both transpilers
+Yantra (the OS) is downstream of (3) — the TypeScript transpiler
 must be in working shape before Yantra is implementable. Yantra is
 its own repo (`../Yantra/`) with its own queue; Sutra's queue ends
-at the transpilers.
+at the transpiler.
 
 ## Pointers
 
