@@ -3,11 +3,8 @@
 // could not be resolved; the class itself is a deferred Sutra
 // stdlib piece. Programs that hit it won't run end-to-end yet.
 
-// UNSUPPORTED-TOP-LEVEL: comment
-// UNSUPPORTED-TOP-LEVEL: comment
-// UNSUPPORTED-TOP-LEVEL: comment
 function int abs(int x) {
-    return ((1 + truth_axis(defuzzy((x < 0)))) * ((-x)) + (1 - truth_axis(defuzzy((x < 0)))) * (x)) / 2;
+    return ((1 + truth_axis(defuzzy(x < 0))) * ((-x)) + (1 - truth_axis(defuzzy(x < 0))) * (x)) / 2;
 }
 function int main() {
     return abs((-7));
