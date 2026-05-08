@@ -34,34 +34,39 @@ In strategic order. Top item is the current focus.
    replace `cd sdk/sutra-compiler && python -m sutra_compiler` with
    the `pip`-installed surface.
 
-3. **Expand the axon model.** `Yantra/planning/02-axon-model.md` is
-   the current spec but is thinner than what the transpilers need.
-   The axon is the essential currency of a Sutra-based OS — closer
-   to a hardware-linked monad than to a Haskell monad — and both
-   transpilers need it nailed down before they can target sensible
-   Sutra. Expand: codebook lifecycle, hardware-link semantics
-   (which roles are tied to which physical resources / IO surfaces
-   / device handles), error-as-axon convention, and the type-of-
-   axon vs value-of-axon distinction. This work happens in the
-   Yantra repo; commits here only when the Sutra side needs to
-   move with it.
+3. **Add the axon to the Sutra spec.** Axons are a Sutra concept,
+   not a Yantra concept — Yantra uses axons because Sutra has them.
+   The canonical spec belongs in `planning/sutra-spec/axons.md`
+   and not in the Yantra repo. The closest analogy is a hardware-
+   linked monad: structured embeddings (rotation-bound role/filler
+   bundles) that compose without parsing and are differentiable
+   end-to-end. Initial doc covers: definition, codebook lifecycle,
+   hardware-link semantics (which roles tie to physical resources /
+   IO surfaces / device handles), error-as-axon convention,
+   type-of-axon vs value-of-axon. The Yantra repo's existing
+   `planning/02-axon-model.md` becomes a thin pointer to this spec
+   plus Yantra-specific OS-context notes.
 
-4. **C → Sutra transpiler.** Strategic dependency for Yantra
-   (lets existing C code participate in a Sutra-based OS). Hard.
-   Blocked on (3). Initial scope: a translation-unit-at-a-time
-   pass that lowers a restricted C subset (no preprocessor
-   weirdness, no inline asm, structs-as-axons, function-pointers-
-   as-axons) into `.su` source that compiles cleanly. Yantra's
-   `planning/07-transpilers.md` is the design starting point.
+4. **C → Sutra transpiler.** Lowers a restricted C subset (no
+   preprocessor weirdness, no inline asm, structs-as-axons,
+   function-pointers-as-axons) into `.su` source that compiles
+   cleanly through the existing Sutra compiler. Translation-unit-
+   at-a-time pass to start. Hard. Wants the axon spec from (3)
+   pinned down first so structs and function pointers have a
+   stable lowering target.
 
 5. **TypeScript → Sutra transpiler.** Same shape as (4) but for
-   TS/JS. Treats JavaScript as TypeScript with the type
-   annotations stripped, so the transpiler reads `.ts` and `.js`
-   uniformly. Strategic dependency for Yantra. Hard. Blocked on
-   (3). Initial scope: a single `.ts` file → single `.su` file
-   pass that handles the typed core (interfaces, classes,
-   functions, narrowing) and rejects the dynamic edges (eval,
-   prototype mutation, untyped `any` chains).
+   TS/JS. Reads `.ts` and `.js` uniformly (JavaScript is treated
+   as TypeScript with annotations stripped). Initial scope: a
+   single-file pass that handles the typed core (interfaces,
+   classes, functions, narrowing) and rejects the dynamic edges
+   (eval, prototype mutation, untyped `any` chains). Wants the
+   axon spec from (3) pinned down first.
+
+Yantra (the OS) is downstream of (4) and (5) — both transpilers
+must be in working shape before Yantra is implementable. Yantra is
+its own repo (`../Yantra/`) with its own queue; Sutra's queue ends
+at the transpilers.
 
 ## Pointers
 
