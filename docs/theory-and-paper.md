@@ -54,8 +54,7 @@ what the working compiler actually demonstrates.
 
 ## Paper, in HTML
 
-The full Markdown source of the paper rendered as a single page. Source of
-truth: [`paper/paper.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/paper/paper.md).
+The full Markdown source of the paper rendered as a single page.
 
 --8<-- "paper/paper.md"
 
