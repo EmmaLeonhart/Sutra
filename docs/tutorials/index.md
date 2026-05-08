@@ -19,8 +19,8 @@ Everything below assumes Python 3.11 or newer.
 Install the compiler from PyPI:
 
 ```bash
-pip install sutra-compiler            # validator + codegen only
-pip install sutra-compiler[runtime]   # adds torch so --emit / --run can execute the generated module
+pip install sutra-dev            # validator + codegen only
+pip install sutra-dev[runtime]   # adds torch so --emit / --run can execute the generated module
 ```
 
 After install, the `sutrac` command is on your `$PATH`:

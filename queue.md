@@ -24,16 +24,18 @@ In strategic order. Top item is the current focus.
    key lowering) are calibration items the transpiler can pick a
    default for and revisit.
 
-2. **Configure PyPI Trusted Publishing for `sutra-compiler`.** The
-   package, license, and release workflow are in (commits `3f74234`
-   and `9a1bd59`); `pip install -e` works locally and the wheel
-   smoke-tests cleanly. To actually publish: set up Trusted
-   Publishing on pypi.org for project `sutra-compiler` pointing at
-   `EmmaLeonhart/Sutra` + workflow `publish-sutra-compiler.yml`,
-   verify the name `sutra-compiler` is available (rename
-   `pyproject.toml` if not), then tag `sutra-compiler-v0.2.0`. This
-   is user-side action — the workflow is inert until pypi.org is
-   configured.
+2. **Configure PyPI Trusted Publishing for `sutra-dev`.** The
+   package, license, and release workflow are in; `pip install -e`
+   works locally and the wheel smoke-tests cleanly. The PyPI name
+   `sutra-compiler` was rejected as too similar to an existing
+   project (2026-05-08); rerolled to `sutra-dev`. The PyPI trusted-
+   publisher form was filled in with: project `sutra-dev`, owner
+   `EmmaLeonhart`, repo `Sutra`, workflow `publish-sutra-compiler.yml`,
+   environment `pypi`. Remaining user-side steps: (a) submit the
+   trusted-publisher form on pypi.org, (b) create a GitHub Actions
+   environment named `pypi` in repo settings (the workflow now
+   declares `environment: pypi`, which means GH will fail the run
+   if the env doesn't exist), (c) tag `sutra-dev-v0.2.0` and push.
 
 3. **Demonstrate multi-program axon passing with lazy evaluation.**
    `axons.md` claims that only the keys the receiver references
