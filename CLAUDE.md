@@ -100,6 +100,7 @@ Before implementing or modifying any operation, **read the relevant spec file in
 - `binding.md` — semantic vs non-semantic binding
 - `control-flow.md` — conditionals and loops
 - `equality-and-defuzzification.md` — `is_true`, the undersymbolic realm
+- `axons.md` — structured embeddings, role-as-operator, the hardware-linked-monad framing
 - `types.md`, `program-structure.md`, `concurrency.md`
 - `open-questions.md` — index of unresolved spec decisions
 
