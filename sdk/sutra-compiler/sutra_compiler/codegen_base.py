@@ -2321,6 +2321,23 @@ class BaseCodegen:
                         arg_srcs = [self._translate_expr(a) for a in call.args]
                         all_args = [callee.obj.name] + arg_srcs
                         return f"_VSA.{runtime_name}({', '.join(all_args)})"
+            # String runtime methods: when an expression like
+            # `<expr>.string_length()` appears, route to the runtime
+            # regardless of whether the receiver is a known typed
+            # local. The receiver is whatever expression evaluates
+            # there at runtime; the String runtime methods accept any
+            # tensor and behave correctly when the AXIS_STRING_FLAG is
+            # set. Same convention will extend to other class-bound
+            # runtime intrinsics as the language adds them.
+            _RUNTIME_INSTANCE_METHODS = {
+                "string_length", "string_char_at", "is_string",
+            }
+            if callee.member in _RUNTIME_INSTANCE_METHODS:
+                obj_src = self._translate_expr(callee.obj)
+                arg_srcs = [self._translate_expr(a) for a in call.args]
+                all_args = [obj_src] + arg_srcs
+                return f"_VSA.{callee.member}({', '.join(all_args)})"
+            if isinstance(callee.obj, ast.Identifier):
                 # General instance dispatch: when `obj` is a typed
                 # local whose declared type is a known class with the
                 # called method, route to the appropriate static-form
