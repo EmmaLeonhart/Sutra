@@ -135,60 +135,105 @@ There is deliberately no `get` method. The user has flagged `get` as
 unintuitive and it should not appear in any code-gen path or stdlib
 shim.
 
-### The mutating-looking syntax is sugar; axons are immutable
+### The mutating-looking syntax is sugar; the compiler usually elides the axon entirely
 
 The surface API *looks* imperative — `add`, `item(k) = ...`,
-`item(k)++` — but that appearance is **ergonomic sugar over an
-immutable substrate value**. Sutra is purely functional. Every
-"mutation" actually produces a new axon and rebinds the local
-variable to it.
+`item(k)++` — but that appearance is **ergonomic sugar**. The
+mental model "every mutation produces a new axon" overstates what
+actually happens. The truthier model:
 
-```
-a.item("i") = a.item("i") + 1;
-```
+> When you write `a.item("pi") += 1`, the compiler treats it as
+> SSA-style renaming on the underlying variable. The "old" `pi`
+> becomes some `pi_2` internally. **No new axon is constructed
+> unless an axon actually has to cross a function or loop boundary.**
 
-reads as: read the `"i"` value, compute the new value, produce a new
-axon that has the updated `"i"` slot, rebind the local name `a` to
-the new axon. The original axon — the one any other reference still
-points to — is unchanged.
+Inside a function body, between loop-iteration boundaries, there
+isn't really an axon at all. There are just variables. The
+`a.item(k)` syntax lets you address those variables through the
+axon's name as a syntactic convenience (essential for transpiling
+imperative languages where everything is variable mutation), but
+the compiler sees through the surface and operates on the
+underlying values.
 
-This is the same shape as a state monad in a functional language:
-the *appearance* of mutation, achieved through threading values
-forward, with a sugar layer that lets the surface look imperative.
-The compiler can fuse a chain of such rebinds at compile time, so
-the runtime doesn't actually allocate N intermediate axons in a
-loop body.
+The original axon — the one any other reference still points to —
+is unchanged. This is the same shape as a state monad in a
+functional language: the *appearance* of mutation, achieved
+through threading values forward, with the compiler fusing the
+chain at compile time so no intermediate axon is materialized.
 
 Stating this rule directly: **axons are completely un-imperative
 aside from the ergonomics.** Don't take the imperative-looking
 surface as license to assume there is a mutable hash map
 underneath. There isn't. Treat `a.item(k) = v` the way Haskell
 would treat a state-monad update — a step in a functional
-computation, not a write to a memory cell.
+computation, not a write to a memory cell, and very often not even
+a new value construction.
 
 The reason the surface is sugared at all is to make transpiling
 side-effect-heavy languages (C, JS) tractable. Hand-written Sutra
-can stay closer to the value-passing form (`a = a.with("i",
-a.item("i") + 1)`-style) without losing anything semantically.
+can stay closer to the value-passing form without losing anything
+semantically.
 
-## No generics
+### Axons appear in exactly four positions
+
+A consequence of "axons are compile-time-elided unless a boundary
+crossing forces them" is that axons can meaningfully appear in
+only four positions in a program:
+
+1. **The input of a function** (the parameter).
+2. **The output of a function** (the return).
+3. **The start of a loop iteration** (the loop's input state).
+4. **The end of a loop iteration** (the loop's output state, which
+   becomes the next iteration's input).
+
+These four positions are not really four distinct things — they
+collapse to one. **A loop is a mini-function that doesn't have
+its own file**, with a recurring-network shape that explicitly
+passes information in a circle. Position (3) is the loop's
+input; position (4) is the loop's output, which feeds back into
+position (3) for the next iteration. So axons exist at *function
+boundaries*, full stop, where "function" is read broadly enough
+to include the implicit self-recursive mini-function that a loop
+becomes after lowering.
+
+Anywhere else, the axon is **syntactic salt**: you can write code
+that constructs an axon and adds entries to it and never returns
+it or feeds it to a loop, but the compiler erases the axon
+entirely. The local variables you set on it become ordinary
+variables in scope; the axon-object itself never materializes.
+
+This is not a restriction the language enforces with an error —
+you can write the salt and it compiles — but stylistically and
+performance-wise it adds nothing. Idiomatic Sutra constructs
+axons only when an axon actually has to cross one of these
+boundaries.
+
+## No generics; per-entry class tags
 
 `Axon` is a single non-generic class. There is no `Axon<Cat>`. Values
-inside an axon can be of any type. Each stored value carries an
-implicit type tag (the class of the value at the time of insertion),
-and the compiler resolves the static type of `a.item("cat")` at the
-call site using that tag.
+inside an axon can be of any type — the carrier is monomorphic.
 
-This is the same surface shape as Java's `Map<String, Object>` or
-Python's `dict[str, Any]`: the carrier is monomorphic, the values are
-heterogeneous, the type discipline lives at the access boundary.
+What axons *do* support is a **per-entry class tag**: each stored
+value carries an indication of what class it was at the time of
+insertion. So when you `a.add("cat", c)` where `c : Cat`, the entry
+remembers it was a `Cat`, and `a.item("cat")` can give back a `Cat`
+(rather than a bare `vector` you have to cast). The user has flagged
+that this matters — *"the class is important"* — but axons are not
+*limited* by class. You can put anything in any entry; the tag is a
+suggestion to the type system about what to expect coming back out,
+not a constraint on what can go in.
 
-> **Open question.** How exactly the type tag is represented and
-> resolved. Two candidates: (a) tag is inline with the bundled filler,
-> resolved at runtime cast time; (b) tag is compile-time-only and the
-> retrieval is type-checked statically when the key is a literal,
-> erroring at compile time on a missing or mistyped key. Today neither
-> is implemented.
+This is the same shape as Java's `Map<String, Object>` enriched with
+runtime-class info: the carrier is monomorphic, the values are
+heterogeneous, and there is enough metadata at the entry level for
+retrieval to give back something better than `Object`.
+
+> **Open question.** Exact mechanics of the per-entry tag — runtime
+> cast vs. compile-time-erased static check; how strict the
+> "suggestion" is (warn on mismatch, error on mismatch, silent?);
+> whether the tag is a class-level identity or a richer structural
+> shape. The user has resolved that tags exist; the form they take
+> is still open.
 
 ## Why bundle-of-variables, not a record or a real hash map
 
@@ -442,17 +487,24 @@ Resolved in this cut:
 - ~~Surface accessor~~: **`add` / `item`, no `get`. `item` is settable.
   Property-style access (`a.cat`) where ergonomic.**
 - ~~Generics~~: **None. Axon is a single non-generic class; values are
-  heterogeneous; type tags resolve at the access boundary.**
+  heterogeneous.**
 - ~~Whether the surface is dict-like or record-like~~: **neither — a
   bundle of named variables / control object. Looks dict-shaped
   syntactically; isn't a hash map (no runtime input→output lookup),
   isn't a declared record (no compile-time schema).**
 - ~~Whether axons are lazy across boundaries~~: **yes. Only referenced
   keys materialize.**
-- ~~Whether the appearance of mutation is real~~: **no. Axons are
-  immutable; `item(k) = v` rebinds the local variable to a new axon.
-  The imperative-looking syntax is sugar for transpiling side-effect-
-  heavy languages.**
+- ~~Whether the appearance of mutation is real~~: **no. The
+  imperative-looking syntax is sugar; the compiler usually elides the
+  axon entirely (treats `item(k) = v` as SSA-style variable rename).
+  A new axon only materializes when one actually has to cross a
+  function or loop boundary.**
+- ~~Whether axons can appear anywhere in code~~: **no — meaningfully
+  only at four positions: function input, function output, loop start,
+  loop end. Anywhere else is syntactic salt that the compiler erases.**
+- ~~Whether per-entry class tags exist~~: **yes — the user has resolved
+  that axons store class info per entry as a suggestion to the type
+  system. Mechanics still TBD (see open below).**
 
 Still open:
 - How the per-entry type tag is represented and resolved (runtime cast
