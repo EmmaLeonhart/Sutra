@@ -756,6 +756,16 @@ class BaseCodegen:
         param_names = [p.name for p in decl.params]
         self._emit(f"def {decl.name}({', '.join(param_names)}):")
         self._indent += 1
+        # Register parameter types so instance-method dispatch
+        # (Axon-typed params) and the general typed-receiver path
+        # find them. Without this, `function int f(Axon a) {
+        # return a.item("k"); }` would not route `a.item(...)` to
+        # the runtime axon_item method.
+        for p in decl.params:
+            if p.type_ref is not None:
+                self._var_type[p.name] = p.type_ref.name
+                if p.type_ref.name == "Axon":
+                    self._axon_declared.add(p.name)
         # Reset the slot table for this function scope. If the body
         # has any slot declarations we'll need a `_slot_state` local,
         # initialized to a zero vector before the first slot_store.

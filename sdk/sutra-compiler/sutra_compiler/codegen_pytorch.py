@@ -641,6 +641,14 @@ class PyTorchCodegen(Codegen):
         self._emit("# identifier) or as an already-embedded vector.")
         self._emit("# Strings are auto-embedded into a basis vector.")
         self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
+        self._emit("# Scalar fillers (Python int / float) are promoted to")
+        self._emit("# a real-axis vector via make_real so the bind matmul")
+        self._emit("# works. Per the axon spec, axons can carry values of")
+        self._emit("# any kind; on the substrate they all become vectors.")
+        self._emit("if isinstance(value, (int, float)):")
+        self._indent += 1
+        self._emit("value = self.make_real(float(value))")
+        self._indent -= 1
         self._emit("return axon + self.bind(key_vec, value)")
         self._indent -= 1
         self._emit()
