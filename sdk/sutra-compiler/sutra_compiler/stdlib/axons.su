@@ -35,18 +35,15 @@
 // piece of work.
 //
 // What is deferred:
-//   - Per-entry class tags (the spec says they exist; today the
-//     return type of `Axon.item` is `vector` and the caller is
-//     responsible for narrowing).
-//   - SSA-elision of intermediate axons (the spec says the compiler
-//     should treat `a.item(k) = v` as variable rename when no
-//     boundary crossing forces materialization; today every call
-//     is materialized).
-//   - Lazy evaluation across function/program boundaries (the spec
-//     says only referenced keys materialize at the boundary; today
-//     the full bundle crosses).
-//   - Generalizing instance-method-as-augmented-assignment to any
-//     user-defined class with a void-returning method.
+//   - Per-entry class tags (deemed an IDE-level concern; the user's
+//     idiom is to declare the retrieval type explicitly:
+//     `Cat c = a.item("cat");`).
+//   - Lazy evaluation across function/program boundaries — the spec
+//     says only receiver-referenced keys materialize at the
+//     boundary; today the full bundle crosses. Within a single
+//     function, the SSA-elision pass DOES drop adds whose keys are
+//     never read (and the axon doesn't escape). Cross-function
+//     analysis is the unimplemented piece.
 
 
 class Axon extends vector {
