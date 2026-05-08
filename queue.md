@@ -12,15 +12,17 @@ stay in sync.
 
 In strategic order. Top item is the current focus.
 
-1. **Stabilize the axon spec.** `planning/sutra-spec/axons.md` is in
-   as a first cut (commit `2227d06`) but has many open questions —
-   the user has explicitly said they have not done much work on the
-   axon. The TypeScript transpiler (item 3) is blocked on this
-   stabilizing. Outstanding axon questions are indexed in
-   `planning/sutra-spec/open-questions.md` under §Axons. The most
-   load-bearing for the transpiler: role surface syntax (`R_x` vs
-   bare identifier in `.su`), function-pointer / higher-order-axon
-   story, axon width specification.
+1. **TypeScript → Sutra transpiler implementation.** Skeleton at
+   `sdk/sutra-from-ts/` (commit `6d8de7c`). Recent lowering work in
+   flight (commits `f3d19ab` if/else + `JavaScriptObject` +
+   `truth_axis` intrinsic; `99fcac7` minimal first-cut transpiler).
+   Not blocked — the axon surface decisions the transpiler depends
+   on (`add` / `item` / property-style access / no schema / four
+   positions / lazy across boundaries) all landed in the 2026-05-07
+   axon-spec second cut. Remaining open axon questions (per-entry
+   tag mechanics, missing-key behavior, error propagation, dynamic-
+   key lowering) are calibration items the transpiler can pick a
+   default for and revisit.
 
 2. **Configure PyPI Trusted Publishing for `sutra-compiler`.** The
    package, license, and release workflow are in (commits `3f74234`
@@ -33,12 +35,19 @@ In strategic order. Top item is the current focus.
    is user-side action — the workflow is inert until pypi.org is
    configured.
 
-3. **TypeScript → Sutra transpiler implementation.** Skeleton landed
-   at `sdk/sutra-from-ts/` (commit `6d8de7c`). Recent lowering work
-   in flight (commits `f3d19ab` if/else + `JavaScriptObject` +
-   `truth_axis` intrinsic; `99fcac7` minimal first-cut transpiler).
-   Implementation continues to be gated by (1) for the parts that
-   touch axon surface syntax.
+3. **Demonstrate multi-program axon passing with lazy evaluation.**
+   `axons.md` claims that only the keys the receiver references
+   actually cross a program boundary. We have never demonstrated
+   this end-to-end: every `.su` example is a single program, and
+   `program-structure.md` is explicit that there is no module /
+   import system. The user (2026-05-08) flagged this as the actual
+   open axon question — within a program the loop's recurrent
+   state already *is* an implicit axon, but between-program axon
+   passing is unbuilt. Concrete shape of the demo: two `.su`
+   programs, one publishes a wide axon (10+ keys), the other reads
+   a small slice; verify in the compiled artifact that only the
+   referenced slice materializes on the wire. Spec-validation
+   task, not a transpiler blocker.
 
 The C → Sutra transpiler skeleton at `sdk/sutra-from-c/` is parked
 (decision 2026-05-08): user no longer views transpiling Linux as a
@@ -46,10 +55,13 @@ useful path to OS-level Sutra work, so the focus is solely on
 TypeScript. Skeleton stays in tree; do not delete. See `todo.md`
 for the parked entry.
 
-Yantra (the OS) is downstream of (3) — the TypeScript transpiler
-must be in working shape before Yantra is implementable. Yantra is
-its own repo (`../Yantra/`) with its own queue; Sutra's queue ends
-at the transpiler.
+Yantra (the OS) is downstream of (1) — the TypeScript transpiler
+must be in working shape before Yantra is implementable. Item (3)
+is also Yantra-relevant: Yantra leans on inter-program axon passing
+as the IPC currency, so a working multi-program demo is the
+prerequisite for any real Yantra IPC story. Yantra is its own repo
+(`../Yantra/`) with its own queue; Sutra's queue ends at the
+transpiler and the multi-program demo.
 
 ## Pointers
 
