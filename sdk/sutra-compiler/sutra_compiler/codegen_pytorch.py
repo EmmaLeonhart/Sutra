@@ -1493,14 +1493,13 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def _vector_map_lookup(pairs, key):")
         self._indent += 1
-        self._emit('"""Identity-first lookup for vector-keyed maps, cosine fallback."""')
-        self._emit("for k, v in pairs:")
-        self._indent += 1
-        self._emit("if k is key:")
-        self._indent += 1
-        self._emit("return v")
-        self._indent -= 1
-        self._indent -= 1
+        self._emit('"""Cosine-argmax lookup for vector-keyed maps.')
+        self._emit("")
+        self._emit("Stacks the codebook keys into a single substrate matrix at")
+        self._emit("call time, runs one matmul + argmax against the query, and")
+        self._emit("returns the value at the matching index. No host control")
+        self._emit("flow on the runtime path.")
+        self._emit('"""')
         self._emit("if not pairs:")
         self._indent += 1
         self._emit("return None")
@@ -1514,12 +1513,9 @@ class PyTorchCodegen(Codegen):
         self._emit("q = _torch.as_tensor(key, dtype=_DTYPE, device=_DEVICE)")
         self._emit("row_norms = _torch.linalg.norm(keys, dim=1)")
         self._emit("q_norm = _torch.linalg.norm(q)")
-        self._emit("if float(q_norm) == 0:")
-        self._indent += 1
-        self._emit("return pairs[0][1]")
-        self._indent -= 1
         self._emit("safe_rn = _torch.where(row_norms > 0, row_norms, _torch.ones_like(row_norms))")
-        self._emit("scores = (keys @ q) / (safe_rn * q_norm)")
+        self._emit("safe_qn = _torch.where(q_norm > 0, q_norm, _torch.ones_like(q_norm))")
+        self._emit("scores = (keys @ q) / (safe_rn * safe_qn)")
         self._emit("neg_inf = _torch.full_like(scores, float('-inf'))")
         self._emit("scores = _torch.where(row_norms > 0, scores, neg_inf)")
         self._emit("return pairs[int(_torch.argmax(scores).item())][1]")
