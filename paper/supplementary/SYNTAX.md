@@ -38,7 +38,8 @@ that value:
 | `string` | sequence-of-char layout | source-level only |
 | `permutation` | role-rotation seed | |
 | `matrix` | two-dimensional | precomputed at compile time |
-| `map<K,V>` | rotation-hashmap, see "Maps" below | |
+| `map<K,V>` | static codebook, see "Maps and codebooks" below | |
+| `dict<K,V>` | rotation-hashmap accumulator, see "Dictionaries" below | |
 | `scalar` | numeric host scalar | for weights and similarities |
 | `void` | no result | function returns |
 
@@ -113,8 +114,11 @@ shipped operator.
 
 ## Maps and codebooks
 
-A `map<K, V>` is a literal rotation-hashmap. Keys are vectors,
-values are typed (commonly `string` for codebook lookup):
+A `map<K, V>` is a compile-time codebook: a static table of
+(key, value) pairs known at compile time. Keys are typically
+vectors and values are typically strings, used for the
+"recover the vector, name what it is" pattern at the IO
+boundary:
 
 ```c
 map<vector, string> FILLER_NAME = {
@@ -130,9 +134,53 @@ Lookup uses the bracket syntax:
 return FILLER_NAME[winner];
 ```
 
-Internally, lookup compiles to a single `unbind` against the
-bundled key-value record, plus a string-table read at the
-output boundary.
+Internally, the codebook is materialised at compile time as a
+parallel pair of arrays — the keys stacked into a single
+substrate matrix, and the values held host-side. The lookup
+runs cosine similarity between the query vector and the key
+matrix in one matmul, takes the argmax, and indexes into the
+host-side value array at the IO boundary. There is no
+runtime accumulator and no `unbind` — the codebook contents
+are fixed when the program is compiled, so the lookup is a
+single substrate matmul plus an output-boundary index.
+
+## Dictionaries
+
+A `dict<K, V>` is the runtime rotation-hashmap. Where
+`map<K, V>` is a fixed compile-time codebook, `dict<K, V>` is
+a mutable accumulator vector that grows additively as the
+program adds entries. The accumulator is a single substrate
+vector; storage and retrieval are pure rotation-binding
+operations:
+
+```c
+function vector concept_demo() {
+    dict<vector, vector> concept_memory = new dict();
+    concept_memory.Add(cat,  whiskers);
+    concept_memory.Add(dog,  bark);
+    return concept_memory[cat];           // retrieved value
+}
+```
+
+Both surface forms are supported: subscript-assign
+(`d[k] = v`) and the C#-style method form (`d.Add(k, v)`)
+lower to the same functional update. Subscript-read
+(`d[k]`) returns the raw recovered vector. Both forms compile
+to:
+
+```
+new dict()        -> _VSA.hashmap_new()        -> zero vector
+d[k] = v          -> d = _VSA.hashmap_set(d, k, v)
+d.Add(k, v)         (synonym for the above)
+                  -> acc + bind(k, v)
+d[k]              -> _VSA.hashmap_get(d, k)
+                  -> unbind(k, acc)             (raw, no cleanup)
+```
+
+Capacity at d=868 is approximately 32 keys with clean
+recovery against a 200-filler codebook (90% accuracy at
+k=48); see `experiments/rotation_hashmap_capacity.py` and
+the corresponding finding for the curve.
 
 ## Conditionals
 
