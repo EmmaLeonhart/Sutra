@@ -12,17 +12,26 @@ stay in sync.
 
 In strategic order. Top item is the current focus.
 
-1. **TypeScript → Sutra transpiler implementation.** Skeleton at
-   `sdk/sutra-from-ts/` (commit `6d8de7c`). Recent lowering work in
-   flight (commits `f3d19ab` if/else + `JavaScriptObject` +
-   `truth_axis` intrinsic; `99fcac7` minimal first-cut transpiler).
-   Not blocked — the axon surface decisions the transpiler depends
-   on (`add` / `item` / property-style access / no schema / four
-   positions / lazy across boundaries) all landed in the 2026-05-07
-   axon-spec second cut. Remaining open axon questions (per-entry
-   tag mechanics, missing-key behavior, error propagation, dynamic-
-   key lowering) are calibration items the transpiler can pick a
-   default for and revisit.
+1. **TypeScript → Sutra transpiler implementation.** Substantially
+   complete as of 2026-05-08: 12 fixtures land cleanly, all of which
+   both string-match the lowering output AND compile through the
+   Sutra pipeline to runnable Python. Coverage:
+   - Functions (incl. arrow-as-const), interfaces, type aliases,
+     classes (fields + methods + static + constructors + `new`),
+     discriminated unions, `this.field`, void instance methods.
+   - Loops: while / for / do-while hoist into declared `while_loop`
+     decls with auto-detected state vars + slot copies + writeback.
+   - String concat (`s + t` → `String.string_concat`), primitive
+     arrays (`T[]`, `arr[i]`, `arr.length`, `[1, 2, 3]`).
+   - JavaScriptObject runtime (`wrap`, `js_add`) for the untyped JS
+     fallback path.
+   - Sutra-side enabling work also landed today: class fields,
+     constructor sugar (`new`), value-returning instance methods,
+     non-static class loops, operator overloading via inheritance-
+     chain dispatch, synthetic-axis equality (Euclidean+tanh).
+   Postponed: `Math.*` shims (gated on Sutra transcendentals),
+   async/Promise, module imports — explicitly deferred per user
+   2026-05-08.
 
 2. **Demonstrate multi-program axon passing with lazy evaluation.**
    `axons.md` claims that only the keys the receiver references
