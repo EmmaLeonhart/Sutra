@@ -1114,6 +1114,37 @@ class PyTorchCodegen(Codegen):
         self._emit("return int(v[self.semantic_dim + axis].item())")
         self._indent -= 1
         self._emit()
+        self._emit("def string_concat(self, a, b):")
+        self._indent += 1
+        self._emit('"""Concatenate two String values. Reads codepoints from a')
+        self._emit('then b into a fresh String vector. Overflow (a-len + b-len')
+        self._emit('exceeds string_max_length) raises — the synthetic budget is')
+        self._emit('a hard cap. 2026-05-08 addition for TS string + string."""')
+        self._emit("la = self.string_length(a)")
+        self._emit("lb = self.string_length(b)")
+        self._emit("max_len = self.string_max_length()")
+        self._emit("if la + lb > max_len:")
+        self._indent += 1
+        self._emit("raise ValueError(")
+        self._emit('"concat result length %d exceeds synthetic-axis budget %d; '
+                   'increase synthetic_dim" % (la + lb, max_len))')
+        self._indent -= 1
+        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("v[self.semantic_dim + self.AXIS_STRING_FLAG] = 1.0")
+        self._emit("for k in range(la):")
+        self._indent += 1
+        self._emit("axis = self._string_axis(k)")
+        self._emit("v[self.semantic_dim + axis] = a[self.semantic_dim + axis]")
+        self._indent -= 1
+        self._emit("for k in range(lb):")
+        self._indent += 1
+        self._emit("src_axis = self._string_axis(k)")
+        self._emit("dst_axis = self._string_axis(la + k)")
+        self._emit("v[self.semantic_dim + dst_axis] = b[self.semantic_dim + src_axis]")
+        self._indent -= 1
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
         self._emit("def string_to_python(self, v):")
         self._indent += 1
         self._emit('"""Decode a String value back to a Python str. Useful for')
