@@ -1,21 +1,28 @@
 // Expected lowering of for_loop_sum/input.ts.
 //
 // Notes:
-//   - The `for (init; cond; incr) body` form desugars to
-//     `init; while (cond) { body; incr; }`. The initializer becomes a
-//     standalone statement before the loop; the increment becomes the
-//     last statement inside the loop body.
-//   - `let i = 0` in the initializer becomes `slot int i = 0` (let
-//     lowers to slot; `int` is inferred from the integer-literal
-//     initializer).
+//   - `for (init; cond; incr) body` desugars to (init; while-equiv).
+//     The init runs as a regular statement before the loop. The
+//     condition and the body+increment hoist into a declared
+//     `while_loop` (same machinery as plain while). The increment
+//     is folded onto the body's tail so it runs at iteration end.
+//   - `let i = 0` in the initializer becomes `slot int i = 0`
+//     before the loop call.
+
+while_loop _loop_0(i < n, int i = 0, int n = 0, int sum = 0) {
+    sum = sum + i;
+    i = i + 1;
+}
 
 function int sum_to(int n) {
     slot int sum = 0;
     slot int i = 0;
-    while (i < n) {
-        sum = sum + i;
-        i = i + 1;
-    }
+    slot int _i_l0 = i;
+    slot int _n_l0 = n;
+    slot int _sum_l0 = sum;
+    loop _loop_0(i < n, _i_l0, _n_l0, _sum_l0);
+    i = _i_l0;
+    sum = _sum_l0;
     return sum;
 }
 

@@ -2,11 +2,17 @@
 //
 // Locks down: interface → Axon, Axon-typed param + member access via
 // `.item(...)`, if-implicit-else as truth-axis blend, `const` →
-// plain int decl, `let` → slot int, while loop, function call in
-// expression context.
+// plain int decl, `let` → slot int, while loop hoisted to declared
+// `while_loop` form (Axon state vars too — `r` shows up as a state
+// param), function call in expression context inside the loop body.
 
 function int clamp(int value, Axon r) {
     return ((1 + truth_axis(defuzzy(value < r.item("lo")))) * (r.item("lo")) + (1 - truth_axis(defuzzy(value < r.item("lo")))) * (value)) / 2;
+}
+
+while_loop _loop_0(i < arr_size, int arr_size = 0, int i = 0, Axon r = 0, int total = 0) {
+    total = total + clamp(i, r);
+    i = i + 1;
 }
 
 function int sum_clamped(int arr_size, int max) {
@@ -15,10 +21,13 @@ function int sum_clamped(int arr_size, int max) {
     r.add("hi", max);
     slot int total = 0;
     slot int i = 0;
-    while (i < arr_size) {
-        total = total + clamp(i, r);
-        i = i + 1;
-    }
+    slot int _arr_size_l0 = arr_size;
+    slot int _i_l0 = i;
+    slot Axon _r_l0 = r;
+    slot int _total_l0 = total;
+    loop _loop_0(i < arr_size, _arr_size_l0, _i_l0, _r_l0, _total_l0);
+    i = _i_l0;
+    total = _total_l0;
     return total;
 }
 
