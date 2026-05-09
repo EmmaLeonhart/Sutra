@@ -780,6 +780,18 @@ class BaseCodegen:
         else:
             for stmt in decl.body.statements:
                 self._translate_stmt(stmt)
+        # For non-static void-returning methods, auto-emit `return this`
+        # at the end of the body so the augmented-assignment desugar
+        # (`obj.method(...)` → `obj = Class_method(obj)`) sees the
+        # rebound this. Without this, void methods that mutate this.field
+        # via the axon-add rebind would discard the mutation when the
+        # caller assigns the return value back. Static methods and
+        # value-returning methods don't need this — they have an
+        # explicit return.
+        if (not is_static
+                and (decl.return_type is None
+                     or decl.return_type.name == "void")):
+            self._emit("return this")
         self._slot_vars = outer_slot_vars
         self._current_return_type = outer_return_type
         self._current_class_name = outer_class_name
@@ -1482,6 +1494,29 @@ class BaseCodegen:
                         self._emit(
                             f'{fld_obj_name} = _VSA.axon_add('
                             f'{fld_obj_name}, "{fld_name}", {value_src})'
+                        )
+                        return
+                # Same field-write rule for `this.field = value` inside
+                # a class method body. Rebinds the local `this` param,
+                # which propagates back to the caller via the existing
+                # `obj.method(...);` augmented-assignment desugar.
+                if (isinstance(expr.target, ast.MemberAccess)
+                        and isinstance(expr.target.obj, ast.ThisExpr)
+                        and self._current_class_name is not None):
+                    cls_name = self._current_class_name
+                    fld_name = expr.target.member
+                    if (cls_name in self._class_fields
+                            and fld_name in self._class_fields[cls_name]):
+                        if expr.op != "=":
+                            raise CodegenNotSupported(
+                                stmt,
+                                f"compound assignment on a class field "
+                                f"(`{expr.op}`) is not yet supported; use "
+                                "plain `=` for now",
+                            )
+                        value_src = self._translate_expr(expr.value)
+                        self._emit(
+                            f'this = _VSA.axon_add(this, "{fld_name}", {value_src})'
                         )
                         return
                 # dict[key] = value dispatches to the rotation-hashmap
@@ -2261,6 +2296,16 @@ class BaseCodegen:
                         and obj_class in self._class_fields
                         and expr.member in self._class_fields[obj_class]):
                     return f'_VSA.axon_item({obj_name}, "{expr.member}")'
+            # Same field-read rule, but for `this.field` inside a class
+            # method body. The current class is captured in
+            # `_current_class_name`; if the member is a declared field
+            # on it, emit the axon read on the `this` param.
+            if (isinstance(expr.obj, ast.ThisExpr)
+                    and self._current_class_name is not None):
+                cls_name = self._current_class_name
+                if (cls_name in self._class_fields
+                        and expr.member in self._class_fields[cls_name]):
+                    return f'_VSA.axon_item(this, "{expr.member}")'
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
         if isinstance(expr, ast.EmbedExpr):
             return self._embed_expr_src(expr)
