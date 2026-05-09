@@ -1164,6 +1164,14 @@ class BaseCodegen:
         # Register so LoopCallStmt knows the state-param shape.
         self._loop_decls[registry_key] = decl
 
+        # Non-static class-bodied loops thread `this` as an implicit
+        # first state parameter. The body has access to `this.field`
+        # via the field-access machinery (which keys off
+        # _current_class_name + _var_type["this"]). Pass statements
+        # update only the explicit state params; `this` carries over
+        # via Python local rebinding from `this.field = value` writes.
+        is_class_method = (class_name is not None and not decl.is_static)
+
         state_names = [p.name for p in decl.state_params]
         init_param_names = [f"_init_{n}" for n in state_names]
 
@@ -1173,6 +1181,12 @@ class BaseCodegen:
         if decl.kind == "foreach_loop":
             if isinstance(decl.condition, ast.Identifier):
                 py_params.insert(0, decl.condition.name)
+        if is_class_method:
+            # `_init_this` goes first so the call site can pass the
+            # instance positionally. For foreach_loop this lands
+            # before the array param; that's a known wart but no
+            # known programs use foreach as a class loop yet.
+            py_params.insert(0, "_init_this")
         self._emit(
             f"def {py_loop_name}({', '.join(py_params)}):"
         )
@@ -1186,13 +1200,17 @@ class BaseCodegen:
         )
         self._emit(f'"""')
         # State locals init from caller args.
+        if is_class_method:
+            self._emit("this = _init_this")
         for state_name, init_name in zip(state_names, init_param_names):
             self._emit(f"{state_name} = {init_name}")
         self._emit("_halted = 0.0")
 
         # Push (loop_name, state_names) so PassStmt and tail-call
         # ReturnStmt translation know what to assign and which loop
-        # name a `return NAME(args)` surface targets.
+        # name a `return NAME(args)` surface targets. `this` is NOT
+        # in state_names; it threads via Python local rebinding from
+        # field writes inside the body.
         self._loop_state_stack.append((decl.name, state_names))
         # For iterative_loop, `iterator` in the body resolves to the
         # runtime Python local `_iterator` instead of erroring.
@@ -1202,6 +1220,13 @@ class BaseCodegen:
             self._iterator_runtime_in_scope = True
         if decl.kind == "foreach_loop":
             self._element_runtime_in_scope = True
+        # Class context for non-static class loops: lets `this.field`
+        # in the body lower through axon_item / axon_add.
+        prior_class_name = self._current_class_name
+        prior_var_type_this = self._var_type.get("this")
+        if is_class_method:
+            self._current_class_name = class_name
+            self._var_type["this"] = class_name
 
         # do_while: body runs once unconditionally first.
         if decl.kind == "do_while":
@@ -1221,6 +1246,8 @@ class BaseCodegen:
         self._emit("while True:")
         self._indent += 1
         # Snapshot pre-step state for soft-mux freeze on halt.
+        if is_class_method:
+            self._emit(f"_pre_this = this")
         for state_name in state_names:
             self._emit(f"_pre_{state_name} = {state_name}")
         # Evaluate condition (semantics depend on kind).
@@ -1277,6 +1304,10 @@ class BaseCodegen:
         # This makes the iteration that converges produce a state
         # numerically equivalent to its pre-state, so the early-break
         # below exits with the converged value.
+        if is_class_method:
+            self._emit(
+                "this = (1.0 - _halted) * this + _halted * _pre_this"
+            )
         for state_name in state_names:
             self._emit(
                 f"{state_name} = (1.0 - _halted) * {state_name} "
@@ -1299,11 +1330,74 @@ class BaseCodegen:
         self._loop_state_stack.pop()
         self._iterator_runtime_in_scope = prior_iter_runtime
         self._element_runtime_in_scope = prior_elem_runtime
+        # Restore class context if it was set for this loop body.
+        if is_class_method:
+            self._current_class_name = prior_class_name
+            if prior_var_type_this is None:
+                self._var_type.pop("this", None)
+            else:
+                self._var_type["this"] = prior_var_type_this
 
-        # Return final state values + halted (last).
-        return_items = state_names + ["_halted"]
+        # Return final state values + halted (last). Non-static class
+        # loops also return `this` (first), so the call site can
+        # rebind the caller's instance variable.
+        return_items: List[str] = []
+        if is_class_method:
+            return_items.append("this")
+        return_items.extend(state_names)
+        return_items.append("_halted")
         self._emit(f"return ({', '.join(return_items)},)")
         self._indent -= 1  # close the function
+
+    def _translate_loop_call_class_method(
+        self, stmt: "ast.LoopCallStmt", decl: "ast.LoopFunctionDecl"
+    ) -> None:
+        """Call a non-static class-bodied loop. The condition_arg is
+        the receiver (a class-typed local — not a slot var); state
+        args are slot vars as in the static path. After the loop, the
+        returned `this` is assigned back to the receiver var so the
+        caller sees the updated instance."""
+        if len(stmt.state_arg_names) != len(decl.state_params):
+            raise CodegenNotSupported(
+                stmt,
+                f"loop call `{stmt.name}` expects "
+                f"{len(decl.state_params)} state arg(s), got "
+                f"{len(stmt.state_arg_names)}",
+            )
+        instance_name = stmt.condition_arg.name
+        slot_args: List[tuple[str, int]] = []
+        for arg_name in stmt.state_arg_names:
+            if arg_name not in self._slot_vars:
+                raise CodegenNotSupported(
+                    stmt,
+                    f"loop call state argument `{arg_name}` must be a "
+                    f"slot variable in the caller scope.",
+                )
+            slot_args.append((arg_name, self._slot_vars[arg_name]))
+        init_args = [instance_name] + [
+            f"_VSA.slot_load(_slot_state, {idx})" for _, idx in slot_args
+        ]
+        ret_names = (
+            ["_loopret_this"]
+            + [f"_loopret_{n}" for n, _ in slot_args]
+            + ["_loopret_halt"]
+        )
+        py_loop_name = f"_loop_{stmt.name.replace('.', '_')}"
+        self._emit(f"# loop call (non-static): {stmt.name}({instance_name}, ...)")
+        self._emit(
+            f"({', '.join(ret_names)},) = {py_loop_name}"
+            f"({', '.join(init_args)})"
+        )
+        # Assign the returned `this` back to the caller's instance var.
+        self._emit(f"{instance_name} = _loopret_this")
+        # Slot writebacks (skip the leading _loopret_this and trailing halt).
+        for (arg_name, idx), ret_name in zip(slot_args, ret_names[1:-1]):
+            self._emit(
+                f"_slot_state = _VSA.slot_store(_slot_state, {idx}, "
+                f"{ret_name})"
+            )
+        # Accumulate halted into the function-scope program-halt.
+        self._emit("_program_halt = _program_halt * (1.0 - _loopret_halt)")
 
     def _translate_loop_call(self, stmt: "ast.LoopCallStmt") -> None:
         """Emit a call to a previously-declared loop function + writeback.
@@ -1315,6 +1409,12 @@ class BaseCodegen:
         decl form) but its value is unused — the loop function uses its
         own decl-time condition expression against the state locals each
         tick.
+
+        Non-static class-bodied loops add a wrinkle: the condition_arg
+        position carries the receiver instance (a class-typed local,
+        NOT a slot var). The instance gets passed as `_init_this` and
+        the returned `this` value is assigned back to the caller's
+        instance var.
         """
         decl = self._loop_decls.get(stmt.name)
         if decl is None:
@@ -1325,6 +1425,14 @@ class BaseCodegen:
                 f"`while_loop`, `iterative_loop`, `foreach_loop` keywords "
                 f"before being invoked with `loop NAME(...)`.",
             )
+        # Class-method loops: detect by the dotted name + non-static.
+        is_class_method_call = (
+            "." in stmt.name and not getattr(decl, "is_static", False)
+        )
+        if (is_class_method_call
+                and isinstance(stmt.condition_arg, ast.Identifier)):
+            self._translate_loop_call_class_method(stmt, decl)
+            return
         if len(stmt.state_arg_names) != len(decl.state_params):
             raise CodegenNotSupported(
                 stmt,

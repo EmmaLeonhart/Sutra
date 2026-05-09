@@ -402,6 +402,13 @@ class LoopFunctionDecl(Node):
     condition: Expr        # first paren-list item; semantic depends on kind
     state_params: List[LoopStateParam]
     body: Block
+    # Class-bodied loops only: when False (the default for class
+    # loops), the loop is non-static and `this` threads as an implicit
+    # first state parameter. When True, the loop is static and is
+    # called via `loop Class.name(args)` without an instance. Top-level
+    # loop functions (no enclosing class) ignore this field — they're
+    # always effectively static.
+    is_static: bool = False
 
 
 @dataclass

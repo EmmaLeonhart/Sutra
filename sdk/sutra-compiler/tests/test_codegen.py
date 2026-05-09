@@ -699,6 +699,68 @@ class TestClassFieldDeclarations(unittest.TestCase):
         self.assertIn('_VSA.axon_item(c, "age")', py)
 
 
+class TestNonStaticClassLoop(unittest.TestCase):
+    """Non-static class-bodied loops thread `this` as an implicit
+    state parameter (2026-05-08). The body has access to `this.field`
+    via the existing field-access machinery; the call site passes the
+    instance which gets rebound to the returned `this` value.
+    `static` modifier on a class loop opts back into the static form."""
+
+    def test_non_static_loop_emits_init_this_and_returns_this(self):
+        src = (
+            "class Counter extends vector {\n"
+            "  field int count;\n"
+            "  do_while increment(this.count < 5) {\n"
+            "    this.count = this.count + 1;\n"
+            "  }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # Function signature includes _init_this.
+        self.assertIn("def _loop_Counter_increment(_init_this):", py)
+        # Body initializes this from _init_this.
+        self.assertIn("this = _init_this", py)
+        # Soft-mux applies to this on halt.
+        self.assertIn("this = (1.0 - _halted) * this + _halted * _pre_this", py)
+        # Returns (this, _halted).
+        self.assertIn("return (this, _halted,)", py)
+
+    def test_non_static_loop_call_passes_instance_and_writes_back(self):
+        src = (
+            "class Counter extends vector {\n"
+            "  field int count;\n"
+            "  do_while increment(this.count < 5) {\n"
+            "    this.count = this.count + 1;\n"
+            "  }\n"
+            "}\n"
+            "function int main() {\n"
+            "  Counter c = new Counter(0);\n"
+            "  loop Counter.increment(c);\n"
+            "  return c.count;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # Call passes c as the instance arg.
+        self.assertIn("_loop_Counter_increment(c)", py)
+        # Returned this is assigned back to c.
+        self.assertIn("c = _loopret_this", py)
+
+    def test_static_class_loop_does_not_thread_this(self):
+        # `static do_while` opts back into the static form. No
+        # `this` parameter, no `this` in the return.
+        src = (
+            "class Counter extends vector {\n"
+            "  static do_while addOne(x < 5, int x) {\n"
+            "    pass x + 1;\n"
+            "  }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def _loop_Counter_addOne(_init_x):", py)
+        self.assertNotIn("_init_this", py)
+        self.assertNotIn("_pre_this", py)
+
+
 class TestSyntheticAxisEquality(unittest.TestCase):
     """Synthetic-axis-encoded equality (2026-05-08): int / float /
     complex / char / string `==` routes through `_VSA.eq_synthetic`
