@@ -1,80 +1,50 @@
-// Canonical Sutra definitions for memory / lookup operations:
-// `zero_vector`, the rotation-hashmap `hashmap_get` / `hashmap_set`,
-// and the identity-or-nearest-key map lookup.
+// Canonical Sutra definitions for memory / lookup operations.
 //
-// Today these are hardcoded as runtime methods in codegen.py — see
-// `def zero_vector`, `def hashmap_get`, `def hashmap_set`, and the
-// emitted `_vector_map_lookup` helper. This file is the target shape
-// for the inliner. See stdlib/README.md.
+// The runtime hashmap is a single accumulator vector built by adding
+// rotation-bound (key, value) pairs together. This file provides the
+// named functions; the surface syntax `dict<K, V>` (subscript assign /
+// read) lowers to the same operations.
 //
-// Every function below is currently blocked on intrinsics — they
-// need indexed construction, cosine-based argmax, or functional-
-// update semantics that aren't Sutra-callable yet.
+// The dict at runtime is ONLY the accumulator vector. There is no
+// stored codebook of values; cleanup happens at the call site against
+// the caller's statically-known codebook. The codebook is compile-time
+// / IO state, not a runtime field of the dict.
 
 
 // ==========================================================================
-// Section 2 — blocked on intrinsics
+// Section 1 — implemented in pure Sutra
 // ==========================================================================
-//
-// zero_vector — the zero vector at runtime dim. Every component is 0,
-// including every synthetic slot. Used as the neutral element for
-// bundling and as the starting state for constructors like
-// `make_real` / `make_complex`.
-//
-//   function vector zero_vector() {
-//       return _VSA_zeros(runtime_dim);
-//   }
-//
-// Blocked on: `_VSA_zeros(N)` primitive — a d-dim zero vector
-// literal. Could alternatively be expressed as an axis-indexed
-// assignment starting from a fresh allocation once those surfaces
-// land.
 
 
-// hashmap_get — look up a key in a rotation hashmap, returning the
-// bound value. Keys are vectors; lookup is cosine-nearest against
-// the set of rotation-bound (key, value) pairs.
-//
-//   function vector hashmap_get(map m, vector key) {
-//       vector bound = unbind(key, m.state);
-//       return snap(bound, m.values);
-//   }
-//
-// Blocked on: `map` type's field access (`m.state`, `m.values`),
-// `unbind` inlining (see vectors.su), `snap` (substrate cleanup
-// primitive — see similarity.su).
+// hashmap_new — empty accumulator (zero vector). Neutral element for
+// `+` over rotation-bound pairs.
+function vector hashmap_new() {
+    return zero_vector();
+}
 
 
-// hashmap_set — functional update. Returns a new map with the
-// (key, value) pair added or overwritten.
+// hashmap_set — store `value` at `key` by adding `bind(key, value)` to
+// the accumulator. Functional: returns a new accumulator.
 //
-//   function map hashmap_set(map m, vector key, vector value) {
-//       vector fresh = bundle(m.state, bind(key, value));
-//       return map_with_state(m, fresh);
-//   }
-//
-// Blocked on: same as hashmap_get, plus `map_with_state` constructor
-// for the map-type update.
+// No normalization on the bundle. Per-write normalization would corrupt
+// the magnitudes the cleanup step downstream depends on; the caller
+// normalizes at retrieval time if it wants.
+function vector hashmap_set(vector acc, vector key, vector value) {
+    return acc + bind(key, value);
+}
 
 
-// map_lookup — identity-first lookup over a list of (key, value)
-// pairs. Checks each key against the query by identity (same Python
-// object) first; falls back to cosine-nearest match against the
-// stored keys.
+// hashmap_get — recover the value at `key`. Returns the raw recovered
+// vector — clean signal plus ~1/sqrt(N) noise from the other entries.
+// Caller is responsible for cleanup (argmax_cosine against the
+// statically-known codebook, MLP attractor, iterative cleanup, etc.).
 //
-//   function vector map_lookup(pair[] pairs, vector key) {
-//       foreach (pair p in pairs) {
-//           if (p.key is key) {
-//               return p.value;
-//           }
-//       }
-//       return argmax_cosine(key, [p.key for p in pairs]).value;
-//   }
-//
-// Blocked on: `is` identity comparison, comprehension syntax,
-// tuple/pair destructuring, and the `argmax_cosine` composition
-// from similarity.su.
-
+// Capacity at d=868: ~32 keys recover cleanly, 90% accuracy at k=48
+// against a 200-filler codebook. See
+// planning/findings/2026-04-23-rotation-hashmap-capacity-extended-state.md.
+function vector hashmap_get(vector acc, vector key) {
+    return unbind(key, acc);
+}
 
 
 class Memory extends vector {

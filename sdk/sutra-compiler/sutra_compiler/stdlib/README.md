@@ -64,8 +64,8 @@ pipeline has three categories of stdlib entries:
   intrinsic declarations here are pending cleanup)
 
 ### `memory.su` — memory / lookup
+- **Implemented in Sutra:** `hashmap_new`, `hashmap_set`, `hashmap_get`
 - **Intrinsic:** `zero_vector`
-- **Blocked pseudo-Sutra:** `hashmap_get`, `hashmap_set`, `map_lookup`
 
 ### `rotation.su` — rotation matrices and eigenrotation
 - **Blocked pseudo-Sutra:** `make_random_rotation`,
