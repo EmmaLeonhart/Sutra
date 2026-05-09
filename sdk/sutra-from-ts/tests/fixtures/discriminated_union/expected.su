@@ -1,0 +1,25 @@
+// Expected lowering of discriminated_union/input.ts.
+//
+// Notes:
+//   - The `type Shape = …` alias registers `Shape` as Axon-shaped
+//     in the pre-pass; `function area(s: Shape)` lowers `s` to
+//     `Axon`.
+//   - `if (s.kind === "circle") return X; return Y;` matches the
+//     existing if-then-implicit-else lowering: cond gets strong-
+//     defuzzed and the two return values blend on the truth axis.
+//   - `s.kind`, `s.r`, `s.side` all lower through `s.item("…")`
+//     because s is Axon-typed.
+//   - Sutra's runtime decodes a missing key as substrate noise (no
+//     hard error). Discriminated-union narrowing is a TS-side type
+//     check; the transpiler does not enforce it at runtime.
+
+function int area(Axon s) {
+    return ((1 + truth_axis(defuzzy(s.item("kind") == String.make_string("circle")))) * (s.item("r") * s.item("r")) + (1 - truth_axis(defuzzy(s.item("kind") == String.make_string("circle")))) * (s.item("side") * s.item("side"))) / 2;
+}
+
+function int main() {
+    Axon c;
+    c.add("kind", String.make_string("circle"));
+    c.add("r", 5);
+    return area(c);
+}
