@@ -1,0 +1,34 @@
+// Expected lowering of class_loop_counter/input.ts.
+//
+// The while-loop hoist picks up `c` as the only referenced local
+// in the cond + body, makes it a Counter-typed state param of the
+// hoisted loop, declares a slot copy at the call site, and writes
+// back after the loop returns. The body's `c.increment();` lowers
+// to a Sutra method-call statement which Sutra's runtime treats
+// as augmented-assignment on the void-method receiver.
+
+class Counter extends vector {
+    field int count;
+    method void increment() {
+        this.count = this.count + 1;
+    }
+    method bool isDone() {
+        return this.count >= 5;
+    }
+}
+
+while_loop _loop_0((!c.isDone()), Counter c = 0) {
+    c.increment();
+}
+
+function int run_to_five() {
+    Counter c = new Counter(0);
+    slot Counter _c_l0 = c;
+    loop _loop_0((!c.isDone()), _c_l0);
+    c = _c_l0;
+    return c.count;
+}
+
+function int main() {
+    return run_to_five();
+}

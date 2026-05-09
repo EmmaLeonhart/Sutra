@@ -424,9 +424,14 @@ def _hoist_loop(
     out += (
         f"{indent}loop {loop_fn}({cond_src}, {', '.join(slot_args)});\n"
     )
+    # Write back all state vars from their slot copies. For read-only
+    # vars this is a no-op (the slot still holds the input value).
+    # We can't restrict to `mutated` because Sutra's void-method
+    # augmented-assignment (`c.method(); → c = Class_method(c)`)
+    # rebinds the receiver but isn't visible to my mutation analysis
+    # — covering all referenced vars catches that case correctly.
     for v, slot_name in zip(state_vars, slot_args):
-        if v in mutated:
-            out += f"{indent}{v} = {slot_name};\n"
+        out += f"{indent}{v} = {slot_name};\n"
     return out
 
 

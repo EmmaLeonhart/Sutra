@@ -22,6 +22,7 @@ function int sum_to(int n) {
     slot int _sum_l0 = sum;
     loop _loop_0(i < n, _i_l0, _n_l0, _sum_l0);
     i = _i_l0;
+    n = _n_l0;
     sum = _sum_l0;
     return sum;
 }

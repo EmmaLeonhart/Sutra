@@ -26,7 +26,9 @@ function int sum_clamped(int arr_size, int max) {
     slot Axon _r_l0 = r;
     slot int _total_l0 = total;
     loop _loop_0(i < arr_size, _arr_size_l0, _i_l0, _r_l0, _total_l0);
+    arr_size = _arr_size_l0;
     i = _i_l0;
+    r = _r_l0;
     total = _total_l0;
     return total;
 }
