@@ -489,6 +489,51 @@ def _lower_function_body(body_node, source: bytes, ctx: Context) -> str:
     return "".join(out_lines)
 
 
+def _lower_arrow_as_function(
+    name: str, arrow_node, source: bytes, ctx: Context,
+) -> str:
+    """Lower a TS arrow function assigned to a `const` (or `let`) name
+    as a Sutra named function declaration. Sutra has no anonymous-
+    function surface today, so the user-facing name on the LHS becomes
+    the Sutra function's name.
+
+    The arrow's body is either a single expression (`(x) => x * 2`) or
+    a statement block (`(x) => { return x * 2; }`); the lowering
+    handles both."""
+    params_node = arrow_node.child_by_field_name("parameters")
+    return_type_node = arrow_node.child_by_field_name("return_type")
+    body_node = arrow_node.child_by_field_name("body")
+    return_type = (
+        _ts_type_to_sutra(return_type_node, source, ctx)
+        if return_type_node else "JavaScriptObject"
+    )
+    fn_ctx = ctx.child_scope()
+    param_parts: list[str] = []
+    if params_node is not None:
+        for p in params_node.named_children:
+            if p.type in ("required_parameter", "optional_parameter"):
+                pat = p.child_by_field_name("pattern")
+                ann = p.child_by_field_name("type")
+                pname = _node_text(pat, source) if pat else "_arg"
+                ptype = _ts_type_to_sutra(ann, source, ctx)
+                param_parts.append(f"{ptype} {pname}")
+                fn_ctx.local_types[pname] = ptype
+            elif p.type == "identifier":
+                pname = _node_text(p, source)
+                param_parts.append(f"JavaScriptObject {pname}")
+                fn_ctx.local_types[pname] = "JavaScriptObject"
+    params_src = ", ".join(param_parts)
+    if body_node is None:
+        body_src = "    return;\n"
+    elif body_node.type == "statement_block":
+        body_src = _lower_function_body(body_node, source, fn_ctx)
+    else:
+        # Single-expression arrow: `(x) => x * 2`. Wrap as a return.
+        expr_src = _lower_expression(body_node, source, fn_ctx)
+        body_src = f"    return {expr_src};\n"
+    return f"function {return_type} {name}({params_src}) {{\n{body_src}}}\n"
+
+
 def _lower_function(node, source: bytes, ctx: Context) -> str:
     name_node = node.child_by_field_name("name")
     params_node = node.child_by_field_name("parameters")
@@ -665,21 +710,37 @@ def _prepass(root, source: bytes, ctx: Context) -> None:
             if name_node is not None:
                 ctx.class_names.add(_node_text(name_node, source))
 
-    for child in root.named_children:
-        if child.type == "function_declaration":
-            name_node = child.child_by_field_name("name")
-            params_node = child.child_by_field_name("parameters")
-            if name_node is None or params_node is None:
-                continue
-            name = _node_text(name_node, source)
-            ptypes = []
+    def _register_sig(fn_name: str, params_node) -> None:
+        ptypes: list[str] = []
+        if params_node is not None:
             for p in params_node.named_children:
                 if p.type in ("required_parameter", "optional_parameter"):
                     ann = p.child_by_field_name("type")
                     ptypes.append(_ts_type_to_sutra(ann, source, ctx))
                 elif p.type == "identifier":
                     ptypes.append("JavaScriptObject")
-            ctx.function_param_types[name] = ptypes
+        ctx.function_param_types[fn_name] = ptypes
+
+    for child in root.named_children:
+        if child.type == "function_declaration":
+            name_node = child.child_by_field_name("name")
+            params_node = child.child_by_field_name("parameters")
+            if name_node is not None:
+                _register_sig(_node_text(name_node, source), params_node)
+        elif child.type in ("lexical_declaration", "variable_declaration"):
+            # `const name = (args) => body;` — register the arrow's
+            # signature under the LHS name so call-site coercion
+            # (JavaScriptObject.from(...) wrapping) works.
+            for declarator in child.named_children:
+                if declarator.type != "variable_declarator":
+                    continue
+                value_node = declarator.child_by_field_name("value")
+                name_node = declarator.child_by_field_name("name")
+                if (value_node is not None
+                        and value_node.type == "arrow_function"
+                        and name_node is not None):
+                    params_node = value_node.child_by_field_name("parameters")
+                    _register_sig(_node_text(name_node, source), params_node)
 
 
 def lower(source: str) -> str:
@@ -712,6 +773,32 @@ def lower(source: str) -> str:
             pass
         elif child.type == "comment":
             pass
+        elif child.type in ("lexical_declaration", "variable_declaration"):
+            # Top-level `const name = (args) => body;` and equivalents
+            # hoist to a Sutra function declaration. Sutra has no
+            # anonymous-function surface today, so the LHS name on the
+            # const becomes the Sutra function's name.
+            arrow_emitted = False
+            for declarator in child.named_children:
+                if declarator.type != "variable_declarator":
+                    continue
+                value_node = declarator.child_by_field_name("value")
+                name_node = declarator.child_by_field_name("name")
+                if (value_node is not None
+                        and value_node.type == "arrow_function"
+                        and name_node is not None):
+                    fn_name = _node_text(name_node, src_bytes)
+                    out_parts.append(
+                        _lower_arrow_as_function(
+                            fn_name, value_node, src_bytes, ctx
+                        )
+                    )
+                    arrow_emitted = True
+            if not arrow_emitted:
+                out_parts.append(
+                    f"// UNSUPPORTED-TOP-LEVEL: {child.type} "
+                    f"(non-arrow init at module scope is not yet wired)\n"
+                )
         else:
             out_parts.append(f"// UNSUPPORTED-TOP-LEVEL: {child.type}\n")
     return "".join(out_parts)

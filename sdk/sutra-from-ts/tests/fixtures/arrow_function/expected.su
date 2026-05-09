@@ -1,0 +1,25 @@
+// Expected lowering of arrow_function/input.ts.
+//
+// Notes:
+//   - Single-expression arrow `(x: number): number => x * 2`
+//     becomes a Sutra function whose body is a single
+//     `return <expr>;` statement.
+//   - Block arrow `(name) => { … }` becomes a Sutra function with the
+//     block as its body.
+//   - The const's name becomes the function's Sutra name. Cross-
+//     references (e.g. `double(21)` in main) work because the
+//     pre-pass also registers arrow-function names in the function-
+//     signature table.
+
+function int double(int x) {
+    return x * 2;
+}
+
+function String greet(String name) {
+    String greeting = String.make_string("hello ");
+    return greeting;
+}
+
+function int main() {
+    return double(21);
+}
