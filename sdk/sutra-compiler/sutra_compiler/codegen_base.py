@@ -2123,6 +2123,30 @@ class BaseCodegen:
 
     _TRUTH_TYPES = frozenset({"bool", "fuzzy", "trit"})
     _NUMBER_TYPES = frozenset({"int", "float", "complex", "scalar", "char"})
+    # Synthetic-axis-encoded types: numbers and strings live in the
+    # synthetic block of the extended state vector. Per the user's
+    # 2026-05-08 directive, equality on these uses Euclidean-distance
+    # + tanh rather than cosine similarity (which doesn't distinguish
+    # well between values that share direction but differ in
+    # magnitude — `1` and `2` are cosine-similar but Euclidean-far).
+    _SYNTHETIC_AXIS_TYPES = frozenset(
+        {"int", "float", "complex", "scalar", "char", "string"}
+    )
+
+    def _is_synthetic_axis_expr(self, expr: ast.Expr) -> bool:
+        """True iff expr is provably a synthetic-axis-encoded value at
+        compile time — int, float, complex, scalar, char, or string.
+        Conservative — unknown types fall through to the default
+        cosine-similarity equality path."""
+        if isinstance(expr, (ast.IntLiteral, ast.FloatLiteral,
+                             ast.ImaginaryLiteral, ast.ComplexLiteral,
+                             ast.CharLiteral, ast.StringLiteral)):
+            return True
+        if isinstance(expr, ast.Identifier):
+            return self._var_type.get(expr.name) in self._SYNTHETIC_AXIS_TYPES
+        if isinstance(expr, ast.Parenthesized):
+            return self._is_synthetic_axis_expr(expr.inner)
+        return False
 
     def _is_number_expr(self, expr: ast.Expr) -> bool:
         """True iff expr is provably a number-axis value at compile time.

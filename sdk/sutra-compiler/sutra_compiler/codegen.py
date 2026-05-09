@@ -205,14 +205,18 @@ class Codegen(BaseCodegen):
                       left_src: str, right_src: str) -> str:
         """Lower `==` / `!=` to _VSA.eq / _VSA.neq.
 
-        Vector cosine similarity projected onto the truth axis. The
-        runtime computes dot(a, b) / (||a|| · ||b||) via pure vector
-        arithmetic (element-wise multiplies, sums, sqrt), then places
-        the resulting scalar on the truth axis. Differentiable almost
-        everywhere; the only singularity is at a zero-norm input
-        which we guard with a truth=0 fallback.
+        Synthetic-axis-encoded operands (int / float / complex / char /
+        string) route through `eq_synthetic` / `neq_synthetic` per the
+        2026-05-08 user directive: Euclidean distance + tanh rather
+        than cosine similarity, since cosine doesn't distinguish well
+        between values that share direction but differ in magnitude.
+        Embedding-vector operands keep cosine — direction is the
+        meaningful signal there.
         """
         assert op in ("eq", "neq")
+        if (self._is_synthetic_axis_expr(expr.left)
+                and self._is_synthetic_axis_expr(expr.right)):
+            return f"_VSA.{op}_synthetic({left_src}, {right_src})"
         return f"_VSA.{op}({left_src}, {right_src})"
 
     def _complex_mul_src(self, expr: ast.BinaryOp,
@@ -1534,6 +1538,34 @@ class Codegen(BaseCodegen):
         self._emit("# at normal norms it's lost in roundoff, at zero norms it")
         self._emit("# makes the result exactly 0 (neutral).")
         self._emit("return self.make_truth(float(_np.dot(av, bv) / (na * nb + _np.finfo(_np.float64).tiny)))")
+        self._indent -= 1
+        self._emit()
+        # Synthetic-axis equality — Euclidean distance + tanh shape
+        # (2026-05-08 user directive). Used for int / float / complex /
+        # char / string operands where magnitude matters; cosine
+        # collapses information for these. Same truth-axis output
+        # contract as `eq`.
+        self._emit("def eq_synthetic(self, a, b):")
+        self._indent += 1
+        self._emit('"""Equality for synthetic-axis-encoded values.')
+        self._emit('')
+        self._emit('Distance d = ||a - b||₂; truth = 1 - 2*tanh(d).')
+        self._emit('At d=0 truth=+1 (equal). As d→∞, truth→-1 (not equal).')
+        self._emit('Same tanh squash as the truth-axis machinery, just')
+        self._emit('routed through Euclidean distance instead of cosine.')
+        self._emit('"""')
+        self._emit("av = self._as_any_vector(a)")
+        self._emit("bv = self._as_any_vector(b)")
+        self._emit("diff = av - bv")
+        self._emit("dist = _np.sqrt(_np.dot(diff, diff))")
+        self._emit("truth = 1.0 - 2.0 * _np.tanh(dist)")
+        self._emit("return self.make_truth(float(truth))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def neq_synthetic(self, a, b):")
+        self._indent += 1
+        self._emit('"""!= for synthetic-axis values — negation of eq_synthetic."""')
+        self._emit("return -self.eq_synthetic(a, b)")
         self._indent -= 1
         self._emit()
         # neq runtime method was deleted in v0.3 step 4. `!=` lowers
