@@ -1,0 +1,29 @@
+// Expected lowering of array_sum/input.ts.
+//
+// `arr: number[]` records `arr` as Sutra-side `Array`-typed in the
+// transpiler context. `arr.length` routes to the `array_length`
+// builtin (which emits `len(arr)` in the generated Python).
+// `arr[i]` passes through as plain subscript. The for-loop hoists
+// into a declared `while_loop` whose state includes `arr`.
+
+while_loop _loop_0(i < array_length(arr), Array arr = 0, int i = 0, int total = 0) {
+    total = total + arr[i];
+    i = i + 1;
+}
+
+function int sum_arr(Array arr) {
+    slot int total = 0;
+    slot int i = 0;
+    slot Array _arr_l0 = arr;
+    slot int _i_l0 = i;
+    slot int _total_l0 = total;
+    loop _loop_0(i < array_length(arr), _arr_l0, _i_l0, _total_l0);
+    arr = _arr_l0;
+    i = _i_l0;
+    total = _total_l0;
+    return total;
+}
+
+function int main() {
+    return sum_arr([1, 2, 3, 4, 5]);
+}

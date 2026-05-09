@@ -115,6 +115,13 @@ def _ts_type_to_sutra(annotation_node, source: bytes, ctx: Context) -> str:
         if ctx.is_axon_typed(name):
             return "Axon"
         return name
+    if inner.type == "array_type":
+        # `T[]` — Sutra-side we use the marker name `Array` so the
+        # transpiler knows to dispatch `.length` / `[i]` through the
+        # array builtins. The Sutra type system doesn't have a real
+        # parameterized `Array<T>` yet; underneath it's a vector / a
+        # Python list at runtime depending on how it's constructed.
+        return "Array"
     return "JavaScriptObject"
 
 
@@ -175,6 +182,30 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         return _node_text(node, source)
     if node.type == "this":
         return "this"
+    if node.type == "array":
+        # `[1, 2, 3]` array literal — emits as a Sutra array literal,
+        # which the codegen lowers to a Python list. Array helpers
+        # (`array_length`, `array_get`) work on these.
+        elem_srcs = [
+            _lower_expression(e, source, ctx)
+            for e in node.named_children
+        ]
+        return f"[{', '.join(elem_srcs)}]"
+    if node.type == "subscript_expression":
+        # `arr[i]` — Sutra has subscript built in (lowers to Python
+        # `arr[i]`), so passing through as-is works for plain Python-
+        # list arrays.
+        target = node.child_by_field_name("object")
+        index = node.child_by_field_name("index")
+        target_src = (
+            _lower_expression(target, source, ctx)
+            if target is not None else "/* missing */"
+        )
+        index_src = (
+            _lower_expression(index, source, ctx)
+            if index is not None else "0"
+        )
+        return f"{target_src}[{index_src}]"
     if node.type == "new_expression":
         # `new ClassName(args)` — passes through to Sutra's `new`
         # auto-constructor sugar (which emits `<Class>_new(args)`).
@@ -201,6 +232,12 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
             right_t = _expr_type(right, source, ctx)
             if left_t == "JavaScriptObject" or right_t == "JavaScriptObject":
                 return f"JavaScriptObject.add({left_src}, {right_src})"
+            # `string + string` → `String.string_concat(a, b)`. Sutra's
+            # default `+` doesn't lower to anything meaningful for two
+            # vectors with the AXIS_STRING_FLAG set; the dedicated
+            # `string_concat` intrinsic walks the codepoint axes.
+            if left_t == "String" and right_t == "String":
+                return f"String.string_concat({left_src}, {right_src})"
         return f"{left_src} {op_text} {right_src}"
     if node.type == "unary_expression":
         op = node.child_by_field_name("operator")
@@ -270,6 +307,10 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         obj_t = _expr_type(obj, source, ctx) if obj is not None else None
         if obj_t == "Axon":
             return f'{obj_src}.item("{prop_text}")'
+        # Array-typed `arr.length` → `array_length(arr)` (a Sutra
+        # builtin that emits Python `len(arr)`).
+        if obj_t == "Array" and prop_text == "length":
+            return f"array_length({obj_src})"
         _PROPERTY_TO_METHOD = {
             "length": "string_length",
         }

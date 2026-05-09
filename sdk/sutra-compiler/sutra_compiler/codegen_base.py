@@ -241,6 +241,21 @@ def _builtin_truth_value(args: List[str]) -> str:
     return f"_VSA.make_truth({args[0]})"
 
 
+def _builtin_array_length(args: List[str]) -> str:
+    # `array_length(arr)` — Python `len(arr)` for plain lists. Used by
+    # the TS transpiler's `arr.length` lowering for primitive arrays.
+    # The runtime's `_VSA.array_length` works on tensor binding-arrays;
+    # this builtin path handles the Python-list case which TS array
+    # literals lower to.
+    return f"len({args[0]})"
+
+
+def _builtin_array_get(args: List[str]) -> str:
+    # `array_get(arr, i)` — Python `arr[i]`. Used by the TS transpiler
+    # for indexing array-typed locals when the array is a Python list.
+    return f"{args[0]}[{args[1]}]"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -269,6 +284,11 @@ BUILTINS = {
     "real_number": (_builtin_real_number, 1),
     "complex_number": (_builtin_complex_number, 2),
     "truth_value": (_builtin_truth_value, 1),
+    # Plain-list array helpers used by the TS transpiler's primitive-
+    # array lowering. The richer binding-array runtime methods on the
+    # `_VSA` class are reached through different paths.
+    "array_length": (_builtin_array_length, 1),
+    "array_get": (_builtin_array_get, 2),
 }
 
 
