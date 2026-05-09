@@ -21,39 +21,59 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
-## TS transpiler — postponed pieces (2026-05-08)
+## TS transpiler / Sutra postponed pieces (2026-05-08)
 
-The three deferred dimensions of the TS → Sutra transpiler. The
-core transpiler shipped 2026-05-08 with 12 fixtures green end-to-
-end (TS source → `.su` → runnable Python). These three are
-explicitly postponed; pick up when context-shifts.
+Four deferred dimensions of the TS → Sutra pipeline. The core
+transpiler shipped 2026-05-08 with 12 fixtures green end-to-end
+(TS source → `.su` → runnable Python). These are explicitly
+postponed; pick up when context-shifts.
 
 - [ ] **`Math.*` shims** (`Math.sqrt`, `Math.PI`, `Math.sin`, etc.).
   Gated on Sutra-side transcendentals — currently disabled in the
   codegen with a `CodegenNotSupported` pointer at
   `sdk/sutra-compiler/sutra_compiler/stdlib/math.su`. The TS
-  transpiler can already emit `Math.sqrt(x)` shape calls; they
+  transpiler can already emit `Math.sqrt(x)`-shape calls; they
   fail at Sutra codegen until the transcendental work below is
   picked up. See "[This year] Compile-time math function
   approximation" below.
 
 - [ ] **`async` / `await` / `Promise`**. Sutra has no concurrency
-  primitive that matches Promise semantics today. The transpiler
-  could in principle lower an `async function` to a synchronous
-  Sutra function (Sutra is synchronous), but `await` on a Promise
-  has no Sutra analog without picking a concurrency model. Park
-  until `planning/sutra-spec/concurrency.md` consolidates a
-  surface — see "[This year] Concurrency — only the cases that
-  need explicit handling" below.
+  primitive that matches Promise semantics today. **User
+  hypothesis (2026-05-08): promise / async are likely related to
+  axons** — both are lazy-materialization stories (a Promise is a
+  value-not-yet-computed; an axon defers materialization to the
+  receiver's actual reads). The user explicitly noted they don't
+  know JS Promise semantics well enough to commit to a mapping;
+  flagged for design work when the time comes. If the axon angle
+  pans out: `async function f(): Promise<T>` could lower to a
+  function returning an axon, with `await p` becoming an axon
+  read. Park until either `planning/sutra-spec/concurrency.md`
+  consolidates a surface OR the multi-program axon demo (below)
+  reveals what shape inter-program lazy values actually want.
 
 - [ ] **Module imports** (`import { X } from "./foo"`). v1 is
   single-file: each `.ts` file lowers independently to one `.su`
   file with no cross-file resolution. Lifting needs a Sutra-side
-  module system first (program-structure.md is explicit there is
-  no `import` today) and a transpiler-side mapping from TS module
-  graphs to whatever cross-file form Sutra adopts. Cross-cuts
-  with the multi-program axon demo (queue.md item 2): both want
-  inter-program semantics.
+  module system first (`planning/sutra-spec/program-structure.md`
+  is explicit there is no `import` today) and a transpiler-side
+  mapping from TS module graphs to whatever cross-file form Sutra
+  adopts. Cross-cuts with the multi-program axon demo below.
+
+- [ ] **Multi-program axon passing with lazy evaluation.**
+  `axons.md` claims that only the keys the receiver references
+  actually cross a program boundary. Never demonstrated end-to-
+  end: every `.su` example is single-program, and
+  `program-structure.md` is explicit there's no module / import
+  system. User flagged this 2026-05-08 as the actual open axon
+  question — within a program the loop's recurrent state already
+  *is* an implicit axon, but between-program axon passing is
+  unbuilt. Concrete shape of the demo: two `.su` programs, one
+  publishes a wide axon (10+ keys), the other reads a small
+  slice; verify in the compiled artifact that only the
+  referenced slice materializes on the wire. Spec-validation
+  task. Cross-cuts with module imports above (both want inter-
+  program semantics) and with promise/async above (both are
+  lazy-materialization stories).
 
 ---
 
