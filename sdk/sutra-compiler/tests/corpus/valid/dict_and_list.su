@@ -12,6 +12,16 @@ function vector dict_demo() {
     return concept_memory[v_cat];
 }
 
+function vector dict_csharp_demo() {
+    // C#-style spelling: explicit `new dict()` constructor and
+    // `.Add(k, v)` method. Lowers to the same hashmap_new + hashmap_set
+    // calls as the bare-declaration + subscript-assign form above.
+    dict<vector, vector> concept_memory = new dict();
+    concept_memory.Add(v_cat, v_whiskers);
+    concept_memory.Add(v_dog, v_bark);
+    return concept_memory[v_cat];
+}
+
 function int list_demo() {
     // list<T> from a literal — Python list under the hood.
     list<int> items = [10, 20, 30];

@@ -1618,6 +1618,21 @@ class BaseCodegen:
             # not rebind. The general "any void-returning instance method
             # on any class is augmented assignment" rule is not yet
             # implemented for non-axon classes.
+            # `d.Add(k, v);` on a dict-typed local — C#-style spelling
+            # of `d[k] = v;`. Lowers to the same functional update as the
+            # subscript-assign form: `d = _VSA.hashmap_set(d, k, v)`.
+            if (isinstance(expr, ast.Call)
+                    and isinstance(expr.callee, ast.MemberAccess)
+                    and isinstance(expr.callee.obj, ast.Identifier)
+                    and expr.callee.obj.name in self._dict_declared
+                    and expr.callee.member == "Add"):
+                dict_name = expr.callee.obj.name
+                arg_srcs = [self._translate_expr(a) for a in expr.args]
+                self._emit(
+                    f"{dict_name} = _VSA.hashmap_set({dict_name}, "
+                    f"{', '.join(arg_srcs)})"
+                )
+                return
             if (isinstance(expr, ast.Call)
                     and isinstance(expr.callee, ast.MemberAccess)
                     and isinstance(expr.callee.obj, ast.Identifier)
@@ -2536,6 +2551,13 @@ class BaseCodegen:
             # 2026-05-08 design: a constructor is "a function that
             # returns something that is in the class"; `new` is just
             # ergonomic sugar for the field-init form.
+            #
+            # Primitive-class constructors route to the runtime's
+            # `<class>_new` helper directly. `new dict()` gives C#-style
+            # dictionary instantiation matching the existing subscript
+            # syntax for that type.
+            if expr.class_name == "dict":
+                return "_VSA.hashmap_new()"
             arg_srcs = [self._translate_expr(a) for a in expr.args]
             return f"{expr.class_name}_new({', '.join(arg_srcs)})"
         if isinstance(expr, ast.MemberAccess):
