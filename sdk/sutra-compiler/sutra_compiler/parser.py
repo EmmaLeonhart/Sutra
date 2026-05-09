@@ -627,9 +627,20 @@ class Parser:
                 # Object loop: a loop function declared inside a class
                 # body. Same shape as a top-level loop function decl;
                 # the codegen emits it with a class-mangled name and
-                # routes `loop Class.name(...)` calls to it.
+                # routes `loop Class.name(...)` calls to it. Non-static
+                # by default — `this` threads as an implicit state.
                 lf = self._parse_loop_function_decl()
                 if lf is not None:
+                    loop_functions.append(lf)
+            elif (tok0.kind is TokenKind.KW_STATIC
+                  and tok1.kind in loop_kw_set):
+                # Static class-bodied loop: explicit `static` keyword.
+                # Same as a top-level loop function — no `this`
+                # threading. Called via `loop Class.name(args)`.
+                self._advance()  # consume `static`
+                lf = self._parse_loop_function_decl()
+                if lf is not None:
+                    lf.is_static = True
                     loop_functions.append(lf)
             elif tok0.kind is TokenKind.KW_FIELD:
                 fd = self._parse_field_decl()

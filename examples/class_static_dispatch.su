@@ -28,9 +28,11 @@ function vector zero() {
 
 // Step 6: object loops — loop functions declared inside a class body.
 // The codegen emits `_loop_Counter_addOne` and the call site
-// `loop Counter.addOne(...)` dispatches to it.
+// `loop Counter.addOne(...)` dispatches to it. Marked `static`
+// because the body doesn't reference `this`; non-static class loops
+// (without the `static` keyword) thread `this` as an implicit state.
 class Counter extends vector {
-    do_while addOne(x < 5, int x) {
+    static do_while addOne(x < 5, int x) {
         pass x + 1;
     }
 }
