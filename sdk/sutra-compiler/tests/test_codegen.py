@@ -699,6 +699,48 @@ class TestClassFieldDeclarations(unittest.TestCase):
         self.assertIn('_VSA.axon_item(c, "age")', py)
 
 
+class TestNewExprConstructor(unittest.TestCase):
+    """`new ClassName(args)` auto-constructor sugar (2026-05-08).
+    Emits a `<Class>_new(args)` factory that fills fields positionally."""
+
+    def test_factory_function_emitted_for_class_with_fields(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "  field int paws;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Cat_new(age, paws):", py)
+        self.assertIn('_c = _VSA.axon_add(_c, "age", age)', py)
+        self.assertIn('_c = _VSA.axon_add(_c, "paws", paws)', py)
+        self.assertIn("return _c", py)
+
+    def test_new_call_dispatches_to_mangled_factory(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = new Cat(7);\n"
+            "  return c.age;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("Cat_new(7)", py)
+        self.assertNotIn("new Cat(", _strip_runtime(py))
+
+    def test_no_factory_emitted_for_class_without_fields(self):
+        # Classes with no fields shouldn't get a factory function — they
+        # don't have anything to fill, and `new Cat()` with zero args
+        # is a separate question (currently unsupported).
+        src = (
+            "class Cat extends vector { }\n"
+        )
+        py = _compile(src)
+        self.assertNotIn("def Cat_new(", py)
+
+
 class TestLogicalConnectives(unittest.TestCase):
     """All logical connectives lower to stdlib polynomial bodies.
 
