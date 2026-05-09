@@ -492,10 +492,34 @@ class BaseCodegen:
                         self._class_instance_methods.setdefault(
                             item.name, set()
                         ).add(m.name)
+        # Emit auto-constructor factory functions for each class with
+        # field declarations. `new ClassName(args)` lowers to a call to
+        # the corresponding `<Class>_new(args)` function. Fields are
+        # filled positionally in declaration order; the factory starts
+        # from a fresh axon vector and adds each field via axon_add.
+        for item in module.items:
+            if isinstance(item, ast.ClassDecl) and item.fields:
+                self._emit_class_factory(item)
+                self._emit()
         for item in module.items:
             self._translate_top_level(item)
             self._emit()
         return self.output
+
+    def _emit_class_factory(self, decl: "ast.ClassDecl") -> None:
+        """Emit `def <Class>_new(field1, field2, ...): ...` which
+        constructs an instance by starting from a fresh axon vector
+        and adding each field in declaration order. Called from
+        `_translate_expr` for `NewExpr` nodes."""
+        param_names = [f.name for f in decl.fields]
+        params_src = ", ".join(param_names)
+        self._emit(f"def {decl.name}_new({params_src}):")
+        self._indent += 1
+        self._emit("_c = _VSA.axon_new()")
+        for fd in decl.fields:
+            self._emit(f'_c = _VSA.axon_add(_c, "{fd.name}", {fd.name})')
+        self._emit("return _c")
+        self._indent -= 1
 
     # -- prelude ----------------------------------------------------------
 
@@ -2212,6 +2236,15 @@ class BaseCodegen:
             return f"({expr.op}{self._translate_expr(expr.operand)})"
         if isinstance(expr, ast.ThisExpr):
             return "this"
+        if isinstance(expr, ast.NewExpr):
+            # `new ClassName(args)` — auto-constructor sugar. Lowers to
+            # `<Class>_new(args)` where the factory is emitted by
+            # `_emit_class_factory` in the pre-pass. Per the user's
+            # 2026-05-08 design: a constructor is "a function that
+            # returns something that is in the class"; `new` is just
+            # ergonomic sugar for the field-init form.
+            arg_srcs = [self._translate_expr(a) for a in expr.args]
+            return f"{expr.class_name}_new({', '.join(arg_srcs)})"
         if isinstance(expr, ast.MemberAccess):
             # Class-field read: `c.name` where c is a class-typed local
             # and `name` is declared as a field on that class. Per the

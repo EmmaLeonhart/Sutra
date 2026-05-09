@@ -1922,6 +1922,8 @@ class Parser:
         if tok.kind is TokenKind.KW_THIS:
             self._advance()
             return ast.ThisExpr(span=tok.span)
+        if tok.kind is TokenKind.KW_NEW:
+            return self._parse_new_expr()
         if tok.kind is TokenKind.IDENT:
             # Handle special built-in calls syntactically.
             if tok.lexeme in _SPECIAL_CALL_NAMES:
@@ -1952,6 +1954,32 @@ class Parser:
         )
         self._advance()
         return ast.Identifier(name="<error>", span=tok.span)
+
+    def _parse_new_expr(self) -> ast.Expr:
+        """Parse `new ClassName(args)` — auto-constructor sugar that
+        the codegen lowers to a `<Class>_new(args)` factory call.
+        Per the user's 2026-05-08 design, args are positional and
+        match the field declarations in source order."""
+        new_tok = self._expect(TokenKind.KW_NEW, "`new`")
+        if new_tok is None:
+            return ast.Identifier(name="<error>", span=self._current_span())
+        name_tok = self._expect(TokenKind.IDENT, "class name after `new`")
+        if name_tok is None:
+            return ast.Identifier(name="<error>", span=self._current_span())
+        self._expect(TokenKind.LPAREN, "`(` to open constructor args")
+        args: List[ast.Expr] = []
+        if not self._check(TokenKind.RPAREN):
+            args.append(self._parse_expr())
+            while self._check(TokenKind.COMMA):
+                self._advance()
+                args.append(self._parse_expr())
+        end = self._expect(TokenKind.RPAREN, "`)` to close constructor args")
+        end_pos = end.span.end if end is not None else self._current_span().end
+        return ast.NewExpr(
+            class_name=name_tok.lexeme,
+            args=args,
+            span=SourceSpan(start=new_tok.span.start, end=end_pos),
+        )
 
     def _parse_interp_string(self) -> ast.InterpolatedString:
         start_tok = self._advance()  # STRING_INTERP_START

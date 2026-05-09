@@ -157,6 +157,23 @@ class Call(Expr):
 
 
 @dataclass
+class NewExpr(Expr):
+    """`new ClassName(args)` — auto-constructor for a class with field
+    declarations.
+
+    Per the user's 2026-05-08 class-field design, a constructor is "a
+    function that returns something that is in the class." `new` is
+    sugar over that: the codegen emits a `<Class>_new(args)` factory
+    that starts from a fresh vector and adds each field via axon_add
+    in declaration order. Args are positional and must match the
+    field count.
+    """
+
+    class_name: str
+    args: List[Expr]
+
+
+@dataclass
 class CastExpr(Expr):
     """`(Type) expr` — safe cast."""
 
