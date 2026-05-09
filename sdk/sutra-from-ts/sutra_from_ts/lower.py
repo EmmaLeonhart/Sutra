@@ -231,7 +231,10 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
             left_t = _expr_type(left, source, ctx)
             right_t = _expr_type(right, source, ctx)
             if left_t == "JavaScriptObject" or right_t == "JavaScriptObject":
-                return f"JavaScriptObject.add({left_src}, {right_src})"
+                # `js_add` rather than `add` to avoid colliding with the
+                # axon `add` runtime method, and to make the JS-coercive
+                # `+` semantics explicit at the Sutra level.
+                return f"JavaScriptObject.js_add({left_src}, {right_src})"
             # `string + string` → `String.string_concat(a, b)`. Sutra's
             # default `+` doesn't lower to anything meaningful for two
             # vectors with the AXIS_STRING_FLAG set; the dedicated
@@ -266,7 +269,12 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
                     and i < len(callee_param_types)
                     and callee_param_types[i] == "JavaScriptObject"
                     and a.type in ("number", "string", "true", "false")):
-                arg_src = f"JavaScriptObject.from({arg_src})"
+                # `wrap` rather than `from` because `from` is a Python
+                # keyword — Sutra's static-intrinsic dispatch routes
+                # `JavaScriptObject.from(x)` to `_VSA.from(x)` which is
+                # a syntax error in the emitted Python. `wrap` avoids
+                # the conflict.
+                arg_src = f"JavaScriptObject.wrap({arg_src})"
             arg_srcs.append(arg_src)
         return f"{func_src}({', '.join(arg_srcs)})"
     if node.type == "assignment_expression":
