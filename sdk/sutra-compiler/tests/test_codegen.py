@@ -699,6 +699,75 @@ class TestClassFieldDeclarations(unittest.TestCase):
         self.assertIn('_VSA.axon_item(c, "age")', py)
 
 
+class TestUserClassOperatorOverloading(unittest.TestCase):
+    """User-class operator overloading via inheritance-chain dispatch
+    (2026-05-08). `method operator +(Cat o) { ... }` inside a class
+    body emits as `Cat_operator_plus(this, o)`; BinaryOp dispatch
+    walks the inheritance chain of either operand looking for the
+    first user-class definition of the operator."""
+
+    def test_operator_plus_emits_mangled_function(self):
+        src = (
+            "class Dollar extends int {\n"
+            "  field int cents;\n"
+            "  method operator +(Dollar other) {\n"
+            "    Dollar r = new Dollar(0);\n"
+            "    r.cents = this.cents + other.cents;\n"
+            "    return r;\n"
+            "  }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Dollar_operator_plus(this, other):", py)
+
+    def test_binop_dispatches_to_user_class_operator(self):
+        src = (
+            "class Dollar extends int {\n"
+            "  field int cents;\n"
+            "  method operator +(Dollar other) {\n"
+            "    Dollar r = new Dollar(0);\n"
+            "    r.cents = this.cents + other.cents;\n"
+            "    return r;\n"
+            "  }\n"
+            "}\n"
+            "function int main() {\n"
+            "  Dollar a = new Dollar(100);\n"
+            "  Dollar b = new Dollar(50);\n"
+            "  Dollar c = a + b;\n"
+            "  return c.cents;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("Dollar_operator_plus(a, b)", py)
+        # Param types are tracked: `other.cents` inside the body lowers
+        # to axon_item, not Python attribute access.
+        self.assertIn('_VSA.axon_item(other, "cents")', py)
+
+    def test_inheritance_chain_walks_to_parent(self):
+        # `Yen extends Money extends int`. Money defines `operator +`;
+        # Yen does not. `a + b` for Yen-typed operands should resolve
+        # to Money_operator_plus via the chain walk.
+        src = (
+            "class Money extends int {\n"
+            "  field int amount;\n"
+            "  method operator +(Money other) {\n"
+            "    Money r = new Money(0);\n"
+            "    r.amount = this.amount + other.amount;\n"
+            "    return r;\n"
+            "  }\n"
+            "}\n"
+            "class Yen extends Money { }\n"
+            "function int main() {\n"
+            "  Yen a = new Money(100);\n"
+            "  Yen b = new Money(50);\n"
+            "  Yen c = a + b;\n"
+            "  return c.amount;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("Money_operator_plus(a, b)", py)
+
+
 class TestInstanceMethodsWithFields(unittest.TestCase):
     """Value-returning and void instance methods composed with field
     reads/writes (`this.field`). Per the 2026-05-08 design, methods
