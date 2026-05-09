@@ -1237,6 +1237,27 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.make_truth(float(cos.item()))")
         self._indent -= 1
         self._emit()
+        # Synthetic-axis equality — Euclidean distance + tanh
+        # (2026-05-08 directive). For int / float / complex / char /
+        # string operands; cosine doesn't distinguish well between
+        # values that share direction but differ in magnitude.
+        self._emit("def eq_synthetic(self, a, b):")
+        self._indent += 1
+        self._emit('"""Synthetic-axis equality — 1 - 2*tanh(||a - b||)."""')
+        self._emit("av = self._as_any_vector(a)")
+        self._emit("bv = self._as_any_vector(b)")
+        self._emit("diff = av - bv")
+        self._emit("dist = _torch.sqrt((diff * diff).sum())")
+        self._emit("truth = 1.0 - 2.0 * _torch.tanh(dist)")
+        self._emit("return self.make_truth(float(truth.item()))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def neq_synthetic(self, a, b):")
+        self._indent += 1
+        self._emit('"""!= for synthetic-axis values — negation of eq_synthetic."""')
+        self._emit("return -self.eq_synthetic(a, b)")
+        self._indent -= 1
+        self._emit()
         # neq runtime method deleted in v0.3 step 4.
 
         self._emit("def _as_any_vector(self, x):")

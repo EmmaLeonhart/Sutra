@@ -699,6 +699,66 @@ class TestClassFieldDeclarations(unittest.TestCase):
         self.assertIn('_VSA.axon_item(c, "age")', py)
 
 
+class TestSyntheticAxisEquality(unittest.TestCase):
+    """Synthetic-axis-encoded equality (2026-05-08): int / float /
+    complex / char / string `==` routes through `_VSA.eq_synthetic`
+    (Euclidean distance + tanh), not the cosine-based `_VSA.eq`.
+    Embedding-vector and truth-axis (fuzzy/bool/trit) operands keep
+    cosine."""
+
+    def test_int_equality_routes_through_eq_synthetic(self):
+        src = (
+            "function fuzzy main() {\n"
+            "  int a = 5;\n"
+            "  int b = 7;\n"
+            "  return a == b;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.eq_synthetic(a, b)", py)
+
+    def test_int_literals_route_through_eq_synthetic(self):
+        src = (
+            "function fuzzy main() {\n"
+            "  return 5 == 5;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.eq_synthetic(5, 5)", py)
+
+    def test_string_equality_routes_through_eq_synthetic(self):
+        src = (
+            "function fuzzy main() {\n"
+            "  string a = \"hello\";\n"
+            "  string b = \"world\";\n"
+            "  return a == b;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.eq_synthetic(a, b)", py)
+
+    def test_fuzzy_equality_keeps_cosine_path(self):
+        # Fuzzy is truth-axis, not synthetic-axis. The existing cosine
+        # eq path is correct for it.
+        src = (
+            "function fuzzy main(fuzzy a, fuzzy b) {\n"
+            "  return a == b;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        user_code = _strip_runtime(py)
+        self.assertIn("_VSA.eq(a, b)", user_code)
+        self.assertNotIn("eq_synthetic", user_code)
+
+    def test_eq_synthetic_runtime_method_emitted(self):
+        # The runtime class should ship eq_synthetic / neq_synthetic
+        # so dispatch can find them.
+        src = "function int main() { return 1; }\n"
+        py = _compile(src)
+        self.assertIn("def eq_synthetic(self, a, b):", py)
+        self.assertIn("def neq_synthetic(self, a, b):", py)
+
+
 class TestUserClassOperatorOverloading(unittest.TestCase):
     """User-class operator overloading via inheritance-chain dispatch
     (2026-05-08). `method operator +(Cat o) { ... }` inside a class
