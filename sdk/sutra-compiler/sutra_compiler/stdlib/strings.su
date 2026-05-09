@@ -47,6 +47,11 @@ class String extends vector {
     static intrinsic method int string_length(String v);
     static intrinsic method int string_char_at(String v, int i);
     static intrinsic method bool is_string(vector v);
+    // String concatenation. Reads codepoints from a then b into a
+    // fresh String vector. Overflow (a-len + b-len > string_max_length)
+    // raises at runtime. Used by the TS transpiler's `string + string`
+    // lowering and by user code that calls it directly. 2026-05-08.
+    static intrinsic method String string_concat(String a, String b);
 }
 
 // A Character is a 1-length String. Same substrate encoding, same
