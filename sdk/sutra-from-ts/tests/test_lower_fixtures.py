@@ -41,8 +41,11 @@ FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures"
 # of a `while_loop NAME(...)` declared-form. Lifting these requires
 # variable-flow analysis to identify mutated/captured locals + a
 # function-hoist + slot-decl pass; tracked as a follow-on task.
-_COMPILE_KNOWN_FAILURES = {
-    "untyped_js": "JavaScriptObject runtime not implemented; `JavaScriptObject.from(7)` lowers to Python with `from` as an attribute name (invalid Python syntax)",
+_COMPILE_KNOWN_FAILURES: dict[str, str] = {
+    # All known compile failures resolved as of 2026-05-08:
+    # - `untyped_js` — JavaScriptObject stdlib + `wrap` / `js_add`
+    #   runtime methods landed; `from` Python-keyword conflict
+    #   resolved by renaming.
 }
 
 

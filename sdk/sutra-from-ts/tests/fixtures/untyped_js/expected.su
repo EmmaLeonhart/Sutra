@@ -6,27 +6,21 @@
 //     fallback class for unresolved JS values. Its return type also
 //     becomes `JavaScriptObject` (the `+` operator on
 //     JavaScriptObject preserves the fallback type).
-//   - The `+` operator on JavaScriptObject lowers to a static method
-//     `JavaScriptObject.add(a, b)` on the wrapping class. That static
-//     method implements JS's `+` semantics (string-concat OR numeric-
-//     add depending on the runtime types of its operands).
-//   - The integer literal `7` gets implicitly wrapped into a
-//     JavaScriptObject when passed as an argument to a function
-//     expecting JavaScriptObject. The wrap is whatever the
-//     JavaScriptObject runtime defines as "from a numeric literal."
-//
-// What this fixture does today:
-//   - Does NOT compile yet. `JavaScriptObject` is not a Sutra class —
-//     the transpiler's runtime stdlib will need to define it. Until
-//     then, this expected.su is illustrative only.
-//   - The String-handling caveat from DESIGN.md applies too: if the
-//     JS code uses string operations, those need the (also-deferred)
-//     Sutra String class.
+//   - `+` between JavaScriptObject operands lowers to a static
+//     method `JavaScriptObject.js_add(a, b)`. The runtime
+//     implementation does element-wise vector add — numeric `+` for
+//     number-axis operands; richer JS-coercive semantics (string
+//     concat detection) is deferred.
+//   - A primitive literal passed to a JavaScriptObject parameter is
+//     wrapped via `JavaScriptObject.wrap(...)`. Named `wrap` rather
+//     than `from` because `from` is a Python keyword — the static-
+//     intrinsic dispatch routes `JavaScriptObject.from(7)` to
+//     `_VSA.from(7)` which is a Python syntax error.
 
 function JavaScriptObject double_or_concat(JavaScriptObject x) {
-    return JavaScriptObject.add(x, x);
+    return JavaScriptObject.js_add(x, x);
 }
 
 function JavaScriptObject main() {
-    return double_or_concat(JavaScriptObject.from(7));
+    return double_or_concat(JavaScriptObject.wrap(7));
 }
