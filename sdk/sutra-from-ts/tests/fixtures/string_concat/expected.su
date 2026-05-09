@@ -1,0 +1,16 @@
+// Expected lowering of string_concat/input.ts.
+//
+// `string + string` routes through `String.string_concat(a, b)` —
+// the Sutra-side static intrinsic added with this work. Cosine-
+// based String equality and other operations stay on the existing
+// path; only `+` between two String-typed operands is special-
+// cased here.
+
+function String greet(String name) {
+    String hello = String.make_string("hello, ");
+    return String.string_concat(hello, name);
+}
+
+function String main() {
+    return greet(String.make_string("world"));
+}
