@@ -28,6 +28,17 @@ _TRANSCENDENTALS_DISABLED = frozenset({
 })
 
 
+# Mapping from Sutra operator symbols to the spelled-out form used in
+# mangled function names. User-class operator overloads emit as
+# `Class_operator_<name>` so the Python identifier is valid.
+_OP_NAME_TO_PYTHON = {
+    "+": "plus", "-": "minus", "*": "mul", "/": "div", "%": "mod",
+    "==": "eq", "!=": "neq",
+    "<": "lt", ">": "gt", "<=": "le", ">=": "ge",
+    "!": "not",
+}
+
+
 # ============================================================
 # Error type
 # ============================================================
@@ -398,6 +409,22 @@ class BaseCodegen:
         # class-field design, fields share the axon machinery — the
         # class declaration is just the schema.
         self._class_fields: dict[str, dict[str, str]] = {}
+        # `class Foo extends Bar` registry. Populated in the pre-pass
+        # when seeing a ClassDecl. Used by user-class operator dispatch
+        # to walk up the inheritance chain when looking for a matching
+        # operator override. The chain bottoms out at a primitive
+        # (vector / int / fuzzy / etc.) — that primitive isn't itself
+        # a key in this map.
+        self._class_parent: dict[str, str] = {}
+        # User-class operator overloads, mapping
+        # (class_name, sutra_op) -> mangled python name. Populated in
+        # the pre-pass over class methods. `sutra_op` is the source
+        # operator (`+`, `-`, `*`, etc.); the mangled name is
+        # `Class_operator_<op-name>` where op-name is the spelled-out
+        # form (`plus` / `minus` / `mul` / ...). Used by BinaryOp
+        # translation to dispatch class-typed operands through the
+        # user's operator method instead of the default Python operator.
+        self._class_operators: dict[tuple[str, str], str] = {}
         # Name of the class whose method body is currently being
         # emitted. Used by `this.method(args)` dispatch to know which
         # class to mangle with. None when not inside a class method.
@@ -470,6 +497,17 @@ class BaseCodegen:
                     field_map = self._class_fields.setdefault(item.name, {})
                     for fd in item.fields:
                         field_map[fd.name] = fd.type_ref.name
+                # Register the inheritance link so user-class operator
+                # dispatch can walk up the chain.
+                self._class_parent[item.name] = item.parent_name
+                # Register user-class operator overloads.
+                for m in item.methods:
+                    if m.is_operator and not m.type_params:
+                        op_sym = m.name[len("operator"):]  # strip `operator` prefix
+                        mangled = (
+                            f"{item.name}_operator_{_OP_NAME_TO_PYTHON.get(op_sym, op_sym)}"
+                        )
+                        self._class_operators[(item.name, op_sym)] = mangled
                 for m in item.methods:
                     if m.is_operator or m.type_params:
                         continue
@@ -505,6 +543,43 @@ class BaseCodegen:
             self._translate_top_level(item)
             self._emit()
         return self.output
+
+    def _resolve_user_operator(
+        self, op: str, left: "ast.Expr", right: "ast.Expr"
+    ) -> Optional[str]:
+        """Walk the inheritance chain of either operand looking for a
+        user-defined `operator <op>` method on a class. Returns the
+        mangled Python name to dispatch to, or None if no user override
+        applies. The chain bottoms out at a primitive class which is
+        not itself in `_class_parent`; once we hit it, we stop.
+
+        Per the user's 2026-05-08 design: "Operator overloading for
+        user classes = inheritance-chain dispatch over the existing
+        primitive operators." The first class up the chain that
+        defines the operator wins.
+        """
+        def _expr_class(e: "ast.Expr") -> Optional[str]:
+            if isinstance(e, ast.Identifier):
+                t = self._var_type.get(e.name)
+                # Only walk when the type is a user class (one we've
+                # registered in `_class_parent`). Primitives keep the
+                # default substrate dispatch.
+                if t is not None and t in self._class_parent:
+                    return t
+            return None
+
+        def _walk(start: Optional[str]) -> Optional[str]:
+            seen: set[str] = set()
+            cur = start
+            while cur is not None and cur not in seen:
+                seen.add(cur)
+                key = (cur, op)
+                if key in self._class_operators:
+                    return self._class_operators[key]
+                cur = self._class_parent.get(cur)
+            return None
+
+        return _walk(_expr_class(left)) or _walk(_expr_class(right))
 
     def _emit_class_factory(self, decl: "ast.ClassDecl") -> None:
         """Emit `def <Class>_new(field1, field2, ...): ...` which
@@ -711,10 +786,12 @@ class BaseCodegen:
         Static methods inside `class Math { static method scalar twice(x) {...} }`
         emit as `def Math_twice(x): ...` at module level; call sites of
         the form `Math.twice(5)` are routed to that mangled name in
-        `_translate_call`. Non-static methods aren't emitted today —
-        instance dispatch (`g.Hello()` for an instance `g`) isn't wired,
-        and the safer move is to fail loudly when one is declared so the
-        gap is visible.
+        `_translate_call`.
+
+        User-class operator overloads (`method operator + (Cat o) {...}`)
+        emit as `def Cat_operator_plus(this, o): ...`; BinaryOp
+        translation routes `a + b` (with a class-typed) through these
+        mangled names per inheritance-chain dispatch.
 
         Intrinsic methods (declared `static intrinsic method ...;`) have
         no Sutra body — the runtime class implements them — so this
@@ -722,11 +799,6 @@ class BaseCodegen:
         registers them in `_class_intrinsic_methods` so the call-site
         dispatch routes `Math.log(x)` to `_VSA.log(x)`.
         """
-        if decl.is_operator:
-            raise CodegenNotSupported(
-                decl,
-                "operator method declarations are not supported by the V1 codegen",
-            )
         if decl.type_params:
             raise CodegenNotSupported(
                 decl,
@@ -761,7 +833,15 @@ class BaseCodegen:
         param_names = [p.name for p in decl.params]
         if not is_static:
             param_names = ["this", *param_names]
-        mangled = f"{class_name}_{decl.name}"
+        # Operator methods mangle `operator+` → `operator_plus` for a
+        # valid Python identifier; the BinaryOp dispatch site uses the
+        # same convention. Non-operator methods keep their name as-is.
+        if decl.is_operator:
+            op_sym = decl.name[len("operator"):]
+            op_py = _OP_NAME_TO_PYTHON.get(op_sym, op_sym)
+            mangled = f"{class_name}_operator_{op_py}"
+        else:
+            mangled = f"{class_name}_{decl.name}"
         self._emit(f"def {mangled}({', '.join(param_names)}):")
         self._indent += 1
         outer_slot_vars = self._slot_vars
@@ -772,6 +852,21 @@ class BaseCodegen:
         )
         outer_class_name = self._current_class_name
         self._current_class_name = class_name
+        # Register method-parameter types so field-access lowering works
+        # for class-typed parameters (e.g. `other.cents` inside an
+        # operator overload reads `other`'s declared type from
+        # _var_type and lowers to _VSA.axon_item(other, "cents")).
+        # `this` is implicit on non-static methods and gets the current
+        # class type. The dict is process-wide; method params shadow
+        # any same-named outer variable for the duration of this body
+        # (and the existing FunctionDecl path has the same shadowing
+        # behavior — both leak across function boundaries today, but
+        # are consistent within the current scope).
+        if not is_static:
+            self._var_type["this"] = class_name
+        for p in decl.params:
+            if p.type_ref is not None:
+                self._var_type[p.name] = p.type_ref.name
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
@@ -2213,6 +2308,17 @@ class BaseCodegen:
         if isinstance(expr, ast.BinaryOp):
             left = self._translate_expr(expr.left)
             right = self._translate_expr(expr.right)
+            # User-class operator dispatch — walk the inheritance chain
+            # of either operand looking for a defined `operator <op>`
+            # method. The first class up the chain to define one wins.
+            # Falls through to the default operator handling if no
+            # user-class override is found, which in turn dispatches to
+            # the primitive-class operator on the substrate.
+            user_op_name = self._resolve_user_operator(
+                expr.op, expr.left, expr.right
+            )
+            if user_op_name is not None:
+                return f"{user_op_name}({left}, {right})"
             # Logical operators dispatch through the substrate so they
             # work uniformly on bool / fuzzy / trit / truth-axis-vector
             # inputs. Zadeh fuzzy logic — min for AND, max for OR — on
