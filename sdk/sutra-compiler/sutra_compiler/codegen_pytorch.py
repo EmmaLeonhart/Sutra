@@ -1114,6 +1114,26 @@ class PyTorchCodegen(Codegen):
         self._emit("return int(v[self.semantic_dim + axis].item())")
         self._indent -= 1
         self._emit()
+        self._emit("def wrap(self, value):")
+        self._indent += 1
+        self._emit('"""JavaScriptObject.wrap(x) — lift a primitive (int /')
+        self._emit('float / string / bool) into a JavaScriptObject. Just')
+        self._emit('routes through `_as_any_vector` which already handles')
+        self._emit('the primitive-to-vector coercion."""')
+        self._emit("return self._as_any_vector(value)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def js_add(self, a, b):")
+        self._indent += 1
+        self._emit('"""JavaScriptObject.js_add(a, b) — JavaScript-coercive `+`.')
+        self._emit('Element-wise vector add; numeric add for number-axis')
+        self._emit('operands. String concatenation under `+` is deferred —')
+        self._emit('strings should be wrapped explicitly today."""')
+        self._emit("av = self._as_any_vector(a)")
+        self._emit("bv = self._as_any_vector(b)")
+        self._emit("return av + bv")
+        self._indent -= 1
+        self._emit()
         self._emit("def string_concat(self, a, b):")
         self._indent += 1
         self._emit('"""Concatenate two String values. Reads codepoints from a')
