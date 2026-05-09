@@ -33,33 +33,22 @@ In strategic order. Top item is the current focus.
    async/Promise, module imports — explicitly deferred per user
    2026-05-08.
 
-2. **Demonstrate multi-program axon passing with lazy evaluation.**
-   `axons.md` claims that only the keys the receiver references
-   actually cross a program boundary. We have never demonstrated
-   this end-to-end: every `.su` example is a single program, and
-   `program-structure.md` is explicit that there is no module /
-   import system. The user (2026-05-08) flagged this as the actual
-   open axon question — within a program the loop's recurrent
-   state already *is* an implicit axon, but between-program axon
-   passing is unbuilt. Concrete shape of the demo: two `.su`
-   programs, one publishes a wide axon (10+ keys), the other reads
-   a small slice; verify in the compiled artifact that only the
-   referenced slice materializes on the wire. Spec-validation
-   task, not a transpiler blocker.
+No active items. The TS transpiler shipped 2026-05-08 with 12
+fixtures green end-to-end. Postponed dimensions (Math.* shims,
+async/Promise, module imports, multi-program axon passing) are
+listed at the top of `todo.md` under "TS transpiler / Sutra
+postponed pieces."
 
 The C → Sutra transpiler skeleton at `sdk/sutra-from-c/` is parked
 (decision 2026-05-08): user no longer views transpiling Linux as a
-useful path to OS-level Sutra work, so the focus is solely on
-TypeScript. Skeleton stays in tree; do not delete. See `todo.md`
-for the parked entry.
+useful path to OS-level Sutra work. Skeleton stays in tree; do not
+delete. See `todo.md` for the parked entry.
 
-Yantra (the OS) is downstream of (1) — the TypeScript transpiler
-must be in working shape before Yantra is implementable. Item (2)
-is also Yantra-relevant: Yantra leans on inter-program axon passing
-as the IPC currency, so a working multi-program demo is the
-prerequisite for any real Yantra IPC story. Yantra is its own repo
-(`../Yantra/`) with its own queue; Sutra's queue ends at the
-transpiler and the multi-program demo.
+Yantra (the OS) is downstream of the TS transpiler — both the
+core transpiler (shipped) and the multi-program axon demo
+(postponed) are Yantra prerequisites for any real IPC story.
+Yantra is its own repo (`../Yantra/`) with its own queue; Sutra's
+queue ends at the transpiler.
 
 ## Pointers
 
