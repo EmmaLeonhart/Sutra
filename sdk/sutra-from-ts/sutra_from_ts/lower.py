@@ -56,6 +56,8 @@ class Context:
     as-is rather than treating them as Axons. `function_param_types` is
     a name → list-of-Sutra-types map for resolving call-site coercions.
     `local_types` is updated as the main pass walks function bodies.
+    `extras` and `loop_counter` thread through so loop-hoisting can
+    deposit declared `while_loop` definitions at module scope.
     """
 
     interface_names: set[str] = field(default_factory=set)
@@ -63,6 +65,8 @@ class Context:
     class_names: set[str] = field(default_factory=set)
     function_param_types: dict[str, list[str]] = field(default_factory=dict)
     local_types: dict[str, str] = field(default_factory=dict)
+    extras: list[str] = field(default_factory=list)
+    loop_counter: list[int] = field(default_factory=lambda: [0])
 
     def is_axon_typed(self, type_name: str) -> bool:
         return (
@@ -73,6 +77,11 @@ class Context:
     def lookup_local(self, name: str) -> Optional[str]:
         return self.local_types.get(name)
 
+    def next_loop_index(self) -> int:
+        idx = self.loop_counter[0]
+        self.loop_counter[0] = idx + 1
+        return idx
+
     def child_scope(self) -> "Context":
         """Return a context with the same global state and a fresh local
         scope."""
@@ -82,6 +91,8 @@ class Context:
             class_names=self.class_names,
             function_param_types=self.function_param_types,
             local_types={},
+            extras=self.extras,
+            loop_counter=self.loop_counter,
         )
 
 
@@ -268,6 +279,226 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
     return f"/* UNSUPPORTED-EXPR: {node.type} */"
 
 
+def _collect_referenced_locals(node, source: bytes, ctx: Context) -> set[str]:
+    """Walk an AST subtree and return the set of local variable names
+    referenced under it. A name is "local" if it's already declared
+    in the surrounding context (`ctx.local_types`). The `this`
+    keyword and member-property identifiers are skipped — only the
+    object side of a member expression counts as a reference."""
+    seen: set[str] = set()
+
+    def walk(n):
+        if n is None:
+            return
+        t = n.type
+        if t == "identifier":
+            name = _node_text(n, source)
+            if name in ctx.local_types and name != "this":
+                seen.add(name)
+            return
+        if t == "this":
+            return
+        if t == "member_expression":
+            obj = n.child_by_field_name("object")
+            walk(obj)
+            return
+        for child in n.named_children:
+            walk(child)
+
+    walk(node)
+    return seen
+
+
+def _collect_mutated_locals(node, source: bytes, ctx: Context) -> set[str]:
+    """Walk an AST subtree and return the set of local variable names
+    that are assigned to. Counts assignment_expression,
+    augmented_assignment_expression, and update_expression where the
+    LHS is a plain identifier referencing an outer-scope local."""
+    seen: set[str] = set()
+
+    def walk(n):
+        if n is None:
+            return
+        t = n.type
+        if t == "assignment_expression":
+            left = n.child_by_field_name("left")
+            if left is not None and left.type == "identifier":
+                name = _node_text(left, source)
+                if name in ctx.local_types and name != "this":
+                    seen.add(name)
+            right = n.child_by_field_name("right")
+            walk(right)
+            return
+        if t == "augmented_assignment_expression":
+            left = n.child_by_field_name("left")
+            if left is not None and left.type == "identifier":
+                name = _node_text(left, source)
+                if name in ctx.local_types and name != "this":
+                    seen.add(name)
+            right = n.child_by_field_name("right")
+            walk(right)
+            return
+        if t == "update_expression":
+            arg = n.child_by_field_name("argument")
+            if arg is not None and arg.type == "identifier":
+                name = _node_text(arg, source)
+                if name in ctx.local_types and name != "this":
+                    seen.add(name)
+            return
+        for child in n.named_children:
+            walk(child)
+
+    walk(node)
+    return seen
+
+
+def _hoist_loop(
+    cond_inner, body_stmts: list, kind: str,
+    source: bytes, ctx: Context, indent: str,
+    extra_increment=None,
+) -> str:
+    """Common backend for `while`, `do-while`, and `for` lowering.
+    Hoists into a top-level loop-function decl + slot decls +
+    `loop NAME(...)` call.
+
+    Args:
+      cond_inner: the condition AST node (already unwrapped from
+        parenthesized_expression for while/do, or the bare cond
+        expression for for).
+      body_stmts: list of AST statement nodes that form the body.
+      kind: "while_loop" or "do_while" — chooses the Sutra keyword.
+      extra_increment: optional AST expression that runs at the end
+        of each iteration (the for-loop increment). Folded into the
+        body's variable analysis and emitted last.
+    """
+    refs: set[str] = set()
+    mutated: set[str] = set()
+    if cond_inner is not None:
+        refs |= _collect_referenced_locals(cond_inner, source, ctx)
+    for stmt in body_stmts:
+        refs |= _collect_referenced_locals(stmt, source, ctx)
+        mutated |= _collect_mutated_locals(stmt, source, ctx)
+    if extra_increment is not None:
+        refs |= _collect_referenced_locals(extra_increment, source, ctx)
+        mutated |= _collect_mutated_locals(extra_increment, source, ctx)
+    state_vars = sorted(refs | mutated)
+
+    if not state_vars:
+        return f"{indent}// UNSUPPORTED: loop with no referenced locals\n"
+
+    loop_idx = ctx.next_loop_index()
+    loop_fn = f"_loop_{loop_idx}"
+    state_param_decls = ", ".join(
+        f"{ctx.local_types[v]} {v} = 0" for v in state_vars
+    )
+    cond_src = (
+        _lower_expression(cond_inner, source, ctx)
+        if cond_inner is not None else "false"
+    )
+
+    body_ctx = ctx.child_scope()
+    for v in state_vars:
+        body_ctx.local_types[v] = ctx.local_types[v]
+    body_src = ""
+    for stmt in body_stmts:
+        body_src += _lower_statement(stmt, source, body_ctx, "    ")
+    if extra_increment is not None:
+        # The for-loop increment is an expression; emit it as a
+        # statement at the end of each iteration.
+        incr_src = _lower_expression(extra_increment, source, body_ctx)
+        body_src += f"    {incr_src};\n"
+
+    ctx.extras.append(
+        f"{kind} {loop_fn}({cond_src}, {state_param_decls}) {{\n"
+        f"{body_src}}}\n\n"
+    )
+
+    # Call site: slot copies + loop call + write-back for mutated.
+    out = ""
+    slot_args: list[str] = []
+    for v in state_vars:
+        slot_name = f"_{v}_l{loop_idx}"
+        t = ctx.local_types[v]
+        out += f"{indent}slot {t} {slot_name} = {v};\n"
+        slot_args.append(slot_name)
+    out += (
+        f"{indent}loop {loop_fn}({cond_src}, {', '.join(slot_args)});\n"
+    )
+    for v, slot_name in zip(state_vars, slot_args):
+        if v in mutated:
+            out += f"{indent}{v} = {slot_name};\n"
+    return out
+
+
+def _lower_while_to_declared_loop(
+    while_node, source: bytes, ctx: Context, indent: str,
+) -> str:
+    cond_node = while_node.child_by_field_name("condition")
+    body_node = while_node.child_by_field_name("body")
+    cond_inner = (
+        cond_node.named_children[0]
+        if cond_node is not None and cond_node.named_children else None
+    )
+    body_stmts = (
+        list(body_node.named_children)
+        if body_node is not None and body_node.type == "statement_block"
+        else ([body_node] if body_node is not None else [])
+    )
+    return _hoist_loop(
+        cond_inner, body_stmts, "while_loop",
+        source, ctx, indent,
+    )
+
+
+def _lower_do_while_to_declared_loop(
+    do_node, source: bytes, ctx: Context, indent: str,
+) -> str:
+    cond_node = do_node.child_by_field_name("condition")
+    body_node = do_node.child_by_field_name("body")
+    cond_inner = (
+        cond_node.named_children[0]
+        if cond_node is not None and cond_node.named_children else None
+    )
+    body_stmts = (
+        list(body_node.named_children)
+        if body_node is not None and body_node.type == "statement_block"
+        else ([body_node] if body_node is not None else [])
+    )
+    return _hoist_loop(
+        cond_inner, body_stmts, "do_while",
+        source, ctx, indent,
+    )
+
+
+def _lower_for_to_declared_loop(
+    for_node, source: bytes, ctx: Context, indent: str,
+) -> str:
+    """Lower `for (init; cond; incr) body` by emitting the init as a
+    regular statement (so its declarations land in scope) and then
+    hoisting (cond, body+incr) into a declared `while_loop`."""
+    init = for_node.child_by_field_name("initializer")
+    cond = for_node.child_by_field_name("condition")
+    incr = for_node.child_by_field_name("increment")
+    body = for_node.child_by_field_name("body")
+    out = ""
+    if init is not None:
+        if init.type in ("lexical_declaration", "variable_declaration"):
+            out += _lower_lexical_declaration(init, source, ctx, indent)
+        else:
+            out += f"{indent}{_lower_expression(init, source, ctx)};\n"
+    body_stmts = (
+        list(body.named_children)
+        if body is not None and body.type == "statement_block"
+        else ([body] if body is not None else [])
+    )
+    out += _hoist_loop(
+        cond, body_stmts, "while_loop",
+        source, ctx, indent,
+        extra_increment=incr,
+    )
+    return out
+
+
 def _lower_lexical_declaration(
     node, source: bytes, ctx: Context, indent: str
 ) -> str:
@@ -338,59 +569,15 @@ def _lower_statement(
     if node.type in ("lexical_declaration", "variable_declaration"):
         return _lower_lexical_declaration(node, source, ctx, indent)
     if node.type == "while_statement":
-        cond = node.child_by_field_name("condition")
-        body = node.child_by_field_name("body")
-        cond_inner = (
-            cond.named_children[0]
-            if cond and cond.named_children else None
-        )
-        cond_src = (
-            _lower_expression(cond_inner, source, ctx)
-            if cond_inner else "false"
-        )
-        body_src = _lower_statement(body, source, ctx, indent + "    ") if body else ""
-        return f"{indent}while ({cond_src}) {{\n{body_src}{indent}}}\n"
+        # Hoist into a top-level `while_loop NAME(...)` declaration +
+        # slot decls + `loop NAME(...)` call. Sutra's codegen rejects
+        # inline C-style `while (cond) { body }` in favor of the
+        # declared loop form.
+        return _lower_while_to_declared_loop(node, source, ctx, indent)
     if node.type == "for_statement":
-        # Desugar `for (init; cond; incr) body` → `init; while (cond) {
-        # body; incr; }`. This lets us reuse the while-loop lowering and
-        # the existing initializer / increment lowerings without a
-        # separate for-form on the Sutra side. Tradeoff: a `continue` in
-        # the body would skip the increment with this desugar, but
-        # `continue` isn't supported yet anyway.
-        init = node.child_by_field_name("initializer")
-        cond = node.child_by_field_name("condition")
-        incr = node.child_by_field_name("increment")
-        body = node.child_by_field_name("body")
-        out = ""
-        if init is not None:
-            if init.type in ("lexical_declaration", "variable_declaration"):
-                out += _lower_lexical_declaration(init, source, ctx, indent)
-            else:
-                out += f"{indent}{_lower_expression(init, source, ctx)};\n"
-        cond_src = _lower_expression(cond, source, ctx) if cond else "true"
-        body_src = (
-            _lower_statement(body, source, ctx, indent + "    ")
-            if body else ""
-        )
-        incr_src = (
-            f"{indent}    {_lower_expression(incr, source, ctx)};\n"
-            if incr is not None else ""
-        )
-        out += f"{indent}while ({cond_src}) {{\n{body_src}{incr_src}{indent}}}\n"
-        return out
+        return _lower_for_to_declared_loop(node, source, ctx, indent)
     if node.type == "do_statement":
-        body = node.child_by_field_name("body")
-        cond = node.child_by_field_name("condition")
-        cond_inner = (
-            cond.named_children[0]
-            if cond and cond.named_children else None
-        )
-        cond_src = (
-            _lower_expression(cond_inner, source, ctx)
-            if cond_inner else "false"
-        )
-        body_src = _lower_statement(body, source, ctx, indent + "    ") if body else ""
-        return f"{indent}do {{\n{body_src}{indent}}} while ({cond_src});\n"
+        return _lower_do_while_to_declared_loop(node, source, ctx, indent)
     if node.type == "if_statement":
         cond = node.child_by_field_name("condition")
         cons = node.child_by_field_name("consequence")
@@ -762,11 +949,23 @@ def lower(source: str) -> str:
         "// stdlib piece. Programs that hit it won't run end-to-end yet.\n",
         "\n",
     ]
+    def _flush_extras() -> None:
+        if ctx.extras:
+            out_parts.extend(ctx.extras)
+            ctx.extras.clear()
+
     for child in tree.root_node.named_children:
         if child.type == "function_declaration":
-            out_parts.append(_lower_function(child, src_bytes, ctx))
+            fn_src = _lower_function(child, src_bytes, ctx)
+            # Loop-hoist extras emit into ctx.extras during lowering;
+            # surface them at module scope just before the function
+            # decl that referenced them so call sites see them.
+            _flush_extras()
+            out_parts.append(fn_src)
         elif child.type == "class_declaration":
-            out_parts.append(_lower_class_decl(child, src_bytes, ctx))
+            cls_src = _lower_class_decl(child, src_bytes, ctx)
+            _flush_extras()
+            out_parts.append(cls_src)
         elif child.type in ("interface_declaration", "type_alias_declaration"):
             # Erased — only effect was registering the name as Axon-shaped
             # in the pre-pass.
@@ -788,11 +987,11 @@ def lower(source: str) -> str:
                         and value_node.type == "arrow_function"
                         and name_node is not None):
                     fn_name = _node_text(name_node, src_bytes)
-                    out_parts.append(
-                        _lower_arrow_as_function(
-                            fn_name, value_node, src_bytes, ctx
-                        )
+                    fn_src = _lower_arrow_as_function(
+                        fn_name, value_node, src_bytes, ctx
                     )
+                    _flush_extras()
+                    out_parts.append(fn_src)
                     arrow_emitted = True
             if not arrow_emitted:
                 out_parts.append(

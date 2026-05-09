@@ -42,9 +42,6 @@ FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures"
 # variable-flow analysis to identify mutated/captured locals + a
 # function-hoist + slot-decl pass; tracked as a follow-on task.
 _COMPILE_KNOWN_FAILURES = {
-    "while_loop_sum": "lowering emits inline `while`; Sutra prefers the declared `while_loop` form",
-    "for_loop_sum": "lowering emits inline `while` (after for→while desugar); same as while_loop_sum",
-    "multi_function_loop": "uses `while`; same gap",
     "untyped_js": "JavaScriptObject runtime not implemented; `JavaScriptObject.from(7)` lowers to Python with `from` as an attribute name (invalid Python syntax)",
 }
 
