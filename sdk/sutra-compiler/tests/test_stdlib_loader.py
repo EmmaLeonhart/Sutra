@@ -41,6 +41,9 @@ EXPECTED_IMPLEMENTED: frozenset[str] = frozenset({
     "lt",
     "ge",
     "le",
+    "hashmap_new",
+    "hashmap_set",
+    "hashmap_get",
 })
 
 
@@ -127,7 +130,7 @@ class TestStdlibLoad(unittest.TestCase):
         they lack either a body or an intrinsic declaration."""
         table = load_stdlib()
         for name in ("bind", "unbind", "bundle", "snap", "conj",
-                     "permute", "hashmap_get", "make_random_rotation"):
+                     "permute", "make_random_rotation"):
             self.assertNotIn(
                 name, table,
                 f"{name!r} is still a commented stub, not yet declared",
