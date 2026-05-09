@@ -8,7 +8,7 @@ class VSA extends vector {
 // The codegen emits `_loop_Counter_addOne` and the call site
 // `loop Counter.addOne(...)` dispatches to it.
 class Counter extends vector {
-    do_while addOne(x < 5, int x) {
+    static do_while addOne(x < 5, int x) {
         pass x + 1;
     }
 }

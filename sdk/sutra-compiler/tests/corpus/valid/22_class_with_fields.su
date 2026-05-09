@@ -17,11 +17,12 @@ class Greeter extends vector {
     }
 }
 
-// Field declarations also coexist with loop functions.
+// Field declarations also coexist with loop functions. The static
+// loop here declares no `this` reference, so it's marked `static`.
 class Counter extends vector {
     field int initial;
 
-    do_while addOne(x < 5, int x) {
+    static do_while addOne(x < 5, int x) {
         pass x + 1;
     }
 }
