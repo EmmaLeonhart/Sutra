@@ -21,6 +21,42 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## TS transpiler — postponed pieces (2026-05-08)
+
+The three deferred dimensions of the TS → Sutra transpiler. The
+core transpiler shipped 2026-05-08 with 12 fixtures green end-to-
+end (TS source → `.su` → runnable Python). These three are
+explicitly postponed; pick up when context-shifts.
+
+- [ ] **`Math.*` shims** (`Math.sqrt`, `Math.PI`, `Math.sin`, etc.).
+  Gated on Sutra-side transcendentals — currently disabled in the
+  codegen with a `CodegenNotSupported` pointer at
+  `sdk/sutra-compiler/sutra_compiler/stdlib/math.su`. The TS
+  transpiler can already emit `Math.sqrt(x)` shape calls; they
+  fail at Sutra codegen until the transcendental work below is
+  picked up. See "[This year] Compile-time math function
+  approximation" below.
+
+- [ ] **`async` / `await` / `Promise`**. Sutra has no concurrency
+  primitive that matches Promise semantics today. The transpiler
+  could in principle lower an `async function` to a synchronous
+  Sutra function (Sutra is synchronous), but `await` on a Promise
+  has no Sutra analog without picking a concurrency model. Park
+  until `planning/sutra-spec/concurrency.md` consolidates a
+  surface — see "[This year] Concurrency — only the cases that
+  need explicit handling" below.
+
+- [ ] **Module imports** (`import { X } from "./foo"`). v1 is
+  single-file: each `.ts` file lowers independently to one `.su`
+  file with no cross-file resolution. Lifting needs a Sutra-side
+  module system first (program-structure.md is explicit there is
+  no `import` today) and a transpiler-side mapping from TS module
+  graphs to whatever cross-file form Sutra adopts. Cross-cuts
+  with the multi-program axon demo (queue.md item 2): both want
+  inter-program semantics.
+
+---
+
 ## [This year] Object encapsulation — language ergonomics
 
 **Source:** Emma 2026-04-30 (during the loop-tail-call-surface work).
