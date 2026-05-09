@@ -1,0 +1,29 @@
+// Expected lowering of class_static_and_instance/input.ts.
+//
+// Notes:
+//   - Both methods translate; the static modifier carries through to
+//     the Sutra `static method` form.
+//   - The instance method body uses `this.x` / `other.x` which lower
+//     through the Sutra-side class-field machinery (axon_item).
+//   - `Vec2.origin()` in the caller is class-namespace dispatch; the
+//     Sutra codegen maps it to the mangled `Vec2_origin()` Python
+//     function. `a.add(b)` is instance dispatch and maps to
+//     `Vec2_add(a, b)`.
+
+class Vec2 extends vector {
+    field int x;
+    field int y;
+    method Vec2 add(Vec2 other) {
+        return new Vec2(this.x + other.x, this.y + other.y);
+    }
+    static method Vec2 origin() {
+        return new Vec2(0, 0);
+    }
+}
+
+function int main() {
+    Vec2 a = new Vec2(3, 4);
+    Vec2 b = Vec2.origin();
+    Vec2 c = a.add(b);
+    return c.x;
+}

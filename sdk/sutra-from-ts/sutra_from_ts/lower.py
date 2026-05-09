@@ -51,13 +51,16 @@ class Context:
     the main lowering walk.
 
     `interface_names` and `type_alias_names` map a TS-side type name to
-    "this name is Axon-shaped." `function_param_types` is a name → list-
-    of-Sutra-types map for resolving call-site coercions. `local_types`
-    is updated as the main pass walks function bodies.
+    "this name is Axon-shaped." `class_names` collects user-defined TS
+    class names so the lowering can pass their type identifiers through
+    as-is rather than treating them as Axons. `function_param_types` is
+    a name → list-of-Sutra-types map for resolving call-site coercions.
+    `local_types` is updated as the main pass walks function bodies.
     """
 
     interface_names: set[str] = field(default_factory=set)
     type_alias_names: set[str] = field(default_factory=set)
+    class_names: set[str] = field(default_factory=set)
     function_param_types: dict[str, list[str]] = field(default_factory=dict)
     local_types: dict[str, str] = field(default_factory=dict)
 
@@ -76,6 +79,7 @@ class Context:
         return Context(
             interface_names=self.interface_names,
             type_alias_names=self.type_alias_names,
+            class_names=self.class_names,
             function_param_types=self.function_param_types,
             local_types={},
         )
@@ -158,6 +162,21 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         return "false"
     if node.type == "identifier":
         return _node_text(node, source)
+    if node.type == "this":
+        return "this"
+    if node.type == "new_expression":
+        # `new ClassName(args)` — passes through to Sutra's `new`
+        # auto-constructor sugar (which emits `<Class>_new(args)`).
+        callee = node.child_by_field_name("constructor")
+        args_node = node.child_by_field_name("arguments")
+        if callee is None:
+            return "/* UNSUPPORTED: new without constructor name */"
+        class_name = _node_text(callee, source)
+        arg_srcs = [
+            _lower_expression(a, source, ctx)
+            for a in (args_node.named_children if args_node else [])
+        ]
+        return f"new {class_name}({', '.join(arg_srcs)})"
     if node.type == "binary_expression":
         left = node.child_by_field_name("left")
         right = node.child_by_field_name("right")
@@ -499,10 +518,139 @@ def _lower_function(node, source: bytes, ctx: Context) -> str:
     return f"function {return_type} {name}({params_src}) {{\n{body_src}}}\n"
 
 
+def _lower_class_decl(node, source: bytes, ctx: Context) -> str:
+    """Lower a TS `class_declaration` to a Sutra class. Per the
+    2026-05-08 Sutra-side class work, classes use:
+        class Name extends vector { field T name; method ... }
+    and `new Name(args)` to construct.
+
+    Field discovery:
+    - `public_field_definition` → explicit field.
+    - Constructor parameter properties (`constructor(public x: T)`) →
+      auto-generated field, in the order they appear.
+    - Plain constructor params with a `this.x = x;` body whose names
+      match field declarations are passed straight through to Sutra's
+      auto-`new` factory; the constructor itself is not emitted.
+
+    Methods: regular and static method_definition lower to Sutra
+    `method` / `static method`. The constructor's body is not
+    emitted as a method (Sutra's `new ClassName(args)` handles
+    construction via the field schema)."""
+    name_node = node.child_by_field_name("name")
+    body_node = node.child_by_field_name("body")
+    if name_node is None or body_node is None:
+        return "// UNSUPPORTED-CLASS: malformed class_declaration\n"
+
+    class_name = _node_text(name_node, source)
+
+    fields: list[tuple[str, str]] = []  # (name, sutra_type)
+    field_names: set[str] = set()
+    methods: list[tuple[bool, "tree_sitter.Node"]] = []  # (is_static, node)
+    constructor = None
+
+    for member in body_node.named_children:
+        if member.type == "public_field_definition":
+            fname_node = member.child_by_field_name("name")
+            ftype_node = member.child_by_field_name("type")
+            if fname_node is None:
+                continue
+            fname = _node_text(fname_node, source)
+            ftype = (
+                _ts_type_to_sutra(ftype_node, source, ctx)
+                if ftype_node else "JavaScriptObject"
+            )
+            if fname not in field_names:
+                fields.append((fname, ftype))
+                field_names.add(fname)
+        elif member.type == "method_definition":
+            mname_node = member.child_by_field_name("name")
+            mname = _node_text(mname_node, source) if mname_node else ""
+            if mname == "constructor":
+                constructor = member
+            else:
+                is_static = any(c.type == "static" for c in member.children)
+                methods.append((is_static, member))
+
+    # Constructor parameter properties become fields.
+    if constructor is not None:
+        params_node = constructor.child_by_field_name("parameters")
+        if params_node is not None:
+            for p in params_node.named_children:
+                if p.type != "required_parameter":
+                    continue
+                has_modifier = any(
+                    c.type == "accessibility_modifier"
+                    for c in p.named_children
+                )
+                if not has_modifier:
+                    continue
+                pat = p.child_by_field_name("pattern")
+                ann = p.child_by_field_name("type")
+                if pat is None:
+                    continue
+                pname = _node_text(pat, source)
+                ptype = (
+                    _ts_type_to_sutra(ann, source, ctx)
+                    if ann else "JavaScriptObject"
+                )
+                if pname not in field_names:
+                    fields.append((pname, ptype))
+                    field_names.add(pname)
+
+    out = f"class {class_name} extends vector {{\n"
+    for fname, ftype in fields:
+        out += f"    field {ftype} {fname};\n"
+    for is_static, mnode in methods:
+        out += _lower_method(mnode, source, ctx, class_name, is_static)
+    out += "}\n"
+    return out
+
+
+def _lower_method(
+    method_node, source: bytes, ctx: Context, class_name: str, is_static: bool,
+) -> str:
+    """Lower a TS class method_definition to a Sutra method. Non-static
+    methods get `this` registered with the class type so this.field
+    reads/writes inside the body use the right axon-machinery
+    lowering on the Sutra side."""
+    name_node = method_node.child_by_field_name("name")
+    params_node = method_node.child_by_field_name("parameters")
+    return_type_node = method_node.child_by_field_name("return_type")
+    body_node = method_node.child_by_field_name("body")
+    name = _node_text(name_node, source) if name_node else "anonymous"
+    return_type = (
+        _ts_type_to_sutra(return_type_node, source, ctx)
+        if return_type_node else "void"
+    )
+
+    method_ctx = ctx.child_scope()
+    if not is_static:
+        method_ctx.local_types["this"] = class_name
+
+    param_parts: list[str] = []
+    if params_node is not None:
+        for p in params_node.named_children:
+            if p.type in ("required_parameter", "optional_parameter"):
+                pat = p.child_by_field_name("pattern")
+                ann = p.child_by_field_name("type")
+                pname = _node_text(pat, source) if pat else "_arg"
+                ptype = _ts_type_to_sutra(ann, source, ctx)
+                param_parts.append(f"{ptype} {pname}")
+                method_ctx.local_types[pname] = ptype
+    params_src = ", ".join(param_parts)
+    body_src = _lower_function_body(body_node, source, method_ctx)
+    static_kw = "static " if is_static else ""
+    return (
+        f"    {static_kw}method {return_type} {name}({params_src}) {{\n"
+        f"{body_src}    }}\n"
+    )
+
+
 def _prepass(root, source: bytes, ctx: Context) -> None:
     """Two-phase walk over top-level declarations: phase 1 collects
-    interface and type-alias names, phase 2 collects function signatures
-    (which depend on knowing which TS type names are Axon-shaped)."""
+    interface, type-alias, and class names; phase 2 collects function
+    signatures (which depend on knowing which TS type names are
+    Axon-shaped vs class-shaped)."""
     for child in root.named_children:
         if child.type == "interface_declaration":
             name_node = child.child_by_field_name("name")
@@ -512,6 +660,10 @@ def _prepass(root, source: bytes, ctx: Context) -> None:
             name_node = child.child_by_field_name("name")
             if name_node is not None:
                 ctx.type_alias_names.add(_node_text(name_node, source))
+        elif child.type == "class_declaration":
+            name_node = child.child_by_field_name("name")
+            if name_node is not None:
+                ctx.class_names.add(_node_text(name_node, source))
 
     for child in root.named_children:
         if child.type == "function_declaration":
@@ -552,6 +704,8 @@ def lower(source: str) -> str:
     for child in tree.root_node.named_children:
         if child.type == "function_declaration":
             out_parts.append(_lower_function(child, src_bytes, ctx))
+        elif child.type == "class_declaration":
+            out_parts.append(_lower_class_decl(child, src_bytes, ctx))
         elif child.type in ("interface_declaration", "type_alias_declaration"):
             # Erased — only effect was registering the name as Axon-shaped
             # in the pre-pass.
