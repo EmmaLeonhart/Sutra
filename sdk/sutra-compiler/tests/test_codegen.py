@@ -699,6 +699,87 @@ class TestClassFieldDeclarations(unittest.TestCase):
         self.assertIn('_VSA.axon_item(c, "age")', py)
 
 
+class TestInstanceMethodsWithFields(unittest.TestCase):
+    """Value-returning and void instance methods composed with field
+    reads/writes (`this.field`). Per the 2026-05-08 design, methods
+    are static functions with the object as first arg; void methods
+    mutate this via the augmented-assignment desugar at the call site,
+    which requires the body to return the rebound this."""
+
+    def test_value_returning_method_reads_this_field(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "  method int doubled() { return this.age * 2; }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("def Cat_doubled(this):", py)
+        # this.age inside the method body should lower through axon_item.
+        self.assertIn('_VSA.axon_item(this, "age")', py)
+        # And NOT emit a Python attribute access on `this`.
+        self.assertNotIn("this.age", _strip_runtime(py))
+
+    def test_value_returning_method_dispatch_in_expression_context(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "  method int doubled() { return this.age * 2; }\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = new Cat(7);\n"
+            "  return c.doubled();\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # The call site dispatches to the mangled form with c as first arg.
+        self.assertIn("Cat_doubled(c)", py)
+
+    def test_void_method_mutates_this_field_and_returns_this(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "  method void grow_older() { this.age = this.age + 1; }\n"
+            "}\n"
+        )
+        py = _compile(src)
+        # The body rebinds `this` via axon_add and the auto-emitted
+        # `return this` makes the caller-side augmented assignment
+        # (`c = Cat_grow_older(c)`) actually receive the new value.
+        self.assertIn(
+            'this = _VSA.axon_add(this, "age", (_VSA.axon_item(this, "age") + 1))',
+            py,
+        )
+        # The generated function should end with `return this`.
+        in_method = False
+        saw_return_this = False
+        for line in py.splitlines():
+            if line.startswith("def Cat_grow_older"):
+                in_method = True
+                continue
+            if in_method and (line.startswith("def ") or line.startswith("class ")):
+                break
+            if in_method and line.strip() == "return this":
+                saw_return_this = True
+        self.assertTrue(saw_return_this,
+                        "Cat_grow_older should auto-emit `return this`")
+
+    def test_void_method_call_propagates_via_augmented_assignment(self):
+        src = (
+            "class Cat extends vector {\n"
+            "  field int age;\n"
+            "  method void grow_older() { this.age = this.age + 1; }\n"
+            "}\n"
+            "function int main() {\n"
+            "  Cat c = new Cat(5);\n"
+            "  c.grow_older();\n"
+            "  return c.age;\n"
+            "}\n"
+        )
+        py = _compile(src)
+        self.assertIn("c = Cat_grow_older(c)", py)
+
+
 class TestNewExprConstructor(unittest.TestCase):
     """`new ClassName(args)` auto-constructor sugar (2026-05-08).
     Emits a `<Class>_new(args)` factory that fills fields positionally."""
