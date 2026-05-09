@@ -13,6 +13,22 @@
 // chains, etc.) live in deferred work.
 //
 // Spec: planning/sutra-spec/javascript-object.md (TBD).
+//
+// Two static intrinsic methods land 2026-05-08 to make the TS
+// transpiler's untyped path actually compile:
+//   - `JavaScriptObject.wrap(value)` lifts a primitive (int / float /
+//     string / bool) into a JavaScriptObject. Named `wrap` rather
+//     than `from` because `from` is a Python keyword and the static-
+//     intrinsic dispatch would emit `_VSA.from(...)` — a syntax error.
+//     The TS transpiler emits `JavaScriptObject.wrap(7)` for any
+//     primitive literal passed to a JavaScriptObject parameter.
+//   - `JavaScriptObject.js_add(a, b)` is JavaScript's coercive `+`.
+//     The MVP returns element-wise vector add; numeric semantics
+//     are correct for number-axis operands. String concatenation
+//     under `+` is the next step (would dispatch to `string_concat`
+//     when both sides have AXIS_STRING_FLAG set).
 
 class JavaScriptObject extends vector {
+    static intrinsic method JavaScriptObject wrap(vector value);
+    static intrinsic method JavaScriptObject js_add(JavaScriptObject a, JavaScriptObject b);
 }
