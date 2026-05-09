@@ -1,0 +1,29 @@
+// Expected lowering of class_with_methods/input.ts.
+//
+// Notes:
+//   - `class Point { constructor(public x, public y) {} ... }` lowers
+//     to a Sutra class with `field int x;` and `field int y;` (TS
+//     `number` is inferred to `int` here). The constructor body is
+//     dropped — Sutra's `new ClassName(args)` factory auto-fills the
+//     fields in declaration order.
+//   - `distance_squared(): number` lowers to a Sutra
+//     `method int distance_squared()`. Inside the body, `this.x`
+//     reads route through Sutra's class-field machinery
+//     (_VSA.axon_item).
+//   - `const p: Point = new Point(3, 4);` lowers to a typed local
+//     declaration with `new Point(3, 4)` on the RHS.
+//   - `p.distance_squared()` dispatches to `Point_distance_squared(p)`
+//     via the existing Sutra instance-method lowering.
+
+class Point extends vector {
+    field int x;
+    field int y;
+    method int distance_squared() {
+        return this.x * this.x + this.y * this.y;
+    }
+}
+
+function int main() {
+    Point p = new Point(3, 4);
+    return p.distance_squared();
+}
