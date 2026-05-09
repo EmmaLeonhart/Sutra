@@ -1,0 +1,27 @@
+// Expected lowering of multi_function_loop/input.ts.
+//
+// Locks down: interface → Axon, Axon-typed param + member access via
+// `.item(...)`, if-implicit-else as truth-axis blend, `const` →
+// plain int decl, `let` → slot int, while loop, function call in
+// expression context.
+
+function int clamp(int value, Axon r) {
+    return ((1 + truth_axis(defuzzy(value < r.item("lo")))) * (r.item("lo")) + (1 - truth_axis(defuzzy(value < r.item("lo")))) * (value)) / 2;
+}
+
+function int sum_clamped(int arr_size, int max) {
+    Axon r;
+    r.add("lo", 0);
+    r.add("hi", max);
+    slot int total = 0;
+    slot int i = 0;
+    while (i < arr_size) {
+        total = total + clamp(i, r);
+        i = i + 1;
+    }
+    return total;
+}
+
+function int main() {
+    return sum_clamped(10, 5);
+}
