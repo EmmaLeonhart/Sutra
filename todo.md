@@ -54,21 +54,41 @@ When this lands, queue.md item 1 phase 3+ unblocks immediately.
 
 ---
 
-## TS transpiler / Sutra postponed pieces (2026-05-08)
+## TS transpiler / Sutra postponed pieces (2026-05-08, sharpened 2026-05-10)
 
 Three deferred dimensions of the TS → Sutra pipeline. The core
 transpiler shipped 2026-05-08 with 12 fixtures green end-to-end
-(TS source → `.su` → runnable Python). These are explicitly
-postponed; pick up when context-shifts.
+(TS source → `.su` → runnable Python). **After these three land,
+JavaScript transpilation is feature-complete** — that is the
+explicit closeout target Emma set 2026-05-10.
 
-- [ ] **`Math.*` shims** (`Math.sqrt`, `Math.PI`, `Math.sin`, etc.).
-  Gated on Sutra-side transcendentals — currently disabled in the
+Working order (Emma 2026-05-10): interpolated lookup tables first,
+then module imports, then the multi-program axon demo last.
+
+- [ ] **Interpolated lookup table for `Math.*` (transcendentals).**
+  The hard one. The TS transpiler already emits `Math.sqrt(x)` /
+  `Math.sin(x)` / `Math.log(x)` -shape calls; they fail at Sutra
   codegen with a `CodegenNotSupported` pointer at
-  `sdk/sutra-compiler/sutra_compiler/stdlib/math.su`. The TS
-  transpiler can already emit `Math.sqrt(x)`-shape calls; they
-  fail at Sutra codegen until the transcendental work below is
-  picked up. See "[This year] Compile-time math function
-  approximation" below.
+  `sdk/sutra-compiler/sutra_compiler/stdlib/math.su`. Reduces to:
+  *get an interpolated lookup table working on the substrate.*
+  Once that primitive exists, `exp` and `ln` are the only two
+  leaves and every other transcendental beta-reduces to them
+  (see the §"Transcendental functions" section at the bottom of
+  this file for the full reduction chain).
+
+  **Emma 2026-05-10 intuition on why the prior attempt didn't
+  work:** the bound-table-via-binding approach
+  (`planning/findings/2026-04-29-bound-table-capacity-limit.md`)
+  blew up on crosstalk, but the rotational-lookup path likely
+  still works — the failure was that log and exponential
+  weren't being specifically optimized for the rotational
+  lookup; the substrate had too much dimensional distance in
+  the rotations and crosstalk dominated because we weren't
+  picking the rotation geometry *for these particular
+  functions*. The retry is: pick the rotation parameters
+  per-function (one tuned rotation for `exp`, one for `ln`),
+  rather than asking a generic rotation table to absorb both.
+  Flat table + interpolation, not VSA-bundle-of-bound-entries.
 
 - [x] **`async` / `await` / `Promise`** — un-postponed 2026-05-09
   and substantially shipped. Active in `queue.md` item 1; the
@@ -81,7 +101,19 @@ postponed; pick up when context-shifts.
   module system first (`planning/sutra-spec/program-structure.md`
   is explicit there is no `import` today) and a transpiler-side
   mapping from TS module graphs to whatever cross-file form Sutra
-  adopts. Cross-cuts with the multi-program axon demo below.
+  adopts.
+
+  **Emma 2026-05-10 intuition: this is the easy one.** The
+  mechanism is the same shape as how stdlib already works —
+  transpile the imported module, then beta-reduce it into the
+  importing program at compile time. NPM modules that are
+  themselves TypeScript / JavaScript are just more `.ts` files
+  to feed through the existing transpiler; the result lands as
+  a `.su` file that gets inlined by the stdlib-style loader.
+  Cross-cuts with the multi-program axon demo below at the
+  spec level only — at the implementation level imports are
+  *inlining*, not *inter-program communication*, so they don't
+  need the axon-passing story to land first.
 
 - [ ] **Multi-program axon passing with lazy evaluation.**
   `axons.md` claims that only the keys the receiver references
@@ -95,9 +127,10 @@ postponed; pick up when context-shifts.
   publishes a wide axon (10+ keys), the other reads a small
   slice; verify in the compiled artifact that only the
   referenced slice materializes on the wire. Spec-validation
-  task. Cross-cuts with module imports above (both want inter-
-  program semantics) and with promise/async above (both are
-  lazy-materialization stories).
+  task. **Emma 2026-05-10: do this last of the three.** Module
+  imports cover the same inter-program semantics from the
+  inlining side, so the axon demo is the substrate-level proof
+  that the lazy-materialization claim in `axons.md` is real.
 
 ---
 
