@@ -1,0 +1,27 @@
+// Stage-1 promise desugar — simple cases that compile end-to-end.
+//
+// Per planning/sutra-spec/promises.md §"Lowering" Stage 1 and the
+// promise_desugar pass (queue.md item 1 phase 3), these two shapes
+// rewrite to non-async form and compile through the standard
+// pipeline.
+//
+// Cases NOT covered yet — vars-then-return, multi-await, try/catch
+// — still need lambda support and are exercised by the
+// async_promise_basic.su fixture, which the codegen rejects with a
+// promises.md pointer.
+
+vector cat = basis_vector("cat");
+
+// Pure-return async fn: `return e;` becomes `return Promise.resolve(e);`.
+async function Promise<vector> immediate() {
+    return cat;
+}
+
+// Thin async wrapper: `return await e;` becomes `return e;`.
+async function Promise<vector> wrap_immediate() {
+    return await immediate();
+}
+
+function vector main() {
+    return cat;
+}

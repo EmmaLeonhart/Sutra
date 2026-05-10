@@ -29,11 +29,16 @@ In strategic order. Top item is the current focus.
    2. ✅ Lexer + parser keywords (`async`, `await`, `Promise`).
        Parse-only; codegen rejects with a promises.md pointer.
        Corpus fixture `async_promise_basic.su` validates clean.
-   3. **Stage-1 desugar pass** — `async / await` → explicit
-       `.then()` / `.catch()` chains over `Promise<T>` values. Pure
-       surface rewriting, no substrate concerns; inverse of what JS
-       transpilers do. Output is still Sutra source with no `async`
-       or `await` left.
+   3. ✅ **Stage-1 desugar pass** — first cut, two shapes covered:
+       (a) `return await e;` becomes `return e;` (thin wrapper);
+       (b) `return e;` becomes `return Promise.resolve(e);` (pure
+       return). Implemented at `sdk/sutra-compiler/sutra_compiler/
+       promise_desugar.py`, called from both codegen entry points.
+       Corpus fixture `async_promise_desugar.su` compiles +
+       runs end-to-end. The richer shapes (var = await, post-await
+       code, try/catch) still need lambda support — they fall
+       through to the codegen async-rejection error with a
+       promises.md pointer.
    4. ✅ TS transpiler integration — `async function`,
        `await expr`, and `Promise<T>` pass through verbatim from TS
        into the new Sutra surface forms. TS fixture
