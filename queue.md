@@ -14,35 +14,45 @@ In strategic order. Top item is the current focus.
 
 1. **Promises and async/await** — un-postponed 2026-05-09. Per the
    user, every TypeScript construct should be expressible in Sutra
-   (modulo architectural violations); `async function`, `await`, and
+   (modulo architectural violations); `async`, `await`, and
    `Promise<T>` are essential to that goal. Spec landed at
-   `planning/sutra-spec/promises.md`: surface syntax mirrors TS, the
-   lowering beta-reduces into the existing `while_loop` /
-   `do_while` tail-recursion forms with axons gating the boundary,
-   and the three states (pending / fulfilled / rejected) ride on a
-   two-channel halt vector. No new substrate primitives — Promises
-   are a controlled vocabulary over the loop machinery that already
-   ships. Implementation phases:
+   `planning/sutra-spec/promises.md`: native Sutra vocabulary, with
+   a **two-stage** beta-reduction. Stage 1: `async / await` rewrite
+   to explicit `Promise<T>` construction (`.then()` / `.catch()`
+   chains), pure surface. Stage 2: `Promise<T>` lowers to a
+   `while_loop` whose halt vector has two channels (`fulfilled`,
+   `rejected`). No new substrate primitives — both stages are
+   compile-time rewrites that bottom out at the existing tail-
+   recursive loop machinery. Implementation phases:
 
-   1. ✅ Spec — `planning/sutra-spec/promises.md`.
+   1. ✅ Spec — `planning/sutra-spec/promises.md` (two-stage layering).
    2. ✅ Lexer + parser keywords (`async`, `await`, `Promise`).
        Parse-only; codegen rejects with a promises.md pointer.
        Corpus fixture `async_promise_basic.su` validates clean.
-   3. **Lowering pass** — transform async fns into `while_loop` decls
-       with two-channel halt vectors and axon-shaped input state.
-       Blocked on a small spec pass for axon-based I/O (how does the
-       loop body actually check "did the input arrive yet"); the
-       current axon spec doesn't have an explicit external-I/O model.
+   3. **Stage-1 desugar pass** — `async / await` → explicit
+       `.then()` / `.catch()` chains over `Promise<T>` values. Pure
+       surface rewriting, no substrate concerns; inverse of what JS
+       transpilers do. Output is still Sutra source with no `async`
+       or `await` left.
    4. ✅ TS transpiler integration — `async function`,
        `await expr`, and `Promise<T>` pass through verbatim from TS
        into the new Sutra surface forms. TS fixture
        `async_promise_basic` lowering-test green; compile-test
-       xfailed pending phase 3.
+       xfailed pending stage-2 pass.
    5. Stdlib — `stdlib/promises.su` declaring `Promise<T>` class
-       with `resolve` / `reject` / `isFulfilled` / `value` /
-       `reason` intrinsics that route through axon ops.
-   6. More fixtures — corpus + TS tests covering try/catch on
-       rejection, propagation, multi-await fusion.
+       with constructor (`new Promise(executor)`), `then`, `catch`,
+       `resolve`, `reject`, `all`, `race`. Bodies are sugar over
+       `while_loop` so they're inlinable.
+   6. **Stage-2 lowering pass** — `Promise<T>` constructor calls
+       and `while_loop`-shaped methods on `Promise<T>` collapse into
+       declared `while_loop` decls with two-channel halt vectors and
+       axon-shaped input state. Blocked on a small spec pass for the
+       axon-based external-I/O model (how does the loop body check
+       "did the input arrive yet"); the current axon spec doesn't
+       have an explicit external-I/O model.
+   7. More fixtures — corpus + TS tests covering try/catch on
+       rejection, propagation, multi-await fusion, Promise.all /
+       Promise.race.
 
 2. **TypeScript → Sutra transpiler implementation.** Substantially
    complete as of 2026-05-08: 12 fixtures land cleanly, all of which
