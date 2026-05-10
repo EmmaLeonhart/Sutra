@@ -67,6 +67,14 @@ pipeline has three categories of stdlib entries:
 - **Implemented in Sutra:** `hashmap_new`, `hashmap_set`, `hashmap_get`
 - **Intrinsic:** `zero_vector`
 
+### `promises.su` — Promise<T> API
+- **Intrinsic:** `Promise.resolve`, `Promise.reject`, `Promise.isFulfilled`,
+  `Promise.isRejected`, `Promise.isPending`, `Promise.value`, `Promise.reason`
+- **Blocked pseudo-Sutra:** `then`, `catch`, `all`, `race` (need lambda /
+  first-class-function support; substrate backing for the intrinsics
+  arrives with phase 6 of queue.md item 1, the Promise→while_loop
+  lowering pass)
+
 ### `rotation.su` — rotation matrices and eigenrotation
 - **Blocked pseudo-Sutra:** `make_random_rotation`,
   `compile_prototypes`, `eigenrotation_loop` (what `loop(cond)` /
