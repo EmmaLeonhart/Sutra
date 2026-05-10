@@ -4,33 +4,91 @@
 > unblocks Stage-2 promise lowering (queue.md item 1, phase 6).
 > Per the user's clarification on the same day: the awaited input
 > is the **zero vector** until it arrives, then becomes
-> not-the-zero-vector. The loop body's "did the input arrive?"
-> check is just "is this axon slot non-zero?"
+> not-the-zero-vector. The check on the substrate is just
+> `norm(slot) > eps`.
 
-## The rule
+## The three input positions
 
-When a Sutra loop body needs to wait for an external input — a
-network response, a user keypress, anything the program's own
-computation can't produce — the input lives in an **axon slot**
-that the loop's enclosing program structure pre-allocated as the
-**zero vector**. The substrate-pure way to ask "did the input
-arrive yet?" is:
+A Sutra program can receive an external input at any of three
+syntactic positions:
+
+1. **Beginning of a program** — top-level axon parameters that the
+   Yantra-side loader writes before the program starts executing.
+2. **Beginning of a loop body** — the await pattern. The loop's
+   eigenrotation cycles until the input slot becomes non-zero.
+3. **End of a loop body** — continuation pattern. The loop runs to
+   completion internally, then waits for an external value before
+   producing the final output.
+
+All three behave identically: the slot starts as the zero vector
+and becomes non-zero when the producer writes the value.
+
+## The three output positions
+
+Symmetric to the input positions:
+
+1. **Beginning of a loop body** — "starting" / progress events.
+2. **End of a loop body** — the resolved value of an `await`.
+3. **End of a program** — the program's overall result, written to
+   an axon that whatever invoked the program reads.
+
+Outputs are just axons that something else connects to — there's no
+substrate-level mechanism that distinguishes them from inputs other
+than the direction of the wire (which is a producer/consumer
+declaration the runtime tracks, not a substrate property).
+
+## The "did it arrive?" check
+
+The substrate-pure way to ask whether an input slot has been
+populated yet is:
 
 ```
 arrived = norm(input_slot) > eps
 ```
 
-That's it. Zero magnitude means not arrived; non-zero magnitude
-means arrived. There is no separate "is-populated" flag, no
-out-of-band metadata, no host-side polling — the *content* of the
-slot tells you, on the substrate, in one substrate operation
-(`norm` is a tensor reduction), whether the value is there.
+Zero magnitude means not arrived; non-zero magnitude means
+arrived. There is no separate "is-populated" flag, no out-of-band
+metadata, no host-side polling — the *content* of the slot tells
+you, on the substrate, in one substrate operation (`norm` is a
+tensor reduction), whether the value is there.
 
 When the external producer (a Yantra subsystem, an OS-level
 device wrapper, the user input event loop) eventually has the
 value, it writes the value into the slot. The slot stops being all
 zeros. The loop body's next iteration computes `norm(input_slot)`,
 sees a non-zero, and the halt condition flips.
+
+## The all-zeros edge case
+
+A genuine "the value is the zero vector" resolution is ambiguous
+under the rule above — the substrate can't tell "the producer hasn't
+written yet" apart from "the producer wrote `[0, 0, ..., 0]`."
+
+Two values in the language do legitimately encode as the zero
+vector if naively constructed:
+
+- `int 0` — synthetic[AXIS_REAL] = 0, everything else 0 → all zeros
+- `trit unknown` — synthetic[AXIS_TRUTH] = 0, everything else 0
+  → all zeros
+
+If the producer wants to send one of these as an axon input, it
+**adds a flag**: a single non-zero element on a dedicated synthetic
+axis that says "this slot has been populated, even if the rest of
+it looks like zero." Producer side sets the flag at write time;
+consumer side reads `arrived = (norm(slot) > eps) || flag_is_set`.
+
+The flag axis is a dedicated synthetic-axis allocation —
+`synthetic[AXIS_AXON_POPULATED]` — added to the canonical layout
+alongside `AXIS_PROMISE_FULFILLED` / `AXIS_PROMISE_REJECTED`.
+Producers wanting to send a non-zero value can leave this flag
+clear (the `norm > eps` check covers them); producers wanting to
+send a genuinely-zero value set this flag to `1.0` so the consumer
+reads "arrived" correctly.
+
+This is the only piece of producer-side ceremony the rule needs;
+in the common case (sending a string, an embedding, a
+`make_real(non-zero)`, anything with non-trivial magnitude) the
+flag is irrelevant and producers don't touch it.
 
 ## Why this works
 
