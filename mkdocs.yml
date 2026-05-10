@@ -114,6 +114,7 @@ nav:
     - Memory: memory.md
     - Loops: loops.md
     - Promises and async/await: promises.md
+    - TypeScript → Sutra mapping: typescript-to-sutra.md
     - Compilation: compilation.md
     - The graph-to-vector leap: vision.md
     - Fuzzy logic explorer: interactive/fuzzy-logic.md
