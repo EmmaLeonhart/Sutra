@@ -864,6 +864,22 @@ class Codegen(BaseCodegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def await_value(self, p):")
+        self._indent += 1
+        self._emit('"""Loop-bodied await — substrate-equivalent of a')
+        self._emit("while_loop gating on Promise.isPending. See the")
+        self._emit("pytorch backend for the full docstring.")
+        self._emit('"""')
+        self._emit("for _ in range(100):")
+        self._indent += 1
+        self._emit("if self.isPending(p) <= 0.5:")
+        self._indent += 1
+        self._emit("break")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return self.value(p)")
+        self._indent -= 1
+        self._emit()
         self._emit("# ---- Binding-array (substrate-stored ordered list) ----")
         self._emit("#")
         self._emit("# An array stores N scalar values in a single substrate vector,")
