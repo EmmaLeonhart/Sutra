@@ -1832,8 +1832,15 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     """
     from .simplify import simplify_module, collect_basis_vector_strings
     from .inliner import inline_stdlib_calls
-    # Inline stdlib calls first — the inlined polynomial bodies then
-    # go through simplify's arithmetic constant folding / zero
+    from .promise_desugar import desugar_promises
+    # Stage-1 promise desugar runs first (queue.md item 1 phase 3):
+    # transforms `async function ... { return [await] e; }` into the
+    # equivalent non-async form returning Promise.resolve(e) or e.
+    # Anything more complex stays async; the codegen rejects it with
+    # a planning/sutra-spec/promises.md pointer.
+    desugar_promises(module)
+    # Inline stdlib calls — the inlined polynomial bodies then go
+    # through simplify's arithmetic constant folding / zero
     # absorption, which can fold parts of the inlined form.
     inline_stdlib_calls(module)
     simplify_module(module)
