@@ -1,0 +1,27 @@
+// Expected lowering of async_promise_basic/input.ts.
+//
+// Notes:
+//   - `async function f(): Promise<T> { ... }` lowers to a Sutra
+//     `async function Promise<T> f() { ... }`. The `async` modifier
+//     is preserved; the return type rewraps as Sutra-style
+//     `Promise<T>` before the function name.
+//   - `await expr` passes through as Sutra `await expr`. Only legal
+//     inside an `async function`; the Sutra parser accepts it today
+//     and the codegen lowering is the next phase per queue.md item 1.
+//   - String parameters lower to Sutra's `String` type. Local
+//     variable types fall back to `JavaScriptObject` when the
+//     transpiler can't infer the awaited value's type (the source
+//     doesn't declare `network_lookup`'s return type, and the
+//     transpiler doesn't track `fetch_label`'s return type across
+//     calls — that's a separate inference enhancement).
+
+async function Promise<String> fetch_label(String query) {
+    JavaScriptObject r = await network_lookup(query);
+    return r;
+}
+
+async function Promise<String> chained(String q) {
+    JavaScriptObject first = await fetch_label(q);
+    JavaScriptObject second = await fetch_label(first);
+    return second;
+}

@@ -42,10 +42,13 @@ FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures"
 # variable-flow analysis to identify mutated/captured locals + a
 # function-hoist + slot-decl pass; tracked as a follow-on task.
 _COMPILE_KNOWN_FAILURES: dict[str, str] = {
-    # All known compile failures resolved as of 2026-05-08:
-    # - `untyped_js` — JavaScriptObject stdlib + `wrap` / `js_add`
-    #   runtime methods landed; `from` Python-keyword conflict
-    #   resolved by renaming.
+    # `async function` and `await` parse cleanly into the Sutra
+    # surface today (queue.md item 1, phase 2 landed 2026-05-09)
+    # but the codegen lowering pass is still phase 3 — the codegen
+    # currently errors with a planning/sutra-spec/promises.md
+    # pointer when it sees an async fn or await expr. Lifts as soon
+    # as the lowering lands.
+    "async_promise_basic": "lowering pass not implemented yet — see promises.md",
 }
 
 
