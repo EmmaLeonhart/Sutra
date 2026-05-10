@@ -1,0 +1,24 @@
+// Expected lowering of arrow_with_capture/input.ts.
+//
+// Notes:
+//   - The arrow `(x: number) => x * multiplier` references
+//     `multiplier`, which is declared in main()'s scope. Sutra has
+//     no closure, so the transpiler lifts `multiplier` to an extra
+//     parameter on the generated `scale` function.
+//   - The call site `scale(7)` becomes `scale(7, multiplier)` —
+//     the captured value is threaded explicitly. No runtime
+//     closure machinery, no anonymous-function values.
+//   - Sutra's codegen doesn't allow nested function declarations,
+//     so the arrow gets hoisted to module top level (like the
+//     while_loop hoisting pass does for loops). The variable
+//     `scale` becomes just an identifier the call site resolves
+//     to the hoisted top-level function.
+
+function int scale(int x, int multiplier) {
+    return x * multiplier;
+}
+
+function int main() {
+    int multiplier = 5;
+    return scale(7, multiplier);
+}
