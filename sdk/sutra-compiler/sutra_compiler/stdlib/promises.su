@@ -1,0 +1,117 @@
+// Canonical Sutra definitions for the Promise<T> API.
+//
+// Promises are first-class Sutra vocabulary, with a two-stage
+// beta-reduction defined in planning/sutra-spec/promises.md:
+//
+//   async function     (sugar over)
+//      ↓
+//   Promise<T>         (sugar over)
+//      ↓
+//   while_loop with two-channel halt vector  (substrate primitive)
+//
+// This file declares the middle layer — the Promise<T> class that
+// the async/await desugar pass (queue.md item 1, phase 3) lowers
+// async functions INTO, and that the Promise→while_loop pass
+// (phase 6) lowers OUT OF into substrate `while_loop` declarations.
+//
+// Today the intrinsic method bodies live in the runtime as
+// commented-out future work — no `_VSA.promise_resolve(...)` /
+// `_VSA.promise_reject(...)` exist yet. Calls to these methods
+// parse and validate cleanly but error at runtime until phase 6
+// implements the substrate backing. See the queue.md item 1
+// phase plan for the order things land in.
+
+// ==========================================================================
+// Section 1 — implemented in pure Sutra
+// ==========================================================================
+
+// (Pending: `then` / `catch` / `all` / `race` need lambda / first-
+// class-function support to express the callback parameter without
+// hoisting. Per the 2026-05-08 TS transpiler note, arrow functions
+// today get hoisted to top-level `function` declarations rather
+// than passed as values; once values-of-function-type are real
+// in Sutra, the body of `then(callback) -> Promise<U>` becomes
+// expressible directly here as a single .su function whose body
+// the inliner can substitute. Until then, the desugar pass
+// (phase 3) generates explicit named functions for each .then()
+// callback and threads them through manually.)
+
+
+// ==========================================================================
+// Section 2 — blocked on intrinsics (or substrate design)
+// ==========================================================================
+
+// then — chain a continuation. Returns a new Promise that resolves
+// with the value the callback returns (or the value the callback's
+// returned-promise resolves to, if the callback itself returns a
+// Promise — chained promises auto-flatten).
+//
+//   function Promise then(Promise self, callback cb) {
+//       // Wait for `self` to settle.
+//       // If fulfilled, run cb(self.value()) and return its result.
+//       // If rejected, propagate the rejection without running cb.
+//       ...
+//   }
+//
+// Blocked on: lambda / first-class function values, and on the
+// Promise→while_loop substrate lowering (phase 6) that defines
+// what "wait for self to settle" means at the substrate.
+
+
+// catch — chain a rejection handler. Returns a new Promise that
+// resolves with the value the handler returns; if the upstream
+// promise was fulfilled, the handler doesn't run and the value
+// passes through.
+//
+//   function Promise catch(Promise self, callback cb) { ... }
+//
+// Blocked on: same as then.
+
+
+// all — wait for an array of promises to all settle. Returns a
+// promise that resolves with the array of values when every input
+// promise has fulfilled, or rejects with the first rejection.
+//
+//   function Promise all(Promise[] ps) { ... }
+//
+// Blocked on: array-of-promise typing, the substrate fan-in for
+// multi-channel halt. Lowering: a single fused while_loop with one
+// halt channel per input plus a global "all-done" channel.
+
+
+// race — first-to-settle wins. Returns a promise that resolves with
+// the value of whichever input promise settles first.
+//
+//   function Promise race(Promise[] ps) { ... }
+//
+// Blocked on: same as all, plus a "first-saturating" arbiter on
+// the multi-channel halt.
+
+
+class Promise extends vector {
+    // Construct an already-fulfilled Promise wrapping `value`. No
+    // loop cycling — the halt vector's `fulfilled` channel is
+    // saturated at construction time. The substrate backing builds
+    // the standard promise vector with the value on the resolved-
+    // value axis and `fulfilled = 1`, `rejected = 0`.
+    static intrinsic method Promise resolve(vector value);
+
+    // Construct an already-rejected Promise wrapping `reason`. Mirror
+    // of `resolve` on the rejected channel.
+    static intrinsic method Promise reject(vector reason);
+
+    // Inspect the three states. Each takes the Promise as first arg
+    // (per the stdlib convention: instance methods are static funcs
+    // with obj first arg). Each returns a fuzzy/bool reading of the
+    // corresponding halt channel.
+    static intrinsic method bool isFulfilled(Promise self);
+    static intrinsic method bool isRejected(Promise self);
+    static intrinsic method bool isPending(Promise self);
+
+    // Read the resolved value (valid only when isFulfilled()) or the
+    // rejection reason (valid only when isRejected()). Reading the
+    // wrong one returns a noisy vector — the substrate doesn't gate
+    // the read on the halt-channel state. Caller is responsible.
+    static intrinsic method vector value(Promise self);
+    static intrinsic method vector reason(Promise self);
+}
