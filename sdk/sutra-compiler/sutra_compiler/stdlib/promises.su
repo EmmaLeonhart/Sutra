@@ -114,4 +114,28 @@ class Promise extends vector {
     // the read on the halt-channel state. Caller is responsible.
     static intrinsic method vector value(Promise self);
     static intrinsic method vector reason(Promise self);
+
+    // Loop-bodied await — the substrate-level shape of `await p`.
+    // Conceptually equivalent to:
+    //     while_loop spin(Promise.isPending(p) > 0.5, slot p) {
+    //         pass p;
+    //     }
+    //     return Promise.value(p);
+    // i.e. a while_loop gating on `p`'s pending state, body just
+    // re-passes the slot (no progress without external I/O), then
+    // unwraps the resolved value once the loop exits.
+    //
+    // For Sutra programs without external I/O (current state), a
+    // pending promise never changes mid-execution; an already-
+    // resolved promise exits the loop in 0 iterations. When Yantra
+    // wires up axon-IO writes, the producer side flips isPending
+    // and the next iteration exits with the resolved value.
+    //
+    // The Stage-1 desugar pass emits `await x` as
+    // `Promise.await_value(x)` rather than `Promise.value(x)`, so
+    // the loop semantics are baked into the desugared form even
+    // though today's runtime implementation collapses to immediate
+    // unwrap. See planning/sutra-spec/promises.md §"Lowering" and
+    // planning/sutra-spec/axon-io.md.
+    static intrinsic method vector await_value(Promise self);
 }
