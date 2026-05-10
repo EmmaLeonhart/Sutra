@@ -113,6 +113,7 @@ nav:
     - Numeric math: numeric-math.md
     - Memory: memory.md
     - Loops: loops.md
+    - Promises and async/await: promises.md
     - Compilation: compilation.md
     - The graph-to-vector leap: vision.md
     - Fuzzy logic explorer: interactive/fuzzy-logic.md
