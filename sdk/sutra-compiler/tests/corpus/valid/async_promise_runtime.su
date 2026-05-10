@@ -17,12 +17,26 @@ async function Promise<vector> immediate() {
     return cat;          // → Promise.resolve(cat) via Stage-1 desugar
 }
 
+// Var-then-return shape — `T v = await x; return g(v);` lowers to
+// `T v = Promise.value(x); return Promise.resolve(g(v));`.
+async function Promise<vector> g(vector v) {
+    return v;
+}
+
+async function Promise<vector> chained() {
+    vector v1 = await immediate();
+    vector v2 = await g(v1);
+    return v2;
+}
+
 function bool main() {
     Promise<vector> p   = immediate();
     Promise<vector> bad = Promise.reject(dog);
+    Promise<vector> ch  = chained();
     bool a = Promise.isFulfilled(p);    // 1.0 — desugared resolve
     bool b = Promise.isRejected(p);     // 0.0
     bool c = Promise.isFulfilled(bad);  // 0.0
     bool d = Promise.isRejected(bad);   // 1.0
-    return a + b + c + d;               // = 2.0
+    bool e = Promise.isFulfilled(ch);   // 1.0 — chained awaits
+    return a + b + c + d + e;           // = 3.0
 }
