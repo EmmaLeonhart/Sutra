@@ -1,0 +1,45 @@
+// First-class function values — passing functions as values to other
+// functions. Per the user's 2026-05-09 framing: this is the
+// prerequisite for doing calculus in Sutra (passing the derivative
+// function as a value), and for higher-order patterns generally.
+//
+// Implementation: the `function` type-name lets a parameter declare
+// "I take a function value." Calls on that parameter (`f(v)`) lower
+// to ordinary Python function-call syntax, and Python natively
+// supports passing functions as values, so there's no runtime
+// machinery to add — just the parser change to accept `function` as
+// a type-name in parameter position.
+
+function int double(int x) {
+    return x * 2;
+}
+
+function int triple(int x) {
+    return x * 3;
+}
+
+// Take a function and a value, apply the function. Higher-order.
+function int apply(function f, int v) {
+    return f(v);
+}
+
+// The calculus-shaped use case: numerical-derivative approximation.
+// Given a real-valued function f and a point x, approximate f'(x)
+// using the forward-difference quotient (f(x+h) - f(x)) / h. The
+// derivative is a function the caller pre-defined; we pass it in.
+function int forward_diff(function f, int x, int h) {
+    int fxh = f(x + h);
+    int fx  = f(x);
+    return (fxh - fx) / h;
+}
+
+function int main() {
+    // apply works: double(5) + triple(5) = 10 + 15 = 25
+    int a = apply(double, 5);
+    int b = apply(triple, 5);
+    // forward_diff of double at any x with any h returns 2 (df/dx = 2)
+    int d_double = forward_diff(double, 7, 1);
+    // forward_diff of triple returns 3 (df/dx = 3)
+    int d_triple = forward_diff(triple, 7, 1);
+    return a + b + d_double + d_triple;     // 25 + 2 + 3 = 30
+}
