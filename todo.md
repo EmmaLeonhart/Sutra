@@ -21,9 +21,42 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## First-class function values (2026-05-09)
+
+Sutra's arrow functions today get hoisted to top-level `function`
+declarations rather than passed as values (per the 2026-05-08 TS
+transpiler note; see `sdk/sutra-from-ts/tests/fixtures/arrow_function/`).
+That works for the TS lowering but blocks several language-level
+features that need to pass behaviour as data:
+
+- **Full async/await Stage-1 desugar.** The trivial shapes (pure
+  return, thin wrapper) are shipped (queue.md item 1, phase 3 first
+  cut). Anything richer — `vector v = await x; return g(v);`,
+  multi-await chains, `try { await ... } catch { ... }` — needs to
+  emit `.then(v -> g(v))` callbacks. With no first-class functions,
+  the desugar would have to generate explicit named continuation
+  functions and thread them through manually, which is doable but
+  ugly and unidiomatic. Worth doing properly: lift first-class
+  function values, then the desugar becomes a clean source-to-
+  source rewrite.
+- Higher-order list operations (`map`, `filter`, `reduce`) for the
+  Sutra surface beyond what the TS transpiler erases.
+- Callback-based event/observable APIs.
+
+Likely difficult — every existing pass that walks function decls has
+to learn that a function name can also appear in a value position.
+The codegen needs to emit Python-level closures (or named-helper
+indirection) for function-typed values. Type system needs a function-
+arrow type. Best handled as its own focused session rather than
+rolled into a feature work-stream.
+
+When this lands, queue.md item 1 phase 3+ unblocks immediately.
+
+---
+
 ## TS transpiler / Sutra postponed pieces (2026-05-08)
 
-Four deferred dimensions of the TS → Sutra pipeline. The core
+Three deferred dimensions of the TS → Sutra pipeline. The core
 transpiler shipped 2026-05-08 with 12 fixtures green end-to-end
 (TS source → `.su` → runnable Python). These are explicitly
 postponed; pick up when context-shifts.
@@ -37,19 +70,10 @@ postponed; pick up when context-shifts.
   picked up. See "[This year] Compile-time math function
   approximation" below.
 
-- [ ] **`async` / `await` / `Promise`**. Sutra has no concurrency
-  primitive that matches Promise semantics today. **User
-  hypothesis (2026-05-08): promise / async are likely related to
-  axons** — both are lazy-materialization stories (a Promise is a
-  value-not-yet-computed; an axon defers materialization to the
-  receiver's actual reads). The user explicitly noted they don't
-  know JS Promise semantics well enough to commit to a mapping;
-  flagged for design work when the time comes. If the axon angle
-  pans out: `async function f(): Promise<T>` could lower to a
-  function returning an axon, with `await p` becoming an axon
-  read. Park until either `planning/sutra-spec/concurrency.md`
-  consolidates a surface OR the multi-program axon demo (below)
-  reveals what shape inter-program lazy values actually want.
+- [x] **`async` / `await` / `Promise`** — un-postponed 2026-05-09
+  and substantially shipped. Active in `queue.md` item 1; the
+  remaining work (full Stage-1 desugar) is blocked on first-class
+  function values, listed at the top of this file.
 
 - [ ] **Module imports** (`import { X } from "./foo"`). v1 is
   single-file: each `.ts` file lowers independently to one `.su`
