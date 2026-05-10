@@ -12,7 +12,33 @@ stay in sync.
 
 In strategic order. Top item is the current focus.
 
-1. **TypeScript → Sutra transpiler implementation.** Substantially
+1. **Promises and async/await** — un-postponed 2026-05-09. Per the
+   user, every TypeScript construct should be expressible in Sutra
+   (modulo architectural violations); `async function`, `await`, and
+   `Promise<T>` are essential to that goal. Spec landed at
+   `planning/sutra-spec/promises.md`: surface syntax mirrors TS, the
+   lowering beta-reduces into the existing `while_loop` /
+   `do_while` tail-recursion forms with axons gating the boundary,
+   and the three states (pending / fulfilled / rejected) ride on a
+   two-channel halt vector. No new substrate primitives — Promises
+   are a controlled vocabulary over the loop machinery that already
+   ships. Implementation phases:
+
+   1. ✅ Spec — `planning/sutra-spec/promises.md` (this commit).
+   2. Lexer + parser keywords (`async`, `await`, `Promise`).
+       Parse-only first; codegen rejects with a "promises are spec'd
+       but not yet lowered" message. Reserves the syntax cheaply.
+   3. Lowering pass — transform async fns into `while_loop` decls
+       with two-channel halt vectors and axon-shaped input state.
+   4. TS transpiler integration — pass `async`/`await`/`Promise<T>`
+       through verbatim from TS into the new Sutra surface forms.
+   5. Stdlib — `stdlib/promises.su` declaring `Promise<T>` class
+       with `resolve` / `reject` / `isFulfilled` / `value` /
+       `reason` intrinsics that route through axon ops.
+   6. Fixtures — corpus + TS-transpiler tests covering single await,
+       chained awaits, try/catch on rejection, propagation.
+
+2. **TypeScript → Sutra transpiler implementation.** Substantially
    complete as of 2026-05-08: 12 fixtures land cleanly, all of which
    both string-match the lowering output AND compile through the
    Sutra pipeline to runnable Python. Coverage:
@@ -29,15 +55,8 @@ In strategic order. Top item is the current focus.
      constructor sugar (`new`), value-returning instance methods,
      non-static class loops, operator overloading via inheritance-
      chain dispatch, synthetic-axis equality (Euclidean+tanh).
-   Postponed: `Math.*` shims (gated on Sutra transcendentals),
-   async/Promise, module imports — explicitly deferred per user
-   2026-05-08.
-
-No active items. The TS transpiler shipped 2026-05-08 with 12
-fixtures green end-to-end. Postponed dimensions (Math.* shims,
-async/Promise, module imports, multi-program axon passing) are
-listed at the top of `todo.md` under "TS transpiler / Sutra
-postponed pieces."
+   Postponed *Math.\** shims (gated on Sutra transcendentals) and
+   module imports — async/Promise has been un-postponed (item 1).
 
 The C → Sutra transpiler skeleton at `sdk/sutra-from-c/` is parked
 (decision 2026-05-08): user no longer views transpiling Linux as a

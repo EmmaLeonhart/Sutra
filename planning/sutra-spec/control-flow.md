@@ -172,6 +172,25 @@ than a missing implementation. Parser support exists so the
 surface syntax is reserved; the feature itself is parked in
 `todo.md` as a longer-term item.
 
+The one carve-out: `try { await ... } catch { ... }` inside an
+`async function` has a defined lowering, because an awaited promise
+can reject and the surrounding async function needs a recovery path.
+See `promises.md` §"Rejection propagation" — the `catch` block runs
+unconditionally on rejection of the awaited promise, no exception
+variable is bound. The general non-async `try` / `catch` remains
+unimplemented.
+
+## Promises and async/await — see `promises.md`
+
+`async function`, `await expr`, and `Promise<T>` are syntactic sugar
+over the tail-recursive loop machinery above. Each `await` becomes a
+gated `while_loop` whose halt condition is "the awaited input axon
+arrived." The full surface syntax, lowering, and three-state
+(pending / fulfilled / rejected) semantics are specified in
+`promises.md`. Promises are not a new control-flow primitive —
+they're a controlled vocabulary the standard library exposes for
+patterns the existing loops already express.
+
 ## `return`
 
 Functions can return a value (`return expr;`) or nothing

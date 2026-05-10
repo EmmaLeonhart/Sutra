@@ -161,3 +161,28 @@ Still open:
 - Whether a concurrent computation has a distinct type.
 - How timing difference between paths is expressed.
 - Semantics when one path diverges or never terminates.
+
+## Promises and async/await — `promises.md`
+
+First cut landed 2026-05-09. Spec defines surface syntax (`async`,
+`await`, `Promise<T>`) and the lowering to existing tail-recursive
+loop forms with axons at the boundary. Implementation tracked in
+`queue.md`.
+
+- Reject-channel encoding — two-scalar (`fulfilled`, `rejected`) vs
+  one signed scalar.
+- Multi-await fusion — when to fuse sequential awaits into a single
+  multi-channel loop.
+- Promise composition with axon types — does `Promise<axon X>`
+  flatten? does `Promise<Promise<T>>`?
+- Cancellation primitive — Sutra loops genuinely can be cancelled
+  mid-flight (set rejected from outside); offer as explicit primitive
+  or leave implicit?
+- Backpressure / streaming — async generators (`async function*`) as
+  separate construct vs. unified with `async function` via
+  multi-write-event axons.
+- Exception-object surface for `catch` — Sutra has no raise/throw;
+  decide whether `catch` exposes the awaited promise's `.reason()`
+  as an implicit binding.
+- Top-level await — allow `async main()`, or compile-error pending
+  modules?
