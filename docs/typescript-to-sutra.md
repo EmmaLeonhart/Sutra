@@ -52,6 +52,39 @@ name is the const's name. Cross-references resolve normally because
 the transpiler's pre-pass registers arrow function names in the
 function-signature table before the body walk.
 
+### Arrow functions that capture enclosing locals — works (2026-05-09)
+
+```typescript
+function main(): number {
+    const multiplier: number = 5;
+    const scale = (x: number): number => x * multiplier;
+    return scale(7);   // 35
+}
+```
+
+```c
+function int scale(int x, int multiplier) {
+    return x * multiplier;
+}
+
+function int main() {
+    int multiplier = 5;
+    return scale(7, multiplier);
+}
+```
+
+Sutra has no closure. The transpiler walks the arrow body, finds
+references to enclosing-scope locals (`multiplier`), and lifts them
+to extra parameters of the generated top-level function. Every
+direct call site (`scale(7)`) gets the captured names appended
+explicitly (`scale(7, multiplier)`). No runtime closure machinery,
+no anonymous-function values, no environment-capture indirection.
+
+The constraint: the arrow must be called **directly** (not passed
+as a value). When the arrow is passed to another function as a
+value (e.g., `arr.map(x => x + total)`), the call site that
+ultimately invokes it doesn't know what extra args to thread.
+
 ### Functions as values — works (2026-05-09)
 
 Passing a function as a value works via the `function` type-name in
@@ -603,7 +636,8 @@ Fixture: `sdk/sutra-from-ts/tests/fixtures/untyped_js/`.
 | Function declarations | ✅ | C-style annotation flip |
 | Arrow functions (as const) | ✅ | Hoisted to top-level fn |
 | Functions as values (top-level refs) | ✅ | `function` type-name in params |
-| Closure capture in arrow fns | ❌ | Top-level fns only for now |
+| Closure capture (direct call) | ✅ | Captures lifted to extra params, threaded at call site |
+| Closure capture (arrow passed as value) | ❌ | Direct-call only; passing-as-value loses captures |
 | Default / rest parameters | ❌ | Smaller scope; not in yet |
 | Class fields + methods | ✅ | Parameter properties → `field` decls |
 | Static methods | ✅ | |
@@ -648,37 +682,50 @@ Legend: ✅ works · ⚠️ partial · ❌ not yet
 ## What this means in practice
 
 Most straight-line TS code — classes, functions, loops, arithmetic,
-async/await, try/catch, higher-order function calls — runs through
-the transpiler today. The patterns that still don't work cluster in
-three areas:
+async/await, try/catch, higher-order function calls, and closure-
+capturing arrow functions called directly — runs through the
+transpiler today.
 
-- **Closures over local state.** Top-level functions can be passed
-  as values, but arrow functions that capture enclosing locals
-  don't. Calculus-shape patterns work (`forward_diff(double, x, h)`)
-  because `double` is a top-level reference; `arr.map(x => total +
-  x)` doesn't work because the lambda would need to capture
-  `total`.
-- **Container method dispatch.** `arr.map(double)` doesn't work
-  not because of the function value but because the `Array` /
-  `String` / `Promise` types in the stdlib don't yet have
-  `.map` / `.then` / `.catch` declared. These would be straight-
-  forward additions to the relevant `stdlib/*.su` files.
-- **Runtime-keyed iteration.** `for-of`, `for-in`, object
-  destructuring still require the iterator protocol or destructuring
-  patterns the transpiler doesn't lower.
+**On closures specifically:** Sutra has no closure. Period. When
+the TS source has an arrow function that references enclosing-scope
+locals, the transpiler lifts those locals to extra parameters of
+the generated top-level function and threads the captured values
+at every direct call site. There is no runtime closure machinery,
+no anonymous-function values, no environment-capture indirection.
+The closure-shape vanishes at transpile time and the resulting
+Sutra program looks like ordinary explicit parameter passing.
+
+The cost: arrow functions that need their captures preserved
+across being **passed as values** (e.g. `arr.map(x => x + total)`
+where `total` is captured) don't work, because the call site that
+ultimately invokes the arrow doesn't know what extra args to
+thread. Direct-call usage works fine.
+
+**Patterns NOT planned for Sutra:**
+- Container-method dispatch (`arr.map`, `arr.filter`, `Promise.then`,
+  `Promise.all`, `Promise.race`). These belong to the JavaScript
+  surface ecosystem; Sutra programs that want the same effect write
+  explicit loops or sequential awaits. Per the user (2026-05-09):
+  "those things are not supposed to be part of Sutra because
+  they're like the JavaScript mess."
+- Multi-statement try/catch bodies. Single-return blocks cover the
+  practical cases; richer multi-statement try blocks would need
+  slot-state hoisting and a story for what an "exception type"
+  even is in Sutra (there's no throw, no exception object).
+- Closure capture across arrow-passed-as-value. Direct-call capture
+  is enough for the calculus / higher-order patterns Sutra cares
+  about.
 
 If you're starting a TS-style program in Sutra and not sure which
 patterns to lean on:
 
 - **Use** classes, typed functions, while/for loops, try/catch,
   async/await, string concat, array literals, top-level functions
-  passed as values.
+  passed as values, arrow functions that capture-and-call directly.
 - **Avoid** template literals, object destructuring, regex,
-  closure-capturing arrow functions. Rewrite to explicit loops,
-  `+` concat, and top-level helper functions.
-- **Wait for** array/promise method dispatch (`.map`, `.then`)
-  before depending on chained-collection patterns; the stdlib
-  declarations are the gating piece.
+  array-method-chaining (`.map`/`.filter`), arrow functions passed
+  as values that need to preserve captures. Rewrite to explicit
+  loops, `+` concat, and top-level helper functions.
 
 ---
 
