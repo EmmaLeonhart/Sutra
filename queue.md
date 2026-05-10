@@ -65,43 +65,37 @@ Three-box mental model rendered at `docs/promises.md` (live at
 
 #### What's still pending
 
-These are the two specific things blocking richer async programs:
+**Active in this session:** Stage-2 lowering pass — `Promise<T>` →
+`while_loop` with two-channel halt vector. The axon-based external-
+I/O question (how does the loop body query "did the awaited input
+arrive?") was resolved 2026-05-09 by the user: the input slot is
+the zero vector until it arrives, then becomes non-zero;
+`norm(slot) > eps` is the on-substrate "arrived?" check. Spec at
+`planning/sutra-spec/axon-io.md`. Implementation now unblocked.
 
-1. **First-class function values for `.then(callback)`.** Sutra's
-   arrow functions today get hoisted to top-level `function`
-   declarations rather than passed as values (see
-   `sdk/sutra-from-ts/tests/fixtures/arrow_function/`). Until the
-   language has callable function-typed locals, the desugar can't
-   express the post-await continuation as a `.then(v -> body)`
-   callback. This blocks:
-   - Async functions with `vector v = await x; return g(v);` shape
-   - Multi-await chains beyond the trivial pass-through
-   - `try { await ... } catch { ... }` lowering to `.catch(e -> ...)`
+Concrete substrate work for Phase 6:
+- Reserve `synthetic[AXIS_PROMISE_FULFILLED]` and
+  `synthetic[AXIS_PROMISE_REJECTED]` in the canonical synthetic-
+  axis allocation (currently 0..4: real, imag, truth,
+  string-flag, loop-done).
+- Implement `_VSA.resolve(v)` / `_VSA.reject(r)` /
+  `_VSA.isFulfilled(p)` / `_VSA.isRejected(p)` /
+  `_VSA.isPending(p)` / `_VSA.value(p)` / `_VSA.reason(p)` runtime
+  methods in both numpy and pytorch backends. These are pure axis
+  reads / writes — substrate-pure, no loop yet.
+- For programs that just construct + inspect promises (no await),
+  the runtime methods alone are sufficient. The `while_loop`
+  generation kicks in only when an `await` actually gates on an
+  external axon arrival.
 
-   When this lands, the Stage-1 desugar grows from "two simple
-   shapes" to "everything JS-style async/await expresses." This is
-   the single biggest leverage point for the full feature.
-
-2. **Stage-2 lowering pass: `Promise<T>` → `while_loop`.** The
-   substrate-bottom transformation. Each `Promise<T>` constructor
-   call (and each `.then`/`.catch` call after #1 lands) collapses
-   into a declared `while_loop` with a two-channel halt vector
-   (`fulfilled`, `rejected`) and an axon-shaped input state.
-
-   Blocked on: a small spec pass for the **axon-based external-I/O
-   model**. The current `planning/sutra-spec/axons.md` doesn't say
-   how a substrate-pure loop body actually queries "did the awaited
-   input arrive yet?" That decision sits at the Sutra/Yantra
-   boundary and needs `planning/sutra-spec/axon-io.md` (doesn't
-   exist yet) before the lowering can ship something honest.
-
-   Until #2 ships, calls to the `Promise.resolve` / `Promise.reject`
-   intrinsics emit `_VSA.resolve(...)` / `_VSA.reject(...)` which
-   don't exist in the runtime — programs that EXERCISE the desugared
-   functions (vs. just declaring them) will get a runtime
-   `AttributeError`. The two simple Stage-1 shapes that compile +
-   run end-to-end work because the desugared `Promise.resolve(e)`
-   call sites in our fixture aren't actually invoked at runtime.
+**Deferred to `todo.md`:** First-class function values for
+`.then(callback)`. The trivial Stage-1 desugar shapes (pure
+return, thin wrapper) shipped. Anything richer — `vector v = await
+x; return g(v);`, multi-await chains, `try { await ... } catch
+{ ... }` — needs functions-as-values to express the post-await
+continuation as a `.then(v -> body)` callback. Tracked at the top
+of `todo.md` as its own focused work-stream; pick it up when the
+first-class-function-value pass lands.
 
 #### Phase tracker
 
@@ -113,7 +107,7 @@ These are the two specific things blocking richer async programs:
 | 3+ | Stage-1 — full coverage (needs first-class fns) | 🚧 blocked |
 | 4 | TS transpiler pass-through | ✅ |
 | 5 | Stdlib `Promise<T>` class declaration | ✅ |
-| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | 🚧 blocked on axon-io spec |
+| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | 🚧 in progress (axon-io spec landed) |
 | 7 | Fixtures — try/catch, multi-await, propagation | partial (2 corpus + 1 TS) |
 
 ---
