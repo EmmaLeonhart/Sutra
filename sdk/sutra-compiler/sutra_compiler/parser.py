@@ -235,6 +235,12 @@ class Parser:
 
         if tok.kind is TokenKind.KW_FUNCTION:
             return self._parse_function_decl(mods)
+        if tok.kind is TokenKind.KW_ASYNC and self._peek(1).kind is TokenKind.KW_FUNCTION:
+            # `async function ...` — promise-producing function.
+            # Consume the `async` modifier; _parse_function_decl picks
+            # up at `function`. See planning/sutra-spec/promises.md.
+            self._advance()
+            return self._parse_function_decl(mods, is_async=True)
         if tok.kind in (TokenKind.KW_DO_WHILE,
                         TokenKind.KW_WHILE_LOOP,
                         TokenKind.KW_ITERATIVE_LOOP,
@@ -324,6 +330,7 @@ class Parser:
 
     def _parse_function_decl(
         self, mods: ast.Modifiers, *, is_intrinsic: bool = False,
+        is_async: bool = False,
     ) -> Optional[ast.FunctionDecl]:
         start_span = self._current_span()
         self._expect(TokenKind.KW_FUNCTION, "`function`")
@@ -370,6 +377,7 @@ class Parser:
                 body=body,
                 is_operator=False,
                 is_intrinsic=True,
+                is_async=is_async,
                 span=SourceSpan(start=start_span.start, end=end),
             )
         body = self._parse_block()
@@ -385,6 +393,7 @@ class Parser:
             params=params,
             body=body,
             is_operator=False,
+            is_async=is_async,
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
@@ -1761,6 +1770,17 @@ class Parser:
             operand = self._parse_unary()
             return ast.UnaryOp(
                 op=op_tok.lexeme,
+                operand=operand,
+                span=SourceSpan(start=op_tok.span.start, end=operand.span.end),
+            )
+        if kind is TokenKind.KW_AWAIT:
+            # `await expr` — gate on the input axon backing `expr`'s
+            # promise. Only legal inside an `async function` body; the
+            # codegen/validator enforces that. See planning/sutra-spec/
+            # promises.md §"Lowering".
+            op_tok = self._advance()
+            operand = self._parse_unary()
+            return ast.AwaitExpr(
                 operand=operand,
                 span=SourceSpan(start=op_tok.span.start, end=operand.span.end),
             )
