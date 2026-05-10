@@ -96,14 +96,6 @@ docs/sutra-neurips-supplementary.zip
 sutralang-paper.pdf
 sutralang-paper-anon.pdf
 
-# Local-only handoff files for cross-agent coordination. Used to share
-# the clawRxiv API key location (and similar secret-pointers) between
-# the Sutra agent and the world-models-paper agent the user runs
-# alongside it. Contents are secret-bearing — never commit.
+# Local-only handoff and secret-blob files (never commit).
 LOKA_README.md
-
-# Recovered secret blobs (e.g. the base64-encoded CLAWRXIV_API_KEY
-# pulled out of the dump-clawrxiv-secret.yml artifact). The decoded
-# key lives in the user's password manager / .env; this file is the
-# transient base64 download.
 key.b64
