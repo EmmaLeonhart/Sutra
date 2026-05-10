@@ -24,19 +24,25 @@ In strategic order. Top item is the current focus.
    are a controlled vocabulary over the loop machinery that already
    ships. Implementation phases:
 
-   1. ✅ Spec — `planning/sutra-spec/promises.md` (this commit).
-   2. Lexer + parser keywords (`async`, `await`, `Promise`).
-       Parse-only first; codegen rejects with a "promises are spec'd
-       but not yet lowered" message. Reserves the syntax cheaply.
-   3. Lowering pass — transform async fns into `while_loop` decls
+   1. ✅ Spec — `planning/sutra-spec/promises.md`.
+   2. ✅ Lexer + parser keywords (`async`, `await`, `Promise`).
+       Parse-only; codegen rejects with a promises.md pointer.
+       Corpus fixture `async_promise_basic.su` validates clean.
+   3. **Lowering pass** — transform async fns into `while_loop` decls
        with two-channel halt vectors and axon-shaped input state.
-   4. TS transpiler integration — pass `async`/`await`/`Promise<T>`
-       through verbatim from TS into the new Sutra surface forms.
+       Blocked on a small spec pass for axon-based I/O (how does the
+       loop body actually check "did the input arrive yet"); the
+       current axon spec doesn't have an explicit external-I/O model.
+   4. ✅ TS transpiler integration — `async function`,
+       `await expr`, and `Promise<T>` pass through verbatim from TS
+       into the new Sutra surface forms. TS fixture
+       `async_promise_basic` lowering-test green; compile-test
+       xfailed pending phase 3.
    5. Stdlib — `stdlib/promises.su` declaring `Promise<T>` class
        with `resolve` / `reject` / `isFulfilled` / `value` /
        `reason` intrinsics that route through axon ops.
-   6. Fixtures — corpus + TS-transpiler tests covering single await,
-       chained awaits, try/catch on rejection, propagation.
+   6. More fixtures — corpus + TS tests covering try/catch on
+       rejection, propagation, multi-await fusion.
 
 2. **TypeScript → Sutra transpiler implementation.** Substantially
    complete as of 2026-05-08: 12 fixtures land cleanly, all of which
