@@ -1,0 +1,28 @@
+// Stage-2 promise runtime — Promise.resolve / .reject / inspectors
+// run end-to-end on the substrate after Stage-1 desugar.
+//
+// Per planning/sutra-spec/promises.md §"Lowering" Stage 2 and the
+// runtime methods landed 2026-05-09 (queue.md item 1 phase 6):
+//   - Promise.resolve(v) sets AXIS_PROMISE_FULFILLED on a clone of v
+//   - Promise.reject(r)  sets AXIS_PROMISE_REJECTED on a clone of r
+//   - isFulfilled / isRejected / isPending read those axes back
+//
+// The desugar handles the trivial async-fn case (return e becomes
+// Promise.resolve(e)); the runtime methods handle the rest.
+
+vector cat = basis_vector("cat");
+vector dog = basis_vector("dog");
+
+async function Promise<vector> immediate() {
+    return cat;          // → Promise.resolve(cat) via Stage-1 desugar
+}
+
+function bool main() {
+    Promise<vector> p   = immediate();
+    Promise<vector> bad = Promise.reject(dog);
+    bool a = Promise.isFulfilled(p);    // 1.0 — desugared resolve
+    bool b = Promise.isRejected(p);     // 0.0
+    bool c = Promise.isFulfilled(bad);  // 0.0
+    bool d = Promise.isRejected(bad);   // 1.0
+    return a + b + c + d;               // = 2.0
+}
