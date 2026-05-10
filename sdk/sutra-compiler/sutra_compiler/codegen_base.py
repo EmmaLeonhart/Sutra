@@ -1900,9 +1900,81 @@ class BaseCodegen:
                 "if/else is not supported by the V1 codegen — the whole "
                 "point is to compile it away into a prototype-table lookup",
             )
+        if isinstance(stmt, ast.TryStmt):
+            self._translate_try_catch(stmt)
+            return
         raise CodegenNotSupported(
             stmt, f"unsupported statement: {type(stmt).__name__}"
         )
+
+    def _translate_try_catch(self, stmt: ast.TryStmt) -> None:
+        """Lower `try { return e1; } catch { return e2; }` to a polarized
+        blend on AXIS_PROMISE_REJECTED — the substrate's exception axis.
+
+        Per the user's 2026-05-09 framing: try/catch is not a true fuzzy
+        superposition — the polarizer pushes the exception axis hard
+        toward 0 or 1 so the result is effectively binary even when the
+        underlying axis read is fractional. The blend is
+
+            v_try = e1
+            exc   = tanh(k * v_try[AXIS_PROMISE_REJECTED])    # polarize
+            v_cat = e2
+            return (1 - exc) * v_try + exc * v_cat
+
+        where `k` is large (50 by default) — anything past the tanh
+        knee saturates to ±1, so a value with rejected=1.0 selects the
+        catch branch entirely and a value with rejected=0.0 selects the
+        try branch entirely. The substrate evaluates BOTH branches (no
+        early exit, no throw) — the polarized blend just decides which
+        one's value survives.
+
+        First-cut constraint: both blocks must be a single
+        `return <expr>;`. Multi-statement bodies aren't supported yet
+        (would need slot-state hoisting like the loops do). See
+        planning/sutra-spec/control-flow.md for the current scope.
+        """
+        try_stmts = stmt.try_body.statements
+        catch_stmts = stmt.catch_body.statements
+        if (len(try_stmts) != 1
+                or not isinstance(try_stmts[0], ast.ReturnStmt)
+                or try_stmts[0].value is None
+                or len(catch_stmts) != 1
+                or not isinstance(catch_stmts[0], ast.ReturnStmt)
+                or catch_stmts[0].value is None):
+            raise CodegenNotSupported(
+                stmt,
+                "try/catch first cut requires both blocks to be a "
+                "single `return <expr>;`. Multi-statement bodies need "
+                "slot hoisting (like the loops use) and aren't done "
+                "yet. See planning/sutra-spec/control-flow.md.",
+            )
+        v_try_src = self._translate_expr(try_stmts[0].value)
+        v_cat_src = self._translate_expr(catch_stmts[0].value)
+        # Use a temp local so we read the rejected axis off the
+        # already-evaluated try result (rather than re-evaluating).
+        self._emit(f"_try_v = {v_try_src}")
+        self._emit(
+            "_try_exc = float(_torch.tanh(50.0 * "
+            "_try_v[_VSA.semantic_dim + _VSA.AXIS_PROMISE_REJECTED]))"
+            if self._is_pytorch_backend()
+            else "_try_exc = float(_np.tanh(50.0 * "
+            "_try_v[_VSA.semantic_dim + _VSA.AXIS_PROMISE_REJECTED]))"
+        )
+        self._emit(f"_catch_v = {v_cat_src}")
+        if self._current_return_type == "string":
+            self._emit("return _catch_v if _try_exc > 0.5 else _try_v")
+        else:
+            self._emit(
+                "return ((1.0 - _try_exc) * _try_v + _try_exc * _catch_v) "
+                "* _program_halt"
+            )
+
+    def _is_pytorch_backend(self) -> bool:
+        """Backend hook so try/catch can pick the right tanh emitter.
+
+        Default: numpy. The PyTorch codegen overrides this to True.
+        """
+        return False
 
     # -- loop compilation ---------------------------------------------------
     #

@@ -1,0 +1,46 @@
+// try/catch via polarized AXIS_PROMISE_REJECTED blend.
+//
+// Per planning/sutra-spec/control-flow.md and the user's 2026-05-09
+// framing: try/catch is not a true fuzzy superposition — the polarizer
+// pushes the rejected axis hard via tanh(50*x), so the blend selects
+// the catch branch entirely when the try result has rejected≈1, and
+// the try branch entirely when rejected≈0. Both branches evaluate
+// (no early exit, no throw) — the polarized blend just decides which
+// value survives.
+//
+// Constraint of the first cut: both blocks must be a single
+// `return <expr>;`. Multi-statement bodies need slot hoisting (like
+// the loops do) and aren't done yet.
+
+vector cat = basis_vector("cat");
+vector dog = basis_vector("dog");
+
+// Happy path: try body returns a Promise.resolve (rejected=0).
+// Polarizer tanh(50*0) ≈ 0 → try branch wins → result is the
+// resolved promise wrapping `cat`.
+function vector tryHappy() {
+    try {
+        return Promise.resolve(cat);
+    } catch {
+        return Promise.resolve(dog);
+    }
+}
+
+// Sad path: try body returns a Promise.reject (rejected=1).
+// Polarizer tanh(50*1) ≈ 1 → catch branch wins → result is the
+// resolved promise wrapping `dog`.
+function vector trySad() {
+    try {
+        return Promise.reject(cat);
+    } catch {
+        return Promise.resolve(dog);
+    }
+}
+
+function bool main() {
+    vector h = tryHappy();
+    vector s = trySad();
+    // Both should be fulfilled — happy directly, sad via the catch
+    // branch. isFulfilled returns 1.0 for each, sum = 2.0.
+    return Promise.isFulfilled(h) + Promise.isFulfilled(s);
+}

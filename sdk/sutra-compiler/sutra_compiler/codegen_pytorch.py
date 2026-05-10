@@ -49,6 +49,11 @@ class PyTorchCodegen(Codegen):
     _as_truth_vector.
     """
 
+    def _is_pytorch_backend(self) -> bool:
+        """Override: this backend emits torch tensor ops, so try/catch
+        uses _torch.tanh for the polarizer."""
+        return True
+
     def _emit_select_helper(self) -> None:
         """Torch-based softmax for the Sutra `select` primitive.
 
