@@ -122,6 +122,33 @@ def _ts_type_to_sutra(annotation_node, source: bytes, ctx: Context) -> str:
         # parameterized `Array<T>` yet; underneath it's a vector / a
         # Python list at runtime depending on how it's constructed.
         return "Array"
+    if inner.type == "generic_type":
+        # `Promise<T>` (and any other `Foo<T>` generic) — preserve the
+        # parameterised form so it round-trips into Sutra's type-ref
+        # syntax. Inner T is recursively lowered as if it were the
+        # body of a synthetic type_annotation. See planning/sutra-spec/
+        # promises.md for the Promise<T> handling specifically.
+        head = inner.child_by_field_name("name")
+        args_node = next(
+            (c for c in inner.named_children if c.type == "type_arguments"),
+            None,
+        )
+        if head is None or args_node is None:
+            return "JavaScriptObject"
+        name = _node_text(head, source)
+        arg_srcs = []
+        for arg in args_node.named_children:
+            # arg is a type expression; reuse the same lowering by
+            # synthesising the predefined-type / type_identifier / etc.
+            # branches inline.
+            if arg.type == "predefined_type":
+                t = _node_text(arg, source)
+                arg_srcs.append(_TS_PRIMITIVE_TO_SUTRA.get(t, "JavaScriptObject"))
+            elif arg.type == "type_identifier":
+                arg_srcs.append(_node_text(arg, source))
+            else:
+                arg_srcs.append("JavaScriptObject")
+        return f"{name}<{', '.join(arg_srcs)}>"
     return "JavaScriptObject"
 
 
@@ -325,6 +352,19 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         if prop_text in _PROPERTY_TO_METHOD:
             return f"{obj_src}.{_PROPERTY_TO_METHOD[prop_text]}()"
         return f"{obj_src}.{prop_text}"
+    if node.type == "await_expression":
+        # `await expr` — passes through as Sutra `await expr`. Only
+        # legal inside an async function body; the Sutra parser
+        # accepts the syntax and the codegen errors with a
+        # promises.md pointer until the lowering pass lands. See
+        # planning/sutra-spec/promises.md §"Lowering".
+        operand = node.named_children[0] if node.named_children else None
+        operand_src = (
+            _lower_expression(operand, source, ctx)
+            if operand is not None
+            else "/* UNSUPPORTED-AWAIT: empty */"
+        )
+        return f"await {operand_src}"
     return f"/* UNSUPPORTED-EXPR: {node.type} */"
 
 
@@ -782,6 +822,13 @@ def _lower_function(node, source: bytes, ctx: Context) -> str:
     body_node = node.child_by_field_name("body")
     name = _node_text(name_node, source) if name_node else "anonymous"
     return_type = _ts_type_to_sutra(return_type_node, source, ctx)
+    # `async function` — tree-sitter-typescript emits the `async`
+    # keyword as an unnamed leaf child of the function_declaration.
+    # When present, prepend `async` to the Sutra output. The Sutra
+    # parser recognises `async function` as a function-decl modifier;
+    # see planning/sutra-spec/promises.md for the lowering.
+    is_async = any(c.type == "async" for c in node.children if not c.is_named)
+    async_prefix = "async " if is_async else ""
 
     fn_ctx = ctx.child_scope()
 
@@ -801,7 +848,7 @@ def _lower_function(node, source: bytes, ctx: Context) -> str:
                 fn_ctx.local_types[pname] = "JavaScriptObject"
     params_src = ", ".join(param_parts)
     body_src = _lower_function_body(body_node, source, fn_ctx)
-    return f"function {return_type} {name}({params_src}) {{\n{body_src}}}\n"
+    return f"{async_prefix}function {return_type} {name}({params_src}) {{\n{body_src}}}\n"
 
 
 def _lower_class_decl(node, source: bytes, ctx: Context) -> str:
