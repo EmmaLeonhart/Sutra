@@ -9,22 +9,48 @@
 
 ## Vision
 
-A Promise is a loop. There is no new computational primitive — the
-existing `while_loop` / `do_while` / `iterative_loop` machinery already
-expresses everything Promises need. The "pending" state is the loop's
-eigenrotation actively cycling; the "fulfilled" or "rejected" state is
-the halt scalar saturating with one of two values; the input the loop
-is waiting on is an axon connected to the front of the loop body.
+`async`, `await`, and `Promise<T>` are **first-class Sutra
+vocabulary** — not TypeScript imports, not stdlib helpers bolted onto
+the side. They're the language's own surface forms, and the desugaring
+happens in **two layered stages**:
 
-The standard library's `async`, `await`, and `Promise<T>` vocabulary is
-syntactic sugar that gives JS-shaped programmers familiar names for
-this loop pattern, and gives the TS→Sutra transpiler a one-to-one
-target for TypeScript's same keywords.
+```
+async function   (sugar over)
+   ↓
+Promise<T>       (sugar over)
+   ↓
+while_loop with two-channel halt vector  (substrate primitive)
+```
+
+**Stage 1: `async` / `await` → `Promise<T>` construction.** An
+`async function` body is rewritten so the function returns a
+`Promise<T>` value built up from explicit `Promise` construction over
+the body's expressions. Each `await` becomes a continuation registered
+on the awaited promise's `.then()`. This stage is pure surface
+rewriting — no substrate concerns.
+
+**Stage 2: `Promise<T>` → `while_loop`.** A `Promise<T>` value is
+itself sugar for a `while_loop` declaration whose halt vector has two
+channels (`fulfilled`, `rejected`). The "pending" state is the loop's
+eigenrotation actively cycling; the "fulfilled" or "rejected" state
+is the corresponding halt channel saturating; the value the promise
+will resolve to is the loop's exit-state vector; the input the loop
+is waiting on (if any) is an axon connected to the front of the body.
+
+This layering means **standard TypeScript-style code with promises
+mostly just runs**. You don't have to translate to Sutra-specific
+patterns; the language has the same vocabulary. There's some
+adjustment (Sutra's type system is more explicit, the surface is
+opinionated about substrate-purity) but the async-shape of programs
+is preserved verbatim.
 
 Per CLAUDE.md §"Architecture and Conventions": every Sutra primitive
-runs on the substrate. Promises are no exception — the lowered form
-is the existing tail-recursive RNN cell, which already runs on the
-substrate. Nothing new at the runtime layer.
+runs on the substrate. Promises are no exception — the second-stage
+lowering bottoms out at a `while_loop`, which already runs on the
+substrate. The stage-1 (`async/await` → `Promise`) layer is pure
+syntax rewriting at compile time; the stage-2 (`Promise` →
+`while_loop`) layer is the substrate-bottom step. Nothing new at the
+runtime layer.
 
 ## Surface syntax
 
@@ -89,23 +115,21 @@ saturated, take this value instead." The general non-async `try` /
 
 ## Lowering
 
-An async function with N awaits lowers into a `while_loop` declaration
-with:
+Two stages, applied in sequence by the compiler.
 
-- **State:** the local variables of the function plus a halt vector
-  with two channels (`fulfilled`, `rejected`).
-- **Inputs:** an axon with one field per awaited input. The body
-  reads from this axon.
-- **Body:** the eigenrotation that, each iteration, checks whether all
-  awaited inputs have arrived. If yes, runs the post-await
-  computation and saturates the `fulfilled` channel. If an error
-  axon fires, saturates the `rejected` channel.
-- **Output:** the resolved value (when fulfilled) or the rejection
-  reason (when rejected), plus the two halt channels.
+### Stage 1: `async` / `await` → explicit `Promise` construction
 
-### Worked example
+An `async function` body is rewritten so the function returns a
+`Promise<T>` value. Each `await` becomes a chained `.then()` on the
+awaited promise; the post-await code becomes the `.then` callback's
+body.
 
-Source (async/await):
+This stage is pure surface rewriting: no substrate concerns, no
+runtime dependencies, identical to what a JavaScript transpiler
+would do to lower `async/await` to `.then()` chains. The output is
+still Sutra source; it just no longer mentions `async` or `await`.
+
+Source (stage-1 input):
 
 ```c
 async function Promise<vector> fetch_label(vector query) {
@@ -115,47 +139,77 @@ async function Promise<vector> fetch_label(vector query) {
 }
 ```
 
-Lowered (existing tail-recursion forms):
+After stage 1 (still Sutra, no `async` / `await`):
 
 ```c
-// The promise's body becomes a while_loop whose state is the
-// awaited-input axon plus the result vector.
-
-axon FetchLabelInput {
-    vector raw_response;        // populated when network_lookup arrives
-    bool rejected;              // populated if the input axon errored
+function Promise<vector> fetch_label(vector query) {
+    return network_lookup(query).then(vector raw -> {
+        return Promise.resolve(argmax_cosine(raw, [a, b, c]));
+    });
 }
+```
+
+Multiple awaits chain into nested `.then()`s (or, as an optimiser
+pass, fuse into a single multi-callback `Promise.all` shape). A
+`try / catch` around an `await` becomes a `.catch()` on the promise
+chain. The error / rejection-propagation rules are JavaScript's,
+verbatim — that's the point of using JavaScript's vocabulary.
+
+### Stage 2: `Promise<T>` → `while_loop` with two-channel halt
+
+A `Promise<T>` value is itself sugar for a `while_loop` declaration.
+Constructing a promise builds a loop; calling `.then()` chains
+another loop after the first; resolving / rejecting saturates the
+corresponding halt channel.
+
+The lowered shape:
+
+- **State:** the promise's working data (the inputs the body reads,
+  the partial result, any captured locals) plus a halt vector with
+  two channels (`fulfilled`, `rejected`).
+- **Inputs:** an axon carrying any external values the promise is
+  waiting on. The body reads from this axon each iteration.
+- **Body:** the eigenrotation that checks whether the awaited inputs
+  have arrived. When yes, runs the body and saturates `fulfilled`.
+  When the input arrives in an error state, saturates `rejected`.
+- **Output:** the resolved value plus the two halt channels.
+
+Worked example (carrying the same source through stage 2):
+
+```c
+// The promise built in fetch_label's body becomes a while_loop whose
+// state is the awaited-input axon plus the result vector.
 
 while_loop fetch_label_body(
     !arrived(in.raw_response) && !in.rejected,
-    axon FetchLabelInput in,
+    axon in,
     slot vector result : vector
 ) {
-    // Each iteration, check whether the input arrived.
-    // The condition above gates re-entry: as long as the input
-    // hasn't arrived AND we haven't been rejected, keep spinning.
-    // When the input does arrive, the condition flips false, the
-    // loop exits, and the post-iteration code below runs.
+    // Each iteration: check whether the input arrived. The
+    // condition gates re-entry — keep spinning until the input
+    // arrives or rejects. When it arrives, the loop exits and the
+    // post-iteration code runs.
     pass in, result;
 }
 
 function Promise<vector> fetch_label(vector query) {
-    axon FetchLabelInput in   = network_lookup_axon(query);
+    axon in   = network_lookup_axon(query);
     slot vector result : vector = zero_vector();
     loop fetch_label_body(in, result);
     // After the loop exits, in.raw_response is populated (or
-    // in.rejected is true). Run the post-await computation:
+    // in.rejected is true). Run the post-await code:
     vector clean = argmax_cosine(in.raw_response, [a, b, c]);
     return promise_fulfilled(clean);
     // (or promise_rejected(in.rejection_reason) on the error path)
 }
 ```
 
-The lowering preserves the function's signature (`Promise<vector>`)
-and produces a Promise value the caller can in turn `await`. Multiple
-awaits in one async function chain into a sequence of these gated
-loops, one per await; or, as an optimisation, fuse into a single loop
-with a multi-channel input axon.
+A multi-await async function lowers to a sequence of gated loops
+(one per await) after stage 1; stage 2 then converts each `Promise`
+in the chain to its own `while_loop` declaration. As an optimiser
+pass, sequential awaits gating on independent inputs may fuse into
+a single multi-channel loop — that's a future optimisation, not a
+correctness requirement.
 
 ### `await` chaining
 
