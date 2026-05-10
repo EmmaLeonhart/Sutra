@@ -3,37 +3,50 @@
 **Status:** DRAFT, not yet sent. Awaiting Emma's review before sending.
 **Date drafted:** 2026-05-10
 **Paper:** *Neural Computers*, Zhuge et al., arxiv 2604.06425
-**Senior author:** Jürgen Schmidhuber
-**Corresponding author:** Mingchen Zhuge (email obscured behind arxiv's
-`/show-email/` redirect — request via that link before sending; cc the
-other authors only after Zhuge has been contacted, per arxiv norm).
+**Senior author:** Jürgen Schmidhuber (KAUST)
+**Corresponding author:** Mingchen Zhuge (KAUST)
+**Authorship pattern:** 2 × KAUST (Zhuge, Schmidhuber) + 17 × Meta
+(Reality Labs / FAIR). The paper's arxiv page does not publish
+institutional affiliations or per-author emails; affiliations above
+are sourced from each author's public web profile.
 
 ---
 
 ## Recipient list
 
-Primary (to):
-- Mingchen Zhuge — corresponding author
+### Confirmed addresses (sourced from public profiles)
 
-Cc (after primary contact responds, or if Zhuge asks for the wider list):
-- Jürgen Schmidhuber (senior)
-- Changsheng Zhao
-- Haozhe Liu
-- Zijian Zhou
-- Shuming Liu
-- Wenyi Wang
-- Ernie Chang
-- Gael Le Lan
-- Junjie Fei
-- Wenxuan Zhang
-- Yasheng Sun
-- Zhipeng Cai
-- Zechun Liu
-- Yunyang Xiong
-- Yining Yang
-- Yuandong Tian
-- Yangyang Shi
-- Vikas Chandra
+| Author | Email | Source |
+|---|---|---|
+| Mingchen Zhuge (corresponding) | `mingchen.zhuge@kaust.edu.sa` *(primary, institutional)* or `mczhuge@gmail.com` | KAUST faculty profile + metauto.ai homepage |
+| Jürgen Schmidhuber (senior) | `juergen@idsia.ch` *(long-standing public)* | people.idsia.ch/~juergen/ |
+| Vikas Chandra (Senior Director, Meta Reality Labs) | `vchandra@meta.com` | v-chandra.github.io |
+| Yuandong Tian | personal: `yuandong.tian@gmail.com` | yuandong-tian.com (note: he has reportedly moved on from Meta as of recent) |
+
+### Not individually sourced — Meta authors
+
+The remaining 15 authors all appear to be at Meta (Reality Labs /
+FAIR). Meta's published employee email scheme is
+`firstname.lastname@meta.com` (legacy `@fb.com` also routes); I have
+NOT verified each address individually against a public profile and
+have NOT included guessed emails in this draft — pattern-emailing 15
+people on a cold outreach is noisy. The proper protocol is:
+
+1. **Send to Zhuge as corresponding author** — that is the canonical
+   channel and is what arxiv's `/show-email/` link is built for.
+2. **CC Schmidhuber** as senior author on the same send.
+3. **Optionally CC Chandra** as the Meta-side senior, since the
+   collaboration question is partly a Meta-AI-resourcing question
+   and Chandra is the right person on that side.
+4. **Wait for Zhuge to respond** before reaching out to the wider
+   author list. If Zhuge says "the right person on this is X," send
+   to X. Otherwise don't carpet-bomb 15 inboxes.
+
+Full author list for reference (in arxiv order):
+Mingchen Zhuge, Changsheng Zhao, Haozhe Liu, Zijian Zhou, Shuming
+Liu, Wenyi Wang, Ernie Chang, Gael Le Lan, Junjie Fei, Wenxuan
+Zhang, Yasheng Sun, Zhipeng Cai, Zechun Liu, Yunyang Xiong, Yining
+Yang, Yuandong Tian, Yangyang Shi, Vikas Chandra, Jürgen Schmidhuber.
 
 ## Subject
 
