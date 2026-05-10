@@ -600,19 +600,77 @@ near roadmap.
 
 ## Modules
 
-### `import` / `export` — does not work yet
+### `import { … } from "./path"` — works (2026-05-10)
 
-The TS transpiler is single-file per pass — each `.ts` file lowers
-independently. Cross-file resolution needs a Sutra-side module
-system first, which doesn't exist
-([`planning/sutra-spec/program-structure.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/program-structure.md)
-explicitly notes there is no `import` today). Workaround: write
-single-file programs.
+```typescript
+// helper.ts
+export function double(x: number): number {
+    return x * 2;
+}
+```
 
-### `require()` — never planned
+```typescript
+// main.ts
+import { double } from "./helper";
 
-CommonJS isn't on the roadmap; everything goes through ES modules
-when the import system lands.
+function main(): number {
+    return double(21);
+}
+```
+
+```c
+// generated main.su
+// --- begin module: ./helper ---
+function int double(int x) {
+    return x * 2;
+}
+// --- end module: ./helper ---
+
+function int main() {
+    return double(21);
+}
+```
+
+The transpiler resolves the import at lower time, recursively
+lowers `helper.ts` against the same context, and inlines the
+resulting Sutra declarations at the top of the importing file's
+output bracketed by `// --- begin module: <spec> ---` markers.
+Diamond imports — two different files importing the same third
+file — are inlined exactly once via a visited set; subsequent
+re-imports are silently dropped. Circular imports terminate the
+same way without infinite recursion.
+
+The `import` statement itself disappears from the output. The
+imported module's declarations land as plain top-level Sutra
+function/class declarations, indistinguishable from declarations
+the importing file wrote itself. This is the "beta-reduce at
+compile time" framing — there is no runtime module system.
+
+Resolution tries `.ts`, then `.tsx`, then `.su` against the
+importing file's directory. A `.su` import is read raw and
+inlined verbatim (no re-lowering), the same way the Sutra stdlib
+loader treats its own `.su` files. Bare specifiers like
+`import x from "react"` are not resolved by this MVP — only
+relative (`./`, `../`) or absolute (`/`) paths.
+
+### Tree-shaking — not yet
+
+Every declaration in an imported file inlines, regardless of
+whether the importing file actually references it. If `helper.ts`
+exports `double` and `triple` and you only `import { double }`,
+both still come across. A future pass can prune dead inlined
+declarations against the import-clause name set — straightforward
+follow-on, not blocking.
+
+### `require()`, `import * as ns from "…"`, namespace dispatch — not planned for MVP
+
+CommonJS `require()` is not on the roadmap; everything goes
+through ES modules. `import * as ns from "./x"` and aliased
+imports parse but the inline-everything MVP doesn't track the
+namespace name, so `ns.foo(…)` won't resolve. Use named imports
+(`import { foo } from "./x"`) until namespace tracking lands.
+
+Fixture: `sdk/sutra-from-ts/tests/fixtures/module_import/`.
 
 ---
 

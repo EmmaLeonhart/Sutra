@@ -124,12 +124,14 @@ order:
    generic table absorbing both. Full reduction chain and prior-
    art findings: `todo.md` §"Transcendental functions".
 
-2. **Module imports** (`import { X } from "./foo"`). The easy one:
-   same mechanism as stdlib — transpile the imported module to
-   `.su`, beta-reduce into the importing program at compile time.
-   NPM TS/JS modules are just more `.ts` files; result lands as a
-   `.su` file that the stdlib-style loader inlines. No new
-   substrate work needed.
+2. **Module imports** (`import { X } from "./foo"`). ✅ shipped
+   2026-05-10. Single fixture (`module_import/`) green for both
+   lowering and end-to-end compilation; diamond and circular
+   imports terminate cleanly. Inlines imported declarations at the
+   top of the importing file's output bracketed by `// --- begin
+   module: <spec> ---` markers. Tree-shaking, namespace imports,
+   and bare-specifier resolution (NPM packages) deferred. Doc:
+   `docs/typescript-to-sutra.md` § Modules.
 
 3. **Multi-program axon passing demo.** Spec-validation task —
    prove the `axons.md` lazy-materialization claim end-to-end with

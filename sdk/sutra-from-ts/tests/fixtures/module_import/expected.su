@@ -1,0 +1,24 @@
+// Expected lowering of module_import/input.ts.
+//
+// The `import { double } from "./helper"` resolves to helper.ts in
+// the same directory. The transpiler lowers helper.ts and inlines
+// the resulting function declarations at the top of the output,
+// bracketed by `// --- begin module: ./helper ---` /
+// `// --- end module: ./helper ---` so the source of each block is
+// readable. Both `double` and `triple` come across because the MVP
+// does not tree-shake unused exports. The `import` statement itself
+// is erased.
+
+// --- begin module: ./helper ---
+function int double(int x) {
+    return x * 2;
+}
+
+function int triple(int x) {
+    return x * 3;
+}
+// --- end module: ./helper ---
+
+function int main() {
+    return double(21);
+}

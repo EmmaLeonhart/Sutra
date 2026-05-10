@@ -8,6 +8,7 @@ DESIGN.md and exits non-zero.
 from __future__ import annotations
 
 import argparse
+import pathlib
 import sys
 
 from . import __version__
@@ -46,7 +47,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     from .lower import lower
-    sutra_source = lower(source)
+    # Pass source_path so relative imports resolve against the input
+    # file's directory. Single-file inputs with no imports are
+    # unaffected.
+    sutra_source = lower(source, source_path=pathlib.Path(args.input))
 
     if args.output is None:
         # Default: replace .ts/.js extension with .su
