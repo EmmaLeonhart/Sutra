@@ -107,15 +107,42 @@ JavaScript-style operation we need:
 
 ---
 
-### 2. TypeScript → Sutra transpiler implementation
+### 2. TypeScript → Sutra transpiler — three-item closeout
 
-Substantially complete as of 2026-05-08: 12 fixtures land cleanly,
-all of which both string-match the lowering output AND compile
-through the Sutra pipeline to runnable Python. Coverage:
+Core transpiler substantially complete as of 2026-05-08 (14 fixtures
+green end-to-end). After **three remaining items** the JavaScript
+story is done. Emma 2026-05-10: this is today's slice. Work in this
+order:
 
-- Functions (incl. arrow-as-const), interfaces, type aliases,
-  classes (fields + methods + static + constructors + `new`),
-  discriminated unions, `this.field`, void instance methods.
+1. **Interpolated lookup table** (gates `Math.*` shims). The hard
+   one. Once an interpolated lookup primitive works on the
+   substrate, `exp` and `ln` are the only two leaves and every
+   other transcendental beta-reduces from there. Retry hypothesis:
+   the prior crosstalk failure was because log and exp weren't
+   being optimized *as specific functions* for the rotational
+   lookup — pick rotation geometry per-function instead of one
+   generic table absorbing both. Full reduction chain and prior-
+   art findings: `todo.md` §"Transcendental functions".
+
+2. **Module imports** (`import { X } from "./foo"`). The easy one:
+   same mechanism as stdlib — transpile the imported module to
+   `.su`, beta-reduce into the importing program at compile time.
+   NPM TS/JS modules are just more `.ts` files; result lands as a
+   `.su` file that the stdlib-style loader inlines. No new
+   substrate work needed.
+
+3. **Multi-program axon passing demo.** Spec-validation task —
+   prove the `axons.md` lazy-materialization claim end-to-end with
+   two `.su` programs (publisher with 10+-key axon, reader with a
+   small slice). Last because module imports already cover
+   inter-program semantics from the inlining side; this demo is
+   the substrate-level proof for the wire-format claim.
+
+Already shipped on the transpiler:
+- Functions (incl. arrow-as-const, closure-free capture via param
+  lifting), interfaces, type aliases, classes (fields + methods +
+  static + constructors + `new`), discriminated unions,
+  `this.field`, void instance methods.
 - Loops: while / for / do-while hoist into declared `while_loop`
   decls with auto-detected state vars + slot copies + writeback.
 - String concat (`s + t` → `String.string_concat`), primitive
@@ -123,14 +150,17 @@ through the Sutra pipeline to runnable Python. Coverage:
 - JavaScriptObject runtime (`wrap`, `js_add`) for the untyped JS
   fallback path.
 - `async function`, `await`, `Promise<T>` pass-through (added
-  2026-05-09 with item 1).
+  2026-05-09 with item 1); first-class function values; try/catch
+  via polarized `AXIS_PROMISE_REJECTED` blend; `Promise.await_value`
+  loop-bodied intrinsic.
 - Sutra-side enabling work that landed alongside: class fields,
   constructor sugar (`new`), value-returning instance methods,
   non-static class loops, operator overloading via inheritance-
   chain dispatch, synthetic-axis equality (Euclidean+tanh).
 
-Postponed: `Math.*` shims (gated on Sutra transcendentals) and
-module imports.
+Long-form treatment of all three remaining items, with reasoning
+and cross-references, in `todo.md` §"TS transpiler / Sutra
+postponed pieces".
 
 ---
 
