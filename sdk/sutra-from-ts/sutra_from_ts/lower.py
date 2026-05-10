@@ -67,6 +67,15 @@ class Context:
     local_types: dict[str, str] = field(default_factory=dict)
     extras: list[str] = field(default_factory=list)
     loop_counter: list[int] = field(default_factory=lambda: [0])
+    # arrow_captures maps an arrow-function's emitted Sutra name to the
+    # ordered list of local-variable names it captured from its enclosing
+    # scope. Per the user's 2026-05-09 framing: Sutra has no closure, so
+    # captured locals are lifted to extra parameters at transpile time
+    # and threaded through at every direct call site. Used by both the
+    # arrow-as-const lowering (which emits the lifted parameters) and
+    # the call-site lowering (which appends the captured argument values
+    # in the same order).
+    arrow_captures: dict[str, list[str]] = field(default_factory=dict)
 
     def is_axon_typed(self, type_name: str) -> bool:
         return (
@@ -93,6 +102,7 @@ class Context:
             local_types={},
             extras=self.extras,
             loop_counter=self.loop_counter,
+            arrow_captures=self.arrow_captures,
         )
 
 
@@ -286,8 +296,17 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         args_node = node.child_by_field_name("arguments")
         func_src = _lower_expression(func, source, ctx)
         callee_param_types = None
+        callee_captures: list[str] = []
         if func is not None and func.type == "identifier":
-            callee_param_types = ctx.function_param_types.get(_node_text(func, source))
+            callee_name = _node_text(func, source)
+            callee_param_types = ctx.function_param_types.get(callee_name)
+            # Closure-free closure capture: if the callee is an arrow
+            # function whose original body referenced enclosing-scope
+            # locals, those locals were lifted to extra parameters by
+            # _lower_arrow_as_function. Append them to the call's
+            # explicit args here so the generated function gets the
+            # captured values without any runtime closure machinery.
+            callee_captures = ctx.arrow_captures.get(callee_name, [])
         arg_nodes = list(args_node.named_children) if args_node else []
         arg_srcs = []
         for i, a in enumerate(arg_nodes):
@@ -303,6 +322,12 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
                 # the conflict.
                 arg_src = f"JavaScriptObject.wrap({arg_src})"
             arg_srcs.append(arg_src)
+        # Append captured-locals as explicit args, in the same order
+        # they were lifted as parameters. The names must already be in
+        # scope at the call site (the capture set was computed at
+        # arrow-declaration time from the enclosing scope's locals).
+        for cap in callee_captures:
+            arg_srcs.append(cap)
         return f"{func_src}({', '.join(arg_srcs)})"
     if node.type == "assignment_expression":
         # `x = expr` — plain reassignment. The Sutra-side slot machinery
@@ -639,6 +664,22 @@ def _lower_lexical_declaration(
             out += _lower_object_literal_into_axon(
                 value_node, name, source, ctx, indent
             )
+        elif (value_node is not None
+                and value_node.type == "arrow_function"):
+            # Arrow function declared inside another function body.
+            # Sutra's codegen doesn't allow nested function decls, so
+            # we hoist the arrow to the module top level (just like
+            # the loop-hoisting pass does) and rely on the call-site
+            # lowering to reference it by name. Closure captures are
+            # detected inside _lower_arrow_as_function and lifted to
+            # extra parameters; ctx.arrow_captures records them so the
+            # call sites thread the values through.
+            arrow_src = _lower_arrow_as_function(name, value_node, source, ctx)
+            ctx.extras.append(arrow_src)
+            # No inline emission — the variable `name` is just an
+            # identifier the call site resolves to the hoisted fn.
+            # ctx.local_types still records `name` so further uses
+            # don't trigger inference fallback to JavaScriptObject.
         elif value_node is not None:
             value_src = _lower_expression(value_node, source, ctx)
             out += f"{indent}{type_prefix}{sutra_type} {name} = {value_src};\n"
@@ -780,7 +821,15 @@ def _lower_arrow_as_function(
 
     The arrow's body is either a single expression (`(x) => x * 2`) or
     a statement block (`(x) => { return x * 2; }`); the lowering
-    handles both."""
+    handles both.
+
+    Closure capture: per the user's 2026-05-09 framing, Sutra has no
+    closure. Locals referenced inside the arrow body that are NOT the
+    arrow's own parameters get lifted to additional parameters here,
+    and the call-site lowering threads the captured values through at
+    each direct call site (see _lower_expression's call_expression
+    branch). The captured names are recorded in ctx.arrow_captures
+    keyed by the arrow's emitted Sutra name."""
     params_node = arrow_node.child_by_field_name("parameters")
     return_type_node = arrow_node.child_by_field_name("return_type")
     body_node = arrow_node.child_by_field_name("body")
@@ -790,6 +839,7 @@ def _lower_arrow_as_function(
     )
     fn_ctx = ctx.child_scope()
     param_parts: list[str] = []
+    own_param_names: set[str] = set()
     if params_node is not None:
         for p in params_node.named_children:
             if p.type in ("required_parameter", "optional_parameter"):
@@ -799,10 +849,34 @@ def _lower_arrow_as_function(
                 ptype = _ts_type_to_sutra(ann, source, ctx)
                 param_parts.append(f"{ptype} {pname}")
                 fn_ctx.local_types[pname] = ptype
+                own_param_names.add(pname)
             elif p.type == "identifier":
                 pname = _node_text(p, source)
                 param_parts.append(f"JavaScriptObject {pname}")
                 fn_ctx.local_types[pname] = "JavaScriptObject"
+                own_param_names.add(pname)
+    # Detect closure captures: locals from the enclosing scope that the
+    # arrow body references. Lift them to extra params and record the
+    # names so call sites can thread the values.
+    captured_locals: list[str] = []
+    if body_node is not None:
+        referenced = _collect_referenced_locals(body_node, source, ctx)
+        # ctx.local_types holds enclosing-scope locals (since fn_ctx is
+        # a child scope with empty local_types apart from the arrow's
+        # own params we just added). Anything in `referenced` that
+        # isn't an own-param is a capture.
+        for name_ref in sorted(referenced):
+            if name_ref in own_param_names:
+                continue
+            captured_locals.append(name_ref)
+    # Add the captures as extra parameters. They keep their original
+    # names so the body's references resolve directly.
+    for cap in captured_locals:
+        cap_type = ctx.local_types.get(cap, "JavaScriptObject")
+        param_parts.append(f"{cap_type} {cap}")
+        fn_ctx.local_types[cap] = cap_type
+    if captured_locals:
+        ctx.arrow_captures[name] = captured_locals
     params_src = ", ".join(param_parts)
     if body_node is None:
         body_src = "    return;\n"
