@@ -88,7 +88,11 @@ _CASES = _collect_cases()
 )
 def test_fixture_lowering(name, input_path, expected_path):
     src = input_path.read_text(encoding="utf-8")
-    got = lower(src)
+    # Pass input_path so module imports can resolve relative to the
+    # fixture directory. Single-file fixtures with no `import`
+    # statements behave identically — source_path is only consulted
+    # when the lowerer encounters an import.
+    got = lower(src, source_path=input_path)
     expected = expected_path.read_text(encoding="utf-8")
     got_norm = _normalize(got)
     exp_norm = _normalize(expected)
@@ -136,5 +140,5 @@ def test_fixture_compiles(name, input_path, expected_path):
     if name in _COMPILE_KNOWN_FAILURES:
         pytest.xfail(_COMPILE_KNOWN_FAILURES[name])
     src = input_path.read_text(encoding="utf-8")
-    sutra_src = lower(src)
+    sutra_src = lower(src, source_path=input_path)
     _compile_with_sutra(sutra_src)
