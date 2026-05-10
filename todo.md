@@ -95,25 +95,28 @@ then module imports, then the multi-program axon demo last.
   remaining work (full Stage-1 desugar) is blocked on first-class
   function values, listed at the top of this file.
 
-- [ ] **Module imports** (`import { X } from "./foo"`). v1 is
-  single-file: each `.ts` file lowers independently to one `.su`
-  file with no cross-file resolution. Lifting needs a Sutra-side
-  module system first (`planning/sutra-spec/program-structure.md`
-  is explicit there is no `import` today) and a transpiler-side
-  mapping from TS module graphs to whatever cross-file form Sutra
-  adopts.
+- [x] **Module imports** (`import { X } from "./foo"`) — shipped
+  2026-05-10. Confirmed Emma's intuition: same mechanism as
+  stdlib. Implementation inlines imported declarations at the top
+  of the importing file's lowered output, bracketed by `// ---
+  begin module: <spec> ---` / `// --- end module ---` markers.
+  Diamond imports dedup via visited set; circular imports
+  terminate cleanly. Resolution tries `.ts`, `.tsx`, then `.su`.
+  Raw `.su` imports inline verbatim. Fixture
+  (`module_import/`) green for both lowering and end-to-end
+  compilation. Spec doc updated:
+  `docs/typescript-to-sutra.md` § Modules.
 
-  **Emma 2026-05-10 intuition: this is the easy one.** The
-  mechanism is the same shape as how stdlib already works —
-  transpile the imported module, then beta-reduce it into the
-  importing program at compile time. NPM modules that are
-  themselves TypeScript / JavaScript are just more `.ts` files
-  to feed through the existing transpiler; the result lands as
-  a `.su` file that gets inlined by the stdlib-style loader.
-  Cross-cuts with the multi-program axon demo below at the
-  spec level only — at the implementation level imports are
-  *inlining*, not *inter-program communication*, so they don't
-  need the axon-passing story to land first.
+  **Follow-on, not blocking JS-completion:**
+  - Tree-shaking — currently every declaration in an imported
+    file inlines regardless of whether the import-clause names
+    it. Cheap follow-on: prune dead inlined decls.
+  - Namespace imports (`import * as ns from "./x"` then
+    `ns.foo(…)`) — parses but inline-everything MVP doesn't
+    track the namespace name.
+  - Bare-specifier resolution (NPM packages) — only relative
+    paths resolve today. Adding `node_modules/` lookup is the
+    obvious next layer.
 
 - [ ] **Multi-program axon passing with lazy evaluation.**
   `axons.md` claims that only the keys the receiver references
