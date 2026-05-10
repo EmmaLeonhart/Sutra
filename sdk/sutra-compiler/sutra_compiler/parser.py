@@ -889,6 +889,19 @@ class Parser:
 
     def _parse_type(self) -> Optional[ast.TypeRef]:
         name_tok = self._peek()
+        # Accept `function` as a type name in addition to plain idents.
+        # This makes function-typed parameters work — e.g.
+        # `function int call(function f, int v) { return f(v); }`.
+        # The KW_FUNCTION token is otherwise the function-decl
+        # keyword, but in type position it's the function-value type.
+        if name_tok.kind is TokenKind.KW_FUNCTION:
+            self._advance()
+            end_pos = self.tokens[self._pos - 1].span.end
+            return ast.TypeRef(
+                name="function",
+                type_args=[],
+                span=SourceSpan(start=name_tok.span.start, end=end_pos),
+            )
         if name_tok.kind is not TokenKind.IDENT:
             return None
         self._advance()
