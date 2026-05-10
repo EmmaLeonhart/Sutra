@@ -52,14 +52,37 @@ name is the const's name. Cross-references resolve normally because
 the transpiler's pre-pass registers arrow function names in the
 function-signature table before the body walk.
 
-### Arrow functions as values — does not work yet
+### Functions as values — works (2026-05-09)
 
-Passing an arrow function as data — say to `array.map(x => x * 2)`
-— requires Sutra to have first-class function values. Sutra's
-arrow functions today get hoisted to top-level functions with
-no values-of-function-type. This blocks `map` / `filter` /
-`reduce` / `.then(callback)` and every other higher-order pattern.
-Tracked at the top of `todo.md`; substantial work.
+Passing a function as a value works via the `function` type-name in
+parameter position:
+
+```typescript
+function double(x: number): number { return x * 2; }
+function apply(f: (x: number) => number, v: number): number {
+    return f(v);
+}
+const x = apply(double, 5);   // 10
+```
+
+```c
+function int double(int x) { return x * 2; }
+function int apply(function f, int v) {
+    return f(v);
+}
+function int main() {
+    return apply(double, 5);
+}
+```
+
+The Sutra `function` type is opaque — no signature-level checking
+yet. Arrow-function values that need to capture local state still
+require closure support, which isn't in. Top-level function
+references work fully.
+
+This unlocks calculus-shape patterns (passing the derivative
+function as a value), higher-order combinators, and the `.then`-
+shaped Promise chain (when the stdlib exposes it).
 
 ### Default parameters, rest parameters — does not work yet
 
@@ -291,13 +314,39 @@ multi-option `select`. Fall-through (no `break`) and `default` work
 in the obvious way; `case` with code blocks that write side effects
 needs the loop-hoisting pattern.
 
-### `try` / `catch` — does not work yet
+### `try` / `catch` — works (2026-05-09)
 
-Sutra has no raise/throw primitive, so the question "what would
-catch catch" doesn't have a substrate-level answer in general. For
-the async/await context specifically, `try { await x } catch { ... }`
-should lower to a fuzzy-blend on a synthetic-axis exception flag —
-that work is tracked as the next promise-spec phase.
+Lowers to a polarized blend on `AXIS_PROMISE_REJECTED` (the
+substrate exception axis):
+
+```typescript
+function getOrDefault(p: Promise<vector>, defaultValue: vector): vector {
+    try {
+        return p;
+    } catch {
+        return Promise.resolve(defaultValue);
+    }
+}
+```
+
+```c
+function vector getOrDefault(Promise<vector> p, vector defaultValue) {
+    try {
+        return p;
+    } catch {
+        return Promise.resolve(defaultValue);
+    }
+}
+```
+
+Both branches evaluate (no early exit, no throw) — the polarized
+blend `tanh(50 * v_try[AXIS_PROMISE_REJECTED])` selects the catch
+branch when the try result has rejected≈1 and the try branch when
+rejected≈0. The polarizer has high enough gain that the choice is
+effectively binary.
+
+Constraint: both blocks must be a single `return <expr>;`. Multi-
+statement bodies need slot hoisting (like the loops do), pending.
 
 ---
 
@@ -482,10 +531,25 @@ end-to-end.
 For the full design — including the three-box visualisation (async
 → Promise → tail recursion) — see the [Promises](promises.md) page.
 
-### `try { await ... } catch { ... }` — does not work yet
+### `try { await ... } catch { ... }` — works (2026-05-09)
 
-Same as the general `try` / `catch` story above. Tracked as the
-next promise-spec phase.
+Same lowering as the general try/catch above — the polarized blend
+on `AXIS_PROMISE_REJECTED` is exactly what an awaited promise's
+rejection sets, so this case falls out for free:
+
+```typescript
+async function safe_fetch(q: string): Promise<string> {
+    try {
+        return await fetch_label(q);
+    } catch {
+        return "default";
+    }
+}
+```
+
+The await unwraps the inner promise, the try/catch sees the
+unwrapped value's rejected channel, and the blend selects the
+fallback when needed.
 
 ### `Promise.all` / `Promise.race` — does not work yet
 
@@ -538,7 +602,8 @@ Fixture: `sdk/sutra-from-ts/tests/fixtures/untyped_js/`.
 |---|---|---|
 | Function declarations | ✅ | C-style annotation flip |
 | Arrow functions (as const) | ✅ | Hoisted to top-level fn |
-| Arrow functions (as values) | ❌ | Needs first-class function values |
+| Functions as values (top-level refs) | ✅ | `function` type-name in params |
+| Closure capture in arrow fns | ❌ | Top-level fns only for now |
 | Default / rest parameters | ❌ | Smaller scope; not in yet |
 | Class fields + methods | ✅ | Parameter properties → `field` decls |
 | Static methods | ✅ | |
@@ -553,7 +618,7 @@ Fixture: `sdk/sutra-from-ts/tests/fixtures/untyped_js/`.
 | `if` / `else` | ✅ | Lower to `select` |
 | Ternary | ✅ | Lower to `select` |
 | `switch` | ⚠️ | Simple cases work |
-| `try` / `catch` | ❌ | Pending AXIS_EXCEPTION work |
+| `try` / `catch` | ✅ | Polarized AXIS_PROMISE_REJECTED blend; single-return blocks |
 | String literals | ✅ | |
 | String concat (`+`) | ✅ | |
 | Template literals | ❌ | Use `+` concatenation |
@@ -564,15 +629,15 @@ Fixture: `sdk/sutra-from-ts/tests/fixtures/untyped_js/`.
 | Bitwise operators | ❌ | No substrate-pure design yet |
 | Array literals + indexing | ✅ | |
 | `.length` on arrays | ✅ | |
-| `.map`, `.filter`, `.reduce` | ❌ | Needs first-class function values |
+| `.map`, `.filter`, `.reduce` | ❌ | First-class fns shipped, but Array method dispatch not wired |
 | Spread / rest in arrays | ❌ | |
 | Object literals | ⚠️ | Lower to Axon |
 | Property access | ✅ | Via Axon `.item()` / class field reads |
 | Destructuring | ❌ | |
 | Object spread | ❌ | |
 | `async function`, `await`, `Promise<T>` | ✅ | Full Stage-1 desugar |
-| `try { await ... } catch` | ❌ | Pending AXIS_EXCEPTION work |
-| `Promise.all`, `Promise.race` | ❌ | Needs first-class fn values |
+| `try { await ... } catch` | ✅ | Falls out of try/catch + await landing |
+| `Promise.all`, `Promise.race` | ❌ | First-class fns shipped, but combinator stdlib not written |
 | Async generators | ❌ | |
 | `import` / `export` | ❌ | No Sutra module system yet |
 
@@ -583,23 +648,37 @@ Legend: ✅ works · ⚠️ partial · ❌ not yet
 ## What this means in practice
 
 Most straight-line TS code — classes, functions, loops, arithmetic,
-async/await on already-resolved promises — runs through the
-transpiler today. The patterns that don't work are concentrated in
-**higher-order programming** (callbacks, map/filter, Promise
-combinators) and **runtime-keyed iteration** (for-of, for-in, object
-destructuring). Both blocked on the same underlying piece — Sutra
-needs first-class function values, which is the single biggest
-leverage point for TS coverage.
+async/await, try/catch, higher-order function calls — runs through
+the transpiler today. The patterns that still don't work cluster in
+three areas:
+
+- **Closures over local state.** Top-level functions can be passed
+  as values, but arrow functions that capture enclosing locals
+  don't. Calculus-shape patterns work (`forward_diff(double, x, h)`)
+  because `double` is a top-level reference; `arr.map(x => total +
+  x)` doesn't work because the lambda would need to capture
+  `total`.
+- **Container method dispatch.** `arr.map(double)` doesn't work
+  not because of the function value but because the `Array` /
+  `String` / `Promise` types in the stdlib don't yet have
+  `.map` / `.then` / `.catch` declared. These would be straight-
+  forward additions to the relevant `stdlib/*.su` files.
+- **Runtime-keyed iteration.** `for-of`, `for-in`, object
+  destructuring still require the iterator protocol or destructuring
+  patterns the transpiler doesn't lower.
 
 If you're starting a TS-style program in Sutra and not sure which
 patterns to lean on:
 
-- **Use** classes, typed functions, while/for loops, async/await,
-  string concat, array literals.
-- **Avoid** map/filter/reduce, template literals, object
-  destructuring, regex. Rewrite to explicit loops and `+` concat.
-- **Wait for** first-class function values before depending on
-  `.then(callback)` patterns.
+- **Use** classes, typed functions, while/for loops, try/catch,
+  async/await, string concat, array literals, top-level functions
+  passed as values.
+- **Avoid** template literals, object destructuring, regex,
+  closure-capturing arrow functions. Rewrite to explicit loops,
+  `+` concat, and top-level helper functions.
+- **Wait for** array/promise method dispatch (`.map`, `.then`)
+  before depending on chained-collection patterns; the stdlib
+  declarations are the gating piece.
 
 ---
 

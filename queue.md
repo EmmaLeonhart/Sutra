@@ -65,32 +65,30 @@ Three-box mental model rendered at `docs/promises.md` (live at
 
 #### What's still pending
 
-**Stage-2 first cut shipped 2026-05-09.** `Promise.resolve` /
-`Promise.reject` and the inspector methods (`isFulfilled`,
-`isRejected`, `isPending`, `value`, `reason`) all run on the
-substrate as pure synthetic-axis reads/writes — no loop yet, no
-runtime errors. AXIS_PROMISE_FULFILLED / AXIS_PROMISE_REJECTED /
-AXIS_AXON_POPULATED reserved in both numpy and pytorch backends;
-SLOT_BASE bumped from 5 to 8. Corpus fixture
-`async_promise_runtime.su` verifies all four channel reads end-to-
-end through the desugar pass.
+**All major Stage-2 + Stage-3 (try/catch, first-class fns, loop-
+bodied awaits) shipped 2026-05-09.** Promises now expose every
+JavaScript-style operation we need:
 
-**What's still missing for Stage-2 full coverage:** loop-bodied
-awaits — when an `await` actually gates on an external axon
-arrival, the desugared form needs to emit a `while_loop` with
-`norm(slot) > eps` as the halt condition (per axon-io.md). That
-shape is blocked on the same first-class-function-values work that
-gates Stage-1 full coverage — once `.then(callback)` lowers, the
-matching while_loop generation falls out.
+- `Promise.resolve(v)` / `Promise.reject(r)` constructors
+- `Promise.isFulfilled`, `Promise.isRejected`, `Promise.isPending`
+  state inspectors
+- `Promise.value(p)` / `Promise.reason(p)` value extractors
+- `Promise.await_value(p)` loop-bodied await — substrate-equivalent
+  of the while_loop spinning on `isPending`, with a 100-iteration
+  soft-halt timeout for the no-external-I/O case
+- try/catch with polarized `AXIS_PROMISE_REJECTED` blend (single-
+  return blocks, both branches evaluated)
+- First-class function values (`function f` parameter type)
+- Stage-1 desugar covering every JS-style async/await shape that
+  doesn't need closures
 
-**Deferred to `todo.md`:** First-class function values for
-`.then(callback)`. The trivial Stage-1 desugar shapes (pure
-return, thin wrapper) shipped. Anything richer — `vector v = await
-x; return g(v);`, multi-await chains, `try { await ... } catch
-{ ... }` — needs functions-as-values to express the post-await
-continuation as a `.then(v -> body)` callback. Tracked at the top
-of `todo.md` as its own focused work-stream; pick it up when the
-first-class-function-value pass lands.
+**Three small remaining items, all in `todo.md`:**
+- Closure capture in arrow functions (top-level fn refs work; local-
+  capture lambdas need scope-resolution work).
+- Container method dispatch (`Array.map`, `Promise.then`,
+  `Promise.all`, `Promise.race`) — straight stdlib additions, not
+  blocked on language work.
+- Multi-statement try/catch bodies (need slot hoisting like loops).
 
 #### Phase tracker
 
@@ -102,7 +100,9 @@ first-class-function-value pass lands.
 | 3+ | Stage-1 — full coverage (needs first-class fns) | 🚧 blocked |
 | 4 | TS transpiler pass-through | ✅ |
 | 5 | Stdlib `Promise<T>` class declaration | ✅ |
-| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | ✅ first cut (constructor + inspectors land; loop-bodied awaits still need first-class fns) |
+| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | ✅ runtime methods + Promise.await_value loop-bodied intrinsic |
+| 8 | try/catch via polarized AXIS_PROMISE_REJECTED blend | ✅ |
+| 9 | First-class function values | ✅ |
 | 7 | Fixtures — try/catch, multi-await, propagation | partial (2 corpus + 1 TS) |
 
 ---
