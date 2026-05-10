@@ -1,0 +1,26 @@
+// Async/await/Promise<T> — surface syntax parses cleanly.
+//
+// Per planning/sutra-spec/promises.md, async fns and await expressions
+// are syntactic sugar over the existing while_loop tail-recursion
+// machinery. Parser and validator accept the syntax today; the
+// codegen lowering is the next phase per queue.md item 1, so any
+// program that actually uses async/await will fail at compile time
+// with a pointer at promises.md.
+//
+// This fixture exists to lock in the parse-clean status — when the
+// lowering lands, this same file will round-trip through codegen
+// without changes.
+
+vector cat = basis_vector("cat");
+vector dog = basis_vector("dog");
+
+async function Promise<vector> fetch_label(vector query) {
+    vector raw = await network_lookup(query);
+    return argmax_cosine(raw, [cat, dog]);
+}
+
+async function Promise<vector> chained(vector q) {
+    vector first  = await fetch_label(q);
+    vector second = await fetch_label(first);
+    return second;
+}

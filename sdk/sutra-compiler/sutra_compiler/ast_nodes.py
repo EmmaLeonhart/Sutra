@@ -218,6 +218,17 @@ class UnaryOp(Expr):
 
 
 @dataclass
+class AwaitExpr(Expr):
+    """`await expr` — gate on the input axon backing `expr`'s promise.
+
+    Only legal inside an async function body (validated downstream).
+    Lowers to a gated while_loop that waits for `expr`'s output axon
+    to fire; see planning/sutra-spec/promises.md §"Lowering".
+    """
+    operand: Expr
+
+
+@dataclass
 class PostfixOp(Expr):
     op: str  # "++", "--"
     operand: Expr
@@ -518,6 +529,10 @@ class FunctionDecl(Node):
     # stdlib files for leaf primitives whose implementation lives in
     # the runtime class (`_VSA.<name>(...)`).
     is_intrinsic: bool = False
+    # `async function ...` — promise-producing function. Body may use
+    # `await expr` to gate on incoming axons. Lowering is spec'd in
+    # planning/sutra-spec/promises.md; codegen lowering is pending.
+    is_async: bool = False
 
 
 @dataclass
