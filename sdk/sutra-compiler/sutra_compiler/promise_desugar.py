@@ -181,7 +181,9 @@ def _is_already_promise(expr: ast.Expr) -> bool:
         return False
     if callee.obj.name != "Promise":
         return False
-    return callee.member in ("resolve", "reject", "value", "reason")
+    return callee.member in (
+        "resolve", "reject", "value", "reason", "await_value",
+    )
 
 
 def _wrap_in_promise_resolve(value: ast.Expr, span) -> ast.Expr:
@@ -194,9 +196,19 @@ def _wrap_in_promise_resolve(value: ast.Expr, span) -> ast.Expr:
 
 
 def _wrap_in_promise_value(promise: ast.Expr, span) -> ast.Expr:
+    """Emit Promise.await_value(p) — the loop-bodied await intrinsic.
+
+    The substrate-equivalent shape is a while_loop gating on
+    Promise.isPending; the runtime currently implements it as a 100-
+    iteration soft-halt loop in Python (no progress without external
+    I/O). For an already-resolved promise, exits in 0 iterations and
+    returns the value — same effect as Promise.value. When Yantra-
+    side I/O wires up, the producer side flips isPending and the
+    loop iterates until arrival.
+    """
     callee = ast.MemberAccess(
         obj=ast.Identifier(name="Promise", span=span),
-        member="value",
+        member="await_value",
         span=span,
     )
     return ast.Call(callee=callee, type_args=[], args=[promise], span=span)
