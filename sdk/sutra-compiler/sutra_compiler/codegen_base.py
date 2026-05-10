@@ -917,6 +917,14 @@ class BaseCodegen:
             raise CodegenNotSupported(
                 decl, "operator declarations are not supported by the V1 codegen"
             )
+        if decl.is_async:
+            raise CodegenNotSupported(
+                decl,
+                "`async function` parses but its lowering to a gated "
+                "while_loop is not yet implemented. The full design is "
+                "specified in planning/sutra-spec/promises.md; the "
+                "lowering pass is the next phase per queue.md item 1.",
+            )
         if decl.type_params:
             raise CodegenNotSupported(
                 decl, "generic function declarations are not supported by the V1 codegen"
@@ -2542,6 +2550,14 @@ class BaseCodegen:
             if expr.op == "!":
                 return self._logical_not_src(expr, self._translate_expr(expr.operand))
             return f"({expr.op}{self._translate_expr(expr.operand)})"
+        if isinstance(expr, ast.AwaitExpr):
+            raise CodegenNotSupported(
+                expr,
+                "`await` parses but its lowering to a gated while_loop "
+                "is not yet implemented. The full design is specified "
+                "in planning/sutra-spec/promises.md; the lowering pass "
+                "is the next phase per queue.md item 1.",
+            )
         if isinstance(expr, ast.ThisExpr):
             return "this"
         if isinstance(expr, ast.NewExpr):
