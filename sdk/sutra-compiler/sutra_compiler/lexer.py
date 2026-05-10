@@ -173,6 +173,15 @@ class TokenKind(Enum):
     # rotation-binding machinery that backs `Axon.add` / `Axon.item`;
     # the field declaration is the schema. See docs/ontology.md.
     KW_FIELD = auto()
+    # `async function ...` and `await expr` — surface vocabulary for
+    # promises and await/async. Both are syntactic sugar over the
+    # tail-recursive loop machinery (`while_loop`, `do_while`); see
+    # planning/sutra-spec/promises.md for the lowering. `async` is a
+    # function-decl modifier; `await` is an expression operator.
+    # `Promise<T>` is a parameterised type-ref name, listed in
+    # PRIMITIVE_TYPE_NAMES below — not a hard keyword.
+    KW_ASYNC = auto()
+    KW_AWAIT = auto()
 
     # ---- special ----
     EOF = auto()
@@ -234,6 +243,12 @@ KEYWORDS = {
     # assignment; the codegen emits zero-of-type at the declaration
     # site and the later assignment overrides it.
     "wait": TokenKind.KW_WAIT,
+    # `async` / `await` — promise vocabulary. Hard keywords because
+    # `async function` is a function-decl modifier and `await expr` is
+    # an expression operator; both must be recognised at fixed lex
+    # positions, not contextually. See planning/sutra-spec/promises.md.
+    "async": TokenKind.KW_ASYNC,
+    "await": TokenKind.KW_AWAIT,
 }
 
 # Primitive type names. They are ordinary identifiers at the lexer
@@ -274,6 +289,12 @@ PRIMITIVE_TYPE_NAMES = {
     # already emit make_complex calls; the type lets the programmer
     # declare the intent at the slot level.
     "complex",
+    # `Promise<T>` — parameterised promise type. Returned by `async
+    # function`s; awaited via `await expr`. Lives here (not in the
+    # KEYWORDS map) so that it's a contextual type name like
+    # `vector` / `dict`, not a hard keyword that would block users
+    # from naming a class `Promise`. See planning/sutra-spec/promises.md.
+    "Promise",
 }
 
 # Logical-connective keywords. CONTEXTUAL — these names lex as
