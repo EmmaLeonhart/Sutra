@@ -807,6 +807,63 @@ class Codegen(BaseCodegen):
         self._emit("return self.unbind(key_vec, acc)")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Promise runtime methods ----")
+        self._emit("# Promise<T> is a vector wearing one of two synthetic-axis flags.")
+        self._emit("# See planning/sutra-spec/promises.md §'The three states'.")
+        self._emit()
+        self._emit("def resolve(self, value):")
+        self._indent += 1
+        self._emit('"""Promise.resolve(value) — already-fulfilled promise."""')
+        self._emit("v = _np.asarray(value, dtype=_np.float64).copy()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 1.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 0.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def reject(self, reason):")
+        self._indent += 1
+        self._emit('"""Promise.reject(reason) — already-rejected promise."""')
+        self._emit("v = _np.asarray(reason, dtype=_np.float64).copy()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 0.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 1.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def isFulfilled(self, p):")
+        self._indent += 1
+        self._emit("return float(p[self.semantic_dim + self.AXIS_PROMISE_FULFILLED])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def isRejected(self, p):")
+        self._indent += 1
+        self._emit("return float(p[self.semantic_dim + self.AXIS_PROMISE_REJECTED])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def isPending(self, p):")
+        self._indent += 1
+        self._emit("f = float(p[self.semantic_dim + self.AXIS_PROMISE_FULFILLED])")
+        self._emit("r = float(p[self.semantic_dim + self.AXIS_PROMISE_REJECTED])")
+        self._emit("return 1.0 - max(f, r)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def value(self, p):")
+        self._indent += 1
+        self._emit('"""Read the resolved value with channel flags zeroed out."""')
+        self._emit("v = p.copy()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 0.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 0.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def reason(self, p):")
+        self._indent += 1
+        self._emit('"""Read the rejection reason with channel flags zeroed out."""')
+        self._emit("v = p.copy()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 0.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 0.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
         self._emit("# ---- Binding-array (substrate-stored ordered list) ----")
         self._emit("#")
         self._emit("# An array stores N scalar values in a single substrate vector,")
@@ -916,8 +973,9 @@ class Codegen(BaseCodegen):
         self._emit("# which is what makes assignments reversible as exact inverses.")
         self._emit()
         self._emit("# First synthetic axis used for slot planes. Reserves the canonical")
-        self._emit("# axes (0..AXIS_LOOP_DONE) for int/complex/truth/char/loop-flag.")
-        self._emit("SLOT_BASE = 5")
+        self._emit("# axes 0..7 for int/complex/truth/char/loop-flag/promise-fulfilled/")
+        self._emit("# promise-rejected/axon-populated.")
+        self._emit("SLOT_BASE = 8")
         self._emit()
         self._emit("def _slot_plane(self, slot_idx):")
         self._indent += 1
@@ -1152,6 +1210,13 @@ class Codegen(BaseCodegen):
         self._emit("AXIS_TRUTH = 2")
         self._emit("AXIS_CHAR_FLAG = 3")
         self._emit("AXIS_LOOP_DONE = 4")
+        self._emit("# Promise channel axes — see planning/sutra-spec/promises.md")
+        self._emit("# §'The three states' and planning/sutra-spec/axon-io.md.")
+        self._emit("AXIS_PROMISE_FULFILLED = 5")
+        self._emit("AXIS_PROMISE_REJECTED = 6")
+        self._emit("# Axon populated flag — for genuinely-zero values.")
+        self._emit("# See planning/sutra-spec/axon-io.md §'all-zeros edge case'.")
+        self._emit("AXIS_AXON_POPULATED = 7")
         self._emit()
         self._emit("def real(self, v):")
         self._indent += 1

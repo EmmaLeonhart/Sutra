@@ -191,6 +191,19 @@ class PyTorchCodegen(Codegen):
         self._emit("# AXIS_CHAR_FLAG. New code should use AXIS_STRING_FLAG.")
         self._emit("AXIS_CHAR_FLAG = 3")
         self._emit("AXIS_LOOP_DONE = 4")
+        self._emit("# Promise channel axes — see planning/sutra-spec/promises.md")
+        self._emit("# §'The three states' and planning/sutra-spec/axon-io.md.")
+        self._emit("# A Promise is a vector with one of these flags set; a")
+        self._emit("# pending promise has both at 0 and is still actively")
+        self._emit("# cycling (per the eigenrotation-as-active-heartbeat rule).")
+        self._emit("AXIS_PROMISE_FULFILLED = 5")
+        self._emit("AXIS_PROMISE_REJECTED = 6")
+        self._emit("# Axon populated flag — producers writing a genuinely-zero")
+        self._emit("# value (int 0, trit unknown) set this to 1.0 so the consumer's")
+        self._emit("# `arrived?` check distinguishes a zero resolution from `not")
+        self._emit("# yet arrived`. See planning/sutra-spec/axon-io.md §'The")
+        self._emit("# all-zeros edge case'.")
+        self._emit("AXIS_AXON_POPULATED = 7")
         self._emit()
         self._emit("def __init__(self, semantic_dim, synthetic_dim, seed, llm_model):")
         self._indent += 1
@@ -629,6 +642,80 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.unbind(key_vec, acc)")
         self._indent -= 1
         self._emit()
+        self._emit("# ---- Promise runtime methods ----")
+        self._emit("# Promise<T> is a vector wearing one of two synthetic-axis flags.")
+        self._emit("# resolve(v) sets AXIS_PROMISE_FULFILLED to 1; reject(r) sets")
+        self._emit("# AXIS_PROMISE_REJECTED to 1. The semantic block carries the")
+        self._emit("# resolved value or rejection reason. See planning/sutra-spec/")
+        self._emit("# promises.md §'The three states' for the channel semantics.")
+        self._emit()
+        self._emit("def resolve(self, value):")
+        self._indent += 1
+        self._emit('"""Promise.resolve(value) — already-fulfilled promise.')
+        self._emit("Sets AXIS_PROMISE_FULFILLED on a clone of `value` so the")
+        self._emit("input is not mutated. The clone keeps the value vector's")
+        self._emit("semantic block; downstream readers see the value back via")
+        self._emit("`Promise.value(p)`.")
+        self._emit('"""')
+        self._emit("v = _torch.as_tensor(value, dtype=self.dtype, device=self.device).clone()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 1.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 0.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def reject(self, reason):")
+        self._indent += 1
+        self._emit('"""Promise.reject(reason) — already-rejected promise."""')
+        self._emit("v = _torch.as_tensor(reason, dtype=self.dtype, device=self.device).clone()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 0.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 1.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def isFulfilled(self, p):")
+        self._indent += 1
+        self._emit('"""Read AXIS_PROMISE_FULFILLED as a fuzzy/bool scalar."""')
+        self._emit("return float(p[self.semantic_dim + self.AXIS_PROMISE_FULFILLED])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def isRejected(self, p):")
+        self._indent += 1
+        self._emit('"""Read AXIS_PROMISE_REJECTED as a fuzzy/bool scalar."""')
+        self._emit("return float(p[self.semantic_dim + self.AXIS_PROMISE_REJECTED])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def isPending(self, p):")
+        self._indent += 1
+        self._emit('"""Both promise channels at zero ⇒ still pending.')
+        self._emit("Per the eigenrotation-as-active-heartbeat rule, a pending")
+        self._emit("promise's enclosing loop is genuinely cycling.")
+        self._emit('"""')
+        self._emit("f = float(p[self.semantic_dim + self.AXIS_PROMISE_FULFILLED])")
+        self._emit("r = float(p[self.semantic_dim + self.AXIS_PROMISE_REJECTED])")
+        self._emit("return 1.0 - max(f, r)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def value(self, p):")
+        self._indent += 1
+        self._emit('"""Read the resolved value — valid only when isFulfilled().')
+        self._emit("Returns the promise vector with the channel flags zeroed,")
+        self._emit("so downstream consumers see a clean value-shaped vector.")
+        self._emit('"""')
+        self._emit("v = p.clone()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 0.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 0.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def reason(self, p):")
+        self._indent += 1
+        self._emit('"""Read the rejection reason — valid only when isRejected()."""')
+        self._emit("v = p.clone()")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_FULFILLED] = 0.0")
+        self._emit("v[self.semantic_dim + self.AXIS_PROMISE_REJECTED] = 0.0")
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
         # ---- Axon runtime methods ----
         # Axons share the substrate operations of the rotation hashmap
         # (an axon is a bundle of bind(role, value) terms over a
@@ -671,8 +758,10 @@ class PyTorchCodegen(Codegen):
         # and `tensor.clone()` instead of `_np.copy()`.
         self._emit("# ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----")
         self._emit("# Mirrors the numpy backend slot block; see codegen.py.")
-        self._emit("# SLOT_BASE = 5 to leave room for AXIS_LOOP_DONE at synthetic[4].")
-        self._emit("SLOT_BASE = 5")
+        self._emit("# SLOT_BASE = 8 to leave room for AXIS_LOOP_DONE at [4],")
+        self._emit("# AXIS_PROMISE_FULFILLED at [5], AXIS_PROMISE_REJECTED at [6],")
+        self._emit("# AXIS_AXON_POPULATED at [7].")
+        self._emit("SLOT_BASE = 8")
         self._emit()
         self._emit("def _slot_plane(self, slot_idx):")
         self._indent += 1

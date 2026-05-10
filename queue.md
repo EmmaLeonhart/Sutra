@@ -65,28 +65,23 @@ Three-box mental model rendered at `docs/promises.md` (live at
 
 #### What's still pending
 
-**Active in this session:** Stage-2 lowering pass — `Promise<T>` →
-`while_loop` with two-channel halt vector. The axon-based external-
-I/O question (how does the loop body query "did the awaited input
-arrive?") was resolved 2026-05-09 by the user: the input slot is
-the zero vector until it arrives, then becomes non-zero;
-`norm(slot) > eps` is the on-substrate "arrived?" check. Spec at
-`planning/sutra-spec/axon-io.md`. Implementation now unblocked.
+**Stage-2 first cut shipped 2026-05-09.** `Promise.resolve` /
+`Promise.reject` and the inspector methods (`isFulfilled`,
+`isRejected`, `isPending`, `value`, `reason`) all run on the
+substrate as pure synthetic-axis reads/writes — no loop yet, no
+runtime errors. AXIS_PROMISE_FULFILLED / AXIS_PROMISE_REJECTED /
+AXIS_AXON_POPULATED reserved in both numpy and pytorch backends;
+SLOT_BASE bumped from 5 to 8. Corpus fixture
+`async_promise_runtime.su` verifies all four channel reads end-to-
+end through the desugar pass.
 
-Concrete substrate work for Phase 6:
-- Reserve `synthetic[AXIS_PROMISE_FULFILLED]` and
-  `synthetic[AXIS_PROMISE_REJECTED]` in the canonical synthetic-
-  axis allocation (currently 0..4: real, imag, truth,
-  string-flag, loop-done).
-- Implement `_VSA.resolve(v)` / `_VSA.reject(r)` /
-  `_VSA.isFulfilled(p)` / `_VSA.isRejected(p)` /
-  `_VSA.isPending(p)` / `_VSA.value(p)` / `_VSA.reason(p)` runtime
-  methods in both numpy and pytorch backends. These are pure axis
-  reads / writes — substrate-pure, no loop yet.
-- For programs that just construct + inspect promises (no await),
-  the runtime methods alone are sufficient. The `while_loop`
-  generation kicks in only when an `await` actually gates on an
-  external axon arrival.
+**What's still missing for Stage-2 full coverage:** loop-bodied
+awaits — when an `await` actually gates on an external axon
+arrival, the desugared form needs to emit a `while_loop` with
+`norm(slot) > eps` as the halt condition (per axon-io.md). That
+shape is blocked on the same first-class-function-values work that
+gates Stage-1 full coverage — once `.then(callback)` lowers, the
+matching while_loop generation falls out.
 
 **Deferred to `todo.md`:** First-class function values for
 `.then(callback)`. The trivial Stage-1 desugar shapes (pure
@@ -107,7 +102,7 @@ first-class-function-value pass lands.
 | 3+ | Stage-1 — full coverage (needs first-class fns) | 🚧 blocked |
 | 4 | TS transpiler pass-through | ✅ |
 | 5 | Stdlib `Promise<T>` class declaration | ✅ |
-| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | 🚧 in progress (axon-io spec landed) |
+| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | ✅ first cut (constructor + inspectors land; loop-bodied awaits still need first-class fns) |
 | 7 | Fixtures — try/catch, multi-await, propagation | partial (2 corpus + 1 TS) |
 
 ---
