@@ -721,6 +721,31 @@ class PyTorchCodegen(Codegen):
         self._emit("return v")
         self._indent -= 1
         self._emit()
+        self._emit("def await_value(self, p):")
+        self._indent += 1
+        self._emit('"""Loop-bodied await — substrate-equivalent of:')
+        self._emit("    while_loop spin(Promise.isPending(p) > 0.5, slot p) {")
+        self._emit("        pass p;")
+        self._emit("    }")
+        self._emit("    return Promise.value(p);")
+        self._emit("")
+        self._emit("Soft-halts after 100 iterations (matches the existing")
+        self._emit("RNN-cell loop's iteration cap). For an already-resolved")
+        self._emit("promise, exits in 0 iterations and returns the value.")
+        self._emit("For a pending promise without an external producer (the")
+        self._emit("current Sutra state, no Yantra-side I/O wired yet), times")
+        self._emit("out and returns the muted (zero-flag) value.")
+        self._emit('"""')
+        self._emit("for _ in range(100):")
+        self._indent += 1
+        self._emit("if self.isPending(p) <= 0.5:")
+        self._indent += 1
+        self._emit("break")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("return self.value(p)")
+        self._indent -= 1
+        self._emit()
         # ---- Axon runtime methods ----
         # Axons share the substrate operations of the rotation hashmap
         # (an axon is a bundle of bind(role, value) terms over a
