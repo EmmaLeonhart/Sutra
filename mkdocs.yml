@@ -105,6 +105,9 @@ nav:
     # with a link to the PDF (built by paper-pdf.yml and served at
     # /paper.pdf).
     - Theory and Paper: theory-and-paper.md
+    # Frozen NeurIPS 2026 submission archive — downloads for the
+    # camera-ready PDF, anonymized PDF, and supplementary zip.
+    - NeurIPS 2026 (frozen): neurips-2026.md
     - Paradigms: paradigms.md
     - Ontology: ontology.md
     - Primitive classes: primitive-classes.md
