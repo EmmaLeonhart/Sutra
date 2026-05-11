@@ -7,7 +7,7 @@
 // to a Sutra method-call statement which Sutra's runtime treats
 // as augmented-assignment on the void-method receiver.
 
-class Counter extends vector {
+class Counter extends JavaScriptObject {
     field int count;
     method void increment() {
         this.count = this.count + 1;
