@@ -1,5 +1,10 @@
 
 
+// Math — JS-compatible namespace mapping to substrate-pure runtime
+// intrinsics. Every method here resolves at codegen to `_VSA.<name>`,
+// which evaluates via the interpolated lookup table architecture
+// landed 2026-05-10. Trig is the same architecture with input
+// modulo-reduced to [-π, π]; hyperbolic beta-reduces to exp.
 
 class Math extends vector {
     static intrinsic method scalar log(scalar x);
@@ -9,4 +14,7 @@ class Math extends vector {
     static intrinsic method scalar cos(scalar x);
     static intrinsic method scalar tan(scalar x);
     static intrinsic method scalar pow(scalar x, scalar y);
+    static intrinsic method scalar sinh(scalar x);
+    static intrinsic method scalar cosh(scalar x);
+    static intrinsic method scalar tanh(scalar x);
 }
