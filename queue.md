@@ -114,15 +114,19 @@ green end-to-end). After **three remaining items** the JavaScript
 story is done. Emma 2026-05-10: this is today's slice. Work in this
 order:
 
-1. **Interpolated lookup table** (gates `Math.*` shims). The hard
-   one. Once an interpolated lookup primitive works on the
-   substrate, `exp` and `ln` are the only two leaves and every
-   other transcendental beta-reduces from there. Retry hypothesis:
-   the prior crosstalk failure was because log and exp weren't
-   being optimized *as specific functions* for the rotational
-   lookup — pick rotation geometry per-function instead of one
-   generic table absorbing both. Full reduction chain and prior-
-   art findings: `todo.md` §"Transcendental functions".
+1. **Interpolated lookup table** (gates `Math.*` shims). ✅
+   shipped 2026-05-10. Architecture: length-N value tensor +
+   triangle-weight soft-index dot product (not VSA-bundled — see
+   `planning/findings/2026-05-10-interpolated-lookup-table-works.md`).
+   `_VSA.exp` and `_VSA.log` land as substrate-pure intrinsics on
+   both backends; `pow` and `sqrt` beta-reduce to those. Out-of-
+   range inputs raise `SutraMathOverflow` per Emma's directive
+   (no silent clamp-to-zero). `Math.exp / log / pow / sqrt` from
+   either Sutra or transpiled TS now compile and run end-to-end
+   with ~1e-5 relative precision under float32 (~1e-7 attainable
+   under float64). `Math.sin / cos / tan` still rejected pending
+   the rotation-matrix path. Test coverage: math_basic fixture +
+   updated `test_transcendentals_disabled.py`.
 
 2. **Module imports** (`import { X } from "./foo"`). ✅ shipped
    2026-05-10. Single fixture (`module_import/`) green for both

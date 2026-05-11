@@ -23,8 +23,14 @@ from typing import List, Optional
 from . import ast_nodes as ast
 
 
+# Transcendentals not yet wired through the substrate. exp / log / pow /
+# sqrt landed 2026-05-10 via the interpolated lookup table — see
+# planning/findings/2026-05-10-interpolated-lookup-table-works.md and the
+# `def exp/log/pow/sqrt` methods on _TorchVSA. Trig functions stay
+# disabled until the rotation-matrix path (sin = imag(exp(iθ)),
+# cos = real(exp(iθ))) is wired into _VSA.
 _TRANSCENDENTALS_DISABLED = frozenset({
-    "log", "sqrt", "exp", "sin", "cos", "tan", "pow",
+    "sin", "cos", "tan",
 })
 
 

@@ -161,6 +161,21 @@ class PyTorchCodegen(Codegen):
         self._emit("_DTYPE = _torch.float32")
         self._emit()
         self._emit()
+        self._emit("class SutraMathOverflow(Exception):")
+        self._indent += 1
+        self._emit('"""Raised when a Sutra transcendental (Math.exp, Math.log,')
+        self._emit('Math.sqrt, Math.pow) is called with an input outside the')
+        self._emit('precomputed lookup-table range.')
+        self._emit('')
+        self._emit('Per Emma 2026-05-10: out-of-range transcendental inputs are an')
+        self._emit('explicit programming error, not a silent zero. Catch this')
+        self._emit('exception specifically (do not bare-except) when you intend to')
+        self._emit('handle out-of-range as a domain condition.')
+        self._emit('"""')
+        self._emit("pass")
+        self._indent -= 1
+        self._emit()
+        self._emit()
         self._emit("class _TorchVSA:")
         self._indent += 1
         self._emit('"""Torch-backed VSA runtime. Rotation binding, normalized bundle.')
@@ -243,6 +258,23 @@ class PyTorchCodegen(Codegen):
         self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}.pt')")
         self._indent -= 1
         self._emit("self._load_disk_cache()")
+        self._emit("# Transcendental lookup tables — substrate-pure interpolation per")
+        self._emit("# planning/findings/2026-05-10-interpolated-lookup-table-works.md.")
+        self._emit("# Stored as constants on the runtime so every exp/log call")
+        self._emit("# reuses the same tensor (no per-call rebuild). Out-of-range")
+        self._emit("# inputs raise SutraMathOverflow per Emma's 2026-05-10 directive.")
+        self._emit("# N=16384 chosen empirically: drops pow(2,10) from ~1% error to")
+        self._emit("# ~0.06% by tightening the log-table dx 4x. Memory cost is tiny")
+        self._emit("# (4 * 16384 * 4 bytes per table). True precision fix is range-")
+        self._emit("# reduction (ln(x) = ln(x/2^k) + k*ln(2)) — follow-on, not MVP.")
+        self._emit("self._EXP_LO, self._EXP_HI, self._EXP_N = -10.0, 10.0, 16384")
+        self._emit("self._EXP_XS = _torch.linspace(self._EXP_LO, self._EXP_HI, self._EXP_N, dtype=self.dtype, device=self.device)")
+        self._emit("self._EXP_VALUES = _torch.exp(self._EXP_XS)")
+        self._emit("self._EXP_DX = (self._EXP_HI - self._EXP_LO) / (self._EXP_N - 1)")
+        self._emit("self._LN_LO, self._LN_HI, self._LN_N = 1e-3, 1e3, 16384")
+        self._emit("self._LN_XS = _torch.linspace(self._LN_LO, self._LN_HI, self._LN_N, dtype=self.dtype, device=self.device)")
+        self._emit("self._LN_VALUES = _torch.log(self._LN_XS)")
+        self._emit("self._LN_DX = (self._LN_HI - self._LN_LO) / (self._LN_N - 1)")
         self._indent -= 1
         self._emit()
         self._emit("def _load_disk_cache(self):")
@@ -945,6 +977,71 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit('"""Inner / dot product → scalar."""')
         self._emit("return float(_torch.dot(a, b))")
+        self._indent -= 1
+        self._emit()
+        # ---- Transcendental intrinsics — substrate-pure lookup-table path. ----
+        # Per planning/findings/2026-05-10-interpolated-lookup-table-works.md.
+        # Every op inside is a tensor op (sub/abs/div/clamp/dot); no Python
+        # control flow on x. Out-of-range inputs raise SutraMathOverflow.
+        self._emit("def exp(self, x):")
+        self._indent += 1
+        self._emit('"""exp(x) on [-10, 10] via interpolated lookup. Out-of-range → SutraMathOverflow."""')
+        self._emit("xv = float(x)")
+        self._emit("if xv < self._EXP_LO or xv > self._EXP_HI:")
+        self._indent += 1
+        self._emit('raise SutraMathOverflow(')
+        self._indent += 1
+        self._emit('f"Math.exp({xv}) outside table range [{self._EXP_LO}, {self._EXP_HI}]. "')
+        self._emit('f"Widen the table in _TorchVSA.__init__ or range-reduce the input."')
+        self._indent -= 1
+        self._emit(")")
+        self._indent -= 1
+        self._emit("xt = _torch.as_tensor(xv, dtype=self.dtype, device=self.device)")
+        self._emit("d = (self._EXP_XS - xt).abs() / self._EXP_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("return float(_torch.dot(w, self._EXP_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def log(self, x):")
+        self._indent += 1
+        self._emit('"""Natural log on [1e-3, 1e3] via interpolated lookup. Matches')
+        self._emit('JS Math.log semantics (natural log, not base-10). Out-of-range or')
+        self._emit('non-positive input → SutraMathOverflow.')
+        self._emit('"""')
+        self._emit("xv = float(x)")
+        self._emit("if xv < self._LN_LO or xv > self._LN_HI:")
+        self._indent += 1
+        self._emit('raise SutraMathOverflow(')
+        self._indent += 1
+        self._emit('f"Math.log({xv}) outside table range [{self._LN_LO}, {self._LN_HI}]. "')
+        self._emit('f"Negative or zero input is also out of range — log is undefined there."')
+        self._indent -= 1
+        self._emit(")")
+        self._indent -= 1
+        self._emit("xt = _torch.as_tensor(xv, dtype=self.dtype, device=self.device)")
+        self._emit("d = (self._LN_XS - xt).abs() / self._LN_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("return float(_torch.dot(w, self._LN_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def pow(self, x, y):")
+        self._indent += 1
+        self._emit('"""x ** y via beta-reduction to exp/log: pow(x,y) = exp(y * log(x)).')
+        self._emit('Restricted to x > 0 because the log step requires it. Negative-base')
+        self._emit('integer exponents are a follow-on (need a separate signed path).')
+        self._emit('"""')
+        self._emit("return self.exp(float(y) * self.log(x))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sqrt(self, x):")
+        self._indent += 1
+        self._emit('"""sqrt(x) = exp(0.5 * log(x)). x must be > 0; x == 0 raises')
+        self._emit('SutraMathOverflow because the log table does not include zero.')
+        self._emit('Sub-table x near zero loses precision quickly — that is an honest')
+        self._emit('reflection of the lookup-table architecture and a prompt to')
+        self._emit('range-reduce inputs.')
+        self._emit('"""')
+        self._emit("return self.exp(0.5 * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def transpose(self, m):")
