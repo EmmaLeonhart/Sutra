@@ -23,17 +23,16 @@ hardwires:
 - **Sign-flip binding** (`a * sign(b)`), normalized bundle, cosine
   similarity. Per the spec rename (permute → sign_flip).
 
-The other backends fix different things:
+Historical (retired 2026-04-26):
 
-- **Fly-brain backend** (`codegen_flybrain.py`): KC-space
-  prototypes via the mushroom body simulator; `snap` runs against
-  Kenyon-cell sparse codes. Embedding model is whatever was used to
-  initialize the KC codebook (currently fresh random vectors of
-  dim 50, not a frozen LLM).
-- **Embedding-paper substrate** (`sutra-paper/`): one specific frozen
-  LLM (the one used in `sutra-paper/scripts/`). This is the substrate
-  the sign-flip binding paper characterizes; it is *not* exposed as a
-  Sutra codegen target today.
+- **Fly-brain backend** (formerly `codegen_flybrain.py`): KC-space
+  prototypes via the mushroom body simulator; `snap` ran against
+  Kenyon-cell sparse codes. Retired with the fly-brain repo split-
+  out; no longer a codegen target. Mentioned here only because
+  prior smoke-test prose referenced it.
+- **Embedding-paper substrate** (`sutra-paper/`, also retired):
+  one specific frozen LLM the sign-flip binding paper characterized;
+  not a codegen target.
 
 **Implication for examples:** every `.su` file in this directory runs
 on fresh random vectors. Anything that *looks* like it relies on
