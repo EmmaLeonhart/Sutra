@@ -122,11 +122,12 @@
             anchor="right"
             icon="AllIcons.Toolwindows.ToolWindowStructure"
             factoryClass="org.sutra.intellij.viz.SutraEmbeddingToolWindowFactory"/>
-        <toolWindow
-            id="Sutra Fly Brain"
-            anchor="right"
-            icon="AllIcons.Toolwindows.ToolWindowStructure"
-            factoryClass="org.sutra.intellij.viz.SutraFlyBrainToolWindowFactory"/>
+        <!-- The Sutra Fly Brain tool window was retired 2026-05-10
+             along with the rest of the fly-brain backend (retired
+             2026-04-26 at codegen-level). The kotlin source under
+             viz/SutraFlyBrainToolWindowFactory.kt and the fly-brain
+             HTML resource are kept for historical reference but no
+             longer registered as a tool window. -->
 
         <!-- Sutra Workspace tool window. Lives on the left by default
              because it is a project-structure browser, next to the

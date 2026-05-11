@@ -49,7 +49,7 @@ import javax.swing.tree.TreeSelectionModel
  * Out of scope for v1 (explicit v1.1 follow-ups named in the spec):
  * `ProjectOpenProcessor` auto-detect on folder open, source-root
  * configuration via `ModuleRootModificationUtil`, run configurations
- * that wrap `sutrac --emit-flybrain` / similar, and the MCP tool
+ * that wrap `sutrac --run` / `--emit` / similar, and the MCP tool
  * surface for querying the workspace from an agent.
  */
 class SutraWorkspaceToolWindowFactory : ToolWindowFactory {
