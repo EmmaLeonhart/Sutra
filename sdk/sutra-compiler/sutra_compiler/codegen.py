@@ -505,6 +505,10 @@ class Codegen(BaseCodegen):
         self._emit("self._COS_VALUES = _np.cos(self._TRIG_XS)")
         self._emit("self._TRIG_DX = (self._TRIG_HI - self._TRIG_LO) / (self._TRIG_N - 1)")
         self._emit("self._TWO_PI = 2.0 * _math.pi")
+        self._emit("# Math namespace constants — PI as scalar, E grounded in the")
+        self._emit("# substrate's exp(1.0). Cached at init.")
+        self._emit("self.PI = float(_math.pi)")
+        self._emit("self.E = self.exp(1.0)")
         self._indent -= 1
         self._emit()
         self._emit("def _load_disk_cache(self):")

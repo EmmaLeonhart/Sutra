@@ -2678,6 +2678,18 @@ class BaseCodegen:
                 if (cls_name in self._class_fields
                         and expr.member in self._class_fields[cls_name]):
                     return f'_VSA.axon_item(this, "{expr.member}")'
+            # Math namespace constants. Math.PI is a static lookup
+            # (precomputed scalar on _VSA); Math.E is exp(1.0), kept
+            # grounded in the substrate's exp implementation per Emma's
+            # 2026-05-10 directive ("E is just the exponential function
+            # of one"). Cached once at runtime init so repeated reads
+            # don't re-run the table lookup.
+            if (isinstance(expr.obj, ast.Identifier)
+                    and expr.obj.name == "Math"):
+                if expr.member == "PI":
+                    return "_VSA.PI"
+                if expr.member == "E":
+                    return "_VSA.E"
             return f"{self._translate_expr(expr.obj)}.{expr.member}"
         if isinstance(expr, ast.EmbedExpr):
             return self._embed_expr_src(expr)
