@@ -804,9 +804,65 @@ class PyTorchCodegen(Codegen):
         # methods below implement the substrate operations the
         # `Axon` stdlib class declares as `static intrinsic method`.
         self._emit("# ---- Axon runtime methods ----")
+        self._emit("# Per the 2026-05-10 axon-of-scalars-and-strings finding")
+        self._emit("# (planning/open-questions/axon-bind-needs-permutation-for-")
+        self._emit("# synthetic-fillers.md): rotation bind alone is identity in")
+        self._emit("# the synthetic block, so synthetic-axis fillers (numbers via")
+        self._emit("# make_real, strings via make_string) collide on bundle and")
+        self._emit("# don't separate per key. The fix layers a per-key permutation")
+        self._emit("# of the synthetic block on top of rotation. Free-standing")
+        self._emit("# bind/unbind are unchanged — only axon_add/axon_item route")
+        self._emit("# through the permutation path so loop carriers and the")
+        self._emit("# rotation hashmap aren't touched.")
         self._emit("def axon_new(self):")
         self._indent += 1
         self._emit("return _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _axon_permutation_for(self, role_vec):")
+        self._indent += 1
+        self._emit('"""Per-key deterministic permutation of the synthetic block.')
+        self._emit('Cached per role-hash, just like _rotation_for. Returns a')
+        self._emit('long tensor of synthetic_dim indices on the device.')
+        self._emit('"""')
+        self._emit("key = self._role_hash(role_vec)")
+        self._emit("if not hasattr(self, '_perm_cache'):")
+        self._indent += 1
+        self._emit("self._perm_cache = {}")
+        self._indent -= 1
+        self._emit("if key not in self._perm_cache:")
+        self._indent += 1
+        self._emit("import numpy as _np_bridge")
+        self._emit("# Distinct seed from rotation cache so the two are")
+        self._emit("# uncorrelated draws.")
+        self._emit("rng = _np_bridge.random.RandomState(key ^ 0xA50A_F00D)")
+        self._emit("perm_np = rng.permutation(self.synthetic_dim).astype('int64')")
+        self._emit("self._perm_cache[key] = _torch.as_tensor(perm_np, device=self.device)")
+        self._indent -= 1
+        self._emit("return self._perm_cache[key]")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _axon_permute_synthetic(self, vec, perm):")
+        self._indent += 1
+        self._emit('"""Apply permutation to the synthetic block of vec, leave')
+        self._emit('semantic block unchanged. Returns a new tensor."""')
+        self._emit("out = vec.clone()")
+        self._emit("syn = vec[self.semantic_dim:]")
+        self._emit("out[self.semantic_dim:] = syn[perm]")
+        self._emit("return out")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _axon_unpermute_synthetic(self, vec, perm):")
+        self._indent += 1
+        self._emit('"""Inverse of _axon_permute_synthetic for the same perm."""')
+        self._emit("out = vec.clone()")
+        self._emit("syn = vec[self.semantic_dim:]")
+        self._emit("# Build inverse permutation on the fly. Cheap (length")
+        self._emit("# synthetic_dim, ~100) and we already have perm in hand.")
+        self._emit("inv = _torch.empty_like(perm)")
+        self._emit("inv[perm] = _torch.arange(perm.shape[0], device=perm.device)")
+        self._emit("out[self.semantic_dim:] = syn[inv]")
+        self._emit("return out")
         self._indent -= 1
         self._emit()
         self._emit("def axon_add(self, axon, key, value):")
@@ -816,20 +872,29 @@ class PyTorchCodegen(Codegen):
         self._emit("# Strings are auto-embedded into a basis vector.")
         self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
         self._emit("# Scalar fillers (Python int / float) are promoted to")
-        self._emit("# a real-axis vector via make_real so the bind matmul")
-        self._emit("# works. Per the axon spec, axons can carry values of")
-        self._emit("# any kind; on the substrate they all become vectors.")
+        self._emit("# a real-axis vector via make_real. Python str fillers")
+        self._emit("# are promoted to the codepoint-array form via make_string.")
+        self._emit("# Both encodings put their content in the synthetic block,")
+        self._emit("# which the permutation step then separates per key.")
         self._emit("if isinstance(value, (int, float)):")
         self._indent += 1
         self._emit("value = self.make_real(float(value))")
         self._indent -= 1
-        self._emit("return axon + self.bind(key_vec, value)")
+        self._emit("elif isinstance(value, str):")
+        self._indent += 1
+        self._emit("value = self.make_string(value)")
+        self._indent -= 1
+        self._emit("rotated = self.bind(key_vec, value)")
+        self._emit("perm = self._axon_permutation_for(key_vec)")
+        self._emit("return axon + self._axon_permute_synthetic(rotated, perm)")
         self._indent -= 1
         self._emit()
         self._emit("def axon_item(self, axon, key):")
         self._indent += 1
         self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
-        self._emit("return self.unbind(key_vec, axon)")
+        self._emit("perm = self._axon_permutation_for(key_vec)")
+        self._emit("unpermuted = self._axon_unpermute_synthetic(axon, perm)")
+        self._emit("return self.unbind(key_vec, unpermuted)")
         self._indent -= 1
         self._emit()
         # ---- 2D-Givens-per-slot rotation binding (synthetic subspace) ----
