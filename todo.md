@@ -83,20 +83,23 @@ then module imports, then the multi-program axon demo last.
   - `SutraMathOverflow` exception raised when input falls outside the
     precomputed table range (per Emma's "specific overflow exception,
     not silent zero" directive).
-  - Tables: exp on [-10, 10] N=16384, log on [1e-3, 1e3] N=16384.
-    Float32 runtime gives ~1e-5 relative precision; float64 study in
-    the experiment hit ~1e-7.
-  - `_TRANSCENDENTALS_DISABLED` shrinks to `{sin, cos, tan}`.
-  - TS `Math.exp / log / pow / sqrt` calls now flow through end-to-
-    end with no transpiler change (the codegen already routed
-    `Math.foo(x)` to `_VSA.foo(x)`).
+  - Tables: exp on [-10, 10] N=16384, log on [1e-3, 1e3] N=16384,
+    trig on (-π, π] N=4096 (periodic so no overflow path). Float32
+    runtime gives ~1e-5 relative precision; float64 study in the
+    experiment hit ~1e-7.
+  - `_TRANSCENDENTALS_DISABLED` is now the empty `frozenset()` —
+    trig (sin/cos/tan) and hyperbolic (sinh/cosh/tanh) all
+    landed via the same lookup architecture (trig with modulo
+    reduction; hyperbolic via beta-reduction to exp). `Math.PI`,
+    `Math.TAU`, `Math.E` round out the namespace.
+  - TS `Math.*` calls now flow through end-to-end with no
+    transpiler change (the codegen already routed `Math.foo(x)`
+    to `_VSA.foo(x)`).
 
   **Follow-on, not blocking JS-completion:**
   - Range reduction for `log` (`ln(x) = ln(x/2^k) + k*ln(2)`) so
     inputs near 0 or beyond 1e3 stop being out-of-range overflows
     and start being domain-reducible to the bounded table.
-  - `sin`, `cos`, `tan` via the rotation-matrix path
-    (`sin(θ) = imag(exp(iθ))`).
   - Higher-order interpolation kernels if the linear-interp residual
     becomes a bottleneck for any real demo.
 
