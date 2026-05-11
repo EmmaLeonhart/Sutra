@@ -81,30 +81,50 @@ five. Lazy materialization would skip the two `axon_add` calls
 producer makes for `animal_1` and `color_2` because consumer never
 references them, dropping the wire's noise floor.
 
-This MVP transmits the full bundle. The consumer recovers correctly
-because 5 keys is within the rotation-binding capacity for nomic-
-embedded fillers (per
-[`planning/findings/2026-04-22-rotation-binding-capacity-results.md`](../../planning/findings/2026-04-22-rotation-binding-capacity-results.md)
-).
-
-The earlier draft of this demo used 12 keys and *failed* on
-`animal_2` recovery: `cat` and `dog` are too close in nomic
-embedding space to disambiguate at that bundle-size noise floor.
-That's the empirical case for lazy materialization — at 12 keys
-the spec promise (only 3 cross) would have left the consumer
-recovering from a 3-bundle, well within capacity.
+This MVP transmits the full bundle.
 
 The next iteration would be a compiler pass that:
 1. Walks the consumer's `axon_item` calls to collect referenced keys.
 2. Rewrites the producer's `make_state` body to only call `axon_add`
    for those keys.
-3. Emits a smaller bundle on the wire — same correctness, more
-   margin headroom.
+3. Emits a smaller bundle on the wire — same correctness, less
+   work and lower wire size.
 
 That's whole-program analysis across the import boundary. The
 import machinery for it landed earlier today (`sdk/sutra-from-ts/`
 inlines imports at lower-time); a Sutra-side equivalent of the
 analysis is the natural follow-on.
+
+## Important caveat about what this demo is using as fillers
+
+This demo uses **LLM embeddings** (nomic-embed-text basis vectors
+for `"dog"`, `"red"`, `"alice"`, etc.) as the axon fillers. That is
+the **worst case** for axon capacity — twelve 768-d structured
+embeddings squeezed into a single 868-d bundle is a high-crosstalk
+regime, and an earlier draft of this file with 12 keys did fail
+on cat/dog disambiguation as a consequence.
+
+**For OS-shaped Sutra IPC (Yantra and similar), this is NOT
+representative of the real wire payload.** Embeddings are
+expensive; you don't pass nomic vectors around between system
+processes. The IPC currency is:
+
+- **Strings** as `AXIS_STRING_FLAG`-marked codepoint arrays —
+  most of the vector is zero, content lives in the synthetic
+  block. See `planning/sutra-spec/strings.md`.
+- **Numbers** as complex hypervectors at `AXIS_REAL` /
+  `AXIS_IMAG` / `AXIS_TRUTH` — three non-zero positions out of
+  ~100 synthetic dims. See `planning/sutra-spec/types.md`.
+
+Both filler types live in the synthetic block, away from the
+semantic-block region where bundled embeddings crosstalk. The
+capacity behavior is qualitatively different and much friendlier
+than what this LLM-embedding demo shows. Don't take the cat/dog
+12-key cap as the rule for OS-style axons — it's the worst case,
+not the typical case.
+
+A follow-on demo using strings and numbers as the fillers would
+better reflect the actual OS-IPC use case.
 
 ## Why the wire format is `.npy` and not torch's `.pt`
 
