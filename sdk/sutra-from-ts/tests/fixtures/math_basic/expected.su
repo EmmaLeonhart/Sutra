@@ -1,0 +1,19 @@
+// Expected lowering of math_basic/input.ts.
+//
+// `Math.sqrt(n)` and `Math.pow(b, e)` pass through verbatim from the
+// TS surface. The Sutra codegen recognizes `Math` as a class-namespace
+// declared in stdlib/math.su and routes the calls to `_VSA.sqrt` /
+// `_VSA.pow` at codegen time. Both intrinsics evaluate via the
+// substrate-pure interpolated-lookup-table path landed 2026-05-10.
+
+function int rooted(int n) {
+    return Math.sqrt(n);
+}
+
+function int powered(int base, int exponent) {
+    return Math.pow(base, exponent);
+}
+
+function int main() {
+    return powered(2, 10);
+}

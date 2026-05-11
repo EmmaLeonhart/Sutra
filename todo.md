@@ -65,30 +65,40 @@ explicit closeout target Emma set 2026-05-10.
 Working order (Emma 2026-05-10): interpolated lookup tables first,
 then module imports, then the multi-program axon demo last.
 
-- [ ] **Interpolated lookup table for `Math.*` (transcendentals).**
-  The hard one. The TS transpiler already emits `Math.sqrt(x)` /
-  `Math.sin(x)` / `Math.log(x)` -shape calls; they fail at Sutra
-  codegen with a `CodegenNotSupported` pointer at
-  `sdk/sutra-compiler/sutra_compiler/stdlib/math.su`. Reduces to:
-  *get an interpolated lookup table working on the substrate.*
-  Once that primitive exists, `exp` and `ln` are the only two
-  leaves and every other transcendental beta-reduces to them
-  (see the §"Transcendental functions" section at the bottom of
-  this file for the full reduction chain).
+- [x] **Interpolated lookup table for `Math.*` (transcendentals)** —
+  shipped 2026-05-10. The actual fix turned out to be even simpler
+  than the rotation-geometry retry hypothesis: the prior bound-table
+  attempt was fundamentally pigeonhole-limited (N samples bundled
+  into 2 scalars). The replacement architecture (length-N value
+  tensor + triangle-weight soft-index dot product) avoids the
+  pigeonhole entirely — see
+  `planning/findings/2026-05-10-interpolated-lookup-table-works.md`.
 
-  **Emma 2026-05-10 intuition on why the prior attempt didn't
-  work:** the bound-table-via-binding approach
-  (`planning/findings/2026-04-29-bound-table-capacity-limit.md`)
-  blew up on crosstalk, but the rotational-lookup path likely
-  still works — the failure was that log and exponential
-  weren't being specifically optimized for the rotational
-  lookup; the substrate had too much dimensional distance in
-  the rotations and crosstalk dominated because we weren't
-  picking the rotation geometry *for these particular
-  functions*. The retry is: pick the rotation parameters
-  per-function (one tuned rotation for `exp`, one for `ln`),
-  rather than asking a generic rotation table to absorb both.
-  Flat table + interpolation, not VSA-bundle-of-bound-entries.
+  **What landed:**
+  - `_VSA.exp` and `_VSA.log` on both PyTorch and numpy backends as
+    substrate-pure intrinsics (every step is a tensor op: sub, abs,
+    div, clamp, dot).
+  - `_VSA.pow(x, y) = exp(y * log(x))` and `_VSA.sqrt(x) = exp(0.5 * log(x))`
+    as beta-reductions to the two leaves.
+  - `SutraMathOverflow` exception raised when input falls outside the
+    precomputed table range (per Emma's "specific overflow exception,
+    not silent zero" directive).
+  - Tables: exp on [-10, 10] N=16384, log on [1e-3, 1e3] N=16384.
+    Float32 runtime gives ~1e-5 relative precision; float64 study in
+    the experiment hit ~1e-7.
+  - `_TRANSCENDENTALS_DISABLED` shrinks to `{sin, cos, tan}`.
+  - TS `Math.exp / log / pow / sqrt` calls now flow through end-to-
+    end with no transpiler change (the codegen already routed
+    `Math.foo(x)` to `_VSA.foo(x)`).
+
+  **Follow-on, not blocking JS-completion:**
+  - Range reduction for `log` (`ln(x) = ln(x/2^k) + k*ln(2)`) so
+    inputs near 0 or beyond 1e3 stop being out-of-range overflows
+    and start being domain-reducible to the bounded table.
+  - `sin`, `cos`, `tan` via the rotation-matrix path
+    (`sin(θ) = imag(exp(iθ))`).
+  - Higher-order interpolation kernels if the linear-interp residual
+    becomes a bottleneck for any real demo.
 
 - [x] **`async` / `await` / `Promise`** — un-postponed 2026-05-09
   and substantially shipped. Active in `queue.md` item 1; the

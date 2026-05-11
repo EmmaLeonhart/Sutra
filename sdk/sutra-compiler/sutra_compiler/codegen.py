@@ -423,6 +423,18 @@ class Codegen(BaseCodegen):
         self._emit("import numpy as _np")
         self._emit()
         self._emit()
+        self._emit("class SutraMathOverflow(Exception):")
+        self._indent += 1
+        self._emit('"""Raised when a Sutra transcendental (Math.exp, Math.log,')
+        self._emit('Math.sqrt, Math.pow) is called with an input outside the')
+        self._emit('precomputed lookup-table range. See the same class on the')
+        self._emit('PyTorch backend; numpy and torch backends raise the same')
+        self._emit('exception type for caller-side uniformity.')
+        self._emit('"""')
+        self._emit("pass")
+        self._indent -= 1
+        self._emit()
+        self._emit()
         self._emit("class _NumpyVSA:")
         self._indent += 1
         self._emit('"""Frozen-LLM-backed VSA runtime. Rotation binding, normalized bundle.')
@@ -473,6 +485,18 @@ class Codegen(BaseCodegen):
         self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}.npz')")
         self._indent -= 1
         self._emit("self._load_disk_cache()")
+        self._emit("# Transcendental lookup tables — substrate-pure interpolation per")
+        self._emit("# planning/findings/2026-05-10-interpolated-lookup-table-works.md.")
+        self._emit("# Same shape as the PyTorch backend; out-of-range inputs raise")
+        self._emit("# SutraMathOverflow.")
+        self._emit("self._EXP_LO, self._EXP_HI, self._EXP_N = -10.0, 10.0, 16384")
+        self._emit("self._EXP_XS = _np.linspace(self._EXP_LO, self._EXP_HI, self._EXP_N, dtype=_np.float64)")
+        self._emit("self._EXP_VALUES = _np.exp(self._EXP_XS)")
+        self._emit("self._EXP_DX = (self._EXP_HI - self._EXP_LO) / (self._EXP_N - 1)")
+        self._emit("self._LN_LO, self._LN_HI, self._LN_N = 1e-3, 1e3, 16384")
+        self._emit("self._LN_XS = _np.linspace(self._LN_LO, self._LN_HI, self._LN_N, dtype=_np.float64)")
+        self._emit("self._LN_VALUES = _np.log(self._LN_XS)")
+        self._emit("self._LN_DX = (self._LN_HI - self._LN_LO) / (self._LN_N - 1)")
         self._indent -= 1
         self._emit()
         self._emit("def _load_disk_cache(self):")
@@ -1108,6 +1132,54 @@ class Codegen(BaseCodegen):
         self._indent += 1
         self._emit('"""Inner / dot product → scalar."""')
         self._emit("return float(_np.dot(a, b))")
+        self._indent -= 1
+        self._emit()
+        # ---- Transcendental intrinsics (numpy backend) — same architecture
+        # as the PyTorch backend, see codegen_pytorch.py for the reasoning.
+        self._emit("def exp(self, x):")
+        self._indent += 1
+        self._emit('"""exp(x) on [-10, 10] via interpolated lookup."""')
+        self._emit("xv = float(x)")
+        self._emit("if xv < self._EXP_LO or xv > self._EXP_HI:")
+        self._indent += 1
+        self._emit('raise SutraMathOverflow(')
+        self._indent += 1
+        self._emit('f"Math.exp({xv}) outside table range [{self._EXP_LO}, {self._EXP_HI}]."')
+        self._indent -= 1
+        self._emit(")")
+        self._indent -= 1
+        self._emit("d = _np.abs(self._EXP_XS - xv) / self._EXP_DX")
+        self._emit("w = _np.maximum(0.0, 1.0 - d)")
+        self._emit("return float(_np.dot(w, self._EXP_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def log(self, x):")
+        self._indent += 1
+        self._emit('"""Natural log on [1e-3, 1e3] via interpolated lookup."""')
+        self._emit("xv = float(x)")
+        self._emit("if xv < self._LN_LO or xv > self._LN_HI:")
+        self._indent += 1
+        self._emit('raise SutraMathOverflow(')
+        self._indent += 1
+        self._emit('f"Math.log({xv}) outside table range [{self._LN_LO}, {self._LN_HI}]."')
+        self._indent -= 1
+        self._emit(")")
+        self._indent -= 1
+        self._emit("d = _np.abs(self._LN_XS - xv) / self._LN_DX")
+        self._emit("w = _np.maximum(0.0, 1.0 - d)")
+        self._emit("return float(_np.dot(w, self._LN_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def pow(self, x, y):")
+        self._indent += 1
+        self._emit('"""x ** y via beta-reduction to exp/log: pow(x,y) = exp(y * log(x)). x > 0."""')
+        self._emit("return self.exp(float(y) * self.log(x))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sqrt(self, x):")
+        self._indent += 1
+        self._emit('"""sqrt(x) = exp(0.5 * log(x)). x > 0."""')
+        self._emit("return self.exp(0.5 * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def transpose(self, m):")
