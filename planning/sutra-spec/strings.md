@@ -140,27 +140,39 @@ a `Character`-typed slot lands as a 1-length substrate String. The
 literal type and the destination type don't need to "agree" at
 the surface — the compiler reconciles by inserting the wrapper.
 
-### Current implementation state (2026-05-10)
+### Current implementation state (2026-05-10, updated)
 
-The rule above is the **design target**. Today the codegen emits
-string literals as raw Python strings (`repr(expr.value)`) in every
-context — there is no destination-type-driven wrapping in the
-Sutra-side codegen. The behaviors that work today work because:
+The rule above is wired into the codegen as of commit `895e7a78`
+(2026-05-10):
 
-- `axon_add(a, key, value)` runtime-detects `isinstance(value, str)`
-  and wraps via `make_string` at the runtime boundary.
-- `basis_vector("alice")` runtime-embeds the raw string.
-- A function `function string greet(string name)` returning `name`
-  passes the raw Python string through end-to-end (so `greet("hi")`
-  returns the host string `'hi'`, not a substrate String value).
+- **Variable declarations** (`string s = "hello";`) emit
+  `s = _VSA.make_string('hello')`.
+- **Return statements** (`return "direct";` from a function with
+  return type `string`) emit `return _VSA.make_string('direct')`.
+- **Function call arguments** (`greet("alice")` where `greet`'s
+  param is typed `string`) emit `greet(_VSA.make_string('alice'))`.
 
-The third case is the **gap relative to this spec**. Wiring it
-requires the codegen to thread destination-type context through
-literal emission (call-site param types, variable-decl types,
-return-statement function return types). The plumbing is small but
-touches several emit sites; tracked as the follow-on implementation
-task once a real program needs the substrate-encoded form at a
-non-axon boundary.
+The codegen now threads destination-type context from these three
+sites into `_translate_expr`'s `StringLiteral` case; a new
+`Pre-pass C` in `translate()` registers every FunctionDecl's
+parameter types (user + stdlib) so call-site translation can look
+them up.
+
+Acknowledged residual gaps tracked in
+`planning/findings/2026-05-10-host-python-string-bug-chronology.md`:
+
+- Class field initializers from string literals — not yet threaded.
+- Post-declaration assignment (`s = "x"` where `s` is already
+  declared `string`) — not yet threaded.
+
+These are smaller surfaces than the original bug. Reach for them
+when a real program demands the substrate-encoded form at one of
+those boundaries; the threading pattern is the same as the three
+sites that landed.
+
+`basis_vector("alice")` and similar non-string-destination call
+sites continue to receive raw host strings — that path is
+correct (the embedding is the substrate form there).
 
 ## Surface API
 

@@ -43,10 +43,22 @@ Three base types at the bottom of the user-framed hierarchy:
 
 ### String and numeric types
 
-- **`string`** — a Python `str` at runtime. Used as function
-  parameter and return types (`function string main()`),
-  `basis_vector(string) → vector`, and as values in `map<V, string>`
-  lookup tables.
+- **`string`** — a substrate-encoded codepoint array. At runtime
+  a `string` value is a vector with `AXIS_STRING_FLAG = 1` and
+  codepoints packed across the synthetic axes (canonical
+  positions: `char[0]` at `AXIS_REAL`, `char[1]` at `AXIS_IMAG`,
+  `char[2..]` at `synthetic[5..]`). String literals coerce
+  implicitly at any `string`-typed slot (function parameter,
+  variable declaration, return statement) via
+  `_VSA.make_string(...)` per the destination-type-driven
+  coercion rule in `strings.md` § "Literal coercion."
+  `basis_vector(string) → vector` still takes a raw string at the
+  embedding boundary (that destination is not a `string`-typed
+  slot — `basis_vector` produces an embedding, not a String
+  value). The full spec lives in `strings.md`.
+- **`Character`** — a 1-length `String`. Same encoding, narrower
+  static type. `char` is a backwards-compat alias kept for older
+  source; new code should use `Character`.
 - **`int`**, **`number`**, **`scalar`** — numeric types. All live
   on the canonical *number axis* of the synthetic subspace (see
   §"The number axis and the integer class" below). At runtime
@@ -120,10 +132,13 @@ codebook-name lookup tables:
     };
 
 The compiler tracks the declared key type so subscript lookups
-dispatch correctly: vector-keyed maps use an identity-first
-comparison (`is` check) with cosine-similarity fallback; other
-key types use ordinary dict lookup. See
-`codegen_flybrain.py::_vector_map_lookup`.
+dispatch correctly: vector-keyed maps use cosine-argmax against the
+codebook of declared keys, returning the value paired with the
+nearest key. Non-vector key types use ordinary Python dict lookup.
+See `_vector_map_lookup` in the emitted runtime prelude
+(`codegen.py` for the numpy backend, `codegen_pytorch.py` for the
+PyTorch backend — the deprecated fly-brain backend was retired
+2026-04-26).
 
 Maps are **compile-time-initialized constants**. For runtime
 key-value storage, use `dict` (below).
