@@ -1,0 +1,62 @@
+// OS-shaped axon producer — half of the strings+numbers IPC demo.
+//
+// This producer simulates the *typical* OS axon payload shape, per
+// Emma 2026-05-10: one input embedding (the dominant per-message
+// piece) plus several scalar/string metadata fields. Most Sutra
+// programs are a single classifier over an incoming embedding, with
+// metadata around it. Two or three embeddings per axon would already
+// be a comparatively complex program.
+//
+// Wire payload bundled here:
+//
+//   user      : string  ("alice")        — who initiated the request
+//   tag       : string  ("search")       — request kind
+//   priority  : int     (7)              — small bounded number
+//   retries   : int     (0)              — small bounded number
+//   query     : vector                   — the one LLM embedding
+//
+// Consumer (consumer_os.su) reads `user`, `priority`, `query`. Skips
+// `tag` and `retries`. The lazy-materialization optimization (still a
+// follow-on, not implemented) would prune the unread two from the
+// wire at compile time.
+//
+// Numbers in this demo are deliberately small (single-digit / low
+// hundreds). Large scalar values dominate the axon's L2 norm and can
+// crosstalk into string codepoint positions, corrupting other
+// fillers. A future extension can split large numbers across
+// multiple synthetic axes (e.g. 4 × 16-bit chunks) so each chunk
+// stays in range; for now, encode big values as multiple keyed
+// entries or scale them down.
+//
+// Scale convention for the embedding: the embedding is multiplied by
+// EMBEDDING_SCALE (= 100) before being added to the axon. Typical
+// nomic-embed-text component magnitudes are ~0.03; codepoint values
+// from the string fillers and the small ints sit at 7..115. Without
+// scaling, the embedding's contribution to the bundle is two-to-
+// three orders of magnitude smaller than the metadata's, so its
+// recovered signal is below the crosstalk noise floor (cos margin
+// near 0 — empirically verified). Scaling by 100 brings the
+// embedding's per-component magnitude up to ~3, comparable to the
+// metadata, and the recovered cosine margin against a decoy hits
+// healthy positive values. Cosine is scale-invariant, so the
+// consumer doesn't need to undo the multiplication — it just
+// compares cosines, which the scaling improved.
+
+function vector make_query() {
+    return basis_vector("find recent files about cats");
+}
+
+function vector make_state() {
+    Axon a;
+    a.add("user",     "alice");
+    a.add("tag",      "search");
+    a.add("priority", 7);
+    a.add("retries",  0);
+    a.add("query",    make_query() * 100.0);
+    return a;
+}
+
+function string main() {
+    vector a = make_state();
+    return "produced";
+}
