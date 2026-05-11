@@ -961,6 +961,64 @@ DESIGN.md and skeleton are the starting point.
 
 Until then this is the very back of the queue.
 
+## [This year] OS-blockers (from `planning/os-blockers.md`)
+
+These are the items standing between Sutra-the-language-toolchain
+(feature-complete enough as of 2026-05-10) and Yantra writing an
+actual OS. Full text + status table lives in `planning/os-blockers.md`.
+
+- **Lazy materialization across axon boundaries.** Per `axons.md`
+  § "Lazy evaluation across boundaries": only keys the consumer
+  references should cross the wire. Today the full bundle crosses.
+  Works fine for small N + small-magnitude fillers (the typical OS
+  case — strings + numbers in the synthetic block); the 12-key
+  LLM-embedding capacity wall is documented in
+  `2026-05-10-multi-program-axon-passing-works.md` as the empirical
+  motivation. Implementation shape: compile-time pass that walks
+  the consumer's `axon_item` calls to collect referenced keys, then
+  rewrites the producer's `axon_add` chain to skip the rest.
+  Whole-program analysis across the import boundary; the module-
+  imports machinery (shipped 2026-05-10) is the foundation.
+
+- **Sutra-without-embeddings mode.** Per Emma 2026-05-10: "I don't
+  think the kernel is going to be using embeddings at all, and
+  Sutra should be able to be used without embeddings." Today every
+  compiled program initializes a full `_VSA(semantic_dim,
+  synthetic_dim)` with Ollama bootstrap and codebook. A program
+  that never calls `basis_vector`, `embed`, or `argmax_cosine`
+  against a vector codebook still pays the init cost. Needs:
+  compile-time detection of whether the program touches the
+  embedding subsystem; if not, skip the Ollama init, collapse
+  `_VSA.dim` to just the synthetic block, keep bind/unbind/axon
+  working (the rotation cache uses per-key hashes, not embeddings).
+  Spec doc in `planning/open-questions/` when starting.
+
+- **JSO operator overrides — the remaining set.** 2026-05-10
+  shipped `js_add` with string-concat coercion, `js_strict_eq`
+  (defuzzify(a == b)), `js_truthy` (truthy/falsy table), and
+  `js_typeof`. Still to do:
+  - **Ordered comparison with type coercion** (`<`, `>`, `<=`,
+    `>=` on strings vs numbers — JS lexically compares string
+    operands, numerically otherwise).
+  - **`!=` and `!==`** as negations of `==` and `===`. Trivially
+    derived from the existing equality methods.
+  - **`a in b` and `b instanceof T`** — need prototype-chain
+    spec first; not blocking anything specific.
+  - **`undefined` sentinel** for missing-property access and
+    out-of-axon-key reads. Need an axis bit (AXIS_AXON_POPULATED
+    is partial; uniform undefined-vs-zero needs reconciliation).
+  - **`JSON.parse / .stringify`** — text round-trip. Needs
+    string-axis encoding for object trees.
+
+- **I/O primitives.** Lives in Yantra repo; Sutra side will grow
+  an `io` stdlib class declaring intrinsics. Surface dictated by
+  what Yantra actually wants. Not Sutra's call to pre-design.
+
+- **Performance** — inherent to "every op is a tensor matmul on
+  868-d vectors." Tracked under existing entries:
+  `[This year] Compilation updates` (egglog fusion), per-program
+  embedding-space override, Sutra-without-embeddings mode (above).
+
 ## [This year] Speculative
 
 - **Sutra-embedded-in-Python (`@sutra` decorator + import hook).**

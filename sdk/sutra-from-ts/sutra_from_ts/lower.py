@@ -765,7 +765,20 @@ def _lower_statement(
                 f"* ({cons_src}) + (1 - truth_axis(defuzzy({cond_src}))) "
                 f"* ({alt_src})) / 2;\n"
             )
-        return f"{indent}// UNSUPPORTED-STMT: if without else; place a `return` after the if\n"
+        # Emma 2026-05-10: if without else is the select-with-implicit-
+        # zero-else form. The body is multiplied by the truthified
+        # condition; the missing else contributes zero. Math:
+        #   if (cond) { body }
+        #     → ((1 + truth(defuzz(cond))) * body) / 2
+        # When cond is true (defuzz → +1, truth → +1), the multiplier
+        # is (1+1)/2 = 1 — body passes through unchanged. When cond is
+        # false (defuzz → -1, truth → -1), the multiplier is (1-1)/2
+        # = 0 — body is zeroed out. Differentiable, fuzzy at the
+        # midpoint, no host-side control flow.
+        return (
+            f"{indent}return ((1 + truth_axis(defuzzy({cond_src}))) "
+            f"* ({cons_src})) / 2;\n"
+        )
     if node.type == "statement_block":
         out = ""
         for child in node.named_children:
