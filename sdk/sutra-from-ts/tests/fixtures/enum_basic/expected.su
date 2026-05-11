@@ -1,0 +1,15 @@
+// Expected lowering of enum_basic/input.ts.
+//
+// The `enum Status { Idle, Running = 5, Done }` declaration is
+// erased. `Status.Done` references inline as the integer 6 (auto-
+// increment from the explicit 5). The enum-typed param `s: Status`
+// lowers to `int s` — the runtime never sees the enum, only the
+// underlying integer.
+
+function int classify(int s) {
+    return s + 100;
+}
+
+function int main() {
+    return classify(6);
+}
