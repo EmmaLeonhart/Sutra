@@ -1,21 +1,21 @@
-"""Verify all transcendentals compile + return correct values.
+"""Precision + compilation tests for the Math.* transcendentals.
 
-This file used to assert that {log, sqrt, exp, sin, cos, tan, pow}
-were rejected at codegen — that was the state from 2026-04-30 to
-2026-05-09 after the host-Python implementations were withdrawn for
-substrate-purity violations.
+Background: from 2026-04-30 to 2026-05-09 these intrinsics were
+disabled at codegen because the prior implementations ran host Python
+scalar arithmetic at runtime (substrate-purity violation). The
+2026-05-10 interpolated-lookup-table architecture
+(`planning/findings/2026-05-10-interpolated-lookup-table-works.md`)
+re-implemented them as substrate-pure runtime methods. Trig went the
+same lookup-table route with input modulo-reduced to (-π, π];
+hyperbolic functions beta-reduce to exp.
 
-The 2026-05-10 interpolated-lookup-table architecture (see
-`planning/findings/2026-05-10-interpolated-lookup-table-works.md`)
-re-implemented all of them as substrate-pure runtime methods on
-`_VSA`. Trig went the same lookup-table route with input modulo-
-reduced to (-π, π]; hyperbolic functions beta-reduce to exp.
-The disabled set is now empty.
+Renamed from `test_transcendentals_disabled.py` on 2026-05-10 (spec
+audit batch 2, finding F12) — the old name described the state
+prior to the lookup-table fix.
 
-The file name `test_transcendentals_disabled.py` is misleading at
-this point — kept temporarily for git-blame continuity. When the
-math-precision test suite lands, this file becomes redundant and
-should be deleted.
+These tests check that each Math.* call compiles through both
+backends AND returns a value within the documented float32 +
+lookup-table precision.
 """
 from __future__ import annotations
 

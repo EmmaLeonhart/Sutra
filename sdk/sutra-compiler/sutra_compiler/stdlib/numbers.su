@@ -45,17 +45,12 @@
 // Blocked on: same as make_real.
 
 
-// make_char — integer code point on the real axis + char flag on the
-// synthetic axis.
-//
-//   function char make_char(int code) {
-//       vector v                          = zero_vector();
-//       v[semantic_dim + AXIS_REAL]       = code;
-//       v[semantic_dim + AXIS_CHAR_FLAG]  = 1.0;
-//       return v;
-//   }
-//
-// Blocked on: same as make_real.
+// make_char — kept as a backward-compat alias. Per planning/sutra-spec/
+// strings.md, Character is now a 1-length String and make_char is a
+// thin alias for `make_string(chr(code))`. The original int-on-real-
+// axis + AXIS_CHAR_FLAG encoding was superseded 2026-05-08; runtime
+// implementation lives on _VSA (codegen_pytorch.py). New code should
+// reach for make_string / the String / Character classes directly.
 
 
 // complex_mul — pure-matmul complex multiplication using three cached
