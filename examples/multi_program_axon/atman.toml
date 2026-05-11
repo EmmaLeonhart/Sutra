@@ -1,0 +1,9 @@
+[project]
+name = "multi-program-axon-demo"
+description = "Two .su programs exchanging an axon vector through a shared wire format. Both programs use the same embedding model so the basis vectors align — that's how the consumer's `axon_item` rotations agree with the producer's `axon_add` rotations across the boundary."
+
+[project.embedding]
+provider = "ollama"
+model = "nomic-embed-text"
+dim = 768
+mean_center = true

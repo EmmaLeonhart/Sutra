@@ -128,22 +128,26 @@ then module imports, then the multi-program axon demo last.
     paths resolve today. Adding `node_modules/` lookup is the
     obvious next layer.
 
-- [ ] **Multi-program axon passing with lazy evaluation.**
-  `axons.md` claims that only the keys the receiver references
-  actually cross a program boundary. Never demonstrated end-to-
-  end: every `.su` example is single-program, and
-  `program-structure.md` is explicit there's no module / import
-  system. User flagged this 2026-05-08 as the actual open axon
-  question — within a program the loop's recurrent state already
-  *is* an implicit axon, but between-program axon passing is
-  unbuilt. Concrete shape of the demo: two `.su` programs, one
-  publishes a wide axon (10+ keys), the other reads a small
-  slice; verify in the compiled artifact that only the
-  referenced slice materializes on the wire. Spec-validation
-  task. **Emma 2026-05-10: do this last of the three.** Module
-  imports cover the same inter-program semantics from the
-  inlining side, so the axon demo is the substrate-level proof
-  that the lazy-materialization claim in `axons.md` is real.
+- [x] **Multi-program axon passing demo** — shipped 2026-05-10
+  (`examples/multi_program_axon/`). End-to-end wire-passing
+  between two separately-compiled `.su` modules works: 5-key axon
+  serializes to a 3600-byte `.npy`, consumer decodes three keys
+  with clear cosine margins over never-bundled decoys. Finding:
+  `planning/findings/2026-05-10-multi-program-axon-passing-works.md`.
+
+  **Lazy materialization is the next layer, not blocking
+  JS-completion:** Today the full bundle crosses regardless of
+  what the receiver reads. The 2026-05-10 demo's earlier 12-key
+  draft hit the rotation-binding capacity wall on cat/dog
+  disambiguation in nomic embedding space — that's the empirical
+  motivation for the producer-side pruning pass. Implementation
+  shape: walk the consumer's `axon_item` calls at compile time
+  to collect the referenced-key set, rewrite the producer's
+  `make_state` to skip `axon_add` calls for keys outside that
+  set. Whole-program analysis across the cross-program boundary;
+  natural follow-on when there's a concrete user (Yantra IPC,
+  multi-program TS demos via the import system, real
+  cross-process Sutra apps).
 
 ---
 
