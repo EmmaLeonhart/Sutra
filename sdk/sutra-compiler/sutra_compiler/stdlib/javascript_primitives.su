@@ -1,0 +1,36 @@
+// JavaScript primitive subclasses — JS-coercive operator overlays
+// on top of Sutra's own primitive classes.
+//
+// Per Emma 2026-05-10: "JavaScript primitives, they'd be sub-
+// subclasses of our own classes but they function a bit
+// differently and they have JavaScript operators on them."
+//
+// Inheritance shape:
+//
+//       Sutra primitives           JavaScriptObject (catch-all)
+//          /     |       \                  |
+//        int   String   bool   ...     (existing class)
+//        /       |        \
+//   JavaScriptInt  JavaScriptString  JavaScriptBool
+//
+// The subclasses are PRIMARILY structural — they let the operator
+// dispatch's inheritance walk find the right overload. Most
+// JS-specific behaviors (strict equality, truthy table, typeof,
+// coercive +) live as canonical implementations on
+// `JavaScriptObject`; subclasses route through those because the
+// dispatch falls through to `JavaScriptObject` for any
+// JavaScript-flavored value's coercion semantics.
+//
+// Each subclass also inherits its parent Sutra primitive's
+// operators (e.g. `String`'s `+` for concat — see
+// stdlib/strings.su). So `JavaScriptString + JavaScriptString` →
+// `string_concat` via the inherited operator, with no separate
+// declaration here.
+//
+// Design doc + open questions:
+// planning/open-questions/javascript-primitive-subclasses.md.
+
+class JavaScriptString extends String { }
+class JavaScriptInt extends int { }
+class JavaScriptFloat extends float { }
+class JavaScriptBool extends bool { }

@@ -52,6 +52,15 @@ class String extends vector {
     // raises at runtime. Used by the TS transpiler's `string + string`
     // lowering and by user code that calls it directly. 2026-05-08.
     static intrinsic method String string_concat(String a, String b);
+
+    // `+` on two String values is concatenation. Per Emma 2026-05-10:
+    // "I want string concatenation through plus as being an overridden
+    // operator that occurs for our strings generally" — C#-style
+    // (not JS-specific). The same operator lights up for any
+    // class extending String, so JavaScriptString inherits it.
+    method operator +(String a, String b) {
+        return string_concat(a, b);
+    }
 }
 
 // A Character is a 1-length String. Same substrate encoding, same

@@ -501,7 +501,11 @@ class BaseCodegen:
         # stdlib calls dispatch to `_VSA.<name>` even though the
         # stdlib class isn't declared in the user's module AST.
         try:
-            from .stdlib_loader import stdlib_class_intrinsic_methods
+            from .stdlib_loader import (
+                stdlib_class_intrinsic_methods,
+                stdlib_class_parents,
+                stdlib_class_operators,
+            )
             for cls_name, method_names in stdlib_class_intrinsic_methods().items():
                 self._class_static_methods.setdefault(
                     cls_name, set()
@@ -509,6 +513,26 @@ class BaseCodegen:
                 self._class_intrinsic_methods.setdefault(
                     cls_name, set()
                 ).update(method_names)
+            # Register stdlib class parents so the operator dispatch's
+            # inheritance walk resolves `String → vector` /
+            # `Character → String → vector` / etc. Without this, a
+            # `String`-typed variable doesn't participate in dispatch
+            # because the walk's `t in self._class_parent` check fails.
+            for cls_name, parent_name in stdlib_class_parents().items():
+                self._class_parent.setdefault(cls_name, parent_name)
+            # Register stdlib operator overloads. Each becomes a
+            # mangled top-level Python function emitted by the
+            # backend's prelude (`_emit_stdlib_class_operators`).
+            self._stdlib_class_operator_decls: dict[tuple[str, str], "ast.MethodDecl"] = {}
+            from .codegen_base import _OP_NAME_TO_PYTHON  # local-only constant
+            for cls_name, op_map in stdlib_class_operators().items():
+                for op_sym, method_decl in op_map.items():
+                    mangled = (
+                        f"{cls_name}_operator_"
+                        f"{_OP_NAME_TO_PYTHON.get(op_sym, op_sym)}"
+                    )
+                    self._class_operators[(cls_name, op_sym)] = mangled
+                    self._stdlib_class_operator_decls[(cls_name, op_sym)] = method_decl
         except Exception:
             # If stdlib loading fails for any reason, fall back to
             # user-class-only dispatch. Stdlib failures show up
@@ -612,10 +636,54 @@ class BaseCodegen:
             if isinstance(item, ast.ClassDecl) and item.fields:
                 self._emit_class_factory(item)
                 self._emit()
+        # Emit stdlib class operator overloads as top-level Python
+        # functions before user code, so call sites that dispatch to
+        # mangled names like `String_operator_plus` resolve.
+        self._emit_stdlib_class_operators()
         for item in module.items:
             self._translate_top_level(item)
             self._emit()
         return self.output
+
+    def _emit_stdlib_class_operators(self) -> None:
+        """Emit each stdlib-class operator overload as a top-level
+        Python function with the mangled name the operator-dispatch
+        registered. Body translation reuses the same `_translate_stmt`
+        machinery user-class methods go through — `return string_concat(a, b)`
+        becomes `return _VSA.string_concat(a, b)` via the inliner-
+        backed intrinsic dispatch.
+        """
+        decls = getattr(self, "_stdlib_class_operator_decls", None)
+        if not decls:
+            return
+        for (cls_name, op_sym), method_decl in decls.items():
+            mangled = self._class_operators.get((cls_name, op_sym))
+            if mangled is None:
+                continue
+            param_names = [p.name for p in method_decl.params]
+            self._emit(f"def {mangled}({', '.join(param_names)}):")
+            self._indent += 1
+            # Register parameter types so the body's translation knows
+            # `a` and `b` are String-typed (etc.) — needed for the
+            # type-driven literal-coercion and operator-dispatch paths.
+            outer_var_type = dict(self._var_type)
+            for p in method_decl.params:
+                if p.type_ref is not None:
+                    self._var_type[p.name] = p.type_ref.name
+            outer_return_type = self._current_return_type
+            self._current_return_type = (
+                method_decl.return_type.name if method_decl.return_type else None
+            )
+            self._emit("_program_halt = 1.0")
+            if not method_decl.body.statements:
+                self._emit("pass")
+            else:
+                for stmt in method_decl.body.statements:
+                    self._translate_stmt(stmt)
+            self._var_type = outer_var_type
+            self._current_return_type = outer_return_type
+            self._indent -= 1
+            self._emit()
 
     def _resolve_user_operator(
         self, op: str, left: "ast.Expr", right: "ast.Expr"
@@ -1672,7 +1740,7 @@ class BaseCodegen:
                 # since a wiped-vector lookup already returns the
                 # nearest-string of zero (which is the right
                 # behavior).
-                if self._current_return_type == "string":
+                if self._current_return_type in ("string", "String", "Character"):
                     # dest_type=string so a bare `return "hello";` in a
                     # `function string main()` wraps via make_string at
                     # emit time instead of returning a host Python str.
@@ -2032,7 +2100,7 @@ class BaseCodegen:
             "_try_v[_VSA.semantic_dim + _VSA.AXIS_PROMISE_REJECTED]))"
         )
         self._emit(f"_catch_v = {v_cat_src}")
-        if self._current_return_type == "string":
+        if self._current_return_type in ("string", "String", "Character"):
             self._emit("return _catch_v if _try_exc > 0.5 else _try_v")
         else:
             self._emit(

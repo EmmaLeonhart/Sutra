@@ -50,6 +50,19 @@ class JavaScriptObject extends vector {
     // this matches "compare with no coercion"; for everything else
     // it's a usable stricter `==`.
     static intrinsic method JavaScriptObject js_strict_eq(JavaScriptObject a, JavaScriptObject b);
+    // Strict inequality. `!==` — negation of `===`. Returns a
+    // polarized fuzzy on the truth axis (+1 for not-strictly-equal,
+    // -1 for strictly equal).
+    static intrinsic method JavaScriptObject js_strict_neq(JavaScriptObject a, JavaScriptObject b);
+    // Loose equality. `==` with JS coercion: when comparing across
+    // primitive kinds (string-vs-number, bool-vs-number), the
+    // values are coerced to a common kind before comparing. For
+    // same-kind operands this is equivalent to ===. The
+    // implementation reads AXIS_STRING_FLAG to detect string
+    // operands and applies the coercion ladder.
+    static intrinsic method JavaScriptObject js_loose_eq(JavaScriptObject a, JavaScriptObject b);
+    // Loose inequality. `!=` — negation of loose `==`.
+    static intrinsic method JavaScriptObject js_loose_neq(JavaScriptObject a, JavaScriptObject b);
     // JavaScript truthiness — returns a fuzzy on the truth axis,
     // +1 for truthy values (non-zero numbers, non-empty strings,
     // non-null objects), -1 for falsy values (0, "", null,
