@@ -62,6 +62,18 @@ clawRxiv auto-submit runs on every paper edit (per the §"Paper" section below).
 - **Keep this file and README.md up to date.**
 - **Deprecate, don't remove** unless the deprecated thing actively misleads, has no users, or is a maintenance liability.
 
+### Vibe-coded projects need legacy code removed, not kept
+
+This project is built vibe-coding-first — large architectural decisions get made in chat, partially implemented, then sometimes superseded by a different shape a few sessions later. In a more traditional engineering process, "deprecate, don't remove" is the safe default because the old code has known users and predictable behavior. **In a vibe-coded project, the opposite tends to be true:** legacy code that lingers after a design shift gets quietly re-wired into newer paths by later sessions that don't know the old code was supposed to be retired. The 2026-05-10 host-Python-string bug is a concrete example — an April 10 design decision (string literals stay host because the codebook decode is the substrate boundary) was correct in its original scope but silently became wrong when a parallel string model landed on May 8, because no one removed the old emission path and the spec / code drift was invisible until a new use case exposed it.
+
+In practice this means:
+
+- When a design shift makes the old path *also* incorrect rather than just less preferred, remove the old path. Do not leave both alive on the assumption that callers will migrate.
+- When you find an old code path that contradicts the current spec, **stop and ask whether it's legacy weirdness from a superseded direction** before adding a workaround. Workarounds that paper over spec drift are how the drift becomes load-bearing.
+- The `feedback_check_what_is_open_before_pitching_blocker` memory generalizes here: read the spec and the open questions before assuming a long-lived code path is correct. A code path being present is not evidence that it's correct in the current design.
+
+This rule is in tension with "deprecate, don't remove." The reconciliation: deprecate-don't-remove applies when the old path is *still correct* in its original scope and someone might depend on it. When the old path is no longer correct, removal is the right move and a stale-path-left-behind is the bigger risk.
+
 `todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
 
 ## Paper
