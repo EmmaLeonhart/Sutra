@@ -9,12 +9,19 @@
 ## Position
 
 A String in Sutra is a synthetic-axis-encoded array of codepoints.
-String literals in `.su` source still default to **embeddings**
-(auto-converted to basis vectors at the substrate boundary, the
-behavior every existing example relies on). To produce a String
-*value* — a thing whose codepoints survive round-tripping through
-the runtime — the source must explicitly construct one through the
-`String` class.
+String literals in `.su` source are interpreted based on the
+**destination type** of the slot the literal lands in (Emma
+2026-05-10). See § "Literal coercion" below for the full rule.
+
+To produce a String *value* — a thing whose codepoints survive
+round-tripping through the runtime — either:
+- Pass the literal to a slot typed `string`, `String`, or
+  `Character` (the compiler inserts `make_string` implicitly), or
+- Construct one explicitly via `String.make_string("hello")`.
+
+When the destination type wants something else (e.g. `basis_vector`
+takes a string and produces an embedding), the literal stays raw —
+no auto-wrapping.
 
 ## Encoding
 
@@ -91,6 +98,69 @@ single-character values. The flag is **renamed to `AXIS_STRING_FLAG`**
 (same axis position, broader semantic). `AXIS_CHAR_FLAG` remains as
 a backwards-compat alias for code that still references it; new
 code uses `AXIS_STRING_FLAG`.
+
+## Literal coercion
+
+**The rule (Emma 2026-05-10):** A string literal in `.su` source —
+single-character or multi-character — coerces to a substrate
+String value *when the destination type of the slot it lands in
+is `string`, `String`, or `Character`*. Anywhere else, the literal
+stays as a host-side raw value (because that's what the destination
+wanted).
+
+The destinations that trigger the coercion are:
+
+| Where the literal lands | Coercion behavior |
+|-------------------------|-------------------|
+| Function parameter typed `string` / `String` / `Character` | `make_string(literal)` |
+| Variable declaration `string x = "hello";` | `make_string(literal)` |
+| `return "hello";` from a function with return type `string` etc. | `make_string(literal)` |
+| Class field `field string name;` assigned a literal | `make_string(literal)` |
+| `basis_vector("alice")` — destination is the codebook, not a string slot | stays raw (becomes an embedding) |
+| Untyped context (`var x = "hello";` with no annotation) | stays raw |
+| `axon_add(a, key, "alice")` | already wraps via `make_string` at runtime, per the 2026-05-10 axon permutation work |
+
+Rationale: a function declared `function int len(string s)` is
+saying "I expect a substrate String." The caller writing `len("hi")`
+shouldn't have to know whether to write `make_string("hi")` —
+that's the kind of ceremony a type system is supposed to absorb.
+The destination's static type already carries the intent; the
+compiler can read it and insert the wrapper.
+
+The same rule applies to `int` / `float` / `complex` literals
+flowing into vector-typed slots — they get wrapped via
+`make_real` / `make_imaginary` / `make_complex` based on the
+destination. (The vector backbone of the language is what makes
+this uniform.)
+
+**1-character strings and `Character`.** Because `Character` is a
+1-length `String` (see § "Character is a 1-length String" below),
+the same rule covers character coercion: a literal `"a"` passed to
+a `Character`-typed slot lands as a 1-length substrate String. The
+literal type and the destination type don't need to "agree" at
+the surface — the compiler reconciles by inserting the wrapper.
+
+### Current implementation state (2026-05-10)
+
+The rule above is the **design target**. Today the codegen emits
+string literals as raw Python strings (`repr(expr.value)`) in every
+context — there is no destination-type-driven wrapping in the
+Sutra-side codegen. The behaviors that work today work because:
+
+- `axon_add(a, key, value)` runtime-detects `isinstance(value, str)`
+  and wraps via `make_string` at the runtime boundary.
+- `basis_vector("alice")` runtime-embeds the raw string.
+- A function `function string greet(string name)` returning `name`
+  passes the raw Python string through end-to-end (so `greet("hi")`
+  returns the host string `'hi'`, not a substrate String value).
+
+The third case is the **gap relative to this spec**. Wiring it
+requires the codegen to thread destination-type context through
+literal emission (call-site param types, variable-decl types,
+return-statement function return types). The plumbing is small but
+touches several emit sites; tracked as the follow-on implementation
+task once a real program needs the substrate-encoded form at a
+non-axon boundary.
 
 ## Surface API
 
