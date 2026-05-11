@@ -122,3 +122,95 @@ jobs:
             paper/paper-named.pdf
             paper/paper-anonymized.pdf
           retention-days: 90
+
+  build-neurips-frozen-pdfs:
+    # Mirror of build-pdfs but rooted at paper/neurips/ — the frozen
+    # NeurIPS 2026 submission archive (per CLAUDE.md § "🔒 NeurIPS
+    # submission is FROZEN" and paper/neurips/README.md). These PDFs
+    # are the camera-ready and anonymized artifacts the docs site
+    # exposes for download at /neurips-2026/. Triggered only on
+    # changes to paper/neurips/** so we don't rebuild the frozen
+    # PDFs every time the live paper/paper.md gets revised.
+    name: Build frozen NeurIPS named + anonymized PDFs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(toJSON(github.event.commits.*.modified), 'paper/neurips/') ||
+      contains(toJSON(github.event.commits.*.added),    'paper/neurips/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install TeX Live + pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-luatex \
+            texlive-xetex \
+            lmodern \
+            latexmk \
+            pandoc
+
+      - name: Generate paper.tex.body from paper/neurips/paper.md
+        working-directory: paper/neurips
+        run: |
+          # Same preprocessing as the live build — strip the H1
+          # title (paper.tex's \maketitle handles it) and tag the
+          # meta-sections as unnumbered so they render \section*.
+          sed \
+            -e '1{/^# /d}' \
+            -e 's|^## Abstract$|## Abstract {-}|' \
+            -e 's|^## References$|## References {-}|' \
+            -e 's|^## Appendix$|## Appendix {-}|' \
+            -e 's|^### Appendix \([A-Z]\)\. \(.*\)$|### Appendix \1. \2 {-}|' \
+            paper.md > paper-pre.md
+          pandoc paper-pre.md \
+            --from=markdown-smart \
+            --to=latex \
+            --output=paper.tex.body \
+            --wrap=preserve \
+            --no-highlight \
+            --shift-heading-level-by=-1
+
+      - name: Build NeurIPS-named PDF
+        working-directory: paper/neurips
+        run: |
+          latexmk -pdf -interaction=nonstopmode \
+            -e '$max_repeat=8' paper.tex
+          mv paper.pdf paper-neurips-named.pdf
+
+      - name: Clean intermediate
+        working-directory: paper/neurips
+        run: |
+          latexmk -c paper.tex || true
+
+      - name: Build NeurIPS-anonymized PDF
+        working-directory: paper/neurips
+        run: |
+          latexmk -pdf -interaction=nonstopmode \
+            -e '$max_repeat=8' \
+            -usepretex='\newif\ifanon\anontrue' paper.tex
+          mv paper.pdf paper-neurips-anonymized.pdf
+
+      - name: Build supplementary zip
+        run: |
+          # The build script lives at scripts/build_supplementary_zip.py
+          # and reads from paper/neurips/supplementary/ for the doc
+          # surface. Output: sutra-neurips-supplementary.zip at repo root.
+          python scripts/build_supplementary_zip.py || true
+          # Copy into paper/neurips/ for the artifact upload below.
+          cp sutra-neurips-supplementary.zip paper/neurips/ 2>/dev/null || true
+
+      - name: Upload NeurIPS frozen PDFs + supplementary zip as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-neurips-frozen
+          path: |
+            paper/neurips/paper-neurips-named.pdf
+            paper/neurips/paper-neurips-anonymized.pdf
+            paper/neurips/sutra-neurips-supplementary.zip
+          retention-days: 365

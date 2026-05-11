@@ -70,30 +70,43 @@ Claw4S the competition is over. clawRxiv the platform stays — it's a feedback 
 
 None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by disabling submission," no "always check the latest review before pushing," no dedup-bypass concerns). Reviews are signal, not verdicts. NeurIPS is the longer-term target — see `todo.md`.
 
-### 🔒 Paper is FROZEN — NeurIPS submission is final
+### 🔒 NeurIPS submission is FROZEN at `paper/neurips/`; `paper/paper.md` is now the live revision target
 
-**The entire `paper/paper.md` is the canonical NeurIPS 2026 submission and is locked. The version present in the repository at master HEAD prior to this CLAUDE.md update is the version that was submitted to NeurIPS. NeurIPS does not accept post-deadline edits, so the local file is treated as immutable to keep it in sync with what was submitted.**
+**Updated 2026-05-10.** The freeze applies to `paper/neurips/` only. The
+`paper/paper.md` at the parent directory is the **live, evolving copy**
+and is free to receive updates toward the next venue, journal extension,
+or any other future revision.
+
+`paper/neurips/` contains the camera-ready NeurIPS 2026 submission as a
+permanent snapshot:
+- `paper/neurips/paper.md`
+- `paper/neurips/paper.tex`
+- `paper/neurips/neurips_2026.sty`
+- `paper/neurips/supplementary/{README,SKILL,REPRODUCE,SYNTAX}.md`
+
+NeurIPS does not accept post-deadline edits, so the files under
+`paper/neurips/` are treated as immutable to keep them in sync with
+what was submitted.
 
 This means:
-- Do not edit any part of `paper/paper.md` — not the title, not the abstract, not the body, not the references, not the appendix. Not for rewording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for typos, not for anything.
-- Do not "improve" the paper in response to a review. Reviews are signal for the next venue, not edits to the submitted version.
-- If a later result contradicts a claim in the paper, **stop and tell the user** — do not silently amend `paper.md` to match. The user decides whether to file an erratum at the next venue, draft a separate revision, or accept the discrepancy.
-- The supplementary archive (`paper/supplementary/`) is also part of the NeurIPS upload and should be treated the same way unless the user explicitly says otherwise.
-- If the user explicitly says "unfreeze the paper" or "edit the paper anyway," then and only then does this rule lift. Mention the lock first if the user appears to be requesting an edit; do not assume implicit consent.
+- Do not edit any file under `paper/neurips/` — not the title, not the abstract, not the body, not the references, not the appendix, not the supplementary docs. Not for rewording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for typos, not for anything.
+- Do not "improve" the NeurIPS frozen version in response to a review. Reviews are signal for the next venue, not edits to the submitted version.
+- If a later result contradicts a claim in the NeurIPS paper, **stop and tell the user** — do not silently amend `paper/neurips/paper.md` to match. The user decides whether to file an erratum at the next venue, draft a separate revision in `paper/paper.md`, or accept the discrepancy.
+- If the user explicitly says "unfreeze the NeurIPS paper" or "edit `paper/neurips/` anyway," then and only then does this rule lift. Mention the lock first if the user appears to be requesting an edit to the frozen archive; do not assume implicit consent.
 
-This rule subsumes the earlier title-and-abstract freeze. The whole paper is locked, not just the H1 line and the `## Abstract` block.
+The live `paper/paper.md` is **not** under this freeze. It is free to evolve. The downloadable artifacts on the website (camera-ready PDF, anonymized PDF, supplementary zip) are built from `paper/neurips/`, not from `paper/paper.md`. See `docs/neurips-2026.md` for the user-facing download page and `paper/neurips/README.md` for the in-repo explanation.
 
-### Paper-code durability — keep the original paper's examples working
+### Paper-code durability — keep the original NeurIPS paper's examples working
 
-Every `.su` program, reproduction script, and supplementary surface that the submitted paper references must continue to compile, run, and produce the same observable outputs **for at least one year after submission, ideally indefinitely**. The paper text is frozen and cannot be patched if the code drifts; the only way the claims stay reproducible is if the code keeps working.
+Every `.su` program, reproduction script, and supplementary surface that the **NeurIPS submission** (now frozen at `paper/neurips/`) references must continue to compile, run, and produce the same observable outputs **for at least one year after submission, ideally indefinitely**. The frozen paper text cannot be patched if the code drifts; the only way the NeurIPS claims stay reproducible is if the code keeps working.
 
 In practice this means:
-- Surface syntax used in any cited example (`map<vector, string>` codebooks, `bind`/`unbind`/`bundle`, `loop` forms, `dict<K, V>` rotation hashmaps, etc.) stays valid. If a feature is renamed or restructured, keep an alias / deprecation shim — do not break the spelling the paper uses.
+- Surface syntax used in any example cited by `paper/neurips/paper.md` (`map<vector, string>` codebooks, `bind`/`unbind`/`bundle`, `loop` forms, `dict<K, V>` rotation hashmaps, etc.) stays valid. If a feature is renamed or restructured, keep an alias / deprecation shim — do not break the spelling the NeurIPS paper uses.
 - The supplementary smoke test (`examples/_smoke_test.py`) keeps passing. If a refactor regresses it, the refactor is wrong, not the smoke test.
-- The reproduction scripts under `experiments/` referenced by `SKILL.md` / `REPRODUCE.md` continue to produce the same output (modulo run-to-run sampling noise that's already documented as such).
-- The supplementary `SYNTAX.md` description must keep matching what the compiler actually emits. If implementation drifts, update the supplementary doc and rebuild the zip — do not let the description rot.
+- The reproduction scripts under `experiments/` referenced by `paper/neurips/supplementary/SKILL.md` / `REPRODUCE.md` continue to produce the same output (modulo run-to-run sampling noise that's already documented as such).
+- The supplementary `SYNTAX.md` description (frozen under `paper/neurips/supplementary/SYNTAX.md`) must keep matching what the compiler actually emits for the NeurIPS-cited surface. If implementation drifts past those forms, **add a new alias** rather than retroactively changing the frozen description.
 
-If a change would break paper-code reproducibility, the right move is one of: (a) make the change additive and keep the old form working, (b) update the supplementary archive and rebuild the reproducibility zip, or (c) flag the conflict to the user so they can decide whether the gain is worth the break. Do not silently break the paper-cited path.
+If a change would break NeurIPS-paper-code reproducibility, the right move is one of: (a) make the change additive and keep the old form working, (b) update the live `paper/paper.md` (which is allowed to evolve) so the next-venue version reflects the new shape, or (c) flag the conflict to the user so they can decide whether the gain is worth the break. Do not silently break the NeurIPS-cited path.
 
 The supplementary zip is a build artifact (not committed) regenerated by `scripts/build_supplementary_zip.py`; rebuilding and re-uploading it is fine and expected when the doc/compiler need to be brought back into sync.
 
