@@ -497,6 +497,14 @@ class Codegen(BaseCodegen):
         self._emit("self._LN_XS = _np.linspace(self._LN_LO, self._LN_HI, self._LN_N, dtype=_np.float64)")
         self._emit("self._LN_VALUES = _np.log(self._LN_XS)")
         self._emit("self._LN_DX = (self._LN_HI - self._LN_LO) / (self._LN_N - 1)")
+        self._emit("# Trig tables — periodic so modulo-reduce input to [-π, π].")
+        self._emit("import math as _math")
+        self._emit("self._TRIG_LO, self._TRIG_HI, self._TRIG_N = -_math.pi, _math.pi, 4096")
+        self._emit("self._TRIG_XS = _np.linspace(self._TRIG_LO, self._TRIG_HI, self._TRIG_N, dtype=_np.float64)")
+        self._emit("self._SIN_VALUES = _np.sin(self._TRIG_XS)")
+        self._emit("self._COS_VALUES = _np.cos(self._TRIG_XS)")
+        self._emit("self._TRIG_DX = (self._TRIG_HI - self._TRIG_LO) / (self._TRIG_N - 1)")
+        self._emit("self._TWO_PI = 2.0 * _math.pi")
         self._indent -= 1
         self._emit()
         self._emit("def _load_disk_cache(self):")
@@ -1180,6 +1188,60 @@ class Codegen(BaseCodegen):
         self._indent += 1
         self._emit('"""sqrt(x) = exp(0.5 * log(x)). x > 0."""')
         self._emit("return self.exp(0.5 * self.log(x))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _trig_reduce(self, x):")
+        self._indent += 1
+        self._emit('"""Reduce x to (-π, π] via x - 2π * round(x / 2π)."""')
+        self._emit("return float(x) - self._TWO_PI * _np.round(float(x) / self._TWO_PI)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sin(self, x):")
+        self._indent += 1
+        self._emit('"""sin(x) via interpolated lookup on [-π, π]."""')
+        self._emit("xr = self._trig_reduce(x)")
+        self._emit("d = _np.abs(self._TRIG_XS - xr) / self._TRIG_DX")
+        self._emit("w = _np.maximum(0.0, 1.0 - d)")
+        self._emit("return float(_np.dot(w, self._SIN_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cos(self, x):")
+        self._indent += 1
+        self._emit('"""cos(x) via interpolated lookup on [-π, π]."""')
+        self._emit("xr = self._trig_reduce(x)")
+        self._emit("d = _np.abs(self._TRIG_XS - xr) / self._TRIG_DX")
+        self._emit("w = _np.maximum(0.0, 1.0 - d)")
+        self._emit("return float(_np.dot(w, self._COS_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tan(self, x):")
+        self._indent += 1
+        self._emit('"""tan(x) = sin(x) / cos(x)."""')
+        self._emit("c = self.cos(x)")
+        self._emit("if c == 0.0:")
+        self._indent += 1
+        self._emit('return float("inf") if self.sin(x) >= 0 else float("-inf")')
+        self._indent -= 1
+        self._emit("return self.sin(x) / c")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sinh(self, x):")
+        self._indent += 1
+        self._emit('"""sinh(x) = (exp(x) - exp(-x)) / 2."""')
+        self._emit("return (self.exp(x) - self.exp(-float(x))) * 0.5")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cosh(self, x):")
+        self._indent += 1
+        self._emit('"""cosh(x) = (exp(x) + exp(-x)) / 2."""')
+        self._emit("return (self.exp(x) + self.exp(-float(x))) * 0.5")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tanh(self, x):")
+        self._indent += 1
+        self._emit('"""tanh(x) = (exp(2x) - 1) / (exp(2x) + 1) — numerically stable form."""')
+        self._emit("e2x = self.exp(2.0 * float(x))")
+        self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1
         self._emit()
         self._emit("def transpose(self, m):")
