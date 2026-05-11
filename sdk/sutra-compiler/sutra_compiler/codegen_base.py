@@ -401,6 +401,16 @@ class BaseCodegen:
         # when the return is a vector — strings/ints/bools cannot be
         # multiplied by a float halt accumulator.
         self._current_return_type: str | None = None
+        # Function-signature table — populated by a pre-pass in translate()
+        # before any user code is walked, so call-site translation can ask
+        # "what type does function `f` expect at argument position k?" and
+        # coerce literal args accordingly. Per planning/sutra-spec/strings.md
+        # § "Literal coercion": a StringLiteral landing in a `string`-typed
+        # slot wraps via `_VSA.make_string(...)`. Same rule generalizes to
+        # int/float literals into vector-typed slots.
+        # Maps function-name (or class-qualified `Class.method`) to its
+        # parameter type-name list. None entries mark untyped params.
+        self._func_param_types: dict[str, list[str | None]] = {}
         # Static methods declared inside class bodies. Maps
         # class_name -> set of static method names. Populated by
         # _translate_top_level when seeing a ClassDecl. Used by
@@ -512,6 +522,45 @@ class BaseCodegen:
         # directly). Non-static methods land in _class_instance_methods
         # so `this.method(args)` from inside another method on the same
         # class can dispatch.
+        # Pre-pass C: register function-parameter types so call-site
+        # translation can coerce literal arguments to the called
+        # function's declared parameter types. Necessary for the
+        # strings.md § "Literal coercion" rule (substrate-encode string
+        # literals at substrate boundaries — no host Python strings
+        # crossing into user code). Stdlib functions also get registered
+        # so calls like `String.make_string("x")` know their param types.
+        for item in module.items:
+            if isinstance(item, ast.FunctionDecl) and not item.is_operator:
+                self._func_param_types[item.name] = [
+                    (p.type_ref.name if p.type_ref is not None else None)
+                    for p in item.params
+                ]
+            elif isinstance(item, ast.ClassDecl):
+                for m in item.methods:
+                    if m.is_operator or m.type_params:
+                        continue
+                    ptypes = [
+                        (p.type_ref.name if p.type_ref is not None else None)
+                        for p in m.params
+                    ]
+                    # Register under bare name (for `make_string(...)` shape)
+                    # AND class-qualified (for `String.make_string(...)`).
+                    self._func_param_types[m.name] = ptypes
+                    self._func_param_types[f"{item.name}.{m.name}"] = ptypes
+        # Same registration for stdlib functions (loaded out-of-band) so
+        # user code calling e.g. `axon_add(a, "k", "v")` gets the same
+        # literal-coercion treatment for string params.
+        try:
+            from .stdlib_loader import load_stdlib
+            for fname, fdecl in load_stdlib().items():
+                ptypes = [
+                    (p.type_ref.name if p.type_ref is not None else None)
+                    for p in fdecl.params
+                ]
+                self._func_param_types.setdefault(fname, ptypes)
+        except Exception:
+            pass
+
         for item in module.items:
             if isinstance(item, ast.ClassDecl):
                 # Register field schema. Fields lower to axon
@@ -781,13 +830,25 @@ class BaseCodegen:
                 f"for `var x : TYPE;` with TYPE in (vector, fuzzy, bool, "
                 f"int, scalar). Add an initializer or use a supported type."
             )
-        init_src = self._translate_expr(decl.initializer, map_key_type=(
-            decl.type_ref.type_args[0].name
-            if decl.type_ref is not None
-            and decl.type_ref.name == "map"
-            and len(decl.type_ref.type_args) >= 1
-            else None
-        ))
+        init_src = self._translate_expr(
+            decl.initializer,
+            map_key_type=(
+                decl.type_ref.type_args[0].name
+                if decl.type_ref is not None
+                and decl.type_ref.name == "map"
+                and len(decl.type_ref.type_args) >= 1
+                else None
+            ),
+            # Per strings.md § "Literal coercion": a string literal in
+            # `string s = "hello";` lands as a substrate String via
+            # _VSA.make_string, not a host Python str. dest_type is
+            # the declared type of the variable; the StringLiteral path
+            # in _translate_expr does the wrap when dest_type matches
+            # the string family.
+            dest_type=(
+                decl.type_ref.name if decl.type_ref is not None else None
+            ),
+        )
         # `role x = expr;` for now emits identical code to `vector x = expr;`.
         # When learned-matrix binding lands (STATUS "Deferred"), the is_role
         # flag will switch this branch to emit the matrix-fit path instead.
@@ -1612,10 +1673,16 @@ class BaseCodegen:
                 # nearest-string of zero (which is the right
                 # behavior).
                 if self._current_return_type == "string":
-                    self._emit(f"return {self._translate_expr(stmt.value)}")
+                    # dest_type=string so a bare `return "hello";` in a
+                    # `function string main()` wraps via make_string at
+                    # emit time instead of returning a host Python str.
+                    self._emit(
+                        f"return "
+                        f"{self._translate_expr(stmt.value, dest_type=self._current_return_type)}"
+                    )
                 else:
                     self._emit(
-                        f"return ({self._translate_expr(stmt.value)}) "
+                        f"return ({self._translate_expr(stmt.value, dest_type=self._current_return_type)}) "
                         f"* _program_halt"
                     )
             return
@@ -2462,8 +2529,24 @@ class BaseCodegen:
             "backend; use the numpy or pytorch backend",
         )
 
-    def _translate_expr(self, expr: ast.Expr, *, map_key_type: str | None = None) -> str:
+    def _translate_expr(
+        self,
+        expr: ast.Expr,
+        *,
+        map_key_type: str | None = None,
+        dest_type: str | None = None,
+    ) -> str:
         if isinstance(expr, ast.StringLiteral):
+            # Per planning/sutra-spec/strings.md § "Literal coercion":
+            # a string literal landing in a `string` / `String` /
+            # `Character`-typed slot wraps via `_VSA.make_string(...)` so
+            # the value crosses the boundary as a substrate String, not a
+            # host Python string. CLAUDE.md § safety-critical rule:
+            # every Sutra operation must run on the substrate where the
+            # spec says it runs — passing host Python strings into user
+            # functions violates that.
+            if dest_type in ("string", "String", "Character"):
+                return f"_VSA.make_string({expr.value!r})"
             return repr(expr.value)
         if isinstance(expr, ast.IntLiteral):
             return repr(expr.value)
@@ -2771,6 +2854,15 @@ class BaseCodegen:
                     )
                 arg_srcs = [self._translate_expr(a) for a in call.args]
                 return emitter(arg_srcs)
+            # Look up the called function's param types (registered in
+            # Pre-pass C of translate()). Used for literal-coercion at
+            # the call boundary so `f("alice")` against
+            # `function int f(string s)` wraps "alice" via make_string.
+            param_types = self._func_param_types.get(name)
+            def _arg_dest(i: int) -> str | None:
+                if param_types is None or i >= len(param_types):
+                    return None
+                return param_types[i]
             if name in _TRANSCENDENTALS_DISABLED:
                 raise CodegenNotSupported(
                     call,
@@ -2788,10 +2880,16 @@ class BaseCodegen:
             # call that would fail to resolve in the emitted Python.
             from .stdlib_loader import intrinsic_names
             if name in intrinsic_names():
-                arg_srcs = [self._translate_expr(a) for a in call.args]
+                arg_srcs = [
+                    self._translate_expr(a, dest_type=_arg_dest(i))
+                    for i, a in enumerate(call.args)
+                ]
                 return f"_VSA.{name}({', '.join(arg_srcs)})"
             # User-defined call: emit as-is.
-            arg_srcs = [self._translate_expr(a) for a in call.args]
+            arg_srcs = [
+                self._translate_expr(a, dest_type=_arg_dest(i))
+                for i, a in enumerate(call.args)
+            ]
             return f"{name}({', '.join(arg_srcs)})"
         if isinstance(callee, ast.MemberAccess):
             # `this.method(args)` from inside a class method body —
