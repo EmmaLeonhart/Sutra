@@ -16,8 +16,8 @@ A typical Sutra value is a vector in a frozen LLM embedding space. The current d
 
 Two backends, both produce a self-contained Python module:
 
-- **`codegen.py`** — emits numpy-flavored Python. Used by the in-repo smoke test as the reference path.
-- **`codegen_pytorch.py`** — emits torch tensor ops, picks CUDA at module init if available, falls back to CPU.
+- **`codegen_pytorch.py`** — **canonical.** Emits torch tensor ops, picks CUDA at module init if available, falls back to CPU. Axons, the full `Math.*` namespace, the codepoint-array String model, and the rotation-hashmap `dict<K, V>` all live here.
+- **`codegen.py`** — numpy backend, **deprecated and being retired**. Used by the in-repo smoke test as a reference for some shapes; new features land in the PyTorch backend only. Some 2026-05-10 additions (axons, `make_string`, the lookup-table transcendentals) are PyTorch-only and have no numpy equivalent.
 
 The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`.
 
