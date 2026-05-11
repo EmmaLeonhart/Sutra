@@ -217,3 +217,63 @@ def stdlib_class_intrinsic_methods(
             cls: frozenset(names) for cls, names in result.items()
         }
     return _STDLIB_CLASS_INTRINSICS_CACHE
+
+
+# Stdlib-class parent + operator-method registries — populated by
+# the same single-walk pattern. Used by the codegen's binary-op
+# dispatch to find class-bodied operator overloads defined inside
+# stdlib classes (e.g. `String + String → string_concat`).
+_STDLIB_CLASS_PARENTS_CACHE: Optional[Dict[str, str]] = None
+_STDLIB_CLASS_OPERATORS_CACHE: Optional[Dict[str, Dict[str, ast.MethodDecl]]] = None
+
+
+def _populate_class_meta(stdlib_dir: str) -> None:
+    """Single pass that fills both _STDLIB_CLASS_PARENTS_CACHE and
+    _STDLIB_CLASS_OPERATORS_CACHE. Cheaper than two walks of the
+    stdlib tree."""
+    global _STDLIB_CLASS_PARENTS_CACHE, _STDLIB_CLASS_OPERATORS_CACHE
+    parents: Dict[str, str] = {}
+    operators: Dict[str, Dict[str, ast.MethodDecl]] = {}
+    for fname in sorted(os.listdir(stdlib_dir)):
+        if not fname.endswith(".su"):
+            continue
+        path = os.path.join(stdlib_dir, fname)
+        module = _parse_stdlib_file(path)
+        for item in module.items:
+            if not isinstance(item, ast.ClassDecl):
+                continue
+            if item.parent_name is not None:
+                parents[item.name] = item.parent_name
+            for m in item.methods:
+                if m.is_operator and not m.type_params and not m.is_intrinsic:
+                    # m.name is `operator+`, `operator==`, etc. (per
+                    # the parser's `f"operator{op_name}"` convention).
+                    op_sym = m.name[len("operator"):]
+                    operators.setdefault(item.name, {})[op_sym] = m
+    _STDLIB_CLASS_PARENTS_CACHE = parents
+    _STDLIB_CLASS_OPERATORS_CACHE = operators
+
+
+def stdlib_class_parents(stdlib_dir: str = STDLIB_DIR) -> Dict[str, str]:
+    """Return `{class_name: parent_class_name}` for every stdlib
+    class. Used by the codegen so an inheritance walk on a stdlib-
+    declared class (e.g. `String → vector`) resolves correctly when
+    the operator dispatch climbs the chain looking for overloads.
+    """
+    if _STDLIB_CLASS_PARENTS_CACHE is None:
+        _populate_class_meta(stdlib_dir)
+    return _STDLIB_CLASS_PARENTS_CACHE or {}
+
+
+def stdlib_class_operators(
+    stdlib_dir: str = STDLIB_DIR,
+) -> Dict[str, Dict[str, ast.MethodDecl]]:
+    """Return `{class_name: {op_symbol: MethodDecl}}` for every
+    operator overload declared on a stdlib class. The codegen
+    emits each one as a top-level Python function during prelude
+    emission, and dispatches `a OP b` to it when either operand's
+    type chain hits the class.
+    """
+    if _STDLIB_CLASS_OPERATORS_CACHE is None:
+        _populate_class_meta(stdlib_dir)
+    return _STDLIB_CLASS_OPERATORS_CACHE or {}

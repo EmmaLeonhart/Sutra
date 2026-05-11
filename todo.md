@@ -995,13 +995,19 @@ actual OS. Full text + status table lives in `planning/os-blockers.md`.
 
 - **JSO operator overrides — the remaining set.** 2026-05-10
   shipped `js_add` with string-concat coercion, `js_strict_eq`
-  (defuzzify(a == b)), `js_truthy` (truthy/falsy table), and
-  `js_typeof`. Still to do:
+  (sharpened with element-wise diff norm), `js_strict_neq`,
+  `js_loose_eq` (with string-vs-number coercion), `js_loose_neq`,
+  `js_truthy`, and `js_typeof`. Plus a `String + String` operator
+  that concats via the proper class-bodied operator dispatch
+  (stdlib operator decls now participate in the dispatch chain).
+  JS-primitive subclass declarations
+  (`JavaScriptString extends String`, `JavaScriptInt extends int`,
+  `JavaScriptFloat extends float`, `JavaScriptBool extends bool`)
+  landed as inheritance-chain scaffolding so dispatch finds the
+  right overload. Still to do:
   - **Ordered comparison with type coercion** (`<`, `>`, `<=`,
     `>=` on strings vs numbers — JS lexically compares string
     operands, numerically otherwise).
-  - **`!=` and `!==`** as negations of `==` and `===`. Trivially
-    derived from the existing equality methods.
   - **`a in b` and `b instanceof T`** — need prototype-chain
     spec first; not blocking anything specific.
   - **`undefined` sentinel** for missing-property access and
@@ -1009,6 +1015,31 @@ actual OS. Full text + status table lives in `planning/os-blockers.md`.
     is partial; uniform undefined-vs-zero needs reconciliation).
   - **`JSON.parse / .stringify`** — text round-trip. Needs
     string-axis encoding for object trees.
+  - **Per-primitive intrinsics** — the stdlib subclass
+    declarations are empty bodies today; specific JS-flavored
+    behaviors that don't fit the JSO catch-all (e.g. JS's
+    weird `[].toString() === ""` behavior) will land as
+    intrinsic methods on the subclass when a concrete program
+    needs them.
+
+- **Infinity (and -Infinity, NaN) as first-class numbers.** Per
+  Emma 2026-05-10: "I feel like the big thing that we wouldn't be
+  able to do with the numbers is numbers have infinity in
+  JavaScript, and I don't know how we would do that. But it might
+  actually be worth looking into including infinity as a number,
+  as a kind of a number flag in our thing." Two design options:
+  - Reserve a synthetic axis (e.g. `AXIS_NUMERIC_TAG` taking
+    values `0` for finite, `+1` for +Infinity, `-1` for
+    -Infinity, with NaN as the off-axis sentinel).
+  - Use Float32's native ±inf / NaN representation directly at
+    `AXIS_REAL` — the substrate is already float32 tensors, so
+    `make_real(float('inf'))` would work mechanically; the
+    question is whether downstream ops (multiply, add,
+    transcendentals) handle it correctly.
+  Not blocking anything specific. Park as a TODO; revisit when
+  a real program either needs Infinity (numerical bounds, search
+  algorithms) or produces it accidentally and we want defined
+  behavior.
 
 - **I/O primitives.** Lives in Yantra repo; Sutra side will grow
   an `io` stdlib class declaring intrinsics. Surface dictated by
