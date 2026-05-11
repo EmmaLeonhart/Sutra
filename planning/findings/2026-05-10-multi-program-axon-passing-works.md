@@ -35,23 +35,41 @@ correct fillers than to the decoys:
 
 The wire is 3600 bytes per axon (868-dim float32 + numpy header).
 
-## Negative finding from the earlier draft
+## Side observation from the earlier draft
 
-The first draft of this demo bundled 12 keys in the producer. With
-that bundle size, recovery for `animal_2` returned `cat` instead of
-`dog` — both nomic-embedded animal vectors that cluster tightly in
-embedding space. The capacity wall is exactly the
-`fuzzy_dispatch.su` 1/4 case noted in the smoke-test substrate-
-margin notes (queue.md): nomic-embedded fillers cluster, lowering
-effective rotation-binding capacity below the random-vector
-analytical bound.
+The first draft of this demo bundled 12 keys in the producer with
+nomic embeddings as fillers. With that bundle size, recovery for
+`animal_2` returned `cat` instead of `dog` — both nomic-embedded
+animal vectors that cluster tightly in embedding space (cosine
+similarity ~0.7). The crosstalk from the other 11 bound pairs was
+enough to flip the cosine ranking between two already-close
+candidates.
 
-This is the empirical case for the spec's lazy-materialization
-optimization. The consumer reads three keys; if the producer's
-`axon_add` calls for the unreferenced two were pruned at compile
-time, the wire would carry a 3-bundle instead of a 12-bundle. The
-3-bundle has lower noise floor and the cat/dog disambiguation
-becomes recoverable.
+**This is the worst case, not the typical case.** Bundling 12
+LLM embeddings into one bundle is the high-crosstalk regime by
+construction — 12 × 768-d of structured information squeezed into
+868-d of synthetic-block-extended bundle. It's the rotation-
+binding capacity property documented in
+`2026-04-22-rotation-binding-capacity-results.md`, hitting harder
+than usual because the candidate set is already close in embedding
+space.
+
+For OS-shaped Sutra IPC the picture is qualitatively different —
+see `planning/sutra-spec/axons.md`-adjacent design and the project
+memory `project_axon_ipc_payload_is_strings_and_numbers.md`. Real
+IPC payloads are strings (codepoint-array packed in the synthetic
+block) and numbers (complex hypervectors at AXIS_REAL/IMAG/TRUTH).
+Both live in the synthetic block, away from the semantic-block
+crosstalk region; the capacity story is much friendlier there.
+Embeddings are expensive AND noisy when bundled deep — not the
+filler shape OS code should reach for.
+
+The cat/dog 12-key wall is also a reason the spec's lazy-
+materialization optimization is worth eventually building (prune
+the unread keys at compile time, less to bundle, less crosstalk).
+But that's an LLM-embedding-demo-specific motivation; the OS use
+case mostly avoids the cap by not using embeddings as fillers in
+the first place.
 
 ## What this validates in `axons.md`
 
