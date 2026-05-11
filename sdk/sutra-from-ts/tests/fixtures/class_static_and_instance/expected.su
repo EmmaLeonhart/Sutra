@@ -10,7 +10,7 @@
 //     function. `a.add(b)` is instance dispatch and maps to
 //     `Vec2_add(a, b)`.
 
-class Vec2 extends vector {
+class Vec2 extends JavaScriptObject {
     field int x;
     field int y;
     method Vec2 add(Vec2 other) {

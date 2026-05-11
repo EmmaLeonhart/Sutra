@@ -71,6 +71,14 @@ class Context:
     interface_names: set[str] = field(default_factory=set)
     type_alias_names: set[str] = field(default_factory=set)
     class_names: set[str] = field(default_factory=set)
+    # TS `enum Color { Red, Green = 5, Blue }` → record the integer
+    # value of each member so `Color.Red` expressions can lower to
+    # the literal integer at the call site. Members without explicit
+    # `= N` auto-increment from the previous (default starting at 0).
+    # Keys: f"{EnumName}.{Member}" → int. Param types declared as
+    # `c: Color` lower to `int c` (the runtime carrier of an enum).
+    enum_member_values: dict[str, int] = field(default_factory=dict)
+    enum_names: set[str] = field(default_factory=set)
     function_param_types: dict[str, list[str]] = field(default_factory=dict)
     local_types: dict[str, str] = field(default_factory=dict)
     extras: list[str] = field(default_factory=list)
@@ -106,6 +114,8 @@ class Context:
             interface_names=self.interface_names,
             type_alias_names=self.type_alias_names,
             class_names=self.class_names,
+            enum_member_values=self.enum_member_values,
+            enum_names=self.enum_names,
             function_param_types=self.function_param_types,
             local_types={},
             extras=self.extras,
@@ -132,6 +142,11 @@ def _ts_type_to_sutra(annotation_node, source: bytes, ctx: Context) -> str:
         name = _node_text(inner, source)
         if ctx.is_axon_typed(name):
             return "Axon"
+        # Enum-typed parameters carry their integer value at runtime.
+        # The Sutra-side parameter type is plain `int`; the enum's
+        # "type" is purely a transpile-time tag for name lookups.
+        if name in ctx.enum_names:
+            return "int"
         return name
     if inner.type == "array_type":
         # `T[]` — Sutra-side we use the marker name `Array` so the
@@ -370,6 +385,19 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
     if node.type == "member_expression":
         obj = node.child_by_field_name("object")
         prop = node.child_by_field_name("property")
+        # Enum member access — `Color.Red` lowers to the integer the
+        # prepass recorded for that member. Has to happen BEFORE the
+        # generic member-access lowering because the enum name is not
+        # an in-scope value (the enum itself is erased) — emitting
+        # `Color.Red` literally would be a NameError at runtime.
+        if (obj is not None and obj.type == "identifier"
+                and prop is not None and prop.type == "property_identifier"):
+            obj_name = _node_text(obj, source)
+            prop_name = _node_text(prop, source)
+            if obj_name in ctx.enum_names:
+                key = f"{obj_name}.{prop_name}"
+                if key in ctx.enum_member_values:
+                    return str(ctx.enum_member_values[key])
         obj_src = _lower_expression(obj, source, ctx)
         prop_text = _node_text(prop, source) if prop is not None else ""
         obj_t = _expr_type(obj, source, ctx) if obj is not None else None
@@ -935,9 +963,13 @@ def _lower_function(node, source: bytes, ctx: Context) -> str:
 
 def _lower_class_decl(node, source: bytes, ctx: Context) -> str:
     """Lower a TS `class_declaration` to a Sutra class. Per the
-    2026-05-08 Sutra-side class work, classes use:
-        class Name extends vector { field T name; method ... }
-    and `new Name(args)` to construct.
+    2026-05-08 Sutra-side class work + 2026-05-10 inheritance
+    direction, classes use:
+        class Name extends JavaScriptObject { field T name; method ... }
+    and `new Name(args)` to construct. The JavaScriptObject layer is
+    where JS-specific operations (coercive `+`, prototype-chain
+    semantics, etc.) live; today it's near-empty, but the inheritance
+    placement makes the future surface land cleanly.
 
     Field discovery:
     - `public_field_definition` → explicit field.
@@ -1012,7 +1044,13 @@ def _lower_class_decl(node, source: bytes, ctx: Context) -> str:
                     fields.append((pname, ptype))
                     field_names.add(pname)
 
-    out = f"class {class_name} extends vector {{\n"
+    # TS classes lower to `extends JavaScriptObject` (Emma 2026-05-10):
+    # every TS class is conceptually a JS object, so the inheritance
+    # chain is `class T extends JavaScriptObject extends vector`. The
+    # JavaScriptObject layer is where JS-specific operations (coercive
+    # `+`, etc.) will live as they get implemented; today most of that
+    # surface is deferred and JavaScriptObject itself is near-empty.
+    out = f"class {class_name} extends JavaScriptObject {{\n"
     for fname, ftype in fields:
         out += f"    field {ftype} {fname};\n"
     for is_static, mnode in methods:
@@ -1093,6 +1131,46 @@ def _prepass(root, source: bytes, ctx: Context) -> None:
             name_node = child.child_by_field_name("name")
             if name_node is not None:
                 ctx.class_names.add(_node_text(name_node, source))
+        elif child.type == "enum_declaration":
+            # First-pass record only: name + per-member integer values.
+            # The actual emission of the enum body (or rather, its
+            # erasure — Sutra has no `enum` keyword today) happens in
+            # the main pass when we reach this node. Recording happens
+            # here so any later function-signature reference to the
+            # enum type lowers correctly.
+            enum_name = None
+            body_node = None
+            for c in child.named_children:
+                if c.type == "identifier":
+                    enum_name = _node_text(c, source)
+                elif c.type == "enum_body":
+                    body_node = c
+            if enum_name is None or body_node is None:
+                continue
+            ctx.enum_names.add(enum_name)
+            next_value = 0
+            for member in body_node.named_children:
+                if member.type == "property_identifier":
+                    mname = _node_text(member, source)
+                    ctx.enum_member_values[f"{enum_name}.{mname}"] = next_value
+                    next_value += 1
+                elif member.type == "enum_assignment":
+                    mname_node = None
+                    val_node = None
+                    for mc in member.named_children:
+                        if mc.type == "property_identifier":
+                            mname_node = mc
+                        elif mc.type == "number":
+                            val_node = mc
+                    if mname_node is None or val_node is None:
+                        continue
+                    mname = _node_text(mname_node, source)
+                    try:
+                        val = int(_node_text(val_node, source))
+                    except ValueError:
+                        continue
+                    ctx.enum_member_values[f"{enum_name}.{mname}"] = val
+                    next_value = val + 1
 
     def _register_sig(fn_name: str, params_node) -> None:
         ptypes: list[str] = []
@@ -1343,6 +1421,12 @@ def lower(
         elif child.type in ("interface_declaration", "type_alias_declaration"):
             # Erased — only effect was registering the name as Axon-shaped
             # in the pre-pass.
+            pass
+        elif child.type == "enum_declaration":
+            # Erased — the prepass already collected member values into
+            # ctx.enum_member_values. Every `EnumName.Member` reference
+            # in expression position lowers to the recorded integer
+            # literal. The enum itself emits nothing.
             pass
         elif child.type == "comment":
             pass
