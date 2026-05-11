@@ -287,6 +287,12 @@ class PyTorchCodegen(Codegen):
         self._emit("self._COS_VALUES = _torch.cos(self._TRIG_XS)")
         self._emit("self._TRIG_DX = (self._TRIG_HI - self._TRIG_LO) / (self._TRIG_N - 1)")
         self._emit("self._TWO_PI = 2.0 * _math.pi")
+        self._emit("# Math namespace constants. PI is a precomputed scalar; E goes")
+        self._emit("# through the substrate's own exp(1.0) so the value is grounded")
+        self._emit("# in the lookup-table implementation, not a hardcoded constant")
+        self._emit("# (Emma 2026-05-10). Both cached once so repeated reads are O(1).")
+        self._emit("self.PI = float(_math.pi)")
+        self._emit("self.E = self.exp(1.0)")
         self._indent -= 1
         self._emit()
         self._emit("def _load_disk_cache(self):")
