@@ -1,0 +1,34 @@
+// OS-shaped axon consumer — half of the strings+numbers IPC demo.
+//
+// Receives the wire-passed axon from producer_os.su and exposes one
+// `recover_*` function per key the consumer cares about:
+//
+//   recover_user      — returns the string user
+//   recover_priority  — returns the int priority
+//   recover_query     — returns the embedding vector
+//
+// `tag` and `retries` are intentionally NOT recovered — they're the
+// slice the lazy-materialization optimization would prune from the
+// wire at compile time. (Today the full bundle still crosses; the
+// pruning pass is the documented follow-on.)
+//
+// The consumer needs the same embedding model the producer used so
+// the `axon_item` rotations align with the producer's `axon_add`
+// rotations across the wire boundary. atman.toml in this directory
+// pins both programs to nomic-embed-text dim=768.
+
+function string recover_user(vector state) {
+    return axon_item(state, "user");
+}
+
+function int recover_priority(vector state) {
+    return axon_item(state, "priority");
+}
+
+function vector recover_query(vector state) {
+    return axon_item(state, "query");
+}
+
+function string main() {
+    return "consumer-loaded";
+}
