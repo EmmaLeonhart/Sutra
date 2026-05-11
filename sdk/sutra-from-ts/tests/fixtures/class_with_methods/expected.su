@@ -15,7 +15,7 @@
 //   - `p.distance_squared()` dispatches to `Point_distance_squared(p)`
 //     via the existing Sutra instance-method lowering.
 
-class Point extends vector {
+class Point extends JavaScriptObject {
     field int x;
     field int y;
     method int distance_squared() {
