@@ -1,0 +1,34 @@
+// Consumer — half of the multi-program axon-passing demo.
+//
+// Receives the axon vector the producer made (handed off by `_run.py`
+// via a serialized wire format) and exposes three `axon_item` reads:
+// `animal_2`, `color_1`, `user_1`. The other two keys producer added
+// (`animal_1`, `color_2`) are never referenced — that's exactly the
+// slice the spec's lazy-materialization optimization (axons.md §"Lazy
+// evaluation across boundaries") would be allowed to drop from the
+// wire to push the practical capacity higher.
+//
+// The consumer deliberately returns the raw recovered vector rather
+// than running `argmax_cosine` against a decoy pool. That keeps the
+// demo focused on the wire-passing mechanism: the orchestrator does
+// host-side cosine analysis as monitoring (per CLAUDE.md "numpy is
+// allowed for monitoring") to verify that the recovered vector is
+// closer to the producer-bundled filler than to vectors that were
+// never bundled. Capacity / argmax-reliability is a separate axis
+// (see planning/findings/2026-04-22-rotation-binding-capacity-results.md).
+
+function vector recover_animal(vector state) {
+    return axon_item(state, "animal_2");
+}
+
+function vector recover_color(vector state) {
+    return axon_item(state, "color_1");
+}
+
+function vector recover_user(vector state) {
+    return axon_item(state, "user_1");
+}
+
+function string main() {
+    return "consumer-loaded";
+}

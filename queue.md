@@ -137,12 +137,19 @@ order:
    and bare-specifier resolution (NPM packages) deferred. Doc:
    `docs/typescript-to-sutra.md` § Modules.
 
-3. **Multi-program axon passing demo.** Spec-validation task —
-   prove the `axons.md` lazy-materialization claim end-to-end with
-   two `.su` programs (publisher with 10+-key axon, reader with a
-   small slice). Last because module imports already cover
-   inter-program semantics from the inlining side; this demo is
-   the substrate-level proof for the wire-format claim.
+3. **Multi-program axon passing demo.** ✅ shipped 2026-05-10.
+   `examples/multi_program_axon/` — two separately-compiled `.su`
+   programs exchange a 5-key axon vector via a numpy `.npy` wire
+   format (3600 bytes). Recovery margin checked via host-side cosine
+   monitoring; all three reads land closer to bundled fillers than
+   to never-bundled decoys (margins +0.20, +0.20, +0.26). Both
+   programs share `atman.toml` for embedding-model agreement, which
+   is what makes basis vectors line up across the boundary. Lazy
+   materialization is *not* yet implemented — the full bundle
+   crosses today; an earlier 12-key draft hit the rotation-binding
+   capacity wall on cat/dog disambiguation, motivating the
+   producer-side pruning pass as the natural follow-on. Finding:
+   `planning/findings/2026-05-10-multi-program-axon-passing-works.md`.
 
 Already shipped on the transpiler:
 - Functions (incl. arrow-as-const, closure-free capture via param
