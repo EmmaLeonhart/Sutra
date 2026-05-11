@@ -1,12 +1,23 @@
+// Sanity-check that the new function-decl `do_while` loop form parses
+// and validates cleanly. The body runs once unconditionally then ticks
+// until the condition becomes false (or the T-step cap halts the loop
+// substrate-side).
+//
+// Replaced the retired C-style `do { body } while (cond);` form on
+// 2026-05-10 — that surface is now parsed-but-rejected-at-codegen.
+// The canonical loop forms are spec'd in
+// planning/sutra-spec/control-flow.md §"Loops" + docs/loops.md.
 
 vector v_cat = basis_vector("cat");
 vector v_dog = basis_vector("dog");
 
+do_while wander_cell(similarity(state, v_dog) < 0.9, vector state) {
+    pass state;
+}
+
 function vector wander_at_least_once(vector start) {
-    vector state = start;
-    do {
-        state = state;
-    } while (similarity(state, v_dog) < 0.9);
+    slot vector state = start;
+    loop wander_cell(similarity(state, v_dog) < 0.9, state);
     return state;
 }
 

@@ -44,124 +44,170 @@ This is a design commitment, not a missing feature. If you want
 
 ## Loops
 
-The language has several loop surface forms. All of them compile to
-one of two underlying mechanisms: **compile-time unroll** (bounded,
-known iteration count) or **eigenrotation** (data-dependent
-termination on the substrate).
+**The 2026-04-30 redesign supersedes the earlier C-style loop
+surface.** Loops are now declared as **first-class functions** whose
+parameters are exactly the recurrent state. Each loop kind is a
+function-declaration form prefixed by a keyword; the body uses
+`pass` for tail-recursive yield. At the call site, the `loop`
+keyword invokes a declared loop function. The substrate executes
+loops as RNN-style branchless eigenrotation; the loop function's
+parameters are the named recurrent state.
 
-### `loop[N]` — bounded, unrolls at compile time
+The full design is at `planning/open-questions/loop-function-declarations.md`
+and the user-facing surface is at `docs/loops.md`. This section
+gives the canonical summary.
+
+### The loop kinds
+
+| Kind | First param | Body sees |
+|---|---|---|
+| `do_while NAME(cond, state...)` | Boolean condition; body always runs once before the first check. | Each tick re-evaluates condition after the body. |
+| `while_loop NAME(cond, state...)` | Boolean condition; checked before each tick. | Body runs only if condition is true. |
+| `iterative_loop NAME(count, state...)` | Integer count (cap on iterations). `iterator` reads current tick (1-indexed). | Body runs N times, no condition. |
+| `foreach_loop NAME(arr, state...)` | Binding-array the body iterates over. | One element per tick, bound to the loop's element param. |
+
+### Function declaration syntax
+
+```sutra
+do_while addNumber(x < 11, int x) {
+    pass x + 1;
+}
+```
+
+- `do_while` — kind keyword
+- `addNumber` — function name
+- `(x < 11, int x)` — parameter list. **First** param is the
+  condition (`x < 11`); remaining params are the typed recurrent
+  state vars (just `int x`).
+- `{ … }` — body. Reads/writes the state vars.
+- `pass <exprs>;` — tail-recursive yield. Required to provide a
+  value for every recurrent state param in declaration order. The
+  condition is *not* in the pass list — it's re-evaluated against
+  the new state automatically.
+
+The compiler accepts two equivalent body shapes:
+
+```sutra
+// Form A: pass an expression directly.
+do_while addNumber(x < 11, int x) { pass x + 1; }
+
+// Form B: mutate then pass.
+do_while addNumber(x < 11, int x) { x = x + 1; pass x; }
+```
+
+The `replace` keyword in a `pass` list keeps a state slot at its
+loop-call-time value for that tick:
+
+```sutra
+do_while foo(cond, int x, int y) {
+    pass x + 1, replace;   // y stays at its initial value
+}
+```
+
+### Call site syntax
+
+```sutra
+function int main() {
+    slot int x = 9;
+    loop addNumber(x < 11, x);
+    return x;       // x has been mutated to 11 by the loop
+}
+```
+
+The caller declares state vars with the `slot` modifier so they
+live in the synthetic-axis slot block (per the slot-rotation
+runtime); the loop function rotates those slots in place per
+tick.
+
+- `loop` keyword marks this as a loop invocation (not a regular
+  function call).
+- After the loop call, the caller's variables passed as state
+  args are mutated to the loop's final state values.
+
+**This by-reference mutation is acknowledged as non-idiomatic.**
+The cleanup direction (todo.md §"Make loops idiomatic") is to
+move to a tuple-return form:
+
+```sutra
+x = loop addNumber(x < 11, x);            // single-state return
+(max, count) = loop findMax(arr, 0, 0);   // multi-state return
+```
+
+Until that cleanup lands, the by-reference form is the canonical
+surface.
+
+### Tail-call return form
+
+For a loop call as a tail expression of an enclosing function, the
+`return NAME(args)` short form invokes the loop and returns the
+resulting state in one step. See `loop-tail-call-surface.md` for
+the surface and lowering.
+
+### Substrate execution model
+
+The loop function compiles to a Python "cell" function that runs
+T fixed cell steps (T defaults to 50, compile-time-fixed). Each
+step:
+
+1. Evaluate condition / check tick number / fetch next array element.
+2. Compute soft halt: a sigmoid that goes to 1 when the loop should
+   stop.
+3. Accumulate cumulative halt: `halted = min(halted + halt, 1)`.
+4. Run the body; `pass` provides the next state.
+5. Soft-mux: `state ← (1 − halted) · new_state + halted · old_state`.
+   Once `halted` saturates at 1, state is frozen at its pre-halt
+   value.
+
+After T steps, `AXIS_LOOP_DONE` on the output carries the
+cumulative halt (the completion flag); each state param's final
+value is written back to the caller's variable.
+
+The Python `for _t in range(T)` is meta-iteration over a compile-
+time-fixed count — the substrate sees T inline cell calls, no data-
+dependent control flow.
+
+### `loop[N]` — bounded compile-time unroll (separate from the loop kinds above)
 
 `loop (N) { body }` or `loop (N as i) { body }` where `N` is an
 integer literal unrolls at compile time. Zero runtime iteration,
 zero eigenrotation — the compiler emits the body `N` times, with
-the index variable `i` substituted with `0, 1, …, N-1` in each
+the index variable `i` substituted with `0, 1, …, N−1` in each
 iteration if the `as i` form is used.
 
 If `N` is a non-literal expression, the codegen currently emits a
 Python `for _ in range(N)` loop around the body (no unrolling).
-That's a compile-time choice, not a runtime eigenrotation — the
-substrate doesn't see any rotation in this case.
+This is the substrate-purity escape hatch tracked under "Open
+questions" below.
 
-### `loop(cond)` — data-dependent, branchless RNN unroll on the substrate
+### `foreach` over array literals — compile-time unroll
 
-When the loop's termination is data-dependent (`loop (cond)` where
-`cond` is not an integer literal), the codegen lowers to an
-**RNN-style unrolled cell on the substrate** (2026-04-30). The compiler:
+`foreach (TYPE x in [a, b, c]) { body }` unrolls at compile time —
+one body emission per element. The iterable must be an
+`ArrayLiteral`. For dynamic foreach over a runtime binding-array,
+use the `foreach_loop` kind instead. Test:
+`sdk/sutra-compiler/tests/corpus/valid/foreach_literal.su`.
 
-1. Extracts the target vector from the condition — the shape
-   `similarity(state, target_expr) < threshold` is recognized and
-   `target_expr` is pulled out (`_extract_loop_target` in
-   `codegen.py`).
-2. Emits a Haar-random orthogonal rotation `R` seeded by the
-   runtime seed.
-3. Calls `_VSA.loop()`, which runs **T fixed cell steps unconditionally**:
-   - Cell: `state, halted = _step(state, R, target, halted, k, threshold)`
-   - `_step` computes `cand = R · state`, normalizes, computes
-     `sim = cos(cand, target)`, computes soft halt
-     `halt = sigmoid(k · (sim - threshold))`, accumulates monotonically
-     `halted = min(halted + halt, 1)`, and freezes via soft mux
-     `state = (1 - halted) · cand + halted · state`.
-   - Pure tensor ops at every step: multiply, add, divide, exp, minimum.
-     **No host-side `if`, no host-side `while`, no host-side iteration
-     count** in the cell.
-4. After T steps, gates the value-bearing axes by `halted` so a
-   non-converging loop emits a near-zero output. The cumulative
-   halt is written to `synthetic[AXIS_LOOP_DONE]` as the
-   substrate-side completion flag.
+### Retired: C-style `while`, `for`, `do-while`, and `loop(cond)`
 
-This is the RNN dual of Sutra's MLP-shaped non-looping path:
-non-looping programs are a single forward pass; looping programs
-are a recurrent forward pass. Both are branchless on the substrate.
+Prior to 2026-04-30 the language accepted C-style
+`while (cond) { body }`, `for (init; cond; step) { body }`,
+`do { body } while (cond);`, and the body-discard `loop(cond) { body }`
+form. The codegen now **rejects all four** with `CodegenNotSupported`
+pointing at the function-decl forms above. The parser still
+accepts the syntax to give a clear error message, but no
+substrate path remains. Programs hit by this should migrate to
+the appropriate kind:
 
-Defaults: `T = max_iters = 50`, `k = 20.0` (sigmoid sharpness),
-`threshold = 0.5` (cosine convergence gate).
+| Old form | New form |
+|---|---|
+| `while (cond) { body }` | `while_loop name(cond, state) { body; pass state'; }` + `loop name(cond, state);` |
+| `for (init; cond; step) { body }` | `while_loop name(cond, state) { body; step; pass state'; }` (init done by caller) |
+| `do { body } while (cond);` | `do_while name(cond, state) { body; pass state'; }` |
+| `loop(cond) { body }` | one of the four kinds above, depending on the termination shape |
 
-**Output gating + AXIS_LOOP_DONE.** The reserved synthetic axis at
-index 4 carries the cumulative halt (`halted ∈ [0, 1]`):
-- `halted ≈ 1` → loop converged; output is valid; value axes
-  are unchanged.
-- `halted < 1` → loop did not converge within T steps; value
-  axes are scaled by `halted` (toward zero), so downstream code
-  sees a near-zero output it can detect as "incomplete." This is
-  the loop-specific instance of the broader **exception channel**
-  pattern (divide-by-zero, NaN propagation; see `todo.md`).
-
-Demo programs: `examples/loop_rotation.su`,
-`examples/counter_loop.su`, `examples/concept_search.su`. All pass
-under the new RNN unroll.
-
-### `while` and `for` — also eigenrotation
-
-Surprisingly, `while (cond) { body }` and C-style
-`for (init; cond; step) { body }` are both parsed AND both compile
-to eigenrotation loops — **not** to Python-style host-runtime
-loops. The codegen extracts a target (for `while`) or an iteration
-bound (for `for`) and lowers to the same substrate machinery as
-`loop(cond)`.
-
-This is design-intentional: Sutra runs computation on the
-substrate, not on the host. A `for` that compiled to a Python
-`for` loop would mean the loop counter lives on the host — which
-CLAUDE.md explicitly rejects ("the 'counter' for `loop(condition)`
-IS the angular position on the helix R^i·v₀ in the substrate").
-
-Programs that want bounded iteration should prefer `loop[N]`
-(unrolls cleanly); `while` and `for` work but lower to the same
-eigenrotation as `loop(cond)` and carry the same caveats.
-
-### `do-while` — desugars to `body; while (cond) { body }` (2026-04-22)
-
-`do { body } while (cond)` lowers by executing `body` once
-unconditionally, then entering a `while (cond) { body }` that
-lowers via the existing `WhileStmt → eigenrotation-loop` path.
-User direction: "decompose to a single iteration, followed by a
-while loop of it." Implementation in
-`codegen_flybrain.py::_translate_stmt` branches on `DoWhileStmt`
-and synthesizes the `WhileStmt` AST node internally.
-
-This matches classical do-while semantics (body always runs at
-least once). It also means do-while's body inherits the while-
-half's eigenrotation semantics: the second-and-subsequent
-iterations are eigenrotation on the substrate, not re-executions
-of the written body. That's consistent with how Sutra's `while`
-already works.
-
-Test: `sdk/sutra-compiler/tests/corpus/valid/do_while.su`.
-
-### `foreach` over compile-time-known collections (2026-04-22)
-
-`foreach (TYPE x in [a, b, c]) { body }` unrolls at compile
-time — one body emission per element, with the loop variable
-bound to the element's translated source. User direction: start
-with the compile-time-known case; dynamic foreach (over a named
-collection or a runtime expression) is a compile-time error
-pending the dynamic-foreach design (see todo.md).
-
-The iterable must be an `ArrayLiteral` (`[a, b, c]` in source).
-Anything else raises a compile-time `CodegenNotSupported` with
-guidance pointing at the array-literal form or manual unrolling.
-
-Test: `sdk/sutra-compiler/tests/corpus/valid/foreach_literal.su`.
+The semantic-corrections doc captures the migration; the loop
+spec docs (`loop-function-declarations.md`,
+`loop-surface-redesign.md`) capture the design history.
 
 ### `try-catch` — parsed but rejected
 
