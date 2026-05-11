@@ -15,7 +15,10 @@ It still provides:
 - The `_emit_prelude` numpy runtime emit, which a few tests
   (`test_codegen.py`, `test_inliner.py`) still assert against for
   emit-shape verification.
-- `_translate_eigenrotation_loop` (numpy-specific).
+- (Previously: `_translate_eigenrotation_loop` numpy-specific
+  override; removed 2026-05-10 along with the dead base-class
+  helpers — the C-style `loop(cond)` / `while` / `for` surface
+  no longer reaches codegen.)
 
 **Migration path** (queue item 6): move literal hooks into
 `BaseCodegen`, make `PyTorchCodegen` extend `BaseCodegen` directly,
@@ -361,38 +364,12 @@ class Codegen(BaseCodegen):
             return self._fuzzy_constant_scalar(expr.inner)
         return None
 
-    def _translate_eigenrotation_loop(self, stmt):
-        """Eigenrotation on the numpy substrate.
-
-        Uses a Haar-random orthogonal matrix and parses the threshold
-        from the condition (the numeric literal side of
-        `similarity(state, target) < T`). Cosine-based matching, so
-        thresholds default to 0.9 unless the source overrides.
-        """
-        from . import ast_nodes as ast
-        lid = self._next_loop_id()
-        state_var = self._extract_loop_state_var(stmt.body)
-        target_expr = self._extract_loop_target(stmt.condition)
-
-        threshold = 0.9
-        cond = stmt.condition
-        if isinstance(cond, ast.BinaryOp):
-            for side in (cond.left, cond.right):
-                if isinstance(side, ast.FloatLiteral):
-                    threshold = side.value
-                elif isinstance(side, ast.IntLiteral):
-                    threshold = float(side.value)
-
-        self._emit(f"{lid}_R = _VSA.make_random_rotation("
-                   f"angle=1.0, n_planes=_VSA.dim // 2, seed=_VSA.seed)")
-        self._emit(f"{lid}_target = {target_expr}")
-        self._emit(f"{lid}_protos = _VSA.compile_prototypes("
-                   f"{{\"target\": {lid}_target}})")
-        self._emit(f"{lid}_name, {state_var}, {lid}_iters = _VSA.loop(")
-        self._indent += 1
-        self._emit(f"{state_var}, {lid}_R, {lid}_protos,")
-        self._emit(f"target_name=\"target\", threshold={threshold}, max_iters=500)")
-        self._indent -= 1
+    # _translate_eigenrotation_loop and the related _extract_loop_*
+    # helpers were removed 2026-05-10 — the C-style `loop(cond)` /
+    # `while` / `for` surface is rejected at codegen now in favor of
+    # the function-decl loop forms (do_while/while_loop/...). See
+    # planning/sutra-spec/control-flow.md §"Loops" and the audit
+    # finding 2026-05-10-spec-implementation-audit.md (F2).
 
     _VECTOR_ACCESSORS = frozenset({
         "component", "semantic", "synthetic",
