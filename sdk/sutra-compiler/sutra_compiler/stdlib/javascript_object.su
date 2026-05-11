@@ -38,5 +38,25 @@
 
 class JavaScriptObject extends vector {
     static intrinsic method JavaScriptObject wrap(vector value);
+    // Coercive `+`. When either operand has AXIS_STRING_FLAG set,
+    // dispatches to string concatenation; otherwise element-wise
+    // vector add (numeric path). Per the 2026-05-10 JSO override pass.
     static intrinsic method JavaScriptObject js_add(JavaScriptObject a, JavaScriptObject b);
+    // Strict equality. Per Emma 2026-05-10: the Sutra interpretation
+    // of `===` is `defuzzify(a == b)` — the same fuzzy equality `==`
+    // gives, with an extra defuzzify step that polarizes the result
+    // along the truth axis. More strictness, fuzzy-stripped, NOT
+    // JavaScript's reference-equality semantics. For JSO operands
+    // this matches "compare with no coercion"; for everything else
+    // it's a usable stricter `==`.
+    static intrinsic method JavaScriptObject js_strict_eq(JavaScriptObject a, JavaScriptObject b);
+    // JavaScript truthiness — returns a fuzzy on the truth axis,
+    // +1 for truthy values (non-zero numbers, non-empty strings,
+    // non-null objects), -1 for falsy values (0, "", null,
+    // undefined, NaN, false). Polarized fuzzy, not host bool.
+    static intrinsic method JavaScriptObject js_truthy(JavaScriptObject a);
+    // `typeof a` — returns a String value carrying one of:
+    // "number", "string", "boolean", "object", "undefined".
+    // Detected by reading the value's flag axes.
+    static intrinsic method JavaScriptObject js_typeof(JavaScriptObject a);
 }
