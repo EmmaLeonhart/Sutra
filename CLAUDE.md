@@ -74,6 +74,8 @@ In practice this means:
 
 This rule is in tension with "deprecate, don't remove." The reconciliation: deprecate-don't-remove applies when the old path is *still correct* in its original scope and someone might depend on it. When the old path is no longer correct, removal is the right move and a stale-path-left-behind is the bigger risk.
 
+**Carve-out for intentional compatibility code (Emma 2026-05-10).** Code that exists explicitly to absorb a different ecosystem — the `JavaScriptObject` class and its operator overrides, the TS transpiler's coercion shims, `make_char` as an alias for `make_string`, the legacy `AXIS_CHAR_FLAG` name — is not "legacy weirdness" in the sense above. It's intentional compatibility code that has a current purpose (let JS / TS source land correctly on the Sutra substrate). Don't sweep that away under the "remove legacy" rule. The rule targets *superseded-design residue* (an old code path that was correct in a previous design but is wrong in the current one); intentional compatibility code is a different category. Strings are core substrate types and need to be correct under the current design; JavaScript-object overrides are interop and exist precisely because the ecosystem they target is weird in known ways.
+
 `todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
 
 ## Paper
