@@ -12,7 +12,15 @@
 // coercion in `+` between strings and numbers, ===-vs-==, prototype
 // chains, etc.) live in deferred work.
 //
-// Spec: planning/sutra-spec/javascript-object.md (TBD).
+// Spec: not yet written as a dedicated planning/sutra-spec/ file —
+// the surface lives in this stdlib declaration plus the TS
+// transpiler's lower.py (which emits JavaScriptObject.wrap(...) at
+// primitive-into-JSO-param call sites). Emma 2026-05-10 flagged
+// that JSO is the right home for JavaScript-coercion semantics
+// (`+` with string concat, ===/== distinction, truthy table,
+// typeof, etc.); those overrides will land here as the TS surface
+// demands them. CLAUDE.md § "Vibe-coded projects" carves JSO out
+// as intentional compatibility code (not legacy-to-remove).
 //
 // Two static intrinsic methods land 2026-05-08 to make the TS
 // transpiler's untyped path actually compile:

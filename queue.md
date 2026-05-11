@@ -115,18 +115,20 @@ story is done. Emma 2026-05-10: this is today's slice. Work in this
 order:
 
 1. **Interpolated lookup table** (gates `Math.*` shims). ✅
-   shipped 2026-05-10. Architecture: length-N value tensor +
-   triangle-weight soft-index dot product (not VSA-bundled — see
+   shipped 2026-05-10 — including trig and hyperbolic. Architecture:
+   length-N value tensor + triangle-weight soft-index dot product
+   (not VSA-bundled — see
    `planning/findings/2026-05-10-interpolated-lookup-table-works.md`).
    `_VSA.exp` and `_VSA.log` land as substrate-pure intrinsics on
-   both backends; `pow` and `sqrt` beta-reduce to those. Out-of-
-   range inputs raise `SutraMathOverflow` per Emma's directive
-   (no silent clamp-to-zero). `Math.exp / log / pow / sqrt` from
-   either Sutra or transpiled TS now compile and run end-to-end
-   with ~1e-5 relative precision under float32 (~1e-7 attainable
-   under float64). `Math.sin / cos / tan` still rejected pending
-   the rotation-matrix path. Test coverage: math_basic fixture +
-   updated `test_transcendentals_disabled.py`.
+   both backends; `pow` and `sqrt` beta-reduce to those. Trig
+   (`sin` / `cos` / `tan`) uses the same lookup architecture with
+   input modulo-reduced to (-π, π]. Hyperbolic (`sinh` / `cosh` /
+   `tanh`) beta-reduces to `exp`. `Math.PI` and `Math.TAU` land as
+   precomputed scalars; `Math.E` beta-reduces live to `exp(1.0)`
+   at the call site. Out-of-range inputs raise `SutraMathOverflow`
+   (no silent clamp-to-zero). `_TRANSCENDENTALS_DISABLED` is now
+   the empty frozenset. Test coverage: math_basic fixture +
+   `test_transcendentals.py`.
 
 2. **Module imports** (`import { X } from "./foo"`). ✅ shipped
    2026-05-10. Single fixture (`module_import/`) green for both
