@@ -275,6 +275,18 @@ class PyTorchCodegen(Codegen):
         self._emit("self._LN_XS = _torch.linspace(self._LN_LO, self._LN_HI, self._LN_N, dtype=self.dtype, device=self.device)")
         self._emit("self._LN_VALUES = _torch.log(self._LN_XS)")
         self._emit("self._LN_DX = (self._LN_HI - self._LN_LO) / (self._LN_N - 1)")
+        self._emit("# Trig tables — same architecture, periodic so modulo-reduce")
+        self._emit("# the input to [-π, π] before lookup. No overflow exception")
+        self._emit("# because every real input maps in-range. cos shares the table")
+        self._emit("# layout via cos(x) = sin(x + π/2) — but we store both for")
+        self._emit("# clarity and a single fused matvec per call.")
+        self._emit("import math as _math")
+        self._emit("self._TRIG_LO, self._TRIG_HI, self._TRIG_N = -_math.pi, _math.pi, 4096")
+        self._emit("self._TRIG_XS = _torch.linspace(self._TRIG_LO, self._TRIG_HI, self._TRIG_N, dtype=self.dtype, device=self.device)")
+        self._emit("self._SIN_VALUES = _torch.sin(self._TRIG_XS)")
+        self._emit("self._COS_VALUES = _torch.cos(self._TRIG_XS)")
+        self._emit("self._TRIG_DX = (self._TRIG_HI - self._TRIG_LO) / (self._TRIG_N - 1)")
+        self._emit("self._TWO_PI = 2.0 * _math.pi")
         self._indent -= 1
         self._emit()
         self._emit("def _load_disk_cache(self):")
@@ -1042,6 +1054,70 @@ class PyTorchCodegen(Codegen):
         self._emit('range-reduce inputs.')
         self._emit('"""')
         self._emit("return self.exp(0.5 * self.log(x))")
+        self._indent -= 1
+        self._emit()
+        # Trig — same lookup-table architecture as exp/log. Periodic, so
+        # modulo-reduce to [-π, π] first; no overflow exception path.
+        self._emit("def _trig_reduce(self, x):")
+        self._indent += 1
+        self._emit('"""Reduce x to (-π, π] via x - 2π * round(x / 2π). Substrate-pure:')
+        self._emit('elementwise div, round, mul, sub on a scalar tensor."""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return xt - self._TWO_PI * _torch.round(xt / self._TWO_PI)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sin(self, x):")
+        self._indent += 1
+        self._emit('"""sin(x) via interpolated lookup on [-π, π] after modulo reduction."""')
+        self._emit("xr = self._trig_reduce(x)")
+        self._emit("d = (self._TRIG_XS - xr).abs() / self._TRIG_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("return float(_torch.dot(w, self._SIN_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cos(self, x):")
+        self._indent += 1
+        self._emit('"""cos(x) via interpolated lookup on [-π, π] after modulo reduction."""')
+        self._emit("xr = self._trig_reduce(x)")
+        self._emit("d = (self._TRIG_XS - xr).abs() / self._TRIG_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("return float(_torch.dot(w, self._COS_VALUES))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tan(self, x):")
+        self._indent += 1
+        self._emit('"""tan(x) = sin(x) / cos(x). Diverges at odd multiples of π/2 —')
+        self._emit('Python returns inf rather than raising; consistent with JS Math.tan.')
+        self._emit('"""')
+        self._emit("c = self.cos(x)")
+        self._emit("if c == 0.0:")
+        self._indent += 1
+        self._emit('return float("inf")  if self.sin(x) >= 0 else float("-inf")')
+        self._indent -= 1
+        self._emit("return self.sin(x) / c")
+        self._indent -= 1
+        self._emit()
+        # Hyperbolic — every one beta-reduces to exp, no new tables needed.
+        self._emit("def sinh(self, x):")
+        self._indent += 1
+        self._emit('"""sinh(x) = (exp(x) - exp(-x)) / 2."""')
+        self._emit("return (self.exp(x) - self.exp(-float(x))) * 0.5")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cosh(self, x):")
+        self._indent += 1
+        self._emit('"""cosh(x) = (exp(x) + exp(-x)) / 2."""')
+        self._emit("return (self.exp(x) + self.exp(-float(x))) * 0.5")
+        self._indent -= 1
+        self._emit()
+        self._emit("def tanh(self, x):")
+        self._indent += 1
+        self._emit('"""tanh(x) = sinh(x) / cosh(x), but numerically stable form is')
+        self._emit('(exp(2x) - 1) / (exp(2x) + 1). For very large |x|, tanh saturates')
+        self._emit('to ±1; we let exp out-of-range raise SutraMathOverflow.')
+        self._emit('"""')
+        self._emit("e2x = self.exp(2.0 * float(x))")
+        self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1
         self._emit()
         self._emit("def transpose(self, m):")
