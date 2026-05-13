@@ -58,6 +58,7 @@ clawRxiv auto-submit runs on every paper edit (per the §"Paper" section below).
 - **Commit early, often, and push immediately.** Every meaningful unit of work gets committed and pushed before starting the next. No local-only work.
 - **Update `queue.md` in the same commit as the work.** If the session terminates mid-task, the next session must immediately know what's done, in-flight, and next. Stale queue.md = lost context.
 - **Always use the task tool with queue.md.** Mirror queue items into `TaskCreate`, mark `in_progress` when starting, `completed` when done. Remove completed items from queue.md in the same commit. The task tool and queue.md are two views of the same list — do not let them drift.
+- **When planning, write the plan to `queue.md` FIRST, then execute.** If you enter planning mode (or just stop to think before doing non-trivial multi-step work), the FIRST action after the plan is taking shape is to drop concrete items into `queue.md`. Only then begin executing them. The plan must not live only in chat context — chat dies on session interrupt; the queue survives.
 - **Do not enter planning-only modes.** All thinking must produce files and commits.
 - **Keep this file and README.md up to date.**
 - **Deprecate, don't remove** unless the deprecated thing actively misleads, has no users, or is a maintenance liability.
