@@ -1191,6 +1191,158 @@ class PyTorchCodegen(Codegen):
         self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1
         self._emit()
+        # =================================================================
+        # Modulus library — see stdlib/modulus.su. Expensive operations
+        # derived from modulus, kept in their own namespace so call sites
+        # are visible. Every body below dispatches to a torch tensor op
+        # (.floor, .ceil, .round, .trunc, .abs, .sign, .atan2) — these
+        # are native GPU instructions, not libm transcendental
+        # decompositions, so they live at the substrate's primitive layer
+        # alongside +, -, *. The exception is `mod` (the floor-mod
+        # eigen-rotation form), which composes cos/sin (already
+        # lookup-table-backed) with torch.atan2 — atan2-via-lookup-table
+        # is a follow-on tracked under the substrate-purity audit task
+        # in queue.md.
+        # =================================================================
+        self._emit("def floor(self, x):")
+        self._indent += 1
+        self._emit('"""Round toward -∞. Substrate: torch.floor (GPU instruction)."""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return float(_torch.floor(xt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def ceil(self, x):")
+        self._indent += 1
+        self._emit('"""Round toward +∞. Substrate: torch.ceil (GPU instruction)."""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return float(_torch.ceil(xt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def round(self, x):")
+        self._indent += 1
+        self._emit('"""Round to nearest integer, ties-to-even (torch default).')
+        self._emit('JS Math.round uses half-up; the discrepancy is tracked in the')
+        self._emit('substrate-purity audit task.')
+        self._emit('"""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return float(_torch.round(xt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def trunc(self, x):")
+        self._indent += 1
+        self._emit('"""Truncate toward zero. Substrate: torch.trunc (GPU instruction)."""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return float(_torch.trunc(xt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def abs(self, x):")
+        self._indent += 1
+        self._emit('"""|x|. Substrate: torch.abs."""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return float(_torch.abs(xt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sign(self, x):")
+        self._indent += 1
+        self._emit('"""-1 / 0 / +1. Substrate: torch.sign."""')
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("return float(_torch.sign(xt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def fmod(self, x, m):")
+        self._indent += 1
+        self._emit('"""Truncation modulus — result has the sign of x. Matches JS / C /')
+        self._emit('C# / Rust / TS `%`. Defined as x - m * trunc(x/m). The `%`')
+        self._emit('operator in source compiles to this method; before this lookup')
+        self._emit('landed the operator fell through to host Python `%` which broke')
+        self._emit('substrate purity.')
+        self._emit('"""')
+        self._emit("if float(m) == 0.0:")
+        self._indent += 1
+        self._emit('raise ZeroDivisionError("Math.fmod: divisor is zero")')
+        self._indent -= 1
+        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit("mt = _torch.as_tensor(float(m), dtype=self.dtype, device=self.device)")
+        self._emit("return float(xt - mt * _torch.trunc(xt / mt))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def rotation_mod(self, x, m):")
+        self._indent += 1
+        self._emit('"""Floor modulus via eigen rotation — exact away from boundaries,')
+        self._emit('discontinuous at integer multiples of m (atan2 branch cut).')
+        self._emit('Result is always non-negative when m > 0. `rotation_mod(-0.1, 1)')
+        self._emit('== 0.9`. Differentiable on the interior of each period;')
+        self._emit('non-differentiable at the boundary.')
+        self._emit('')
+        self._emit('Substrate derivation:')
+        self._emit('  θ  = 2π · x / m                   (linear)')
+        self._emit('  c  = cos(θ)                       (interpolated lookup)')
+        self._emit('  s  = sin(θ)                       (interpolated lookup)')
+        self._emit('  φ  = atan2(s, c)                  (torch tensor op)')
+        self._emit('  φ_pos = (φ + 2π) mod 2π           (re-wrap to [0, 2π))')
+        self._emit('  result = m · φ_pos / (2π)')
+        self._emit('')
+        self._emit('atan2-via-lookup-table is a follow-on (substrate-purity audit')
+        self._emit('task in queue.md). Today torch.atan2 is a tensor op that runs')
+        self._emit('on device.')
+        self._emit('"""')
+        self._emit("if float(m) == 0.0:")
+        self._indent += 1
+        self._emit('raise ZeroDivisionError("Math.rotation_mod: divisor is zero")')
+        self._indent -= 1
+        self._emit("theta = self._TWO_PI * float(x) / float(m)")
+        self._emit("c = self.cos(theta)")
+        self._emit("s = self.sin(theta)")
+        self._emit("ct = _torch.as_tensor(float(c), dtype=self.dtype, device=self.device)")
+        self._emit("st = _torch.as_tensor(float(s), dtype=self.dtype, device=self.device)")
+        self._emit("phi = _torch.atan2(st, ct)")
+        self._emit("# Re-wrap (-π, π] → [0, 2π) via the same x - 2π · floor(x/2π) shape")
+        self._emit("phi_shifted = phi + self._TWO_PI")
+        self._emit("phi_pos = phi_shifted - self._TWO_PI * _torch.floor(phi_shifted / self._TWO_PI)")
+        self._emit("return float(phi_pos * float(m) / self._TWO_PI)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sawtooth_mod(self, x, m, n_terms=16):")
+        self._indent += 1
+        self._emit('"""Floor modulus via Fourier series of the sawtooth — smooth,')
+        self._emit('differentiable everywhere, with Gibbs overshoot near boundaries.')
+        self._emit('Result is approximately non-negative when m > 0 (Gibbs lets it')
+        self._emit('ring ~9% below zero near integer multiples of m).')
+        self._emit('')
+        self._emit('Substrate derivation:')
+        self._emit('  The Fourier series of frac(x) = x - floor(x) on (0, 1) is')
+        self._emit('    frac(x) = 1/2 - (1/π) · Σ_{k=1..∞} sin(2πkx) / k')
+        self._emit('  Scaling by m and substituting x → x/m:')
+        self._emit('    mod_floor(x, m) ≈ m/2 - (m/π) · Σ_{k=1..N} sin(2πkx/m) / k')
+        self._emit('  Each sin term uses the existing interpolated lookup table.')
+        self._emit('  No new substrate primitives needed.')
+        self._emit('')
+        self._emit('Trade-off vs rotation_mod:')
+        self._emit('  + Fully differentiable, no branch cut')
+        self._emit('  + Composable through autograd if substrate ever wires it')
+        self._emit('  − Gibbs ripple: max error ~9% of m near integer multiples of m')
+        self._emit('  − N sin lookups per call vs 2 lookups + 1 atan2 for rotation_mod')
+        self._emit('"""')
+        self._emit("if float(m) == 0.0:")
+        self._indent += 1
+        self._emit('raise ZeroDivisionError("Math.sawtooth_mod: divisor is zero")')
+        self._indent -= 1
+        self._emit("xv = float(x)")
+        self._emit("mv = float(m)")
+        self._emit("total = 0.0")
+        self._emit("for k in range(1, int(n_terms) + 1):")
+        self._indent += 1
+        self._emit("total += self.sin(self._TWO_PI * k * xv / mv) / k")
+        self._indent -= 1
+        self._emit("return 0.5 * mv - (mv / 3.141592653589793) * total")
+        self._indent -= 1
+        self._emit()
+        self._emit("# `mod` is the canonical floor-mod alias. Today it points at")
+        self._emit("# rotation_mod (the user-preferred default); the benchmark in")
+        self._emit("# experiments/modulus_comparison.py compares the two and the")
+        self._emit("# default can be flipped without changing source-level callers.")
+        self._emit("mod = rotation_mod")
+        self._emit()
         self._emit("def transpose(self, m):")
         self._indent += 1
         self._emit('"""Transpose (last two dims for 2-D+; identity for 1-D)."""')
