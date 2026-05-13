@@ -2633,6 +2633,17 @@ class BaseCodegen:
                     return self._comparison_src(
                         expr, _CMP_OP_NAMES[expr.op], left, right
                     )
+            # `%` is the JS / C / C# / Rust / TS truncation modulus.
+            # The fall-through `left % right` below would emit Python's
+            # `%`, which is FLOOR-mod (-1 % 3 == 2) AND runs on host
+            # Python scalars — a substrate-purity leak. Route through
+            # `_VSA.fmod` (defined in stdlib/modulus.su; runtime
+            # implementation in codegen_pytorch.py) which gives
+            # truncation modulus on the device. See queue.md item 3
+            # for the eigen-rotation form `_VSA.mod` (floor-mod,
+            # differentiable) that callers reach via `Math.mod(x, m)`.
+            if expr.op == "%":
+                return f"_VSA.fmod({left}, {right})"
             return f"({left} {expr.op} {right})"
         if isinstance(expr, ast.UnaryOp):
             if expr.op == "!":
