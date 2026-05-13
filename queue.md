@@ -179,6 +179,66 @@ postponed pieces".
 
 ---
 
+### 3. Modulus library — shipped 2026-05-13, atan2 follow-on open
+
+Before today, `%` parsed cleanly but `codegen_base.py:2636` fell
+through to literal Python `(left % right)` — host arithmetic at
+runtime, a substrate-purity leak. The JS-derived ops
+`Math.floor` / `ceil` / `round` / `trunc` / `abs` / `sign` weren't
+declared at all. Now shipped:
+
+- **`stdlib/modulus.su`** — new file, top-of-file "expensive" warning.
+  Extends `class Math` with `mod`, `rotation_mod`, `sawtooth_mod`,
+  `fmod`, `floor`, `ceil`, `round`, `trunc`, `abs`, `sign` static
+  intrinsics (stdlib loader merges across files).
+- **Runtime** (`codegen_pytorch.py`) — every method dispatches to
+  torch tensor ops on device. `floor`/`ceil`/`round`/`trunc`/`abs`/
+  `sign` are native GPU instructions (not libm decompositions);
+  `fmod = x - m·trunc(x/m)` (JS-truncation); `rotation_mod` uses the
+  existing cos/sin lookup tables + `torch.atan2`; `sawtooth_mod` is
+  an N=16 Fourier series in `sin` lookups.
+- **`%` operator** — routes through `_VSA.fmod` (JS truncation mod).
+- **Benchmark** — `experiments/modulus_comparison.py`. `rotation_mod`
+  wins decisively: ~10⁻⁷ max error vs sawtooth's ~14% of m, and 5-6×
+  faster per call. `Math.mod` aliases `rotation_mod`; `sawtooth_mod`
+  stays as an ablation handle. Full numbers in
+  `planning/findings/2026-05-13-modulus-rotation-vs-sawtooth.md`.
+
+The atan2 step in `rotation_mod` uses `torch.atan2` today —
+replacing it with an interpolated lookup table (same architecture
+as exp/log/sin/cos) is the remaining substrate-purity follow-on,
+tracked under item 4 below.
+
+### 4. Substrate-purity audit — second pass
+
+Emma 2026-05-13: after item 3 lands, do a full sweep to confirm
+**no** Sutra operation falls back to Python at runtime. The
+2026-04-30 audit findings (`planning/findings/2026-04-30-runtime-
+substrate-purity-audit.md` and `2026-04-30-substrate-purity-leak-
+enumeration.md`) caught the transcendentals; `%` is the one that
+slipped through that round. Audit deliverables:
+
+- Grep every codegen emission site for raw Python operators on
+  values that should be substrate quantities. Particular suspects:
+  `%`, `**`, integer division `//`, `divmod`, `~` on non-truth-axis
+  values.
+- Confirm every `_VSA.<op>` body uses only torch tensor ops or
+  composes from substrate primitives, never `math.*` or `_np.*` on
+  scalars.
+- Replace `torch.atan2` in `_VSA.mod` with a lookup-table atan2
+  per the no-libm-shortcut memory. Same architecture as the
+  exp/log/sin/cos tables (length-N value tensor + triangle-weight
+  soft-index dot product). Range reduction: `atan(t) = π/2 -
+  atan(1/t)` for `|t| > 1`, then quadrant correction for atan2.
+- Add a finding doc dated 2026-05-13 (or whenever) capturing the
+  post-fix state.
+
+This audit is the explicit follow-on the user asked for. Cite the
+audit task when adding `torch.atan2` to the codebase so future
+sessions can find the loose end.
+
+---
+
 ## Parked
 
 The C → Sutra transpiler skeleton at `sdk/sutra-from-c/` is parked
