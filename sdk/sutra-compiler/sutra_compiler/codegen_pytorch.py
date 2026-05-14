@@ -2170,6 +2170,16 @@ class PyTorchCodegen(Codegen):
             # small for typical programs. A targeted "scan for bind() role
             # args only" pass would be a future optimization.
             self._emit("_VSA.prewarm_rotation_cache()")
+        # Module-level constants exposing the static axon-key analysis
+        # results. Downstream tooling (Yantra's kernel router for lazy
+        # axon evaluation; future per-receiver projection) reads these
+        # instead of re-parsing the .su source. Always emit even when
+        # empty so consumers can rely on the symbol being present.
+        # See sutra_compiler.axon_keys.
+        bound = getattr(self, "_axon_keys_bound", frozenset())
+        read = getattr(self, "_axon_keys_read", frozenset())
+        self._emit(f"AXON_KEYS_BOUND = frozenset({sorted(bound)!r})")
+        self._emit(f"AXON_KEYS_READ = frozenset({sorted(read)!r})")
         self._emit()
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
@@ -2253,6 +2263,13 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     from .simplify import simplify_module, collect_basis_vector_strings
     from .inliner import inline_stdlib_calls
     from .promise_desugar import desugar_promises
+    from .axon_keys import collect_axon_keys
+    # Axon-keys static analysis runs BEFORE simplify/inline so that
+    # the keys pulled out match the user-visible source pattern (the
+    # simplifier may rewrite things in ways that obscure the bind/
+    # item shape — e.g. inlined helpers fusing across function
+    # boundaries — even though the runtime semantics are unchanged).
+    bound_keys, read_keys = collect_axon_keys(module)
     # Stage-1 promise desugar runs first — same pass as the CPU codegen.
     desugar_promises(module)
     # Inline stdlib calls — same pass as the CPU codegen uses.
@@ -2261,4 +2278,6 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     strings = collect_basis_vector_strings(module)
     cg = PyTorchCodegen(**kwargs)
     cg._prefetch_strings = strings
+    cg._axon_keys_bound = bound_keys
+    cg._axon_keys_read = read_keys
     return cg.translate(module)
