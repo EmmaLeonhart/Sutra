@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sutra-from-ts"
-version = "0.0.1"
+version = "0.1.0"
 description = "Transpile a typed core of TypeScript (and JavaScript-as-untyped-TS) into Sutra (.su) source."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -15,7 +15,7 @@ authors = [
 ]
 keywords = ["transpiler", "typescript", "javascript", "sutra", "compiler"]
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
