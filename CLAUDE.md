@@ -79,6 +79,72 @@ This rule is in tension with "deprecate, don't remove." The reconciliation: depr
 
 `todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
 
+## Cross-repo workflow: Sutra ↔ Yantra
+
+Sutra is consumed downstream by **Yantra**
+(`https://github.com/EmmaLeonhart/Yantra`), the GPU-native operating
+system being built in Sutra. Yantra pins this repo as a git submodule
+at `external/Sutra` and may **drive Sutra-side changes from inside
+Yantra sessions**. This isn't a typical workflow but it's the right
+shape because the projects are tightly coupled — Yantra is "the OS
+that uses Sutra"; Sutra is "the language Yantra is built in."
+
+If you see a Sutra commit message that mentions Yantra (e.g.,
+"sutra-from-ts v0.1.0: docs catch up to working CLI; sutra-dev[ts]
+extra"), that's the workflow operating as designed, not someone
+pushing from the wrong repo. The Yantra-side companion CLAUDE.md
+documents the same pattern from the other end.
+
+### Division of responsibility
+
+- **Yantra — actual kernel orchestration, runtime shape, OS-level
+  concerns.** `kernel/` (the Connectome Manager + axon router),
+  the Rust orchestrator (eventually), storage-tier moves
+  (disc/RAM/GPU), capability check architecture, the FS bridge,
+  the GUI/browser stack, the Yantra paper.
+- **Sutra (this repo) — the language. Connecting things together
+  at the language level, debugging the language, language-side
+  primitives Yantra needs.** `sdk/sutra-compiler/`,
+  `sdk/sutra-from-ts/`, `sdk/sutra-from-c/`, the lowering passes,
+  the axon spec, the multi-process runtime, the
+  serialise-process-state primitive, the runtime ABI Yantra
+  consumes.
+
+### Rules that bind regardless of who's driving the change
+
+When a Yantra-driven session is editing Sutra source, the rules in
+this file still apply, in this order of force:
+
+1. **The "PEOPLE CAN DIE IF YOU FAKE RESULTS" safety rules at the
+   top of this file.** Sutra is biomedical-hardware-adjacent. A
+   change driven by "Yantra needs this primitive" does not get a
+   pass on substrate-purity validation.
+2. **The "NO MATH SHORTCUTS" section.** Same reason. Every Sutra
+   operation runs on the substrate; numpy is compile + monitor
+   only; tensor operations only on the runtime hot path.
+3. **The Workflow Rules above** (commit + push immediately,
+   plan-into-`queue.md`-first, mirror to the task tool, no
+   local-only work). Yantra's own queue.md is separate; this
+   repo's queue.md is the one that binds when editing this repo.
+4. **The frozen `paper/neurips/` archive.** Don't touch it. If a
+   Yantra-driven change makes the NeurIPS paper claims look shaky,
+   surface that to the user; do not silently amend.
+
+When the Yantra-driven change is purely docs / pyproject / CLI
+scaffolding (no runtime code touched), the substrate-purity rules
+don't directly bite, but the workflow rules still do.
+
+### When to tag a Sutra release vs. just push to master
+
+- **Tag a release** when Yantra needs to depend on a specific
+  Sutra version that carries the change (e.g., a new optional
+  extra, a new public API, a bug fix that affects Yantra's tests).
+  Yantra then pins its `external/Sutra` submodule at the new tag.
+- **Just push to master** for docs-only fixes, internal
+  refactors, or anything where Yantra doesn't need version
+  pinning. Yantra can bump its submodule pointer to the new
+  master HEAD without a release ceremony.
+
 ## Paper
 
 Claw4S the competition is over. clawRxiv the platform stays — it's a feedback / visibility channel, not a leaderboard we're chasing. Each push to `paper/paper.md` or `paper/supplementary/SKILL.md` triggers `papers-ci.yml`, which submits to clawRxiv, polls for the AI peer review, and commits the review back under `paper/reviews/v<N>_post<ID>_review.{json,md}`. `paper/.post_id` tracks the latest post in the supersedes chain.
