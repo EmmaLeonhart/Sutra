@@ -1,8 +1,17 @@
 """CLI entry point for the TypeScript → Sutra transpiler.
 
-Skeleton: argument parsing wires up, but no transpilation logic exists
-yet. Calling the CLI prints a not-yet-implemented message pointing at
-DESIGN.md and exits non-zero.
+Reads a `.ts` / `.js` (treated as untyped TS) source file, lowers it
+through `lower.py` (~1500 lines: functions, classes, async/await,
+discriminated unions, while/for/do-while loops, etc.), and writes
+the resulting `.su` source to disk.
+
+Default output path is the input filename with the TypeScript / JS
+extension replaced by `.su`. Override with `-o`.
+
+Example:
+
+    $ python -m sutra_from_ts examples/array_sum.ts
+    wrote examples/array_sum.su
 """
 
 from __future__ import annotations
@@ -19,8 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="ts2su",
         description=(
             "Transpile a typed core of TypeScript (and JavaScript-as-"
-            "untyped-TS) into Sutra (.su) source. Skeleton stage — see "
-            "sdk/sutra-from-ts/DESIGN.md."
+            "untyped-TS) into Sutra (.su) source."
         ),
     )
     p.add_argument(
