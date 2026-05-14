@@ -209,33 +209,54 @@ replacing it with an interpolated lookup table (same architecture
 as exp/log/sin/cos) is the remaining substrate-purity follow-on,
 tracked under item 4 below.
 
-### 4. Substrate-purity audit — second pass
+### 4. Substrate-purity audit — pass 2 shipped 2026-05-13
 
-Emma 2026-05-13: after item 3 lands, do a full sweep to confirm
-**no** Sutra operation falls back to Python at runtime. The
-2026-04-30 audit findings (`planning/findings/2026-04-30-runtime-
-substrate-purity-audit.md` and `2026-04-30-substrate-purity-leak-
-enumeration.md`) caught the transcendentals; `%` is the one that
-slipped through that round. Audit deliverables:
+`%` was lexed and parsed correctly since 2026-04-10 (commit
+`af650b0d`) but the generic-binary fall-through at
+`codegen_base.py:2647` emitted literal Python `(left % right)` —
+host arithmetic at runtime. Pass 1 (2026-04-30) caught the
+transcendentals; pass 2 swept binary operators and found two more
+substrate-purity leaks that were also semantic bugs:
 
-- Grep every codegen emission site for raw Python operators on
-  values that should be substrate quantities. Particular suspects:
-  `%`, `**`, integer division `//`, `divmod`, `~` on non-truth-axis
-  values.
-- Confirm every `_VSA.<op>` body uses only torch tensor ops or
-  composes from substrate primitives, never `math.*` or `_np.*` on
-  scalars.
-- Replace `torch.atan2` in `_VSA.mod` with a lookup-table atan2
-  per the no-libm-shortcut memory. Same architecture as the
-  exp/log/sin/cos tables (length-N value tensor + triangle-weight
-  soft-index dot product). Range reduction: `atan(t) = π/2 -
-  atan(1/t)` for `|t| > 1`, then quadrant correction for atan2.
-- Add a finding doc dated 2026-05-13 (or whenever) capturing the
-  post-fix state.
+- **`%` operator** (also queue item 3) — host Python floor-mod
+  semantics where JS / C / Rust / TS expect truncation. **Fixed**:
+  routes through `_VSA.fmod`.
+- **`complex + scalar` and `complex - scalar`** — the scalar
+  broadcast across the imag axis, corrupting it. `(3+4i) + 1.0`
+  gave `(4+5i)` instead of `(4+4i)`. **Fixed**: routes through
+  `_VSA.complex_add` / `complex_sub`, both of which coerce the
+  scalar via `make_real` (zero imag) before the element-wise op.
+- **`complex / complex`** — element-wise division. `(5+5i) /
+  (2+0i)` gave `2.5 + inf·i` instead of `2.5 + 2.5·i`. Silent
+  wrong-math + `inf` injection, which is exactly the
+  safety-critical failure class CLAUDE.md's intro warns about.
+  **Fixed**: routes through `_VSA.complex_div`, substrate-pure
+  closed form `(num · conj(b)) / |b|²` with no scalar extraction —
+  conj built via a cached `_conj_matrix` (negate imag axis), `|b|²`
+  broadcast across all axes via a cached `_broadcast_real_matrix`,
+  numerator computed via `complex_mul`. Verified against Python
+  ground-truth on 8 cases.
 
-This audit is the explicit follow-on the user asked for. Cite the
-audit task when adding `torch.atan2` to the codebase so future
-sessions can find the loose end.
+Findings: `planning/findings/2026-05-13-substrate-purity-audit-pass-2.md`.
+
+**CI gate** — `experiments/substrate_leak_sweep.py` walks every
+`.su` program under corpus + examples, compiles each one, and greps
+emitted Python for raw operators (`**`, `//`, ` % `, bitwise) on
+non-`_VSA` lines. Wire this into the test suite so the next
+binary-operator leak gets caught at PR time, not by the user
+hitting it.
+
+#### Remaining audit follow-ons (deferred, not blockers)
+
+- **`torch.atan2` inside `_VSA.rotation_mod`** — should be replaced
+  with an interpolated lookup table per the no-libm-shortcut rule.
+  Same architecture as exp/log/sin/cos tables; range reduction via
+  `atan(t) = π/2 - atan(1/t)` for `|t| > 1`, plus quadrant
+  correction for atan2. Documented in `Math.mod`'s docstring.
+- **`Math.round` ties-to-even vs JS ties-to-positive** — semantic
+  mismatch with JS, not a substrate-purity issue. Trivial fix
+  (subtract a small epsilon before round, or implement
+  `floor(x + 0.5)` directly). Decide later.
 
 ---
 
