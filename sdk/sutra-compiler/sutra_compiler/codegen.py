@@ -2031,6 +2031,16 @@ class Codegen(BaseCodegen):
         # ones. Collected by the simplify pass (see translate_module).
         if self._prefetch_strings:
             self._emit(f"_VSA.embed_batch({self._prefetch_strings!r})")
+        # Module-level constants exposing the static axon-key analysis
+        # results. Downstream tooling (Yantra's kernel router for lazy
+        # axon evaluation; possibly future per-receiver projection)
+        # reads these instead of re-parsing the .su source. Always
+        # emit the constants — even when empty — so consumers can rely
+        # on the symbol being present. See sutra_compiler.axon_keys.
+        bound = getattr(self, "_axon_keys_bound", frozenset())
+        read = getattr(self, "_axon_keys_read", frozenset())
+        self._emit(f"AXON_KEYS_BOUND = frozenset({sorted(bound)!r})")
+        self._emit(f"AXON_KEYS_READ = frozenset({sorted(read)!r})")
         self._emit()
         self._emit()
         self._emit("def _argmax_cosine(query, candidates):")
@@ -2110,6 +2120,13 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     from .simplify import simplify_module, collect_basis_vector_strings
     from .inliner import inline_stdlib_calls
     from .promise_desugar import desugar_promises
+    from .axon_keys import collect_axon_keys
+    # Axon-keys static analysis runs BEFORE simplify/inline so that
+    # the keys we collect match the user-visible source pattern (the
+    # simplifier may rewrite things in ways that obscure the bind/
+    # item shape — e.g. inlined helpers fusing across function
+    # boundaries — even though the runtime semantics are unchanged).
+    bound_keys, read_keys = collect_axon_keys(module)
     # Stage-1 promise desugar runs first (queue.md item 1 phase 3):
     # transforms `async function ... { return [await] e; }` into the
     # equivalent non-async form returning Promise.resolve(e) or e.
@@ -2124,4 +2141,6 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     strings = collect_basis_vector_strings(module)
     cg = Codegen(**kwargs)
     cg._prefetch_strings = strings
+    cg._axon_keys_bound = bound_keys
+    cg._axon_keys_read = read_keys
     return cg.translate(module)
