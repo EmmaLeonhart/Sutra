@@ -2441,6 +2441,33 @@ class BaseCodegen:
             "(no real/imag-axis runtime); use the numpy or pytorch backend",
         )
 
+    def _complex_add_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Override point for `complex + anything` / `anything + complex`."""
+        raise CodegenNotSupported(
+            expr,
+            "complex addition is not supported by this backend "
+            "(no real/imag-axis runtime); use the numpy or pytorch backend",
+        )
+
+    def _complex_sub_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Override point for `complex - anything` / `anything - complex`."""
+        raise CodegenNotSupported(
+            expr,
+            "complex subtraction is not supported by this backend "
+            "(no real/imag-axis runtime); use the numpy or pytorch backend",
+        )
+
+    def _complex_div_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Override point for `complex / anything` / `anything / complex`."""
+        raise CodegenNotSupported(
+            expr,
+            "complex division is not supported by this backend "
+            "(no real/imag-axis runtime); use the numpy or pytorch backend",
+        )
+
     def _comparison_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
         """Override point for `<` / `>` / `<=` / `>=` on number-axis values.
@@ -2609,6 +2636,26 @@ class BaseCodegen:
             if expr.op == "*" and (self._is_complex_expr(expr.left)
                                    or self._is_complex_expr(expr.right)):
                 return self._complex_mul_src(expr, left, right)
+            # Complex `+` / `-` / `/` dispatch. Element-wise tensor add
+            # on two extended-state vectors gives correct complex
+            # addition (real axes add, imag axes add); but `complex +
+            # real_scalar` broadcasts the scalar across BOTH axes,
+            # corrupting imag — routing through `_VSA.complex_add`
+            # coerces the scalar via `make_real` first. Complex `/`
+            # cannot use element-wise division at all: `(a+bi)/(c+di) =
+            # ((ac+bd) + (bc-ad)i)/(c²+d²)`, which the element-wise
+            # path computes as `(a/c) + (b/d)i` — mathematically wrong
+            # and silently inf-poisoning when imag is zero. All three
+            # dispatch through substrate-pure runtime methods.
+            if expr.op == "+" and (self._is_complex_expr(expr.left)
+                                   or self._is_complex_expr(expr.right)):
+                return self._complex_add_src(expr, left, right)
+            if expr.op == "-" and (self._is_complex_expr(expr.left)
+                                   or self._is_complex_expr(expr.right)):
+                return self._complex_sub_src(expr, left, right)
+            if expr.op == "/" and (self._is_complex_expr(expr.left)
+                                   or self._is_complex_expr(expr.right)):
+                return self._complex_div_src(expr, left, right)
             # Ordered comparison `>` / `<` / `>=` / `<=` is number-axis
             # only. Strict (>, <) give -1 on ties; non-strict (>=, <=)
             # give +1 on ties. Four distinct runtime methods — gt / lt
