@@ -1502,6 +1502,74 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._cm_real_matrix() @ ab + self._cm_imag_matrix() @ swapped_ab")
         self._indent -= 1
         self._emit()
+        self._emit("def complex_add(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex addition. Coerces both operands to complex vectors')
+        self._emit('first so `complex + scalar` adds to the real axis only')
+        self._emit('rather than broadcasting across imag too."""')
+        self._emit("return self._as_complex_vector(a) + self._as_complex_vector(b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def complex_sub(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex subtraction. Same coercion pattern as complex_add."""')
+        self._emit("return self._as_complex_vector(a) - self._as_complex_vector(b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _conj_matrix(self):")
+        self._indent += 1
+        self._emit('"""Cached d×d matrix that conjugates a complex vector: identity')
+        self._emit('on every axis except imag, where it negates. Built lazily on')
+        self._emit('first call, then reused; same pattern as _cm_real_matrix."""')
+        self._emit("if not hasattr(self, '_conj_cache') or self._conj_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.eye(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("i = self.semantic_dim + self.AXIS_IMAG")
+        self._emit("M[i, i] = -1.0")
+        self._emit("self._conj_cache = M")
+        self._indent -= 1
+        self._emit("return self._conj_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _broadcast_real_matrix(self):")
+        self._indent += 1
+        self._emit('"""Cached d×d matrix that broadcasts the real-axis value of a')
+        self._emit('vector to every axis: column real_axis is all-ones, everything')
+        self._emit('else is zero. `M @ v` returns a vector whose every element is')
+        self._emit('v[real_axis]. Used by complex_div to turn the scalar |b|² on')
+        self._emit('the real axis into a vector-wide divisor without scalar')
+        self._emit('extraction."""')
+        self._emit("if not hasattr(self, '_br_real_cache') or self._br_real_cache is None:")
+        self._indent += 1
+        self._emit("M = _torch.zeros((self.dim, self.dim), dtype=self.dtype, device=self.device)")
+        self._emit("r = self.semantic_dim + self.AXIS_REAL")
+        self._emit("M[:, r] = 1.0")
+        self._emit("self._br_real_cache = M")
+        self._indent -= 1
+        self._emit("return self._br_real_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def complex_div(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex division: (a+bi)/(c+di) = ((ac+bd) + (bc-ad)i)/(c²+d²).')
+        self._emit('Substrate-pure throughout — no scalar extraction from the')
+        self._emit('vector. Three substrate steps:')
+        self._emit('  1. conj_b = _conj_matrix @ bv          (negate imag axis)')
+        self._emit('  2. num    = complex_mul(av, conj_b)    (numerator complex)')
+        self._emit('  3. denom_v = _broadcast_real @ complex_mul(bv, conj_b)')
+        self._emit('               (broadcast c²+d² to every axis)')
+        self._emit('  return num / denom_v                   (element-wise div)')
+        self._emit('Division by a zero divisor produces inf/NaN on the real and')
+        self._emit('imag axes, matching Python complex division semantics."""')
+        self._emit("av = self._as_complex_vector(a)")
+        self._emit("bv = self._as_complex_vector(b)")
+        self._emit("conj_b = self._conj_matrix() @ bv")
+        self._emit("num = self.complex_mul(av, conj_b)")
+        self._emit("denom_complex = self.complex_mul(bv, conj_b)")
+        self._emit("denom_vec = self._broadcast_real_matrix() @ denom_complex")
+        self._emit("return num / denom_vec")
+        self._indent -= 1
+        self._emit()
         self._emit("def _as_complex_vector(self, x):")
         self._indent += 1
         self._emit('"""Coerce Python scalar / tensor to complex-plane form."""')

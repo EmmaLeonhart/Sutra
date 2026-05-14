@@ -234,6 +234,29 @@ class Codegen(BaseCodegen):
         """
         return f"_VSA.complex_mul({left_src}, {right_src})"
 
+    def _complex_add_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Lower `complex + *` to _VSA.complex_add. Both operands get
+        coerced to complex tensors first (`_as_complex_vector`), so a
+        scalar `1.0` becomes `1 + 0i` rather than broadcasting across
+        the imag axis and corrupting it."""
+        return f"_VSA.complex_add({left_src}, {right_src})"
+
+    def _complex_sub_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Lower `complex - *` to _VSA.complex_sub. Same coercion
+        pattern as complex_add — scalar second operand is wrapped via
+        `make_real` so subtraction only touches the real axis."""
+        return f"_VSA.complex_sub({left_src}, {right_src})"
+
+    def _complex_div_src(self, expr: ast.BinaryOp,
+                        left_src: str, right_src: str) -> str:
+        """Lower `complex / *` to _VSA.complex_div. Element-wise
+        division is wrong for complex: `(a+bi)/(c+di) = ((ac+bd) +
+        (bc-ad)i)/(c²+d²)`. The runtime computes the proper closed
+        form on the real/imag axes."""
+        return f"_VSA.complex_div({left_src}, {right_src})"
+
     def _comparison_src(self, expr: ast.BinaryOp, op: str,
                         left_src: str, right_src: str) -> str:
         """Lower `>` / `<` / `>=` / `<=` to _VSA.gt / _VSA.lt / _VSA.ge / _VSA.le.
@@ -1475,6 +1498,64 @@ class Codegen(BaseCodegen):
         self._emit("ab = av * bv")
         self._emit("swapped_ab = (self._swap_ri_matrix() @ av) * bv")
         self._emit("return self._cm_real_matrix() @ ab + self._cm_imag_matrix() @ swapped_ab")
+        self._indent -= 1
+        self._emit()
+        self._emit("def complex_add(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex addition. Coerces both operands to complex vectors')
+        self._emit('first so `complex + scalar` adds to the real axis only')
+        self._emit('rather than broadcasting across imag too."""')
+        self._emit("return self._as_complex_vector(a) + self._as_complex_vector(b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def complex_sub(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex subtraction. Same coercion pattern as complex_add."""')
+        self._emit("return self._as_complex_vector(a) - self._as_complex_vector(b)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _conj_matrix(self):")
+        self._indent += 1
+        self._emit('"""Cached d×d matrix that conjugates a complex vector: identity')
+        self._emit('on every axis except imag, where it negates."""')
+        self._emit("if not hasattr(self, '_conj_cache') or self._conj_cache is None:")
+        self._indent += 1
+        self._emit("M = _np.eye(self.dim, dtype=_np.float64)")
+        self._emit("i = self.semantic_dim + self.AXIS_IMAG")
+        self._emit("M[i, i] = -1.0")
+        self._emit("self._conj_cache = M")
+        self._indent -= 1
+        self._emit("return self._conj_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _broadcast_real_matrix(self):")
+        self._indent += 1
+        self._emit('"""Cached d×d matrix that broadcasts the real-axis value to every')
+        self._emit('axis: column real_axis is all-ones, everything else zero."""')
+        self._emit("if not hasattr(self, '_br_real_cache') or self._br_real_cache is None:")
+        self._indent += 1
+        self._emit("M = _np.zeros((self.dim, self.dim), dtype=_np.float64)")
+        self._emit("r = self.semantic_dim + self.AXIS_REAL")
+        self._emit("M[:, r] = 1.0")
+        self._emit("self._br_real_cache = M")
+        self._indent -= 1
+        self._emit("return self._br_real_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def complex_div(self, a, b):")
+        self._indent += 1
+        self._emit('"""Complex division: (a+bi)/(c+di) = ((ac+bd) + (bc-ad)i)/(c²+d²).')
+        self._emit('Substrate-pure — no scalar extraction. conj(b) via _conj_matrix,')
+        self._emit('numerator via complex_mul(a, conj_b), denominator c²+d² via')
+        self._emit('complex_mul(b, conj_b) (imag part is exactly zero by algebra),')
+        self._emit('broadcast across all axes and element-wise divide."""')
+        self._emit("av = self._as_complex_vector(a)")
+        self._emit("bv = self._as_complex_vector(b)")
+        self._emit("conj_b = self._conj_matrix() @ bv")
+        self._emit("num = self.complex_mul(av, conj_b)")
+        self._emit("denom_complex = self.complex_mul(bv, conj_b)")
+        self._emit("denom_vec = self._broadcast_real_matrix() @ denom_complex")
+        self._emit("return num / denom_vec")
         self._indent -= 1
         self._emit()
         self._emit("def _as_complex_vector(self, x):")
