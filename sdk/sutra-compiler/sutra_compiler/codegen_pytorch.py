@@ -622,6 +622,11 @@ class PyTorchCodegen(Codegen):
         self._emit("# Rotation binding. bind(role, filler) = Q_role @ filler. Role-")
         self._emit("# first convention (matches numpy backend and the .su demos).")
         self._emit("Q = self._rotation_for(role)")
+        self._emit("# Defensively coerce filler to runtime device + dtype so a")
+        self._emit("# host-side caller passing a CPU tensor doesn't device-mismatch")
+        self._emit("# Q (which lives on self.device). No-op when filler is already")
+        self._emit("# on the right device — matches the pattern bundle() uses.")
+        self._emit("filler = _torch.as_tensor(filler, dtype=self.dtype, device=self.device)")
         self._emit("return Q @ filler")
         self._indent -= 1
         self._emit()
@@ -630,6 +635,9 @@ class PyTorchCodegen(Codegen):
         self._emit("# Q is orthogonal so unbind(role, record) = Q_role^T @ record.")
         self._emit("# Round-trip: unbind(r, bind(r, v)) = Q^T @ Q @ v = v exactly.")
         self._emit("Q = self._rotation_for(role)")
+        self._emit("# Same device-coherence defence as bind(): tolerate a CPU")
+        self._emit("# record from a host-side caller without crashing.")
+        self._emit("record = _torch.as_tensor(record, dtype=self.dtype, device=self.device)")
         self._emit("return Q.T @ record")
         self._indent -= 1
         self._emit()
@@ -867,10 +875,23 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def axon_add(self, axon, key, value):")
         self._indent += 1
+        self._emit("# Defensively coerce caller-provided tensors to the runtime")
+        self._emit("# device + dtype. axon may arrive on CPU when constructed by")
+        self._emit("# host-side orchestration (e.g. a Python kernel passing in a")
+        self._emit("# fresh accumulator); without coercion the final `axon +")
+        self._emit("# permute(...)` mismatches once permute returns a CUDA tensor.")
+        self._emit("axon = _torch.as_tensor(axon, dtype=self.dtype, device=self.device)")
         self._emit("# Key may arrive as a Python string (compile-time")
         self._emit("# identifier) or as an already-embedded vector.")
         self._emit("# Strings are auto-embedded into a basis vector.")
-        self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
+        self._emit("if isinstance(key, str):")
+        self._indent += 1
+        self._emit("key_vec = self.embed(key)")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("key_vec = _torch.as_tensor(key, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
         self._emit("# Scalar fillers (Python int / float) are promoted to")
         self._emit("# a real-axis vector via make_real. Python str fillers")
         self._emit("# are promoted to the codepoint-array form via make_string.")
@@ -891,7 +912,19 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def axon_item(self, axon, key):")
         self._indent += 1
-        self._emit("key_vec = self.embed(key) if isinstance(key, str) else key")
+        self._emit("# Defensive device coercion — same rationale as axon_add:")
+        self._emit("# host-side callers may pass CPU tensors; the unpermute +")
+        self._emit("# unbind chain is fully on self.device, so the input must")
+        self._emit("# join it.")
+        self._emit("axon = _torch.as_tensor(axon, dtype=self.dtype, device=self.device)")
+        self._emit("if isinstance(key, str):")
+        self._indent += 1
+        self._emit("key_vec = self.embed(key)")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
+        self._emit("key_vec = _torch.as_tensor(key, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
         self._emit("perm = self._axon_permutation_for(key_vec)")
         self._emit("unpermuted = self._axon_unpermute_synthetic(axon, perm)")
         self._emit("return self.unbind(key_vec, unpermuted)")
