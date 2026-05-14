@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sutra-dev"
-version = "0.2.0"
+version = "0.3.0"
 description = "Compiler for the Sutra programming language — tensor ops on frozen-LLM embedding vectors."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -40,9 +40,16 @@ dependencies = [
 
 [project.optional-dependencies]
 # torch is needed for --emit, --run, and --run-viz (the codegen produces
-# self-contained PyTorch source). Install with: pip install sutra-compiler[runtime]
+# self-contained PyTorch source). Install with: pip install sutra-dev[runtime]
 runtime = [
   "torch>=2.1",
+]
+# TypeScript→Sutra transpiler. `pip install sutra-dev[ts]` pulls in
+# the working ts2su CLI from the sister package, so the recommended
+# way to get a complete Sutra dev environment for browser-layer work
+# is `pip install sutra-dev[runtime,ts]`.
+ts = [
+  "sutra-from-ts>=0.1.0",
 ]
 # Dev tools for working on the compiler itself.
 dev = [
