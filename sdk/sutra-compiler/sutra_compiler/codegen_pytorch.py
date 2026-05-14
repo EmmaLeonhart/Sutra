@@ -910,6 +910,36 @@ class PyTorchCodegen(Codegen):
         self._emit("return axon + self._axon_permute_synthetic(rotated, perm)")
         self._indent -= 1
         self._emit()
+        self._emit("def axon_project(self, axon, requested_keys):")
+        self._indent += 1
+        self._emit('"""Per-receiver projection: rebuild an axon containing only the listed keys.')
+        self._emit('')
+        self._emit("Used by host-side routers / orchestrators that want to slim a")
+        self._emit("multi-key axon down to just the keys a specific receiver")
+        self._emit("declared interest in (per the axon_keys static analysis +")
+        self._emit("the receiver's manifest). Equivalent to:")
+        self._emit('')
+        self._emit("    result = zero_vector()")
+        self._emit("    for key in requested_keys:")
+        self._emit("        result = axon_add(result, key, axon_item(axon, key))")
+        self._emit('')
+        self._emit("Empty requested_keys returns a zero axon. requested_keys")
+        self._emit("with elements not present in the source axon still 'work' in")
+        self._emit("the sense that axon_item returns ~zero for unbound keys —")
+        self._emit("the projection just adds zero contributions for them.")
+        self._emit('"""')
+        self._emit("# Defensive device coercion — same rationale as axon_add /")
+        self._emit("# axon_item: tolerate a CPU axon from a host-side caller.")
+        self._emit("axon = _torch.as_tensor(axon, dtype=self.dtype, device=self.device)")
+        self._emit("result = self.zero_vector()")
+        self._emit("for key in requested_keys:")
+        self._indent += 1
+        self._emit("value = self.axon_item(axon, key)")
+        self._emit("result = self.axon_add(result, key, value)")
+        self._indent -= 1
+        self._emit("return result")
+        self._indent -= 1
+        self._emit()
         self._emit("def axon_item(self, axon, key):")
         self._indent += 1
         self._emit("# Defensive device coercion — same rationale as axon_add:")
