@@ -1,5 +1,21 @@
 # Sutra — consolidated TODO
 
+> ## ⛔ TOP PRIORITY — go through `Audit.md` and fix the substrate leaks
+>
+> `Audit.md` (repo root) is the running catalogue of every place the
+> runtime still leaks the substrate — host `float()`/`if`/`for`/libm
+> inside operations whose spec says they run on the substrate. Sutra
+> is biomedical-hardware-adjacent; a faked-purity operation is the
+> #1 safety failure (CLAUDE.md intro). **Before any other todo work,
+> open `Audit.md` and burn down its "REAL LEAK" section** (top:
+> `rotate_slot`/Givens host-trig, `defuzzify_trit` host loop, the
+> promise + generic loop host `for`, host string-codepoint loops).
+> The 2026-05-15 transcendental fix (`21a9ff77`) is the worked
+> model: one `_st()` boundary, tensor-only body, tensor return,
+> saturate-not-raise. Triage each item real-leak / borderline /
+> legitimate, fix or justify-in-comment, and delete it from
+> `Audit.md` when closed (same discipline as queue.md).
+
 This file is the long-term agenda. `queue.md` at the repo root is the
 active session queue — if the two disagree, queue.md wins for what is
 being worked on *now*, and this file wins for what needs doing
