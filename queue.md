@@ -12,6 +12,92 @@ stay in sync.
 
 ## Active
 
+### 00. Transcendental substrate leak — fix for real (Yantra-driven, SAFETY-CRITICAL)
+
+**The leak.** `codegen_pytorch.py` emits transcendental/modulus
+intrinsics that do `xv = float(x)` (substrate→host), `if xv <
+self._EXP_LO ...: raise SutraMathOverflow` (host control flow on a
+scalar), `return float(...)` (host→nowhere), `theta = TWO_PI *
+float(x) / float(m)` (host scalar arithmetic), and a Python
+`for k in range(...)` over scalars in `sawtooth_mod`. The
+comment at line 1137 says *"substrate-pure ... no Python control
+flow on x"* — false. `planning/findings/2026-05-13-modulus-
+rotation-vs-sawtooth.md` (Claude-authored) claims `rotation_mod`
+is *"substrate-pure"* and *"the production code path is what's
+measured"* — false; the measured path leaks. This is exactly the
+failure class CLAUDE.md's intro forbids.
+
+**Authoritative design (Emma, voice direction; overrides the
+spec where they disagree).** Two lookup-table primitives: `exp`
+(real) and `ln` (real, positive). The lookup is a *rotational
+binding that uses the number* — an eigenrotation by an angle
+proportional to the input, exploiting codebook crosstalk to make
+the readout a continuous function. Complex exponential
+`exp(a+bi) = exp(a)·(cos b + i·sin b)`: the real factor `exp(a)`
+is the real lookup table, the rotation factor `cos b + i·sin b`
+is the eigenrotation. Real `exp` = complex `exp` beta-reduced at
+`imag = 0`. `sin(θ)=imag(exp(iθ))`, `cos(θ)=real(exp(iθ))`; sin
+is cos with the signs flipped. `pow(x,y)=exp(y·ln x)`,
+`sqrt(x)=exp(0.5·ln x)`, `log(b,x)=ln x/ln b`, hyperbolics from
+`exp(x)`/`exp(-x)`, modulus from the same eigenrotation around a
+circle of circumference `m`. `math.su`/`modulus.su` must be the
+*readable demonstration* of this beta reduction — many clearly
+defined, heavily commented methods, not bare `intrinsic` stubs.
+
+**Substrate-pure contract.** One `_torch.as_tensor(x, dtype,
+device)` entry boundary; every step a tensor op; 0-d tensor
+return; NO `float()`, NO host `if`/`raise`, NO Python `for` over
+scalars. Out-of-range → tensor `clamp` (saturate at table edge):
+mathematically-valid output per the *no runtime errors by
+mechanism* core rule, which `SutraMathOverflow` violated. Remove
+the `raise`s; retract the false claims (correction header on the
+2026-05-13 finding + a new finding documenting the leak, the
+fix, and the saturate-vs-raise behavior change).
+
+**Then:** run `examples/_smoke_test.py` + `test_transcendentals.py`,
+report the honest delta — do NOT re-introduce a host fallback to
+keep tests green (Emma explicit). Commit + push Sutra master (no
+release tag — runtime+docs change, Yantra bumps the submodule
+pointer). Mirror in the task tool (#36–#39).
+
+### 0. Linguist + repo-hygiene cleanup (in progress, Yantra-driven)
+
+Three small structural fixes:
+
+1. **Linguist counts the `examples/` corpus.** `.gitattributes`
+   already has `*.su linguist-language=Sutra` +
+   `linguist-detectable=true`, but Linguist treats `examples/` as
+   a *documentation path* and skips the whole directory, so the
+   .su corpus (which is also the test corpus) never reaches the
+   language stats. Add `examples/** linguist-detectable=true` so
+   the directory is counted. Surgical — no rename, no refactor,
+   the frozen `paper/neurips/` references to `examples/` stay
+   intact. (Rejected alternative: rename examples/ → corpus/ —
+   would break ~30 doc refs incl. the frozen NeurIPS paper which
+   CLAUDE.md forbids editing.)
+
+2. **Remove `examples/todo.md`.** ✅ done 2026-05-15. It was a
+   per-subdirectory todo file (root `todo.md` forbids those).
+   Per Emma's correction — do NOT scatter it into
+   `planning/open-questions/` as a new file; the root
+   `todo.md`/`queue.md`/`README.md` + the open-questions surface
+   are canonical and look-alike files get *merged into* them. The
+   stale `codegen_numpy.py`/fly-brain/`sutra-paper/`-era framing
+   was dropped; the five genuinely-live open questions were folded
+   into root `todo.md` § "Examples-corpus open semantic
+   questions". File deleted, nothing scattered.
+
+3. **Move `outreach/` out of Sutra.** It's a draft outreach email
+   re: the Neural Computers paper. Yantra's paper §7 directly
+   engages Neural Computers; Sutra's doesn't. It belongs in
+   Yantra. `git rm` it here; the Yantra side adds it + bumps the
+   submodule pointer. (Authored by Emma 2026-05-10, predates the
+   Yantra-driven session work; not Claude-created.)
+
+Docs/meta change — push to Sutra master, no release tag (per the
+cross-repo workflow rule: tag releases only when Yantra needs to
+pin a specific version).
+
 ### 1. Promises and async/await — partially shipped, two pieces still open
 
 Un-postponed 2026-05-09. Per the user, every TypeScript construct
@@ -178,6 +264,16 @@ and cross-references, in `todo.md` §"TS transpiler / Sutra
 postponed pieces".
 
 ---
+
+> **Correction 2026-05-15:** items 3 and 4 below describe the
+> 2026-05-13 modulus / pass-2 work as "substrate-pure / shipped".
+> That was false — `rotation_mod`, the transcendentals, and the
+> binary-op fixes all leaked host scalars (`float()`, host `if`/
+> `raise`). Fixed for real 2026-05-15 (item 00 above). See
+> `planning/findings/2026-05-15-transcendental-substrate-leak-fixed.md`
+> and the correction header on the 2026-05-13 finding. The atan2
+> follow-on these items name is still open and now lives in the
+> substrate-leak audit.
 
 ### 3. Modulus library — shipped 2026-05-13, atan2 follow-on open
 

@@ -1,3 +1,32 @@
+> ## ⚠️ CORRECTION 2026-05-15 — this finding's substrate-purity claim was FALSE
+>
+> This finding (Claude-authored) repeatedly asserts `rotation_mod` is
+> *"substrate-pure"* and that *"the production code path is what's
+> measured ... no hand-coded reproduction."* **Both claims were
+> false at the time of writing.** The measured `_VSA.rotation_mod`
+> did `theta = self._TWO_PI * float(x) / float(m)` (host scalar
+> arithmetic), `if float(m) == 0.0: raise ZeroDivisionError` (host
+> control flow), and `return float(...)` (host scalar return), and
+> it called `self.cos`/`self.sin` which themselves did `xv = float(x)`,
+> `if xv < LO: raise SutraMathOverflow`, `return float(...)`. The
+> accuracy benchmark therefore compared **two host-Python scalar
+> implementations**, not two substrate tensor pipelines — the
+> substrate-purity framing attached to the numbers was fabricated.
+> This is exactly the failure class CLAUDE.md's intro forbids.
+>
+> The accuracy/latency *numbers themselves* (rotation_mod ≈ float32
+> precision, sawtooth degrades with m) are not in dispute and were
+> re-measured after the real substrate-pure rewrite — see
+> `planning/findings/2026-05-15-transcendental-substrate-leak-fixed.md`.
+> The leak was fixed 2026-05-15: every transcendental/modulus
+> intrinsic is now tensor-in → tensor-ops → tensor-out with a single
+> `_st()` entry boundary, no `float()`/host-`if`/`raise`. Latency
+> rose ≈3× (the honest cost of actually running on the substrate).
+> This finding is kept verbatim below as a record of the error; do
+> not cite its purity claim.
+
+---
+
 # Rotation_mod wins decisively over sawtooth_mod
 
 **Date:** 2026-05-13
