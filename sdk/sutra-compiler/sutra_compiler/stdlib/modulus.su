@@ -1,77 +1,87 @@
 // =============================================================================
-// Modulus library — EXPENSIVE. Do not use these unless you specifically need
-// to.
+// Modulus — EXPENSIVE. The floor-mod family, derived from the SAME
+// eigenrotation that powers sin/cos in math.su.
 // =============================================================================
 //
-// Every function in this file is derived from the modulus operation and is
-// significantly more expensive than the operations in `math.su`. They exist
-// for JavaScript / TypeScript / C# / Rust compatibility. Most JS programs
-// reach for `Math.floor`, `Math.ceil`, `%` etc. as if they were free — on
-// Sutra's substrate they are not, because the substrate is fundamentally a
-// vector-space machine and "round this scalar down to the nearest integer"
-// is an operation that requires either a transcendental decomposition
-// (Fourier sawtooth) or a hardware rounding instruction applied to a tensor.
+// Read math.su first: cos/sin are the real/imag parts of the unit
+// eigenrotation by an angle. Modulus is that same rotation, but around a
+// circle whose CIRCUMFERENCE is the modulus m instead of 2π.
 //
-// The fact that this is a separate library — not a section of `math.su` —
-// is intentional. If you find yourself importing it heavily, your program
-// is probably leaning on a non-vector-shaped algorithm and a rewrite that
-// stays in the linear/tensor regime will outperform.
+// ── Why modulus is an eigenrotation ─────────────────────────────────────────
 //
-// All declarations here extend `class Math` so the JS-shaped call sites
-// (`Math.floor(x)`, `Math.abs(x)`, `Math.sign(x)`) compile without
-// special-case routing — the stdlib loader picks up static methods from
-// every Math-class declaration across the stdlib and merges them into one
-// namespace.
+// Walking distance x around a circle of circumference m and asking "where
+// did I end up" IS `x mod m`. Map the walk to an angle, rotate, read the
+// phase back, scale the phase by m/2π:
 //
-// The `%` operator dispatches directly to `Math.fmod` (truncation modulus,
-// JS / C / Rust / C# / TS semantics — result has the sign of the
-// dividend). `Math.mod` is the floor-modulus variant (always non-negative
-// for positive divisor) and is the eigen-rotation-built substrate-pure
-// form that's preserved here as the differentiable building block. Use it
-// directly when you want JS-incompatible mathematical floor-mod.
+//   θ      = 2π · x / m              (x scaled so one lap = m)
+//   (c, s) = cos θ, sin θ            (the eigenrotation — math.su leaves)
+//   φ      = atan2(s, c)             (phase of the rotated vector)
+//   φ_pos  = φ - 2π·floor(φ / 2π)    (re-wrap onto [0, 2π))
+//   result = m · φ_pos / (2π)        (un-scale: angle back to distance)
+//
+// The rotation is intrinsically periodic — `R(θ + 2π) = R(θ)` exactly — so
+// the modulus "comes for free" from the rotation; there is no separate
+// range-reduction step. This is `_VSA.rotation_mod`, all tensor ops, and
+// the language's canonical `mod`. (`atan2` is still a tensor op; replacing
+// it with its own eigenrotation lookup is the one tracked follow-on in the
+// substrate-leak audit.)
+//
+// floor / ceil / round / trunc / abs / sign are NOT transcendental
+// decompositions — they are native substrate (GPU) rounding instructions,
+// one tensor op each, so they sit at the primitive layer beside +, -, *.
+//
+// All are `intrinsic` (route to substrate-pure `_VSA.*`). The ideal form
+// — Sutra bodies like `static method scalar mod(...) {
+// return Math.rotation_mod(x, m); }` so the substitution is the source
+// itself — is blocked on the same stdlib-inliner limitation documented in
+// math.su (intra-`Math` member calls inside a class-bodied static method
+// body don't resolve yet). Tracked at the top of the substrate-leak audit.
+//
+// These extend `class Math` so JS-shaped call sites (`Math.floor(x)`,
+// `Math.abs(x)`) merge into one namespace via the stdlib loader. `%`
+// lowers to `Math.fmod` (truncation modulus, sign of the dividend);
+// `Math.mod` is the eigenrotation floor-mod (non-negative for m > 0).
 
 class Math extends vector {
-    // Truncation modulus (JS / C / C# / Rust / TS `%`). Result has the
-    // sign of x. `fmod(-1, 3) == -1`, `fmod(-0.1, 1) == -0.1`. This is
-    // what the `%` operator lowers to.
-    static intrinsic method scalar fmod(scalar x, scalar m);
 
-    // Floor / mathematical modulus. Result is always non-negative when
-    // m > 0. `mod(-1, 3) == 2`, `mod(-0.1, 1) == 0.9`. Aliases the
-    // current best-performing implementation — today that's
-    // rotation_mod; benchmark in experiments/modulus_comparison.py
-    // compares the two side by side.
-    static intrinsic method scalar mod(scalar x, scalar m);
+    // ── Native substrate rounding instructions ───────────────────────────────
+    //
+    // Each is a single tensor op in _VSA (torch.floor / ceil / round /
+    // trunc / abs / sign), tensor-in → tensor-out, no host scalar.
+    static intrinsic method scalar floor(scalar x);
+    static intrinsic method scalar ceil(scalar x);
+    static intrinsic method scalar round(scalar x);
+    static intrinsic method scalar trunc(scalar x);
+    static intrinsic method scalar abs(scalar x);
+    static intrinsic method scalar sign(scalar x);
 
-    // Floor mod via eigen rotation: exact away from boundaries,
-    // discontinuous at integer multiples of m. Cheaper per call
-    // (2 trig lookups + atan2) than sawtooth_mod, less smooth.
+    // ── The eigenrotation modulus ────────────────────────────────────────────
+    //
+    // rotation_mod — the chain documented in the header. Substrate-pure:
+    //   cos/sin eigenrotation + atan2 + re-wrap, all tensor ops. Always
+    //   non-negative for m > 0 (`Math.rotation_mod(-0.1, 1) == 0.9`);
+    //   discontinuous at integer multiples of m (atan2 branch cut).
+    //   Divisor 0 → NaN tensor, the degenerate limit, not a host raise.
     static intrinsic method scalar rotation_mod(scalar x, scalar m);
 
-    // Floor mod via Fourier series of the sawtooth: smooth and
-    // differentiable everywhere, with ~9% Gibbs overshoot near
-    // boundaries. Built from N sin lookups (N = 16 default).
+    // sawtooth_mod — the smooth Fourier-series alternative:
+    //   mod_floor(x,m) ≈ m/2 − (m/π)·Σ_{k=1..N} sin(2πkx/m)/k. The k-sum
+    //   is a single vectorized tensor reduction (a (K,N) crosstalk-weight
+    //   matmul against the sin table), NOT a Python loop. Fully
+    //   differentiable; ~9% Gibbs ring near integer multiples of m.
     static intrinsic method scalar sawtooth_mod(scalar x, scalar m);
 
-    // Round toward negative infinity. `floor(3.7) == 3`,
-    // `floor(-0.1) == -1`.
-    static intrinsic method scalar floor(scalar x);
+    // fmod — truncation modulus (JS / C / C# / Rust / TS `%`): result has
+    //   the sign of the dividend. x − m·trunc(x/m), all tensor ops.
+    //   Divisor 0 → NaN tensor (no host ZeroDivisionError). `%` lowers
+    //   here.
+    static intrinsic method scalar fmod(scalar x, scalar m);
 
-    // Round toward positive infinity. `ceil(3.2) == 4`,
-    // `ceil(-0.1) == 0`.
-    static intrinsic method scalar ceil(scalar x);
-
-    // Round to nearest integer, ties to even (banker's rounding) per
-    // the substrate's default. JS `Math.round` uses half-up — see the
-    // queue's substrate-purity audit item for the discrepancy.
-    static intrinsic method scalar round(scalar x);
-
-    // Truncate toward zero. `trunc(3.7) == 3`, `trunc(-3.7) == -3`.
-    static intrinsic method scalar trunc(scalar x);
-
-    // Absolute value.
-    static intrinsic method scalar abs(scalar x);
-
-    // Sign of x. Returns -1, 0, or +1.
-    static intrinsic method scalar sign(scalar x);
+    // mod — the canonical mathematical floor-modulus. _VSA.mod is a
+    //   direct alias of _VSA.rotation_mod (`mod = rotation_mod`): the
+    //   substitution is the identity. Non-negative for m > 0
+    //   (`Math.mod(-0.1, 1) == 0.9`). This is what mathematical code
+    //   should reach for; `%` (fmod) keeps the dividend's sign for JS
+    //   parity.
+    static intrinsic method scalar mod(scalar x, scalar m);
 }
