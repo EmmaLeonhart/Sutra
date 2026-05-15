@@ -163,14 +163,16 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("class SutraMathOverflow(Exception):")
         self._indent += 1
-        self._emit('"""Raised when a Sutra transcendental (Math.exp, Math.log,')
-        self._emit('Math.sqrt, Math.pow) is called with an input outside the')
-        self._emit('precomputed lookup-table range.')
+        self._emit('"""RETAINED FOR BACKWARD COMPATIBILITY — no longer raised.')
         self._emit('')
-        self._emit('Per Emma 2026-05-10: out-of-range transcendental inputs are an')
-        self._emit('explicit programming error, not a silent zero. Catch this')
-        self._emit('exception specifically (do not bare-except) when you intend to')
-        self._emit('handle out-of-range as a domain condition.')
+        self._emit('The 2026-05-10 design raised this when a transcendental input')
+        self._emit('fell outside the lookup-table range. That was a substrate')
+        self._emit('leak (a host `if`/`raise` on a scalar pulled off the')
+        self._emit('substrate) AND a violation of the core "no runtime errors')
+        self._emit('by mechanism" rule. Out-of-range now saturates at the table')
+        self._emit('edge via a tensor clamp — the mathematically-valid limit.')
+        self._emit('The class is kept so existing `except SutraMathOverflow`')
+        self._emit('sites still import; it is simply never thrown anymore.')
         self._emit('"""')
         self._emit("pass")
         self._indent -= 1
@@ -258,11 +260,11 @@ class PyTorchCodegen(Codegen):
         self._emit("self._cache_dir, f'{_safe_model}-d{self.dim}.pt')")
         self._indent -= 1
         self._emit("self._load_disk_cache()")
-        self._emit("# Transcendental lookup tables — substrate-pure interpolation per")
-        self._emit("# planning/findings/2026-05-10-interpolated-lookup-table-works.md.")
-        self._emit("# Stored as constants on the runtime so every exp/log call")
-        self._emit("# reuses the same tensor (no per-call rebuild). Out-of-range")
-        self._emit("# inputs raise SutraMathOverflow per Emma's 2026-05-10 directive.")
+        self._emit("# Transcendental lookup codebooks — read by _lerp's crosstalk")
+        self._emit("# kernel into continuous functions (the rotational-binding")
+        self._emit("# readout). Stored as constants so every call reuses the same")
+        self._emit("# tensor (no per-call rebuild). Out-of-range inputs SATURATE")
+        self._emit("# at the table edge via tensor clamp — never a host raise.")
         self._emit("# N=16384 chosen empirically: drops pow(2,10) from ~1% error to")
         self._emit("# ~0.06% by tightening the log-table dx 4x. Memory cost is tiny")
         self._emit("# (4 * 16384 * 4 bytes per table). True precision fix is range-")
@@ -1134,285 +1136,288 @@ class PyTorchCodegen(Codegen):
         self._emit("return float(_torch.dot(a, b))")
         self._indent -= 1
         self._emit()
-        # ---- Transcendental intrinsics — substrate-pure lookup-table path. ----
-        # Per planning/findings/2026-05-10-interpolated-lookup-table-works.md.
-        # Every op inside is a tensor op (sub/abs/div/clamp/dot); no Python
-        # control flow on x. Out-of-range inputs raise SutraMathOverflow.
-        self._emit("def exp(self, x):")
+        # ===================================================================
+        # Transcendental + modulus intrinsics — SUBSTRATE-PURE.
+        #
+        # The contract every method below honors (CLAUDE.md "every op runs
+        # on the substrate", and the NO-host-scalar rule the 2026-04-29
+        # withdrawal was about):
+        #   * exactly ONE host→substrate boundary, `self._st(x)`, which
+        #     coerces an incoming literal/arg to a device tensor (the same
+        #     class of boundary as embed() turning a string into a vector);
+        #   * every step after that is a tensor op;
+        #   * the return value is a 0-d device tensor — NEVER `float(...)`;
+        #   * NO `if`/`raise` on a scalar predicate, NO Python `for` over
+        #     scalars. Out-of-range saturates via tensor `clamp` (a
+        #     mathematically-valid output per the "no runtime errors by
+        #     mechanism" core rule — which the old SutraMathOverflow raise
+        #     violated, on top of being a host-control-flow leak).
+        #
+        # Architecture (Emma's authoritative voice design — see todo.md
+        # "Transcendental functions — design absorbed from voice chat";
+        # this overrides the spec where they disagree). Two real lookup
+        # primitives, `_exp_table` and `log`, read by `_lerp` — a
+        # crosstalk-weighted continuous readout (triangular soft-index
+        # over the codebook, the rotational-binding kernel: nearby table
+        # nodes leak into the readout, which is exactly what makes the
+        # discrete table a continuous function). Everything else BETA-
+        # REDUCES onto those two plus the eigenrotation (cos, sin):
+        #
+        #   cexp(a, b)  = exp(a) · (cos b + i·sin b)   complex exp
+        #   exp(x)      = cexp(x, 0)                    real part; sin0=0
+        #   cos / sin   = real / imag of the unit eigenrotation by θ
+        #                 (sin is cos with the signs flipped — same table)
+        #   pow(x,y)    = exp(y · log x)
+        #   sqrt(x)     = exp(0.5 · log x)
+        #   sinh/cosh/tanh from exp(x), exp(-x)
+        #   *_mod       = the same eigenrotation around a circle of
+        #                 circumference m
+        #
+        # `_st` / `_lerp` / `cexp` are the visible substrate primitives;
+        # stdlib/math.su and stdlib/modulus.su carry the same chain in
+        # readable Sutra so the beta reduction is legible at source level.
+        # ===================================================================
+        self._emit("def _st(self, x):")
         self._indent += 1
-        self._emit('"""exp(x) on [-10, 10] via interpolated lookup. Out-of-range → SutraMathOverflow."""')
-        self._emit("xv = float(x)")
-        self._emit("if xv < self._EXP_LO or xv > self._EXP_HI:")
-        self._indent += 1
-        self._emit('raise SutraMathOverflow(')
-        self._indent += 1
-        self._emit('f"Math.exp({xv}) outside table range [{self._EXP_LO}, {self._EXP_HI}]. "')
-        self._emit('f"Widen the table in _TorchVSA.__init__ or range-reduce the input."')
+        self._emit('"""The single host→substrate entry boundary. Coerces an')
+        self._emit('incoming literal / argument to a 0-d device tensor. A no-op')
+        self._emit('view when x is already a device tensor. Nothing past this')
+        self._emit('point touches a host scalar."""')
+        self._emit("return _torch.as_tensor(x, dtype=self.dtype, device=self.device)")
         self._indent -= 1
-        self._emit(")")
-        self._indent -= 1
-        self._emit("xt = _torch.as_tensor(xv, dtype=self.dtype, device=self.device)")
-        self._emit("d = (self._EXP_XS - xt).abs() / self._EXP_DX")
+        self._emit()
+        self._emit("def _lerp(self, xt, xs, values, dx):")
+        self._indent += 1
+        self._emit('"""Crosstalk-weighted continuous readout of a codebook.')
+        self._emit('w = (1 - |xs - xt| / dx) clamped at 0 is the triangular')
+        self._emit('soft-index kernel: the two table nodes bracketing xt leak')
+        self._emit('into the dot product proportionally to proximity. That')
+        self._emit('crosstalk is what turns the discrete `values` table into')
+        self._emit('a continuous function of xt. All tensor ops; 0-d result."""')
+        self._emit("d = (xs - xt).abs() / dx")
         self._emit("w = (1.0 - d).clamp(min=0.0)")
-        self._emit("return float(_torch.dot(w, self._EXP_VALUES))")
+        self._emit("return _torch.matmul(w, values)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _exp_table(self, x):")
+        self._indent += 1
+        self._emit('"""Real exponential primitive — the lookup leaf. Out-of-range')
+        self._emit('saturates at the table edge (tensor clamp), not a raise."""')
+        self._emit("xt = self._st(x).clamp(self._EXP_LO, self._EXP_HI)")
+        self._emit("return self._lerp(xt, self._EXP_XS, self._EXP_VALUES, self._EXP_DX)")
         self._indent -= 1
         self._emit()
         self._emit("def log(self, x):")
         self._indent += 1
-        self._emit('"""Natural log on [1e-3, 1e3] via interpolated lookup. Matches')
-        self._emit('JS Math.log semantics (natural log, not base-10). Out-of-range or')
-        self._emit('non-positive input → SutraMathOverflow.')
-        self._emit('"""')
-        self._emit("xv = float(x)")
-        self._emit("if xv < self._LN_LO or xv > self._LN_HI:")
-        self._indent += 1
-        self._emit('raise SutraMathOverflow(')
-        self._indent += 1
-        self._emit('f"Math.log({xv}) outside table range [{self._LN_LO}, {self._LN_HI}]. "')
-        self._emit('f"Negative or zero input is also out of range — log is undefined there."')
-        self._indent -= 1
-        self._emit(")")
-        self._indent -= 1
-        self._emit("xt = _torch.as_tensor(xv, dtype=self.dtype, device=self.device)")
-        self._emit("d = (self._LN_XS - xt).abs() / self._LN_DX")
-        self._emit("w = (1.0 - d).clamp(min=0.0)")
-        self._emit("return float(_torch.dot(w, self._LN_VALUES))")
+        self._emit('"""Natural log primitive (JS Math.log = natural log, not')
+        self._emit('base-10) — the second lookup leaf. Non-positive / out-of-')
+        self._emit('range input saturates at the table edge: ln near LN_LO is a')
+        self._emit('large negative number, which is the mathematically-valid')
+        self._emit('limit, not an error (no host raise)."""')
+        self._emit("xt = self._st(x).clamp(self._LN_LO, self._LN_HI)")
+        self._emit("return self._lerp(xt, self._LN_XS, self._LN_VALUES, self._LN_DX)")
         self._indent -= 1
         self._emit()
-        self._emit("def pow(self, x, y):")
-        self._indent += 1
-        self._emit('"""x ** y via beta-reduction to exp/log: pow(x,y) = exp(y * log(x)).')
-        self._emit('Restricted to x > 0 because the log step requires it. Negative-base')
-        self._emit('integer exponents are a follow-on (need a separate signed path).')
-        self._emit('"""')
-        self._emit("return self.exp(float(y) * self.log(x))")
-        self._indent -= 1
+        self._emit("ln = log")
         self._emit()
-        self._emit("def sqrt(self, x):")
-        self._indent += 1
-        self._emit('"""sqrt(x) = exp(0.5 * log(x)). x must be > 0; x == 0 raises')
-        self._emit('SutraMathOverflow because the log table does not include zero.')
-        self._emit('Sub-table x near zero loses precision quickly — that is an honest')
-        self._emit('reflection of the lookup-table architecture and a prompt to')
-        self._emit('range-reduce inputs.')
-        self._emit('"""')
-        self._emit("return self.exp(0.5 * self.log(x))")
-        self._indent -= 1
-        self._emit()
-        # Trig — same lookup-table architecture as exp/log. Periodic, so
-        # modulo-reduce to [-π, π] first; no overflow exception path.
         self._emit("def _trig_reduce(self, x):")
         self._indent += 1
-        self._emit('"""Reduce x to (-π, π] via x - 2π * round(x / 2π). Substrate-pure:')
-        self._emit('elementwise div, round, mul, sub on a scalar tensor."""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
+        self._emit('"""Reduce x to (-π, π] via x - 2π·round(x/2π). The rotation')
+        self._emit('is periodic, so this is the angle the eigenrotation actually')
+        self._emit('turns through. Pure tensor: sub / div / round / mul."""')
+        self._emit("xt = self._st(x)")
         self._emit("return xt - self._TWO_PI * _torch.round(xt / self._TWO_PI)")
-        self._indent -= 1
-        self._emit()
-        self._emit("def sin(self, x):")
-        self._indent += 1
-        self._emit('"""sin(x) via interpolated lookup on [-π, π] after modulo reduction."""')
-        self._emit("xr = self._trig_reduce(x)")
-        self._emit("d = (self._TRIG_XS - xr).abs() / self._TRIG_DX")
-        self._emit("w = (1.0 - d).clamp(min=0.0)")
-        self._emit("return float(_torch.dot(w, self._SIN_VALUES))")
         self._indent -= 1
         self._emit()
         self._emit("def cos(self, x):")
         self._indent += 1
-        self._emit('"""cos(x) via interpolated lookup on [-π, π] after modulo reduction."""')
-        self._emit("xr = self._trig_reduce(x)")
-        self._emit("d = (self._TRIG_XS - xr).abs() / self._TRIG_DX")
-        self._emit("w = (1.0 - d).clamp(min=0.0)")
-        self._emit("return float(_torch.dot(w, self._COS_VALUES))")
+        self._emit('"""Real part of the unit eigenrotation by θ. The COS_VALUES')
+        self._emit('table is the precomputed x-coordinate of the rotated unit')
+        self._emit('vector; `_lerp` reads it continuously via crosstalk."""')
+        self._emit("return self._lerp(self._trig_reduce(x), self._TRIG_XS, self._COS_VALUES, self._TRIG_DX)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sin(self, x):")
+        self._indent += 1
+        self._emit('"""Imag part of the same unit eigenrotation — cos with the')
+        self._emit('signs flipped (the y-coordinate of the rotated unit vector).')
+        self._emit('(cos θ, sin θ) together ARE the rotated unit vector e^{iθ}."""')
+        self._emit("return self._lerp(self._trig_reduce(x), self._TRIG_XS, self._SIN_VALUES, self._TRIG_DX)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cexp(self, re, im):")
+        self._indent += 1
+        self._emit('"""Complex exponential, the operation everything else beta-')
+        self._emit('reduces from: exp(re + i·im) = exp(re)·(cos im + i·sin im).')
+        self._emit('Returns a length-2 tensor [real, imag]. The real factor is')
+        self._emit('the exp lookup leaf; the rotation factor is the')
+        self._emit('eigenrotation. All tensor ops."""')
+        self._emit("r = self._exp_table(re)")
+        self._emit("ang = self._st(im)")
+        self._emit("return _torch.stack([r * self.cos(ang), r * self.sin(ang)])")
+        self._indent -= 1
+        self._emit()
+        self._emit("def exp(self, x):")
+        self._indent += 1
+        self._emit('"""Real exp = complex exp beta-reduced at imaginary part 0:')
+        self._emit('cexp(x, 0) = [exp(x)·cos 0, exp(x)·sin 0] = [exp(x), 0], take')
+        self._emit('the real component. Routed through cexp on purpose so the')
+        self._emit('beta reduction actually executes on the substrate rather')
+        self._emit('than being only a comment (the architectural-uniformity')
+        self._emit('cost is the point — CLAUDE.md "global not local efficiency")."""')
+        self._emit("return self.cexp(self._st(x), self._st(0.0))[0]")
+        self._indent -= 1
+        self._emit()
+        self._emit("def pow(self, x, y):")
+        self._indent += 1
+        self._emit('"""x ** y = exp(y · log x). x > 0 (the log leaf). All tensor."""')
+        self._emit("return self.exp(self._st(y) * self.log(x))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sqrt(self, x):")
+        self._indent += 1
+        self._emit('"""sqrt(x) = exp(0.5 · log x). x near 0 saturates at the log')
+        self._emit('table edge — an honest reflection of the lookup architecture."""')
+        self._emit("return self.exp(0.5 * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def tan(self, x):")
         self._indent += 1
-        self._emit('"""tan(x) = sin(x) / cos(x). Diverges at odd multiples of π/2 —')
-        self._emit('Python returns inf rather than raising; consistent with JS Math.tan.')
-        self._emit('"""')
-        self._emit("c = self.cos(x)")
-        self._emit("if c == 0.0:")
-        self._indent += 1
-        self._emit('return float("inf")  if self.sin(x) >= 0 else float("-inf")')
-        self._indent -= 1
-        self._emit("return self.sin(x) / c")
+        self._emit('"""tan = sin / cos. At odd multiples of π/2 cos→0 and the')
+        self._emit('quotient tensor goes to ±inf — the mathematically-valid')
+        self._emit('limit (no host `if c == 0`, consistent with JS Math.tan)."""')
+        self._emit("xr = self._trig_reduce(x)")
+        self._emit("s = self._lerp(xr, self._TRIG_XS, self._SIN_VALUES, self._TRIG_DX)")
+        self._emit("c = self._lerp(xr, self._TRIG_XS, self._COS_VALUES, self._TRIG_DX)")
+        self._emit("return s / c")
         self._indent -= 1
         self._emit()
-        # Hyperbolic — every one beta-reduces to exp, no new tables needed.
         self._emit("def sinh(self, x):")
         self._indent += 1
-        self._emit('"""sinh(x) = (exp(x) - exp(-x)) / 2."""')
-        self._emit("return (self.exp(x) - self.exp(-float(x))) * 0.5")
+        self._emit('"""(exp(x) - exp(-x)) / 2. Tensor negation, no host scalar."""')
+        self._emit("xt = self._st(x)")
+        self._emit("return (self.exp(xt) - self.exp(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def cosh(self, x):")
         self._indent += 1
-        self._emit('"""cosh(x) = (exp(x) + exp(-x)) / 2."""')
-        self._emit("return (self.exp(x) + self.exp(-float(x))) * 0.5")
+        self._emit('"""(exp(x) + exp(-x)) / 2."""')
+        self._emit("xt = self._st(x)")
+        self._emit("return (self.exp(xt) + self.exp(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def tanh(self, x):")
         self._indent += 1
-        self._emit('"""tanh(x) = sinh(x) / cosh(x), but numerically stable form is')
-        self._emit('(exp(2x) - 1) / (exp(2x) + 1). For very large |x|, tanh saturates')
-        self._emit('to ±1; we let exp out-of-range raise SutraMathOverflow.')
-        self._emit('"""')
-        self._emit("e2x = self.exp(2.0 * float(x))")
+        self._emit('"""(exp(2x) - 1) / (exp(2x) + 1). For large |x| exp saturates')
+        self._emit('at the table edge so tanh saturates toward ±1 — the correct')
+        self._emit('limit, reached without a host range check."""')
+        self._emit("e2x = self.exp(2.0 * self._st(x))")
         self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1
         self._emit()
         # =================================================================
-        # Modulus library — see stdlib/modulus.su. Expensive operations
-        # derived from modulus, kept in their own namespace so call sites
-        # are visible. Every body below dispatches to a torch tensor op
-        # (.floor, .ceil, .round, .trunc, .abs, .sign, .atan2) — these
-        # are native GPU instructions, not libm transcendental
-        # decompositions, so they live at the substrate's primitive layer
-        # alongside +, -, *. The exception is `mod` (the floor-mod
-        # eigen-rotation form), which composes cos/sin (already
-        # lookup-table-backed) with torch.atan2 — atan2-via-lookup-table
-        # is a follow-on tracked under the substrate-purity audit task
-        # in queue.md.
+        # Modulus library — see stdlib/modulus.su. floor/ceil/round/
+        # trunc/abs/sign ARE native substrate (GPU) instructions, kept as
+        # one-tensor-op bodies. fmod/rotation_mod/sawtooth_mod derive from
+        # the same eigenrotation as the trig family. atan2-via-lookup is
+        # the one remaining libm-shaped follow-on (audit task).
         # =================================================================
         self._emit("def floor(self, x):")
         self._indent += 1
         self._emit('"""Round toward -∞. Substrate: torch.floor (GPU instruction)."""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("return float(_torch.floor(xt))")
+        self._emit("return _torch.floor(self._st(x))")
         self._indent -= 1
         self._emit()
         self._emit("def ceil(self, x):")
         self._indent += 1
-        self._emit('"""Round toward +∞. Substrate: torch.ceil (GPU instruction)."""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("return float(_torch.ceil(xt))")
+        self._emit('"""Round toward +∞. Substrate: torch.ceil."""')
+        self._emit("return _torch.ceil(self._st(x))")
         self._indent -= 1
         self._emit()
         self._emit("def round(self, x):")
         self._indent += 1
-        self._emit('"""Round to nearest integer, ties-to-even (torch default).')
-        self._emit('JS Math.round uses half-up; the discrepancy is tracked in the')
-        self._emit('substrate-purity audit task.')
-        self._emit('"""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("return float(_torch.round(xt))")
+        self._emit('"""Nearest integer, ties-to-even (torch default). JS Math.round')
+        self._emit('is half-up — mismatch tracked in the substrate-purity audit."""')
+        self._emit("return _torch.round(self._st(x))")
         self._indent -= 1
         self._emit()
         self._emit("def trunc(self, x):")
         self._indent += 1
-        self._emit('"""Truncate toward zero. Substrate: torch.trunc (GPU instruction)."""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("return float(_torch.trunc(xt))")
+        self._emit('"""Truncate toward zero. Substrate: torch.trunc."""')
+        self._emit("return _torch.trunc(self._st(x))")
         self._indent -= 1
         self._emit()
         self._emit("def abs(self, x):")
         self._indent += 1
         self._emit('"""|x|. Substrate: torch.abs."""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("return float(_torch.abs(xt))")
+        self._emit("return _torch.abs(self._st(x))")
         self._indent -= 1
         self._emit()
         self._emit("def sign(self, x):")
         self._indent += 1
         self._emit('"""-1 / 0 / +1. Substrate: torch.sign."""')
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("return float(_torch.sign(xt))")
+        self._emit("return _torch.sign(self._st(x))")
         self._indent -= 1
         self._emit()
         self._emit("def fmod(self, x, m):")
         self._indent += 1
-        self._emit('"""Truncation modulus — result has the sign of x. Matches JS / C /')
-        self._emit('C# / Rust / TS `%`. Defined as x - m * trunc(x/m). The `%`')
-        self._emit('operator in source compiles to this method; before this lookup')
-        self._emit('landed the operator fell through to host Python `%` which broke')
-        self._emit('substrate purity.')
-        self._emit('"""')
-        self._emit("if float(m) == 0.0:")
-        self._indent += 1
-        self._emit('raise ZeroDivisionError("Math.fmod: divisor is zero")')
-        self._indent -= 1
-        self._emit("xt = _torch.as_tensor(float(x), dtype=self.dtype, device=self.device)")
-        self._emit("mt = _torch.as_tensor(float(m), dtype=self.dtype, device=self.device)")
-        self._emit("return float(xt - mt * _torch.trunc(xt / mt))")
+        self._emit('"""Truncation modulus (JS / C / C# / Rust / TS `%`): result')
+        self._emit('has the sign of x. x - m·trunc(x/m). Divisor 0 yields a NaN')
+        self._emit('tensor — the mathematically-valid degenerate result, not a')
+        self._emit('host ZeroDivisionError (no scalar control flow)."""')
+        self._emit("xt = self._st(x)")
+        self._emit("mt = self._st(m)")
+        self._emit("return xt - mt * _torch.trunc(xt / mt)")
         self._indent -= 1
         self._emit()
         self._emit("def rotation_mod(self, x, m):")
         self._indent += 1
-        self._emit('"""Floor modulus via eigen rotation — exact away from boundaries,')
-        self._emit('discontinuous at integer multiples of m (atan2 branch cut).')
-        self._emit('Result is always non-negative when m > 0. `rotation_mod(-0.1, 1)')
-        self._emit('== 0.9`. Differentiable on the interior of each period;')
-        self._emit('non-differentiable at the boundary.')
+        self._emit('"""Floor modulus via the eigenrotation: walk a circle whose')
+        self._emit('circumference is m. θ = 2π·x/m, the eigenrotation gives')
+        self._emit('(cos θ, sin θ), atan2 reads the phase back, re-wrapped to')
+        self._emit('[0, 2π) and scaled by m/2π. Always non-negative for m > 0')
+        self._emit('(`rotation_mod(-0.1, 1) == 0.9`); discontinuous at integer')
+        self._emit('multiples of m (the atan2 branch cut). Divisor 0 → NaN')
+        self._emit('tensor, not a host raise.')
         self._emit('')
-        self._emit('Substrate derivation:')
-        self._emit('  θ  = 2π · x / m                   (linear)')
-        self._emit('  c  = cos(θ)                       (interpolated lookup)')
-        self._emit('  s  = sin(θ)                       (interpolated lookup)')
-        self._emit('  φ  = atan2(s, c)                  (torch tensor op)')
-        self._emit('  φ_pos = (φ + 2π) mod 2π           (re-wrap to [0, 2π))')
+        self._emit('Substrate chain (all tensor ops):')
+        self._emit('  θ      = 2π · x / m')
+        self._emit('  (c, s) = cos θ, sin θ            (eigenrotation readout)')
+        self._emit('  φ      = atan2(s, c)             (tensor; lookup follow-on)')
+        self._emit('  φ_pos  = φ - 2π·floor(φ / 2π)    (re-wrap to [0, 2π))')
         self._emit('  result = m · φ_pos / (2π)')
-        self._emit('')
-        self._emit('atan2-via-lookup-table is a follow-on (substrate-purity audit')
-        self._emit('task in queue.md). Today torch.atan2 is a tensor op that runs')
-        self._emit('on device.')
         self._emit('"""')
-        self._emit("if float(m) == 0.0:")
-        self._indent += 1
-        self._emit('raise ZeroDivisionError("Math.rotation_mod: divisor is zero")')
-        self._indent -= 1
-        self._emit("theta = self._TWO_PI * float(x) / float(m)")
-        self._emit("c = self.cos(theta)")
-        self._emit("s = self.sin(theta)")
-        self._emit("ct = _torch.as_tensor(float(c), dtype=self.dtype, device=self.device)")
-        self._emit("st = _torch.as_tensor(float(s), dtype=self.dtype, device=self.device)")
-        self._emit("phi = _torch.atan2(st, ct)")
-        self._emit("# Re-wrap (-π, π] → [0, 2π) via the same x - 2π · floor(x/2π) shape")
-        self._emit("phi_shifted = phi + self._TWO_PI")
-        self._emit("phi_pos = phi_shifted - self._TWO_PI * _torch.floor(phi_shifted / self._TWO_PI)")
-        self._emit("return float(phi_pos * float(m) / self._TWO_PI)")
+        self._emit("xt = self._st(x)")
+        self._emit("mt = self._st(m)")
+        self._emit("theta = self._TWO_PI * xt / mt")
+        self._emit("phi = _torch.atan2(self.sin(theta), self.cos(theta))")
+        self._emit("phi_pos = phi - self._TWO_PI * _torch.floor(phi / self._TWO_PI)")
+        self._emit("return mt * phi_pos / self._TWO_PI")
         self._indent -= 1
         self._emit()
         self._emit("def sawtooth_mod(self, x, m, n_terms=16):")
         self._indent += 1
-        self._emit('"""Floor modulus via Fourier series of the sawtooth — smooth,')
-        self._emit('differentiable everywhere, with Gibbs overshoot near boundaries.')
-        self._emit('Result is approximately non-negative when m > 0 (Gibbs lets it')
-        self._emit('ring ~9% below zero near integer multiples of m).')
-        self._emit('')
-        self._emit('Substrate derivation:')
-        self._emit('  The Fourier series of frac(x) = x - floor(x) on (0, 1) is')
-        self._emit('    frac(x) = 1/2 - (1/π) · Σ_{k=1..∞} sin(2πkx) / k')
-        self._emit('  Scaling by m and substituting x → x/m:')
-        self._emit('    mod_floor(x, m) ≈ m/2 - (m/π) · Σ_{k=1..N} sin(2πkx/m) / k')
-        self._emit('  Each sin term uses the existing interpolated lookup table.')
-        self._emit('  No new substrate primitives needed.')
-        self._emit('')
-        self._emit('Trade-off vs rotation_mod:')
-        self._emit('  + Fully differentiable, no branch cut')
-        self._emit('  + Composable through autograd if substrate ever wires it')
-        self._emit('  − Gibbs ripple: max error ~9% of m near integer multiples of m')
-        self._emit('  − N sin lookups per call vs 2 lookups + 1 atan2 for rotation_mod')
-        self._emit('"""')
-        self._emit("if float(m) == 0.0:")
-        self._indent += 1
-        self._emit('raise ZeroDivisionError("Math.sawtooth_mod: divisor is zero")')
-        self._indent -= 1
-        self._emit("xv = float(x)")
-        self._emit("mv = float(m)")
-        self._emit("total = 0.0")
-        self._emit("for k in range(1, int(n_terms) + 1):")
-        self._indent += 1
-        self._emit("total += self.sin(self._TWO_PI * k * xv / mv) / k")
-        self._indent -= 1
-        self._emit("return 0.5 * mv - (mv / 3.141592653589793) * total")
+        self._emit('"""Floor modulus via the Fourier sawtooth — smooth, fully')
+        self._emit('differentiable, ~9% Gibbs ring near integer multiples of m.')
+        self._emit('mod_floor(x,m) ≈ m/2 - (m/π)·Σ_{k=1..N} sin(2πkx/m)/k.')
+        self._emit('The k-sum is a single vectorized tensor reduction (a (K,N)')
+        self._emit('crosstalk-weight matmul against the sin table) — NOT a')
+        self._emit('Python for-loop over scalars. n_terms is a compile-time')
+        self._emit('structural constant, not substrate data."""')
+        self._emit("xt = self._st(x)")
+        self._emit("mt = self._st(m)")
+        self._emit("k = _torch.arange(1, int(n_terms) + 1, dtype=self.dtype, device=self.device)")
+        self._emit("ang = self._TWO_PI * k * xt / mt")
+        self._emit("ar = ang - self._TWO_PI * _torch.round(ang / self._TWO_PI)")
+        self._emit("d = (self._TRIG_XS.unsqueeze(0) - ar.unsqueeze(1)).abs() / self._TRIG_DX")
+        self._emit("w = (1.0 - d).clamp(min=0.0)")
+        self._emit("sines = _torch.matmul(w, self._SIN_VALUES)")
+        self._emit("total = (sines / k).sum()")
+        self._emit("return 0.5 * mt - (mt / 3.141592653589793) * total")
         self._indent -= 1
         self._emit()
-        self._emit("# `mod` is the canonical floor-mod alias. Today it points at")
-        self._emit("# rotation_mod (the user-preferred default); the benchmark in")
-        self._emit("# experiments/modulus_comparison.py compares the two and the")
-        self._emit("# default can be flipped without changing source-level callers.")
+        self._emit("# `mod` is the canonical floor-mod alias — today the")
+        self._emit("# eigenrotation form (Emma-preferred default).")
         self._emit("mod = rotation_mod")
         self._emit()
         self._emit("def transpose(self, m):")

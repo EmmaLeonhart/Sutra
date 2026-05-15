@@ -1,19 +1,110 @@
-
-
-// Math — JS-compatible namespace mapping to substrate-pure runtime
-// intrinsics. Every method here resolves at codegen to `_VSA.<name>`,
-// which evaluates via the interpolated lookup table architecture
-// landed 2026-05-10. Trig is the same architecture with input
-// modulo-reduced to [-π, π]; hyperbolic beta-reduces to exp.
+// =============================================================================
+// Math — the transcendental family. The BETA REDUCTION is documented on
+// every method so the substitution chain is legible at source level.
+// =============================================================================
+//
+// The whole philosophy of this language is that source beta-reduces, by
+// substitution, down to substrate tensor/rotation operations. Every method
+// here is `intrinsic` today — it routes to `_VSA.<name>` in
+// codegen_pytorch.py — but the runtime body is NOT a libm call: it is the
+// exact substitution written in each docstring, executed on the substrate
+// as tensor ops. Read this file top to bottom and you can see every
+// transcendental collapse onto two lookup-table leaves plus one
+// eigenrotation.
+//
+// (Why intrinsic and not Sutra method bodies: the ideal form is
+// `static method scalar pow(...) { return Math.exp(y * Math.log(x)); }`
+// so the reduction is the source itself. The stdlib inliner does not yet
+// resolve intra-`Math` member calls inside a class-bodied static method
+// body — a NameError at codegen, surfaced honestly rather than papered
+// over. Tracked as the top item of the substrate-leak audit. Until that
+// inliner work lands, the reduction lives in the runtime + these
+// docstrings; it is the same chain either way.)
+//
+// ── The two real lookup primitives ──────────────────────────────────────────
+//
+//   exp(a)   real exponential   — a codebook read by a crosstalk kernel
+//   log(x)   natural logarithm  — the inverse codebook, same kernel
+//
+// "Lookup table" does NOT mean host array indexing. It is a rotational
+// binding that uses the number: the input picks an angle, and the readout
+// is a crosstalk-weighted sum over the codebook (triangular soft-index).
+// The crosstalk between neighbouring entries is precisely what turns a
+// discrete table into a *continuous* function. That weighting + dot is all
+// tensor ops on the substrate — `_VSA._lerp` in codegen_pytorch.py.
+//
+// ── The eigenrotation ───────────────────────────────────────────────────────
+//
+//   cos(θ) = real part of the unit eigenrotation by θ
+//   sin(θ) = imag part of the SAME rotation — cos with the signs flipped
+//
+// (cos θ, sin θ) together ARE the unit vector e^{iθ}. There is no separate
+// "sine algorithm" — sine is the y-coordinate of the rotation whose
+// x-coordinate is cosine.
+//
+// ── The keystone: the complex exponential ───────────────────────────────────
+//
+//   cexp(a, b) = exp(a) · (cos b + i·sin b)            [Euler's identity]
+//
+// The REAL factor exp(a) is the lookup leaf; the ROTATION factor
+// (cos b + i·sin b) is the eigenrotation. Real exp BETA-REDUCES from it:
+//
+//   exp(x) ≡ real( cexp(x, 0) ) = real( exp(x)·(1 + 0i) ) = exp(x)
+//
+// `_VSA.exp` literally routes through `_VSA.cexp(x, 0)` on the substrate,
+// so the beta reduction executes — it is not just a comment. Everything
+// below is a one-line substitution onto exp / log / the eigenrotation.
 
 class Math extends vector {
-    static intrinsic method scalar log(scalar x);
-    static intrinsic method scalar sqrt(scalar x);
+
+    // ── The substrate leaves ─────────────────────────────────────────────────
+    //
+    // exp  — real exponential. _VSA.exp routes through the complex
+    //        exponential cexp(x,0): exp(x)·(cos 0 + i·sin 0) → exp(x).
+    //        The real factor is the lookup codebook read by the crosstalk
+    //        kernel; sin 0 = 0 collapses the imaginary part.
+    // log  — natural log (JS Math.log = natural log, not base-10). The
+    //        inverse codebook, same crosstalk kernel. Non-positive /
+    //        out-of-range input saturates at the table edge (no raise —
+    //        the no-runtime-errors rule).
+    // cos  — real component of the unit eigenrotation by x.
+    // sin  — imag component of the SAME rotation (cos, signs flipped).
     static intrinsic method scalar exp(scalar x);
-    static intrinsic method scalar sin(scalar x);
+    static intrinsic method scalar log(scalar x);
     static intrinsic method scalar cos(scalar x);
-    static intrinsic method scalar tan(scalar x);
+    static intrinsic method scalar sin(scalar x);
+
+    // ── Derived — runtime body is exactly the documented substitution ────────
+
+    // ln — natural log; the conventional spelling used in the design
+    //   notes. _VSA.ln is a direct alias of _VSA.log (`ln = log`): the
+    //   substitution is the identity.
+    static intrinsic method scalar ln(scalar x);
+
+    // pow — change-of-base identity:  x^y = exp(y · ln x).
+    //   _VSA.pow body: self.exp(self._st(y) * self.log(x)) — one log
+    //   leaf, one tensor multiply, one exp leaf. x > 0 (log domain);
+    //   x ≤ 0 saturates at the log table edge, not a raise.
     static intrinsic method scalar pow(scalar x, scalar y);
+
+    // sqrt — the y = 1/2 case of pow:  √x = exp(0.5 · ln x).
+    //   _VSA.sqrt body: self.exp(0.5 * self.log(x)). x near 0 saturates
+    //   at the log table edge — an honest reflection of the codebook.
+    static intrinsic method scalar sqrt(scalar x);
+
+    // tan — the rotation's slope:  sin / cos, the imag/real ratio of
+    //   the eigenrotation. At odd multiples of π/2 cos → 0 and the
+    //   quotient tensor → ±inf (the mathematically-valid limit; no host
+    //   `if cos == 0`, consistent with JS Math.tan).
+    static intrinsic method scalar tan(scalar x);
+
+    // ── Hyperbolics — pure exp combinations, no new substrate ────────────────
+    //
+    // sinh = (e^x − e^−x)/2   cosh = (e^x + e^−x)/2
+    // tanh = (e^{2x} − 1)/(e^{2x} + 1)   [numerically-stable form]
+    // _VSA bodies are exactly these, on exp leaves + tensor arithmetic;
+    // for large |x| exp saturates at the table edge so tanh → ±1, the
+    // correct limit reached without a host range check.
     static intrinsic method scalar sinh(scalar x);
     static intrinsic method scalar cosh(scalar x);
     static intrinsic method scalar tanh(scalar x);
