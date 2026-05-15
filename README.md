@@ -2,7 +2,7 @@
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
-🌐 **Website: <https://sutralang.dev>** — vision, demos, tutorials, language reference. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml). SutraDB's docs are mounted at [`/SutraDB/`](https://sutralang.dev/SutraDB/) on the same site.
+🌐 **Website: <https://sutra.emmaleonhart.com>** — vision, demos, tutorials, language reference. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml). SutraDB's docs are mounted at [`/SutraDB/`](https://sutra.emmaleonhart.com/SutraDB/) on the same site.
 
 ## What Sutra is
 
@@ -49,7 +49,7 @@ Loop coverage moved from these dropped demos to the declared-function form (`do_
 | [`planning/findings/`](planning/findings/) | Dated experimental findings — what was measured, with raw numbers and what they mean. Includes negative results. |
 | [`planning/open-questions/`](planning/open-questions/) | Known design gaps where the implementation has made a choice the spec doesn't yet justify. |
 | [`examples/`](examples/) | Demo `.su` programs and the smoke-test harness. |
-| [`docs/`](docs/) | Source for the website at <https://sutralang.dev>. |
+| [`docs/`](docs/) | Source for the website at <https://sutra.emmaleonhart.com>. |
 | [`sutraDB/`](sutraDB/) | SutraDB — embedded vector database, brought in as a git subtree. |
 | [`chats/`](chats/) | Design conversations awaiting triage. Each file is a topic-scoped excerpt; the rule is delete-if-already-absorbed-elsewhere, never migrate-then-delete. |
 
