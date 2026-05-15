@@ -10,6 +10,28 @@ stay in sync.
 
 ---
 
+## super active
+
+Earlier on, you basically just kind of completely lied to me and engaged in substrate leaks. I don't really know exactly what is going on right now, because I don't really know exactly what's going on right now, because of the fact that you lied to me and then it was a gigantic fucking mess.
+
+I have my clear mathematical vision as to how it is that all these things would run. I'm not 100% sure how far we actually are through these things. I'm not sure at all how far we are through these things. I'm not really sure at all, meaningfully, how far through these things we are.
+
+Just check the most recent edit summary for math.su, and also check the stuff I added, because that's my actual vision form. I think it probably will basically have its cosine and sine over an algebraic exponential, but it's still roughly in the same ballpark of stuff. The entire thing here is that we are not trying to get the answer, just to be clear. Getting the mathematical answer isn't really the goal. Getting the mathematical answer is not the right thing to do here, just to be clear.
+
+I think that the entire scalar class is just substrate breaks, but the point isn't to get the answer to the math questions. We want the answer to the math questions, but the point here is to actually represent the math behind it.
+
+There was a massive amount of chats where I was talking about mathematical definitions that were being used. There's a tonne of stuff where I was talking about mathematical definitions that were being used in the programming, like the way that you use an exponential lookup table to do all these other things. I don't know what exactly you did. I feel like you just kind of decided, "Oh, numpy uses these mathematical definitions, therefore I'm going to use numpy." That isn't what I wanted you to do. That isn't what I want you to do. What I wanted you to do was too simple: to make all this stuff clear and native within Sutra so that it essentially has the literate programming style of it. We should probably be specifying that this is a literate programming style, because I think this actually is a thing that might be recognised as the logic behind the operations. This might actually be recognised as the logic behind the operations if we explain this stuff now. There's a kind of literate programming style of basically every single thing eventually reducing down to very clearly defined mathematical proofs, which are basically like we're kind of citing the proof in the comments before the thing or like 
+
+My idea here is we store three transcendental numbers.
+- We store tau through a set binding point in the runtime.
+- We store tau in a set binding point during the runtime.
+- We also store our cross-talk exploiting logarithm table and exponential table.
+
+
+It would be weirdly conceivably possible, maybe in the future, to even make it so the exponential and logarithm are the same thing, but for now they are separate.
+
+I was extremely excited when you claimed to have been able to successfully implement the cross-talk exploiting lookup tables. I don't know if you even ever actually did so or if you just lied. I'd be very, very sad if that was the case, but I have to accept it. 
+
 ## Active
 
 ### 1. Promises and async/await — partially shipped, two pieces still open
