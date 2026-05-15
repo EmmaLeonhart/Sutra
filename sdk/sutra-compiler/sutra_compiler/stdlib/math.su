@@ -108,4 +108,23 @@ class Math extends vector {
     static intrinsic method scalar sinh(scalar x);
     static intrinsic method scalar cosh(scalar x);
     static intrinsic method scalar tanh(scalar x);
+		
+		//I have no clue how it is that you repeatedly got this so wrong. I don't know how it is you repeatedly got this so wrong, but I'm actually manually writing the exponential function in because of the fact that it's fucking obvious to me and the fact that you aren't understanding it is really really disappointing. There's no such thing as a scalar in this, and I'm pretty sure that the entire class of a scalar, as you use it, is basically just a substrate leak. I'm pretty sure that this entire thing is just a substrate leak, even though it's fucking easy. 
+		public static number exp(number x){
+		//this is the actual style of comment I want
+		//no bloaty to the point of unreadable
+		//as per rules of exponentiation x^(a*b) = x^a * x^b
+		return realExp(x.real) * imaginaryExp(x.imaginary);
+}
+
+public static number realExp(number x){
+//this is the rotational lookup table
+}
+
+public static number imaginaryExp(number x){
+//this is the eigenrotation for sin. cos uses similar algorithm
+}
+
+
+
 }
