@@ -1197,6 +1197,55 @@ needs a real design doc in `planning/open-questions/` before
 codegen, plus a re-validation pass against the substrate-purity
 audit.
 
+## [This year] Examples-corpus open semantic questions
+
+Merged here 2026-05-15 from the former `examples/todo.md` (a
+per-subdirectory todo file, which this file forbids — "Do not
+re-split this into per-subdirectory todo files"). The
+`codegen_numpy.py`-era framing of that file (numpy backend as the
+fixed substrate, dim=256, fly-brain backend, "switch the numpy
+backend to a real frozen LLM") is **dropped as stale** — the
+canonical backend is `codegen_pytorch.py` and the numpy backend is
+deprecated. The genuinely-live questions it raised, kept:
+
+- **What does a Sutra program output?** The paper framing ("the
+  edge commits a trajectory to a discrete answer" via snap /
+  argmax-cosine) is too narrow — a program can output a discrete
+  codebook entry, a raw/fuzzy vector, a logit vector, a polarized
+  fuzzy state, or a tuple of these. The terminal commit is a
+  choice the *program* makes, not a language property. Open:
+  reflect this in the paper's output-semantics section and have at
+  least one demo output raw logits rather than a snapped entry.
+- **`snap` spec coverage.** `snap` is spec'd as a substrate-level
+  attractor cleanup; the PyTorch backend rejects it
+  (`_UNSUPPORTED_BUILTINS`) and demos use `argmax_cosine`. Decide:
+  route `snap` → `argmax_cosine` as the no-attractor fallback, or
+  state explicitly in the spec that `snap` needs a substrate
+  attractor and the demo path uses `argmax_cosine`.
+- **"Every class is a vector (or matrix)."** Working position:
+  scalars/fuzzy/bool/permutation are all vector-shaped, matrices
+  are functions on the substrate. Open: does `types.md`'s
+  primitive-type list need a refactor that says "everything is a
+  vector, with type-level labels carrying extra structure"?
+- **Vector classes carry compile-time memory.** Vectors record
+  which ops were applied (the bool defuzzification counter is one
+  case) — compile-time metadata, not runtime side effects. You
+  can't branch on it at runtime; you can normalize it at compile
+  time. Candidate dedicated spec section when the user has thought
+  more about it.
+- **`role(name)` vs `embed(name)`.** Under a frozen LLM,
+  lexically-similar role names embed near-identically, which
+  breaks VSA binding (`sequence.su` drops 11/11 → 3/11 — see
+  `planning/findings/2026-04-15-llm-substrate-role-name-collision.md`).
+  The split that works: content from the LLM, roles from a seeded
+  near-orthogonal RNG. Open: spec a `role("name")` primitive
+  distinct from `embed("name")`, add to the compiler, re-run the
+  smoke test expecting 11/11.
+
+Whether the language is *literally* monadic (pure body + edge
+commit with unit/bind/associativity) is parked in
+`planning/exploratory/` — not load-bearing.
+
 ---
 
 # SutraDB (appended from former `sutraDB/TODO.md`) — lower priority
