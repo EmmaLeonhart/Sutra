@@ -89,17 +89,31 @@ saturate instead of raise.
    codepoint arrays (`strings.md`); the ops walk them on the host.
    Vectorize over the axis block.
 
-6. **`complex_div` NaN/zero guard** — `codegen_pytorch.py:1907`:
-   `if r != r or r == 0.0:` — host NaN+zero branch. The 2026-05-13
-   pass-2 finding called complex_div "substrate-pure"; this host
-   `if` says otherwise. Replace with a tensor-masked closed form
-   (the eps-guarded divide pattern `x/(‖·‖+eps)` already used in
-   `normalize`).
+6. **`complex_div` NaN/zero guard** — ✅ ALREADY RESOLVED (stale
+   citation). Current `complex_div` (codegen_pytorch.py ~1637-1655)
+   is the pass-2 closed form `num / denom_vec` with NO host `if` —
+   verified this run: 0 leak signatures in the method code, 3
+   ground-truth division cases correct including the formerly-`inf`
+   `(5+5i)/(2+0i) = 2.5+2.5i`. The cited line 1907 now points at
+   `js_truthy` (a string/NaN/zero dispatch), which is JS-interop
+   coercion under the CLAUDE.md carve-out — see the BORDERLINE
+   §"JS-interop equality/promotion" entry, not a `complex_div`
+   leak. No action needed; line ref was pre-rewrite.
 
-7. **`select` / softmax-gate zero-norm guard** —
-   `codegen_pytorch.py:2288`: `if float(q_norm) == 0:`. Host
-   branch inside `select`/`argmax_cosine`. Use the same
-   eps-guarded tensor form.
+7. **`select` / softmax-gate zero-norm guard** — ✅ FIXED
+   2026-05-15 (autonomous queue run). Was `q_norm =
+   _torch.linalg.norm(q); if float(q_norm) == 0: return
+   candidates[0]` in `_argmax_cosine` — a data-dependent host
+   branch. Now eps-guarded the same way the sibling `row_norms`
+   already is: `safe_qn = _torch.where(q_norm > 0, q_norm,
+   ones_like)`, `scores = (M@q)/(safe_rn*safe_qn)`. Zero query →
+   zero score vector → argmax picks index 0 → `candidates[0]`,
+   exactly the old behaviour, no host branch. Verified: 0 host
+   `if float(q_norm)` in emitted code; `examples/_smoke_test.py`
+   PASS (11/11, exercises real argmax_cosine retrieval);
+   `test_corpus` 3 passed/83 subtests. (The terminal
+   `int(argmax(...).item())` is the program-terminal commit edge —
+   BORDERLINE/output boundary, intentionally left.)
 
 8. **Slot store / array-from-literal** —
    `codegen_pytorch.py:996` (`s = int(slot_idx) % n_planes` — host
