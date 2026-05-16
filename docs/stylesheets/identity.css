@@ -109,3 +109,110 @@ body, .md-header, .md-footer, .md-typeset {
   color: var(--md-primary-bg-color);
   transform: translateY(-1px);
 }
+
+/* ===================================================================
+   Material chrome → Lacquer (APPEARANCE ONLY — no nav/IA changes, no
+   content, no claims, no math touched). The structure, the GitHub
+   repo widget, and search are kept exactly as-is (Emma likes them);
+   this only makes the chrome look like the polished sister sites
+   instead of a bright purple Material bar.
+   =================================================================== */
+
+/* Header: dark Lacquer, not the bright accent bar. */
+.md-header {
+  background-color: var(--md-default-bg-color--light);
+  color: var(--md-default-fg-color);
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  box-shadow: none;
+}
+.md-header--shadow { box-shadow: 0 0 12px rgba(0,0,0,0.35); }
+.md-header__title { color: var(--md-default-fg-color); font-weight: 600; }
+.md-header__button { color: var(--md-default-fg-color); }
+.md-header__button:hover { opacity: 1; color: var(--md-primary-fg-color--light); }
+.md-header__topic { font-weight: 600; }
+
+/* The GitHub repo widget — Emma's favourite. Keep it, just make it
+   read cleanly on the dark header and give it a subtle pill. */
+.md-header__source {
+  color: var(--md-default-fg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  background: var(--md-accent-fg-color--transparent);
+  transition: border-color .2s, background .2s;
+}
+.md-header__source:hover { border-color: var(--md-primary-fg-color); }
+.md-source__repository { opacity: 1; }
+
+/* Header element order (Emma's request): search on one side; the
+   dark/light toggle sits right next to the GitHub widget on the
+   other. .md-header__inner is a flex row — reorder its children;
+   the (often empty under tabs) title acts as the flexible spacer. */
+.md-header__inner > .md-header__button.md-logo { order: 1; }
+.md-header__inner > .md-search { order: 2; }
+.md-header__inner > .md-header__title { order: 3; flex-grow: 1; }
+.md-header__inner > .md-header__option { order: 4; }
+.md-header__inner > [data-md-component="palette"] { order: 4; }
+.md-header__inner > .md-header__source { order: 5; margin-left: 12px; }
+
+/* Search field: dark, accent on focus. */
+.md-search__form {
+  background-color: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.md-search__form:hover { background-color: var(--md-default-bg-color); }
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form,
+.md-search__form:focus-within { border-color: var(--md-primary-fg-color); }
+.md-search__input { color: var(--md-default-fg-color); }
+.md-search__input::placeholder { color: var(--md-default-fg-color--light); }
+.md-search__output { border-radius: 8px; }
+
+/* Tabs bar: dark, accent on the active tab. */
+.md-tabs {
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color--light);
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+.md-tabs__link { opacity: 1; color: var(--md-default-fg-color--light); transition: color .2s; }
+.md-tabs__link:hover,
+.md-tabs__link--active { color: var(--md-primary-fg-color--light); }
+
+/* Left nav: accent the active page, like the sister sites. */
+.md-nav__link:hover,
+.md-nav__link:focus { color: var(--md-primary-fg-color--light); }
+.md-nav__link--active,
+.md-nav__item .md-nav__link--active { color: var(--md-primary-fg-color); font-weight: 600; }
+
+/* grid cards → the shared .card feel (lift + accent border on hover). */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > .card,
+.md-typeset .grid > .card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 14px;
+  background: var(--md-code-bg-color);
+  transition: transform .25s, border-color .25s, box-shadow .25s;
+}
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > .card:hover,
+.md-typeset .grid > .card:hover {
+  transform: translateY(-2px);
+  border-color: var(--md-primary-fg-color);
+  box-shadow: 0 18px 40px -26px var(--md-accent-fg-color--transparent);
+}
+
+/* Admonitions: Lacquer-tinted, rounded — not default Material teal.
+   (The homepage substrate-purity / honesty notice is an admonition;
+   this only restyles its frame, never its text.) */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 12px;
+  border-left-width: 3px;
+}
+.md-typeset .admonition-title,
+.md-typeset summary {
+  background: var(--md-accent-fg-color--transparent);
+}
+
+/* Footer: quiet, matches the dark surface. */
+.md-footer-meta { background-color: var(--md-footer-bg-color--dark, var(--md-default-bg-color)); }
