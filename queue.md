@@ -90,15 +90,23 @@ not `intrinsic` + docstring. Status of the three prerequisites:
       *internally* (one-hot dot, substrate-pure), so the literate
       body is `return realExp(z) * imaginaryExp(z)` with NO
       `.real`/`.imaginary` member access needed.
-  (c) namespaced-stdlib inlining so `Math.exp(z)` resolves the
-      `.su` body — **REMAINS**, now unblocked. ~10-line inliner
-      change (resolve `Call(MemberAccess(Math, m))` against the
-      stdlib table) + write the math.su bodies as bare-sibling
-      reductions (`exp(z){ return realExp(z)*imaginaryExp(z); }`,
-      `cos(z){ return cexp(...) ... }` etc.). Verify end-to-end
-      (test_transcendentals + complex ground truth + corpus +
-      smoke + leak grep) before marking done; revert if it does
-      not fully verify (the discipline held last time). Task #12.
+  (c) namespaced-stdlib inlining — ✅ MECHANISM DONE + verified
+      2026-05-16. `Call(MemberAccess(Math, m))` now resolves the
+      stdlib `.su` single-return body; empirically `Math.exp(2.0)`
+      → `_VSA.realExp(2.0)*_VSA.imaginaryExp(2.0)`. Inert+safe with
+      all-intrinsic math.su (39 passed/103 subtests + smoke, zero
+      regression). **Two bounded steps remain, precisely named in
+      `planning/findings/2026-05-16-literate-math-inliner-
+      mechanism.md`:** (1) extend `_is_complex_expr`
+      (`codegen_base.py:2323`) to a `Call`→`complex` return-type
+      case so `realExp(z)*imaginaryExp(z)` dispatches to
+      `complex_mul` (currently element-wise = silently wrong;
+      this is why the literate body was NOT shipped — gate: the
+      whole complex test suite); (2) put the literate reduction on
+      `cexp` (declared `complex`), keep `exp`/`cos`/`sin` as the
+      verified intrinsic scalar boundary (no scalar→number
+      migration needed). Task #12 — NOT done; the mechanism is,
+      the type-dispatch + cexp-body steps are not.
 
 ### 2. Audit.md REAL LEAK list — 5 of 8 resolved+verified; 3 structural left
 

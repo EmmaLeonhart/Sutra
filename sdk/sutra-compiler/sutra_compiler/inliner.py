@@ -216,6 +216,21 @@ def _rewrite_expr(expr, table):
         if (isinstance(expr.callee, ast.Identifier)
                 and expr.callee.name in table):
             return _do_inline(expr, table[expr.callee.name], table)
+        # Namespaced stdlib call `Math.exp(z)` — callee is a
+        # MemberAccess, not a bare Identifier. The loader registers
+        # class static methods under both `exp` and `Math.exp`;
+        # resolve the qualified name so a class-bodied stdlib method
+        # body IS the executable beta-reduction (the language's whole
+        # premise) rather than a call into a `Math` object that does
+        # not exist in the emitted module. Single-return bodies
+        # inline; intrinsic leaves (no body) are absent from the
+        # inlineable table and pass through to the codegen `_VSA.*`
+        # dispatch unchanged.
+        if (isinstance(expr.callee, ast.MemberAccess)
+                and isinstance(expr.callee.obj, ast.Identifier)):
+            qualified = f"{expr.callee.obj.name}.{expr.callee.member}"
+            if qualified in table:
+                return _do_inline(expr, table[qualified], table)
         return expr
 
     if isinstance(expr, ast.BinaryOp):
