@@ -37,21 +37,23 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.action.edit
+  # Dark is the default (slate listed first, no prefers-color-scheme
+  # media) to match the shared identity at emmaleonhart.com/_identity/.
+  # The toggle is kept (Material persists the choice in localStorage);
+  # the Lacquer palette is applied via extra_css → stylesheets/identity.css.
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: deep purple
-      accent: indigo
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+    - scheme: slate
       primary: deep purple
       accent: indigo
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
   font:
     text: Inter
     code: JetBrains Mono
@@ -132,6 +134,9 @@ nav:
     # HTML site lives under sutraDB/pages/ and is mounted at /SutraDB/
     # on this Pages deploy by the pages.yml workflow.
     - SutraDB: /SutraDB/
+
+extra_css:
+  - stylesheets/identity.css
 
 extra_javascript:
   - assets/js/bind-unbind.js
