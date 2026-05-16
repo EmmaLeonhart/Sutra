@@ -23,7 +23,7 @@ The repository has two audiences and they read different files. Do not conflate 
 
 - **AI agents and contributors read the repo Markdown.** That includes this `CLAUDE.md`, the `AGENTS.md` index at the repo root, `queue.md`, `todo.md`, `DEVLOG.md`, `paper/`, `paper/supplementary/`, and everything under `planning/` (`sutra-spec/`, `findings/`, `open-questions/`, `exploratory/`). This is the canonical, fullest-fidelity surface — when something is true about Sutra, it's true here first.
 
-- **Humans read the website at `sutralang.dev`,** sourced from `docs/`. The website is for a less technical audience. It does not reference repo-internal scratchpad files (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...` paths). Do not put internal-scratchpad references in `docs/`. If a website page wants to point at "the spec" or "the open questions," it points at another website page or just describes the fact in plain text — it does not link into the repo's internal Markdown.
+- **Humans read the website at `sutra.emmaleonhart.com`,** sourced from `docs/`. The website is for a less technical audience. It does not reference repo-internal scratchpad files (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...` paths). Do not put internal-scratchpad references in `docs/`. If a website page wants to point at "the spec" or "the open questions," it points at another website page or just describes the fact in plain text — it does not link into the repo's internal Markdown.
 
 The two surfaces are **not generated from the same source**. `docs/` is hand-written for the website; the canonical Markdown elsewhere in the repo is hand-written for agents. They are allowed to drift in framing, level of detail, and which examples they pick. They must not contradict each other on facts.
 
@@ -48,7 +48,7 @@ If you are an AI agent landing in this repo, start with `AGENTS.md` for the file
 - **No runtime errors by mechanism.** Type mismatches produce semantically meaningless but mathematically valid output. The compiler is the last line of defense.
 - **Opinionated, not authoritarian.** Harmful patterns warn loudly but still compile. Escape hatches are explicit and grep-able.
 
-An MCP server is a core part of the language runtime. The website (`sutralang.dev`, sourced from `docs/`) is the human-facing surface — see §"Audiences" below.
+An MCP server is a core part of the language runtime. The website (`sutra.emmaleonhart.com`, sourced from `docs/`) is the human-facing surface — see §"Audiences" below.
 
 ### Next venue target: NeurIPS
 
