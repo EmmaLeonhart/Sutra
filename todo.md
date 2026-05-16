@@ -1,5 +1,81 @@
 # Sutra — consolidated TODO
 
+> ## 📋 ACTION FOR EMMA — set up the daily cloud-audit routine
+>
+> The `RemoteTrigger` tool fails in-session (every call arrives with
+> empty params — harness bug, not a param issue), so this routine
+> can't be created programmatically. Create it once by hand at
+> **https://claude.ai/code/routines** with the config below. The web
+> UI uses the same cloud mechanism, so it runs even when no local
+> session / machine is up. Delete this block once the routine exists.
+>
+> **Routine config**
+> - **Name:** `Sutra daily substrate-leak + stale-open-question audit`
+> - **Schedule (cron, UTC):** `17 9 * * *` (daily 09:17 UTC ≈ 02:17
+>   America/Vancouver, overnight)
+> - **Repo:** `https://github.com/EmmaLeonhart/Sutra`
+> - **Model:** `claude-opus-4-7` (safety-critical)
+> - **Environment:** Default
+> - **Tools:** Bash, Read, Write, Edit, Glob, Grep
+>
+> **Prompt (paste verbatim):**
+>
+> ```
+> Daily substrate-leak + stale-open-question audit for the Sutra repo,
+> a SAFETY-CRITICAL compiler. Do NOT fake results.
+>
+> 1. git pull origin master (fresh).
+>
+> 2. SUBSTRATE-LEAK AUDIT.
+>    (a) cd sdk/sutra-compiler && python ../../experiments/substrate_leak_sweep.py
+>        — compiles every corpus+examples .su and greps emitted Python
+>        for raw-operator leaks; rc != 0 means a leak.
+>    (b) Grep the emitted runtime in sutra_compiler/codegen_pytorch.py
+>        for host-scalar leak signatures INSIDE op definitions: float(,
+>        .item(), _math., _np., "for ... in range", host if/raise on a
+>        scalar. Cross-check Audit.md's REAL LEAK / BORDERLINE /
+>        LEGITIMATE taxonomy so the compile-time-constant cache guards,
+>        the _st()/_cnum entry boundary, and monitoring accessors are
+>        NOT re-flagged.
+>    (c) Re-read Audit.md REAL LEAK: verify ones marked FIXED still
+>        show 0 leak signatures + their cited test; confirm the still-
+>        open ones (#3 promise await loop, #4 generic loop runtime
+>        host for, #5 string host codepoint loops) are still accurate.
+>
+> 3. STALE-OPEN-QUESTION AUDIT. For every planning/open-questions/*.md
+>    and every entry in planning/sutra-spec/open-questions.md, check
+>    whether it is actually already decided elsewhere — planning/
+>    sutra-spec/*.md, todo.md, DEVLOG.md, or a dated planning/findings/
+>    doc. "Resolved elsewhere" = the design it asks about is specified
+>    authoritatively even though the open-question file still says
+>    open. (This failure occurred 2026-05-15: the unified-complex-
+>    number representation was treated as open when todo.md fully
+>    specifies it. The open-questions README now has a verdict table —
+>    cross-check it; flag any drift.)
+>
+> 4. IF ANYTHING FOUND: prepend ONE concrete fix item to the TOP of
+>    queue.md's Active queue — immediately after the "## super active"
+>    block, before the existing first item, so it is the new highest
+>    priority. Leak: name file:line + the fix shape (tensors in ->
+>    tensor ops -> tensors out; saturate, never raise). Resolved-
+>    elsewhere question: name the open-question file AND the
+>    authoritative location that resolves it, and say to reduce the
+>    doc to a pointer. Then git add + commit ("daily audit: <finding>")
+>    + git push (git pull --rebase then push if rejected; stash
+>    .claude/*.lock if it blocks the rebase; never discard others'
+>    work).
+>
+> 5. IF CLEAN: do not invent work. Append one line to DEVLOG.md:
+>    "<UTC date> daily audit: clean (<N> .su compiled, 0 leaks; <M>
+>    open-questions checked, 0 resolved-elsewhere)", commit + push.
+>    That is the honest no-op.
+>
+> 6. Honor CLAUDE.md. Never relax a gate, doctor a number, or mark
+>    anything resolved you did not verify. If the audit itself cannot
+>    run (e.g. torch missing), write that in the DEVLOG line and exit
+>    nonzero rather than reporting a false clean.
+> ```
+
 > ## ⛔ TOP PRIORITY — go through `Audit.md` and fix the substrate leaks
 >
 > `Audit.md` (repo root) is the running catalogue of every place the
