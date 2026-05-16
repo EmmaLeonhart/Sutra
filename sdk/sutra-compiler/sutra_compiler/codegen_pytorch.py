@@ -1993,21 +1993,31 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def defuzzify_trit(self, v, iters=10, beta=2.0):")
         self._indent += 1
-        self._emit('"""Three-way polarizer toward {-1, 0, +1} — torch version."""')
-        self._emit("x = float(v[self.semantic_dim + self.AXIS_TRUTH].item())")
-        self._emit("b = float(beta)")
-        self._emit("for _ in range(int(iters)):")
-        self._indent += 1
-        self._emit("import math as _math")
-        self._emit("w_neg = _math.exp(-b * (x + 1.0) ** 2)")
-        self._emit("w_zero = _math.exp(-b * x ** 2)")
-        self._emit("w_pos = _math.exp(-b * (x - 1.0) ** 2)")
-        self._emit("s = w_neg + w_zero + w_pos")
-        self._emit("x = (-w_neg + w_pos) / s")
-        self._emit("b *= 2.0")
-        self._indent -= 1
+        self._emit('"""Three-way polarizer toward {-1, 0, +1}. Substrate-pure')
+        self._emit('(Audit REAL LEAK #2; was float(v[..].item()) + host for-range')
+        self._emit('+ _math.exp + float(x) writeback). Reads the truth axis as a')
+        self._emit('0-d tensor view (no .item()/float()), runs the spec-fixed')
+        self._emit('10-step beta-sharpening as a straight-line tensor-op chain')
+        self._emit('unrolled at codegen time (like the defuzzy loop(10): the')
+        self._emit('unrolled form is what the fusion pass targets), each step')
+        self._emit('three substrate-pure self.exp readouts, then a 0-d-tensor')
+        self._emit('scatter back onto the truth axis. The iters arg is kept for')
+        self._emit('signature compat; the spec definition is 10, like defuzzy."""')
+        self._emit("idx = self.semantic_dim + self.AXIS_TRUTH")
+        self._emit("x = v[idx]")
+        self._emit("b = self._st(beta)")
+        # Emit-time unroll: the spec-level definition is 10 iterations
+        # (defuzzy is loop(10)). Unrolling here means the EMITTED code
+        # is a straight-line tensor-op chain — no runtime host `for`.
+        for _ in range(10):
+            self._emit("w_neg = self.exp(-b * (x + 1.0) ** 2)")
+            self._emit("w_zero = self.exp(-b * x ** 2)")
+            self._emit("w_pos = self.exp(-b * (x - 1.0) ** 2)")
+            self._emit("s = w_neg + w_zero + w_pos")
+            self._emit("x = (-w_neg + w_pos) / s")
+            self._emit("b = b * 2.0")
         self._emit("out = v.clone()")
-        self._emit("out[self.semantic_dim + self.AXIS_TRUTH] = float(x)")
+        self._emit("out[idx] = x")
         self._emit("return out")
         self._indent -= 1
         self._emit()
