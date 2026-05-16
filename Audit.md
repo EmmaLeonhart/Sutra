@@ -123,7 +123,30 @@ saturate instead of raise.
    `int(argmax(...).item())` is the program-terminal commit edge —
    BORDERLINE/output boundary, intentionally left.)
 
-8. **Slot store / array-from-literal** —
+8. **Slot store / array-from-literal** — ✅ slot_store FIXED
+   2026-05-15; the other two cited sites are legitimate boundaries.
+   - `slot_store` `new[i] = float(scalar)` was a substrate→host
+     extraction (when `scalar` is a 0-d tensor). Now
+     `new[i] = self._st(scalar)` / `new[j] = self._st(0.0)` — the
+     `_st()` boundary (no-op view on an already-tensor value; the
+     literal entry boundary for a host literal). Verified: 0 code
+     leak signatures; loop runtime suites 30 passed;
+     `examples/_smoke_test.py` PASS.
+   - `_slot_plane` `s = int(slot_idx) % n_planes`: `slot_idx` is a
+     **structural** slot index (which slot the compiler assigned),
+     like `semantic_dim + AXIS_REAL` — not a runtime data value.
+     Host int arithmetic on a layout index is legitimate (same
+     class as the LEGITIMATE compile-time-constant axis indices).
+     The `if n_planes <= 0: raise` is a layout-config invariant
+     (the synthetic subspace is too small to hold any slot), not
+     data-dependent control flow. No action.
+   - `array_from_literal` (`arr[0]=float(len(values))`,
+     `arr[1+i]=float(v)`): literal lift — the host→substrate entry
+     boundary for a source-level `[1,2,3]` array literal, the
+     `make_real`/`_st` analogue. Defensible boundary per this
+     section's own BORDERLINE rule. No action.
+
+   (original citation continued:)
    `codegen_pytorch.py:996` (`s = int(slot_idx) % n_planes` — host
    int modulo), `1005` (`new[i] = float(scalar)`), `1030-1033`
    (`arr[…] = float(len/ v)` + host `for`). Literal lift is a
