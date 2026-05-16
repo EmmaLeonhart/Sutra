@@ -74,20 +74,25 @@ class Math extends vector {
     static intrinsic method scalar cos(scalar x);
     static intrinsic method scalar sin(scalar x);
 
-    // pow  — change of base:  x^y = e^(y · ln x).
-    // sqrt — the y = 1/2 case:  √x = e^(0.5 · ln x). x near 0 saturates
-    //   at the log table edge — an honest reflection of the codebook.
-    static intrinsic method scalar pow(scalar x, scalar y);
-    static intrinsic method scalar sqrt(scalar x);
+    // The remaining transcendentals are literate bodies — the
+    // documented identity IS the executable source (inliner expands
+    // Math.<f>(x) to exactly this over the intrinsic scalar leaves;
+    // `*` / `/` here are real-scalar element-wise, correct, since
+    // exp/log/sin/cos are scalar-typed so `*` is not complex_mul).
 
-    // tan — the rotation's slope sin/cos. At odd multiples of π/2 cos → 0
-    //   and the quotient → ±inf (the valid limit; no host `if cos == 0`).
-    static intrinsic method scalar tan(scalar x);
+    // pow — change of base:  x^y = e^(y · ln x).
+    static method scalar pow(scalar x, scalar y) { return exp(y * log(x)); }
+
+    // sqrt — the y = 1/2 case:  √x = e^(0.5 · ln x).
+    static method scalar sqrt(scalar x) { return exp(0.5 * log(x)); }
+
+    // tan — the rotation's slope sin/cos. cos → 0 ⇒ ±inf (valid limit).
+    static method scalar tan(scalar x) { return sin(x) / cos(x); }
 
     // sinh = (e^x − e^−x)/2   cosh = (e^x + e^−x)/2
-    // tanh = (e^2x − 1)/(e^2x + 1)  [stable form]; for large |x| exp
-    //   saturates at the table edge so tanh → ±1, the correct limit.
-    static intrinsic method scalar sinh(scalar x);
-    static intrinsic method scalar cosh(scalar x);
-    static intrinsic method scalar tanh(scalar x);
+    // tanh = (e^2x − 1)/(e^2x + 1)  [stable]; large |x| ⇒ exp saturates
+    //   so tanh → ±1, the correct limit.
+    static method scalar sinh(scalar x) { return (exp(x) - exp(0 - x)) * 0.5; }
+    static method scalar cosh(scalar x) { return (exp(x) + exp(0 - x)) * 0.5; }
+    static method scalar tanh(scalar x) { return (exp(2 * x) - 1) / (exp(2 * x) + 1); }
 }
