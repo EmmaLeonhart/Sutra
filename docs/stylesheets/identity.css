@@ -34,6 +34,13 @@
   --md-footer-bg-color:         #0c0c14;
   --md-footer-bg-color--dark:   #07070c;
   --md-footer-fg-color:         #d4d4e0;
+
+  /* Calmer filled-button colour (matches emmaleonhart.com canonical
+     --accent-deep). The old bright fill + near-black label read as
+     garish — Emma's "worst visual part of the Sutra site". */
+  --btn-fill:       #5e6ad2;
+  --btn-fill-hover: #707cdf;
+  --btn-on:         #eceefb;
 }
 
 /* ---- Light : Lacquer light ---- */
@@ -62,6 +69,10 @@
 
   --md-footer-bg-color:         #2b2b38;
   --md-footer-fg-color:         #f4f4f8;
+
+  --btn-fill:       #4b59c9;
+  --btn-fill-hover: #5160dd;
+  --btn-on:         #ffffff;
 }
 
 /* Shared accents: Inter/JetBrains-Mono are already the Material defaults
@@ -98,16 +109,18 @@ body, .md-header, .md-footer, .md-typeset {
   transform: translateY(-1px);
 }
 .md-typeset .md-button--primary {
-  background: var(--md-primary-fg-color);
-  border-color: var(--md-primary-fg-color);
-  color: var(--md-primary-bg-color);
+  background: linear-gradient(135deg, var(--btn-fill) 0%, var(--btn-fill-hover) 100%);
+  border-color: var(--btn-fill);
+  color: var(--btn-on);
+  box-shadow: 0 8px 24px -12px var(--md-typeset-mark-color);
 }
 .md-typeset .md-button--primary:focus,
 .md-typeset .md-button--primary:hover {
-  background: var(--md-primary-fg-color--light);
-  border-color: var(--md-primary-fg-color--light);
-  color: var(--md-primary-bg-color);
+  background: linear-gradient(135deg, var(--btn-fill-hover) 0%, var(--md-primary-fg-color--light) 130%);
+  border-color: var(--btn-fill-hover);
+  color: var(--btn-on);
   transform: translateY(-1px);
+  box-shadow: 0 10px 30px -10px var(--md-typeset-mark-color);
 }
 
 /* ===================================================================
