@@ -7,8 +7,8 @@ name: Deploy GitHub Pages site
 # repo's Pages settings need to be set to "Source: GitHub Actions"
 # (Settings → Pages → Build and deployment → Source).
 #
-# Live at: https://sutralang.dev
-# (Custom domain — docs/CNAME pins the Pages deploy to sutralang.dev
+# Live at: https://sutra.emmaleonhart.com
+# (Custom domain — docs/CNAME pins the Pages deploy to sutra.emmaleonhart.com
 # and MkDocs copies the CNAME file into the build output where
 # GitHub Pages picks it up on deploy. DNS for the domain is
 # configured by the domain owner outside this repo; see GitHub's
@@ -30,7 +30,7 @@ on:
       - '.github/workflows/pages.yml'
       # The supplementary zip is built and deployed here too, so any
       # change that affects what goes into it should retrigger the
-      # workflow. Without these, sutralang.dev/sutra-neurips-
+      # workflow. Without these, sutra.emmaleonhart.com/sutra-neurips-
       # supplementary.zip stays stale across `sdk/`-only or
       # `scripts/`-only commits.
       - 'scripts/build_supplementary_zip.py'
@@ -178,7 +178,7 @@ jobs:
           # SutraDB keeps its own static HTML site under sutraDB/pages/
           # (index.html, style.css, subdirectories for each section).
           # Mount it at /SutraDB/ on the main Sutra language site so that
-          # https://sutralang.dev/SutraDB/ serves the database's own
+          # https://sutra.emmaleonhart.com/SutraDB/ serves the database's own
           # landing page. SutraDB is a core piece of the Sutra ecosystem —
           # the language programs vectors, the database stores them — and
           # a single integrated docs site is the least surprising place

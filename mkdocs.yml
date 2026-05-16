@@ -2,14 +2,14 @@
 # Built and deployed by .github/workflows/pages.yml on every push to master
 # that touches docs/, mkdocs.yml, README.md, or planning/sutra-spec/.
 #
-# Live at: https://sutralang.dev
+# Live at: https://sutra.emmaleonhart.com
 # (Custom domain pinned via docs/CNAME, which MkDocs copies into the
 # build output where GitHub Pages picks it up. DNS is configured by
 # the domain owner outside this repo.)
 
 site_name: Sutra 📜
 site_description: "\U0001F4DC Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications."
-site_url: https://sutralang.dev
+site_url: https://sutra.emmaleonhart.com
 site_author: Emma Leonhart
 
 repo_url: https://github.com/EmmaLeonhart/Sutra

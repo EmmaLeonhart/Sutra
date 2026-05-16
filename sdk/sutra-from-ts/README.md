@@ -1,6 +1,6 @@
 # sutra-from-ts
 
-Transpile a typed core of TypeScript — and JavaScript treated as untyped TypeScript — into [Sutra](https://sutralang.dev) (`.su`) source.
+Transpile a typed core of TypeScript — and JavaScript treated as untyped TypeScript — into [Sutra](https://sutra.emmaleonhart.com) (`.su`) source.
 
 ## Status: working
 
