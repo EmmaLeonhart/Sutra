@@ -1836,6 +1836,24 @@ class PyTorchCodegen(Codegen):
         self._emit("return 2 + (self.synthetic_dim - 5)")
         self._indent -= 1
         self._emit()
+        self._emit("def _str_axes(self):")
+        self._indent += 1
+        self._emit('"""Cached constant LongTensor of the absolute vector offsets')
+        self._emit('that hold the String codepoints, in char order: offset k =')
+        self._emit('semantic_dim + (k if k<2 else k+3), for k in 0..max_len-1.')
+        self._emit('Built once at first use (a compile-time-shaped constant, the')
+        self._emit('same class as the exp/trig lookup tables) so string_length /')
+        self._emit('char_at / concat are pure tensor gather/scatter over the')
+        self._emit('codepoint block instead of host codepoint loops."""')
+        self._emit("if not hasattr(self, '_str_axes_cache') or self._str_axes_cache is None:")
+        self._indent += 1
+        self._emit("ml = self.string_max_length()")
+        self._emit("offs = [self.semantic_dim + (k if k < 2 else k + 3) for k in range(ml)]")
+        self._emit("self._str_axes_cache = _torch.tensor(offs, dtype=_torch.long, device=self.device)")
+        self._indent -= 1
+        self._emit("return self._str_axes_cache")
+        self._indent -= 1
+        self._emit()
         self._emit("def make_string(self, s):")
         self._indent += 1
         self._emit('"""Construct a String value from a Python str."""')
@@ -1844,12 +1862,12 @@ class PyTorchCodegen(Codegen):
         self._emit("s = str(s)")
         self._indent -= 1
         self._emit("max_len = self.string_max_length()")
-        self._emit("if len(s) > max_len:")
-        self._indent += 1
-        self._emit("raise ValueError(")
-        self._emit('"string %r length %d exceeds synthetic-axis budget %d; '
-                   'increase synthetic_dim" % (s, len(s), max_len))')
-        self._indent -= 1
+        self._emit("# Saturate, do not raise (no-runtime-errors-by-mechanism):")
+        self._emit("# a literal longer than the synthetic budget truncates at")
+        self._emit("# the cap rather than throwing. This enumerate is the")
+        self._emit("# host-literal -> substrate ENTRY boundary (the make_real /")
+        self._emit("# _st analogue), not an op-internal substrate read.")
+        self._emit("s = s[:max_len]")
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._emit("v[self.semantic_dim + self.AXIS_STRING_FLAG] = 1.0")
         self._emit("for k, ch in enumerate(s):")
@@ -1868,33 +1886,33 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def string_length(self, v):")
         self._indent += 1
-        self._emit('"""Return the length of String v by scanning from the')
-        self._emit('highest possible char position down to the first non-zero')
-        self._emit('codepoint. Trailing-zero-as-sentinel: a string with')
-        self._emit('codepoint 0 in its tail will read shorter than written."""')
-        self._emit("max_k = self.string_max_length()")
-        self._emit("for k in range(max_k - 1, -1, -1):")
-        self._indent += 1
-        self._emit("axis = self._string_axis(k)")
-        self._emit("if v[self.semantic_dim + axis].item() != 0.0:")
-        self._indent += 1
-        self._emit("return k + 1")
-        self._indent -= 1
-        self._indent -= 1
-        self._emit("return 0")
+        self._emit('"""Length of String v, substrate-pure (Audit REAL LEAK #5;')
+        self._emit('was a host `for k in range`, `.item()`, host `if`, host')
+        self._emit('`return k+1`). Gather the codepoint block, mark non-zero')
+        self._emit('positions, take the highest 1-based position that is')
+        self._emit('non-zero: length = max((k+1) where cps[k] != 0). All tensor')
+        self._emit('ops; 0-d tensor out. Trailing-zero-as-sentinel preserved')
+        self._emit('(a 0 codepoint in the tail reads shorter, same as before)."""')
+        self._emit("ax = self._str_axes()")
+        self._emit("cps = v.index_select(0, ax)")
+        self._emit("nz = (cps != 0).to(self.dtype)")
+        self._emit("pos = _torch.arange(1, ax.shape[0] + 1, dtype=self.dtype, device=self.device)")
+        self._emit("return (pos * nz).max()")
         self._indent -= 1
         self._emit()
         self._emit("def string_char_at(self, v, i):")
         self._indent += 1
-        self._emit('"""Return the codepoint at position i (as an int). Out-of-')
-        self._emit('range positions return 0."""')
-        self._emit("i = int(i) if not isinstance(i, int) else i")
-        self._emit("if i < 0 or i >= self.string_max_length():")
-        self._indent += 1
-        self._emit("return 0")
-        self._indent -= 1
-        self._emit("axis = self._string_axis(i)")
-        self._emit("return int(v[self.semantic_dim + axis].item())")
+        self._emit('"""Codepoint at position i, substrate-pure (Audit REAL LEAK')
+        self._emit('#5; was `int(i)`, host `if i<0 or i>=...`, `int(.item())`).')
+        self._emit('Gather the codepoint block, mask out-of-range to 0 (saturate,')
+        self._emit('no host branch/raise). 0-d tensor out."""')
+        self._emit("ax = self._str_axes()")
+        self._emit("n = ax.shape[0]")
+        self._emit("it = self._st(i)")
+        self._emit("valid = ((it >= 0) & (it < n)).to(self.dtype)")
+        self._emit("ci = it.clamp(0, n - 1).long()")
+        self._emit("cps = v.index_select(0, ax)")
+        self._emit("return cps[ci] * valid")
         self._indent -= 1
         self._emit()
         self._emit("def wrap(self, value):")
@@ -2061,36 +2079,38 @@ class PyTorchCodegen(Codegen):
         self._emit('then b into a fresh String vector. Overflow (a-len + b-len')
         self._emit('exceeds string_max_length) raises — the synthetic budget is')
         self._emit('a hard cap. 2026-05-08 addition for TS string + string."""')
+        self._emit('# Substrate-pure (Audit REAL LEAK #5; was string_length host')
+        self._emit('# ints + `if la+lb>max: raise` + two host `for` copy loops).')
+        self._emit('# Concat = shift b right by len(a) and add: a permutation')
+        self._emit('# (gather by a shifted index) of the codepoint block, the')
+        self._emit('# VSA-native operation Emma specified. Overflow positions')
+        self._emit('# fall off the gather mask = saturate, no raise (no-runtime-')
+        self._emit('# errors-by-mechanism). All tensor ops.')
+        self._emit("ax = self._str_axes()")
+        self._emit("n = ax.shape[0]")
         self._emit("la = self.string_length(a)")
-        self._emit("lb = self.string_length(b)")
-        self._emit("max_len = self.string_max_length()")
-        self._emit("if la + lb > max_len:")
-        self._indent += 1
-        self._emit("raise ValueError(")
-        self._emit('"concat result length %d exceeds synthetic-axis budget %d; '
-                   'increase synthetic_dim" % (la + lb, max_len))')
-        self._indent -= 1
+        self._emit("a_cps = a.index_select(0, ax)")
+        self._emit("b_cps = b.index_select(0, ax)")
+        self._emit("src = _torch.arange(n, dtype=self.dtype, device=self.device) - la")
+        self._emit("sv = ((src >= 0) & (src < n)).to(self.dtype)")
+        self._emit("b_shift = b_cps[src.clamp(0, n - 1).long()] * sv")
+        self._emit("out_cps = a_cps + b_shift")
         self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._emit("v[self.semantic_dim + self.AXIS_STRING_FLAG] = 1.0")
-        self._emit("for k in range(la):")
-        self._indent += 1
-        self._emit("axis = self._string_axis(k)")
-        self._emit("v[self.semantic_dim + axis] = a[self.semantic_dim + axis]")
-        self._indent -= 1
-        self._emit("for k in range(lb):")
-        self._indent += 1
-        self._emit("src_axis = self._string_axis(k)")
-        self._emit("dst_axis = self._string_axis(la + k)")
-        self._emit("v[self.semantic_dim + dst_axis] = b[self.semantic_dim + src_axis]")
-        self._indent -= 1
+        self._emit("v = v.index_copy(0, ax, out_cps)")
         self._emit("return v")
         self._indent -= 1
         self._emit()
         self._emit("def string_to_python(self, v):")
         self._indent += 1
-        self._emit('"""Decode a String value back to a Python str. Useful for')
-        self._emit('returning string-valued results to the host."""')
-        self._emit("n = self.string_length(v)")
+        self._emit('"""Decode a String value back to a Python str. This is the')
+        self._emit('substrate -> host MONITORING / decode boundary (CLAUDE.md')
+        self._emit('explicitly allows decoding substrate output for reporting),')
+        self._emit('the analogue of argmax_cosine returning a host index at the')
+        self._emit('terminal commit. The int()/.item() here are AT that boundary,')
+        self._emit('not inside a substrate op definition. string_length is now a')
+        self._emit('0-d tensor, so coerce once here for the host range."""')
+        self._emit("n = int(self.string_length(v).item())")
         self._emit("chars = []")
         self._emit("for i in range(n):")
         self._indent += 1
