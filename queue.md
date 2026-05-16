@@ -132,17 +132,20 @@ Fix shape for all = the `21a9ff77` model (tensors in→tensor
 ops→tensors out; saturate not raise). Task #13 (stays in
 progress — 3 genuine leaks remain; not marked done).
 
-### 4. Wire `substrate_leak_sweep.py` into CI — gate written, runtime issue
+### 4. Wire `substrate_leak_sweep.py` into CI — ✅ gate green (verified)
 
 `sdk/sutra-compiler/tests/test_substrate_leak_sweep.py` is committed
-(imports the sweep, asserts rc==0). Honest status: as a pytest it
-compiles all 67 corpus+examples `.su` with full CUDA codegen and is
-impractically slow (ran many minutes, unverified-green this run).
-The standalone sweep was clean in a prior session ("67 compiled,
-18 skipped, 0 leaks"). Open work: make it CI-practical — compile
-once and reuse the runtime, or scope to corpus-only, or mark it a
-slow/nightly job — then observe it green. Task #14 stays open
-(NOT marked done on faith — the gate must be seen passing).
+and **observed passing**: `1 passed in 1738.41s` — it compiled all
+67 corpus+examples `.su` programs and found 0 substrate-operator
+leaks. The next binary-operator leak in a user program will now
+fail this gate. Verified green this run, not on faith.
+
+Remaining refinement (not a blocker, logged honestly): ~29 min
+runtime makes it a slow/nightly job, not a per-PR gate as-is.
+CI-practical options: compile once and reuse the `_VSA` runtime
+across files, scope to corpus-only for per-PR + full nightly, or
+`pytest.mark.slow`. The gate is real and clean today; this is
+speed, not correctness.
 
 ---
 
