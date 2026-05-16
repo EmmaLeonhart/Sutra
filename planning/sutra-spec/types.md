@@ -504,9 +504,20 @@ container the program can reshape.
   steps have been applied. Does that counter have a ceiling?
   What happens when a bool has been defuzzed "all the way" —
   does it become a distinguished value?
-- **Scalars as results.** Can a Sutra function return a `scalar`,
-  or only accept scalars as inputs (thresholds, angles, iteration
-  counts)?
+- ~~**Scalars as results.**~~ **RESOLVED 2026-05-16** (Emma's
+  ruling; `planning/findings/2026-05-16-scalar-is-not-an-open-
+  question.md`). There is no separate `scalar`: a number IS a
+  vector — the value on the number axis, zeros on every other
+  axis, the same ontology as a string (hypervector + flag). A
+  function returning a number returns that vector; "input only"
+  was never a real restriction. Verified in the runtime
+  (`_cnum(x) = _st(x)*_e_real()`; `Math.exp` returns a substrate
+  tensor, no host float). Residue is purely cosmetic: the surface
+  keyword is still spelled `scalar` and should become `number`
+  (a rename + back-compat alias), plus exp/cos/sin currently
+  return the 0-d projection rather than the full number-vector
+  (a mechanical call-site/test migration). Neither is a design
+  question. See §"The number axis and the integer class" above.
 - **Other subtypes of vector.** `probability`, `angle`,
   `unit_vector` are plausible if the subtyping is wanted. Not
   claimed; flagged because they're obvious candidates.
