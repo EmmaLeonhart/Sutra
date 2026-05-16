@@ -76,6 +76,69 @@
 >    nonzero rather than reporting a false clean.
 > ```
 
+> ## 🌅 RESTART HERE (handoff 2026-05-16, end of session)
+>
+> Most of the session's work is done, verified, and pushed
+> (literate-math core; Audit leaks #1/#2/#5/#7/#8; the scalar
+> "question" resolved; open-question triage). Three things remain
+> and are **genuinely hard** — they were left in-progress on
+> purpose, NOT half-finished or faked. Restart on them in this
+> order; each is sized so do not expect a one-pass close.
+>
+> ### 1. Audit REAL LEAK #4 — generic loop runtime host `for`
+> `codegen_pytorch.py` generic loop driver emits
+> `for _t in range(max_iters):` — a host Python loop where the
+> spec says loops are `state ← R·state` on the substrate
+> (control-flow.md). **Why hard:** every `loop`/`while`/`for`/
+> `do-while` in every program lowers through this driver, so the
+> blast radius is the entire control-flow surface. The pieces it
+> needs now exist (rotate_slot is substrate-pure post-`#1`; the
+> eigenrotation primitive is real). **How to do it:** bind the
+> driver to a fixed-T unrolled eigenrotation with a soft-halt
+> mask (the RNN-cell shape in control-flow.md §Loops and
+> `planning/findings/2026-04-30-rnn-loop-architecture.md`), NOT a
+> host counter. **Gate:** `test_branchless_loop` +
+> `test_loop_function_decl` + `examples/_smoke_test.py` all green
+> before it counts; revert if not. Do it deliberately — this is
+> the "do not rush autonomously" item.
+>
+> ### 2. Audit REAL LEAK #3 — promise `await_value` host loop
+> `codegen_pytorch.py:~808` `for _ in range(100):` — host spin
+> instead of the substrate `while_loop` two-channel halt vector
+> (`planning/sutra-spec/promises.md`). **Why hard:** it overlaps
+> the queue Promises work and needs the halt-vector lowering, not
+> a one-liner; partly subsumed once #4's substrate loop driver
+> lands (await is a loop spinning on `isPending`). **How:** do #4
+> first, then express await as that substrate loop. **Gate:** the
+> promise corpus fixtures + smoke.
+>
+> ### 3. Literate-math tail — exp/cos/sin as `.su` bodies
+> Confirmed NOT a design question (scalar↔number is resolved —
+> `planning/findings/2026-05-16-scalar-is-not-an-open-question.md`).
+> It is a **large mechanical migration**: rename the `scalar`
+> primitive keyword → `number` (parser `_PRIMITIVE_TYPES` + a
+> back-compat alias), then drop the 0-d projection so
+> `exp`/`cos`/`sin` return the full number-vector, then fix every
+> `scalar`-typed call site + the whole test corpus. **Why hard:**
+> hundreds of call sites + corpus; high blast radius; tedious not
+> clever. **How:** keyword alias first (zero-behaviour-change,
+> commit), then projection drop behind the verified `cexp`,
+> migrate call sites in batches with the full suite green per
+> batch. cexp + pow/sqrt/tan/sinh/cosh/tanh are already literate
+> and verified — this only finishes exp/cos/sin.
+>
+> Lower-value remainder (do last, or decide to skip): #15 dossier
+> retirement — the `planning/open-questions/README.md` verdict
+> table is authoritative; deleting the 9 RESOLVED/STALE dossier
+> files is a destructive rationale-loss call left for Emma, not a
+> blocker.
+>
+> Discipline that held all session and must keep holding: verify
+> against ground truth + the real test suite before marking
+> anything done; revert rather than ship wrong/half math; read
+> the documented vision (todo.md / spec / findings) before calling
+> anything an "open design gap"; commit+push each verified unit.
+
 > ## ⛔ TOP PRIORITY — go through `Audit.md` and fix the substrate leaks
 >
 > `Audit.md` (repo root) is the running catalogue of every place the
