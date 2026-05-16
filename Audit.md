@@ -57,14 +57,22 @@ saturate instead of raise.
    `examples/_smoke_test.py` PASS (11/11). The numpy/host
    `codegen.py` backend is deprecated and out of scope.
 
-2. **`defuzzify_trit` / `sign_polarize`** —
-   `codegen_pytorch.py:1989-2002`:
-   `x = float(v[…AXIS_TRUTH].item())`, `b = float(beta)`,
-   `for _ in range(int(iters)): …`, `out[…] = float(x)`. The
-   β-sharpening polarizer runs its whole iteration as a host scalar
-   loop. `defuzzy` (the cosine-eq loop) is already pure Sutra in
-   `stdlib/logic.su`; this trit variant is not. Fix: tensor-native
-   polynomial polarization, unrolled like `defuzzy`.
+2. **`defuzzify_trit` / `sign_polarize`** — ✅ FIXED 2026-05-15
+   (autonomous queue run). Was `x = float(v[…AXIS_TRUTH].item())`,
+   `b = float(beta)`, `for _ in range(int(iters))`, `_math.exp`×3,
+   `out[…] = float(x)`. Now: truth axis read as a 0-d tensor view
+   `x = v[idx]` (no `.item()`/`float()`); `b = self._st(beta)`; the
+   spec-fixed 10-step β-sharpening is unrolled at codegen time into
+   a straight-line tensor-op chain (like `defuzzy`'s `loop(10)` —
+   no runtime host `for`), each step three substrate-pure
+   `self.exp` readouts; scatter back `out[idx] = x` (0-d tensor,
+   no `float()`). `i`/`idx` are structural layout indices, not
+   data. Verified: 0 code leak signatures; substrate output
+   matches the documented host algorithm to ≤1.4e-4 across 9
+   inputs (the residual is substrate exp-table precision vs host
+   libm — the honest cost; polarization decisions identical:
+   -0.6→-1, -0.4→0, +0.6→+1); `examples/_smoke_test.py` PASS;
+   `test_corpus`+`test_transcendentals` 6 passed/103 subtests.
 
 3. **Promise await loop** — `codegen_pytorch.py:808`:
    `for _ in range(100):` — `Promise.await_value` spins a host
