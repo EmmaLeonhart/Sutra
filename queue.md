@@ -51,7 +51,7 @@ return). Fixed in `21a9ff77`; **independently re-verified this run**
 The GPU ops in the chain (`matmul`/`clamp`/`round`/elementwise)
 are all SIMD-class, no host branch. Full record:
 `planning/findings/2026-05-15-tanh-audit-and-compiler-restore.md`.
-The website-notice the user asked for is queue item 1 below.
+The website notice the user asked for shipped (`2d821b7d`).
 
 A side-effect found and fixed first: `math.su` had a Java-syntax
 vision block that was a hard parse error — **the compiler was 100%
@@ -60,36 +60,47 @@ down for every program**. Restored (commit `900036df`), verified
 
 ---
 
+## Recently shipped (detail in git log / findings, not re-listed here)
+
+- Website homepage SIMD-GPU-primitive notice — done, `2d821b7d`
+  (task #11). Survives the domain change to sutra.emmaleonhart.com
+  (the notice is in `docs/index.md`, domain-independent).
+- `substrate_leak_sweep.py` CI gate — done + observed green
+  (`1 passed in 1738s`, 67 programs, 0 leaks; task #14). Speed
+  refinement (≈29 min → slow/nightly) is the only follow-on.
+- Transcendentals rewritten to the DOCUMENTED vision — `ecf1c4cd`
+  / `744ec95e`. Canonical d-dim synthetic-axis complex (same repr
+  as `complex_mul`); `exp(z)=realExp(z)⊗imaginaryExp(z)`,
+  `cos=real(cexp(iθ))`, `sin=imag(cexp(iθ))`; verified vs ground
+  truth (12 real + 3 complex incl. `cexp(iπ)=-1`, `cexp(1+iπ/2)=ie`).
+  This **resolved prerequisite (a)** of the literate-math item.
+
 ## Active queue (mirrored to the task tool)
 
-### 1. Website homepage notice — math reduces to SIMD GPU primitives
+### 1. Literate math — make the `.su` bodies the executable reduction
 
-The user asked for this explicitly and repeatedly ("for the love of
-god, put it at the very front of the website"). Add a prominent
-notice at the top of the website home page (`docs/`, served at
-sutralang.dev) stating: all Sutra math reduces to real GPU
-primitives that run in the classic SIMD fashion — no host branches,
-no NumPy on the runtime path. This is the channel the user wants
-the substrate-purity status delivered through. Task #11.
+The user's #1 vision: the `.su` method bodies ARE the beta-reduction,
+not `intrinsic` + docstring. Status of the three prerequisites:
+  (a) unify the complex representation — ✅ DONE 2026-05-15
+      (`ecf1c4cd`). Canonical d-dim complex; `cexp` =
+      `complex_mul(realExp, imaginaryExp)`; verified vs ground
+      truth. The length-2 deviation is gone.
+  (b) substrate-pure `.real`/`.imaginary` projection — ✅ OBVIATED.
+      `realExp`/`imaginaryExp` now project the real/imag axis
+      *internally* (one-hot dot, substrate-pure), so the literate
+      body is `return realExp(z) * imaginaryExp(z)` with NO
+      `.real`/`.imaginary` member access needed.
+  (c) namespaced-stdlib inlining so `Math.exp(z)` resolves the
+      `.su` body — **REMAINS**, now unblocked. ~10-line inliner
+      change (resolve `Call(MemberAccess(Math, m))` against the
+      stdlib table) + write the math.su bodies as bare-sibling
+      reductions (`exp(z){ return realExp(z)*imaginaryExp(z); }`,
+      `cos(z){ return cexp(...) ... }` etc.). Verify end-to-end
+      (test_transcendentals + complex ground truth + corpus +
+      smoke + leak grep) before marking done; revert if it does
+      not fully verify (the discipline held last time). Task #12.
 
-### 2. Literate math — make the `.su` bodies the executable reduction
-
-The user's #1 vision: the `.su` method bodies ARE the beta-reduction
-(`static method number exp(z){ return realExp(z.real) *
-imaginaryExp(z.imaginary); }`), not `intrinsic` + docstring. Three
-verified-individually prerequisites (see the finding):
-  (a) unify the complex representation — the cexp/exp/cos/sin chain
-      is length-2 `[re,im]`; complex literals + `complex_mul` are
-      d-dim synthetic-axis. They disagree; wiring across it is
-      silently-wrong complex math. Unify on d-dim first.
-  (b) substrate-pure `.real`/`.imaginary` projection (today falls to
-      torch no-op `.real`).
-  (c) namespaced-stdlib inlining so `Math.exp(z)` resolves the body
-      (~10 lines, drafted+reverted this run pending a+b).
-Plus the user's new view: cosine its own transcendental (the
-imaginary output of cos is geometric, like tanh). Task #12.
-
-### 3. Audit.md REAL LEAK list — 5 of 8 resolved+verified; 3 structural left
+### 2. Audit.md REAL LEAK list — 5 of 8 resolved+verified; 3 structural left
 
 `Audit.md` is the running substrate-leak catalogue (todo.md points
 at it). Status after the 2026-05-15 autonomous run (each fix
@@ -149,7 +160,7 @@ speed, not correctness.
 
 ---
 
-### 5. Triage every open-question — ~90% are already clearly defined
+### 3. Triage every open-question — ~90% are already clearly defined
 
 Emma 2026-05-15: most "open design questions" are not actually open;
 they're decided in the spec / todo.md / voice-chat-absorbed notes
