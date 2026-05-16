@@ -70,3 +70,42 @@
 body, .md-header, .md-footer, .md-typeset {
   transition: background-color .35s ease, color .35s ease;
 }
+
+/* ---- The ONE shared button, Loka feel, mapped onto Material's
+   .md-button so Sutra's CTAs match emmaleonhart.com and every sister
+   site (this is the button Emma wants spread everywhere). Appearance
+   only, driven by Material's scheme-aware vars so it flips with the
+   palette toggle — no layout surgery, the theme keeps working.
+   Primary = accent-filled; default = Pewter-filled. ---- */
+.md-typeset .md-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  background: var(--md-code-bg-color);
+  color: var(--md-default-fg-color);
+  transition: background .2s, color .2s, border-color .2s, transform .2s;
+}
+.md-typeset .md-button:focus,
+.md-typeset .md-button:hover {
+  background: var(--md-code-bg-color);
+  border-color: var(--md-primary-fg-color);
+  color: var(--md-primary-fg-color--light);
+  transform: translateY(-1px);
+}
+.md-typeset .md-button--primary {
+  background: var(--md-primary-fg-color);
+  border-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+.md-typeset .md-button--primary:focus,
+.md-typeset .md-button--primary:hover {
+  background: var(--md-primary-fg-color--light);
+  border-color: var(--md-primary-fg-color--light);
+  color: var(--md-primary-bg-color);
+  transform: translateY(-1px);
+}
