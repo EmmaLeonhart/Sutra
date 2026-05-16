@@ -40,292 +40,91 @@ I also want you to specifically do an audit on whether there was a substrate lea
 
 We have all this stuff because we're more or less trying to use solely GPU primitives for our math stuff, including a polynomial fuzzy logic and stuff like that. Just keep this in mind, and you need to face it. A lot of the information that I feel like you might think is getting to me isn't getting to me because I'm not reading enough of it, so you need to somehow give me a prominent notice. Maybe you could give me a phone notification, or maybe you could put a bit of a notification on our website at the very top of the GitHub pages that says that all our math is reducible to these different GPU primitives. The thing is, the GPU primitives also have to be ones that explicitly can be run in the classic SIMD fashion. That is a critical part of it. If the GPU is somehow able to do a regular branch where it just stops all its operations to do it, then, of course, you don't fucking do it, but I think tanh is in GPUs. It is possible, I don't think it's very likely. It's possible that you just created a whole thing, that you just created this gigantic mess of hallucinations and shit because you hallucinated that you lied to me. 
 
+---
 
-## Active
+## tanh-audit answer (the explicit ask) — ANSWERED + VERIFIED
 
-### 1. Promises and async/await — partially shipped, two pieces still open
+Yes, tanh leaked the substrate pre-2026-05-15 (`float(x)` host
+return). Fixed in `21a9ff77`; **independently re-verified this run**
+(read emitted code, ran it → `torch.Tensor` return matching
+`math.tanh`, 0 leak signatures in the emitted `_st..floor` block).
+The GPU ops in the chain (`matmul`/`clamp`/`round`/elementwise)
+are all SIMD-class, no host branch. Full record:
+`planning/findings/2026-05-15-tanh-audit-and-compiler-restore.md`.
+The website-notice the user asked for is queue item 1 below.
 
-Un-postponed 2026-05-09. Per the user, every TypeScript construct
-should be expressible in Sutra (modulo architectural violations);
-`async`, `await`, and `Promise<T>` are essential to that goal. They
-are **first-class Sutra vocabulary** — not stdlib helpers, not TS
-imports — with a **two-stage beta-reduction** at compile time:
-
-```
-async function    (sugar over)
-   ↓
-Promise<T>        (sugar over)
-   ↓
-while_loop with two-channel halt vector  (substrate primitive)
-```
-
-Spec: `planning/sutra-spec/promises.md` (canonical) +
-`docs/promises.md` (website with three-box visualisation). Original
-voice-conversation that drove the design:
-`planning/exploratory/promises-design-conversation.md`.
-
-#### What works today
-
-- **Surface syntax fully reserved.** `async function`, `await expr`,
-  and `Promise<T>` parse cleanly and validate without errors. Lexer
-  has `KW_ASYNC` / `KW_AWAIT`; `Promise` is a contextual primitive
-  type name like `vector` or `dict`.
-- **Stage-1 desugar — two simple shapes compile + run end-to-end:**
-  - *Pure return*: `async function Promise<T> f() { return e; }` →
-    `function Promise<T> f() { return Promise.resolve(e); }`
-  - *Thin wrapper*: `async function Promise<T> f() { return await e; }`
-    → `function Promise<T> f() { return e; }`
-  Implemented in `sdk/sutra-compiler/sutra_compiler/promise_desugar.py`.
-  Corpus fixture: `tests/corpus/valid/async_promise_desugar.su`.
-- **Stdlib `Promise<T>` class** — declared in
-  `sdk/sutra-compiler/sutra_compiler/stdlib/promises.su` with
-  `resolve`, `reject`, `isFulfilled`, `isRejected`, `isPending`,
-  `value`, `reason` as static intrinsics. Loader sees them.
-- **TS transpiler integration** — `async function`,
-  `await expr`, and `: Promise<T>` annotations pass through verbatim
-  from TypeScript into Sutra. TS fixture
-  `sdk/sutra-from-ts/tests/fixtures/async_promise_basic/` lowering
-  test green.
-- **Codegen rejection on the unsupported shapes** — anything Stage-1
-  desugar can't simplify (var-then-return, post-await code,
-  try/catch) errors with a helpful pointer at
-  `planning/sutra-spec/promises.md`. No silent failures.
-
-Three-box mental model rendered at `docs/promises.md` (live at
-`sutralang.dev/promises/` after the next pages-CI run).
-
-#### What's still pending
-
-**All major Stage-2 + Stage-3 (try/catch, first-class fns, loop-
-bodied awaits) shipped 2026-05-09.** Promises now expose every
-JavaScript-style operation we need:
-
-- `Promise.resolve(v)` / `Promise.reject(r)` constructors
-- `Promise.isFulfilled`, `Promise.isRejected`, `Promise.isPending`
-  state inspectors
-- `Promise.value(p)` / `Promise.reason(p)` value extractors
-- `Promise.await_value(p)` loop-bodied await — substrate-equivalent
-  of the while_loop spinning on `isPending`, with a 100-iteration
-  soft-halt timeout for the no-external-I/O case
-- try/catch with polarized `AXIS_PROMISE_REJECTED` blend (single-
-  return blocks, both branches evaluated)
-- First-class function values (`function f` parameter type)
-- Stage-1 desugar covering every JS-style async/await shape that
-  doesn't need closures
-
-**Three small remaining items, all in `todo.md`:**
-- Closure capture in arrow functions (top-level fn refs work; local-
-  capture lambdas need scope-resolution work).
-- Container method dispatch (`Array.map`, `Promise.then`,
-  `Promise.all`, `Promise.race`) — straight stdlib additions, not
-  blocked on language work.
-- Multi-statement try/catch bodies (need slot hoisting like loops).
-
-#### Phase tracker
-
-| # | Phase | Status |
-|---|---|---|
-| 1 | Spec — `promises.md` two-stage layering | ✅ |
-| 2 | Lexer + parser + AST + codegen rejection | ✅ |
-| 3 | Stage-1 desugar — two simple shapes | ✅ first cut |
-| 3+ | Stage-1 — full coverage (needs first-class fns) | 🚧 blocked |
-| 4 | TS transpiler pass-through | ✅ |
-| 5 | Stdlib `Promise<T>` class declaration | ✅ |
-| 6 | Stage-2 lowering — `Promise<T>` → `while_loop` | ✅ runtime methods + Promise.await_value loop-bodied intrinsic |
-| 8 | try/catch via polarized AXIS_PROMISE_REJECTED blend | ✅ |
-| 9 | First-class function values | ✅ |
-| 7 | Fixtures — try/catch, multi-await, propagation | partial (2 corpus + 1 TS) |
+A side-effect found and fixed first: `math.su` had a Java-syntax
+vision block that was a hard parse error — **the compiler was 100%
+down for every program**. Restored (commit `900036df`), verified
+(transcendentals 3/20-subtests, corpus+loader 15/103, smoke PASS).
 
 ---
 
-### 2. TypeScript → Sutra transpiler — three-item closeout
+## Active queue (mirrored to the task tool)
 
-Core transpiler substantially complete as of 2026-05-08 (14 fixtures
-green end-to-end). After **three remaining items** the JavaScript
-story is done. Emma 2026-05-10: this is today's slice. Work in this
-order:
+### 1. Website homepage notice — math reduces to SIMD GPU primitives
 
-1. **Interpolated lookup table** (gates `Math.*` shims). ✅
-   shipped 2026-05-10 — including trig and hyperbolic. Architecture:
-   length-N value tensor + triangle-weight soft-index dot product
-   (not VSA-bundled — see
-   `planning/findings/2026-05-10-interpolated-lookup-table-works.md`).
-   `_VSA.exp` and `_VSA.log` land as substrate-pure intrinsics on
-   both backends; `pow` and `sqrt` beta-reduce to those. Trig
-   (`sin` / `cos` / `tan`) uses the same lookup architecture with
-   input modulo-reduced to (-π, π]. Hyperbolic (`sinh` / `cosh` /
-   `tanh`) beta-reduces to `exp`. `Math.PI` and `Math.TAU` land as
-   precomputed scalars; `Math.E` beta-reduces live to `exp(1.0)`
-   at the call site. Out-of-range inputs raise `SutraMathOverflow`
-   (no silent clamp-to-zero). `_TRANSCENDENTALS_DISABLED` is now
-   the empty frozenset. Test coverage: math_basic fixture +
-   `test_transcendentals.py`.
+The user asked for this explicitly and repeatedly ("for the love of
+god, put it at the very front of the website"). Add a prominent
+notice at the top of the website home page (`docs/`, served at
+sutralang.dev) stating: all Sutra math reduces to real GPU
+primitives that run in the classic SIMD fashion — no host branches,
+no NumPy on the runtime path. This is the channel the user wants
+the substrate-purity status delivered through. Task #11.
 
-2. **Module imports** (`import { X } from "./foo"`). ✅ shipped
-   2026-05-10. Single fixture (`module_import/`) green for both
-   lowering and end-to-end compilation; diamond and circular
-   imports terminate cleanly. Inlines imported declarations at the
-   top of the importing file's output bracketed by `// --- begin
-   module: <spec> ---` markers. Tree-shaking, namespace imports,
-   and bare-specifier resolution (NPM packages) deferred. Doc:
-   `docs/typescript-to-sutra.md` § Modules.
+### 2. Literate math — make the `.su` bodies the executable reduction
 
-3. **Multi-program axon passing demo.** ✅ shipped 2026-05-10.
-   `examples/multi_program_axon/` — two separately-compiled `.su`
-   programs exchange a 5-key axon vector via a numpy `.npy` wire
-   format (3600 bytes). Recovery margin checked via host-side cosine
-   monitoring; all three reads land closer to bundled fillers than
-   to never-bundled decoys (margins +0.20, +0.20, +0.26). Both
-   programs share `atman.toml` for embedding-model agreement, which
-   is what makes basis vectors line up across the boundary. Lazy
-   materialization is *not* yet implemented — the full bundle
-   crosses today; an earlier 12-key draft hit the rotation-binding
-   capacity wall on cat/dog disambiguation, motivating the
-   producer-side pruning pass as the natural follow-on. Finding:
-   `planning/findings/2026-05-10-multi-program-axon-passing-works.md`.
+The user's #1 vision: the `.su` method bodies ARE the beta-reduction
+(`static method number exp(z){ return realExp(z.real) *
+imaginaryExp(z.imaginary); }`), not `intrinsic` + docstring. Three
+verified-individually prerequisites (see the finding):
+  (a) unify the complex representation — the cexp/exp/cos/sin chain
+      is length-2 `[re,im]`; complex literals + `complex_mul` are
+      d-dim synthetic-axis. They disagree; wiring across it is
+      silently-wrong complex math. Unify on d-dim first.
+  (b) substrate-pure `.real`/`.imaginary` projection (today falls to
+      torch no-op `.real`).
+  (c) namespaced-stdlib inlining so `Math.exp(z)` resolves the body
+      (~10 lines, drafted+reverted this run pending a+b).
+Plus the user's new view: cosine its own transcendental (the
+imaginary output of cos is geometric, like tanh). Task #12.
 
-Already shipped on the transpiler:
-- Functions (incl. arrow-as-const, closure-free capture via param
-  lifting), interfaces, type aliases, classes (fields + methods +
-  static + constructors + `new`), discriminated unions,
-  `this.field`, void instance methods.
-- Loops: while / for / do-while hoist into declared `while_loop`
-  decls with auto-detected state vars + slot copies + writeback.
-- String concat (`s + t` → `String.string_concat`), primitive
-  arrays (`T[]`, `arr[i]`, `arr.length`, `[1, 2, 3]`).
-- JavaScriptObject runtime (`wrap`, `js_add`) for the untyped JS
-  fallback path.
-- `async function`, `await`, `Promise<T>` pass-through (added
-  2026-05-09 with item 1); first-class function values; try/catch
-  via polarized `AXIS_PROMISE_REJECTED` blend; `Promise.await_value`
-  loop-bodied intrinsic.
-- Sutra-side enabling work that landed alongside: class fields,
-  constructor sugar (`new`), value-returning instance methods,
-  non-static class loops, operator overloading via inheritance-
-  chain dispatch, synthetic-axis equality (Euclidean+tanh).
+### 3. Audit.md REAL LEAK list — 8 remaining substrate leaks
 
-Long-form treatment of all three remaining items, with reasoning
-and cross-references, in `todo.md` §"TS transpiler / Sutra
-postponed pieces".
+`Audit.md` is the running substrate-leak catalogue (todo.md points
+at it). REAL LEAK section, worst-first: `rotate_slot`/Givens (host
+libm trig + scalar — the eigenrotation itself on host floats),
+`defuzzify_trit` host loop, Promise await host loop, generic loop
+runtime host `for`, string ops host codepoint loops, `complex_div`
+host NaN/zero `if`, `select` zero-norm `if`, slot-store host
+`%`/`for`. Fix shape = the `21a9ff77` model (tensors in→tensor
+ops→tensors out; saturate not raise). Each leak verified fixed
+before its line is struck. Task #13.
 
----
+### 4. Wire `substrate_leak_sweep.py` into CI
 
-> **Correction 2026-05-15:** items 3 and 4 below describe the
-> 2026-05-13 modulus / pass-2 work as "substrate-pure / shipped".
-> That was false — `rotation_mod`, the transcendentals, and the
-> binary-op fixes all leaked host scalars (`float()`, host `if`/
-> `raise`). Fixed for real 2026-05-15 (item 00 above). See
-> `planning/findings/2026-05-15-transcendental-substrate-leak-fixed.md`
-> and the correction header on the 2026-05-13 finding. The atan2
-> follow-on these items name is still open and now lives in the
-> substrate-leak audit.
-
-### 3. Modulus library — shipped 2026-05-13, atan2 follow-on open
-
-Before today, `%` parsed cleanly but `codegen_base.py:2636` fell
-through to literal Python `(left % right)` — host arithmetic at
-runtime, a substrate-purity leak. The JS-derived ops
-`Math.floor` / `ceil` / `round` / `trunc` / `abs` / `sign` weren't
-declared at all. Now shipped:
-
-- **`stdlib/modulus.su`** — new file, top-of-file "expensive" warning.
-  Extends `class Math` with `mod`, `rotation_mod`, `sawtooth_mod`,
-  `fmod`, `floor`, `ceil`, `round`, `trunc`, `abs`, `sign` static
-  intrinsics (stdlib loader merges across files).
-- **Runtime** (`codegen_pytorch.py`) — every method dispatches to
-  torch tensor ops on device. `floor`/`ceil`/`round`/`trunc`/`abs`/
-  `sign` are native GPU instructions (not libm decompositions);
-  `fmod = x - m·trunc(x/m)` (JS-truncation); `rotation_mod` uses the
-  existing cos/sin lookup tables + `torch.atan2`; `sawtooth_mod` is
-  an N=16 Fourier series in `sin` lookups.
-- **`%` operator** — routes through `_VSA.fmod` (JS truncation mod).
-- **Benchmark** — `experiments/modulus_comparison.py`. `rotation_mod`
-  wins decisively: ~10⁻⁷ max error vs sawtooth's ~14% of m, and 5-6×
-  faster per call. `Math.mod` aliases `rotation_mod`; `sawtooth_mod`
-  stays as an ablation handle. Full numbers in
-  `planning/findings/2026-05-13-modulus-rotation-vs-sawtooth.md`.
-
-The atan2 step in `rotation_mod` uses `torch.atan2` today —
-replacing it with an interpolated lookup table (same architecture
-as exp/log/sin/cos) is the remaining substrate-purity follow-on,
-tracked under item 4 below.
-
-### 4. Substrate-purity audit — pass 2 shipped 2026-05-13
-
-`%` was lexed and parsed correctly since 2026-04-10 (commit
-`af650b0d`) but the generic-binary fall-through at
-`codegen_base.py:2647` emitted literal Python `(left % right)` —
-host arithmetic at runtime. Pass 1 (2026-04-30) caught the
-transcendentals; pass 2 swept binary operators and found two more
-substrate-purity leaks that were also semantic bugs:
-
-- **`%` operator** (also queue item 3) — host Python floor-mod
-  semantics where JS / C / Rust / TS expect truncation. **Fixed**:
-  routes through `_VSA.fmod`.
-- **`complex + scalar` and `complex - scalar`** — the scalar
-  broadcast across the imag axis, corrupting it. `(3+4i) + 1.0`
-  gave `(4+5i)` instead of `(4+4i)`. **Fixed**: routes through
-  `_VSA.complex_add` / `complex_sub`, both of which coerce the
-  scalar via `make_real` (zero imag) before the element-wise op.
-- **`complex / complex`** — element-wise division. `(5+5i) /
-  (2+0i)` gave `2.5 + inf·i` instead of `2.5 + 2.5·i`. Silent
-  wrong-math + `inf` injection, which is exactly the
-  safety-critical failure class CLAUDE.md's intro warns about.
-  **Fixed**: routes through `_VSA.complex_div`, substrate-pure
-  closed form `(num · conj(b)) / |b|²` with no scalar extraction —
-  conj built via a cached `_conj_matrix` (negate imag axis), `|b|²`
-  broadcast across all axes via a cached `_broadcast_real_matrix`,
-  numerator computed via `complex_mul`. Verified against Python
-  ground-truth on 8 cases.
-
-Findings: `planning/findings/2026-05-13-substrate-purity-audit-pass-2.md`.
-
-**CI gate** — `experiments/substrate_leak_sweep.py` walks every
-`.su` program under corpus + examples, compiles each one, and greps
-emitted Python for raw operators (`**`, `//`, ` % `, bitwise) on
-non-`_VSA` lines. Wire this into the test suite so the next
-binary-operator leak gets caught at PR time, not by the user
-hitting it.
-
-#### Remaining audit follow-ons (deferred, not blockers)
-
-- **`torch.atan2` inside `_VSA.rotation_mod`** — should be replaced
-  with an interpolated lookup table per the no-libm-shortcut rule.
-  Same architecture as exp/log/sin/cos tables; range reduction via
-  `atan(t) = π/2 - atan(1/t)` for `|t| > 1`, plus quadrant
-  correction for atan2. Documented in `Math.mod`'s docstring.
-- **`Math.round` ties-to-even vs JS ties-to-positive** — semantic
-  mismatch with JS, not a substrate-purity issue. Trivial fix
-  (subtract a small epsilon before round, or implement
-  `floor(x + 0.5)` directly). Decide later.
+Make `experiments/substrate_leak_sweep.py` a pytest gate so the next
+operator leak in a user `.su` program is caught at PR time. Task #14.
 
 ---
 
 ## Parked
 
-The C → Sutra transpiler skeleton at `sdk/sutra-from-c/` is parked
-(decision 2026-05-08): user no longer views transpiling Linux as a
-useful path to OS-level Sutra work. Skeleton stays in tree; do not
-delete. See `todo.md` for the parked entry.
-
-Yantra (the OS) is downstream of the TS transpiler — both the
-core transpiler (shipped) and the multi-program axon demo
-(postponed) are Yantra prerequisites for any real IPC story.
-Yantra is its own repo (`../Yantra/`) with its own queue; Sutra's
-queue ends at the transpiler.
-
----
+- C → Sutra transpiler skeleton (`sdk/sutra-from-c/`): parked
+  2026-05-08, stays in tree, do not delete.
+- Yantra (the OS) is downstream of the TS transpiler; its own repo
+  (`../Yantra/`) with its own queue. Sutra's queue ends at the
+  transpiler.
+- Promises Stage-3 closure capture, container method dispatch,
+  multi-statement try/catch: longer-horizon, in `todo.md`.
+- TS transpiler closeout (module imports, multi-program axon): the
+  substantive pieces shipped; remaining polish in `todo.md`.
 
 ## Pointers
 
+- Substrate-leak catalogue: `Audit.md` (work REAL LEAK first).
 - Longer-horizon agenda: `todo.md`.
-- Pinned semantic corrections: `planning/semantic-corrections.md`.
-- Deprecated spec (read-only reference): `planning/sutra-spec-deprecated/`.
-- New spec dir + meta-failure note: `planning/sutra-spec/README.md`.
-- Findings (dated): `planning/findings/`.
+- Findings (dated, incl. this session's): `planning/findings/`.
 - Open design questions: `planning/open-questions/`.
-- Examples-corpus open semantic questions: root `todo.md`
-  § "Examples-corpus open semantic questions" (was the deleted
-  per-subdir `examples/todo.md`).
 - Devlog (full history): `DEVLOG.md`.
-- Yantra (the OS Sutra is being built for): `../Yantra/`.
+- Yantra: `../Yantra/`.
