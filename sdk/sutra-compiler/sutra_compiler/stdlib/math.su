@@ -19,23 +19,44 @@
 // runs through the complex exponential cexp(x,0) so the reduction executes
 // on the substrate, not just in a comment.
 //
-// Status (honest): the runtime leaves are substrate-pure and verified
-// (test_transcendentals: 3 passed / 20 subtests; smoke test PASS). The
-// methods are `intrinsic` — routing to the verified _VSA.* — because making
-// the .su bodies THEMSELVES the executable reduction (`static method exp(z)
-// { return realExp(z.real) * imaginaryExp(z.imaginary); }`) needs three
-// things that are genuinely not done yet and must not be faked: a unified
-// complex representation (the cexp chain is length-2 [re,im]; complex
-// literals + complex_mul are d-dim synthetic-axis — they disagree),
-// substrate-pure `.real`/`.imaginary` projection, and namespaced-stdlib
-// inlining. That is the top item of the substrate-leak audit, not a
-// shipped feature.
+// Status (honest, 2026-05-15): the documented vision now actually
+// executes on the substrate. The canonical complex `number` is the
+// d-dim synthetic-axis form (real on AXIS_REAL, imag on AXIS_IMAG) —
+// the SAME representation complex literals + complex_mul use. The
+// earlier length-2 [re,im] `cexp` deviation has been removed. The
+// runtime computes `exp(z) = realExp(z) (x) imaginaryExp(z)` where
+// (x) = complex_mul (verified substrate-pure), `cos = real(cexp(i*z))`,
+// `sin = imag(cexp(i*z))`, axis read/write via one-hot dot / scaled-
+// one-hot add (matmul-class, no host scalar). Verified vs ground
+// truth: 12 real-arg cases + complex cases (cexp(i*pi)=-1,
+// cexp(1+i*pi/2)=i*e, cexp(0.5+i)=0.89+1.39i), test_transcendentals
+// 3 passed/20 subtests, corpus + smoke PASS.
+//
+// Still `intrinsic` (routing to the now-correct _VSA.*) rather than
+// the .su bodies being the literal source-level reduction — that
+// last step needs namespaced-stdlib inlining (queue item 2 / task
+// #12). The reduction itself is real and executes; only its
+// *spelling as Sutra source* is pending. Not faked: deferred complex
+// `log` angle (atan2 imag part) is real-axis-only for now, stated in
+// the runtime docstring.
 
 class Math extends vector {
 
-    // exp — Euler: e^(a+b·i) = e^a·e^(b·i). _VSA.exp = cexp(x,0) on the
-    //   substrate (realExp leaf × eigenrotation). Out-of-range saturates
-    //   at the table edge (no host raise — the no-runtime-errors rule).
+    // realExp — e^(Re z): the rotational crosstalk lookup leaf, as a
+    //   canonical complex [e^a, 0]. One of the two substrate leaves.
+    static intrinsic method scalar realExp(scalar z);
+
+    // imaginaryExp — e^(i·Im z): the eigenrotation [cos, sin]. The
+    //   other leaf; cos/sin are its real/imag projections.
+    static intrinsic method scalar imaginaryExp(scalar z);
+
+    // cexp — the documented keystone: e^(a+b·i) = realExp ⊗ imaginaryExp
+    //   (⊗ = complex_mul). Returns a canonical complex number.
+    static intrinsic method scalar cexp(scalar z);
+
+    // exp — Euler at a scalar boundary: real(cexp(x)). For real x this
+    //   is e^x; the documented real(exp(iθ)) projection. Out-of-range
+    //   saturates at the table edge (no host raise).
     static intrinsic method scalar exp(scalar x);
 
     // log / ln — natural log (JS Math.log is natural, not base-10): the
