@@ -89,22 +89,60 @@ verified-individually prerequisites (see the finding):
 Plus the user's new view: cosine its own transcendental (the
 imaginary output of cos is geometric, like tanh). Task #12.
 
-### 3. Audit.md REAL LEAK list — 8 remaining substrate leaks
+### 3. Audit.md REAL LEAK list — 5 of 8 resolved+verified; 3 structural left
 
 `Audit.md` is the running substrate-leak catalogue (todo.md points
-at it). REAL LEAK section, worst-first: `rotate_slot`/Givens (host
-libm trig + scalar — the eigenrotation itself on host floats),
-`defuzzify_trit` host loop, Promise await host loop, generic loop
-runtime host `for`, string ops host codepoint loops, `complex_div`
-host NaN/zero `if`, `select` zero-norm `if`, slot-store host
-`%`/`for`. Fix shape = the `21a9ff77` model (tensors in→tensor
-ops→tensors out; saturate not raise). Each leak verified fixed
-before its line is struck. Task #13.
+at it). Status after the 2026-05-15 autonomous run (each fix
+individually verified — 0 code leak signatures + the relevant
+test suite/ground-truth before its Audit line was struck):
 
-### 4. Wire `substrate_leak_sweep.py` into CI
+- ✅ #1 `rotate_slot`/Givens — the eigenrotation off host floats
+  (the worst leak). Substrate-pure cos/sin + 0-d tensor scatter.
+- ✅ #2 `defuzzify_trit` — host scalar loop → codegen-time 10-step
+  unroll of substrate `self.exp`, matches the documented algorithm
+  to ≤1.4e-4.
+- ✅ #6 `complex_div` — was already resolved; stale line ref
+  corrected (1907 is `js_truthy`, a JS-interop carve-out).
+- ✅ #7 `argmax_cosine` zero-norm — host `if float(q_norm)` →
+  eps-guarded `_torch.where`.
+- ✅ #8 `slot_store` — `float(scalar)` → `_st()`; the other two
+  #8 sites documented as legitimate boundaries (structural slot
+  index; literal lift).
 
-Make `experiments/substrate_leak_sweep.py` a pytest gate so the next
-operator leak in a user `.su` program is caught at PR time. Task #14.
+**Still open — structural, larger, deliberately NOT faked:**
+
+- #3 Promise `await_value` host `for _ in range(100)` — the
+  substrate `while_loop` two-channel halt vector
+  (`planning/sutra-spec/promises.md`); overlaps queue Promises
+  work. Bounded by needing the halt-vector lowering, not a
+  one-liner.
+- #4 generic loop runtime `for _t in range(max_iters)` — the
+  iteration mechanism `loop`/`while` lower to. Spec says
+  `state ← R·state` on the substrate; #1 (rotate_slot) is now
+  pure so the eigenrotation primitive it should bind to exists,
+  but replacing the host driver loop is a control-flow-lowering
+  rework with high regression surface. Do it deliberately, with
+  the loop-runtime test suite as the gate, not as a rushed
+  autonomous edit.
+- #5 string ops as host codepoint loops (length/index/concat) —
+  vectorize over the synthetic-axis block; a real
+  string-runtime rewrite.
+
+Fix shape for all = the `21a9ff77` model (tensors in→tensor
+ops→tensors out; saturate not raise). Task #13 (stays in
+progress — 3 genuine leaks remain; not marked done).
+
+### 4. Wire `substrate_leak_sweep.py` into CI — gate written, runtime issue
+
+`sdk/sutra-compiler/tests/test_substrate_leak_sweep.py` is committed
+(imports the sweep, asserts rc==0). Honest status: as a pytest it
+compiles all 67 corpus+examples `.su` with full CUDA codegen and is
+impractically slow (ran many minutes, unverified-green this run).
+The standalone sweep was clean in a prior session ("67 compiled,
+18 skipped, 0 leaks"). Open work: make it CI-practical — compile
+once and reuse the runtime, or scope to corpus-only, or mark it a
+slow/nightly job — then observe it green. Task #14 stays open
+(NOT marked done on faith — the gate must be seen passing).
 
 ---
 
