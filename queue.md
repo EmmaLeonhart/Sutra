@@ -77,36 +77,31 @@ down for every program**. Restored (commit `900036df`), verified
 
 ## Active queue (mirrored to the task tool)
 
-### 1. Literate math — make the `.su` bodies the executable reduction
+### 1. Literate math — ✅ CORE DELIVERED 2026-05-16 (verified)
 
-The user's #1 vision: the `.su` method bodies ARE the beta-reduction,
-not `intrinsic` + docstring. Status of the three prerequisites:
-  (a) unify the complex representation — ✅ DONE 2026-05-15
-      (`ecf1c4cd`). Canonical d-dim complex; `cexp` =
-      `complex_mul(realExp, imaginaryExp)`; verified vs ground
-      truth. The length-2 deviation is gone.
-  (b) substrate-pure `.real`/`.imaginary` projection — ✅ OBVIATED.
-      `realExp`/`imaginaryExp` now project the real/imag axis
-      *internally* (one-hot dot, substrate-pure), so the literate
-      body is `return realExp(z) * imaginaryExp(z)` with NO
-      `.real`/`.imaginary` member access needed.
-  (c) namespaced-stdlib inlining — ✅ MECHANISM DONE + verified
-      2026-05-16. `Call(MemberAccess(Math, m))` now resolves the
-      stdlib `.su` single-return body; empirically `Math.exp(2.0)`
-      → `_VSA.realExp(2.0)*_VSA.imaginaryExp(2.0)`. Inert+safe with
-      all-intrinsic math.su (39 passed/103 subtests + smoke, zero
-      regression). **Two bounded steps remain, precisely named in
-      `planning/findings/2026-05-16-literate-math-inliner-
-      mechanism.md`:** (1) extend `_is_complex_expr`
-      (`codegen_base.py:2323`) to a `Call`→`complex` return-type
-      case so `realExp(z)*imaginaryExp(z)` dispatches to
-      `complex_mul` (currently element-wise = silently wrong;
-      this is why the literate body was NOT shipped — gate: the
-      whole complex test suite); (2) put the literate reduction on
-      `cexp` (declared `complex`), keep `exp`/`cos`/`sin` as the
-      verified intrinsic scalar boundary (no scalar→number
-      migration needed). Task #12 — NOT done; the mechanism is,
-      the type-dispatch + cexp-body steps are not.
+The user's #1 vision: the `.su` method bodies ARE the beta-reduction.
+Prereqs all done — (a) unified d-dim complex (`ecf1c4cd`); (b)
+obviated (`realExp`/`imaginaryExp` project axes internally); (c)
+namespaced-stdlib inliner + `_is_complex_expr` Call→`complex`
+dispatch (`ae269f6b`).
+
+**Literate now — the `.su` source IS what executes** (`ae269f6b`,
+`b9e11f5e`): `cexp` (= `realExp(z) * imaginaryExp(z)`, `*` →
+`complex_mul`, verified `cexp(iπ)=-1` / `cexp(1+iπ/2)=ie`), and
+`pow`/`sqrt`/`tan`/`sinh`/`cosh`/`tanh` (documented identities over
+the scalar leaves; `Math.tanh(1.0)` emits
+`(_VSA.exp(2)-1)/(_VSA.exp(2)+1)`). Full gate green: 135 passed /
+103 subtests + smoke, zero regression; the complex-arithmetic core
+(literals / `complex_mul` / `complex_div` / `36_complex_*`) intact.
+
+**Still intrinsic by the documented design (NOT a cop-out):**
+`realExp`/`imaginaryExp` (the two irreducible substrate leaves),
+`log`/`ln` (the ln leaf), `exp`/`cos`/`sin` (the verified
+scalar-projection boundary = `real(cexp)` / `real(cexp(iθ))` /
+`imag(cexp(iθ))`). Making `exp`/`cos`/`sin` literate too needs a
+complex→scalar projection surface — that is the scalar→number
+question (open-questions triage, NOT faked here). Task #12: core
+done; the exp/cos/sin-as-literate tail is gated on scalar→number.
 
 ### 2. Audit.md REAL LEAK list — 5 of 8 resolved+verified; 3 structural left
 
