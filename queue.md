@@ -214,6 +214,14 @@ future session repeats this run's mistake. Task #15.
   multi-statement try/catch: longer-horizon, in `todo.md`.
 - TS transpiler closeout (module imports, multi-program axon): the
   substantive pieces shipped; remaining polish in `todo.md`.
+- Website visual remake (LONG-TERM, website-only — never touches the
+  language / math / substrate). 2026-05-16: chrome restyled to the
+  shared Lacquer identity (dark header/tabs, .md-button, cards,
+  admonitions) in `docs/stylesheets/identity.css`; the structure, the
+  Material GitHub widget, and search are kept (Emma likes them). Still
+  aspirational: a fuller pass so the site feels as polished as
+  emmaleonhart.com, and porting Sutra's nicer Material GitHub widget
+  to the other sister sites. Detail in `todo.md` → "Docs / website".
 
 ## Pointers
 
