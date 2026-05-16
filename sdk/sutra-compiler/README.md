@@ -1,6 +1,6 @@
 # sutra-compiler
 
-The compiler for the [Sutra programming language](https://sutralang.dev) — a purely functional language whose primitives are tensor operations on frozen-LLM embedding vectors.
+The compiler for the [Sutra programming language](https://sutra.emmaleonhart.com) — a purely functional language whose primitives are tensor operations on frozen-LLM embedding vectors.
 
 ## Install
 
@@ -43,7 +43,7 @@ A `.su` source file looks like TypeScript — functions, classes, `&&` / `||`, s
 
 The result is a program where there are no Python branches, no host-side `if` / `while` on data values, and no JIT — just one straight-line tensor expression.
 
-For a full introduction, see [sutralang.dev](https://sutralang.dev). For the language specification and design rationale, see the [Sutra repository](https://github.com/EmmaLeonhart/Sutra).
+For a full introduction, see [sutra.emmaleonhart.com](https://sutra.emmaleonhart.com). For the language specification and design rationale, see the [Sutra repository](https://github.com/EmmaLeonhart/Sutra).
 
 ## Status
 

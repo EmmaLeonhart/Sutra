@@ -1,6 +1,6 @@
 # Agents — start here
 
-This file is the index for AI agents and contributors landing in the Sutra repository. It is **not** for humans browsing the website — humans read `sutralang.dev` (sourced from `docs/`). See §"Audiences" in `CLAUDE.md` for the split.
+This file is the index for AI agents and contributors landing in the Sutra repository. It is **not** for humans browsing the website — humans read `sutra.emmaleonhart.com` (sourced from `docs/`). See §"Audiences" in `CLAUDE.md` for the split.
 
 ## What Sutra is, in one sentence
 
@@ -67,7 +67,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 
 | Path | What's there |
 |---|---|
-| `docs/` | Hand-written Markdown for `sutralang.dev`. **Human audience.** Do not embed internal-scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...` paths) into these files. If you find such a reference, strip it — it's the cross-leakage that the 2026-05-07 sweep (commit `b98b795`) was about. |
+| `docs/` | Hand-written Markdown for `sutra.emmaleonhart.com`. **Human audience.** Do not embed internal-scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...` paths) into these files. If you find such a reference, strip it — it's the cross-leakage that the 2026-05-07 sweep (commit `b98b795`) was about. |
 | `mkdocs.yml` | Site config. |
 
 ## How to work in this repo
@@ -83,7 +83,7 @@ The full rules are in `CLAUDE.md` §"Workflow Rules". Short version:
 ## What this repo is *not* for
 
 - Editing the paper. It is frozen.
-- Reading the website. The website is for humans at `sutralang.dev`; agents read the repo Markdown directly.
+- Reading the website. The website is for humans at `sutra.emmaleonhart.com`; agents read the repo Markdown directly.
 - Implementing Yantra (the Sutra-based OS). That has its own repo at `../Yantra/`. Yantra is downstream of Sutra and downstream of both transpilers — it does not live here.
 
 ## When in doubt
