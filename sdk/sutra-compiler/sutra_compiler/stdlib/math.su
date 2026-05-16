@@ -44,15 +44,18 @@ class Math extends vector {
 
     // realExp — e^(Re z): the rotational crosstalk lookup leaf, as a
     //   canonical complex [e^a, 0]. One of the two substrate leaves.
-    static intrinsic method scalar realExp(scalar z);
+    static intrinsic method complex realExp(complex z);
 
     // imaginaryExp — e^(i·Im z): the eigenrotation [cos, sin]. The
     //   other leaf; cos/sin are its real/imag projections.
-    static intrinsic method scalar imaginaryExp(scalar z);
+    static intrinsic method complex imaginaryExp(complex z);
 
-    // cexp — the documented keystone: e^(a+b·i) = realExp ⊗ imaginaryExp
-    //   (⊗ = complex_mul). Returns a canonical complex number.
-    static intrinsic method scalar cexp(scalar z);
+    // cexp — the documented keystone, AS the literate beta-reduction:
+    //   e^(a+b·i) = e^a · e^(b·i) = realExp(z) · imaginaryExp(z).
+    //   The `·` is complex multiplication (both operands are complex,
+    //   so `*` dispatches to complex_mul). This body IS the executable
+    //   reduction — the inliner expands Math.cexp(z) to exactly this.
+    static method complex cexp(complex z) { return realExp(z) * imaginaryExp(z); }
 
     // exp — Euler at a scalar boundary: real(cexp(x)). For real x this
     //   is e^x; the documented real(exp(iθ)) projection. Out-of-range

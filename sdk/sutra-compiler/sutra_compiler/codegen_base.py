@@ -2342,7 +2342,60 @@ class BaseCodegen:
                     or self._is_complex_expr(expr.right))
         if isinstance(expr, ast.UnaryOp) and expr.op in ("-", "+"):
             return self._is_complex_expr(expr.operand)
+        # Call whose resolved return type is `complex`. This makes the
+        # literate stdlib bodies correct: after the inliner expands
+        # `Math.cexp(z)` to `realExp(z) * imaginaryExp(z)`, the `*`
+        # only dispatches to complex_mul if these calls are seen as
+        # complex. Resolution sources, both authoritative and already
+        # loaded: user-class method return types, and the stdlib
+        # symbol table (FunctionDecl.return_type from the loader).
+        # Conservative by construction — only fires for a callee whose
+        # declared return type is literally `complex`, so int/float
+        # call results are unaffected and `*` stays element-wise for
+        # them.
+        if isinstance(expr, ast.Call):
+            rt = self._resolved_return_type(expr.callee)
+            return rt == "complex"
         return False
+
+    def _resolved_return_type(self, callee: ast.Expr) -> str | None:
+        """Declared return-type name of a call target, or None.
+
+        Checks (1) user-class methods via `_class_method_return_types`
+        and (2) the stdlib symbol table (bare `name` and namespaced
+        `Class.member`), whose FunctionDecls carry `.return_type`.
+        Cached stdlib load — same table the inliner uses."""
+        # Bare-name call: `realExp(z)` (the post-inline shape).
+        if isinstance(callee, ast.Identifier):
+            name = callee.name
+            for (_cls, m), rt in self._class_method_return_types.items():
+                if m == name:
+                    return rt
+            decl = self._stdlib_symbol(name)
+            if decl is not None and decl.return_type is not None:
+                return decl.return_type.name
+            return None
+        # Namespaced call: `Math.cexp(z)`.
+        if (isinstance(callee, ast.MemberAccess)
+                and isinstance(callee.obj, ast.Identifier)):
+            cls, m = callee.obj.name, callee.member
+            rt = self._class_method_return_types.get((cls, m))
+            if rt is not None:
+                return rt
+            decl = self._stdlib_symbol(f"{cls}.{m}") or self._stdlib_symbol(m)
+            if decl is not None and decl.return_type is not None:
+                return decl.return_type.name
+        return None
+
+    def _stdlib_symbol(self, name: str):
+        """Look a name up in the cached stdlib symbol table. Returns
+        the FunctionDecl or None. The table is the inliner's cache, so
+        no extra parse cost."""
+        try:
+            from .stdlib_loader import load_stdlib
+            return load_stdlib().get(name)
+        except Exception:
+            return None
 
     _TRUTH_TYPES = frozenset({"bool", "fuzzy", "trit"})
     _NUMBER_TYPES = frozenset({"int", "float", "complex", "scalar", "char"})
