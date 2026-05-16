@@ -41,16 +41,21 @@ result back. Fix shape: take tensors, stay tensors, return tensors;
 replace host `if`/`for` with tensor masking / vectorized reductions;
 saturate instead of raise.
 
-1. **`rotate_slot` / Givens-rotation primitive** —
-   `codegen_pytorch.py:1096-1098`:
-   `c, s = _math.cos(float(angle)), _math.sin(float(angle))` and
-   `xi, xj = float(state[i]), float(state[j])`. Host libm trig +
-   host scalar extraction *inside the rotation primitive that
-   `loop(cond)` compiles to*. This is the worst one: the
-   eigenrotation is the substrate's defining operation and it is
-   currently done on host floats. Should build the 2×2 rotation
-   from the substrate-pure `cos`/`sin` (now real, post-`21a9ff77`)
-   and apply it as a tensor op on the slot plane.
+1. **`rotate_slot` / Givens-rotation primitive** — ✅ FIXED
+   2026-05-15 (autonomous queue run). Was
+   `c, s = _math.cos(float(angle)), _math.sin(float(angle))` +
+   `xi, xj = float(state[i]), float(state[j])` — host libm trig +
+   host scalar extraction inside the rotation `loop(cond)` lowers
+   to (the worst leak: the eigenrotation is the substrate's
+   defining op). Now: `c = self.cos(angle)` / `s = self.sin(angle)`
+   (verified substrate-pure 0-d tensors), `xi/xj = state[i]/state[j]`
+   (0-d tensor element views, no `float()`), plane update is tensor
+   arithmetic + scatter. `i, j` are structural layout indices (like
+   `AXIS_REAL`), not data. Verified: 0 leak signatures in emitted
+   code; loop runtime suites (`test_branchless_loop`,
+   `test_loop_function_decl`) 33 passed/20 subtests;
+   `examples/_smoke_test.py` PASS (11/11). The numpy/host
+   `codegen.py` backend is deprecated and out of scope.
 
 2. **`defuzzify_trit` / `sign_polarize`** —
    `codegen_pytorch.py:1989-2002`:
