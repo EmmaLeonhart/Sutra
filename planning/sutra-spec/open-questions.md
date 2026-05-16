@@ -18,6 +18,54 @@ lives here.
 
 ---
 
+## Triage (2026-05-16, task #15 — part 2 of the open-question sweep)
+
+Honest finding: unlike the `planning/open-questions/` dossiers
+(triaged in that folder's README — ~half RESOLVED/STALE), **most
+entries in THIS file are genuinely-open spec decisions**, not
+"secretly decided elsewhere." This file is the spec's own
+deliberate list of decisions the language has chosen not to make
+yet; that is different from a dossier rotting after the decision
+got made. So there is no inflated "90% resolved" here — that figure
+was about the dossier folder. What IS decided elsewhere and should
+be pruned from this file + its inline spec section (rule above),
+verified this pass:
+
+- **Binding § "Surface syntax for binding-kind choice"** — already
+  struck-through here; resolved 2026-04-21 (`sutra-spec/binding.md`,
+  role=semantic / var=rotation-bound). Safe to delete the line.
+- **Control flow § "When `loop[N]` can't be unrolled … host-Python
+  `for`. Is that acceptable, or should it error?"** — DECIDED, not
+  open: `Audit.md` REAL LEAK #4 (`codegen_pytorch.py:2213`) rules
+  the host `for` a substrate leak to fix (not "acceptable"). The
+  open question is answered by the audit; reword to "tracked as
+  Audit REAL LEAK #4" rather than an open design choice.
+- **Control flow § "Fate of parsed-but-rejected control forms:
+  if/else"** — DECIDED in `sutra-spec/control-flow.md` itself
+  (`select` is the only runtime branching primitive; if/else is
+  design-rejected). The line is a resolved restatement; keep only
+  the genuinely-open part (`try-catch` status → `queue.md` /
+  `todo.md`).
+- **Axons** — the two struck items are correctly marked resolved
+  2026-05-07; the "Still open" list under it is genuinely open.
+
+Genuinely open (a representative few, NOT decided elsewhere — the
+spec really hasn't picked): Types §"scalars as results"
+(`types.md:507`; this is the *gate* for the literate-math
+exp/cos/sin tail and the scalar→number direction — a stated
+direction is not yet an authoritative spec decision, so it stays
+OPEN, not faked-resolved), Operations §"which similarity is the
+default", §"bundle semantics", §"static type checking", Binding
+§"fitting procedure", Concurrency §"convergence test", most of
+Promises. These are real undecided design; leave them.
+
+Action when picked up: delete the three DECIDED lines above from
+this file *and* their inline spec sections in the same commit
+(per the rule at the top). Cross-reference:
+`planning/open-questions/README.md` triage table for the dossiers.
+
+---
+
 ## Types — `types.md`
 
 - Whether `bool`'s defuzz counter has a ceiling.
