@@ -12,6 +12,51 @@ Live design questions that we know we need to answer eventually, but haven't. Di
 3. **Resolving an open question means updating the spec (`planning/sutra-spec/`) or the implementation**, then removing the doc from this folder. Don't let resolved questions rot here.
 4. **Link from `queue.md` when an open question is actively blocking work.** Otherwise, these live here quietly until someone comes back to them.
 
+## Triage verdicts (2026-05-16, task #15)
+
+Per Emma: ~90% of these are not actually open — decided in the spec /
+todo.md / voice-absorbed notes, the doc just never got retired. This
+table is the authoritative "exactly what is going on" surface. Spec
+pointers spot-verified to exist. Legend: **RESOLVED** (decided; cited
+location is authoritative; doc is now rationale-only, retire on the
+next pruning pass) · **STALE** (premised on a superseded design;
+archive) · **OPEN** (a genuinely undecided sub-question, stated in
+one line).
+
+| Doc | Verdict | Where decided / the precise open part |
+|---|---|---|
+| `binding-kind-surface-syntax.md` | RESOLVED | `sutra-spec/binding.md` (role=semantic, var=rotation-bound; 2026-04-21) |
+| `loop-function-declarations.md` | RESOLVED | `sutra-spec/control-flow.md` §Loops (shipped 2026-04-30→05-10) |
+| `loop-tail-call-surface.md` | RESOLVED | `return NAME(args)` shipped + tested |
+| `loop-surface-redesign.md` | STALE | superseded by `loop-function-declarations.md` |
+| `loop-body-semantics.md` | RESOLVED | by `loop-function-declarations.md` |
+| `axon-bind-needs-permutation-for-synthetic-fillers.md` | RESOLVED | commit `6d25f232` (per-key permutation in axon_add/item) |
+| `_archived-numpy-inheriting-from-flybrain.md` | STALE | already archived; fly-brain retired 2026-04-26 |
+| `project-kind-connectome-vs-embedding.md` | RESOLVED | single target = PyTorch embedding backend (fly-brain retired) |
+| `tier2-bundle-substrate-vs-algebra.md` | STALE | only the retired fly-brain routed bundle through a circuit |
+| `literals-and-auto-embedding.md` | RESOLVED (core) | `sutra-spec/strings.md` + literals shipped 2026-04-23; OPEN only on deferred binary-op/return/map-value embedding rules |
+| `defuzzify-iteration-formula.md` | OPEN | which rule per type: exp-weighted 3-way polarizer vs `iterate f=f==true`; both coherent, pick/unify (see `sutra-spec/equality-and-defuzzification.md`) |
+| `no-null.md` | RESOLVED (core) | no runtime null — `sutra-spec/types.md:262,273`; OPEN only on whether to forbid `var X:TYPE;` uninitialized syntax (user leaned forbid) |
+| `function-taxonomy-and-closure.md` | OPEN | closure-free capture shipped 2026-05-09; the 4-kind taxonomy boundary stays undecided |
+| `javascript-primitive-subclasses.md` | OPEN | per-primitive JS subclasses vs catch-all JavaScriptObject; not blocking until a TS dispatch case forces it |
+| `rotation-hashmap-as-language-feature.md` | OPEN | first-class `map<K,V>` vs library pattern vs neither; depends on real programs |
+| `concurrency-and-monads.md` | OPEN | monad/effect structure on top of `sutra-spec/concurrency.md` |
+| `conditional-branching-on-remote.md` | OPEN | can the branch decision itself run on the substrate (not just the argmax feeding it) |
+| `codegen-v1-feature-coverage.md` | OPEN | which V1-refused constructs (methods/operator-decl/Embed/Defuzzy/UnsafeCast) to close |
+| `zero-as-explicit-neutrality.md` | OPEN | how higher-level features consume truth-axis 0 (bool↔fuzzy coercion, branch-on-neutral); runtime already coherent |
+| `nested-loops-as-orthogonal-subspaces.md` | OPEN | subspace allocation + termination + cross-subspace channel for nested `loop(cond)` |
+| `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
+| `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
+
+Tally: **9 RESOLVED/STALE**, **2 RESOLVED-core with a narrow OPEN tail**,
+**11 genuinely OPEN** — but most "open" ones are narrow sub-questions,
+not undefined design space, and none currently blocks queue work. The
+RESOLVED/STALE docs should be deleted/archived on the next pruning
+pass (rule 3 above) once their rationale is confirmed captured in the
+cited spec file. Still TODO under task #15: the same verdict pass over
+`sutra-spec/open-questions.md` (162 lines), and per-doc top-line
+banners.
+
 ## Current contents
 
 - `binding-kind-surface-syntax.md` — **resolved 2026-04-21**. Candidate B chosen: `role` for semantic, `var` for rotation-bound. Syntax is now spec in `planning/sutra-spec/binding.md`. Doc retained for decision rationale until the next resolved-entry pruning pass.
