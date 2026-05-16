@@ -1215,118 +1215,225 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.matmul(w, values)")
         self._indent -= 1
         self._emit()
+        # =================================================================
+        # Transcendentals — the documented vision (todo.md "Transcendental
+        # functions — design absorbed from voice chat"):
+        #   exp(z) = exp(re z) · (cos(im z) + i·sin(im z))
+        #   sin(θ) = imag(exp(iθ))    cos(θ) = real(exp(iθ))
+        # Two lookup leaves (exp table, ln table); everything else
+        # beta-reduces. The canonical complex number is the d-dim
+        # synthetic-axis form (real on AXIS_REAL, imag on AXIS_IMAG) —
+        # THE SAME representation complex literals + complex_mul use.
+        # (The earlier length-2 [re,im] `cexp` stack was an ad-hoc
+        # deviation from this vision and disagreed with complex_mul;
+        # removed.) Scalar-typed call sites receive the real-axis 0-d
+        # tensor — that is `real(exp(iθ))`, the documented projection,
+        # not a representational deviation. Axis read/write is a pure
+        # one-hot dot / scaled-one-hot add (matmul-class), no host
+        # scalar. "There is no scalar, only complex with imag 0."
+        # =================================================================
+        self._emit("def _e_real(self):")
+        self._indent += 1
+        self._emit('"""Cached one-hot selector for AXIS_REAL (d-dim, 1.0 at the')
+        self._emit('real slot). dot(v, _e_real) = the real component as a 0-d')
+        self._emit('tensor - substrate-pure axis read, no .item()/float()."""')
+        self._emit("if not hasattr(self, '_e_real_cache') or self._e_real_cache is None:")
+        self._indent += 1
+        self._emit("e = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("e[self.semantic_dim + self.AXIS_REAL] = 1.0")
+        self._emit("self._e_real_cache = e")
+        self._indent -= 1
+        self._emit("return self._e_real_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _e_imag(self):")
+        self._indent += 1
+        self._emit('"""Cached one-hot selector for AXIS_IMAG."""')
+        self._emit("if not hasattr(self, '_e_imag_cache') or self._e_imag_cache is None:")
+        self._indent += 1
+        self._emit("e = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("e[self.semantic_dim + self.AXIS_IMAG] = 1.0")
+        self._emit("self._e_imag_cache = e")
+        self._indent -= 1
+        self._emit("return self._e_imag_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _cnum(self, x):")
+        self._indent += 1
+        self._emit('"""Coerce anything to the canonical d-dim complex vector. An')
+        self._emit('already-d-dim vector passes through; a 0-d tensor / host')
+        self._emit('literal becomes [x, 0] on the real axis via a scaled one-hot')
+        self._emit('(pure tensor; the host->substrate entry boundary). There is')
+        self._emit('no scalar - a real is a complex with imag 0."""')
+        self._emit("if _torch.is_tensor(x) and x.ndim >= 1 and x.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return x")
+        self._indent -= 1
+        self._emit("return self._st(x) * self._e_real()")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _re(self, z):")
+        self._indent += 1
+        self._emit('"""Real component of a complex vector as a 0-d tensor:')
+        self._emit('dot with the real one-hot (matmul-class, substrate-pure)."""')
+        self._emit("return _torch.dot(self._cnum(z), self._e_real())")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _im(self, z):")
+        self._indent += 1
+        self._emit('"""Imag component as a 0-d tensor (dot with the imag one-hot)."""')
+        self._emit("return _torch.dot(self._cnum(z), self._e_imag())")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _mk(self, r0, i0):")
+        self._indent += 1
+        self._emit('"""Build a d-dim complex vector from 0-d real/imag tensors:')
+        self._emit('r0*e_real + i0*e_imag. Pure tensor (scaled one-hot adds)."""')
+        self._emit("return self._st(r0) * self._e_real() + self._st(i0) * self._e_imag()")
+        self._indent -= 1
+        self._emit()
         self._emit("def _exp_table(self, x):")
         self._indent += 1
-        self._emit('"""Real exponential primitive — the lookup leaf. Out-of-range')
-        self._emit('saturates at the table edge (tensor clamp), not a raise."""')
+        self._emit('"""Real exponential lookup leaf: e^x for a 0-d tensor x.')
+        self._emit('Out-of-range saturates at the table edge (tensor clamp),')
+        self._emit('not a raise. The crosstalk _lerp readout is the only')
+        self._emit('non-trivial op; all tensor."""')
         self._emit("xt = self._st(x).clamp(self._EXP_LO, self._EXP_HI)")
         self._emit("return self._lerp(xt, self._EXP_XS, self._EXP_VALUES, self._EXP_DX)")
         self._indent -= 1
         self._emit()
-        self._emit("def log(self, x):")
+        self._emit("def _ln_table(self, x):")
         self._indent += 1
-        self._emit('"""Natural log primitive (JS Math.log = natural log, not')
-        self._emit('base-10) — the second lookup leaf. Non-positive / out-of-')
-        self._emit('range input saturates at the table edge: ln near LN_LO is a')
-        self._emit('large negative number, which is the mathematically-valid')
-        self._emit('limit, not an error (no host raise)."""')
+        self._emit('"""Natural-log lookup leaf: ln(x) for a 0-d tensor x.')
+        self._emit('Non-positive / out-of-range saturates at the table edge')
+        self._emit('(ln near LN_LO = a large negative - the valid limit)."""')
         self._emit("xt = self._st(x).clamp(self._LN_LO, self._LN_HI)")
         self._emit("return self._lerp(xt, self._LN_XS, self._LN_VALUES, self._LN_DX)")
         self._indent -= 1
         self._emit()
-        self._emit("ln = log")
-        self._emit()
         self._emit("def _trig_reduce(self, x):")
         self._indent += 1
-        self._emit('"""Reduce x to (-π, π] via x - 2π·round(x/2π). The rotation')
-        self._emit('is periodic, so this is the angle the eigenrotation actually')
-        self._emit('turns through. Pure tensor: sub / div / round / mul."""')
+        self._emit('"""Reduce a 0-d angle to (-pi, pi] via x - 2pi*round(x/2pi).')
+        self._emit('rotation is periodic so this is the angle it actually turns')
+        self._emit('Periodic, so mod 2pi comes for free. Pure tensor."""')
         self._emit("xt = self._st(x)")
         self._emit("return xt - self._TWO_PI * _torch.round(xt / self._TWO_PI)")
         self._indent -= 1
         self._emit()
-        self._emit("def cos(self, x):")
+        self._emit("def _cos0(self, theta):")
         self._indent += 1
-        self._emit('"""Real part of the unit eigenrotation by θ. The COS_VALUES')
-        self._emit('table is the precomputed x-coordinate of the rotated unit')
-        self._emit('vector; `_lerp` reads it continuously via crosstalk."""')
-        self._emit("return self._lerp(self._trig_reduce(x), self._TRIG_XS, self._COS_VALUES, self._TRIG_DX)")
+        self._emit('"""cos of a 0-d angle via the eigenrotation lookup (the')
+        self._emit('x-coordinate of the rotated unit vector)."""')
+        self._emit("return self._lerp(self._trig_reduce(theta), self._TRIG_XS, self._COS_VALUES, self._TRIG_DX)")
         self._indent -= 1
         self._emit()
-        self._emit("def sin(self, x):")
+        self._emit("def _sin0(self, theta):")
         self._indent += 1
-        self._emit('"""Imag part of the same unit eigenrotation — cos with the')
-        self._emit('signs flipped (the y-coordinate of the rotated unit vector).')
-        self._emit('(cos θ, sin θ) together ARE the rotated unit vector e^{iθ}."""')
-        self._emit("return self._lerp(self._trig_reduce(x), self._TRIG_XS, self._SIN_VALUES, self._TRIG_DX)")
+        self._emit('"""sin of a 0-d angle - same eigenrotation, y-coordinate."""')
+        self._emit("return self._lerp(self._trig_reduce(theta), self._TRIG_XS, self._SIN_VALUES, self._TRIG_DX)")
         self._indent -= 1
         self._emit()
-        self._emit("def cexp(self, re, im):")
+        self._emit("def realExp(self, z):")
         self._indent += 1
-        self._emit('"""Complex exponential, the operation everything else beta-')
-        self._emit('reduces from: exp(re + i·im) = exp(re)·(cos im + i·sin im).')
-        self._emit('Returns a length-2 tensor [real, imag]. The real factor is')
-        self._emit('the exp lookup leaf; the rotation factor is the')
-        self._emit('eigenrotation. All tensor ops."""')
-        self._emit("r = self._exp_table(re)")
-        self._emit("ang = self._st(im)")
-        self._emit("return _torch.stack([r * self.cos(ang), r * self.sin(ang)])")
+        self._emit('"""e^(Re z) - the rotational crosstalk lookup leaf, as a')
+        self._emit('canonical complex [e^a, 0]. The math.su realExp leaf."""')
+        self._emit("return self._mk(self._exp_table(self._re(z)), 0.0)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def imaginaryExp(self, z):")
+        self._indent += 1
+        self._emit('"""e^(i*Im z) - the eigenrotation: [cos(Im z), sin(Im z)],')
+        self._emit('the unit vector at that angle. The math.su imaginaryExp leaf;')
+        self._emit('cos/sin are its real/imag projections (cos is its own')
+        self._emit('transcendental - the real coordinate of this rotation)."""')
+        self._emit("ang = self._im(z)")
+        self._emit("return self._mk(self._cos0(ang), self._sin0(ang))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def cexp(self, z):")
+        self._indent += 1
+        self._emit('"""Complex exponential, the documented keystone:')
+        self._emit('exp(a+b*i) = e^a*(cos b + i*sin b) = realExp(z) (x) imaginaryExp(z),')
+        self._emit('(x) = complex_mul (the canonical d-dim complex product, verified')
+        self._emit('substrate-pure). Returns a canonical complex vector."""')
+        self._emit("return self.complex_mul(self.realExp(z), self.imaginaryExp(z))")
         self._indent -= 1
         self._emit()
         self._emit("def exp(self, x):")
         self._indent += 1
-        self._emit('"""Real exp = complex exp beta-reduced at imaginary part 0:')
-        self._emit('cexp(x, 0) = [exp(x)·cos 0, exp(x)·sin 0] = [exp(x), 0], take')
-        self._emit('the real component. Routed through cexp on purpose so the')
-        self._emit('beta reduction actually executes on the substrate rather')
-        self._emit('than being only a comment (the architectural-uniformity')
-        self._emit('cost is the point — CLAUDE.md "global not local efficiency")."""')
-        self._emit("return self.cexp(self._st(x), self._st(0.0))[0]")
+        self._emit('"""exp at a scalar-typed boundary = real(cexp(x)). For real x')
+        self._emit('(imag 0): realExp=[e^x,0], imaginaryExp=[1,0], product=[e^x,0],')
+        self._emit('real part = e^x. This IS the documented real(exp(i*theta))')
+        self._emit('projection, not a deviation. 0-d tensor out (back-compat with')
+        self._emit('scalar call sites; the full complex op is cexp)."""')
+        self._emit("return self._re(self.cexp(self._cnum(x)))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def log(self, x):")
+        self._indent += 1
+        self._emit('"""Natural log. Real positive x: ln(x) via the ln leaf. (Full')
+        self._emit('complex log - imag part = angle via atan2 - is the documented')
+        self._emit('deferred piece, not faked here; real-axis ln matches the')
+        self._emit('existing contract and tests.) 0-d tensor out."""')
+        self._emit("return self._ln_table(self._re(self._cnum(x)))")
+        self._indent -= 1
+        self._emit()
+        self._emit("ln = log")
+        self._emit()
+        self._emit("def cos(self, x):")
+        self._indent += 1
+        self._emit('"""cos(theta) = real(exp(i*theta)) - the documented')
+        self._emit('definitional reduction. exp(i*theta) = cexp of the PURE-')
+        self._emit('IMAGINARY number theta*i (theta on the imag axis), so the')
+        self._emit('eigenrotation turns through theta. Real part = cos."""')
+        self._emit("itheta = self._mk(0.0, self._st(x))")
+        self._emit("return self._re(self.imaginaryExp(itheta))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sin(self, x):")
+        self._indent += 1
+        self._emit('"""sin(theta) = imag(exp(i*theta)) - imag part of the same')
+        self._emit('pure-imaginary eigenrotation (theta on the imag axis)."""')
+        self._emit("itheta = self._mk(0.0, self._st(x))")
+        self._emit("return self._im(self.imaginaryExp(itheta))")
         self._indent -= 1
         self._emit()
         self._emit("def pow(self, x, y):")
         self._indent += 1
-        self._emit('"""x ** y = exp(y · log x). x > 0 (the log leaf). All tensor."""')
+        self._emit('"""x^y = exp(y*ln x) - change-of-base identity. 0-d tensor."""')
         self._emit("return self.exp(self._st(y) * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def sqrt(self, x):")
         self._indent += 1
-        self._emit('"""sqrt(x) = exp(0.5 · log x). x near 0 saturates at the log')
-        self._emit('table edge — an honest reflection of the lookup architecture."""')
+        self._emit('"""sqrt(x) = exp(0.5*ln x) - the y=1/2 case of pow."""')
         self._emit("return self.exp(0.5 * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def tan(self, x):")
         self._indent += 1
-        self._emit('"""tan = sin / cos. At odd multiples of π/2 cos→0 and the')
-        self._emit('quotient tensor goes to ±inf — the mathematically-valid')
-        self._emit('limit (no host `if c == 0`, consistent with JS Math.tan)."""')
-        self._emit("xr = self._trig_reduce(x)")
-        self._emit("s = self._lerp(xr, self._TRIG_XS, self._SIN_VALUES, self._TRIG_DX)")
-        self._emit("c = self._lerp(xr, self._TRIG_XS, self._COS_VALUES, self._TRIG_DX)")
-        self._emit("return s / c")
+        self._emit('"""tan = sin/cos. cos->0 gives +/-inf (valid limit; no host if)."""')
+        self._emit("return self.sin(x) / self.cos(x)")
         self._indent -= 1
         self._emit()
         self._emit("def sinh(self, x):")
         self._indent += 1
-        self._emit('"""(exp(x) - exp(-x)) / 2. Tensor negation, no host scalar."""')
+        self._emit('"""(e^x - e^-x)/2."""')
         self._emit("xt = self._st(x)")
         self._emit("return (self.exp(xt) - self.exp(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def cosh(self, x):")
         self._indent += 1
-        self._emit('"""(exp(x) + exp(-x)) / 2."""')
+        self._emit('"""(e^x + e^-x)/2."""')
         self._emit("xt = self._st(x)")
         self._emit("return (self.exp(xt) + self.exp(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def tanh(self, x):")
         self._indent += 1
-        self._emit('"""(exp(2x) - 1) / (exp(2x) + 1). For large |x| exp saturates')
-        self._emit('at the table edge so tanh saturates toward ±1 — the correct')
-        self._emit('limit, reached without a host range check."""')
+        self._emit('"""(e^2x - 1)/(e^2x + 1) [stable]; large |x| => exp saturates')
+        self._emit('so tanh -> +/-1, the correct limit, no host range check."""')
         self._emit("e2x = self.exp(2.0 * self._st(x))")
         self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1

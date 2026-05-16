@@ -107,7 +107,19 @@ class TestPyTorchFusedOps(unittest.TestCase):
             "}\n"
         )
         py = _compile(src)
-        self.assertIn("scores = (M @ q) / (safe_rn * q_norm)", py)
+        # Post Audit-REAL-LEAK-#7 fix: the zero-query-norm guard is the
+        # eps-guarded tensor form `safe_qn = where(q_norm > 0, ...)`,
+        # NOT the old `if float(q_norm) == 0: return candidates[0]` host
+        # branch. The test's intent (argmax_cosine is a torch matmul,
+        # not a host loop) is strengthened by that change.
+        self.assertIn("scores = (M @ q) / (safe_rn * safe_qn)", py)
+        # The zero-query guard is the eps-guarded tensor form, not a
+        # host branch. (Asserting the positive tensor form rather than
+        # the absence of the old `if float(q_norm)` string, because
+        # that string also appears in the explanatory code comment.)
+        self.assertIn(
+            "safe_qn = _torch.where(q_norm > 0, q_norm, "
+            "_torch.ones_like(q_norm))", py)
         self.assertIn("_torch.argmax(scores)", py)
         self.assertIn("_torch.as_tensor(c, dtype=_DTYPE, device=_DEVICE)", py)
 
