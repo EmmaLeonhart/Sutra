@@ -76,8 +76,10 @@ this file *and* their inline spec sections in the same commit
 ## Types — `types.md`
 
 - Whether `bool`'s defuzz counter has a ceiling.
-- Whether scalars can appear as function results (or only as
-  inputs).
+- ~~Whether scalars can appear as function results~~ — **RESOLVED
+  2026-05-16**: a number IS a vector; returning one returns that
+  vector. See `types.md` §"Open questions" + `planning/findings/
+  2026-05-16-scalar-is-not-an-open-question.md`.
 - Whether other subtypes of vector (`probability`, `angle`,
   `unit_vector`) are needed.
 - Whether matrices have first-class subtypes
@@ -132,15 +134,19 @@ this file *and* their inline spec sections in the same commit
 
 - Multi-option `select` firing threshold and `select ... else`
   score formula (tracked in `todo.md` too).
-- When `loop[N]` can't be unrolled (non-literal N), current
-  codegen emits a host-Python `for _ in range(N)`. Is that
-  acceptable, or should it error?
+- ~~When `loop[N]` can't be unrolled (non-literal N) … host-Python
+  `for`. acceptable or error?~~ — **DECIDED**: not acceptable, it
+  is a substrate leak. Tracked as `Audit.md` REAL LEAK #4
+  (`codegen_pytorch.py` generic loop runtime); fix = bind to the
+  substrate eigenrotation. Not an open design choice.
 - Exact rotation operator for `loop(cond)` eigenrotation (Haar-
   random today; substrate-specific / per-site alternatives?).
 - Whether `loop(cond)` can terminate on non-similarity conditions.
-- Fate of parsed-but-rejected control forms: `if/else` (design-
-  rejected, use `select`), `try-catch` (unimplemented — see
-  todo.md). `do-while` was in this list until 2026-04-22 when it
+- Fate of parsed-but-rejected control forms: ~~`if/else`~~
+  **DECIDED** — design-rejected in `control-flow.md` (`select` is
+  the only runtime branching primitive); not open. `try-catch`
+  (unimplemented — see todo.md) is the only still-open part.
+  `do-while` was in this list until 2026-04-22 when it
   was implemented by desugaring to body + while. `foreach` over
   a compile-time-known array literal was also implemented on
   2026-04-22; the dynamic-foreach case (named collections,
