@@ -668,6 +668,21 @@ the wrong thing.
 
 ## [This year] Docs / website
 
+- [ ] **Website visual remake to fully match the shared identity
+  (website-only — never the language/math/substrate).** Emma's
+  standing complaint: the site is well-structured (keep the structure,
+  the Material GitHub repo widget, and search — she likes all three)
+  but it looks ugly/outdated next to emmaleonhart.com and the sister
+  sites. 2026-05-16 shipped a chrome restyle in
+  `docs/stylesheets/identity.css` (dark Lacquer header/tabs, the
+  shared Loka-feel `.md-button`, grid cards, admonitions, header
+  element re-order: search one side, light/dark toggle next to the
+  GitHub widget). Still to do for a true match: tighten spacing/typography
+  to the emmaleonhart.com feel, a proper landing-hero treatment, and
+  port Sutra's *better* Material GitHub repo widget back onto the
+  other sister sites (Emma prefers it to the small `.gh` pill they
+  use). Treat as iterative; never block on it, never touch claims.
+
 - [ ] **Expand `docs/paradigms.md` once more is built.** The page was
   shrunk on 2026-04-27 to a single Java contrast (assignment, loops,
   classes) plus the no-memory-points / non-locality core. The earlier
