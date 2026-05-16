@@ -2846,7 +2846,25 @@ class BaseCodegen:
             # the call boundary so `f("alice")` against
             # `function int f(string s)` wraps "alice" via make_string.
             param_types = self._func_param_types.get(name)
+            # Axon role-key intrinsics: the `key` arg is a role NAME the
+            # runtime embeds into a basis vector (axons.su:
+            # `axon_item(a,k) → unbind(basis_vector(k), a)`), NOT string
+            # content. It must reach the runtime as a host str so
+            # axon_add / axon_item take their `isinstance(key, str)` →
+            # embed(key) branch — consistently with the member-access
+            # path (`a.item("k")`, which passes no dest_type) and with
+            # the producer side. Coercing it via make_string (because
+            # the stdlib signature types it `string`) hands the runtime
+            # a codepoint vector → wrong role rotation → silent
+            # cross-module axon decode corruption. Regression introduced
+            # by the 2026-05-08 parallel string model; root-caused
+            # 2026-05-15 (multi_program_axon recovered +0.04 vs +0.40,
+            # producer/member-access used embed-key, consumer/free-call
+            # used make_string-key — they disagreed).
+            _axon_key_arg = {"axon_add": 1, "axon_item": 1}.get(name)
             def _arg_dest(i: int) -> str | None:
+                if _axon_key_arg is not None and i == _axon_key_arg:
+                    return None
                 if param_types is None or i >= len(param_types):
                     return None
                 return param_types[i]
