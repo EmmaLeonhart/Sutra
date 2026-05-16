@@ -1,0 +1,72 @@
+/* ===== CANONICAL VISUAL IDENTITY — Sutra docs ======================
+   Steers MkDocs Material onto the shared Lacquer palette used across
+   emmaleonhart.com and the sister sites (see emmaleonhart.com/_identity/).
+   Dark (slate) is the default; the Material palette toggle still works
+   and persists. We only remap Material's CSS custom properties — no
+   layout surgery, so the theme keeps working. */
+
+/* ---- Dark (default) : Lacquer dark ---- */
+[data-md-color-scheme="slate"] {
+  --md-hue: 252;
+  --md-default-bg-color:        #07070c;
+  --md-default-bg-color--light: #0c0c14;
+  --md-default-fg-color:        #d4d4e0;
+  --md-default-fg-color--light: #8c8caa;
+  --md-default-fg-color--lighter:#5d5d78;
+  --md-default-fg-color--lightest:#1d1d2c;
+
+  --md-primary-fg-color:        #8b9bff;   /* header / nav bar = periwinkle */
+  --md-primary-fg-color--light: #b0bcff;
+  --md-primary-fg-color--dark:  #6f80e8;
+  --md-primary-bg-color:        #07070c;   /* text on the periwinkle header */
+  --md-primary-bg-color--light: rgba(7,7,12,0.7);
+
+  --md-accent-fg-color:         #b0bcff;
+  --md-accent-fg-color--transparent: rgba(139,155,255,0.10);
+  --md-accent-bg-color:         #07070c;
+
+  --md-typeset-a-color:         #8b9bff;
+  --md-typeset-mark-color:      rgba(139,155,255,0.28);
+  --md-code-bg-color:           #0c0c14;
+  --md-code-fg-color:           #d4d4e0;
+  --md-code-hl-color:           rgba(139,155,255,0.20);
+
+  --md-footer-bg-color:         #0c0c14;
+  --md-footer-bg-color--dark:   #07070c;
+  --md-footer-fg-color:         #d4d4e0;
+}
+
+/* ---- Light : Lacquer light ---- */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color:        #f4f4f8;
+  --md-default-bg-color--light: #ebebf2;
+  --md-default-fg-color:        #2b2b38;
+  --md-default-fg-color--light: #5c5c74;
+  --md-default-fg-color--lighter:#8c8caa;
+  --md-default-fg-color--lightest:#dadae6;
+
+  --md-primary-fg-color:        #5160dd;   /* header = darkened periwinkle */
+  --md-primary-fg-color--light: #7a86e0;
+  --md-primary-fg-color--dark:  #3a48c4;
+  --md-primary-bg-color:        #ffffff;
+  --md-primary-bg-color--light: rgba(255,255,255,0.7);
+
+  --md-accent-fg-color:         #3a48c4;
+  --md-accent-fg-color--transparent: rgba(81,96,221,0.10);
+  --md-accent-bg-color:         #ffffff;
+
+  --md-typeset-a-color:         #5160dd;
+  --md-typeset-mark-color:      rgba(81,96,221,0.22);
+  --md-code-bg-color:           #ebebf2;
+  --md-code-fg-color:           #2b2b38;
+
+  --md-footer-bg-color:         #2b2b38;
+  --md-footer-fg-color:         #f4f4f8;
+}
+
+/* Shared accents: Inter/JetBrains-Mono are already the Material defaults
+   configured in mkdocs.yml; nothing to override there. Smooth the
+   scheme switch like the rest of the sites. */
+body, .md-header, .md-footer, .md-typeset {
+  transition: background-color .35s ease, color .35s ease;
+}
