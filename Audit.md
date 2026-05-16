@@ -215,8 +215,13 @@ decision (and a comment) rather than being silently host:
 - **`Math.round` ties-to-even vs JS half-up** — semantic, not a
   purity issue; logged for completeness.
 - **Wire `experiments/substrate_leak_sweep.py` into the test
-  suite** — so the next binary-operator leak in a user `.su`
-  program is caught at PR time, not by a user hitting it.
+  suite** — ✅ DONE 2026-05-15.
+  `sdk/sutra-compiler/tests/test_substrate_leak_sweep.py` imports
+  the sweep and asserts rc==0; observed green (`1 passed in
+  1738.41s` — 67 programs compiled, 0 operator leaks). Caveat:
+  ~29 min runtime → make it slow/nightly or compile-once-reuse
+  for per-PR use (speed refinement, not correctness; the gate is
+  real and clean today).
 - **Dangling `examples/todo.md` references** in dated findings
   (`planning/findings/2026-04-15-llm-substrate-role-name-collision.md`,
   `2026-05-10-spec-implementation-audit.md`, `planning/sutra-
