@@ -10,6 +10,25 @@ hide:
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
+!!! abstract "All Sutra math reduces to SIMD GPU primitives — no host branches"
+
+    Every Sutra mathematical operation is built to reduce to real GPU
+    primitives that run in the classic SIMD fashion: tensor `matmul`,
+    elementwise `+ − × ÷`, `clamp`, `round`. **No host-side `if` / `while`
+    on data values, no NumPy on the runtime path.** Transcendentals
+    (`exp`, `log`, `sin`, `cos`, `tan`, `tanh`, …) are a crosstalk
+    lookup-codebook readout plus an eigenrotation — all tensor ops, one
+    host→substrate entry boundary, tensor-valued throughout. This
+    transcendental/modulus family is **verified** substrate-pure
+    (independent re-verification 2026-05-15: tensor returns matching
+    ground truth, zero host-scalar leak signatures in the emitted code).
+
+    Honesty clause: a known, shrinking set of *other* runtime
+    operations still has host-scalar leaks. They are catalogued openly,
+    worst-first, in [`Audit.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/Audit.md)
+    and are being driven to zero. We state which operations are verified
+    pure and which are not — we do not claim blanket purity.
+
 [:material-file-pdf-box: Paper (PDF)](paper.pdf){ .md-button .md-button--primary }
 [:material-text-box: Paper (HTML)](theory-and-paper.md){ .md-button }
 
