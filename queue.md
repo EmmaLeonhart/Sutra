@@ -149,6 +149,39 @@ speed, not correctness.
 
 ---
 
+### 5. Triage every open-question — ~90% are already clearly defined
+
+Emma 2026-05-15: most "open design questions" are not actually open;
+they're decided in the spec / todo.md / voice-chat-absorbed notes
+and just never got marked resolved. This run proved the failure
+mode first-hand — the unified-complex-`number` representation was
+treated as an "open design gap" when it is fully specified in
+`todo.md` §"Transcendental functions — design absorbed from voice
+chat" (`exp(z)=exp(re z)·(cos(im z)+i·sin(im z))`, canonical
+d-dim synthetic-axis complex, two lookup leaves). Reading the
+vision instead of declaring it open is the standing requirement
+([[feedback-check-what-is-open-before-pitching-blocker]]).
+
+Deliverable: go through every file in `planning/open-questions/`
+(22 docs) **and** `planning/sutra-spec/open-questions.md` (162
+lines) and give each a one-line verdict at the top:
+
+- **RESOLVED** — decided; cite where (spec file / todo.md section /
+  finding / dated commit). Move the doc's substance to the spec if
+  it isn't already there; the open-question file becomes a
+  pointer.
+- **GENUINELY OPEN** — state the precise undecided sub-question in
+  one sentence, and what evidence/decision would close it. Most
+  will NOT be this.
+- **STALE** — premised on a superseded design (e.g. numpy-backend-
+  as-substrate, fly-brain, tier framing). Mark and delete or
+  archive like `_archived-numpy-inheriting-from-flybrain.md`.
+
+Work it as a real queue item (mirrored to the task tool), one
+doc per pass, committing the verdicts. The output is a planning
+surface that says exactly what is and isn't decided — so no
+future session repeats this run's mistake. Task #15.
+
 ## Parked
 
 - C → Sutra transpiler skeleton (`sdk/sutra-from-c/`): parked
