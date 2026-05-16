@@ -89,13 +89,26 @@ saturate instead of raise.
    loop is the loop-runtime leak surface; bound it to the
    eigenrotation primitive once (1) lands.
 
-5. **String ops as host codepoint loops** —
-   `codegen_pytorch.py:1753-1774` (length/index: `for k in
-   range(…)`, `if v[…].item() != 0.0`, `return int(…item())`),
-   `1952-1975` (concat: `for k in range(la)` / `range(lb)`,
-   `chr(int(…item()))`). Strings are spec'd as synthetic-axis
-   codepoint arrays (`strings.md`); the ops walk them on the host.
-   Vectorize over the axis block.
+5. **String ops as host codepoint loops** — ✅ FIXED 2026-05-16
+   (commit `0e363b96`). Was `string_length`/`string_char_at`/
+   `string_concat` with host `for k in range`, `.item()`, `int()`,
+   host `if`/`raise`. Now substrate-pure via the VSA/permutation
+   approach Emma specified: a cached constant `_str_axes()` index
+   tensor (compile-time, same class as the lookup tables);
+   `string_length` = `(arange(1..n) * (cps!=0)).max()` over the
+   gathered codepoint block; `string_char_at` = gather + OOB mask
+   (saturate, no host branch); `string_concat` = shift b right by
+   `len(a)` via a permuted gather index + add (overflow falls off
+   the mask = saturate, no raise). `make_string` raise→truncate;
+   its enumerate is the documented host-literal→substrate ENTRY
+   boundary (make_real/_st analogue). `string_to_python` is the
+   substrate→host MONITORING/decode boundary (CLAUDE.md-allowed);
+   `is_string` is the host dispatch predicate (JS-interop carve-
+   out) — neither is an op-internal leak. Verified: ground-truth
+   correct + substrate-tensor returns; corpus+codegen_pytorch+
+   transcendentals+inliner 39 passed/103 subtests; TS string
+   fixtures 2 passed; `examples/_smoke_test.py` PASS 11/11 (real
+   string decode/retrieval). Zero regression.
 
 6. **`complex_div` NaN/zero guard** — ✅ ALREADY RESOLVED (stale
    citation). Current `complex_div` (codegen_pytorch.py ~1637-1655)

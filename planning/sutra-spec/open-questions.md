@@ -49,12 +49,19 @@ verified this pass:
 - **Axons** — the two struck items are correctly marked resolved
   2026-05-07; the "Still open" list under it is genuinely open.
 
+**RESOLVED 2026-05-16 — Types §"scalars as results"
+(`types.md:507`).** Emma's ruling (recorded in
+`planning/findings/2026-05-16-scalar-is-not-an-open-question.md`):
+a number IS a vector — the value on the number axis, zeros
+elsewhere, the same ontology as a string (hypervector + flag).
+Returning a "scalar" is returning that vector; the only residue is
+a cosmetic `scalar`→`number` keyword rename + dropping the 0-d
+projection (call-site/test migration), neither a design decision.
+Strike this line from the index and update `types.md` to state the
+ontology. NOT an open question; was mis-framed as one.
+
 Genuinely open (a representative few, NOT decided elsewhere — the
-spec really hasn't picked): Types §"scalars as results"
-(`types.md:507`; this is the *gate* for the literate-math
-exp/cos/sin tail and the scalar→number direction — a stated
-direction is not yet an authoritative spec decision, so it stays
-OPEN, not faked-resolved), Operations §"which similarity is the
+spec really hasn't picked): Operations §"which similarity is the
 default", §"bundle semantics", §"static type checking", Binding
 §"fitting procedure", Concurrency §"convergence test", most of
 Promises. These are real undecided design; leave them.

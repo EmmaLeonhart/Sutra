@@ -97,11 +97,18 @@ the scalar leaves; `Math.tanh(1.0)` emits
 **Still intrinsic by the documented design (NOT a cop-out):**
 `realExp`/`imaginaryExp` (the two irreducible substrate leaves),
 `log`/`ln` (the ln leaf), `exp`/`cos`/`sin` (the verified
-scalar-projection boundary = `real(cexp)` / `real(cexp(iθ))` /
-`imag(cexp(iθ))`). Making `exp`/`cos`/`sin` literate too needs a
-complex→scalar projection surface — that is the scalar→number
-question (open-questions triage, NOT faked here). Task #12: core
-done; the exp/cos/sin-as-literate tail is gated on scalar→number.
+projection boundary = `real(cexp)` / `real(cexp(iθ))` /
+`imag(cexp(iθ))`). The exp/cos/sin tail is **NOT gated on an open
+question** — "scalar vs number" is RESOLVED (Emma's ruling, recorded
+in `planning/findings/2026-05-16-scalar-is-not-an-open-question.md`):
+a number IS a vector (value on the number axis, zeros elsewhere,
+same ontology as a string with its flag); verified that's what the
+runtime does (`_cnum` = `_st(x)*_e_real()`, `Math.exp` returns a
+substrate tensor, no host float). The tail is gated only on bounded
+engineering: rename the `scalar` keyword → `number`, and drop the
+0-d projection so exp/cos/sin return the number-vector (a mechanical
+call-site/test migration). Task #12: core done; tail is cosmetic +
+migration, not design.
 
 ### 2. Audit.md REAL LEAK list — 5 of 8 resolved+verified; 3 structural left
 
