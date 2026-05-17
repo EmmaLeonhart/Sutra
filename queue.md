@@ -32,29 +32,31 @@ delete/archive the doc per `planning/open-questions/README.md` rule 3.
 Genuinely-OPEN docs stay. This is the next concrete sub-item, not yet
 started.
 
-### B. Verify the shipped transcendentals realize the stored-constants vision
+### B. Verify the shipped transcendentals realize the stored-constants vision  — ✅ DONE (finding written)
 
-From the user's 2026-05-17 voice-vision (verbatim at
-`planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`):
-the design is "store three transcendental constants — tau at a runtime
-binding point; cross-talk-exploiting log table + exp table as the two
-leaves." Read the *emitted* code / runtime and confirm the shipped
-transcendentals literally do this (tau bound in the runtime; the two
-leaves are genuine cross-talk-exploiting lookup tables, not a
-libm/torch elementwise call). Report the honest delta. If it does not
-match the vision, that gap is OPEN — do not paper over it.
+Read-only audit of the emitted runtime done; finding at
+`planning/findings/2026-05-17-transcendentals-realize-stored-constants-vision.md`.
+Answer to the user's anxiety ("did you lie about the crosstalk
+tables?"): **No — the cross-talk-exploiting exp + ln lookup tables are
+real and on the runtime hot path** (`_lerp` triangular-kernel matmul,
+no libm/torch.exp on the hot path; the only torch.exp/log are the
+legitimate init-time codebook builds). TAU is bound at a runtime point
+(`self.TAU`/`self._TWO_PI`). Independently re-verified from the code,
+not trusted from a prior claim. Surfaced one self-correction → item C.
 
 ## Open design question raised this run — needs a user decision
 
-### C. Cosine as its own transcendental function?
+### C. Complex-argument cosine (narrowed by the item-B audit)
 
 `planning/open-questions/cosine-as-its-own-transcendental.md`
-(GENUINELY OPEN). The user's 2026-05-17 position — cos as its own
-substrate-pure transcendental, with the imaginary part of complex
-`cos` built geometrically — contradicts the shipped
-`cos = real(cexp(iθ))` boundary. Cannot be silently kept-as-is or
-silently implemented; needs a user ruling on which boundary is
-canonical. Surfaced, not guessed.
+(GENUINELY OPEN, narrowed 2026-05-17). The audit corrected this run's
+own imprecise framing: cos is **already** its own substrate-pure
+transcendental (dedicated `_COS_VALUES` crosstalk table, not derived
+from exp at runtime). The genuinely-open piece — matching the user's
+exact words — is **complex-argument `cos(z)` / the imaginary output of
+cosine**, which is not implemented (`cos(x)` only takes a real angle).
+Needs a user ruling on whether complex-argument cos is in scope now.
+Surfaced, not guessed.
 
 ## Structural — deliberate, gated; explicitly NOT a rushed autonomous edit
 

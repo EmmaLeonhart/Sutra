@@ -1,56 +1,70 @@
 # Open question — Cosine as its own transcendental function?
 
-> **VERDICT: GENUINELY OPEN.** Raised by the user 2026-05-17 (voice-vision
-> block, preserved verbatim at
+> **VERDICT: GENUINELY OPEN (narrowed 2026-05-17 after a code audit).**
+> Raised by the user 2026-05-17 (voice-vision block, verbatim at
 > `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`).
-> It contradicts a currently-shipped design boundary, so it cannot be
-> silently kept-as-is *or* silently implemented. Needs a user decision.
+> The audit found cos *already* has its own substrate-pure crosstalk
+> lookup table — so the open part is **complex-argument `cos(z)` / the
+> imaginary output of cosine**, which is not implemented, not "should
+> cos be its own leaf" (it already is). Needs a user decision on scope.
 
-## The precise undecided sub-question
+## Corrected framing (2026-05-17 — after reading the emitted code)
 
-The transcendentals as shipped (`ecf1c4cd`/`744ec95e`, then literate
-`ae269f6b`/`b9e11f5e`) define:
+This doc originally framed the question as "cos = real(cexp(iθ)),
+should it be its own leaf?". **That framing was imprecise.** A
+read-only audit of the emitted runtime
+(`planning/findings/2026-05-17-transcendentals-realize-stored-constants-vision.md`,
+citing `sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py`) found:
 
-- `cos(θ) = real(cexp(iθ))`
-- `sin(θ) = imag(cexp(iθ))`
+- **`cos` already has its own dedicated crosstalk lookup table.**
+  `self._COS_VALUES` (`codegen_pytorch.py:289`) is a distinct trig
+  codebook, read by `_cos0` (`:1323–1327`) via the same `_lerp`
+  crosstalk kernel as the exp/ln leaves. The runtime route is
+  cos → `imaginaryExp` → `_cos0` → `_COS_VALUES`. cos is **not
+  numerically derived from `exp` at runtime** — it is its own
+  table-backed transcendental. So "cosine as its own transcendental"
+  is, at the table/substrate level, **already true**.
+- The only sense in which cos is "derived" is the *surface routing*
+  (`cos(x)` builds a pure-imaginary number and projects
+  `imaginaryExp`), not the numerics.
 
-i.e. cos/sin are *projections of the complex exponential*, with the
-irreducible substrate leaves being `realExp`/`imaginaryExp` (and `ln`).
+## The precise still-open sub-question
 
-The user's 2026-05-17 position: **cosine should be its own transcendental
-function**, not derived from the algebraic/complex exponential, "because
-it's much more complicated when you look at the imaginary output of the
-cosine" — and the imaginary output of cosine must be implemented
-*geometrically* (substrate-pure), same constraint as tanh.
+The genuinely-undecided part is narrower and **matches the user's exact
+words** ("it's much more complicated when you look at the imaginary
+output of the cosine … implement the imaginary output of the cosine
+geometrically too"):
 
-So the undecided question, in one sentence:
+`cos(x)` (`codegen_pytorch.py:1383–1390`) coerces its argument onto the
+imaginary axis as a *real angle* (`itheta = self._mk(0.0,
+self._st(x))`) and returns `_re(imaginaryExp(itheta))`. **There is no
+path for `cos(z)` where `z` is itself complex — no `imag(cos(z))`.**
 
-> Does `cos` (and the imaginary part of `cos` for complex arguments) get
-> its own dedicated substrate-pure transcendental leaf, or does it stay
-> derived from `cexp` via `real(cexp(iθ))` as currently shipped?
+> One sentence: does Sutra grow a substrate-pure **complex-argument
+> cosine** — `cos(z)` for complex `z`, including its imaginary part —
+> built geometrically, rather than only the real-angle `cos(x)` it has
+> today?
 
 ## Why each side has force
 
-- **Keep cos = real(cexp(iθ)) (status quo):** fewer irreducible leaves
-  (one `cexp` boundary, verified `cexp(iπ)=-1`, `cexp(1+iπ/2)=ie`);
-  literate-math chain already green (135 passed / 103 subtests + smoke);
-  matches the documented "two lookup leaves" vision.
-- **Make cos its own transcendental (user's new position):** the user
-  argues the complex-argument imaginary part of cos is structurally
-  harder than a projection of cexp and deserves its own geometric
-  (substrate-pure) construction; this is the user's clear mathematical
-  vision and they reserve the call. Treating it as "already resolved by
-  the cexp boundary" would be exactly the
+- **Leave it real-angle-only (status quo):** every shipped test uses
+  real-argument cos; complex-argument cos has no current caller; the
+  literate-math chain is green (135 passed / 103 subtests + smoke).
+- **Add complex-argument cos (user's position):** the user explicitly
+  calls out the imaginary output of cosine as the hard, must-be-
+  geometric piece; deferring it silently while the surface advertises
+  "cos" would be the
   [[feedback-check-what-is-open-before-pitching-blocker]] failure in
-  reverse — declaring a thing closed that the design owner has reopened.
+  reverse — treating a piece the design owner flagged as undone.
 
 ## What would close it
 
-A user ruling on which boundary is canonical, plus — if cos becomes its
-own leaf — the substrate-pure construction for `cos` and especially
-`imag(cos(z))` for complex `z`, with a ground-truth verification table
-(the `21a9ff77` model: tensors in → tensor ops → tensors out, compared to
-`cmath.cos`, honest delta reported).
+A user ruling on whether complex-argument `cos(z)` is in scope now, and
+— if yes — its substrate-pure construction (the geometric imaginary
+part), with a ground-truth verification table (the `21a9ff77` model:
+tensors in → tensor ops → tensors out, compared to `cmath.cos`, honest
+delta reported). The real-angle `cos(x)` table is already substrate-pure
+and need not change.
 
 ## Status / why this is not being implemented in this autonomous run
 
