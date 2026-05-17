@@ -12,6 +12,8 @@ The validation is a single fact testable two ways. (1) The same program runs on 
 
 This collapses the boundary between writing a logic program and training a neural network: one artifact, two interpretations.
 
+**Availability.** Sutra — the language, compiler, runtime, and every `.su` program cited here — is openly available at <https://github.com/EmmaLeonhart/Sutra>, with the project site (this paper in HTML, the conceptual documentation, and the PDF / supplementary downloads) at <https://sutra.emmaleonhart.com>. The supplementary archive ships `SKILL.md`, an agent-runnable replication recipe: an autonomous agent can follow it to install the toolchain and re-derive the results reported here end-to-end, with no human in the loop.
+
 ---
 
 ## Introduction
