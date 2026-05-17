@@ -23,7 +23,7 @@ The repository has two audiences and they read different files. Do not conflate 
 
 - **AI agents and contributors read the repo Markdown.** That includes this `CLAUDE.md`, the `AGENTS.md` index at the repo root, `queue.md`, `todo.md`, `DEVLOG.md`, `paper/`, `paper/supplementary/`, and everything under `planning/` (`sutra-spec/`, `findings/`, `open-questions/`, `exploratory/`). This is the canonical, fullest-fidelity surface — when something is true about Sutra, it's true here first.
 
-- **Humans read the website at `sutra.emmaleonhart.com`.** As of 2026-05-16 it is a **single static page**: `docs/neurips-2026.md` rendered onto the shared emmaleonhart.com identity by `scripts/build_site.py`, with the paper PDF, anonymized PDF, and reproduction zip downloadable from it. The old ~23-page MkDocs Material site (and `mkdocs.yml`, `docs/stylesheets/`, `docs/assets/`, every other `docs/*.md`) was scrapped — Emma's call: the site wasn't good enough to be worth maintaining, the paper download is what matters. `docs/neurips-2026.md` is now the only website page; keep it free of repo-internal scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`).
+- **Humans read the website at `sutra.emmaleonhart.com`.** As of 2026-05-16 it is **two static pages** rendered from Markdown by `scripts/build_site.py` onto the shared emmaleonhart.com identity: the homepage (`docs/index.md`, explaining what Sutra is — no downloads, no NeurIPS link) and `/neurips-2026/` (`docs/neurips-2026.md`, the frozen-submission archive with the paper PDFs + reproduction zip; reachable by direct URL only, intentionally not linked from the homepage). The old ~23-page MkDocs Material site (and `mkdocs.yml`, `docs/stylesheets/`, `docs/assets/`, every other `docs/*.md`) was scrapped — Emma's call: the site wasn't good enough to be worth maintaining. `docs/index.md` and `docs/neurips-2026.md` are the only website pages; keep them free of repo-internal scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`).
 
 The two surfaces are **not generated from the same source**. `docs/neurips-2026.md` is hand-written for the website; the canonical Markdown elsewhere in the repo is hand-written for agents. They are allowed to drift in framing, level of detail, and which examples they pick. They must not contradict each other on facts.
 
@@ -48,7 +48,7 @@ If you are an AI agent landing in this repo, start with `AGENTS.md` for the file
 - **No runtime errors by mechanism.** Type mismatches produce semantically meaningless but mathematically valid output. The compiler is the last line of defense.
 - **Opinionated, not authoritarian.** Harmful patterns warn loudly but still compile. Escape hatches are explicit and grep-able.
 
-An MCP server is a core part of the language runtime. The website (`sutra.emmaleonhart.com`, a single static page from `docs/neurips-2026.md`) is the human-facing surface — see §"Audiences" below.
+An MCP server is a core part of the language runtime. The website (`sutra.emmaleonhart.com`, two static pages from `docs/index.md` + `docs/neurips-2026.md`) is the human-facing surface — see §"Audiences" below.
 
 ### Next venue target: NeurIPS
 
