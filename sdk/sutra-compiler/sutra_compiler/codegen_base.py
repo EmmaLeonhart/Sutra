@@ -361,6 +361,17 @@ class BaseCodegen:
         # planning/sutra-spec/axons.md §"The mutating-looking syntax
         # is sugar; the compiler usually elides the axon entirely."
         self._axon_elide_keys: dict[str, set[str]] = {}
+        # Per top-level user function -> list parallel to its params:
+        # frozenset[str] of keys read from that axon param (transitively
+        # across the call graph) or None (OPAQUE — keep all keys).
+        # Populated once per module by `_compute_axon_read_signatures`
+        # in the module-translate pre-pass; consumed by
+        # `_compute_axon_elision` to prune producer-side `.add(K,V)`
+        # whose key no callee (transitively) reads. See the block
+        # comment on `_compute_axon_read_signatures` and
+        # planning/sutra-spec/axons.md §"Lazy evaluation across
+        # boundaries".
+        self._axon_read_sigs: dict[str, list] = {}
         # Maps (class_name, method_name) -> return type name, for class
         # methods declared in user code or in the stdlib. Used by the
         # general void-method-as-augmented-assignment dispatch:
@@ -650,6 +661,11 @@ class BaseCodegen:
         # functions before user code, so call sites that dispatch to
         # mangled names like `String_operator_plus` resolve.
         self._emit_stdlib_class_operators()
+        # Pre-pass D: whole-module cross-function axon read-demand
+        # signatures (producer-side pruning across call boundaries —
+        # axons.md §"Lazy evaluation across boundaries"). Computed
+        # once here; consumed per-function by `_compute_axon_elision`.
+        self._axon_read_sigs = _compute_axon_read_signatures(module)
         for item in module.items:
             self._translate_top_level(item)
             self._emit()
@@ -1140,6 +1156,13 @@ class BaseCodegen:
         writes: dict[str, set[str]] = {}
         escaped: set[str] = set()
         any_dynamic_read: set[str] = set()
+        # axon-local -> {(callee_fn, arg_index)} for every site where
+        # the local is passed *as a bare positional arg* to a known
+        # top-level user function. These are NOT hard escapes: the
+        # callee's statically-computed per-param read demand
+        # (`self._axon_read_sigs`) bounds what must be materialized.
+        # Any other flow still lands in `escaped` (keep all keys).
+        call_arg_escapes: dict[str, set[tuple[str, int]]] = {}
 
         def collect_decls(node):
             if isinstance(node, ast.VarDecl):
@@ -1224,6 +1247,43 @@ class BaseCodegen:
                         for arg in node.args:
                             visit_expr(arg, "value")
                     return
+                # `axon_item(<axon-local>, "k")` — the free-function
+                # read form (the member form is handled above). Treat
+                # it as a read, not an escape, mirroring the member
+                # form and `axon_keys.collect_axon_keys`.
+                if (isinstance(callee, ast.Identifier)
+                        and callee.name == "axon_item"
+                        and len(node.args) >= 1
+                        and isinstance(node.args[0], ast.Identifier)
+                        and node.args[0].name in axon_locals):
+                    var = node.args[0].name
+                    if (len(node.args) >= 2
+                            and isinstance(node.args[1], ast.StringLiteral)):
+                        reads[var].add(node.args[1].value)
+                    else:
+                        any_dynamic_read.add(var)
+                    # arg0 is the recognized receiver; descend into the
+                    # rest only (a nested axon-local there still escapes
+                    # via the normal value-position path).
+                    for arg in node.args[1:]:
+                        visit_expr(arg, "value")
+                    return
+                # Call to a known top-level user function: a bare
+                # positional pass of an axon local is a tracked
+                # cross-function edge, not a hard escape. The callee's
+                # per-param read signature bounds the demand. Anything
+                # other than a bare positional identifier still escapes.
+                if (isinstance(callee, ast.Identifier)
+                        and callee.name in self._axon_read_sigs):
+                    for j, arg in enumerate(node.args):
+                        if (isinstance(arg, ast.Identifier)
+                                and arg.name in axon_locals):
+                            call_arg_escapes.setdefault(
+                                arg.name, set()
+                            ).add((callee.name, j))
+                        else:
+                            visit_expr(arg, "value")
+                    return
                 # Generic call: callee in 'value' position (or recv if
                 # MemberAccess, but a non-axon-method MemberAccess
                 # receiver flows on too).
@@ -1303,9 +1363,25 @@ class BaseCodegen:
         elide: dict[str, set[str]] = {}
         for v in axon_locals:
             if v in escaped or v in any_dynamic_read:
+                # Hard escape (return / store / unknown callee / nested
+                # pass / dynamic key): keep every key materialized.
                 elide[v] = set()
-            else:
-                elide[v] = writes[v] - reads[v]
+                continue
+            # Demand = keys read in THIS function ∪ keys every callee
+            # this local is handed (transitively) reads from it. A
+            # callee whose signature is OPAQUE (None), unknown, or
+            # indexed past its params forces keep-all — the sound
+            # over-approximation that protects downstream consumers
+            # from a pruned-but-needed key (Sutra safety rule #5).
+            demand: set[str] = set(reads[v])
+            bail = False
+            for (g, j) in call_arg_escapes.get(v, ()):
+                gsig = self._axon_read_sigs.get(g)
+                if gsig is None or j >= len(gsig) or gsig[j] is None:
+                    bail = True
+                    break
+                demand |= gsig[j]
+            elide[v] = set() if bail else (writes[v] - demand)
         return elide
 
 
@@ -3151,5 +3227,256 @@ def _has_slot_decl(block: ast.Block) -> bool:
             if _has_slot_decl(stmt.body):
                 return True
     return False
+
+
+# --- cross-function axon read-demand signatures --------------------
+#
+# `_compute_axon_elision` (per-function, see the method) keeps ALL
+# keys whenever an axon-typed local escapes — including escape via a
+# call. But `planning/sutra-spec/axons.md` § "Lazy evaluation across
+# boundaries" states the single-function-call case explicitly:
+#
+#     function getCat(axon a) { return a.item("cat"); }
+#
+#     "If a caller hands getCat an axon with a million keys, ... The
+#      other 999,999 fillers are never bundled. ... Through a single
+#      function call: clearly yes."
+#
+# So the producer (caller) must materialize only the keys the callee
+# (transitively) reads from the param it is handed. This pass
+# computes, per top-level user function and per parameter, the set of
+# string-literal keys read from that parameter — propagated across
+# the call graph to a fixpoint.
+#
+# Demand value per (function, param-index):
+#   - `frozenset[str]`  — the exact set of literal keys that flow out
+#                          of that parameter (sound over-approximation
+#                          is the goal; see below).
+#   - `None`            — OPAQUE: the parameter is used in any way this
+#                          pass does not fully understand (dynamic
+#                          key, returned, stored/aliased, passed to a
+#                          non-user / unknown callee, used as a bare
+#                          value anywhere unrecognized). OPAQUE is the
+#                          top of the lattice and never weakens.
+#
+# SAFETY (Sutra CLAUDE.md "PEOPLE CAN DIE IF YOU FAKE RESULTS"):
+# eliding a key a downstream consumer actually reads = silently
+# corrupting that consumer's input. So this pass MUST be a sound
+# over-approximation of reads: every parameter use that is not a
+# recognized literal read or a recognized clean positional pass-through
+# to a known user function forces `None` (keep all keys). When in
+# doubt, OPAQUE. The caller-side consumer (`_compute_axon_elision`)
+# only elides when the demand is a concrete (non-None) set.
+
+
+def _occurs(node: object, name: str) -> bool:
+    """True iff an `Identifier` named `name` appears anywhere in the
+    AST subtree rooted at `node`. Conservative on purpose: any
+    occurrence the structured analysis did not explicitly recognize
+    is reached here and forces OPAQUE upstream."""
+    if node is None:
+        return False
+    if isinstance(node, ast.Identifier):
+        return node.name == name
+    if isinstance(node, ast.Node):
+        for v in vars(node).values():
+            if _occurs_value(v, name):
+                return True
+    return False
+
+
+def _occurs_value(value: object, name: str) -> bool:
+    if isinstance(value, ast.Node):
+        return _occurs(value, name)
+    if isinstance(value, (list, tuple)):
+        return any(_occurs_value(e, name) for e in value)
+    return False
+
+
+def _scan_param_axon_use(
+    body_stmts: list,
+    pname: str,
+    user_funcs: frozenset[str],
+) -> tuple[set[str], set[tuple[str, int]], bool]:
+    """Local (single-function) scan of how parameter `pname` is used.
+
+    Returns `(local_reads, edges, opaque)`:
+      - `local_reads`: literal keys read directly from `pname` via
+        `pname.item("k")` or `axon_item(pname, "k")`.
+      - `edges`: `(callee_name, arg_index)` for every site where
+        `pname` is passed *as a bare positional argument* to a known
+        user function. The callee's demand on that parameter becomes
+        this parameter's demand (resolved by the fixpoint).
+      - `opaque`: True if `pname` is used in ANY way not covered by
+        the two recognized forms above (dynamic key, returned,
+        assigned/aliased, passed nested or to a non-user callee, or
+        appears as a bare identifier in any unrecognized position).
+    """
+    local_reads: set[str] = set()
+    edges: set[tuple[str, int]] = set()
+    state = {"opaque": False}
+
+    def mark_opaque() -> None:
+        state["opaque"] = True
+
+    def visit(node: object) -> None:
+        if node is None or state["opaque"]:
+            return
+        if isinstance(node, ast.Call):
+            callee = node.callee
+            # `pname.item("k")` — recognized read (member form).
+            if (isinstance(callee, ast.MemberAccess)
+                    and isinstance(callee.obj, ast.Identifier)
+                    and callee.obj.name == pname
+                    and callee.member == "item"):
+                if (len(node.args) >= 1
+                        and isinstance(node.args[0], ast.StringLiteral)):
+                    local_reads.add(node.args[0].value)
+                else:
+                    mark_opaque()  # dynamic-key read
+                # The key arg is a literal (or we already bailed);
+                # nothing else to descend into for this form.
+                return
+            # `pname.add("k", v)` — a write to the param. Not a read,
+            # not an escape; but the value args may use pname.
+            if (isinstance(callee, ast.MemberAccess)
+                    and isinstance(callee.obj, ast.Identifier)
+                    and callee.obj.name == pname
+                    and callee.member == "add"):
+                for a in node.args:
+                    visit(a)
+                return
+            # `axon_item(pname, "k")` — recognized read (free form).
+            if (isinstance(callee, ast.Identifier)
+                    and callee.name == "axon_item"
+                    and len(node.args) >= 1
+                    and isinstance(node.args[0], ast.Identifier)
+                    and node.args[0].name == pname):
+                if (len(node.args) >= 2
+                        and isinstance(node.args[1], ast.StringLiteral)):
+                    local_reads.add(node.args[1].value)
+                else:
+                    mark_opaque()  # dynamic-key read
+                for a in node.args[1:]:
+                    visit(a)
+                return
+            # Call to a known user function: a bare positional pass of
+            # `pname` is a tracked cross-function edge. Anything else
+            # involving pname inside this call is opaque.
+            if (isinstance(callee, ast.Identifier)
+                    and callee.name in user_funcs):
+                for j, a in enumerate(node.args):
+                    if isinstance(a, ast.Identifier) and a.name == pname:
+                        edges.add((callee.name, j))
+                    elif _occurs(a, pname):
+                        mark_opaque()
+                    else:
+                        visit(a)
+                return
+            # Any other call shape (unknown/stdlib callee, method on a
+            # non-pname receiver, callee itself referencing pname,
+            # nested constructions): if pname appears at all, we can't
+            # bound its reads → opaque.
+            if _occurs(node, pname):
+                mark_opaque()
+            return
+        if isinstance(node, ast.Identifier):
+            # Reached only via generic recursion = an occurrence of
+            # pname in a position none of the recognized Call forms
+            # above consumed: `return pname;` (bare axon escapes),
+            # `b = pname;` / `Axon b = pname;` (alias/store),
+            # `pname` used as a bare value anywhere else. All
+            # conservatively opaque. A `return pname.item("k");` does
+            # NOT reach here — the read Call is recognized first and
+            # the returned value is a vector, not the axon.
+            if node.name == pname:
+                mark_opaque()
+            return
+        # Generic recursion for every other node kind.
+        if isinstance(node, ast.Node):
+            for v in vars(node).values():
+                _visit_value(v)
+
+    def _visit_value(value: object) -> None:
+        if state["opaque"]:
+            return
+        if isinstance(value, ast.Node):
+            visit(value)
+        elif isinstance(value, (list, tuple)):
+            for e in value:
+                _visit_value(e)
+
+    for s in body_stmts:
+        visit(s)
+    return local_reads, edges, state["opaque"]
+
+
+def _compute_axon_read_signatures(
+    module: ast.Module,
+) -> dict[str, list]:
+    """Whole-(single-)module call-graph fixpoint of per-parameter
+    axon read-demand. See the block comment above. The result maps a
+    top-level user function name to a list parallel to its params:
+    each entry is `frozenset[str]` (the keys read from that param,
+    transitively) or `None` (OPAQUE — keep all keys).
+
+    Non-axon params and params whose use is opaque are `None`. A
+    caller passing an axon local positionally to a `None` param must
+    keep every key (the consumer side enforces this).
+    """
+    funcs: dict[str, ast.FunctionDecl] = {}
+    for item in module.items:
+        if (isinstance(item, ast.FunctionDecl)
+                and not getattr(item, "is_operator", False)):
+            funcs[item.name] = item
+    user_funcs = frozenset(funcs)
+
+    # Per (func, param-index): the local scan result, plus the
+    # initial demand (None for non-axon or locally-opaque params).
+    local_reads: dict[str, dict[int, set[str]]] = {}
+    local_edges: dict[str, dict[int, set[tuple[str, int]]]] = {}
+    sigs: dict[str, list] = {}
+    for fname, decl in funcs.items():
+        n = len(decl.params)
+        sigs[fname] = [None] * n
+        local_reads[fname] = {}
+        local_edges[fname] = {}
+        body = decl.body.statements if decl.body is not None else []
+        for idx, p in enumerate(decl.params):
+            is_axon = p.type_ref is not None and p.type_ref.name == "Axon"
+            if not is_axon:
+                continue  # stays None — passing an axon here = keep all
+            reads, edges, opaque = _scan_param_axon_use(
+                body, p.name, user_funcs
+            )
+            local_reads[fname][idx] = reads
+            local_edges[fname][idx] = edges
+            sigs[fname][idx] = None if opaque else frozenset(reads)
+
+    # Fixpoint. Demand only grows (∪ callee demand) or jumps to None
+    # (top), so this terminates; the cap is a hard safety bound.
+    max_params = max((len(d.params) for d in funcs.values()), default=0)
+    cap = len(funcs) * (max_params + 1) + 4
+    changed = True
+    while changed and cap > 0:
+        changed = False
+        cap -= 1
+        for fname in funcs:
+            for idx, cur in enumerate(sigs[fname]):
+                if cur is None:
+                    continue  # OPAQUE is top — frozen
+                acc = set(local_reads[fname].get(idx, ()))
+                bail = False
+                for (g, j) in local_edges[fname].get(idx, ()):
+                    gsig = sigs.get(g)
+                    if gsig is None or j >= len(gsig) or gsig[j] is None:
+                        bail = True
+                        break
+                    acc |= gsig[j]
+                new = None if bail else frozenset(acc)
+                if new != cur:
+                    sigs[fname][idx] = new
+                    changed = True
+    return sigs
 
 
