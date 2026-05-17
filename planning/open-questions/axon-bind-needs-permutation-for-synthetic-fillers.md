@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Shipped 2026-05-10, commit `6d25f232` (per-key permutation inside `axon_add`/`axon_item` only; free-standing `bind`/`unbind` unchanged). Doc kept for the diagnostic + fix-design rationale.
+
+---
+
 # Axon bind needs per-key permutation for synthetic-block fillers
 
 **Date:** 2026-05-10

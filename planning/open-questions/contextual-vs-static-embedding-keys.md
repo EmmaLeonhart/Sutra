@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: static string-keyed `embed()` vs contextual embeddings. Not blocking; load-bearing when Sutra claims natural-language reasoning beyond toy domains.
+
+---
+
 # Contextual vs static embedding keys
 
 ## The question

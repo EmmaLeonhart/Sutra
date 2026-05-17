@@ -14,19 +14,23 @@ stay in sync.
 
 ## Active
 
-### A. Task #15 — per-doc verdict triage of `planning/open-questions/`  (IN PROGRESS, this run)
+### A. Task #15 — open-question pruning pass  (banners DONE 2026-05-17; pruning is what remains)
 
-Spec-level `planning/sutra-spec/open-questions.md` already triaged
-(parts 1–2, commits `411939ba`/`a0244682`). The per-doc directory is
-**not**: only 2 of 24 docs carry a verdict banner.
+The triage itself is fully delivered: spec-level
+`planning/sutra-spec/open-questions.md` triaged (parts 1–2,
+`411939ba`/`a0244682`); every doc in `planning/open-questions/` now
+carries a `> **VERDICT — …**` top banner (21 stamped 2026-05-17 +
+binding-kind's existing RESOLVED header + the new cosine doc's own
+verdict). Citations spot-verified against the spec (`types.md`,
+`control-flow.md` §Loops, `strings.md`, commit `6d25f232`), not
+blanket-stamped.
 
-Deliverable: every doc in `planning/open-questions/` gets a one-line
-top banner — **RESOLVED** (cite spec/todo.md/finding/commit; reduce
-the doc to a pointer if its substance is already in the spec),
-**GENUINELY OPEN** (one-sentence precise undecided sub-question + what
-would close it), or **STALE** (superseded design — mark for
-archive/delete). Honest verdicts only: verify each against the spec,
-do not blanket-stamp RESOLVED. One doc per pass, commit the verdicts.
+Remaining (deliberate, NOT folded into the banner run to avoid losing
+rationale mid-session): the **pruning pass** — for each RESOLVED/STALE
+doc, confirm its rationale is captured in the cited spec file, then
+delete/archive the doc per `planning/open-questions/README.md` rule 3.
+Genuinely-OPEN docs stay. This is the next concrete sub-item, not yet
+started.
 
 ### B. Verify the shipped transcendentals realize the stored-constants vision
 
