@@ -19,7 +19,7 @@ On success, writes the review JSON and a rendered Markdown copy into
 derived from the count of existing files in that directory plus one.
 
 On submission success, updates `<paper-dir>/.post_id` to the new post ID
-so the next push to master automatically supersedes this version.
+so the next push to main automatically supersedes this version.
 
 Example (local):
 

@@ -77,6 +77,18 @@ down for every program**. Restored (commit `900036df`), verified
 
 ## Active queue (mirrored to the task tool)
 
+### 0. CI/CD master → main migration — ✅ DONE; one user decision open
+
+Workflows migrated + pushed (`5ea853ef`); `github-pages` env
+branch-policy already `main`-only; Pages `source.branch` flipped
+to `main` (build_type=workflow, env policy is the real gate);
+mkdocs `edit_uri`, README CI table, submit-script docstring fixed.
+No `master` left in `.github/`. Inert nested
+`sutraDB/.github/workflows/*` left as-is (never execute; vendored
+subtree). **Open for user:** whether to delete the now-unused
+local+remote `master` branch (`origin/master` @ cdcdf7ff) —
+destructive/outward, do not delete without an explicit yes.
+
 ### 1. Literate math — ✅ CORE DELIVERED 2026-05-16 (verified)
 
 The user's #1 vision: the `.su` method bodies ARE the beta-reduction.
