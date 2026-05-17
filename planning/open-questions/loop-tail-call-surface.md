@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). The `return NAME(args)` tail-call surface for loop invocations is live and tested. Doc retire-able on the next resolved-entry pruning pass; kept for rationale.
+
+---
+
 # Loop tail-call surface (`return NAME(args)` as `pass` alternative)
 
 **Source:** Emma 2026-04-30, originally explored as "closure-loop"

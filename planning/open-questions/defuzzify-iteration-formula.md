@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: which rule per type — the shipped exp-weighted three-way softmax polarizer (`defuzzify_trit`) vs the user's stated `iterate N: f = f == true`. Both coherent (smooth 3-way vs binary snap); pick-per-type or unify. See `planning/sutra-spec/equality-and-defuzzification.md`. Deferred, not quietly shipped as matching.
+
+---
+
 # Defuzzify: what does the polarization rule look like?
 
 **Opened:** 2026-04-23.

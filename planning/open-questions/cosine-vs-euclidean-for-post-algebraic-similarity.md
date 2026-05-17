@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: is Euclidean the right metric for post-bind / post-bundle comparison (magnitude information cosine discards)? Never tested; not blocking, but gates any public "we picked the right metric" claim.
+
+---
+
 # Cosine vs Euclidean for post-algebraic similarity
 
 ## The question

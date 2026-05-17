@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: per-primitive JS subclasses (`JavaScriptInt extends int`, …) vs the catch-all `JavaScriptObject`. Not blocking until a real TS dispatch case the catch-all can't handle forces it.
+
+---
+
 # JavaScript primitives as subclasses of Sutra primitives
 
 **Surfaced:** 2026-05-10
