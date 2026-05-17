@@ -316,12 +316,54 @@ screen.consume(out);                   // screen reads the 4 keys it needs
                                        // → only those 4 cross the boundary
 ```
 
-> **Open question.** How far the lazy analysis propagates. Through a
-> single function call: clearly yes. Through nested axon-valued
-> entries (an axon that contains another axon): unclear. Across a
-> dynamic-dispatch boundary where the receiving code isn't visible at
-> compile time: probably not, but the failure mode (over-materialize
-> conservatively, or refuse to compile) is unspecified.
+> **Status (2026-05-17). The single-function-call case is
+> IMPLEMENTED.** `codegen_base.py` computes per-`(function,
+> parameter)` axon read-key signatures across the whole module's
+> call graph (`_compute_axon_read_signatures`, fixpoint) and
+> `_compute_axon_elision` uses them: when an `Axon`-typed local
+> escapes a producer *only* by being passed as a bare positional
+> argument to statically-known user functions, the producer's
+> `.add("k", v)` calls for keys no callee (transitively) reads are
+> **never emitted** — the filler is never bundled. Verified by
+> `tests/test_codegen.py::TestCrossFunctionAxonElision` (prune,
+> transitive A→B→C, multi-param) and the smoke test (no
+> regression). The analysis keys on the `Axon` type (consistent
+> with the rest of the compiler; the lowercase `axon a` in the
+> example above is illustrative — the working spelling is
+> `Axon a`).
+>
+> **Soundness (Sutra safety rule #5 — over-pruning a key a
+> consumer reads is silent corruption).** The signature is a sound
+> over-approximation of reads: any parameter use the analysis does
+> not fully understand — a runtime-computed key, the parameter
+> returned/aliased/stored, passed nested or to a non-user/unknown
+> callee, or appearing as a bare value anywhere unrecognized —
+> forces `OPAQUE`, and any `OPAQUE`/unknown callee on the path
+> makes the caller keep **every** key. Tested:
+> `test_dynamic_key_in_callee_keeps_all`,
+> `test_callee_returns_bare_axon_keeps_all`,
+> `test_returned_bare_axon_still_keeps_all`.
+>
+> **Still open.** (a) **Nested axon-valued entries** (an axon that
+> contains another axon): unclear; the pass treats any non-bare-
+> positional flow as OPAQUE, so this is conservatively correct but
+> not optimized. (b) **Dynamic-dispatch / non-visible callee**:
+> conservatively OPAQUE (keep all) — the failure mode is now
+> specified (over-materialize, never refuse to compile). (c)
+> **Across a separately-compiled-program boundary** (a producer
+> module and a consumer module compiled independently and wired at
+> runtime — e.g. Yantra's connectome, where the consumer types its
+> parameter `vector` and uses `axon_item(state, …)`): **NOT solved
+> by this pass and structurally cannot be** — a single-module
+> compiler cannot see the consumer's read-set. This pass keys on
+> `Axon`-typed params, so a `vector`-typed cross-program consumer
+> is OPAQUE and the producer keeps all keys (`test_vector_typed_
+> callee_param_keeps_all`). That residual is tracked downstream in
+> Yantra `planning/20-lazy-axon-evaluation.md` § Status — post-hoc
+> `axon_project` on a finished bundle is information-theoretically
+> a no-op for embedding fillers, so the cross-program fix needs
+> whole-connectome compilation or admission-time producer
+> specialization, not this pass.
 
 ## Axons as loop carriers
 
