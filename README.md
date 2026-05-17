@@ -85,8 +85,8 @@ To open the repo in an IDE with syntax support, run [`!editor.bat`](editor.bat) 
 
 | Workflow | Triggers on | What it does |
 |---|---|---|
-| [`pages.yml`](.github/workflows/pages.yml) | Push to master touching `docs/`, `mkdocs.yml`, `README.md`, or `planning/sutra-spec/` | Builds the website with MkDocs Material and deploys to GitHub Pages. |
-| [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) | Push to master touching `sutraDB/` | Runs the SutraDB Rust tests. |
+| [`pages.yml`](.github/workflows/pages.yml) | Push to main touching `docs/`, `mkdocs.yml`, `README.md`, or `planning/sutra-spec/` | Builds the website with MkDocs Material and deploys to GitHub Pages. |
+| [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) | Push to main touching `sutraDB/` | Runs the SutraDB Rust tests. |
 
 ## License
 

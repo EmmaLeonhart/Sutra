@@ -1,5 +1,5 @@
 # MkDocs Material configuration for the Sutra language website.
-# Built and deployed by .github/workflows/pages.yml on every push to master
+# Built and deployed by .github/workflows/pages.yml on every push to main
 # that touches docs/, mkdocs.yml, README.md, or planning/sutra-spec/.
 #
 # Live at: https://sutra.emmaleonhart.com
@@ -14,7 +14,7 @@ site_author: Emma Leonhart
 
 repo_url: https://github.com/EmmaLeonhart/Sutra
 repo_name: EmmaLeonhart/Sutra
-edit_uri: edit/master/docs/
+edit_uri: edit/main/docs/
 
 # Sites under user.github.io/Repo are served from /Repo/, not the root.
 # This must match the repo name on GitHub Pages or every link breaks.
