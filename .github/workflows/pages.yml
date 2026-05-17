@@ -1,10 +1,11 @@
 name: Deploy GitHub Pages site
 
-# The Sutra website is a single static page: docs/neurips-2026.md
-# rendered onto the shared emmaleonhart.com identity by
-# scripts/build_site.py, with the paper PDFs + reproduction zip
-# downloadable from it. No MkDocs. (Removed 2026-05-16 — the old
-# ~23-page MkDocs Material site was scrapped.)
+# The Sutra website is a multi-page static site rendered from
+# docs/**/*.md + paper/paper.md by scripts/build_site.py onto the
+# shared emmaleonhart.com identity, with the paper PDFs + reproduction
+# zip downloadable. No MkDocs (the old MkDocs Material site was
+# scrapped 2026-05-16; the conceptual pages were restored under the
+# new static pipeline 2026-05-17).
 #
 # Live at: https://sutra.emmaleonhart.com
 # (Custom domain — web/CNAME pins the Pages deploy; build_site.py
@@ -15,8 +16,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs/index.md'
-      - 'docs/neurips-2026.md'
+      - 'docs/**'
       - 'web/**'
       - 'scripts/build_site.py'
       - 'scripts/build_supplementary_zip.py'
