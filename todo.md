@@ -1320,6 +1320,15 @@ sinh / cosh / tanh ->  combinations of exp(x), exp(-x)  (deferred)
 `exp(1)` returns Euler's number — no need to hardcode `e` as a
 constant; it falls out of the primitive.
 
+**Complex-argument cosine shipped 2026-05-17.** `Math.ccos(complex z)
+= (cexp(i·z) + cexp(-i·z))/2` — substrate-pure over the verified
+`cexp` keystone; ground-truth ≤2e-4 vs `cmath.cos`; finding:
+`planning/findings/2026-05-17-complex-argument-cosine-implemented.md`.
+**Follow-on (not done, not faked):** complex `csin(z) = (cexp(i·z) −
+cexp(-i·z))/(2i)` — the symmetric sibling; trivial once `ccos` exists
+(same primitives, swap `+`→`−` and divide by `2i` instead of `2`).
+Add when there's a caller; not built unrequested.
+
 ### `^` operator (no XOR conflict in Sutra)
 
 `^` is exponentiation. Sutra has no bits to flip, so the C-family

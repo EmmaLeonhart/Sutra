@@ -74,6 +74,23 @@ class Math extends vector {
     static intrinsic method scalar cos(scalar x);
     static intrinsic method scalar sin(scalar x);
 
+    // ccos — complex-argument cosine. The documented reduction:
+    //   cos(z) = (e^(i·z) + e^(−i·z)) / 2.
+    //   For real z = a this collapses to [cos a, 0] — identical to the
+    //   scalar cos(x) eigenrotation path, so the paper-cited real cos
+    //   is unaffected. For z = a + b·i it yields the correct
+    //   cos a·cosh b − i·sin a·sinh b, the geometric imaginary output
+    //   of cosine the substrate was missing. Substrate-pure: built only
+    //   from the verified-pure cexp keystone + complex_mul/complex_add;
+    //   no new leaf, no host branch. Intrinsic + documented (not a
+    //   literate body) because the literate *source spelling* of the
+    //   complex transcendentals is still pending — see the file header
+    //   note; this matches the realExp/imaginaryExp precedent and is
+    //   not a math shortcut. Declared `complex` so `_is_complex_expr`
+    //   routes its result through complex_mul/complex_add, same
+    //   dispatch path as cexp.
+    static intrinsic method complex ccos(complex z);
+
     // The remaining transcendentals are literate bodies — the
     // documented identity IS the executable source (inliner expands
     // Math.<f>(x) to exactly this over the intrinsic scalar leaves;

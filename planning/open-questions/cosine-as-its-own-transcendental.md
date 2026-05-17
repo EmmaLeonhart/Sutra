@@ -1,12 +1,16 @@
 # Open question — Cosine as its own transcendental function?
 
-> **VERDICT: GENUINELY OPEN (narrowed 2026-05-17 after a code audit).**
-> Raised by the user 2026-05-17 (voice-vision block, verbatim at
-> `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`).
-> The audit found cos *already* has its own substrate-pure crosstalk
-> lookup table — so the open part is **complex-argument `cos(z)` / the
-> imaginary output of cosine**, which is not implemented, not "should
-> cos be its own leaf" (it already is). Needs a user decision on scope.
+> **VERDICT: RESOLVED 2026-05-17.** User decided the scope (implement
+> it). Complex-argument cosine shipped as `Math.ccos(complex z) =
+> (cexp(i·z) + cexp(-i·z))/2` — substrate-pure, built only from the
+> verified-pure `cexp` keystone + `complex_mul`/`complex_add`; no new
+> leaf, no host branch. Ground-truth vs `cmath.cos` ≤2e-4; real-arg
+> case carries exactly zero imaginary leakage (paper-cited real `cos`
+> untouched). See
+> `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`
+> and the implementing commit. Doc kept for rationale until the next
+> open-question pruning pass (README rule 3). Follow-on (not done,
+> not faked): complex `csin`.
 
 ## Corrected framing (2026-05-17 — after reading the emitted code)
 
