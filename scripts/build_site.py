@@ -408,9 +408,32 @@ def _protect_math(text: str) -> tuple[str, list[str]]:
         store.append(m.group(0))
         return f"@@MJX{len(store) - 1}@@"
 
+    # Inner equivalents valid inside $$...$$ display math. A *bare*
+    # \begin{align*} relies on MathJax's processEnvironments scan,
+    # which proved unreliable here (the gate tables rendered as
+    # run-on raw LaTeX). Wrapping the body in $$ \begin{aligned} ...
+    # forces the verified display-math path, so every \\ row (e.g.
+    # XOR then XNOR) lands on its own line.
+    env_inner = {"align": "aligned", "align*": "aligned",
+                 "alignat": "aligned", "alignat*": "aligned",
+                 "flalign": "aligned", "flalign*": "aligned",
+                 "gather": "gathered", "gather*": "gathered",
+                 "multline": "aligned", "multline*": "aligned",
+                 "aligned": "aligned"}
+
+    def keep_env(m: "re.Match[str]") -> str:
+        env, body = m.group(1), m.group(2).strip("\n")
+        inner = env_inner.get(env)
+        if env in ("equation", "equation*") or inner is None:
+            wrapped = f"$$\n{body}\n$$"
+        else:
+            wrapped = f"$$\n\\begin{{{inner}}}\n{body}\n\\end{{{inner}}}\n$$"
+        store.append(wrapped)
+        return f"@@MJX{len(store) - 1}@@"
+
     text = re.sub(r"\$\$.+?\$\$", keep, text, flags=re.DOTALL)            # display
-    text = re.sub(r"\\begin\{(" + _MATH_ENVS + r")\}.*?\\end\{\1\}",      # AMS envs
-                   keep, text, flags=re.DOTALL)
+    text = re.sub(r"\\begin\{(" + _MATH_ENVS + r")\}(.*?)\\end\{\1\}",    # AMS envs
+                   keep_env, text, flags=re.DOTALL)
     text = re.sub(r"(?<!\\)\$(?!\$)([^\n$]{1,400}?)\$(?!\$)", keep, text)  # inline
     return text, store
 
