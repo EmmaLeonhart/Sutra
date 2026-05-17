@@ -10,6 +10,25 @@ stay in sync.
 
 ---
 
+## Website: restored conceptual pages + linked paper — verify live
+
+Done (see `git log`): recovered the old conceptual `docs/*.md` from
+git, rewrote `scripts/build_site.py` into a general multi-page builder
+(`clean_md` sanitises MkDocs frontmatter / `!!!` / `:material:` /
+`{.attr}` / ```mermaid / `*.md` links at render time), rendering every
+`docs/**/*.md` + `paper/paper.md` → `/paper/`. Homepage now has an
+"Explore" contents grid + a prominent "Read the paper" link, so the
+paper is reachable. `pages.yml` triggers re-broadened to `docs/**`.
+Build verified locally: 22 pages, 0 MkDocs leaks, links resolve,
+tutorials at `/tutorials/`.
+
+Pending: confirm the Pages run is green and
+<https://sutra.emmaleonhart.com> serves the home + `/paper/` +
+conceptual pages (the TeX paper-PDF step is the only fragile part;
+build_site.py itself is locally verified). interactive/fuzzy-logic
+was intentionally not restored (needs the deleted JS assets) — revisit
+only if Emma wants the interactive demos back.
+
 ## super active
 
 Earlier on, you basically just kind of completely lied to me and engaged in substrate leaks. I don't really know exactly what is going on right now, because I don't really know exactly what's going on right now, because of the fact that you lied to me and then it was a gigantic fucking mess.

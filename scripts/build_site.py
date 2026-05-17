@@ -1,31 +1,32 @@
-"""Build the Sutra website.
+"""Build the Sutra website — a multi-page static site on the shared
+emmaleonhart.com identity (web/identity.css). No MkDocs.
 
-The Sutra site used to be a ~23-page MkDocs Material site. It is now
-two static pages on the shared emmaleonhart.com visual identity
-(web/identity.css), each rendered from a Markdown source:
+Every `docs/**/*.md` (except `docs/interactive/**`) is rendered to a
+static page, plus `paper/paper.md` -> `/paper/`:
 
-    /                 docs/index.md          — what Sutra is (homepage)
+    /                 docs/index.md          — what Sutra is (home)
+    /<name>/          docs/<name>.md         — a conceptual page
+    /tutorials/...    docs/tutorials/*.md    — the tutorials
     /neurips-2026/    docs/neurips-2026.md   — frozen-submission archive
+    /paper/           paper/paper.md         — the paper, readable HTML
+                                               (+ PDF / anon / zip downloads)
 
-No MkDocs, no nav generation, no other pages. The NeurIPS page is NOT
-linked from the homepage — it is reachable by direct URL. The paper
-PDFs and the supplementary zip are produced by the Pages workflow and
-dropped into the output root, so the links on the NeurIPS page
-(/paper.pdf, /paper-anonymized.pdf, /sutra-neurips-supplementary.zip)
-resolve.
+The doc sources are the original MkDocs-flavoured Markdown; `clean_md`
+sanitises the MkDocs-only syntax (YAML frontmatter, `!!!` admonitions,
+`:material-:` icons, `{.attr}` lists, ```mermaid fences, `*.md` links)
+at render time, so the sources stay faithful and the conversion is
+re-runnable.
 
-Output (default `_site/`):
-    index.html
-    neurips-2026/index.html
-    identity.css      copied from web/identity.css
-    CNAME             copied from web/CNAME (pins sutra.emmaleonhart.com)
+Output identity.css + CNAME are copied from web/. The paper PDFs and
+the supplementary zip are produced by the Pages workflow and dropped
+into the output root so `/paper.pdf` etc. resolve.
 
-Usage:
-    python scripts/build_site.py [--output _site]
+Usage:  python scripts/build_site.py [--output _site]
 """
 from __future__ import annotations
 
 import argparse
+import posixpath
 import re
 import shutil
 import sys
@@ -43,7 +44,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; position: relat
 .topbar a { font-family: var(--mono); font-size: 0.82rem; font-weight: 500; text-decoration: none; transition: color 0.2s; }
 .topbar .home { color: var(--text-mute); }
 .topbar .home:hover { color: var(--accent-bright); }
-main { position: relative; z-index: 2; flex: 1; display: flex; justify-content: center; padding: 72px 28px 100px; }
+main { position: relative; z-index: 2; flex: 1; display: flex; justify-content: center; padding: 64px 28px 96px; }
 .container { max-width: 820px; width: 100%; position: relative; }
 .scroll { font-size: 2.4rem; line-height: 1; }
 h1 {
@@ -59,14 +60,14 @@ h1 {
   text-decoration: none; margin-bottom: 26px;
 }
 .back:hover { color: var(--accent-bright); }
-.downloads { display: grid; gap: 12px; margin-bottom: 56px; }
+.downloads { display: grid; gap: 12px; margin-bottom: 48px; }
 .dl { display: flex; align-items: center; gap: 16px; text-decoration: none; color: var(--text-strong); }
 .dl .dl-body { flex: 1; min-width: 0; }
 .dl .dl-name { font-weight: 600; font-size: 1rem; }
 .dl .dl-sub { font-size: 0.85rem; color: var(--text-mute); margin-top: 3px; line-height: 1.5; }
 .dl .dl-arrow { color: var(--accent); font-size: 1.2rem; flex: none; transition: transform 0.2s; }
 .dl:hover .dl-arrow { transform: translateX(3px); }
-.links { display: flex; flex-wrap: wrap; gap: 12px; margin: 34px 0 8px; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; margin: 30px 0 8px; }
 .links a {
   font-family: var(--mono); font-size: 0.84rem; font-weight: 500;
   text-decoration: none; color: var(--accent); padding: 10px 18px;
@@ -74,6 +75,23 @@ h1 {
   background: var(--accent-soft); transition: all 0.2s;
 }
 .links a:hover { color: var(--accent-bright); border-color: var(--accent); transform: translateY(-1px); }
+.links a.primary { background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%); color: var(--on-accent-deep); border-color: var(--accent-deep); }
+
+/* Homepage "Explore" contents grid */
+.explore-h {
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 2px; color: var(--text-mute);
+  margin: 52px 0 16px;
+}
+.explore { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.explore a {
+  display: block; text-decoration: none; padding: 14px 16px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card);
+  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+}
+.explore a:hover { border-color: var(--accent); transform: translateY(-2px); }
+.explore .ex-t { font-weight: 600; font-size: 0.95rem; color: var(--text-strong); }
+.explore .ex-d { font-size: 0.82rem; color: var(--text-mute); margin-top: 3px; line-height: 1.45; }
 
 /* Rendered markdown body */
 .doc { color: var(--text); line-height: 1.7; }
@@ -110,16 +128,14 @@ h1 {
 .doc th, .doc td { text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
 .doc th { background: var(--bg-soft); color: var(--text-strong); font-weight: 600; }
 .doc hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.doc .mermaid { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin: 18px 0; text-align: center; }
 footer {
   position: relative; z-index: 2; padding: 24px 28px;
   border-top: 1px solid var(--border);
   font-family: var(--mono); font-size: 0.72rem; letter-spacing: 1px;
   color: var(--text-faint);
 }
-@media (max-width: 600px) {
-  .topbar { padding: 16px 18px; }
-  main { padding: 56px 20px 76px; }
-}
+@media (max-width: 600px) { .topbar { padding: 16px 18px; } main { padding: 48px 20px 72px; } }
 """
 
 TOGGLE = """
@@ -136,7 +152,7 @@ GH_PILL = """<a class="gh" href="https://github.com/EmmaLeonhart/Sutra" data-gh-
       <span class="gh-stat gh-ver" hidden title="Latest release / tag"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.75 1.75 0 0 1 1 7.775ZM2.75 2.5a.25.25 0 0 0-.25.25v5.025c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg><span class="gh-ver-n">&ndash;</span></span>
     </a>"""
 
-GH_JS = """<script>
+GH_JS = """  <script>
   (function(){
     var el=document.querySelector('a.gh[data-gh-repo]');if(!el)return;
     var repo=el.getAttribute('data-gh-repo');
@@ -149,6 +165,12 @@ GH_JS = """<script>
         return fetch('https://api.github.com/repos/'+repo+'/tags').then(function(r){return r.ok?r.json():null;})
           .then(function(t){if(t&&t.length&&t[0].name)put('.gh-ver',t[0].name);});}).catch(function(){});
   })();
+  </script>"""
+
+MERMAID_JS = """  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    var dark = document.documentElement.getAttribute('data-theme') !== 'light';
+    mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'neutral', securityLevel: 'loose' });
   </script>"""
 
 DOWNLOAD_CARDS = """
@@ -178,7 +200,8 @@ DOWNLOAD_CARDS = """
 """
 
 
-def shell(title: str, inner: str) -> str:
+def shell(title: str, inner: str, mermaid: bool = False) -> str:
+    extra = ("\n" + MERMAID_JS) if mermaid else ""
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -212,7 +235,7 @@ def shell(title: str, inner: str) -> str:
     </div>
   </main>
   <footer>sutra.emmaleonhart.com</footer>
-  {GH_JS}
+  {GH_JS}{extra}
   <script>
     (function(){{
       var b=document.getElementById('theme-toggle');
@@ -224,8 +247,106 @@ def shell(title: str, inner: str) -> str:
 """
 
 
+# ---- MkDocs-flavoured Markdown -> clean Markdown -------------------
+
+def _strip_frontmatter(text: str) -> str:
+    if text.startswith("---\n") or text.startswith("---\r\n"):
+        m = re.match(r"^---\r?\n.*?\r?\n---\r?\n", text, flags=re.DOTALL)
+        if m:
+            return text[m.end():]
+    return text
+
+
+def _rewrite_link(target: str, src_dir: str) -> str:
+    """Resolve a Markdown link relative to its source file's docs dir,
+    then map a docs-relative `*.md` target to its clean site URL."""
+    t = target.strip()
+    if not t or t[0] in "#/" or "://" in t or t.startswith("mailto:"):
+        return target
+    anchor = ""
+    if "#" in t:
+        t, anchor = t.split("#", 1)
+        anchor = "#" + anchor
+    if not t.lower().endswith(".md"):
+        return target  # asset (pdf/zip/png/...) — leave
+    base = "" if src_dir in (".", "") else src_dir
+    rel = posixpath.normpath(posixpath.join(base, t)).lstrip("/")
+    if rel in ("index.md", "."):
+        return "/" + anchor
+    if rel == "theory-and-paper.md":
+        return "/paper/" + anchor
+    if rel.startswith("interactive/"):
+        return "/" + anchor  # interactive pages are not rebuilt
+    rel = rel[:-3]  # drop .md
+    if rel.endswith("/index"):
+        rel = rel[:-len("/index")]
+    return f"/{rel}/" + anchor
+
+
+def clean_md(text: str, src_dir: str = ".") -> tuple[str, bool]:
+    """Return (clean_markdown, uses_mermaid)."""
+    text = _strip_frontmatter(text)
+
+    # pymdownx snippet includes — drop the directive line
+    text = re.sub(r"^\s*--8<--\s+.*$", "", text, flags=re.MULTILINE)
+
+    # ```mermaid fences -> <div class="mermaid"> ... </div>
+    uses_mermaid = False
+
+    def _mermaid(m: re.Match) -> str:
+        nonlocal uses_mermaid
+        uses_mermaid = True
+        return '<div class="mermaid">\n' + m.group(1).strip() + "\n</div>"
+
+    text = re.sub(r"```mermaid\s*\n(.*?)\n```", _mermaid, text, flags=re.DOTALL)
+
+    # Material grid-cards wrapper -> drop the wrapper tags, keep inner
+    text = re.sub(r'<div class="grid cards"[^>]*>', "", text)
+
+    # icon shortcodes
+    text = re.sub(r":(?:material|fontawesome|octicons|simple|fontawesome-brands)-[\w-]+:", "", text)
+
+    # attr-lists: { .class }, { #id }, {: ... } — only when it looks like one
+    text = re.sub(r"\{\:?\s*[.#][^}\n]*\}", "", text)
+
+    # !!! / ??? admonitions -> blockquote with bold title
+    out_lines: list[str] = []
+    lines = text.split("\n")
+    i = 0
+    adm_re = re.compile(r'^(\s*)(?:!!!|\?\?\?\+?|\?\?\?)\s+([\w-]+)(?:\s+"([^"]*)")?\s*$')
+    while i < len(lines):
+        m = adm_re.match(lines[i])
+        if m:
+            indent = m.group(1)
+            title = m.group(3) or m.group(2).replace("-", " ").title()
+            out_lines.append("")
+            out_lines.append(f"> **{title}**")
+            i += 1
+            base = len(indent) + 4
+            while i < len(lines):
+                ln = lines[i]
+                if ln.strip() == "":
+                    out_lines.append(">")
+                    i += 1
+                    continue
+                if len(ln) - len(ln.lstrip(" ")) >= base:
+                    out_lines.append("> " + ln[base:])
+                    i += 1
+                    continue
+                break
+            out_lines.append("")
+            continue
+        out_lines.append(lines[i])
+        i += 1
+    text = "\n".join(out_lines)
+
+    # rewrite [..](x.md) links relative to the source file's docs dir
+    text = re.sub(r"\]\(([^)\s]+)\)",
+                   lambda m: "](" + _rewrite_link(m.group(1), src_dir) + ")", text)
+    return text, uses_mermaid
+
+
 def split_title(md_text: str) -> tuple[str, str]:
-    """Pull the leading `# H1` off the markdown; return (heading, rest)."""
     lines = md_text.splitlines()
     heading = "Sutra"
     start = 0
@@ -240,14 +361,39 @@ def split_title(md_text: str) -> tuple[str, str]:
     return heading, "\n".join(lines[start:]).lstrip("\n")
 
 
-def render_md(path: Path) -> tuple[str, str]:
-    heading, body_md = split_title(path.read_text(encoding="utf-8"))
-    body_html = markdown.markdown(
-        body_md,
-        extensions=["extra", "sane_lists", "smarty"],
-        output_format="html5",
+def render(md_text: str, src_dir: str = ".") -> tuple[str, str, bool]:
+    cleaned, mer = clean_md(md_text, src_dir)
+    heading, body_md = split_title(cleaned)
+    html = markdown.markdown(
+        body_md, extensions=["extra", "sane_lists", "smarty"], output_format="html5"
     )
-    return heading, body_html
+    return heading, html, mer
+
+
+# Preferred reading order for the homepage "Explore" list. Anything
+# present but not listed is appended alphabetically.
+ORDER = [
+    "what-is-sutra", "vision", "paradigms", "ontology", "primitive-classes",
+    "operators", "logical-operations", "numeric-math", "memory", "loops",
+    "promises", "typescript-to-sutra", "compilation", "demos", "history",
+]
+BLURB = {
+    "what-is-sutra": "The short version: a typed language whose compiled forward pass is a neural net.",
+    "vision": "Why embedding spaces look like graphs but behave like geometry.",
+    "paradigms": "What programming paradigms Sutra is in conversation with.",
+    "ontology": "The type system and the role of OWL-style classes.",
+    "primitive-classes": "Built-in primitive types and their geometric semantics.",
+    "operators": "The operator set and what each one compiles to.",
+    "logical-operations": "&&, ||, ! over fuzzy three-valued truth.",
+    "numeric-math": "How integers, floats, and complex numbers live in the substrate.",
+    "memory": "bind, unbind, bundle — the role-filler model.",
+    "loops": "First-class loop functions as substrate-pure RNN cells.",
+    "promises": "Promises and async/await, geometrically.",
+    "typescript-to-sutra": "How TypeScript source maps onto Sutra.",
+    "compilation": "The five-stage pipeline from source to fused tensor graph.",
+    "demos": "Every program in the smoke test.",
+    "history": "How the language got to its current shape.",
+}
 
 
 def main() -> int:
@@ -255,62 +401,112 @@ def main() -> int:
     parser.add_argument("--output", default="_site")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parent.parent
-    docs = repo_root / "docs"
-    home_src = docs / "index.md"
-    neurips_src = docs / "neurips-2026.md"
-    for p in (home_src, neurips_src):
-        if not p.exists():
-            print(f"error: {p} not found", file=sys.stderr)
-            return 1
+    repo = Path(__file__).resolve().parent.parent
+    docs = repo / "docs"
+    out = repo / args.output
+    out.mkdir(parents=True, exist_ok=True)
 
-    out_dir = repo_root / args.output
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Discover every doc page except the interactive ones.
+    sources = [
+        p for p in sorted(docs.rglob("*.md"))
+        if "interactive" not in p.relative_to(docs).parts
+    ]
+    titles: dict[str, str] = {}
 
-    # Homepage — what Sutra is. No downloads, no NeurIPS link.
-    home_heading, home_body = render_md(home_src)
-    home_inner = f"""    <span class="eyebrow">Sutra</span>
-    <div class="scroll" aria-hidden="true">📜</div>
-    <h1>{home_heading}</h1>
-    <div class="doc">
-{home_body}
-    </div>
-    <div class="links">
-      <a href="https://github.com/EmmaLeonhart/Sutra">View source on GitHub</a>
-      <a href="https://github.com/EmmaLeonhart/Sutra/releases">Releases &amp; downloads</a>
-      <a href="https://emmaleonhart.com/projects/">All projects</a>
-    </div>
-"""
-    (out_dir / "index.html").write_text(
-        shell("Sutra — a geometrically compiled language", home_inner),
-        encoding="utf-8",
+    def write(rel_url: str, out_path: Path, title: str, inner: str, mer: bool):
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(shell(title, inner, mer), encoding="utf-8")
+        print(f"wrote {out_path.relative_to(out)}  ->  {rel_url}")
+
+    home_md = None
+    for src in sources:
+        rel = src.relative_to(docs)
+        slug = rel.as_posix()[:-3]  # drop .md
+        src_dir = rel.parent.as_posix()  # "." or "tutorials"
+        heading, body, mer = render(src.read_text(encoding="utf-8"), src_dir)
+        titles[slug] = heading
+        if slug == "index":
+            home_md = (heading, body)
+            continue
+        if slug == "neurips-2026":
+            inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
+                     f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
+                     f'    <p class="lede">The immutable record of the Sutra paper as submitted to NeurIPS 2026. Downloads:</p>\n'
+                     f'{DOWNLOAD_CARDS}\n    <div class="doc">\n{body}\n    </div>\n')
+        else:
+            inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
+                     f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
+                     f'    <div class="doc">\n{body}\n    </div>\n')
+        if slug.endswith("/index"):
+            sub = slug[: -len("/index")]
+            out_path = out / sub / "index.html"
+            url = f"/{sub}/"
+        else:
+            out_path = out / slug / "index.html"
+            url = f"/{slug}/"
+        write(url, out_path, f"{heading} — Sutra", inner, mer)
+
+    # The paper, readable on-site, from paper/paper.md
+    paper_src = repo / "paper" / "paper.md"
+    paper_ok = paper_src.exists()
+    if paper_ok:
+        p_head, p_body, p_mer = render(paper_src.read_text(encoding="utf-8"))
+        inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
+                 f'    <span class="eyebrow">Sutra &middot; Paper</span>\n    <h1>{p_head}</h1>\n'
+                 f'    <p class="lede">The full Sutra paper, readable here. Downloads:</p>\n'
+                 f'{DOWNLOAD_CARDS}\n    <div class="doc">\n{p_body}\n    </div>\n')
+        write("/paper/", out / "paper" / "index.html", f"{p_head} — Sutra", inner, p_mer)
+
+    # Homepage: explanation + Explore contents + paper link
+    if home_md is None:
+        print("error: docs/index.md missing", file=sys.stderr)
+        return 1
+    h_head, h_body = home_md
+    page_slugs = [s for s in titles if s not in ("index", "neurips-2026")]
+    ordered = [s for s in ORDER if s in page_slugs] + sorted(
+        s for s in page_slugs if s not in ORDER
     )
-    print(f"wrote {out_dir / 'index.html'}")
-
-    # NeurIPS 2026 archive at /neurips-2026/ — preserved, direct-URL
-    # only (intentionally not linked from the homepage).
-    np_heading, np_body = render_md(neurips_src)
-    np_inner = f"""    <a class="back" href="/">&larr; Sutra home</a>
-    <span class="eyebrow">Sutra</span>
-    <h1>{np_heading}</h1>
-    <p class="lede">The immutable record of the Sutra paper as submitted to NeurIPS 2026. Downloads:</p>
-{DOWNLOAD_CARDS}
-    <div class="doc">
-{np_body}
-    </div>
-"""
-    neurips_dir = out_dir / "neurips-2026"
-    neurips_dir.mkdir(parents=True, exist_ok=True)
-    (neurips_dir / "index.html").write_text(
-        shell(f"{np_heading} — Sutra", np_inner), encoding="utf-8"
+    cards = []
+    if paper_ok:
+        cards.append('<a href="/paper/"><div class="ex-t">The paper</div>'
+                     '<div class="ex-d">Tensor-Op RNNs as a compilation target for VSAs — full text, readable here.</div></a>')
+    for s in ordered:
+        if s.startswith("tutorials/") and s != "tutorials/index":
+            continue  # surfaced via the tutorials index
+        t = titles[s]
+        d = BLURB.get(s, "")
+        url = "/tutorials/" if s == "tutorials/index" else f"/{s}/"
+        if s == "tutorials/index":
+            t = "Tutorials"
+            d = "Hands-on: hello Sutra, bind/unbind, snap-to-nearest."
+        cards.append(f'<a href="{url}"><div class="ex-t">{t}</div><div class="ex-d">{d}</div></a>')
+    cards.append('<a href="/neurips-2026/"><div class="ex-t">NeurIPS 2026 archive</div>'
+                 '<div class="ex-d">The frozen submission record + paper / anonymized / zip downloads.</div></a>')
+    explore = ('    <div class="explore-h">Explore</div>\n    <div class="explore">\n      '
+               + "\n      ".join(cards) + "\n    </div>\n")
+    paper_link = '<a class="primary" href="/paper/">Read the paper</a>' if paper_ok else ""
+    home_inner = (
+        '    <span class="eyebrow">Sutra</span>\n'
+        '    <div class="scroll" aria-hidden="true">📜</div>\n'
+        f'    <h1>{h_head}</h1>\n'
+        f'    <div class="doc">\n{h_body}\n    </div>\n'
+        f'{explore}'
+        '    <div class="links">\n'
+        f'      {paper_link}\n'
+        '      <a href="https://github.com/EmmaLeonhart/Sutra">View source on GitHub</a>\n'
+        '      <a href="https://github.com/EmmaLeonhart/Sutra/releases">Releases &amp; downloads</a>\n'
+        '      <a href="https://emmaleonhart.com/projects/">All projects</a>\n'
+        '    </div>\n'
     )
-    print(f"wrote {neurips_dir / 'index.html'}")
+    (out / "index.html").write_text(
+        shell("Sutra — a geometrically compiled language", home_inner), encoding="utf-8"
+    )
+    print("wrote index.html  ->  /")
 
-    web = repo_root / "web"
+    web = repo / "web"
     for name in ("identity.css", "CNAME"):
-        shutil.copyfile(web / name, out_dir / name)
+        shutil.copyfile(web / name, out / name)
         print(f"copied {name}")
-
     return 0
 
 
