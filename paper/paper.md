@@ -61,14 +61,17 @@ The four core technical contributions of this paper are:
    and $C^{\infty}$ elsewhere:
 
    \begin{align*}
-   \mathrm{AND}(a, b) &= \tfrac{1}{2}(a + b + ab - a^2 - b^2 + a^2 b^2) \\
-   \mathrm{OR}(a, b)  &= \tfrac{1}{2}(a + b - ab + a^2 + b^2 - a^2 b^2) \\
-   \mathrm{NOT}(a)    &= -a \\
-   \mathrm{XOR}(a, b) &= -ab, \qquad \mathrm{XNOR}(a, b) = ab
+   \mathrm{AND}(a, b)  &= \tfrac{1}{2}(a + b + ab - a^2 - b^2 + a^2 b^2) \\
+   \mathrm{NAND}(a, b) &= \tfrac{1}{2}(-a - b - ab + a^2 + b^2 - a^2 b^2) \\
+   \mathrm{OR}(a, b)   &= \tfrac{1}{2}(a + b - ab + a^2 + b^2 - a^2 b^2) \\
+   \mathrm{NOR}(a, b)  &= \tfrac{1}{2}(-a - b + ab - a^2 - b^2 + a^2 b^2) \\
+   \mathrm{NOT}(a)     &= -a \\
+   \mathrm{XOR}(a, b)  &= -ab \\
+   \mathrm{XNOR}(a, b) &= ab
    \end{align*}
 
    {AND, OR, NOT} is functionally complete for the Kleene
-   fragment; XOR/XNOR collapse to a single multiplicative term
+   fragment; $\mathrm{NAND}$ and $\mathrm{NOR}$ are just $-\mathrm{AND}$ and $-\mathrm{OR}$ (negation is $-\,\cdot\,$), and XOR/XNOR collapse to a single multiplicative term
    because their interpolant is zero whenever either input is U
    and bilinear in the {−1, +1} corners. Every Kleene-valid
    connective is therefore a polynomial tensor-op-graph fragment,
@@ -694,7 +697,9 @@ The Lagrange gates in closed form:
 
 \begin{align*}
 \mathrm{AND}(a, b)  &\;=\; \tfrac{1}{2}\!\left(a + b + ab - a^2 - b^2 + a^2 b^2\right) \\
+\mathrm{NAND}(a, b) &\;=\; \tfrac{1}{2}\!\left(-a - b - ab + a^2 + b^2 - a^2 b^2\right) \\
 \mathrm{OR}(a, b)   &\;=\; \tfrac{1}{2}\!\left(a + b - ab + a^2 + b^2 - a^2 b^2\right) \\
+\mathrm{NOR}(a, b)  &\;=\; \tfrac{1}{2}\!\left(-a - b + ab - a^2 - b^2 + a^2 b^2\right) \\
 \mathrm{NOT}(a)     &\;=\; -a \\
 \mathrm{XOR}(a, b)  &\;=\; -ab \\
 \mathrm{XNOR}(a, b) &\;=\; ab
