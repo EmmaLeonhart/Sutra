@@ -62,6 +62,20 @@ down for every program**. Restored (commit `900036df`), verified
 
 ## Recently shipped (detail in git log / findings, not re-listed here)
 
+- Cross-function axon read-demand propagation (producer-side
+  pruning) — 2026-05-17, Yantra-driven. `axons.md` §"Lazy
+  evaluation across boundaries" said the single-function-call case
+  is "clearly yes" but `_compute_axon_elision` kept ALL keys on any
+  call-escape (spec/impl disagreement → rule #5). New whole-module
+  call-graph fixpoint (`_compute_axon_read_signatures`) +
+  elision now prunes `.add(k,v)` no callee transitively reads;
+  sound-over-approx (OPAQUE on anything unbounded → keep all).
+  `tests/test_codegen.py::TestCrossFunctionAxonElision` (7,
+  incl. soundness), 141 codegen+simplify+axon_keys green, smoke
+  PASS. Spec open-question resolved for the intra-module case;
+  cross-separately-compiled-program residual explicitly out of
+  scope (Yantra `planning/20`).
+
 - Website homepage SIMD-GPU-primitive notice — done, `2d821b7d`
   (task #11). Survives the domain change to sutra.emmaleonhart.com
   (the notice is in `docs/index.md`, domain-independent).
