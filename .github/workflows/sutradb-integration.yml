@@ -22,12 +22,12 @@ run-name: "SutraDB integration: ${{ github.event.head_commit.message || github.e
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'sutraDB/**'
       - '.github/workflows/sutradb-integration.yml'
   pull_request:
-    branches: [master]
+    branches: [main]
     paths:
       - 'sutraDB/**'
       - '.github/workflows/sutradb-integration.yml'
