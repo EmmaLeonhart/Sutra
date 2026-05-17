@@ -1369,6 +1369,28 @@ class PyTorchCodegen(Codegen):
         self._emit("return self._re(self.cexp(self._cnum(x)))")
         self._indent -= 1
         self._emit()
+        self._emit("def ccos(self, z):")
+        self._indent += 1
+        self._emit('"""Complex-argument cosine, the documented reduction')
+        self._emit('cos(z) = (e^(i*z) + e^(-i*z)) / 2. Substrate-pure: built')
+        self._emit('only from the verified-pure cexp keystone + complex_mul /')
+        self._emit('complex_add (no new leaf, no host branch, no scalar')
+        self._emit('extraction). i*z and -i*z are complex products with the')
+        self._emit('imaginary unit; the /2 is a complex product with [0.5,0]')
+        self._emit('so the whole op stays in canonical-complex-vector space.')
+        self._emit('For real z (imag 0): i*z = [0, a], cexp = [cos a, sin a],')
+        self._emit('-i*z = [0,-a], cexp = [cos a,-sin a], sum/2 = [cos a, 0] -')
+        self._emit('identical to the scalar cos() eigenrotation, so the')
+        self._emit('paper-cited real cos path is unaffected. For z = a+bi it')
+        self._emit('yields cos a*cosh b - i*sin a*sinh b. Canonical complex')
+        self._emit('vector out."""')
+        self._emit("zc = self._cnum(z)")
+        self._emit("iz = self.complex_mul(zc, self._mk(0.0, 1.0))")
+        self._emit("miz = self.complex_mul(zc, self._mk(0.0, -1.0))")
+        self._emit("half = self._mk(0.5, 0.0)")
+        self._emit("return self.complex_mul(self.complex_add(self.cexp(iz), self.cexp(miz)), half)")
+        self._indent -= 1
+        self._emit()
         self._emit("def log(self, x):")
         self._indent += 1
         self._emit('"""Natural log. Real positive x: ln(x) via the ln leaf. (Full')

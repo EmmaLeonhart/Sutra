@@ -44,19 +44,6 @@ legitimate init-time codebook builds). TAU is bound at a runtime point
 (`self.TAU`/`self._TWO_PI`). Independently re-verified from the code,
 not trusted from a prior claim. Surfaced one self-correction → item C.
 
-## Open design question raised this run — needs a user decision
-
-### C. Complex-argument cosine (narrowed by the item-B audit)
-
-`planning/open-questions/cosine-as-its-own-transcendental.md`
-(GENUINELY OPEN, narrowed 2026-05-17). The audit corrected this run's
-own imprecise framing: cos is **already** its own substrate-pure
-transcendental (dedicated `_COS_VALUES` crosstalk table, not derived
-from exp at runtime). The genuinely-open piece — matching the user's
-exact words — is **complex-argument `cos(z)` / the imaginary output of
-cosine**, which is not implemented (`cos(x)` only takes a real angle).
-Needs a user ruling on whether complex-argument cos is in scope now.
-Surfaced, not guessed.
 
 ## Structural — deliberate, gated; explicitly NOT a rushed autonomous edit
 
