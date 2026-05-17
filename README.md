@@ -1,5 +1,7 @@
 # 📜 Sutra
 
+**Website · [sutra.emmaleonhart.com](https://sutra.emmaleonhart.com)**
+
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
 🌐 **Website: <https://sutra.emmaleonhart.com>** — vision, demos, tutorials, language reference. Built from `docs/` by [`pages.yml`](.github/workflows/pages.yml). SutraDB's docs are mounted at [`/SutraDB/`](https://sutra.emmaleonhart.com/SutraDB/) on the same site.
