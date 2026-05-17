@@ -1,48 +1,31 @@
 name: Deploy GitHub Pages site
 
-# Builds the Sutra language website with MkDocs Material and deploys
-# it to GitHub Pages on every push to main that touches the docs
-# tree, the mkdocs config, the README, or the planning specs that the
-# docs reference. Uses the official actions/deploy-pages flow, so the
-# repo's Pages settings need to be set to "Source: GitHub Actions"
-# (Settings → Pages → Build and deployment → Source).
+# The Sutra website is a single static page: docs/neurips-2026.md
+# rendered onto the shared emmaleonhart.com identity by
+# scripts/build_site.py, with the paper PDFs + reproduction zip
+# downloadable from it. No MkDocs. (Removed 2026-05-16 — the old
+# ~23-page MkDocs Material site was scrapped.)
 #
 # Live at: https://sutra.emmaleonhart.com
-# (Custom domain — docs/CNAME pins the Pages deploy to sutra.emmaleonhart.com
-# and MkDocs copies the CNAME file into the build output where
-# GitHub Pages picks it up on deploy. DNS for the domain is
-# configured by the domain owner outside this repo; see GitHub's
-# custom-domain docs for the required A / CNAME records. After the
-# first successful deploy, enable "Enforce HTTPS" in Settings →
-# Pages once Let's Encrypt provisions the cert, which usually
-# takes a few minutes after the domain resolves.)
+# (Custom domain — web/CNAME pins the Pages deploy; build_site.py
+# copies it into the output where GitHub Pages picks it up. DNS is
+# configured by the domain owner outside this repo.)
 
 on:
   push:
     branches: [main]
     paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - 'README.md'
-      - 'planning/sutra-spec/**'
-      - 'sutraDB/pages/**'
+      - 'docs/neurips-2026.md'
+      - 'web/**'
+      - 'scripts/build_site.py'
+      - 'scripts/build_supplementary_zip.py'
       - 'paper/**'
       - '.github/workflows/pages.yml'
-      # The supplementary zip is built and deployed here too, so any
-      # change that affects what goes into it should retrigger the
-      # workflow. Without these, sutra.emmaleonhart.com/sutra-neurips-
-      # supplementary.zip stays stale across `sdk/`-only or
-      # `scripts/`-only commits.
-      - 'scripts/build_supplementary_zip.py'
+      # The supplementary zip is built and deployed here, so anything
+      # that changes its contents should retrigger the deploy.
       - 'sdk/sutra-compiler/**'
       - 'examples/**'
       - 'experiments/**'
-      - 'sutraDB/sutra-core/**'
-      - 'sutraDB/sutra-hnsw/**'
-      - 'sutraDB/sutra-sparql/**'
-      - 'sutraDB/sutra-ffi/**'
-      - 'sutraDB/Cargo.lock'
-      - 'sutraDB/LICENSE'
   workflow_dispatch:
 
 # A single deploy at a time. The "pages" group is the conventional one
@@ -58,7 +41,7 @@ permissions:
 
 jobs:
   build:
-    name: Build site with MkDocs Material
+    name: Build the single static page
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,13 +50,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install MkDocs Material
+      - name: Install build deps
         run: |
           python -m pip install --upgrade pip
-          pip install \
-            "mkdocs-material>=9.5.0" \
-            "pymdown-extensions>=10.0" \
-            "mkdocs>=1.6.0"
+          pip install "markdown>=3.5"
 
       - name: Install TeX Live + pandoc (for paper PDF builds)
         run: |
@@ -92,19 +72,9 @@ jobs:
       - name: Build paper PDFs (named + anonymized)
         working-directory: paper
         run: |
-          # This step mirrors paper-pdf.yml's build pipeline so
-          # docs/paper.pdf and docs/paper-anonymized.pdf land on the
-          # GitHub Pages site with the same NeurIPS 2026 formatting
-          # the workflow-artifact build produces. Any change here
-          # must be mirrored in paper-pdf.yml (and vice versa).
-          #
-          # Pre-process paper.md before pandoc:
-          # 1. Strip the first H1 line — it is rendered by paper.tex's
-          #    \maketitle, so emitting it as a section duplicates
-          #    the title on page 1.
-          # 2. Tag meta-sections with pandoc's {-} unnumbered
-          #    attribute (Abstract / References / Appendix parent /
-          #    per-letter Appendix headings).
+          # Mirrors paper-pdf.yml's build pipeline so the on-site
+          # download links resolve. Any change here must be mirrored
+          # in paper-pdf.yml (and vice versa).
           sed \
             -e '1{/^# /d}' \
             -e 's|^## Abstract$|## Abstract {-}|' \
@@ -112,17 +82,6 @@ jobs:
             -e 's|^## Appendix$|## Appendix {-}|' \
             -e 's|^### Appendix \([A-Z]\)\. \(.*\)$|### Appendix \1. \2 {-}|' \
             paper.md > paper-pre.md
-          # --from=markdown-smart (not gfm): pandoc's gfm reader does
-          # not support raw_tex, so \begin{align*}/\begin{figure}/
-          # \begin{tikzpicture} blocks would be escaped to literal
-          # \textbackslash text. The markdown reader passes raw LaTeX
-          # through.
-          # --shift-heading-level-by=-1: with the H1 stripped above,
-          # we want H2 -> \section (not pandoc's default H2 ->
-          # \subsection). Auto-numbering produces "1", "1.1", "2",
-          # etc. — matching prose cross-refs (§3.6, §4.2).
-          # --no-highlight: emit code blocks as plain Verbatim instead
-          # of pandoc's Highlighting + token-color macros.
           pandoc paper-pre.md \
             --from=markdown-smart \
             --to=latex \
@@ -130,77 +89,29 @@ jobs:
             --wrap=preserve \
             --no-highlight \
             --shift-heading-level-by=-1
-          # NeurIPS 2026 requires pdflatex per the official CFP.
-          # max_repeat=8 gives latexmk extra passes to converge on
-          # cross-references with floating figures.
           latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
-          # Clean intermediate files before the second build.
           latexmk -c paper.tex || true
-          # Anonymized submission build: default neurips_2026 (no
-          # [preprint]) renders authors as "Anonymous Author(s)" and
-          # adds line numbers via the lineno package. Pass the flag
-          # via -usepretex; paper.tex detects via \ifanon and chooses
-          # the [preprint]-less style option.
           latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
 
-      - name: Stage paper PDFs into docs/ for MkDocs link validation
-        run: |
-          # Copy PDFs into docs/ BEFORE mkdocs build so strict-mode
-          # link validation sees them as valid targets. The files
-          # are gitignored at the docs/ level (intentional: the
-          # build artifact, not source); the workflow re-creates
-          # them on every run.
-          cp paper/paper-named.pdf docs/paper.pdf
-          cp paper/paper-anonymized.pdf docs/paper-anonymized.pdf
-
       - name: Build NeurIPS supplementary zip
         run: |
-          # Build the reproduction archive (small, focused: code +
-          # tests + working syntax docs + SKILL/REPRODUCE/README).
-          # See scripts/build_supplementary_zip.py for the precise
-          # contents. Runs after the paper PDFs are staged so the
-          # zip can land alongside them in docs/ for the same site
-          # deploy.
           python scripts/build_supplementary_zip.py \
-              --output docs/sutra-neurips-supplementary.zip
+              --output sutra-neurips-supplementary.zip
 
-      - name: Build site
+      - name: Build the static site
         run: |
-          mkdocs build --strict --verbose
+          python scripts/build_site.py --output _site
 
-      - name: Integrate SutraDB static site at /SutraDB/
+      - name: Stage downloads next to the page
         run: |
-          # SutraDB keeps its own static HTML site under sutraDB/pages/
-          # (index.html, style.css, subdirectories for each section).
-          # Mount it at /SutraDB/ on the main Sutra language site so that
-          # https://sutra.emmaleonhart.com/SutraDB/ serves the database's own
-          # landing page. SutraDB is a core piece of the Sutra ecosystem —
-          # the language programs vectors, the database stores them — and
-          # a single integrated docs site is the least surprising place
-          # for users to find both.
-          #
-          # Caveats:
-          #   - SutraDB's pages may contain absolute hrefs (/...) that
-          #     point at the root of its original standalone site (which
-          #     used to live at sutradb.org / on its own GitHub Pages).
-          #     Those links will need a pass to become relative or to
-          #     prefix /SutraDB/ when encountered. The first deploy will
-          #     surface exactly which links break; fix is follow-up work.
-          #   - sutraDB/pages/CNAME and sitemap.xml are intentionally NOT
-          #     copied — the CNAME binds the site to sutradb.org and the
-          #     sitemap targets that domain. Leaving them out means the
-          #     integrated subsite serves cleanly under the parent
-          #     domain without competing DNS claims.
-          mkdir -p _site/SutraDB
-          rsync -a \
-            --exclude=CNAME \
-            --exclude=sitemap.xml \
-            sutraDB/pages/ _site/SutraDB/
+          cp paper/paper-named.pdf _site/paper.pdf
+          cp paper/paper-anonymized.pdf _site/paper-anonymized.pdf
+          cp sutra-neurips-supplementary.zip _site/sutra-neurips-supplementary.zip
 
       - uses: actions/upload-pages-artifact@v3
         with:
