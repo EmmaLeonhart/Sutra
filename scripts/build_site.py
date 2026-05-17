@@ -212,6 +212,28 @@ DOWNLOAD_CARDS = """
     </div>
 """
 
+# The /paper/ page links only the paper itself and the reproduction
+# archive (the anonymized PDF lives on /neurips-2026/, the submission
+# record). The ZIP is called out as carrying SKILL.md.
+PAPER_DOWNLOADS = """
+    <div class="downloads">
+      <a class="card dl" href="/paper.pdf">
+        <div class="dl-body">
+          <div class="dl-name">Paper (PDF)</div>
+          <div class="dl-sub">The full Sutra language paper, author-attributed.</div>
+        </div>
+        <span class="dl-arrow">&rarr;</span>
+      </a>
+      <a class="card dl" href="/sutra-neurips-supplementary.zip">
+        <div class="dl-body">
+          <div class="dl-name">Reproduction archive (ZIP)</div>
+          <div class="dl-sub">Compiler source, tests, and paper-claim reproduction scripts &mdash; including <code>SKILL.md</code>, the agent-runnable replication recipe.</div>
+        </div>
+        <span class="dl-arrow">&rarr;</span>
+      </a>
+    </div>
+"""
+
 
 def shell(title: str, inner: str, mermaid: bool = False, math: bool = False) -> str:
     extra = (("\n" + MERMAID_JS) if mermaid else "") + (("\n" + MATHJAX_JS) if math else "")
@@ -497,7 +519,7 @@ def main() -> int:
         inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
                  f'    <span class="eyebrow">Sutra &middot; Paper</span>\n    <h1>{p_head}</h1>\n'
                  f'    <p class="lede">The full Sutra paper, readable here. Downloads:</p>\n'
-                 f'{DOWNLOAD_CARDS}\n    <div class="doc">\n{p_body}\n    </div>\n')
+                 f'{PAPER_DOWNLOADS}\n    <div class="doc">\n{p_body}\n    </div>\n')
         write("/paper/", out / "paper" / "index.html", f"{p_head} — Sutra", inner, p_mer, p_mth)
 
     # Homepage: explanation + Explore contents + paper link
