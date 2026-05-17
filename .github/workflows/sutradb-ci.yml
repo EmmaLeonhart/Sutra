@@ -17,12 +17,12 @@ run-name: "SutraDB CI: ${{ github.event.head_commit.message || github.event.pull
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'sutraDB/**'
       - '.github/workflows/sutradb-ci.yml'
   pull_request:
-    branches: [master]
+    branches: [main]
     paths:
       - 'sutraDB/**'
       - '.github/workflows/sutradb-ci.yml'

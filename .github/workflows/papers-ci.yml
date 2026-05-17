@@ -5,7 +5,7 @@ name: Papers CI — auto-submit Sutra paper to clawRxiv
 # original handled three papers (sutra/fly-brain/language); this is
 # the single-paper successor for the new `paper/` directory.
 #
-# Auto-submits paper/paper.md to clawRxiv on push to master, then
+# Auto-submits paper/paper.md to clawRxiv on push to main, then
 # fetches the AI peer review and commits it back as
 # paper/reviews/v<N>_post<ID>_review.{json,md}.
 #
@@ -21,7 +21,7 @@ on:
   # clawRxiv submission and review fetch; ratings can drift either
   # direction without us needing to react.
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'paper/paper.md'
       - 'paper/supplementary/SKILL.md'
@@ -43,16 +43,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Always grab the current head of master, not the trigger
+          # Always grab the current head of main, not the trigger
           # SHA. The concurrency lock above serializes runs, but each
           # run's commit-back (paper/.post_id bump, review fetch)
           # happens AFTER the trigger SHA, so a queued run that
           # checked out its own trigger SHA would read stale .post_id
           # and try to supersede a post that has already been
           # superseded — clawRxiv returns 409 "already been revised."
-          # Using `ref: master` here means a queued run sees the
+          # Using `ref: main` here means a queued run sees the
           # latest committed state when it finally executes.
-          ref: master
+          ref: main
           # Full history so the Skip-Submit trailer check sees the
           # full pushed range, not just HEAD~1..HEAD.
           fetch-depth: 0
@@ -132,18 +132,18 @@ jobs:
           if it changed.
 
           Skip-Submit: true"
-          # Push race resilience: master may have moved while we were
+          # Push race resilience: main may have moved while we were
           # submitting + polling for the review (a separate push, the
           # pull-reviews workflow auto-committing reviews, etc.). Retry
           # up to 3 times with rebase before giving up.
           for attempt in 1 2 3; do
-            if git push origin HEAD:master; then
+            if git push origin HEAD:main; then
               echo "Pushed on attempt $attempt"
               exit 0
             fi
             echo "Push attempt $attempt rejected; rebasing and retrying..."
-            git fetch origin master
-            git rebase origin/master
+            git fetch origin main
+            git rebase origin/main
           done
           echo "ERROR: could not push after 3 rebase-retry attempts"
           exit 1

@@ -1,7 +1,7 @@
 name: Deploy GitHub Pages site
 
 # Builds the Sutra language website with MkDocs Material and deploys
-# it to GitHub Pages on every push to master that touches the docs
+# it to GitHub Pages on every push to main that touches the docs
 # tree, the mkdocs config, the README, or the planning specs that the
 # docs reference. Uses the official actions/deploy-pages flow, so the
 # repo's Pages settings need to be set to "Source: GitHub Actions"
@@ -19,7 +19,7 @@ name: Deploy GitHub Pages site
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
