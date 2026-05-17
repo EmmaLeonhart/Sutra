@@ -1249,5 +1249,164 @@ class TestImperativeShortcuts(unittest.TestCase):
         self.assertIn("i /= 4", py)
 
 
+class TestCrossFunctionAxonElision(unittest.TestCase):
+    """Producer-side pruning across a function call.
+
+    planning/sutra-spec/axons.md §"Lazy evaluation across
+    boundaries": a caller must materialize only the keys the callee
+    (transitively) reads from the axon it is handed — "Through a
+    single function call: clearly yes." These tests assert the
+    pruned `.add(K,V)` is *never emitted* (so the key is never
+    bundled — the actual bandwidth/correctness property) and, for
+    SAFETY, that every construct the analysis does not fully
+    understand falls back to keeping ALL keys (no over-prune).
+    """
+
+    def test_prunes_keys_no_callee_reads(self):
+        src = (
+            'vector v_cat = basis_vector("cat");\n'
+            'vector v_dog = basis_vector("dog");\n'
+            'vector v_bird = basis_vector("bird");\n'
+            'function vector getCat(Axon a) { return a.item("cat"); }\n'
+            'function vector build() {\n'
+            '  Axon x;\n'
+            '  x.add("cat", v_cat);\n'
+            '  x.add("dog", v_dog);\n'
+            '  x.add("bird", v_bird);\n'
+            '  return getCat(x);\n'
+            '}\n'
+        )
+        py = _compile(src)
+        # The one key getCat reads is materialized.
+        self.assertIn("x = _VSA.axon_add(x, 'cat', v_cat)", py)
+        # The keys no callee reads are never bundled.
+        self.assertNotIn("_VSA.axon_add(x, 'dog'", py)
+        self.assertNotIn("_VSA.axon_add(x, 'bird'", py)
+
+    def test_transitive_demand_through_two_calls(self):
+        src = (
+            'vector v1 = basis_vector("v1");\n'
+            'vector v2 = basis_vector("v2");\n'
+            'function vector leafC(Axon c) { return c.item("k1"); }\n'
+            'function vector midB(Axon b) { return leafC(b); }\n'
+            'function vector build() {\n'
+            '  Axon x;\n'
+            '  x.add("k1", v1);\n'
+            '  x.add("k2", v2);\n'
+            '  return midB(x);\n'
+            '}\n'
+        )
+        py = _compile(src)
+        self.assertIn("x = _VSA.axon_add(x, 'k1', v1)", py)
+        self.assertNotIn("_VSA.axon_add(x, 'k2'", py)
+
+    def test_multi_param_pruned_independently(self):
+        src = (
+            'vector vx = basis_vector("vx");\n'
+            'vector vz = basis_vector("vz");\n'
+            'vector vy = basis_vector("vy");\n'
+            'vector vw = basis_vector("vw");\n'
+            'function vector pick(Axon p, Axon q) {\n'
+            '  vector r = p.item("x");\n'
+            '  return q.item("y");\n'
+            '}\n'
+            'function vector build2() {\n'
+            '  Axon m;\n'
+            '  m.add("x", vx);\n'
+            '  m.add("z", vz);\n'
+            '  Axon n;\n'
+            '  n.add("y", vy);\n'
+            '  n.add("w", vw);\n'
+            '  return pick(m, n);\n'
+            '}\n'
+        )
+        py = _compile(src)
+        self.assertIn("m = _VSA.axon_add(m, 'x', vx)", py)
+        self.assertNotIn("_VSA.axon_add(m, 'z'", py)
+        self.assertIn("n = _VSA.axon_add(n, 'y', vy)", py)
+        self.assertNotIn("_VSA.axon_add(n, 'w'", py)
+
+    # --- SAFETY: every unbounded construct keeps ALL keys ---------
+
+    def test_dynamic_key_in_callee_keeps_all(self):
+        src = (
+            'vector vp = basis_vector("vp");\n'
+            'vector vr = basis_vector("vr");\n'
+            'function vector dyn(Axon a, string k) {\n'
+            '  return a.item(k);\n'
+            '}\n'
+            'function vector build3() {\n'
+            '  Axon x;\n'
+            '  x.add("p", vp);\n'
+            '  x.add("r", vr);\n'
+            '  return dyn(x, "p");\n'
+            '}\n'
+        )
+        py = _compile(src)
+        # Callee reads a runtime-computed key → caller cannot bound
+        # demand → every key stays materialized.
+        self.assertIn("x = _VSA.axon_add(x, 'p', vp)", py)
+        self.assertIn("x = _VSA.axon_add(x, 'r', vr)", py)
+
+    def test_callee_returns_bare_axon_keeps_all(self):
+        src = (
+            'vector vk = basis_vector("vk");\n'
+            'function vector passthru(Axon a) { return a; }\n'
+            'function vector build4() {\n'
+            '  Axon x;\n'
+            '  x.add("k", vk);\n'
+            '  return passthru(x);\n'
+            '}\n'
+        )
+        py = _compile(src)
+        # passthru's param escapes (bare return) → OPAQUE → caller
+        # keeps all keys.
+        self.assertIn("x = _VSA.axon_add(x, 'k', vk)", py)
+
+    def test_vector_typed_callee_param_keeps_all(self):
+        # The Yantra cross-program connectome reality: a separately
+        # compiled consumer types its param `vector` and uses
+        # `axon_item(state, ...)`. This single-module pass keys on
+        # the `Axon` type, so a `vector` param is OPAQUE → caller
+        # keeps all keys. This is the honest boundary (see
+        # planning/20-lazy-axon-evaluation.md): producer-side pruning
+        # across a separately-compiled-program boundary is NOT solved
+        # by this pass.
+        src = (
+            'vector vk1 = basis_vector("vk1");\n'
+            'vector vk2 = basis_vector("vk2");\n'
+            'function vector recv(vector state) {\n'
+            '  return axon_item(state, "k1");\n'
+            '}\n'
+            'function vector b5() {\n'
+            '  Axon x;\n'
+            '  x.add("k1", vk1);\n'
+            '  x.add("k2", vk2);\n'
+            '  return recv(x);\n'
+            '}\n'
+        )
+        py = _compile(src)
+        self.assertIn("x = _VSA.axon_add(x, 'k1', vk1)", py)
+        self.assertIn("x = _VSA.axon_add(x, 'k2', vk2)", py)
+
+    def test_returned_bare_axon_still_keeps_all(self):
+        # Regression guard: a function that builds an axon and
+        # returns it bare must keep every add (the pre-existing
+        # conservative behaviour the new pass must not weaken).
+        src = (
+            'vector vs = basis_vector("vs");\n'
+            'vector vo = basis_vector("vo");\n'
+            'function vector mk() {\n'
+            '  Axon a;\n'
+            '  a.add("s", vs);\n'
+            '  a.add("o", vo);\n'
+            '  return a;\n'
+            '}\n'
+        )
+        py = _compile(src)
+        self.assertIn("a = _VSA.axon_add(a, 's', vs)", py)
+        self.assertIn("a = _VSA.axon_add(a, 'o', vo)", py)
+
+
 if __name__ == "__main__":
     unittest.main()
