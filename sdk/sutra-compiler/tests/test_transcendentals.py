@@ -19,6 +19,7 @@ lookup-table precision.
 """
 from __future__ import annotations
 
+import cmath
 import math
 import unittest
 
@@ -88,6 +89,62 @@ class TestAllTranscendentalsCompileAndCompute(unittest.TestCase):
                 self.assertLess(
                     rel, tol,
                     f"got={got}, true={true}, rel={rel:.2e}, tol={tol}",
+                )
+
+
+class TestComplexArgumentCosine(unittest.TestCase):
+    """`Math.ccos(complex z)` = (e^(i z) + e^(-i z))/2, the complex-
+    argument cosine. Ground-truth vs Python `cmath.cos`.
+
+    Torch backend only: the numpy codegen is deprecated and has no
+    `cexp` (the keystone ccos reduces onto), so it cannot express this
+    op. Asserting it there would be testing a backend the spec is
+    retiring; the canonical compile target is PyTorch (CLAUDE.md).
+
+    Cases cover: real argument (imag 0 — must equal the paper-cited
+    real cos and carry zero imaginary part), pure-imaginary argument
+    (cos(i) = cosh 1, the geometric imaginary-output path), and two
+    general complex points. Absolute tolerance 2e-2 — float32 runtime
+    + N=16384 exp / N=4096 trig lookup tables, the same precision
+    class as the `pow` case above; near-zero components make a
+    relative bound meaningless, so the bound is absolute per
+    component. Measured, not tuned: if a real demo needs tighter, the
+    principled fix is bigger tables / range reduction, not a looser
+    bound here."""
+
+    # (a, b) for z = a + b*i
+    _CASES = [
+        (0.0, 0.0),
+        (0.5, 0.0),   # real arg: must match real cos, imag == 0
+        (0.0, 1.0),   # cos(i) = cosh(1) ≈ 1.5430806, imag 0
+        (0.5, 1.0),   # general: ≈ 1.38423 - 0.63496 i
+        (1.0, 2.0),   # general: ≈ 2.03272 - 3.05190 i
+    ]
+    _TOL = 2e-2
+
+    def _run_part(self, a: float, b: float, part: str) -> float:
+        src = (
+            f"function scalar f() {{ return "
+            f"Math.ccos(complex_number({a!r}, {b!r})).{part}(); }}\n"
+        )
+        return _compile_and_run(torch_translate, src, "f")
+
+    def test_ccos_vs_cmath(self):
+        for a, b in self._CASES:
+            true = cmath.cos(complex(a, b))
+            with self.subTest(z=f"{a}+{b}i", part="real"):
+                got_r = self._run_part(a, b, "real")
+                self.assertLess(
+                    abs(got_r - true.real), self._TOL,
+                    f"Re ccos({a}+{b}i): got={got_r}, "
+                    f"true={true.real}, |Δ|={abs(got_r - true.real):.2e}",
+                )
+            with self.subTest(z=f"{a}+{b}i", part="imag"):
+                got_i = self._run_part(a, b, "imag")
+                self.assertLess(
+                    abs(got_i - true.imag), self._TOL,
+                    f"Im ccos({a}+{b}i): got={got_i}, "
+                    f"true={true.imag}, |Δ|={abs(got_i - true.imag):.2e}",
                 )
 
 
