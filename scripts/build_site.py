@@ -224,9 +224,9 @@ PAPER_DOWNLOADS = """
         </div>
         <span class="dl-arrow">&rarr;</span>
       </a>
-      <a class="card dl" href="/sutra-neurips-supplementary.zip">
+      <a class="card dl" href="/sutra-replication-package.zip">
         <div class="dl-body">
-          <div class="dl-name">Reproduction archive (ZIP)</div>
+          <div class="dl-name">Replication package (ZIP)</div>
           <div class="dl-sub">Compiler source, tests, and paper-claim reproduction scripts &mdash; including <code>SKILL.md</code>, the agent-runnable replication recipe.</div>
         </div>
         <span class="dl-arrow">&rarr;</span>

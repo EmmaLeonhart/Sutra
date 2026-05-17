@@ -1,9 +1,14 @@
 """
-Build the NeurIPS 2026 supplementary-material zip for the Sutra paper.
+Build a Sutra reproduction archive. Two variants, same code payload,
+different supplementary docs + name:
 
-Output: `sutra-neurips-supplementary.zip` at the repo root, a tightly-
-scoped reproduction archive — only the files a NeurIPS reviewer needs
-to verify the paper's empirical claims. The agent-runnable replication
+  (default)   sutra-replication-package.zip   — docs from the LIVE
+              paper/supplementary/; the archive the live paper links.
+  --neurips   sutra-neurips-supplementary.zip — docs from the FROZEN
+              paper/neurips/supplementary/; the submission record.
+
+A tightly-scoped reproduction archive — only the files needed to
+verify the paper's empirical claims. The agent-runnable replication
 skill sits at the archive root as `SKILL.md`; the human-facing
 `README.md` (from `paper/SUPPLEMENTARY_README.md`) explains the layout
 and points reviewers at the skill.
@@ -607,12 +612,26 @@ def build(output_path: Path, *, check_only: bool = False) -> None:
 
 
 def main() -> None:
+    # Two generated archives, same code payload, different supplementary
+    # docs + name:
+    #   default     -> sutra-replication-package.zip  (live
+    #                   paper/supplementary/ — what the live paper links)
+    #   --neurips    -> sutra-neurips-supplementary.zip (frozen
+    #                   paper/neurips/supplementary/ — the submission record)
+    global ARCHIVE_ROOT, TOP_LEVEL_FILES
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--neurips",
+        action="store_true",
+        help="Build the frozen NeurIPS submission supplementary (docs from "
+             "paper/neurips/supplementary/) instead of the live replication package.",
+    )
     p.add_argument(
         "--output",
         type=Path,
-        default=REPO_ROOT / "sutra-neurips-supplementary.zip",
-        help="Output zip path (default: sutra-neurips-supplementary.zip in repo root)",
+        default=None,
+        help="Output zip path. Default: sutra-replication-package.zip, or "
+             "sutra-neurips-supplementary.zip with --neurips.",
     )
     p.add_argument(
         "--check",
@@ -620,7 +639,16 @@ def main() -> None:
         help="Print what would be included without writing the zip",
     )
     args = p.parse_args()
-    build(args.output, check_only=args.check)
+    supp = "paper/neurips/supplementary" if args.neurips else "paper/supplementary"
+    ARCHIVE_ROOT = "sutra-neurips-supplementary" if args.neurips else "sutra-replication-package"
+    TOP_LEVEL_FILES = [
+        (f"{supp}/README.md", "README.md"),
+        (f"{supp}/SKILL.md", "SKILL.md"),
+        (f"{supp}/REPRODUCE.md", "REPRODUCE.md"),
+        (f"{supp}/SYNTAX.md", "SYNTAX.md"),
+    ]
+    out = args.output or (REPO_ROOT / f"{ARCHIVE_ROOT}.zip")
+    build(out, check_only=args.check)
 
 
 if __name__ == "__main__":
