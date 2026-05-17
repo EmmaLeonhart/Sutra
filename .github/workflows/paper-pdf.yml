@@ -1,7 +1,7 @@
 name: Paper PDF — anonymized + named builds
 
 # Builds two PDFs from paper/paper.tex via the \ifanon switch.
-# Triggered on push to paper/ on master, plus workflow_dispatch.
+# Triggered on push to paper/ on main, plus workflow_dispatch.
 # Both PDFs uploaded as workflow artifacts; future extension will
 # also deploy them to the docs site (sutra.emmaleonhart.com).
 #
@@ -13,7 +13,7 @@ name: Paper PDF — anonymized + named builds
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'paper/**'
   workflow_dispatch:

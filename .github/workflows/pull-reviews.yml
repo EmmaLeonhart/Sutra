@@ -20,7 +20,7 @@ name: Pull all clawrxiv reviews into the repo
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'paper/**'
       - 'scripts/pull_all_reviews.py'
@@ -126,13 +126,13 @@ jobs:
           Skip-Submit: true"
           # Rebase-retry against the canonical push race.
           for attempt in 1 2 3; do
-            if git push origin HEAD:master; then
+            if git push origin HEAD:main; then
               echo "Pushed on attempt $attempt"
               exit 0
             fi
             echo "Push attempt $attempt rejected; rebasing and retrying..."
-            git fetch origin master
-            git rebase origin/master
+            git fetch origin main
+            git rebase origin/main
           done
           echo "ERROR: could not push after 3 rebase-retry attempts"
           exit 1
