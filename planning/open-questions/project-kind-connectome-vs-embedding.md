@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Largely resolved 2026-04-26 by fly-brain retirement; the single target is the PyTorch embedding backend. Doc preserved as a design-space map for any future second-target reintroduction.
+
+---
+
 ## Project kind: connectome target vs embedding-space target
 
 > **Status (2026-04-26):** largely resolved by fly-brain retirement —

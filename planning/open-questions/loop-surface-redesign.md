@@ -1,3 +1,7 @@
+> **VERDICT — STALE** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Superseded by `loop-function-declarations.md`. Kept for the design-process record.
+
+---
+
 # Loop surface redesign — drop redundancy, fix substrate violations
 
 **Surfaced:** 2026-04-30

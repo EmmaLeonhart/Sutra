@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: first-class `map<K,V>` language feature vs library pattern vs neither; soft-lookup on semantic-vector keys is the distinctive property. Depends on what programs people end up writing.
+
+---
+
 # Open question: rotation-hashmap as a language feature
 
 ## The question

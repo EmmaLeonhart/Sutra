@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Largely shipped 2026-04-30→2026-05-10; canonical surface in `planning/sutra-spec/control-flow.md` §Loops. Doc kept for the design-decision rationale. Remaining open sub-questions: substrate-pure condition evaluation, idiomatic cleanup of by-reference mutation (`todo.md` §"Make loops idiomatic").
+
+---
+
 # Loops as first-class declared functions
 
 **Surfaced:** 2026-04-30
