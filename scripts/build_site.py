@@ -34,8 +34,17 @@ from pathlib import Path
 import markdown
 
 PAGE_CSS = """
-body { display: flex; justify-content: center; padding: 92px 24px 120px; position: relative; overflow-x: hidden; }
-.container { max-width: 820px; width: 100%; position: relative; z-index: 2; }
+body { display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow-x: hidden; }
+.topbar {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 20px 28px; border-bottom: 1px solid var(--border);
+}
+.topbar a { font-family: var(--mono); font-size: 0.82rem; font-weight: 500; text-decoration: none; transition: color 0.2s; }
+.topbar .home { color: var(--text-mute); }
+.topbar .home:hover { color: var(--accent-bright); }
+main { position: relative; z-index: 2; flex: 1; display: flex; justify-content: center; padding: 72px 28px 100px; }
+.container { max-width: 820px; width: 100%; position: relative; }
 .scroll { font-size: 2.4rem; line-height: 1; }
 h1 {
   font-size: clamp(2.1rem, 5.5vw, 3rem); font-weight: 700;
@@ -57,6 +66,14 @@ h1 {
 .dl .dl-sub { font-size: 0.85rem; color: var(--text-mute); margin-top: 3px; line-height: 1.5; }
 .dl .dl-arrow { color: var(--accent); font-size: 1.2rem; flex: none; transition: transform 0.2s; }
 .dl:hover .dl-arrow { transform: translateX(3px); }
+.links { display: flex; flex-wrap: wrap; gap: 12px; margin: 34px 0 8px; }
+.links a {
+  font-family: var(--mono); font-size: 0.84rem; font-weight: 500;
+  text-decoration: none; color: var(--accent); padding: 10px 18px;
+  border: 1px solid var(--border-hover); border-radius: 8px;
+  background: var(--accent-soft); transition: all 0.2s;
+}
+.links a:hover { color: var(--accent-bright); border-color: var(--accent); transform: translateY(-1px); }
 
 /* Rendered markdown body */
 .doc { color: var(--text); line-height: 1.7; }
@@ -93,10 +110,16 @@ h1 {
 .doc th, .doc td { text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
 .doc th { background: var(--bg-soft); color: var(--text-strong); font-weight: 600; }
 .doc hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
-.foot { margin-top: 56px; font-family: var(--mono); font-size: 0.75rem; color: var(--text-faint); letter-spacing: 0.5px; }
-.foot a { color: var(--text-mute); }
-.foot a:hover { color: var(--accent-bright); }
-@media (max-width: 600px) { body { padding: 80px 16px 80px; } }
+footer {
+  position: relative; z-index: 2; padding: 24px 28px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 1px;
+  color: var(--text-faint);
+}
+@media (max-width: 600px) {
+  .topbar { padding: 16px 18px; }
+  main { padding: 56px 20px 76px; }
+}
 """
 
 TOGGLE = """
@@ -105,6 +128,28 @@ TOGGLE = """
     <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.4 6.35,17.41C9.37,20.43 14,20.54 17.33,17.97Z"></path></svg>
   </button>
 """
+
+GH_PILL = """<a class="gh" href="https://github.com/EmmaLeonhart/Sutra" data-gh-repo="EmmaLeonhart/Sutra" aria-label="EmmaLeonhart/Sutra on GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span class="gh-name">GitHub</span>
+      <span class="gh-stat gh-stars" hidden title="GitHub stars"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg><span class="gh-stars-n">&ndash;</span></span>
+      <span class="gh-stat gh-ver" hidden title="Latest release / tag"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.75 1.75 0 0 1 1 7.775ZM2.75 2.5a.25.25 0 0 0-.25.25v5.025c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg><span class="gh-ver-n">&ndash;</span></span>
+    </a>"""
+
+GH_JS = """<script>
+  (function(){
+    var el=document.querySelector('a.gh[data-gh-repo]');if(!el)return;
+    var repo=el.getAttribute('data-gh-repo');
+    function put(sel,val){var s=el.querySelector(sel);if(!s)return;
+      var n=s.querySelector('span');if(n)n.textContent=val;s.hidden=false;}
+    fetch('https://api.github.com/repos/'+repo).then(function(r){return r.ok?r.json():null;})
+      .then(function(d){if(d&&typeof d.stargazers_count==='number')put('.gh-stars',d.stargazers_count.toLocaleString());}).catch(function(){});
+    fetch('https://api.github.com/repos/'+repo+'/releases/latest').then(function(r){return r.ok?r.json():null;})
+      .then(function(d){if(d&&d.tag_name){put('.gh-ver',d.tag_name);return;}
+        return fetch('https://api.github.com/repos/'+repo+'/tags').then(function(r){return r.ok?r.json():null;})
+          .then(function(t){if(t&&t.length&&t[0].name)put('.gh-ver',t[0].name);});}).catch(function(){});
+  })();
+  </script>"""
 
 DOWNLOAD_CARDS = """
     <div class="downloads">
@@ -157,10 +202,17 @@ def shell(title: str, inner: str) -> str:
 <body>
   <div class="aurora" aria-hidden="true"></div>
 {TOGGLE}
-  <div class="container">
+  <header class="topbar">
+    <a class="home" href="https://emmaleonhart.com">&larr; emmaleonhart.com</a>
+    {GH_PILL}
+  </header>
+  <main>
+    <div class="container">
 {inner}
-    <p class="foot">Source: <a href="https://github.com/EmmaLeonhart/Sutra">github.com/EmmaLeonhart/Sutra</a></p>
-  </div>
+    </div>
+  </main>
+  <footer>sutra.emmaleonhart.com</footer>
+  {GH_JS}
   <script>
     (function(){{
       var b=document.getElementById('theme-toggle');
@@ -222,6 +274,11 @@ def main() -> int:
     <h1>{home_heading}</h1>
     <div class="doc">
 {home_body}
+    </div>
+    <div class="links">
+      <a href="https://github.com/EmmaLeonhart/Sutra">View source on GitHub</a>
+      <a href="https://github.com/EmmaLeonhart/Sutra/releases">Releases &amp; downloads</a>
+      <a href="https://emmaleonhart.com/projects/">All projects</a>
     </div>
 """
     (out_dir / "index.html").write_text(
