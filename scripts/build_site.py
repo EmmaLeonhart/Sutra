@@ -26,6 +26,7 @@ Usage:  python scripts/build_site.py [--output _site]
 from __future__ import annotations
 
 import argparse
+import html as _html
 import posixpath
 import re
 import shutil
@@ -173,6 +174,18 @@ MERMAID_JS = """  <script type="module">
     mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'neutral', securityLevel: 'loose' });
   </script>"""
 
+# MathJax 3. The Markdown source carries LaTeX ($...$, $$...$$,
+# \\begin{align*}...). build_site protects those spans from the
+# Markdown processor and restores them HTML-escaped, so MathJax sees
+# the correct text; it skips <pre>/<code> by default.
+MATHJAX_JS = """  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEnvironments: true, processEscapes: true },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code','annotation','annotation-xml'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>"""
+
 DOWNLOAD_CARDS = """
     <div class="downloads">
       <a class="card dl" href="/paper.pdf">
@@ -200,8 +213,8 @@ DOWNLOAD_CARDS = """
 """
 
 
-def shell(title: str, inner: str, mermaid: bool = False) -> str:
-    extra = ("\n" + MERMAID_JS) if mermaid else ""
+def shell(title: str, inner: str, mermaid: bool = False, math: bool = False) -> str:
+    extra = (("\n" + MERMAID_JS) if mermaid else "") + (("\n" + MATHJAX_JS) if math else "")
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -361,13 +374,42 @@ def split_title(md_text: str) -> tuple[str, str]:
     return heading, "\n".join(lines[start:]).lstrip("\n")
 
 
-def render(md_text: str, src_dir: str = ".") -> tuple[str, str, bool]:
+_MATH_ENVS = r"align\*?|equation\*?|gather\*?|multline\*?|alignat\*?|flalign\*?|aligned"
+
+
+def _protect_math(text: str) -> tuple[str, list[str]]:
+    """Pull LaTeX math out before Markdown can mangle it. Safe here:
+    paper.md has no `$` inside code (verified), so no false matches."""
+    store: list[str] = []
+
+    def keep(m: "re.Match[str]") -> str:
+        store.append(m.group(0))
+        return f"@@MJX{len(store) - 1}@@"
+
+    text = re.sub(r"\$\$.+?\$\$", keep, text, flags=re.DOTALL)            # display
+    text = re.sub(r"\\begin\{(" + _MATH_ENVS + r")\}.*?\\end\{\1\}",      # AMS envs
+                   keep, text, flags=re.DOTALL)
+    text = re.sub(r"(?<!\\)\$(?!\$)([^\n$]{1,400}?)\$(?!\$)", keep, text)  # inline
+    return text, store
+
+
+def _restore_math(html_str: str, store: list[str]) -> str:
+    # HTML-escape so raw <, >, & in LaTeX (align uses &) stay valid
+    # markup; the browser decodes them back to text for MathJax.
+    for i, s in enumerate(store):
+        html_str = html_str.replace(f"@@MJX{i}@@", _html.escape(s, quote=False))
+    return html_str
+
+
+def render(md_text: str, src_dir: str = ".") -> tuple[str, str, bool, bool]:
     cleaned, mer = clean_md(md_text, src_dir)
     heading, body_md = split_title(cleaned)
-    html = markdown.markdown(
+    body_md, math_store = _protect_math(body_md)
+    body_html = markdown.markdown(
         body_md, extensions=["extra", "sane_lists", "smarty"], output_format="html5"
     )
-    return heading, html, mer
+    body_html = _restore_math(body_html, math_store)
+    return heading, body_html, mer, bool(math_store)
 
 
 # Preferred reading order for the homepage "Explore" list. Anything
@@ -413,9 +455,10 @@ def main() -> int:
     ]
     titles: dict[str, str] = {}
 
-    def write(rel_url: str, out_path: Path, title: str, inner: str, mer: bool):
+    def write(rel_url: str, out_path: Path, title: str, inner: str,
+              mer: bool = False, mth: bool = False):
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(shell(title, inner, mer), encoding="utf-8")
+        out_path.write_text(shell(title, inner, mer, mth), encoding="utf-8")
         print(f"wrote {out_path.relative_to(out)}  ->  {rel_url}")
 
     home_md = None
@@ -423,10 +466,10 @@ def main() -> int:
         rel = src.relative_to(docs)
         slug = rel.as_posix()[:-3]  # drop .md
         src_dir = rel.parent.as_posix()  # "." or "tutorials"
-        heading, body, mer = render(src.read_text(encoding="utf-8"), src_dir)
+        heading, body, mer, mth = render(src.read_text(encoding="utf-8"), src_dir)
         titles[slug] = heading
         if slug == "index":
-            home_md = (heading, body)
+            home_md = (heading, body, mer, mth)
             continue
         if slug == "neurips-2026":
             inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
@@ -444,24 +487,24 @@ def main() -> int:
         else:
             out_path = out / slug / "index.html"
             url = f"/{slug}/"
-        write(url, out_path, f"{heading} — Sutra", inner, mer)
+        write(url, out_path, f"{heading} — Sutra", inner, mer, mth)
 
     # The paper, readable on-site, from paper/paper.md
     paper_src = repo / "paper" / "paper.md"
     paper_ok = paper_src.exists()
     if paper_ok:
-        p_head, p_body, p_mer = render(paper_src.read_text(encoding="utf-8"))
+        p_head, p_body, p_mer, p_mth = render(paper_src.read_text(encoding="utf-8"))
         inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
                  f'    <span class="eyebrow">Sutra &middot; Paper</span>\n    <h1>{p_head}</h1>\n'
                  f'    <p class="lede">The full Sutra paper, readable here. Downloads:</p>\n'
                  f'{DOWNLOAD_CARDS}\n    <div class="doc">\n{p_body}\n    </div>\n')
-        write("/paper/", out / "paper" / "index.html", f"{p_head} — Sutra", inner, p_mer)
+        write("/paper/", out / "paper" / "index.html", f"{p_head} — Sutra", inner, p_mer, p_mth)
 
     # Homepage: explanation + Explore contents + paper link
     if home_md is None:
         print("error: docs/index.md missing", file=sys.stderr)
         return 1
-    h_head, h_body = home_md
+    h_head, h_body, h_mer, h_mth = home_md
     page_slugs = [s for s in titles if s not in ("index", "neurips-2026")]
     ordered = [s for s in ORDER if s in page_slugs] + sorted(
         s for s in page_slugs if s not in ORDER
@@ -499,7 +542,8 @@ def main() -> int:
         '    </div>\n'
     )
     (out / "index.html").write_text(
-        shell("Sutra — a geometrically compiled language", home_inner), encoding="utf-8"
+        shell("Sutra — a geometrically compiled language", home_inner, h_mer, h_mth),
+        encoding="utf-8",
     )
     print("wrote index.html  ->  /")
 
