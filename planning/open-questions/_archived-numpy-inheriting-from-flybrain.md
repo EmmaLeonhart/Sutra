@@ -1,3 +1,7 @@
+> **VERDICT — STALE / ARCHIVED** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Resolved 2026-04-23 (`BaseCodegen` sibling refactor), then mooted entirely by the 2026-04-26 fly-brain retirement. Historical record only.
+
+---
+
 # NumpyCodegen inherits from FlyBrainCodegen (archived)
 
 **Opened:** 2026-04-23.

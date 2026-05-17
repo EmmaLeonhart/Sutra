@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: can the branch *decision* itself execute on the substrate, not just the `argmax_cosine` prototype-match feeding it (currently decides at host Python time).
+
+---
+
 # Open question: can conditional branching execute on the remote substrate?
 
 ## The question

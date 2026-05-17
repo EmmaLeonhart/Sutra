@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Resolved by `loop-function-declarations.md` (substrate-RNN-cell shape). Doc retained for the resolution rationale.
+
+---
+
 # Open question: what should `loop(cond) { body }`'s body actually mean?
 
 **Surfaced:** 2026-04-30

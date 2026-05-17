@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Precise open part: which V1-refused constructs (methods, operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`) V1 should close. Most demos compile; several examples don't.
+
+---
+
 # Open question: what should the V1 codegen actually cover?
 
 ## The question

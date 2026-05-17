@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Closure-free capture shipped 2026-05-09 (TS arrow fns via parameter-lifting). Precise open part: the four-kind function taxonomy boundary (free / method / intrinsic / loop-function vs closure) stays undecided.
+
+---
+
 # Function taxonomy and namespace-access semantics
 
 **Source:** Emma 2026-04-30 (clarification on top of

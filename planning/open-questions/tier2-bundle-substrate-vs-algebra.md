@@ -1,3 +1,7 @@
+> **VERDICT — STALE** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Moot 2026-04-26: only the retired fly-brain backend routed `bundle(...)` through a circuit; the current PyTorch backend uses normalized vector addition. Preserved as a design-space map for any circuit-routed-substrate future.
+
+---
+
 # Open question: does `bundle(...)` run on the substrate, or stay algebraic?
 
 > **Status (2026-04-26):** moot for the current implementation —

@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED (core); narrow OPEN tail** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). No runtime null; every absent state has a first-class neutral value (`planning/sutra-spec/types.md`; `wait` + `var X:TYPE;` deferred-init forms shipped). OPEN only on whether to additionally forbid the uninitialized `var X : TYPE;` syntax entirely (user leaned forbid; left undecided).
+
+---
+
 # No null in Sutra
 
 **Opened:** 2026-04-23 (session that added `unknown`).

@@ -53,9 +53,21 @@ Tally: **9 RESOLVED/STALE**, **2 RESOLVED-core with a narrow OPEN tail**,
 not undefined design space, and none currently blocks queue work. The
 RESOLVED/STALE docs should be deleted/archived on the next pruning
 pass (rule 3 above) once their rationale is confirmed captured in the
-cited spec file. Still TODO under task #15: the same verdict pass over
-`sutra-spec/open-questions.md` (162 lines), and per-doc top-line
-banners.
+cited spec file.
+
+Task #15 status (2026-05-17): **both remaining sub-deliverables are
+now done.** The verdict pass over `sutra-spec/open-questions.md` is
+complete (that file's own "Triage (2026-05-16, task #15 — part 2)"
+section). Per-doc top-line `> **VERDICT — …**` banners are stamped on
+every doc in this folder (21 stamped 2026-05-17; `binding-kind-surface-
+syntax.md` already carried a RESOLVED header; `cosine-as-its-own-
+transcendental.md`, added 2026-05-17, carries its own GENUINELY OPEN
+verdict). The remaining task #15 work is the *pruning* pass — deleting
+RESOLVED/STALE docs once their rationale is confirmed captured in the
+cited spec file (a deliberate pass, not folded into this banner run, to
+avoid losing rationale mid-session). Tally now includes the new
+`cosine-as-its-own-transcendental.md` (GENUINELY OPEN), so: 9
+RESOLVED/STALE, 2 RESOLVED-core+tail, 12 genuinely OPEN.
 
 ## Current contents
 

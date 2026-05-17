@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Single `loop(cond)` is eigenrotation on the substrate; the spec is silent on nested composition. Precise open part: subspace allocation + termination semantics + cross-subspace back-channel for nested loops (the compiler currently host-sequences them).
+
+---
+
 # Open question: how do nested eigenrotation loops compose?
 
 ## The question

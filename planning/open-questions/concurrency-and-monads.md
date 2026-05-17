@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Concurrency model is sketched in `planning/sutra-spec/concurrency.md`; precise open part: the monad/effect structure on top of it isn't settled.
+
+---
+
 # Open question: concurrency model, and whether monads are the right frame
 
 Captured 2026-04-14 from a user observation, not yet a design decision.

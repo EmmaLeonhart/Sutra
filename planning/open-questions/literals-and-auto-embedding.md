@@ -1,3 +1,7 @@
+> **VERDICT — RESOLVED (core); narrow OPEN tail** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Core shipped 2026-04-23 (`planning/sutra-spec/strings.md` + char / implicit-fuzzy / string-auto-embed slices: 317099a, 7fb7b50, 6e424d8). OPEN only on the deferred follow-on rules (binary-op, return-stmt, map-value embedding) until concrete programs want them.
+
+---
+
 # Literals and auto-embedding
 
 **Opened:** 2026-04-23 (this session).

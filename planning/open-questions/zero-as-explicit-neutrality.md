@@ -1,3 +1,7 @@
+> **VERDICT — GENUINELY OPEN** (task #15 triage 2026-05-16, banner stamped 2026-05-17; authoritative table: `planning/open-questions/README.md`). Runtime already coherent (`fuzzy f = 0` lands at the truth-axis origin = explicit non-side). Precise open part: how higher-level features consume neutrality — bool↔fuzzy coercion, branch-on-neutral, comparison-with-false.
+
+---
+
 # Zero as explicit neutrality on the truth axis
 
 **Opened:** 2026-04-23.
