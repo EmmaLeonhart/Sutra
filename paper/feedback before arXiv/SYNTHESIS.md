@@ -54,9 +54,15 @@ Unanimous across reviewers; these gate the upload.
 - [ ] **P0 — LLM-artifact scan.** Ctrl-F the compiled manuscript for
   meta-text ("Here is a…", "As an AI", "200-word summary",
   placeholders, doubled headings). Quick, mandatory.
-- [ ] **P1 — Self-overlap check.** This is paper #2 written ~25 days
-  after paper #1; arXiv's overlap detector flags reused intro/related
-  -work prose. Rephrase any large shared blocks.
+- [x] **P1 — Self-overlap check. RESOLVED 2026-05-18 — no risk.**
+  Cloned paper #1 (`latent-space-cartography`) into the gitignored
+  `comparisons/` and ran a prose-overlap analysis vs `paper.md`
+  (`comparisons/overlap.py`): shared verbatim 8-word runs =
+  **5 / 6999 (0.071%)**; strong near-duplicate sentences (≥0.75) =
+  **0**; the single ≥0.55 hit is a shared *bibliography* line (the
+  Serafini & Garcez LTN citation), not reused prose. Negligible
+  overlap — arXiv's overlap detector is not a concern. No rephrasing
+  needed.
 - [ ] **P1 — Link/repro liveness.** Confirm the GitHub URL, the
   `sutra-replication-package.zip`, and the project site all resolve
   *now*; sanity-run `SKILL.md` so the reproduction claim holds.

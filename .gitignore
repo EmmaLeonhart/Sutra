@@ -105,3 +105,7 @@ key.b64
 # (~8 MB of JS/CSS) — same rationale as not committing reference PDFs.
 paper/feedback before arXiv/*.html
 paper/feedback before arXiv/*_files/
+
+# Scratch dir for cross-repo comparisons (e.g. cloned paper #1 for
+# self-overlap checks). Never commit — clones are re-fetched on demand.
+comparisons/
