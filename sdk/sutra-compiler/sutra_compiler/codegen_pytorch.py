@@ -2517,6 +2517,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     from .simplify import simplify_module, collect_basis_vector_strings
     from .inliner import inline_stdlib_calls
     from .promise_desugar import desugar_promises
+    from .loop_desugar import desugar_implicit_loops
     from .axon_keys import collect_axon_keys
     # Axon-keys static analysis runs BEFORE simplify/inline so that
     # the keys pulled out match the user-visible source pattern (the
@@ -2526,6 +2527,11 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     bound_keys, read_keys = collect_axon_keys(module)
     # Stage-1 promise desugar runs first — same pass as the CPU codegen.
     desugar_promises(module)
+    # Implicit tail-recursive loop desugar: loop(expr){body} ->
+    # synthesized iterative_loop LoopFunctionDecl + LoopCallStmt
+    # (queue.md item 0). Before inlining so the synthesized loop
+    # function bodies get the same stdlib inlining as hand-written ones.
+    desugar_implicit_loops(module)
     # Inline stdlib calls — same pass as the CPU codegen uses.
     inline_stdlib_calls(module)
     simplify_module(module)
