@@ -125,18 +125,42 @@ class-method body, for each `LoopStmt` with `count is None`:
   (codegen dispatches `count is not None` first) — leave it; the
   pass only touches `count is None`.
 
-**ONE PRECISE UNKNOWN to verify BEFORE writing the pass** (do not
-guess — miscompile risk): how does `iterative_loop`'s count
-expression reach the emitted loop function? Read
-`_translate_loop_function_decl` iterative_loop handling
-(`codegen_base.py:1380-1423`) + how the call passes/loads it
-(`:1615-1664`). In the explicit surface the count is the loop
-fn's first paren item; for the synthesized fn the `condition`
-(e.g. bare outer `x`) must be in scope inside the emitted
-`_loop_NAME(...)` function or threaded as an arg. Resolve this
-(it may require the count to be a synthesized state-or-param);
-only then write the pass. If it turns out the count can't be a
-free outer var, the synthesis must pass it explicitly.
+**UNKNOWN — RESOLVED (this resume, by reading the code):**
+`codegen_base.py:1422` does `count_src =
+self._translate_expr(decl.condition)` INSIDE the emitted loop
+function, each tick, where only state locals + `_iterator`/`_t`
+are in scope. A bare outer bound `x` would be undefined there.
+**Therefore the loop bound's free vars MUST be threaded as
+invariant state params** (passed in, never re-assigned — use
+`ReplaceMarker` in the synthesized `PassStmt` for them so they
+carry through unchanged each tick). This is exactly Emma's model
+("everything mutated OR referenced goes into the axon; x must be
+held invariant every run"). No guessing remains.
+
+**Final, fully-specified algorithm for the desugar unit:**
+  - `mutated = loop_capture.captured_state(loopstmt.body)`.
+  - `bound_freevars` = identifier names referenced in
+    `loopstmt.condition` (need a tiny free-vars-of-expr helper;
+    literals contribute none). Exclude any already in `mutated`.
+  - implicit axon state order = `mutated + bound_freevars`.
+  - Flip the `VarDecl` of EVERY name in that combined set to
+    `is_slot=True` (same find-decl-or-CodegenNotSupported rule;
+    types from each decl's `type_ref`, no guessing).
+  - Synthesized `LoopFunctionDecl(kind="iterative_loop",
+    condition=loopstmt.condition, state_params=[… mutated …, …
+    bound_freevars …])`, body = `loopstmt.body.statements` + a
+    `PassStmt` whose values are: the new value Identifier for each
+    mutated name (the body already assigns them; pass the name),
+    and `ReplaceMarker()` for each bound_freevar (invariant).
+    NOTE: `decl.condition` for iterative_loop is the count; with
+    `x` now a state param it IS in scope inside the emitted fn —
+    correct by construction.
+  - `LoopCallStmt(name, condition_arg=loopstmt.condition,
+    state_arg_names = mutated + bound_freevars)`; append the decl
+    to `module.loop_functions`; replace the `LoopStmt`.
+  Gate unchanged (branchless_loop + loop_function_decl + codegen +
+  parser + corpus + smoke + new e2e: single-var, Emma's n1/n2
+  multi-var returns correct values, literal-bound still unrolls).
 
 --- (superseded) original codegen-site sketch, kept for context: ---
 NEXT UNIT (start here) — the desugar: at `codegen_base.py:1983`
