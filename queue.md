@@ -14,6 +14,42 @@ stay in sync.
 
 ## Active
 
+### 0. Implicit tail-recursive loop + await-as-minimal-instance  (IN PROGRESS — Emma "barrel through" 2026-05-17)
+
+Emma's consolidated model: `async`/`promise`/`await` is **just a
+loop with a bare-minimal implicit axon** — one input slot that can
+be mutated, plus a flag. So the implicit-loop desugar and the #3
+await fix are **ONE build**, await being the degenerate (1-slot +
+flag) instance.
+
+Concrete plan (gated, units committed; queue is the live truth):
+
+1. **Parser/AST**: confirm the node `loop(expr){body}` produces
+   today (it parses, codegen rejects). No surface change — revive
+   semantics, not syntax.
+2. **Variable-capture analysis**: collect the recurrent state =
+   vars the body assigns/mutates (+ outer vars it references that
+   must thread). That set + the loop control (`expr`/bound) IS the
+   implicit axon. (1b follow-on: minimize it to mutated-only.)
+3. **Desugar**: instead of `raise CodegenNotSupported`, synthesize
+   the existing **working** tail-recursive loop-function form with
+   that state, and emit its call + write-back. Compile-time unroll
+   stays preferred when the bound is a literal.
+4. **Gate (must be green, no fakery):** `test_branchless_loop` +
+   `test_loop_function_decl` + `test_codegen` + `test_parser` +
+   corpus + smoke, plus a NEW end-to-end test: single-var loop,
+   the multi-var `n1/n2` example returns correct values, literal
+   bound still unrolls.
+5. **await as the minimal instance (#3):** once 1–4 are green,
+   re-lower `await_value` as a 1-slot implicit axon + arrival flag
+   = soft-halt, deleting the host `if self.isPending(p)<=0.5:
+   break`. Conform to `planning/sutra-spec/promises.md` + the
+   formal async/promise spec. Gate: promise fixtures + smoke.
+
+Deliberate, high-blast-radius (whole control-flow surface). Each
+unit committed+pushed; queue.md updated same commit so an
+interrupt loses nothing.
+
 ### A. Task #15 — open-question pruning pass  (banners DONE 2026-05-17; pruning is what remains)
 
 The triage itself is fully delivered: spec-level
