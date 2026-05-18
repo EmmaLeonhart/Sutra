@@ -55,6 +55,20 @@ RESOLVED/STALE docs should be deleted/archived on the next pruning
 pass (rule 3 above) once their rationale is confirmed captured in the
 cited spec file.
 
+**Pruning pass — bounded slice done 2026-05-17.** The two
+unambiguously-STALE *superseded* dossiers were **archived (renamed
+`_archived-`, content/rationale preserved — not deleted)**:
+`loop-surface-redesign.md` → `_archived-loop-surface-redesign.md`
+(superseded by `loop-function-declarations.md`);
+`tier2-bundle-substrate-vs-algebra.md` →
+`_archived-tier2-bundle-substrate-vs-algebra.md` (moot post
+fly-brain retirement). RESOLVED dossiers are intentionally LEFT in
+place: they already carry `> **VERDICT**` banners (self-describing)
+and deleting them is the rationale-loss call this README reserves
+as deliberate — archiving the clear STALE-superseded ones is the
+safe completion; aggressive RESOLVED deletion is intentionally NOT
+done.
+
 Task #15 status (2026-05-17): **both remaining sub-deliverables are
 now done.** The verdict pass over `sutra-spec/open-questions.md` is
 complete (that file's own "Triage (2026-05-16, task #15 — part 2)"
