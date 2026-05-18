@@ -118,8 +118,10 @@
 > 2026-05-17): the implicit `loop(x){body}` is **parsed-but-
 > rejected** (`CodegenNotSupported`). The explicit declared
 > loop-function tail-recursive machinery (control-flow.md §Loops)
-> **works**. So this is an *unbuilt feature*, not a badly-built
-> one. Two tasks:
+> **works**. Emma confirms she **just invented the implicit form**
+> — there is no prior implementation, so this is **pure
+> design-and-build from scratch, NOT an audit of existing code**.
+> Two tasks:
 >   - **(1a) Build + verify the implicit desugar:** revive the
 >     `loop(expr){body}` surface to desugar (free/mutated-variable
 >     analysis → synthesize the loop-function + implicit axon →
