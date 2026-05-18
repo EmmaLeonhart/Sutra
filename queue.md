@@ -50,6 +50,45 @@ Deliberate, high-blast-radius (whole control-flow surface). Each
 unit committed+pushed; queue.md updated same commit so an
 interrupt loses nothing.
 
+**PAUSED 2026-05-17 (usage limits) — RESUME STATE (read this first):**
+
+Investigation complete; the build is fully specified. Facts:
+- Bare loop parses to `ast.LoopStmt(count=None, condition=C,
+  body=B)` (`parser.py` `_parse_loop` ~L1353). It is REJECTED at
+  `codegen_base.py:1983` (`raise CodegenNotSupported`) — replace
+  that raise with the desugar.
+- Working target machinery: `ast.LoopFunctionDecl`
+  (kind/name/condition/state_params/body) + `ast.LoopStateParam`
+  (type_ref/name/default) + `ast.LoopCallStmt`
+  (name/condition_arg/state_arg_names). Loop fns live at
+  `Module.loop_functions`; lowered by
+  `_translate_loop_function_decl` (`codegen_base.py:1308`) and
+  `_translate_loop_call` (1563). `iterative_loop` kind = integer
+  count cap, `iterator` keyword = current tick.
+- **FORK RESOLVED (Emma's own model):** `_translate_loop_call`
+  REQUIRES every state arg to be a `slot` var
+  (`codegen_base.py:1604-1613`). Emma's `loop(x){body}` uses plain
+  locals → the desugar MUST auto-promote the captured locals into
+  the implicit axon's slots (silently slot-allocate). This is the
+  intended ergonomic semantics ("everything mutated/referenced
+  goes into the axon… almost a closure"), not an open question.
+- AST for capture analysis: assignments are `ast.Assignment`
+  (Expr, `ast_nodes.py:238`) usually inside `ast.ExprStmt` (308);
+  `ast.Identifier` (137); declarations `ast.VarDecl` (483).
+
+NEXT UNIT (start here): implement the variable-capture analysis —
+given the loop body `Block`, return the ordered set of identifier
+names it assigns/mutates (Assignment targets, compound-assign,
+`++`/`--`, nested blocks) = the implicit-axon state set. Ship it
+with a unit test FIRST (isolated, no control-flow regression
+risk). THEN: synthesize `LoopFunctionDecl` (kind `iterative_loop`
+for the int-bound case that matches Emma's examples) + auto-slot
+the captured vars + `LoopCallStmt`, replacing the raise; gate
+branchless_loop+loop_function_decl+codegen+parser+corpus+smoke +
+a new e2e test (single-var; the n1/n2 multi-var example returns
+correct values; literal bound still unrolls). while/boolean kind
++ await-as-1-slot-instance are the units after that.
+
 ### A. Task #15 — open-question pruning pass  (banners DONE 2026-05-17; pruning is what remains)
 
 The triage itself is fully delivered: spec-level
