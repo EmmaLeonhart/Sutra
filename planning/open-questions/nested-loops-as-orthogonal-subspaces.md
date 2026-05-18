@@ -79,7 +79,7 @@ against the appropriate prototype subspaces.
 
 Three concrete pressures:
 
-- **Substrate honesty.** If the spec says `loop(cond)` is on the
+- **Substrate faithfulness.** If the spec says `loop(cond)` is on the
   substrate and the implementation host-sequences nested loops, the
   inner-loop arithmetic *between* substrate calls runs on the host
   every outer step. That's the same host-sequencer caveat that the

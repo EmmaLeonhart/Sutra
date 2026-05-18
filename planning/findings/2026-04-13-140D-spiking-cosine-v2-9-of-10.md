@@ -93,7 +93,7 @@ the readout substrate).
   the numpy iteration was tolerating the rotoinversion).
 - Re-run the k-sweep (k ∈ {1, 2, 3, 5, 8, 12}) on the substrate-only
   pipeline to see how argmax-counting generalizes beyond k=3.
-- Rewrite the paper's §Result 2 and §Honest Limits around the
+- Rewrite the paper's §Result 2 and §Limits around the
   substrate-only pipeline as the primary result. The MB story
   becomes a negative baseline (composed with spiking rotation,
   fails because anti-correlator), not the headline.

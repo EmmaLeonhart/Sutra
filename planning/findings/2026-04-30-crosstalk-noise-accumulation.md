@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-30
 **Experiment:** `experiments/crosstalk_chain.py`
-**Status:** honest negative result; integrating into paper §3.1.
+**Status:** frank negative result; integrating into paper §3.1.
 
 ## Why this matters
 
@@ -128,20 +128,20 @@ which is bounded.
 
 ## What this means for the paper
 
-**Honest framing for §3.1:** single-cycle bind/unbind (the
+**Frank framing for §3.1:** single-cycle bind/unbind (the
 protocol measured in §3.1) works at 100% across substrates;
 chained bind/unbind with per-cycle distractor noise degrades
 fast. Real Sutra programs use single-cycle records (e.g.,
 role_filler_record.su, knowledge_graph.su) — they do not nest
 bind operations 4+ levels deep.
 
-**Honest framing for §3.3:** the soft-halt RNN cell is pure
+**Frank framing for §3.3:** the soft-halt RNN cell is pure
 rotation per tick, and the round-trip reversibility result
 (1.5 × 10⁻¹⁵ per cycle) bounds the accumulated error. Long
 loops are not free of noise, but the noise in `state ← R ·
 state` is round-off, not crosstalk.
 
-**Honest scope statement:** Sutra targets shallow VSA programs
+**Frank scope statement:** Sutra targets shallow VSA programs
 (record encoding/decoding, soft dispatch, single-step queries).
 Deep nested compositions (record-of-record-of-record at depth
 4+) hit the bundle-noise floor before they hit the
@@ -164,7 +164,7 @@ language-design ceiling.
 
 ## Next moves
 
-1. ✅ Add an honest §3.X subsection to the paper.
+1. ✅ Add a frank §3.X subsection to the paper.
 2. ✅ Cite this finding from §3.1 to scope the capacity claim.
 3. Optional: rerun with bundle_width=1 to confirm pure-rotation
    chains are exact across the same depth sweep.

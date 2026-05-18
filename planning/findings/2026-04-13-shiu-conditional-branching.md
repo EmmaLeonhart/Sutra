@@ -93,12 +93,12 @@ runs on Shiu. The host does the scalar weight arithmetic (allowed
 scaffolding per `planning/sutra-spec/02-operations.md`) and the final
 argmax readout.
 
-The ~3% error is honest signal: weighted-drive collisions at particular
+The ~3% error is real signal: weighted-drive collisions at particular
 seeds produce result vectors whose argmax lands on an adjacent behavior.
 This is calibrated, not worrying — the hemibrain MB result (560/560)
 benefited from the MB's anti-correlator structure; the Shiu substrate
 does not have that circuit, and 96.9% against a raw spike-count readout
-is the honest floor before adding MB-equivalent decorrelation.
+is the true floor before adding MB-equivalent decorrelation.
 
 ## Wall clock
 

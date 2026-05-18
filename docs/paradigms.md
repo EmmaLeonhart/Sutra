@@ -130,7 +130,7 @@ The shape borrowed from Java; the semantics borrowed from RDF/OWL.
 
 ## What's actually happening underneath
 
-Java is honest about what's happening on the computer. Variables are names for specific memory cells; the cells live somewhere — on the stack, in a register, at an address — and the program's whole story is the story of which cell holds what value at each point. Every variable is a pointer in the small.
+Java is explicit about what's happening on the computer. Variables are names for specific memory cells; the cells live somewhere — on the stack, in a register, at an address — and the program's whole story is the story of which cell holds what value at each point. Every variable is a pointer in the small.
 
 **Sutra has no memory points at all.** It has variables, but they don't refer to memory cells. The compilation target is tensor algebra, and tensor algebra has no notion of a pointer at any level.
 

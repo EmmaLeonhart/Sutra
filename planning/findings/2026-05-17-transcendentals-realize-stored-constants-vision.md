@@ -62,7 +62,7 @@ reading the emitted code this run, not by trusting a prior assertion.
 The only `torch.exp`/`torch.log` uses are the legitimate init-time
 codebook builds, which CLAUDE.md explicitly permits as compilation.
 
-## One honest correction owed (to my own work earlier this run)
+## One frank correction owed (to my own work earlier this run)
 
 While verifying, I found that **`cos` already has its own dedicated
 crosstalk lookup table** (`self._COS_VALUES`, `:289`; read by `_cos0`,

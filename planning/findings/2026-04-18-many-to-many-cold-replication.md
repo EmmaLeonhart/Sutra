@@ -72,7 +72,7 @@ But MRR here is degenerate — every method finds a correct candidate
 at rank 1 across all 9 experiments. The actual quality difference is
 visible only in later-rank structure, which MAP and P@k capture.
 
-The honest story:
+The frank story:
 
 - **Under MAP, full three-part structured matching beats naive cosine
   in 8/9 experiments**, with 5 of those reaching MAP = 1.000 (perfect

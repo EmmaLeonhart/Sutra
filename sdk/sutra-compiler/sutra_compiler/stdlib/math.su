@@ -19,7 +19,7 @@
 // runs through the complex exponential cexp(x,0) so the reduction executes
 // on the substrate, not just in a comment.
 //
-// Status (honest, 2026-05-15): the documented vision now actually
+// Status (2026-05-15): the documented vision now actually
 // executes on the substrate. The canonical complex `number` is the
 // d-dim synthetic-axis form (real on AXIS_REAL, imag on AXIS_IMAG) —
 // the SAME representation complex literals + complex_mul use. The

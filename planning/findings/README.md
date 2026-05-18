@@ -34,7 +34,7 @@ Each file should answer, in this order:
    the language, the substrate, the next experiment. Does it close a
    question, open a new one, or just characterize a gap?
 
-Keep it honest. Negative results and mixed results belong here too —
+Keep it accurate. Negative results and mixed results belong here too —
 especially those, since they're the ones that get lost if we don't
 write them up.
 

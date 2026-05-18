@@ -41,7 +41,7 @@ host scalar, no branch, no loop.
 that gates on an arrival flag *nothing ever sets* in the current
 runtime would be a no-op added only to look like the model — the
 exact kind of theatrical mechanism the safety culture forbids. The
-honest move is the correct reduction now, and the real gating loop
+frank move is the correct reduction now, and the real gating loop
 when Yantra wires an external axon producer (promises.md Stage 2 /
 axon-io.md). Flagged as a tracked future, not faked.
 

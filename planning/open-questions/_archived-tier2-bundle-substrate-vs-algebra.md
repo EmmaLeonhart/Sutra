@@ -49,7 +49,7 @@ Our current weighted-sum use case sits in between: scalar-multiply is tier-2, bu
 
 1. **Is the algebraic tier-2 bundle a first-class primitive, or a convenience?** If first-class, (A) is correct and we cite the spec. If convenience, we need a substrate-side weighted-superposition primitive (e.g. scale PN currents by the weight before summing, *without* the rate-coding clip) and (B) becomes viable.
 2. **If we want (B), what's the substrate contract?** `bundle_on_brain` currently destroys the weights. A "weighted bundle on brain" means reaching into the encoding layer — either remove the magnitude clip for small values, or scale by presenting each weighted vector for `wᵢ · T` integration time, or something else. That's a real redesign of the encoder, not a one-line change.
-3. **How do we keep the demo honest either way?** If we ship (A), the paper needs to say bundle is algebraic on purpose, not by accident. If we ship (B), we need a test that measurably distinguishes weighted-bundle output from unweighted, on-circuit.
+3. **How do we keep the demo faithful either way?** If we ship (A), the paper needs to say bundle is algebraic on purpose, not by accident. If we ship (B), we need a test that measurably distinguishes weighted-bundle output from unweighted, on-circuit.
 
 ## Concrete next steps (when picked up)
 
@@ -59,4 +59,4 @@ Our current weighted-sum use case sits in between: scalar-multiply is tier-2, bu
 
 ## Status
 
-Unresolved. Currently pinned by `fuzzy_conditional.su` needing numpy `+` to pass. Not urgent for the Claw4S paper — the reference `.py` version is what the paper cites, and it is honest about being algebra over substrate calls. Urgent before any claim of "the full program runs on neurons."
+Unresolved. Currently pinned by `fuzzy_conditional.su` needing numpy `+` to pass. Not urgent for the Claw4S paper — the reference `.py` version is what the paper cites, and it is explicit about being algebra over substrate calls. Urgent before any claim of "the full program runs on neurons."

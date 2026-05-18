@@ -9,7 +9,7 @@ the modulus-for-free claim is real but is a libm property, not
 Sutra-specific; the "saves a trig call" cost claim is **wrong** —
 rotation is strictly more work than direct trig on numpy CPU. The
 architectural-uniformity argument survives and is the only
-Sutra-specific value that's honestly defensible.
+Sutra-specific value that's defensible.
 
 ## The insight
 
@@ -158,7 +158,7 @@ on a substrate where rotation is a hardware primitive cheaper than
 two libm calls (CORDIC on FPGA, or a future native instruction),
 which is not where Sutra runs today.
 
-The honest pitch: this is a "nice cleanup if/when we touch the
+The frank pitch: this is a "nice cleanup if/when we touch the
 math-tier code" item, not a priority feature. It does not justify
 prioritizing the work over the existing approximation tiers
 (Chebyshev, lookup-table, CORDIC) that the math-approximation

@@ -171,7 +171,7 @@ function lookup(var key) -> vector {
 - **Experimentation space.** Users can prototype different hash
   schemes, different capacity allocations, different cleanup
   procedures, without modifying the language.
-- **Honest about capacity/hash choice being substrate-specific.**
+- **Frank about capacity/hash choice being substrate-specific.**
   No language commitment to "this is the one true hashmap."
 
 ### What this costs
@@ -230,7 +230,7 @@ anything needing runtime-keyed storage goes through the host.
 1. **How often does a realistic Sutra program need associative
    lookup on runtime-computed keys?** If rarely, (C) with an
    occasional host-dict escape hatch is fine. If frequently, (A)
-   pays for itself. The honest answer depends on what programs
+   pays for itself. The real answer depends on what programs
    people actually write, which we don't know yet because Sutra
    is too young.
 2. **What's the practical capacity of a rotation-hashmap?**

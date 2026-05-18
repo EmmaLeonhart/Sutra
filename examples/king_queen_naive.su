@@ -65,7 +65,7 @@ map<vector, string> WORD = {
 vector analogy = bundle(displacement(king, man), woman);
 
 // --- Return the top-match word, with all inputs included in the
-// candidate pool. This is the honest version — no exclusion — and
+// candidate pool. This is the un-rigged version — no exclusion — and
 // is the case the naive formula typically fails on.
 function string naive_analogy() {
     vector winner = argmax_cosine(

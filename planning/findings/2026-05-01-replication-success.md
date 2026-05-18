@@ -52,7 +52,7 @@ These are real and addressable — queued for the next SKILL.md edit window once
 2. **§3.6 reproduction crashes on Windows under default `cp1252` codec** because the script prints a `↔` glyph. Workaround: `PYTHONIOENCODING=utf-8 python experiments/differentiable_training.py`. Add this to the SKILL.md prerequisites (or strip the Unicode glyph from the script).
 3. **Docker build is broken**: `pip install torch torchhd` inside the `python:3.11-slim` container resolves torch to 2.11.0, which has no matching torchhd wheel. The Dockerfile needs `--extra-index-url https://download.pytorch.org/whl/cpu` for torch (we have this) **and** a torch version pin to avoid the 2.11 selection that breaks torchhd compatibility.
 
-## Honesty notes from replicate4 (worth lifting verbatim)
+## Accuracy notes from replicate4 (worth lifting verbatim)
 
 > "The smoke test failure is a real upstream regression, not a local config issue. We did not edit upstream to mask it."
 
@@ -62,7 +62,7 @@ The agent followed CLAUDE.md's "validation numbers are measurements, not targets
 
 ## What this means
 
-The Sutra paper replicates. Two independent agents, two different paths (one reimplementation, one verification), same outcome: every quantitative claim holds. The honest gaps that both agents flagged (smoke-test deleted-files, fuzzy_dispatch substrate sensitivity, SKILL pytest count, Windows-codec issue, Docker torchhd version mismatch) are SKILL.md / Dockerfile bugs, not paper claims.
+The Sutra paper replicates. Two independent agents, two different paths (one reimplementation, one verification), same outcome: every quantitative claim holds. The frank gaps that both agents flagged (smoke-test deleted-files, fuzzy_dispatch substrate sensitivity, SKILL pytest count, Windows-codec issue, Docker torchhd version mismatch) are SKILL.md / Dockerfile bugs, not paper claims.
 
 For the paper trajectory: this is the strongest possible answer to reviewers asking "is this reproducible." Two agents reproduced it without our intervention. The reproduction path is now an artifact (the harness in SutraReplication3, the verification log in replicate4) that future skeptical reviewers can examine directly.
 

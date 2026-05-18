@@ -27,7 +27,7 @@ algebraic op (pure math on vectors) and only tier-3 ops (snap, cone,
 hop) run on the connectome. The fly-brain paper's snap+prototype-match
 demo already covers tier-3 correctly. We do not need this circuit to
 work; we need the tier split explained. The paper's `fly-brain-paper/paper.md`
-Honest Limits section now states this directly.
+Limits section now states this directly.
 
 The script is kept as a dated artifact so the investigation isn't
 lost, but it has no role in the pipeline and was previously sitting in

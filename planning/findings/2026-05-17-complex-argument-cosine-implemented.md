@@ -70,7 +70,7 @@ The substrate sweep is unaffected by construction — no existing op was
 changed and no corpus program calls `ccos`, so the set of compiled
 programs it scans is unchanged.
 
-**Honest scope note.** `ccos` is the complex *cosine*. A complex `csin`
+**Frank scope note.** `ccos` is the complex *cosine*. A complex `csin`
 is the natural symmetric follow-on (`sin(z) = (e^(iz) − e^(−iz))/(2i)`)
 but was **not** added this pass — the user asked for cosine
 specifically; adding `csin` unrequested would be scope creep. Logged in

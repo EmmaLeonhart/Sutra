@@ -15,7 +15,7 @@
 // Inputs that don't live on the truth axis (int, semantic vector,
 // char, etc.) project to truth=0, so defuzzifying them always gives
 // unknown. This is what makes `defuzzy(int 5)` coherent — there's no
-// truth content to extract, so the neutral is the honest answer.
+// truth content to extract, so the neutral is the correct answer.
 
 function bool FromPositiveFuzzy() {
     fuzzy f = 0.7;

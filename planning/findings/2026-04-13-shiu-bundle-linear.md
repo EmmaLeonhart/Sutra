@@ -97,7 +97,7 @@ removes that gap for bundle specifically: the real FlyWire v783 wiring
 with real Shiu LIF dynamics implements `bundle(A, B) ≈ normalize(A + B)`
 directly, at the stability ceiling of the underlying LIF model.
 
-Scope of the claim, honestly stated:
+Scope of the claim, plainly stated:
 - Inputs are arbitrary 50-neuron sets drawn from the whole brain, not
   biologically-grounded PN / ORN populations. The linearity of the
   dynamics is expected to hold for any orthogonal input pair in this
@@ -130,4 +130,4 @@ Scope of the claim, honestly stated:
 4. **Rotate on real W.** The big one. Inject pattern v, read output
    W·v; feed W·v back as the next drive; iterate. If orbits cycle
    through distinguishable states we have real-W rotation; if they
-   collapse, document the honest limit.
+   collapse, document the true limit.

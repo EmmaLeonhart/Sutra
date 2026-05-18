@@ -471,7 +471,7 @@ genuine transformations and one of which is free:
   explicit implementation per the receiving class. Less common in
   practice than the other two but the symmetric case to projection.
 
-The honest edge case: a no-op cast can succeed *syntactically* but be
+The real edge case: a no-op cast can succeed *syntactically* but be
 meaningless *semantically*. Casting a random obscure entity to
 `President` is permitted at compile time, but querying presidential
 properties returns weak signal because those dimensions aren't

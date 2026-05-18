@@ -51,7 +51,7 @@ the readout is robust as far out as we've pushed it.
   substrate: end-to-end real wiring (rotation + readout), spec-aligned
   three-tier architecture, bimodal Jaccard gap with a measurement-
   justified threshold, stable across target k from 1 to 12.
-- The paper's §Honest Limits §(iv) claim ("essentially solved") is
+- The paper's §Limits §(iv) claim ("essentially solved") is
   supported by three independent findings (51-D synthetic MB, 713-D
   synthetic MB D-independence, 140-D real hemibrain MB) plus this
   target-k sweep.

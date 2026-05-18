@@ -6,7 +6,7 @@ against the actually-deployed rotation-binding implementation:
 role-seeded Haar-random orthogonal rotation in a 768-d substrate,
 with no dedicated synthetic subspace (see
 `planning/findings/2026-04-22-rotation-binding-prototype-design.md`
-for the honest design compromise).
+for the design compromise).
 
 Experiments 3 and 5 from the design doc (truth-axis orthogonality
 and fuzzy composition on the truth axis) are skipped: they require

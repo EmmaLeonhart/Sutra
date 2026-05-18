@@ -31,7 +31,7 @@ reverted alongside this catalog.
   direction with a separate justification, since "centroid of true propositions"
   is not a thing the connectome substrate has.
 - **Reviewer impact:** the v9_post1601 Gemini review specifically flagged this
-  as the "massive assumption" of the paper. The ce1fce1 attempt to be honest
+  as the "massive assumption" of the paper. The ce1fce1 attempt to be candid
   about it in the paper body was the wrong move — the fix is to make the
   implementation match the design intent, not to publish the gap.
 
@@ -49,7 +49,7 @@ reverted alongside this catalog.
   (small-MB-only) number. The fly-brain paper already updated to Shiu 155/160
   in its abstract. The Sutra paper §6.6 has not.
 - **What's needed to close it:** rewrite §6.6 to lead with the Shiu number,
-  drop "80/80 σ=0", report the measured 96.9% honestly.
+  drop "80/80 σ=0", report the measured 96.9% accurately.
 
 ### 3. MBON readout is ridge regression, not dopamine-gated plasticity
 
@@ -94,7 +94,7 @@ reverted alongside this catalog.
   hemibrain MB" pipeline, 20/20 + 30/30).
 - **Why this matters:** when results from a host-iterated rotation are
   reported without that caveat, the claim "eigenrotation runs on the
-  connectome" is overstated. The fly-brain paper actually does this honestly
+  connectome" is overstated. The fly-brain paper actually does this faithfully
   in the current draft (it labels the host-iterated pipeline as such and
   retracts the substrate-iteration claim). The shortcut to watch for is in
   *future* sessions accidentally re-asserting "rotation on the connectome"
@@ -154,5 +154,5 @@ When a future session is editing either paper:
    the reviewer correctly catching a gap we already knew about — fix the
    implementation, do not publish the gap.
 
-The rule: papers state design intent with substrate-honest measurements.
+The rule: papers state design intent with substrate-faithful measurements.
 Shortcuts live here.

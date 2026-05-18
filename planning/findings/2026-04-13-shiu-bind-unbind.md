@@ -82,7 +82,7 @@ means.
    self-inverse modulo rescaling. This changes the spec rather than
    the substrate.
 
-Option (1) is the cheapest next step. Option (4) is the most honest
+Option (1) is the cheapest next step. Option (4) is the most faithful
 alignment between spec and substrate and may be the right answer.
 
 ## What this means for the paper
@@ -95,7 +95,7 @@ alignment between spec and substrate and may be the right answer.
   negative result.
 - Paper should either (a) omit bind/unbind from the Shiu result
   table and confine them to the hemibrain MB substrate where they
-  already work, or (b) report this mixed result honestly.
+  already work, or (b) report this mixed result frankly.
 
 Choosing (b) per CLAUDE.md rule: every operation gets its turn on
 Shiu, and mixed results are reported as mixed.

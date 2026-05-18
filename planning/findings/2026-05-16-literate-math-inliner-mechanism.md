@@ -85,7 +85,7 @@ open-questions triage (task #15) as a RESOLVED-direction /
 GENUINELY-OPEN-on-scope entry, not as a blocker pretended-resolved
 here.
 
-## Honest status
+## Frank status
 
 (c)'s *mechanism* (namespaced-stdlib inlining) is delivered and
 verified. (c) is not "done" — the `_is_complex_expr` + `cexp`-body

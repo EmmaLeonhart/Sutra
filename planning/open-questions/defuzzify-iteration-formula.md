@@ -128,7 +128,7 @@ wrapper around the iteration-of-`eq` formula.
   nominally the same idea, but not the rule the compiler emits.
 
 This is the cheat-adjacent path: the user writes one formula,
-the compiler emits a different one. Not honest unless we're
+the compiler emits a different one. Not transparent unless we're
 explicit about it.
 
 ### Path C: drop `defuzzify_trit` entirely, implement the user's formula
@@ -148,7 +148,7 @@ Option C would need a different rule for the trit case.
 
 ## Recommendation
 
-Path A is the honest minimum: implement `defuzzify(fuzzy)` per the
+Path A is the faithful minimum: implement `defuzzify(fuzzy)` per the
 user's stated formula, keep `defuzzify_trit` as the three-way rule
 it already is, and call out in the spec that the two types
 intentionally have different defuzzification semantics matching

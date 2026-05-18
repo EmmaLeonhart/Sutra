@@ -49,7 +49,7 @@ codegen + parser + corpus = 186 passed / 83 subtests, exit 0;
 codegen_pytorch + inliner + transcendentals 38 passed / 33
 subtests; `examples/_smoke_test.py` PASS. No regression anywhere.
 
-**Honest scope — what is NOT done (tracked, not faked):**
+**Frank scope — what is NOT done (tracked, not faked):**
 - Only the **count / `iterative_loop`** form (Emma's examples). A
   boolean-condition `loop(cond){body}` → `while_loop` is the next
   kind.

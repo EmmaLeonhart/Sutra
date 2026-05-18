@@ -108,7 +108,7 @@ the path.
 
 ### Paper update warranted
 
-`fly-brain-paper` §Honest Limits §(iv) currently describes the
+`fly-brain-paper` §Limits §(iv) currently describes the
 "remaining caveat" as "the MB readout uses random PN→KC wiring at
 matched 51-D rather than real hemibrain." That caveat is now closed.
 The paper can be updated to state: at D=140, with real FlyWire

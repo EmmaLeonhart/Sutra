@@ -691,7 +691,7 @@ def _simplify_expr(expr):
         # Rule 16: Subscript of an ArrayLiteral with a literal int index
         # → the indexed element. Compile-time array indexing. Out-of-
         # range indices are left unsimplified (the runtime IndexError
-        # is honest; silent truncation would hide a program bug).
+        # is the right behavior; silent truncation would hide a program bug).
         # Negative indices are handled in Python style (-1 → last).
         if (isinstance(expr.target, ast.ArrayLiteral)
                 and isinstance(expr.index, ast.IntLiteral)):

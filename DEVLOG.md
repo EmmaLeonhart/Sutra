@@ -1060,7 +1060,7 @@ version 15 after iterating from the initial submission on April 3.
 Key improvements over the versions: proper mechanism explanation
 ([UNK] dominance, not diacritic stripping), controlled test pairs
 (Table 10), string overlap null model, cross-model validation,
-honest framing of the consistency-accuracy correlation.
+accurate framing of the consistency-accuracy correlation.
 
 ## 2026-04-03: Initial submission of the Latent Space Cartography paper
 

@@ -57,7 +57,7 @@ The bot's harness runs `paper/SKILL.md`'s assertions against a checkout of the c
 | §3.6 differentiable training | **PASS** — 40% → 100% over 300 epochs; gradient norms 0.053 / 0.068 / 0.100 (matches paper reference numbers) |
 | Multi-system Scallop/DeepProbLog comparison | NOT RUN — requires Docker, marked optional |
 
-## Honesty notes the bot flagged
+## Accuracy notes the bot flagged
 
 - The bot caught the 4 missing `_smoke_test.py` references and the `sequence.su` similarity threshold being substrate-optimistic — same issues we addressed in this session's smoke-test commit (`b5914cf`). The bot's writeup explicitly says "demo-corpus issue, not a primitive issue."
 - The bot deliberately killed a live crosstalk rerun at the 60-min mark with ~25 min remaining, on the grounds that the seeded RNG + disk-cached embeddings make the result deterministic. Recorded the prior run's number (chain=1 100%, chain=8 0%) instead. This is the right call.

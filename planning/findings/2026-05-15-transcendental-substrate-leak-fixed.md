@@ -87,7 +87,7 @@ sites still import. Tests asserting the raise will now fail by
 design — that is the corrected behavior, not a regression to paper
 over.
 
-## Measurements (honest, post-fix)
+## Measurements (post-fix)
 
 `sdk/sutra-compiler/tests/test_transcendentals.py`: **3 passed,
 20 subtests passed** on both numpy and torch backends.
@@ -101,7 +101,7 @@ checks). `experiments/modulus_comparison.py`:
 
 Accuracy is unchanged (still float32 precision; the rotation maps
 cleanly onto the sin/cos tables). **Latency rose ≈3×.** That is the
-honest, expected cost: the call now runs on the substrate (an
+real, expected cost: the call now runs on the substrate (an
 `as_tensor` boundary, the eigenrotation through `cexp`, per-call
 CUDA kernel launches) instead of leaking to host float math. This
 is the "global not local efficiency" tradeoff CLAUDE.md describes
@@ -116,7 +116,7 @@ substrate ops are what the compile-time fusion pass needs.
   source itself. The stdlib inliner does not yet resolve intra-
   `Math` member calls inside a class-bodied static method body
   (`NameError: name 'Math' is not defined` at codegen). Surfaced
-  honestly: the files keep the reduction in heavy docstrings + the
+  plainly: the files keep the reduction in heavy docstrings + the
   runtime, and the inliner work is the top audit item. The methods
   are `intrinsic` for now, routing to the substrate-pure `_VSA.*`.
 - **`atan2` in `rotation_mod`.** Still `torch.atan2` (a tensor op,
