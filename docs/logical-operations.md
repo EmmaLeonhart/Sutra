@@ -284,7 +284,7 @@ Every step is a standard tensor op with a known gradient: vector subtraction (li
 
 ### Type rules
 
-Comparison is defined only on number-family operands: `int`, `float`, `complex` (via its real axis), `char`, `scalar`. It is a **compile-time error** to compare truth-family values (`bool`, `fuzzy`, `trit`) with `>` / `<` / `>=` / `<=`:
+Comparison is defined only on number-family operands: `int`, `float`, `complex` (via its real axis), `char`, `number`. It is a **compile-time error** to compare truth-family values (`bool`, `fuzzy`, `trit`) with `>` / `<` / `>=` / `<=`:
 
 ```c
 fuzzy a = 0.7;
@@ -296,7 +296,7 @@ If a custom class wants comparison semantics, it can override the operators. The
 
 ### Type rules
 
-Comparison is defined only on number-family operands: `int`, `float`, `complex` (via its real axis), `char`, `scalar`. It is a **compile-time error** to compare truth-family values (`bool`, `fuzzy`, `trit`) with `>` / `<` / `>=` / `<=`:
+Comparison is defined only on number-family operands: `int`, `float`, `complex` (via its real axis), `char`, `number`. It is a **compile-time error** to compare truth-family values (`bool`, `fuzzy`, `trit`) with `>` / `<` / `>=` / `<=`:
 
 ```c
 fuzzy a = 0.7;
