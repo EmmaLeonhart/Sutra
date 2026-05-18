@@ -104,9 +104,9 @@ NOT(XOR), which simplifies to the bare product. Spellings: `a xnor b`, `a iff b`
 ```sutra
 // Target Sutra body (currently intrinsic):
 function fuzzy eq(vector a, vector b) {
-    scalar na  = sqrt(dot(a, a));
-    scalar nb  = sqrt(dot(b, b));
-    scalar cos = dot(a, b) / (na * nb + finfo_tiny);
+    number na  = sqrt(dot(a, a));
+    number nb  = sqrt(dot(b, b));
+    number cos = dot(a, b) / (na * nb + finfo_tiny);
     return make_truth(cos);
 }
 ```
@@ -228,7 +228,7 @@ vector x = MatrixMul(M, v);           // bare-name shortcut via stdlib_loader
 | Matrix multiplication | `Tensor.MatrixMul(a, b)` / `matmul(a, b)` | `np.matmul` / `torch.matmul` |
 | Tensor / Kronecker product | `Tensor.TensorProduct(a, b)` / `tensor_product(a, b)` | `np.kron` / `torch.kron` |
 | Outer product | `Tensor.Outer(a, b)` / `outer(a, b)` | `np.outer` / `torch.outer` |
-| Dot product (scalar result) | `Tensor.Dot(a, b)` / `dot(a, b)` | `np.dot` / `torch.dot` |
+| Dot product (number result) | `Tensor.Dot(a, b)` / `dot(a, b)` | `np.dot` / `torch.dot` |
 | Transpose | `Tensor.Transpose(M)` / `transpose(M)` | `np.transpose` / `torch.transpose` |
 
 How the higher-level VSA names reduce:
@@ -288,17 +288,17 @@ function vector bundle(vector... args) {
 
 Variadic sum + L2-normalize. The fused `bundle_of_binds((r1,f1), (r2,f2), ...)` codegen peephole is a compile-time optimization on top of this spec definition — it collapses N sequential binds + an N-arg bundle into one batched einsum. **Status: blocked** (variadic param surface needs work).
 
-### `similarity(a, b)` — cosine similarity (scalar)
+### `similarity(a, b)` — cosine similarity (number)
 
 ```sutra
-function scalar similarity(vector a, vector b) {
-    scalar na = sqrt(dot(a, a));
-    scalar nb = sqrt(dot(b, b));
+function number similarity(vector a, vector b) {
+    number na = sqrt(dot(a, a));
+    number nb = sqrt(dot(b, b));
     return dot(a, b) / (na * nb + finfo_tiny);
 }
 ```
 
-Cosine without truth-axis placement. Same dot/norm pipeline as `==`, but returns the raw scalar. **Status: intrinsic**.
+Cosine without truth-axis placement. Same dot/norm pipeline as `==`, but returns the raw number. **Status: intrinsic**.
 
 ### `argmax_cosine(query, candidates)` — best-match retrieval
 
@@ -316,9 +316,9 @@ Stacked-candidate matmul + argmax. **Status: blocked**.
 ### `select(scores, options)` — softmax-weighted superposition
 
 ```sutra
-function vector select(scalar[] scores, vector[] options) {
-    scalar[] s = scores - max(scores);
-    scalar[] w = exp(s);
+function vector select(number[] scores, vector[] options) {
+    number[] s = scores - max(scores);
+    number[] w = exp(s);
     w          = w / sum(w);
     return sum(w[i] * options[i] for i);
 }
@@ -393,13 +393,13 @@ Iterates cosine equality with `true` ten times. Inputs with `truth = 0` stay at 
 ## Transcendental functions (currently disabled)
 
 ```sutra
-intrinsic function scalar log(scalar x);
-intrinsic function scalar sqrt(scalar x);
-intrinsic function scalar exp(scalar x);
-intrinsic function scalar sin(scalar x);
-intrinsic function scalar cos(scalar x);
-intrinsic function scalar tan(scalar x);
-intrinsic function scalar pow(scalar x, scalar y);
+intrinsic function number log(number x);
+intrinsic function number sqrt(number x);
+intrinsic function number exp(number x);
+intrinsic function number sin(number x);
+intrinsic function number cos(number x);
+intrinsic function number tan(number x);
+intrinsic function number pow(number x, number y);
 ```
 
 **Status: disabled.** Codegen rejects calls with `CodegenNotSupported`. A 2026-04-29 Taylor-with-frexp implementation was withdrawn 2026-04-30 because it ran as host Python scalar arithmetic (substrate-purity violation). Future direction: eigenrotation-as-modulus for substrate-pure trig (Emma 2026-04-30 hunch), with `exp` / `log` building on top.
@@ -416,7 +416,7 @@ Take `^` as the worked example Emma cites:
 a ^ b
   → Math.Pow(a, b)        // operator desugar
     → exp(a * log(b))     // Pow's expansion
-      → exp(<scalar>)     // multiplication is primitive
+      → exp(<number>)     // multiplication is primitive
         ...               // exp lowers to substrate ops
 ```
 
