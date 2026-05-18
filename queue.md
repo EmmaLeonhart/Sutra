@@ -14,27 +14,6 @@ stay in sync.
 
 ## Active
 
-### S. Paper arXiv final read-pass  (2026-05-18; sweep + replication-placement DONE)
-
-DONE this session: (a) CLAUDE.md §Writing "honest" ban applied
-context-sensitively across all authored docs + code comments
-(~75 files); verbatim dated user quotes, the rule itself, the
-DEVLOG changelog meta-ref, external `paper/reviews/*`, raw
-`sutraDB/unstructured/*` transcripts, and the verbatim
-`promises-design-conversation.md` deliberately preserved (altering
-a record falsifies it). (b) Replication package moved OUT of the
-abstract into a `## Reproducibility` statement immediately before
-References (ICLR/NeurIPS-checklist/Nature convention; researched),
-+ a one-line discoverability pointer at the end of the Introduction.
-Abstract now carries no URL.
-
-REMAINING: a light final read-through of live `paper/paper.md`
-for arXiv-readiness — produce a punch-list (author/affiliation
-block presence, "halt scalar" vs `number` deliberately-kept,
-section-ref consistency, any prose tightening). Apply only
-clearly-safe mechanical fixes; flag judgment calls for Emma.
-Frozen `paper/neurips/` is NOT touched.
-
 ### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 
 `loop(expr){ body }` (Emma's invented implicit-tail-recursion
