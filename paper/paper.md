@@ -12,8 +12,6 @@ The validation is a single fact testable two ways. (1) The same program runs on 
 
 This collapses the boundary between writing a logic program and training a neural network: one artifact, two interpretations.
 
-**Availability.** Sutra — the language, compiler, runtime, and every `.su` program cited here — is openly available at <https://github.com/EmmaLeonhart/Sutra>, with the project site (this paper in HTML and the conceptual documentation) at <https://sutra.emmaleonhart.com>. The replication package is <https://sutra.emmaleonhart.com/sutra-replication-package.zip>: it ships `SKILL.md`, an agent-runnable replication recipe an autonomous agent can follow to install the toolchain and re-derive the results reported here end-to-end, with no human in the loop. The paper PDF is <https://sutra.emmaleonhart.com/paper.pdf>.
-
 ---
 
 ## Introduction
@@ -138,6 +136,10 @@ substrate need not be an LLM, it can be any network producing a
 dense vector representation, including the hidden state of a
 trained model. §3.2's ESM-2 protein-LM row demonstrates this
 substrate-agnostically.
+
+The compiler and a self-contained reproduction package are openly
+available at <https://github.com/EmmaLeonhart/Sutra>; full artifact
+details are in the Reproducibility statement before the references.
 
 ---
 
@@ -599,6 +601,22 @@ value, one tensor op per primitive, one dataflow graph per
 program, no type dispatch at the leaves. With the language in
 hand, asking which embedding operations compose at what capacity
 on which substrates becomes a program to write.
+
+---
+
+## Reproducibility
+
+Sutra — the language, compiler, runtime, and every `.su` program
+cited in this paper — is openly available at
+<https://github.com/EmmaLeonhart/Sutra>. A self-contained
+replication package is published at
+<https://sutra.emmaleonhart.com/sutra-replication-package.zip>: it
+ships `SKILL.md`, an agent-runnable recipe an autonomous agent can
+follow to install the toolchain and re-derive every result reported
+in this paper end-to-end, with no human in the loop. The project
+site (this paper in HTML and the conceptual documentation) is at
+<https://sutra.emmaleonhart.com>; the paper PDF is at
+<https://sutra.emmaleonhart.com/paper.pdf>.
 
 ---
 
