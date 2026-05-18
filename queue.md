@@ -31,8 +31,10 @@ softened; §3.6 in-sample framing sentence; grounded labelled
 Limitations subsection; LLM-artifact scan clean; 4 URLs live.
 
 REMAINING:
-- P0-process residual: self-overlap vs paper #1 (separate repo
-  `latent-space-cartography`) — flagged, needs Emma/that repo.
+- Self-overlap vs paper #1: RESOLVED 2026-05-18 — cloned into
+  gitignored `comparisons/`, ran `overlap.py`: 0.071% verbatim
+  8-gram overlap, 0 strong sentence dups (only a shared biblio
+  line). No risk; no rephrasing. SYNTHESIS §1 updated.
 - Emma decision (SYNTHESIS §4.2): restructure Methodology/
   Experiments now vs. defer to next-venue (not arXiv-blocking).
 - P1 (post-post / on Emma's go): `.su` code snippet (valid syntax),
