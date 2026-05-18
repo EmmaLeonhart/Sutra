@@ -14,6 +14,29 @@ stay in sync.
 
 ## Active
 
+### T. Pre-arXiv feedback execution  (2026-05-18; plan written, in progress)
+
+Emma collected pre-arXiv feedback (Discord reviewer maniospas — who
+endorsed the paper — + 8 LLM passes) in `paper/feedback before
+arXiv/`. Consolidated, de-duplicated, and **verified against live
+`paper.md`** into `paper/feedback before arXiv/SYNTHESIS.md` — that
+doc is the working plan (P0/P1/P2, repo-constraint cross-checks,
+already-decided items not to re-litigate).
+
+Next, in order (per SYNTHESIS §5):
+1. P0 process (safe, can do now): reference audit (esp. ESM-2 =
+   Lin et al. Science 2023), LLM-artifact scan, link/repro liveness,
+   self-overlap vs. paper #1.
+2. P0 content: Adam/Kingma cite, consolidated Limitations block,
+   soften 3 over-strong claims (lines 116/229/486), §3.6
+   gradient-flow-not-generalization framing sentence.
+3. AI-use disclosure — BLOCKED on Emma's wording decision
+   (SYNTHESIS §4.1; truthful-about-substantial-AI vs. assistant
+   framing). All edits → live `paper.md`; frozen `paper/neurips/`
+   untouched; no fabricated std/L numbers.
+Folder housekeeping: gitignore the saved `.html`/`_files` asset
+junk (~8 MB), track only `discord.md` + `SYNTHESIS.md` (Emma's call).
+
 ### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 
 `loop(expr){ body }` (Emma's invented implicit-tail-recursion
