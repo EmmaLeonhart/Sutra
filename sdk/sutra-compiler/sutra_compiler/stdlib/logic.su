@@ -194,9 +194,9 @@ function fuzzy le(complex a, complex b) {
 // write lands).
 
 intrinsic function fuzzy gt(complex a, complex b);
-intrinsic function fuzzy make_truth(scalar t);
+intrinsic function fuzzy make_truth(number t);
 // truth_axis — read AXIS_TRUTH from a fuzzy vector and return it as
 // a scalar. The transpiler-emitted if/else lowering uses this to
 // pull a scalar out of `defuzzy(cond)` for use as a softmax score
 // in `select`.
-intrinsic function scalar truth_axis(vector v);
+intrinsic function number truth_axis(vector v);
