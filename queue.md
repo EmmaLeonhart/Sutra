@@ -33,8 +33,12 @@ record: `planning/findings/2026-05-17-implicit-tail-recursive-loop-desugar.md`.
 Revert point if needed: tag `v0.5.0` (`84b5ca45`).
 
 Remaining (tracked, NOT faked as done):
-- boolean-condition `loop(cond){body}` -> `while_loop` kind (only
-  the int-bound `iterative_loop` form is done);
+- `while_loop` kind: relational bounds (`< > <= >=`) DONE + gated
+  both backends 2026-05-17. Equality/negation bounds (`== != !`)
+  inherit the pre-existing FUZZY numeric-equality truth-axis
+  lowering (out of scope here, documented in `loop_desugar.py` +
+  the finding; tracked under equality-and-defuzzification, not a
+  desugar bug);
 - class-method bodies (top-level functions + nested blocks done);
 - scope-shadowing (first-decl-wins today); param/`var`-inferred
   captured names raise a clear `CodegenNotSupported` (fail-safe,
