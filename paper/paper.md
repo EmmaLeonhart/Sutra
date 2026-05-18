@@ -137,10 +137,6 @@ dense vector representation, including the hidden state of a
 trained model. §3.2's ESM-2 protein-LM row demonstrates this
 substrate-agnostically.
 
-The compiler and a self-contained reproduction package are openly
-available at <https://github.com/EmmaLeonhart/Sutra>; full artifact
-details are in the Reproducibility statement before the references.
-
 ---
 
 ## Related Work
@@ -501,7 +497,7 @@ differentiate. Reproduction:
 Sutra's surface syntax is typed: every value carries a primitive
 class from a fixed set (`int`, `float`, `complex`, `char`,
 `bool`, `fuzzy`, `trit`, `vector`, `matrix`, `permutation`,
-`map`, `string`, `scalar`, `void`), and the type drives the
+`map`, `string`, `number`, `void`), and the type drives the
 synthetic-axis allocation in the extended layout (Appendix B).
 Type information is pre-compile-time annotation in the
 TypeScript sense: it is read by the inliner and the layout
