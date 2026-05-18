@@ -112,10 +112,9 @@ The four core technical contributions of this paper are:
 4. **Synthetic-dimension rotation binding as an angular hash map.**
    The compiler reserves a synthetic block of canonical
    dimensions and uses Haar-orthogonal rotations seeded from the
-   role's content hash to bind keys to slots. To the authors'
-   knowledge this is the first use of a high-dimensional
-   rotation pattern as the substrate for a functional hash-map
-   primitive.
+   role's content hash to bind keys to slots. We are unaware of
+   any prior use of a high-dimensional rotation pattern as the
+   substrate for a functional hash-map primitive.
 
 These four primitives integrate into a single working compiler
 that lowers `.su` source to a self-contained PyTorch module on
@@ -226,7 +225,7 @@ self-contained C for embedded classification, random/level
 hypervectors only, no general control flow, scoped to
 classification. **TorchHD** and OpenHD / HDTorch are libraries
 without a language-level loop primitive. To the authors'
-knowledge, no published HDC system combines (a) one fused
+knowledge, as of 2026 no published HDC system combines (a) one fused
 tensor-op graph as compile target, (b) HDC primitives as the
 operations, (c) a frozen externally-trained vector embedding
 space as the substrate, and (d) tail-recursive loops compiled to
@@ -448,8 +447,9 @@ $$
 
 with the AND-of-NOTs left-folded across $K-1$ other classes (so
 the $K=20$ rule nests nineteen ANDs deep). Full-batch cross-entropy
-over the twenty rule scores drives Adam updates (lr=0.005) on
-the prototype embeddings.
+over the twenty rule scores drives Adam (Kingma & Ba 2015; its
+default $\beta_1=0.9$, $\beta_2=0.999$, $\varepsilon=10^{-8}$,
+learning rate $0.005$) updates on the prototype embeddings.
 
 **Results.** Random init: 4% accuracy (chance = 5%). Training
 reaches 95% by epoch 50 and holds through epoch 299, loss
@@ -462,6 +462,12 @@ nineteen nested `fuzzy_and` → cross-entropy.
 |--------|---------:|------:|
 | Before |     4%   |  3.01 |
 | After  |    95%   |  1.15 |
+
+This experiment isolates gradient flow through the compiled
+symbolic graph: it trains and evaluates on the same 992-word
+vocabulary and reports in-sample accuracy as verification that
+backprop reaches every learnable parameter, not as a generalization
+result; no held-out split is claimed.
 
 Appendix K diagrams the explicit graph for $K=3$; the $K=20$
 graph used in the experiment has the same shape with twenty
@@ -482,11 +488,11 @@ pipeline that could naively saturate or vanish gradients
 somewhere along the chain. Empirically it doesn't: every
 prototype receives a nonzero gradient, accuracy reaches 95% on a
 vocabulary 70× larger than the K=3 setting (15 → 992 words), and
-the symbolic program text is unchanged across training. The
-remaining 5% gap reflects irreducible semantic overlap (e.g. *salmon* fits
-food and color); gradient norms remain bounded above zero
-throughout, so this is the optimizer plateauing under those
-overlaps, not gradient pathology. Standard `torch.autograd`
+the symbolic program text is unchanged across training. We
+hypothesize the remaining 5% gap largely reflects semantic overlap
+(e.g. *salmon* fits food and color); gradient norms remain bounded
+above zero throughout, consistent with the optimizer plateauing
+under those overlaps rather than gradient pathology. Standard `torch.autograd`
 suffices (no Sutra-specific autograd machinery) because the
 compiler emits only operations PyTorch already knows how to
 differentiate. Reproduction:
@@ -587,6 +593,38 @@ codebook covers the compile-time embed → runtime decode path;
 extended features (hashmap routing, persistent codebook via
 `SUTRA_DB_PATH`) are deferred pending a concrete requirement.
 
+### Limitations
+
+The demonstrated regime is bounded, and we state the bounds
+explicitly:
+
+- **Composition depth.** Decode is exact for single-cycle records
+  but degrades with chained bind/unbind through bundled
+  distractors: 100% through chain length $L=2$, falling to chance
+  by $L=8$ on every substrate (§3.2.1). The demonstrated programs
+  are single-cycle; deep nested records are out of the validated
+  regime.
+- **Substrate dependence.** Every number is measured on four
+  specific frozen substrates. Large-bundle-width decode capacity
+  varies substantially by substrate (§3.2 table) and is not
+  guaranteed for an arbitrary embedding model; behaviour under
+  model drift is future work.
+- **Codebook scale.** The compile-time codebook is $O(\text{vocabulary})$;
+  very large codebooks would require approximate-nearest-neighbour
+  trade-offs not explored here.
+- **No external-system benchmark.** We measure rotation versus
+  Hadamard binding and gradient flow through the compiled graph;
+  we do not benchmark against other neuro-symbolic systems
+  (Scallop, DeepProbLog) on a shared task, and we do not benchmark
+  compiler/runtime wall-clock beyond the indicative timings in
+  Appendix H.
+- **Binding is fixed, not learned.** Role bindings are
+  content-hash-seeded Haar rotations; learned or semantic binding
+  operators are not part of this work.
+- **Training is in-sample.** The §3.6 experiment verifies gradient
+  flow to every learnable parameter, not generalization; no
+  held-out split is reported.
+
 ---
 
 ## Conclusion
@@ -613,6 +651,21 @@ in this paper end-to-end, with no human in the loop. The project
 site (this paper in HTML and the conceptual documentation) is at
 <https://sutra.emmaleonhart.com>; the paper PDF is at
 <https://sutra.emmaleonhart.com/paper.pdf>.
+
+---
+
+## AI-use statement
+
+This work was developed in substantial collaboration with large
+language models, including for ideation, exploration of the
+vector-symbolic literature, and drafting. The author independently
+designed and implemented the compiler and runtime, verified that
+every operation executes on the substrate (correcting cases where
+AI-suggested code silently substituted host numpy and broke
+substrate purity), ran and checked all experiments, and is
+responsible for the correctness of every claim, number, and
+citation in this paper. No results or references were accepted from
+a model without verification.
 
 ---
 
@@ -673,6 +726,17 @@ site (this paper in HTML and the conceptual documentation) is at
 - Smolensky, P. (1990). Tensor product variable binding and the
   representation of symbolic structures in connectionist systems.
   *Artificial Intelligence* 46(1–2):159–216.
+- Kingma, D. P. & Ba, J. (2015). Adam: A Method for Stochastic
+  Optimization. *3rd International Conference on Learning
+  Representations (ICLR)*. arXiv:1412.6980. The optimizer (run with
+  its default $\beta_1, \beta_2, \varepsilon$) used for the §3.6
+  differentiable-training experiment.
+- Lin, Z., Akin, H., Rao, R., Hie, B., Zhu, Z., Lu, W., Smetanin,
+  N., Verkuil, R., Kabeli, O., Shmueli, Y., dos Santos Costa, A.,
+  Fazel-Zarandi, M., Sercu, T., Candido, S., & Rives, A. (2023).
+  Evolutionary-scale prediction of atomic-level protein structure
+  with a language model. *Science* 379(6637):1123–1130. The ESM-2
+  protein language model used as the non-text substrate in §3.2.
 
 ---
 
