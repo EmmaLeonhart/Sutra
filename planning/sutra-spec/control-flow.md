@@ -50,8 +50,10 @@ parameters are exactly the recurrent state. Each loop kind is a
 function-declaration form prefixed by a keyword; the body uses
 `pass` for tail-recursive yield. At the call site, the `loop`
 keyword invokes a declared loop function. The substrate executes
-loops as RNN-style branchless eigenrotation; the loop function's
-parameters are the named recurrent state.
+loops as an RNN-style branchless tail-recursive cell (a fixed-T
+unroll of the body with a soft halt); the loop function's
+parameters are the named recurrent state — the implicit axon the
+loop threads from tick to tick.
 
 The full design is at `planning/open-questions/loop-function-declarations.md`
 and the user-facing surface is at `docs/loops.md`. This section
@@ -170,7 +172,7 @@ dependent control flow.
 
 `loop (N) { body }` or `loop (N as i) { body }` where `N` is an
 integer literal unrolls at compile time. Zero runtime iteration,
-zero eigenrotation — the compiler emits the body `N` times, with
+zero tail-recursive cell — the compiler emits the body `N` times, with
 the index variable `i` substituted with `0, 1, …, N−1` in each
 iteration if the `as i` form is used.
 
