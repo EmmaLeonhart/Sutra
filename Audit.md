@@ -74,20 +74,40 @@ saturate instead of raise.
    -0.6→-1, -0.4→0, +0.6→+1); `examples/_smoke_test.py` PASS;
    `test_corpus`+`test_transcendentals` 6 passed/103 subtests.
 
-3. **Promise await loop** — `codegen_pytorch.py:808` (still a leak,
-   narrow). `Promise.await_value`:
-   ```
-   for _ in range(100):
-       if self.isPending(p) <= 0.5:   # ← host Python branch on a predicate
-           break
-   ```
-   The `if … break` is a genuine host control-flow decision on a
-   value — the forbidden pattern. Spec wants this as a substrate
-   `while_loop` two-channel halt vector
-   (`planning/sutra-spec/promises.md`), i.e. the same branchless
-   soft-halt tensor gate the `_step` RNN cell already uses. This
-   one is correctly catalogued: it has a real host branch, unlike
-   #4 below.
+3. **Promise await loop** — ✅ FIXED 2026-05-17 (both backends).
+   `Promise.await_value` was a host bounded poll loop with a host
+   branch on the pending predicate (the forbidden host
+   control-flow-on-a-value pattern; every `await x` lowers to
+   `Promise.await_value(x)`, so it was on the live path).
+   **Resolution = the exact algebraic reduction of the spec-2
+   lowering, not a workaround:** `planning/sutra-spec/promises.md`
+   Stage 2 makes a `Promise<T>` a `while_loop` with a two-channel
+   halt fed by an input axon. In the current runtime the halt
+   channels are set only by `resolve`/`reject` at construction
+   (synchronous); no external axon producer mutates `p` mid-spin
+   (no Yantra I/O wired). So `while_loop spin(isPending, slot p){
+   pass p; }` has an empty body yielding `p` unchanged each tick →
+   it terminates with `p` at its initial value → its terminal read
+   is exactly `value(p)` for every input. `await_value(p)` is now
+   `return self.value(p)` (pure tensor ops: clone + zero two axes;
+   no host scalar, no branch). Verified: 0 leak signatures in the
+   emitted runtime both backends; `async_promise_runtime.su`
+   end-to-end semantics preserved (`main()` = 3.0 both backends);
+   gate 227 passed/83 subtests + smoke. Finding:
+   `planning/findings/2026-05-17-await-substrate-pure.md`. When
+   Yantra wires an external axon producer the gate becomes a real
+   substrate while_loop on the slot-arrival flag (promises.md
+   Stage 2 / axon-io.md) — a future extension, deliberately NOT a
+   no-op loop added now to mimic the shape.
+
+   **Separate, broader observation (NOT #3, recorded not silently
+   expanded):** `isPending`/`isFulfilled`/`isRejected` still read
+   the promise axes via host `float()` and return host scalars.
+   They are surface `Promise.is*` accessors; after this fix none
+   is on the `await` runtime-op path. Whether a `Promise.isPending`
+   used inside a Sutra expression should be substrate-pure is its
+   own question (predicate-accessor boundary), tracked here as an
+   observation, not folded into #3.
 
 4. **Generic loop runtime — NOT A LEAK (reclassified 2026-05-17,
    Emma).** `codegen_pytorch.py` `_TorchVSA.loop` /
