@@ -6,7 +6,7 @@ sin/cos can be computed via the existing `rotate_slot` primitive
 (build R(theta), apply to (1, 0), read coordinates), and that
 modulus 2*pi falls out for free from rotation periodicity.
 
-Tests three things honestly:
+Tests three things:
 
 1. Identity check: does R(theta) @ (1, 0) = (cos theta, sin theta)
    exactly? (Sanity — trivially yes by construction.)
@@ -156,7 +156,7 @@ def test_cost() -> None:
     print(f"  Rotation vs vectorized:    rotation is "
           f"{t_rot/t_dir:.0f}x the cost of vectorized cos+sin.")
     print()
-    print("  Honest interpretation: on numpy CPU, the rotation path is")
+    print("  Plain interpretation: on numpy CPU, the rotation path is")
     print("  STRICTLY MORE WORK than separate cos/sin calls — it does the")
     print("  same two libm calls, then adds a 2x2 matvec on top. The 'saves")
     print("  a trig call' speculation in the exploratory doc was wrong.")

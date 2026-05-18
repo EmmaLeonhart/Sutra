@@ -367,13 +367,13 @@ The compiler reads it; it doesn't invent it.
   through user code; Julia and F# both defer to IEEE 754 + libm with
   no user knob. No mainstream language exposes both axes as
   compile-time architectural decisions. This is a real differentiator
-  for numerical work, not just AI work. The honest caveat: KART's
+  for numerical work, not just AI work. The real caveat: KART's
   inner univariates can be pathologically non-smooth in the worst
   case; the practical ceiling on what Sutra can reduce is set by how
   well the simplifier represents those univariates, not by KART
   itself.
 
-## Honest limits
+## Limits
 
 - **Type checking isn't there.** The runtime is Python-duck-typed.
   Type annotations are spec commitments and parser metadata, not
@@ -392,7 +392,7 @@ The compiler reads it; it doesn't invent it.
 - **Cleanup-as-cheating critique.** A reviewer could argue: "Sutra
   doesn't need cleanup memory at runtime because the cleanup is
   done at compile time by the simplifier — but that's just moving
-  the cleanup, not eliminating it." The honest answer is yes,
+  the cleanup, not eliminating it." The frank answer is yes,
   compile-time simplification *is* the cleanup, but it's a static
   one-time cost paid before any data touches the substrate. The
   paper should engage this directly rather than dodge it.
@@ -406,8 +406,8 @@ The compiler reads it; it doesn't invent it.
 - [ ] **One end-to-end `.su` program** that visibly compiles to a
   single matrix. The rotation-hashmap demo is close; the
   fuzzy-branching demo is closer to the differentiable-logic story.
-- [ ] **Honest comparison section** to Flanagan / "Hey Pentti" —
-  including the cleanup-memory honesty.
+- [ ] **Frank comparison section** to Flanagan / "Hey Pentti" —
+  including the cleanup-memory candor.
 - [ ] **Differentiability story** — Lagrange polynomial form for
   the logic. Needs a paper-shaped paragraph plus the gradient-flow
   argument.

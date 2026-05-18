@@ -1,8 +1,8 @@
-# Sutra vs TorchHD per-call latency — honest negative
+# Sutra vs TorchHD per-call latency — frank negative
 
 **Date:** 2026-04-30
 **Experiment:** `experiments/sutra_vs_torchhd_latency.py`
-**Status:** honest negative; integrating into paper as a candid limitation.
+**Status:** frank negative; integrating into paper as a candid limitation.
 
 ## Why this experiment exists
 
@@ -88,7 +88,7 @@ the gap.
 
 ## What this means for the paper
 
-**Honest claim:** Sutra and TorchHD are within an order of
+**Frank claim:** Sutra and TorchHD are within an order of
 magnitude on per-call latency for VSA tasks both can express.
 TorchHD is faster today (~12×) because its runtime is a thin
 library wrapper around PyTorch ops, while Sutra's runtime
@@ -128,7 +128,7 @@ language redesign.
   role_filler_record task line-for-line in the same way Sutra
   does, on the same PyTorch substrate.
 
-The honest answer to "compare to Scallop" is that Sutra and
+The frank answer to "compare to Scallop" is that Sutra and
 Scallop solve different problems — Scallop is for probabilistic
 neuro-symbolic reasoning; Sutra is for compositional VSA
 programming. The closest available apples-to-apples is

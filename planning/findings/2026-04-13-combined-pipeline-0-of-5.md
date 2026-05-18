@@ -90,7 +90,7 @@ covering them.
   pipeline that achieves the paper's loop-test numbers, and the
   spec-compliance gap (numpy `Q @ v` at runtime) is still open.
 - **Do not rewrite the paper** claiming a substrate-only loop. The
-  §Honest Limits section's retraction about the numpy `Q@v` gap
+  §Limits section's retraction about the numpy `Q@v` gap
   remains current and correct.
 - **The real open question** is how to run rotation on neurons
   without the Poisson decode noise destroying the readout. Candidates:

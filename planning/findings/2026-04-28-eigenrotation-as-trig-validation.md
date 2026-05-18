@@ -41,7 +41,7 @@ to about `1e9`; at `1e15` the manual reduction loses precision
 because the angle itself can no longer be represented exactly in
 float64.
 
-**Honest framing:** the "modulus for free" claim is real, but it's a
+**Frank framing:** the "modulus for free" claim is real, but it's a
 property of libm's range reduction, not a Sutra-specific feature.
 Sutra inherits it for free because it's calling the same trig
 functions, but no other language is *worse* on this axis — they all
@@ -103,7 +103,7 @@ one. Updating it (this commit) to:
 - Keep the architectural-uniformity claim — that's the surviving
   Sutra-specific value.
 - Remove the "saves a trig call" cost speculation. Replace with the
-  honest "no compute saving on numpy CPU; cost-win requires hardware
+  accurate "no compute saving on numpy CPU; cost-win requires hardware
   rotation primitive."
 - Re-frame the modulus-for-free claim as inherited-from-libm rather
   than Sutra-specific.

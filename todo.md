@@ -68,7 +68,7 @@
 > 5. IF CLEAN: do not invent work. Append one line to DEVLOG.md:
 >    "<UTC date> daily audit: clean (<N> .su compiled, 0 leaks; <M>
 >    open-questions checked, 0 resolved-elsewhere)", commit + push.
->    That is the honest no-op.
+>    That is the legitimate no-op.
 >
 > 6. Honor CLAUDE.md. Never relax a gate, doctor a number, or mark
 >    anything resolved you did not verify. If the audit itself cannot

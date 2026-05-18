@@ -57,7 +57,7 @@ concerns the new sample addresses:
   plausibly hit 80/80 on five lucky seeds; hitting 560/560 on thirty-five
   independent seeds is not a luck story. The Poisson rate estimate for
   a true 90%-accurate classifier to get 560/560 is ~5×10⁻²⁶; for 99% it
-  is ~0.0035. The honest read is that the decision boundary is well
+  is ~0.0035. The accurate read is that the decision boundary is well
   outside the Poisson noise ball for this problem size.
 - **Brian2 determinism.** Each run uses a different `seed(1000+i)` so the
   LIF state and Poisson input trains are independently sampled. The

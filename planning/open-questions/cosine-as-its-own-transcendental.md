@@ -66,7 +66,7 @@ path for `cos(z)` where `z` is itself complex — no `imag(cos(z))`.**
 A user ruling on whether complex-argument `cos(z)` is in scope now, and
 — if yes — its substrate-pure construction (the geometric imaginary
 part), with a ground-truth verification table (the `21a9ff77` model:
-tensors in → tensor ops → tensors out, compared to `cmath.cos`, honest
+tensors in → tensor ops → tensors out, compared to `cmath.cos`, measured
 delta reported). The real-angle `cos(x)` table is already substrate-pure
 and need not change.
 

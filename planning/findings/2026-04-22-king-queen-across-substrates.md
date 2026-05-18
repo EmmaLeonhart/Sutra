@@ -92,7 +92,7 @@ presumption:
   not "is queen THE CLOSEST." The latter is a stronger claim and
   isn't uniformly true.
 
-For the sutra paper: honest framing is "compositional displacement
+For the sutra paper: the accurate framing is "compositional displacement
 landing near target works on substrates that preserve compositional
 structure; not all embedding models do, so substrate choice is
 load-bearing." This is consistent with the magnitude-preservation

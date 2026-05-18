@@ -277,5 +277,5 @@ compile-time semantic checking; the compiler's current
 implementation focuses on the substrate-pure tensor-op core, with
 object encapsulation deferred."
 
-That's an honest scoping. The full vision (this doc) is the design
+That's a frank scoping. The full vision (this doc) is the design
 target the language is built toward.

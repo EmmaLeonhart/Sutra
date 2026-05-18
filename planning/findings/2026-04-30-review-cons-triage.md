@@ -30,7 +30,7 @@ Four recurring cons need addressing. Triage below.
 
 **What the paper should say:** T is a compile-time parameter with a default of 50. It can be raised. The soft-halt mechanism means most loops converge well before T — the remaining iterations are no-ops because halted has already saturated. The paper should frame this as "the compiler unrolls loops to a configurable depth (default T=50)" not as a hard cap. It's the same as any RNN truncated backprop — you pick a depth, and the soft halt makes the actual compute terminate earlier.
 
-**What the paper currently says:** Section 6.2 frames it as a limitation ("loop tick counter `for _t in range(50)` (Python iteration)"). The paper is being too honest about the implementation detail and not framing it as the configurable compiler parameter it is.
+**What the paper currently says:** Section 6.2 frames it as a limitation ("loop tick counter `for _t in range(50)` (Python iteration)"). The paper is being too candid about the implementation detail and not framing it as the configurable compiler parameter it is.
 
 **Fix:** Reframe in the paper. "The compiler unrolls loops to a configurable depth T (default 50). The soft-halt gating ensures convergence typically occurs in far fewer steps; remaining iterations are identity operations gated by the saturated halt signal."
 

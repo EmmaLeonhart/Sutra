@@ -129,5 +129,5 @@ no vector-algebraic operation built on top can work. They are.
 - Implement `bundle` on real W: drive pattern A alone, pattern B
   alone, pattern A ∪ B, and compare cos(out_{A∪B}, normalize(out_A +
   out_B)). If high, the substrate superposes linearly at 100 ms.
-  If low, propose the honest non-linear bundle operator the paper
+  If low, propose the true non-linear bundle operator the paper
   will actually compile to.

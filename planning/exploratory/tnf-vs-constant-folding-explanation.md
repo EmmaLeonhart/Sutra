@@ -43,7 +43,7 @@ reason it doesn't feel like constant folding is that there is no
 operations aren't an optimization applied to some more primitive
 semantics, they are the ground level.
 
-## The honest concession
+## The frank concession
 
 In the limiting sense, TNF *is* a form of constant folding: it is the
 most constant-folded a program can possibly be. Compile-time work

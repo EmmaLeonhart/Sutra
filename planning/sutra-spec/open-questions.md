@@ -20,7 +20,7 @@ lives here.
 
 ## Triage (2026-05-16, task #15 — part 2 of the open-question sweep)
 
-Honest finding: unlike the `planning/open-questions/` dossiers
+Frank finding: unlike the `planning/open-questions/` dossiers
 (triaged in that folder's README — ~half RESOLVED/STALE), **most
 entries in THIS file are genuinely-open spec decisions**, not
 "secretly decided elsewhere." This file is the spec's own

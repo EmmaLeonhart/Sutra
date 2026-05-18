@@ -140,7 +140,7 @@ Symbolic Computation in Frozen Embedding Spaces." This:
 
 - Names the research arc (the three steps).
 - Pitches the language (Sutra) as the realization.
-- Is honest that step 3 (learned matrices) is the trajectory,
+- Is frank that step 3 (learned matrices) is the trajectory,
   not a finished result.
 
 For NeurIPS double-blind, the anonymized version drops "Sutra" —

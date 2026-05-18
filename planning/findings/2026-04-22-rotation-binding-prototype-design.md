@@ -36,7 +36,7 @@ The role vector seeds a Haar-random orthogonal matrix; bind is
 `Q_role @ filler`; unbind is `Q_role^T @ bound`. Cached per role
 hash so repeated bind/unbind calls reuse the rotation matrix.
 
-**Honest caveat: cross-talk stays at 1/√d statistical, not zero.**
+**Frank caveat: cross-talk stays at 1/√d statistical, not zero.**
 Because the rotation's planes aren't structurally segregated from
 the content-bearing directions of the LLM embedding, bundled-and-
 retrieved noise has the same magnitude as under sign-flip. For

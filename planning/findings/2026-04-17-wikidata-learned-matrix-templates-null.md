@@ -92,7 +92,7 @@ paper's positive result used embeddings of structured Wikidata labels
 ## Implication for the Sutra paper
 
 The language paper's limitations bullet ("Current runtime uses a
-placeholder binding") is still honest and should stay. Two nulls on the
+placeholder binding") is still accurate and should stay. Two nulls on the
 learned-matrix direction is enough data to not claim it as a headline
 contribution. The spec keeps "roles are learned matrices" as the design
 vision (per `planning/sutra-spec/binding.md`), but the paper should not
