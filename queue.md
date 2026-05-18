@@ -84,6 +84,61 @@ generic dataclass walk. `tests/test_loop_capture.py` 7/7 pass;
 parser+codegen 142 pass, zero breakage. Documented simplifications
 (scope-shadowing, container-target mutation) noted in the module.
 
+UNIT 2 — architecture VERIFIED + corrected (this resume); the
+codegen-site approach below is REJECTED, see correction:
+
+**Corrected architecture (do this, NOT the codegen-site patch):**
+The desugar must be an **AST-rewrite pass that runs BEFORE
+codegen**, not a patch at `codegen_base.py:1983`. Reason
+(verified by reading the slot machinery): slot vars are a
+*different storage mechanism* (`_VSA.slot_store/slot_load` on
+`_slot_state`), and reads of a slot-named var are transparently
+`slot_load`'d in ANY expression position
+(`codegen_base.py:2620-2624`), writes → `slot_store`
+(`:1937-1945`), decl → `slot_store` (`:800-819`), loop-call
+threads via slot idx (`:1628-1664`). So if the desugar flips a
+captured var's **VarDecl** to `is_slot=True` *before* codegen,
+the existing, tested codegen routes every read/write/thread of
+that var (before, inside, after the loop) consistently — correct
+by construction. Retro-registering names in `self._slot_vars` at
+the codegen site (the old plan) would MISCOMPILE: the var was
+already emitted as a plain Python local. Rejected.
+
+**AST-pass algorithm** (new module, e.g. `loop_desugar.py`; run
+on the Module before `translate_module`): for each FunctionDecl /
+class-method body, for each `LoopStmt` with `count is None`:
+  1. `captured = loop_capture.captured_state(loopstmt.body)`.
+  2. For each captured name, find its declaring `ast.VarDecl` in
+     the same function body, declared before the loop; set
+     `.is_slot = True`. If it has no `type_ref` (var-inferred) or
+     can't be found / is a param → `CodegenNotSupported` with a
+     clear message (do NOT guess a type or scope). Refine later.
+  3. Synthesize `ast.LoopFunctionDecl(kind="iterative_loop",
+     name=unique via `_next_loop_id`, condition=loopstmt.condition,
+     state_params=[LoopStateParam(decl.type_ref, name, None) …],
+     body=Block(loopstmt.body.statements + [PassStmt([Identifier(n)
+     for n in captured])]))`; append to `module.loop_functions`.
+  4. Replace the `LoopStmt` in its parent statement list with
+     `ast.LoopCallStmt(name, condition_arg=loopstmt.condition,
+     state_arg_names=captured)`.
+  Literal-bound `loop(N){}` still hits `_translate_bounded_loop`
+  (codegen dispatches `count is not None` first) — leave it; the
+  pass only touches `count is None`.
+
+**ONE PRECISE UNKNOWN to verify BEFORE writing the pass** (do not
+guess — miscompile risk): how does `iterative_loop`'s count
+expression reach the emitted loop function? Read
+`_translate_loop_function_decl` iterative_loop handling
+(`codegen_base.py:1380-1423`) + how the call passes/loads it
+(`:1615-1664`). In the explicit surface the count is the loop
+fn's first paren item; for the synthesized fn the `condition`
+(e.g. bare outer `x`) must be in scope inside the emitted
+`_loop_NAME(...)` function or threaded as an arg. Resolve this
+(it may require the count to be a synthesized state-or-param);
+only then write the pass. If it turns out the count can't be a
+free outer var, the synthesis must pass it explicitly.
+
+--- (superseded) original codegen-site sketch, kept for context: ---
 NEXT UNIT (start here) — the desugar: at `codegen_base.py:1983`
 (the `LoopStmt`, `count is None` branch that currently `raise
 CodegenNotSupported`), instead:
