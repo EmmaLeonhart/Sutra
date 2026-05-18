@@ -76,18 +76,46 @@ Investigation complete; the build is fully specified. Facts:
   (Expr, `ast_nodes.py:238`) usually inside `ast.ExprStmt` (308);
   `ast.Identifier` (137); declarations `ast.VarDecl` (483).
 
-NEXT UNIT (start here): implement the variable-capture analysis —
-given the loop body `Block`, return the ordered set of identifier
-names it assigns/mutates (Assignment targets, compound-assign,
-`++`/`--`, nested blocks) = the implicit-axon state set. Ship it
-with a unit test FIRST (isolated, no control-flow regression
-risk). THEN: synthesize `LoopFunctionDecl` (kind `iterative_loop`
-for the int-bound case that matches Emma's examples) + auto-slot
-the captured vars + `LoopCallStmt`, replacing the raise; gate
-branchless_loop+loop_function_decl+codegen+parser+corpus+smoke +
-a new e2e test (single-var; the n1/n2 multi-var example returns
-correct values; literal bound still unrolls). while/boolean kind
-+ await-as-1-slot-instance are the units after that.
+UNIT 1 — variable-capture analysis — ✅ DONE (this resume).
+`sutra_compiler/loop_capture.py` `captured_state(body) -> list[str]`
+= body-mutated identifier names (Assignment targets, `++`/`--`)
+minus body-declared (VarDecl) names, first-mutation order. Pure,
+generic dataclass walk. `tests/test_loop_capture.py` 7/7 pass;
+parser+codegen 142 pass, zero breakage. Documented simplifications
+(scope-shadowing, container-target mutation) noted in the module.
+
+NEXT UNIT (start here) — the desugar: at `codegen_base.py:1983`
+(the `LoopStmt`, `count is None` branch that currently `raise
+CodegenNotSupported`), instead:
+  1. `state = loop_capture.captured_state(stmt.body)`.
+  2. Synthesize a unique-named `ast.LoopFunctionDecl` kind
+     `iterative_loop` (int-bound case = Emma's examples): condition
+     = `stmt.condition` (the bound/count), `state_params` = one
+     `ast.LoopStateParam` per captured name (type inferred — see
+     below), body = `stmt.body` + a synthesized `ast.PassStmt`
+     threading each state name in order. Register it the same way
+     module loop fns are (`self._loop_decls` /
+     `Module.loop_functions`, `codegen_base.py:762/771/397`).
+  3. Auto-slot: the captured locals must satisfy the
+     `_translate_loop_call` slot requirement (`:1604-1613`). Emit
+     them into `self._slot_vars` (or synthesize the slot decls)
+     so the call's by-ref write-back works — this IS the implicit
+     axon. Confirm exact `_slot_vars` population mechanism before
+     coding (read where slot vars are registered).
+  4. Emit a synthesized `ast.LoopCallStmt(name, condition_arg=
+     stmt.condition, state_arg_names=state)` via the existing
+     `_translate_loop_call`.
+  OPEN sub-question for the desugar unit: state-param TYPE
+  inference (LoopStateParam needs a TypeRef). Need the declared
+  type of each captured outer var; check whether codegen tracks
+  caller var types (`self._var_type` exists per codegen_base) —
+  reuse it; if a type is unknown, fail honestly (CodegenNotSupported
+  with a clear message), do NOT guess a type.
+Gate for the desugar unit: branchless_loop + loop_function_decl +
+codegen + parser + corpus + smoke + a NEW e2e test (single-var;
+n1/n2 multi-var returns correct values; literal bound still
+unrolls via `_translate_bounded_loop`). while/boolean kind +
+await-as-1-slot-instance are the units after that.
 
 ### A. Task #15 — open-question pruning pass  (banners DONE 2026-05-17; pruning is what remains)
 
