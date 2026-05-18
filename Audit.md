@@ -74,20 +74,42 @@ saturate instead of raise.
    -0.6→-1, -0.4→0, +0.6→+1); `examples/_smoke_test.py` PASS;
    `test_corpus`+`test_transcendentals` 6 passed/103 subtests.
 
-3. **Promise await loop** — `codegen_pytorch.py:808`:
-   `for _ in range(100):` — `Promise.await_value` spins a host
-   Python loop with a 100-iteration cap instead of the substrate
-   `while_loop` two-channel halt vector the spec describes
-   (`planning/sutra-spec/promises.md`). Known (queue.md item 1
-   phase 6) — recorded here so it is counted as a leak, not a
-   "shipped" feature.
+3. **Promise await loop** — `codegen_pytorch.py:808` (still a leak,
+   narrow). `Promise.await_value`:
+   ```
+   for _ in range(100):
+       if self.isPending(p) <= 0.5:   # ← host Python branch on a predicate
+           break
+   ```
+   The `if … break` is a genuine host control-flow decision on a
+   value — the forbidden pattern. Spec wants this as a substrate
+   `while_loop` two-channel halt vector
+   (`planning/sutra-spec/promises.md`), i.e. the same branchless
+   soft-halt tensor gate the `_step` RNN cell already uses. This
+   one is correctly catalogued: it has a real host branch, unlike
+   #4 below.
 
-4. **Generic loop runtime** — `codegen_pytorch.py:2213`:
-   `for _t in range(max_iters):` — the iteration mechanism that
-   `loop`/`while` lower to is a host `for`. Spec says loops are
-   `state ← R·state` on the substrate (control-flow.md). The host
-   loop is the loop-runtime leak surface; bound it to the
-   eigenrotation primitive once (1) lands.
+4. **Generic loop runtime — NOT A LEAK (reclassified 2026-05-17,
+   Emma).** `codegen_pytorch.py` `_TorchVSA.loop` /
+   `for _t in range(max_iters):`. Earlier catalogued as a "host
+   `for` leak"; that was wrong and is corrected here. Reading the
+   code: it is a **fixed-T unroll of the eigenrotation** —
+   `max_iters` is a structural parameter (default 50), every step
+   is `self._step` (= `R @ state`, normalize, `dot`, sigmoid
+   soft-halt, branchless gate), `halted`/`iters_active` stay
+   tensors, and there is **no `.item()`/`float()`, no `if`/`break`
+   on data** anywhere in the loop. Nothing branches on a host
+   scalar. That is exactly the spec's substrate loop
+   (`state ← R·state`, T-step unroll, soft halt; control-flow.md) —
+   the same "structural index, not data" / "T-step unroll" category
+   the accepted #1 and #2 fixes established. Whether the fixed-T
+   unroll is spelled as a runtime `range()` or hoisted to a
+   straight-line codegen unroll is a **compile-time optimization /
+   style choice, not a substrate-purity question**. The mistake was
+   carrying this label without reading the loop body. No fix is
+   owed; "fixing" it would risk regressing the working
+   autograd-friendly differentiable loop. (Original mis-citation
+   referenced line 2213; the construct is `_TorchVSA.loop`.)
 
 5. **String ops as host codepoint loops** — ✅ FIXED 2026-05-16
    (commit `0e363b96`). Was `string_length`/`string_char_at`/

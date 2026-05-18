@@ -47,26 +47,27 @@ not trusted from a prior claim. Surfaced one self-correction → item C.
 
 ## Structural — deliberate, gated; explicitly NOT a rushed autonomous edit
 
-### D. Audit REAL LEAK #3 + #4
+### D. Audit REAL LEAK #3 only (#4 reclassified NOT-a-leak 2026-05-17)
 
-`Audit.md` is the running substrate-leak catalogue. After the
-2026-05-15/16 work, #1, #2, #5, #6, #7, #8 are resolved+verified
-(see `Audit.md` / git log). Genuinely open, structural, high
-regression surface:
+`Audit.md` is the running substrate-leak catalogue. #1, #2, #5,
+#6, #7, #8 resolved+verified. **#4 was reclassified as NOT a leak**
+(Emma 2026-05-17): the generic loop runtime is a fixed-T tensor-op
+eigenrotation unroll (`_TorchVSA.loop`/`_step`) — no `.item()`, no
+`if`/`break` on data; the `for _t in range(max_iters)` is a
+structural unroll counter = the spec's substrate loop. Hoisting it
+to a straight-line codegen unroll is an optional compile-time
+optimization, not a purity fix. No fix owed. See `Audit.md` #4.
 
-- **#3** Promise `await_value` host `for _ in range(100)` → the
-  substrate `while_loop` two-channel halt vector
-  (`planning/sutra-spec/promises.md`).
-- **#4** generic loop runtime `for _t in range(max_iters)` → the
-  iteration mechanism `loop`/`while` lower to; spec says
-  `state ← R·state` on the substrate. `rotate_slot` (#1) is now
-  pure so the eigenrotation primitive exists; replacing the host
-  driver loop is a control-flow-lowering rework.
+Genuinely open, narrow:
 
-Fix shape = the `21a9ff77` model (tensors in → tensor ops → tensors
-out; saturate, don't raise). Do these with the loop-runtime /
-promise test suite as the gate, in a deliberate session — not a
-rushed autonomous edit, per CLAUDE.md safety rules.
+- **#3** Promise `await_value` — `for _ in range(100): if
+  self.isPending(p) <= 0.5: break`. The `if … break` is a real
+  host Python branch on a predicate (unlike #4, which has none).
+  Spec wants it as a substrate `while_loop` two-channel halt
+  vector (`planning/sutra-spec/promises.md`) — the same branchless
+  soft-halt tensor gate `_step` already uses. Fix shape = the
+  `21a9ff77` model; deliberate, promise-test-gated. Not yet
+  started.
 
 ### E. Task #12 tail — `scalar` keyword → `number`, drop the 0-d projection
 

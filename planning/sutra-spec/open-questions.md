@@ -35,11 +35,16 @@ verified this pass:
   struck-through here; resolved 2026-04-21 (`sutra-spec/binding.md`,
   role=semantic / var=rotation-bound). Safe to delete the line.
 - **Control flow § "When `loop[N]` can't be unrolled … host-Python
-  `for`. Is that acceptable, or should it error?"** — DECIDED, not
-  open: `Audit.md` REAL LEAK #4 (`codegen_pytorch.py:2213`) rules
-  the host `for` a substrate leak to fix (not "acceptable"). The
-  open question is answered by the audit; reword to "tracked as
-  Audit REAL LEAK #4" rather than an open design choice.
+  `for`. Is that acceptable, or should it error?"** — DECIDED
+  (corrected 2026-05-17): the runtime loop (`_TorchVSA.loop`) is a
+  fixed-T tensor-op eigenrotation unroll with a branchless soft
+  halt — **not** a substrate leak (the earlier "Audit REAL LEAK #4"
+  call was reclassified as not-a-leak; see `Audit.md` #4). The
+  `for _t in range(max_iters)` counter is a structural unroll
+  index, not data control flow; spelling it as a runtime `range()`
+  vs. a straight-line codegen unroll is a compile-time optimization
+  choice. So this is "acceptable" as-is on substrate-purity
+  grounds; any change is an optimization, not a correctness fix.
 - **Control flow § "Fate of parsed-but-rejected control forms:
   if/else"** — DECIDED in `sutra-spec/control-flow.md` itself
   (`select` is the only runtime branching primitive; if/else is
@@ -135,10 +140,16 @@ this file *and* their inline spec sections in the same commit
 - Multi-option `select` firing threshold and `select ... else`
   score formula (tracked in `todo.md` too).
 - ~~When `loop[N]` can't be unrolled (non-literal N) … host-Python
-  `for`. acceptable or error?~~ — **DECIDED**: not acceptable, it
-  is a substrate leak. Tracked as `Audit.md` REAL LEAK #4
-  (`codegen_pytorch.py` generic loop runtime); fix = bind to the
-  substrate eigenrotation. Not an open design choice.
+  `for`. acceptable or error?~~ — **DECIDED (corrected
+  2026-05-17): acceptable.** The runtime loop is a fixed-T
+  tensor-op eigenrotation unroll with a branchless soft halt
+  (`_TorchVSA.loop`/`_step`); the `for _t in range(max_iters)`
+  counter is a structural unroll index, not data control flow — it
+  IS the spec's substrate loop. The earlier "Audit REAL LEAK #4"
+  classification was reclassified as not-a-leak (`Audit.md` #4,
+  Emma 2026-05-17). Spelling the unroll as a runtime `range()` vs.
+  a straight-line codegen unroll is a compile-time optimization,
+  not a substrate-purity fix. Not an open design choice.
 - Exact rotation operator for `loop(cond)` eigenrotation (Haar-
   random today; substrate-specific / per-site alternatives?).
 - Whether `loop(cond)` can terminate on non-similarity conditions.
