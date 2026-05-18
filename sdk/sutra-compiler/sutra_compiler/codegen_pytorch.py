@@ -2354,7 +2354,7 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def _step(self, state, R, target, halted, k, threshold, eps=1e-12):")
         self._indent += 1
-        self._emit('"""RNN cell: one branchless eigenrotation step (torch tensor ops)."""')
+        self._emit('"""RNN cell: one branchless tail-recursive loop step (torch tensor ops)."""')
         self._emit("cand = R @ state")
         self._emit("cand = cand / (_torch.linalg.norm(cand) + eps)")
         self._emit("sim = _torch.dot(cand, target) / (_torch.linalg.norm(target) + eps)")
@@ -2368,7 +2368,7 @@ class PyTorchCodegen(Codegen):
         self._emit("def loop(self, initial_state, rotation, compiled_prototypes,")
         self._indent += 1
         self._emit("target_name=None, threshold=0.5, max_iters=50, k=20.0, frame_seed=None):")
-        self._emit('"""Branchless RNN-style eigenrotation loop (torch backend).')
+        self._emit('"""Branchless RNN-style tail-recursive loop cell (torch backend).')
         self._emit('')
         self._emit("Same semantics as the numpy backend. T-step unroll, soft halt via")
         self._emit("sigmoid, output gating via AXIS_LOOP_DONE. Autograd-friendly:")
