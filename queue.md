@@ -69,16 +69,26 @@ Genuinely open, narrow:
   `21a9ff77` model; deliberate, promise-test-gated. Not yet
   started.
 
-### E. Task #12 tail — `scalar` keyword → `number`, drop the 0-d projection
+### E. `scalar` → `number` rename — ✅ DONE 2026-05-17 (3 commits, gated)
 
-Conceptually "scalar vs number" is RESOLVED (`b50dc5d0`;
-`planning/findings/2026-05-16-scalar-is-not-an-open-question.md`): a
-number IS a vector (value on the number axis, zeros elsewhere). The
-remaining tail is the mechanical-but-risky migration — rename the
-`scalar` keyword to `number`, drop the 0-d projection so
-exp/cos/sin return the number-vector — a call-site/test migration
-gated on the 135-passed / 103-subtest + smoke suite. Not a safe
-rushed autonomous barrel; needs a deliberate gated session.
+User-authorized 2026-05-17. `number` is now the canonical type
+everywhere user-facing; `scalar` is a deprecated parse alias kept
+only for the frozen NeurIPS archive. Shipped in 3 gated commits:
+`8a5d12a7` (compiler: number first-class, scalar alias + equivalence
+test), `b34a275b` (stdlib .su dogfood, 57 type tokens), `f21fdffa`
+(docs + canonical-vs-alias note). Concept/0-d prose deliberately
+kept as "scalar" (it's the correct word there — the user's own
+distinction). Existing `scalar` programs + frozen examples remain
+valid (alias regression-guarded).
+
+**Remaining, SEPARATE, NOT done (deliberately not bundled):** drop
+the 0-d projection so `exp`/`cos`/`sin` return the number-vector
+instead of a 0-d tensor. This is the riskier half — it changes
+observable return shape and could regress paper-cited `cos`/`sin`/
+`exp`. Tracked here, not faked as done. Needs its own deliberate,
+test-gated session with explicit attention to paper-code
+durability. (Conceptual basis already RESOLVED: `b50dc5d0` /
+`planning/findings/2026-05-16-scalar-is-not-an-open-question.md`.)
 
 ## Open user decision (destructive / outward — needs an explicit yes)
 
