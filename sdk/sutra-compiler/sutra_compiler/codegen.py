@@ -2120,6 +2120,7 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     from .simplify import simplify_module, collect_basis_vector_strings
     from .inliner import inline_stdlib_calls
     from .promise_desugar import desugar_promises
+    from .loop_desugar import desugar_implicit_loops
     from .axon_keys import collect_axon_keys
     # Axon-keys static analysis runs BEFORE simplify/inline so that
     # the keys we collect match the user-visible source pattern (the
@@ -2133,6 +2134,10 @@ def translate_module(module: ast.Module, **kwargs) -> str:
     # Anything more complex stays async; the codegen rejects it with
     # a planning/sutra-spec/promises.md pointer.
     desugar_promises(module)
+    # Implicit tail-recursive loop desugar: loop(expr){body} ->
+    # iterative_loop LoopFunctionDecl + LoopCallStmt (queue.md item
+    # 0). Same pass as the torch backend, same position.
+    desugar_implicit_loops(module)
     # Inline stdlib calls — the inlined polynomial bodies then go
     # through simplify's arithmetic constant folding / zero
     # absorption, which can fold parts of the inlined form.

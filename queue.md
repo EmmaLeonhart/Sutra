@@ -14,187 +14,36 @@ stay in sync.
 
 ## Active
 
-### 0. Implicit tail-recursive loop + await-as-minimal-instance  (IN PROGRESS — Emma "barrel through" 2026-05-17)
+### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 
-Emma's consolidated model: `async`/`promise`/`await` is **just a
-loop with a bare-minimal implicit axon** — one input slot that can
-be mutated, plus a flag. So the implicit-loop desugar and the #3
-await fix are **ONE build**, await being the degenerate (1-slot +
-flag) instance.
+`loop(expr){ body }` (Emma's invented implicit-tail-recursion
+sugar) now compiles + runs correctly on both backends. Desugars
+before codegen into the existing tail-recursive loop-function
+machinery: implicit axon = body-mutated vars + bound free vars
+(invariant); each captured var's `VarDecl` is flipped to `slot`
+(slot routing is transparent in the existing codegen, so this is
+correct by construction); a synthesized `iterative_loop`
+`LoopFunctionDecl` + `LoopCallStmt` replace the `LoopStmt`.
 
-Concrete plan (gated, units committed; queue is the live truth):
+Shipped + gated + pushed: `loop_capture.py` (capture analysis +
+`free_identifiers`), `loop_desugar.py` (the pass), wired into both
+`translate_module`s. Gate: 186 passed / 83 subtests + codegen_pytorch
+/inliner/transcendentals 38/33 + smoke PASS, zero regression. Full
+record: `planning/findings/2026-05-17-implicit-tail-recursive-loop-desugar.md`.
+Revert point if needed: tag `v0.5.0` (`84b5ca45`).
 
-1. **Parser/AST**: confirm the node `loop(expr){body}` produces
-   today (it parses, codegen rejects). No surface change — revive
-   semantics, not syntax.
-2. **Variable-capture analysis**: collect the recurrent state =
-   vars the body assigns/mutates (+ outer vars it references that
-   must thread). That set + the loop control (`expr`/bound) IS the
-   implicit axon. (1b follow-on: minimize it to mutated-only.)
-3. **Desugar**: instead of `raise CodegenNotSupported`, synthesize
-   the existing **working** tail-recursive loop-function form with
-   that state, and emit its call + write-back. Compile-time unroll
-   stays preferred when the bound is a literal.
-4. **Gate (must be green, no fakery):** `test_branchless_loop` +
-   `test_loop_function_decl` + `test_codegen` + `test_parser` +
-   corpus + smoke, plus a NEW end-to-end test: single-var loop,
-   the multi-var `n1/n2` example returns correct values, literal
-   bound still unrolls.
-5. **await as the minimal instance (#3):** once 1–4 are green,
-   re-lower `await_value` as a 1-slot implicit axon + arrival flag
-   = soft-halt, deleting the host `if self.isPending(p)<=0.5:
-   break`. Conform to `planning/sutra-spec/promises.md` + the
-   formal async/promise spec. Gate: promise fixtures + smoke.
-
-Deliberate, high-blast-radius (whole control-flow surface). Each
-unit committed+pushed; queue.md updated same commit so an
-interrupt loses nothing.
-
-**PAUSED 2026-05-17 (usage limits) — RESUME STATE (read this first):**
-
-Investigation complete; the build is fully specified. Facts:
-- Bare loop parses to `ast.LoopStmt(count=None, condition=C,
-  body=B)` (`parser.py` `_parse_loop` ~L1353). It is REJECTED at
-  `codegen_base.py:1983` (`raise CodegenNotSupported`) — replace
-  that raise with the desugar.
-- Working target machinery: `ast.LoopFunctionDecl`
-  (kind/name/condition/state_params/body) + `ast.LoopStateParam`
-  (type_ref/name/default) + `ast.LoopCallStmt`
-  (name/condition_arg/state_arg_names). Loop fns live at
-  `Module.loop_functions`; lowered by
-  `_translate_loop_function_decl` (`codegen_base.py:1308`) and
-  `_translate_loop_call` (1563). `iterative_loop` kind = integer
-  count cap, `iterator` keyword = current tick.
-- **FORK RESOLVED (Emma's own model):** `_translate_loop_call`
-  REQUIRES every state arg to be a `slot` var
-  (`codegen_base.py:1604-1613`). Emma's `loop(x){body}` uses plain
-  locals → the desugar MUST auto-promote the captured locals into
-  the implicit axon's slots (silently slot-allocate). This is the
-  intended ergonomic semantics ("everything mutated/referenced
-  goes into the axon… almost a closure"), not an open question.
-- AST for capture analysis: assignments are `ast.Assignment`
-  (Expr, `ast_nodes.py:238`) usually inside `ast.ExprStmt` (308);
-  `ast.Identifier` (137); declarations `ast.VarDecl` (483).
-
-UNIT 1 — variable-capture analysis — ✅ DONE (this resume).
-`sutra_compiler/loop_capture.py` `captured_state(body) -> list[str]`
-= body-mutated identifier names (Assignment targets, `++`/`--`)
-minus body-declared (VarDecl) names, first-mutation order. Pure,
-generic dataclass walk. `tests/test_loop_capture.py` 7/7 pass;
-parser+codegen 142 pass, zero breakage. Documented simplifications
-(scope-shadowing, container-target mutation) noted in the module.
-
-UNIT 2 — architecture VERIFIED + corrected (this resume); the
-codegen-site approach below is REJECTED, see correction:
-
-**Corrected architecture (do this, NOT the codegen-site patch):**
-The desugar must be an **AST-rewrite pass that runs BEFORE
-codegen**, not a patch at `codegen_base.py:1983`. Reason
-(verified by reading the slot machinery): slot vars are a
-*different storage mechanism* (`_VSA.slot_store/slot_load` on
-`_slot_state`), and reads of a slot-named var are transparently
-`slot_load`'d in ANY expression position
-(`codegen_base.py:2620-2624`), writes → `slot_store`
-(`:1937-1945`), decl → `slot_store` (`:800-819`), loop-call
-threads via slot idx (`:1628-1664`). So if the desugar flips a
-captured var's **VarDecl** to `is_slot=True` *before* codegen,
-the existing, tested codegen routes every read/write/thread of
-that var (before, inside, after the loop) consistently — correct
-by construction. Retro-registering names in `self._slot_vars` at
-the codegen site (the old plan) would MISCOMPILE: the var was
-already emitted as a plain Python local. Rejected.
-
-**AST-pass algorithm** (new module, e.g. `loop_desugar.py`; run
-on the Module before `translate_module`): for each FunctionDecl /
-class-method body, for each `LoopStmt` with `count is None`:
-  1. `captured = loop_capture.captured_state(loopstmt.body)`.
-  2. For each captured name, find its declaring `ast.VarDecl` in
-     the same function body, declared before the loop; set
-     `.is_slot = True`. If it has no `type_ref` (var-inferred) or
-     can't be found / is a param → `CodegenNotSupported` with a
-     clear message (do NOT guess a type or scope). Refine later.
-  3. Synthesize `ast.LoopFunctionDecl(kind="iterative_loop",
-     name=unique via `_next_loop_id`, condition=loopstmt.condition,
-     state_params=[LoopStateParam(decl.type_ref, name, None) …],
-     body=Block(loopstmt.body.statements + [PassStmt([Identifier(n)
-     for n in captured])]))`; append to `module.loop_functions`.
-  4. Replace the `LoopStmt` in its parent statement list with
-     `ast.LoopCallStmt(name, condition_arg=loopstmt.condition,
-     state_arg_names=captured)`.
-  Literal-bound `loop(N){}` still hits `_translate_bounded_loop`
-  (codegen dispatches `count is not None` first) — leave it; the
-  pass only touches `count is None`.
-
-**UNKNOWN — RESOLVED (this resume, by reading the code):**
-`codegen_base.py:1422` does `count_src =
-self._translate_expr(decl.condition)` INSIDE the emitted loop
-function, each tick, where only state locals + `_iterator`/`_t`
-are in scope. A bare outer bound `x` would be undefined there.
-**Therefore the loop bound's free vars MUST be threaded as
-invariant state params** (passed in, never re-assigned — use
-`ReplaceMarker` in the synthesized `PassStmt` for them so they
-carry through unchanged each tick). This is exactly Emma's model
-("everything mutated OR referenced goes into the axon; x must be
-held invariant every run"). No guessing remains.
-
-**Final, fully-specified algorithm for the desugar unit:**
-  - `mutated = loop_capture.captured_state(loopstmt.body)`.
-  - `bound_freevars` = identifier names referenced in
-    `loopstmt.condition` (need a tiny free-vars-of-expr helper;
-    literals contribute none). Exclude any already in `mutated`.
-  - implicit axon state order = `mutated + bound_freevars`.
-  - Flip the `VarDecl` of EVERY name in that combined set to
-    `is_slot=True` (same find-decl-or-CodegenNotSupported rule;
-    types from each decl's `type_ref`, no guessing).
-  - Synthesized `LoopFunctionDecl(kind="iterative_loop",
-    condition=loopstmt.condition, state_params=[… mutated …, …
-    bound_freevars …])`, body = `loopstmt.body.statements` + a
-    `PassStmt` whose values are: the new value Identifier for each
-    mutated name (the body already assigns them; pass the name),
-    and `ReplaceMarker()` for each bound_freevar (invariant).
-    NOTE: `decl.condition` for iterative_loop is the count; with
-    `x` now a state param it IS in scope inside the emitted fn —
-    correct by construction.
-  - `LoopCallStmt(name, condition_arg=loopstmt.condition,
-    state_arg_names = mutated + bound_freevars)`; append the decl
-    to `module.loop_functions`; replace the `LoopStmt`.
-  Gate unchanged (branchless_loop + loop_function_decl + codegen +
-  parser + corpus + smoke + new e2e: single-var, Emma's n1/n2
-  multi-var returns correct values, literal-bound still unrolls).
-
---- (superseded) original codegen-site sketch, kept for context: ---
-NEXT UNIT (start here) — the desugar: at `codegen_base.py:1983`
-(the `LoopStmt`, `count is None` branch that currently `raise
-CodegenNotSupported`), instead:
-  1. `state = loop_capture.captured_state(stmt.body)`.
-  2. Synthesize a unique-named `ast.LoopFunctionDecl` kind
-     `iterative_loop` (int-bound case = Emma's examples): condition
-     = `stmt.condition` (the bound/count), `state_params` = one
-     `ast.LoopStateParam` per captured name (type inferred — see
-     below), body = `stmt.body` + a synthesized `ast.PassStmt`
-     threading each state name in order. Register it the same way
-     module loop fns are (`self._loop_decls` /
-     `Module.loop_functions`, `codegen_base.py:762/771/397`).
-  3. Auto-slot: the captured locals must satisfy the
-     `_translate_loop_call` slot requirement (`:1604-1613`). Emit
-     them into `self._slot_vars` (or synthesize the slot decls)
-     so the call's by-ref write-back works — this IS the implicit
-     axon. Confirm exact `_slot_vars` population mechanism before
-     coding (read where slot vars are registered).
-  4. Emit a synthesized `ast.LoopCallStmt(name, condition_arg=
-     stmt.condition, state_arg_names=state)` via the existing
-     `_translate_loop_call`.
-  OPEN sub-question for the desugar unit: state-param TYPE
-  inference (LoopStateParam needs a TypeRef). Need the declared
-  type of each captured outer var; check whether codegen tracks
-  caller var types (`self._var_type` exists per codegen_base) —
-  reuse it; if a type is unknown, fail honestly (CodegenNotSupported
-  with a clear message), do NOT guess a type.
-Gate for the desugar unit: branchless_loop + loop_function_decl +
-codegen + parser + corpus + smoke + a NEW e2e test (single-var;
-n1/n2 multi-var returns correct values; literal bound still
-unrolls via `_translate_bounded_loop`). while/boolean kind +
-await-as-1-slot-instance are the units after that.
+Remaining (tracked, NOT faked as done):
+- boolean-condition `loop(cond){body}` -> `while_loop` kind (only
+  the int-bound `iterative_loop` form is done);
+- class-method bodies (top-level functions + nested blocks done);
+- scope-shadowing (first-decl-wins today); param/`var`-inferred
+  captured names raise a clear `CodegenNotSupported` (fail-safe,
+  test-verified — never a miscompile);
+- **await-as-minimal-instance (#3)**: Emma's "await = a loop with a
+  1-slot implicit axon + arrival flag" — the next unit on top of
+  this; conform to `planning/sutra-spec/promises.md` + the formal
+  async/promise spec; deletes the host `if/break` at
+  `codegen_pytorch.py:~808`. Gate: promise fixtures + smoke.
 
 ### A. Task #15 — open-question pruning pass  (banners DONE 2026-05-17; pruning is what remains)
 
