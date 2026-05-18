@@ -39,10 +39,16 @@ Remaining (tracked, NOT faked as done):
   lowering (out of scope here, documented in `loop_desugar.py` +
   the finding; tracked under equality-and-defuzzification, not a
   desugar bug);
-- class-method bodies (top-level functions + nested blocks done);
-- scope-shadowing (first-decl-wins today); param/`var`-inferred
-  captured names raise a clear `CodegenNotSupported` (fail-safe,
-  test-verified — never a miscompile);
+- class-method bodies: ✅ DONE 2026-05-17 (torch verified; numpy
+  has a pre-existing deprecated-backend class-instance gap
+  unrelated to loops). Synthesized loop fns go top-level before
+  the `ClassDecl`; loops touching `this`/fields raise a clear
+  `CodegenNotSupported` (no receiver in a top-level fn) — fail-safe;
+- scope-shadowing: ✅ ADDRESSED 2026-05-17 — a captured name
+  declared more than once now raises a clear `CodegenNotSupported`
+  (not lexical-scope-aware yet, so it refuses rather than silently
+  flip the wrong decl). param/`var`-inferred captured names also
+  raise clearly. All fail-safe, test-verified — never a miscompile;
 - **await-as-minimal-instance (#3)**: ✅ DONE 2026-05-17 (both
   backends). `await_value` host poll-loop+branch replaced by the
   exact algebraic reduction of the spec-2 while_loop (no external
