@@ -94,4 +94,4 @@ function fuzzy neq(vector a, vector b) {
 // expose the signatures at the Sutra level.
 
 intrinsic function fuzzy eq(vector a, vector b);
-intrinsic function scalar similarity(vector a, vector b);
+intrinsic function number similarity(vector a, vector b);

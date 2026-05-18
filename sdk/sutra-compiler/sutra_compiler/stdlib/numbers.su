@@ -87,8 +87,8 @@
 
 
 class Numbers extends vector {
-    static intrinsic method complex make_real(scalar x);
-    static intrinsic method complex make_complex(scalar r, scalar i);
+    static intrinsic method complex make_real(number x);
+    static intrinsic method complex make_complex(number r, number i);
     static intrinsic method char make_char(int code);
     static intrinsic method complex complex_mul(complex a, complex b);
 }

@@ -55,8 +55,8 @@ class Tensor extends vector {
     static intrinsic method vector outer(vector a, vector b);
 
     // Inner / dot product. Scalar result.
-    static intrinsic method scalar Dot(vector a, vector b);
-    static intrinsic method scalar dot(vector a, vector b);
+    static intrinsic method number Dot(vector a, vector b);
+    static intrinsic method number dot(vector a, vector b);
 
     // Transpose. For 2-D input, swaps the two axes; for 1-D, returns
     // the input unchanged (numpy convention — there's no "row" vs
@@ -65,8 +65,8 @@ class Tensor extends vector {
     static intrinsic method vector transpose(vector m);
 
     // L2 norm of a vector. Scalar result.
-    static intrinsic method scalar Norm(vector v);
-    static intrinsic method scalar norm(vector v);
+    static intrinsic method number Norm(vector v);
+    static intrinsic method number norm(vector v);
 
     // L2 normalization. Returns v / Norm(v) with an eps-guard to
     // make the zero-norm case behave (returns zero, no NaN).

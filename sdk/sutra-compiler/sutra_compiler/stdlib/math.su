@@ -60,19 +60,19 @@ class Math extends vector {
     // exp — Euler at a scalar boundary: real(cexp(x)). For real x this
     //   is e^x; the documented real(exp(iθ)) projection. Out-of-range
     //   saturates at the table edge (no host raise).
-    static intrinsic method scalar exp(scalar x);
+    static intrinsic method number exp(number x);
 
     // log / ln — natural log (JS Math.log is natural, not base-10): the
     //   inverse codebook, same crosstalk kernel. ln is the identity alias.
     //   Non-positive / out-of-range saturates at the table edge (a large
     //   negative — the valid limit, not an error).
-    static intrinsic method scalar log(scalar x);
-    static intrinsic method scalar ln(scalar x);
+    static intrinsic method number log(number x);
+    static intrinsic method number ln(number x);
 
     // cos — real part of the unit eigenrotation e^(i·x).
     // sin — imag part of the SAME rotation (the y-coordinate).
-    static intrinsic method scalar cos(scalar x);
-    static intrinsic method scalar sin(scalar x);
+    static intrinsic method number cos(number x);
+    static intrinsic method number sin(number x);
 
     // ccos — complex-argument cosine. The documented reduction:
     //   cos(z) = (e^(i·z) + e^(−i·z)) / 2.
@@ -98,18 +98,18 @@ class Math extends vector {
     // exp/log/sin/cos are scalar-typed so `*` is not complex_mul).
 
     // pow — change of base:  x^y = e^(y · ln x).
-    static method scalar pow(scalar x, scalar y) { return exp(y * log(x)); }
+    static method number pow(number x, number y) { return exp(y * log(x)); }
 
     // sqrt — the y = 1/2 case:  √x = e^(0.5 · ln x).
-    static method scalar sqrt(scalar x) { return exp(0.5 * log(x)); }
+    static method number sqrt(number x) { return exp(0.5 * log(x)); }
 
     // tan — the rotation's slope sin/cos. cos → 0 ⇒ ±inf (valid limit).
-    static method scalar tan(scalar x) { return sin(x) / cos(x); }
+    static method number tan(number x) { return sin(x) / cos(x); }
 
     // sinh = (e^x − e^−x)/2   cosh = (e^x + e^−x)/2
     // tanh = (e^2x − 1)/(e^2x + 1)  [stable]; large |x| ⇒ exp saturates
     //   so tanh → ±1, the correct limit.
-    static method scalar sinh(scalar x) { return (exp(x) - exp(0 - x)) * 0.5; }
-    static method scalar cosh(scalar x) { return (exp(x) + exp(0 - x)) * 0.5; }
-    static method scalar tanh(scalar x) { return (exp(2 * x) - 1) / (exp(2 * x) + 1); }
+    static method number sinh(number x) { return (exp(x) - exp(0 - x)) * 0.5; }
+    static method number cosh(number x) { return (exp(x) + exp(0 - x)) * 0.5; }
+    static method number tanh(number x) { return (exp(2 * x) - 1) / (exp(2 * x) + 1); }
 }
