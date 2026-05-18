@@ -92,10 +92,10 @@ of (1). Logged, not started, not faked.
 
 ## Why it was not pushed further in this run
 
-The honest reason: completing (1)–(3) correctly is a numeric-core
+The real reason: completing (1)–(3) correctly is a numeric-core
 refactor of a safety-critical compiler. A half-built version
 produces wrong complex arithmetic. Shipping that with a
 "substrate-pure / done" label is precisely the lie that triggered
 this whole audit. The disciplined outcome is: compiler restored and
 verified, leak question answered and verified, deep refactor scoped
-honestly and queued — not a fake completion.
+plainly and queued — not a fake completion.

@@ -76,7 +76,7 @@ the key is a role *name* embedded into a basis vector, not string
 *content*). One surgical change; the May-8 string model is
 untouched for all real string *values*.
 
-## Verification (honest, untuned)
+## Verification (untuned)
 
 `python examples/multi_program_axon/_run.py` →
 

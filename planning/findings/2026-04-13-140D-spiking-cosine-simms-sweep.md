@@ -90,7 +90,7 @@ At SIM_MS=6000 pipeline A would score ~10/15 on the k ∈ {3,5,8} portion
 of the grid vs 2/9 at SIM_MS=3000 — a 5× improvement from window
 length alone. SIM_MS=12000 pushes further at 4× the wall-clock cost.
 
-**For the paper:** The honest story is now two-layered. Pipeline A's
+**For the paper:** The frank story is now two-layered. Pipeline A's
 k-ceiling at SIM_MS=3000 (9/10 at k=3, 14/30 overall) is not a
 fundamental substrate limitation — it trades wall-clock time for
 reachable k linearly. Reviewers who read the 14/30 number as a

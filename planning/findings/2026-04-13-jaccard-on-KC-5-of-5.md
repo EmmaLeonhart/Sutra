@@ -113,7 +113,7 @@ because embedding 51-D EPG Q in 140-D hemibrain PN space as
 the KC projection of the unchanged dims dominates the pattern — every
 loop terminated at iter 1 with a spurious match (0/5 counting, 0/5
 ordering; logged in commit message for the failed-hemibrain run). The
-honest statement is: rotation is real wiring; readout is a spiking
+accurate statement is: rotation is real wiring; readout is a spiking
 MB with synthetic connectivity at matched dimension.
 
 **Paths to close the caveat (future work).**
@@ -123,7 +123,7 @@ MB with synthetic connectivity at matched dimension.
 - Or: rebuild the MB loader with an EPG-sized PN count and
   synapse-preserving subsampling.
 
-**For the paper.** This updates §Honest Limits in `fly-brain-paper`
+**For the paper.** This updates §Limits in `fly-brain-paper`
 to add a concrete positive result: with the tier-3 readout the spec
 actually prescribes (Jaccard-on-KC), the real-wiring rotation loop
 passes 10/10 (5 counting + 5 ordering). The 3/5 cosine result remains

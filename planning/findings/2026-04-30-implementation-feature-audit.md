@@ -390,9 +390,9 @@ Execute` (`__main__.py`, `codegen_pytorch.py:1250`).
   documentation in `planning/findings/2026-04-29-bound-table-
   capacity-limit.md`. Eigenrotation-as-modulus is the open
   question.
-- 🚫 **Honest scope:** the stdlib has lots of "target shape" files
+- 🚫 **Frank scope:** the stdlib has lots of "target shape" files
   that aren't yet executable. The paper doesn't claim these as
-  contributions. The README in `stdlib/` is honest about it.
+  contributions. The README in `stdlib/` is accurate about it.
 
 ---
 
@@ -493,7 +493,7 @@ underweighted in the current paper":
 13. **244+ test corpus.** Paper says "13 demos + 23 files" but
     doesn't cite the test count.
 
-## 9. Honest scope (what we should NOT claim)
+## 9. Frank scope (what we should NOT claim)
 
 - **Transcendentals** (`log`, `exp`, `sqrt`, `sin`, `cos`, `tan`,
   `pow`): compile-time-disabled. Test
@@ -516,7 +516,7 @@ underweighted in the current paper":
 When making a paper edit, grep this file for the claim you're
 about to make. If the feature is here under ⭐ "strong,
 undersold," consider whether the edit can lift it into focus.
-If the feature is under "honest scope (NOT implemented)," do
+If the feature is under "frank scope (NOT implemented)," do
 not claim it.
 
 When adding a new feature to the language, add an entry here in

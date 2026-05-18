@@ -70,7 +70,7 @@ saturate instead of raise.
    data. Verified: 0 code leak signatures; substrate output
    matches the documented host algorithm to ≤1.4e-4 across 9
    inputs (the residual is substrate exp-table precision vs host
-   libm — the honest cost; polarization decisions identical:
+   libm — the real cost; polarization decisions identical:
    -0.6→-1, -0.4→0, +0.6→+1); `examples/_smoke_test.py` PASS;
    `test_corpus`+`test_transcendentals` 6 passed/103 subtests.
 

@@ -87,11 +87,11 @@ Three operations have been tested on the real Shiu substrate today:
 
 The fly-brain paper's current headline relies on rotation. That claim
 does not survive contact with the real-W substrate at any protocol
-tried today. The honest strategic options for the paper are:
+tried today. The frank strategic options for the paper are:
 
 1. **Narrow to operations that work.** Rewrite §Result 2 around bundle
    + snap on real W, drop the rotation/counting claim. This is the
-   clean, honest version of the paper; it moves the headline from
+   clean, candid version of the paper; it moves the headline from
    "Sutra compiles to rotation on the fly brain" to "Sutra compiles
    to bundle and snap on the fly brain; rotation requires
    sub-circuit-specific implementation not yet demonstrated."
@@ -124,7 +124,7 @@ Recommend option 1.
   in the connectivity table, the Shiu model includes those neurons,
   and this protocol just doesn't engage them.
 
-## Not tested (honest scope)
+## Not tested (scope)
 
 - Multi-EPG drive (localized cluster of 3–5 adjacent EPGs) at higher
   rate (500+ Hz) for longer windows (300–1000 ms).

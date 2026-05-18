@@ -24,7 +24,7 @@ bundled retrieval. Same task across all schemes.
 at every k, as expected. Numbers in `experiments/sutra_vs_torchhd.py`
 output.)
 
-## Honest interpretation
+## Frank interpretation
 
 **Sutra's rotation binding has equivalent retrieval capacity to
 MAP and HRR.** All three schemes track within ~3 percentage points
@@ -51,7 +51,7 @@ gives data that *doesn't favor Sutra*. Putting this table in the
 paper as evidence would actively undercut the rotation-binding
 choice.
 
-The honest path is to **not pivot the paper around capacity
+The accurate path is to **not pivot the paper around capacity
 claims** — the data doesn't support a capacity-based pitch. The
 existing prose comparison in §2.1 of `paper/paper.md` (Sutra-
 the-language-with-compiler vs. TorchHD-the-library-called-from-

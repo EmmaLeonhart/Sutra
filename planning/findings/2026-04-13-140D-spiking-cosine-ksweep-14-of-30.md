@@ -87,7 +87,7 @@ tuning — the MB is designed to decorrelate similar inputs.
 ## Implications
 
 - **The substrate has a practical k-ceiling around 3 under current
-  SIM_MS.** Paper can honestly report this bound. It is not a
+  SIM_MS.** Paper can accurately report this bound. It is not a
   result that gets brushed under "Poisson noise"; it is the main
   quantitative constraint on how long a substrate-only Sutra loop
   can iterate before the readout loses the target.
@@ -95,7 +95,7 @@ tuning — the MB is designed to decorrelate similar inputs.
   wall-clock cost. Not measured here — the current experiment
   already ran 7 minutes. Would be a good follow-up but is not
   blocking the paper.
-- **Paper's §Result 2 and §Honest Limits need rewriting** to
+- **Paper's §Result 2 and §Limits need rewriting** to
   present both pipelines side by side: the numpy-rotation + Jaccard
   "full paper demo" at 30/30 with its host-rotation caveat, and the
   substrate-only at 14/30 with its k≤3 ceiling. This is the task

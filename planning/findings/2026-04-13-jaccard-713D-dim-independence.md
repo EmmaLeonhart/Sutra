@@ -116,7 +116,7 @@ be cited as load-bearing, not speculative.
 
 ### Implications for the paper
 
-The `fly-brain-paper` §Honest Limits §(iv) already claims
+The `fly-brain-paper` §Limits §(iv) already claims
 "loops-on-real-wiring, with the spec-aligned readout, is essentially
 solved." This run reinforces that claim at the full 713-D composed-Q
 scale. The paper can be updated to note the D=713 pass alongside the

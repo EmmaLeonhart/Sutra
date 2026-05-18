@@ -21,7 +21,7 @@
 > The leak was fixed 2026-05-15: every transcendental/modulus
 > intrinsic is now tensor-in → tensor-ops → tensor-out with a single
 > `_st()` entry boundary, no `float()`/host-`if`/`raise`. Latency
-> rose ≈3× (the honest cost of actually running on the substrate).
+> rose ≈3× (the real cost of actually running on the substrate).
 > This finding is kept verbatim below as a record of the error; do
 > not cite its purity claim.
 

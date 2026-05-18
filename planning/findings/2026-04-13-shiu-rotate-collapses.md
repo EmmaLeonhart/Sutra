@@ -93,14 +93,14 @@ preserved; the dynamics have converged.
   polar-decomp Q, does not survive contact with real W iterated
   dynamics under the generic protocol tested here. The reviewer's
   critique on this point is correct.
-- The honest paper claim is narrower: **rotation runs on the specific
+- The accurate paper claim is narrower: **rotation runs on the specific
   CX sub-circuit that is biologically known to rotate; it does not
   run on arbitrary subsets of real W.**
 - Next experiment: restrict the drive + readout to the EPG neuron
   population only (or EPG + hDelta joint 140-D subset already used
   for the paper's Q construction) and iterate within that sub-circuit.
   If structure appears there but not on whole-brain, that is the
-  honest circuit-level claim the paper can stand behind.
+  frank circuit-level claim the paper can stand behind.
 
 ## Caveats
 

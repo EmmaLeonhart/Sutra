@@ -15,7 +15,7 @@ Static read of the two source files, cross-checked against one live run of the s
 
 ## Findings — per-line locus
 
-| Operation | Site | Executes on | Honest per spec? |
+| Operation | Site | Executes on | Faithful per spec? |
 |---|---|---|---|
 | Q construction (polar decomposition of W) | `nearest_rotation(W)` → numpy SVD | host at compile time | ✓ yes — compile-time is host |
 | v₀ construction | `rng.randn(dim); v0 /= norm(v0)` | host at compile time | ✓ yes — input encoding |
@@ -38,7 +38,7 @@ Static read of the two source files, cross-checked against one live run of the s
 
 There is no `np.dot(M, v)`, no `M @ v`, no `np.linalg.matrix_power(M, i) @ v` anywhere in the runtime path. The steady-state voltage of a linear LIF circuit driven by Poisson inputs through synapses weighted by M equals (up to affine scaling) `M @ v` — which is the whole point of the construction — but the executor is the spiking circuit, not numpy.
 
-**Conclusion: the rotation is honest.** The paper's abstract claim "All algebraic operations (bundle, bind, rotation) run as spiking circuits" is correct for rotation as of this audit.
+**Conclusion: the rotation is faithful.** The paper's abstract claim "All algebraic operations (bundle, bind, rotation) run as spiking circuits" is correct for rotation as of this audit.
 
 ## What is NOT on the substrate
 
@@ -66,7 +66,7 @@ Seed 1's failure is a Poisson-noise flip (cos difference is 0.01). Seed 4's fail
 
 ## Implications
 
-- **Paper's rotation claim is honest and does not need retraction.** It does need more explicit language about *which* ops run where — the current "all algebraic ops run as spiking circuits" is true for the ones listed (bundle, bind, rotation) but can be read as covering similarity, which it should not.
+- **Paper's rotation claim is accurate and does not need retraction.** It does need more explicit language about *which* ops run where — the current "all algebraic ops run as spiking circuits" is true for the ones listed (bundle, bind, rotation) but can be read as covering similarity, which it should not.
 - **Paper should add a "where each op executes" table** that shows, for the headline pipeline, which runtime operations are on substrate and which are on host. The three host-resident ops above need to be acknowledged, not buried.
 - **Headline 3/5 number is real and produced by a substrate rotation.** The numpy-rotation interpretation I offered in the session before this audit was wrong; Q @ v genuinely runs as spikes. What's weaker than the paper suggests is the substrate-completeness of the end-to-end loop, not the rotation.
 - **Next items in the audit queue:** `neural_vsa.py`'s bundle/bind, `vsa_operations.py`, codegen-emitted Python. Apply the same per-line locus analysis. Any runtime numpy on a state vector is a finding.

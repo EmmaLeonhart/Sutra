@@ -90,5 +90,5 @@ Not scheduled. When it comes back:
 2. Spec addendum to `03-control-flow.md` covering `gate`, `select`, and the status of `if/else`. Spec before code.
 3. Parser support for `gate` and `select`. Keep the existing `if/else` parse; change only the codegen error to point at the replacements.
 4. Codegen that emits the softmax-weighted-superposition pattern from `fuzzy_conditional.py`. Share prototype compilation with eigenrotation loops if feasible.
-5. Validation: a `.su` file using `select` should hit the same 80/80 accuracy as `fuzzy_conditional.py`. Report honestly if it doesn't. Per `CLAUDE.md`, a smaller number is a real result, not a failure to rerun.
+5. Validation: a `.su` file using `select` should hit the same 80/80 accuracy as `fuzzy_conditional.py`. Report it accurately if it doesn't. Per `CLAUDE.md`, a smaller number is a real result, not a failure to rerun.
 6. Lint or mechanical-translate sweep across existing `.su` files that use `if`. Policy call on whether to warn or error.

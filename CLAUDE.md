@@ -8,7 +8,7 @@ Rules:
 
 1. **Every Sutra operation must actually run where the spec says it runs.** No host wrappers around substrate ops.
 2. **Validation numbers are measurements, not targets.** If a test gives cos=0.84 and the threshold is 0.9, report 0.84, investigate, fix the physics. Do not doctor the number.
-3. **"It ran without errors" is not success.** Compare decoded output to ground-truth and report the honest delta.
+3. **"It ran without errors" is not success.** Compare decoded output to ground-truth and report the true delta.
 4. **Negative results are required.** If an approach does not work, mark it, explain why, and do not wire it downstream.
 5. **If spec and implementation disagree, stop and resolve it explicitly.** Either fix the implementation or update the spec. Do not ship code that contradicts the spec.
 6. **If you catch yourself taking a shortcut, say so in plain text.** Surface it — don't rationalize it.
