@@ -1275,14 +1275,14 @@ class Parser:
         Forms:
           loop (10) { ... }            bounded, unrolls at compile time
           loop (10 as i) { ... }       bounded with index variable
-          loop (expr) { ... }          eigenrotation (condition-based)
+          loop (expr) { ... }          condition-based (tail-recursive cell)
           loop NAME(cond, args, ...);  invoke a loop function
                                        (2026-04-30 redesign — see
                                        _parse_loop_function_decl)
 
         Disambiguation by what follows `loop`:
           IDENT → loop call (new function-decl form)
-          LPAREN → existing bounded/eigenrotation forms
+          LPAREN → existing bounded / condition-based forms
         """
         start = self._current_span()
         self._advance()  # loop
@@ -1343,7 +1343,7 @@ class Parser:
                 name_tok = self._expect(TokenKind.IDENT, "index variable name after `as`")
                 index_var = name_tok.lexeme if name_tok else "_i"
         else:
-            # Condition-based (eigenrotation) loop.
+            # Condition-based (tail-recursive cell) loop.
             condition = expr
 
         self._expect(TokenKind.RPAREN, "`)` to close `loop` header")
