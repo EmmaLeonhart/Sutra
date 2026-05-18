@@ -79,6 +79,43 @@ class TestImplicitLoopDesugar(unittest.TestCase):
         self.assertAlmostEqual(float(_run(np_translate, self.LITERAL)),
                                3.0, places=4)
 
+    # --- while_loop kind (relational bound -> while_loop) ---
+    WHILE_COUNT_UP = (
+        "function int main() {\n"
+        "  int n = 0;\n"
+        "  loop(n < 11) { n = n + 1; }\n"
+        "  return n;\n"
+        "}\n"
+    )
+    WHILE_TWO_VARS = (  # n: 1..5, s = 1+2+3+4+5 = 15
+        "function int main() {\n"
+        "  int n = 0;\n"
+        "  int s = 0;\n"
+        "  loop(n < 5) { n = n + 1; s = s + n; }\n"
+        "  return s;\n"
+        "}\n"
+    )
+
+    def test_while_relational_bound_torch(self):
+        self.assertAlmostEqual(
+            float(_run(torch_translate, self.WHILE_COUNT_UP)), 11.0,
+            places=4)
+
+    def test_while_relational_bound_numpy(self):
+        self.assertAlmostEqual(
+            float(_run(np_translate, self.WHILE_COUNT_UP)), 11.0,
+            places=4)
+
+    def test_while_two_state_vars_torch(self):
+        self.assertAlmostEqual(
+            float(_run(torch_translate, self.WHILE_TWO_VARS)), 15.0,
+            places=4)
+
+    def test_while_two_state_vars_numpy(self):
+        self.assertAlmostEqual(
+            float(_run(np_translate, self.WHILE_TWO_VARS)), 15.0,
+            places=4)
+
     def test_param_captured_name_is_clear_error_not_miscompile(self):
         # `acc` is a parameter, not a local VarDecl -> the desugar
         # must reject with a clear CodegenNotSupported, never silently
