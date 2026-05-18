@@ -95,20 +95,56 @@ def _loop_kind(cond: object) -> str:
     return "iterative_loop"
 
 
-def _collect_var_decls(node: object, out: Dict[str, ast.VarDecl]) -> None:
-    """First-seen `name -> VarDecl` over the whole subtree."""
-    if isinstance(node, ast.VarDecl) and node.name not in out:
-        out[node.name] = node
+def _collect_var_decls(
+    node: object,
+    out: Dict[str, ast.VarDecl],
+    dups: "set[str]",
+) -> None:
+    """First-seen `name -> VarDecl` over the subtree, AND record into
+    `dups` any name declared more than once. The pass is not yet
+    lexical-scope-aware (first-decl-wins); a duplicated captured name
+    is therefore ambiguous, so the desugar refuses it with a clear
+    error rather than silently flipping the wrong declaration to
+    slot — fail-safe, never a silent miscompile (queue item 0 (b))."""
+    if isinstance(node, ast.VarDecl):
+        if node.name in out:
+            dups.add(node.name)
+        else:
+            out[node.name] = node
     if not dataclasses.is_dataclass(node):
         return
     for f in dataclasses.fields(node):
         v = getattr(node, f.name, None)
         if dataclasses.is_dataclass(v):
-            _collect_var_decls(v, out)
+            _collect_var_decls(v, out, dups)
         elif isinstance(v, (list, tuple)):
             for item in v:
                 if dataclasses.is_dataclass(item):
-                    _collect_var_decls(item, out)
+                    _collect_var_decls(item, out, dups)
+
+
+def _references_this(node: object) -> bool:
+    """True iff the subtree references `this` (a `ThisExpr` anywhere).
+
+    A loop inside a class method whose body/bound touches `this`
+    (i.e. instance state / fields) cannot be lowered to a top-level
+    synthesized loop function — that function has no receiver. We
+    detect it and reject with a clear error rather than emit code
+    that references an undefined `this` (queue item 0 (a))."""
+    if isinstance(node, ast.ThisExpr):
+        return True
+    if not dataclasses.is_dataclass(node):
+        return False
+    for f in dataclasses.fields(node):
+        v = getattr(node, f.name, None)
+        if dataclasses.is_dataclass(v):
+            if _references_this(v):
+                return True
+        elif isinstance(v, (list, tuple)):
+            for item in v:
+                if dataclasses.is_dataclass(item) and _references_this(item):
+                    return True
+    return False
 
 
 class _Desugarer:
@@ -118,6 +154,9 @@ class _Desugarer:
         # Loop functions synthesized while rewriting the *current*
         # function; flushed into module.items right before it.
         self._pending: List[ast.LoopFunctionDecl] = []
+        # Names declared >1× in the current callable body — captured
+        # ones are refused (not lexical-scope-aware yet); see (b).
+        self._dups: "set[str]" = set()
 
     def _unique_name(self, fn_name: str) -> str:
         self._counter += 1
@@ -172,6 +211,19 @@ class _Desugarer:
                 loop, "implicit `loop(expr){body}` requires a bound/"
                 "condition expression."
             )
+        # (a) class-method guard: a synthesized implicit loop function
+        # is top-level (no receiver). A loop that touches `this` /
+        # instance state cannot be lowered that way — clear error,
+        # never undefined-`this` emitted code.
+        if _references_this(loop.body) or _references_this(cond):
+            raise CodegenNotSupported(
+                loop,
+                "implicit `loop(expr){body}` inside a class method may "
+                "not (yet) reference `this` / instance fields — its "
+                "lowered loop function is top-level and has no "
+                "receiver. Lift the loop state into local variables, "
+                "or use an explicit declared loop function.",
+            )
         mutated = captured_state(loop.body)
         bound = [n for n in free_identifiers(cond) if n not in mutated]
         state = mutated + bound
@@ -185,6 +237,16 @@ class _Desugarer:
 
         state_params: List[ast.LoopStateParam] = []
         for name in state:
+            if name in self._dups:
+                raise CodegenNotSupported(
+                    loop,
+                    f"implicit loop captures `{name}`, which is "
+                    f"declared more than once in this function — the "
+                    f"desugar is not yet lexical-scope-aware and will "
+                    f"not guess which declaration is the loop's state. "
+                    f"Rename one, or use an explicit declared loop "
+                    f"function. (Fail-safe — never a silent miscompile.)",
+                )
             decl = var_decls.get(name)
             if decl is None:
                 raise CodegenNotSupported(
@@ -241,23 +303,50 @@ class _Desugarer:
             state_arg_names=list(state),
         )
 
+    def _rewrite_callable(
+        self, body: ast.Block, name: str
+    ) -> List[ast.LoopFunctionDecl]:
+        """Rewrite one function/method body; return its synthesized
+        loop functions (caller inserts them before the enclosing
+        top-level item so codegen registers them first)."""
+        var_decls: Dict[str, ast.VarDecl] = {}
+        self._dups = set()
+        # params are not VarDecls; a param-captured name therefore
+        # hits the clear CodegenNotSupported in _desugar_loop (by
+        # design — not slottable here).
+        _collect_var_decls(body, var_decls, self._dups)
+        self._pending = []
+        self._rewrite_block(body, var_decls, name)
+        pend = self._pending
+        self._pending = []
+        return pend
+
     def run(self) -> None:
         new_items: List[ast.TopLevel] = []
         for item in self._module.items:
             if isinstance(item, ast.FunctionDecl):
                 body = getattr(item, "body", None)
                 if isinstance(body, ast.Block):
-                    var_decls: Dict[str, ast.VarDecl] = {}
-                    # params are not VarDecls; a param-captured name
-                    # therefore hits the clear CodegenNotSupported in
-                    # _desugar_loop (by design — not slottable here).
-                    _collect_var_decls(body, var_decls)
-                    self._pending = []
-                    self._rewrite_block(body, var_decls, item.name)
                     # Synthesized loop fns must precede the caller so
                     # codegen registers them first (items run in order).
-                    new_items.extend(self._pending)
-                    self._pending = []
+                    new_items.extend(
+                        self._rewrite_callable(body, item.name)
+                    )
+            elif isinstance(item, ast.ClassDecl):
+                # (a) class-method bodies. The synthesized loop
+                # functions are TOP-LEVEL (no receiver) and inserted
+                # before the ClassDecl, so codegen registers them
+                # before translating the class's methods. Loops that
+                # touch `this` are refused in _desugar_loop with a
+                # clear error (top-level fn has no receiver).
+                for method in getattr(item, "methods", []):
+                    mbody = getattr(method, "body", None)
+                    if isinstance(mbody, ast.Block):
+                        new_items.extend(
+                            self._rewrite_callable(
+                                mbody, f"{item.name}_{method.name}"
+                            )
+                        )
             new_items.append(item)
         self._module.items = new_items
 
