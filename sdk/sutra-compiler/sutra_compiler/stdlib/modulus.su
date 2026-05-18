@@ -48,12 +48,12 @@ class Math extends vector {
     //
     // Each is a single tensor op in _VSA (torch.floor / ceil / round /
     // trunc / abs / sign), tensor-in → tensor-out, no host scalar.
-    static intrinsic method scalar floor(scalar x);
-    static intrinsic method scalar ceil(scalar x);
-    static intrinsic method scalar round(scalar x);
-    static intrinsic method scalar trunc(scalar x);
-    static intrinsic method scalar abs(scalar x);
-    static intrinsic method scalar sign(scalar x);
+    static intrinsic method number floor(number x);
+    static intrinsic method number ceil(number x);
+    static intrinsic method number round(number x);
+    static intrinsic method number trunc(number x);
+    static intrinsic method number abs(number x);
+    static intrinsic method number sign(number x);
 
     // ── The eigenrotation modulus ────────────────────────────────────────────
     //
@@ -62,20 +62,20 @@ class Math extends vector {
     //   non-negative for m > 0 (`Math.rotation_mod(-0.1, 1) == 0.9`);
     //   discontinuous at integer multiples of m (atan2 branch cut).
     //   Divisor 0 → NaN tensor, the degenerate limit, not a host raise.
-    static intrinsic method scalar rotation_mod(scalar x, scalar m);
+    static intrinsic method number rotation_mod(number x, number m);
 
     // sawtooth_mod — the smooth Fourier-series alternative:
     //   mod_floor(x,m) ≈ m/2 − (m/π)·Σ_{k=1..N} sin(2πkx/m)/k. The k-sum
     //   is a single vectorized tensor reduction (a (K,N) crosstalk-weight
     //   matmul against the sin table), NOT a Python loop. Fully
     //   differentiable; ~9% Gibbs ring near integer multiples of m.
-    static intrinsic method scalar sawtooth_mod(scalar x, scalar m);
+    static intrinsic method number sawtooth_mod(number x, number m);
 
     // fmod — truncation modulus (JS / C / C# / Rust / TS `%`): result has
     //   the sign of the dividend. x − m·trunc(x/m), all tensor ops.
     //   Divisor 0 → NaN tensor (no host ZeroDivisionError). `%` lowers
     //   here.
-    static intrinsic method scalar fmod(scalar x, scalar m);
+    static intrinsic method number fmod(number x, number m);
 
     // mod — the canonical mathematical floor-modulus. _VSA.mod is a
     //   direct alias of _VSA.rotation_mod (`mod = rotation_mod`): the
@@ -83,5 +83,5 @@ class Math extends vector {
     //   (`Math.mod(-0.1, 1) == 0.9`). This is what mathematical code
     //   should reach for; `%` (fmod) keeps the dividend's sign for JS
     //   parity.
-    static intrinsic method scalar mod(scalar x, scalar m);
+    static intrinsic method number mod(number x, number m);
 }
