@@ -70,7 +70,7 @@ spiking decode because each extra dimension adds variance without
 reinforcing the signal (the proto only has energy in the direction
 `Q³v₀`, not uniformly across the 713-D space).
 
-**For the paper.** The honest addition to §Honest Limits is that scaling
+**For the paper.** The frank addition to §Limits is that scaling
 to the 713-D composed `Q` preserves numpy correctness but does not
 improve the spiking pass rate — and in fact the peak cos degrades by
 ~7×, putting the 3/5 composed result much closer to a noise floor than

@@ -76,19 +76,19 @@ what makes `Q^k` for small k hard to distinguish at low SNR.
 from real FlyWire EPG subspace via polar decomposition") is still
 correct. We should *not* upgrade the claim to "spiking rotation on
 real wiring iterates cleanly end-to-end" — that's not what 3/5 says.
-The honest statement is: the rotation operator comes from real
+The accurate statement is: the rotation operator comes from real
 biology; iterated *numpy* evaluation of that operator passes the
 geometric-loop tests; iterated *spiking* evaluation passes on 3/5
 seeds at SIM_MS=3000 ms and misses on 2/5 because of a specific
 interaction between Q's spectrum and Poisson noise. This fact
-belongs in the §Honest Limits paragraph once the next paper
+belongs in the §Limits paragraph once the next paper
 revision goes out.
 
 **For next experiments.** Three plausible paths, any of which would
 move the number:
 
 - Longer SIM_MS (diminishing returns, trades wall clock). 5000–10000
-  ms per step is probably the honest ceiling before the experiment
+  ms per step is probably the practical ceiling before the experiment
   becomes impractical for a 5-seed × multi-iter sweep.
 - A Q with more evenly distributed eigenphases. Block-diagonal
   composition of multiple motifs (already implemented at 713-D in

@@ -85,7 +85,7 @@ underlying substrate-purity violation.
   was a pre-existing gap that just hadn't been noticed because no
   test exercised it.
 
-The honest assessment is that the bug existed from day one and
+The accurate assessment is that the bug existed from day one and
 slipped past every review because no test ever cared whether a
 function-call-returning-a-string went through the substrate. The
 spec/code drift on 2026-05-08 made it official but didn't create

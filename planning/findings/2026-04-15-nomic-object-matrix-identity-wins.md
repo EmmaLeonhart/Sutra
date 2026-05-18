@@ -101,7 +101,7 @@ demonstrates two things:
 should flag that the "roles are learned matrices" framing is a
 design hypothesis with strong conceptual support (unifies with
 `is_cat`, defuzz matrix, cartography displacements) but the naive
-empirical probe on this substrate gave a null result. The honest
+empirical probe on this substrate gave a null result. The accurate
 position is: matrix roles are the design target; implementations
 that turn out to require more data, more structure, or non-linear
 roles for some cases are expected, not failures.

@@ -56,7 +56,7 @@ gradients. The next round needs **real empirical work**:
    tests.
 2. **Build a quantitative comparison vs. torchhd** for at least one
    benchmark task (role-filler retrieval is the obvious one).
-3. **Address T=50 honestly** — measure where the hard cap actually
+3. **Address T=50 plainly** — measure where the hard cap actually
    kicks in across the demo programs and report it as a known
    capacity limit, not a fixed parameter.
 4. **Reframe novelty around the constant-memory tail-recursion

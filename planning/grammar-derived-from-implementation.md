@@ -289,7 +289,7 @@ precision is the special case.
 
 ---
 
-## 6. Known grammar caveats (honest, not faked)
+## 6. Known grammar caveats (accurate, not faked)
 
 - The `var_decl` production above summarizes several concrete
   forms whose exact disambiguation is in `parser.py`

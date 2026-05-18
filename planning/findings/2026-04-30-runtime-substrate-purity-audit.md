@@ -6,7 +6,7 @@
 basically you lied about that actually goes to Python?" after
 discovering that `loop[N]` runtime falls back to Python `for`.
 
-This is the honest audit. No hedging, no spin. Every emitted runtime
+This is the frank audit. No hedging, no spin. Every emitted runtime
 method in `codegen.py` (numpy IR) and `codegen_pytorch.py` (the
 canonical CUDA target) was scanned for host-Python control flow,
 scalar extraction, libm calls, and other escape hatches from the

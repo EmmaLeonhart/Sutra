@@ -46,7 +46,7 @@ Note: there is a `.claude/scheduled_tasks.lock` file present, which suggests Cla
 
 The original task asked us to "compare against the canonical Sutra repo" to see what was replicated faithfully and what diverged. With zero `.su` files, zero compiler code, zero tests, there is nothing to compare. The replication never produced a target.
 
-## Honest verdict
+## Frank verdict
 
 **0% replication.** The cleanvibe scaffold is a starting point, not a replication. The cause is upstream of the agent: the scaffold did not include a brief telling the agent what to replicate. Setting up another replication run would mean writing a `CLAUDE.md` (or pasting the paper into a `BRIEF.md`) that explicitly says "your task is to reimplement Sutra from this paper plus the SKILL.md reproducer at <link>" — and *then* running an autonomous agent loop, not just opening interactive Claude.
 
