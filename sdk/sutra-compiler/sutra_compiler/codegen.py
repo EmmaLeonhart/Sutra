@@ -902,17 +902,14 @@ class Codegen(BaseCodegen):
         self._emit()
         self._emit("def await_value(self, p):")
         self._indent += 1
-        self._emit('"""Loop-bodied await — substrate-equivalent of a')
-        self._emit("while_loop gating on Promise.isPending. See the")
-        self._emit("pytorch backend for the full docstring.")
+        self._emit('"""await — exact reduction of the spec-2 while_loop')
+        self._emit("(no external axon producer mutates p mid-spin, so the")
+        self._emit("spin's empty body yields p unchanged and the loop's")
+        self._emit("terminal read is exactly value(p)). Audit REAL LEAK #3")
+        self._emit("removed: prior body was a host bounded poll loop with a")
+        self._emit("host branch on the pending predicate. See the pytorch")
+        self._emit("backend for the full spec-justification docstring.")
         self._emit('"""')
-        self._emit("for _ in range(100):")
-        self._indent += 1
-        self._emit("if self.isPending(p) <= 0.5:")
-        self._indent += 1
-        self._emit("break")
-        self._indent -= 1
-        self._indent -= 1
         self._emit("return self.value(p)")
         self._indent -= 1
         self._emit()

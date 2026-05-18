@@ -43,11 +43,13 @@ Remaining (tracked, NOT faked as done):
 - scope-shadowing (first-decl-wins today); param/`var`-inferred
   captured names raise a clear `CodegenNotSupported` (fail-safe,
   test-verified — never a miscompile);
-- **await-as-minimal-instance (#3)**: Emma's "await = a loop with a
-  1-slot implicit axon + arrival flag" — the next unit on top of
-  this; conform to `planning/sutra-spec/promises.md` + the formal
-  async/promise spec; deletes the host `if/break` at
-  `codegen_pytorch.py:~808`. Gate: promise fixtures + smoke.
+- **await-as-minimal-instance (#3)**: ✅ DONE 2026-05-17 (both
+  backends). `await_value` host poll-loop+branch replaced by the
+  exact algebraic reduction of the spec-2 while_loop (no external
+  producer ⇒ spin is a no-op ⇒ await ≡ `value(p)`). 0 leak
+  signatures; `async_promise_runtime.su` main()=3.0 both backends;
+  227 passed + smoke. Finding:
+  `planning/findings/2026-05-17-await-substrate-pure.md`.
 
 ### A. Task #15 — open-question pruning pass  (banners DONE 2026-05-17; pruning is what remains)
 
@@ -82,27 +84,20 @@ not trusted from a prior claim. Surfaced one self-correction → item C.
 
 ## Structural — deliberate, gated; explicitly NOT a rushed autonomous edit
 
-### D. Audit REAL LEAK #3 only (#4 reclassified NOT-a-leak 2026-05-17)
+### D. Audit REAL LEAK — all resolved (no open structural leak)
 
-`Audit.md` is the running substrate-leak catalogue. #1, #2, #5,
-#6, #7, #8 resolved+verified. **#4 was reclassified as NOT a leak**
-(Emma 2026-05-17): the generic loop runtime is a fixed-T tensor-op
-eigenrotation unroll (`_TorchVSA.loop`/`_step`) — no `.item()`, no
-`if`/`break` on data; the `for _t in range(max_iters)` is a
-structural unroll counter = the spec's substrate loop. Hoisting it
-to a straight-line codegen unroll is an optional compile-time
-optimization, not a purity fix. No fix owed. See `Audit.md` #4.
-
-Genuinely open, narrow:
-
-- **#3** Promise `await_value` — `for _ in range(100): if
-  self.isPending(p) <= 0.5: break`. The `if … break` is a real
-  host Python branch on a predicate (unlike #4, which has none).
-  Spec wants it as a substrate `while_loop` two-channel halt
-  vector (`planning/sutra-spec/promises.md`) — the same branchless
-  soft-halt tensor gate `_step` already uses. Fix shape = the
-  `21a9ff77` model; deliberate, promise-test-gated. Not yet
-  started.
+`Audit.md` is the running substrate-leak catalogue. As of
+2026-05-17 **no REAL LEAK is open**: #1, #2, #5, #6, #7, #8
+resolved+verified earlier; **#4 reclassified NOT-a-leak** (fixed-T
+tensor-op tail-recursive cell, no host branch on data — see
+`Audit.md` #4); **#3 FIXED** (await_value reduced to the exact
+spec-2 `value(p)`, both backends, 0 leak signatures, semantics
+preserved — `Audit.md` #3 +
+`planning/findings/2026-05-17-await-substrate-pure.md`). Remaining
+Audit content is observations/borderline notes, not open leaks.
+One recorded non-#3 observation: `Promise.is*` predicate
+accessors still return host floats (their own
+predicate-accessor-boundary question; not on the await path).
 
 ### E. `scalar` → `number` rename — ✅ DONE 2026-05-17 (3 commits, gated)
 
