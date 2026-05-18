@@ -99,3 +99,9 @@ sutralang-paper-anon.pdf
 # Local-only handoff and secret-blob files (never commit).
 LOKA_README.md
 key.b64
+
+# Pre-arXiv feedback folder: keep the distilled docs (discord.md,
+# SYNTHESIS.md) tracked; never commit the saved-web-page blobs
+# (~8 MB of JS/CSS) — same rationale as not committing reference PDFs.
+paper/feedback before arXiv/*.html
+paper/feedback before arXiv/*_files/
