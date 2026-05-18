@@ -57,6 +57,44 @@ from .codegen_base import CodegenNotSupported
 from .loop_capture import captured_state, free_identifiers
 
 
+_BOOL_BINOPS = frozenset(
+    {"<", ">", "<=", ">=", "==", "!=", "&&", "||"}
+)
+
+
+def _loop_kind(cond: object) -> str:
+    """Pick the loop kind from the bound expression's *shape*.
+
+    `loop(n < 11){…}` / `loop(!done){…}` — a relational/logical
+    bound — is a `while_loop` (condition re-checked before each
+    tick). `loop(x){…}` / `loop(n + 1){…}` — an integer count — is
+    an `iterative_loop` (run that many ticks; `iterator` = tick).
+
+    Syntactic heuristic only (no type inference in this pass).
+    Known, documented limitations (wrong iteration count at worst,
+    never a miscompile/crash):
+      - A bare boolean variable as the whole bound —
+        `loop(done){…}` — is read as a *count* (`int(done)` ⇒ 0/1
+        ticks). Write `loop(done == true){…}` for while semantics.
+      - **Relational bounds (`<` `>` `<=` `>=`) are verified to
+        work** on both backends. Equality / negation bounds
+        (`==` `!=` `!`) inherit the pre-existing *fuzzy* numeric-
+        equality truth-axis lowering (numeric `==` → Euclidean +
+        tanh on the truth axis, not a crisp boolean — see
+        `planning/sutra-spec/equality-and-defuzzification.md`).
+        That lowering is unchanged by this pass and is out of
+        scope here; such a `loop(!(n==k)){…}` may not terminate
+        crisply. Tracked under equality-and-defuzzification, NOT a
+        desugar bug."""
+    while isinstance(cond, ast.Parenthesized):
+        cond = cond.inner
+    if isinstance(cond, ast.BinaryOp) and cond.op in _BOOL_BINOPS:
+        return "while_loop"
+    if isinstance(cond, ast.UnaryOp) and cond.op == "!":
+        return "while_loop"
+    return "iterative_loop"
+
+
 def _collect_var_decls(node: object, out: Dict[str, ast.VarDecl]) -> None:
     """First-seen `name -> VarDecl` over the whole subtree."""
     if isinstance(node, ast.VarDecl) and node.name not in out:
@@ -183,11 +221,15 @@ class _Desugarer:
             + [ast.PassStmt(span=sp, values=pass_values)],
         )
         name = self._unique_name(fn_name)
+        kind = _loop_kind(cond)
         decl = ast.LoopFunctionDecl(
             span=sp,
-            kind="iterative_loop",
+            kind=kind,
             name=name,
-            condition=cond,                 # count expr; bound vars now state
+            # iterative_loop: count expr. while_loop: boolean checked
+            # before each tick. Either way bound vars are now state
+            # params so the expr resolves inside the loop fn.
+            condition=cond,
             state_params=state_params,
             body=loop_fn_body,
         )
