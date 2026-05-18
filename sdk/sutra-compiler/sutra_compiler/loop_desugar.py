@@ -1,0 +1,227 @@
+"""Implicit tail-recursive loop desugar (Emma's model; queue.md item 0).
+
+`loop(expr){ body }` (the bare, condition-based form — currently
+parsed-but-rejected) is sugar for a tail-recursive loop function
+whose recurrent state is the **implicit axon**: the variables the
+body mutates, plus the loop bound's free variables (threaded
+invariant). This pass rewrites it, before codegen, into the
+already-working explicit machinery:
+
+  - the captured vars' `VarDecl`s are flipped to `slot` (slot
+    storage is transparently routed everywhere by codegen — reads
+    `codegen_base.py:2620-2624`, writes `:1937-1945`, decl
+    `:800-819`, loop-call thread `:1628-1664`), so doing the flip
+    at the declaration makes every use consistent by construction;
+  - a synthesized `iterative_loop` `LoopFunctionDecl` (count =
+    the loop's condition expression; body = the original body +
+    a `pass` yielding the new mutated values and `replace` for the
+    invariant bound vars) is inserted into `module.items`
+    immediately before the function it came from (top-level loop
+    functions live in `module.items`, not on `Module`; codegen
+    translates items strictly in order — `codegen_base.py:643` —
+    so the decl must precede the caller for `_loop_decls`
+    registration);
+  - the `LoopStmt` is replaced by a `LoopCallStmt`.
+
+Inside the emitted loop function `_slot_vars` is reset to empty
+(`codegen_base.py:1081`), so the state params are plain locals
+there — the `iterative_loop` count expression (e.g. bare `x`)
+resolves to the in-scope state local (`codegen_base.py:1422`).
+That is exactly why the bound's free vars must be threaded as
+state. The slot-ness only matters in the caller, where the
+`LoopCallStmt` slot-loads/stores them.
+
+Literal-bound `loop(N){...}` is untouched: it has `count != None`
+and the codegen dispatches it to the compile-time unroll before
+this form is ever reached. This pass only fires for
+`count is None`.
+
+Scope of this first attempt (documented, not faked as complete):
+  - Top-level `FunctionDecl` bodies and nested blocks within them.
+    Class-method bodies are a follow-on.
+  - A captured/bound name must have a `VarDecl` (with an explicit
+    `type_ref`) in the enclosing function. Missing decl, no type,
+    or a parameter-only name → `CodegenNotSupported` with a clear
+    message. Never guess a type or silently miscompile.
+  - First VarDecl of a given name in the function is the one
+    flipped (no scope-shadowing analysis yet).
+"""
+from __future__ import annotations
+
+import copy
+import dataclasses
+from typing import Dict, List, Optional
+
+from . import ast_nodes as ast
+from .codegen_base import CodegenNotSupported
+from .loop_capture import captured_state, free_identifiers
+
+
+def _collect_var_decls(node: object, out: Dict[str, ast.VarDecl]) -> None:
+    """First-seen `name -> VarDecl` over the whole subtree."""
+    if isinstance(node, ast.VarDecl) and node.name not in out:
+        out[node.name] = node
+    if not dataclasses.is_dataclass(node):
+        return
+    for f in dataclasses.fields(node):
+        v = getattr(node, f.name, None)
+        if dataclasses.is_dataclass(v):
+            _collect_var_decls(v, out)
+        elif isinstance(v, (list, tuple)):
+            for item in v:
+                if dataclasses.is_dataclass(item):
+                    _collect_var_decls(item, out)
+
+
+class _Desugarer:
+    def __init__(self, module: ast.Module) -> None:
+        self._module = module
+        self._counter = 0
+        # Loop functions synthesized while rewriting the *current*
+        # function; flushed into module.items right before it.
+        self._pending: List[ast.LoopFunctionDecl] = []
+
+    def _unique_name(self, fn_name: str) -> str:
+        self._counter += 1
+        return f"__implicit_loop_{fn_name}_{self._counter}"
+
+    def _rewrite_block(
+        self,
+        block: ast.Block,
+        var_decls: Dict[str, ast.VarDecl],
+        fn_name: str,
+    ) -> None:
+        new_statements: List[ast.Stmt] = []
+        for stmt in block.statements:
+            # Recurse into nested control flow first so a loop inside
+            # an `if`/nested block is handled too.
+            for f in dataclasses.fields(stmt):
+                v = getattr(stmt, f.name, None)
+                if isinstance(v, ast.Block):
+                    self._rewrite_block(v, var_decls, fn_name)
+                elif isinstance(v, ast.IfStmt):
+                    self._rewrite_block_holder(v, var_decls, fn_name)
+
+            if isinstance(stmt, ast.LoopStmt) and stmt.count is None:
+                new_statements.append(
+                    self._desugar_loop(stmt, var_decls, fn_name)
+                )
+            else:
+                new_statements.append(stmt)
+        block.statements = new_statements
+
+    def _rewrite_block_holder(
+        self, node: object, var_decls: Dict[str, ast.VarDecl], fn_name: str
+    ) -> None:
+        """Recurse into a node that holds Block(s) (IfStmt chain)."""
+        for f in dataclasses.fields(node):
+            v = getattr(node, f.name, None)
+            if isinstance(v, ast.Block):
+                self._rewrite_block(v, var_decls, fn_name)
+            elif isinstance(v, ast.IfStmt):
+                self._rewrite_block_holder(v, var_decls, fn_name)
+
+    def _desugar_loop(
+        self,
+        loop: ast.LoopStmt,
+        var_decls: Dict[str, ast.VarDecl],
+        fn_name: str,
+    ) -> ast.LoopCallStmt:
+        sp = loop.span
+        cond = loop.condition
+        if cond is None:
+            raise CodegenNotSupported(
+                loop, "implicit `loop(expr){body}` requires a bound/"
+                "condition expression."
+            )
+        mutated = captured_state(loop.body)
+        bound = [n for n in free_identifiers(cond) if n not in mutated]
+        state = mutated + bound
+        if not state:
+            raise CodegenNotSupported(
+                loop, "implicit `loop(expr){body}` has no recurrent "
+                "state (body mutates nothing and the bound has no "
+                "variables) — it would be a no-op or non-terminating; "
+                "use `loop[N]{...}` for a fixed unroll instead."
+            )
+
+        state_params: List[ast.LoopStateParam] = []
+        for name in state:
+            decl = var_decls.get(name)
+            if decl is None:
+                raise CodegenNotSupported(
+                    loop,
+                    f"implicit loop captures `{name}` but it has no "
+                    f"`VarDecl` in the enclosing function (a parameter "
+                    f"or outer-scope name); declare it locally before "
+                    f"the loop so it can be the implicit axon's state.",
+                )
+            if decl.type_ref is None:
+                raise CodegenNotSupported(
+                    loop,
+                    f"implicit loop captures `{name}` but its "
+                    f"declaration is `var`-inferred (no explicit "
+                    f"type); give it an explicit type so the loop "
+                    f"state parameter has a known type.",
+                )
+            decl.is_slot = True
+            state_params.append(
+                ast.LoopStateParam(
+                    span=sp,
+                    type_ref=copy.deepcopy(decl.type_ref),
+                    name=name,
+                    default=None,
+                )
+            )
+
+        pass_values: List[object] = [
+            ast.Identifier(span=sp, name=n) for n in mutated
+        ] + [ast.ReplaceMarker(span=sp) for _ in bound]
+        loop_fn_body = ast.Block(
+            span=sp,
+            statements=list(loop.body.statements)
+            + [ast.PassStmt(span=sp, values=pass_values)],
+        )
+        name = self._unique_name(fn_name)
+        decl = ast.LoopFunctionDecl(
+            span=sp,
+            kind="iterative_loop",
+            name=name,
+            condition=cond,                 # count expr; bound vars now state
+            state_params=state_params,
+            body=loop_fn_body,
+        )
+        self._pending.append(decl)
+        return ast.LoopCallStmt(
+            span=sp,
+            name=name,
+            condition_arg=copy.deepcopy(cond),
+            state_arg_names=list(state),
+        )
+
+    def run(self) -> None:
+        new_items: List[ast.TopLevel] = []
+        for item in self._module.items:
+            if isinstance(item, ast.FunctionDecl):
+                body = getattr(item, "body", None)
+                if isinstance(body, ast.Block):
+                    var_decls: Dict[str, ast.VarDecl] = {}
+                    # params are not VarDecls; a param-captured name
+                    # therefore hits the clear CodegenNotSupported in
+                    # _desugar_loop (by design — not slottable here).
+                    _collect_var_decls(body, var_decls)
+                    self._pending = []
+                    self._rewrite_block(body, var_decls, item.name)
+                    # Synthesized loop fns must precede the caller so
+                    # codegen registers them first (items run in order).
+                    new_items.extend(self._pending)
+                    self._pending = []
+            new_items.append(item)
+        self._module.items = new_items
+
+
+def desugar_implicit_loops(module: ast.Module) -> ast.Module:
+    """Rewrite every `loop(expr){body}` (count is None) into the
+    explicit tail-recursive loop-function machinery, in place."""
+    _Desugarer(module).run()
+    return module
