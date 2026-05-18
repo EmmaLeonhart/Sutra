@@ -76,56 +76,97 @@
 >    nonzero rather than reporting a false clean.
 > ```
 
-> ## 🌅 RESTART HERE (handoff 2026-05-16, end of session)
+> ## 🌅 RESTART HERE (handoff 2026-05-17, end of session)
 >
-> Most of the session's work is done, verified, and pushed
-> (literate-math core; Audit leaks #1/#2/#5/#7/#8; the scalar
-> "question" resolved; open-question triage). Three things remain
-> and are **genuinely hard** — they were left in-progress on
-> purpose, NOT half-finished or faked. Restart on them in this
-> order; each is sized so do not expect a one-pass close.
+> Done + pushed this session: `ccos` complex-argument cosine;
+> `scalar`→`number` rename (3 gated commits, `number` canonical,
+> `scalar` deprecated alias for the frozen archive); Audit REAL
+> LEAK **#4 reclassified NOT a leak** (Emma — it is a fixed-T
+> tail-recursive cell, no host branch on data); queue hygiene;
+> open-question banners; "eigenrotation" dropped for the loop
+> surface (it described a tail-recursive RNN-cell, not a literal
+> eigenrotation — misleading; the trig/rotation-primitive math
+> keeps the term legitimately). What remains, genuinely hard,
+> left in-progress on purpose (NOT faked):
 >
-> ### 1. Audit REAL LEAK #4 — generic loop runtime host `for`
-> `codegen_pytorch.py` generic loop driver emits
-> `for _t in range(max_iters):` — a host Python loop where the
-> spec says loops are `state ← R·state` on the substrate
-> (control-flow.md). **Why hard:** every `loop`/`while`/`for`/
-> `do-while` in every program lowers through this driver, so the
-> blast radius is the entire control-flow surface. The pieces it
-> needs now exist (rotate_slot is substrate-pure post-`#1`; the
-> eigenrotation primitive is real). **How to do it:** bind the
-> driver to a fixed-T unrolled eigenrotation with a soft-halt
-> mask (the RNN-cell shape in control-flow.md §Loops and
-> `planning/findings/2026-04-30-rnn-loop-architecture.md`), NOT a
-> host counter. **Gate:** `test_branchless_loop` +
-> `test_loop_function_decl` + `examples/_smoke_test.py` all green
-> before it counts; revert if not. Do it deliberately — this is
-> the "do not rush autonomously" item.
+> ### 1. Implicit tail-recursive loops — `loop(x){ body }` sugar
+> **Emma direction 2026-05-17.** (Audit #4 is gone — that "host
+> `for`" is the fixed-T tail-recursive cell, not a leak.) The new
+> work is the *ergonomic implicit form*: `loop(x){ body }` where
+> the compiler infers the recurrent state (every var the body
+> mutates or references) and desugars to the existing, working
+> tail-recursive loop-function form, threading that state as an
+> **implicit axon**.
 >
-> ### 2. Audit REAL LEAK #3 — promise `await_value` host loop
-> `codegen_pytorch.py:~808` `for _ in range(100):` — host spin
-> instead of the substrate `while_loop` two-channel halt vector
-> (`planning/sutra-spec/promises.md`). **Why hard:** it overlaps
-> the queue Promises work and needs the halt-vector lowering, not
-> a one-liner; partly subsumed once #4's substrate loop driver
-> lands (await is a loop spinning on `isPending`). **How:** do #4
-> first, then express await as that substrate loop. **Gate:** the
-> promise corpus fixtures + smoke.
+> Model (Emma's, verified-correct restatement):
+> - One var mutated → tail-recursive fn carrying that var + the
+>   bound: `i = Loop_x_i(i, iterator, x){ i+=iterator; if
+>   (iterator>=x) return i; else return Loop_x_i(i,iterator,x); }`.
+> - Many vars → an implicit axon of all mutated/referenced vars;
+>   the recursive call threads the axon; `if (axon["iterator"] >=
+>   axon["x"]) return axon; else recurse`. **Tail recursion always
+>   carries an implicit axon** (the loop's captured state) — it is
+>   effectively a closure / an RNN run N times.
+> - Soft-unsafety Emma accepts for ergonomics: captured vars (e.g.
+>   `x`) must stay invariant across iterations; the compiler should
+>   hold them constant per run. Accepted now, bet on later
+>   optimization. **Compile-time evaluation stays the PREFERRED
+>   path** (cheap, no architectural machinery); the tail-recursion
+>   desugar is the fallback for genuinely unbounded/dynamic loops.
 >
-> ### 3. Literate-math tail — exp/cos/sin as `.su` bodies
-> Confirmed NOT a design question (scalar↔number is resolved —
-> `planning/findings/2026-05-16-scalar-is-not-an-open-question.md`).
-> It is a **large mechanical migration**: rename the `scalar`
-> primitive keyword → `number` (parser `_PRIMITIVE_TYPES` + a
-> back-compat alias), then drop the 0-d projection so
-> `exp`/`cos`/`sin` return the full number-vector, then fix every
-> `scalar`-typed call site + the whole test corpus. **Why hard:**
-> hundreds of call sites + corpus; high blast radius; tedious not
-> clever. **How:** keyword alias first (zero-behaviour-change,
-> commit), then projection drop behind the verified `cexp`,
-> migrate call sites in batches with the full suite green per
-> batch. cexp + pow/sqrt/tan/sinh/cosh/tanh are already literate
-> and verified — this only finishes exp/cos/sin.
+> Verified current state (compiled Emma's exact example
+> 2026-05-17): the implicit `loop(x){body}` is **parsed-but-
+> rejected** (`CodegenNotSupported`). The explicit declared
+> loop-function tail-recursive machinery (control-flow.md §Loops)
+> **works**. So this is an *unbuilt feature*, not a badly-built
+> one. Two tasks:
+>   - **(1a) Build + verify the implicit desugar:** revive the
+>     `loop(expr){body}` surface to desugar (free/mutated-variable
+>     analysis → synthesize the loop-function + implicit axon →
+>     emit the tail-recursive form) instead of rejecting. **Gate:**
+>     `test_branchless_loop` + `test_loop_function_decl` + corpus +
+>     smoke green; an end-to-end test that the multi-var example
+>     runs and returns the right values. Deliberate, gated — high
+>     blast radius (control-flow surface); do not rush.
+>   - **(1b) Lighten the implicit axon:** carry only vars actually
+>     mutated/needed across ticks, not every referenced name —
+>     minimize the closure the axon captures.
+>
+> ### 2. Audit REAL LEAK #3 — promise `await_value` host `if/break`
+> `codegen_pytorch.py:~808` `for _ in range(100): if
+> self.isPending(p) <= 0.5: break` — the `if … break` is a real
+> host Python branch on a predicate (this is the genuine leak;
+> the surrounding fixed-count `for` is not, same reason #4 isn't).
+> **Emma direction 2026-05-17 (supersedes the earlier "await is
+> just the simplest loop" framing):** async/await/promise should
+> probably NOT be modeled as a poll loop at all. Model the awaited
+> value as an **implicit axon INPUT to the function plus a runtime
+> "has it arrived yet" flag axis** for the whole program — the
+> value is a deferred input slot; a flag says delivered/not; no
+> spinning, no host branch. async/await/promise have **explicit
+> formal specifications** (Promises/A+, ECMAScript async) — the
+> implementation must conform to those, not improvise. **How:**
+> reconcile `planning/sutra-spec/promises.md` with this
+> implicit-axon-input + arrival-flag model and the formal spec,
+> then re-lower `await_value` accordingly (delete the host
+> `if/break`). **Gate:** promise corpus fixtures + smoke; behavior
+> checked against the formal async/promise spec, not just "it
+> ran". Deliberate, gated.
+>
+> ### 3. Literate-math tail — drop the 0-d projection (scalar→number DONE)
+> The `scalar`→`number` rename **shipped this session** (3 gated
+> commits: compiler `number` first-class + `scalar` deprecated
+> alias; stdlib `.su` dogfood; docs). What REMAINS is the
+> separate, riskier half: **drop the 0-d projection so
+> `exp`/`cos`/`sin` return the full number-vector** instead of a
+> 0-d tensor, then migrate call sites + corpus in batches. **Why
+> hard:** changes observable return shape; can regress paper-cited
+> `cos`/`sin`/`exp`; high blast radius; tedious. **How:**
+> projection drop behind the verified `cexp`, full suite green per
+> batch, explicit paper-code-durability check (the frozen NeurIPS
+> examples must still produce the same observable outputs).
+> cexp + pow/sqrt/tan/sinh/cosh/tanh are already literate and
+> verified — this only finishes exp/cos/sin. Deliberate, gated.
 >
 > Lower-value remainder (do last, or decide to skip): #15 dossier
 > retirement — the `planning/open-questions/README.md` verdict

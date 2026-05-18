@@ -1975,12 +1975,15 @@ class BaseCodegen:
             if stmt.count is not None:
                 self._translate_bounded_loop(stmt)
                 return
-            # loop(cond) — old eigenrotation form. Rejected; superseded
-            # by the function-declaration loop kinds.
+            # loop(cond) — old body-discard form. Rejected today;
+            # superseded by the function-declaration loop kinds. The
+            # implicit `loop(x){body}` → state-inference → tail-recursive
+            # loop-function desugaring is the planned revival of this
+            # surface (todo.md §"Implicit tail-recursive loops").
             raise CodegenNotSupported(
                 stmt,
                 "`loop(cond) { body }` is no longer supported. The body-"
-                "discard eigenrotation form is replaced by the function-"
+                "discard form is replaced by the function-"
                 "declaration loop kinds (`do_while NAME(...)`, "
                 "`while_loop NAME(...)`, `iterative_loop NAME(...)`, "
                 "`foreach_loop NAME(...)` + `loop NAME(...);` call site). "
