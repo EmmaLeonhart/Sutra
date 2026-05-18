@@ -62,12 +62,14 @@ verdict). Citations spot-verified against the spec (`types.md`,
 `control-flow.md` §Loops, `strings.md`, commit `6d25f232`), not
 blanket-stamped.
 
-Remaining (deliberate, NOT folded into the banner run to avoid losing
-rationale mid-session): the **pruning pass** — for each RESOLVED/STALE
-doc, confirm its rationale is captured in the cited spec file, then
-delete/archive the doc per `planning/open-questions/README.md` rule 3.
-Genuinely-OPEN docs stay. This is the next concrete sub-item, not yet
-started.
+Pruning — bounded safe slice DONE 2026-05-17: the 2 unambiguously
+STALE-superseded dossiers archived (renamed `_archived-`, rationale
+preserved, NOT deleted) — `loop-surface-redesign.md`,
+`tier2-bundle-substrate-vs-algebra.md`. RESOLVED dossiers
+intentionally LEFT (already VERDICT-bannered/self-describing;
+aggressive deletion is the rationale-loss call the README reserves
+as deliberate — not done). Task #15 effectively closed; any further
+RESOLVED-doc deletion is a deliberate Emma call, not queued work.
 
 ### B. Verify the shipped transcendentals realize the stored-constants vision  — ✅ DONE (finding written)
 
