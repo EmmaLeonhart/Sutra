@@ -23,19 +23,24 @@ arXiv/`. Consolidated, de-duplicated, and **verified against live
 doc is the working plan (P0/P1/P2, repo-constraint cross-checks,
 already-decided items not to re-litigate).
 
-Next, in order (per SYNTHESIS §5):
-1. P0 process (safe, can do now): reference audit (esp. ESM-2 =
-   Lin et al. Science 2023), LLM-artifact scan, link/repro liveness,
-   self-overlap vs. paper #1.
-2. P0 content: Adam/Kingma cite, consolidated Limitations block,
-   soften 3 over-strong claims (lines 116/229/486), §3.6
-   gradient-flow-not-generalization framing sentence.
-3. AI-use disclosure — BLOCKED on Emma's wording decision
-   (SYNTHESIS §4.1; truthful-about-substantial-AI vs. assistant
-   framing). All edits → live `paper.md`; frozen `paper/neurips/`
-   untouched; no fabricated std/L numbers.
-Folder housekeeping: gitignore the saved `.html`/`_files` asset
-junk (~8 MB), track only `discord.md` + `SYNTHESIS.md` (Emma's call).
+P0 DONE + pushed (`3e03a96c`, `494a8e85`): SYNTHESIS.md written;
+gitignore for the saved-page blobs; AI-use statement (Emma's
+candid wording); ESM-2/Lin et al. + Kingma&Ba refs added (audit
+found ESM-2 cited-but-absent; both web-verified); 3 claims
+softened; §3.6 in-sample framing sentence; grounded labelled
+Limitations subsection; LLM-artifact scan clean; 4 URLs live.
+
+REMAINING:
+- P0-process residual: self-overlap vs paper #1 (separate repo
+  `latent-space-cartography`) — flagged, needs Emma/that repo.
+- Emma decision (SYNTHESIS §4.2): restructure Methodology/
+  Experiments now vs. defer to next-venue (not arXiv-blocking).
+- P1 (post-post / on Emma's go): `.su` code snippet (valid syntax),
+  fuzzy-NN background cite, accuracy-over-epochs plot, std over
+  5 seeds — std/ablation need REAL reruns, not fabricated.
+- P2: ablation table, typo/precision sweep (nuanced — see
+  SYNTHESIS), polynomial-interpolant-rationale paragraph.
+SYNTHESIS.md is the canonical plan.
 
 ### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 
