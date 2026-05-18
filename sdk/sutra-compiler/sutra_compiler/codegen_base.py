@@ -2398,7 +2398,11 @@ class BaseCodegen:
             return None
 
     _TRUTH_TYPES = frozenset({"bool", "fuzzy", "trit"})
-    _NUMBER_TYPES = frozenset({"int", "float", "complex", "scalar", "char"})
+    # `number` canonical; `scalar` deprecated alias (both classify
+    # identically — see lexer.py PRIMITIVE_TYPE_NAMES).
+    _NUMBER_TYPES = frozenset(
+        {"int", "float", "complex", "number", "scalar", "char"}
+    )
     # Synthetic-axis-encoded types: numbers and strings live in the
     # synthetic block of the extended state vector. Per the user's
     # 2026-05-08 directive, equality on these uses Euclidean-distance
@@ -2406,7 +2410,7 @@ class BaseCodegen:
     # well between values that share direction but differ in
     # magnitude — `1` and `2` are cosine-similar but Euclidean-far).
     _SYNTHETIC_AXIS_TYPES = frozenset(
-        {"int", "float", "complex", "scalar", "char", "string"}
+        {"int", "float", "complex", "number", "scalar", "char", "string"}
     )
 
     def _is_synthetic_axis_expr(self, expr: ast.Expr) -> bool:

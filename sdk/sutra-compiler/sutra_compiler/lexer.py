@@ -265,6 +265,13 @@ KEYWORDS = {
 # casing-drift checks, and so that the spec treats it as a primitive
 # container alongside `tuple`.
 PRIMITIVE_TYPE_NAMES = {
+    # `number` is the canonical name for a value on the number axis
+    # (real / imaginary components of a d-dim vector). `scalar` is a
+    # DEPRECATED ALIAS kept only so the frozen NeurIPS archive
+    # (paper/neurips/**, which cannot be edited) keeps compiling — a
+    # `scalar` is a 0-d tensor, which is conceptually NOT what a Sutra
+    # number is, so the name misleads. New code uses `number`.
+    "number",
     "scalar",
     "vector",
     "matrix",

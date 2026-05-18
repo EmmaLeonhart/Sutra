@@ -535,6 +535,8 @@ class _Walker:
         # Only track user-defined types (not primitives) so we can
         # detect casing drift on the same logical name.
         PRIMITIVES = {
+            # `number` canonical; `scalar` deprecated alias.
+            "number",
             "scalar", "vector", "matrix", "tuple", "string",
             "bool", "fuzzy", "void", "permutation", "map",
         }
