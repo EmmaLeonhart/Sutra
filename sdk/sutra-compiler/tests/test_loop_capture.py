@@ -12,7 +12,7 @@ import unittest
 
 from sutra_compiler import ast_nodes as ast
 from sutra_compiler.lexer import Lexer
-from sutra_compiler.loop_capture import captured_state
+from sutra_compiler.loop_capture import captured_state, free_identifiers
 from sutra_compiler.parser import Parser
 
 
@@ -136,6 +136,79 @@ class TestCapturedState(unittest.TestCase):
         captured_state(body)  # idempotent
         self.assertEqual(len(body.statements), before)
         self.assertEqual(captured_state(body), ["i"])
+
+
+def _first_loop_condition(src: str):
+    lexer = Lexer(src, file="<test>")
+    tokens = lexer.tokenize()
+    parser = Parser(tokens, file="<test>", diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    assert not lexer.diagnostics.has_errors(), list(lexer.diagnostics)
+    found: list[ast.LoopStmt] = []
+
+    def _walk(node: object) -> None:
+        if isinstance(node, ast.LoopStmt):
+            found.append(node)
+        if not dataclasses.is_dataclass(node):
+            return
+        for f in dataclasses.fields(node):
+            v = getattr(node, f.name, None)
+            if dataclasses.is_dataclass(v):
+                _walk(v)
+            elif isinstance(v, (list, tuple)):
+                for item in v:
+                    if dataclasses.is_dataclass(item):
+                        _walk(item)
+
+    _walk(module)
+    assert found, "no LoopStmt parsed"
+    return found[0].condition
+
+
+class TestFreeIdentifiers(unittest.TestCase):
+    def test_bare_bound_var(self):
+        src = (
+            "function int main() {\n"
+            "  int i = 0; int x = 5;\n"
+            "  loop(x) { i = i + 1; }\n"
+            "  return i;\n}\n"
+        )
+        self.assertEqual(free_identifiers(_first_loop_condition(src)), ["x"])
+
+    def test_relational_bound_literal_excluded(self):
+        src = (
+            "function int main() {\n"
+            "  int n = 0;\n"
+            "  loop(n < 11) { n = n + 1; }\n"
+            "  return n;\n}\n"
+        )
+        # `11` is a literal -> not an identifier; `n` is referenced.
+        self.assertEqual(free_identifiers(_first_loop_condition(src)), ["n"])
+
+    def test_two_bound_vars_order(self):
+        src = (
+            "function int main() {\n"
+            "  int n = 0; int limit = 9; int base = 1;\n"
+            "  loop(n < limit + base) { n = n + 1; }\n"
+            "  return n;\n}\n"
+        )
+        self.assertEqual(
+            free_identifiers(_first_loop_condition(src)),
+            ["n", "limit", "base"],
+        )
+
+    def test_call_callee_excluded_args_kept(self):
+        src = (
+            "function int main() {\n"
+            "  int n = 0; int cap = 3;\n"
+            "  loop(n < Math.abs(cap)) { n = n + 1; }\n"
+            "  return n;\n}\n"
+        )
+        # Math.abs callee is not a slottable value var; `cap` is.
+        got = free_identifiers(_first_loop_condition(src))
+        self.assertIn("n", got)
+        self.assertIn("cap", got)
+        self.assertNotIn("abs", got)
 
 
 if __name__ == "__main__":
