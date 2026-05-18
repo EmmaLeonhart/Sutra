@@ -84,3 +84,43 @@ def captured_state(body: ast.Block) -> List[str]:
 
     _visit(body)
     return [n for n in mutated if n not in declared]
+
+
+def free_identifiers(expr: object) -> List[str]:
+    """Return the ordered, de-duplicated identifier names referenced
+    in `expr` in value position.
+
+    Used to find the loop bound's free variables: for
+    `loop(x){ body }` the count expression `x` must be threaded as
+    an invariant state param (it is evaluated *inside* the emitted
+    loop function — `codegen_base.py:1422`), so the desugar needs
+    these names.
+
+    A `Call`'s callee identifier (a function name, not a value var)
+    is excluded so `loop(f(n)){...}` does not try to slot `f`. This
+    is conservative: any name returned that has no caller `VarDecl`
+    is rejected by the desugar with a clear `CodegenNotSupported`
+    (fail-safe — never a miscompile)."""
+    names: List[str] = []
+    seen: set[str] = set()
+
+    def _visit(node: object) -> None:
+        if isinstance(node, ast.Identifier):
+            if node.name not in seen:
+                seen.add(node.name)
+                names.append(node.name)
+            return
+        if isinstance(node, ast.Call):
+            # Skip the callee when it is a bare function-name
+            # Identifier; still visit its argument expressions.
+            callee = getattr(node, "callee", None)
+            for child in _children(node):
+                if child is callee and isinstance(callee, ast.Identifier):
+                    continue
+                _visit(child)
+            return
+        for child in _children(node):
+            _visit(child)
+
+    _visit(expr)
+    return names
