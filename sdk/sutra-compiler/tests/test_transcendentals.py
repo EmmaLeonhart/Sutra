@@ -92,6 +92,56 @@ class TestAllTranscendentalsCompileAndCompute(unittest.TestCase):
                 )
 
 
+class TestNumberScalarAlias(unittest.TestCase):
+    """`number` is the canonical type name; `scalar` is a DEPRECATED
+    ALIAS retained only so the frozen NeurIPS archive
+    (paper/neurips/**, uneditable) keeps compiling. Both must compile
+    and produce identical results.
+
+    A `scalar` is a 0-d tensor; a Sutra `number` is a value on the
+    number axis of a d-dim vector — conceptually different, which is
+    why `scalar` misleads and `number` is canonical (Emma 2026-05-17).
+    The existing `scalar` programs elsewhere in this suite double as
+    the alias-still-works regression guard; this adds the explicit
+    equivalence + canonical-name checks on both backends."""
+
+    _PAIRS = [
+        # (number_src, scalar_src, fn, expected)
+        ("function number f() { number x = 2.5; return x; }\n",
+         "function scalar f() { scalar x = 2.5; return x; }\n",
+         "f", 2.5),
+        ("function number f() { return Math.cos(0.0); }\n",
+         "function scalar f() { return Math.cos(0.0); }\n",
+         "f", 1.0),
+        ("function number f() { return Math.exp(1.0); }\n",
+         "function scalar f() { return Math.exp(1.0); }\n",
+         "f", math.e),
+    ]
+
+    def _both_backends(self, src, fn):
+        return (
+            _compile_and_run(torch_translate, src, fn),
+            _compile_and_run(np_translate, src, fn),
+        )
+
+    def test_number_canonical_and_scalar_alias_equivalent(self):
+        for num_src, scal_src, fn, expected in self._PAIRS:
+            with self.subTest(src=num_src.strip()):
+                nt, nn = self._both_backends(num_src, fn)
+                st, sn = self._both_backends(scal_src, fn)
+                for got in (nt, nn, st, sn):
+                    self.assertLess(
+                        abs(got - expected), 1e-3,
+                        f"{num_src.strip()} / scalar-alias: got={got}, "
+                        f"expected={expected}",
+                    )
+                # number and its scalar alias must agree exactly per
+                # backend (same lowering, alias is purely a parse-time
+                # synonym).
+                self.assertEqual(nt, st, "torch: number vs scalar alias")
+                self.assertEqual(nn, sn, "numpy: number vs scalar alias")
+
+
 class TestComplexArgumentCosine(unittest.TestCase):
     """`Math.ccos(complex z)` = (e^(i z) + e^(-i z))/2, the complex-
     argument cosine. Ground-truth vs Python `cmath.cos`.
