@@ -70,3 +70,41 @@ language? Investigated against source. The honest answer: it is
 
 Do not silently amend. CLAUDE.md: spec/impl disagreement →
 resolve explicitly; negative results required.
+
+## Deeper result (2026-05-18, Stage-A probe): the compiled graph is non-differentiable as emitted
+
+Probed the real PyTorch codegen with a minimal `.su`
+(`rule(x,own,other) = similarity(x,own) && !similarity(x,other)`),
+generated + executed the emitted Python, ran a grad test:
+
+- Emitted `_TorchVSA.similarity` (codegen_pytorch.py ~L1133):
+  `return float(_torch.dot(a,b) / (na*nb + tiny))`. The bare-dot
+  variant (~L1160) also `float()`s.
+- Calling the emitted `rule(...)` with `requires_grad` tensor args
+  returns a **Python `float`** (`requires_grad=None`, no
+  `grad_fn`); `.backward()` impossible. The Lagrange fuzzy-AND
+  polynomial is then evaluated in host float arithmetic.
+
+Implications:
+1. The §3.6 proxy was not merely an unused shortcut — the real
+   compiled path **cannot be trained as emitted**. The paper's
+   "autograd flows through the compiled graph end-to-end / the
+   same compiled graph that runs at inference" is contradicted at
+   the implementation level, not just over-described.
+2. `similarity` collapsing to `float()` while used *inside* a
+   composed op also violates the project's own substrate-purity
+   invariant (CLAUDE.md NO MATH SHORTCUTS: "scalar extraction
+   inside an operation breaks the invariant"). Distinct from the
+   legitimate monitoring/accessor `float()`s (promise/component
+   reads) which are not inside another operation.
+
+Consequence for Stage A: making the strong claim true requires a
+**compiler change** — emit a substrate-pure, tensor-returning
+`similarity` (and likely `eq`/`==` when composed) so composed
+expressions stay autograd-friendly — fully test-gated. This is
+load-bearing (changes a core primitive's return semantics; ripple
+risk to callers/printing/defuzzify/tests) and is pre-submission.
+Harness-side monkeypatching of `similarity` would be faking the
+result and is explicitly rejected. Surfaced to Emma for an
+explicit go-ahead on the compiler-semantics change before doing
+it.
