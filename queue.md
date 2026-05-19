@@ -29,6 +29,20 @@ Feasibility (verified): compiler emits differentiable torch ops
 trainable-param concept → training = optimizer over prototype/
 weight tensors fed INTO the emitted forward. Legitimate.
 
+DECISION (Emma 2026-05-18): **Full fix, test-gated, HOLD
+SUBMISSION.** Do not push paper.md / submit until similarity is
+substrate-pure, gated, and §3.6 re-run on the real compiled graph
+with whatever numbers it truly yields. Harness monkeypatching =
+faking = rejected.
+
+- **Stage A0 (compiler fix, prerequisite):** emit a substrate-
+  pure, tensor-returning `similarity` (and composed `==`/`eq`) —
+  drop the mid-graph `float()`; collapse to host ONLY at the true
+  monitoring/decode boundary. Audit + fix ripple
+  (print/compare/defuzzify/nearest_string/argmax). Gate: full
+  corpus + `examples/_smoke_test.py` + loop/transcendental
+  suites, zero regression. This also fixes the substrate-purity
+  invariant violation.
 - **Stage A (integrity must-fix):** a `.su` fuzzy-rule classifier
   that compiles via the real compiler; harness compiles it →
   imports the emitted module → prototypes as `requires_grad`
