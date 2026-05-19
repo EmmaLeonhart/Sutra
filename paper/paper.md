@@ -151,7 +151,7 @@ standard VSA development assumes hypervectors drawn from a
 controlled random distribution designed for the algebra; bind is
 typically Hadamard product or circular convolution. Frozen LLM
 embedding spaces are not designed for VSA: they are anisotropic
-(Ethayarajh 2019; Gao et al. 2019; Mu & Viswanath 2018) —
+(Ethayarajh 2019; Gao et al. 2019; Mu et al. 2018) —
 representations concentrate in a narrow cone, so cosine
 similarity has low dynamic range and the textbook bind operations
 do not transfer cleanly. The same anisotropy makes an unweighted
@@ -968,9 +968,10 @@ a model without verification.
   distribution textbook VSA assumes (§1, §2).
 - Gao, J., He, D., Tan, X., Qin, T., Wang, L., & Liu, T.-Y.
   (2019). Representation Degeneration Problem in Training Natural
-  Language Generation Models. *ICLR*.
-- Mu, J. & Viswanath, P. (2018). All-but-the-Top: Simple and
-  Effective Postprocessing for Word Representations. *ICLR*.
+  Language Generation Models. *ICLR*. arXiv:1907.12009.
+- Mu, J., Bhat, S., & Viswanath, P. (2018). All-but-the-Top:
+  Simple and Effective Postprocessing for Word Representations.
+  *ICLR*. arXiv:1702.01417.
 - Kingma, D. P. & Ba, J. (2015). Adam: A Method for Stochastic
   Optimization. *3rd International Conference on Learning
   Representations (ICLR)*. arXiv:1412.6980. The optimizer (run with
