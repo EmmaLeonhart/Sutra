@@ -62,6 +62,23 @@ faking = rejected.
 Frozen `paper/neurips/` untouched; live `paper.md` only; commit
 per stage; numbers are measurements.
 
+CRON `6da70188` (hourly :37, session-only, 7-day expiry): each
+fire harvests the best real compiled-graph result → makes the
+paper truthful (K=3 proof is the floor: chance→100%, grads
+through emitted graph) → tries a different/larger config → no
+faking, no reflexive killing of Emma's runs.
+
+ANISOTROPY SPINE added 2026-05-18 (Emma directive), web-verified
+cites: Ethayarajh 2019 (narrow cone / inflated cosine — primary),
+Gao 2019 (representation degeneration), Mu & Viswanath 2018
+(all-but-the-top). Woven into Intro §1 + Related-Work §2 + refs:
+anisotropy is *the* reason frozen LLM embeddings aren't VSA's
+i.i.d. distribution and why unweighted cosine is a weak rule
+signal (→ §3.6 trains the embeddings; → Stage B weighted
+Equals(a,b,w) is the direct answer to anisotropy). Cron must
+PRESERVE this framing on §3.6 rewrites and, when Stage B lands,
+frame weighted-Equals explicitly as the anisotropy remedy.
+
 ### U. Figures moved into body (DONE 2026-05-18)
 
 Emma (no longer NeurIPS-page-limited): diagrams belong in the

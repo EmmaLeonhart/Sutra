@@ -28,7 +28,10 @@ two technical questions follow:
    computing's textbook bind operators (Hadamard product,
    circular convolution) were derived assuming hypervectors
    drawn from a controlled random distribution. Frozen LLM
-   embeddings are not such a distribution. §3.2 measures four
+   embeddings are not such a distribution: they are strongly
+   *anisotropic*, concentrating in a narrow cone so cosine
+   similarity is compressed and inflated even between unrelated
+   items (Ethayarajh 2019). §3.2 measures four
    substrates and reports that rotation binding decodes at 100%
    accuracy through bundle widths where Hadamard has already
    collapsed.
@@ -147,8 +150,14 @@ dimensional vectors (Kanerva 2009; Plate 1995; Gayler 2003). The
 standard VSA development assumes hypervectors drawn from a
 controlled random distribution designed for the algebra; bind is
 typically Hadamard product or circular convolution. Frozen LLM
-embedding spaces are not designed for VSA, and the textbook bind
-operations do not always transfer cleanly to them. Rotation
+embedding spaces are not designed for VSA: they are anisotropic
+(Ethayarajh 2019; Gao et al. 2019; Mu & Viswanath 2018) —
+representations concentrate in a narrow cone, so cosine
+similarity has low dynamic range and the textbook bind operations
+do not transfer cleanly. The same anisotropy makes an unweighted
+cosine read a weak rule signal, which is why §3.6 trains the
+embeddings the rules compare against rather than relying on raw
+cosine. Rotation
 binding (`R_role @ filler` for a role-seeded Haar-random
 orthogonal `R_role`) is the choice that worked across the
 substrates we tested, and is what Sutra uses today; §3.2
@@ -901,6 +910,18 @@ a model without verification.
 - Smolensky, P. (1990). Tensor product variable binding and the
   representation of symbolic structures in connectionist systems.
   *Artificial Intelligence* 46(1–2):159–216.
+- Ethayarajh, K. (2019). How Contextual are Contextualized Word
+  Representations? Comparing the Geometry of BERT, ELMo, and GPT-2
+  Embeddings. *EMNLP-IJCNLP*. arXiv:1909.00512. The anisotropy /
+  narrow-cone result: contextual embeddings occupy a narrow cone,
+  inflating cosine similarity between unrelated items — the
+  precise reason frozen LLM embeddings are not the i.i.d.
+  distribution textbook VSA assumes (§1, §2).
+- Gao, J., He, D., Tan, X., Qin, T., Wang, L., & Liu, T.-Y.
+  (2019). Representation Degeneration Problem in Training Natural
+  Language Generation Models. *ICLR*.
+- Mu, J. & Viswanath, P. (2018). All-but-the-Top: Simple and
+  Effective Postprocessing for Word Representations. *ICLR*.
 - Kingma, D. P. & Ba, J. (2015). Adam: A Method for Stochastic
   Optimization. *3rd International Conference on Learning
   Representations (ICLR)*. arXiv:1412.6980. The optimizer (run with
