@@ -231,3 +231,49 @@ Constraints honored: NO FAKING (every number measured); the heavy
 K=5/5-seed run (PID 36912) left running, **not killed**; ≤2 heavy
 python jobs (Stage B K=3 is small, ≈147 s). Paper §3.7 added; task
 #12 complete. Cron 6da70188 deletes after §3.7 lands.
+
+## 2026-05-19 — the 6.2 h was a per-sample DRIVER artifact, not the compiled-graph cost; batched path is bit-identical and ≈96× faster
+
+Emma pushed on the §3.6 / abstract speed claim ("is this just kind
+of false? … the speed was misrepresented"). It was. Read the
+harness (not memory): `compile_rule()` runs ONCE before the seed
+loop — no per-sample recompilation, no NN-then-decompile. Stage A
+*is* genuine backprop through the emitted graph. But `logits()`
+called the emitted `rule()` N×K times/epoch in a Python loop on
+single 768-d vectors — the 6.2 h was interpreter + per-sample
+autograd-graph overhead, NOT the compiled tensor math.
+
+Fix (additive, equivalence-gated): added `--batched` to
+`differentiable_training_compiled.py` — `torch.vmap` over the
+**same emitted `rule()`** (a transform, not a reimplementation),
+with a mandatory pre-training assertion that batched logits ==
+per-sample logits within 10⁻⁴ (run aborts otherwise → the
+integrity guarantee is a number on every run).
+
+MEASURED (no faking):
+- K=3/10w/40ep/2seed batched: 5.7 s (per-sample ≈ 43.7 s),
+  equivalence passed, accuracy identical (35.0 → 100.0%).
+- K=5/50w/30ep/3seed batched (exact paper config), `bl4lgu315`:
+  **230.6 s**; seeds 0/1/2 acc 0.220/0.260/0.080 → 1.000;
+  chance 0.200, before **18.67±9.45%** → after **100.00±0.00%**
+  (n=3); grads_through_emitted_graph=True all seeds; equivalence
+  guard passed all seeds. **Bit-identical to the 6.2 h per-sample
+  numbers — ~96× faster for the same measured result.**
+
+The misrepresentation was framing, not fabricated data (6.2 h and
+18.7→100.0 were real). Three places carried it and were corrected
+together (live `paper.md` only; frozen `paper/neurips/` untouched):
+abstract fact (2), the §3.6 body paragraph, Appendix H wall-clock +
+table + repro para. Corrected framing: compiles once; batched
+vmap = same compiled ops, equivalence-asserted to 10⁻⁴, ≈230 s;
+the per-sample driver gave the bit-identical result in ≈6.2 h and
+that cost is interpreter overhead, NOT a bound on achievable scale
+and NOT a reason to call the fast path a "reimplementation".
+Abstract fact (2) also tightened (Emma: "abstract kinda bloated").
+
+Two earlier wrong guesses from Emma were corrected with evidence
+rather than agreed to (no per-sample recompilation; no
+NN+decompile) — the actual cause was narrower (per-sample Python
+call loop). Obsolete PID 36912 / `b32kskpr9` killed on Emma's
+explicit go-ahead; it had only the banner line, no measured block
+— nothing salvageable, nothing faked, discarded.
