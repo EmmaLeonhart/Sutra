@@ -45,7 +45,8 @@ toolchain for the FFI build (one-time, ~5 minutes).
 | §3.4 first-class loops as soft-halt RNN cells | `pytest sdk/sutra-compiler/tests/test_loop_function_decl.py` (23 tests) |
 | §3.4 program-level halt propagation | `tests/test_loop_function_decl.py::TestProgramHaltPropagation::test_unconverged_loop_wipes_output` |
 | §3.5 embedded codebook + decode path | `pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py` (7 tests; skips if FFI unbuilt) |
-| §3.6 end-to-end differentiable training (19 ANDs deep, 95% accuracy) | `python experiments/differentiable_training.py` |
+| §3.6 differentiable training through the compiled graph (K=5, before 18.7±9.5% → after 100.0±0.0%, 3 seeds; batched ≈230 s, equivalence-asserted) | `python experiments/differentiable_training_compiled.py --k 5 --per-class 10 --epochs 30 --seeds 0,1,2 --lr 0.01 --batched` |
+| §3.7 trained scalar gain baked into `.su` as a literal; recompile round-trip verified (K=3, w*≈1.43) | `python experiments/differentiable_training_weighted.py --k 3 --per-class 8 --epochs 30 --seeds 0,1` |
 | §4 compiler pipeline (245+ tests, full suite green) | `pytest sdk/sutra-compiler/tests/` |
 | §4.1 substrate-purity invariants | enforced at codegen; see `codegen_pytorch.py` |
 | §4.2 compile-time resolution of role rotations | `prewarm_rotation_cache` + the `loop` lowering in `codegen_pytorch.py` |

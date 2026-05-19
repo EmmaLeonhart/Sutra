@@ -42,7 +42,9 @@ sutra-neurips-supplementary/
 │   ├── rotation_binding_capacity_llm.py
 │   ├── rotation_binding_capacity_bioinformatics.py
 │   ├── crosstalk_chain.py
-│   ├── differentiable_training.py
+│   ├── differentiable_training.py             §3.6 proxy (frozen-record reference)
+│   ├── differentiable_training_compiled.py    §3.6 genuine compiled graph (--batched)
+│   ├── differentiable_training_weighted.py    §3.7 weighted; trained w baked into .su
 │   ├── rotation_hashmap_capacity.py
 │   ├── sutra_vs_torchhd.py
 │   ├── sutra_vs_torchhd_latency.py
@@ -101,7 +103,8 @@ each one independent of the others.
 | §3.2.1 chained-bind crosstalk depth | `experiments/crosstalk_chain.py` |
 | §3.4 first-class loops (soft-halt RNN cells) | `pytest sdk/sutra-compiler/tests/test_loop_function_decl.py` (23 tests) |
 | §3.5 embedded codebook | `pytest sdk/sutra-compiler/tests/test_sutradb_embedded.py` |
-| §3.6 end-to-end differentiable training (19 ANDs deep, 95% accuracy) | `experiments/differentiable_training.py` |
+| §3.6 differentiable training through the compiled graph (K=5, 18.7→100.0%, 3 seeds) | `experiments/differentiable_training_compiled.py --batched` |
+| §3.7 trained weight baked into recompilable `.su` (round-trip verified) | `experiments/differentiable_training_weighted.py` |
 | §4 compiler pipeline (245+ tests) | `pytest sdk/sutra-compiler/tests/` |
 | §5 ten-program smoke test | `python examples/_smoke_test.py` |
 
