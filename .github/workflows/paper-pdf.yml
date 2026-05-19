@@ -93,6 +93,16 @@ jobs:
           latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
+          # arXiv-blocking-error gate: latexmk -interaction=nonstopmode
+          # continues past LaTeX errors and still emits a PDF, so a
+          # green CI check does NOT mean strict pdflatex (arXiv) will
+          # accept the source. Grep for hard errors and fail loudly —
+          # the round-4 'No counter none defined' incident shipped a
+          # broken arXiv tarball because this gate did not exist.
+          if grep -E '^! LaTeX Error:' paper.log; then
+            echo "::error::LaTeX Error(s) detected in paper.log — arXiv would reject this source. Fix and re-push."
+            exit 1
+          fi
 
       - name: Clean intermediate
         working-directory: paper
@@ -113,14 +123,34 @@ jobs:
             -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
+          if grep -E '^! LaTeX Error:' paper.log; then
+            echo "::error::LaTeX Error(s) in anonymized build's paper.log — fix and re-push."
+            exit 1
+          fi
 
-      - name: Upload PDFs as artifacts
+      - name: Build arXiv source tarball
+        working-directory: paper
+        run: |
+          # arXiv submission bundle: paper.tex (wrapper) + paper.tex.body
+          # (pandoc output of paper.md, generated earlier in this job) +
+          # neurips_2026.sty. arXiv's TeX Live runs pdflatex on these
+          # three flat files; pandoc is NOT run on their side, so we
+          # ship pandoc's output pre-generated. Three flat files, no
+          # nested directory. The Pages workflow also builds this and
+          # publishes it to https://sutra.emmaleonhart.com/sutra-arxiv-source.tar.gz
+          # (linked from the /arxiv/ page).
+          tar -czf ../sutra-arxiv-source.tar.gz \
+            paper.tex paper.tex.body neurips_2026.sty
+          ls -la ../sutra-arxiv-source.tar.gz
+
+      - name: Upload PDFs + arXiv source as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: paper-pdfs
           path: |
             paper/paper-named.pdf
             paper/paper-anonymized.pdf
+            sutra-arxiv-source.tar.gz
           retention-days: 90
 
   build-neurips-frozen-pdfs:
