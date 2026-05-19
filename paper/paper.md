@@ -93,7 +93,7 @@ The four core technical contributions of this paper are:
    primitive-type read/write is a known index, not a hashtable
    lookup. §4.2 traces this lowering stage-by-stage on a
    concrete program; the compilation pipeline as a whole is
-   diagrammed in Appendix J.
+   diagrammed in Figure~\ref{fig:compile-pipeline}.
 
 3. **Tail recursion as the loop primitive.** Loops are
    tail-recursive function declarations (`do_while`,
@@ -524,7 +524,61 @@ vocabulary and reports in-sample accuracy as verification that
 backprop reaches every learnable parameter, not as a generalization
 result; no held-out split is claimed.
 
-Appendix K diagrams the explicit graph for $K=3$; the $K=20$
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm and 9mm,
+  every node/.style={font=\footnotesize},
+  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
+  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
+  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+  \node[io] (x) {input $x \in \mathbb{R}^d$};
+  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
+  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
+  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
+
+  \node[proto, left=4mm of cos1] (p1) {$p_1$};
+  \node[proto, left=4mm of cos2] (p2) {$p_2$};
+  \node[proto, left=4mm of cos3] (p3) {$p_3$};
+
+  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
+  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
+  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
+  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
+
+  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
+  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
+
+  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
+  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
+  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
+  \node[io, below=6mm of ce]      (loss) {loss};
+
+  \draw[arr] (x) -- (cos1);
+  \draw[arr] (x) -- (cos2);
+  \draw[arr] (x) -- (cos3);
+  \draw[arr] (p1) -- (cos1);
+  \draw[arr] (p2) -- (cos2);
+  \draw[arr] (p3) -- (cos3);
+  \draw[arr] (cos2) -- (not2);
+  \draw[arr] (cos3) -- (not3);
+  \draw[arr] (not2) -- (andneg);
+  \draw[arr] (not3) -- (andneg);
+  \draw[arr] (cos1) -- (and1);
+  \draw[arr] (andneg) -| (and1);
+  \draw[arr] (and1) -- (rule1);
+  \draw[arr] (rule1) -- (stack);
+  \draw[arr] (stack) -- (sm);
+  \draw[arr] (sm) -- (ce);
+  \draw[arr] (ce) -- (loss);
+\end{tikzpicture}
+\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
+\label{fig:k3-pipeline}
+\end{figure}
+
+Figure~\ref{fig:k3-pipeline} diagrams the explicit graph for $K=3$; the $K=20$
 graph used in the experiment has the same shape with twenty
 learnable prototypes and the AND-of-NOTs left-folded across
 nineteen $\mathrm{NOT}(\mathrm{sim})$ terms. The input embedding
@@ -633,8 +687,41 @@ the emitted module *is* the substrate-pure tensor-op graph; every
 compile-time decision (extended-state-vector dimensions, codebook
 contents, role rotations, SutraDB path, optional `torch.compile`)
 is baked into the emitted source. Stages 1–4 run at compile time
-and stage 5 is the runtime forward pass; Appendix J diagrams the
-pipeline as a vertical flow with the residual at each stage.
+and stage 5 is the runtime forward pass; Figure~\ref{fig:compile-pipeline} diagrams the pipeline as a vertical flow with the residual at each stage.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm,
+  every node/.style={font=\footnotesize},
+  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
+  stage/.style={draw=none, font=\scriptsize\itshape, align=center},
+  arr/.style={-{Latex[length=2mm]}, thick},
+  divider/.style={dashed, gray}
+]
+  \node[res] (src)   {source code (\texttt{.su})};
+  \node[stage, below=of src]   (s1) {(1) lex + parse};
+  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
+  \node[stage, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
+  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
+  \node[stage, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
+  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
+  \node[stage, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
+  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
+  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
+  \node[stage, below=of cline] (s5) {(5) forward pass on input tensors};
+  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
+
+  \draw[arr] (src) -- (ast);
+  \draw[arr] (ast) -- (sast);
+  \draw[arr] (sast) -- (mod);
+  \draw[arr] (mod) -- (warm);
+  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
+  \draw[arr] (warm) -- (out);
+\end{tikzpicture}
+\caption{Five-stage compilation pipeline (§4). Boxes are intermediate artifacts; italic labels are the compiler passes that connect them.}
+\label{fig:compile-pipeline}
+\end{figure}
 
 ### Substrate-purity invariants
 
@@ -1177,108 +1264,3 @@ differentiable-training experiment uses the same primitive set
 the smoke-test programs are built from, no Sutra-runtime
 extensions, just compilation of `.su` source to PyTorch
 tensor ops.
-
-### Appendix J. Compilation pipeline diagram
-
-The five stages of §4 visualized as a vertical flow with the
-residual artifact at each stage. Stages (1)–(4) run at compile
-time; the dashed line marks the compile/runtime boundary; stage
-(5) is the runtime forward pass.
-
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=4mm,
-  every node/.style={font=\footnotesize},
-  res/.style={draw, rounded corners, minimum width=80mm, minimum height=7mm, align=center},
-  stage/.style={draw=none, font=\scriptsize\itshape, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick},
-  divider/.style={dashed, gray}
-]
-  \node[res] (src)   {source code (\texttt{.su})};
-  \node[stage, below=of src]   (s1) {(1) lex + parse};
-  \node[res, below=of s1]     (ast) {AST \quad (\texttt{Call} / \texttt{Var} / \texttt{Function} / \texttt{ClassDecl})};
-  \node[stage, below=of ast]   (s2) {(2) inline stdlib + egglog simplify\\\textnormal{bind, bundle, similarity $\to$ primitive tensor ops}};
-  \node[res, below=of s2]     (sast) {simplified AST \quad (residual: leaf tensor-op composition)};
-  \node[stage, below=of sast]  (s3) {(3) codegen \quad (emit Python module + inline \texttt{\_VSA} class source)};
-  \node[res, below=of s3]     (mod) {Python module text \quad (self-contained, no Sutra-runtime import)};
-  \node[stage, below=of mod]   (s4) {(4) compile-time substrate population\\\textnormal{\texttt{embed\_batch} $\cdot$ \texttt{prewarm\_rotation\_cache} $\cdot$ \texttt{populate\_sutradb}}};
-  \node[res, below=of s4]     (warm) {warm runtime \quad (module loaded, \texttt{.sdb} codebook, cached $R_\mathrm{role}$)};
-  \node[below=2mm of warm, font=\scriptsize\sffamily] (cline) {compile time \;\;$\big/$\;\; runtime};
-  \node[stage, below=of cline] (s5) {(5) forward pass on input tensors};
-  \node[res, below=of s5]     (out) {output vector $\to$ \texttt{nearest\_string} lookup $\to$ label};
-
-  \draw[arr] (src) -- (ast);
-  \draw[arr] (ast) -- (sast);
-  \draw[arr] (sast) -- (mod);
-  \draw[arr] (mod) -- (warm);
-  \draw[divider] ([xshift=-50mm]cline.center) -- ([xshift=50mm]cline.center);
-  \draw[arr] (warm) -- (out);
-\end{tikzpicture}
-\caption{Five-stage compilation pipeline (§4). Boxes are intermediate artifacts; italic labels are the compiler passes that connect them.}
-\label{fig:compile-pipeline}
-\end{figure}
-
-### Appendix K. K=3 rule pipeline diagram
-
-The explicit pipeline graph for the §3.6 differentiable-training
-classifier at K=3, the smallest setting that exhibits the AND /
-AND-of-NOTs / softmax / cross-entropy shape that scales unchanged
-to K=20.
-
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-  node distance=6mm and 9mm,
-  every node/.style={font=\footnotesize},
-  io/.style={draw, rounded corners, minimum width=18mm, minimum height=6mm, align=center},
-  op/.style={draw, minimum width=14mm, minimum height=6mm, align=center},
-  proto/.style={draw, dashed, minimum width=14mm, minimum height=6mm, align=center},
-  arr/.style={-{Latex[length=2mm]}, thick}
-]
-  \node[io] (x) {input $x \in \mathbb{R}^d$};
-  \node[op, below left=8mm and 18mm of x] (cos1) {$\cos(x, p_1)$};
-  \node[op, below=8mm of x]                 (cos2) {$\cos(x, p_2)$};
-  \node[op, below right=8mm and 18mm of x] (cos3) {$\cos(x, p_3)$};
-
-  \node[proto, left=4mm of cos1] (p1) {$p_1$};
-  \node[proto, left=4mm of cos2] (p2) {$p_2$};
-  \node[proto, left=4mm of cos3] (p3) {$p_3$};
-
-  \node[op, below=6mm of cos2] (not2) {$\mathrm{NOT}$};
-  \node[op, below=6mm of cos3] (not3) {$\mathrm{NOT}$};
-  \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
-  \node[below=1mm of andneg, font=\scriptsize] {neg-others};
-
-  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
-  \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
-
-  \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
-  \node[op, below=6mm of stack]   (sm)   {$\times \tau \to \mathrm{softmax}$};
-  \node[op, below=6mm of sm]      (ce)   {cross-entropy(label)};
-  \node[io, below=6mm of ce]      (loss) {loss};
-
-  \draw[arr] (x) -- (cos1);
-  \draw[arr] (x) -- (cos2);
-  \draw[arr] (x) -- (cos3);
-  \draw[arr] (p1) -- (cos1);
-  \draw[arr] (p2) -- (cos2);
-  \draw[arr] (p3) -- (cos3);
-  \draw[arr] (cos2) -- (not2);
-  \draw[arr] (cos3) -- (not3);
-  \draw[arr] (not2) -- (andneg);
-  \draw[arr] (not3) -- (andneg);
-  \draw[arr] (cos1) -- (and1);
-  \draw[arr] (andneg) -| (and1);
-  \draw[arr] (and1) -- (rule1);
-  \draw[arr] (rule1) -- (stack);
-  \draw[arr] (stack) -- (sm);
-  \draw[arr] (sm) -- (ce);
-  \draw[arr] (ce) -- (loss);
-\end{tikzpicture}
-\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
-\label{fig:k3-pipeline}
-\end{figure}
-
-
-
