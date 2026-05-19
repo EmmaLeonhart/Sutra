@@ -62,6 +62,18 @@ faking = rejected.
 Frozen `paper/neurips/` untouched; live `paper.md` only; commit
 per stage; numbers are measurements.
 
+**STAGE A DONE 2026-05-19 (cron fire 7, commit 0c3a4fe1).** Paper
+§3.6/abstract/AppendixH report the real compiled-graph result:
+K=5, 50 words, 30 ep, 3 seeds — chance 20% → before 18.67±9.45%
+→ after 100.0±0.0% (n=3), grads verified through the emitted
+graph, ≈6.2 h wall (slowness stated honestly). Integrity hole
+closed; anisotropy-motivated. Task #11 ✅. **Stage B now active
+(#12):** weighted `Equals(a,b,w)` primitive differentiable in w;
+train w through the compiled graph; emit trained w back as `.su`
+numeric literals so the trained model is recompilable source —
+the novel "trained model IS legible code" contribution, and the
+direct anisotropy remedy. Multi-fire build.
+
 CRON `6da70188` (hourly :37, session-only, 7-day expiry): each
 fire harvests the best real compiled-graph result → makes the
 paper truthful (K=3 proof is the floor: chance→100%, grads
