@@ -51,9 +51,24 @@ CLAWRXIV_BASE = "https://clawrxiv.io"
 
 
 class SupersedeConflict(RuntimeError):
-    """HTTP 409 from /api/posts because the `supersedes` target is
-    stale (clawRxiv: "already been revised"). Recoverable — the
-    caller can retry as a fresh post."""
+    """HTTP 409 from clawRxiv (stale supersede target, or dedup:
+    "already been revised" / "duplicate detected"). Carries the
+    parsed JSON body so callers can follow `data.duplicateId` to
+    the canonical live post and revise that instead."""
+
+    def __init__(self, message: str, body: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.body = body or {}
+
+    def duplicate_id(self) -> int | None:
+        v = (self.body.get("data") or {}).get("duplicateId")
+        if isinstance(v, bool):
+            return None
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str) and v.isdigit():
+            return int(v)
+        return None
 
 
 def extract_h1_title(content: str) -> str | None:
@@ -113,32 +128,14 @@ def read_post_id(paper_dir: Path) -> int | None:
         return None
 
 
-def submit(
-    *,
-    api_key: str,
-    title: str,
-    abstract: str,
-    content: str,
-    skill: str | None,
-    tags: list[str],
-    supersedes: int | None,
+def _post_json(
+    url: str, payload: dict[str, Any], api_key: str,
 ) -> dict[str, Any]:
-    """POST to /api/posts and return the parsed JSON response."""
-    payload: dict[str, Any] = {
-        "title": title,
-        "abstract": abstract,
-        "content": content,
-        "tags": tags,
-        "human_names": ["Emma Leonhart"],
-    }
-    if skill is not None:
-        payload["skill_md"] = skill
-    if supersedes is not None:
-        payload["supersedes"] = supersedes
-
+    """POST JSON to clawRxiv. Raises SupersedeConflict on HTTP 409
+    (carrying the parsed body), RuntimeError on any other error."""
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
-        f"{CLAWRXIV_BASE}/api/posts",
+        url,
         data=data,
         headers={
             "Content-Type": "application/json",
@@ -148,17 +145,53 @@ def submit(
     )
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            body = resp.read().decode("utf-8")
+            return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="replace") if e.fp else ""
         if e.code == 409:
+            try:
+                parsed = json.loads(err_body)
+            except (ValueError, TypeError):
+                parsed = {}
             raise SupersedeConflict(
-                f"clawRxiv submission failed: HTTP 409: {err_body}"
+                f"clawRxiv HTTP 409: {err_body}", body=parsed
             ) from e
         raise RuntimeError(
-            f"clawRxiv submission failed: HTTP {e.code}: {err_body}"
+            f"clawRxiv request failed: HTTP {e.code}: {err_body}"
         ) from e
-    return json.loads(body)
+
+
+def build_payload(
+    *, title: str, abstract: str, content: str,
+    skill: str | None, tags: list[str],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "title": title,
+        "abstract": abstract,
+        "content": content,
+        "tags": tags,
+        "human_names": ["Emma Leonhart"],
+    }
+    if skill is not None:
+        payload["skill_md"] = skill
+    return payload
+
+
+def create_post(*, api_key: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """Create a brand-new clawRxiv post (first-ever submission)."""
+    return _post_json(f"{CLAWRXIV_BASE}/api/posts", payload, api_key)
+
+
+def revise_post(
+    *, api_key: str, post_id: int, payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Revise an existing post via clawRxiv's current revision API
+    (`POST /api/posts/{id}/revise`). This replaced the old
+    `POST /api/posts` + `supersedes` field, which now 409s with
+    "already been revised" / "duplicate detected"."""
+    return _post_json(
+        f"{CLAWRXIV_BASE}/api/posts/{post_id}/revise", payload, api_key
+    )
 
 
 def fetch_review(
@@ -333,43 +366,57 @@ def main() -> int:
     supersedes = args.supersedes
     if supersedes is None:
         supersedes = read_post_id(paper_dir)
-    if supersedes is not None:
-        print(f"Superseding existing post {supersedes}")
-    else:
-        print(f"Submitting {paper_dir}/paper.md as a NEW post (no .post_id found)")
-
-    submit_kwargs = dict(
-        api_key=api_key,
-        title=title,
-        abstract=abstract,
-        content=content,
-        skill=skill,
-        tags=tags,
+    payload = build_payload(
+        title=title, abstract=abstract, content=content,
+        skill=skill, tags=tags,
     )
+
+    def _persist_post_id(pid: int) -> None:
+        (paper_dir / ".post_id").write_text(str(pid), encoding="utf-8")
+        print(f"Wrote {paper_dir}/.post_id = {pid}")
+
     try:
-        response = submit(**submit_kwargs, supersedes=supersedes)
+        if supersedes is not None:
+            print(f"Revising existing post {supersedes} "
+                  f"(POST /api/posts/{supersedes}/revise)")
+            response = revise_post(
+                api_key=api_key, post_id=supersedes, payload=payload
+            )
+        else:
+            print(f"Creating NEW clawRxiv post for {paper_dir}/paper.md "
+                  f"(no .post_id found)")
+            response = create_post(api_key=api_key, payload=payload)
     except SupersedeConflict as e:
-        if supersedes is None:
-            print(f"ERROR: {e}", file=sys.stderr)
+        dup = e.duplicate_id()
+        if dup is None:
+            print(f"ERROR: clawRxiv 409 with no data.duplicateId to "
+                  f"recover from:\n  {e}", file=sys.stderr)
             return 1
-        # Self-heal: git's .post_id has drifted behind clawRxiv's
-        # actual supersedes-chain tip (a prior run submitted but its
-        # .post_id bump never landed on main), so superseding it 409s
-        # on every run. Recover by submitting a fresh post and
-        # resetting .post_id to it; the chain continues from a live
-        # post rather than staying permanently wedged.
-        print(
-            f"WARNING: supersede target {supersedes} is stale "
-            f"(clawRxiv 409 'already been revised'). Re-submitting as "
-            f"a NEW post so the pipeline self-heals and .post_id is "
-            f"reset to a live post.\n  {e}",
-            file=sys.stderr,
-        )
+        # clawRxiv's dedup response names the canonical live post
+        # for this work. Follow it and revise THAT — deterministic
+        # self-heal of a stale/drifted .post_id straight from the
+        # API, no key-authed chain lookup needed.
+        print(f"WARNING: clawRxiv reports the live version of this "
+              f"work is post {dup} (HTTP 409). Revising post {dup} "
+              f"and re-pinning .post_id.", file=sys.stderr)
         try:
-            response = submit(**submit_kwargs, supersedes=None)
+            response = revise_post(
+                api_key=api_key, post_id=dup, payload=payload
+            )
+        except SupersedeConflict as e2:
+            # Even revising the canonical is rejected as a duplicate:
+            # the manuscript is not substantively different from
+            # what is already on clawRxiv. That is a no-op, not a
+            # failure — pin .post_id to the canonical and succeed.
+            pin = e2.duplicate_id() or dup
+            print(f"NOTE: clawRxiv finds no substantive change vs "
+                  f"post {pin}; treating as up-to-date and pinning "
+                  f".post_id={pin}.", file=sys.stderr)
+            _persist_post_id(pin)
+            return 0
         except Exception as e2:  # noqa: BLE001
-            print(f"ERROR: fallback new-post submission failed: {e2}",
-                  file=sys.stderr)
+            print(f"ERROR: revising canonical post {dup} failed: "
+                  f"{e2}", file=sys.stderr)
             return 1
     except Exception as e:  # noqa: BLE001
         print(f"ERROR: {e}", file=sys.stderr)
