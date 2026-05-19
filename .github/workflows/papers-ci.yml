@@ -117,19 +117,17 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet paper/ docs/theory-and-paper.md; then
-            echo "No paper/ or docs link changes after submit; nothing to commit"
+          if git diff --quiet paper/; then
+            echo "No paper/ changes after submit; nothing to commit"
             exit 0
           fi
           git add paper/
-          git add docs/theory-and-paper.md
           git commit -m "papers-ci: paper submission + review
 
           $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by papers-ci.yml
           after submitting paper/paper.md to clawRxiv. Review JSON +
-          markdown captured under paper/reviews/. clawRxiv link in
-          docs/theory-and-paper.md auto-synced to the new post id
-          if it changed.
+          markdown captured under paper/reviews/; paper/.post_id
+          bumped to the new clawRxiv post id.
 
           Skip-Submit: true"
           # Push race resilience: main may have moved while we were
