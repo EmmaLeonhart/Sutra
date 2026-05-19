@@ -77,6 +77,14 @@ REMAINING:
   kept) — ACTIONED 2026-05-18 per Emma ("soften a bit"). Still
   deferred (optional): abstract "≈chance" wording, early arch
   figure, all-minilm cite. No open blocker — paper is post-ready.
+- ROUND 3 (2026-05-18/19): re-runs all "ship it"; clawRxiv
+  reviewer post2582 Weak-Reject → post2583 ACCEPT. One real
+  recurring item FIXED: clawRxiv flagged `as of 2026` (our
+  round-1 add) as a temporal artifact → reworded per Emma to
+  "(literature reviewed through early 2026)". DeepSeek's "Appendix
+  A AND-dup / Appendix H gibberish" verified NOT real (PDF garble,
+  source lines 872–878 & 1133–1136 clean). HDCC characterization
+  web-verified; AI-artifact scan clean. Sources all verified.
 - P2 (next-venue, optional): ablation table, abstract simplify,
   polynomial-interpolant-rationale paragraph.
 SYNTHESIS.md is the canonical plan (ROUND 2 verdict at top).
