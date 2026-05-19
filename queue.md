@@ -103,9 +103,29 @@ REMAINING:
   A AND-dup / Appendix H gibberish" verified NOT real (PDF garble,
   source lines 872–878 & 1133–1136 clean). HDCC characterization
   web-verified; AI-artifact scan clean. Sources all verified.
+- ROUND 4 (2026-05-19): final pre-arXiv pass on the *post-Stage-A/B
+  + speed-fix* paper (5 fresh reviewers: Claude/DeepSeek/Le Chat/
+  Meta AI/Gemini). All five: AI-violation removal risk VERY LOW.
+  Two verified-real items FIXED in live paper.md: (1) §3.6
+  `(fabricating one is not an option)` → standard limitation tone
+  (Claude+Gemini flagged it as reading like an AI-guardrail
+  artifact — wrong signal for an AI-policy review); (2) §AI-use
+  statement got one additive sentence — results/figures/numbers
+  NOT AI-generated (DeepSeek+Meta+LeChat consensus; Emma's existing
+  candid wording untouched). Gemini's "NAND unformatted / `{-1,0,
+  +1}` brace missing" verified PDF-garble (source L66/L53/L1053
+  correct LaTeX) — same artifact as rounds 2–3, no action.
+  Siegelmann&Sontag 1992 COLT real+correct. Futamura inline =
+  named-concept (consistent w/ bare JAX/TVM/XLA) — defensible
+  as-is, optional bib entry left to Emma. LLM-tell grep clean.
+  discord.md (round-2 maniospas endorsement) removed-and-not-
+  replaced this round → git rm (recoverable: `git show
+  HEAD~:"paper/feedback before arXiv/discord.md"`).
 - P2 (next-venue, optional): ablation table, abstract simplify,
-  polynomial-interpolant-rationale paragraph.
-SYNTHESIS.md is the canonical plan (ROUND 2 verdict at top).
+  polynomial-interpolant-rationale paragraph; Le Chat's
+  section-granular AI-use breakdown; arXiv submit-metadata
+  comments-field note (submit-time, not a paper edit).
+SYNTHESIS.md regenerated as the ROUND 4 canonical plan.
 
 ### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 
