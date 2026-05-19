@@ -137,7 +137,14 @@ INCLUDE_GLOBS = [
     "experiments/rotation_binding_capacity_llm.py",
     "experiments/rotation_binding_capacity_bioinformatics.py",
     "experiments/crosstalk_chain.py",
+    # §3.6 proxy (kept: the FROZEN neurips supplementary references
+    # it; the payload is shared, so removing it would break the
+    # submission-record zip's reproducibility — durability rule).
     "experiments/differentiable_training.py",
+    # §3.6 / §3.7 genuine compiled-graph harnesses cited by the
+    # corrected live paper (compiled --batched; weighted baked-.su).
+    "experiments/differentiable_training_compiled.py",
+    "experiments/differentiable_training_weighted.py",
     "experiments/rotation_hashmap_capacity.py",
     "experiments/sutra_vs_torchhd.py",
     "experiments/sutra_vs_torchhd_latency.py",
