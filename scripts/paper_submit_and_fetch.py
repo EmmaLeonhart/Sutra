@@ -50,6 +50,12 @@ from typing import Any
 CLAWRXIV_BASE = "https://clawrxiv.io"
 
 
+class SupersedeConflict(RuntimeError):
+    """HTTP 409 from /api/posts because the `supersedes` target is
+    stale (clawRxiv: "already been revised"). Recoverable — the
+    caller can retry as a fresh post."""
+
+
 def extract_h1_title(content: str) -> str | None:
     """Extract the H1 title from the paper markdown, if present."""
     match = re.match(r'^#\s+(.+)', content)
@@ -145,6 +151,10 @@ def submit(
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="replace") if e.fp else ""
+        if e.code == 409:
+            raise SupersedeConflict(
+                f"clawRxiv submission failed: HTTP 409: {err_body}"
+            ) from e
         raise RuntimeError(
             f"clawRxiv submission failed: HTTP {e.code}: {err_body}"
         ) from e
@@ -328,16 +338,39 @@ def main() -> int:
     else:
         print(f"Submitting {paper_dir}/paper.md as a NEW post (no .post_id found)")
 
+    submit_kwargs = dict(
+        api_key=api_key,
+        title=title,
+        abstract=abstract,
+        content=content,
+        skill=skill,
+        tags=tags,
+    )
     try:
-        response = submit(
-            api_key=api_key,
-            title=title,
-            abstract=abstract,
-            content=content,
-            skill=skill,
-            tags=tags,
-            supersedes=supersedes,
+        response = submit(**submit_kwargs, supersedes=supersedes)
+    except SupersedeConflict as e:
+        if supersedes is None:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 1
+        # Self-heal: git's .post_id has drifted behind clawRxiv's
+        # actual supersedes-chain tip (a prior run submitted but its
+        # .post_id bump never landed on main), so superseding it 409s
+        # on every run. Recover by submitting a fresh post and
+        # resetting .post_id to it; the chain continues from a live
+        # post rather than staying permanently wedged.
+        print(
+            f"WARNING: supersede target {supersedes} is stale "
+            f"(clawRxiv 409 'already been revised'). Re-submitting as "
+            f"a NEW post so the pipeline self-heals and .post_id is "
+            f"reset to a live post.\n  {e}",
+            file=sys.stderr,
         )
+        try:
+            response = submit(**submit_kwargs, supersedes=None)
+        except Exception as e2:  # noqa: BLE001
+            print(f"ERROR: fallback new-post submission failed: {e2}",
+                  file=sys.stderr)
+            return 1
     except Exception as e:  # noqa: BLE001
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
