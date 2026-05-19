@@ -1,7 +1,7 @@
 # Reproducing the paper results
 
-NeurIPS reproducibility checklist requires pointing at runnable
-code; this is the runnable-code map. Pair with `SKILL.md` (the
+Reproducibility requires pointing at runnable code; this is the
+runnable-code map. Pair with `SKILL.md` (the
 agent-runnable shell-block version) and `SYNTAX.md` (the
 language reference).
 
