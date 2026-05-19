@@ -193,3 +193,41 @@ after the result is a probe-script bug, not a Stage-B failure.
 Next fires: full Stage-B harness (train w + prototypes through the
 compiled weighted-rule graph → real numbers → emit trained w into
 a `.su` literal → verify recompile round-trip), then paper §3.7.
+
+## Cron fire 9 (2026-05-19): STAGE B DONE — trained weight baked into recompilable `.su`, round-trip verified
+
+`experiments/differentiable_training_weighted.py` written and run
+for real (no faking). A `.su` rule
+`rule(x, own, o0, o1, number w) = (w·sim(x,own)) && !(w·sim(x,o0))
+&& !(w·sim(x,o1))` compiled via the **PyTorch codegen**; a scalar
+gain `w` (init 1.0) **and** the K prototypes trained through the
+**emitted** graph with Adam (cross-entropy over K class logits).
+
+=== STAGE B MEASURED (real compiled graph, weight trained) ===
+k=3, 3 classes × 8 words (N=24), 768-d, 30 epochs, 2 seeds (0–1),
+Adam lr=0.02, ≈147 s total.
+- chance 33.3% · before **33.33 ± 5.89%** → after **100.00 ± 0.00%** (n=2)
+- trained gain **w\* = 1.4339 ± 0.0035** (both seeds converge to
+  ≈1.43 from init 1.0 — a learned cosine gain, not a tautology)
+- **round_trip_ok = True (all seeds):** the trained `w` is written
+  back into a fresh `.su` as a numeric **literal** with the `w`
+  param removed
+  (`((1.431431) * similarity(x, own)) && !((1.431431) * ...)`),
+  the baked `.su` is **recompiled** through the same PyTorch
+  codegen, fed the same trained prototypes, and reproduces logits
+  identical to the param-`w` model (max logit Δ ≈ 2×10⁻⁷) →
+  identical 100% accuracy. The trained model **is** legible,
+  recompilable Sutra source — not a checkpoint blob.
+
+This is the genuinely-novel contribution: gradient descent through
+a compiled symbolic program whose learned parameter is emitted back
+**as source code that recompiles to the trained behaviour**.
+Anisotropy framing (paper §3.7): the learned scalar gain rescales
+the compressed cosine dynamic range of anisotropic frozen
+embeddings — `w*≈1.43 > 1` sharpens the Kleene AND/NOT decision
+margin that the narrow embedding cone otherwise flattens.
+
+Constraints honored: NO FAKING (every number measured); the heavy
+K=5/5-seed run (PID 36912) left running, **not killed**; ≤2 heavy
+python jobs (Stage B K=3 is small, ≈147 s). Paper §3.7 added; task
+#12 complete. Cron 6da70188 deletes after §3.7 lands.
