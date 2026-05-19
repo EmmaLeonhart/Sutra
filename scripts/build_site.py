@@ -212,6 +212,29 @@ DOWNLOAD_CARDS = """
     </div>
 """
 
+# /arxiv/ ships a single prominent download: the LaTeX source bundle
+# arXiv expects you to upload as a .tar.gz on the "Add files" step.
+# Same visual treatment as DOWNLOAD_CARDS so the file is impossible
+# to miss on the page.
+ARXIV_DOWNLOAD_CARDS = """
+    <div class="downloads">
+      <a class="card dl" href="/sutra-arxiv-source.tar.gz">
+        <div class="dl-body">
+          <div class="dl-name">arXiv source bundle (.tar.gz)</div>
+          <div class="dl-sub">paper.tex (wrapper) + paper.tex.body (pandoc output of paper.md) + neurips_2026.sty. Upload this single archive on arXiv's "Add files" step.</div>
+        </div>
+        <span class="dl-arrow">&rarr;</span>
+      </a>
+      <a class="card dl" href="/sutra-replication-package.zip">
+        <div class="dl-body">
+          <div class="dl-name">Replication package (ZIP, optional ancillary)</div>
+          <div class="dl-sub">Compiler source + reproduction scripts. Attach as an arXiv ancillary file alongside the source bundle, or rely on the in-paper GitHub URL.</div>
+        </div>
+        <span class="dl-arrow">&rarr;</span>
+      </a>
+    </div>
+"""
+
 # The /paper/ page links only the paper itself and the reproduction
 # archive (the anonymized PDF lives on /neurips-2026/, the submission
 # record). The ZIP is called out as carrying SKILL.md.
@@ -521,6 +544,11 @@ def main() -> int:
                      f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
                      f'    <p class="lede">The immutable record of the Sutra paper as submitted to NeurIPS 2026. Downloads:</p>\n'
                      f'{DOWNLOAD_CARDS}\n    <div class="doc">\n{body}\n    </div>\n')
+        elif slug == "arxiv":
+            inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
+                     f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
+                     f'    <p class="lede">The LaTeX source bundle arXiv expects you to upload &mdash; pandoc has already been run, the three files inside are what arXiv\'s TeX Live builds the PDF from.</p>\n'
+                     f'{ARXIV_DOWNLOAD_CARDS}\n    <div class="doc">\n{body}\n    </div>\n')
         else:
             inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
                      f'    <span class="eyebrow">Sutra</span>\n    <h1>{heading}</h1>\n'
