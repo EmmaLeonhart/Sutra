@@ -10,7 +10,7 @@
 
 The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the compiled graph end-to-end: a symbolic if-then program of fuzzy rules over 20 classes / 992 words, with a rule tree nineteen ANDs deep, trains from random init (≈ chance) to 95.2 ± 0.1% by 50 epochs and 95.3 ± 0.0% through 300 (mean ± s.d. over 5 seeds) without any modification to the symbolic source. Gradient descent moves the embeddings the rules evaluate against, leaving the rule graph itself untouched.
 
-The same artifact is therefore both a logic program and a trainable neural network: one artifact, two interpretations.
+The same artifact is therefore both a logic program and a trainable neural network.
 
 ---
 
