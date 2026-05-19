@@ -41,12 +41,16 @@ of this file — PDF-reading LLMs garble text):
   "Appendix H paths like rotation_bid@/hkg…" — clean in source;
   pure PDF-extraction artifacts. Do **not** "fix" correct text off
   a mangled read.
-- `[optional — reviewers themselves call non-blocking; deferred]`
-  abstract simplification ~15–20%; soften "collapses the boundary" /
-  trim the Siegelmann&Sontag Turing aside; abstract "≈ chance" →
-  "near chance (5.8±2.4%)"; add early architecture figure; formal
-  all-minilm citation; LTN article-number. Voice is deliberate
-  (Emma's standing call); none gate the arXiv post.
+- `[optional — partially ACTIONED 2026-05-18 per Emma, "soften a
+  bit"]` Measured softening applied: abstract para-1 megasentence
+  split + "the substrate is the architecture target" slogan
+  dropped; "This collapses the boundary…" → "The same artifact is
+  therefore both a logic program and a trainable neural network…";
+  Turing framing toned down in body + the Siegelmann&Sontag bib
+  annotation (citation KEPT — softening ≠ removing a real ref).
+  Still deferred (optional, non-blocking): abstract "≈ chance" →
+  "near chance (5.8±2.4%)", early architecture figure, formal
+  all-minilm citation, LTN article-number. None gate the post.
 
 **Net:** no open blocker. The one real inconsistency is fixed; the
 scary-looking flags were PDF noise. Paper is post-ready; remaining
