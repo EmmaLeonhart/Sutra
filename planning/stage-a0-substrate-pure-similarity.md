@@ -65,3 +65,29 @@ classifier, 5-seed, measured numbers whatever they are) → rewrite
 trained weights emitted back into `.su` source). Submission stays
 held until Stage A is real and gated. Frozen `paper/neurips/`
 untouched.
+
+## RESULT (2026-05-18) — fix applied, verified, regression-free
+
+Change made (codegen_pytorch.py): emitted `similarity` and `dot`
+drop the mid-graph `float()` → return 0-d tensors (eps-guard kept).
+Scope: PyTorch backend only. Numpy `codegen.py` still float()s —
+intentionally left: it is the DEPRECATED backend; CLAUDE.md makes
+PyTorch the canonical target and the paper's claims target it.
+
+Verified:
+- Differentiability probe: compiled `rule(x,own,other)` now →
+  `torch.Tensor`, `requires_grad=True`, `grad_fn=<MulBackward0>`,
+  grads flow to inputs. (Pre-fix: Python float, no grad.) The
+  compiled graph is now genuinely trainable.
+- Fast gate zero regression vs baseline: test_codegen_pytorch 11,
+  test_corpus 3+83 subtests, test_branchless_loop 7,
+  test_await_substrate_pure 4 — identical before/after.
+- Numeric-output ripple: NONE. `function number main(){ return
+  similarity(...); }` via real `--run` prints `1.0` (clean host
+  scalar) — the decode boundary already collapses tensor→host, so
+  similarity-as-tensor is collapsed at the correct monitoring
+  boundary, not inside the op. Substrate-purity doctrine satisfied.
+
+Pending: full exec-heavy suite (egglog/transcendentals/loop_fn/
+substrate_leak/axon/...) as a long background pass for final
+confirmation before declaring A0 closed.
