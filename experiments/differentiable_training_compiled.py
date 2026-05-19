@@ -13,6 +13,15 @@ stacks the K compiled rule scores -> softmax -> cross-entropy and
 runs Adam; the rule graph itself is the compiler's, untouched by
 training. Numbers printed are measurements, whatever they are.
 
+The `.su` compiles ONCE (not per sample/epoch/seed). The default
+per-sample path calls the emitted rule() N×K times/epoch in a
+Python loop — correct but dominated by interpreter overhead, not
+the compiled math. `--batched` torch.vmap's the SAME emitted
+rule() over the N batch (a transform, not a reimplementation) and
+asserts batched logits == per-sample logits within fp tolerance
+before training — so the speedup is provably the identical
+compiled computation, not a faked shortcut.
+
 Usage:
   py experiments/differentiable_training_compiled.py [--k K]
      [--per-class N] [--epochs E] [--seeds S0,S1,...] [--lr LR]
@@ -87,36 +96,56 @@ def build_data(k, per_class):
     return data, dim, k
 
 
-def run(seed, mod, data, dim, k, epochs, lr):
+def run(seed, mod, data, dim, k, epochs, lr, batched):
     torch.manual_seed(seed)
     protos = [(_p := torch.randn(dim, dtype=torch.float32)) / _p.norm()
               for _ in range(k)]
     protos = [p.clone().requires_grad_(True) for p in protos]
     opt = torch.optim.Adam(protos, lr=lr)
 
-    def logits(x):
-        out = []
-        for i in range(k):
-            others = [protos[j] for j in range(k) if j != i]
-            out.append(mod.rule(x, protos[i], *others))
-        return torch.stack(out)
+    # single(x) -> [K] : the per-class stack of the EMITTED compiled
+    # rule(). The K loop is tiny (3–5); the expensive axis is N.
+    def single(x):
+        return torch.stack([
+            mod.rule(x, protos[i], *[protos[j] for j in range(k) if j != i])
+            for i in range(k)])
+
+    X = torch.stack([x for x, _ in data])              # [N, dim]
+    Y = torch.tensor([y for _, y in data])             # [N]
+
+    if batched:
+        # torch.vmap is a *transform*: it runs the SAME emitted rule()
+        # ops with a batch axis, not a reimplementation. Collapses the
+        # N Python-level calls into one vectorized pass; gradients
+        # still flow to the prototypes through the emitted graph.
+        vlogits = torch.vmap(single)
+        # Integrity guard: the batched path MUST equal the per-sample
+        # path on identical inputs/params, else it is not the same
+        # compiled computation. One forward each (cheap, not training).
+        with torch.no_grad():
+            lp = torch.stack([single(x) for x, _ in data])  # [N,K]
+            lb = vlogits(X)                                  # [N,K]
+            dmax = float((lp - lb).abs().max())
+        assert dmax < 1e-4, (
+            f"batched != per-sample (max|Δ|={dmax:.2e}) — vmap path is "
+            "NOT the identical compiled computation; refusing to fake")
+        all_logits = lambda: vlogits(X)                      # noqa: E731
+    else:
+        all_logits = lambda: torch.stack([single(x)          # noqa: E731
+                                          for x, _ in data])
 
     def acc():
-        c = 0
         with torch.no_grad():
-            for x, y in data:
-                if int(torch.argmax(logits(x))) == y:
-                    c += 1
-        return c / len(data)
+            return float((all_logits().argmax(1) == Y).float().mean())
 
     a0 = acc()
     g_seen = False
     for _ in range(epochs):
         opt.zero_grad()
-        loss = torch.stack([
-            F.cross_entropy((logits(x) * 10.0).unsqueeze(0),
-                            torch.tensor([y])) for x, y in data
-        ]).mean()
+        # mean-reduced CE over [N,K] vs [N] == mean of the per-sample
+        # CE the per-sample path used: same loss, just not in a Python
+        # comprehension.
+        loss = F.cross_entropy(all_logits() * 10.0, Y)
         loss.backward()
         if not g_seen:
             g_seen = protos[0].grad is not None and float(protos[0].grad.norm()) > 0
@@ -131,6 +160,9 @@ def main():
     ap.add_argument("--epochs", type=int, default=50)
     ap.add_argument("--seeds", default="0,1,2,3,4")
     ap.add_argument("--lr", type=float, default=0.01)
+    ap.add_argument("--batched", action="store_true",
+                    help="vmap the emitted rule() over the batch "
+                         "(same compiled ops; equivalence-asserted)")
     args = ap.parse_args()
 
     seeds = [int(s) for s in args.seeds.split(",") if s.strip()]
@@ -138,14 +170,16 @@ def main():
     data, dim, k = build_data(args.k, args.per_class)
     print(f"compiled .su via PyTorch codegen ({len(py)} chars); "
           f"k={k} per_class={args.per_class} N={len(data)} dim={dim} "
-          f"epochs={args.epochs} seeds={seeds} lr={args.lr}")
+          f"epochs={args.epochs} seeds={seeds} lr={args.lr} "
+          f"mode={'batched(vmap)' if args.batched else 'per-sample'}")
     print("emitted rule() body:")
     print("  " + py.split("def rule(", 1)[1].split("\n\n")[0][:300])
 
     befores, afters = [], []
     t0 = time.time()
     for s in seeds:
-        b, a, ls, gflow = run(s, mod, data, dim, k, args.epochs, args.lr)
+        b, a, ls, gflow = run(s, mod, data, dim, k, args.epochs, args.lr,
+                              args.batched)
         befores.append(b); afters.append(a)
         print(f"  seed {s}: acc {b:.3f} -> {a:.3f}  loss={ls:.4f}  "
               f"grads_through_emitted_graph={gflow}")
