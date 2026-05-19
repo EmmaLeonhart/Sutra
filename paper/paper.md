@@ -773,7 +773,7 @@ a model without verification.
   Holland. The strong three-valued logic system used as the
   ground for Sutra's polynomial fuzzy connectives (§1.1-1).
 - Badreddine, S., Garcez, A. d., Serafini, L., & Spranger, M.
-  (2022). Logic Tensor Networks. *Artificial Intelligence* 303.
+  (2022). Logic Tensor Networks. *Artificial Intelligence* 303:103649.
 - Hájek, P. (1998). *Metamathematics of Fuzzy Logic*. Trends in
   Logic vol. 4. Kluwer Academic. The standard reference for
   t-norm-based fuzzy logics (Gödel, Łukasiewicz, product) cited
