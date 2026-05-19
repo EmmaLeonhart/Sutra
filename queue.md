@@ -35,8 +35,17 @@ REMAINING:
   gitignored `comparisons/`, ran `overlap.py`: 0.071% verbatim
   8-gram overlap, 0 strong sentence dups (only a shared biblio
   line). No risk; no rephrasing. SYNTHESIS §1 updated.
-- §4.2 restructure: DEFERRED (Emma 2026-05-18) — leave section
-  layout as-is for arXiv; revisit at next venue.
+- §4.2 restructure: DONE light 2026-05-18 (Emma chose subsection-
+  header tagging only — method/experiment tags + roadmap line in
+  Consolidation, numbering-neutral, zero cross-ref churn). Full
+  split still deferred to next venue.
+- clawRxiv submission error: ROOT-CAUSED + FIXED 2026-05-18.
+  (1) API changed: script now uses POST /api/posts/{id}/revise
+  (create_post/revise_post split) + self-heals off the 409
+  data.duplicateId; (2) papers-ci commit-back step crashed on
+  the scrapped docs/theory-and-paper.md (exit 128) — stale path
+  removed. Verified: revise created post 2579 + review fetched;
+  commit-back fix lets .post_id persist. .post_id pinned 2579.
 - P1 DONE 2026-05-18 (`pushed below`): `.su` snippet (verbatim
   role_filler_record encode/decode core) + fuzzy-NN Related-Work
   subsection with 3 web-verified refs (Zadeh 1965, Jang 1993,
