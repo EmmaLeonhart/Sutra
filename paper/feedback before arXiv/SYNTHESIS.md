@@ -185,13 +185,17 @@ drove implementation, substrate-purity verification, and final
 correctness.** Wording spectrum is a decision, not a default — see the
 question posed alongside this doc.
 
-### 4.2 Restructure — DEFERRED (Emma, 2026-05-18)
+### 4.2 Restructure — DONE light, 2026-05-18 (Emma's call)
 
-Split Methodology/Experiments + merge §4 helps a venue submission,
-**not** an arXiv blocker. Emma's call: defer to the next-venue
-revision — leave the section layout as-is for the arXiv post
-(purely cosmetic page organization, no science/content change,
-risky cross-ref churn for zero preprint benefit).
+Emma chose the lowest-risk variant: **subsection-header tagging
+only**, no top-level renumber, no reorder, no cross-ref churn.
+Implemented in `## Consolidation into Canonical Primitives`: a
+one-line roadmap after the opener + every `###`/`####` subsection
+title now tagged `— method` or `— experiment`. The §3.2/§3.2.1/
+§3.6 numbers are unchanged (heading text edits are numbering-
+neutral; the literal cross-refs stay valid). Full Methodology/
+Experiments split + §4 merge remains deferred to the next venue
+(bigger diff, not arXiv-blocking).
 
 ## 5. Suggested execution order
 
