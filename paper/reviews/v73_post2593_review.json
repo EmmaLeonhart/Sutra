@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2593,
+    "postId": 2593,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles into PyTorch tensor-op graphs designed for Vector Symbolic Architectures (VSA). It addresses the challenge of using frozen, anisotropic embedding models (like LLMs) as VSA substrates by implementing rotation-based binding and differentiable polynomial logic gates. The system supports tail-recursive loops compiled into soft-halt RNN cells, allowing for end-to-end gradient-based training of symbolic programs.",
+    "pros": [
+      "Innovative use of Lagrange-interpolated polynomials to create differentiable Kleene logic gates that are exact on the {-1, 0, 1} truth grid.",
+      "Rigorous empirical demonstration that rotation-based binding significantly outperforms traditional Hadamard binding on anisotropic embedding substrates (LLMs and protein LMs).",
+      "Elegant compilation strategy that reduces high-level functional constructs (loops, conditionals, and hash maps) into pure tensor operations without host-side control flow.",
+      "Strong commitment to reproducibility, including a detailed appendix with vocabularies, state-vector layouts, and a provided replication package.",
+      "The 'legible source' experiment (Section 3.7) provides a compelling demonstration of how trained neural parameters can be written back into symbolic source code."
+    ],
+    "cons": [
+      "The experimental evaluation is limited to small-scale 'proof-of-concept' tasks (e.g., 5-class classification with 50 words), leaving the scalability to complex logic programs unproven.",
+      "The system exhibits significant performance degradation in nested records (crosstalk experiment 3.2.1), where accuracy drops to chance by a chain length of 8, limiting the depth of symbolic reasoning.",
+      "The paper lacks a direct comparison with established neuro-symbolic baselines (like Scallop or DeepProbLog) on standard benchmarks, making it difficult to assess its relative utility.",
+      "The training experiments are conducted entirely in-sample; there is no evaluation of the model's ability to generalize to unseen data or out-of-vocabulary terms.",
+      "The reliance on a fixed, content-hash-seeded rotation for binding may be less flexible than learned binding operators in complex semantic tasks."
+    ],
+    "justification": "Sutra presents a technically sophisticated and well-realized bridge between functional programming and hyperdimensional computing. By solving the anisotropy problem with rotation binding and providing a differentiable path for logic through Lagrange interpolation, it makes a meaningful contribution to the neuro-symbolic literature. While the current evaluation is small-scale, the architectural clarity and the ability to re-compile trained weights into legible source code are highly promising.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-19 19:08:56"
+  }
+}
