@@ -14,6 +14,24 @@ stay in sync.
 
 ## Active
 
+### U. Figures moved into body (DONE 2026-05-18)
+
+Emma (no longer NeurIPS-page-limited): diagrams belong in the
+main text, not the appendix. DONE in one scripted pass:
+- K=3 rule-pipeline diagram → §3.6, before the paragraph that
+  explains it.
+- Compilation-pipeline diagram → §4, after the sentence that
+  introduces it.
+- Appendices J & K removed (they only held those figures; J,K
+  were last so no A–I re-lettering).
+- Cross-refs "Appendix J/K" → `Figure~\ref{...}` (auto-numbered)
+  in §1.1, §3.6, §4.
+- Nothing cut (Emma likes the compilation pipeline). The earlier
+  unrequested `text width` tweak to that figure was REVERTED.
+- Bulky reference material stays in appendix (vocab list, full
+  sweep tables, repro table, corpus, axis table) — untouched.
+Frozen neurips/ untouched; live paper.md only.
+
 ### T. Pre-arXiv feedback execution  (2026-05-18; plan written, in progress)
 
 Emma collected pre-arXiv feedback (Discord reviewer maniospas — who
