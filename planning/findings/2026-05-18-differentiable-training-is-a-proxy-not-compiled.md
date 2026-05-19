@@ -154,3 +154,23 @@ run launched (3 jobs; bq6k3pbl7 progressing). When bq6k3pbl7
 finishes all 3 seeds with a MEASURED block, upgrade §3.6/abstract
 to the K=5 N=50 30-ep 3-seed real numbers (stronger: harder
 5-class task, ≥3 seeds → Stage A "solid").
+
+## Cron fire 7 (2026-05-19): STAGE A DONE — real K=5 3-seed compiled-graph result in the paper
+
+`bq6k3pbl7` completed: K=5, 5 classes, 10 words/class (N=50),
+30 epochs, 3 seeds (0–2), Adam lr=0.01.
+=== MEASURED (real compiled graph) ===
+chance=0.200  before=18.67±9.45%  after=100.00±0.00% (n=3)
+all 3 seeds grads_through_emitted_graph=True; wall ≈ 22179 s
+(≈ 6.2 h — concrete evidence for the "compiled per-sample path is
+slow" limitation, now stated with that number in §3.6 + App H).
+§3.6 / abstract(2) / Appendix H row+prose+wall-clock all rewritten
+to this; K=3 pipeline figure reframed as the illustrative smallest
+instance (experiment is K=5, same shape). No K=3/n=2 residue.
+`b32kskpr9` (K=5, 100 words, 60 ep, 5 seeds) left running but
+abandoned-in-place — setup-only for ~6 fires; ~24 h+ projected;
+NOT killed. Stage A integrity goal fully met: the paper's
+differentiable-training claim is now a genuinely-compiled-graph
+result, motivated by anisotropy, with the slowness honestly
+stated. Next: Stage B (weighted Equals(a,b,w), trained weights
+emitted back into `.su` source).

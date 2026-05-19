@@ -8,7 +8,7 @@
 
 **Sutra** is a typed, purely functional programming language whose compiled forward pass is a PyTorch neural network. The compiler beta-reduces the whole program — primitives, control flow, string I/O — to one fused tensor-op graph over a frozen embedding substrate: rotation binding, unbind, bundle, polynomial Kleene three-valued logic, and tail-recursive loops all lower to tensor operations. The only host-side control flow that remains is a thin tick-loop that breaks when a halt scalar saturates. The Kleene connectives are Lagrange-interpolated polynomials, exact on the {−1, 0, +1} truth grid; rotation binding doubles as the language's hash-map primitive (Haar-orthogonal role rotations seeded by content hash). Swap the embedding model and the same source recompiles against the new geometry.
 
-The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the *actually compiled* graph: a fuzzy-rule classifier written in `.su` and compiled by the PyTorch codegen — its forward pass the compiler-emitted `similarity` composed with the Lagrange–Kleene AND/NOT polynomials — trains from random init (35.0 ± 11.8%; chance = 33.3%, three classes) to 100.0 ± 0.0% (mean ± s.d., two seeds) by backpropagating through that emitted graph, the symbolic source unmodified. Gradient descent moves the embeddings the rules evaluate against; the compiled rule graph itself is untouched. The genuinely-compiled per-sample path is markedly slower than a vectorized reimplementation, which bounds the scale reported here and motivates batched codegen.
+The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the *actually compiled* graph: a fuzzy-rule classifier written in `.su` and compiled by the PyTorch codegen — its forward pass the compiler-emitted `similarity` composed with the Lagrange–Kleene AND/NOT polynomials — trains from random init (18.7 ± 9.5%; chance = 20%, five classes) to 100.0 ± 0.0% (mean ± s.d., three seeds) by backpropagating through that emitted graph, the symbolic source unmodified. Gradient descent moves the embeddings the rules evaluate against; the compiled rule graph itself is untouched. The genuinely-compiled per-sample path is markedly slower than a vectorized reimplementation, which bounds the scale reported here and motivates batched codegen.
 
 The same artifact is therefore both a logic program and a trainable neural network.
 
@@ -472,8 +472,8 @@ built entirely from Sutra operations.
 PyTorch codegen; the emitted module's `rule` function *is* the
 compiler output — `_VSA.similarity` composed with the
 Lagrange–Kleene AND/NOT polynomials, with no hand-written
-reimplementation. Three semantic classes, ten words each
-(30 inputs), embedded via nomic-embed-text (768-d, frozen). Three
+reimplementation. Five semantic classes, ten words each
+(50 inputs), embedded via nomic-embed-text (768-d, frozen). Five
 learnable prototype vectors are initialized randomly. Each class
 score is the compiled fuzzy rule:
 
@@ -482,26 +482,26 @@ $$
 $$
 
 with the AND-of-NOTs left-folded across the $K-1$ other classes
-(at $K=3$, two $\mathrm{NOT}$ terms folded under one AND).
-Full-batch cross-entropy over the three compiled rule scores
+(at $K=5$, four $\mathrm{NOT}$ terms folded under one AND).
+Full-batch cross-entropy over the five compiled rule scores
 drives Adam (Kingma & Ba 2015; defaults $\beta_1=0.9$,
 $\beta_2=0.999$, $\varepsilon=10^{-8}$, learning rate $0.01$) on
 the prototype embeddings, backpropagating through the emitted
-graph. 40 epochs, two seeds (0–1).
+graph. 30 epochs, three seeds (0–2).
 
-**Results (2 seeds).** From random-init accuracy at chance
-(35.0 ± 11.8%; chance = 33.3%), training reaches
-100.0 ± 0.0% (mean ± s.d. over seeds 0–1); cross-entropy loss
-falls to ≈ 0.09. Every prototype receives a nonzero gradient,
-verified to propagate through the *emitted* graph
-(`_VSA.similarity` → the emitted Lagrange–Kleene
+**Results (3 seeds).** From random-init accuracy at chance
+(18.7 ± 9.5%; chance = 20%), training reaches 100.0 ± 0.0%
+(mean ± s.d. over seeds 0–2; every seed reaches 100%);
+cross-entropy loss falls to ≈ 0.43. Every prototype receives a
+nonzero gradient, verified to propagate through the *emitted*
+graph (`_VSA.similarity` → the emitted Lagrange–Kleene
 $\mathrm{NOT}$/$\mathrm{AND}$ → cross-entropy), not through a
 reimplementation.
 
-| Phase           | Accuracy (mean ± s.d.) |
-|-----------------|-----------------------:|
-| Before (random) |          35.0 ± 11.8 % |
-| After (40 ep)   |         100.0 ±  0.0 % |
+| Phase           | Accuracy (mean ± s.d., $n{=}3$) |
+|-----------------|--------------------------------:|
+| Before (random) |                   18.7 ± 9.5 %  |
+| After (30 ep)   |                  100.0 ± 0.0 %  |
 
 This experiment isolates gradient flow through the *compiled*
 symbolic graph: it trains and evaluates on the same 30-word set
@@ -565,28 +565,30 @@ per-epoch curve is plotted (fabricating one is not an option).
 \label{fig:k3-pipeline}
 \end{figure}
 
-Figure~\ref{fig:k3-pipeline} is the exact graph trained here: the
-input embedding fans out to three cosine-similarity nodes against
-the three learnable prototypes; each `sim_i` enters one branch of
-the AND-tree (rule $i$ takes `sim_i` directly and
-$\mathrm{NOT}(\mathrm{sim}_j)$ for $j \ne i$); the three rule
-scores are stacked, temperature-scaled, softmaxed, and
-cross-entropied. Every node is a compiler-emitted tensor op — no
-Python branches, no string-keyed lookup — so backprop reaches
-every prototype through *the same compiled graph that runs at
-inference* (literally so: the graph is the codegen output, not a
-reimplementation).
+Figure~\ref{fig:k3-pipeline} shows the rule pipeline at $K=3$,
+the smallest instance; the experiment uses the same shape at
+$K=5$ — five cosine-similarity nodes against five learnable
+prototypes, the AND-of-NOTs folded over the four others. Each
+`sim_i` enters one branch of the AND-tree (rule $i$ takes
+`sim_i` directly and $\mathrm{NOT}(\mathrm{sim}_j)$ for
+$j \ne i$); the rule scores are stacked, temperature-scaled,
+softmaxed, and cross-entropied. Every node is a compiler-emitted
+tensor op — no Python branches, no string-keyed lookup — so
+backprop reaches every prototype through *the same compiled graph
+that runs at inference* (literally so: the graph is the codegen
+output, not a reimplementation).
 
 The AND-of-NOTs chain is a tensor pipeline that could naively
 saturate or vanish gradients; empirically it does not — every
-prototype receives a nonzero gradient and the three classes
-separate perfectly within 40 epochs, the symbolic program text
+prototype receives a nonzero gradient and the five classes
+separate perfectly within 30 epochs, the symbolic program text
 unchanged across training. Standard `torch.autograd` suffices
 (no Sutra-specific autograd machinery) because the compiler emits
 only operations PyTorch already differentiates. The cost is
 speed: the genuinely-compiled rule is evaluated per sample (one
-emitted `rule` call per class per input), markedly slower than a
-vectorized library reimplementation — which bounds the scale
+emitted `rule` call per class per input), so this 5-class /
+50-word / 30-epoch / 3-seed run took ≈ 6.2 h on CPU — markedly
+slower than a vectorized reimplementation. This bounds the scale
 reported here and motivates a future batched codegen path.
 Reproduction: `experiments/differentiable_training_compiled.py`
 (compiles the `.su`, backprops the prototypes through the emitted
@@ -1215,22 +1217,22 @@ body to the precision reported.
 | Rotation vs Hadamard, LLM | 3.2 | `rotation_binding_capacity_llm.py` | 10 / k | nomic-embed-text, all-minilm, mxbai-embed-large |  | per-script |
 | Rotation vs Hadamard, ESM-2 | 3.2 | `rotation_binding_capacity_bioinformatics.py` | 10 / k | facebook/esm2\_t6\_8M\_UR50D |  | 1729, 2718 |
 | Crosstalk depth | 3.2.1 | `crosstalk_chain.py` | 20 / L | three LLM substrates |  | per-script |
-| Differentiable training | 3.6 | `differentiable_training_compiled.py` | 2 seeds × 40 epochs (K=3, 30 words) | nomic-embed-text (frozen) | Adam, lr=0.01 | 0–1 |
+| Differentiable training | 3.6 | `differentiable_training_compiled.py` | 3 seeds × 30 epochs (K=5, 50 words) | nomic-embed-text (frozen) | Adam, lr=0.01 | 0–2 |
 
 The differentiable-training run (`differentiable_training_compiled.py`)
 generates a `.su` fuzzy-rule classifier, compiles it with the
-PyTorch codegen, and backpropagates three randomly-initialized
+PyTorch codegen, and backpropagates five randomly-initialized
 unit-normalized prototype vectors through the *emitted* `rule`
 function (the compiler's `_VSA.similarity` composed with the
-Lagrange–Kleene polynomials). Three classes, ten words each
-(30 inputs); embeddings are precomputed once and cached to
+Lagrange–Kleene polynomials). Five classes, ten words each
+(50 inputs); embeddings are precomputed once and cached to
 `.diff_train_embeddings.pt` so reruns skip the embed step. A
 build-time assertion checks the emitted `similarity` is not
 `float()`-collapsed (Stage A0), so gradients provably flow through
 the compiled graph rather than a reimplementation.
 
 Hardware used for the numbers in the body: CPU torch on a single
-laptop (no CUDA). The §3.6 compiled run completes in ≈ 45 s (2 seeds);
+laptop (no CUDA). The §3.6 compiled run takes ≈ 6.2 h (K=5, 50 words, 30 epochs, 3 seeds) — the genuinely-compiled per-sample path is slow;
 the §3.2 capacity sweeps complete in ~2 min per substrate; the
 §3.2.1 crosstalk sweep completes in ~5 min. Re-running on CUDA
 should reproduce the same accuracy numbers since the operations
