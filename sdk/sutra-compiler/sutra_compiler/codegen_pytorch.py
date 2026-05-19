@@ -1130,7 +1130,11 @@ class PyTorchCodegen(Codegen):
         self._emit("na = _torch.linalg.norm(a)")
         self._emit("nb = _torch.linalg.norm(b)")
         self._emit("# eps-guarded divide — zero-norm case evaluates to 0 without branch.")
-        self._emit("return float(_torch.dot(a, b) / (na * nb + _torch.finfo(self.dtype).tiny))")
+        self._emit("# Substrate-pure: returns a 0-d tensor (NOT float()) so the value")
+        self._emit("# stays on-graph when similarity is composed inside another op")
+        self._emit("# (fuzzy AND/NOT, soft-mux, training). Host collapse happens only")
+        self._emit("# at the monitoring/decode boundary (real()/truth()/output).")
+        self._emit("return _torch.dot(a, b) / (na * nb + _torch.finfo(self.dtype).tiny)")
         self._indent -= 1
         self._emit()
         # General-purpose tensor operations — see codegen.py for the
@@ -1156,8 +1160,8 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("def dot(self, a, b):")
         self._indent += 1
-        self._emit('"""Inner / dot product → scalar."""')
-        self._emit("return float(_torch.dot(a, b))")
+        self._emit('"""Inner / dot product → 0-d tensor (substrate-pure, no float())."""')
+        self._emit("return _torch.dot(a, b)")
         self._indent -= 1
         self._emit()
         # ===================================================================
