@@ -127,6 +127,30 @@ REMAINING:
   comments-field note (submit-time, not a paper edit).
 SYNTHESIS.md regenerated as the ROUND 4 canonical plan.
 
+### V. arXiv source bundle published + CI gate against silent LaTeX errors (2026-05-19)
+
+arXiv rejected the round-4 source tarball with "No counter 'none' defined"
+× 10 (every pandoc-emitted longtable: empty caption → hyperref tries to
+anchor on counter `none` → strict pdflatex fails). The CI was masking
+this because `latexmk -interaction=nonstopmode` continues past LaTeX
+errors and still emits a PDF; every prior workflow run "passed" while
+silently logging the same fatal. Per CLAUDE.md "it ran without errors
+is not success." Fixed:
+- `paper.tex`: declare `\newcounter{none}` + `\providecommand{\theHnone}`
+  shim before `\input{paper.tex.body}` (75aa58b6). `\newunicodechar{§}{\S}`
+  added while in there (52 `§` section refs were going through as missing
+  glyphs / underfull-hbox).
+- `pages.yml` + `paper-pdf.yml`: post-build `grep -E '^! LaTeX Error:'
+  paper.log` gate — fails the workflow if strict pdflatex would reject
+  the source, regardless of latexmk's exit code.
+- Pages workflow now builds `sutra-arxiv-source.tar.gz` and publishes it
+  at `https://sutra.emmaleonhart.com/sutra-arxiv-source.tar.gz`. New page
+  at `/arxiv/` (`docs/arxiv.md`) explains the bundle + submission flow.
+  Excluded from homepage Explore cards (matches `/neurips-2026/` policy
+  per CLAUDE.md "no NeurIPS link" — direct URL only).
+- `paper-pdf.yml` artifact `paper-pdfs` now also contains the tarball.
+- `paper/neurips/` untouched (frozen).
+
 ### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 
 `loop(expr){ body }` (Emma's invented implicit-tail-recursion
