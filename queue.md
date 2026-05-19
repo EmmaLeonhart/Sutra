@@ -71,9 +71,12 @@ REMAINING:
   `differentiable_training_multiseed.py / 5 seeds × 300 epochs /
   0–4`). The other flags (DeepSeek "§1.1 AND twice / garbled
   paths / stray 3") were verified PDF-extraction garble, NOT real
-  in source — no action. Optional polish (abstract simplify, soften
-  slogans, Turing aside, all-minilm cite) reviewer-marked
-  non-blocking; deferred. No open blocker — paper is post-ready.
+  in source — no action. Optional polish: abstract megasentence
+  split + slogans softened ("collapses the boundary", "substrate
+  is the architecture target") + Turing framing toned down (cite
+  kept) — ACTIONED 2026-05-18 per Emma ("soften a bit"). Still
+  deferred (optional): abstract "≈chance" wording, early arch
+  figure, all-minilm cite. No open blocker — paper is post-ready.
 - P2 (next-venue, optional): ablation table, abstract simplify,
   polynomial-interpolant-rationale paragraph.
 SYNTHESIS.md is the canonical plan (ROUND 2 verdict at top).
