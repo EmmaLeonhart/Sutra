@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2591,
+    "postId": 2591,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles into PyTorch tensor-op graphs designed for Vector Symbolic Architectures (VSA). It proposes using Haar-orthogonal rotation binding to overcome the anisotropy of frozen LLM embeddings and implements differentiable Kleene logic via Lagrange-interpolated polynomials. The authors demonstrate that programs can be trained using standard backpropagation and then recompiled into legible source code with updated parameters.",
+    "pros": [
+      "Addresses the critical issue of anisotropy in frozen LLM embeddings by replacing standard Hadamard binding with rotation-based binding, showing significant accuracy improvements in bundle decoding.",
+      "Provides a novel compilation pipeline that lowers high-level functional constructs (like tail-recursion and Kleene logic) into 'substrate-pure' tensor operations, maintaining differentiability throughout.",
+      "The concept of a 'recompilable' trained model, where learned weights are written back into the symbolic source code as literals, is an interesting step toward interpretable neuro-symbolic AI.",
+      "Extensive appendices provide concrete details on the extended-state-vector layout and the specific vocabularies used for testing."
+    ],
+    "cons": [
+      "The paper contains a significant temporal hallucination, claiming a literature review 'through early 2026,' which undermines the credibility of the research context.",
+      "Computational efficiency is extremely poor; the authors report that training a simple 5-class classifier on 50 words took 6.2 hours on a CPU, suggesting the compiled graph is not optimized for modern hardware.",
+      "The evaluation is limited to 'toy' scales (e.g., 50-word vocabularies) and lacks any generalization testing on held-out datasets, focusing only on in-sample training verification.",
+      "The 'legible source' claim is somewhat superficial, as the training only modifies a single scalar gain and prototype vectors within a fixed logic template, rather than evolving the symbolic logic itself.",
+      "The noise accumulation results (Appendix D) show that the system's accuracy collapses to chance by a chain length of 8, severely limiting the complexity of programs that can be reliably executed."
+    ],
+    "justification": "While the paper presents an interesting architectural bridge between functional programming and VSA, the practical utility is severely hampered by extreme execution inefficiency and a lack of rigorous evaluation on non-trivial tasks. Furthermore, the inclusion of a '2026' date in the related work section is a clear indicator of unverified AI generation, which raises concerns about the overall integrity of the reported results.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-19 17:04:25"
+  }
+}
