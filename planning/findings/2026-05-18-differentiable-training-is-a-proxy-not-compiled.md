@@ -174,3 +174,22 @@ differentiable-training claim is now a genuinely-compiled-graph
 result, motivated by anisotropy, with the slowness honestly
 stated. Next: Stage B (weighted Equals(a,b,w), trained weights
 emitted back into `.su` source).
+
+## Cron fire 8 (2026-05-19): Stage A confirmed final; Stage B mechanism de-risked (PASS)
+
+Stage A: b32kskpr9 still no result; nothing better than the
+committed real K=5 n=3 — paper unchanged (no rewrite).
+
+Stage B probe: a `.su` rule `wrule(x,own,other,number w)` doing
+`w * similarity(...)` compiled via the PyTorch codegen. Emitted
+code uses `w` as a plain scalar `(w * _VSA.similarity(...))`.
+Result: `wrule(...) -> Tensor, requires_grad=True`; **w.grad =
+-0.158** — gradient reaches the scalar weight. Confirms both
+Stage-B requirements: (1) the weight is TRAINABLE through the
+genuinely compiled graph; (2) `w` is a plain scalar, so a trained
+value bakes back into `.su` as a numeric literal (recompilable
+"trained model = legible source"). Cosmetic cp1252 print error
+after the result is a probe-script bug, not a Stage-B failure.
+Next fires: full Stage-B harness (train w + prototypes through the
+compiled weighted-rule graph → real numbers → emit trained w into
+a `.su` literal → verify recompile round-trip), then paper §3.7.
