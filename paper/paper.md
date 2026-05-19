@@ -8,7 +8,7 @@
 
 **Sutra** is a typed, purely functional programming language whose compiled forward pass is a PyTorch neural network. The compiler beta-reduces the whole program — primitives, control flow, string I/O — to one fused tensor-op graph over a frozen embedding substrate: rotation binding, unbind, bundle, polynomial Kleene three-valued logic, and tail-recursive loops all lower to tensor operations. The only host-side control flow that remains is a thin tick-loop that breaks when a halt scalar saturates. The Kleene connectives are Lagrange-interpolated polynomials, exact on the {−1, 0, +1} truth grid; rotation binding doubles as the language's hash-map primitive (Haar-orthogonal role rotations seeded by content hash). Swap the embedding model and the same source recompiles against the new geometry.
 
-The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the *actually compiled* graph: a fuzzy-rule classifier written in `.su` and compiled by the PyTorch codegen — its forward pass the compiler-emitted `similarity` composed with the Lagrange–Kleene AND/NOT polynomials — trains from random init (18.7 ± 9.5%; chance = 20%, five classes) to 100.0 ± 0.0% (mean ± s.d., three seeds) by backpropagating through that emitted graph, the symbolic source unmodified. Gradient descent moves the embeddings the rules evaluate against; the compiled rule graph itself is untouched. The genuinely-compiled per-sample path is markedly slower than a vectorized reimplementation, which bounds the scale reported here and motivates batched codegen.
+The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the *actually compiled* graph: a fuzzy-rule classifier written in `.su` and compiled by the PyTorch codegen — its forward pass the compiler-emitted `similarity` composed with the Lagrange–Kleene AND/NOT polynomials — trains from random init (18.7 ± 9.5%; chance = 20%, five classes) to 100.0 ± 0.0% (mean ± s.d., three seeds) by backpropagating through that emitted graph, the symbolic source unmodified. Gradient descent moves the embeddings the rules evaluate against; the compiled rule graph itself is untouched. A weighted variant additionally trains a scalar cosine gain through the same compiled graph — motivated by the embedding anisotropy that flattens raw cosine margins — and writes the learned value back into the `.su` source as a numeric literal; recompiling that source reproduces the trained behaviour to within ≈ 2×10⁻⁷ per logit, so the trained model is itself legible, recompilable code. The genuinely-compiled per-sample path is markedly slower than a vectorized reimplementation, which bounds the scale reported here and motivates batched codegen.
 
 The same artifact is therefore both a logic program and a trainable neural network.
 
@@ -593,6 +593,79 @@ reported here and motivates a future batched codegen path.
 Reproduction: `experiments/differentiable_training_compiled.py`
 (compiles the `.su`, backprops the prototypes through the emitted
 graph).
+
+### Trained weights compile back to legible source — experiment
+
+Frozen LLM embedding spaces are *anisotropic*: learned token
+representations occupy a narrow cone rather than filling the
+sphere (the representation-degeneration effect; Gao et al. 2019,
+Ethayarajh 2019), so raw cosine similarities are squeezed into a
+compressed positive band — even unrelated pairs score well above
+zero. The Kleene AND/NOT decision in §3.6 depends on the *gap*
+between the matching cosine and the off-class cosines; when
+anisotropy compresses that band, the polynomial connectives have
+little dynamic range to separate classes. This motivates a
+weighted similarity — `Equals(A, B, w)` — in which a single
+learned scalar gain $w$ rescales the cosine term *before* the
+Kleene polynomials act, directly counteracting the anisotropic
+compression:
+
+$$
+\mathrm{rule}_i \;=\; \mathrm{AND}\!\Bigl(w\cdot\mathrm{sim}(x, p_i),\;\bigwedge_{j \ne i} \mathrm{NOT}\!\bigl(w\cdot\mathrm{sim}(x, p_j)\bigr)\Bigr)
+$$
+
+**Setup.** The rule is written in `.su` with $w$ declared as a
+`number` parameter and compiled by the PyTorch codegen; the
+emitted code uses $w$ as a plain scalar multiplying the
+compiler-emitted `similarity`, so $w$ both (i) trains through the
+emitted graph and (ii) is a single scalar that can be written
+back into source as a literal. Three semantic classes, eight
+words each (24 inputs), nomic-embed-text (768-d, frozen). The
+scalar gain $w$ (initialized $1.0$) **and** the three prototype
+vectors are trained through the emitted graph; full-batch
+cross-entropy, Adam (lr $0.02$), 30 epochs, two seeds (0–1).
+
+**Results (2 seeds).** From random-init accuracy at chance
+(33.3 ± 5.9%; chance = 33.3%), training reaches 100.0 ± 0.0%
+(every seed). The learned gain converges to
+$w^{*} = 1.434 \pm 0.004$ — both seeds move it the same way,
+from $1.0$ to $\approx 1.43$, sharpening the compressed cosine
+band rather than leaving it at the identity (a learned rescaling,
+not a tautology).
+
+| Phase           | Accuracy ($n{=}2$) | Learned gain $w^{*}$ |
+|-----------------|-------------------:|---------------------:|
+| Before (random) |       33.3 ± 5.9 % |          1.000 (init) |
+| After (30 ep)   |      100.0 ± 0.0 % |        1.434 ± 0.004  |
+
+**The trained model is legible, recompilable source.** After
+training, $w^{*}$ is written back into a fresh `.su` as a numeric
+*literal* with the `w` parameter removed — the trained model
+expressed as plain Sutra source:
+
+```
+function fuzzy rule(vector x, vector own, vector o0, vector o1) {
+    return ((1.431431) * similarity(x, own))
+        && !((1.431431) * similarity(x, o0))
+        && !((1.431431) * similarity(x, o1));
+}
+```
+
+This baked `.su` is recompiled through the same PyTorch codegen
+and, fed the same trained prototypes, reproduces logits identical
+to the parametric-$w$ model (max per-logit difference
+≈ 2×10⁻⁷, attributable to float reassociation) — hence identical
+100% accuracy. Round-trip verified for every seed. The trained
+artifact is therefore not an opaque checkpoint blob: it is a
+Sutra program whose learned parameter is a literal in the source,
+and recompiling that source reproduces the trained behaviour.
+Gradient descent here tunes both the embeddings *and* a
+weight that survives as readable code — a trained model that is
+also legible logic. (Two-seed, single-scale; a verification of
+the source–training round-trip, not a benchmark.) Reproduction:
+`experiments/differentiable_training_weighted.py` (trains
+$w$ + prototypes through the emitted graph, bakes $w^{*}$ into
+`.su`, recompiles, and asserts the round-trip).
 
 ### Type system and surface syntax — method
 
@@ -1218,6 +1291,7 @@ body to the precision reported.
 | Rotation vs Hadamard, ESM-2 | 3.2 | `rotation_binding_capacity_bioinformatics.py` | 10 / k | facebook/esm2\_t6\_8M\_UR50D |  | 1729, 2718 |
 | Crosstalk depth | 3.2.1 | `crosstalk_chain.py` | 20 / L | three LLM substrates |  | per-script |
 | Differentiable training | 3.6 | `differentiable_training_compiled.py` | 3 seeds × 30 epochs (K=5, 50 words) | nomic-embed-text (frozen) | Adam, lr=0.01 | 0–2 |
+| Trained weight → legible source | 3.7 | `differentiable_training_weighted.py` | 2 seeds × 30 epochs (K=3, 24 words) | nomic-embed-text (frozen) | Adam, lr=0.02 | 0–1 |
 
 The differentiable-training run (`differentiable_training_compiled.py`)
 generates a `.su` fuzzy-rule classifier, compiles it with the
@@ -1231,8 +1305,18 @@ build-time assertion checks the emitted `similarity` is not
 `float()`-collapsed (Stage A0), so gradients provably flow through
 the compiled graph rather than a reimplementation.
 
+The §3.7 run (`differentiable_training_weighted.py`) adds a
+`number w` parameter to the `.su` rule, trains $w$ together with
+the prototypes through the same emitted graph, then regenerates
+the rule with $w^{*}$ substituted as a numeric literal and the
+parameter removed, recompiles that source through the PyTorch
+codegen, and asserts the recompiled program's logits match the
+parametric model (max per-logit difference < 10⁻⁴) — a
+source-level training round-trip, not a benchmark.
+
 Hardware used for the numbers in the body: CPU torch on a single
 laptop (no CUDA). The §3.6 compiled run takes ≈ 6.2 h (K=5, 50 words, 30 epochs, 3 seeds) — the genuinely-compiled per-sample path is slow;
+the §3.7 weighted round-trip is the same per-sample path at smaller scale (K=3, 24 words, 30 epochs, 2 seeds) and completes in ≈ 2.5 min including the recompile check;
 the §3.2 capacity sweeps complete in ~2 min per substrate; the
 §3.2.1 crosstalk sweep completes in ~5 min. Re-running on CUDA
 should reproduce the same accuracy numbers since the operations
