@@ -175,80 +175,91 @@ print('OK: §3.1.1 crosstalk reproduces')
 chain=1 reaches 100%, chain=8 falls to chance — this scopes the
 §3.1 capacity claim to single-cycle records.
 
-### §3.6 — End-to-end differentiable training (symbolic if-then rules)
+### §3.6 / §3.7 — Differentiable training through the compiled graph
 
-The headline neuro-symbolic claim: **a symbolic Sutra program made
-of fuzzy if-then rules is end-to-end differentiable**, and standard
-PyTorch autograd trains the embeddings the rules evaluate against
-*without changing the rules themselves*. The symbolic structure is
-identical at epoch 0 and at epoch 300 — only the prototype
-embeddings move.
+The headline neuro-symbolic claim: **a symbolic Sutra program of
+fuzzy if-then rules, compiled by the PyTorch codegen, is end-to-end
+differentiable**. Standard PyTorch autograd trains the embeddings
+the rules evaluate against *through the emitted graph itself* — the
+symbolic source is unchanged across training; only the prototype
+embeddings move. §3.7 additionally trains a scalar gain inside the
+rule and writes the learned value back into the `.su` source as a
+numeric literal, so the trained model is itself recompilable Sutra
+source.
 
-**What to build (replication spec):**
+**§3.6 — compiled fuzzy-rule classifier (`differentiable_training_compiled.py`)**
 
-1. Pick a frozen embedding model (the canonical implementation uses
-   `nomic-embed-text` at 768-d) and embed 992 words across 20
-   categories — animal, vehicle, food, color, clothing, weather,
-   emotion, tool, instrument, profession, body-part, plant,
-   furniture, building, country, sport, drink, metal, shape, fabric
-   (fifty per category, deduplicated where the same surface form
-   fits two categories).
-2. Initialize 20 **learnable** prototype tensors (one per category)
-   with `requires_grad=True`. Random init.
-3. Forward pass on the full 992-word batch, computing per-class
-   scores via Sutra's primitives composed as a fuzzy if-then rule:
-
-   ```
-   sim_i  = similarity(x, proto_i)              # cosine_similarity
-   rule_i = AND(sim_i,
-                AND_{j ≠ i} NOT(sim_j))         # K-1 nested ANDs of NOTs
-   ```
-
-   where `AND(a, b) = (a + b + ab − a² − b² + a²b²) / 2` is the
-   Lagrange-interpolated Kleene min, `NOT(x) = -x`, and the
-   AND-of-NOTs is left-folded across the K−1 other classes (so the
-   rule for K=20 nests nineteen ANDs deep). The rule reads
-   "classify as *i* if similar to prototype *i* AND not similar to
-   any of the other K−1 classes."
-
-4. Full-batch cross-entropy loss over the twenty rule scores, Adam
-   optimizer (lr=0.005), train for 300 epochs.
-5. Save `accuracy_before`, `accuracy_after`, and per-prototype
-   `gradient_norms` to a JSON file.
-
-**Success criteria:**
-- `accuracy_after > accuracy_before` (random ~40% → trained ~100%)
-- Every prototype's gradient norm > 0 (gradient flows through every
-  Lagrange gate to every learnable parameter)
-- The symbolic program text is unchanged across training: only the
-  embeddings moved
-
-**Reference implementation + verification:**
+1. The harness generates a real `.su` program (`gen_rule_su`),
+   validates → lexes → parses → runs the **PyTorch codegen**, then
+   `exec`s the emitted module. A build-time assertion rejects the
+   run if the emitted `similarity` collapses to a host `float()`
+   (Stage A0) — gradients must flow through the emitted tensor ops,
+   not a reimplementation.
+2. Five semantic classes, ten words each (50 inputs), embedded with
+   a frozen model (canonical: `nomic-embed-text`, 768-d). Five
+   learnable prototype tensors, random init, `requires_grad=True`.
+3. Each class score is the **emitted** compiled rule
+   `rule_i = AND(sim(x,p_i), AND_{j≠i} NOT(sim(x,p_j)))` — the
+   compiler's `_VSA.similarity` composed with the Lagrange–Kleene
+   AND/NOT polynomials. Full-batch cross-entropy, Adam (lr=0.01),
+   30 epochs, three seeds (0–2).
+4. The forward is evaluated batched via `torch.vmap` over the same
+   emitted `rule`; before training the harness asserts the batched
+   and per-sample evaluations agree within 1e-4 on identical
+   inputs/parameters, so the fast path is provably the identical
+   compiled computation.
 
 ```bash
-python experiments/differentiable_training.py
-test $? -eq 0 || { echo "FAIL: differentiable training"; exit 1; }
+python experiments/differentiable_training_compiled.py \
+    --k 5 --per-class 10 --epochs 30 --seeds 0,1,2 --lr 0.01 --batched \
+    | tee diff36.out
+test $? -eq 0 || { echo "FAIL: §3.6 compiled training"; exit 1; }
 python -c "
-import json
-d = json.load(open('experiments/differentiable_training_results.json'))
-assert d['accuracy_after'] > d['accuracy_before'], \
-    f\"Training did not improve: {d['accuracy_before']} -> {d['accuracy_after']}\"
-assert all(g > 0 for g in d['gradient_norms'].values()), \
-    f\"Gradient blocked: {d['gradient_norms']}\"
-print(f\"Before: {d['accuracy_before']:.0%}, After: {d['accuracy_after']:.0%}\")
-print(f\"Gradient norms: {d['gradient_norms']}\")
-print('OK: §3.6 differentiable training reproduces')
+import re
+t = open('diff36.out').read()
+assert 'grads_through_emitted_graph=True' in t, 'gradient did not flow through the emitted graph'
+m = re.search(r'before=([\d.]+).*after=([\d.]+)', t)
+b, a = float(m.group(1)), float(m.group(2))
+assert a > b and a > 99.0, f'did not converge: {b} -> {a}'
+print(f'OK: §3.6 before={b}% after={a}% (compiled graph, equivalence-asserted)')
 "
 ```
 
-Reference numbers (K=20, 992 words): 4% → 95% accuracy
-(chance = 5%); convergence by epoch 50; final loss 1.15; all 20
-prototype gradient norms in the range 0.94–4.20 (range floor is
-the gradient flow check — every prototype receives a nonzero
-gradient through the nineteen-AND-deep rule pipeline). The 5%
-residual reflects irreducible semantic overlap (e.g.
-*salmon*/*scarf*) at the optimizer plateau, not gradient
-pathology.
+Reference numbers (K=5, 50 words, 3 seeds): before **18.7 ± 9.5 %**
+(chance = 20 %) → after **100.0 ± 0.0 %**; gradients flow through
+the emitted graph on every seed. Batched wall-clock ≈ 230 s on CPU;
+the equivalent per-sample Python driver produces the bit-identical
+result in ≈ 6.2 h (interpreter overhead, not a compiled-graph
+cost). Accuracy is in-sample — a verification that backprop reaches
+every prototype through the compiler's emitted ops, not a
+generalization claim.
+
+**§3.7 — trained weight baked back into `.su` (`differentiable_training_weighted.py`)**
+
+Adds a `number w` gain to the rule
+(`(w·sim(x,own)) && !(w·sim(x,o_j))…`), trains `w` together with
+the prototypes through the emitted graph, then regenerates the rule
+with the trained `w*` substituted as a numeric **literal** (the
+parameter removed), recompiles that `.su` through the codegen, and
+asserts the recompiled logits match the parametric model.
+
+```bash
+python experiments/differentiable_training_weighted.py \
+    --k 3 --per-class 8 --epochs 30 --seeds 0,1 | tee diff37.out
+test $? -eq 0 || { echo "FAIL: §3.7 weighted round-trip"; exit 1; }
+python -c "
+t = open('diff37.out').read()
+assert 'round_trip_ok(all)=True' in t, 'baked .su did not recompile to identical logits'
+print('OK: §3.7 trained w baked into .su; recompile round-trip verified')
+"
+```
+
+Reference numbers (K=3, 24 words, 2 seeds): before **33.3 ± 5.9 %**
+(chance = 33.3 %) → after **100.0 ± 0.0 %**; learned gain
+**w\* = 1.43 ± 0.004**; the baked `.su` recompiles to logits within
+≈ 2×10⁻⁷ of the parametric model (round-trip verified every seed).
+A small single-scale verification of the source↔training
+round-trip, not a benchmark; ≈ 2.5 min including the recompile.
 
 ### Multi-system neuro-symbolic comparison (optional, requires Docker)
 
