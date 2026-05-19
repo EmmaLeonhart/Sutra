@@ -108,3 +108,23 @@ Harness-side monkeypatching of `similarity` would be faking the
 result and is explicitly rejected. Surfaced to Emma for an
 explicit go-ahead on the compiler-semantics change before doing
 it.
+
+## Cron fire 1 (2026-05-19): paper made truthful with the real K=3 result
+
+No bigger compiled run had finished (both K=5 runs still on seed 0).
+Per the priority rule, rewrote §3.6 + abstract(2) + Appendix H to
+the genuinely-compiled K=3 result that DID complete:
+k=3, 3 classes × 10 words (N=30), 40 epochs, 2 seeds (0–1), Adam
+lr=0.01 — chance 33.3%, before 35.0±11.8% → after 100.0±0.0%,
+gradients verified to flow through the EMITTED graph
+(`_VSA.similarity` + emitted Lagrange–Kleene polynomial), not a
+reimplementation. Removed: all proxy numbers (992-word / 95.x /
+5-seed), the accuracy-vs-epoch figure `fig:diff-train` (no real
+per-epoch K=3 data — fabrication disallowed; the K=3 *pipeline*
+figure stays and now literally depicts the experiment), and the
+"same compiled graph that runs at inference" claim is now
+literally true. Reproduction → differentiable_training_compiled.py.
+Honest limitation stated: compiled per-sample path is slow → modest
+scale, motivates batched codegen. Paper is now truthful; the two
+K=5 runs continue (≤2 heavy jobs, none killed); cron will upgrade
+the numbers if a larger run finishes.
