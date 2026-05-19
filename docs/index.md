@@ -2,7 +2,7 @@
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
-Write a program in a TypeScript-shaped language. The compiler turns the *entire* program — control flow included — into one straight-line sequence of tensor operations. What comes out is, at the same time, a logic program you can read and a neural network you can train: one artifact, two readings.
+Write a program in a TypeScript-shaped language. The compiler turns the *entire* program — control flow included — into one straight-line sequence of tensor operations. What comes out is, at the same time, a logic program you can read and a neural network you can train.
 
 ## Why Sutra
 
