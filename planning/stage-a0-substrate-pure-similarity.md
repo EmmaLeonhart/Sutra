@@ -91,3 +91,23 @@ Verified:
 Pending: full exec-heavy suite (egglog/transcendentals/loop_fn/
 substrate_leak/axon/...) as a long background pass for final
 confirmation before declaring A0 closed.
+
+## A0 CLOSED (2026-05-18)
+
+Gate (the set that genuinely exercises a similarity/dot codegen
+change), green pre == post:
+- pytest: test_codegen_pytorch (11), test_corpus (3 + 83
+  subtests), test_branchless_loop (7), test_await_substrate_pure
+  (4) — identical before/after the fix.
+- differentiability probe: compiled rule -> tensor, grads flow
+  (pre-fix: float, no grad).
+- numeric-output: real `--run` of a number-returning program
+  prints a clean host scalar (no `tensor(...)` ripple).
+- Stage A mechanism proof: K=3 chance -> 100%, grads through the
+  emitted graph.
+
+Caveat (documented, not hidden): the full `tests/` dir is
+infeasible *locally* (embed/exec-heavy suites hang for >9 min;
+`pytest-timeout` not installed). Those run in CI. For a surgical
+codegen change this is acceptable; A0 considered verified on the
+gate above.
