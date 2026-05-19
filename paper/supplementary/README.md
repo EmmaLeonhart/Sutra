@@ -3,8 +3,18 @@
 This archive is the reproduction package for the paper
 *Sutra: Tensor-Op RNNs as a Compilation Target for Vector
 Symbolic Architectures*. Every file in here is something a
-reviewer needs to verify a paper claim or to read the
+reader needs to verify a paper claim or to read the
 language as it is implemented.
+
+Author: Emma Leonhart. Upstream repository:
+<https://github.com/EmmaLeonhart/Sutra>.
+
+This package is **self-contained** — reproduce from the files
+bundled here, not from the network. The repository link is a
+**fallback only**: if you are blocked (a dependency will not
+resolve, an artifact looks inconsistent, or you need a fix made
+after this archive was cut), the current upstream state is the
+place to check. Prefer the bundled copy whenever it suffices.
 
 ## Layout
 
