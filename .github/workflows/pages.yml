@@ -93,11 +93,38 @@ jobs:
           latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' paper.tex
           mv paper.pdf paper-named.pdf
+          # arXiv-blocking-error gate: latexmk -interaction=nonstopmode
+          # continues past LaTeX errors and still emits a PDF, so a CI
+          # green check does NOT mean strict pdflatex (arXiv) will
+          # accept the source. Grep the log for hard errors and fail
+          # the build if any are present — the round-4 'No counter
+          # none defined' incident shipped a broken arXiv tarball
+          # because this gate did not exist.
+          if grep -E '^! LaTeX Error:' paper.log; then
+            echo "::error::LaTeX Error(s) detected in paper.log — arXiv would reject this source. Fix and re-push."
+            exit 1
+          fi
           latexmk -c paper.tex || true
           latexmk -pdf -interaction=nonstopmode \
             -e '$max_repeat=8' \
             -usepretex='\newif\ifanon\anontrue' paper.tex
           mv paper.pdf paper-anonymized.pdf
+          if grep -E '^! LaTeX Error:' paper.log; then
+            echo "::error::LaTeX Error(s) in anonymized build's paper.log — fix and re-push."
+            exit 1
+          fi
+
+      - name: Build arXiv source tarball
+        working-directory: paper
+        run: |
+          # arXiv submission bundle: paper.tex (wrapper) + paper.tex.body
+          # (pandoc output of paper.md, generated above) + neurips_2026.sty.
+          # arXiv's TeX Live runs pdflatex on these three flat files;
+          # pandoc is NOT run on their side, so we ship pandoc's output
+          # pre-generated. Three flat files, no nested directory.
+          tar -czf ../sutra-arxiv-source.tar.gz \
+            paper.tex paper.tex.body neurips_2026.sty
+          ls -la ../sutra-arxiv-source.tar.gz
 
       - name: Build replication package + NeurIPS supplementary zips
         run: |
@@ -120,6 +147,8 @@ jobs:
           cp paper/paper-anonymized.pdf _site/paper-anonymized.pdf
           cp sutra-replication-package.zip _site/sutra-replication-package.zip
           cp sutra-neurips-supplementary.zip _site/sutra-neurips-supplementary.zip
+          # arXiv source bundle — the /arxiv/ page links to this at /sutra-arxiv-source.tar.gz.
+          cp sutra-arxiv-source.tar.gz _site/sutra-arxiv-source.tar.gz
 
       - uses: actions/upload-pages-artifact@v3
         with:
