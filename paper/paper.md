@@ -8,7 +8,7 @@
 
 **Sutra** is a typed, purely functional programming language whose compiled forward pass is a PyTorch neural network. The compiler beta-reduces the whole program (primitives, control flow, string I/O) to a fused tensor-op graph: rotation binding, unbind, bundle, polynomial Kleene three-valued logic, and tail-recursive loops all lower to tensor operations on a frozen embedding substrate, with the only remaining host-side control flow a thin tick-loop that breaks when a halt scalar saturates. The Kleene connectives are Lagrange-interpolated polynomials exact on the {−1, 0, +1} truth grid; rotation binding doubles as the language's hash-map primitive (Haar-orthogonal role rotations seeded by content hash). The substrate is the architecture target: swap the embedding model and the same source recompiles against a different geometry.
 
-The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the compiled graph end-to-end: a symbolic if-then program of fuzzy rules over 20 classes / 992 words, with a rule tree nineteen ANDs deep, trains from random init (4%; chance = 5%) to 95% within 50 epochs and holds through 300 without any modification to the symbolic source. Gradient descent moves the embeddings the rules evaluate against, leaving the rule graph itself untouched.
+The validation is a single fact testable two ways. (1) The same program runs on four frozen embedding substrates spanning two modalities (three text encoders: nomic-embed-text, all-minilm, mxbai-embed-large, and one protein language model: ESM-2) and decodes bundles at 100% accuracy through width k=8 on every one, where the textbook Hadamard product has already collapsed (2.5% on mxbai-embed-large, 7.5% on all-minilm); single-cycle bind/unbind round-trips at ≈ 1.5×10⁻¹⁵. A Sutra program's inputs and outputs are embeddings in the substrate's vector space; a compile-time codebook handles string literals at the source level and nearest-string lookup at the output boundary. (2) PyTorch autograd flows through the compiled graph end-to-end: a symbolic if-then program of fuzzy rules over 20 classes / 992 words, with a rule tree nineteen ANDs deep, trains from random init (≈ chance) to 95.2 ± 0.1% by 50 epochs and 95.3 ± 0.0% through 300 (mean ± s.d. over 5 seeds) without any modification to the symbolic source. Gradient descent moves the embeddings the rules evaluate against, leaving the rule graph itself untouched.
 
 This collapses the boundary between writing a logic program and training a neural network: one artifact, two interpretations.
 
@@ -469,17 +469,47 @@ over the twenty rule scores drives Adam (Kingma & Ba 2015; its
 default $\beta_1=0.9$, $\beta_2=0.999$, $\varepsilon=10^{-8}$,
 learning rate $0.005$) updates on the prototype embeddings.
 
-**Results.** Random init: 4% accuracy (chance = 5%). Training
-reaches 95% by epoch 50 and holds through epoch 299, loss
-converging to 1.154. Gradient norms at all twenty prototypes are
-nonzero throughout (range 0.94–4.20), so backprop reaches every
-learnable parameter through `similarity` → `fuzzy_not` →
-nineteen nested `fuzzy_and` → cross-entropy.
+**Results (5 seeds, 0–4).** From random-init accuracy at chance
+(5.8 ± 2.4%), training reaches 95.2 ± 0.1% by epoch 50 and
+95.3 ± 0.0% by epoch 299 (mean ± s.d., $n=5$); cross-entropy loss
+converges to 1.154 ± 0.000. The knee is at epoch ≈22, and the
+post-knee across-seed accuracy s.d. is 0.03 pp — the run is
+effectively seed-invariant, not a single lucky initialization.
+Gradient norms at all twenty prototypes are nonzero across every
+seed (range 0.94–4.29), so backprop reaches every learnable
+parameter through `similarity` → `fuzzy_not` → nineteen nested
+`fuzzy_and` → cross-entropy (Figure~\ref{fig:diff-train}).
 
-| Phase  | Accuracy | Loss  |
-|--------|---------:|------:|
-| Before |     4%   |  3.01 |
-| After  |    95%   |  1.15 |
+| Phase             | Accuracy (mean ± s.d., $n{=}5$) | Loss          |
+|-------------------|--------------------------------:|--------------:|
+| Before (random)   |                    5.8 ± 2.4 %  |        3.01   |
+| Epoch 50          |                   95.2 ± 0.1 %  |           —   |
+| After (epoch 299) |                   95.3 ± 0.0 %  | 1.154 ± 0.000 |
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[x=0.030cm, y=0.045cm]
+  \draw[->] (0,0) -- (315,0) node[right, font=\footnotesize] {epoch};
+  \draw[->] (0,0) -- (0,110) node[above, font=\footnotesize] {train acc.\ (\%)};
+  \foreach \y in {0,25,50,75,100}
+    \draw (0,\y) -- (-4,\y) node[left, font=\scriptsize] {\y};
+  \foreach \x in {0,50,100,150,200,250,300}
+    \draw (\x,0) -- (\x,-3) node[below, font=\scriptsize] {\x};
+  \draw[densely dashed] (0,5) -- (300,5);
+  \node[font=\scriptsize, anchor=west] at (210,11) {chance 5\%};
+  \fill[blue!12] plot coordinates {(0,8.16) (15,93.29) (30,95.25) (45,95.27) (60,95.27) (75,95.29) (90,95.30) (299,95.30)} -- plot coordinates {(299,95.30) (90,95.30) (75,95.19) (60,95.13) (45,95.13) (30,94.59) (15,92.27) (0,3.40)} -- cycle;
+  \draw[thick, blue] plot coordinates {(0,5.78) (15,92.78) (30,94.92) (45,95.20) (60,95.20) (75,95.24) (90,95.30) (150,95.30) (299,95.30)};
+  \draw[densely dotted] (22,0) -- (22,95);
+  \node[font=\scriptsize, anchor=west] at (30,55) {knee $\approx$ ep.\ 22};
+\end{tikzpicture}
+\caption{Training accuracy vs.\ epoch for the §3.6 fuzzy-rule
+classifier: mean over 5 seeds (0–4); shaded band is $\pm$1 s.d.
+Across-seed variance is visible only at random init
+(5.8\,$\pm$\,2.4\%) and collapses within ${\sim}20$ epochs
+(post-knee s.d.\ 0.03\,pp), so the trajectory is effectively
+seed-invariant. Final accuracy 95.3\,$\pm$\,0.0\% at epoch 299.}
+\label{fig:diff-train}
+\end{figure}
 
 This experiment isolates gradient flow through the compiled
 symbolic graph: it trains and evaluates on the same 992-word
@@ -514,7 +544,9 @@ under those overlaps rather than gradient pathology. Standard `torch.autograd`
 suffices (no Sutra-specific autograd machinery) because the
 compiler emits only operations PyTorch already knows how to
 differentiate. Reproduction:
-`experiments/differentiable_training.py` + raw JSON.
+`experiments/differentiable_training.py` (single seed) and
+`experiments/differentiable_training_multiseed.py` (5-seed
+aggregate, seeds 0–4, identical architecture) + raw JSON.
 
 ### Type system and surface syntax
 
