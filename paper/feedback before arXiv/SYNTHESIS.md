@@ -56,6 +56,30 @@ of this file — PDF-reading LLMs garble text):
 scary-looking flags were PDF noise. Paper is post-ready; remaining
 items are optional next-venue polish.
 
+## ROUND 3 (2026-05-18/19): re-runs + clawRxiv reviewer
+
+Emma re-ran DeepSeek/Meta/Gemini-chat/Le Chat on the latest paper;
+all = **"ship it / submittable."** clawRxiv automated reviewer
+(Gemini-3-Flash) advanced with the pipeline: post 2582 **Weak
+Reject** → post 2583 **Accept**. One real, recurring item, now
+**FIXED**: both clawRxiv v64 *and* v65 flagged `as of 2026`
+(line 228) as a temporal/AI artifact ("undermines credibility /
+synthetic origin") — ironically a round-1 addition of ours.
+Reviewer conflict (Meta praised it as a defensible timestamp);
+Emma's call → reworded to "(literature reviewed through early
+2026)": deliberate scholarly cutoff, not a bare same-year stamp.
+Resolves both. DeepSeek's round-3 "must-fixes" (Appendix A
+duplicated AND; Appendix H gibberish paths) **verified NOT real
+in source** (lines 872–878 & 1133–1136 clean) — same PDF-extraction
+garble, migrating location each round (definitive tell). Sources:
+all load-bearing refs web-verified across rounds (ESM-2=Science
+2023, Kingma&Ba=ICLR 2015, LTN=AIJ 303:103649, van Krieken=AIJ
+302:103602, Hájek=Metamath. of Fuzzy Logic Kluwer 1998, Scallop=
+PACMPL/PLDI 2023, Siegelmann&Sontag=COLT'92); HDCC characterization
+("classification-scoped, no general control flow") web-confirmed.
+Fresh AI-artifact scan: clean (no meta-text/placeholders; the one
+temporal smell now gone). **No open blocker; ship-ready.**
+
 ## 0. Repo constraints that bind this work (read first)
 
 - **All edits go to the live `paper/paper.md`.** It is the single
