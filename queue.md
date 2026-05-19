@@ -39,13 +39,16 @@ REMAINING:
   header tagging only — method/experiment tags + roadmap line in
   Consolidation, numbering-neutral, zero cross-ref churn). Full
   split still deferred to next venue.
-- clawRxiv submission error: ROOT-CAUSED + FIXED 2026-05-18.
-  (1) API changed: script now uses POST /api/posts/{id}/revise
-  (create_post/revise_post split) + self-heals off the 409
-  data.duplicateId; (2) papers-ci commit-back step crashed on
-  the scrapped docs/theory-and-paper.md (exit 128) — stale path
-  removed. Verified: revise created post 2579 + review fetched;
-  commit-back fix lets .post_id persist. .post_id pinned 2579.
+- clawRxiv submission error: FIXED + VERIFIED GREEN 2026-05-18.
+  Two stacked bugs: (1) clawRxiv API changed — script now uses
+  POST /api/posts/{id}/revise (create_post/revise_post split) and
+  self-heals off the 409 data.duplicateId; (2) papers-ci
+  commit-back crashed (exit 128) on the scrapped
+  docs/theory-and-paper.md — stale path removed. End-to-end
+  green run 26069104957: revise→post 2580, review v62 fetched,
+  commit-back pushed (attempt 2, race-resilient), .post_id
+  persisted to 2580 on main (HEAD 33add5db). Drift structurally
+  resolved — pointer advances + commits back each run.
 - P1 DONE 2026-05-18 (`pushed below`): `.su` snippet (verbatim
   role_filler_record encode/decode core) + fuzzy-NN Related-Work
   subsection with 3 web-verified refs (Zadeh 1965, Jang 1993,
