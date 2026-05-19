@@ -13,6 +13,45 @@ against the live `paper/paper.md`** (not trusted from the LLM PDF read)
 — status tagged `[verified-real]`, `[partly-addressed]`, or
 `[needs-ground-truth]`.
 
+## ROUND 2 — post-fix reviews (2026-05-18): VERDICT = ready to submit
+
+Emma re-ran the **same 8 reviewers on the updated paper**. Independent
+read of all 8 confirms her summary: **consensus is "ready / ship it."**
+Verbatim flavour: DeepSeek "post it"; Claude "in good shape… the one
+must-fix is the Appendix H seed discrepancy"; Grok "ready for arXiv
+submission… upload it today"; ChatGPT "uploading to arXiv is
+reasonable"; Gemini "confidently submit… exceptionally strong, clean,
+sound"; Meta AI "Now: low risk… you're ready, hit submit"; Le Chat /
+forum page: ship. All explicitly confirm the round-1 fixes landed
+(AI-use statement, ESM-2 + Kingma refs, softened claims, Limitations
+§5.1, code snippet, fuzzy-NN §2.3, multiseed std + plot, method/
+experiment tagging).
+
+Concrete residual flags, **each verified against source** (the point
+of this file — PDF-reading LLMs garble text):
+
+- `[verified-real → FIXED 2026-05-18]` **Appendix H** differentiable-
+  training row still said `1 run × 300 epochs / seed 42`, contradicting
+  the new 5-seed body (Claude's sole must-fix). Row updated to
+  `differentiable_training_multiseed.py / 5 seeds × 300 epochs /
+  seeds 0–4`.
+- `[verified NOT-real — PDF garble, no action]` DeepSeek "§1.1 has
+  AND twice, NAND/NOR missing" — source lines 62–69 are correct
+  (AND,NAND,OR,NOR,NOT,XOR,XNOR distinct). "§3.6 stray 3" and
+  "Appendix H paths like rotation_bid@/hkg…" — clean in source;
+  pure PDF-extraction artifacts. Do **not** "fix" correct text off
+  a mangled read.
+- `[optional — reviewers themselves call non-blocking; deferred]`
+  abstract simplification ~15–20%; soften "collapses the boundary" /
+  trim the Siegelmann&Sontag Turing aside; abstract "≈ chance" →
+  "near chance (5.8±2.4%)"; add early architecture figure; formal
+  all-minilm citation; LTN article-number. Voice is deliberate
+  (Emma's standing call); none gate the arXiv post.
+
+**Net:** no open blocker. The one real inconsistency is fixed; the
+scary-looking flags were PDF noise. Paper is post-ready; remaining
+items are optional next-venue polish.
+
 ## 0. Repo constraints that bind this work (read first)
 
 - **All edits go to the live `paper/paper.md`.** It is the single
