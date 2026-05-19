@@ -64,9 +64,19 @@ REMAINING:
   correct (1000 pairs, 992 unique strings, 8 cross-cat dups).
   All pre-arXiv P0+P1 now done; only the deferred §4.2 (Emma:
   next-venue) and optional P2 remain.
-- P2: ablation table, typo/precision sweep (nuanced — see
-  SYNTHESIS), polynomial-interpolant-rationale paragraph.
-SYNTHESIS.md is the canonical plan.
+- ROUND 2 (2026-05-18): Emma re-ran all 8 reviewers on the updated
+  paper. Independent read confirms consensus = READY / SHIP. Only
+  one verified-real residual (Appendix H still said "1 run/seed 42"
+  vs the 5-seed body — Claude's sole must-fix) → FIXED (row now
+  `differentiable_training_multiseed.py / 5 seeds × 300 epochs /
+  0–4`). The other flags (DeepSeek "§1.1 AND twice / garbled
+  paths / stray 3") were verified PDF-extraction garble, NOT real
+  in source — no action. Optional polish (abstract simplify, soften
+  slogans, Turing aside, all-minilm cite) reviewer-marked
+  non-blocking; deferred. No open blocker — paper is post-ready.
+- P2 (next-venue, optional): ablation table, abstract simplify,
+  polynomial-interpolant-rationale paragraph.
+SYNTHESIS.md is the canonical plan (ROUND 2 verdict at top).
 
 ### 0. Implicit tail-recursive loop  (count form SHIPPED 2026-05-17; gated)
 

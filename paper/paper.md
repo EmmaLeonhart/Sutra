@@ -1133,7 +1133,7 @@ body to the precision reported.
 | Rotation vs Hadamard, LLM | 3.2 | `rotation_binding_capacity_llm.py` | 10 / k | nomic-embed-text, all-minilm, mxbai-embed-large |  | per-script |
 | Rotation vs Hadamard, ESM-2 | 3.2 | `rotation_binding_capacity_bioinformatics.py` | 10 / k | facebook/esm2\_t6\_8M\_UR50D |  | 1729, 2718 |
 | Crosstalk depth | 3.2.1 | `crosstalk_chain.py` | 20 / L | three LLM substrates |  | per-script |
-| Differentiable training | 3.6 | `differentiable_training.py` | 1 run × 300 epochs | nomic-embed-text (frozen) | Adam, lr=0.005 | 42 |
+| Differentiable training | 3.6 | `differentiable_training_multiseed.py` | 5 seeds × 300 epochs | nomic-embed-text (frozen) | Adam, lr=0.005 | 0–4 |
 
 The differentiable-training run loads twenty learnable prototype
 vectors (initialized via `torch.randn` × 0.1) and minimizes
