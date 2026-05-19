@@ -233,6 +233,24 @@ soft-halt RNN cells with constant state-vector width in
 recursion depth. The combination is what distinguishes Sutra,
 not any one of those properties in isolation.
 
+### Fuzzy logic and neuro-fuzzy systems
+
+Sutra's polynomial connectives sit downstream of fuzzy set theory
+(Zadeh 1965) and the neuro-fuzzy lineage that makes fuzzy inference
+trainable — adaptive-network fuzzy inference systems (Jang 1993)
+and the broader fuzzy-neural-network family (Buckley & Hayashi
+1994). Those systems *learn* the fuzzy logic itself: membership
+functions and rule parameters are the trainable object. Sutra
+inverts this. Its connectives are fixed Lagrange interpolants of
+Kleene's three-valued tables (§1.1-1), exact on the discrete grid
+and never tuned; the only learnable parameters are the embeddings
+the frozen rule graph evaluates against (§3.6). Sutra is therefore
+closer in spirit to the differentiable t-norm analysis of van
+Krieken, Acar & van Harmelen (2022) than to membership-function
+learning, and differs from both by compiling the connectives into
+a single substrate-pure tensor-op graph rather than evaluating
+them in a host interpreter.
+
 ### Differentiable Programming, AOT Compilation, and Knowledge
 Compilation
 
@@ -519,6 +537,37 @@ beta-reduce these into the functional tensor-op core, so the
 imperative-looking source is a veneer over the same compiled
 graph a hand-written functional spec would produce.
 
+A concrete source example grounds the surface. The following is
+the encode/decode core of `examples/role_filler_record.su`
+verbatim — a role-filler record encoded as one vector and a field
+decoded back, with no control flow in the program text:
+
+```
+function vector make_record(vector name, vector color, vector shape) {
+    return bundle(
+        bind(r_name,  name),
+        bind(r_color, color),
+        bind(r_shape, shape)
+    );
+}
+
+function string decode_field(vector record, vector role) {
+    vector recovered = unbind(role, record);
+    vector winner = argmax_cosine(
+        recovered,
+        [f_alice, f_bob, f_red, f_blue, f_circle, f_square]
+    );
+    return FILLER_NAME[winner];
+}
+```
+
+`make_record` beta-reduces to one fused tensor expression (each
+`bind` a constant-matrix matmul, `bundle` a normalized sum);
+`decode_field` lowers to a single `unbind` matmul plus an
+argmax-cosine against the codebook. No `bind`/`bundle`/`unbind`
+symbol or host control flow survives in the compiled graph;
+Appendix F traces an analogous reduction end-to-end.
+
 ---
 
 ## The Sutra Compiler
@@ -737,6 +786,13 @@ a model without verification.
   Evolutionary-scale prediction of atomic-level protein structure
   with a language model. *Science* 379(6637):1123–1130. The ESM-2
   protein language model used as the non-text substrate in §3.2.
+- Zadeh, L. A. (1965). Fuzzy sets. *Information and Control*
+  8(3):338–353.
+- Jang, J.-S. R. (1993). ANFIS: Adaptive-Network-Based Fuzzy
+  Inference System. *IEEE Transactions on Systems, Man, and
+  Cybernetics* 23(3):665–685.
+- Buckley, J. J. & Hayashi, Y. (1994). Fuzzy neural networks: A
+  survey. *Fuzzy Sets and Systems* 66(1):1–13.
 
 ---
 
