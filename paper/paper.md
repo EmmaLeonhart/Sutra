@@ -225,7 +225,7 @@ self-contained C for embedded classification, random/level
 hypervectors only, no general control flow, scoped to
 classification. **TorchHD** and OpenHD / HDTorch are libraries
 without a language-level loop primitive. To the authors'
-knowledge, as of 2026 no published HDC system combines (a) one fused
+knowledge (literature reviewed through early 2026), no published HDC system combines (a) one fused
 tensor-op graph as compile target, (b) HDC primitives as the
 operations, (c) a frozen externally-trained vector embedding
 space as the substrate, and (d) tail-recursive loops compiled to
