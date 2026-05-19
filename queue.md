@@ -14,6 +14,40 @@ stay in sync.
 
 ## Active
 
+### V. Make §3.6 the REAL compiled-graph training (+ weights-in-source)
+
+Emma: make the strong claim true (train through the actually-
+compiled `.su` graph, not the hand-reimpl), and pursue the novel
+`Equals(a,b,weight)` idea where the *trained weight* is written
+back into `.su` source so the trained model is legible code.
+Integrity finding: `planning/findings/2026-05-18-differentiable-
+training-is-a-proxy-not-compiled.md`. NO FAKING — whatever the
+real compiled path measures is what the paper reports.
+
+Feasibility (verified): compiler emits differentiable torch ops
+(`_VSA.similarity`, fuzzy gates from `&&`/`!`); no built-in
+trainable-param concept → training = optimizer over prototype/
+weight tensors fed INTO the emitted forward. Legitimate.
+
+- **Stage A (integrity must-fix):** a `.su` fuzzy-rule classifier
+  that compiles via the real compiler; harness compiles it →
+  imports the emitted module → prototypes as `requires_grad`
+  tensors through the *emitted* forward → Adam → backward; 5
+  seeds; report MEASURED accuracy (may differ from the proxy's
+  95.3 — that's fine, it's the real number). Replace the proxy;
+  rewrite §3.6/abstract to the true claim; assert the path uses
+  compiler output. Makes "autograd through the compiled graph
+  end-to-end" literally true.
+- **Stage B (novel):** weighted comparison primitive
+  `Equals(a,b,w)` / weighted-cosine, differentiable in `w`;
+  train `w`; extract trained `w` and emit it back as `.su`
+  numeric literals → trained model IS a recompilable `.su`
+  program (round-trip verified). Write a finding; this is the
+  novel contribution.
+
+Frozen `paper/neurips/` untouched; live `paper.md` only; commit
+per stage; numbers are measurements.
+
 ### U. Figures moved into body (DONE 2026-05-18)
 
 Emma (no longer NeurIPS-page-limited): diagrams belong in the
