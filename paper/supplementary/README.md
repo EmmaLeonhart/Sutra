@@ -1,4 +1,4 @@
-# Sutra — NeurIPS 2026 supplementary material
+# Sutra — replication package
 
 This archive is the reproduction package for the paper
 *Sutra: Tensor-Op RNNs as a Compilation Target for Vector
@@ -9,7 +9,7 @@ language as it is implemented.
 ## Layout
 
 ```
-sutra-neurips-supplementary/
+sutra-replication-package/
 ├── README.md                       this file
 ├── SKILL.md                        agent-runnable replication
 │                                   skill: shell blocks that
