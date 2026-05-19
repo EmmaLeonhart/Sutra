@@ -41,8 +41,17 @@ REMAINING:
   role_filler_record encode/decode core) + fuzzy-NN Related-Work
   subsection with 3 web-verified refs (Zadeh 1965, Jang 1993,
   Buckley&Hayashi 1994).
-- P1 still open (need REAL reruns — no fabricated numbers):
-  accuracy-over-epochs plot from training JSON; std over 5 seeds.
+- P1 std + plot: DONE 2026-05-18 (real 5-seed run, seeds 0–4,
+  faithful; differentiable_training.py untouched). Measured:
+  ep50 95.2±0.1%, ep299 95.3±0.0%, loss 1.154±0.000, knee ep22,
+  post-knee s.d. 0.03pp, grad 0.94–4.29 — seed-invariant,
+  corroborates single run. Abstract/§3.6/table → n=5 mean±s.d.;
+  plain-TikZ figure (real coords, build-safe). Finding:
+  `planning/findings/2026-05-18-differentiable-training-multiseed.md`.
+  Word-count provenance RESOLVED: paper's "992 distinct" is
+  correct (1000 pairs, 992 unique strings, 8 cross-cat dups).
+  All pre-arXiv P0+P1 now done; only the deferred §4.2 (Emma:
+  next-venue) and optional P2 remain.
 - P2: ablation table, typo/precision sweep (nuanced — see
   SYNTHESIS), polynomial-interpolant-rationale paragraph.
 SYNTHESIS.md is the canonical plan.

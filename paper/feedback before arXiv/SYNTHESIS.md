@@ -117,11 +117,19 @@ Unanimous across reviewers; these gate the upload.
   1994 (*Fuzzy Sets & Systems* 66(1):1–13). Distinguishes Sutra
   (fixed Lagrange-Kleene connectives; only embeddings learn) from
   membership-function learning.
-- [ ] **Accuracy-over-epochs plot** (Figure) from the existing
-  training JSON, replacing/【supplementing the before/after table.
-- [ ] **std / aggregate runs.** Rerun 5 seeds, report mean±std at
-  epoch 50 and 300, and std after the convergence knee. **Requires
-  real runs — log them, don't invent.** `[needs-ground-truth]`
+- [x] **std / aggregate runs — DONE 2026-05-18 (real run).**
+  Faithful 5-seed replication (seeds 0–4, identical architecture,
+  `differentiable_training.py` untouched). Measured: before
+  5.8±2.4%; epoch-50 95.2±0.1%; epoch-299 95.3±0.0%; loss
+  1.154±0.000; knee ep.22, post-knee s.d. 0.03 pp; grad-norm
+  0.94–4.29 all nonzero. Seed-invariant — corroborates the
+  single-run numbers. Paper abstract/§3.6/table updated to n=5
+  mean±s.d.; finding `planning/findings/2026-05-18-differentiable-
+  training-multiseed.md`.
+- [x] **Accuracy-over-epochs plot — DONE 2026-05-18.** Plain-TikZ
+  figure (mean + ±1 s.d. band), coordinates from the real run,
+  only the already-loaded `tikz` package (build-safe, no
+  pgfplots/graphicx). `\label{fig:diff-train}`.
 - [ ] **Move one diagram early** (soft-halt cell or compiler pipeline)
   to page 1–2 for skimmers.
 
