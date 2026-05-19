@@ -89,6 +89,21 @@
 \newunicodechar{⁸}{\textsuperscript{8}}
 \newunicodechar{⁹}{\textsuperscript{9}}
 \newunicodechar{⁻}{\textsuperscript{\ensuremath{-}}}
+\newunicodechar{§}{\S}
+
+% pandoc longtable + hyperref shim. Pandoc emits unnumbered tables
+% (longtable, no caption); hyperref tries to anchor on counter 'none'
+% (longtable's \LTcaptype default for uncaptioned tables). Strict
+% pdflatex (e.g. arXiv's TeX Live with -interaction=batchmode +
+% file-line-error) fails with "No counter 'none' defined" without
+% this. The CI's latexmk -interaction=nonstopmode silently continued
+% past the error and produced a PDF, hiding the issue from the
+% workflow. Define the counter + the hyperref-side representation
+% before they're needed.
+\makeatletter
+\@ifundefined{c@none}{\newcounter{none}}{}
+\makeatother
+\providecommand{\theHnone}{none.\arabic{none}}
 
 % pandoc emission shims:
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
