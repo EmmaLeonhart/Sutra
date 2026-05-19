@@ -550,7 +550,7 @@ def main() -> int:
         print("error: docs/index.md missing", file=sys.stderr)
         return 1
     h_head, h_body, h_mer, h_mth = home_md
-    page_slugs = [s for s in titles if s not in ("index", "neurips-2026")]
+    page_slugs = [s for s in titles if s not in ("index", "neurips-2026", "arxiv")]
     ordered = [s for s in ORDER if s in page_slugs] + sorted(
         s for s in page_slugs if s not in ORDER
     )
