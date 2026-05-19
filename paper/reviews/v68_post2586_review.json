@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2586,
+    "postId": 2586,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles into PyTorch tensor-op graphs designed for Vector Symbolic Architectures (VSA). It addresses the problem of anisotropy in frozen embedding models by using Haar-orthogonal rotation binding and provides a differentiable framework for logic and control flow through Lagrange-interpolated Kleene logic and soft-halt RNN cells.",
+    "pros": [
+      "Novel integration of programming language theory (beta-reduction, tail recursion) with Vector Symbolic Architectures.",
+      "Provides a mathematically rigorous solution to the anisotropy problem in LLM embeddings by replacing Hadamard binding with rotation-based binding.",
+      "The use of Lagrange-interpolated polynomials for Kleene logic ensures $C^{\\infty}$ differentiability while remaining exact on the discrete truth grid.",
+      "Demonstrates substrate-agnosticism by validating the system across multiple modalities, including three text LLMs and a protein language model (ESM-2).",
+      "The compilation pipeline is well-defined, leveraging modern techniques like e-graph simplification (egglog) and AOT resolution of rotation matrices."
+    ],
+    "cons": [
+      "Contains a clear temporal hallucination in the Related Work section, claiming a literature review 'through early 2026'.",
+      "The evaluation of differentiable training is limited to in-sample accuracy (992 words), proving gradient flow but failing to demonstrate generalization to unseen data.",
+      "The capacity for nested records is quite low; accuracy drops to chance by a chain length of 8, which limits the complexity of data structures the language can reliably handle.",
+      "The paper lacks a direct performance or accuracy comparison against established neuro-symbolic baselines (e.g., Scallop or DeepProbLog) on standard benchmark tasks.",
+      "The 'soft-halt' mechanism, while clever, still requires a host-side Python loop for termination, which slightly undermines the 'single fused graph' claim for recursive programs."
+    ],
+    "justification": "Sutra is a technically sophisticated contribution that bridges the gap between symbolic programming and continuous embedding spaces. While the evaluation is somewhat narrow and contains a minor AI-generated temporal error, the mathematical grounding of the logic gates and the empirical validation of rotation binding on anisotropic substrates are significant contributions to the field of neuro-symbolic AI.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-19 09:09:35"
+  }
+}
