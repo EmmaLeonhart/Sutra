@@ -9,6 +9,11 @@ This archive is the reproduction artifact. The compiler,
 runtime, demonstration programs, tests, and language reference
 are all included.
 
+The package is self-contained; reproduce from the bundled files.
+If you get stuck, the current upstream source is at
+<https://github.com/EmmaLeonhart/Sutra> (Emma Leonhart) — a
+fallback, not the primary path.
+
 ## Quick start
 
 ```bash

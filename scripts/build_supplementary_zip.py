@@ -7,6 +7,17 @@ different supplementary docs + name:
   --neurips   sutra-neurips-supplementary.zip — docs from the FROZEN
               paper/neurips/supplementary/; the submission record.
 
+Anonymization is conditional on the variant:
+
+  default     NOT anonymized. The live replication package is not a
+              blind submission — it ships the real public source
+              verbatim (author, the upstream repo link, and code
+              comments all intact).
+  --neurips   anonymized. The frozen submission record keeps the
+              double-blind scrub (author / repo identifiers removed)
+              AND comment stripping, byte-stable with what was
+              submitted for review.
+
 A tightly-scoped reproduction archive — only the files needed to
 verify the paper's empirical claims. The agent-runnable replication
 skill sits at the archive root as `SKILL.md`; the human-facing
@@ -94,11 +105,11 @@ ARCHIVE_ROOT = "sutra-neurips-supplementary"
 
 
 # Per-file additions: (source path relative to repo root, destination
-# path inside archive). All four supplementary docs live under
-# paper/supplementary/ and are written specifically for the
-# anonymized archive (no author / repo identification, no live-
-# site references). They are not the same as the docs/ pages
-# served at the public site.
+# path inside archive). The four supplementary docs come from
+# paper/supplementary/ (live build) or paper/neurips/supplementary/
+# (--neurips). The --neurips set is the anonymized double-blind
+# record; the live set carries the real author / repo link. Both
+# are distinct from the docs/ pages served at the public site.
 TOP_LEVEL_FILES = [
     ("paper/supplementary/README.md", "README.md"),
     ("paper/supplementary/SKILL.md", "SKILL.md"),
@@ -498,8 +509,16 @@ def walk_for_zip(src_dir: Path) -> list[Path]:
     return out
 
 
-def build(output_path: Path, *, check_only: bool = False) -> None:
-    """Build the supplementary zip at output_path. Prints a summary."""
+def build(output_path: Path, *, check_only: bool = False,
+          anonymize: bool = True) -> None:
+    """Build the supplementary zip at output_path. Prints a summary.
+
+    anonymize=True  (frozen --neurips record): scrub author / repo
+                    identifiers and strip comments — byte-stable with
+                    the blind submission.
+    anonymize=False (live replication package): ship the real public
+                    source verbatim, comments and identifiers intact.
+    """
     print(f"Repo root: {REPO_ROOT}")
     print(f"Output:    {output_path}")
     print()
@@ -590,10 +609,10 @@ def build(output_path: Path, *, check_only: bool = False) -> None:
     ) as zf:
         for arc, src in plan:
             if isinstance(src, Path):
-                if src.suffix in SCRUB_TEXT_SUFFIXES:
-                    # Two-pass scrub: anonymize first, then strip
+                if anonymize and src.suffix in SCRUB_TEXT_SUFFIXES:
+                    # Frozen blind record: anonymize, then strip
                     # comments (where applicable). Source repo
-                    # untouched; only the archive copy is stripped.
+                    # untouched; only the archive copy is transformed.
                     raw = src.read_text(encoding="utf-8")
                     raw = scrub_text(raw)
                     if src.suffix in COMMENT_STRIP_SUFFIXES and not any(
@@ -602,16 +621,20 @@ def build(output_path: Path, *, check_only: bool = False) -> None:
                         raw = strip_comments(raw, src.suffix)
                     zf.writestr(arc, raw)
                 else:
+                    # Live replication package (anonymize=False), or a
+                    # binary / non-scrub suffix: ship the real public
+                    # file verbatim — name, repo link, comments intact.
                     zf.write(src, arcname=arc)
             else:
-                # Generated content (e.g. TRIMMED_CARGO_TOML). Apply
-                # comment stripping if it's a comment-stripped suffix
-                # so the workspace Cargo.toml is consistent with the
-                # rest of the .toml files in the archive.
+                # Generated content (e.g. TRIMMED_CARGO_TOML). The
+                # frozen record keeps it comment-stripped for
+                # consistency with the rest of its .toml files; the
+                # live package ships it as-is.
                 content = src
-                ext = "." + arc.rsplit(".", 1)[-1] if "." in arc else ""
-                if ext in COMMENT_STRIP_SUFFIXES:
-                    content = strip_comments(content, ext)
+                if anonymize:
+                    ext = "." + arc.rsplit(".", 1)[-1] if "." in arc else ""
+                    if ext in COMMENT_STRIP_SUFFIXES:
+                        content = strip_comments(content, ext)
                 zf.writestr(arc, content)
 
     out_size_mb = output_path.stat().st_size / 1024 / 1024
@@ -655,7 +678,9 @@ def main() -> None:
         (f"{supp}/SYNTAX.md", "SYNTAX.md"),
     ]
     out = args.output or (REPO_ROOT / f"{ARCHIVE_ROOT}.zip")
-    build(out, check_only=args.check)
+    # Only the frozen --neurips submission record is anonymized; the
+    # live replication package ships the real public source.
+    build(out, check_only=args.check, anonymize=args.neurips)
 
 
 if __name__ == "__main__":
