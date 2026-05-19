@@ -1,15 +1,5 @@
 # arXiv source bundle
 
-Download the latest arXiv submission archive — the same
-self-contained LaTeX source that the live paper PDF compiles from,
-packaged in the shape arXiv's TeX Live expects.
-
-## Downloads
-
-| File | What it is |
-|------|-----------|
-| [`sutra-arxiv-source.tar.gz`](/sutra-arxiv-source.tar.gz) | arXiv-ready bundle: `paper.tex` (wrapper) + `paper.tex.body` (pandoc output of `paper.md`) + `neurips_2026.sty`. Upload as the single archive on arXiv's "Add files" step. |
-
 ## How to submit
 
 1. On arXiv's submission form, choose the "upload a single
