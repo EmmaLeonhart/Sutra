@@ -286,7 +286,14 @@ the transpose) and well-conditioned. The compiler caches
 `R_role` per-role at module init so runtime bind is a single
 matmul against a precomputed matrix.
 
-### Notation
+Each subsection below is tagged *method* (the consolidated
+primitives, extended-state-vector layout, loop cell, codebook, and
+type surface) or *experiment* (the cross-substrate capacity
+measurements, §3.2 / §3.2.1, and the end-to-end
+differentiable-training result, §3.6). The two are interleaved by
+topic but labelled so the evaluation is separable from the design.
+
+### Notation — method
 
 We work in $\mathbb{R}^d$ with $d$ the substrate's embedding
 dimension (768 for nomic-embed-text). Every value has the layout
@@ -301,7 +308,7 @@ the Lagrange Kleene gates as in §1.1-1, and the soft-halt cell
 of §3.4. Full signature/definition table and the soft-halt cell
 update equations are in Appendix A.
 
-### Capacity of rotation versus Hadamard binding across substrates
+### Capacity of rotation versus Hadamard binding across substrates — experiment
 
 We measure decode accuracy as a function of bundle width k on
 real embeddings across four substrates spanning two modalities:
@@ -335,7 +342,7 @@ mean ‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵ (floating-point
 round-off, Q orthogonal). Reproduction:
 `experiments/rotation_binding_capacity_{llm,bioinformatics}.py`.
 
-#### Noise accumulation across chained bind/unbind cycles
+#### Noise accumulation across chained bind/unbind cycles — experiment
 
 The §3.2 protocol measures one bind+bundle+unbind cycle. Nested
 records (a recovered filler becoming the role of a sub-record)
@@ -351,7 +358,7 @@ mechanism here does not apply to the soft-halt loop cell of §3.4.
 Reproduction script: `experiments/crosstalk_chain.py`; full
 per-substrate L-sweep tables in Appendix D.
 
-### The extended-state-vector layout
+### The extended-state-vector layout — method
 
 Every value carries a fixed `[semantic | synthetic]` layout:
 the d-dimensional semantic block holds the substrate embedding
@@ -368,7 +375,7 @@ scalar can coexist with a semantic vector inside the same value
 without bind smearing them. Full per-axis purpose table and slot
 allocator details in Appendix B.
 
-### First-class loops as RNN cells
+### First-class loops as RNN cells — method
 
 Runtime data-dependent loops compile to **self-halting RNN
 cells**. Each tick: snapshot pre-step state, evaluate halt on
@@ -427,7 +434,7 @@ recurrent shape that emerges is what Siegelmann & Sontag (1992)
 showed computes any Turing-machine-computable function with
 rational weights.
 
-### I/O is in the embedding space; the codebook is a comfort layer
+### I/O is in the embedding space; the codebook is a comfort layer — method
 
 A Sutra program's inputs and outputs are embeddings in the
 substrate's vector space. Strings are a convenience for writing
@@ -444,7 +451,7 @@ host-side control flow substrate purity forbids. Implementation
 details (RDF triple layout, HNSW parameters, `.sdb` file format,
 complexity analysis) are in Appendix E.
 
-### End-to-end differentiable training through Sutra operations
+### End-to-end differentiable training through Sutra operations — experiment
 
 Because every Sutra primitive compiles to a differentiable tensor
 operation, the compiled graph supports standard PyTorch
@@ -548,7 +555,7 @@ differentiate. Reproduction:
 `experiments/differentiable_training_multiseed.py` (5-seed
 aggregate, seeds 0–4, identical architecture) + raw JSON.
 
-### Type system and surface syntax
+### Type system and surface syntax — method
 
 Sutra's surface syntax is typed: every value carries a primitive
 class from a fixed set (`int`, `float`, `complex`, `char`,
