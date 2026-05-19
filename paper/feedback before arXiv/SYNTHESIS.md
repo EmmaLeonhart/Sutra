@@ -103,13 +103,20 @@ Unanimous across reviewers; these gate the upload.
 
 ### P1 content (medium effort; strong for arXiv, expected for a venue)
 
-- [ ] **Add a small `.su` code snippet + a toy precomputed-rotation
-  example** in the body. maniospas + Claude + Gemini + Le Chat. Must
-  be valid, compiling syntax (paper-code durability).
-- [ ] **Fuzzy-logic background citation.** Situate polynomial Kleene
-  against fuzzy-NN literature (Zadeh 1965 and/or a fuzzy-NN survey).
-  `[verified-real: no Zadeh/Pal/"fuzzy neural" cite; van Krieken +
-  Hájek are cited but are t-norm/metamath, not fuzzy-NN background]`
+- [x] **`.su` code snippet — DONE 2026-05-18.** Added the
+  encode/decode core of `examples/role_filler_record.su` **verbatim**
+  (in the smoke test, so paper-durable) to the "Type system and
+  surface syntax" subsection, with a one-line note on what it lowers
+  to. The optional *toy precomputed-rotation-matrix* sub-ask was
+  NOT done (rotation math already lives in Appendix A/F; low value,
+  left as optional P2).
+- [x] **Fuzzy-NN background citation — DONE 2026-05-18.** Added a
+  "Fuzzy logic and neuro-fuzzy systems" Related-Work subsection +
+  3 web-verified refs: Zadeh 1965 (*Inf. & Control* 8:338–353),
+  Jang 1993 (ANFIS, *IEEE T-SMC* 23(3):665–685), Buckley & Hayashi
+  1994 (*Fuzzy Sets & Systems* 66(1):1–13). Distinguishes Sutra
+  (fixed Lagrange-Kleene connectives; only embeddings learn) from
+  membership-function learning.
 - [ ] **Accuracy-over-epochs plot** (Figure) from the existing
   training JSON, replacing/【supplementing the before/after table.
 - [ ] **std / aggregate runs.** Rerun 5 seeds, report mean±std at
@@ -170,11 +177,13 @@ drove implementation, substrate-purity verification, and final
 correctness.** Wording spectrum is a decision, not a default — see the
 question posed alongside this doc.
 
-### 4.2 Restructure now or defer
+### 4.2 Restructure — DEFERRED (Emma, 2026-05-18)
 
-Split Methodology/Experiments + merge §4: helps a venue submission,
-**not** an arXiv blocker. Decide: do it now (bigger diff, risk to the
-frozen-paper-cited section refs) or defer to the next-venue revision.
+Split Methodology/Experiments + merge §4 helps a venue submission,
+**not** an arXiv blocker. Emma's call: defer to the next-venue
+revision — leave the section layout as-is for the arXiv post
+(purely cosmetic page organization, no science/content change,
+risky cross-ref churn for zero preprint benefit).
 
 ## 5. Suggested execution order
 

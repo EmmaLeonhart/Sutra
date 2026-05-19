@@ -35,11 +35,14 @@ REMAINING:
   gitignored `comparisons/`, ran `overlap.py`: 0.071% verbatim
   8-gram overlap, 0 strong sentence dups (only a shared biblio
   line). No risk; no rephrasing. SYNTHESIS §1 updated.
-- Emma decision (SYNTHESIS §4.2): restructure Methodology/
-  Experiments now vs. defer to next-venue (not arXiv-blocking).
-- P1 (post-post / on Emma's go): `.su` code snippet (valid syntax),
-  fuzzy-NN background cite, accuracy-over-epochs plot, std over
-  5 seeds — std/ablation need REAL reruns, not fabricated.
+- §4.2 restructure: DEFERRED (Emma 2026-05-18) — leave section
+  layout as-is for arXiv; revisit at next venue.
+- P1 DONE 2026-05-18 (`pushed below`): `.su` snippet (verbatim
+  role_filler_record encode/decode core) + fuzzy-NN Related-Work
+  subsection with 3 web-verified refs (Zadeh 1965, Jang 1993,
+  Buckley&Hayashi 1994).
+- P1 still open (need REAL reruns — no fabricated numbers):
+  accuracy-over-epochs plot from training JSON; std over 5 seeds.
 - P2: ablation table, typo/precision sweep (nuanced — see
   SYNTHESIS), polynomial-interpolant-rationale paragraph.
 SYNTHESIS.md is the canonical plan.
