@@ -15,6 +15,221 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-20: paper uploaded to arXiv
+
+**The version of `paper/paper.md` currently in the repo is the version that
+is on arXiv.** The arXiv-fitting work landed at commit `e7cca673` on
+2026-05-19 — *"paper.md abstract: shorten to fit arXiv submission
+metadata"* — which trimmed the abstract from 2691 chars to 1541 chars to
+clear arXiv's 1920-char submission-field cap, so `paper/paper.md` and the
+arXiv submission share one source of truth. Subsequent commits before this
+DEVLOG entry are Figure 2 readability tweaks (`9a5cd0a6`, `c42354b9`,
+`a9279cf3`) plus the regular `papers-ci.yml` clawRxiv resubmission/review
+echo commits; the body content matches what was uploaded.
+
+What the arXiv-submitted paper contains, in load-bearing terms:
+
+- **Title and core claim:** *"Sutra: Tensor-Op RNNs as a Compilation Target
+  for Vector Symbolic Architectures."* Same artifact is both a logic
+  program and a trainable neural network; whole-program beta-reduction to
+  a fused tensor-op graph; PyTorch autograd flows through the emitted
+  graph.
+- **Four contributions:** (1) Lagrange-interpolated polynomial Kleene
+  three-valued logic — AND/OR/NOT/NAND/NOR/XOR/XNOR exact on the
+  $\{-1, 0, +1\}$ truth grid, $C^\infty$ elsewhere; (2) beta-reduction
+  to a substrate-pure tensor-op graph; (3) rotation binding decoding at
+  100% through bundle width k=8 on four substrates (nomic-embed-text,
+  all-minilm, mxbai-embed-large, ESM-2) where Hadamard has already
+  collapsed; (4) §3.6 fuzzy-rule classifier compiled from `.su`,
+  random-init 18.7±9.5% → 100.0±0.0% trained (three seeds, K=3
+  compiled-graph result), with the weighted variant baking the trained
+  scalar gain back into `.su` source as a numeric literal, recompiling
+  to ≈ 2×10⁻⁷ per-logit reproduction.
+- **§3.7 weights-in-source.** Stage B integrity work: scalar weight
+  trainable through the compiled graph, baked into a recompilable `.su`
+  literal — closes the "is the artifact actually both a logic program
+  and a trainable NN" question.
+- **Anisotropy spine.** Why cosine isn't enough: Ethayarajh 2019,
+  Gao 2019, Mu & Viswanath 2018 (`7a3c6767`). All citations
+  web-verified against arXiv/ACL.
+- **Reproducibility statement** before References (per the
+  `feedback_paper_replication_placement` memory): two-zip split,
+  upstream repo link as fallback, venue-agnostic framing
+  (`e913cdd4`, `f151bb62`, `b3a3b10b`).
+- **arXiv source bundle published** at `sutra.emmaleonhart.com/arxiv`
+  with a CI gate (`76467035`, `2ee9f3ef`); `paper.tex` defines a `none`
+  counter so pandoc + hyperref + longtable doesn't break on strict
+  pdflatex (`75aa58b6`).
+
+**`paper/neurips/` remains frozen** per CLAUDE.md §"NeurIPS submission is
+FROZEN." The arXiv upload is from the live `paper/paper.md`, which is
+free to evolve — the NeurIPS archive is the immutable May-15 snapshot.
+
+What changed between the 2026-05-06 NeurIPS sprint entry (below) and the
+arXiv upload, in rough order:
+
+### Paper integrity — §3.6 promoted from hand-reimplementation to compiled-graph training
+
+The pre-2026-05-15 §3.6 trained a hand-reimplementation of the rule rather
+than the compiled graph itself (finding `11b034e8`). Two-stage fix:
+
+- **Stage A0** (`cbba92f2`, `4a0c148b`, `7380453c`, `e19de3d7`): emit
+  substrate-pure tensor similarity/dot — drop mid-graph `float()` so the
+  graph is differentiable as emitted (a compiler change, not a harness
+  fix; the pre-A0 emit returned a Python float and broke autograd).
+  Curated gate green pre==post + probe + numeric-output + mechanism
+  proof.
+- **Stage A** (`610b2f42`, `0c3a4fe1`, `dca46da6`): real compiled-graph
+  training harness — `.su` → PyTorch codegen → backprop through the
+  emitted rule. Paper upgraded to real K=5 3-seed compiled-graph result;
+  abstract, §3.6, and Appendix H rewritten to the real numbers
+  (`9d5321f1`). Earlier proxy numbers and the fabricated curve figure
+  removed.
+- **Stage B** (`f03680f7`, `5f0ed354`): scalar weight trainable through
+  the compiled graph (`w.grad` nonzero) and bake-able as a `.su`
+  literal; trained weight written back into recompilable `.su`; paper
+  §3.7 added. This is the "weights are themselves legible code" claim
+  the abstract anchors on.
+
+A misrepresented speed claim landed alongside Stage A and was caught:
+the 6.2-hour driver-artifact framing was wrong (`7bce39db`) and was
+reframed via batched compiled-graph forward.
+
+### Pre-arXiv synthesis rounds 2–4
+
+Each round consolidated multi-LLM + Discord feedback into a single
+`paper/feedback before arXiv/SYNTHESIS.md` rather than dispersing it
+across files. **Verdict held across all five reviewers in round 4
+(Claude Sonnet 4.6, DeepSeek, Le Chat / Mistral, Meta AI, Gemini):**
+AI-policy-violation removal risk is very low. The §"AI-use statement"
+already does the disclosure arXiv's policy targets; the reproduction
+scripts + seeds + explicit limitations are the strongest anti-removal
+signal.
+
+Two material round-4 fixes landed (`cc3b1416`):
+
+- §3.6 defensive parenthetical reworded — Claude and Gemini independently
+  flagged *"…no per-epoch curve is plotted (fabricating one is not an
+  option)"* as reading like AI-safety-guardrail reflection. Rephrased
+  to standard academic limitation tone.
+- §"AI-use statement" gained one factual additive sentence covering the
+  result/figure/number boundary explicitly: *"No experimental result,
+  figure, table, or numerical value reported in this paper was
+  generated by a language model…"*
+
+Earlier-round actions still load-bearing in the arXiv submission:
+soften the abstract megasentence and "collapses the boundary" /
+Turing framing (`001747e4`); drop the "one artifact, two interpretations"
+slogan Emma disliked (`6faf3f51`); rework "as of 2026" as deliberate
+literature-cutoff (`7d30e802`); move both pipeline diagrams from
+appendices into the body (`a1194417`); §3 subsection tagging
+method/experiment + roadmap line (`c7683286`); §3.6 real 5-seed
+replication with TikZ accuracy plot (`dde3e700`); the `.su` snippet +
+fuzzy-NN Related-Work subsection (`67a2ae32`).
+
+### Other significant work May 6 → May 20
+
+**Site rebuild — MkDocs Material → two static pages.** Emma's call
+2026-05-16: the ~23-page MkDocs site wasn't good enough to maintain.
+Scrapped in `62f2c3bd`; rebuilt as a real homepage at `/` + NeurIPS
+archive at `/neurips-2026/` (`4161e8dc`), Yantra-style header/footer
+(`20fe9d6d`), conceptual pages restored under the new pipeline
+(`34009c9e`). Identity styling moved through several iterations
+(`672f22f1`, `cf711e44`, `e1534435`, `e6e44030`). Canonical domain set
+to `sutra.emmaleonhart.com` (`c25c298c`). Homepage rewritten value-led
+(`98aeff8f`).
+
+**`master` → `main` CI migration** (`5ea853ef`, `b318791e`). All
+workflows, Pages env policy, and doc refs migrated. The leftover
+`origin/master` branch is still tracked open as an Emma-decision item
+in `queue.md`.
+
+**`scalar` → `number` rename, three gated commits** (`8a5d12a7`,
+`b34a275b`, `f21fdffa`, 2026-05-17). Compiler `number` is now
+canonical; `scalar` deprecated alias kept for the frozen NeurIPS
+archive. Dogfood through stdlib `.su` type signatures; docs updated.
+The companion 0-d-projection drop on `exp`/`cos`/`sin` is explicitly
+deferred (see `queue.md` item 1) — high blast radius, needs a separate
+gated session.
+
+**Substrate-leak audit — `Audit.md` burn-down.** Catalogued every host
+`float()`/`if`/`for`/libm leak in the runtime; safety-critical
+(CLAUDE.md intro). Five REAL LEAKs fixed and verified — `rotate_slot`
+(`d8fc68d1`), `defuzzify_trit` (`3c7dc802`), `argmax_cosine` zero-norm
+host branch (`5670ca4f`), `slot_store` `float(scalar)` (`eb062655`),
+string ops host codepoint loops (`0e363b96`). Audit REAL LEAK #4
+reclassified NOT-a-leak (Emma — fixed-T tail-recursive cell, not a
+host branch on data, `9481a47b`). #3 (promise `await_value` host
+`if/break`) remains structurally open — Emma direction is to model
+async/await as an implicit-axon-input + arrival-flag instead of a poll
+loop. CI leak-gate verified green (`edbc5f68`, 1738s, 67 programs).
+
+**Transcendentals — literate-math via interpolated lookup tables.** The
+2026-05-10 architecture (`3aa57b44`, `9a652211`) — length-N value
+tensor + triangle-weight soft-index dot product, avoiding the prior
+bound-table approach's pigeonhole limit. Shipped: `exp`/`log` on both
+backends, `pow = exp(y * log(x))`, `sqrt = exp(0.5 * log(x))`,
+`Math.sin/cos/tan` + `sinh/cosh/tanh` via the same lookup architecture
+(`0a31fd5c`), `Math.PI`/`Math.TAU`/`Math.E` (`d043a812`, `ebb0382f`).
+`SutraMathOverflow` raised when input falls outside the precomputed
+table range (per Emma's "specific overflow exception, not silent
+zero"). Followed by **literate-math beta-reduction** — `cexp` `.su`
+body IS the executable reduction (`ae269f6b`); `pow`/`sqrt`/`tan`/
+`sinh`/`cosh`/`tanh` `.su` bodies are the reduction (`b9e11f5e`);
+core delivered with `cexp` + 6 derived now literate (`d224fae9`);
+complex-argument cosine `Math.ccos` shipped substrate-pure
+(`a7f7a43f`); Math.mod literate body promotion (`4f604520`).
+
+**Implicit tail-recursive loops — `loop(x){body}` sugar.** Three units
+landed (`b1fabdb6`, `a902e3a8`, `532ad717`) — variable-capture
+analysis, architecture verified-and-corrected (codegen-site approach
+rejected, last unknown resolved), `loop(expr){body}` desugar works
+end-to-end for count form on both backends gated. The `while_loop`
+kind with relational bounds also gated (`0c78e1de`). Class-method
+bodies + scope-shadowing guard follow-on (`4b48d681`). The remaining
+"lighten the implicit axon" work stays in `todo.md`.
+
+**TypeScript transpiler closeout, May 7–11.** 12 fixtures green
+end-to-end (TS source → `.su` → runnable Python). Class lowering with
+fields/methods/`new`/`this` (`60b9fecd`, `a5303c86`, `a602ba1b`,
+`c684c88e`); user-class operator overloading via inheritance-chain
+dispatch (`c0fa84fe`); synthetic-axis equality via Euclidean-distance
++ tanh (`1b292ddb`); non-static class loops thread `this` as implicit
+state (`903642fc`); arrow functions + closure-free closure capture
+(`0858ca24`); first-class function values via `function` type-name in
+params (`08d3530c`); promises Stage-1 first cut (`729fafde`); module
+imports via lower-time inline + diamond dedup (`5ad16093`); enum
+lowering + TS classes extend `JavaScriptObject` (`7880c028`);
+multi-program axon passing demo end-to-end (`872a8c1a`,
+`1af63ecd`). Sutra PyPI distribution renamed `sutra-compiler` →
+`sutra-dev` (`0979b4bf`), `sutra-dev[ts]` extra published
+(`2690051d`).
+
+**Open-questions triage** — explicit verdict table for all 22 docs
+(`dd448b47`), per-doc verdict banners stamped (`012339e0`), spec
+open-questions reconciled with current code (4-batch spec audit:
+`899edbf5`, `29b11f18`, `ea0ad947`, `6e3a204f`).
+
+**Anti-`"honest"` writing rule.** Ban codified (`483a17b8`),
+context-sensitive sweep across docs + code (`08ce1d0b`), then
+strengthened to ban substitute coats (frank/candid/transparently) and
+require naming failures plainly (`3ea0684c`). Memory:
+`feedback_no_honest_genuinely_buzzwords`.
+
+**Math.mod = rotation_mod**, beat sawtooth_mod in benchmark; modulus
+library moved to `stdlib/modulus.su` with "expensive" warning; `%`
+dispatches to `_VSA.fmod` (truncation). Per memory
+`project_modulus_library`.
+
+End-of-period state: `paper/paper.md` on arXiv as the canonical
+post-NeurIPS revision; `paper/neurips/` frozen; substrate-purity
+audit five-of-eight resolved with three structural opens documented;
+TypeScript transpiler feature-complete on its 12 fixtures; site
+rebuilt as two static pages on the shared `emmaleonhart.com`
+identity; the long-running CI migration done.
+
+---
+
 ## 2026-05-06: NeurIPS sprint, 10-page body misreport correction, paper trim
 
 **Abstract + title submitted to NeurIPS 2026.** Title in commit
