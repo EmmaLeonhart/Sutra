@@ -14,12 +14,16 @@ stay in sync.
 
 ## Context (read first, do not work on)
 
-**`paper/paper.md` is on arXiv as of 2026-05-19/20** (arXiv-fitting
-abstract trim at commit `e7cca673`; current repo state matches the
-upload). See `DEVLOG.md` 2026-05-20 entry. `paper/neurips/` stays
-frozen per CLAUDE.md §"NeurIPS submission is FROZEN." Live `paper.md`
-may continue to evolve toward the next venue; no editing-to-deadline
-pressure right now.
+**`paper/paper.md` is on arXiv and FROZEN through May 2026** (lock
+added 2026-05-20). `paper/paper.md` was restored to commit
+`e7cca673` (the arXiv-fitting abstract trim, 2026-05-19) so the
+repo state matches what was uploaded. The lock lifts automatically
+on **2026-06-01** and the live paper resumes being the
+free-to-evolve next-venue draft. **Do not edit `paper/paper.md`
+through May 31.** See CLAUDE.md §"🔒 `paper/paper.md` is also
+FROZEN through May 2026" for the full rule. `paper/neurips/` stays
+under its own separate, permanent freeze. See `DEVLOG.md` 2026-05-20
+entry.
 
 **Promise/await is fit-to-spec (verified 2026-05-20).** Audit REAL
 LEAK #3 was already fixed 2026-05-17 — `await_value(p)` returns
@@ -70,15 +74,18 @@ to the end of Active 2026-05-20 per Emma.
   drift, commits findings. Set up via `RemoteTrigger`; the routine
   survives session shutdown because it runs in the cloud.
 
-## Next-venue polish (optional, not blocking; no urgency post-arXiv)
+## Next-venue polish (FROZEN through May 2026; resumes 2026-06-01)
 
-From `paper/feedback before arXiv/SYNTHESIS.md` round-4 plan, items
-explicitly marked "optional / next-venue" and **not** done:
+All paper polish items below touch `paper/paper.md` and are
+**blocked by the May-2026 freeze** above. Listed here so they
+don't get forgotten; do not start any of them until June.
 
 - **Ablation table.** Per-primitive contribution to the §3.6 result.
 - **Polynomial-interpolant-rationale paragraph.** Why Lagrange on
-  $\{-1, 0, +1\}$ over softer alternatives — currently distributed
-  across §1.1 and §3 instead of stated once.
+  $\{-1, 0, +1\}$ over softer alternatives. (Drafted + pushed
+  2026-05-20 in commit `41fa446b`, reverted 2026-05-20 when the
+  May freeze landed; the prose is in `git show 41fa446b -- paper/paper.md`
+  when the freeze lifts.)
 - **Le Chat's section-granular AI-use breakdown.** Tie each AI
   contribution to a specific §. Heavier than the round-4 additive
   sentence; the existing §"AI-use statement" covers the
@@ -87,9 +94,6 @@ explicitly marked "optional / next-venue" and **not** done:
   alongside JAX/TVM/XLA (no bib entry for any of them) — consistent
   authorial choice. Adding Futamura would create inconsistency
   unless JAX/TVM/XLA also get entries; left to Emma's call.
-
-These touch the **live `paper/paper.md` only**, not the frozen
-`paper/neurips/`.
 
 ## Open user decision (destructive / outward — needs explicit yes)
 

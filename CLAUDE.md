@@ -219,6 +219,39 @@ This means:
 
 The live `paper/paper.md` is **not** under this freeze. It is free to evolve. The downloadable artifacts on the website (camera-ready PDF, anonymized PDF, supplementary zip) are built from `paper/neurips/`, not from `paper/paper.md`. See `docs/neurips-2026.md` for the user-facing download page and `paper/neurips/README.md` for the in-repo explanation.
 
+### 🔒 `paper/paper.md` is also FROZEN through May 2026 (the arXiv lock)
+
+**Added 2026-05-20.** Emma uploaded `paper/paper.md` to arXiv on
+2026-05-19 (the arXiv-fitting abstract-trim commit is `e7cca673`).
+Until **June 1, 2026** the live `paper/paper.md` is treated as
+immutable so the repo state matches what was uploaded. This is a
+*time-bounded* freeze, not the permanent NeurIPS one above — the
+lock lifts automatically the moment May 2026 ends, and the live
+paper resumes being the free-to-evolve next-venue draft.
+
+This means, until June 1:
+
+- Do not edit `paper/paper.md`. Not for typos, not for clawRxiv
+  reviewer feedback, not for new findings, not for tightening,
+  not for the next-venue polish items previously queued (ablation
+  table, polynomial-rationale paragraph, section-granular AI-use
+  breakdown, Futamura bib entry). All of those wait until June.
+- Do not edit any file referenced from the arXiv submission as
+  if it were the source of an arXiv-visible claim (e.g. the
+  supplementary docs the arXiv source bundle links into).
+- `paper/neurips/` stays under its own permanent freeze (above).
+  Both locks are active concurrently.
+- The `papers-ci.yml` auto-resubmit on `paper/paper.md` push is
+  fine to leave running — there is just nothing to push.
+- If a later finding *contradicts* the arXiv text, stop and tell
+  the user; do not silently amend. Same discipline as the
+  NeurIPS freeze.
+
+If the user explicitly says "unfreeze the paper" before June 1,
+the lock lifts. Mention the freeze first if a user request appears
+to ask for a `paper/paper.md` edit before then, so there is no
+silent overriding.
+
 ### Paper-code durability — keep the original NeurIPS paper's examples working
 
 Every `.su` program, reproduction script, and supplementary surface that the **NeurIPS submission** (now frozen at `paper/neurips/`) references must continue to compile, run, and produce the same observable outputs **for at least one year after submission, ideally indefinitely**. The frozen paper text cannot be patched if the code drifts; the only way the NeurIPS claims stay reproducible is if the code keeps working.
