@@ -526,6 +526,20 @@ plotted.
 
 \begin{figure}[h!]
 \centering
+
+{\small
+\begin{verbatim}
+function fuzzy rule(vector x, vector own,
+                    vector o0, vector o1) {
+    return similarity(x, own)
+        && !similarity(x, o0)
+        && !similarity(x, o1);
+}
+\end{verbatim}
+}
+
+\vspace{1mm}
+
 \begin{tikzpicture}[
   node distance=6mm and 9mm,
   every node/.style={font=\footnotesize},
@@ -574,7 +588,7 @@ plotted.
   \draw[arr] (sm) -- (ce);
   \draw[arr] (ce) -- (loss);
 \end{tikzpicture}
-\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
+\caption{The $K=3$ rule pipeline. The Sutra source above is the literal program the compiler beta-reduces to the tensor-op graph shown; \texttt{own} binds to $p_1$ when computing $\mathrm{rule}_1$ (\texttt{o0}, \texttt{o1} = $p_2$, $p_3$), and to $p_2$, $p_3$ for $\mathrm{rule}_2$, $\mathrm{rule}_3$ respectively. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
 \label{fig:k3-pipeline}
 \end{figure}
 
