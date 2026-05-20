@@ -81,24 +81,6 @@ The four core technical contributions of this paper are:
    these gates is one fused subgraph that PyTorch autograd
    backprops through end-to-end (§3.6).
 
-   The choice of Lagrange interpolation over softer alternatives
-   — softened t-norms such as the Einstein or Yager families,
-   or soft-min/soft-max with a temperature — is fixed by a
-   non-negotiable requirement: agreement with classical Kleene
-   reasoning on the discrete grid must be bit-for-bit, not
-   approximate. Softened t-norms drift from $\{-1, 0, +1\}$'s
-   truth values at the grid corners themselves; Lagrange
-   interpolation on the $3 \times 3$ Kleene grid is the unique
-   polynomial that *exactly* recovers each connective at the
-   nine grid points while remaining $C^{\infty}$ off it. The
-   trade-off is one of monotonicity: the bilinear--quadratic
-   interpolant is non-monotonic at some interior points (a
-   defuzzified boolean that happens to read $a = 0.5,\ b = 0$
-   produces $\mathrm{AND}(a, b) = 0.125$, peaking off-grid before
-   dropping back to $0$ at $a = 1$). Sutra accepts this in
-   exchange for grid-exactness; replacing the interpolant with a
-   higher-degree monotonic polynomial is a future direction.
-
 2. **Beta reduction to a substrate-pure tensor-op graph.**
    The compiler inlines stdlib operator definitions,
    beta-reduces through bound names, then runs an
@@ -544,24 +526,6 @@ plotted.
 
 \begin{figure}[h!]
 \centering
-
-{\small
-\begin{verbatim}
-function fuzzy rule(vector x, vector own,
-                    vector o0, vector o1) {
-    return similarity(x, own)
-        && !similarity(x, o0)
-        && !similarity(x, o1);
-}
-// desugared (precedence-explicit prefix):
-//   and(similarity(x, own),
-//       and(!similarity(x, o0),
-//           !similarity(x, o1)))
-\end{verbatim}
-}
-
-\vspace{1mm}
-
 \begin{tikzpicture}[
   node distance=6mm and 9mm,
   every node/.style={font=\footnotesize},
@@ -584,7 +548,7 @@ function fuzzy rule(vector x, vector own,
   \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
   \node[below=1mm of andneg, font=\scriptsize] {neg-others};
 
-  \node[op, below=10mm of andneg, xshift=-18mm] (and1) {$\mathrm{AND}$};
+  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
   \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
 
   \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
@@ -603,14 +567,14 @@ function fuzzy rule(vector x, vector own,
   \draw[arr] (not2) -- (andneg);
   \draw[arr] (not3) -- (andneg);
   \draw[arr] (cos1) -- (and1);
-  \draw[arr] (andneg) -- (and1);
+  \draw[arr] (andneg) -| (and1);
   \draw[arr] (and1) -- (rule1);
   \draw[arr] (rule1) -- (stack);
   \draw[arr] (stack) -- (sm);
   \draw[arr] (sm) -- (ce);
   \draw[arr] (ce) -- (loss);
 \end{tikzpicture}
-\caption{The $K=3$ rule pipeline. The Sutra source above is the literal program the compiler beta-reduces to the tensor-op graph shown; \texttt{own} binds to $p_1$ when computing $\mathrm{rule}_1$ (\texttt{o0}, \texttt{o1} = $p_2$, $p_3$), and to $p_2$, $p_3$ for $\mathrm{rule}_2$, $\mathrm{rule}_3$ respectively. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
+\caption{The $K=3$ rule pipeline. Solid boxes are PyTorch tensor ops; dashed boxes are learnable prototypes. The AND in the leftmost branch combines $\cos(x, p_1)$ with the AND-of-NOTs over the other classes; rule\textsubscript{2} and rule\textsubscript{3} (omitted for clarity) have the symmetric shape. Every edge is a tensor; backprop reaches each $p_i$ through this graph.}
 \label{fig:k3-pipeline}
 \end{figure}
 
