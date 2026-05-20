@@ -79,6 +79,48 @@ This rule is in tension with "deprecate, don't remove." The reconciliation: depr
 
 `todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
 
+### Barrel through specified work; verify against spec; don't add false caution
+
+**Counterbalance to the §"SAFETY-CRITICAL" rules at the top of this file
+(Emma 2026-05-20).** The safety-critical framing says do the real
+operation on the real substrate, even if slower or uglier. It does NOT
+say "treat every queued item as needing a multi-session gated approach
+before touching it." When Emma adds an item to `queue.md` and the design
+is already laid out in `planning/sutra-spec/*.md`, the expected behavior
+is:
+
+1. **Read the spec.** Promises/await is `promises.md` + `axon-io.md`.
+   Loops is `control-flow.md`. Binding is `binding.md`. The specs are
+   the authoritative design; they aren't aspirational sketches.
+2. **Check whether the code already matches.** `Audit.md` keeps a
+   per-leak status with file:line anchors. The tests under
+   `sdk/sutra-compiler/tests/` are regression guards on the
+   substrate-purity claims — running them tells you what's currently
+   true, not what was true when an old session wrote a queue item.
+3. **Barrel through the work.** If the spec is clear and the
+   implementation is close, finish it. The §"PEOPLE CAN DIE" rules
+   are about *faking results* and *fake substrate purity*, not about
+   pace. Verification (run the tests, check decoded output against
+   ground truth, read what's emitted) is how you discharge the safety
+   rules — not by avoiding the work.
+4. **Only flag "deliberate, gated session" when the spec is genuinely
+   not settled.** Spec-level open questions belong in
+   `planning/open-questions/`; if the open question doesn't exist
+   there, the design is settled and the work is implementation.
+
+Concrete anti-pattern Emma flagged 2026-05-20: I copied an old
+"deliberate, gated" framing for `await_value` from a stale handoff
+into a fresh queue item without first reading `promises.md` +
+`axon-io.md` + `Audit.md`. That reading would have shown the leak was
+already fixed 2026-05-17 as the exact algebraic reduction of the
+spec-2 lowering. Adding a queue item for already-done work isn't
+caution — it's noise that makes future sessions think there's
+something pending.
+
+The rule the user wants codified: **read the spec, verify against
+ground truth, barrel through; don't multiply caution by quoting
+prior sessions.**
+
 ## Cross-repo workflow: Sutra ↔ Yantra
 
 Sutra is consumed downstream by **Yantra**
