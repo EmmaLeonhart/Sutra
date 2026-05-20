@@ -125,6 +125,12 @@ INCLUDE_DIRS = [
     "sutraDB/sutra-hnsw",
     "sutraDB/sutra-sparql",
     "sutraDB/sutra-ffi",
+    # Multi-program axon demo — referenced by test_axon_keys.py
+    # (four tests in the §4 suite read producer.su / consumer.su from
+    # this dir). The `examples/*.su` glob below does not recurse, so
+    # without this entry the four tests are unrunnable in the archive
+    # (autonomous replication run 2026-05-19 flagged this defect).
+    "examples/multi_program_axon",
 ]
 
 # Specific files to include (no recursion).
@@ -183,7 +189,14 @@ EXCLUDE_DIR_NAMES = {
     "venv",
     ".pdf-check",
     ".pdf-prev",
-    "benches",  # benchmarks for SutraDB crates — large, not paper-cited
+    # `benches` previously excluded as "large, not paper-cited" —
+    # verified 2026-05-19 the three SutraDB crates' benches/ total
+    # 44 KB (just one .rs file each). Without the bench sources,
+    # the [[bench]] entries in each Cargo.toml point at nothing and
+    # `cargo build` on sutra-ffi fails out of the box; the
+    # autonomous replication run had to write stub files to recover.
+    # Including the real sources costs ~7% of the zip and removes
+    # the stub workaround.
 }
 
 EXCLUDE_FILE_SUFFIXES = {
