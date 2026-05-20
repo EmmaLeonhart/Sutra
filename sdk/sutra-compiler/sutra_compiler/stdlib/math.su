@@ -32,13 +32,15 @@
 // cexp(1+i*pi/2)=i*e, cexp(0.5+i)=0.89+1.39i), test_transcendentals
 // 3 passed/20 subtests, corpus + smoke PASS.
 //
-// Still `intrinsic` (routing to the now-correct _VSA.*) rather than
-// the .su bodies being the literal source-level reduction — that
-// last step needs namespaced-stdlib inlining (queue item 2 / task
-// #12). The reduction itself is real and executes; only its
-// *spelling as Sutra source* is pending. Not faked: deferred complex
-// `log` angle (atan2 imag part) is real-axis-only for now, stated in
-// the runtime docstring.
+// Namespaced-stdlib inlining is wired: pow / sqrt / tan / sinh / cosh /
+// tanh / cexp all have literate bodies in this file, and the inliner
+// expands `Math.<f>(x)` to those bodies (verified end-to-end:
+// Math.pow(2,3) ≈ 8.0 via the literate `exp(y*log(x))`). The leaves —
+// realExp / imaginaryExp / exp / log / cos / sin / ccos — stay intrinsic
+// because each is a single substrate primitive (the rotational
+// crosstalk lookup or the eigenrotation), not a substitution. Not
+// faked: deferred complex `log` angle (atan2 imag part) is real-axis-
+// only for now, stated in the runtime docstring.
 
 class Math extends vector {
 
