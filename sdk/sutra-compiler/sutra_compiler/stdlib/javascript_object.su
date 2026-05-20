@@ -63,6 +63,16 @@ class JavaScriptObject extends vector {
     static intrinsic method JavaScriptObject js_loose_eq(JavaScriptObject a, JavaScriptObject b);
     // Loose inequality. `!=` — negation of loose `==`.
     static intrinsic method JavaScriptObject js_loose_neq(JavaScriptObject a, JavaScriptObject b);
+    // Ordered comparisons (`<`, `>`, `<=`, `>=`) — ECMAScript Abstract
+    // Relational Comparison. Both-string operands compare
+    // lexicographically by codepoint; otherwise both sides are coerced
+    // to numbers and compared numerically on AXIS_REAL. NaN on either
+    // side makes all four return false (the JS quirk that prevents
+    // defining `<=` as `!(a > b)`; each operator is explicit).
+    static intrinsic method JavaScriptObject js_lt(JavaScriptObject a, JavaScriptObject b);
+    static intrinsic method JavaScriptObject js_gt(JavaScriptObject a, JavaScriptObject b);
+    static intrinsic method JavaScriptObject js_le(JavaScriptObject a, JavaScriptObject b);
+    static intrinsic method JavaScriptObject js_ge(JavaScriptObject a, JavaScriptObject b);
     // JavaScript truthiness — returns a fuzzy on the truth axis,
     // +1 for truthy values (non-zero numbers, non-empty strings,
     // non-null objects), -1 for falsy values (0, "", null,

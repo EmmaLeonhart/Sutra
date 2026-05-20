@@ -301,6 +301,22 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
             # `string_concat` intrinsic walks the codepoint axes.
             if left_t == "String" and right_t == "String":
                 return f"String.string_concat({left_src}, {right_src})"
+        # Ordered comparisons against a JSO use the JS-coercion path:
+        # both-string → lex compare, otherwise numeric. The plain Sutra
+        # `<`/`>` lowering does fuzzy similarity on the truth axis,
+        # which is wrong for JS semantics (a JS program that writes
+        # `if (s < t)` against two strings expects a lex result).
+        if op_text in ("<", ">", "<=", ">="):
+            left_t = _expr_type(left, source, ctx)
+            right_t = _expr_type(right, source, ctx)
+            if left_t == "JavaScriptObject" or right_t == "JavaScriptObject":
+                method = {
+                    "<":  "js_lt",
+                    ">":  "js_gt",
+                    "<=": "js_le",
+                    ">=": "js_ge",
+                }[op_text]
+                return f"JavaScriptObject.{method}({left_src}, {right_src})"
         return f"{left_src} {op_text} {right_src}"
     if node.type == "unary_expression":
         op = node.child_by_field_name("operator")
