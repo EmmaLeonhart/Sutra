@@ -41,6 +41,57 @@ see §"Watchdogs" below.
 
 ## Active
 
+### 0. Egglog CSE pass — IN PROGRESS, picked up by 1-hour cron 2026-05-20
+
+**State at handoff (2026-05-20, mid-session):** JSO ordered
+comparisons (`js_lt`/`js_gt`/`js_le`/`js_ge`) shipped + tested 4/4
+on numeric and string lex paths. Egglog CSE is the next item; I had
+just started reading `simplify_egglog.py` when usage ran low.
+
+**Spec (from todo.md §"Egglog — CSE pass"):**
+- Adjust `matrix_chain_cost_model` (or add a new
+  `cse_aware_cost_model`) in `sdk/sutra-compiler/sutra_compiler/simplify_egglog.py`
+  to charge per-use rather than per-node.
+- Emit Python `let`-bindings (a temporary variable) for any
+  subexpression that appears more than once in the extracted form,
+  instead of inlining.
+- Sub-200 lines total. Adjacent prior art: JuliaSymbolics hash
+  consing reports 3.2× speedup + 5× faster codegen.
+
+**Pragmatic approach for the cron-driven session:**
+The current `simplify_egglog.simplify_ast_vec` / `simplify_ast_num`
+operate on single expressions. Real CSE needs scope (a statement
+context to insert let bindings). Recommended scope for the cron run:
+1. Add `cse_aware_cost_model(egraph, expr, children_costs)` next
+   to `matrix_chain_cost_model`. Either delegates to it or adds an
+   explicit per-use multiplier (egglog's tree extraction already
+   counts each occurrence, so the cost is effectively per-use; the
+   new name makes the intent explicit and lets future tuning live
+   in one place).
+2. Add `find_repeated_subexprs(extracted, min_size=15)` — walk the
+   extracted egglog expression's str() form, identify substrings
+   matching balanced parens that appear ≥ 2 times. Return list of
+   `(substring, count)` sorted by length desc.
+3. Add `cse_let_form(extracted)` — returns `(bindings, body_str)`.
+   bindings is `[(temp_name, sub_str), ...]`; body_str is the
+   extracted str with each repeated sub_str replaced by its
+   temp_name. The codegen integration is deferred — surface the
+   primitive + tests, then wire when there's a concrete demo.
+4. Add `tests/test_simplify_egglog_cse.py` — at least one test
+   showing `find_repeated_subexprs` finds shared bind expressions,
+   one showing `cse_let_form` produces sane bindings.
+5. Run `python -m pytest tests/test_simplify_egglog.py tests/test_simplify_egglog_cse.py -v` to verify; commit + push.
+
+**Files involved:**
+- `sdk/sutra-compiler/sutra_compiler/simplify_egglog.py` (main work)
+- `sdk/sutra-compiler/tests/test_simplify_egglog_cse.py` (new)
+
+**Do NOT touch in this session:** paper.md (May freeze through June 1).
+
+**After CSE lands** (or if blocked), the cron should mark item 0
+DONE / BLOCKED in queue.md and stop. Do not chain into the 0-d
+projection drop — Emma moved that explicitly to the bottom.
+
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
 
 `==`, `!=`, `!` bounds inherit the pre-existing FUZZY numeric-equality
