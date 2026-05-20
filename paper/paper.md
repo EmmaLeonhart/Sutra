@@ -535,6 +535,10 @@ function fuzzy rule(vector x, vector own,
         && !similarity(x, o0)
         && !similarity(x, o1);
 }
+// desugared (precedence-explicit prefix):
+//   and(similarity(x, own),
+//       and(!similarity(x, o0),
+//           !similarity(x, o1)))
 \end{verbatim}
 }
 
