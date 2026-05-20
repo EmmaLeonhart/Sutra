@@ -81,6 +81,24 @@ The four core technical contributions of this paper are:
    these gates is one fused subgraph that PyTorch autograd
    backprops through end-to-end (§3.6).
 
+   The choice of Lagrange interpolation over softer alternatives
+   — softened t-norms such as the Einstein or Yager families,
+   or soft-min/soft-max with a temperature — is fixed by a
+   non-negotiable requirement: agreement with classical Kleene
+   reasoning on the discrete grid must be bit-for-bit, not
+   approximate. Softened t-norms drift from $\{-1, 0, +1\}$'s
+   truth values at the grid corners themselves; Lagrange
+   interpolation on the $3 \times 3$ Kleene grid is the unique
+   polynomial that *exactly* recovers each connective at the
+   nine grid points while remaining $C^{\infty}$ off it. The
+   trade-off is one of monotonicity: the bilinear--quadratic
+   interpolant is non-monotonic at some interior points (a
+   defuzzified boolean that happens to read $a = 0.5,\ b = 0$
+   produces $\mathrm{AND}(a, b) = 0.125$, peaking off-grid before
+   dropping back to $0$ at $a = 1$). Sutra accepts this in
+   exchange for grid-exactness; replacing the interpolant with a
+   higher-degree monotonic polynomial is a future direction.
+
 2. **Beta reduction to a substrate-pure tensor-op graph.**
    The compiler inlines stdlib operator definitions,
    beta-reduces through bound names, then runs an
