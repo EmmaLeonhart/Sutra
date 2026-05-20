@@ -566,7 +566,7 @@ function fuzzy rule(vector x, vector own,
   \node[op, below=6mm of not2, xshift=8mm] (andneg) {$\mathrm{AND}$};
   \node[below=1mm of andneg, font=\scriptsize] {neg-others};
 
-  \node[op, below=14mm of cos1] (and1) {$\mathrm{AND}$};
+  \node[op, below=10mm of andneg, xshift=-18mm] (and1) {$\mathrm{AND}$};
   \node[io, below=6mm of and1]  (rule1) {$\mathrm{rule}_1$};
 
   \node[io, right=22mm of rule1] (stack) {$(\mathrm{rule}_1, \mathrm{rule}_2, \mathrm{rule}_3)$};
@@ -585,7 +585,7 @@ function fuzzy rule(vector x, vector own,
   \draw[arr] (not2) -- (andneg);
   \draw[arr] (not3) -- (andneg);
   \draw[arr] (cos1) -- (and1);
-  \draw[arr] (andneg) -| (and1);
+  \draw[arr] (andneg) -- (and1);
   \draw[arr] (and1) -- (rule1);
   \draw[arr] (rule1) -- (stack);
   \draw[arr] (stack) -- (sm);
