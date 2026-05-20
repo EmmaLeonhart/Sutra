@@ -76,9 +76,26 @@
 >    nonzero rather than reporting a false clean.
 > ```
 
-> ## 🌅 RESTART HERE (handoff 2026-05-17, end of session)
+> ## 🌅 RESTART HERE (handoff 2026-05-20, post-arXiv upload)
 >
-> Done + pushed this session: `ccos` complex-argument cosine;
+> **`paper/paper.md` is on arXiv.** The arXiv-fitting abstract trim
+> landed 2026-05-19 at commit `e7cca673`; the current repo state is
+> the version that was uploaded. `paper/neurips/` stays frozen
+> per CLAUDE.md §"NeurIPS submission is FROZEN." Live `paper/paper.md`
+> may continue to evolve toward the next venue. **`DEVLOG.md` was
+> refreshed 2026-05-20** with a comprehensive entry covering everything
+> from the 2026-05-06 NeurIPS sprint through the arXiv upload (Stage A/B
+> §3.6 integrity fix, anisotropy spine, site rebuild, master→main
+> migration, scalar→number rename, transcendentals via interpolated
+> lookup, implicit-loop work, TS transpiler closeout, substrate-leak
+> audit).
+>
+> No paper-editing pressure right now. Optional next-venue polish lives
+> in `queue.md` (ablation table, polynomial-rationale paragraph,
+> Le Chat's section-granular AI-use breakdown, optional Futamura bib
+> entry).
+>
+> Done earlier and still load-bearing: `ccos` complex-argument cosine;
 > `scalar`→`number` rename (3 gated commits, `number` canonical,
 > `scalar` deprecated alias for the frozen archive); Audit REAL
 > LEAK **#4 reclassified NOT a leak** (Emma — it is a fixed-T
