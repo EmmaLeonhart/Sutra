@@ -12,6 +12,15 @@ stay in sync.
 
 ---
 
+## Context (read first, do not work on)
+
+**`paper/paper.md` is on arXiv as of 2026-05-19/20** (arXiv-fitting
+abstract trim at commit `e7cca673`; current repo state matches the
+upload). See `DEVLOG.md` 2026-05-20 entry. `paper/neurips/` stays
+frozen per CLAUDE.md §"NeurIPS submission is FROZEN." Live `paper.md`
+may continue to evolve toward the next venue; no editing-to-deadline
+pressure right now.
+
 ## Active
 
 ### 1. Drop the 0-d projection on `exp`/`cos`/`sin`  (deferred, needs gated session)
@@ -33,14 +42,42 @@ truth-axis lowering. Documented in `loop_desugar.py` + the
 equality-and-defuzzification, not a desugar bug — surfaces here so
 it does not get lost.
 
-### 3. Pre-arXiv P2 polish  (optional, next-venue)
+### 3. Audit REAL LEAK #3 — promise `await_value` host `if/break`
 
-From `paper/feedback before arXiv/SYNTHESIS.md` ROUND-4 canonical
-plan: ablation table; abstract simplify; polynomial-interpolant-
-rationale paragraph; Le Chat's section-granular AI-use breakdown;
-arXiv submit-metadata comments-field note (submit-time, not a paper
-edit). All optional, all next-venue. Frozen `paper/neurips/`
-untouched.
+`codegen_pytorch.py:~808` `for _ in range(100): if
+self.isPending(p) <= 0.5: break`. The `if … break` is the genuine
+host-Python branch on a predicate (the surrounding fixed-count `for`
+is not a leak, same reason #4 isn't). Emma direction 2026-05-17:
+model awaited value as an **implicit axon INPUT + runtime
+"has it arrived yet" flag axis**, not a poll loop — async/await
+have explicit formal specs (Promises/A+, ECMAScript) the
+implementation must conform to. **How:** reconcile
+`planning/sutra-spec/promises.md` with the implicit-axon-input +
+arrival-flag model, then re-lower `await_value` (delete host
+`if/break`). **Gate:** promise corpus + smoke; behaviour checked
+against the formal async/promise spec, not "it ran." Deliberate,
+gated.
+
+## Next-venue polish (optional, not blocking; no urgency post-arXiv)
+
+From `paper/feedback before arXiv/SYNTHESIS.md` round-4 plan, items
+explicitly marked "optional / next-venue" and **not** done:
+
+- **Ablation table.** Per-primitive contribution to the §3.6 result.
+- **Polynomial-interpolant-rationale paragraph.** Why Lagrange on
+  $\{-1, 0, +1\}$ over softer alternatives — currently distributed
+  across §1.1 and §3 instead of stated once.
+- **Le Chat's section-granular AI-use breakdown.** Tie each AI
+  contribution to a specific §. Heavier than the round-4 additive
+  sentence; the existing §"AI-use statement" covers the
+  moderator-risk surface.
+- **Optional Futamura 1971 bib entry.** Currently named-concept-only
+  alongside JAX/TVM/XLA (no bib entry for any of them) — consistent
+  authorial choice. Adding Futamura would create inconsistency
+  unless JAX/TVM/XLA also get entries; left to Emma's call.
+
+These touch the **live `paper/paper.md` only**, not the frozen
+`paper/neurips/`.
 
 ## Open user decision (destructive / outward — needs explicit yes)
 
@@ -76,5 +113,6 @@ yes. Do not delete without one.
 - Open design questions: `planning/open-questions/`.
 - 2026-05-17 voice-vision (verbatim):
   `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`.
-- Devlog (full history): `DEVLOG.md`.
+- Devlog (full history): `DEVLOG.md` (2026-05-20 entry covers
+  May 6 → arXiv upload).
 - Yantra: `../Yantra/`.
