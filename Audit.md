@@ -258,15 +258,19 @@ decision (and a comment) rather than being silently host:
 - **`atan2` in `rotation_mod`** — still `torch.atan2` (a tensor op,
   but libm-shaped). Its own eigenrotation/lookup decomposition is
   the natural follow-on to the transcendental fix.
-- **Source-level beta reduction for `math.su`/`modulus.su`** — the
-  ideal form is Sutra method *bodies* so the substitution is the
-  source itself. Blocked: the stdlib inliner does not resolve
-  intra-`Math` member calls inside a class-bodied static method
-  body (`NameError: name 'Math' is not defined` at codegen). This
-  is the **top item**: fixing the inliner makes the `.su` files the
-  literal executable beta reduction, which is the whole point of
-  the language's philosophy. Until then the methods are `intrinsic`
-  routing to the (now substrate-pure) `_VSA.*`.
+- **Source-level beta reduction for `math.su`/`modulus.su`** —
+  RESOLVED 2026-05-19. The inliner already handles namespaced
+  `Math.foo(...)` calls AND intra-`Math` sibling calls; the
+  "blocked on inliner" comments were stale. Literate beta-reduction
+  bodies in math.su (pow / sqrt / tan / sinh / cosh / tanh / cexp)
+  ARE the executable source — verified end-to-end:
+  `Math.pow(2,3) ≈ 8.0` via `exp(y*log(x))`. `mod` promoted from
+  intrinsic to literate body `{ return rotation_mod(x, m); }`
+  (verified `Math.mod(-0.1, 1) = 0.9`). The remaining intrinsic
+  leaves — realExp / imaginaryExp / exp / log / cos / sin / ccos /
+  rotation_mod / fmod / sawtooth_mod — stay intrinsic because each
+  is a single substrate primitive (lookup or eigenrotation), not a
+  substitution onto siblings.
 - **`Math.round` ties-to-even vs JS half-up** — semantic, not a
   purity issue; logged for completeness.
 - **Wire `experiments/substrate_leak_sweep.py` into the test
