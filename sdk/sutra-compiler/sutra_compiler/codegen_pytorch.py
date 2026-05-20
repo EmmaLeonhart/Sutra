@@ -2061,6 +2061,124 @@ class PyTorchCodegen(Codegen):
         self._emit("return out")
         self._indent -= 1
         self._emit()
+        # ---- Ordered comparisons (js_lt / js_gt / js_le / js_ge) ----
+        # ECMAScript Abstract Relational Comparison: if BOTH operands
+        # are strings → lexicographic by codepoint; otherwise coerce
+        # to numbers and compare numerically. NaN on either side makes
+        # all four operators return false. Per the JS-interop carve-out
+        # (CLAUDE.md "Vibe-coded projects" §"intentional compatibility
+        # code"): host-scalar coercion in these methods is the
+        # documented compat boundary, parallel to how js_strict_eq /
+        # js_loose_eq already cross host for the comparison itself.
+        self._emit("def _js_str_cmp(self, av, bv):")
+        self._indent += 1
+        self._emit('"""Lexicographic compare of two String values. Returns')
+        self._emit('-1, 0, +1 (memcmp-style). First differing codepoint')
+        self._emit('decides; shorter-with-matching-prefix is less. Host')
+        self._emit('int arithmetic over codepoint axes (JS-interop')
+        self._emit('compat boundary)."""')
+        self._emit("ax = self._str_axes()")
+        self._emit("a_cps = av.index_select(0, ax)")
+        self._emit("b_cps = bv.index_select(0, ax)")
+        self._emit("la = int(self.string_length(av).item())")
+        self._emit("lb = int(self.string_length(bv).item())")
+        self._emit("n = min(la, lb)")
+        self._emit("for i in range(n):")
+        self._indent += 1
+        self._emit("ai = int(a_cps[i].item())")
+        self._emit("bi = int(b_cps[i].item())")
+        self._emit("if ai != bi:")
+        self._indent += 1
+        self._emit("return -1 if ai < bi else 1")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("if la == lb:")
+        self._indent += 1
+        self._emit("return 0")
+        self._indent -= 1
+        self._emit("return -1 if la < lb else 1")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _js_relational(self, a, b, op):")
+        self._indent += 1
+        self._emit('"""ECMAScript Abstract Relational Comparison core. `op`')
+        self._emit('is one of "<", ">", "<=", ">=". Both-string → lex compare;')
+        self._emit('otherwise numeric on AXIS_REAL. NaN on either side → false')
+        self._emit('(returns make_truth(-1.0))."""')
+        self._emit("av = self._as_any_vector(a)")
+        self._emit("bv = self._as_any_vector(b)")
+        self._emit("if self.is_string(av) and self.is_string(bv):")
+        self._indent += 1
+        self._emit("c = self._js_str_cmp(av, bv)")
+        self._emit('if op == "<":')
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if c < 0 else -1.0)")
+        self._indent -= 1
+        self._emit('if op == ">":')
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if c > 0 else -1.0)")
+        self._indent -= 1
+        self._emit('if op == "<=":')
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if c <= 0 else -1.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(1.0 if c >= 0 else -1.0)")
+        self._indent -= 1
+        self._emit("# Numeric path: coerce to real-axis scalars and compare.")
+        self._emit("# NaN on either side → false for all four operators")
+        self._emit("# (ECMAScript IsLessThan returns undefined → false).")
+        self._emit("ra = self.real(av)")
+        self._emit("rb = self.real(bv)")
+        self._emit("if ra != ra or rb != rb:")
+        self._indent += 1
+        self._emit("return self.make_truth(-1.0)")
+        self._indent -= 1
+        self._emit('if op == "<":')
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if ra < rb else -1.0)")
+        self._indent -= 1
+        self._emit('if op == ">":')
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if ra > rb else -1.0)")
+        self._indent -= 1
+        self._emit('if op == "<=":')
+        self._indent += 1
+        self._emit("return self.make_truth(1.0 if ra <= rb else -1.0)")
+        self._indent -= 1
+        self._emit("return self.make_truth(1.0 if ra >= rb else -1.0)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def js_lt(self, a, b):")
+        self._indent += 1
+        self._emit('"""JavaScriptObject.js_lt(a, b) — JS `<` with type')
+        self._emit('coercion. Both-string → lex compare; otherwise numeric')
+        self._emit('compare on AXIS_REAL. NaN on either side → false."""')
+        self._emit('return self._js_relational(a, b, "<")')
+        self._indent -= 1
+        self._emit()
+        self._emit("def js_gt(self, a, b):")
+        self._indent += 1
+        self._emit('"""JavaScriptObject.js_gt(a, b) — JS `>` with type')
+        self._emit('coercion (symmetric to js_lt with operands swapped)."""')
+        self._emit('return self._js_relational(a, b, ">")')
+        self._indent -= 1
+        self._emit()
+        self._emit("def js_le(self, a, b):")
+        self._indent += 1
+        self._emit('"""JavaScriptObject.js_le(a, b) — JS `<=`. NOT defined as')
+        self._emit('!(a > b) because of NaN: under JS semantics both `a > b`')
+        self._emit('and `a <= b` are false when either side is NaN, so the')
+        self._emit('negation identity fails. Explicit comparison instead."""')
+        self._emit('return self._js_relational(a, b, "<=")')
+        self._indent -= 1
+        self._emit()
+        self._emit("def js_ge(self, a, b):")
+        self._indent += 1
+        self._emit('"""JavaScriptObject.js_ge(a, b) — JS `>=`. Same NaN-safety')
+        self._emit('reasoning as js_le."""')
+        self._emit('return self._js_relational(a, b, ">=")')
+        self._indent -= 1
+        self._emit()
         self._emit("def js_truthy(self, a):")
         self._indent += 1
         self._emit('"""JavaScriptObject.js_truthy(a) — JS truthy/falsy table.')
@@ -2298,7 +2416,17 @@ class PyTorchCodegen(Codegen):
 
         self._emit("def _as_any_vector(self, x):")
         self._indent += 1
-        self._emit('"""Coerce any runtime value to a d-dim tensor for comparison."""')
+        self._emit('"""Coerce any runtime value to a d-dim tensor for comparison.')
+        self._emit('')
+        self._emit('Python str → make_string (NOT embed): all callers')
+        self._emit('(js_add, js_strict_eq, js_loose_eq, js_typeof, js_truthy,')
+        self._emit('js_lt/gt/le/ge, eq_synthetic, neq_synthetic) inspect the')
+        self._emit('AXIS_STRING_FLAG via is_string() to dispatch — embedding')
+        self._emit('the string would clear the flag and break all of them.')
+        self._emit('Fixed 2026-05-20 when the JSO ordered-comparison work')
+        self._emit('exposed the pre-existing js_add/loose_eq/typeof/truthy')
+        self._emit('latent bug. JS-interop carve-out (CLAUDE.md "Vibe-coded')
+        self._emit('projects" §"intentional compatibility code")."""')
         self._emit("if isinstance(x, _torch.Tensor):")
         self._indent += 1
         self._emit("return x")
@@ -2313,7 +2441,7 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit("if isinstance(x, str):")
         self._indent += 1
-        self._emit("return self.embed(x)")
+        self._emit("return self.make_string(x)")
         self._indent -= 1
         self._emit("raise TypeError(f'cannot coerce {type(x).__name__} to a tensor for comparison')")
         self._indent -= 1
