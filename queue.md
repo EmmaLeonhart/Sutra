@@ -21,9 +21,31 @@ frozen per CLAUDE.md §"NeurIPS submission is FROZEN." Live `paper.md`
 may continue to evolve toward the next venue; no editing-to-deadline
 pressure right now.
 
+**Promise/await is fit-to-spec (verified 2026-05-20).** Audit REAL
+LEAK #3 was already fixed 2026-05-17 — `await_value(p)` returns
+`self.value(p)`, the exact algebraic reduction of the spec-2
+`while_loop` lowering for the no-external-producer runtime, per
+`planning/sutra-spec/promises.md` Stage 2 + `axon-io.md` (input slot
+starts as zero-vector; `arrived = norm(slot) > eps`; halt channels
+set by `resolve`/`reject` at construction in the current synchronous
+runtime). `tests/test_await_substrate_pure.py` 4/4 green. The
+Yantra-side extension (real `while_loop` gating on
+`norm(slot) > eps` once an external axon producer wires in) is the
+future hook, deliberately NOT mocked as a no-op loop. An hourly
+local cron and a daily remote audit guard this against regression —
+see §"Watchdogs" below.
+
 ## Active
 
-### 1. Drop the 0-d projection on `exp`/`cos`/`sin`  (deferred, needs gated session)
+### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
+
+`==`, `!=`, `!` bounds inherit the pre-existing FUZZY numeric-equality
+truth-axis lowering. Documented in `loop_desugar.py` + the
+2026-05-17 finding. Tracked under
+equality-and-defuzzification, not a desugar bug — surfaces here so
+it does not get lost.
+
+### 2. Drop the 0-d projection on `exp`/`cos`/`sin`  (deferred to end of Active per Emma 2026-05-20)
 
 User-authorized `scalar` → `number` rename shipped 2026-05-17
 (`8a5d12a7`, `b34a275b`, `f21fdffa`). The remaining, separate,
@@ -32,31 +54,21 @@ return the full number-vector instead of a 0-d tensor. Changes
 observable return shape; could regress paper-cited `cos`/`sin`/`exp`
 (NeurIPS-frozen paper's examples must keep producing the same
 outputs — CLAUDE.md §"Paper-code durability"). Needs its own
-deliberate, test-gated session, not bundled with adjacent work.
+deliberate, test-gated session, not bundled with adjacent work. Moved
+to the end of Active 2026-05-20 per Emma.
 
-### 2. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
+## Watchdogs (verification, not new work)
 
-`==`, `!=`, `!` bounds inherit the pre-existing FUZZY numeric-equality
-truth-axis lowering. Documented in `loop_desugar.py` + the
-2026-05-17 finding. Tracked under
-equality-and-defuzzification, not a desugar bug — surfaces here so
-it does not get lost.
-
-### 3. Audit REAL LEAK #3 — promise `await_value` host `if/break`
-
-`codegen_pytorch.py:~808` `for _ in range(100): if
-self.isPending(p) <= 0.5: break`. The `if … break` is the genuine
-host-Python branch on a predicate (the surrounding fixed-count `for`
-is not a leak, same reason #4 isn't). Emma direction 2026-05-17:
-model awaited value as an **implicit axon INPUT + runtime
-"has it arrived yet" flag axis**, not a poll loop — async/await
-have explicit formal specs (Promises/A+, ECMAScript) the
-implementation must conform to. **How:** reconcile
-`planning/sutra-spec/promises.md` with the implicit-axon-input +
-arrival-flag model, then re-lower `await_value` (delete host
-`if/break`). **Gate:** promise corpus + smoke; behaviour checked
-against the formal async/promise spec, not "it ran." Deliberate,
-gated.
+- **Hourly local cron** (`CronCreate`, durable so it survives
+  session restart): every hour, runs
+  `tests/test_await_substrate_pure.py` + greps `codegen_pytorch.py`
+  for the leak signatures `for _ in range(100)` and `if self.isPending`
+  inside `await_value`. If anything regresses, reopens an entry here
+  + commits + pushes.
+- **Daily remote routine** (claude.ai cloud, 24h): full spec-audit
+  pass — walks `planning/sutra-spec/*.md` against the runtime, reports
+  drift, commits findings. Set up via `RemoteTrigger`; the routine
+  survives session shutdown because it runs in the cloud.
 
 ## Next-venue polish (optional, not blocking; no urgency post-arXiv)
 
@@ -81,7 +93,7 @@ These touch the **live `paper/paper.md` only**, not the frozen
 
 ## Open user decision (destructive / outward — needs explicit yes)
 
-### 4. Delete the now-unused `master` branch?
+### 3. Delete the now-unused `master` branch?
 
 CI `master`→`main` migration is done + pushed (`5ea853ef`,
 `b318791e`). The local + remote `master` (`origin/master` @
@@ -107,7 +119,7 @@ yes. Do not delete without one.
 
 ## Pointers
 
-- Substrate-leak catalogue: `Audit.md` (work REAL LEAK first).
+- Substrate-leak catalogue: `Audit.md`.
 - Longer-horizon agenda: `todo.md`.
 - Findings (dated): `planning/findings/`.
 - Open design questions: `planning/open-questions/`.
