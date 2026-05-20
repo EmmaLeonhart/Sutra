@@ -98,5 +98,5 @@ will need to answer, but not as source material to copy.
 - Long-form design dossiers: `planning/open-questions/`.
 - Things tried, with results: `planning/findings/`.
 - Things parked but not closed: `planning/exploratory/`.
-- Hardwired assumptions in the demo path: `examples/todo.md`.
+- Longer-horizon agenda (merged from the old `examples/todo.md` 2026-05-15): root `todo.md`.
 - Deprecated spec (read-only reference): `planning/sutra-spec-deprecated/`.

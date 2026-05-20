@@ -30,12 +30,12 @@
 // decompositions — they are native substrate (GPU) rounding instructions,
 // one tensor op each, so they sit at the primitive layer beside +, -, *.
 //
-// All are `intrinsic` (route to substrate-pure `_VSA.*`). The ideal form
-// — Sutra bodies like `static method scalar mod(...) {
-// return Math.rotation_mod(x, m); }` so the substitution is the source
-// itself — is blocked on the same stdlib-inliner limitation documented in
-// math.su (intra-`Math` member calls inside a class-bodied static method
-// body don't resolve yet). Tracked at the top of the substrate-leak audit.
+// Most leaves are `intrinsic` (route to substrate-pure `_VSA.*`). `mod` is
+// the canonical literate alias: its body `{ return rotation_mod(x, m); }`
+// IS the source-level beta reduction — the inliner expands Math.mod(x, m)
+// to rotation_mod(x, m) (verified end-to-end Math.mod(-0.1, 1) = 0.9).
+// rotation_mod/sawtooth_mod/fmod stay intrinsic because each is a single
+// chain of substrate ops at the leaf, not a substitution onto siblings.
 //
 // These extend `class Math` so JS-shaped call sites (`Math.floor(x)`,
 // `Math.abs(x)`) merge into one namespace via the stdlib loader. `%`
@@ -77,11 +77,12 @@ class Math extends vector {
     //   here.
     static intrinsic method number fmod(number x, number m);
 
-    // mod — the canonical mathematical floor-modulus. _VSA.mod is a
-    //   direct alias of _VSA.rotation_mod (`mod = rotation_mod`): the
-    //   substitution is the identity. Non-negative for m > 0
+    // mod — the canonical mathematical floor-modulus. The body IS the
+    //   substitution: `mod = rotation_mod`. The inliner expands
+    //   Math.mod(x, m) → rotation_mod(x, m), which routes to the
+    //   substrate-pure eigenrotation leaf. Non-negative for m > 0
     //   (`Math.mod(-0.1, 1) == 0.9`). This is what mathematical code
     //   should reach for; `%` (fmod) keeps the dividend's sign for JS
     //   parity.
-    static intrinsic method number mod(number x, number m);
+    static method number mod(number x, number m) { return rotation_mod(x, m); }
 }
