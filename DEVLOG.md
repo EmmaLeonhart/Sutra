@@ -40,11 +40,9 @@ Removed:
   `hello_world_emitted.py`, `inspect_dispatch.py` — a self-contained
   CUDA-experiment cluster with no external dependents.
 
-Kept deliberately: `planning/exploratory/promises-design-conversation.md`
-(authoritative design-of-record by its own header), all of
-`planning/{findings,open-questions,sutra-spec}/` (canonical agent
-surface), and `paper/reviews/` (auto-committed clawRxiv pipeline
-output).
+Kept deliberately: all of `planning/{findings,open-questions,sutra-spec}/`
+(canonical agent surface) and `paper/reviews/` (auto-committed clawRxiv
+pipeline output).
 
 Second pass: removed `scripts/extract_chat.py` (the Claude.ai-HTML→md
 extractor that produced the chat files above; orphaned once they were
@@ -54,6 +52,18 @@ outline superseded by the on-arXiv paper). Relocated the root
 `sdk/intellij-sutra/editor.bat` (dropping the `!` root-sort prefix,
 fixing its `%~dp0`-relative path, and updating the `README.md` /
 `todo.md` references). `!runClaude.bat` was kept at Emma's call.
+
+Third pass (arXiv-release prep): removed the clawRxiv retraction feature
+(`paper/RETRACT_SKILL.md`, `scripts/withdraw_papers.py`,
+`.github/workflows/withdraw-papers.yml` — one feature, removed together)
+and `planning/exploratory/promises-design-conversation.md` (the promises
+design is implemented and lives in `planning/sutra-spec/promises.md`, so
+the raw transcript is no longer needed). Refreshed `README.md`: fixed the
+smoke-test count (13→10, the real `ok0..ok9` set), dropped "formerly was"
+history (the scrapped MkDocs site, the retired C-style loop surface, dated
+backend notes), made the NeurIPS mention low-key, corrected the CI table to
+the actual workflow set, and removed the stale `chats/` row (the dir isn't
+tracked).
 
 ## 2026-05-20: paper uploaded to arXiv
 
