@@ -672,3 +672,150 @@ def simplify_ast_num(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
         return node
     out = _try_lower_to_ast(extracted, ctx, node.span)
     return out if out is not None else node
+
+
+# ---------------------------------------------------------------------
+# Common-subexpression elimination (CSE) post-pass
+# ---------------------------------------------------------------------
+#
+# After saturation + extraction, the resulting expression may print the
+# same subterm more than once. Egglog's tree extractor visits each
+# occurrence independently, so a subterm that the e-graph collapsed to a
+# single e-class still appears N times in the str() form. The codegen
+# would then emit N parallel substrate calls. The three helpers below
+# detect and collapse those repeats into let-bindings.
+#
+# These operate on the str() form of an extracted expression rather
+# than on an AST. That keeps them decoupled from the AST lower step
+# (`_try_lower_to_ast` above): any future codegen that wants to
+# materialize let-bindings can call `cse_let_form` on the extracted
+# str and decide how to emit the bindings.
+#
+# The cost model `cse_aware_cost_model` is a deliberate rename of
+# `matrix_chain_cost_model` — egglog's tree extraction already charges
+# per-occurrence, so a CSE-eligible repeated subterm gets a cost
+# proportional to how many times it appears. The pairing is: pick a
+# cost model that doesn't try to deduplicate inside the extractor, then
+# let `cse_let_form` deduplicate after extraction. JuliaSymbolics
+# reports 3.2x speedup + 5x faster codegen with the same split.
+
+import re
+
+
+def cse_aware_cost_model(egraph, expr, children_costs):
+    """Cost model paired with `cse_let_form`.
+
+    Identical numerics to `matrix_chain_cost_model` — apply/bind/unbind
+    cost 100, everything else 1, summed over children. The rename
+    advertises the intent: extraction is tree-based (per-occurrence
+    cost), and `cse_let_form` is the second step that collapses repeats
+    into shared bindings. If you change one weight here you almost
+    certainly want to change the same weight in
+    `matrix_chain_cost_model`; keeping them in lockstep is a feature.
+    """
+    return matrix_chain_cost_model(egraph, expr, children_costs)
+
+
+_IDENT_PAREN_RE = re.compile(r'[A-Za-z_][A-Za-z0-9_.]*\(')
+
+
+def _enumerate_call_subexprs(s: str) -> list[str]:
+    """Return every `<ident>(<balanced parens>)` substring of `s`, in
+    document order. Nested calls produce multiple entries: both the
+    outer call and each inner call appear once per syntactic occurrence.
+
+    Used by `find_repeated_subexprs` to count how often each
+    subexpression appears in an extracted egglog form. Egglog's
+    stringification of `bundle(bind(R, v), bind(R, v))` puts each
+    `bind(...)` at a distinct character offset, so this enumeration
+    yields the outer `bundle(...)` once and each `bind(...)` once.
+    """
+    out: list[str] = []
+    for m in _IDENT_PAREN_RE.finditer(s):
+        start = m.start()
+        depth = 0
+        for i in range(m.end() - 1, len(s)):
+            c = s[i]
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+                if depth == 0:
+                    out.append(s[start:i + 1])
+                    break
+    return out
+
+
+def find_repeated_subexprs(extracted: object,
+                            min_size: int = 15) -> list[tuple[str, int]]:
+    """Find balanced-paren call subexpressions that appear >= 2 times.
+
+    `extracted` is anything whose `str()` is the textual form of an
+    extracted egglog expression. Returns `[(substring, count), ...]`,
+    sorted longest-first (ties broken alphabetically for determinism).
+    Subexpressions shorter than `min_size` characters are filtered out —
+    the default 15 skips trivial things like `Vec.zero()` or
+    `Num.lit(0.0)` that aren't worth a let-binding.
+
+    Counting is purely textual: two occurrences are "the same" iff they
+    are the same string. That's the right semantics for egglog output
+    because two e-graph-equal subterms extract to the same stringified
+    form. It is NOT a structural-equality check across whitespace or
+    name aliasing — egglog's stringifier is deterministic enough to
+    make textual equality adequate in practice.
+    """
+    s = str(extracted)
+    subs = _enumerate_call_subexprs(s)
+    counts: dict[str, int] = {}
+    for sub in subs:
+        if len(sub) < min_size:
+            continue
+        counts[sub] = counts.get(sub, 0) + 1
+    repeated = [(sub, cnt) for sub, cnt in counts.items() if cnt >= 2]
+    repeated.sort(key=lambda pair: (-len(pair[0]), pair[0]))
+    return repeated
+
+
+def cse_let_form(extracted: object, min_size: int = 15,
+                  prefix: str = "_cse") -> tuple[list[tuple[str, str]], str]:
+    """Pull repeated subexpressions out as let-bindings, longest-first.
+
+    Returns `(bindings, body)`:
+      * `bindings = [(temp_name, sub_str), ...]` in the order they
+        should be evaluated (outer-first, so a later binding's
+        sub_str does not contain an unresolved earlier temp name).
+      * `body` is the extracted str with each binding's sub_str
+        replaced by its temp_name.
+
+    The algorithm is greedy on length:
+      1. Find all repeated subexpressions of the current body.
+      2. Pick the longest. Assign it the next temp name (`_cse0`,
+         `_cse1`, ...). Replace every textual occurrence in the body
+         with that name. Append `(name, sub_str)` to bindings.
+      3. Loop until no repeated subexpression remains.
+
+    The longest-first ordering means an outer repeated form like
+    `bind(Mat.named("R"), Vec.named("v"))` is extracted first, and the
+    inner `Mat.named("R")` / `Vec.named("v")` repeats inside it get
+    absorbed into a single binding — they no longer textually appear
+    in the body, so subsequent iterations don't double-bind them.
+
+    Codegen integration is deferred. A consumer that wants Python
+    let-bindings calls this on the extracted str and emits
+    `temp_name = sub_str` lines (with the sub_str translated back to
+    Python source) followed by the body. The two-step split keeps
+    this primitive testable without an AST round-trip.
+    """
+    body = str(extracted)
+    bindings: list[tuple[str, str]] = []
+    counter = 0
+    while True:
+        repeated = find_repeated_subexprs(body, min_size=min_size)
+        if not repeated:
+            break
+        sub, _count = repeated[0]
+        name = f"{prefix}{counter}"
+        counter += 1
+        bindings.append((name, sub))
+        body = body.replace(sub, name)
+    return bindings, body
