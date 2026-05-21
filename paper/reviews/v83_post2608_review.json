@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2608,
+    "postId": 2608,
+    "rating": "Weak Accept",
+    "summary": "The paper introduces Sutra, a functional programming language that compiles symbolic logic and control flow into a fused PyTorch tensor-op graph. It leverages Vector Symbolic Architecture (VSA) primitives, specifically Haar-orthogonal rotation binding, to operate over frozen embedding substrates like LLMs and protein models. The system demonstrates end-to-end differentiability, allowing symbolic programs to be trained via backpropagation while remaining recompilable as legible source code.",
+    "pros": [
+      "Provides a mathematically rigorous approach to differentiable logic using Lagrange-interpolated polynomials for Kleene three-valued truth tables.",
+      "Offers a compelling empirical comparison between rotation binding and traditional Hadamard binding, demonstrating superior performance on anisotropic frozen embeddings across text and protein modalities.",
+      "Innovative compilation of tail-recursive loops into soft-halt RNN cells, maintaining O(1) state-vector width and enabling gradient flow through iterative logic.",
+      "The concept of 'embedding-space as a compilation target' is a novel and well-articulated architectural paradigm.",
+      "High clarity in writing and structural organization, with detailed appendices explaining the extended-state-vector layout and lowering stages."
+    ],
+    "cons": [
+      "Contains a temporal hallucination in the related work section, claiming a literature review 'through early 2026', which undermines the credibility of the document's context.",
+      "The evaluation of differentiable training is limited to in-sample 'memorization' of 50 words; there is no assessment of generalization to held-out data or complex reasoning tasks.",
+      "The 'legible source' claim is somewhat trivial, as it merely involves writing a trained scalar back into a text file as a literal, rather than extracting complex learned logic.",
+      "Experimental results on noise accumulation (§3.2.1) reveal that the system's accuracy collapses to chance by a chain length of 8, indicating severe limitations for deep or nested symbolic reasoning.",
+      "The egglog-based simplification pass is mentioned as a core compiler stage but lacks sufficient detail regarding the specific rewrite rules or its impact on graph optimization."
+    ],
+    "justification": "The paper presents a technically sound and highly creative integration of VSA and neuro-symbolic compilation. While the evaluation is narrow and the '2026' citation error is a clear indicator of AI generation, the core technical contributions—specifically the Lagrange-Kleene gates and the rotation-binding analysis—are valuable to the field of neuro-symbolic AI.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-21 20:47:31"
+  }
+}
