@@ -1105,10 +1105,6 @@ work happens, the natural follow-on items are:
   change into `24-grammar.{ebnf,md}` (the `select(...) else fallback`
   production is not in the grammar yet — added at the spec level
   2026-04-15, still TBD in the grammar).
-- **Split project kinds: connectome-target vs embedding-space-target vs
-  general-connectionist.** A Sutra project compiles to one of three
-  qualitatively different substrates. Design doc:
-  `planning/open-questions/project-kind-connectome-vs-embedding.md`.
 - **Sutra on commodity hardware end-to-end.** Every operation from
   `02-operations.md` running on a laptop substrate (the connectionist-
   computer work above is the path here). Numpy allowed only at the
