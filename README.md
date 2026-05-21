@@ -45,7 +45,7 @@ Loop coverage moved from these dropped demos to the declared-function form (`do_
 | Directory | What it is |
 |---|---|
 | [`sdk/sutra-compiler/`](sdk/sutra-compiler/) | The reference compiler. Hand-written lexer, parser, simplifier, validator, codegen. CLI entrypoint: `python -m sutra_compiler`. |
-| [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin. Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or run [`!editor.bat`](editor.bat) from the repo root. |
+| [`sdk/intellij-sutra/`](sdk/intellij-sutra/) | IntelliJ Platform plugin. Lexer, syntax highlighting, brace matching, completion, live templates, settings UI, external annotator wired to `sutrac --json`. Build with `./gradlew runIde` or run [`editor.bat`](sdk/intellij-sutra/editor.bat). |
 | [`sdk/vscode-sutra/`](sdk/vscode-sutra/) | VS Code extension — TextMate grammar plus snippets. The IntelliJ plugin is the reference IDE; this is the lighter option. |
 | [`planning/sutra-spec/`](planning/sutra-spec/) | The language specification: vision, operations, binding, control flow, equality and defuzzification, types, program structure, concurrency, open questions. |
 | [`planning/findings/`](planning/findings/) | Dated experimental findings — what was measured, with raw numbers and what they mean. Includes negative results. |
@@ -79,7 +79,7 @@ To inspect the generated Python for a single example:
 python -m sutra_compiler --emit examples/hello_world.su
 ```
 
-To open the repo in an IDE with syntax support, run [`!editor.bat`](editor.bat) (Windows) — a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled.
+To open the repo in an IDE with syntax support, run [`sdk/intellij-sutra/editor.bat`](sdk/intellij-sutra/editor.bat) (Windows) — a sandbox IntelliJ IDEA Community boots with the Sutra plugin preinstalled.
 
 ## CI
 

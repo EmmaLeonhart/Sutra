@@ -1,9 +1,12 @@
 @echo off
 REM =====================================================================
-REM  !editor.bat  —  Launch the Sutra IntelliJ plugin in a sandbox IDE.
+REM  editor.bat  —  Launch the Sutra IntelliJ plugin in a sandbox IDE.
+REM
+REM  Lives in sdk\intellij-sutra\ (the plugin dir) and runs from there;
+REM  double-click it or invoke it from anywhere.
 REM
 REM  The Sutra "editor" is not a standalone IDE — it's an IntelliJ
-REM  Platform plugin (sdk\intellij-sutra\). "Opening" it means launching
+REM  Platform plugin (this directory). "Opening" it means launching
 REM  IntelliJ IDEA Community in a sandbox with the Sutra plugin
 REM  preinstalled, which is exactly what the gradle task `runIde` does.
 REM
@@ -31,7 +34,9 @@ REM =====================================================================
 
 setlocal
 
-set "PLUGIN_DIR=%~dp0sdk\intellij-sutra"
+REM This script now lives inside the plugin dir, so %~dp0 *is* PLUGIN_DIR.
+set "PLUGIN_DIR=%~dp0"
+if "%PLUGIN_DIR:~-1%"=="\" set "PLUGIN_DIR=%PLUGIN_DIR:~0,-1%"
 
 if not exist "%PLUGIN_DIR%\gradlew.bat" (
     echo.
