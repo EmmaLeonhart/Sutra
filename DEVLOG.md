@@ -15,6 +15,43 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-21: daily audit — 1 resolved-elsewhere open-question found
+
+Substrate-leak + promise/await + stale-open-question audit.
+Environment note: this container had no torch/numpy/ollama
+preinstalled — installed torch (CPU) + numpy to run the audit;
+ollama (the embedding runtime) is **not** available, so the
+promise/await **end-to-end semantic** test could not run. The
+substrate-purity guard it protects did run and passed (see below),
+so this is not a false full-pass claim — only the live-embedding
+semantics leg is environment-skipped.
+
+- **Substrate-leak sweep:** clean — 67 `.su` compiled, 0 operator
+  leaks (18 intentional `CodegenNotSupported` skips: if/else, casts,
+  method/operator decls, snap-on-numpy, etc.).
+- **Codegen host-scalar grep:** every leak signature maps to a
+  catalogued category (compile-time constants, monitoring accessors,
+  literal-lift/`_st`/`_cnum` entry boundaries, the `string_to_python`
+  decode boundary, JS-interop coercion carve-outs, the argmax commit
+  edge). No new leak. Audit.md REAL LEAK #2 (`defuzzify_trit`), #3
+  (`await_value` = `return self.value(p)`), #7 (`select`
+  `_torch.where` eps-guard) verified intact; #4 still NOT-A-LEAK.
+- **Promise/await fit-to-spec:** substrate-purity structural guard
+  PASS — codegen lint clean + `test_await_substrate_pure`
+  leak-signature tests 2/2 green both backends; `await_value`
+  emits only `return self.value(p)`. No regression. (The 2 e2e
+  semantic tests are env-skipped per the ollama note above, not
+  failed-on-merits.)
+- **Open-questions:** 19 dossiers + spec index checked. One
+  resolved-elsewhere drift found:
+  `planning/open-questions/cosine-as-its-own-transcendental.md` —
+  its body still poses substrate-pure complex-argument `cos(z)` as
+  open while its own banner + `ccos` (`codegen_pytorch.py:1384`,
+  verified substrate-pure) + the 2026-05-17 finding resolve it.
+  README prose/tally still count it GENUINELY OPEN. Queued (top of
+  queue.md Active) to reduce the doc to a pointer (keeping the
+  genuinely-open `csin` residue) and fix the README.
+
 ## 2026-05-20: repo cleanup — retire scratch chats and notes
 
 With the paper on arXiv, trimmed dev-process residue out of the
