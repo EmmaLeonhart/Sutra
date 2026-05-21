@@ -258,13 +258,15 @@ PAPER_DOWNLOADS = """
 """
 
 
-def shell(title: str, inner: str, mermaid: bool = False, math: bool = False) -> str:
+def shell(title: str, inner: str, mermaid: bool = False, math: bool = False,
+          noindex: bool = False) -> str:
     extra = (("\n" + MERMAID_JS) if mermaid else "") + (("\n" + MATHJAX_JS) if math else "")
+    robots = '\n  <meta name="robots" content="noindex, nofollow">' if noindex else ""
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">{robots}
   <meta name="description" content="Sutra — a geometrically compiled language where logical operations over vector spaces resolve at compile time into matrix multiplications.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{title}">
@@ -524,9 +526,9 @@ def main() -> int:
     titles: dict[str, str] = {}
 
     def write(rel_url: str, out_path: Path, title: str, inner: str,
-              mer: bool = False, mth: bool = False):
+              mer: bool = False, mth: bool = False, noindex: bool = False):
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(shell(title, inner, mer, mth), encoding="utf-8")
+        out_path.write_text(shell(title, inner, mer, mth, noindex), encoding="utf-8")
         print(f"wrote {out_path.relative_to(out)}  ->  {rel_url}")
 
     home_md = None
@@ -560,7 +562,8 @@ def main() -> int:
         else:
             out_path = out / slug / "index.html"
             url = f"/{slug}/"
-        write(url, out_path, f"{heading} — Sutra", inner, mer, mth)
+        write(url, out_path, f"{heading} — Sutra", inner, mer, mth,
+              noindex=(slug == "arxiv"))
 
     # The paper, readable on-site, from paper/paper.md
     paper_src = repo / "paper" / "paper.md"
@@ -624,6 +627,19 @@ def main() -> int:
     for name in ("identity.css", "CNAME"):
         shutil.copyfile(web / name, out / name)
         print(f"copied {name}")
+
+    # robots.txt keeps the arXiv source bundle out of search results.
+    # The bundle is a binary (.tar.gz) so it can't carry a noindex meta
+    # tag; robots.txt Disallow is the lever. The /arxiv/ page itself is
+    # de-indexed via a `noindex, nofollow` meta tag (emitted by shell()),
+    # NOT blocked here — crawlers must be able to fetch the page to read
+    # that tag. /arxiv/ is a direct-URL-only utility page for grabbing
+    # the upload bundle when a correction needs re-uploading.
+    (out / "robots.txt").write_text(
+        "User-agent: *\nDisallow: /sutra-arxiv-source.tar.gz\n",
+        encoding="utf-8",
+    )
+    print("wrote robots.txt")
     return 0
 
 
