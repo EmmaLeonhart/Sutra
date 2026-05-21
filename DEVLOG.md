@@ -46,6 +46,15 @@ Kept deliberately: `planning/exploratory/promises-design-conversation.md`
 surface), and `paper/reviews/` (auto-committed clawRxiv pipeline
 output).
 
+Second pass: removed `scripts/extract_chat.py` (the Claude.ai-HTML→md
+extractor that produced the chat files above; orphaned once they were
+gone) and `planning/exploratory/sutra-paper-draft.md` (a 2026-04-28
+outline superseded by the on-arXiv paper). Relocated the root
+`!editor.bat` IntelliJ-plugin launcher to
+`sdk/intellij-sutra/editor.bat` (dropping the `!` root-sort prefix,
+fixing its `%~dp0`-relative path, and updating the `README.md` /
+`todo.md` references). `!runClaude.bat` was kept at Emma's call.
+
 ## 2026-05-20: paper uploaded to arXiv
 
 **The version of `paper/paper.md` currently in the repo is the version that

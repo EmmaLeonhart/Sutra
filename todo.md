@@ -1043,7 +1043,7 @@ work happens, the natural follow-on items are:
 
 ## [This year] Tooling
 
-- [ ] Diagnose why `!editor.bat` fails (likely JAVA_HOME or Gradle daemon
+- [ ] Diagnose why `sdk/intellij-sutra/editor.bat` fails (likely JAVA_HOME or Gradle daemon
   issue). Get `sdk/intellij-sutra` `runIde` task working, verify `.su`
   syntax highlighting and completion in the sandbox IDE.
 - [ ] Build `sutra_ffi.dll` so `tests/test_sutradb_embedded.py` stops
