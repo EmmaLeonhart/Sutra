@@ -22,12 +22,10 @@
                 and surfaces diagnostics in the editor and Problems panel</li>
         </ul>
         <p>
-            The design target is much bigger than this — see
-            <code>planning/sutra-spec/20-ide-architecture.md</code> in the
-            Sutra repository for the full IDE vision (embedding-space visualizer,
-            fly-brain visualizer, runtime MCP server hosting, agent-first
-            authoring, etc.). The scaffold is the foundation those features
-            build on.
+            The design target is much bigger than this — the full IDE vision
+            includes an embedding-space visualizer, runtime MCP server hosting,
+            and agent-first authoring. The scaffold is the foundation those
+            features build on.
         </p>
     ]]></description>
 
@@ -112,22 +110,14 @@
             displayName="Sutra"
             instance="org.sutra.intellij.SutraSettingsConfigurable"/>
 
-        <!-- Visualizer tool windows. Both live on the right side by default,
-             each loading a JCEF browser that renders a pure Canvas 2D scene
-             from a bundled HTML resource. See planning/sutra-spec/20-ide-architecture.md
-             and planning/fly-brain-visualizer.md for the design rationale
-             and delivery tiers. -->
+        <!-- Embedding-space visualizer tool window. Lives on the right side
+             by default, loading a JCEF browser that renders a pure Canvas 2D
+             scene from a bundled HTML resource. -->
         <toolWindow
             id="Sutra Embedding Space"
             anchor="right"
             icon="AllIcons.Toolwindows.ToolWindowStructure"
             factoryClass="org.sutra.intellij.viz.SutraEmbeddingToolWindowFactory"/>
-        <!-- The Sutra Fly Brain tool window was retired 2026-05-10
-             along with the rest of the fly-brain backend (retired
-             2026-04-26 at codegen-level). The kotlin source under
-             viz/SutraFlyBrainToolWindowFactory.kt and the fly-brain
-             HTML resource are kept for historical reference but no
-             longer registered as a tool window. -->
 
         <!-- Sutra Workspace tool window. Lives on the left by default
              because it is a project-structure browser, next to the
