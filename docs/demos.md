@@ -25,7 +25,7 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 | 8 | [`nearest_phrase.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/nearest_phrase.su) | 20-phrase codebook, clean and noisy retrieval. Target plus 0.2·distractor still returns target. |
 | 9 | [`sequence.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/sequence.su) | Position-bound sequence encoder. A 5-token sequence is one vector; decode any position with `unbind(pos_i, record)`. Two sequences compared by cosine. |
 
-The earlier loop demos (`loop_rotation.su`, `counter_loop.su`, `concept_search.su`) used the retired C-style `loop (cond) { ... }` eigenrotation surface; the 2026-04-30 redesign moved loops to first-class declared functions, and those three demos were removed when their syntax stopped parsing. Loop coverage now lives in [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/do_while_adder.su) (the canonical `do_while` declared-function example) plus the `test_loop_function_decl.py` test suite (23 tests). See the [Loops page](loops.md) for the current surface.
+Loops use first-class declared functions. The canonical example is [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/do_while_adder.su), with coverage in the `test_loop_function_decl.py` suite (23 tests). See the [Loops page](loops.md) for the surface.
 
 ## Other examples in the directory
 
