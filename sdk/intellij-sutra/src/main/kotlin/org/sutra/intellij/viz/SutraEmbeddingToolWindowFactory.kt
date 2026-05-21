@@ -47,9 +47,6 @@ import javax.swing.SwingConstants
  *     small number of distributions where it isn't available fall
  *     back to a static placeholder panel so the tool window still
  *     renders without crashing.
- *
- * See companion [SutraFlyBrainToolWindowFactory] for the fly-brain
- * topological view, which uses the same pattern.
  */
 class SutraEmbeddingToolWindowFactory : ToolWindowFactory {
 
