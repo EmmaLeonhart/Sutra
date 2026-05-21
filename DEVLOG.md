@@ -15,6 +15,37 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-20: repo cleanup — retire scratch chats and notes
+
+With the paper on arXiv, trimmed dev-process residue out of the
+working tree to leave a cleaner, more professional snapshot. **History
+is untouched — every file below is recoverable via `git show` /
+`git log`; this is a working-tree removal, not a history rewrite.**
+
+Removed:
+- `crashed_session_2026-05-20.md` — accidental paste of the Claude
+  Code web UI sidebar (unrelated chat titles, project names); no Sutra
+  content.
+- `sutraDB/unstructured/` (whole folder) — raw voice-transcribed
+  Claude/Gemini brainstorming plus two stale ManuForge-era integration
+  notes (SutraDB v0.3.x). The design substance (ontochronology,
+  world-state, temporal diff) already lives in
+  `sutraDB/docs/ontochronology.md` + `architecture.md`, so nothing was
+  lost.
+- `paper/feedback before arXiv/SYNTHESIS.md` — pre-arXiv multi-LLM
+  review synthesis; its job (clearing the arXiv submission) is done.
+- `sutraDB/docs/session_notes_2026-03-15.md` — dated single-session
+  dev log.
+- Root scratch scripts `compile_to_cuda.py`, `hello_world_cuda.py`,
+  `hello_world_emitted.py`, `inspect_dispatch.py` — a self-contained
+  CUDA-experiment cluster with no external dependents.
+
+Kept deliberately: `planning/exploratory/promises-design-conversation.md`
+(authoritative design-of-record by its own header), all of
+`planning/{findings,open-questions,sutra-spec}/` (canonical agent
+surface), and `paper/reviews/` (auto-committed clawRxiv pipeline
+output).
+
 ## 2026-05-20: paper uploaded to arXiv
 
 **The version of `paper/paper.md` currently in the repo is the version that
@@ -98,8 +129,10 @@ reframed via batched compiled-graph forward.
 ### Pre-arXiv synthesis rounds 2–4
 
 Each round consolidated multi-LLM + Discord feedback into a single
-`paper/feedback before arXiv/SYNTHESIS.md` rather than dispersing it
-across files. **Verdict held across all five reviewers in round 4
+synthesis file rather than dispersing it across files (that file,
+`paper/feedback before arXiv/SYNTHESIS.md`, was retired from the
+tree in the 2026-05-20 cleanup below — recover via git history).
+**Verdict held across all five reviewers in round 4
 (Claude Sonnet 4.6, DeepSeek, Le Chat / Mistral, Meta AI, Gemini):**
 AI-policy-violation removal risk is very low. The §"AI-use statement"
 already does the disclosure arXiv's policy targets; the reproduction
