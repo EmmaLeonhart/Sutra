@@ -4,7 +4,7 @@
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
-🌐 **Website: <https://sutra.emmaleonhart.com>** — the project homepage, rendered from [`docs/index.md`](docs/index.md) by [`scripts/build_site.py`](scripts/build_site.py) and deployed by [`pages.yml`](.github/workflows/pages.yml). A companion archive page holds the Sutra paper (on arXiv; the NeurIPS 2026 submission) with downloadable PDFs and a reproduction zip.
+🌐 **Website: <https://sutra.emmaleonhart.com>** — a static site built from the Markdown under [`docs/`](docs/) (one page per file: the homepage plus the concept guides and tutorials) and the paper from [`paper/paper.md`](paper/paper.md) by [`scripts/build_site.py`](scripts/build_site.py), deployed by [`pages.yml`](.github/workflows/pages.yml). It includes the readable paper at `/paper/` and a NeurIPS 2026 archive at `/neurips-2026/` (the on-arXiv NeurIPS 2026 submission, with downloadable PDFs and a reproduction zip).
 
 ## What Sutra is
 
