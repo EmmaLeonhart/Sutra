@@ -84,7 +84,6 @@ class Codegen(BaseCodegen):
         super().__init__(
             runtime_dim=self._semantic_dim + self._synthetic_dim,
             runtime_seed=runtime_seed,
-            runtime_n_kc=0,
             loop_max_iterations=loop_max_iterations,
         )
 

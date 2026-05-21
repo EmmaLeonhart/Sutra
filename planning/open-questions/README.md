@@ -28,12 +28,8 @@ one line).
 | `binding-kind-surface-syntax.md` | RESOLVED | `sutra-spec/binding.md` (role=semantic, var=rotation-bound; 2026-04-21) |
 | `loop-function-declarations.md` | RESOLVED | `sutra-spec/control-flow.md` §Loops (shipped 2026-04-30→05-10) |
 | `loop-tail-call-surface.md` | RESOLVED | `return NAME(args)` shipped + tested |
-| `loop-surface-redesign.md` | STALE | superseded by `loop-function-declarations.md` |
 | `loop-body-semantics.md` | RESOLVED | by `loop-function-declarations.md` |
 | `axon-bind-needs-permutation-for-synthetic-fillers.md` | RESOLVED | commit `6d25f232` (per-key permutation in axon_add/item) |
-| `_archived-numpy-inheriting-from-flybrain.md` | STALE | already archived; fly-brain retired 2026-04-26 |
-| `project-kind-connectome-vs-embedding.md` | RESOLVED | single target = PyTorch embedding backend (fly-brain retired) |
-| `tier2-bundle-substrate-vs-algebra.md` | STALE | only the retired fly-brain routed bundle through a circuit |
 | `literals-and-auto-embedding.md` | RESOLVED (core) | `sutra-spec/strings.md` + literals shipped 2026-04-23; OPEN only on deferred binary-op/return/map-value embedding rules |
 | `defuzzify-iteration-formula.md` | OPEN | which rule per type: exp-weighted 3-way polarizer vs `iterate f=f==true`; both coherent, pick/unify (see `sutra-spec/equality-and-defuzzification.md`) |
 | `no-null.md` | RESOLVED (core) | no runtime null — `sutra-spec/types.md:262,273`; OPEN only on whether to forbid `var X:TYPE;` uninitialized syntax (user leaned forbid) |
@@ -48,26 +44,21 @@ one line).
 | `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
 | `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
 
-Tally: **9 RESOLVED/STALE**, **2 RESOLVED-core with a narrow OPEN tail**,
+Tally: **5 RESOLVED/STALE**, **2 RESOLVED-core with a narrow OPEN tail**,
 **11 genuinely OPEN** — but most "open" ones are narrow sub-questions,
 not undefined design space, and none currently blocks queue work. The
 RESOLVED/STALE docs should be deleted/archived on the next pruning
 pass (rule 3 above) once their rationale is confirmed captured in the
 cited spec file.
 
-**Pruning pass — bounded slice done 2026-05-17.** The two
-unambiguously-STALE *superseded* dossiers were **archived (renamed
-`_archived-`, content/rationale preserved — not deleted)**:
-`loop-surface-redesign.md` → `_archived-loop-surface-redesign.md`
-(superseded by `loop-function-declarations.md`);
-`tier2-bundle-substrate-vs-algebra.md` →
-`_archived-tier2-bundle-substrate-vs-algebra.md` (moot post
-fly-brain retirement). RESOLVED dossiers are intentionally LEFT in
-place: they already carry `> **VERDICT**` banners (self-describing)
-and deleting them is the rationale-loss call this README reserves
-as deliberate — archiving the clear STALE-superseded ones is the
-safe completion; aggressive RESOLVED deletion is intentionally NOT
-done.
+**Pruning pass (2026-05-21).** The fly-brain-related resolved/stale
+dossiers were removed from the tree (git history preserved):
+`loop-surface-redesign`, `tier2-bundle-substrate-vs-algebra`,
+`numpy-inheriting-from-flybrain`, and
+`project-kind-connectome-vs-embedding` — all premised on the retired
+connectome target. RESOLVED docs that still carry live design
+rationale are intentionally LEFT in place; they already carry
+`> **VERDICT**` banners.
 
 Task #15 status (2026-05-17): **both remaining sub-deliverables are
 now done.** The verdict pass over `sutra-spec/open-questions.md` is
@@ -80,7 +71,7 @@ verdict). The remaining task #15 work is the *pruning* pass — deleting
 RESOLVED/STALE docs once their rationale is confirmed captured in the
 cited spec file (a deliberate pass, not folded into this banner run, to
 avoid losing rationale mid-session). Tally now includes the new
-`cosine-as-its-own-transcendental.md` (GENUINELY OPEN), so: 9
+`cosine-as-its-own-transcendental.md` (GENUINELY OPEN), so: 5
 RESOLVED/STALE, 2 RESOLVED-core+tail, 12 genuinely OPEN.
 
 ## Current contents
@@ -88,19 +79,15 @@ RESOLVED/STALE, 2 RESOLVED-core+tail, 12 genuinely OPEN.
 - `binding-kind-surface-syntax.md` — **resolved 2026-04-21**. Candidate B chosen: `role` for semantic, `var` for rotation-bound. Syntax is now spec in `planning/sutra-spec/binding.md`. Doc retained for decision rationale until the next resolved-entry pruning pass.
 - `rotation-hashmap-as-language-feature.md` — should Sutra have a rotation-hashmap (hash-vector-to-angles → rotation-bind storage) as a first-class `map<K, V>` language feature, as a library pattern, or not at all? Soft-lookup on semantic-vector keys is the distinctive property. Decision pending; depends partly on what programs people end up writing.
 - `concurrency-and-monads.md` — the concurrency model is sketched in `planning/sutra-spec/concurrency.md` but the monad/effect structure isn't settled.
-- `project-kind-connectome-vs-embedding.md` — **largely resolved 2026-04-26** by fly-brain retirement; current single target is the embedding-space PyTorch backend. Doc preserved as design-space map for any future second-target reintroduction.
-- `tier2-bundle-substrate-vs-algebra.md` — **moot 2026-04-26.** The only substrate that routed `bundle(...)` through a circuit was the retired fly-brain backend; the current PyTorch backend uses normalized vector addition. Doc preserved as design-space map for any circuit-routed-substrate future.
 - `conditional-branching-on-remote.md` — conditional branching currently decides at host Python time (the outer `argmax_cosine` call). What would it mean for the branch decision itself to execute on the substrate, not just the prototype matching that feeds it? Unresolved.
 - `codegen-v1-feature-coverage.md` — the V1 codegen refuses methods, operator decls, `EmbedExpr`, `DefuzzyExpr`, `UnsafeCastExpr`. Most demo programs compile; several examples don't. Which gaps should V1 close? Unresolved.
 - `literals-and-auto-embedding.md` — what is Sutra's literal set, and when does a string literal auto-embed vs. stay a string? Design captured 2026-04-23; char + implicit-fuzzy + string-auto-embed slices landed 2026-04-23 (317099a, 7fb7b50, 6e424d8). Follow-on rules (binary-op embedding, return-stmt embedding, map-value embedding) still deferred until concrete programs want them.
 - `zero-as-explicit-neutrality.md` — `fuzzy f = 0` lands at the origin of the truth axis (neither true nor false). User framing: this is *not* truthy/falsy; it's "I'm explicitly not taking a side." Open questions: bool ↔ fuzzy coercion, branching on neutral, comparison with false. Current runtime is coherent; what's undecided is how higher-level language features consume neutrality.
-- `_archived-numpy-inheriting-from-flybrain.md` — **resolved 2026-04-23, superseded 2026-04-26.** Original concern was that `NumpyCodegen` inherited from `FlyBrainCodegen`. The 2026-04-23 refactor extracted `BaseCodegen` so they were siblings; the 2026-04-26 fly-brain retirement made the concern moot entirely. Archived doc retained as historical record.
 - `no-null.md` — Null does not exist in Sutra at runtime. Every "absent" state has a first-class neutral value (`unknown` on truth axis, `0` on number axis, zero-vector for vectors). Open: whether to keep the `var x : TYPE;` uninitialized-declaration syntax (with initialize-before-use check) or forbid it entirely. User leaned toward forbidding ("it feels very imperative") but left it undecided.
 - `defuzzify-iteration-formula.md` — the currently-shipped `defuzzify_trit` (exp-weighted three-way softmax polarizer) does not match the user's stated formula `iterate N: f = f == true` under cos-based equality. Both are coherent rules with different behaviors — binary snap vs. three-way smooth polarization. Pick one per type or unify. Deferred rather than quietly shipped as matching.
 - `nested-loops-as-orthogonal-subspaces.md` — the spec defines single `loop(cond)` as eigenrotation on the substrate but is silent on what nested `loop(cond)` constructs compose into. Design intuition is "rotations in orthogonal subspaces, cross-subspace info flow via bind"; the compiler currently host-sequences nested loops, recapitulating the host-sequencer caveat at every nesting level. Subspace allocation, termination semantics, and cross-subspace back-channel are all unresolved.
 - `cosine-vs-euclidean-for-post-algebraic-similarity.md` — Sutra uses cosine everywhere (similarity, equality, argmax_cosine, defuzzify, vector-keyed map fallback), but the user has an old recorded reservation that Euclidean might be the right metric for post-bind/post-bundle comparison since "magnitude carries information" that cosine throws away. Never tested; harvested from chats triage 2026-04-29. Not blocking current work; needs settling before any "we picked the right metric" public claim.
 - `contextual-vs-static-embedding-keys.md` — Sutra's `embed()` is string-keyed and static: `embed("bank")` always returns the same vector regardless of whether the program is reasoning about rivers or finance. The user has explicit recorded interest in contextual embeddings ("more contextuality is better"); the static-keyed surface is the opposite pole by accident of which substrates were cheap to integrate. Not blocking current work; load-bearing when Sutra tries to claim natural-language reasoning beyond toy domains. Harvested from chats triage 2026-04-29.
-- `loop-surface-redesign.md` — 2026-04-30 redesign positing loops as first-class declared functions with named recurrent state. Largely superseded by `loop-function-declarations.md`; kept for the design-process record.
 - `loop-body-semantics.md` — 2026-04-30 sub-question on what a loop body actually does inside the substrate cell (RNN cell vs. body-as-discardable-decoration). Resolved by `loop-function-declarations.md`; doc retained for the resolution rationale.
 - `loop-function-declarations.md` — **largely shipped 2026-04-30 through 2026-05-10**. Loops as function-decl forms (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`) with `pass`/`replace` tail-yield. Current canonical surface; spec lives in `planning/sutra-spec/control-flow.md` §"Loops". Doc kept for the design-decision rationale (substrate-RNN cell shape, by-reference call-site, T-step soft-mux halt). Open sub-questions remaining: substrate-pure condition evaluation, idiomatic cleanup of by-reference mutation (tuple-return form tracked in `todo.md` §"Make loops idiomatic").
 - `loop-tail-call-surface.md` — **shipped**. The `return NAME(args)` tail-call surface for loop invocations is live and tested. Per the rules above, the doc should be removed once a "shipped open questions get retired" pass happens; kept here pending that pass to avoid losing the rationale mid-session.
