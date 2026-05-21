@@ -33,8 +33,8 @@ outer loop — is undecided.
 Nothing principled. The lowering walks the AST and emits two nested
 host-side loops; each inner iteration calls the substrate sequentially.
 That's the same "host sequencer threads sequential presentations"
-caveat called out in `planning/findings/2026-04-13-audit-rotation-loop-execution-locus.md`,
-but compounded — the host now runs the inner sequencer per outer step.
+caveat, but compounded — the host now runs the inner sequencer per
+outer step.
 
 There is no design statement that says where on the substrate the
 inner rotation should live relative to the outer rotation, or how

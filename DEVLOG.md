@@ -83,6 +83,26 @@ the weights file only as a run *output*, so reproduction is unaffected.
 Removed the committed run logs `experiments/{bio_run,crosstalk_chain_run}.log`
 and gitignored `experiments/*.log`.
 
+Fifth pass (full fly-brain purge, 2026-05-21): removed the 26 fly-brain
+experimental findings (all `shiu-*`, the `140D-spiking-*` set, the
+`jaccard-*` hemibrain/KC studies, `cx-ring-attractor`, `composed-Q-spiking`,
+`spiking-Q-rotation`, `combined-pipeline`, `fuzzy-conditional-n35` [hemibrain
+seeds], `audit-rotation-loop-execution-locus` [spiking EPG loop]) plus the 3
+`shiu_cond_sweep_*.log` raw logs; the connectome-era design docs
+`project-kind-connectome-vs-embedding.md` and
+`implementation-shortcuts-catalog.md` (half fly-brain, links now dangling);
+and the 3 `_archived-` open-questions (`numpy-inheriting-from-flybrain`,
+`tier2-bundle-substrate-vs-algebra`, and `loop-surface-redesign` — the last
+is core-loop-design residue, removed as the archived-doc pruning the folder's
+own rule #3 calls for). Removed the vestigial `runtime_n_kc` (Kenyon-cells)
+codegen flag (assigned, never read; PyTorch emit verified clean). Fixed the
+links these removals exposed: the `open-questions/README.md` triage table +
+contents + tallies, `nested-loops-as-orthogonal-subspaces.md`,
+`sutra-paper-pre-mortem.md`, `todo.md`, and the `findings/README.md` example.
+Kept core meta-docs that only reference fly-brain as backdrop
+(`sutra-paper-pre-mortem`, `repo-audit`) and the substrate-agnosticism
+mentions in the specs (specs are authoritative). findings .md count 87→60.
+
 ## 2026-05-20: paper uploaded to arXiv
 
 **The version of `paper/paper.md` currently in the repo is the version that

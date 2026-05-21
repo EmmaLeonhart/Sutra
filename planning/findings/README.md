@@ -3,8 +3,8 @@
 Experimental results with reasoning. One file per finding. This is the
 write-up layer between raw commit messages and `queue.md`:
 
-- `queue.md` has the one-line truth-table summary ("3/5 seeds spiking
-  rotation, noise characterized").
+- `queue.md` has the one-line truth-table summary ("rotation binding
+  holds 12 keys at D=768, capacity characterized").
 - Commit messages have the what-and-why of a specific diff.
 - A finding here has the full story: what we ran, what we measured,
   why we got that number, what it tells us about the substrate /
