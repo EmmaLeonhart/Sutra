@@ -4,7 +4,7 @@
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
-🌐 **Website: <https://sutra.emmaleonhart.com>** — two static pages on the shared emmaleonhart.com identity, each rendered from Markdown by [`scripts/build_site.py`](scripts/build_site.py): the homepage (`docs/index.md`, what Sutra is) and `/neurips-2026/` (`docs/neurips-2026.md`, the frozen-submission archive, with the paper PDFs + reproduction zip downloadable from it; not linked from the homepage). Built and deployed by [`pages.yml`](.github/workflows/pages.yml). (The old ~23-page MkDocs Material site was scrapped 2026-05-16.)
+🌐 **Website: <https://sutra.emmaleonhart.com>** — the project homepage, rendered from [`docs/index.md`](docs/index.md) by [`scripts/build_site.py`](scripts/build_site.py) and deployed by [`pages.yml`](.github/workflows/pages.yml). A companion archive page holds the Sutra paper (on arXiv; the NeurIPS 2026 submission) with downloadable PDFs and a reproduction zip.
 
 ## What Sutra is
 
@@ -19,11 +19,11 @@ A typical Sutra value is a vector in a frozen LLM embedding space. The current d
 Two backends, both produce a self-contained Python module:
 
 - **`codegen_pytorch.py`** — **canonical.** Emits torch tensor ops, picks CUDA at module init if available, falls back to CPU. Axons, the full `Math.*` namespace, the codepoint-array String model, and the rotation-hashmap `dict<K, V>` all live here.
-- **`codegen.py`** — numpy backend, **deprecated and being retired**. Used by the in-repo smoke test as a reference for some shapes; new features land in the PyTorch backend only. Some 2026-05-10 additions (axons, `make_string`, the lookup-table transcendentals) are PyTorch-only and have no numpy equivalent.
+- **`codegen.py`** — numpy backend, **deprecated**. The PyTorch backend is canonical; newer features (axons, the codepoint-array String model, lookup-table transcendentals, the rotation-hashmap `dict<K, V>`) live there and have no numpy equivalent.
 
 The CLI is `python -m sutra_compiler`. Validate a file: `sutrac path/to/file.su`. Emit the generated torch module to stdout: `sutrac --emit path/to/file.su`. Compile and run: `sutrac --run path/to/file.su`.
 
-The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 13 of them end-to-end:
+The demo programs live in [`examples/`](examples/). The smoke test [`examples/_smoke_test.py`](examples/_smoke_test.py) compiles and executes 10 of them end-to-end:
 
 | `.su` program | What it exercises |
 |---|---|
@@ -38,7 +38,7 @@ The demo programs live in [`examples/`](examples/). The smoke test [`examples/_s
 | `nearest_phrase.su` | 20-phrase codebook, clean and noisy retrieval |
 | `sequence.su` | position-bound 5-token sequence, decode any position |
 
-Loop coverage moved from these dropped demos to the declared-function form (`do_while_adder.su`) plus the `test_loop_function_decl.py` test suite when the C-style `loop (cond) { body }` surface was retired in the 2026-04-30 redesign. See [`docs/loops.md`](docs/loops.md) for the current shape.
+Loops use the declared-function form (`do_while_adder.su`), exercised by the `test_loop_function_decl.py` suite. See [`docs/loops.md`](docs/loops.md) for the shape.
 
 ## Repo layout
 
@@ -53,7 +53,6 @@ Loop coverage moved from these dropped demos to the declared-function form (`do_
 | [`examples/`](examples/) | Demo `.su` programs and the smoke-test harness. |
 | [`docs/`](docs/) | `index.md` (homepage) + `neurips-2026.md` — the two source pages for the website at <https://sutra.emmaleonhart.com>. |
 | [`sutraDB/`](sutraDB/) | SutraDB — embedded vector database, brought in as a git subtree. |
-| [`chats/`](chats/) | Design conversations awaiting triage. Each file is a topic-scoped excerpt; the rule is delete-if-already-absorbed-elsewhere, never migrate-then-delete. |
 
 The empirical foundation that motivated Sutra — relational-displacement structure in frozen embedding spaces — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography).
 
@@ -83,10 +82,12 @@ To open the repo in an IDE with syntax support, run [`sdk/intellij-sutra/editor.
 
 ## CI
 
-| Workflow | Triggers on | What it does |
-|---|---|---|
-| [`pages.yml`](.github/workflows/pages.yml) | Push to main touching `docs/neurips-2026.md`, `web/`, `scripts/build_site.py`, or `paper/` | Renders the single static page and deploys it (with the paper PDFs + zip) to GitHub Pages. |
-| [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) | Push to main touching `sutraDB/` | Runs the SutraDB Rust tests. |
+| Workflow | What it does |
+|---|---|
+| [`pages.yml`](.github/workflows/pages.yml) | Renders the website pages and deploys them (with the paper PDFs + reproduction zip) to GitHub Pages. |
+| [`publish-sutra-compiler.yml`](.github/workflows/publish-sutra-compiler.yml) | Publishes the `sutra-dev` compiler package to PyPI. |
+| [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) · [`sutradb-integration.yml`](.github/workflows/sutradb-integration.yml) | Run the SutraDB Rust unit + integration tests. |
+| `papers-ci.yml` · `submit-papers.yml` · `pull-reviews.yml` · `paper-pdf.yml` | Paper pipeline: submit the paper to clawRxiv on edit, pull back AI reviews, and build the PDFs. |
 
 ## License
 
