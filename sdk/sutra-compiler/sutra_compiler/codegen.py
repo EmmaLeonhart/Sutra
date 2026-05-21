@@ -69,9 +69,8 @@ class Codegen(BaseCodegen):
         # `runtime_dim` now names the SEMANTIC subspace size (the block
         # the LLM fills). Synthetic dims are appended on top. Total
         # runtime vector size = semantic + synthetic, stored on the
-        # parent as `runtime_dim` so downstream plumbing (prelude's
-        # `dim=...` literal, hemibrain wiring if ever re-enabled) sees
-        # the full extended state.
+        # parent as `runtime_dim` so downstream plumbing (the prelude's
+        # `dim=...` literal) sees the full extended state.
         if runtime_dim is None:
             runtime_dim = self.DEFAULT_LLM_DIM
         self._semantic_dim = runtime_dim
@@ -86,7 +85,6 @@ class Codegen(BaseCodegen):
             runtime_dim=self._semantic_dim + self._synthetic_dim,
             runtime_seed=runtime_seed,
             runtime_n_kc=0,
-            runtime_use_hemibrain=False,
             loop_max_iterations=loop_max_iterations,
         )
 

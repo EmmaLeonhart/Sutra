@@ -310,12 +310,10 @@ class BaseCodegen:
 
     def __init__(self, *, runtime_dim: int = 50, runtime_seed: int = 42,
                  runtime_n_kc: int = 2000,
-                 runtime_use_hemibrain: bool = False,
                  loop_max_iterations: int = 50) -> None:
         self.runtime_dim = runtime_dim
         self.runtime_seed = runtime_seed
         self.runtime_n_kc = runtime_n_kc
-        self.runtime_use_hemibrain = runtime_use_hemibrain
         # Compile-time loop unroll depth. Defaults to 50 but is
         # configurable via the CLI's --loop-T flag and via
         # [project.compile] loop_max_iterations in atman.toml. Larger

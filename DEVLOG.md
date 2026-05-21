@@ -65,6 +65,24 @@ backend notes), made the NeurIPS mention low-key, corrected the CI table to
 the actual workflow set, and removed the stale `chats/` row (the dir isn't
 tracked).
 
+Fourth pass (leftover fly-brain + artifacts, 2026-05-21): removed the
+orphaned IntelliJ fly-brain tool window —
+`viz/SutraFlyBrainToolWindowFactory.kt` + `viz/fly-brain.html` (already
+unregistered; `plugin.xml` documented them as "retired 2026-05-10") — and
+cleaned up the now-dangling references (the `SutraEmbeddingToolWindowFactory`
+companion mention; the `plugin.xml` "fly-brain visualizer" feature line and
+its two references to planning docs that don't exist:
+`20-ide-architecture.md`, `fly-brain-visualizer.md`). Removed the vestigial
+`runtime_use_hemibrain` flag from `codegen_base.py`/`codegen.py` (it was set
+but never read; PyTorch emit verified clean after, 88 KB module, exit 0).
+Untracked the committed tensor binaries
+`experiments/.diff_train_embeddings.pt` (3.3 MB, already gitignored yet
+tracked) and `experiments/differentiable_training_weights.pt` (3.4 MB) —
+both are harness-generated and now gitignored; the frozen paper references
+the weights file only as a run *output*, so reproduction is unaffected.
+Removed the committed run logs `experiments/{bio_run,crosstalk_chain_run}.log`
+and gitignored `experiments/*.log`.
+
 ## 2026-05-20: paper uploaded to arXiv
 
 **The version of `paper/paper.md` currently in the repo is the version that
