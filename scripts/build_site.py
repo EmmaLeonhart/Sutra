@@ -186,6 +186,12 @@ MATHJAX_JS = """  <script>
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>"""
 
+# Canonical published version of the paper. The repo otherwise doesn't
+# record the assigned arXiv identifier anywhere (the upload happens via
+# the arXiv web form), so this constant is the single source of truth
+# for the abs URL the site links to.
+ARXIV_URL = "https://arxiv.org/abs/2605.20919"
+
 DOWNLOAD_CARDS = """
     <div class="downloads">
       <a class="card dl" href="/paper.pdf">
@@ -572,7 +578,7 @@ def main() -> int:
         p_head, p_body, p_mer, p_mth = render(paper_src.read_text(encoding="utf-8"))
         inner = (f'    <a class="back" href="/">&larr; Sutra home</a>\n'
                  f'    <span class="eyebrow">Sutra &middot; Paper</span>\n    <h1>{p_head}</h1>\n'
-                 f'    <p class="lede">The full Sutra paper, readable here. Downloads:</p>\n'
+                 f'    <p class="lede">The full Sutra paper, readable here. The canonical published version is on <a href="{ARXIV_URL}">arXiv</a>. Downloads:</p>\n'
                  f'{PAPER_DOWNLOADS}\n    <div class="doc">\n{p_body}\n    </div>\n')
         write("/paper/", out / "paper" / "index.html", f"{p_head} — Sutra", inner, p_mer, p_mth)
 
@@ -612,6 +618,7 @@ def main() -> int:
         f'{explore}'
         '    <div class="links">\n'
         f'      {paper_link}\n'
+        f'      <a href="{ARXIV_URL}">Read on arXiv</a>\n'
         '      <a href="https://github.com/EmmaLeonhart/Sutra">View source on GitHub</a>\n'
         '      <a href="https://github.com/EmmaLeonhart/Sutra/releases">Releases &amp; downloads</a>\n'
         '      <a href="https://emmaleonhart.com/projects/">All projects</a>\n'

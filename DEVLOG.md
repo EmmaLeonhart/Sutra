@@ -74,6 +74,17 @@ Corrected the three CLAUDE.md sections and the README website line to
 match. The older DEVLOG entries below were accurate at their date and
 are left as the historical record.
 
+**Website now links to the arXiv paper.** The published abs URL is
+**`https://arxiv.org/abs/2605.20919`**, recorded as the `ARXIV_URL`
+constant in `build_site.py` — the repo had never captured the
+assigned arXiv identifier anywhere (the 2026-05-20 entry below noted
+the upload happens via the arXiv web form, so the ID was lost), and
+this constant is now its single source of truth. The homepage
+`.links` row carries a "Read on arXiv" pill next to the on-site "Read
+the paper" button, and the `/paper/` page lede links arXiv as the
+canonical published version. No fabricated/placeholder URL was ever
+shipped — the link waited on the real ID.
+
 ## 2026-05-21: daily audit — 1 resolved-elsewhere open-question found
 
 Substrate-leak + promise/await + stale-open-question audit.
