@@ -55,35 +55,6 @@ see §"Watchdogs" below.
 
 ## Active
 
-### Daily-audit finding (2026-05-21): `cosine-as-its-own-transcendental.md` is resolved-elsewhere — reduce to a pointer
-
-The open-question dossier
-`planning/open-questions/cosine-as-its-own-transcendental.md`
-contradicts itself and the README. Its **top banner** says
-"VERDICT: RESOLVED 2026-05-17" (complex-argument cosine shipped as
-`ccos`), but its **body (lines 35-79)** still poses substrate-pure
-complex-argument `cos(z)` as "the precise still-open sub-question"
-and "not being implemented in this autonomous run." The posed
-question is in fact resolved authoritatively:
-
-- **Implementation:** `ccos` at
-  `sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py:1384` —
-  verified substrate-pure this audit (`_cnum` entry boundary →
-  `complex_mul`/`complex_add`/`cexp`; the imaginary unit/`0.5` are
-  `_mk` constants; no host branch, no scalar extraction).
-- **Finding:** `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`.
-
-Fix shape (documentation only — no code/substrate change): reduce
-the dossier body to a pointer to the finding + `ccos`, keeping only
-the one genuinely-open residue named in its own banner — complex
-`csin` (not yet implemented). Then fix the stale README:
-`planning/open-questions/README.md` prose (lines 68-69, "carries its
-own GENUINELY OPEN verdict") and tally (line 75, "12 genuinely
-OPEN") still count this doc as fully OPEN — it should read RESOLVED
-(with the narrow `csin` tail), dropping the genuinely-OPEN count by
-one. Verdict-table row for the doc is also missing (it's only in
-prose) — add it as RESOLVED while there.
-
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
 
 `==`, `!=`, `!` bounds inherit the pre-existing FUZZY numeric-equality
