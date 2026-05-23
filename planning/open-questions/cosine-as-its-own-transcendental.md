@@ -32,48 +32,33 @@ citing `sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py`) found:
   (`cos(x)` builds a pure-imaginary number and projects
   `imaginaryExp`), not the numerics.
 
-## The precise still-open sub-question
+## Resolution — complex-argument `cos(z)` shipped as `ccos`
 
-The genuinely-undecided part is narrower and **matches the user's exact
-words** ("it's much more complicated when you look at the imaginary
-output of the cosine … implement the imaginary output of the cosine
-geometrically too"):
+The sub-question this doc once posed as open — *"does Sutra grow a
+substrate-pure complex-argument cosine `cos(z)` for complex `z`,
+including its imaginary part, built geometrically?"* — **is resolved.**
+It shipped 2026-05-17 as `ccos`:
 
-`cos(x)` (`codegen_pytorch.py:1383–1390`) coerces its argument onto the
-imaginary axis as a *real angle* (`itheta = self._mk(0.0,
-self._st(x))`) and returns `_re(imaginaryExp(itheta))`. **There is no
-path for `cos(z)` where `z` is itself complex — no `imag(cos(z))`.**
+- **Implementation:** `ccos` at
+  `sdk/sutra-compiler/sutra_compiler/codegen_pytorch.py:1384` —
+  `cos(z) = (e^(i·z) + e^(-i·z))/2`, built only from the verified-pure
+  `cexp` keystone + `complex_mul`/`complex_add`, with the imaginary
+  unit and `0.5` as `_mk` constants and `_cnum` as the entry boundary.
+  No new leaf, no host branch, no scalar extraction. For real `z` it
+  reduces to exactly the real-angle `cos` eigenrotation (zero imaginary
+  leakage), so the paper-cited real `cos` path is untouched.
+- **Verification:** ground-truth vs `cmath.cos` ≤2e-4. See
+  `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`.
 
-> One sentence: does Sutra grow a substrate-pure **complex-argument
-> cosine** — `cos(z)` for complex `z`, including its imaginary part —
-> built geometrically, rather than only the real-angle `cos(x)` it has
-> today?
+The real-angle surface `cos(x)` is unchanged and was already
+substrate-pure (its own `_COS_VALUES` table — see "Corrected framing"
+above).
 
-## Why each side has force
+## Genuinely-open residue
 
-- **Leave it real-angle-only (status quo):** every shipped test uses
-  real-argument cos; complex-argument cos has no current caller; the
-  literate-math chain is green (135 passed / 103 subtests + smoke).
-- **Add complex-argument cos (user's position):** the user explicitly
-  calls out the imaginary output of cosine as the hard, must-be-
-  geometric piece; deferring it silently while the surface advertises
-  "cos" would be the
-  [[feedback-check-what-is-open-before-pitching-blocker]] failure in
-  reverse — treating a piece the design owner flagged as undone.
-
-## What would close it
-
-A user ruling on whether complex-argument `cos(z)` is in scope now, and
-— if yes — its substrate-pure construction (the geometric imaginary
-part), with a ground-truth verification table (the `21a9ff77` model:
-tensors in → tensor ops → tensors out, compared to `cmath.cos`, measured
-delta reported). The real-angle `cos(x)` table is already substrate-pure
-and need not change.
-
-## Status / why this is not being implemented in this autonomous run
-
-This is a design change to a safety-critical substrate boundary. Per
-CLAUDE.md ("NO MATH SHORTCUTS", "PEOPLE CAN DIE IF YOU FAKE RESULTS") and
-the queue's standing rule that structural substrate work is done
-deliberately with a test gate and not as a rushed autonomous edit, it is
-recorded here as open and surfaced to the user rather than guessed at.
+Complex sine — `csin(z)` — is **not yet implemented** (named in the
+verdict banner as the follow-on; not done, not faked). When picked up
+it gets the same `21a9ff77`-model treatment: built from `cexp` +
+`complex_mul`/`complex_add`, ground-truth-compared to `cmath.sin`,
+measured delta reported. That is the only thing this doc still leaves
+undecided.
