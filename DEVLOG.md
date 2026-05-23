@@ -15,6 +15,63 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-23: daily audit — 3 gates clean; executed the queued cosine doc cleanup; embedding-drift note
+
+Substrate-leak + promise/await + stale-open-question audit. This
+container had no torch/numpy/ollama preinstalled; I installed torch
+(CPU) + numpy + the `ollama` python package, installed the ollama
+server (needed zstd) and pulled `nomic-embed-text` (digest
+`0a109f422b47`), so — unlike the 2026-05-21 run — **every leg ran,
+including the live-embedding ones.** No false-clean from an env skip.
+
+- **Promise/await fit-to-spec:** PASS, exit 0. Codegen lint clean +
+  `test_await_substrate_pure` **4/4** green both backends (the 2 e2e
+  semantic legs that 2026-05-21 had to env-skip ran this time and
+  passed; `main()` = 3.0). `await_value` still emits only
+  `return self.value(p)`. No regression.
+- **Substrate-leak sweep:** clean — 67 `.su` compiled, 0 operator
+  leaks (18 intentional `CodegenNotSupported` skips: if/else, casts,
+  method/operator decls, string interpolation, snap-on-numpy, C-style
+  for — feature-coverage gaps, not masked leaks).
+- **Codegen host-scalar grep:** every historical leak signature is
+  either a documentation comment (#1 `rotate_slot`, #7 `select`, #5
+  string ops) or a catalogued legitimate boundary (the `truth()`
+  canonical-axis accessor; the `_str_axes()` cached structural-index
+  constant; `make_string`'s host-literal→substrate ENTRY boundary).
+  Audit.md REAL LEAK #1/#2/#3/#5/#7/#8 verified intact; #4 still
+  NOT-A-LEAK. No new leak. Transcendentals + branchless-loop +
+  loop-function-decl regression guards 35 passed/33 subtests.
+- **Open-questions:** 19 dossiers + `sutra-spec/open-questions.md`
+  index checked. **0 NEW resolved-elsewhere drift.** The single drift
+  the 2026-05-21 audit had queued —
+  `planning/open-questions/cosine-as-its-own-transcendental.md`, whose
+  body still posed complex-argument `cos(z)` as open while its banner
+  + `ccos` resolve it — was **executed this run** (settled design,
+  doc-only, per CLAUDE.md "barrel through settled work; don't quote
+  prior cautious framings forward"): verified `ccos`
+  (`codegen_pytorch.py:1384`) substrate-pure (`_cnum` →
+  `complex_mul`/`complex_add`/`cexp` + `_mk` constants, no host
+  branch/scalar extraction); reduced the dossier body to a resolution
+  pointer keeping only the genuine `csin` residue; added the missing
+  RESOLVED verdict-table row in the README and corrected both stale
+  tallies (now 5 RESOLVED/STALE, 3 RESOLVED-core+tail, 11 genuinely
+  OPEN). Removed the item from `queue.md`.
+- **Smoke-test note (negative result, not doctored):**
+  `examples/_smoke_test.py` — 10/11 examples pass; **Example 7
+  `fuzzy_dispatch.su` scored 1/4, below its documented majority
+  threshold (`correct >= 2`).** This is **embedding-model-version
+  drift on the unpinned `nomic-embed-text:latest`** (freshly pulled
+  this run), **not a code regression:** the dispatch mechanism is
+  substrate-side and every harder retrieval example passes (20-phrase
+  `nearest_phrase` clean+noisy, `sequence` position-binding,
+  classifier, analogy, knowledge_graph), embedding dim is the correct
+  768, and the last `codegen_pytorch.py` change (`ef93db3`, JS ordered
+  comparisons) is unrelated to dispatch/`argmax_cosine`. The smoke
+  test's own comment already flags fuzzy_dispatch as embedding-limited
+  ("the substrate's prototype separation is the limiting factor").
+  Threshold left untouched (doctoring it is forbidden). Surfaced for
+  an embedding-model-pinning decision; no queue item fabricated.
+
 ## 2026-05-21: arXiv v2 — minor paper correction + /arxiv noindex + doc accuracy
 
 **arXiv v2 originates here.** Emma authorized a minor correction to

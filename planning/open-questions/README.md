@@ -43,8 +43,10 @@ one line).
 | `nested-loops-as-orthogonal-subspaces.md` | OPEN | subspace allocation + termination + cross-subspace channel for nested `loop(cond)` |
 | `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
 | `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
+| `cosine-as-its-own-transcendental.md` | RESOLVED | complex-argument `cos(z)` shipped 2026-05-17 as `ccos` (`codegen_pytorch.py:1384`); finding `2026-05-17-complex-argument-cosine-implemented.md`; OPEN only on the `csin` follow-on |
 
-Tally: **5 RESOLVED/STALE**, **2 RESOLVED-core with a narrow OPEN tail**,
+Tally (incl. the later-added `cosine-as-its-own-transcendental.md` row):
+**5 RESOLVED/STALE**, **3 RESOLVED-core with a narrow OPEN tail**,
 **11 genuinely OPEN** — but most "open" ones are narrow sub-questions,
 not undefined design space, and none currently blocks queue work. The
 RESOLVED/STALE docs should be deleted/archived on the next pruning
@@ -66,13 +68,16 @@ complete (that file's own "Triage (2026-05-16, task #15 — part 2)"
 section). Per-doc top-line `> **VERDICT — …**` banners are stamped on
 every doc in this folder (21 stamped 2026-05-17; `binding-kind-surface-
 syntax.md` already carried a RESOLVED header; `cosine-as-its-own-
-transcendental.md`, added 2026-05-17, carries its own GENUINELY OPEN
-verdict). The remaining task #15 work is the *pruning* pass — deleting
-RESOLVED/STALE docs once their rationale is confirmed captured in the
-cited spec file (a deliberate pass, not folded into this banner run, to
-avoid losing rationale mid-session). Tally now includes the new
-`cosine-as-its-own-transcendental.md` (GENUINELY OPEN), so: 5
-RESOLVED/STALE, 2 RESOLVED-core+tail, 12 genuinely OPEN.
+transcendental.md`, added 2026-05-17, was stamped GENUINELY OPEN that
+morning and **then RESOLVED the same day** when Emma decided scope and
+`ccos` shipped — see its verdict table row above). The remaining task
+#15 work is the *pruning* pass — deleting RESOLVED/STALE docs once their
+rationale is confirmed captured in the cited spec file (a deliberate
+pass, not folded into this banner run, to avoid losing rationale
+mid-session). Counting the same-day resolution of
+`cosine-as-its-own-transcendental.md` (RESOLVED core, narrow `csin`
+tail), the tally is: 5 RESOLVED/STALE, 3 RESOLVED-core+tail, 11
+genuinely OPEN.
 
 ## Current contents
 
