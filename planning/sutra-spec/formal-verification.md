@@ -70,6 +70,20 @@ A Sutra program reduces to a canonical fused tensor-op graph.
   the role-to-role map it computes matches `C`. The static read/write key sets
   the compiler already emits (`AXON_KEYS_READ` / `AXON_KEYS_BOUND`) are the
   starting evidence for the role obligations.
+  - **Role-isolation (reads-only / writes-only) — DISCHARGED at the kernel,
+    2026-05-24.** The downstream Yantra kernel enforces this at admission/routing
+    and it is mechanically tested: a process can only emit on roles in its
+    `write_roles` (capability check, else `CapabilityError`) and is delivered
+    only axons on roles in its `read_roles`, with no cross-role leakage
+    (`../Yantra/tests/test_kernel.py`: `test_send_refused_when_sender_lacks_
+    write_role`, `test_send_to_unadmitted_role_is_black_hole`,
+    `test_fv_role_contract_read_isolation`). So the read/write *confinement* part
+    of the contract is verified.
+  - **Still OPEN:** (i) the *role-to-role function* matches `C` (program
+    correctness, not just confinement) and (ii) soundness of the static
+    `AXON_KEYS_READ`/`BOUND` analysis vs the keys the program actually
+    touches at runtime. These are the genuinely-hard halves; do not read
+    "role-isolation discharged" as "contract obligation done".
 
 ### Pillar 2 — polynomial Kleene logic for branches (the lever that kills path explosion)
 

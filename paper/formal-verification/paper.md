@@ -109,6 +109,16 @@ the role-to-role function it computes is the one `C` specifies. The compiler
 already emits the static read/write key sets (`AXON_KEYS_READ`,
 `AXON_KEYS_BOUND`) that seed the role half of this obligation.
 
+The **read/write confinement** part of this obligation is **discharged at the
+kernel** (the downstream OS): a program can only emit on roles in its
+`write_roles` (capability-checked at routing) and is delivered only axons on
+roles in its `read_roles`, with no cross-role leakage — mechanically tested
+(three kernel tests, incl. a two-role read-isolation check). Two parts remain
+open and are the harder ones: that the role-to-role *function* matches `C`
+(program correctness, not just confinement), and that the static
+`AXON_KEYS_READ`/`BOUND` analysis is *sound* against the keys the program
+actually touches. "Confinement discharged" is not "contract obligation done."
+
 **3.2 Branch-range obligations (from polynomial Kleene logic).** This family
 carries most of the weight, because branches are what make conventional
 verification expensive: each `if/else` doubles the path set, so a trusted base
