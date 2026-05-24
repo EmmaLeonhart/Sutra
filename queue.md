@@ -158,6 +158,26 @@ its `read_roles` with no cross-role leakage (`../Yantra/tests/test_kernel.py`:
    key-level contract in the manifest to check against. Don't ship a vacuous
    check; settle the design in `planning/sutra-spec/formal-verification.md` first.
 
+**IN PROGRESS 2026-05-24 — the GENERAL checker (Emma: "do the general one").**
+The per-connective range-bounder (`fv_poly_bound.py`) only handled the three
+primitive connectives. The general checker handles ARBITRARY nestings of the
+Kleene connectives `&&`/`||`/`!` by running the REAL inliner pass
+(`inline_stdlib_calls`) on a parsed expression and walking the resulting
+arithmetic AST (`BinaryOp` +/-/*, `Parenthesized`, `Identifier`, Int/Float
+literals) into a sympy polynomial — extraction from the compiler's own lowering,
+not a hand-copied formula. It then:
+  - **bounds the range** over [−1,1]ⁿ (branch-range obligation, now for any depth);
+  - **decides equivalence** of two expressions via polynomial identity
+    (`expand(p₁ − p₂) == 0`) — the Pillar-1 equivalence obligation, mechanically
+    decided for the Kleene fragment (backs the paper's canonicalisation claim).
+Honest boundary: it **REFUSES** (raises `NonPolynomialResidual`) on any node it
+can't reduce to a polynomial — a comparison (`==`/`>`) or an intrinsic
+(`make_real`, `bind`, …) — so the fragment it covers is exactly the
+pure-Kleene-logic one, named, not faked. Integrity guard: every result is
+cross-checked against the compiled substrate at determining points before being
+trusted. Module: `sutra_compiler/fv_obligation_checker.py`; test:
+`tests/test_fv_general_checker.py`. Then update spec §3.2/Pillar-1 + paper.
+
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
 
