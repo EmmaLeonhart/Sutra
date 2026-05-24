@@ -1385,6 +1385,22 @@ class BaseCodegen:
             self._current_class_name = class_name
             self._var_type["this"] = class_name
 
+        # Register state-param types so number-axis comparison dispatch
+        # (`i < n`, etc.) recognizes int / float / number loop vars and
+        # routes the condition through `_VSA.lt` / `_VSA.gt` instead of
+        # falling through to a raw tensor comparison. The raw form yields
+        # a 0-d tensor that crashes the halt check (`truth_axis`); the
+        # substrate operators return a proper truth-axis vector. Without
+        # this, a literal-bounded condition (`x < 11`) worked but a
+        # variable-vs-variable one (`i < n`) did not. Prior values are
+        # saved and restored below so an outer variable of the same name
+        # is not clobbered.
+        prior_state_var_types: dict[str, Optional[str]] = {}
+        for sp in decl.state_params:
+            if sp.type_ref is not None:
+                prior_state_var_types[sp.name] = self._var_type.get(sp.name)
+                self._var_type[sp.name] = sp.type_ref.name
+
         # do_while: body runs once unconditionally first.
         if decl.kind == "do_while":
             self._emit(f"# do_while: body runs once unconditionally first.")
@@ -1487,6 +1503,12 @@ class BaseCodegen:
         self._loop_state_stack.pop()
         self._iterator_runtime_in_scope = prior_iter_runtime
         self._element_runtime_in_scope = prior_elem_runtime
+        # Restore any state-param types shadowed in _var_type above.
+        for _sp_name, _sp_prior in prior_state_var_types.items():
+            if _sp_prior is None:
+                self._var_type.pop(_sp_name, None)
+            else:
+                self._var_type[_sp_name] = _sp_prior
         # Restore class context if it was set for this loop body.
         if is_class_method:
             self._current_class_name = prior_class_name
