@@ -24,7 +24,7 @@ The Sutra compiler is a normal compiler in shape — lexer, parser, simplifier, 
 
 These are tensor operations. Bundle is a sum. Bind and unbind are matrix multiplies against orthogonal matrices. Similarity is a dot product. Argmax_cosine is a matrix-vector multiply followed by an argmax. Select is a softmax-weighted sum. A loop is iterated matrix-vector multiplication with a substrate-resident soft-halt check — see [Loops](loops.md) for the declared-function surface.
 
-The current default substrate is `nomic-embed-text` (768-dimensional vectors, mean-centered, served via Ollama). String literals in `vector` contexts auto-embed: `vector v = "cat"` is short for "embed the string 'cat' and bind the result to `v`." The runtime caches embeddings and batches Ollama round-trips at module init.
+The current default substrate is `nomic-embed-text` (768-dimensional vectors, mean-centered, served via Ollama). On top of those 768 *semantic* axes the runtime appends 100 *synthetic* axes — used to encode numbers, truth values, and string codepoints — so a full runtime vector is 868-dimensional. (A different substrate changes the semantic count: `mxbai-embed-large`, for instance, is 1024-d.) String literals in `vector` contexts auto-embed: `vector v = "cat"` is short for "embed the string 'cat' and bind the result to `v`." The runtime caches embeddings and batches Ollama round-trips at module init.
 
 ## Why no host-side control flow
 
