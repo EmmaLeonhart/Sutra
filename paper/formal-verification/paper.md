@@ -179,14 +179,29 @@ antipodal encoding). Measured: **worst |error| = 0.0** across the grid — exact
 not approximate. The polynomials checked are the ones the compiler emits:
 `a&&b = (a+b+ab−a²−b²+a²b²)/2`, `a||b = (a+b−ab+a²+b²−a²b²)/2`, `!a = −a`.
 
-The **off-grid branch-range obligation is also discharged.** Off the grid the
-polynomials interpolate (they do not reproduce min/max exactly there — that is
-the intended C^∞ behaviour between grid points); what soundness requires is that
-they never produce an out-of-range "truth" value. Measured on a dense sweep of
-the continuous fuzzy domain [−1, +1]²: the connective outputs stay in
-**[−1.000000, +1.000000]** — no over/undershoot anywhere. So the connectives are
-valid truth-axis operations across the whole domain, not just at the grid. (Both
-checks: `sdk/sutra-compiler/tests/test_fv_kleene_grid_exactness.py`.)
+The **off-grid branch-range obligation is also discharged — in closed form.**
+Off the grid the polynomials interpolate (they do not reproduce min/max exactly
+there — that is the intended C^∞ behaviour between grid points); what soundness
+requires is that they never produce an out-of-range "truth" value anywhere in the
+continuous fuzzy domain [−1, +1]². We discharge this not by sampling but with the
+**first piece of the bespoke checker**: a polynomial range-bounder
+(`sdk/sutra-compiler/sutra_compiler/fv_poly_bound.py`) that computes the exact
+global extrema of a polynomial over an axis-aligned box by the compact-domain
+extremum argument — the extrema lie at stationary points of the restriction to
+some face of the box, so the candidate set is the box corners, the edge-interior
+gradient-zero points, and the interior gradient-zero points, solved and evaluated
+in exact (rational/algebraic) arithmetic. Run on the three connectives it returns
+**exact range [−1, +1]** (minimum −1, maximum +1 — a proof, not a measured
+min/max). To ensure the bound applies to *what the compiler emits* rather than a
+hand-copied polynomial, the test first cross-checks the symbolic polynomials
+against the torch substrate on the {−1, 0, +1}² grid — which uniquely determines a
+degree-≤2-per-variable polynomial — plus off-grid points (agreement to 6×10⁻⁸),
+then bounds. (`sdk/sutra-compiler/tests/test_fv_poly_obligation_checker.py`;
+grid-exactness: `test_fv_kleene_grid_exactness.py`.) This is the branch-range
+obligation discharged for the primitive connectives; bounding the *composed*
+polynomials of arbitrary reduced programs is the same tool on larger,
+higher-degree inputs — see §3.4 for why the degree, not the path count, is the
+cost that grows.
 
 The same grid saturation makes selection exact in practice: a sufficiently
 sharpened softmax `select` is a *true* one-hot, because `exp(−k)` underflows to
@@ -215,11 +230,17 @@ Boolean and linear arithmetic, not the polynomial obligations TNF produces. The
 methodology is *not* "feed it to an SMT solver and hope." For the obligations we
 discharge here it is concrete and finite: grid-exactness is a nine-point
 evaluation; range-soundness is a bound on a low-degree polynomial over a box,
-obtained by checking the finite set of critical points (box corners plus interior
-stationary points where the gradient vanishes) — closed-form, not search; loop
-termination is structural plus a saturation observation. The *general* checker
-that would discharge an arbitrary reduced-graph obligation is the bulk of the
-remaining work and is **not built**.
+obtained by checking the finite set of critical points (box corners plus
+edge-interior and interior stationary points where the gradient vanishes) —
+closed-form, not search; loop termination is structural plus a saturation
+observation. **The range-bounder is built** (`fv_poly_bound.py`, §3.2 above) —
+the first working piece of the bespoke checker, exact arithmetic, sound by the
+compact-domain extremum theorem. What is *not* built is the **general** checker:
+the front-end that takes an arbitrary reduced-graph obligation, extracts its
+polynomial directly from the emitted TNF (rather than from a cross-checked
+restatement), and routes it through the bounder. That generalisation — extraction
+from the TNF, and bounding the higher-degree composed polynomials of whole
+programs — is the bulk of the remaining work.
 
 **3.4 The cost: expression size and numerical stability.** Removing the branch as
 a control-flow object is not free, and the honest accounting matters. We trade
