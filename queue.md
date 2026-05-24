@@ -122,22 +122,27 @@ Same test file adds a dense [−1,+1]² sweep: the connective outputs stay in
 polynomials are valid truth-axis operations across the whole fuzzy domain, not
 just at the grid. Paper §3.2 updated.
 
-**Next, bounded, verifiable:**
+**DONE 2026-05-24 — §3.3 termination obligation (third discharged).**
+`sdk/sutra-compiler/tests/test_fv_termination.py`: bounded + monotone-halt,
+structurally (`for _t in range(max_iters)`; `halted = min(halted+halt, 1)`,
+`halt = sigmoid ≥ 0`) and observably on the torch substrate — a converged loop
+is **exactly frozen across unroll depth (diff = 0.0)** and a non-converging loop
+runs to the bound and stops (`iters_active = 9.998/10`, never exceeds T). Paper
+§3.3 updated. **Three of the framework's obligation families now have mechanical
+checks; only §3.1 (contract) remains, and it needs a design step.**
 
-1. **Contract-obligation check for one program (`echo`).** §3.1 obligation:
-   verify the emitted TNF reads only its declared read-roles / writes only its
-   write-roles. **NOTE (2026-05-24): needs a design step first** — the kernel
-   manifest declares *roles*, but the compiler's `AXON_KEYS_READ`/`BOUND` are
-   axon *keys* (a different level), and role-level routing is enforced by the
-   kernel by construction (nothing independent to check). So there is no
-   manifest-declared *key* contract to check against yet. Either (a) add a
-   key-level contract to the manifest, or (b) recast §3.1 as a role-level
-   property. Don't ship a vacuous check; settle the role-vs-key semantics in
-   `planning/sutra-spec/formal-verification.md` first.
-2. **Termination obligation (§3.3).** For a tail-recursive soft-halt loop,
-   check the halt signal is monotone within bounded steps — the soft-halt loop
-   lowering already exists (`test_branchless_loop.py`); build the monotonicity
-   check on top.
+**Next — needs design, not a quick check:**
+
+1. **Contract-obligation check (§3.1).** Verify the emitted TNF reads only its
+   declared read-roles / writes only its write-roles. **Needs a design step
+   first** — the kernel manifest declares *roles*, but the compiler's
+   `AXON_KEYS_READ`/`BOUND` are axon *keys* (a different level), and role-level
+   routing is enforced by the kernel by construction (nothing independent to
+   check). So there is no manifest-declared *key* contract to check against yet.
+   Either (a) add a key-level contract to the manifest, or (b) recast §3.1 as a
+   role-level property. Don't ship a vacuous check; settle the role-vs-key
+   semantics in `planning/sutra-spec/formal-verification.md` first. This is the
+   one obligation that genuinely needs a deliberate design session.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.

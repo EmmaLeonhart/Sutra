@@ -162,6 +162,17 @@ recurrence `state ← R · state` with a fixed-width state vector and a halt cel
 Termination reduces to "the halt signal is monotone within bounded steps,"
 discharged per loop — far smaller than proving an arbitrary `while` terminates.
 
+**This obligation is discharged**, structurally and observably. Structurally the
+emitted loop is `for _t in range(max_iters)` (bounded by construction, no
+unbounded `while`) and `halted = min(halted + halt, 1)` with `halt = sigmoid(·)
+≥ 0` (monotone non-decreasing, capped at 1; on saturation `state =
+(1−halted)·cand + halted·state` freezes). Observably (torch substrate): a
+non-converging loop runs to the bound and stops (`iters_active = 9.998/10`,
+never exceeding `max_iters` — bounded, no hang); a converging loop is **exactly
+frozen** across unroll depth — its state at `T=20` equals its state at `T=10`,
+**diff = 0.0** — so the monotone cumulative halt, once saturated, holds. Check:
+`sdk/sutra-compiler/tests/test_fv_termination.py`.
+
 Discharging §3.2 needs a bespoke checker: off-the-shelf SMT solvers target
 Boolean and linear arithmetic, not the polynomial obligations TNF produces.
 Building and qualifying that checker is the bulk of the remaining work and is
