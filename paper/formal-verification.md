@@ -10,12 +10,15 @@ usually abandoned outright. We argue that **Sutra**, a typed purely-functional
 language whose compiled forward pass *is* a tensor-op graph, changes the shape of
 the problem for the non-learned part of a system. Every Sutra program
 β-reduces to a **tensor normal form (TNF)**: one fused tensor-op graph over a
-frozen substrate, in which `if/else` has become a Lagrange-interpolated
-polynomial exact on the {−1, 0, +1} truth grid and each loop has become a
-bounded soft-halt recurrence. Because semantically equivalent programs reduce to
-the same graph, verifying the **trusted base** — kernel roles and named critical
-programs — reduces from imperative-path enumeration to **discharging a finite set
-of closed-form obligations over a small, fixed set of tensor graphs.**
+frozen substrate. Crucially, the construct that makes conventional verification
+expensive — the branch — disappears: `if/else` reduces to a **single
+three-valued-Kleene polynomial**, Lagrange-interpolated and exact on the
+{−1, 0, +1} truth grid, and each loop to a bounded soft-halt recurrence. Because
+branches are polynomials rather than forks, the path set does not explode; and
+because semantically equivalent programs reduce to the same graph, verifying the
+**trusted base** — kernel roles and named critical programs — reduces from
+imperative-path enumeration to **discharging a finite set of closed-form
+obligations over a small, fixed set of tensor graphs.**
 
 We make this precise as three per-construct obligation families (contract /
 branch-range / termination), and we ground the claim that the reduced form is
@@ -60,7 +63,10 @@ learned part is quarantined behind contracts and monitoring.
 1. **The reduction** (§2): why TNF is a normal form and not constant folding,
    and why equivalence on the reduced graph is algebra.
 2. **The obligation framework** (§3): three per-construct obligation families —
-   contract, branch-range, termination — that a checker would discharge.
+   contract, branch-range, termination — that a checker would discharge. The
+   branch-range family (§3.2), built on **three-valued polynomial Kleene logic**,
+   is the one that removes path explosion: branches become closed-form
+   polynomials, not forks, so the cost of conditionals stops being exponential.
 3. **The faithfulness evidence** (§4): the measured substrate exactness that
    makes the reduction meaningful rather than rhetorical, including a downstream
    OS computing bit-exactly through its kernel.
@@ -103,16 +109,35 @@ the role-to-role function it computes is the one `C` specifies. The compiler
 already emits the static read/write key sets (`AXON_KEYS_READ`,
 `AXON_KEYS_BOUND`) that seed the role half of this obligation.
 
-**3.2 Branch-range obligations (from polynomial Kleene logic).** Source `if/else`
-reduces to a polynomial that interpolates between branches on a fuzzy truth
-value. The Kleene connectives are Lagrange-interpolated polynomials, exact on the
-{−1, 0, +1} truth grid and smooth elsewhere. The obligation per branch is a
-closed-form bound on the polynomial's range and sign over the truth-axis domain —
-a symbolic question, not a path enumeration. The same saturation that makes the
-grid exact makes selection exact in practice: a sufficiently sharpened softmax
-`select` is a *true* one-hot, because `exp(−k)` underflows to exactly 0 in
-float32 for modest `k`, so unselected branches are multiplied by exact zero
-rather than a small residue.
+**3.2 Branch-range obligations (from polynomial Kleene logic).** This family
+carries most of the weight, because branches are what make conventional
+verification expensive: each `if/else` doubles the path set, so a trusted base
+with *b* branches presents up to 2ᵇ paths — the state-space explosion that
+imperative verification has to fight. Sutra removes the branch as a control-flow
+object. Source `if/else` reduces to a **single polynomial** that interpolates
+between the branch values on a fuzzy truth value; the connectives are the
+**three-valued Kleene** operators (`and`, `or`, `not`, the t-norms) realised as
+**Lagrange-interpolated polynomials exact on the 3×3 Kleene grid** over
+{−1 = false, 0 = unknown, +1 = true}, branchless and smooth (hence gradient-
+compatible) off the grid.
+
+Two consequences matter for verification. First, **branchlessness collapses the
+path set**: a branch is no longer a fork to enumerate but a polynomial whose
+value the truth-axis scalar determines, so the obligation is a closed-form bound
+on that polynomial's range and sign over [−1, +1] — a polynomial extremum/root
+problem, not a path walk. Second, **three-valued rather than Boolean is the right
+logic for a substrate that mixes exact symbolic and uncertain learned signals**:
+the middle value (unknown) is first-class, so the verifier reasons about
+"undetermined" directly instead of forcing a premature Boolean collapse, while
+the crisp true/false cases stay bit-exact because the interpolation is exact on
+the grid. A finite nine-point check (the polynomial reproduces the Kleene table
+at {−1, 0, +1}²) anchors the smooth form to the discrete logic it stands in for.
+
+The same grid saturation makes selection exact in practice: a sufficiently
+sharpened softmax `select` is a *true* one-hot, because `exp(−k)` underflows to
+exactly 0 (float32 for modest `k`; far below ulp in float64), so unselected
+branches are multiplied by exact zero rather than a small residue — the mechanism
+behind the bit-exact operator dispatch in §4.3.
 
 **3.3 Termination obligations (from soft-halt loops).** Each loop is a bounded
 recurrence `state ← R · state` with a fixed-width state vector and a halt cell.
