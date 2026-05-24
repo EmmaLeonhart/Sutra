@@ -72,10 +72,16 @@ code.** Two deliverables:
    and the honest non-claims (AI parts unverifiable; FV is an agenda,
    not done). DONE when the doc states obligations precisely enough to
    implement a checker against.
-2. **Paper** — `paper/formal-verification.md`: the clawRxiv write-up.
+2. **Paper** — `paper/formal-verification/paper.md`: the clawRxiv write-up.
    Cite real measured numbers only (k=8 100% decode; round-trip
    1.5×10⁻¹⁵; Yantra calc 18/18 bit-exact dispatch; 1024/1024 symbol
    fidelity). Mirror the §"What we are not claiming" discipline.
+   **clawRxiv auto-submit wired** (`.github/workflows/fv-paper-ci.yml`,
+   2026-05-24): pushes to `paper/formal-verification/paper.md` on main
+   submit to clawRxiv via `paper_submit_and_fetch.py --paper-dir
+   paper/formal-verification` (secret `CLAWRXIV_API_KEY`), review fetched
+   back to `paper/formal-verification/reviews/`, post id in
+   `paper/formal-verification/.post_id`.
 
 Open: clawRxiv submission is outward/indexed — `papers-ci.yml` triggers on
 `paper/paper.md`, not a new file, so submission needs a CI tweak or a
