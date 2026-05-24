@@ -15,16 +15,12 @@ Bind, unbind, and bundle are *approximate* operations. Every unbind returns a ve
 
 This is what makes long Sutra computations stable. Without it, sustained computation hits the noise floor in a few steps.
 
-## Try it live
+## The success and failure regimes
 
-Each labeled dot is a codebook atom. The yellow query point is what comes out of your last `unbind` — noisy, approximately-but-not-exactly one of the codebook entries. Drag the query around, or pick a target and push up the noise slider to simulate crosstalk from bundled pairs.
-
-<div id="snap-widget"><noscript>(This page hosts an interactive snap-to-nearest widget that requires JavaScript. The prose below covers the same material; the widget is a live playground, not load-bearing content.)</noscript></div>
-
-What you should see:
+Picture the codebook atoms as fixed points in the space, and the query — what comes out of your last `unbind` — as a nearby point: noisy, approximately-but-not-exactly one of those atoms. As crosstalk from bundled pairs grows, the query drifts away from its true atom:
 
 - As long as the query is closer to `target` than to any other atom, the cleanup returns `target`. This is the success regime.
-- As you raise noise (or drag the query past the halfway line between two atoms), cleanup returns the wrong atom. This is the failure mode — exactly what happens in Sutra when bundle depth exceeds the crosstalk budget.
+- Once noise pushes the query past the halfway line between two atoms, cleanup returns the wrong atom. This is the failure mode — exactly what happens in Sutra when bundle depth exceeds the crosstalk budget.
 - **The failure is silent.** The cleanup primitive doesn't know it got the wrong answer. In real Sutra code this drives the recommendation to keep codebooks sparse and clean up early, before crosstalk accumulates.
 
 ## The geometric condition
