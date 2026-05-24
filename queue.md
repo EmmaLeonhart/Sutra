@@ -55,6 +55,20 @@ see §"Watchdogs" below.
 
 ## Active
 
+### `dot` builtin exposed (yantra-driven branch, 2026-05-24)
+
+`dot(a, b)` → `_VSA.dot` (0-d scalar) is now a callable builtin
+(`codegen_base.py` BUILTINS). It was listed as "Blocked on: dot" in
+`stdlib/similarity.su` + `logic.su`. Driver: Yantra's calculator needs a
+clean separating scalar score for `select`-based operator dispatch —
+`dot(op - make_real(t), make_real(1.0))` reads the real-axis coordinate
+`op - t` while zeroing every other axis (including axon-recovery noise),
+so scores `-120·(op-t)²` saturate `select`'s softmax to an EXACT one-hot
+(`exp(-120)` underflows to 0.0), giving 18/18 bit-exact dispatch (Emma's
+"defuzzify select enough" approach, verified). On `yantra-driven` only;
+merge to master is Emma's manual call. Follow-on: this also unblocks
+porting `stdlib/similarity.su`'s `dot`-based cosine into real `.su`.
+
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
 
 `==`, `!=`, `!` bounds inherit the pre-existing FUZZY numeric-equality

@@ -121,6 +121,42 @@ The rule the user wants codified: **read the spec, verify against
 ground truth, barrel through; don't multiply caution by quoting
 prior sessions.**
 
+### When Emma gives an algorithmic explanation, IMPLEMENT it — don't brush it off
+
+**Added 2026-05-24 after a repeated, costly pattern.** Emma designed
+Sutra and knows its mechanisms — defuzzification, saturation, the
+canonical axes, `select`, binding — far better than any agent landing
+in this repo. The recurring failure mode: Emma gives a concrete
+algorithmic explanation of how to do something on the substrate; the
+agent decides it "can't work," substitutes its own variant, the
+variant fails or is uglier, and the agent reports the idea as blocked.
+**Almost every time, Emma's original idea was correct** and the agent
+simply never built the thing she actually described.
+
+Concrete instance (2026-05-24): exact operator dispatch for the Yantra
+calculator. Emma said *defuzzify `select` enough and the branches stop
+blending.* The agent first concluded "`select` is softmax, never a hard
+one-hot, so it can't be exact," then tried Lagrange polynomial masks,
+then elementwise `tanh` masks (which failed on vector noise). Only when
+it finally built **the literal thing Emma described** — `select` with
+scores sharpened past the float32 softmax-saturation point (`exp(-120)`
+underflows to exactly `0.0`), scored by `dot(op - t, make_real(1))` —
+did it come out **18/18 bit-exact**. The detour burned most of a session.
+
+The rule:
+1. **When Emma describes an algorithm, implement that algorithm first**,
+   exactly as described, before proposing alternatives. Build it, run it,
+   read the real output.
+2. **"I think that can't work" is a hypothesis to test, not a
+   conclusion.** Test it on the substrate. The integrity rules *require*
+   measuring; they never license dismissing an idea unmeasured.
+3. **If it seems not to compose, the gap is usually a primitive to
+   expose, not a wrong idea.** Here `dot` simply wasn't a callable
+   builtin; exposing it made Emma's approach work.
+4. **Substituting your own variant for Emma's stated method is the
+   anti-pattern** — especially on Sutra internals, where she has the
+   ground truth and you do not.
+
 ## Cross-repo workflow: Sutra ↔ Yantra
 
 Sutra is consumed downstream by **Yantra**

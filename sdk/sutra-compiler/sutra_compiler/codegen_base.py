@@ -260,6 +260,16 @@ def _builtin_array_get(args: List[str]) -> str:
     return f"{args[0]}[{args[1]}]"
 
 
+def _builtin_dot(args: List[str]) -> str:
+    # Substrate-pure inner product → 0-d tensor (scalar) via `_VSA.dot`.
+    # Listed as "Blocked on: dot" in stdlib/similarity.su + logic.su.
+    # Key use: `dot(v, make_real(1.0))` reads the real-axis coordinate of
+    # `v` as a clean scalar (the unit vector zeroes every other axis,
+    # including axon-recovery noise) — exactly the separating score that
+    # lets `select` saturate to an exact one-hot (Yantra apps/calc).
+    return f"_VSA.dot({args[0]}, {args[1]})"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -288,6 +298,10 @@ BUILTINS = {
     "real_number": (_builtin_real_number, 1),
     "complex_number": (_builtin_complex_number, 2),
     "truth_value": (_builtin_truth_value, 1),
+    # Inner product → scalar (`_VSA.dot`). Substrate-pure; listed as
+    # "Blocked on: dot" in stdlib/similarity.su + logic.su. A backend
+    # lacking the method fails at runtime with a clear AttributeError.
+    "dot": (_builtin_dot, 2),
     # Plain-list array helpers used by the TS transpiler's primitive-
     # array lowering. The richer binding-array runtime methods on the
     # `_VSA` class are reached through different paths.
