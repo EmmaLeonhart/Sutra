@@ -294,18 +294,6 @@ return a > b;   // error: ordered comparison is not defined on truth-axis values
 
 If a custom class wants comparison semantics, it can override the operators. The base language reserves ordered comparison for the number axis.
 
-### Type rules
-
-Comparison is defined only on number-family operands: `int`, `float`, `complex` (via its real axis), `char`, `number`. It is a **compile-time error** to compare truth-family values (`bool`, `fuzzy`, `trit`) with `>` / `<` / `>=` / `<=`:
-
-```c
-fuzzy a = 0.7;
-fuzzy b = 0.3;
-return a > b;   // error: ordered comparison is not defined on truth-axis values
-```
-
-If a custom class wants comparison semantics, it can override the operators. The base language reserves ordered comparison for the number axis.
-
 ### Why not a polynomial like AND / OR
 
 AND / OR / NOT / equality / defuzzification live on the truth axis — values are in `[-1, +1]`, and polynomial forms give exact results at the three-valued grid while staying smooth. Ordered comparison is different: the inputs are on the *number* axis, which is unbounded, so a fixed-degree polynomial can't be exact over the whole domain. The `tanh` form is what a continuous-sign operation looks like when the inputs aren't bounded to `[-1, +1]` — it saturates at the ends, smoothly interpolates in the middle, and carries a gradient.
@@ -359,4 +347,3 @@ Equality `a == b` on vectors is cosine similarity projected onto the truth axis 
 
 - [Primitive classes](primitive-classes.md) — the broader "everything is a vector" picture.
 - [Numeric math](numeric-math.md) — the arithmetic counterpart to this page.
-- [Fuzzy logic explorer](interactive/fuzzy-logic.md) — slider-driven interactive demo of these operations.

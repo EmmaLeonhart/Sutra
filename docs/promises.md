@@ -304,4 +304,4 @@ async function Promise<String> fetchLabel(String q) {
 
 ## Reference
 
-Full spec — including the lowering rules, rejection-propagation semantics, and the open questions tracked against the implementation — lives at [`planning/sutra-spec/promises.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/sutra-spec/promises.md). The phased implementation plan tracks against [`queue.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/queue.md) item 1.
+The full design — lowering rules, rejection-propagation semantics, and the open questions tracked against the implementation — lives with the language specification in [the Sutra repository](https://github.com/EmmaLeonhart/Sutra).

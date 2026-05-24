@@ -1,6 +1,6 @@
 # Demos
 
-Ten `.su` programs live in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/master/examples) and are exercised end-to-end by the smoke test:
+Ten of the `.su` programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/master/examples) are exercised end-to-end by the smoke test (the directory holds more — see [Other examples](#other-examples-in-the-directory) below):
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
