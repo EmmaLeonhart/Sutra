@@ -116,16 +116,28 @@ table (and=min, or=max, not=negate) with **worst |err| = 0.0** (exact, not
 approximate). Paper §3.2 updated. The smooth-polynomial → discrete-logic
 anchor now has a mechanical guard.
 
+**DONE 2026-05-24 — §3.2 off-grid branch-range obligation (second discharged).**
+Same test file adds a dense [−1,+1]² sweep: the connective outputs stay in
+**[−1.000000, +1.000000]** (measured) — no over/undershoot off-grid, so the
+polynomials are valid truth-axis operations across the whole fuzzy domain, not
+just at the grid. Paper §3.2 updated.
+
 **Next, bounded, verifiable:**
 
-1. **Contract-obligation check for one program (`echo`).** From the
-   compiler's `AXON_KEYS_READ`/`AXON_KEYS_BOUND`, mechanically verify the
-   emitted TNF reads only its declared read-roles and writes only its
-   write-roles — the §3.1 obligation, discharged for a real program.
-2. **Branch-range obligation (one branch).** Bound a reduced branch
-   polynomial's range/sign over the truth-axis domain [−1,+1] (extremum/
-   root, closed form) — the §3.2 obligation in miniature. (The grid-exact
-   anchor above is in hand; this is the off-grid bound.)
+1. **Contract-obligation check for one program (`echo`).** §3.1 obligation:
+   verify the emitted TNF reads only its declared read-roles / writes only its
+   write-roles. **NOTE (2026-05-24): needs a design step first** — the kernel
+   manifest declares *roles*, but the compiler's `AXON_KEYS_READ`/`BOUND` are
+   axon *keys* (a different level), and role-level routing is enforced by the
+   kernel by construction (nothing independent to check). So there is no
+   manifest-declared *key* contract to check against yet. Either (a) add a
+   key-level contract to the manifest, or (b) recast §3.1 as a role-level
+   property. Don't ship a vacuous check; settle the role-vs-key semantics in
+   `planning/sutra-spec/formal-verification.md` first.
+2. **Termination obligation (§3.3).** For a tail-recursive soft-halt loop,
+   check the halt signal is monotone within bounded steps — the soft-halt loop
+   lowering already exists (`test_branchless_loop.py`); build the monotonicity
+   check on top.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
