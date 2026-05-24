@@ -1,0 +1,8 @@
+# Consolidate author aliases to the single canonical identity.
+# This is a presentation-layer mapping: it normalizes `git log`,
+# `git shortlog`, and GitHub's contributor view without rewriting
+# history (no commit SHAs change), so the arXiv-freeze commit
+# hashes, the version tags, and Yantra's submodule pin all stay valid.
+Emma-Leonhart <EmmaLeonhart@proton.me> <ericrichardbishop@gmail.com>
+Emma-Leonhart <EmmaLeonhart@proton.me> immanuelle-leonhart <EmmaLeonhart@proton.me>
+Emma-Leonhart <EmmaLeonhart@proton.me> Emma Leonhart <EmmaLeonhart@proton.me>

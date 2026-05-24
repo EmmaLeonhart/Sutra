@@ -5,7 +5,7 @@
 ("every Sutra operation must actually run where the spec says it
 runs"). Strings passed through user functions were running as host
 Python `str` values, not substrate-encoded codepoint arrays.
-**Reporter:** Emma 2026-05-10 ("no fucking host python oh my god
+**Reporter:** Emma 2026-05-10 ("no host python oh my god
 fix it immediately how did this happen").
 **Fix:** Destination-type-driven literal coercion in `codegen_base.py`
 (this commit).
