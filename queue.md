@@ -55,6 +55,33 @@ see §"Watchdogs" below.
 
 ## Active
 
+### Formal-verification paper (spine: trusted base → tensor normal form)
+
+New clawRxiv paper on Sutra formal verification (Emma 2026-05-24).
+Develops on `yantra-driven`; a NEW file, NOT the frozen `paper/paper.md`
+or `paper/neurips/`. Spine chosen: **the trusted base reduces to a tensor
+normal form, so verifying it is discharging a finite set of polynomial
+obligations over a small set of tensor graphs — not navigating imperative
+code.** Two deliverables:
+
+1. **Rules / framework** — `planning/sutra-spec/formal-verification.md`:
+   the canonical spec of what we verify, the three reduction pillars
+   (β-reduction → TNF; polynomial Kleene branches; tail-recursive
+   soft-halt loops), the per-construct proof obligations, scope
+   (contract surface of named programs, NOT whole-system closed form),
+   and the honest non-claims (AI parts unverifiable; FV is an agenda,
+   not done). DONE when the doc states obligations precisely enough to
+   implement a checker against.
+2. **Paper** — `paper/formal-verification.md`: the clawRxiv write-up.
+   Cite real measured numbers only (k=8 100% decode; round-trip
+   1.5×10⁻¹⁵; Yantra calc 18/18 bit-exact dispatch; 1024/1024 symbol
+   fidelity). Mirror the §"What we are not claiming" discipline.
+
+Open: clawRxiv submission is outward/indexed — `papers-ci.yml` triggers on
+`paper/paper.md`, not a new file, so submission needs a CI tweak or a
+manual API push (key in `LOKA_README.md`); do it only on Emma's explicit
+go, and from the right branch.
+
 ### `dot` builtin exposed (merged to main 2026-05-24, v0.6.1)
 
 `dot(a, b)` → `_VSA.dot` (0-d scalar) is now a callable builtin
