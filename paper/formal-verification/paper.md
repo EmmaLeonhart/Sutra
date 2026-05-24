@@ -38,13 +38,18 @@ learned weight. **Three obligation families already have working mechanical
 checks** that run on the substrate — Kleene-gate exactness (worst error 0.0
 across the truth grid), connective range-soundness (outputs provably in [−1, +1]
 over the whole fuzzy domain), and loop termination (bounded + monotone halt) —
-plus the kernel-enforced role-isolation half of the contract obligation. The
-*general* polynomial-obligation checker that would discharge an arbitrary
-obligation is specified but not yet built; what is built is the per-construct
-discharge for each family above. The contribution is a verification *framework
-and reduction with its first obligations mechanically discharged*, an explicit
-account of the costs (§3.4) and the boundary (§5), and the argument that the
-reduction is real rather than rhetorical.
+plus the kernel-enforced role-isolation half of the contract obligation. Beyond
+the per-construct checks, **equivalence is now mechanically decided for the
+Kleene-logic fragment** — a checker extracts each expression's polynomial via the
+compiler's own lowering and decides graph-identity by `expand(p₁ − p₂) = 0` for
+arbitrary nesting (and reports grid-level logical equivalence separately); running
+it yields a concrete counterexample (distributivity) that sharpens, rather than
+inflates, the canonicalisation claim. The *general* checker for arbitrary
+obligations is not built, and the closed-form range bounder does not yet scale to
+deep nesting (a measured wall, §3.4). The contribution is a verification
+*framework and reduction with its first obligations mechanically discharged*, an
+explicit account of the costs (§3.4) and the boundary (§5), and the argument that
+the reduction is real rather than rhetorical.
 
 ---
 
@@ -122,6 +127,23 @@ claim, and what the rewrite set delivers, is that equivalence checking is *moved
 into algebra over the reduced graph* and is exact for the rewrites it implements.
 The §3.2/§3.3 obligation discharges below do not depend on full canonicalisation —
 they bound and check individual reduced graphs directly.
+
+**Mechanically decided for the Kleene-logic fragment, with a measured
+counterexample that sharpens the claim.** For the fragment built from the Kleene
+connectives (`&&`, `||`, `!`) we *do* decide equivalence mechanically: a checker
+(`fv_obligation_checker.py`) extracts each expression's polynomial via the
+compiler's own inliner pass and decides "reduces to the same graph" by polynomial
+identity, `expand(p₁ − p₂) = 0` — exact, for arbitrary nesting depth. Running it
+makes the scope precise rather than rhetorical. De Morgan, commutativity, and
+double negation reduce to *identical* polynomials (same graph). **Distributivity
+does not:** `a ∧ (b ∨ c)` and `(a ∧ b) ∨ (a ∧ c)` agree at all 27 points of the
+{−1, 0, +1}³ Kleene grid (they are logically equivalent) but reduce to *different*
+polynomials off-grid. So "reduces to the same graph" is **strictly stronger** than
+"logically equivalent," and the reduction is a *sound partial* canonicaliser —
+exactly as scoped above, now with a concrete witness rather than an assertion. The
+checker reports both notions (graph-identity and grid-equivalence) and refuses
+(does not guess) on anything outside the polynomial fragment — a comparison or a
+runtime intrinsic.
 
 ## 3. The obligation framework
 
@@ -235,12 +257,13 @@ edge-interior and interior stationary points where the gradient vanishes) —
 closed-form, not search; loop termination is structural plus a saturation
 observation. **The range-bounder is built** (`fv_poly_bound.py`, §3.2 above) —
 the first working piece of the bespoke checker, exact arithmetic, sound by the
-compact-domain extremum theorem. What is *not* built is the **general** checker:
-the front-end that takes an arbitrary reduced-graph obligation, extracts its
-polynomial directly from the emitted TNF (rather than from a cross-checked
-restatement), and routes it through the bounder. That generalisation — extraction
-from the TNF, and bounding the higher-degree composed polynomials of whole
-programs — is the bulk of the remaining work.
+compact-domain extremum theorem. The **general** front-end now exists for the
+Kleene fragment: it extracts an arbitrary expression's polynomial by running the
+compiler's own inliner pass and walking the lowered arithmetic (cross-checked
+against the compiled substrate), then decides equivalence (§2) or bounds the
+range. What remains is (i) extracting directly from the *emitted TNF* rather than
+from this inliner restatement, and (ii) a bounder that *scales* — the current
+critical-point bounder hits a wall on deep nesting, quantified next.
 
 **3.4 The cost: expression size and numerical stability.** Removing the branch as
 a control-flow object is not free, and the honest accounting matters. We trade
@@ -255,12 +278,22 @@ trade is usually favourable, but it is a trade, not a free lunch. There is a rea
 mitigation native to the substrate: **defuzzification** (`is_true`/`snap`) between
 nesting levels polarises a value back toward the {−1, 0, +1} grid, which caps the
 degree that propagates into the next level rather than letting it compound; the
-cost is then paid in defuzz iterations instead of degree. **Numerical stability:**
-we have *measured* exactness for the single connectives (worst error 0.0 on the
-grid, range in [−1, +1]) and for full arithmetic through a downstream kernel (§4),
-but the float behaviour of *deeply nested, un-defuzzified* high-degree
-compositions is **not yet characterised** — quantifying it (and the degree at
-which conditioning degrades) is open work, flagged here rather than waved past.
+cost is then paid in defuzz iterations instead of degree. **This is not
+hypothetical: the bounder hits the wall.** The closed-form critical-point bounder
+returns the exact range fast for the primitive connectives and shallow
+two-variable nestings, but on a deep four-variable expression
+(`((a∧b) ∨ (c∧d)) ∧ ¬(a∨d)`) the degree growth makes the per-face stationary-point
+solve intractable and the run does not terminate — measured, then reported, not
+hidden. So the per-construct discharge is real but the *general* discharge needs a
+bounder that scales (interval branch-and-bound, or defuzzification between levels
+to cap degree); the equivalence decision (§2) has no such limit, since polynomial
+identity and grid evaluation are cheap regardless of degree. **Numerical
+stability:** we have *measured* exactness for the single connectives (worst error
+0.0 on the grid, range in [−1, +1]) and for full arithmetic through a downstream
+kernel (§4), but the float behaviour of *deeply nested, un-defuzzified*
+high-degree compositions is **not yet characterised** — quantifying it (and the
+degree at which conditioning degrades) is open work, flagged here rather than
+waved past.
 
 ## 4. Faithfulness: the reduction is computed exactly
 
@@ -345,13 +378,17 @@ exactness (worst error 0.0), connective range-soundness (outputs in [−1, +1]),
 and loop termination — plus the kernel-enforced role-isolation half of the
 contract obligation. The premise that the reduced form is computed exactly is
 borne out by the measured substrate exactness, including a downstream OS that
-computes bit-exactly through its kernel. What remains is the *general* polynomial-
-obligation checker (the per-construct discharges exist; the arbitrary-obligation
-tool does not), the harder halves of the contract obligation (function
-correctness, static-key soundness), and characterising the numerical cost of deep
-branch-nesting (§3.4). The contribution is the reduction, the framework, and its
-first obligations discharged — with an explicit boundary around the learned parts
-the method deliberately does not touch.
+computes bit-exactly through its kernel. Beyond the per-construct checks,
+equivalence is mechanically decided for the Kleene-logic fragment (graph-identity
+by polynomial equality; grid-level logical equivalence reported separately), with
+distributivity as a measured witness that the reduction canonicalises some but not
+all logical equivalences. What remains is the *general* obligation checker for
+arbitrary programs, a range bounder that *scales* past the deep-nesting wall
+(§3.4), the harder halves of the contract obligation (function correctness,
+static-key soundness), and characterising the numerical cost of deep
+branch-nesting. The contribution is the reduction, the framework, and its first
+obligations discharged — with an explicit boundary around the learned parts the
+method deliberately does not touch.
 
 ---
 
