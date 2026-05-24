@@ -142,6 +142,15 @@ antipodal encoding). Measured: **worst |error| = 0.0** across the grid — exact
 not approximate. The polynomials checked are the ones the compiler emits:
 `a&&b = (a+b+ab−a²−b²+a²b²)/2`, `a||b = (a+b−ab+a²+b²−a²b²)/2`, `!a = −a`.
 
+The **off-grid branch-range obligation is also discharged.** Off the grid the
+polynomials interpolate (they do not reproduce min/max exactly there — that is
+the intended C^∞ behaviour between grid points); what soundness requires is that
+they never produce an out-of-range "truth" value. Measured on a dense sweep of
+the continuous fuzzy domain [−1, +1]²: the connective outputs stay in
+**[−1.000000, +1.000000]** — no over/undershoot anywhere. So the connectives are
+valid truth-axis operations across the whole domain, not just at the grid. (Both
+checks: `sdk/sutra-compiler/tests/test_fv_kleene_grid_exactness.py`.)
+
 The same grid saturation makes selection exact in practice: a sufficiently
 sharpened softmax `select` is a *true* one-hot, because `exp(−k)` underflows to
 exactly 0 (float32 for modest `k`; far below ulp in float64), so unselected
