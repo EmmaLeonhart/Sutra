@@ -1181,18 +1181,37 @@ literal array is just a binding-array constructed at compile time.
 
 Remaining pieces:
 
-- [ ] **Integer-condition `while_loop` crashes at `--run`.** A
-  declared `while_loop` whose condition is an integer comparison
-  (e.g. `while_loop _l(i < n, ...)`) validates clean but crashes at
-  runtime with `TypeError: len() of a 0-d tensor` inside
-  `truth_axis`, while evaluating the loop condition. Repro
-  (2026-05-23):
+- [ ] **Variable-vs-variable loop condition crashes at `--run`
+  (type-propagation gap, NOT a substrate breach).** A declared
+  `while_loop` whose condition compares two *variables* (e.g.
+  `i < n`) crashes at runtime with `TypeError: len() of a 0-d
+  tensor` in `truth_axis`. A condition comparing a variable to a
+  *literal* (e.g. `x < 11`, as in `examples/do_while_adder.su`)
+  works fine — that example runs and the 23 loop tests pass.
+  Root cause (verified 2026-05-23): the comparison dispatch in
+  `codegen_base.py` (~line 2734) only routes `<`/`>` through the
+  substrate operator `_VSA.lt`/`_VSA.gt` when
+  `_is_number_expr(left) or _is_number_expr(right)` is true. A
+  numeric literal satisfies that; two loop `int` params do NOT,
+  because their int type isn't propagated into the loop-body scope
+  (same gap as the integer-class "type propagation through
+  expressions" item above). So `i < n` falls through to the raw
+  `({left} {op} {right})` branch (`codegen_base.py:2750`), emitting
+  a hard torch comparison `(n > i)` that yields a 0-d bool tensor.
+  That 0-d tensor then hits `truth_axis`'s guard
+  (`hasattr(x,'__len__') and len(x) > 1`) — a 0-d tensor *has*
+  `__len__` but `len()` on it raises. Two fixes, ideally both:
+  (1) propagate loop-param `int` types so `_is_number_expr` is true
+  and `i < n` routes to `_VSA.lt` (the real fix);
+  (2) make `truth_axis` 0-d-safe (use `.dim()`/`.ndim`, not
+  `hasattr(__len__)`) so the halt check never crashes on a scalar.
+  NB the raw `(n > i)` still runs on the device (torch op on 0-d
+  cuda tensors) — it is the *wrong* op, not a host-scalar leak; the
+  failure is loud (a crash), not a silent miscompute. Repro:
   `ts2su sdk/sutra-from-ts/tests/fixtures/for_loop_sum/input.ts -o /tmp/f.su`
-  then `sutrac --run /tmp/f.su`. Transpiler output + validation are
-  fine; the bug is in the loop-condition lowering / runtime (a 0-d
-  tensor reaching `truth_axis` where a vector is expected). Found
-  while writing tutorial 04 (which therefore shows the for→while_loop
-  transform + validation only, no run claim).
+  then `sutrac --run /tmp/f.su`. Found while writing tutorial 04
+  (which therefore shows the for→while_loop transform + validation
+  only, no run claim).
 
 - [ ] **`try-catch`.** Parser accepts it; codegen rejects. Sutra
   has no `raise` / `throw` primitive, so "what does a catch
