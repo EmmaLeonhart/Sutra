@@ -122,6 +122,20 @@ Two properties matter for verification, in order:
 - **Obligation (branch range/sign):** for each reduced branch polynomial, bound
   its range and sign over the truth-axis domain [−1, +1] — a closed-form
   question (a polynomial extremum/root problem), not a path enumeration.
+  - **DISCHARGED for the three connectives, closed-form, 2026-05-24.** The
+    bespoke checker's first piece — a polynomial range-bounder over an
+    axis-aligned box by the compact-domain extremum argument (corners +
+    edge-interior + interior stationary points; exact sympy arithmetic) — is
+    built: `sdk/sutra-compiler/sutra_compiler/fv_poly_bound.py`. It proves the
+    `&&`, `||`, `!` polynomials have *exact* range [−1, +1] over [−1, +1]²
+    (min = −1, max = +1, not sampled). The bound is tied to the *compiled*
+    forms: the test first cross-checks the symbolic polynomials against the
+    torch substrate on the {−1,0,+1}² grid (which determines a degree-≤2-per-
+    variable polynomial) plus off-grid points, then bounds. See
+    `sdk/sutra-compiler/tests/test_fv_poly_obligation_checker.py`. This is the
+    branch-range obligation for the primitive connectives; bounding the
+    *composed* polynomials of arbitrary reduced programs is the remaining work
+    (same tool, larger inputs — degree grows with nesting, §"costs").
 - **Obligation (grid exactness):** check that each connective polynomial
   reproduces the Kleene truth table *exactly* at the nine grid points
   {−1, 0, +1}², i.e. that the Lagrange interpolation is the intended one. This is
@@ -136,7 +150,11 @@ Two properties matter for verification, in order:
   18/18 bit-exact (`../Yantra/apps/calc/switch.su`).
 - **Tooling:** off-the-shelf SMT solvers target Boolean / linear arithmetic;
   discharging these polynomial obligations needs a bespoke checker. Shipping it
-  is part of what compiler qualification costs. **Not built.**
+  is part of what compiler qualification costs. **First piece built**
+  (`fv_poly_bound.py`, the closed-form range-bounder above, discharging the
+  branch-range obligation for the connectives); the *general* checker that takes
+  an arbitrary reduced-graph obligation and discharges it is still the bulk of
+  the remaining work and is **not built**.
 
 ### Pillar 3 — tail-recursive loops as soft-halt RNN cells
 
@@ -182,7 +200,10 @@ system):
 
 - Sutra is **not** formally verified today. The architecture is
   verification-friendly; the proofs are an ongoing project, most not started.
-- The polynomial-obligation checker **does not exist** yet.
+- The polynomial-obligation checker exists only in part: the closed-form
+  range-bounder (`fv_poly_bound.py`) discharges the branch-range obligation for
+  the primitive connectives, but the **general** checker — discharge an
+  arbitrary reduced-graph obligation — **does not exist** yet.
 - FV covers the **non-AI trusted base only**, per individual contract, not the
   whole running system and not anything that rides on a learned weight.
 - If a later result contradicts anything here, stop and resolve it (fix the

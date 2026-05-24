@@ -260,10 +260,14 @@ the lever that removes branch/path explosion.**
   verify a program's emitted TNF reads only its declared read-roles and
   writes only its write-roles (§3.1). Discharge it for `echo` first, then
   the kernel roles Yantra names as its trusted base.
-- **Branch-range obligation discharge.** Bound each reduced branch
-  polynomial's range/sign over [−1,+1] (extremum/root, closed form) — the
-  §3.2 obligation. Needs the polynomial-bounding routine (the core of the
-  bespoke checker).
+- **Branch-range obligation discharge.** ✅ DONE for the connectives,
+  closed-form (2026-05-24). The polynomial-bounding routine — the core of the
+  bespoke checker — is built (`sutra_compiler/fv_poly_bound.py`,
+  corners+edge+interior critical points, exact sympy) and proves `&&`/`||`/`!`
+  have exact range [−1,+1], cross-checked against the compiled substrate
+  (`tests/test_fv_poly_obligation_checker.py`). **Remaining:** run the bounder
+  on the *composed* polynomials of whole reduced programs (degree grows with
+  branch-nesting; characterise the numerical cost there).
 - **Termination obligation.** For a tail-recursive soft-halt loop, check the
   halt signal is monotone within bounded steps (§3.3) — far smaller than
   proving an arbitrary `while` terminates.

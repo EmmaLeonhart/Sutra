@@ -116,11 +116,19 @@ table (and=min, or=max, not=negate) with **worst |err| = 0.0** (exact, not
 approximate). Paper §3.2 updated. The smooth-polynomial → discrete-logic
 anchor now has a mechanical guard.
 
-**DONE 2026-05-24 — §3.2 off-grid branch-range obligation (second discharged).**
-Same test file adds a dense [−1,+1]² sweep: the connective outputs stay in
-**[−1.000000, +1.000000]** (measured) — no over/undershoot off-grid, so the
-polynomials are valid truth-axis operations across the whole fuzzy domain, not
-just at the grid. Paper §3.2 updated.
+**DONE 2026-05-24 — §3.2 branch-range obligation (second discharged, now
+CLOSED-FORM).** First a dense [−1,+1]² sweep showed the connective outputs stay
+in [−1.000000, +1.000000]. Then **upgraded to a closed-form proof**: the bespoke
+checker's first piece, a polynomial range-bounder over an axis-aligned box
+(`sdk/sutra-compiler/sutra_compiler/fv_poly_bound.py` — corners + edge-interior +
+interior stationary points, exact sympy arithmetic), proves the `&&`/`||`/`!`
+polynomials have **exact range [−1, +1]** (min=−1, max=+1, not sampled). The
+bound is tied to the *compiled* substrate forms: `tests/test_fv_poly_obligation_
+checker.py` cross-checks the symbolic polynomials against torch on the
+{−1,0,+1}²-determining grid + off-grid points (worst |err| 5.96e-8) before
+bounding. This is the FIRST real piece of the bespoke polynomial-obligation
+checker. Remaining: bound the *composed* polynomials of arbitrary reduced
+programs (same tool, larger/higher-degree inputs). Spec + paper §3.2 updated.
 
 **DONE 2026-05-24 — §3.3 termination obligation (third discharged).**
 `sdk/sutra-compiler/tests/test_fv_termination.py`: bounded + monotone-halt,
