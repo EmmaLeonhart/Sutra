@@ -31,9 +31,22 @@ The difference from constant propagation / partial evaluation / staging is
 linear algebra, so there is no "un-folded" version to fall back to. See
 `planning/exploratory/tnf-vs-constant-folding-explanation.md`.
 
-The consequence that matters for verification: **semantically equivalent
-programs reduce to the same graph** (modulo trivial differences), so equivalence
-checking on the reduced graph is algebra, not a control-flow traversal.
+The consequence that matters for verification: **equivalence checking on the
+reduced graph is algebra, not a control-flow traversal.** Two programs that
+reduce to the same polynomial graph are decided equal by `expand(p₁ − p₂) == 0`.
+
+**Scope correction (measured 2026-05-24, do not overstate this).** It is *not*
+true that every semantically/logically equivalent pair reduces to the *same*
+graph. The reduction canonicalises the equivalences that are polynomial
+identities (De Morgan, commutativity, double negation — verified), but
+**distributivity** `a&&(b||c)` ≡ `(a&&b)||(a&&c)` is a counterexample: the two
+agree on the {−1,0,+1} Kleene grid (logically equivalent) yet reduce to
+*different* polynomials off-grid. So "reduce to the same graph" is strictly
+stronger than "logically equivalent"; the reduction is a sound *partial*
+canonicaliser, not a complete decision procedure for logical equivalence. The
+general checker decides BOTH notions exactly for the Kleene fragment —
+`reduces_to_same_graph` (polynomial identity) and `kleene_equivalent` (grid
+agreement). See `planning/findings/2026-05-24-distributivity-not-canonical.md`.
 
 ## Scope — what is in and what is out
 
@@ -65,6 +78,14 @@ A Sutra program reduces to a canonical fused tensor-op graph.
 
 - **Obligation (equivalence):** `TNF(p₁) ≡ TNF(p₂)` is decided by algebraic
   normalisation of the two graphs, not by exploring executions.
+  - **DISCHARGED for the Kleene-logic fragment, 2026-05-24.** The general
+    checker (`sutra_compiler/fv_obligation_checker.py`) extracts each
+    expression's polynomial via the compiler's own inliner and decides
+    `reduces_to_same_graph` by polynomial identity (`expand(p₁ − p₂) == 0`) —
+    exact and decidable for arbitrary `&&`/`||`/`!` nestings. It refuses
+    (`NonPolynomialResidual`) on anything outside the fragment (comparisons,
+    intrinsics), so the boundary is named, not faked. See the scope correction
+    above (distributivity) and `tests/test_fv_general_checker.py`.
 - **Obligation (contract):** for a program `p` with axon-typed contract `C`,
   show `TNF(p)` reads only `C.read_roles`, writes only `C.write_roles`, and that
   the role-to-role map it computes matches `C`. The static read/write key sets

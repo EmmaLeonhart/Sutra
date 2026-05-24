@@ -158,25 +158,32 @@ its `read_roles` with no cross-role leakage (`../Yantra/tests/test_kernel.py`:
    key-level contract in the manifest to check against. Don't ship a vacuous
    check; settle the design in `planning/sutra-spec/formal-verification.md` first.
 
-**IN PROGRESS 2026-05-24 — the GENERAL checker (Emma: "do the general one").**
-The per-connective range-bounder (`fv_poly_bound.py`) only handled the three
-primitive connectives. The general checker handles ARBITRARY nestings of the
-Kleene connectives `&&`/`||`/`!` by running the REAL inliner pass
-(`inline_stdlib_calls`) on a parsed expression and walking the resulting
-arithmetic AST (`BinaryOp` +/-/*, `Parenthesized`, `Identifier`, Int/Float
-literals) into a sympy polynomial — extraction from the compiler's own lowering,
-not a hand-copied formula. It then:
-  - **bounds the range** over [−1,1]ⁿ (branch-range obligation, now for any depth);
-  - **decides equivalence** of two expressions via polynomial identity
-    (`expand(p₁ − p₂) == 0`) — the Pillar-1 equivalence obligation, mechanically
-    decided for the Kleene fragment (backs the paper's canonicalisation claim).
-Honest boundary: it **REFUSES** (raises `NonPolynomialResidual`) on any node it
-can't reduce to a polynomial — a comparison (`==`/`>`) or an intrinsic
-(`make_real`, `bind`, …) — so the fragment it covers is exactly the
-pure-Kleene-logic one, named, not faked. Integrity guard: every result is
-cross-checked against the compiled substrate at determining points before being
-trusted. Module: `sutra_compiler/fv_obligation_checker.py`; test:
-`tests/test_fv_general_checker.py`. Then update spec §3.2/Pillar-1 + paper.
+**DONE 2026-05-24 — the GENERAL checker (Emma: "do the general one"), with
+honest scope.** `sutra_compiler/fv_obligation_checker.py` handles ARBITRARY
+nestings of `&&`/`||`/`!` by running the REAL inliner pass (`inline_stdlib_calls`)
+and walking the lowered arithmetic AST into a sympy polynomial — extraction from
+the compiler's own lowering, not a hand-copied formula. 7/7 tests pass
+(`tests/test_fv_general_checker.py`, 5.53s). What it discharges:
+  - ✅ **extraction** — general, any depth (verified, incl. substrate cross-check
+    via `.subs` on the grid, worst |err| < 1e-4).
+  - ✅ **equivalence — TWO notions, both general + cheap:** `reduces_to_same_graph`
+    (polynomial identity, the "same TNF" notion) and `kleene_equivalent` (grid
+    agreement, the 3-valued-logic notion). De Morgan/commutativity/double-neg are
+    both; **distributivity is `kleene_equivalent` but NOT `reduces_to_same_graph`**
+    — a real counterexample showing the reduction canonicalises *some* but not all
+    logical equivalences (finding: `planning/findings/2026-05-24-distributivity-
+    not-canonical.md`; spec scope-corrected; this SHARPENS the paper's
+    canonicalisation claim, doesn't break it).
+  - ⚠️ **range bounding does NOT scale** — `check_branch_range` is reliable for the
+    primitive connectives + shallow 2-var nestings, but `sympy.solve` HANGS on deep
+    4+-var nestings (the §3.4 degree growth, made concrete; the test run hung on a
+    4-var case until killed). Documented in the module + finding, NOT hidden;
+    tests bound only tractable cases. Future: interval branch-and-bound, or
+    defuzzify between levels to cap degree.
+  - ✅ **refuses** (`NonPolynomialResidual`) on comparisons/intrinsics — the named
+    verifiable boundary.
+Still TODO: fold this into the FV paper (equivalence discharged for the Kleene
+fragment + the distributivity scoping + the bounder scalability cost).
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
