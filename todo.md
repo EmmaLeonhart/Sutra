@@ -1181,8 +1181,9 @@ literal array is just a binding-array constructed at compile time.
 
 Remaining pieces:
 
-- [ ] **Variable-vs-variable loop condition crashes at `--run`
-  (type-propagation gap, NOT a substrate breach).** A declared
+- [x] **Variable-vs-variable loop condition — FIXED 2026-05-23
+  (PR #32, branch `fix-loop-var-condition-typeprop`).** Was a crash at
+  `--run` (type-propagation gap, NOT a substrate breach). A declared
   `while_loop` whose condition compares two *variables* (e.g.
   `i < n`) crashes at runtime with `TypeError: len() of a 0-d
   tensor` in `truth_axis`. A condition comparing a variable to a
@@ -1212,6 +1213,16 @@ Remaining pieces:
   then `sutrac --run /tmp/f.su`. Found while writing tutorial 04
   (which therefore shows the for→while_loop transform + validation
   only, no run claim).
+  **Fix (this PR, both layers):** (1) register loop state-param types
+  in `_var_type` so `i < n` routes through `_VSA.gt`/`_VSA.lt`
+  (`codegen_base.py`, `_translate_loop_function_decl`); (2) lift 0-d
+  scalar tensors onto the real axis in `_as_complex_vector`
+  (`codegen_pytorch.py`) so `_VSA.gt` returns a proper truth-axis
+  vector — which also means `truth_axis` never sees a 0-d tensor on
+  this path, so the separately-noted 0-d-safe `truth_axis` guard is not
+  needed for this bug (left as a latent-robustness nicety, not done).
+  `for_loop_sum`/`while_loop_sum` now `--run` → `tensor(45.)`; full
+  compiler suite + 23 loop tests + transpiler tests all green.
 
 - [ ] **`try-catch`.** Parser accepts it; codegen rejects. Sutra
   has no `raise` / `throw` primitive, so "what does a catch
