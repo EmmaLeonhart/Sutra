@@ -116,16 +116,39 @@ table (and=min, or=max, not=negate) with **worst |err| = 0.0** (exact, not
 approximate). Paper §3.2 updated. The smooth-polynomial → discrete-logic
 anchor now has a mechanical guard.
 
-**Next, bounded, verifiable:**
+**DONE 2026-05-24 — §3.2 off-grid branch-range obligation (second discharged).**
+Same test file adds a dense [−1,+1]² sweep: the connective outputs stay in
+**[−1.000000, +1.000000]** (measured) — no over/undershoot off-grid, so the
+polynomials are valid truth-axis operations across the whole fuzzy domain, not
+just at the grid. Paper §3.2 updated.
 
-1. **Contract-obligation check for one program (`echo`).** From the
-   compiler's `AXON_KEYS_READ`/`AXON_KEYS_BOUND`, mechanically verify the
-   emitted TNF reads only its declared read-roles and writes only its
-   write-roles — the §3.1 obligation, discharged for a real program.
-2. **Branch-range obligation (one branch).** Bound a reduced branch
-   polynomial's range/sign over the truth-axis domain [−1,+1] (extremum/
-   root, closed form) — the §3.2 obligation in miniature. (The grid-exact
-   anchor above is in hand; this is the off-grid bound.)
+**DONE 2026-05-24 — §3.3 termination obligation (third discharged).**
+`sdk/sutra-compiler/tests/test_fv_termination.py`: bounded + monotone-halt,
+structurally (`for _t in range(max_iters)`; `halted = min(halted+halt, 1)`,
+`halt = sigmoid ≥ 0`) and observably on the torch substrate — a converged loop
+is **exactly frozen across unroll depth (diff = 0.0)** and a non-converging loop
+runs to the bound and stops (`iters_active = 9.998/10`, never exceeds T). Paper
+§3.3 updated. **All four obligation families now have at least a partial
+mechanical check** (grid-exactness, branch-range, termination fully; §3.1
+role-isolation discharged at the kernel — see below).
+
+**DONE 2026-05-24 — §3.1 contract, ROLE-ISOLATION half (discharged at the kernel).**
+The read/write *confinement* part is enforced + tested in the Yantra kernel:
+a program emits only on its `write_roles` (capability-checked) and receives only
+its `read_roles` with no cross-role leakage (`../Yantra/tests/test_kernel.py`:
+`test_send_refused_when_sender_lacks_write_role`,
+`test_send_to_unadmitted_role_is_black_hole`, and the new
+`test_fv_role_contract_read_isolation`). Spec + paper §3.1 updated to reflect this.
+
+**Still OPEN in §3.1 (the harder halves — these need design, not a quick check):**
+
+1. **Role-to-role function correctness.** That `TNF(p)` computes the function the
+   contract specifies (not just stays within its roles) — program correctness.
+2. **Static-AXON_KEYS soundness.** That the compiler's `AXON_KEYS_READ`/`BOUND`
+   match the keys the program actually touches at runtime (the lazy-delivery
+   contract the kernel relies on). Needs runtime key-usage instrumentation, or a
+   key-level contract in the manifest to check against. Don't ship a vacuous
+   check; settle the design in `planning/sutra-spec/formal-verification.md` first.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
