@@ -15,6 +15,10 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-24: daily audit — clean (no-op)
+
+2026-05-24 daily audit: clean (67 .su compiled, 0 leaks; 19 open-questions dossiers + sutra-spec/open-questions.md index checked, 0 resolved-elsewhere; promise/await fit-to-spec). Fresh container with no torch/numpy/ollama preinstalled — installed torch (CPU) + numpy + the `ollama` python pkg, the ollama server (needed zstd), and pulled `nomic-embed-text` (digest `0a109f422b47`), so every leg ran live (no env-skip, no false-clean). Promise/await: codegen lint clean + `test_await_substrate_pure` 4/4 both backends incl. the two live-embedding semantic legs (`main()` = 3.0). Full suite 352 passed / 9 skipped (egglog + sutra_ffi.dll optional deps; not purity tests). Only new code since the 2026-05-23 audit is PR #32 (variable-vs-variable loop-condition fix) — a type-propagation bug fix, already `[x]` in todo.md, routes `i < n` through `_VSA.lt`/`_VSA.gt` on the substrate; not an open-question resolution. Audit.md #1/#2/#3/#5/#6/#7/#8 intact, #4 still NOT-A-LEAK.
+
 ## 2026-05-23: daily audit — 3 gates clean; executed the queued cosine doc cleanup; embedding-drift note
 
 Substrate-leak + promise/await + stale-open-question audit. This
