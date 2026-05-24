@@ -1,8 +1,8 @@
 # TypeScript → Sutra mapping
 
 Sutra's surface syntax was designed to be familiar to TypeScript
-programmers. The TS-to-Sutra transpiler (`sdk/sutra-from-ts/`)
-walks a `.ts` file and emits a `.su` file that compiles through the
+programmers. The TS-to-Sutra transpiler walks a `.ts` file and emits a `.su`
+file that compiles through the
 standard Sutra pipeline. For most JS/TS programs, the two languages
 share the same vocabulary — `class`, `function`, `async`,
 `await`, `Promise<T>`, `[]` arrays, etc. — and the transpiler is a
@@ -396,9 +396,8 @@ String greeting = String.make_string("hello");
 ```
 
 TypeScript strings become Sutra `String` values (a substrate-encoded
-codepoint array, see [`docs/primitive-classes.md`](primitive-classes.md)
-and `planning/sutra-spec/strings.md`). The runtime carries them as
-vectors with the `AXIS_STRING_FLAG` set.
+codepoint array, see [Primitive classes](primitive-classes.md)). The
+runtime carries them as vectors with the `AXIS_STRING_FLAG` set.
 
 ### String concatenation — works
 
@@ -513,8 +512,7 @@ person.add("age", 30);
 ```
 
 The TS object literal lowers to a Sutra `Axon` (a bundle of named
-slots, see [`docs/ontology.md`](ontology.md) and
-`planning/sutra-spec/axons.md`). Property access `person.name`
+slots, see [Ontology](ontology.md)). Property access `person.name`
 becomes `person.item("name")`.
 
 ### Object destructuring — does not work yet
@@ -670,8 +668,6 @@ imports parse but the inline-everything MVP doesn't track the
 namespace name, so `ns.foo(…)` won't resolve. Use named imports
 (`import { foo } from "./x"`) until namespace tracking lands.
 
-Fixture: `sdk/sutra-from-ts/tests/fixtures/module_import/`.
-
 ---
 
 ## What untyped JavaScript looks like
@@ -682,8 +678,6 @@ fallback runtime (`stdlib/javascript_object.su`). This lets untyped
 code compile, but the resulting Sutra program doesn't get the
 substrate-purity benefits — `JavaScriptObject` is a host-side dict
 underneath. Use type annotations whenever possible.
-
-Fixture: `sdk/sutra-from-ts/tests/fixtures/untyped_js/`.
 
 ---
 
@@ -763,9 +757,9 @@ thread. Direct-call usage works fine.
 - Container-method dispatch (`arr.map`, `arr.filter`, `Promise.then`,
   `Promise.all`, `Promise.race`). These belong to the JavaScript
   surface ecosystem; Sutra programs that want the same effect write
-  explicit loops or sequential awaits. Per the user (2026-05-09):
-  "those things are not supposed to be part of Sutra because
-  they're like the JavaScript mess."
+  explicit loops or sequential awaits. They are deliberately out of
+  scope — Sutra keeps a small core surface rather than absorbing the
+  full JavaScript standard library.
 - Multi-statement try/catch bodies. Single-return blocks cover the
   practical cases; richer multi-statement try blocks would need
   slot-state hoisting and a story for what an "exception type"
@@ -789,9 +783,6 @@ patterns to lean on:
 
 ## Reference
 
-- TS transpiler source: `sdk/sutra-from-ts/`
-- Working TS fixtures: `sdk/sutra-from-ts/tests/fixtures/`
-- Sutra side of the surface forms: `planning/sutra-spec/` (canonical
-  spec) and the rest of these website pages (more readable for
-  humans).
 - Promise-specific design: [Promises](promises.md) page.
+- The transpiler source, its TS fixtures, and the canonical language
+  spec live in [the Sutra repository](https://github.com/EmmaLeonhart/Sutra).

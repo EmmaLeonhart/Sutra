@@ -5,9 +5,6 @@ description: Sutra reads like Java but compiles to nothing like Java. Three side
 
 # Paradigms — Sutra is not Java
 
-!!! note "Draft — needs review"
-    This page is a stub focused on the Java contrast. It will grow as the language matures.
-
 Sutra's surface looks like Java. `var`, `=`, `+=`, curly braces, `class` declarations. To anyone coming from Java, Python, JavaScript, C++, the syntax reads like ordinary imperative-OO code.
 
 It is not that. The point of this page is to make that disconnect visible.

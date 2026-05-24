@@ -225,11 +225,11 @@ vector x = MatrixMul(M, v);           // bare-name shortcut via stdlib_loader
 
 | Leaf primitive | Sutra form | Runtime |
 |---|---|---|
-| Matrix multiplication | `Tensor.MatrixMul(a, b)` / `matmul(a, b)` | `np.matmul` / `torch.matmul` |
-| Tensor / Kronecker product | `Tensor.TensorProduct(a, b)` / `tensor_product(a, b)` | `np.kron` / `torch.kron` |
-| Outer product | `Tensor.Outer(a, b)` / `outer(a, b)` | `np.outer` / `torch.outer` |
-| Dot product (number result) | `Tensor.Dot(a, b)` / `dot(a, b)` | `np.dot` / `torch.dot` |
-| Transpose | `Tensor.Transpose(M)` / `transpose(M)` | `np.transpose` / `torch.transpose` |
+| Matrix multiplication | `Tensor.MatrixMul(a, b)` / `matmul(a, b)` | `torch.matmul` |
+| Tensor / Kronecker product | `Tensor.TensorProduct(a, b)` / `tensor_product(a, b)` | `torch.kron` |
+| Outer product | `Tensor.Outer(a, b)` / `outer(a, b)` | `torch.outer` |
+| Dot product (number result) | `Tensor.Dot(a, b)` / `dot(a, b)` | `torch.dot` |
+| Transpose | `Tensor.Transpose(M)` / `transpose(M)` | `torch.transpose` |
 
 How the higher-level VSA names reduce:
 
@@ -402,7 +402,7 @@ intrinsic function number tan(number x);
 intrinsic function number pow(number x, number y);
 ```
 
-**Status: disabled.** Codegen rejects calls with `CodegenNotSupported`. A 2026-04-29 Taylor-with-frexp implementation was withdrawn 2026-04-30 because it ran as host Python scalar arithmetic (substrate-purity violation). Future direction: eigenrotation-as-modulus for substrate-pure trig (Emma 2026-04-30 hunch), with `exp` / `log` building on top.
+**Status: disabled.** Codegen rejects calls with `CodegenNotSupported`. A 2026-04-29 Taylor-with-frexp implementation was withdrawn 2026-04-30 because it ran as host Python scalar arithmetic (substrate-purity violation). Future direction: eigenrotation-as-modulus for substrate-pure trig, with `exp` / `log` building on top.
 
 If a substrate-pure `log` and `exp(E)` land, the rest of the chain falls into place automatically — `Pow(a, b) = exp(a * log(b))` makes `^` work, and `sin` / `cos` can compose from eigenrotation. That's the unlock.
 
@@ -410,7 +410,7 @@ If a substrate-pure `log` and `exp(E)` land, the rest of the chain falls into pl
 
 ## How to read the chain
 
-Take `^` as the worked example Emma cites:
+Take `^` as the worked example:
 
 ```
 a ^ b
