@@ -14,11 +14,15 @@ frozen substrate. Crucially, the construct that makes conventional verification
 expensive — the branch — disappears: `if/else` reduces to a **single
 three-valued-Kleene polynomial**, Lagrange-interpolated and exact on the
 {−1, 0, +1} truth grid, and each loop to a bounded soft-halt recurrence. Because
-branches are polynomials rather than forks, the path set does not explode; and
-because semantically equivalent programs reduce to the same graph, verifying the
-**trusted base** — kernel roles and named critical programs — reduces from
-imperative-path enumeration to **discharging a finite set of closed-form
-obligations over a small, fixed set of tensor graphs.**
+branches are polynomials rather than forks, the path set does not explode — at a
+cost we quantify rather than hide: the per-branch polynomial grows in *size* with
+branch-nesting depth (§3.4). Verifying the **trusted base** — kernel roles and
+named critical programs — reduces from imperative-path enumeration to
+**discharging a finite set of closed-form obligations over a small, fixed set of
+tensor graphs**, with program equivalence handled by algebraic rewriting of the
+reduced graphs (a fixed set of *sound* rewrites — constant-folding, zero-
+absorption, CSE — that canonicalises the equivalences it covers, not yet a
+complete decision procedure).
 
 We make this precise as three per-construct obligation families (contract /
 branch-range / termination), and we ground the claim that the reduced form is
@@ -30,9 +34,17 @@ frozen embedding substrates (where the Hadamard baseline has collapsed to
 its kernel (18/18; 1024/1024 symbol round-trips at max |err| = 0.0). We are
 explicit about the boundary: this covers the **non-AI** trusted base, per
 published contract, not the whole running system and not anything riding on a
-learned weight. The polynomial-obligation checker is specified here, not yet
-built. The contribution is a verification *framework and reduction*, and the
-argument that the reduction is real rather than rhetorical.
+learned weight. **Three obligation families already have working mechanical
+checks** that run on the substrate — Kleene-gate exactness (worst error 0.0
+across the truth grid), connective range-soundness (outputs provably in [−1, +1]
+over the whole fuzzy domain), and loop termination (bounded + monotone halt) —
+plus the kernel-enforced role-isolation half of the contract obligation. The
+*general* polynomial-obligation checker that would discharge an arbitrary
+obligation is specified but not yet built; what is built is the per-construct
+discharge for each family above. The contribution is a verification *framework
+and reduction with its first obligations mechanically discharged*, an explicit
+account of the costs (§3.4) and the boundary (§5), and the argument that the
+reduction is real rather than rhetorical.
 
 ---
 
@@ -91,10 +103,25 @@ propagation, partial evaluation (Futamura projections), staging — is
 from a program that still runs in a conventional model; TNF collapses the model
 itself into linear algebra, leaving nothing un-folded to fall back on.
 
-The verification-relevant consequence: **semantically equivalent programs reduce
-to the same graph** (modulo trivial differences). Equivalence checking on the
-reduced graph is therefore algebraic normalisation, not a traversal of possible
-executions — the single move that converts the verification problem.
+The verification-relevant consequence: equivalence checking moves onto the
+reduced graph as **algebraic rewriting**, not a traversal of possible executions.
+Concretely, the compiler's simplifier applies a fixed set of *sound* rewrites —
+each an exact algebraic identity or soundness-preserving structural match (no
+approximate rewrites): `a − a → 0` and zero-absorption, arithmetic constant
+folding (`x + 0 → x`, …), a displacement-addition bundle rewrite, and common-
+subexpression elimination. Two programs that differ only by equivalences this
+rewrite set captures reduce to the **same** graph, so checking *those*
+equivalences is algebra, not path enumeration.
+
+**Honest scope (this answers a fair reviewer objection).** This is *not* a claim
+that the simplifier is a complete decision procedure for program equivalence: it
+is a confluent rewrite set with *documented non-rewrites* (e.g. it does not
+materialise composite rotations), so there exist equivalent programs it does not
+collapse to an identical graph. A complete canonical form is future work; what we
+claim, and what the rewrite set delivers, is that equivalence checking is *moved
+into algebra over the reduced graph* and is exact for the rewrites it implements.
+The §3.2/§3.3 obligation discharges below do not depend on full canonicalisation —
+they bound and check individual reduced graphs directly.
 
 ## 3. The obligation framework
 
@@ -184,24 +211,58 @@ frozen** across unroll depth — its state at `T=20` equals its state at `T=10`,
 `sdk/sutra-compiler/tests/test_fv_termination.py`.
 
 Discharging §3.2 needs a bespoke checker: off-the-shelf SMT solvers target
-Boolean and linear arithmetic, not the polynomial obligations TNF produces.
-Building and qualifying that checker is the bulk of the remaining work and is
-**not done**.
+Boolean and linear arithmetic, not the polynomial obligations TNF produces. The
+methodology is *not* "feed it to an SMT solver and hope." For the obligations we
+discharge here it is concrete and finite: grid-exactness is a nine-point
+evaluation; range-soundness is a bound on a low-degree polynomial over a box,
+obtained by checking the finite set of critical points (box corners plus interior
+stationary points where the gradient vanishes) — closed-form, not search; loop
+termination is structural plus a saturation observation. The *general* checker
+that would discharge an arbitrary reduced-graph obligation is the bulk of the
+remaining work and is **not built**.
+
+**3.4 The cost: expression size and numerical stability.** Removing the branch as
+a control-flow object is not free, and the honest accounting matters. We trade
+**path** explosion for **expression-size** growth. Conventional verification
+faces up to 2ᵇ paths in the number of branches *b*; the polynomial encoding has
+*no* path set, but a conditional whose guard is itself a conditional composes a
+degree-2(-per-variable) polynomial into another, so the polynomial *degree* can
+grow with branch-**nesting depth** *d* (roughly 2ᵈ without intervention). The two
+explosions are in different parameters: *b* (total branch count) versus *d*
+(nesting depth), and in practice *d ≪ b* — most branches are shallow — so the
+trade is usually favourable, but it is a trade, not a free lunch. There is a real
+mitigation native to the substrate: **defuzzification** (`is_true`/`snap`) between
+nesting levels polarises a value back toward the {−1, 0, +1} grid, which caps the
+degree that propagates into the next level rather than letting it compound; the
+cost is then paid in defuzz iterations instead of degree. **Numerical stability:**
+we have *measured* exactness for the single connectives (worst error 0.0 on the
+grid, range in [−1, +1]) and for full arithmetic through a downstream kernel (§4),
+but the float behaviour of *deeply nested, un-defuzzified* high-degree
+compositions is **not yet characterised** — quantifying it (and the degree at
+which conditioning degrades) is open work, flagged here rather than waved past.
 
 ## 4. Faithfulness: the reduction is computed exactly
 
 A reduction to algebra is only worth anything if the substrate computes the
-reduced form *exactly*. Three measured results show it does.
+reduced form *exactly*. Three measured results show it does. The protocol and
+full tables are in the Sutra language paper; we restate enough here that this
+paper stands on its own.
 
-**4.1 Bundle decoding.** Rotation binding decodes bundles at **100% accuracy
-through width *k* = 8** on four frozen substrates spanning two modalities (three
-text encoders — nomic-embed-text, all-minilm, mxbai-embed-large — and the ESM-2
-protein model), where the textbook Hadamard product has already collapsed
-(2.5% on mxbai-embed-large, 7.5% on all-minilm) (`paper/paper.md` §3.2).
+**4.1 Bundle decoding.** Protocol: for each bundle width *k*, bind *k*
+role–filler pairs by rotation, superpose (bundle) them into one vector, and
+decode each filler by unbind + nearest-codebook (argmax-cosine); accuracy is the
+fraction recovered, 10 trials per width. Result: rotation binding decodes at
+**100% accuracy through width *k* = 8** on four frozen substrates spanning two
+modalities — three text encoders (nomic-embed-text, all-minilm, mxbai-embed-large)
+and the ESM-2 protein model — where the textbook Hadamard (element-wise) binding
+has already collapsed at *k* = 8 (2.5% on mxbai-embed-large, 7.5% on all-minilm).
+The point for verification: the bundle/bind/unbind primitives the TNF is built
+from recover their inputs exactly at the widths the trusted base uses.
 
-**4.2 Reversibility.** The rotation round-trip is at the floating-point noise
-floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵` across all four
-substrates.
+**4.2 Reversibility.** A single bind+unbind cycle returns the input at the
+floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
+across all four substrates — i.e. the rotation is invertible to machine epsilon,
+so a reduced graph built from binds/unbinds does not silently lose information.
 
 **4.3 Exactness through a real trusted base.** A downstream GPU-native OS
 (Yantra) runs full arithmetic expressions on the Sutra substrate through its
@@ -257,12 +318,19 @@ where the standard Hadamard binding has collapsed (`paper/paper.md`).
 Reducing the non-learned trusted base to a tensor normal form changes formal
 verification from imperative-path enumeration into algebra over a small fixed set
 of tensor graphs, with the verification load concentrated into three closed-form
-obligation families. The premise — that the reduced form is computed exactly —
-is borne out by the measured substrate exactness, including a downstream OS that
-computes bit-exactly through its kernel. The work that remains is the bespoke
-polynomial-obligation checker and the per-program discharge; the contribution
-here is the reduction and the framework, with an explicit boundary around the
-learned parts the method deliberately does not touch.
+obligation families. This is not only a reduction on paper: **three of the
+families already have working, measured mechanical checks** — Kleene-gate
+exactness (worst error 0.0), connective range-soundness (outputs in [−1, +1]),
+and loop termination — plus the kernel-enforced role-isolation half of the
+contract obligation. The premise that the reduced form is computed exactly is
+borne out by the measured substrate exactness, including a downstream OS that
+computes bit-exactly through its kernel. What remains is the *general* polynomial-
+obligation checker (the per-construct discharges exist; the arbitrary-obligation
+tool does not), the harder halves of the contract obligation (function
+correctness, static-key soundness), and characterising the numerical cost of deep
+branch-nesting (§3.4). The contribution is the reduction, the framework, and its
+first obligations discharged — with an explicit boundary around the learned parts
+the method deliberately does not touch.
 
 ---
 
