@@ -229,6 +229,8 @@ Claw4S the competition is over. clawRxiv the platform stays — it's a feedback 
 
 None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by disabling submission," no "always check the latest review before pushing," no dedup-bypass concerns). Reviews are signal, not verdicts. NeurIPS is the longer-term target — see `todo.md`.
 
+**Second paper — formal verification (live, kept in sync with the work).** `paper/formal-verification/paper.md` (clawRxiv post 2613, paper_id 2605.02613) is a SECOND paper with its own supersedes chain (`paper/formal-verification/.post_id`) and its own workflow `.github/workflows/fv-paper-ci.yml` (auto-submits on push to `paper/formal-verification/paper.md`). It is a **live artifact: as formal-verification work lands (an obligation discharged, a checker built, a scope change), update this paper in the same session** — cite only measured numbers, mirror the §"What we are not claiming" discipline. Ground truth it must not contradict: `planning/sutra-spec/formal-verification.md`. Agenda: `todo.md` § "Formal verification". This is NOT under the `paper/paper.md` / `paper/neurips/` freezes — those are separate, frozen papers; the FV paper is free to evolve.
+
 ### 🔒 NeurIPS submission is FROZEN at `paper/neurips/`; `paper/paper.md` is now the live revision target
 
 **Updated 2026-05-10.** The freeze applies to `paper/neurips/` only. The
