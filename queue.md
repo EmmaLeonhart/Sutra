@@ -106,21 +106,26 @@ then `git diff --cached --quiet`) and `.post_id=2613` backfilled.
 
 The framework (`planning/sutra-spec/formal-verification.md`) states three
 obligation families; turn them from agenda into demonstrated mechanical
-checks, smallest first. **Immediate, bounded, verifiable:**
+checks, smallest first.
 
-1. **Kleene grid-exactness checker.** For each connective polynomial
-   (`and`/`or`/`not`/the t-norms), evaluate at the nine truth-grid points
-   {−1,0,+1}² and assert it reproduces the 3-valued Kleene table exactly
-   (a finite, decidable check). This anchors the smooth polynomial to the
-   discrete logic — the first real FV artifact. Lives as a test under
-   `sdk/sutra-compiler/tests/`; run it, read the deltas (must be 0 at grid).
-2. **Contract-obligation check for one program (`echo`).** From the
+**DONE 2026-05-24 — Kleene grid-exactness checker (first obligation
+discharged).** `sdk/sutra-compiler/tests/test_fv_kleene_grid_exactness.py`
+compiles the real pipeline and evaluates `&&`/`||`/`!` at all nine
+{−1,0,+1}² grid points on the substrate; reproduces the Kleene strong-logic
+table (and=min, or=max, not=negate) with **worst |err| = 0.0** (exact, not
+approximate). Paper §3.2 updated. The smooth-polynomial → discrete-logic
+anchor now has a mechanical guard.
+
+**Next, bounded, verifiable:**
+
+1. **Contract-obligation check for one program (`echo`).** From the
    compiler's `AXON_KEYS_READ`/`AXON_KEYS_BOUND`, mechanically verify the
    emitted TNF reads only its declared read-roles and writes only its
    write-roles — the §3.1 obligation, discharged for a real program.
-3. **Branch-range obligation (one branch).** Bound a reduced branch
+2. **Branch-range obligation (one branch).** Bound a reduced branch
    polynomial's range/sign over the truth-axis domain [−1,+1] (extremum/
-   root, closed form) — the §3.2 obligation in miniature.
+   root, closed form) — the §3.2 obligation in miniature. (The grid-exact
+   anchor above is in hand; this is the off-grid bound.)
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
