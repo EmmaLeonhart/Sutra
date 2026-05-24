@@ -71,17 +71,49 @@ A Sutra program reduces to a canonical fused tensor-op graph.
   the compiler already emits (`AXON_KEYS_READ` / `AXON_KEYS_BOUND`) are the
   starting evidence for the role obligations.
 
-### Pillar 2 — polynomial Kleene logic for branches
+### Pillar 2 — polynomial Kleene logic for branches (the lever that kills path explosion)
 
-What looks like `if/else` in source becomes, after reduction, a **polynomial
-that interpolates between branches on a fuzzy truth value**. The Kleene
-connectives are Lagrange-interpolated polynomials, **exact on the {−1, 0, +1}
-truth grid** and Cᵒᵒ elsewhere — closed-form expressions whose range, sign, and
-derivatives are symbolically tractable per branch.
+This is the pillar that does the most verification work, and it is what
+distinguishes Sutra's surface from "the compiled program is just a tensor
+pipeline." In conventional verification, **branches are the enemy**: each
+`if/else` doubles the path set, and a trusted base with *b* branches has up to
+2ᵇ paths to consider — the state-space explosion that makes imperative
+verification expensive. Sutra removes the branch as a control-flow object.
+
+What looks like `if/else` in source becomes, after reduction, a **single
+polynomial that interpolates between the branch values on a fuzzy truth value**.
+The connectives are the **three-valued Kleene** operators (`and`, `or`, `not`,
+the t-norms), realised as **Lagrange-interpolated polynomials exact on the
+3×3 Kleene grid** over truth values {−1 = false, 0 = unknown, +1 = true}, and
+Cᵒᵒ (smooth) off the grid. They are **branchless and gradient-compatible**:
+one closed-form expression, no path fork, differentiable everywhere.
+
+Two properties matter for verification, in order:
+
+1. **Branchlessness collapses the path set.** A branch is no longer a fork to
+   enumerate; it is a polynomial whose value is determined by the truth-axis
+   scalar feeding it. Verifying the branch is bounding *that polynomial*, not
+   walking 2ᵏ paths. This is the move that takes the certification surface from
+   "navigate exponential control flow" to "discharge a finite set of closed-form
+   obligations."
+2. **Three-valued, not Boolean, is the right logic for this substrate.** The
+   middle value (0 = unknown) is a first-class truth value, so a program that
+   mixes exact symbolic signals with uncertain learned ones can *represent*
+   "undetermined" instead of being forced to a premature Boolean collapse. The
+   verifier reasons about the third value directly; it does not have to pretend
+   every predicate is decided. Because the polynomial is **exact on the grid**,
+   the crisp cases (true/false) are bit-exact, while the genuinely-fuzzy cases
+   stay fuzzy and bounded — both are inside the same closed form.
 
 - **Obligation (branch range/sign):** for each reduced branch polynomial, bound
-  its range and sign on the truth-axis domain — a closed-form question, not a
-  path enumeration.
+  its range and sign over the truth-axis domain [−1, +1] — a closed-form
+  question (a polynomial extremum/root problem), not a path enumeration.
+- **Obligation (grid exactness):** check that each connective polynomial
+  reproduces the Kleene truth table *exactly* at the nine grid points
+  {−1, 0, +1}², i.e. that the Lagrange interpolation is the intended one. This is
+  a finite, decidable check (evaluate at nine points), and it is the formal
+  anchor that ties the smooth polynomial back to the discrete logic it stands in
+  for.
 - **Saturation note:** the same polynomial/transcendental saturation that makes
   branches exact at the grid is what makes the `select` dispatch exact in
   practice — `exp(−k)` underflows to exactly 0 in float32 for modest `k`, so a
