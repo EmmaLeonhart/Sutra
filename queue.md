@@ -55,7 +55,7 @@ see §"Watchdogs" below.
 
 ## Active
 
-### `dot` builtin exposed (yantra-driven branch, 2026-05-24)
+### `dot` builtin exposed (merged to main 2026-05-24, v0.6.1)
 
 `dot(a, b)` → `_VSA.dot` (0-d scalar) is now a callable builtin
 (`codegen_base.py` BUILTINS). It was listed as "Blocked on: dot" in
@@ -65,8 +65,8 @@ clean separating scalar score for `select`-based operator dispatch —
 `op - t` while zeroing every other axis (including axon-recovery noise),
 so scores `-120·(op-t)²` saturate `select`'s softmax to an EXACT one-hot
 (`exp(-120)` underflows to 0.0), giving 18/18 bit-exact dispatch (Emma's
-"defuzzify select enough" approach, verified). On `yantra-driven` only;
-merge to master is Emma's manual call. Follow-on: this also unblocks
+"defuzzify select enough" approach, verified). Merged to `main` and tagged
+**v0.6.1** (Emma authorized 2026-05-24). Follow-on: this also unblocks
 porting `stdlib/similarity.su`'s `dot`-based cosine into real `.su`.
 
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
