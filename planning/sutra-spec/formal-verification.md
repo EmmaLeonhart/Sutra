@@ -2,7 +2,7 @@
 
 **Status: framework (the "rules"), 2026-05-24.** This is the canonical,
 agent-facing spec of what formal verification *means* for Sutra and what
-obligations it imposes. The clawRxiv write-up is `paper/formal-verification.md`;
+obligations it imposes. The clawRxiv write-up is `paper/formal-verification/paper.md`;
 this file is the ground truth it must not contradict (CLAUDE.md §"If spec and
 implementation disagree, stop and resolve it explicitly").
 
