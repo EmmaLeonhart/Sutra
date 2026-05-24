@@ -91,3 +91,45 @@ def test_kleene_grid_exactness() -> None:
         f"Kleene connectives NOT exact on the {{-1,0,+1}}^2 grid "
         f"(worst |err|={worst:.3e}): {bad}"
     )
+
+
+def test_kleene_range_within_truth_domain() -> None:
+    """FV §3.2 off-grid branch-range obligation: the connective polynomials
+    must produce VALID truth values — stay within [-1, +1] — across the WHOLE
+    continuous fuzzy domain [-1,+1]^2, not just at the {-1,0,+1} grid.
+
+    Off the grid the polynomials interpolate (they do not reproduce min/max
+    exactly there — that is by design, C^inf between grid points); what must
+    hold for them to be sound truth-axis operations is that they never
+    over/undershoot the truth range. Measured on a dense 21x21 sweep on the
+    substrate; reports the real min/max so an excursion would be visible, not
+    hidden.
+    """
+    ns = _build()
+    vsa = ns["_VSA"]
+    kand, kor, knot = ns["kand"], ns["kor"], ns["knot"]
+
+    def truth(v) -> float:
+        return float(vsa.truth(v))
+
+    def mt(x: float):
+        return vsa.make_truth(x)
+
+    n = 21
+    xs = [-1.0 + 2.0 * i / (n - 1) for i in range(n)]
+    lo, hi = 1.0, -1.0
+    for a in xs:
+        for b in xs:
+            for val in (truth(kand(mt(a), mt(b))), truth(kor(mt(a), mt(b)))):
+                lo, hi = min(lo, val), max(hi, val)
+    for a in xs:
+        val = truth(knot(mt(a)))
+        lo, hi = min(lo, val), max(hi, val)
+
+    print(f"[fv-kleene] truth-value range over [-1,1]^2: "
+          f"min={lo:.6f} max={hi:.6f}")
+    tol = 1e-5
+    assert -1.0 - tol <= lo and hi <= 1.0 + tol, (
+        f"a Kleene connective produced an out-of-range truth value off-grid: "
+        f"min={lo:.6f} max={hi:.6f} — must stay within [-1, +1]"
+    )

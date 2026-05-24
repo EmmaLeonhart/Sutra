@@ -109,6 +109,16 @@ the role-to-role function it computes is the one `C` specifies. The compiler
 already emits the static read/write key sets (`AXON_KEYS_READ`,
 `AXON_KEYS_BOUND`) that seed the role half of this obligation.
 
+The **read/write confinement** part of this obligation is **discharged at the
+kernel** (the downstream OS): a program can only emit on roles in its
+`write_roles` (capability-checked at routing) and is delivered only axons on
+roles in its `read_roles`, with no cross-role leakage — mechanically tested
+(three kernel tests, incl. a two-role read-isolation check). Two parts remain
+open and are the harder ones: that the role-to-role *function* matches `C`
+(program correctness, not just confinement), and that the static
+`AXON_KEYS_READ`/`BOUND` analysis is *sound* against the keys the program
+actually touches. "Confinement discharged" is not "contract obligation done."
+
 **3.2 Branch-range obligations (from polynomial Kleene logic).** This family
 carries most of the weight, because branches are what make conventional
 verification expensive: each `if/else` doubles the path set, so a trusted base
@@ -142,6 +152,15 @@ antipodal encoding). Measured: **worst |error| = 0.0** across the grid — exact
 not approximate. The polynomials checked are the ones the compiler emits:
 `a&&b = (a+b+ab−a²−b²+a²b²)/2`, `a||b = (a+b−ab+a²+b²−a²b²)/2`, `!a = −a`.
 
+The **off-grid branch-range obligation is also discharged.** Off the grid the
+polynomials interpolate (they do not reproduce min/max exactly there — that is
+the intended C^∞ behaviour between grid points); what soundness requires is that
+they never produce an out-of-range "truth" value. Measured on a dense sweep of
+the continuous fuzzy domain [−1, +1]²: the connective outputs stay in
+**[−1.000000, +1.000000]** — no over/undershoot anywhere. So the connectives are
+valid truth-axis operations across the whole domain, not just at the grid. (Both
+checks: `sdk/sutra-compiler/tests/test_fv_kleene_grid_exactness.py`.)
+
 The same grid saturation makes selection exact in practice: a sufficiently
 sharpened softmax `select` is a *true* one-hot, because `exp(−k)` underflows to
 exactly 0 (float32 for modest `k`; far below ulp in float64), so unselected
@@ -152,6 +171,17 @@ behind the bit-exact operator dispatch in §4.3.
 recurrence `state ← R · state` with a fixed-width state vector and a halt cell.
 Termination reduces to "the halt signal is monotone within bounded steps,"
 discharged per loop — far smaller than proving an arbitrary `while` terminates.
+
+**This obligation is discharged**, structurally and observably. Structurally the
+emitted loop is `for _t in range(max_iters)` (bounded by construction, no
+unbounded `while`) and `halted = min(halted + halt, 1)` with `halt = sigmoid(·)
+≥ 0` (monotone non-decreasing, capped at 1; on saturation `state =
+(1−halted)·cand + halted·state` freezes). Observably (torch substrate): a
+non-converging loop runs to the bound and stops (`iters_active = 9.998/10`,
+never exceeding `max_iters` — bounded, no hang); a converging loop is **exactly
+frozen** across unroll depth — its state at `T=20` equals its state at `T=10`,
+**diff = 0.0** — so the monotone cumulative halt, once saturated, holds. Check:
+`sdk/sutra-compiler/tests/test_fv_termination.py`.
 
 Discharging §3.2 needs a bespoke checker: off-the-shelf SMT solvers target
 Boolean and linear arithmetic, not the polynomial obligations TNF produces.
