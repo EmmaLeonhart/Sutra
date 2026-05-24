@@ -78,11 +78,16 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet paper/formal-verification/; then
+          # Stage FIRST, then check the STAGED diff — `git diff --quiet`
+          # alone ignores untracked files, so on the first submission the
+          # brand-new .post_id + reviews/ (untracked) were missed and the
+          # step wrongly reported "nothing to commit" (bug, run 26367992101:
+          # post 2613 created on clawRxiv but never recorded in the repo).
+          git add paper/formal-verification/
+          if git diff --cached --quiet paper/formal-verification/; then
             echo "No paper/formal-verification/ changes after submit; nothing to commit"
             exit 0
           fi
-          git add paper/formal-verification/
           git commit -m "fv-paper-ci: FV paper submission + review
 
           $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by fv-paper-ci.yml
