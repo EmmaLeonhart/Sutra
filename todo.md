@@ -762,6 +762,34 @@ the wrong thing.
   `bind-unbind`, `snap-to-nearest`, `fuzzy-logic`). Lives on
   `docs/interactive/` when built.
 
+- [ ] **Standing rule: keep internal-scratchpad references off the
+  public website.** The website pages (`docs/*.md`, rendered to
+  `sutra.emmaleonhart.com`) must not mention repo-internal files —
+  `queue.md`, `todo.md`, `planning/...`, `DEVLOG.md`, or deep
+  `sdk/...` paths — nor inline author/date dev-notes ("Emma 2026-04-30
+  hunch", "(2026-05-09)") or quoted chat lines. A 2026-05-23 sweep
+  cleared the current set; this is the discipline for every future doc
+  edit, not a one-time cleanup. Related: do **not** reintroduce the
+  deprecated numpy backend (`codegen.py`) anywhere on the website —
+  the canonical (and only website-mentioned) compile target is
+  `codegen_pytorch.py`. The numpy mention was removed from
+  `compilation.md` on 2026-05-23 because framing it as "legacy"
+  overstated it; the website simply doesn't discuss it.
+
+- [ ] **Make the website clearer about what Sutra actually does.** The
+  system is genuinely complicated and the paper is dense; the site
+  should carry an accessible, concrete account of the real mechanics
+  (not just the pitch) so a reader who will never wade through the
+  paper still leaves understanding what is being built and how it
+  works. Iterative; never overstate beyond what runs.
+
+- [ ] **(Uncertain — Emma not committed yet) JavaScript / TypeScript
+  tutorials on the site.** TS-shaped source is Sutra's front door, so
+  a "here is your JS/TS program, here is the same thing as Sutra"
+  tutorial track could land well for newcomers. Emma flagged it as a
+  good-thing-to-include but is not 100% sure about it (2026-05-23);
+  scope and validate the angle before committing.
+
 ## [This year] Smoke-test substrate-margin notes
 
 The smoke test (`examples/_smoke_test.py`) reports overall PASS as of

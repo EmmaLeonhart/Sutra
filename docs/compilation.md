@@ -145,7 +145,7 @@ No code transformation happens here — the AST goes in and comes out unchanged,
 
 ## Stage 5 — Codegen
 
-The codegen walks the validated AST and emits Python source. This is where the remaining sugar — operators, classes, methods — gets translated into the substrate's algebra. The canonical target is `codegen_pytorch.py`, which emits torch tensor ops and picks CUDA at module init if available. A legacy `codegen.py` numpy backend is still wired into the example smoke test but is being retired; new compiler work targets the PyTorch path.
+The codegen walks the validated AST and emits Python source. This is where the remaining sugar — operators, classes, methods — gets translated into the substrate's algebra. The canonical target is `codegen_pytorch.py`, which emits torch tensor ops and picks CUDA at module init if available.
 
 Key translations:
 
