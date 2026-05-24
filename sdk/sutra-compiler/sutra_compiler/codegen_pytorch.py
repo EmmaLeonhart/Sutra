@@ -1809,6 +1809,17 @@ class PyTorchCodegen(Codegen):
         self._emit('"""Coerce Python scalar / tensor to complex-plane form."""')
         self._emit("if isinstance(x, _torch.Tensor):")
         self._indent += 1
+        self._emit("if x.dim() == 0:")
+        self._indent += 1
+        self._emit("# 0-d scalar tensor (e.g. a slot-loaded int or a loop")
+        self._emit("# state var): lift its value onto the real axis of a")
+        self._emit("# number-vector, on-device, so number ops (gt / lt /")
+        self._emit("# add / ...) receive a proper complex-plane vector")
+        self._emit("# rather than a bare scalar (which breaks the matmul).")
+        self._emit("v = _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
+        self._emit("v[self.semantic_dim + self.AXIS_REAL] = x")
+        self._emit("return v")
+        self._indent -= 1
         self._emit("return x")
         self._indent -= 1
         self._emit("if isinstance(x, bool):")
