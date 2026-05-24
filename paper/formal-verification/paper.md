@@ -133,6 +133,15 @@ the crisp true/false cases stay bit-exact because the interpolation is exact on
 the grid. A finite nine-point check (the polynomial reproduces the Kleene table
 at {−1, 0, +1}²) anchors the smooth form to the discrete logic it stands in for.
 
+**This grid-exactness obligation is now discharged mechanically** (the first FV
+obligation to move from stated to checked). A test compiles the real pipeline —
+parse → inline the polynomial → simplify → tensor-op codegen → runtime — and
+evaluates `&&`, `||`, `!` at all nine grid points on the substrate, asserting
+the Kleene strong-logic table (and = min, or = max, not = negate on the
+antipodal encoding). Measured: **worst |error| = 0.0** across the grid — exact,
+not approximate. The polynomials checked are the ones the compiler emits:
+`a&&b = (a+b+ab−a²−b²+a²b²)/2`, `a||b = (a+b−ab+a²+b²−a²b²)/2`, `!a = −a`.
+
 The same grid saturation makes selection exact in practice: a sufficiently
 sharpened softmax `select` is a *true* one-hot, because `exp(−k)` underflows to
 exactly 0 (float32 for modest `k`; far below ulp in float64), so unselected
