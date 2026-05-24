@@ -55,6 +55,17 @@ see §"Watchdogs" below.
 
 ## Active
 
+### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
+
+**Real, good GPU — RTX 4070, `torch.cuda.is_available()` == True — plus ample
+compute.** Do NOT assume CPU-only, do NOT pre-emptively decide a GPU path or
+one of Emma's algorithms "won't work" on this hardware. Measured 2026-05-24
+(downstream Yantra, same box): admitting a Sutra program allocates real GPU
+memory (`_VSA.device == cuda`), float64 substrate runs exactly. If a
+GPU-dependent test looks like it fails, check for a test-isolation/shared-
+substrate artifact (run it alone) before concluding a capability is missing.
+Verify by running; the capability is there.
+
 ### Formal-verification paper (spine: trusted base → tensor normal form)
 
 New clawRxiv paper on Sutra formal verification (Emma 2026-05-24).
@@ -83,10 +94,36 @@ code.** Two deliverables:
    back to `paper/formal-verification/reviews/`, post id in
    `paper/formal-verification/.post_id`.
 
-Open: clawRxiv submission is outward/indexed — `papers-ci.yml` triggers on
-`paper/paper.md`, not a new file, so submission needs a CI tweak or a
-manual API push (key in `LOKA_README.md`); do it only on Emma's explicit
-go, and from the right branch.
+**SUBMITTED + CI wired (2026-05-24).** The FV paper is live on clawRxiv:
+**post 2613, paper_id 2605.02613 (cs.PL)**, AI review fetched. Auto-submit
+is wired via `.github/workflows/fv-paper-ci.yml`. Known follow-up on
+`yantra-driven` (commit `07ffa34c`, needs merge to main): the first-run
+commit-back used `git diff --quiet` which ignores untracked files, so the
+v1 `.post_id`/reviews were not recorded in the repo — fixed (`git add`
+then `git diff --cached --quiet`) and `.post_id=2613` backfilled.
+
+### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
+
+The framework (`planning/sutra-spec/formal-verification.md`) states three
+obligation families; turn them from agenda into demonstrated mechanical
+checks, smallest first. **Immediate, bounded, verifiable:**
+
+1. **Kleene grid-exactness checker.** For each connective polynomial
+   (`and`/`or`/`not`/the t-norms), evaluate at the nine truth-grid points
+   {−1,0,+1}² and assert it reproduces the 3-valued Kleene table exactly
+   (a finite, decidable check). This anchors the smooth polynomial to the
+   discrete logic — the first real FV artifact. Lives as a test under
+   `sdk/sutra-compiler/tests/`; run it, read the deltas (must be 0 at grid).
+2. **Contract-obligation check for one program (`echo`).** From the
+   compiler's `AXON_KEYS_READ`/`AXON_KEYS_BOUND`, mechanically verify the
+   emitted TNF reads only its declared read-roles and writes only its
+   write-roles — the §3.1 obligation, discharged for a real program.
+3. **Branch-range obligation (one branch).** Bound a reduced branch
+   polynomial's range/sign over the truth-axis domain [−1,+1] (extremum/
+   root, closed form) — the §3.2 obligation in miniature.
+
+Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
+§ FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
 
 ### `dot` builtin exposed (merged to main 2026-05-24, v0.6.1)
 

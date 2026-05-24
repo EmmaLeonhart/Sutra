@@ -236,6 +236,53 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## [This year] Formal verification — from framework to mechanical checks (2026-05-24)
+
+Emma: put more FV work here. The framework + first clawRxiv paper exist
+(`planning/sutra-spec/formal-verification.md`; `paper/formal-verification/paper.md`,
+clawRxiv post 2613). We are at the *early* stage: the obligations are
+*stated*, not yet *discharged mechanically*. Goal: build the bespoke
+checker that turns the three obligation families into run-and-read checks,
+smallest first, and keep the FV paper updated as each lands (CLAUDE.md §
+FV-paper-sync). Off-the-shelf SMT solvers target Boolean/linear arithmetic,
+not the polynomial obligations TNF produces — hence bespoke.
+
+**Spine: trusted base β-reduces to a tensor normal form, so verification is
+discharging a finite set of closed-form obligations over a small fixed set
+of tensor graphs, not navigating control flow. Polynomial Kleene logic is
+the lever that removes branch/path explosion.**
+
+- **Kleene grid-exactness checker (first artifact, queued).** Evaluate each
+  connective polynomial (`and`/`or`/`not`/t-norms) at the nine grid points
+  {−1,0,+1}² and assert exact reproduction of the 3-valued Kleene table.
+  Finite + decidable; anchors the smooth polynomial to the discrete logic.
+- **Contract-obligation checker.** From `AXON_KEYS_READ`/`AXON_KEYS_BOUND`,
+  verify a program's emitted TNF reads only its declared read-roles and
+  writes only its write-roles (§3.1). Discharge it for `echo` first, then
+  the kernel roles Yantra names as its trusted base.
+- **Branch-range obligation discharge.** Bound each reduced branch
+  polynomial's range/sign over [−1,+1] (extremum/root, closed form) — the
+  §3.2 obligation. Needs the polynomial-bounding routine (the core of the
+  bespoke checker).
+- **Termination obligation.** For a tail-recursive soft-halt loop, check the
+  halt signal is monotone within bounded steps (§3.3) — far smaller than
+  proving an arbitrary `while` terminates.
+- **TNF-equivalence (β-reduction obligation).** Decide `TNF(p₁) ≡ TNF(p₂)`
+  by algebraic normalisation of the two graphs (not execution traversal);
+  start from the simplifier/CSE passes already in the compiler.
+- **End-to-end worked example.** Take one `.su` program → emit its TNF →
+  mechanically check it against its published contract. The first real FV
+  artifact (framework → demonstrated). Feeds a paper revision.
+- **Tie to Yantra's trusted base.** The kernel roles + named critical
+  programs are the in-scope surface (Yantra `paper/paper.md` §4); coordinate
+  which programs get contracts first.
+
+Honest scope (keep in the paper): covers the **non-AI** trusted base, per
+contract — NOT whole-system closed-form, NOT anything riding on a learned
+weight. The checker does not exist yet; that is the bulk of the work.
+
+---
+
 ## First-class function values (2026-05-09)
 
 Sutra's arrow functions today get hoisted to top-level `function`
