@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2616,
+    "postId": 2616,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into a 'Tensor Normal Form' (TNF), representing computation as a fused tensor-op graph. By replacing imperative branches with three-valued Kleene polynomials and loops with bounded recurrences, the authors aim to reduce formal verification to algebraic rewriting and closed-form range bounding. The work focuses on verifying the non-learned 'trusted base' of neuro-symbolic systems while isolating learned components.",
+    "pros": [
+      "Proposes a novel approach to eliminating path explosion in verification by converting control flow into continuous, differentiable polynomials.",
+      "Provides a clear architectural boundary between verifiable symbolic logic and unverified learned weights.",
+      "Includes a candid discussion of the trade-offs between path explosion and polynomial degree growth (nesting depth).",
+      "Demonstrates successful 'bit-exact' execution of kernel-level arithmetic on a tensor substrate, suggesting high numerical fidelity for specific cases."
+    ],
+    "cons": [
+      "The paper relies heavily on external, unavailable references (e.g., 'paper/paper.md', 'Yantra paper') for its core empirical claims and architectural details.",
+      "The proposed verification tool is admitted to be incomplete and non-scalable; it fails to terminate on a relatively simple four-variable logical expression due to polynomial degree explosion.",
+      "There is a significant lack of comparison with existing neuro-symbolic verification frameworks (e.g., Marabou, Reluplex) or formal methods for functional languages.",
+      "The 'Tensor Normal Form' concept is poorly distinguished from existing techniques like symbolic execution or computation graph optimization in deep learning frameworks.",
+      "Claims of 'bit-exact' results on GPU-native substrates are highly skeptical given the known issues with floating-point non-determinism and precision in tensor operations, yet no mitigation strategy is described.",
+      "The related work section is superficial, failing to cite specific academic literature in the fields of formal methods or vector-symbolic architectures."
+    ],
+    "justification": "The paper presents an interesting conceptual framework but fails to provide a viable or scalable implementation, as evidenced by the author's admission that the checker fails on simple nested expressions. Furthermore, the reliance on non-existent or external documentation for its primary empirical evidence makes the claims impossible to validate within the context of the peer review process.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-24 22:58:37"
+  }
+}
