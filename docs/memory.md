@@ -12,7 +12,7 @@ The mechanism is **rotation binding + additive superposition**, a classical cons
 
 Before the math, the picture that makes this work.
 
-A 868-dimensional vector has, loosely speaking, "a lot of room." Two random unit vectors in 868-dim space have an expected dot product of zero — they're *nearly orthogonal* in the statistical sense. You can pick thousands of random directions and they'll all point approximately different ways, because the space is vast enough to accommodate them without crowding.
+An 868-dimensional vector (the runtime's full extended state — 768 semantic axes from the default `nomic-embed-text` substrate plus 100 synthetic axes) has, loosely speaking, "a lot of room." Two random unit vectors in 868-dim space have an expected dot product of zero — they're *nearly orthogonal* in the statistical sense. You can pick thousands of random directions and they'll all point approximately different ways, because the space is vast enough to accommodate them without crowding.
 
 A rotation is a function that takes a vector and moves it to a different direction in the same space. Pick a random rotation `R`, and `R · v` is pointing somewhere essentially unrelated to where `v` was pointing. Pick a different random rotation `R'`, and `R' · v` is pointing somewhere essentially unrelated to both.
 
