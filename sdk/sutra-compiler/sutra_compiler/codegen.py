@@ -64,8 +64,21 @@ class Codegen(BaseCodegen):
                  runtime_seed: int = 42,
                  llm_model: str | None = None,
                  synthetic_dim: int | None = None,
-                 loop_max_iterations: int = 50) -> None:
+                 loop_max_iterations: int = 50,
+                 runtime_dtype: str = "float32") -> None:
         self._llm_model = llm_model if llm_model is not None else self.DEFAULT_LLM_MODEL
+        # Substrate floating-point dtype. float32 is the GPU fast path and
+        # the default; float64 extends the exact-integer range from ~2^24
+        # to 2^53 (~9.007e15) on the synthetic/real axis at the cost of
+        # speed — used by callers (e.g. Yantra's calculator) that need
+        # wider exact arithmetic. Only the torch backend honours it; the
+        # numpy backend ignores it. Validated to a known set so a typo
+        # can't silently emit a broken dtype literal.
+        if runtime_dtype not in ("float32", "float64"):
+            raise ValueError(
+                f"runtime_dtype must be 'float32' or 'float64', got {runtime_dtype!r}"
+            )
+        self._runtime_dtype = runtime_dtype
         # `runtime_dim` now names the SEMANTIC subspace size (the block
         # the LLM fills). Synthetic dims are appended on top. Total
         # runtime vector size = semantic + synthetic, stored on the
