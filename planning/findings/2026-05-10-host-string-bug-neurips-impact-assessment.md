@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-10
 **Trigger:** Emma's question after reading the chronology doc:
-*"I'm hoping to fucking God that this didn't get into the NeurIPS
+*"I'm hoping to God that this didn't get into the NeurIPS
 submission."*
 **Answer:** It didn't. Detail below.
 
