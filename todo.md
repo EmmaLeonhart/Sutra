@@ -709,7 +709,7 @@ yield and `loop name(args)` call sites that mutate caller variables by
 reference. Emma 2026-04-30: "this is a bit of a weird thing... it's
 unidiomatic... I'm probably going to figure out a nicer way to represent
 this at some point. I'm not going to be able to do this right now though...
-my priority is making it fucking work."
+my priority is making it work."
 
 So: ship the by-reference form first (substrate-pure RNN cell, body
 actually runs, completion flag propagates), then later this year revisit

@@ -1,8 +1,8 @@
 # embedding-mapping → Sutra
 
-## ⚠️ SAFETY-CRITICAL: PEOPLE CAN DIE IF YOU FAKE RESULTS ⚠️
+## Integrity and correctness (safety-critical)
 
-Sutra is the foundation for **biomedical hardware and software**. If the math is wrong or an operation fakes its substrate, **a patient downstream can be injured or killed.**
+Sutra is intended as a foundation for downstream hardware and software where correctness matters. If the math is wrong or an operation fakes its substrate, that error propagates silently into everything built on top — so substrate correctness is non-negotiable.
 
 Rules:
 
@@ -81,7 +81,7 @@ This rule is in tension with "deprecate, don't remove." The reconciliation: depr
 
 ### Barrel through specified work; verify against spec; don't add false caution
 
-**Counterbalance to the §"SAFETY-CRITICAL" rules at the top of this file
+**Counterbalance to the §"Integrity and correctness" rules at the top of this file
 (Emma 2026-05-20).** The safety-critical framing says do the real
 operation on the real substrate, even if slower or uglier. It does NOT
 say "treat every queued item as needing a multi-session gated approach
@@ -98,7 +98,7 @@ is:
    substrate-purity claims — running them tells you what's currently
    true, not what was true when an old session wrote a queue item.
 3. **Barrel through the work.** If the spec is clear and the
-   implementation is close, finish it. The §"PEOPLE CAN DIE" rules
+   implementation is close, finish it. The §"Integrity and correctness" rules
    are about *faking results* and *fake substrate purity*, not about
    pace. Verification (run the tests, check decoded output against
    ground truth, read what's emitted) is how you discharge the safety
@@ -157,8 +157,8 @@ documents the same pattern from the other end.
 When a Yantra-driven session is editing Sutra source, the rules in
 this file still apply, in this order of force:
 
-1. **The "PEOPLE CAN DIE IF YOU FAKE RESULTS" safety rules at the
-   top of this file.** Sutra is biomedical-hardware-adjacent. A
+1. **The integrity / substrate-correctness rules at the
+   top of this file.** A
    change driven by "Yantra needs this primitive" does not get a
    pass on substrate-purity validation.
 2. **The "NO MATH SHORTCUTS" section.** Same reason. Every Sutra
