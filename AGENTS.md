@@ -48,7 +48,6 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | Path | What's there |
 |---|---|
 | `planning/sutra-spec/` | Canonical language spec. Authoritative for what each operation computes. |
-| `planning/sutra-spec-deprecated/` | Read-only reference. Older spec drafts kept for cross-checking. |
 | `planning/findings/` | Dated experimental results. Negative and mixed findings live here too — they are required, not optional. |
 | `planning/open-questions/` | Design gaps where the implementation made a call the spec doesn't justify yet. |
 | `planning/exploratory/` | Ideas not yet tried. |
@@ -58,8 +57,9 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 
 | Path | What's there |
 |---|---|
-| `paper/paper.md` | **FROZEN.** The canonical NeurIPS 2026 submission. Do not edit any part of it. See `CLAUDE.md` §"Paper is FROZEN" for the precise rule. |
-| `paper/supplementary/` | The NeurIPS supplementary archive. Same freeze rule. |
+| `paper/neurips/` | **Permanently FROZEN.** The camera-ready NeurIPS 2026 submission (`paper.md`, `paper.tex`, supplementary). Do not edit any part. See `CLAUDE.md` §"NeurIPS submission is FROZEN". |
+| `paper/paper.md` | The live, evolving paper (next-venue draft); the website's `/paper/` renders from this. **Time-boxed arXiv freeze through May 2026** — see `CLAUDE.md`. |
+| `paper/supplementary/` | Live supplementary docs. The frozen NeurIPS copy is under `paper/neurips/supplementary/`. |
 | `paper/reviews/` | clawRxiv AI peer review responses, auto-committed by the CI workflow. Signal, not verdicts. |
 | `paper/.post_id` | Tracks the latest clawRxiv post in the supersedes chain. |
 
@@ -68,7 +68,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | Path | What's there |
 |---|---|
 | `docs/` | Hand-written Markdown for `sutra.emmaleonhart.com`. **Human audience.** Do not embed internal-scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...` paths) into these files. If you find such a reference, strip it — it's the cross-leakage that the 2026-05-07 sweep (commit `b98b795`) was about. |
-| `mkdocs.yml` | Site config. |
+| `scripts/build_site.py` | Static-site generator for `sutra.emmaleonhart.com` — renders every `docs/*.md` + `paper/paper.md`. No MkDocs. |
 
 ## How to work in this repo
 
