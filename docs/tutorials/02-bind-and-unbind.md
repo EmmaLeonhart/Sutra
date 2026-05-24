@@ -9,14 +9,6 @@ Binding is the operation that makes Sutra a programming language instead of a fa
 - How rotation binding — Sutra's runtime mechanism — recovers correct fillers from bundled structures
 - How chained bind-unbind cycles stay in a recoverable basin
 
-## Try it live
-
-The interactive widget below was built around an earlier Sutra binding mechanism (sign-flip) and currently illustrates the bundle / crosstalk / cleanup story rather than the rotation mechanics described in the rest of this page. The shape it shows — bind producing something dissimilar to both inputs, unbind recovering the original modulo crosstalk, snap rescuing the result — is the same shape rotation binding has, even though the per-step arithmetic is different. Treat it as intuition, not as the literal current implementation.
-
-<div id="bind-unbind-widget"><noscript>(This page hosts an interactive bind/unbind widget that requires JavaScript. The prose below covers the same material; the widget is a live playground, not load-bearing content.)</noscript></div>
-
-The [next tutorial](03-snap-to-nearest.md) covers the snap step in depth.
-
 ## The motivating example
 
 Imagine you want to encode the sentence *"the cat is sitting"* as a single vector. You have the words `cat`, `sit`, `agent`, `action`. The naive thing is to bundle them with `bundle(cat, sit, agent, action)` — but bundling is *commutative* and *associative*. The bundled vector for `(agent=cat, action=sit)` is identical to the bundled vector for `(agent=sit, action=cat)`. You've lost the structure.
