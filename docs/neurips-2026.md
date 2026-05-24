@@ -145,9 +145,6 @@ code path that the paper does not describe and does not depend
 on. `examples/hello_world.su` still prints exactly `"hello world"`
 post-fix.
 
-Detailed impact assessment:
-[`planning/findings/2026-05-10-host-string-bug-neurips-impact-assessment.md`](https://github.com/EmmaLeonhart/Sutra/blob/master/planning/findings/2026-05-10-host-string-bug-neurips-impact-assessment.md).
-
 ### What we know is NOT broken
 
 - The four-substrate width-k experiment (§5.1 / Table 1 / Figure 2)

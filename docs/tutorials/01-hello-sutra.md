@@ -54,10 +54,10 @@ If the file is well-formed you should see:
 ok: 1 file(s) validated, 0 diagnostics
 ```
 
-If you mistype something — say, `vec` instead of `vector`, or forget the semicolon after `return` — you'll get a structured diagnostic with a stable `AKA####` code, the file path, and a 1-based `line:column`:
+If you mistype something — say, `vec` instead of `vector`, or forget the semicolon after `return` — you'll get a structured diagnostic with a stable `SUT####` code, the file path, and a 1-based `line:column`:
 
 ```
-examples/hello.su:3:5: error: AKA0102: expected return type, got `vec`
+examples/hello.su:3:5: error: SUT0102: expected return type, got `vec`
 ```
 
 Every Sutra diagnostic looks like this. The compiler's external annotator inside the IntelliJ plugin produces the same format and surfaces it in the editor as red squiggles, so the same error message you see on the command line is the one you see in the IDE.

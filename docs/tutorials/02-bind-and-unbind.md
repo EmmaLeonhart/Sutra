@@ -122,4 +122,4 @@ The `examples/knowledge_graph.su` and `examples/role_filler_record.su` demos exe
 
 - **[03 — Snap-to-nearest](03-snap-to-nearest.md)** — the cleanup operation that keeps chained computation in a recoverable basin.
 - [Logical operations](../logical-operations.md) — how bind and unbind compose with the rest of Sutra's primitives.
-- The [Sutra paper](../theory-and-paper.md) — empirical characterization of which bindings recover correctly across substrates and the per-operation costs.
+- The [Sutra paper](/paper/) — empirical characterization of which bindings recover correctly across substrates and the per-operation costs.
