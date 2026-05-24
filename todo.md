@@ -1179,7 +1179,20 @@ binding-array (`array_from_literal` / `array_length` /
 unroll-over-literal form is folded into the same surface — a
 literal array is just a binding-array constructed at compile time.
 
-Remaining piece:
+Remaining pieces:
+
+- [ ] **Integer-condition `while_loop` crashes at `--run`.** A
+  declared `while_loop` whose condition is an integer comparison
+  (e.g. `while_loop _l(i < n, ...)`) validates clean but crashes at
+  runtime with `TypeError: len() of a 0-d tensor` inside
+  `truth_axis`, while evaluating the loop condition. Repro
+  (2026-05-23):
+  `ts2su sdk/sutra-from-ts/tests/fixtures/for_loop_sum/input.ts -o /tmp/f.su`
+  then `sutrac --run /tmp/f.su`. Transpiler output + validation are
+  fine; the bug is in the loop-condition lowering / runtime (a 0-d
+  tensor reaching `truth_axis` where a vector is expected). Found
+  while writing tutorial 04 (which therefore shows the for→while_loop
+  transform + validation only, no run claim).
 
 - [ ] **`try-catch`.** Parser accepts it; codegen rejects. Sutra
   has no `raise` / `throw` primitive, so "what does a catch
