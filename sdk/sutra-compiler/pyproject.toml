@@ -55,6 +55,11 @@ ts = [
 dev = [
   "pytest>=7",
   "pytest-cov",
+  # sympy backs the formal-verification polynomial-obligation checker
+  # (sutra_compiler/fv_poly_bound.py): exact closed-form range bounds on
+  # the reduced Kleene branch polynomials. Test/checker tooling, not on
+  # the runtime hot path.
+  "sympy>=1.12",
 ]
 
 [project.scripts]
