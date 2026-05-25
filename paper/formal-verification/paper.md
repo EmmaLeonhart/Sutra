@@ -223,11 +223,21 @@ the polynomial obligations the compiled graph produces; §6 discusses where
 nonlinear solvers such as dReal fit. The per-construct discharges above use
 concrete finite methods: grid-exactness is a nine-point evaluation;
 range-soundness is a closed-form critical-point bound; termination is structural
-plus a saturation observation; equivalence is symbolic polynomial identity. The
-range-bounder and the equivalence procedure of §2 are the working core of a
-bespoke checker; the equivalence procedure is degree-insensitive and applies at
-arbitrary nesting depth, and extending the closed-form bounder to the composed
-polynomials of whole programs is in progress.
+plus a saturation observation; equivalence is symbolic polynomial identity.
+
+**Range-soundness scales to arbitrary depth by composition.** The closed-form
+critical-point bound gives the exact range of a single connective; the *composed*
+polynomial of a deeply nested expression is high-degree and bounding it directly
+is expensive. We do not need to: each connective is proven to map [−1, +1]ᵏ into
+[−1, +1] (its exact range *is* [−1, +1]), so any expression built solely from the
+connectives, over truth-axis inputs in [−1, +1], has range within [−1, +1] **by
+induction on the expression tree** — independent of nesting depth and degree. The
+check (`range_sound_by_composition`) verifies an expression is such a composition
+(refusing if it uses a non-connective operator), and decides range-soundness for
+arbitrarily deep nestings instantly. So the equivalence procedure (degree-
+insensitive polynomial identity) and range-soundness (degree-insensitive
+composition) both scale; the closed-form bounder remains the exact tool for the
+per-connective lemma they rest on.
 
 ## 4. Faithfulness: the reduction is computed exactly
 
