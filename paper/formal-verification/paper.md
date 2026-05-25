@@ -139,21 +139,29 @@ Verifying the trusted base concentrates into three closed-form obligation
 families, one per Sutra construct that survives into the compiled graph. All three
 have a mechanical check that runs on the real compile-and-execute pipeline.
 
-**3.1 Contract obligations.** Each trusted program carries an axon-typed contract:
-the input roles it may read, the output roles it may write, and its status
-conditions. For program `p` with contract `C`, the obligation is that `p`'s
-compiled graph reads only `C.read_roles`, writes only `C.write_roles`, and that
-the role-to-role function it computes is the one `C` specifies. The compiler
-already emits the static read/write key sets (`AXON_KEYS_READ`,
-`AXON_KEYS_BOUND`) that seed the role half of this obligation.
+**3.1 Contract obligations.** Each trusted program carries an *axon-typed
+contract*. An **axon** is a structured embedding — a single vector carrying named
+role→filler slots via rotation binding (the VSA operations of §4) — so a
+program's typed interface is "the set of named roles it reads and writes." The
+contract names the input roles the program may read, the output roles it may
+write, and its status conditions. For program `p` with contract `C`, the
+obligation is that `p`'s compiled graph reads only `C.read_roles`, writes only
+`C.write_roles`, and that the role-to-role function it computes is the one `C`
+specifies. The compiler already emits the static read/write key sets
+(`AXON_KEYS_READ`, `AXON_KEYS_BOUND`) that seed the role half of this obligation.
 
 The **read/write confinement** part is **discharged at the kernel** (the
 downstream OS): a program can only emit on roles in its `write_roles`
 (capability-checked at routing) and is delivered only axons on roles in its
 `read_roles`, with no cross-role leakage — mechanically tested (three kernel
-tests, including a two-role read-isolation check). The role-to-role *function*
-half, for the arithmetic/Kleene fragment, is decided by the equivalence procedure
-of §2 against a reference implementation.
+tests, including a two-role read-isolation check). The **role-to-role function**
+part is **discharged for the Kleene-logic fragment**: when a contract states the
+intended function as a reference expression, "does the implementation compute it?"
+is exactly `reduces_to_same_graph(implementation, reference)` (§2) — decided
+exactly, any depth. (Demonstrated: a NAND contract `!(a&&b)` is satisfied by the
+De Morgan implementation `!a||!b` and correctly rejects a NOR implementation.) The
+remaining open part is soundness of the static `AXON_KEYS` analysis against the
+keys a program touches at runtime, which needs runtime key-usage instrumentation.
 
 **3.2 Branch-range obligations (from polynomial Kleene logic).** This family
 carries most of the weight, because branches are what make conventional
@@ -257,10 +265,13 @@ superposition** whose decodable capacity grows with dimension (Frady, Kleyko &
 Sommer 2018; Kleyko, Rachkovskij, Osipov & Rahimi 2023). So the obligations the
 verifier discharges are algebra over operations that *have* a formal algebra; what
 is left to establish empirically is narrower and non-circular: how exactly a given
-**frozen embedding substrate** realises those laws. The three results below are
-that realisation — the invertibility law to machine epsilon, and exact decode
-within capacity at the widths the trusted base uses — measured, with protocols
-restated here so the paper stands on its own.
+**frozen embedding substrate** realises those laws. ("Frozen" = a pretrained
+embedding model whose weights are fixed and never updated — e.g. nomic-embed-text
+at 768 dimensions; Sutra binds and bundles *in that fixed space* rather than
+learning a new one.) The three results below are that realisation — the
+invertibility law to machine epsilon, and exact decode within capacity at the
+widths the trusted base uses — measured, with protocols restated here so the paper
+stands on its own.
 
 **4.1 Bundle decoding.** Protocol: for each bundle width *k*, bind *k* role–filler
 pairs by rotation, superpose (bundle) them into one vector, and decode each filler
@@ -269,9 +280,13 @@ rotation binding decodes at **100% accuracy through width *k* = 8** on four froz
 substrates spanning two modalities — three text encoders (nomic-embed-text,
 all-minilm, mxbai-embed-large) and the ESM-2 protein model — where the textbook
 Hadamard (element-wise) binding has already collapsed at *k* = 8 (2.5% on
-mxbai-embed-large, 7.5% on all-minilm). The bundle/bind/unbind primitives the
-compiled graph is built from recover their inputs exactly at the widths the
-trusted base uses.
+mxbai-embed-large, 7.5% on all-minilm). The point of *k* = 8 is not a capacity
+ceiling — it is the **comparison width at which the standard baseline fails while
+rotation binding does not**; capacity itself grows with dimension per the
+references above. For verification what matters is narrower: the bundle/bind/unbind
+primitives the compiled graph is built from recover their inputs exactly at the
+small, fixed widths the trusted base actually uses (a kernel role's axon carries a
+handful of named slots, not hundreds).
 
 **4.2 Reversibility.** A single bind+unbind cycle returns the input at the
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
