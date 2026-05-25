@@ -41,6 +41,7 @@ from sutra_compiler.fv_obligation_checker import (  # noqa: E402
     check_branch_range,
     extract_truth_polynomial,
     kleene_equivalent,
+    range_sound_by_composition,
     reduces_to_same_graph,
 )
 
@@ -100,6 +101,33 @@ def test_branch_range_within_truth_domain_for_tractable_cases() -> None:
         rb = check_branch_range(expr, vs)
         print(f"[fv-general] {expr:14} exact range [{rb.minimum}, {rb.maximum}]")
         assert rb.within(-1, 1), f"{expr}: range escapes [-1,+1]"
+
+
+def test_range_sound_by_composition_scales_to_any_depth() -> None:
+    """Range-soundness for arbitrary-depth Kleene expressions, by structural
+    composition (the scalable answer where the closed-form bounder does not
+    scale). Each connective maps [-1,+1]->[-1,+1] (proven by check_branch_range);
+    any composition of them is therefore range-sound, degree-insensitively.
+
+    The deep 4-variable expression below is the one that makes the closed-form
+    critical-point bounder intractable; the compositional check decides it
+    instantly because it never forms the high-degree polynomial."""
+    sound = [
+        ("a && b", ["a", "b"]),
+        ("(a && b) || !c", ["a", "b", "c"]),
+        ("((a && b) || (c && d)) && !(a || d)", ["a", "b", "c", "d"]),
+        ("!(!(!(a && b) || c) && d)", ["a", "b", "c", "d"]),
+    ]
+    for expr, vs in sound:
+        assert range_sound_by_composition(expr, vs), f"{expr} should be range-sound"
+
+    # Cross-check the lemma it rests on: a tractable composed case the
+    # closed-form bounder CAN handle agrees — range within [-1,+1].
+    assert check_branch_range("!(a && b)", ["a", "b"]).within(-1, 1)
+
+    # Expressions that are NOT pure-Kleene compositions: the conclusion does not
+    # follow by composition, so it returns False (a comparison).
+    assert not range_sound_by_composition("a == b", ["a", "b"])
 
 
 def test_refuses_outside_the_polynomial_fragment() -> None:
