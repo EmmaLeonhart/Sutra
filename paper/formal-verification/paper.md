@@ -1,4 +1,4 @@
-# Verifying a Neuro-Symbolic Substrate by Reduction to Tensor Normal Form
+# Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
 
 ---
 
@@ -7,32 +7,33 @@
 Formal verification of conventional software means navigating control flow
 through large imperative codebases; for systems with a learned component it is
 usually abandoned outright. We show that **Sutra**, a typed purely-functional
-language whose compiled forward pass *is* a tensor-op graph, changes the shape of
-the problem for the non-learned part of a system. Every Sutra program
-β-reduces to a **tensor normal form (TNF)**: one fused tensor-op graph over a
-frozen substrate. The construct that makes conventional verification expensive —
-the branch — disappears: `if/else` reduces to a **single three-valued-Kleene
-polynomial**, Lagrange-interpolated and exact on the {−1, 0, +1} truth grid, and
-each loop to a bounded soft-halt recurrence. Verifying the **trusted base** —
-kernel roles and named critical programs — therefore reduces from imperative-path
-enumeration to **discharging a finite set of closed-form obligations over a small,
-fixed set of tensor graphs**.
+language, changes the shape of the problem for the non-learned part of a system,
+because its compiler turns an entire program — primitives, control flow, string
+I/O — into a single fused **tensor-op graph** over a frozen substrate, and that
+graph *is* the program's semantics (as a neural network's weights are its
+computation), not a residual to be interpreted. The construct that makes
+conventional verification expensive — the branch — does not survive into the
+graph: `if/else` compiles to a **single three-valued-Kleene polynomial**,
+Lagrange-interpolated and exact on the {−1, 0, +1} truth grid, and each loop to a
+bounded soft-halt recurrence. Verifying the **trusted base** — kernel roles and
+named critical programs — therefore becomes algebra over a small fixed set of
+tensor graphs rather than enumeration of control-flow paths.
 
 We make this precise as three per-construct obligation families — contract,
-branch-range, termination — and we have **mechanical checks for all three**,
+branch-range, termination — and we give **mechanical checks for all three**,
 running on the real compile-and-execute substrate: Kleene-gate exactness (worst
 error 0.0 across the truth grid), connective range-soundness (a closed-form proof
 that outputs lie in [−1, +1] over the whole fuzzy domain), and loop termination
 (bounded, monotone halt), plus the kernel-enforced read/write confinement half of
 the contract obligation. We further give a **decision procedure for program
 equivalence over the Kleene-logic fragment**: a checker extracts each expression's
-polynomial via the compiler's own lowering and decides whether two programs reduce
-to the same tensor graph by the polynomial identity `expand(p₁ − p₂) = 0`, for
-arbitrary nesting depth. This separates two notions the literature usually
-conflates — reducing to the same graph versus being logically equivalent — and we
-exhibit distributivity as a clean witness that the former is strictly stronger.
+polynomial via the compiler's own lowering and decides whether two programs
+compile to the same tensor graph by the polynomial identity `expand(p₁ − p₂) = 0`,
+for arbitrary nesting depth. This separates two notions that are usually
+conflated — compiling to the same graph versus being logically equivalent — and
+we exhibit distributivity as a clean witness that the former is strictly stronger.
 
-The reduction is meaningful because the substrate computes the reduced form
+The reduction is meaningful because the substrate computes the compiled graph
 exactly, which we establish with measured results restated in full here (§4):
 rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
 frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
@@ -41,9 +42,7 @@ with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and a downstream GPU-native 
 its kernel (18/18 dispatch cases and 1024/1024 symbol round-trips at |err| = 0.0).
 The scope is the non-learned trusted base, per published contract; §5 states it
 precisely and §6 positions the work against neural-network verification, SMT for
-nonlinear arithmetic, partial evaluation, and vector-symbolic architectures. The
-contribution is a verification framework and reduction with its first obligations
-mechanically discharged and equivalence decided over the logic fragment.
+nonlinear arithmetic, partial evaluation, and vector-symbolic architectures.
 
 ---
 
@@ -56,31 +55,30 @@ verify neither — the imperative trusted base is too large to verify cheaply, a
 the learned part is given up on, so the whole stack ships on testing alone.
 
 Sutra offers a different decomposition. It is a typed, purely functional language
-whose compiler β-reduces an entire program — primitives, control flow, string
-I/O — to a single fused tensor-op graph over a frozen embedding substrate. We
-call that reduced artefact the program's **tensor normal form (TNF)**. The claim
-is narrow and structural:
+whose compiler reduces an entire program — primitives, control flow, string I/O —
+to a single fused tensor-op graph over a frozen embedding substrate. The claim is
+narrow and structural:
 
-> For the **non-learned** trusted base, reduction to TNF turns verification from
-> control-flow path enumeration into algebra over a small fixed set of tensor
-> graphs.
+> For the **non-learned** trusted base, compiling the program to a tensor-op graph
+> turns verification from control-flow path enumeration into algebra over a small
+> fixed set of tensor graphs.
 
 This does not make the learned parts safe. It makes them *separable*: the
-boundary between "reduces to a checkable tensor graph" and "depends on a learned
+boundary between "compiles to a checkable tensor graph" and "depends on a learned
 weight" is syntactically visible, so the trusted base can be verified while the
 learned part is quarantined behind contracts and monitoring.
 
 **Contributions.**
-1. **The reduction** (§2): why TNF is a normal form rather than constant folding
-   or a deep-learning computation-graph optimization, and why equivalence on the
-   reduced graph is algebra.
+1. **The reduction** (§2): why the compiled tensor-op graph is the program's
+   semantics rather than a constant-folded residual or a deep-learning
+   computation-graph optimization, and why equivalence on it is algebra.
 2. **The obligation framework with mechanical checks** (§3): three per-construct
    obligation families — contract, branch-range, termination — each with a check
    that runs on the substrate. The branch-range family (§3.2), built on
    **three-valued polynomial Kleene logic**, is the one that removes path
    explosion: branches become closed-form polynomials, not forks.
 3. **An equivalence decision procedure for the Kleene fragment** (§2): deciding
-   graph-identity by polynomial identity, distinguished from logical equivalence,
+   same-graph by polynomial identity, distinguished from logical equivalence,
    with distributivity as a witness.
 4. **The faithfulness evidence** (§4): measured substrate exactness — including a
    downstream OS computing bit-exactly through its kernel — restated self-
@@ -88,71 +86,63 @@ learned part is quarantined behind contracts and monitoring.
 
 §5 states the boundary; §6 positions the work in the literature.
 
-## 2. Tensor normal form as a normal form
+## 2. The compiled tensor-op graph
 
-A TNF is not a constant-folded version of an otherwise-conventional program.
-There is no residual program underneath it. In a neural network the weights are
-matrices and the forward pass is chained matmuls; nobody calls that an
-optimization of some more primitive program, because the matrices *are* the
-computation. Sutra does the same for arbitrary programs: compilation produces the
-weight/rotation structure, and execution is the forward pass.
+Sutra's compiler emits, for each program, a fused tensor-op graph over a frozen
+embedding substrate: compilation produces the weight/rotation structure, and
+execution is the forward pass. The graph is the program's semantics in the same
+sense that a neural network's weights are its computation — there is no residual
+program underneath waiting to be interpreted.
 
-This distinguishes TNF from three neighbours it is easy to confuse it with.
-**Against the specialization spectrum** — constant propagation, partial
-evaluation / Futamura projections (Futamura 1971), multi-stage programming
-(Taha & Sheard 2000) — those transforms remove known subexpressions from a
-program that still runs in a conventional operational model; TNF collapses the
-model itself into linear algebra, leaving nothing un-folded to fall back on.
-**Against symbolic execution** — which enumerates path conditions through an
-interpreter and suffers exactly the path explosion we remove — TNF has no path
-set to enumerate: a conditional is a single polynomial, not a branch in an
-execution tree. **Against deep-learning graph optimization** (operator fusion,
-XLA-style rewriting) — those preserve a graph that already exists; here the graph
-*is* the program's semantics, produced by compilation from source, and the
-verification question is about that semantics, not about speeding up an existing
-tensor program.
+This distinguishes the compiled graph from three neighbours it is easy to confuse
+it with. **Against the specialization spectrum** — constant propagation, partial
+evaluation / Futamura projections (Futamura 1971), multi-stage programming (Taha
+& Sheard 2000) — those transforms remove known subexpressions from a program that
+still runs in a conventional operational model; here there is no conventional
+model left to run in. **Against symbolic execution** — which enumerates path
+conditions through an interpreter and suffers exactly the path explosion we
+remove — the compiled graph has no path set to enumerate: a conditional is a
+single polynomial, not a branch in an execution tree. **Against deep-learning
+graph optimization** (operator fusion, XLA-style rewriting) — those preserve a
+graph that already exists; here the graph *is* the program's semantics, produced
+by compilation from source, and the verification question is about that
+semantics, not about speeding up an existing tensor program.
 
 The verification-relevant consequence: equivalence checking moves onto the
-reduced graph as **algebraic rewriting**, not a traversal of possible executions.
-The compiler's simplifier applies a fixed set of *sound* rewrites — each an exact
-algebraic identity or soundness-preserving structural match: `a − a → 0` and
-zero-absorption, arithmetic constant folding, a displacement-addition bundle
-rewrite, and common-subexpression elimination. Two programs that differ only by
-equivalences this rewrite set captures reduce to the **same** graph.
+compiled graph as **algebraic comparison**, not a traversal of possible
+executions.
 
 **A decision procedure for the Kleene-logic fragment.** For programs built from
 the Kleene connectives (`&&`, `||`, `!`, nested to any depth) we decide
 equivalence outright. A checker (`fv_obligation_checker.py`) extracts each
 expression's polynomial by running the compiler's own inliner pass — not a
 hand-copied formula — and walking the lowered arithmetic into a polynomial, then
-decides whether two programs **reduce to the same graph** by the polynomial
+decides whether two programs **compile to the same graph** by the polynomial
 identity `expand(p₁ − p₂) = 0`. This is exact and decidable regardless of nesting
-depth. The checker also decides the weaker **logical** equivalence — agreement on
-the {−1, 0, +1}ⁿ Kleene grid — and reports both, refusing (rather than guessing)
-on any term outside the polynomial fragment, such as a comparison or a runtime
-intrinsic.
+depth (it is polynomial identity testing, evaluated symbolically). The checker
+also decides the weaker **logical** equivalence — agreement on the {−1, 0, +1}ⁿ
+Kleene grid — and reports both, refusing (rather than guessing) on any term
+outside the polynomial fragment, such as a comparison or a runtime intrinsic.
 
 These two notions are not the same, and separating them is a result in its own
-right. De Morgan, commutativity, and double negation reduce to *identical*
+right. De Morgan, commutativity, and double negation compile to *identical*
 polynomials — same graph. **Distributivity does not:** `a ∧ (b ∨ c)` and
 `(a ∧ b) ∨ (a ∧ c)` agree at all 27 grid points (they are logically equivalent)
-but reduce to *different* polynomials off-grid. So "reduces to the same graph" is
-strictly stronger than "logically equivalent"; the graph reduction canonicalises
-a well-defined sublattice of logical equivalences, and the checker decides exactly
-which side of that line any given pair falls on. Extending a *complete* canonical
-form beyond this fragment is future work; the obligation checks in §3 operate on
-individual reduced graphs and do not depend on it.
+but compile to *different* polynomials off-grid. So "compiles to the same graph"
+is strictly stronger than "logically equivalent"; the graph comparison decides a
+well-defined sublattice of logical equivalences, and the checker decides exactly
+which side of that line any given pair falls on.
 
 ## 3. The obligation framework
 
-Reduction concentrates all verification load into three closed-form families,
-one per Sutra construct that survives into the TNF. All three have a mechanical
-check that runs on the real compile-and-execute pipeline.
+Verifying the trusted base concentrates into three closed-form obligation
+families, one per Sutra construct that survives into the compiled graph. All three
+have a mechanical check that runs on the real compile-and-execute pipeline.
 
-**3.1 Contract obligations (from β-reduction).** Each trusted program carries an
-axon-typed contract: the input roles it may read, the output roles it may write,
-and its status conditions. For program `p` with contract `C`, the obligation is
-that `TNF(p)` reads only `C.read_roles`, writes only `C.write_roles`, and that
+**3.1 Contract obligations.** Each trusted program carries an axon-typed contract:
+the input roles it may read, the output roles it may write, and its status
+conditions. For program `p` with contract `C`, the obligation is that `p`'s
+compiled graph reads only `C.read_roles`, writes only `C.write_roles`, and that
 the role-to-role function it computes is the one `C` specifies. The compiler
 already emits the static read/write key sets (`AXON_KEYS_READ`,
 `AXON_KEYS_BOUND`) that seed the role half of this obligation.
@@ -161,17 +151,15 @@ The **read/write confinement** part is **discharged at the kernel** (the
 downstream OS): a program can only emit on roles in its `write_roles`
 (capability-checked at routing) and is delivered only axons on roles in its
 `read_roles`, with no cross-role leakage — mechanically tested (three kernel
-tests, including a two-role read-isolation check). The remaining two parts —
-that the role-to-role *function* matches `C` (program correctness), and that the
-static `AXON_KEYS` analysis is *sound* against the keys the program touches at
-runtime — are future work; for the arithmetic/Kleene fragment the equivalence
-procedure of §2 already decides function-correctness against a reference.
+tests, including a two-role read-isolation check). The role-to-role *function*
+half, for the arithmetic/Kleene fragment, is decided by the equivalence procedure
+of §2 against a reference implementation.
 
 **3.2 Branch-range obligations (from polynomial Kleene logic).** This family
 carries most of the weight, because branches are what make conventional
 verification expensive: each `if/else` doubles the path set, so a trusted base
 with *b* branches presents up to 2ᵇ paths. Sutra removes the branch as a
-control-flow object. Source `if/else` reduces to a **single polynomial** that
+control-flow object. Source `if/else` compiles to a **single polynomial** that
 interpolates between the branch values on a fuzzy truth value; the connectives are
 the **three-valued Kleene** operators (`and`, `or`, `not`, the t-norms) realised
 as **Lagrange-interpolated polynomials exact on the 3×3 Kleene grid** over
@@ -181,11 +169,11 @@ compatible) off the grid.
 Two consequences matter. First, **branchlessness collapses the path set**: a
 branch is a polynomial whose value the truth-axis scalar determines, so the
 obligation is a closed-form bound on that polynomial's range and sign over
-[−1, +1] — a polynomial extremum/root problem, not a path walk. Second,
-**three-valued rather than Boolean is the right logic for a substrate that mixes
-exact symbolic and uncertain learned signals**: the middle value (unknown) is
-first-class, so the verifier reasons about "undetermined" directly, while crisp
-true/false stays bit-exact because the interpolation is exact on the grid.
+[−1, +1] — a polynomial extremum problem, not a path walk. Second, **three-valued
+rather than Boolean is the right logic for a substrate that mixes exact symbolic
+and uncertain learned signals**: the middle value (unknown) is first-class, so the
+verifier reasons about "undetermined" directly, while crisp true/false stays
+bit-exact because the interpolation is exact on the grid.
 
 **Grid-exactness is discharged mechanically.** A test compiles the real pipeline —
 parse → inline the polynomial → simplify → tensor-op codegen → runtime — and
@@ -231,41 +219,20 @@ the torch substrate: a non-converging loop runs to the bound and stops
 `T=10`, **diff = 0.0**. (`test_fv_termination.py`.)
 
 **Tooling.** Off-the-shelf SMT solvers target Boolean and linear arithmetic, not
-the polynomial obligations TNF produces (§6 discusses where nonlinear solvers such
-as dReal fit). The per-construct discharges above use concrete finite methods:
-grid-exactness is a nine-point evaluation; range-soundness is a closed-form
-critical-point bound; termination is structural plus a saturation observation.
-The range-bounder and the equivalence procedure of §2 are the working core of a
-bespoke checker; extending range-bounding to the high-degree composed polynomials
-of whole programs is addressed next.
-
-**3.4 Cost and complexity.** Removing the branch as a control-flow object trades
-**path** explosion for **polynomial-degree** growth. Conventional verification
-faces up to 2ᵇ paths in the branch count *b*; the polynomial encoding has no path
-set, but a conditional whose guard is itself a conditional composes a
-degree-2(-per-variable) polynomial into another, so the degree grows with branch-
-**nesting depth** *d* (≈ 2ᵈ without intervention). These are different parameters:
-*b* (total branch count) versus *d* (nesting depth), and in practice *d ≪ b*, so
-the trade is favourable. The substrate also offers a native degree cap:
-**defuzzification** (`is_true`/`snap`) between nesting levels polarises a value
-back toward the {−1, 0, +1} grid, bounding the degree that propagates to the next
-level, paying the cost in defuzz iterations rather than degree.
-
-This sets the scope of each tool. The equivalence procedure (§2) is **degree-
-insensitive** — polynomial identity and grid evaluation are cheap at any depth —
-so it scales to arbitrary nesting. The closed-form range-bounder is fast for the
-connectives and shallow nestings; for deep, high-variable nestings the
-per-face stationary-point solve becomes intractable as the degree grows, so
-scaling range-bounding (interval branch-and-bound, or defuzzification to cap
-degree) is the main item of future work. Characterising the floating-point
-conditioning of deeply nested high-degree compositions — exactness is measured
-0.0 for the single connectives and for full arithmetic through a kernel (§4) — is
-part of the same effort.
+the polynomial obligations the compiled graph produces; §6 discusses where
+nonlinear solvers such as dReal fit. The per-construct discharges above use
+concrete finite methods: grid-exactness is a nine-point evaluation;
+range-soundness is a closed-form critical-point bound; termination is structural
+plus a saturation observation; equivalence is symbolic polynomial identity. The
+range-bounder and the equivalence procedure of §2 are the working core of a
+bespoke checker; the equivalence procedure is degree-insensitive and applies at
+arbitrary nesting depth, and extending the closed-form bounder to the composed
+polynomials of whole programs is in progress.
 
 ## 4. Faithfulness: the reduction is computed exactly
 
 A reduction to algebra is worth something only if the substrate computes the
-reduced form *exactly*. Three measured results establish this; the protocols are
+compiled graph *exactly*. Three measured results establish this; the protocols are
 restated here so the paper stands on its own.
 
 **4.1 Bundle decoding.** Protocol: for each bundle width *k*, bind *k* role–filler
@@ -275,8 +242,9 @@ rotation binding decodes at **100% accuracy through width *k* = 8** on four froz
 substrates spanning two modalities — three text encoders (nomic-embed-text,
 all-minilm, mxbai-embed-large) and the ESM-2 protein model — where the textbook
 Hadamard (element-wise) binding has already collapsed at *k* = 8 (2.5% on
-mxbai-embed-large, 7.5% on all-minilm). The bundle/bind/unbind primitives the TNF
-is built from recover their inputs exactly at the widths the trusted base uses.
+mxbai-embed-large, 7.5% on all-minilm). The bundle/bind/unbind primitives the
+compiled graph is built from recover their inputs exactly at the widths the
+trusted base uses.
 
 **4.2 Reversibility.** A single bind+unbind cycle returns the input at the
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
@@ -288,12 +256,11 @@ operator *selection* included, decided on the substrate by a saturated `select`
 (§3.2) rather than a host branch — and recovers results **bit-exact within the
 float32 exact-integer range** (18/18 operator-dispatch cases at |err| = 0.0,
 including the 2²⁴ boundary), with 1024/1024 distinct symbols round-tripped through
-the kernel router at max |err| = 0.0. These are not tolerance-band results and
-not subject to floating-point non-determinism: within the exact-integer range the
-arithmetic is integer-valued, and the saturated `select` multiplies off-branches
-by *exact* zero (`exp(−k)` underflows to 0.0), so the kernel path is deterministic
-for the measured cases and reproduces |err| = 0.0 across runs. This is the §3.1
-contract property in miniature: the reduced graph computes exactly what the source
+the kernel router at max |err| = 0.0. Within the exact-integer range the
+arithmetic is integer-valued and the saturated `select` multiplies off-branches
+by *exact* zero, so these are not tolerance-band results: the measured |err| is
+0.0 and reproduces across runs on the measured platform. This is the §3.1 contract
+property in miniature: the compiled graph computes exactly what the source
 denotes, end-to-end through a kernel.
 
 These are existence results for exactness on the substrates and programs measured,
@@ -303,22 +270,21 @@ which is what the reduction's premise requires.
 
 The reduction buys the *shape* of a certification effort, DO-178C-style: a fixed
 image and fixed critical-program set (Plan); axon-typed contracts (Requirements);
-Sutra source whose TNFs are the designs (Design); mechanical proofs that TNFs meet
-contracts plus discharged polynomial obligations (Verification artefacts); an
-append-only capability/admission log (Trace); and the compiler in scope for
-qualification with its TNF output — not the source — as the artefact under review
-(Tooling assurance).
+Sutra source whose compiled graphs are the designs (Design); mechanical proofs
+that the graphs meet contracts plus discharged polynomial obligations
+(Verification artefacts); an append-only capability/admission log (Trace); and the
+compiler in scope for qualification with its compiled-graph output — not the
+source — as the artefact under review (Tooling assurance).
 
 The scope is bounded in three ways. The method covers the **non-learned** trusted
 base: anything that invokes an embedding model or depends on a learned weight is
 outside it, and gets bounded behaviour, capability discipline, provenance, and
 runtime monitoring rather than a proof — the reduction makes the learned parts
 *quarantinable*, not *safe*. Equivalence-as-algebra and the obligation checks
-apply to the **contract surface of individual programs** whose TNFs are
+apply to the **contract surface of individual programs** whose compiled graphs are
 individually tractable, not to a closed-form whole-system proof. And a certified
 configuration is per-customer and per-mission; the present contribution is the
-framework, the reduction, and the discharged obligations, not a certified
-artefact.
+framework, the reduction, and the discharged obligations.
 
 ## 6. Related work
 
@@ -332,16 +298,16 @@ learned network, Sutra verifies the **non-learned trusted base** by reduction an
 NN-verification bounds feeding the runtime monitors Sutra places at the learned
 boundary.
 
-**SMT and nonlinear arithmetic.** The obligations TNF produces are polynomial, not
-Boolean or linear, so general-purpose SMT (Z3, de Moura & Bjørner 2008) does not
-apply directly; solvers for nonlinear real arithmetic such as dReal (Gao et al.
-2013) are the natural backend for the *general* range/equivalence obligations,
-while the per-construct obligations here admit the closed-form critical-point and
-grid methods of §3.
+**SMT and nonlinear arithmetic.** The obligations the compiled graph produces are
+polynomial, not Boolean or linear, so general-purpose SMT (Z3, de Moura & Bjørner
+2008) does not apply directly; solvers for nonlinear real arithmetic such as dReal
+(Gao et al. 2013) are the natural backend for the *general* range/equivalence
+obligations, while the per-construct obligations here admit the closed-form
+critical-point, grid, and polynomial-identity methods of §3.
 
 **Program specialization.** Partial evaluation and the Futamura projections
 (Futamura 1971) and multi-stage programming (Taha & Sheard 2000) specialise a
-program that still runs in a conventional model; §2 argues TNF is ontologically
+program that still runs in a conventional model; §2 argues the compiled graph is
 beyond this spectrum, and beyond symbolic execution and deep-learning graph
 optimization.
 
@@ -354,25 +320,24 @@ lever.
 
 **Certification.** The plan/requirements/design/verification/trace framing follows
 DO-178C, the avionics software-assurance standard, adapted so the artefact under
-review is the compiler's TNF output rather than imperative source.
+review is the compiler's tensor-graph output rather than imperative source.
 
 ## 7. Conclusion
 
-Reducing the non-learned trusted base to a tensor normal form turns formal
+Compiling the non-learned trusted base to a tensor-op graph turns formal
 verification from imperative-path enumeration into algebra over a small fixed set
 of tensor graphs, with the load concentrated into three closed-form obligation
-families. All three now have mechanical checks that run on the substrate —
+families. All three have mechanical checks that run on the substrate —
 Kleene-gate exactness (worst error 0.0), connective range-soundness (a closed-form
 proof of outputs in [−1, +1]), and loop termination — together with the
 kernel-enforced confinement half of the contract obligation, and a decision
 procedure for program equivalence over the Kleene-logic fragment that separates
-graph-identity from logical equivalence. The premise that the reduced form is
+same-graph from logical equivalence. The premise that the compiled graph is
 computed exactly is borne out by measured substrate exactness, including a
 downstream OS that computes bit-exactly through its kernel. The reduction,
-framework, and discharged obligations are the contribution; scaling range-bounding
-to deep nesting, completing the contract obligation's function-correctness and
-key-soundness halves, and extending the canonical form beyond the Kleene fragment
-are the road ahead.
+framework, and discharged obligations are the contribution; completing the
+contract obligation's function-correctness and key-soundness halves, and extending
+the equivalence decision procedure beyond the Kleene fragment, are the road ahead.
 
 ---
 
