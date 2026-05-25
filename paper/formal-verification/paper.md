@@ -317,10 +317,13 @@ is generally non-deterministic (reduction order, hardware). The claim is narrowe
 and survives it: **within the exact-integer range, every intermediate is an exact
 float** — integers below 2²⁴ and the values 0.0/1.0 are represented exactly in
 IEEE-754, integer +/−/× of them is exact (no rounding to reorder), and the
-saturated `select` multiplies off-branches by *exact* zero (`exp(−1000)` is below
-the smallest normal, so it is 0.0 on any IEEE-754 unit, not a tiny residue). So
-these are not tolerance-band results and do not depend on reduction order: the
-measured |err| is 0.0 and reproduces across runs. The honest scope: this is
+saturated `select` multiplies off-branches by *exact* zero. This last point does
+not depend on denormal-handling flags (DAZ/FTZ): `exp(−1000) ≈ 5×10⁻⁴³⁵` is far
+below the smallest *subnormal* of both float32 (~1.4×10⁻⁴⁵) and float64
+(~4.9×10⁻³²⁴), so it rounds to 0.0 whether or not subnormals are flushed — it is
+not a value DAZ/FTZ could change. So these are not tolerance-band results and do
+not depend on reduction order or float-mode flags: the measured |err| is 0.0 and
+reproduces across runs. The honest scope: this is
 exactness *for integer-valued computation in the exact range on IEEE-754
 hardware*, not a claim that arbitrary float pipelines are bit-portable. This is
 the §3.1 contract property in miniature: the compiled graph computes exactly what

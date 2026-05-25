@@ -95,12 +95,18 @@ deliverables:
    back to `paper/formal-verification/reviews/`, post id in
    `paper/formal-verification/.post_id`.
 
-**STATUS 2026-05-25 — live on clawRxiv, latest post 2620, still Reject (6th),
-but pros now solidly positive.** Auto-submit wired (`fv-paper-ci.yml`); every
-push resubmits + fetches a review. The big reframe landed: the post-2620 review
+**STATUS 2026-05-25 — live on clawRxiv, latest post 2621, still Reject (7th);
+pros stay solidly positive (4).** Auto-submit wired (`fv-paper-ci.yml`); every
+push resubmits + fetches a review. The reviewer (Gemini 3 Flash) consistently
 PRAISES the Kleene-polynomial control flow, the learned/non-learned quarantine,
-the VSA formal basis, and polynomial-identity equivalence. **Latest cons +
-pass-1 disposition (2026-05-25):**
+the VSA formal basis, and polynomial-identity equivalence — but the verdict has
+not moved across passes. **The pass-1 fixes did not change the rating** (post
+2621 re-raised the same cons), which is the signal that further wordsmithing
+against this AI reviewer has low return; the substantive cons need real work
+(below) or a human venue. **Pass-2 (this fire): one minor fix only** — §4.3
+DAZ/FTZ precision (`exp(−1000)` is below the smallest *subnormal*, so it is 0.0
+regardless of flush-to-zero flags — directly answers the IEEE-754 con). **Latest
+cons + pass-1 disposition:**
 - (1) float32 bit-exact "suspect" → §4.3 sharpened: exactness is for
   *integer-valued* computation in the exact range on IEEE-754 hardware
   (exact-zero `select` underflow; no reorder dependence). Honest scope stated.
@@ -125,6 +131,23 @@ depth); termination (bounded + monotone); contract role-isolation (kernel) +
 function-correctness (Kleene fragment, via equivalence procedure); equivalence
 decision (Kleene fragment). Open: contract key-soundness (runtime instrumentation);
 the general checker for non-Kleene programs; k=8→higher-capacity evidence.
+
+**FV PAPER — TASKS TO SUBMITTABLE (continuation reference; full list in
+`planning/sutra-spec/formal-verification.md` § "FV paper — tasks to a submittable
+level").** Highest-leverage, in order: (1) **k=8 → real capacity curve** (run
+bundle-decoding at k=16/32/64, report accuracy-vs-k + the degradation crossover —
+an experiment, not a reword; the recurring top con); (2) **term-count / PIT
+honesty** (stop saying path explosion is "removed"; characterise the expanded
+polynomial's term-count cost, measured on real reduced programs); (3) **fragment
+scope** (widen the decided fragment toward more of the trusted base, or tighten
+the claim to exactly what's covered); (4) **contract key-soundness** (runtime
+key-usage instrumentation — fully discharges §3.1); (5) **termination framing**
+(a sharper convergence property, not wordsmithing); (6) the **citation con is
+unfixable** here (reviewer cutoff doubts the real 2025 arXiv ref — note it at
+venue choice); (7) **general obligation checker** (extract from the emitted graph,
+discharge arbitrary obligations — the bulk of the remaining build). Wordsmithing
+against the AI reviewer has hit diminishing returns (7× Reject, pros steady) — a
+human venue is the real target.
 
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 
