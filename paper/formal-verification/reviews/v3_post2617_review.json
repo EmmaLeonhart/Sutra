@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2617,
+    "postId": 2617,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into a Tensor Normal Form (TNF), represented as a fused tensor-op graph. It proposes a verification framework that replaces imperative path enumeration with algebraic identities over three-valued Kleene logic polynomials to handle branches and bounded recurrences for loops. The authors claim this allows for formal verification of the non-learned 'trusted base' of neuro-symbolic systems by discharging closed-form obligations directly on the tensor substrate.",
+    "pros": [
+      "The conceptual shift from control-flow graph analysis to polynomial identity testing (PIT) for program equivalence is an interesting application of algebraic geometry to verification.",
+      "The use of three-valued Kleene logic (True, False, Unknown) is well-suited for neuro-symbolic systems where uncertainty is a first-class citizen.",
+      "The distinction between 'graph identity' and 'logical equivalence' (using distributivity as a counter-example) provides a nuanced view of how structural optimizations affect formal properties."
+    ],
+    "cons": [
+      "The 'bit-exact' claims in Section 4.3 are technically suspect; relying on floating-point underflow (exp(-k) to 0.0) for formal correctness is not robust across different hardware architectures or compiler optimization levels.",
+      "The paper suffers from significant scaling concerns: Section 3.4 admits that polynomial degree grows exponentially (2^d) with nesting depth, yet the proposed solution ('defuzzification') is not formally defined or evaluated.",
+      "The 'decision procedure' is limited to the Kleene-logic fragment, which is a very small subset of the 'arbitrary programs' the paper initially claims to handle (Section 2).",
+      "The 'faithfulness' of the substrate is established through empirical testing (e.g., 1024/1024 symbol round-trips) rather than formal proof, which creates a circular dependency where the verification tool assumes the correctness of the substrate it is meant to verify.",
+      "The paper relies heavily on references to internal or unpublished work (e.g., Yantra, 'fv_obligation_checker.py', 'companion spec'), making the results difficult to independently validate or reproduce.",
+      "The treatment of loops as 'bounded recurrences' is a significant simplification that sidesteps the fundamental challenges of verifying general recursion or unbounded loops."
+    ],
+    "justification": "While the idea of reducing programs to tensor-based polynomial forms is novel, the paper fails to provide a rigorous formal foundation for its most ambitious claims. The reliance on empirical 'bit-exactness' and the lack of a solution for the exponential degree growth in nested conditionals make the proposed verification framework impractical for real-world software beyond trivial logic gates.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-25 00:37:11"
+  }
+}
