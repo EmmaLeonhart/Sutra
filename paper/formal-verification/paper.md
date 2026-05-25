@@ -232,7 +232,24 @@ polynomials of whole programs is in progress.
 ## 4. Faithfulness: the reduction is computed exactly
 
 A reduction to algebra is worth something only if the substrate computes the
-compiled graph *exactly*. Three measured results establish this; the protocols are
+compiled graph *exactly*. This is not a circular assumption about an opaque
+substrate, and it is worth being precise about why.
+
+**The substrate operations are formally-defined VSA operations with algebraic
+laws.** Bind, unbind, and bundle — the primitives the compiled graph is built
+from — are vector-symbolic-architecture operations, not ad-hoc tensor code. A
+recent category-theoretic foundation defines VSA binding and bundling as right Kan
+extensions of the external tensor product, which reduce to the element-wise
+operations implementations use (Shaw, Furlong, Anderson & Orchard 2025); the
+holographic-reduced-representation algebra (Plate 1995) gives their laws — binding
+is **invertible** (`unbind(R, bind(R, x)) = x`) and bundling is a **linear
+superposition** whose decodable capacity grows with dimension (Frady, Kleyko &
+Sommer 2018; Kleyko, Rachkovskij, Osipov & Rahimi 2023). So the obligations the
+verifier discharges are algebra over operations that *have* a formal algebra; what
+is left to establish empirically is narrower and non-circular: how exactly a given
+**frozen embedding substrate** realises those laws. The three results below are
+that realisation — the invertibility law to machine epsilon, and exact decode
+within capacity at the widths the trusted base uses — measured, with protocols
 restated here so the paper stands on its own.
 
 **4.1 Bundle decoding.** Protocol: for each bundle width *k*, bind *k* role–filler
@@ -312,11 +329,17 @@ beyond this spectrum, and beyond symbolic execution and deep-learning graph
 optimization.
 
 **Vector-symbolic architectures.** The substrate primitives are VSA/HRR
-operations — binding, bundling, cleanup (Plate 1995; Gayler 2003; Kanerva 2009).
-The result this work rests on is that rotation binding stays exact through bundle
-widths where the standard Hadamard binding collapses (§4); the three-valued
-Kleene polynomial encoding of branches is, to our knowledge, new as a verification
-lever.
+operations — binding, bundling, cleanup (Plate 1995; Gayler 2003; Kanerva 2009) —
+and they have a formal foundation we rely on rather than reinvent: a
+category-theoretic account derives binding/bundling as right Kan extensions of the
+external tensor product (Shaw, Furlong, Anderson & Orchard 2025), and the capacity
+of bundling — how many superposed items decode correctly as a function of
+dimension — is characterised in the VSA literature (Frady, Kleyko & Sommer 2018;
+Kleyko, Rachkovskij, Osipov & Rahimi 2023). Our use of this is in §4: the
+obligations are algebra over operations with formal laws, and the measured result
+this work rests on is that *rotation* binding stays exact through bundle widths
+where the standard Hadamard binding collapses. The three-valued Kleene polynomial
+encoding of branches as a verification lever is, to our knowledge, new.
 
 **Certification.** The plan/requirements/design/verification/trace framing follows
 DO-178C, the avionics software-assurance standard, adapted so the artefact under
