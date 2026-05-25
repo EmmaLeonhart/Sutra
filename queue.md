@@ -182,8 +182,36 @@ the compiler's own lowering, not a hand-copied formula. 7/7 tests pass
     defuzzify between levels to cap degree.
   - ✅ **refuses** (`NonPolynomialResidual`) on comparisons/intrinsics — the named
     verifiable boundary.
-Still TODO: fold this into the FV paper (equivalence discharged for the Kleene
-fragment + the distributivity scoping + the bounder scalability cost).
+**DONE 2026-05-24 — boundary scaling (Emma) via composition, NOT a bigger bounder.**
+`range_sound_by_composition` (`fv_obligation_checker.py`): each connective maps
+[−1,+1]^k→[−1,+1] exactly (proven), so any composition is range-sound by induction
+on the tree — degree-insensitive, decides the deep 4-var case instantly. Both
+branch-range (composition) and equivalence (polynomial identity) now scale to any
+depth. 12 checker+facade tests pass (6.44s). Spec + paper §3.3 updated. Exposed on
+the `fv` facade.
+
+**DONE 2026-05-24 — paper de-TNF'd + VSA-grounded + reframed (Emma).** Dropped the
+"tensor normal form / normal form" framing (not formally defined — overreach) and
+the self-defeating scalability-confession section; grounded the substrate algebra
+in formal VSA theory (Shaw/Furlong/Anderson/Orchard 2025 = arXiv:2501.05368 +
+HRR/capacity refs) to answer the reviewer's "empirical not formal / circular" con;
+added real related work (Reluplex/Marabou, Z3/dReal, Futamura, VSA, DO-178C).
+Spec aligned (rule 5). v0.7.0 released with the FV public API (`from
+sutra_compiler import fv`).
+
+**Still OPEN (Emma wants these built next):**
+1. **Contract — function-correctness half.** For the arithmetic/Kleene fragment,
+   `reduces_to_same_graph(program, reference)` already DECIDES it; wire it as a
+   contract check for `echo` (identity) + `switch.su` against a reference. The
+   non-fragment case (learned/intrinsic) stays out of scope.
+2. **Contract — static-AXON_KEYS soundness half.** Verify the compiler's
+   `AXON_KEYS_READ`/`BOUND` match the keys a program touches at runtime. Needs
+   runtime key-usage instrumentation OR a key-level manifest contract to check
+   against. Design first in this spec; don't ship a vacuous check.
+3. **Arbitrary precision (calc).** True unbounded exact integers need carry
+   propagation ON THE SUBSTRATE (digit-array). The 1–2 digit substrate parser
+   (`parse_int2.su`) is the start; the carry loop is the hard piece (a Sutra
+   accumulator loop). Likely needs a Sutra-side primitive — surface honestly.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
