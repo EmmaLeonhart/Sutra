@@ -149,6 +149,70 @@ def extract_truth_polynomial(
     return sympy.expand(poly), symbols
 
 
+_RANGE_SOUND_BINOPS = frozenset({"&&", "||"})
+_RANGE_SOUND_UNOPS = frozenset({"!"})
+
+
+def _child_nodes(node) -> list:
+    out = []
+    for key, val in vars(node).items():
+        if key.startswith("_") or key == "span":
+            continue
+        if isinstance(val, ast.Node):
+            out.append(val)
+        elif isinstance(val, list):
+            out.extend(e for e in val if isinstance(e, ast.Node))
+    return out
+
+
+def _is_range_sound(node) -> bool:
+    cn = type(node).__name__
+    if cn == "Identifier":
+        return True  # a truth-axis variable, assumed in [-1, +1]
+    if cn in ("BoolLiteral", "IntLiteral", "FloatLiteral", "TrueLiteral", "FalseLiteral"):
+        return True  # a constant leaf
+    if cn == "Parenthesized":
+        return all(_is_range_sound(c) for c in _child_nodes(node))
+    if cn == "BinaryOp":
+        return node.op in _RANGE_SOUND_BINOPS and all(_is_range_sound(c) for c in _child_nodes(node))
+    if cn == "UnaryOp":
+        return node.op in _RANGE_SOUND_UNOPS and all(_is_range_sound(c) for c in _child_nodes(node))
+    return False  # any other node (comparison, arithmetic, call, intrinsic)
+
+
+def range_sound_by_composition(expr_src: str, var_names: list[str]) -> bool:
+    """Decide the branch-range obligation for an arbitrary Kleene expression at
+    ANY nesting depth, by **structural composition** rather than by bounding the
+    (high-degree) composed polynomial.
+
+    The lemma: each primitive connective maps [-1, +1]^k -> [-1, +1] exactly —
+    proven in closed form for `&&`, `||`, `!` by `check_branch_range` /
+    `fv_poly_bound` (their exact range is [-1, +1]). A function composed only of
+    maps that send [-1, +1] into [-1, +1], over truth-axis inputs in [-1, +1],
+    therefore has range within [-1, +1] by induction on the expression tree.
+
+    So if `expr_src` is built solely from `&&`, `||`, `!` over truth variables and
+    constants, it is range-sound — regardless of depth, and **degree-insensitive**
+    (this is why it scales where the closed-form bounder does not). Returns False
+    if the expression uses any operator that is not a proven-range-sound connective
+    (a comparison, arithmetic, a call/intrinsic) — i.e. the conclusion does not
+    follow by composition and a direct bound would be needed.
+    """
+    params = ", ".join(f"vector {v}" for v in var_names)
+    src = f"function vector __fv({params}) {{ return {expr_src}; }}\n"
+    lexer = Lexer(src, file="<fv-rs>")
+    toks = lexer.tokenize()
+    parser = Parser(toks, file="<fv-rs>", diagnostics=lexer.diagnostics)
+    module = parser.parse_module()
+    if lexer.diagnostics.has_errors():
+        raise ValueError(f"parse error in {expr_src!r}: {list(lexer.diagnostics)}")
+    fn = next(it for it in module.items if getattr(it, "name", None) == "__fv")
+    ret = fn.body.statements[0]
+    if not isinstance(ret, ast.ReturnStmt) or ret.value is None:
+        raise ValueError("expression did not lower to a single return")
+    return _is_range_sound(ret.value)
+
+
 def check_branch_range(expr_src: str, var_names: list[str]) -> RangeBound:
     """Discharge the §3.2 branch-range obligation for an arbitrary Kleene
     expression: return the exact range of its reduced polynomial over the

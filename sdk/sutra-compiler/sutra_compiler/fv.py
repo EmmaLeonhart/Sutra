@@ -34,6 +34,7 @@ from .fv_obligation_checker import (
     check_branch_range,
     extract_truth_polynomial,
     kleene_equivalent,
+    range_sound_by_composition,
     reduces_to_same_graph,
 )
 from .fv_poly_bound import RangeBound, bound_polynomial_over_box
@@ -43,6 +44,8 @@ __all__ = [
     "RangeBound",
     "bound_polynomial_over_box",
     "check_branch_range",
+    # branch-range at ANY nesting depth, by structural composition
+    "range_sound_by_composition",
     # equivalence over the Kleene fragment (§2)
     "reduces_to_same_graph",
     "kleene_equivalent",
