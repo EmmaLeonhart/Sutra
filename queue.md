@@ -66,7 +66,7 @@ GPU-dependent test looks like it fails, check for a test-isolation/shared-
 substrate artifact (run it alone) before concluding a capability is missing.
 Verify by running; the capability is there.
 
-### Formal-verification paper (spine: trusted base → tensor normal form)
+### Formal-verification paper (spine: trusted base → compiled tensor-op graph)
 
 New clawRxiv paper on Sutra formal verification (Emma 2026-05-24).
 Develops on `yantra-driven`; a NEW file, NOT the frozen `paper/paper.md`
@@ -77,7 +77,7 @@ code.** Two deliverables:
 
 1. **Rules / framework** — `planning/sutra-spec/formal-verification.md`:
    the canonical spec of what we verify, the three reduction pillars
-   (β-reduction → TNF; polynomial Kleene branches; tail-recursive
+   (compile to a tensor-op graph; polynomial Kleene branches; tail-recursive
    soft-halt loops), the per-construct proof obligations, scope
    (contract surface of named programs, NOT whole-system closed form),
    and the honest non-claims (AI parts unverifiable; FV is an agenda,
@@ -150,7 +150,7 @@ its `read_roles` with no cross-role leakage (`../Yantra/tests/test_kernel.py`:
 
 **Still OPEN in §3.1 (the harder halves — these need design, not a quick check):**
 
-1. **Role-to-role function correctness.** That `TNF(p)` computes the function the
+1. **Role-to-role function correctness.** That `p`'s compiled graph computes the function the
    contract specifies (not just stays within its roles) — program correctness.
 2. **Static-AXON_KEYS soundness.** That the compiler's `AXON_KEYS_READ`/`BOUND`
    match the keys the program actually touches at runtime (the lazy-delivery
@@ -167,7 +167,7 @@ the compiler's own lowering, not a hand-copied formula. 7/7 tests pass
   - ✅ **extraction** — general, any depth (verified, incl. substrate cross-check
     via `.subs` on the grid, worst |err| < 1e-4).
   - ✅ **equivalence — TWO notions, both general + cheap:** `reduces_to_same_graph`
-    (polynomial identity, the "same TNF" notion) and `kleene_equivalent` (grid
+    (polynomial identity, the "same compiled graph" notion) and `kleene_equivalent` (grid
     agreement, the 3-valued-logic notion). De Morgan/commutativity/double-neg are
     both; **distributivity is `kleene_equivalent` but NOT `reduces_to_same_graph`**
     — a real counterexample showing the reduction canonicalises *some* but not all
