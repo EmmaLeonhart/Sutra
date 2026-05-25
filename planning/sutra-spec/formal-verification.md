@@ -105,11 +105,21 @@ A Sutra program compiles to a fused tensor-op graph that is its semantics.
     write_role`, `test_send_to_unadmitted_role_is_black_hole`,
     `test_fv_role_contract_read_isolation`). So the read/write *confinement* part
     of the contract is verified.
-  - **Still OPEN:** (i) the *role-to-role function* matches `C` (program
-    correctness, not just confinement) and (ii) soundness of the static
-    `AXON_KEYS_READ`/`BOUND` analysis vs the keys the program actually
-    touches at runtime. These are the genuinely-hard halves; do not read
-    "role-isolation discharged" as "contract obligation done".
+  - **Function-correctness — DISCHARGED for the Kleene fragment, 2026-05-25.**
+    That the *role-to-role function* matches `C` is, for a trusted program in the
+    Kleene-logic fragment, exactly `reduces_to_same_graph(implementation,
+    contract_reference)` — decidable, exact, any depth. Demonstrated in
+    `tests/test_fv_general_checker.py::test_contract_function_correctness_kleene_
+    fragment`: a correct NAND implementation (De Morgan) passes its contract; NOR
+    is caught (not vacuous). **Scope:** covers trusted programs that ARE Kleene
+    expressions; a program outside the fragment (echo = identity axon rebind;
+    switch.su = arithmetic + select) has its function-correctness covered by its
+    own substrate tests, not by this procedure.
+  - **Still OPEN:** soundness of the static `AXON_KEYS_READ`/`BOUND` analysis vs
+    the keys the program actually touches at runtime — needs runtime key-usage
+    instrumentation (or a key-level manifest contract to check against). The
+    genuinely-hard remaining half; do not read "function-correctness discharged
+    for the Kleene fragment" as "contract obligation done" for arbitrary programs.
 
 ### Pillar 2 — polynomial Kleene logic for branches (the lever that kills path explosion)
 
