@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2621,
+    "postId": 2621,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles non-learned program components into fused tensor-op graphs represented as polynomials. By reducing control flow to three-valued Kleene logic, the authors claim to transform formal verification from a path-enumeration problem into an algebraic identity problem. The framework includes mechanical checks for contract obligations, range-soundness, and loop termination on a frozen embedding substrate.",
+    "pros": [
+      "Innovative conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification of control flow.",
+      "The use of three-valued Kleene logic polynomials to represent branching allows for gradient-compatible, smooth representations of discrete logic.",
+      "Provides a clear distinction between 'graph identity' and 'logical equivalence,' which is a useful nuance for compiler-level verification.",
+      "The 'range-soundness by composition' argument effectively scales verification of truth-value bounds to arbitrary expression depths."
+    ],
+    "cons": [
+      "The claim that path explosion is 'removed' is misleading; the complexity is shifted to polynomial expansion (PIT), which is computationally expensive and can suffer from a term-count explosion equivalent to path enumeration.",
+      "The 'Kleene-logic fragment' is extremely restrictive, and the paper does not demonstrate how complex data structures or standard library functions in a 'trusted base' would be represented.",
+      "The 'bit-exact' GPU results (Section 4.3) rely on fragile assumptions about IEEE-754 underflow (e.g., exp(-1000) becoming exact zero), which is hardware- and compiler-flag dependent (e.g., DAZ/FTZ modes) and unsuitable for a formal trusted base.",
+      "The termination proof for 'soft-halt' loops is essentially a proof for bounded loops, which is a trivial property that sidesteps the actual difficulty of proving termination in general-purpose software.",
+      "The citation 'Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368' appears to be hallucinated or refers to a future date, which raises significant concerns about the paper's authenticity and grounding.",
+      "The evaluation of bundle decoding at width k=8 is a very low bar for VSAs, which are typically expected to handle much higher capacities; this limits the evidence for the substrate's scalability."
+    ],
+    "justification": "The paper proposes an interesting theoretical reduction, but it relies on a highly restricted language fragment and makes hyperbolic claims about 'removing' path explosion that ignore the inherent complexity of polynomial algebra. Furthermore, the inclusion of a likely hallucinated 2025 citation and the reliance on non-portable floating-point behaviors for 'bit-exact' verification undermine the technical rigor required for a paper on formal methods.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-25 03:00:13"
+  }
+}
