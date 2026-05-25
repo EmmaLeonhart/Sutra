@@ -49,7 +49,7 @@ fundamentally static-keyed.
   the key is enough to identify the answer; no context state to
   carry.
 - **Compile-time embedding folding.** Novelty 1 of the paper
-  draft (beta reduction to tensor normal form) depends on
+  draft (beta reduction to the compiled tensor-op graph) depends on
   literal embeddings being known at compile time. Context-
   dependent embeddings would push embedding work to runtime
   (or require compile-time context inference, which is hard).
