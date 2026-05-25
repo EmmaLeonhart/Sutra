@@ -69,11 +69,12 @@ Verify by running; the capability is there.
 ### Formal-verification paper (spine: trusted base → compiled tensor-op graph)
 
 New clawRxiv paper on Sutra formal verification (Emma 2026-05-24).
-Develops on `yantra-driven`; a NEW file, NOT the frozen `paper/paper.md`
-or `paper/neurips/`. Spine chosen: **the trusted base reduces to a tensor
-normal form, so verifying it is discharging a finite set of polynomial
-obligations over a small set of tensor graphs — not navigating imperative
-code.** Two deliverables:
+On main; a NEW file, NOT the frozen `paper/paper.md` or `paper/neurips/`.
+Spine: **the trusted base compiles to a tensor-op graph, so verifying it is
+discharging a finite set of closed-form polynomial obligations over a small set
+of graphs — not navigating imperative code.** (Do NOT call this a "tensor normal
+form" — removed deliberately; formally defining one is a next-year todo.) Two
+deliverables:
 
 1. **Rules / framework** — `planning/sutra-spec/formal-verification.md`:
    the canonical spec of what we verify, the three reduction pillars
@@ -94,13 +95,36 @@ code.** Two deliverables:
    back to `paper/formal-verification/reviews/`, post id in
    `paper/formal-verification/.post_id`.
 
-**SUBMITTED + CI wired (2026-05-24).** The FV paper is live on clawRxiv:
-**post 2613, paper_id 2605.02613 (cs.PL)**, AI review fetched. Auto-submit
-is wired via `.github/workflows/fv-paper-ci.yml`. Known follow-up on
-`yantra-driven` (commit `07ffa34c`, needs merge to main): the first-run
-commit-back used `git diff --quiet` which ignores untracked files, so the
-v1 `.post_id`/reviews were not recorded in the repo — fixed (`git add`
-then `git diff --cached --quiet`) and `.post_id=2613` backfilled.
+**STATUS 2026-05-25 — live on clawRxiv, latest post 2620, still Reject (6th),
+but pros now solidly positive.** Auto-submit wired (`fv-paper-ci.yml`); every
+push resubmits + fetches a review. The big reframe landed: the post-2620 review
+PRAISES the Kleene-polynomial control flow, the learned/non-learned quarantine,
+the VSA formal basis, and polynomial-identity equivalence. **Latest cons +
+pass-1 disposition (2026-05-25):**
+- (1) float32 bit-exact "suspect" → §4.3 sharpened: exactness is for
+  *integer-valued* computation in the exact range on IEEE-754 hardware
+  (exact-zero `select` underflow; no reorder dependence). Honest scope stated.
+- (2) termination "trivial / just a timeout" → §3.3 clarified: bounded loops are
+  a *language design choice* (no `while`), so we don't pose the halting problem;
+  the content is the convergence check; termination ≠ functional correctness
+  (separate, §3.1).
+- (4) "Shaw et al. 2025 hallucinated/future-dated" → it is REAL; added
+  **arXiv:2501.05368** to the citation (reviewer cutoff issue, like the Neural
+  Computers case).
+- (6) bounder scalability "despite induction" → §3.3 clarified the bounder is
+  NOT on the critical path for depth — deep nesting uses composition
+  (degree-insensitive); the high-degree polynomial is never bounded.
+- **Not addressed (can't without faking):** (3) k=8 "trivial for 768-d" — needs
+  higher-k experiments, not a reword; (5) "no path beyond the Kleene fragment
+  for heap/complex-state/non-polynomial intrinsics" — those are the
+  quarantined/out-of-scope parts (§5), inherent to the framing.
+
+**Discharged FV obligations (state, for the handoff):** grid-exactness (err 0.0);
+branch-range (closed-form per-connective + range-soundness by composition, any
+depth); termination (bounded + monotone); contract role-isolation (kernel) +
+function-correctness (Kleene fragment, via equivalence procedure); equivalence
+decision (Kleene fragment). Open: contract key-soundness (runtime instrumentation);
+the general checker for non-Kleene programs; k=8→higher-capacity evidence.
 
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 

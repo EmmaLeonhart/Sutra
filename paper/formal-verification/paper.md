@@ -217,6 +217,16 @@ recurrence `state ← R · state` with a fixed-width state vector and a halt cel
 Termination reduces to "the halt signal is monotone within bounded steps,"
 discharged per loop — far smaller than proving an arbitrary `while` terminates.
 
+We are explicit about what this is and is not, since "all loops are bounded" can
+read as a sidestep. It is a deliberate **language design choice**: Sutra has no
+unbounded `while`, only the bounded soft-halt recurrence, so the language does not
+*pose* the halting problem — termination is guaranteed by construction and the
+remaining content is the *convergence* check (does the halt signal actually fire,
+monotonically, before the bound, or does the loop run to the bound?). That is a
+real, useful property for a trusted base — a kernel role must not hang — but it is
+**not** functional correctness, which is a separate obligation (§3.1, discharged
+for the Kleene fragment) and not subsumed by termination.
+
 This is discharged structurally and observably. Structurally the emitted loop is
 `for _t in range(max_iters)` (bounded by construction) with
 `halted = min(halted + halt, 1)` and `halt = sigmoid(·) ≥ 0` (monotone, capped at
@@ -233,10 +243,14 @@ concrete finite methods: grid-exactness is a nine-point evaluation;
 range-soundness is a closed-form critical-point bound; termination is structural
 plus a saturation observation; equivalence is symbolic polynomial identity.
 
-**Range-soundness scales to arbitrary depth by composition.** The closed-form
-critical-point bound gives the exact range of a single connective; the *composed*
-polynomial of a deeply nested expression is high-degree and bounding it directly
-is expensive. We do not need to: each connective is proven to map [−1, +1]ᵏ into
+**Range-soundness scales to arbitrary depth by composition — the bounder is NOT
+on the critical path for depth.** This is worth stating directly, because the
+natural worry is that deep nesting produces a high-degree polynomial the
+closed-form bounder cannot handle. It does — and we do not bound it. The
+closed-form critical-point bound gives the exact range of a *single* connective;
+the *composed* polynomial of a deeply nested expression is high-degree and
+bounding it directly is expensive. We do not need to: each connective is proven to
+map [−1, +1]ᵏ into
 [−1, +1] (its exact range *is* [−1, +1]), so any expression built solely from the
 connectives, over truth-axis inputs in [−1, +1], has range within [−1, +1] **by
 induction on the expression tree** — independent of nesting depth and degree. The
@@ -258,7 +272,7 @@ laws.** Bind, unbind, and bundle — the primitives the compiled graph is built
 from — are vector-symbolic-architecture operations, not ad-hoc tensor code. A
 recent category-theoretic foundation defines VSA binding and bundling as right Kan
 extensions of the external tensor product, which reduce to the element-wise
-operations implementations use (Shaw, Furlong, Anderson & Orchard 2025); the
+operations implementations use (Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368); the
 holographic-reduced-representation algebra (Plate 1995) gives their laws — binding
 is **invertible** (`unbind(R, bind(R, x)) = x`) and bundling is a **linear
 superposition** whose decodable capacity grows with dimension (Frady, Kleyko &
@@ -298,12 +312,19 @@ operator *selection* included, decided on the substrate by a saturated `select`
 (§3.2) rather than a host branch — and recovers results **bit-exact within the
 float32 exact-integer range** (18/18 operator-dispatch cases at |err| = 0.0,
 including the 2²⁴ boundary), with 1024/1024 distinct symbols round-tripped through
-the kernel router at max |err| = 0.0. Within the exact-integer range the
-arithmetic is integer-valued and the saturated `select` multiplies off-branches
-by *exact* zero, so these are not tolerance-band results: the measured |err| is
-0.0 and reproduces across runs on the measured platform. This is the §3.1 contract
-property in miniature: the compiled graph computes exactly what the source
-denotes, end-to-end through a kernel.
+the kernel router at max |err| = 0.0. A fair objection is that float32 on a GPU
+is generally non-deterministic (reduction order, hardware). The claim is narrower
+and survives it: **within the exact-integer range, every intermediate is an exact
+float** — integers below 2²⁴ and the values 0.0/1.0 are represented exactly in
+IEEE-754, integer +/−/× of them is exact (no rounding to reorder), and the
+saturated `select` multiplies off-branches by *exact* zero (`exp(−1000)` is below
+the smallest normal, so it is 0.0 on any IEEE-754 unit, not a tiny residue). So
+these are not tolerance-band results and do not depend on reduction order: the
+measured |err| is 0.0 and reproduces across runs. The honest scope: this is
+exactness *for integer-valued computation in the exact range on IEEE-754
+hardware*, not a claim that arbitrary float pipelines are bit-portable. This is
+the §3.1 contract property in miniature: the compiled graph computes exactly what
+the source denotes, end-to-end through a kernel.
 
 These are existence results for exactness on the substrates and programs measured,
 which is what the reduction's premise requires.
@@ -357,7 +378,7 @@ optimization.
 operations — binding, bundling, cleanup (Plate 1995; Gayler 2003; Kanerva 2009) —
 and they have a formal foundation we rely on rather than reinvent: a
 category-theoretic account derives binding/bundling as right Kan extensions of the
-external tensor product (Shaw, Furlong, Anderson & Orchard 2025), and the capacity
+external tensor product (Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368), and the capacity
 of bundling — how many superposed items decode correctly as a function of
 dimension — is characterised in the VSA literature (Frady, Kleyko & Sommer 2018;
 Kleyko, Rachkovskij, Osipov & Rahimi 2023). Our use of this is in §4: the
