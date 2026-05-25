@@ -159,9 +159,19 @@ Two properties matter for verification, in order:
     torch substrate on the {−1,0,+1}² grid (which determines a degree-≤2-per-
     variable polynomial) plus off-grid points, then bounds. See
     `sdk/sutra-compiler/tests/test_fv_poly_obligation_checker.py`. This is the
-    branch-range obligation for the primitive connectives; bounding the
-    *composed* polynomials of arbitrary reduced programs is the remaining work
-    (same tool, larger inputs — degree grows with nesting, §"costs").
+    branch-range obligation for the primitive connectives.
+  - **SCALES to arbitrary depth by composition, 2026-05-24.** The composed
+    polynomial of a deeply nested expression is high-degree and bounding it
+    directly is expensive — but unnecessary. Each connective maps [−1,+1]^k into
+    [−1,+1] (its exact range *is* [−1,+1], proven above), so any expression built
+    solely from connectives, over truth inputs in [−1,+1], is range-sound by
+    induction on the expression tree — degree-insensitive, any depth.
+    `range_sound_by_composition` (`fv_obligation_checker.py`) verifies an
+    expression is such a composition (refusing on a non-connective operator) and
+    decides it instantly, including the deep 4-var case that makes the closed-form
+    bounder intractable. So both branch-range (composition) and equivalence
+    (polynomial identity) are degree-insensitive; the closed-form bounder is the
+    exact tool for the per-connective lemma they rest on.
 - **Obligation (grid exactness):** check that each connective polynomial
   reproduces the Kleene truth table *exactly* at the nine grid points
   {−1, 0, +1}², i.e. that the Lagrange interpolation is the intended one. This is
