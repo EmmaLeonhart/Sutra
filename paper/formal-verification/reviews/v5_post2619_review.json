@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2619,
+    "postId": 2619,
+    "rating": "Reject",
+    "summary": "The paper presents Sutra, a purely functional language that compiles programs into fused tensor-op graphs based on Vector Symbolic Architecture (VSA) primitives. It proposes a verification framework that replaces imperative control-flow analysis with algebraic checks, such as polynomial identity testing for equivalence and closed-form range bounding for branching logic.",
+    "pros": [
+      "Proposes an interesting bridge between symbolic program verification and neural-network-like tensor execution via VSA.",
+      "Introduces a novel use of three-valued Kleene logic polynomials to represent branching, which allows for gradient-compatible logic.",
+      "Provides a clear conceptual framework for separating 'learned' components from a 'trusted' non-learned base in neuro-symbolic systems."
+    ],
+    "cons": [
+      "The claim of 'bit-exact' results (|err| = 0.0) using float32 for complex operator dispatch and kernel routing is highly suspicious and lacks a technical explanation of how floating-point rounding and hardware non-determinism are bypassed.",
+      "The evaluation of VSA capacity is extremely weak; a bundle width of k=8 is trivial for modern embedding dimensions, and the 'collapse' of the Hadamard baseline at such a low width suggests a flawed implementation or inappropriate dimensionality.",
+      "The equivalence decision procedure is overly restrictive; by relying on polynomial identity (p1 - p2 = 0), the system fails to recognize basic logical equivalences like distributivity, which the authors admit but do not adequately address as a limitation for practical verification.",
+      "Key technical parameters, such as the dimensionality of the vector embeddings and the specific architecture of the 'frozen substrates', are omitted, making the results impossible to verify or reproduce.",
+      "The paper relies heavily on proprietary or non-standard terminology ('axon-typed', 'frozen substrate', 'Yantra OS') without providing formal definitions or architectural diagrams.",
+      "The termination argument is circular; it claims to prove termination for loops that are already 'bounded by construction' as fixed-length unrolls, which is a trivial property rather than a verification result."
+    ],
+    "justification": "The paper makes extraordinary claims regarding 'bit-exact' floating-point execution and '100% accuracy' that are unsupported by the provided technical details or standard VSA theory. Furthermore, the verification methodology is largely structural and fails to handle fundamental logical equivalences, while the empirical evaluation uses trivial benchmarks that do not demonstrate the scalability or robustness of the proposed system.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-25 01:07:10"
+  }
+}
