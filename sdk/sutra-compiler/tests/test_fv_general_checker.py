@@ -130,6 +130,38 @@ def test_range_sound_by_composition_scales_to_any_depth() -> None:
     assert not range_sound_by_composition("a == b", ["a", "b"])
 
 
+def test_contract_function_correctness_kleene_fragment() -> None:
+    """Contract obligation, FUNCTION-CORRECTNESS half — discharged for the Kleene
+    fragment via the equivalence procedure.
+
+    A program's contract can specify the role-to-role function it must compute as
+    a reference expression. For a trusted program in the Kleene-logic fragment,
+    "does the implementation compute the contract's function?" is exactly
+    `reduces_to_same_graph(implementation, contract_reference)` — decidable,
+    exact, any depth. This is the function-correctness half of §3.1 (the
+    confinement half is discharged at the kernel).
+
+    Honest scope: this covers trusted programs that ARE Kleene expressions. A
+    program outside the fragment (e.g. echo = an identity axon rebind; switch.su =
+    arithmetic + select) is not a Kleene expression, so its function-correctness
+    is covered by its own substrate tests, not by this procedure.
+    """
+    # A trusted program whose contract says "compute NAND" implemented two ways:
+    contract_reference = "!(a && b)"
+    correct_impl = "!a || !b"            # De Morgan — same function, same graph
+    wrong_impl = "!(a || b)"             # NOR, not NAND — different function
+    vs = ["a", "b"]
+
+    # Correct implementation satisfies the contract's function (same graph):
+    assert reduces_to_same_graph(correct_impl, contract_reference, vs), (
+        "a correct NAND implementation should satisfy the contract function"
+    )
+    # A wrong implementation is caught (not the same graph):
+    assert not reduces_to_same_graph(wrong_impl, contract_reference, vs), (
+        "NOR must NOT pass as a NAND contract — function-correctness would be vacuous"
+    )
+
+
 def test_refuses_outside_the_polynomial_fragment() -> None:
     """The checker refuses (does not fabricate) on a non-polynomial residual:
     a comparison or a runtime intrinsic. The named verifiable boundary."""
