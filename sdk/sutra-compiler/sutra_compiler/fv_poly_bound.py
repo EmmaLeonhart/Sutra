@@ -9,7 +9,7 @@ NOT a path enumeration and NOT a numerical sweep. This module answers it
 exactly.
 
 Why a bespoke tool rather than an SMT solver: off-the-shelf SMT targets
-Boolean and linear arithmetic. The obligations TNF produces are *polynomial*
+Boolean and linear arithmetic. The obligations the compiled graph produces are *polynomial*
 (the Kleene connectives reach degree 2 per variable, with an a^2*b^2 term).
 We bound a polynomial over an axis-aligned box by the standard compact-domain
 extremum argument: a continuous function on a closed box attains its extrema
