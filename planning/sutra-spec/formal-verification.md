@@ -255,6 +255,47 @@ system):
 - If a later result contradicts anything here, stop and resolve it (fix the
   impl or update this doc) — do not let the paper and this spec drift.
 
+## FV paper — tasks to a submittable level (the continuation reference, 2026-05-25)
+
+Derived from the recurring clawRxiv review cons (posts 2614→2621, 7× Reject with
+consistently positive pros) and from what is measured vs not-yet-built. Ordered
+roughly by leverage. Wordsmithing against the AI reviewer has hit diminishing
+returns; these are the substantive items (and a human venue is the real target).
+
+1. **k=8 → real capacity evidence (recurring con, needs an experiment, not a
+   reword).** The reviewers keep reading k=8 as a low bar. Run bundle-decoding at
+   higher widths (k = 16, 32, 64…) on the frozen substrates and report the
+   accuracy-vs-k curve + the crossover where rotation binding finally degrades;
+   that turns "k=8 where Hadamard collapses" into a capacity characterisation.
+   Measured numbers only.
+2. **Term-count / PIT complexity, stated honestly (con: "path explosion just
+   shifted to polynomial expansion").** Do NOT say path explosion is "removed."
+   Characterise the cost precisely: range-soundness + equivalence are
+   degree-insensitive via composition / polynomial identity, but the *expanded*
+   polynomial's term count can grow; give the bound and when it bites. Pair with
+   a measured term-count for a few real reduced programs.
+3. **Fragment scope (con: "Kleene fragment too restrictive; no complex data
+   structures / stdlib").** Either (a) widen the decided fragment (comparisons,
+   arithmetic predicates) toward more of the trusted base, or (b) tighten the
+   paper's claim to exactly the fragment covered and state the path to more. Tie
+   to the actual trusted-base programs (kernel roles, echo, switch).
+4. **Contract key-soundness (the open §3.1 half).** Build runtime key-usage
+   instrumentation (or a key-level manifest contract) so the static
+   `AXON_KEYS_READ`/`BOUND` analysis can be checked against the keys a program
+   actually touches. Then the contract obligation is fully discharged, not half.
+5. **Termination framing (con: "trivial / bounded loops sidestep").** Decide the
+   framing: lean into "bounded-by-design is the point, the content is convergence
+   detection" with a sharper convergence result, or scope the claim. Not a
+   wordsmith — needs a crisper convergence property.
+6. **The citation con is UNFIXABLE here.** The reviewer flags
+   `Shaw … 2025, arXiv:2501.05368` as "hallucinated/future-dated" even with the
+   arXiv ID — its knowledge cutoff cannot verify a 2025 paper (same pattern as
+   the Neural Computers citation). Nothing to change in the paper; note it when
+   choosing a venue (a human reviewer resolves it instantly).
+7. **General obligation checker (the bulk of the remaining build).** Extract the
+   polynomial directly from the emitted graph (not the inliner restatement) and
+   discharge an arbitrary reduced-graph obligation — the part still not built.
+
 ## Cross-references
 
 - `planning/exploratory/tnf-vs-constant-folding-explanation.md` — compiled-graph
