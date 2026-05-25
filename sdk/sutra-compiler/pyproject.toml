@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sutra-dev"
-version = "0.6.0"
+version = "0.7.0"
 description = "Compiler for the Sutra programming language — tensor ops on frozen-LLM embedding vectors."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -50,6 +50,13 @@ runtime = [
 # is `pip install sutra-dev[runtime,ts]`.
 ts = [
   "sutra-from-ts>=0.1.0",
+]
+# Formal-verification tooling (`from sutra_compiler import fv`): the
+# polynomial-obligation checker + Kleene-fragment equivalence decision
+# procedure. Needs sympy for exact closed-form bounds + polynomial identity.
+# Install with: pip install sutra-dev[fv]
+fv = [
+  "sympy>=1.12",
 ]
 # Dev tools for working on the compiler itself.
 dev = [
