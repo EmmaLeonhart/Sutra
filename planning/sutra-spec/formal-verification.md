@@ -12,28 +12,32 @@ otherwise would be exactly the fake this repo forbids.
 
 ## The one claim
 
-> A Sutra program β-reduces to a **tensor normal form (TNF)**: a single fused
-> tensor-op graph over a frozen substrate. So verifying the trusted base is
-> *discharging a finite set of closed-form obligations over a small, fixed set
-> of tensor graphs* — algebra on the reduced form — rather than navigating
-> control flow through imperative code.
+> Sutra's compiler emits, for each program, a single fused **tensor-op graph**
+> over a frozen substrate, and that graph *is* the program's semantics. So
+> verifying the trusted base is *discharging a finite set of closed-form
+> obligations over a small, fixed set of tensor graphs* — algebra on the compiled
+> graph — rather than navigating control flow through imperative code.
 
-Everything else is the structure that makes that claim precise and the honest
-boundary of where it stops.
+> **Terminology (2026-05-24, Emma):** do NOT call this a "tensor normal form"
+> (TNF). We have not formally defined a normal form and claiming canonicality we
+> have not proven is an overreach that invites "not rigorous" rejections. The
+> real, defensible statement is the descriptive one above: the compiler emits a
+> tensor-op graph that is the program's semantics. Drop "TNF"/"normal form" from
+> outward writing.
 
-## What TNF is (and is not)
+## The compiled tensor-op graph
 
-TNF is not constant folding applied to an otherwise-conventional program. There
-is no residual program underneath: the matrices **are** the computation, the way
-a neural network's weights are the computation and not an optimization of it.
-The difference from constant propagation / partial evaluation / staging is
-**ontological, not quantitative** — TNF collapses the computational model into
-linear algebra, so there is no "un-folded" version to fall back to. See
-`planning/exploratory/tnf-vs-constant-folding-explanation.md`.
+The compiled graph is not constant folding applied to an otherwise-conventional
+program. There is no residual program underneath: the matrices **are** the
+computation, the way a neural network's weights are the computation and not an
+optimization of it. The difference from constant propagation / partial evaluation
+/ staging is **ontological, not quantitative** — compilation collapses the
+computational model into linear algebra, so there is no "un-folded" version to
+fall back to.
 
 The consequence that matters for verification: **equivalence checking on the
-reduced graph is algebra, not a control-flow traversal.** Two programs that
-reduce to the same polynomial graph are decided equal by `expand(p₁ − p₂) == 0`.
+compiled graph is algebra, not a control-flow traversal.** Two programs that
+compile to the same polynomial graph are decided equal by `expand(p₁ − p₂) == 0`.
 
 **Scope correction (measured 2026-05-24, do not overstate this).** It is *not*
 true that every semantically/logically equivalent pair reduces to the *same*
@@ -65,19 +69,20 @@ Out of scope (we do **not** claim these — stating it up front is the rule):
   roles, and runtime monitoring instead. FV makes the AI parts *quarantinable*,
   not *safe*.
 - **Whole-system closed-form correctness.** Equivalence-as-algebra applies to
-  the contract surface of *individual* programs whose TNFs are individually
+  the contract surface of *individual* programs whose compiled graphs are individually
   tractable. It does not wave away state-space explosion across a whole running
   system. No real system has a closed-form whole-system proof; we do not promise
   one.
 
 ## The three reduction pillars (where the obligations come from)
 
-### Pillar 1 — β-reduction to TNF
+### Pillar 1 — reduction to the compiled tensor-op graph
 
-A Sutra program reduces to a canonical fused tensor-op graph.
+A Sutra program compiles to a fused tensor-op graph that is its semantics.
 
-- **Obligation (equivalence):** `TNF(p₁) ≡ TNF(p₂)` is decided by algebraic
-  normalisation of the two graphs, not by exploring executions.
+- **Obligation (equivalence):** whether two programs compile to the same graph is
+  decided by algebraic comparison of the two graphs (`expand(p₁ − p₂) == 0`), not
+  by exploring executions.
   - **DISCHARGED for the Kleene-logic fragment, 2026-05-24.** The general
     checker (`sutra_compiler/fv_obligation_checker.py`) extracts each
     expression's polynomial via the compiler's own inliner and decides
@@ -87,7 +92,7 @@ A Sutra program reduces to a canonical fused tensor-op graph.
     intrinsics), so the boundary is named, not faked. See the scope correction
     above (distributivity) and `tests/test_fv_general_checker.py`.
 - **Obligation (contract):** for a program `p` with axon-typed contract `C`,
-  show `TNF(p)` reads only `C.read_roles`, writes only `C.write_roles`, and that
+  show `p`'s compiled graph reads only `C.read_roles`, writes only `C.write_roles`, and that
   the role-to-role map it computes matches `C`. The static read/write key sets
   the compiler already emits (`AXON_KEYS_READ` / `AXON_KEYS_BOUND`) are the
   starting evidence for the role obligations.
@@ -210,12 +215,12 @@ system):
 - **Plan:** a fixed image + fixed set of critical programs; manifests published;
   no runtime code loading.
 - **Requirements:** axon-typed contracts on every role / critical program.
-- **Design:** the Sutra source, whose **TNFs are the designs**.
-- **Verification artefacts:** mechanical proofs that the TNFs satisfy the
-  contracts; polynomial obligations discharged by the bespoke checker.
+- **Design:** the Sutra source, whose **compiled graphs are the designs**.
+- **Verification artefacts:** mechanical proofs that the compiled graphs satisfy
+  the contracts; polynomial obligations discharged by the bespoke checker.
 - **Trace:** every capability grant and admit/evict in an append-only log.
 - **Tooling assurance:** the compiler is in scope for qualification; the
-  artefact under review is its **output (the TNF)**, not the source.
+  artefact under review is its **output (the compiled graph)**, not the source.
 
 ## Non-claims (the discipline — keep this section honest)
 
@@ -232,7 +237,9 @@ system):
 
 ## Cross-references
 
-- `planning/exploratory/tnf-vs-constant-folding-explanation.md` — TNF ontology.
+- `planning/exploratory/tnf-vs-constant-folding-explanation.md` — compiled-graph
+  ontology (the "compiled graph is the semantics, not a constant fold" argument;
+  filename predates dropping the "TNF" term).
 - `planning/sutra-spec/equality-and-defuzzification.md` — truth axis, Kleene,
   defuzzification (the saturation that makes branches/`select` exact).
 - `planning/sutra-spec/control-flow.md` — loops and conditionals.
