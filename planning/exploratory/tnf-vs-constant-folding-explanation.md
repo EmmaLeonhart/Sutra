@@ -1,10 +1,16 @@
-# TNF vs constant folding — the ontological framing
+# The compiled tensor-op graph vs constant folding — the ontological framing
 
-**Saved 2026-05-01 for potential paper §1.2 expansion.** Use only if the
-in-flight `1505fb4`/`668429d` reviews validate that defending TNF as a
-distinct concept is winning. If neither yields Strong Accept, give up
-the novelty claim and either drop §1.2 contribution 2 or rename to
-something humbler.
+> **SUPERSEDED 2026-05-25 (Emma).** The term "tensor normal form" / "TNF" has
+> been **removed from the active specs, docs, and the FV paper** — we never
+> formally defined it, and asserting a canonical "normal form" we have not proven
+> hurt the FV paper's reception. The defensible phrasing now used everywhere is
+> the descriptive one: *the compiler emits a tensor-op graph that is the
+> program's semantics.* Formally defining a normal form (and a recurrent normal
+> form) is deferred to a next-year todo (`todo.md` § "[NEXT YEAR] Formally define
+> tensor normal form"). This file is kept as the historical record of the
+> original reasoning — note that its OWN conclusion (bottom) already recommended
+> dropping the novelty framing, which is what we have done. References below to
+> "TNF" / "tensor normal form" are that retired framing.
 
 ## The spectrum
 

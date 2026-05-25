@@ -1,7 +1,7 @@
 """End-to-end differentiable training through Sutra's tensor-op graph.
 
 Demonstrates that gradient descent can optimize parameters through
-the exact operations the Sutra compiler emits to tensor normal form:
+the exact operations the Sutra compiler emits as a tensor-op graph:
 cosine similarity, Lagrange-interpolated fuzzy AND/OR/NOT polynomials,
 scalar-vector multiply, and bundle (vector addition).
 

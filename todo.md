@@ -245,9 +245,9 @@ clawRxiv post 2613). We are at the *early* stage: the obligations are
 checker that turns the three obligation families into run-and-read checks,
 smallest first, and keep the FV paper updated as each lands (CLAUDE.md §
 FV-paper-sync). Off-the-shelf SMT solvers target Boolean/linear arithmetic,
-not the polynomial obligations TNF produces — hence bespoke.
+not the polynomial obligations the compiled graph produces — hence bespoke.
 
-**Spine: trusted base β-reduces to a tensor normal form, so verification is
+**Spine: trusted base compiles to a tensor-op graph, so verification is
 discharging a finite set of closed-form obligations over a small fixed set
 of tensor graphs, not navigating control flow. Polynomial Kleene logic is
 the lever that removes branch/path explosion.**
@@ -268,7 +268,7 @@ the lever that removes branch/path explosion.**
     `test_send_refused_when_sender_lacks_write_role`,
     `test_send_to_unadmitted_role_is_black_hole`). This is the read/write
     *confinement* part only.
-  - ❌ **Role-to-role function correctness — OPEN, needs design.** That `TNF(p)`
+  - ❌ **Role-to-role function correctness — OPEN, needs design.** That `p`'s compiled graph
     computes the function `C` specifies, not merely that it stays within its
     roles. This is program-correctness, not confinement: it needs a way to
     state the intended role-to-role map as a checkable spec and compare the
@@ -296,10 +296,10 @@ the lever that removes branch/path explosion.**
 - **Termination obligation.** For a tail-recursive soft-halt loop, check the
   halt signal is monotone within bounded steps (§3.3) — far smaller than
   proving an arbitrary `while` terminates.
-- **TNF-equivalence (β-reduction obligation).** Decide `TNF(p₁) ≡ TNF(p₂)`
-  by algebraic normalisation of the two graphs (not execution traversal);
+- **Graph-equivalence obligation.** Decide whether two programs compile to the
+  same graph by algebraic comparison of the two graphs (not execution traversal);
   start from the simplifier/CSE passes already in the compiler.
-- **End-to-end worked example.** Take one `.su` program → emit its TNF →
+- **End-to-end worked example.** Take one `.su` program → emit its compiled graph →
   mechanically check it against its published contract. The first real FV
   artifact (framework → demonstrated). Feeds a paper revision.
 - **Tie to Yantra's trusted base.** The kernel roles + named critical
@@ -1722,3 +1722,35 @@ sharding, multi-tenancy, connection pooling.
 | [Materialize](https://github.com/MaterializeInc/materialize) | Streaming SQL on Differential Dataflow |
 
 SutraDB benchmark baseline: `sutraDB/benchmarks/LATEST.md`.
+
+---
+
+## [NEXT YEAR] Formally define "tensor normal form" — before using the term anywhere
+
+**Status: deferred, ~next year (Emma 2026-05-25).** We removed every use of
+"tensor normal form" / "TNF" from the active specs, docs, and the FV paper,
+because **we have not formally defined it** and claiming a canonical "normal
+form" we have not proven is an overreach that has actively hurt the FV paper's
+reception. Until it is properly defined, the honest, defensible phrasing is the
+descriptive one we now use everywhere: *the compiler emits a tensor-op graph
+that is the program's semantics.*
+
+The rough idea we DO have (keep, do not over-promise):
+- **Tensor normal form ≈** the sense in which a program can be algebraically
+  simplified to *just a sequence of matrix multiplications* (an
+  affine/multilinear pipeline over the substrate).
+- **Recurrent tensor normal form ≈** the same idea for the bounded soft-halt
+  loop case — a fixed-width recurrence `state ← R · state` as the normal form
+  for iteration.
+
+Why it is deferred, not done now:
+- A real *normal-form* claim needs formal-verification / rewriting-theory
+  machinery (confluence, a canonicalisation/decision procedure, a proof that the
+  form is canonical) that we do not have in hand yet.
+- It is genuinely unclear what standing we have to *declare* a new normal form
+  as a formal object; doing so prematurely reads as unsupported. Define it
+  properly, with proofs, or do not call it that.
+
+When picked up: define TNF + recurrent-TNF precisely as part of the FV process,
+prove the canonicalisation properties claimed, THEN (and only then) reintroduce
+the term into the spec/paper. Mirrored in Yantra `todo.md`.
