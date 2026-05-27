@@ -74,36 +74,45 @@ First piecemeal target of the §"Agentic RAG for constrained-training design" ag
 
 **No matrix-literal blocker** — `T` is a scalar; bakes back trivially. This is exactly why it's #1 in the priority sequence: smallest concrete piece of evidence for the larger constrain-train agenda.
 
-### ⭐ #2 PRIORITY — `vector_literal` builtin (unblocks matrix-valued bake-back)
+### ⭐ #2 PRIORITY — Rank-k `is_X` matrix constrain-train experiment
 
-Per `planning/sutra-spec/matrix-valued-bake-back.md`: the matrix-valued constrain-train targets reduce to a list of vectors + scalars composed with existing primitives. The one concrete prerequisite is a `.su`-emittable vector-of-floats literal — currently vectors are only constructible via `basis_vector("name")`, `bundle(...)`, etc.; there is no way for the bake-back harness to emit a trained prototype as numeric values.
+Now scaffoldable: `vector_literal` builtin shipped at `164e499d`; matrix-valued bake-back doesn't need new `.su` matrix syntax per `planning/sutra-spec/matrix-valued-bake-back.md` — a rank-k matrix is a list of vector_literals + scalars composed with existing `bundle` / `similarity` / scalar-multiply.
 
-**Design (lean, mirrors `basis_vector`'s shape):**
+**Mechanism.** Rank-k discrimination for class X is:
 
-Option A — variadic float args:
 ```
-vector v = vector_literal(0.123, -0.045, 0.312, ...);
+is_X(x) = T_1 * sim(x, v_X_1) ⊕ T_2 * sim(x, v_X_2) ⊕ ... ⊕ T_k * sim(x, v_X_k)
 ```
-Requires the parser to accept N float literals as builtin args; codegen lowers to `_VSA.vector_from_floats([0.123, -0.045, 0.312, ...])`.
 
-Option B — single base64-encoded string:
-```
-vector v = vector_from_bytes("AAA...QQQ");  // base64 of float32 bytes
-```
-Same parser surface as `basis_vector` (one string arg); codegen decodes at runtime first call; cacheable.
+where `⊕` is fuzzy OR (Lagrange poly) — class X looks like x if ANY of its k prototypes is close enough. Stage-B is the rank-1 special case (one prototype `v_X`, one scalar `T`). Rank-k gives the model k "modes" per class — useful when a category has multiple sub-clusters in embedding space (e.g., "vehicle" = land vehicles ∪ water vehicles ∪ air vehicles).
 
-**Pick Option A first** — keeps the trained values legible in source (anybody can `grep -o "vector_literal([^)]*)"` and read the float list). Option B is the fallback for very-large-vector cases where source-form readability isn't a priority.
+**Trained params per class:** `k` prototype vectors + `k` scalars. Across K classes: `K × k` vectors and `K × k` scalars. All bake back via `vector_literal(...)` (just shipped) + scalar literals.
 
-**Steps:**
+**Steps (concrete, ready to run):**
 
-1. Add `_builtin_vector_literal` to `sdk/sutra-compiler/sutra_compiler/codegen_base.py` (BUILTINS dict).
-2. Lower to `_VSA.vector_from_floats([...])` — a new `_VSA` method that builds a `torch.tensor([...], dtype=self.dtype, device=self.device)`.
-3. Validator: confirm the parser accepts float-list builtin args (check existing `argmax_cosine(query, [a, b, c])` handling — if elements may already be numeric, no parser change; otherwise extend).
-4. Substrate-purity audit: vector_from_floats does NOT take a host gradient path; it produces a substrate tensor on the runtime device. No numpy on the runtime path. Substrate-leak sweep (`scripts/substrate_leak_sweep.py`) must stay green.
-5. Tests: `tests/test_codegen.py::TestVectorLiteral` — round-trip a known float list through the builtin; cross-check substrate tensor against the expected values within 1e-7.
-6. Smoke: a `.su` that declares `vector v = vector_literal(0.1, 0.2, 0.3);`, recompiles, returns the tensor. Verify via the same compile-once + exec pattern Stage-B uses.
+1. **Harness: `experiments/rank_k_is_x.py`.** Compile a `.su` rule:
+   ```
+   function fuzzy is_X(vector x, vector v1, vector v2, ..., vector vk,
+                       number T1, number T2, ..., number Tk) {
+       return (T1 * similarity(x, v1)) || (T2 * similarity(x, v2))
+              || ... || (Tk * similarity(x, vk));
+   }
+   ```
+   For K-class classification, per-class `is_X_i` gates against `is_X_j` (j≠i) via AND/NOT as in Stage-B.
+2. **Initialization:** Initialize `v_X_i` to `embed(category_word_i)` for i ≤ |class words| (anchor-ball init per the constrain-Adam meaningful-only framing). Fall back to random for `i` > |class words|, or pre-cluster the embeddings of the category words via k-means and use cluster centroids as the k anchors.
+3. **Train** all `K × k` vectors and `K × k` scalars jointly via Adam + cross-entropy. Equivalence guard (vmap vs per-sample to 1e-4) before training begins.
+4. **Bake back:** emit a fresh `.su` where each `v_X_i` becomes `vector_literal(<trained floats>)` and each `T_X_i` becomes the trained numeric literal. The rule body has all `vector` and `number` params dropped.
+5. **Round-trip recompile + max-logit-Δ check** to <1e-4 (substrate equivalence between trained graph and baked-literal graph).
+6. **Measure: logit margin at rank-1 vs rank-k.** Does k > 1 widen the equality-discrimination margin? Sweep `k ∈ {1, 2, 4}` on K=5 categories; report margin curves with n≥3 seeds.
+7. **Findings doc** at `planning/findings/YYYY-MM-DD-rank-k-is-x.md`. Cite measured numbers only. The §"What we are NOT claiming" discipline: not "rank-k always wins" — could come out a wash; the finding is the measurement.
 
-**Why this is #2 (right after the equality cosine adjustment):** Once it lands, the *rank-k* `is_X` matrix experiment (the first matrix-valued constrain-train target) becomes scaffoldable with no further spec work — trained `v_1, ..., v_k` vectors bake back as `vector_literal(...)` calls in the `is_X` function body.
+**Honest scope:**
+- This is the *first* matrix-valued constrain-train target. Defuzz matrix, learned-binding matrices are separate later experiments.
+- The K=5 classification baseline saturates fast (Stage-B was 100%); the rank-1 vs rank-k *margin* is the metric, not accuracy.
+- The per-sample bottleneck observed in Stage-A (≈6 h for K=5 N=50 30 ep) applies here. Use `torch.vmap`-batched logits like `differentiable_training_compiled.py --batched`, NOT plain per-sample loops — same vmap-vs-per-sample equivalence guard required.
+- Substrate-purity rails compose with this — the trained values run through the emitted graph, not through host shortcuts.
+
+**Cross-refs:** `planning/sutra-spec/matrix-valued-bake-back.md` (mechanism), `todo.md` §"Agentic RAG for constrained-training design" → "is_X matrix end-to-end" (target list), `experiments/equality_cosine_adjustment.py` (rank-1 precedent).
 
 ### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
 

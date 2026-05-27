@@ -15,6 +15,79 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-26: constrain-train agenda landed; back-prop-into-code paper queued; matrix-bake-back lean-spec + vector_literal builtin shipped; master cherry-picked + deleted
+
+Session opened the three-cron autonomous loop and advanced through
+Emma's 2026-05-26 priority sequence:
+
+(1) Agentic-RAG-for-constrained-training agenda landed in `todo.md`
+(commits `09accaad` + `5146619c` + `ffd2e175`): meta-tool design
+(corpus indexer + retrieval CLI + decision template + sub-agent +
+scaffolder), 10 scalar-first constrain-train targets, shared
+infrastructure (equivalence-guard harness, matrix bake-back machinery,
+constraint catalog, results table). Vision arc — "constrain to
+meaningful at first" is phase 1 of mapping everything to meaning —
+captured as direction-not-driver, with the explicit four-step
+priority (equality cosine first → other scalars → matrix-valued → full
+back-prop into code).
+
+(2) Equality cosine-similarity adjustment promoted to #1 priority +
+isolated-T probe harness shipped (`28d40eb8`,
+`experiments/equality_cosine_adjustment.py`): prototypes FROZEN at
+embed(category-name); only T trained; reports the logit margin
+(correct - max wrong), not accuracy. Equivalence guard (vmap vs
+per-sample to 1e-4) enforced before training. Smoke run (K=3
+per-class=5 20 ep seed=0): equiv guard 2.98e-07, baseline margin
++0.1103 -> trained margin +0.1303 (T*=1.2481), round-trip max|delta|
+2.38e-07, ratio +1.18x. Real K=5 n=3 measurement still in flight as
+`bu7o9mqxu` (per-sample driver path; long-running; not killed).
+
+(3) Back-prop-into-code paper + docs page (separate from
+paper/paper.md and paper/neurips/ and paper/formal-verification/)
+added to `todo.md` (`e5edef31`). New clawRxiv post chain at
+paper/back-prop-into-code/, mirroring fv-paper-ci.yml; new docs page
+at docs/back-prop-into-code.md, linked from the homepage. Anti-claim
+discipline stated up front.
+
+(4) Lean placement decision for T captured in
+`planning/open-questions/equality-cosine-T-placement.md`
+(`e5edef31`): per-rule numeric literal at each similarity call site,
+status quo from Stage-B. Cross-program / language-level / compile-
+time-calibration options all explicitly deferred with named re-open
+triggers.
+
+(5) Matrix-valued bake-back spec landed at
+`planning/sutra-spec/matrix-valued-bake-back.md` (`e5edef31`): defers
+first-class `matrix X = ...;` syntax; matrix-valued targets compose
+existing primitives + a list of `vector_literal` values. Rank-1 is_X
+= Stage-B's prototype + scalar. Rank-k = k prototypes + (optionally)
+k output directions + k gains. Defuzz on truth axis = polynomial
+coefficients on a scalar. The one concrete prerequisite identified:
+the `vector_literal` builtin.
+
+(6) Master-branch a5c0896f cherry-picked onto main (`8385fac8`) —
+preserving 550 lines of cross-function axon read-demand propagation
+compiler work (`_compute_axon_read_signatures`, 7 new tests in
+TestCrossFunctionAxonElision, axons.md spec resolution) that was
+NOT in main. Queue.md's "now unused" framing was wrong. After
+cherry-pick: 96/96 codegen tests green + the new 7 included; remote
+master deleted (`81fbc51b`).
+
+(7) `vector_literal` builtin shipped (`164e499d`): variadic float
+args, lowers to `_VSA.vector_from_floats([...])`, substrate-pure
+torch.tensor on runtime device + dtype. 4 new tests in
+`tests/test_vector_literal.py`, all 4 green; full codegen suite
+100/100 in 22 s. Unblocks the rank-k is_X experiment.
+
+This tick (work-loop): removed the now-completed `vector_literal`
+#2 entry from `queue.md`; promoted the **rank-k is_X experiment** as
+the next concrete #2 piece, with end-to-end steps (mechanism,
+initialization from embed(category-word) anchors, joint training of
+K * k vectors + K * k scalars, vmap-batched logits with equivalence
+guard, bake-back via vector_literal + scalar literals, rank-1 vs
+rank-k margin sweep). Queue rule honored: completed work goes to git
+log, not the queue.
+
 ## 2026-05-26: three-cron loop started; CLAUDE.md cron-section dedup; agentic-RAG agenda; stale compile_su queue entry removed
 
 Session opened the three-cron autonomous productivity loop per CLAUDE.md
