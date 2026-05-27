@@ -235,10 +235,14 @@ genuinely open and need design before code, not just wiring:
    carry propagation ON THE SUBSTRATE (digit-array). **2026-05-27:
    `examples/parse_int2.su` ships substrate-pure** (`parse_int2("47")` →
    `tensor(47., device='cuda:0')`; no host scalar leak); the carry-loop
-   piece is genuinely open. Design choice (associative-scan primitive
-   vs. sequential soft-halt loop) affects the spec + runtime ABI and
-   needs a `planning/open-questions/` dossier before implementation.
-   Finding: `planning/findings/2026-05-27-arbitrary-precision-parser.md`.
+   piece is OPEN with the design choice surfaced in
+   `planning/open-questions/arbitrary-precision-digit-array.md` (Option
+   A: associative-scan substrate intrinsic; Option B: sequential
+   soft-halt loop in Sutra; hybrid: Sutra surface + scan-rewrite pass).
+   The four sub-decisions named there (BigInt typing, digit layout,
+   max width, integer-division primitive) need Emma sign-off before
+   implementation. Finding:
+   `planning/findings/2026-05-27-arbitrary-precision-parser.md`.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
