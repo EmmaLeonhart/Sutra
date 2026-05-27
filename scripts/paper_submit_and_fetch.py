@@ -71,6 +71,24 @@ class SupersedeConflict(RuntimeError):
         return None
 
 
+class ReviseNotFound(RuntimeError):
+    """HTTP 404 from POST /api/posts/{id}/revise.
+
+    Observed 2026-05-27 against a healthy, non-withdrawn post (the FV
+    paper's post 2622 in its 10-version chain): GET /api/posts/2622
+    returns 200 with `versions[]` populated, but POST .../revise
+    returns 404 with `{"message":"Server Error"}`. The endpoint exists
+    (anonymous POST returns 401, not 404), so this is a server-side
+    bug specific to a particular post entering an unrevisable state.
+
+    The self-heal is the same shape as SupersedeConflict's: do not
+    just fail — fall back to creating a fresh post (a new chain). The
+    old chain stays on clawRxiv as orphaned versions; the canonical
+    paper text lives on the project's own site, so the chain loss is
+    cosmetic, not content loss. Calling code is expected to catch
+    this and call `create_post()` instead of dying."""
+
+
 def extract_h1_title(content: str) -> str | None:
     """Extract the H1 title from the paper markdown, if present."""
     match = re.match(r'^#\s+(.+)', content)
@@ -131,8 +149,20 @@ def read_post_id(paper_dir: Path) -> int | None:
 def _post_json(
     url: str, payload: dict[str, Any], api_key: str,
 ) -> dict[str, Any]:
-    """POST JSON to clawRxiv. Raises SupersedeConflict on HTTP 409
-    (carrying the parsed body), RuntimeError on any other error."""
+    """POST JSON to clawRxiv.
+
+    Raises:
+        SupersedeConflict — on HTTP 409 (stale supersede target /
+            dedup), carrying the parsed body so callers can recover
+            via data.duplicateId.
+        ReviseNotFound — on HTTP 404 against a /revise endpoint.
+            The endpoint exists (anon POST returns 401), so a 404
+            here is a server-side bug specific to the targeted post
+            (observed against post 2622 in its 10-version chain
+            2026-05-27). Callers are expected to recover by creating
+            a fresh post.
+        RuntimeError — on any other HTTP error.
+    """
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         url,
@@ -155,6 +185,10 @@ def _post_json(
                 parsed = {}
             raise SupersedeConflict(
                 f"clawRxiv HTTP 409: {err_body}", body=parsed
+            ) from e
+        if e.code == 404 and "/revise" in url:
+            raise ReviseNotFound(
+                f"clawRxiv HTTP 404 on revise URL {url}: {err_body}"
             ) from e
         raise RuntimeError(
             f"clawRxiv request failed: HTTP {e.code}: {err_body}"
@@ -386,6 +420,26 @@ def main() -> int:
             print(f"Creating NEW clawRxiv post for {paper_dir}/paper.md "
                   f"(no .post_id found)")
             response = create_post(api_key=api_key, payload=payload)
+    except ReviseNotFound as e:
+        # clawRxiv server-side bug observed 2026-05-27: a healthy,
+        # non-withdrawn post in a long supersedes chain can enter a
+        # state where POST /revise returns 404. The endpoint exists
+        # (anon POST 401s) and the post itself is reachable via GET;
+        # only revise fails. Self-heal: start a fresh post chain.
+        # The old chain stays on clawRxiv as orphaned versions.
+        print(f"WARNING: revise of post {supersedes} returned HTTP 404 "
+              f"(server-side bug, not a client error). Falling back to "
+              f"create_post — this STARTS A NEW SUPERSEDES CHAIN. The "
+              f"old chain stays on clawRxiv as orphaned versions; the "
+              f"canonical paper PDF lives on the project site so no "
+              f"content is lost.\n  Underlying error: {e}",
+              file=sys.stderr)
+        try:
+            response = create_post(api_key=api_key, payload=payload)
+        except Exception as e2:  # noqa: BLE001
+            print(f"ERROR: fallback create_post after 404 also failed: "
+                  f"{e2}", file=sys.stderr)
+            return 1
     except SupersedeConflict as e:
         dup = e.duplicate_id()
         if dup is None:

@@ -27,8 +27,8 @@ The exact camera-ready Sutra paper as submitted to NeurIPS 2026. Permanent, immu
 
 A second paper on formally verifying the non-learned trusted base of Sutra. Spine: compiling control flow into a tensor-op graph reduces verification to a finite set of closed-form polynomial obligations over a small fixed set of graphs, rather than enumeration of control-flow paths. The paper carries the obligation framework, the mechanical discharges that exist today (grid-exactness, branch-range by composition, termination, contract role-isolation, contract function-correctness for the Kleene fragment), and an honest cost characterization (PIT term-count growth, bundle-decoding capacity out to *k* = 48).
 
-- **PDF:** [formal-verification.pdf](/formal-verification.pdf)
-- **On clawRxiv:** post 2622 — *currently failing to revise* (clawRxiv `/api/posts/<id>/revise` is returning HTTP 404 server-side; the previously-submitted version still resolves on a GET). The PDF served here from the website is the live version regardless of clawRxiv state.
+- **PDF:** [formal-verification.pdf](/formal-verification.pdf) — rebuilt on every push to the FV paper source; this is the canonical current version regardless of clawRxiv state.
+- **On clawRxiv:** auto-resubmitted on every push by `fv-paper-ci.yml`. The chain starts fresh whenever clawRxiv's revise endpoint returns 404 on a previously-pinned post (server-side bug observed mid-2026); the `.post_id` file in the paper directory tracks the current chain head.
 - **Source markdown:** [`paper/formal-verification/paper.md`](https://github.com/EmmaLeonhart/Sutra/blob/main/paper/formal-verification/paper.md) on GitHub.
 
 ---
