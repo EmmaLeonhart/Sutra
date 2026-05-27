@@ -15,6 +15,25 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: R_CHAIN tests un-xfailed — fixed substring-count assertion
+
+Work-loop tick. The two `test_rchain_*_matrix_fuse` tests were marked
+`pytest.mark.xfail` in `cb8ceba3` because the egglog extractor's output
+form had migrated from `M.apply(v)` to the equivalent `bind(M, v)` form,
+and the test counted `.apply(` substrings. The fusion mechanism still
+worked (cost reduced); the assertions were checking the wrong surface
+shape.
+
+Probed the extractor output directly: two-matrix fused form is
+`bind(M2 @ M1, v)` (cost 107), five-matrix is `bind(M5 @ M4 @ (M3 @ (M2 @ M1)), v)`
+(cost 116). Rewrote the assertions to check the *semantic* fusion
+property — exactly one `bind(` (single matrix-vec application) plus
+exactly n-1 ` @ ` composes (n matrices left-folded) plus cost under 200
+(the unfused threshold). Removed both xfail markers.
+
+Result: `35 passed in 1.50s` (was: 33 passed + 2 xfailed). Egglog
+test file now fully green — no xfail, no skip, no hang.
+
 ## 2026-05-27: Emma multi-front part 2 — egglog hang fixed + capacity curve k≤48 + paper update
 
 Continuation of the same authorization batch.

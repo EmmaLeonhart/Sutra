@@ -271,22 +271,21 @@ def test_cascade_similarity_after_roundtrip():
 # ---------------------------------------------------------------------
 
 
-# R_CHAIN xfail rationale (2026-05-27): on this environment, the egglog
-# extractor canonicalises `M.apply(v)` to the equivalent `bind(M, v)`
-# form (they represent the same matrix-vector operation in the IR).
-# These tests check the COUNT of `.apply(` substrings in `str(extracted)`,
-# which the canonicalised output no longer contains — the underlying
-# fusion still happens (cost goes down), but the surface syntax differs.
-# Real fix: rewrite the assertion to use the cost model + AST shape
-# rather than substring count. Tracked separately; xfailed precisely so
-# the rest of the egglog suite stays a green gate.
+# R_CHAIN tests verify matrix-chain fusion: N applies of N matrices to
+# a vector should reduce to ONE matrix-vector application after the
+# matrices are pre-composed into a single fused matrix. The egglog IR
+# represents `M.apply(v)` and `bind(M, v)` as the same operation; the
+# extractor canonicalises to `bind(...)` form. So the semantic check
+# for "fused to a single apply" is:
+#   - exactly one `bind(` in the output (single matrix-vec application)
+#   - exactly n-1 ` @ ` composes (n matrices left-folded into one)
+#   - cost under the unfused threshold (the cost-model is what drove
+#     the extractor to pick the fused form in the first place).
+# Earlier these tests counted `.apply(` substrings, which the
+# canonicalised `bind(...)` output never contains; they passed when
+# the extractor emitted `.apply` notation and broke when it migrated
+# to `bind` notation. Fixed 2026-05-27.
 
-@pytest.mark.xfail(
-    reason="egglog extractor canonicalises M.apply(v) to bind(M, v); the "
-           ".apply( substring count assertion is wrong against this output "
-           "form. Underlying fusion (cost reduction) still occurs. Fix: "
-           "rewrite assertion to use cost + AST shape, not substring count."
-)
 def test_rchain_two_matrix_fuse():
     M1, M2 = Mat.named("M1"), Mat.named("M2")
     v = Vec.named("v")
@@ -294,21 +293,18 @@ def test_rchain_two_matrix_fuse():
         M2.apply(M1.apply(v)),
         cost_model=matrix_chain_cost_model,
     )
-    # Fused form has exactly one .apply(.
     s = str(extracted)
-    assert s.count(".apply(") == 1
+    # Single matrix-vector application (the two applies fused).
+    assert s.count("bind(") == 1, f"expected 1 bind, got: {s}"
+    # Exactly one ` @ ` compose (two matrices → one compose).
+    assert s.count(" @ ") == 1, f"expected 1 @ compose, got: {s}"
     # Cost of the fused form is strictly lower than the unfused
     # (2 applies * 100 + overhead = 200+) when cost > 100 implies fused.
-    assert cost < 200
+    assert cost < 200, f"expected cost < 200, got {cost}"
 
 
-@pytest.mark.xfail(
-    reason="Same as test_rchain_two_matrix_fuse: extractor emits bind(M, v) "
-           "instead of M.apply(v); .apply( substring count is wrong against "
-           "this output form."
-)
 def test_rchain_five_matrix_fuse():
-    """Five matrices chain-fuse to a single apply."""
+    """Five matrices chain-fuse to a single matrix-vector application."""
     M = [Mat.named(f"M{i}") for i in range(1, 6)]
     v = Vec.named("v")
     expr = v
@@ -318,9 +314,12 @@ def test_rchain_five_matrix_fuse():
         expr, cost_model=matrix_chain_cost_model,
     )
     s = str(extracted)
-    assert s.count(".apply(") == 1
-    # 5 applies unfused costs >=500; single apply should be ~100.
-    assert cost < 200
+    # Single matrix-vector application across all five applies.
+    assert s.count("bind(") == 1, f"expected 1 bind, got: {s}"
+    # Five matrices → four composes.
+    assert s.count(" @ ") == 4, f"expected 4 @ composes, got: {s}"
+    # 5 applies unfused costs >=500; fused should be well under 200.
+    assert cost < 200, f"expected cost < 200, got {cost}"
 
 
 # ---------------------------------------------------------------------
