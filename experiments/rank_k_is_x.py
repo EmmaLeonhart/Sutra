@@ -235,15 +235,26 @@ def smoke_compile_only(K: int = 2, k: int = 2):
     print(f"  PASS: baked form emits the same symbols; vector_literal round-trips through codegen")
 
 
-def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int):
+def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int,
+               anchor_perturb_eps: float = 0.02):
     """Load embeddings for K categories; build (data, prototype anchors).
 
-    - data: list of (x_tensor, class_index) pairs, len = K * per_class.
+    - data: list of (x_tensor, class_index) pairs, len = K * per_class,
+      SHUFFLED by the seeded RNG (per-seed data ordering — Adam's
+      stochastic gradient sees a different sequence per seed).
     - protos: K*k tensors of shape (dim,) each, requires_grad-able.
-      For k_rank=1 the proto is exactly embed(category-name).
-      For k_rank>1 the first anchor is embed(category-name) and the
-      remaining are eps-perturbations of it. (k-means cluster-centroid
-      anchors are a queued follow-up — explicitly NOT done here.)
+      EVERY anchor (including the first per class) is initialized as
+      embed(category-name) + eps*N(0,1) using the seeded generator, so
+      different seeds produce different starting trajectories. For
+      k_rank > 1 the extras get an independently-perturbed copy.
+      (k-means cluster-centroid anchors are a queued follow-up.)
+
+    The eps=0.02 default is small (~2% magnitude shift on the
+    L2-normalized anchor) — preserves "near embed(category-name)"
+    semantics while giving Adam genuine per-seed variation. Larger eps
+    would erode the meaningful-anchor framing; smaller eps would
+    re-collapse to the n=3-degenerate case the equality-cosine
+    finding flagged.
     """
     cache = os.path.join(HERE, ".diff_train_embeddings.pt")
     cats = dt.CATEGORIES[:K]
@@ -259,12 +270,14 @@ def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int):
     g = torch.Generator(device="cpu").manual_seed(seed)
 
     protos = []  # length K * k_rank
-    for ci, name in enumerate(cat_names):
-        anchor = to_dev(vecs_cpu[name])
-        protos.append(anchor.clone())
-        for _ in range(k_rank - 1):
-            noise = torch.randn(dim, generator=g, dtype=dtype).to(device) * 0.05
-            protos.append((anchor + noise).clone())
+    for name in cat_names:
+        anchor_base = to_dev(vecs_cpu[name])
+        for _ in range(k_rank):
+            noise = (
+                torch.randn(dim, generator=g, dtype=dtype).to(device)
+                * anchor_perturb_eps
+            )
+            protos.append((anchor_base + noise).clone())
 
     data = []
     for ci, (_, ws) in enumerate(cats):
@@ -272,6 +285,9 @@ def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int):
             if w in cat_names:
                 continue
             data.append((to_dev(vecs_cpu[w]), ci))
+    # Per-seed shuffled order — Adam's gradient-step sequence varies.
+    perm = torch.randperm(len(data), generator=g).tolist()
+    data = [data[i] for i in perm]
     return data, protos, dim
 
 
