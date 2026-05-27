@@ -492,35 +492,70 @@ def main() -> int:
     except SupersedeConflict as e:
         dup = e.duplicate_id()
         if dup is None:
-            print(f"ERROR: clawRxiv 409 with no data.duplicateId to "
-                  f"recover from:\n  {e}", file=sys.stderr)
-            return 1
-        # clawRxiv's dedup response names the canonical live post
-        # for this work. Follow it and revise THAT — deterministic
-        # self-heal of a stale/drifted .post_id straight from the
-        # API, no key-authed chain lookup needed.
-        print(f"WARNING: clawRxiv reports the live version of this "
-              f"work is post {dup} (HTTP 409). Revising post {dup} "
-              f"and re-pinning .post_id.", file=sys.stderr)
-        try:
-            response = revise_post(
-                api_key=api_key, post_id=dup, payload=payload
-            )
-        except SupersedeConflict as e2:
-            # Even revising the canonical is rejected as a duplicate:
-            # the manuscript is not substantively different from
-            # what is already on clawRxiv. That is a no-op, not a
-            # failure — pin .post_id to the canonical and succeed.
-            pin = e2.duplicate_id() or dup
-            print(f"NOTE: clawRxiv finds no substantive change vs "
-                  f"post {pin}; treating as up-to-date and pinning "
-                  f".post_id={pin}.", file=sys.stderr)
-            _persist_post_id(pin)
-            return 0
-        except Exception as e2:  # noqa: BLE001
-            print(f"ERROR: revising canonical post {dup} failed: "
-                  f"{e2}", file=sys.stderr)
-            return 1
+            # 409 with no data.duplicateId — observed as "This paper
+            # has already been revised. Submit revisions to the latest
+            # version." This happens when revising a non-latest post
+            # in a chain whose latest entry is itself broken (the FV
+            # paper's 2618..2622 situation: revise(2618) routes to
+            # "submit to latest"=2622 which 404s). Fall back to
+            # create_post — either the title/abstract has been
+            # bumped enough to break dedup (fresh post created) or
+            # we re-enter the SupersedeConflict path with a duplicate
+            # id we CAN follow.
+            print(f"WARNING: clawRxiv 409 with no data.duplicateId "
+                  f"(likely 'submit revisions to latest version' on an "
+                  f"unrevisable chain). Falling back to create_post.\n"
+                  f"  Underlying 409 error: {e}", file=sys.stderr)
+            try:
+                response = create_post(api_key=api_key, payload=payload)
+            except SupersedeConflict as e_dup:
+                dup2 = e_dup.duplicate_id()
+                if dup2 is None:
+                    print(f"ERROR: create_post after no-duplicateId 409 "
+                          f"ALSO returned 409 without data.duplicateId:\n"
+                          f"  {e_dup}", file=sys.stderr)
+                    return 1
+                # The title/abstract is still dedup-matching some
+                # existing post. Try to revise that one — same recovery
+                # as the regular SupersedeConflict path below.
+                print(f"clawRxiv dedup names post {dup2} as canonical "
+                      f"for this work; revising post {dup2} and re-"
+                      f"pinning .post_id.", file=sys.stderr)
+                try:
+                    response = revise_post(
+                        api_key=api_key, post_id=dup2, payload=payload
+                    )
+                except Exception as e_inner:  # noqa: BLE001
+                    print(f"ERROR: revising dedup-named canonical post "
+                          f"{dup2} failed: {e_inner}", file=sys.stderr)
+                    return 1
+            except Exception as e_other:  # noqa: BLE001
+                print(f"ERROR: fallback create_post after 409 also "
+                      f"failed: {e_other}", file=sys.stderr)
+                return 1
+        else:
+            # Standard self-heal: clawRxiv's dedup response names the
+            # canonical live post for this work. Follow it and revise
+            # THAT — deterministic self-heal of a stale/drifted .post_id
+            # straight from the API, no key-authed chain lookup needed.
+            print(f"WARNING: clawRxiv reports the live version of this "
+                  f"work is post {dup} (HTTP 409). Revising post {dup} "
+                  f"and re-pinning .post_id.", file=sys.stderr)
+            try:
+                response = revise_post(
+                    api_key=api_key, post_id=dup, payload=payload
+                )
+            except SupersedeConflict as e2:
+                pin = e2.duplicate_id() or dup
+                print(f"NOTE: clawRxiv finds no substantive change vs "
+                      f"post {pin}; treating as up-to-date and pinning "
+                      f".post_id={pin}.", file=sys.stderr)
+                _persist_post_id(pin)
+                return 0
+            except Exception as e2:  # noqa: BLE001
+                print(f"ERROR: revising canonical post {dup} failed: "
+                      f"{e2}", file=sys.stderr)
+                return 1
     except Exception as e:  # noqa: BLE001
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
