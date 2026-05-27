@@ -146,42 +146,15 @@ deliverables:
    back to `paper/formal-verification/reviews/`, post id in
    `paper/formal-verification/.post_id`.
 
-**STATUS 2026-05-25 — live on clawRxiv, latest post 2621, still Reject (7th);
-pros stay solidly positive (4).** Auto-submit wired (`fv-paper-ci.yml`); every
-push resubmits + fetches a review. The reviewer (Gemini 3 Flash) consistently
-PRAISES the Kleene-polynomial control flow, the learned/non-learned quarantine,
-the VSA formal basis, and polynomial-identity equivalence — but the verdict has
-not moved across passes. **The pass-1 fixes did not change the rating** (post
-2621 re-raised the same cons), which is the signal that further wordsmithing
-against this AI reviewer has low return; the substantive cons need real work
-(below) or a human venue. **Pass-2 (this fire): one minor fix only** — §4.3
-DAZ/FTZ precision (`exp(−1000)` is below the smallest *subnormal*, so it is 0.0
-regardless of flush-to-zero flags — directly answers the IEEE-754 con). **Latest
-cons + pass-1 disposition:**
-- (1) float32 bit-exact "suspect" → §4.3 sharpened: exactness is for
-  *integer-valued* computation in the exact range on IEEE-754 hardware
-  (exact-zero `select` underflow; no reorder dependence). Honest scope stated.
-- (2) termination "trivial / just a timeout" → §3.3 clarified: bounded loops are
-  a *language design choice* (no `while`), so we don't pose the halting problem;
-  the content is the convergence check; termination ≠ functional correctness
-  (separate, §3.1).
-- (4) "Shaw et al. 2025 hallucinated/future-dated" → it is REAL; added
-  **arXiv:2501.05368** to the citation (reviewer cutoff issue, like the Neural
-  Computers case).
-- (6) bounder scalability "despite induction" → §3.3 clarified the bounder is
-  NOT on the critical path for depth — deep nesting uses composition
-  (degree-insensitive); the high-degree polynomial is never bounded.
-- **Not addressed (can't without faking):** (3) k=8 "trivial for 768-d" — needs
-  higher-k experiments, not a reword; (5) "no path beyond the Kleene fragment
-  for heap/complex-state/non-polynomial intrinsics" — those are the
-  quarantined/out-of-scope parts (§5), inherent to the framing.
-
-**Discharged FV obligations (state, for the handoff):** grid-exactness (err 0.0);
-branch-range (closed-form per-connective + range-soundness by composition, any
-depth); termination (bounded + monotone); contract role-isolation (kernel) +
-function-correctness (Kleene fragment, via equivalence procedure); equivalence
-decision (Kleene fragment). Open: contract key-soundness (runtime instrumentation);
-the general checker for non-Kleene programs; k=8→higher-capacity evidence.
+**Reviewer signal (Gemini 3 Flash, 7× Reject, pros steady).** Auto-submit
+wired (`fv-paper-ci.yml`); every push resubmits + fetches a review. Reviewer
+consistently PRAISES the Kleene-polynomial control flow, the learned/non-
+learned quarantine, the VSA formal basis, and polynomial-identity equivalence —
+but the verdict has not moved across passes. **Wordsmithing against this AI
+reviewer has hit diminishing returns; the substantive cons need real work
+(below) or a human venue.** Current paper state + per-revision review cons
+live in `paper/formal-verification/reviews/`; discharged-vs-open obligation
+state lives in `planning/sutra-spec/formal-verification.md`.
 
 **FV PAPER — TASKS TO SUBMITTABLE (continuation reference; full list in
 `planning/sutra-spec/formal-verification.md` § "FV paper — tasks to a submittable
@@ -196,120 +169,30 @@ key-usage instrumentation — fully discharges §3.1); (5) **termination framing
 (a sharper convergence property, not wordsmithing); (6) the **citation con is
 unfixable** here (reviewer cutoff doubts the real 2025 arXiv ref — note it at
 venue choice); (7) **general obligation checker** (extract from the emitted graph,
-discharge arbitrary obligations — the bulk of the remaining build). Wordsmithing
-against the AI reviewer has hit diminishing returns (7× Reject, pros steady) — a
-human venue is the real target.
+discharge arbitrary obligations — the bulk of the remaining build). A human
+venue is the real target.
 
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 
-The framework (`planning/sutra-spec/formal-verification.md`) states three
-obligation families; turn them from agenda into demonstrated mechanical
-checks, smallest first.
+The framework (`planning/sutra-spec/formal-verification.md`) states the
+obligation families and tracks discharged-vs-open state authoritatively. As
+of 2026-05-25 the discharged set covers grid-exactness, branch-range
+(closed-form per-connective + range-soundness by composition at any depth),
+termination (bounded + monotone), contract role-isolation (Yantra kernel),
+and contract function-correctness for the Kleene fragment (via the
+equivalence procedure in `fv_obligation_checker.py`). Two halves remain
+genuinely open and need design before code, not just wiring:
 
-**DONE 2026-05-24 — Kleene grid-exactness checker (first obligation
-discharged).** `sdk/sutra-compiler/tests/test_fv_kleene_grid_exactness.py`
-compiles the real pipeline and evaluates `&&`/`||`/`!` at all nine
-{−1,0,+1}² grid points on the substrate; reproduces the Kleene strong-logic
-table (and=min, or=max, not=negate) with **worst |err| = 0.0** (exact, not
-approximate). Paper §3.2 updated. The smooth-polynomial → discrete-logic
-anchor now has a mechanical guard.
-
-**DONE 2026-05-24 — §3.2 branch-range obligation (second discharged, now
-CLOSED-FORM).** First a dense [−1,+1]² sweep showed the connective outputs stay
-in [−1.000000, +1.000000]. Then **upgraded to a closed-form proof**: the bespoke
-checker's first piece, a polynomial range-bounder over an axis-aligned box
-(`sdk/sutra-compiler/sutra_compiler/fv_poly_bound.py` — corners + edge-interior +
-interior stationary points, exact sympy arithmetic), proves the `&&`/`||`/`!`
-polynomials have **exact range [−1, +1]** (min=−1, max=+1, not sampled). The
-bound is tied to the *compiled* substrate forms: `tests/test_fv_poly_obligation_
-checker.py` cross-checks the symbolic polynomials against torch on the
-{−1,0,+1}²-determining grid + off-grid points (worst |err| 5.96e-8) before
-bounding. This is the FIRST real piece of the bespoke polynomial-obligation
-checker. Remaining: bound the *composed* polynomials of arbitrary reduced
-programs (same tool, larger/higher-degree inputs). Spec + paper §3.2 updated.
-
-**DONE 2026-05-24 — §3.3 termination obligation (third discharged).**
-`sdk/sutra-compiler/tests/test_fv_termination.py`: bounded + monotone-halt,
-structurally (`for _t in range(max_iters)`; `halted = min(halted+halt, 1)`,
-`halt = sigmoid ≥ 0`) and observably on the torch substrate — a converged loop
-is **exactly frozen across unroll depth (diff = 0.0)** and a non-converging loop
-runs to the bound and stops (`iters_active = 9.998/10`, never exceeds T). Paper
-§3.3 updated. **All four obligation families now have at least a partial
-mechanical check** (grid-exactness, branch-range, termination fully; §3.1
-role-isolation discharged at the kernel — see below).
-
-**DONE 2026-05-24 — §3.1 contract, ROLE-ISOLATION half (discharged at the kernel).**
-The read/write *confinement* part is enforced + tested in the Yantra kernel:
-a program emits only on its `write_roles` (capability-checked) and receives only
-its `read_roles` with no cross-role leakage (`../Yantra/tests/test_kernel.py`:
-`test_send_refused_when_sender_lacks_write_role`,
-`test_send_to_unadmitted_role_is_black_hole`, and the new
-`test_fv_role_contract_read_isolation`). Spec + paper §3.1 updated to reflect this.
-
-**Still OPEN in §3.1 (the harder halves — these need design, not a quick check):**
-
-1. **Role-to-role function correctness.** That `p`'s compiled graph computes the function the
-   contract specifies (not just stays within its roles) — program correctness.
-2. **Static-AXON_KEYS soundness.** That the compiler's `AXON_KEYS_READ`/`BOUND`
-   match the keys the program actually touches at runtime (the lazy-delivery
-   contract the kernel relies on). Needs runtime key-usage instrumentation, or a
-   key-level contract in the manifest to check against. Don't ship a vacuous
-   check; settle the design in `planning/sutra-spec/formal-verification.md` first.
-
-**DONE 2026-05-24 — the GENERAL checker (Emma: "do the general one"), with
-honest scope.** `sutra_compiler/fv_obligation_checker.py` handles ARBITRARY
-nestings of `&&`/`||`/`!` by running the REAL inliner pass (`inline_stdlib_calls`)
-and walking the lowered arithmetic AST into a sympy polynomial — extraction from
-the compiler's own lowering, not a hand-copied formula. 7/7 tests pass
-(`tests/test_fv_general_checker.py`, 5.53s). What it discharges:
-  - ✅ **extraction** — general, any depth (verified, incl. substrate cross-check
-    via `.subs` on the grid, worst |err| < 1e-4).
-  - ✅ **equivalence — TWO notions, both general + cheap:** `reduces_to_same_graph`
-    (polynomial identity, the "same compiled graph" notion) and `kleene_equivalent` (grid
-    agreement, the 3-valued-logic notion). De Morgan/commutativity/double-neg are
-    both; **distributivity is `kleene_equivalent` but NOT `reduces_to_same_graph`**
-    — a real counterexample showing the reduction canonicalises *some* but not all
-    logical equivalences (finding: `planning/findings/2026-05-24-distributivity-
-    not-canonical.md`; spec scope-corrected; this SHARPENS the paper's
-    canonicalisation claim, doesn't break it).
-  - ⚠️ **range bounding does NOT scale** — `check_branch_range` is reliable for the
-    primitive connectives + shallow 2-var nestings, but `sympy.solve` HANGS on deep
-    4+-var nestings (the §3.4 degree growth, made concrete; the test run hung on a
-    4-var case until killed). Documented in the module + finding, NOT hidden;
-    tests bound only tractable cases. Future: interval branch-and-bound, or
-    defuzzify between levels to cap degree.
-  - ✅ **refuses** (`NonPolynomialResidual`) on comparisons/intrinsics — the named
-    verifiable boundary.
-**DONE 2026-05-24 — boundary scaling (Emma) via composition, NOT a bigger bounder.**
-`range_sound_by_composition` (`fv_obligation_checker.py`): each connective maps
-[−1,+1]^k→[−1,+1] exactly (proven), so any composition is range-sound by induction
-on the tree — degree-insensitive, decides the deep 4-var case instantly. Both
-branch-range (composition) and equivalence (polynomial identity) now scale to any
-depth. 12 checker+facade tests pass (6.44s). Spec + paper §3.3 updated. Exposed on
-the `fv` facade.
-
-**DONE 2026-05-24 — paper de-TNF'd + VSA-grounded + reframed (Emma).** Dropped the
-"tensor normal form / normal form" framing (not formally defined — overreach) and
-the self-defeating scalability-confession section; grounded the substrate algebra
-in formal VSA theory (Shaw/Furlong/Anderson/Orchard 2025 = arXiv:2501.05368 +
-HRR/capacity refs) to answer the reviewer's "empirical not formal / circular" con;
-added real related work (Reluplex/Marabou, Z3/dReal, Futamura, VSA, DO-178C).
-Spec aligned (rule 5). v0.7.0 released with the FV public API (`from
-sutra_compiler import fv`).
-
-**Still OPEN (Emma wants these built next):**
-1. **Contract — function-correctness half.** For the arithmetic/Kleene fragment,
-   `reduces_to_same_graph(program, reference)` already DECIDES it; wire it as a
-   contract check for `echo` (identity) + `switch.su` against a reference. The
-   non-fragment case (learned/intrinsic) stays out of scope.
-2. **Contract — static-AXON_KEYS soundness half.** Verify the compiler's
-   `AXON_KEYS_READ`/`BOUND` match the keys a program touches at runtime. Needs
-   runtime key-usage instrumentation OR a key-level manifest contract to check
-   against. Design first in this spec; don't ship a vacuous check.
-3. **Arbitrary precision (calc).** True unbounded exact integers need carry
-   propagation ON THE SUBSTRATE (digit-array). The 1–2 digit substrate parser
-   (`parse_int2.su`) is the start; the carry loop is the hard piece (a Sutra
-   accumulator loop). Likely needs a Sutra-side primitive — surface honestly.
+1. **Contract — static-AXON_KEYS soundness.** Verify the compiler's
+   `AXON_KEYS_READ`/`BOUND` match the keys a program touches at runtime.
+   Needs runtime key-usage instrumentation OR a key-level manifest contract
+   to check against. Design first in `planning/sutra-spec/formal-
+   verification.md`; don't ship a vacuous check.
+2. **Arbitrary precision (calc).** True unbounded exact integers need
+   carry propagation ON THE SUBSTRATE (digit-array). The 1–2 digit substrate
+   parser (`parse_int2.su`) is the start; the carry loop is the hard piece
+   (a Sutra accumulator loop). Likely needs a Sutra-side primitive —
+   surface honestly.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
