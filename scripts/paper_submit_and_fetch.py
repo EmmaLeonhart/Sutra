@@ -425,17 +425,66 @@ def main() -> int:
         # non-withdrawn post in a long supersedes chain can enter a
         # state where POST /revise returns 404. The endpoint exists
         # (anon POST 401s) and the post itself is reachable via GET;
-        # only revise fails. Self-heal: start a fresh post chain.
-        # The old chain stays on clawRxiv as orphaned versions.
-        print(f"WARNING: revise of post {supersedes} returned HTTP 404 "
-              f"(server-side bug, not a client error). Falling back to "
-              f"create_post — this STARTS A NEW SUPERSEDES CHAIN. The "
-              f"old chain stays on clawRxiv as orphaned versions; the "
-              f"canonical paper PDF lives on the project site so no "
-              f"content is lost.\n  Underlying error: {e}",
-              file=sys.stderr)
+        # only revise fails. Self-heal: try create_post — clawRxiv's
+        # 409 dedup response names the actual canonical revisable
+        # post via data.duplicateId, which is NOT necessarily the
+        # .post_id we had pinned. The dedup detector identifies the
+        # canonical from title+abstract match.
+        # First time this branch fired (2026-05-27 FV paper): the
+        # pinned .post_id was 2622, /revise 404'd, create_post 409'd
+        # with `duplicateId=2618` and `"use POST /api/posts/2618/
+        # revise instead."` So 2618 was the actual canonical; the
+        # 2619-2622 versions had drifted into the broken-revise state.
+        print(f"WARNING: revise of post {supersedes} returned HTTP "
+              f"404 (server-side bug). Trying create_post to let "
+              f"clawRxiv's dedup response name the actual canonical "
+              f"post via data.duplicateId.\n  Underlying 404 error: "
+              f"{e}", file=sys.stderr)
         try:
             response = create_post(api_key=api_key, payload=payload)
+        except SupersedeConflict as e2:
+            # The 409 we want: dedup pointed at the canonical post.
+            dup = e2.duplicate_id()
+            if dup is None:
+                print(f"ERROR: create_post after 404 returned 409 "
+                      f"with no data.duplicateId to recover from:\n"
+                      f"  {e2}", file=sys.stderr)
+                return 1
+            print(f"clawRxiv dedup names post {dup} as canonical for "
+                  f"this work; revising post {dup} and re-pinning "
+                  f".post_id to it.", file=sys.stderr)
+            try:
+                response = revise_post(
+                    api_key=api_key, post_id=dup, payload=payload
+                )
+            except ReviseNotFound as e3:
+                # Worst case: the canonical post is ALSO in the
+                # broken-revise state. Both the pinned post and the
+                # dedup-canonical are unrevisable. The only remaining
+                # path is to edit the paper title/abstract slightly
+                # to break dedup matching — don't auto-mutate the
+                # paper; report honestly so a human can decide.
+                print(f"ERROR: canonical post {dup} ALSO 404s on "
+                      f"revise. Both the pinned post ({supersedes}) "
+                      f"and the dedup-canonical post ({dup}) are in "
+                      f"clawRxiv's broken-revise state. Options: "
+                      f"(a) wait for clawRxiv to fix the server-side "
+                      f"bug, or (b) edit paper title/abstract slightly "
+                      f"to break the dedup hash so a fresh chain can "
+                      f"be created.\n  Underlying error: {e3}",
+                      file=sys.stderr)
+                return 1
+            except SupersedeConflict as e3:
+                pin = e3.duplicate_id() or dup
+                print(f"NOTE: clawRxiv finds no substantive change vs "
+                      f"post {pin}; treating as up-to-date and pinning "
+                      f".post_id={pin}.", file=sys.stderr)
+                _persist_post_id(pin)
+                return 0
+            except Exception as e3:  # noqa: BLE001
+                print(f"ERROR: revising canonical post {dup} failed: "
+                      f"{e3}", file=sys.stderr)
+                return 1
         except Exception as e2:  # noqa: BLE001
             print(f"ERROR: fallback create_post after 404 also failed: "
                   f"{e2}", file=sys.stderr)
