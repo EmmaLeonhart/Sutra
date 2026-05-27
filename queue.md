@@ -350,16 +350,6 @@ don't get forgotten; do not start any of them until June.
   authorial choice. Adding Futamura would create inconsistency
   unless JAX/TVM/XLA also get entries; left to Emma's call.
 
-## Open user decision (destructive / outward — needs explicit yes)
-
-### 3. Delete the now-unused `master` branch?
-
-CI `master`→`main` migration is done + pushed (`5ea853ef`,
-`b318791e`). The local + remote `master` (`origin/master` @
-`cdcdf7ff`) is now unused. Deleting it is destructive +
-outward-facing; CLAUDE.md and this queue require an explicit user
-yes. Do not delete without one.
-
 ## Pinned tail (do these last, always present)
 
 Per CLAUDE.md §"Autonomous productivity loop — the three-cron playbook" lifecycle rule: a session starts the crons up front and the tail ensures they are still running + summarizes. These two items are pinned at the tail and are not consumed/deleted between fires — they exist to bracket every session.
