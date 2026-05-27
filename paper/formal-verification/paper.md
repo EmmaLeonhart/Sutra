@@ -261,6 +261,25 @@ insensitive polynomial identity) and range-soundness (degree-insensitive
 composition) both scale; the closed-form bounder remains the exact tool for the
 per-connective lemma they rest on.
 
+**Honest cost of the polynomial-identity check (PIT term count).** Branch / path
+enumeration is replaced by *monomial* enumeration in the expanded polynomial;
+that replacement is exact, but it is not free. We measured the term count of the
+expanded polynomial on balanced Kleene trees of varying depth and variable pool
+(`experiments/fv_pit_term_count.py`; the same `extract_truth_polynomial`
+pipeline the obligation checker uses, so the measurement is on what the compiler
+emits): depth 1 → **6 terms** (any var pool); depth 2 → **66 / 177 / 312 terms**
+for var pools 2 / 3 / 4 (the depth-2 balanced tree caps at 4 distinct variables);
+depth 3 with 2 variables → **1054 terms** in 56 s of `sympy.expand`. At depth ≥ 3
+and var pool ≥ 3 the expansion exceeded a per-row budget we'd accept for a CI
+gate (~770 MB resident before the run was stopped). Equivalence by
+`reduces_to_same_graph(p, q)` is `expand(p − q) == 0` and pays the same wall as
+the extraction step. So the cost surface that PIT actually exposes is "term count
+grows geometrically in nesting depth," and the practical wall is `sympy.expand`
+on the composed polynomial, not the polynomial-identity decision itself. The
+correctness claim (the reduction *is* the equivalence procedure for the Kleene
+fragment) is unchanged; what we are sharpening here is the *cost* claim. See
+`planning/findings/2026-05-27-pit-term-count.md` for the full table.
+
 ## 4. Faithfulness: the reduction is computed exactly
 
 A reduction to algebra is worth something only if the substrate computes the
