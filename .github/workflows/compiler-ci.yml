@@ -48,14 +48,40 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
 
-      - name: Install sutra-dev with [runtime,fv,dev]
+      - name: Install sutra-dev with [runtime,fv,dev] + ollama python pkg
         working-directory: sdk/sutra-compiler
         run: |
           python -m pip install --upgrade pip
           # runtime: torch (codegen_pytorch tests need it)
           # fv: sympy (FV polynomial-obligation checker tests)
           # dev: pytest, pytest-cov, sympy
+          # ollama: imported by the _TorchVSA runtime for embeddings;
+          # not yet declared in pyproject.toml. The daily-audit routine
+          # installs it the same way.
           pip install -e '.[runtime,fv,dev]'
+          pip install ollama
+
+      - name: Install + start ollama server, pull nomic-embed-text
+        # The runtime imports `ollama` (handled by the pip step above)
+        # AND opens a connection to a local ollama server to embed
+        # words at module-init time. The daily-audit routine installs
+        # the server + pulls `nomic-embed-text` (768-d, the canonical
+        # codebook substrate). Mirror that here; ~30s install + ~250MB
+        # model pull per CI run. The Linux installer is the upstream
+        # one-liner.
+        run: |
+          set -euxo pipefail
+          curl -fsSL https://ollama.com/install.sh | sh
+          # Start as a background service; wait until the port is up.
+          ollama serve > /tmp/ollama.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://localhost:11434/api/tags > /dev/null 2>&1; then
+              echo "ollama server ready"
+              break
+            fi
+            sleep 2
+          done
+          ollama pull nomic-embed-text
 
       - name: Run compiler test suite (excluding slow/local-broken)
         working-directory: sdk/sutra-compiler
