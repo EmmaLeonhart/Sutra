@@ -1,0 +1,68 @@
+name: Sutra compiler — pytest
+
+# CI for the Sutra compiler (sdk/sutra-compiler). CLAUDE.md HARD RAILS
+# says "Verify CI green, not just local"; before this workflow landed
+# the repo had no CI for the compiler test suite, only paper / site /
+# package workflows. Authorized Emma 2026-05-27.
+#
+# Runs on every push to main and every PR that touches the compiler
+# tree. Ubuntu-latest (the test_simplify_egglog hang observed on local
+# Windows is the motivating example for "local-green is not CI-green").
+# Python 3.13 — matches the pyproject `python_requires=">=3.11"` upper
+# end and the local dev env.
+#
+# Test selection: the full suite EXCEPT `test_substrate_leak_sweep.py`
+# (~29 min wall, compiles every .su in the corpus) and
+# `test_simplify_egglog.py` (pre-existing local hang; investigated
+# separately — see queue.md). The slow suites are wired into the
+# daily-audit routine; per-PR speed matters more than per-PR coverage
+# for those two specific files.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdk/sutra-compiler/**'
+      - '.github/workflows/compiler-ci.yml'
+  pull_request:
+    paths:
+      - 'sdk/sutra-compiler/**'
+      - '.github/workflows/compiler-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: compiler-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest sdk/sutra-compiler/tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install sutra-dev with [runtime,fv,dev]
+        working-directory: sdk/sutra-compiler
+        run: |
+          python -m pip install --upgrade pip
+          # runtime: torch (codegen_pytorch tests need it)
+          # fv: sympy (FV polynomial-obligation checker tests)
+          # dev: pytest, pytest-cov, sympy
+          pip install -e '.[runtime,fv,dev]'
+
+      - name: Run compiler test suite (excluding slow/local-broken)
+        working-directory: sdk/sutra-compiler
+        run: |
+          # Excludes per the workflow header:
+          # - test_substrate_leak_sweep.py: ~29 min, covered by daily audit
+          # - test_simplify_egglog.py: local Windows hang under investigation
+          python -m pytest tests/ -q \
+            --ignore=tests/test_substrate_leak_sweep.py \
+            --ignore=tests/test_simplify_egglog.py
