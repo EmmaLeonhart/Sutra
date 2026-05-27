@@ -201,6 +201,15 @@ update from each (CI auto-submits on push). Items (4) key-soundness and
 arbitrary-precision are tracked separately below + in todo.md per Emma's
 instruction.
 
+**PIT honesty: DONE 2026-05-27** —
+`experiments/fv_pit_term_count.py` measures depth-1/2/3 term counts on
+balanced Kleene trees via the actual obligation-checker pipeline; FV
+paper §3.3 picked up a new "Honest cost of the polynomial-identity
+check (PIT term count)" paragraph; finding at
+`planning/findings/2026-05-27-pit-term-count.md`. Remaining of the
+TASKS-TO-SUBMITTABLE batch: (1) k=8 → real capacity curve still
+pending.
+
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 
 The framework (`planning/sutra-spec/formal-verification.md`) states the
@@ -220,10 +229,13 @@ genuinely open and need design before code, not just wiring:
    in todo.md; explanation cron `b348c005` fires 13:36 PST to brief Emma
    before she greenlights.)**
 2. **Arbitrary precision (calc).** True unbounded exact integers need
-   carry propagation ON THE SUBSTRATE (digit-array). The 1–2 digit substrate
-   parser (`parse_int2.su`) is the start; the carry loop is the hard piece
-   (a Sutra accumulator loop). Likely needs a Sutra-side primitive —
-   surface honestly.
+   carry propagation ON THE SUBSTRATE (digit-array). **2026-05-27:
+   `examples/parse_int2.su` ships substrate-pure** (`parse_int2("47")` →
+   `tensor(47., device='cuda:0')`; no host scalar leak); the carry-loop
+   piece is genuinely open. Design choice (associative-scan primitive
+   vs. sequential soft-halt loop) affects the spec + runtime ABI and
+   needs a `planning/open-questions/` dossier before implementation.
+   Finding: `planning/findings/2026-05-27-arbitrary-precision-parser.md`.
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
