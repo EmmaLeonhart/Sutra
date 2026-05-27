@@ -1754,3 +1754,171 @@ Why it is deferred, not done now:
 When picked up: define TNF + recurrent-TNF precisely as part of the FV process,
 prove the canonicalisation properties claimed, THEN (and only then) reintroduce
 the term into the spec/paper. Mirrored in Yantra `todo.md`.
+
+## [This year] Agentic RAG for constrained-training design (generalize the equals-stuff machinery)
+
+Stage A/B (`planning/findings/2026-05-18-differentiable-training-is-a-
+proxy-not-compiled.md`) showed the pattern works for the equality-rule
+case: compile a `.su` rule (similarity + Kleene AND/NOT) through the
+real PyTorch codegen, train a scalar gain `w` + K prototypes through
+the **emitted** graph with Adam + cross-entropy, then **bake the
+trained `w` back into the `.su` source as a numeric literal** — a
+recompilable Sutra file that reproduces the trained behaviour
+(round-trip max logit Δ ≈ 2×10⁻⁷). The trained model IS legible
+source code.
+
+That same shape — compile-once + train-through-emitted-graph +
+batched-vs-per-sample equivalence guard + bake-back-into-`.su` —
+should generalize to most other learnable parameters in the
+language. This agenda is (a) the **agentic RAG meta-tool** that
+picks a training shape for a given target by retrieving prior
+findings + harnesses + spec snippets, and (b) the **list of
+concrete constrain-train targets** the meta-tool can be aimed at.
+
+**Honest scope.** The pattern is proven for *scalar* + *prototype-
+vector* parameters. Matrix-valued parameters (the `is_X` matrix; the
+defuzz matrix; learned binding matrices) need the bake-back surface
+syntax to grow — matrix literals don't exist in `.su` yet. That's
+load-bearing and a real spec decision; flag it before scaffolding any
+matrix-target experiment.
+
+### Meta-tool: the agentic RAG system
+
+- [ ] **Corpus indexer.** `scripts/build_training_corpus.py`: walk
+  `planning/findings/`, `planning/sutra-spec/`, `experiments/
+  differentiable_training*.py`, `planning/open-questions/`, chunk
+  by section heading, embed via Ollama `nomic-embed-text` (the same
+  model Sutra's runtime uses — eat your own dogfood, no extra
+  dependency), store as JSON or sqlite under `.training_corpus/`
+  (gitignored — rebuild script is the committed artifact).
+- [ ] **Retrieval CLI.** `scripts/training_design_query.py "train
+  is-X matrix"` → returns top-k ranked chunks with file:line
+  anchors. Builds on the corpus above.
+- [ ] **Decision template.** A structured schema the meta-tool
+  fills per target: `{operator_target, parameterization, loss,
+  equivalence_guard, bake_back_form, expected_baseline,
+  expected_target, integrity_checks_against_CLAUDE_md}`. Stored
+  as `planning/training-designs/<name>.md` per target.
+- [ ] **Sub-agent definition.** `.claude/agents/constrained-
+  training-designer.md`: a sub-agent that takes a target operator,
+  runs the retrieval CLI, fills the decision template, and proposes
+  a concrete experiment shape — *without* implementing it (separate
+  step, gated on Emma's review of the template).
+- [ ] **Experiment scaffolder.** Given a filled decision template,
+  generate `experiments/<name>.py` following the Stage-A/B harness
+  pattern: compile rule once via the real codegen; build training
+  loop; **mandatory batched-vs-per-sample equivalence guard** to
+  10⁻⁴ before training begins (run aborts on mismatch); train; bake
+  back; recompile round-trip; assert round-trip max-Δ ≤ 1e-6.
+- [ ] **Integrity rail auto-check.** Before any scaffolded
+  experiment runs, statically scan it for forbidden patterns
+  (CLAUDE.md "Forbidden" list — scalar extraction inside an op,
+  Python control flow on scalar predicates, "algebraic" /
+  "host" / "O(1) on the host" comments). Fail closed if any hit.
+- [ ] **Findings auto-writer.** After a successful experiment,
+  generate `planning/findings/YYYY-MM-DD-<name>.md` matching the
+  format of prior findings: verified facts (read, not assumed),
+  measured numbers, verdict, what is NOT claimed, follow-ups.
+  Emma reviews/edits before commit.
+
+### Constrain-train targets (each is an independent experiment)
+
+Highest-leverage first. Pick one per session; do not parallel-fire
+without explicit go-ahead — the per-experiment integrity surface
+needs human review.
+
+- [ ] **`is_X` matrix end-to-end (top priority — most architectural).**
+  Train per-concept "is-X" predicate matrices through the compiled
+  graph. Currently `equality-and-defuzzification.md` § "Open questions"
+  asks: "What is the exact construction of the is-X matrix? Is it a
+  single canonical function per type, or user-definable per
+  predicate?" — train it and find out. **Blocker: matrix literals in
+  `.su`** — bake-back surface doesn't exist; spec decision needed
+  before scaffolding (the matrix-literal grammar; how recompile
+  consumes a baked matrix; whether it's a typed `matrix<d,d>` or a
+  vector-of-vectors form). Open-question doc first, then the
+  experiment.
+- [ ] **Defuzz matrix.** `equality-and-defuzzification.md` says "a
+  defuzz matrix exists such that multiplying a fuzzy value by it
+  produces a defuzzified-by-a-certain-amount version" — *exists* is
+  a placeholder. Train the polarization matrix on the truth axis
+  against ground-truth defuzz-step targets. Same `.su`-literal-
+  matrix blocker as `is_X`. Possibly the same matrix as some
+  canonical `is_true`-matrix factor — answer that en route.
+- [ ] **`select` sharpness coefficient (scalar — no matrix blocker).**
+  The Yantra-calculator dispatch (CLAUDE.md, "When Emma gives an
+  algorithmic explanation, IMPLEMENT it") hand-picked a sharpening
+  factor large enough to push `exp(-120)` past float32 underflow,
+  giving 18/18 bit-exact dispatch. Train the optimal sharpness per
+  dispatch table size — too small and branches blend, too large and
+  gradient is dead. Scalar → bakes back as a `.su` literal trivially.
+- [ ] **Soft-halt threshold for loops (scalar).** `loop (condition)`
+  iterates `state ← R · state` with a sigmoid halt. The threshold
+  determines decisiveness; train it on a corpus of converging /
+  non-converging programs against ground-truth iteration counts.
+  Scalar → straightforward bake-back.
+- [ ] **`similarity` temperature (scalar).** Emitted form is
+  `dot/(||a||·||b|| + eps)`. Adding a learned temperature `T` so
+  `similarity_T(a,b) = T · dot/(||a||·||b|| + eps)` sharpens or
+  flattens the cosine output across the anisotropic embedding cone.
+  Train `T` per task (or as a per-program tunable). Scalar bake-back.
+  Compare against the Stage-B `w` result — the gain there was
+  essentially a per-rule `T` baked into one site; this is the
+  global version.
+- [ ] **Number-axis scale/offset (two scalars).** Currently the
+  number axis hosts integer / float scalars at a fixed unit scale.
+  Train `(scale, offset)` to maximize dynamic range subject to a
+  round-trip-accuracy threshold (defuzz then `as_number` returns
+  the input within ε). Two-scalar bake-back; substrate-pure.
+- [ ] **Codebook decoding threshold (scalar).** String literals
+  decode through a `map<vector, string>` codebook (`strings.md`).
+  Train the decision threshold — below which similarity to any
+  codepoint counts as "no match" — on a corpus of clean + noisy
+  decode tasks. Scalar.
+- [ ] **Class-method dispatch sharpness (scalar).** When a method
+  is called on a class instance, dispatch resolves via similarity
+  to the method's name. Same shape as `select` sharpness; separate
+  target because it composes differently and may want its own
+  trained value.
+- [ ] **Per-axis defuzz rates (vector of scalars).** Different
+  canonical axes (truth, number, future enum / position) may want
+  different polarization rates. Train per-axis rates against a
+  task-mix; bake back as a vector literal (smaller blocker than the
+  matrix-literal case — likely already expressible via a list `.su`
+  literal).
+- [ ] **Learned-matrix binding (already on todo.md as a separate
+  agenda item).** Listed here for cross-reference: the
+  Procrustes / lstsq fit at compile time is itself a constrain-
+  train step. Sharing the meta-tool's decision template + scaffolder
+  with the existing `## [This year] Learned-matrix binding` section
+  is the natural reuse — do not duplicate work.
+
+### Cross-cutting infrastructure (reusable across targets)
+
+- [ ] **Equivalence-guard harness.** Extract the batched-vs-per-
+  sample equivalence guard from `experiments/
+  differentiable_training_compiled.py` (the ≤10⁻⁴ assertion that
+  aborts the run on mismatch) into a reusable
+  `experiments/_equivalence_guard.py`. Every constrain-train
+  experiment imports it; the guard is the integrity surface the
+  paper / arXiv claims rest on.
+- [ ] **Bake-back machinery for matrix-valued parameters.** Once
+  the matrix-literal spec decision lands (see `is_X` target
+  above), implement the `.su` ↔ matrix-tensor serializer +
+  round-trip recompile test. This is shared infrastructure across
+  the `is_X`, defuzz, and learned-binding targets.
+- [ ] **Constraint catalog.** A short `planning/sutra-spec/
+  constrained-training.md` enumerating the constraints every
+  constrain-train target MUST satisfy: (a) trains through the
+  emitted compiled graph (not a reimplementation); (b) batched
+  ≡ per-sample within 10⁻⁴; (c) trained value is `.su`-literal
+  expressible; (d) recompile round-trip Δ ≤ 1e-6; (e) substrate-
+  purity rails pass (no host shortcuts, no scalar extraction inside
+  an op). The meta-tool checks every proposed design against this
+  list before scaffolding.
+- [ ] **Per-target baseline / target table.** As targets land,
+  collect their (chance, baseline, trained, wall-clock) numbers
+  into a single table — `planning/findings/CONSTRAINED-TRAINING-
+  RESULTS.md` — so the cumulative evidence for "the pattern
+  generalizes" stays auditable. Cite-able from the live
+  `paper/paper.md` once the freeze lifts (2026-06-01).
