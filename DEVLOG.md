@@ -15,6 +15,41 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-26: three-cron loop started; CLAUDE.md cron-section dedup; agentic-RAG agenda; stale compile_su queue entry removed
+
+Session opened the three-cron autonomous productivity loop per CLAUDE.md
+§"Autonomous productivity loop" — work-loop at `:03` (`6fd6af7f`),
+auto-flush at `:15` (`a2c1bc2e`), status-report at `:42` (`4db40b08`),
+all session-local (`durable: false`).
+
+CLAUDE.md trim (`96f7f81f`): the duplicate cron section before the
+Writing section was a clear copy of the post-Emergency-Stop cron
+section; merged into one, carrying both the "don't ask about timezone"
+line and the "not OS crontab / not GH Actions" framing. -5 lines, no
+rationale lost. queue.md gained two pinned-tail items (ensure crons
+running; final independent status-report) so the loop self-maintains
+across sessions.
+
+todo.md (`09accaad`): added "Agentic RAG for constrained-training
+design" agenda — generalizes the Stage-A/B equality-rule pattern
+(compile through real codegen, train through emitted graph, bake
+trained values into `.su` literals) across other learnable parameters.
+Three sub-agendas: meta-tool (corpus indexer over
+`planning/findings/` + `sutra-spec/` + `experiments/*`, retrieval
+CLI, decision-template, sub-agent, scaffolder); 10 constrain-train
+targets (scalar-first: `select` sharpness, soft-halt threshold,
+similarity temperature, number-axis scale/offset, codebook decode
+threshold, class-method dispatch, per-axis defuzz; matrix-valued
+gated on the `.su` matrix-literal spec decision); shared
+infrastructure (equivalence-guard harness, matrix bake-back machinery,
+`constrained-training.md` constraint catalog, results table).
+
+This tick (work-loop): removed the stale `compile_su` queue entry —
+the helper is shipped at v0.7.1 (`fa89d359` module +
+`5036d387` precompile script + tag `v0.7.1`); verified
+`tests/test_cached_compile.py` passes 7/7 in 4.05 s before deletion.
+Queue rule says completed work belongs in git log, not queue.md.
+
 ## 2026-05-26: daily audit — clean (no-op)
 
 2026-05-26 daily audit: clean (67 .su compiled, 0 leaks; 20 open-questions dossiers + sutra-spec/open-questions.md index checked, 0 resolved-elsewhere; promise/await fit-to-spec). Fresh container with no torch/numpy/ollama preinstalled — installed pytest + torch (CPU) + numpy + the `ollama` python pkg, the ollama server (needed zstd), and pulled `nomic-embed-text` (digest `0a109f422b47`), so every leg ran live (no env-skip, no false-clean). Promise/await: codegen lint clean + `test_await_substrate_pure` 4/4 both backends incl. the two live-embedding semantic legs (`main()` = 3.0). Full suite 370 passed / 9 skipped (egglog + sutra_ffi.dll optional deps; not purity tests). The 19 commits since 2026-05-24 are all FV-paper / FV-spec / contact-email work (`bc2459c` selectable substrate dtype is the only codegen touch — adds a float64 path, no new leak signatures in the grep); none resolves a `planning/open-questions/` dossier or a `sutra-spec/open-questions.md` entry. Audit.md #1/#2/#3/#5/#6/#7/#8 intact, #4 still NOT-A-LEAK. Open-questions README verdict table (2026-05-16, refreshed 2026-05-17 + 2026-05-21 pruning) still authoritative; the deferred deletion of strikethrough RESOLVED lines in `sutra-spec/open-questions.md` is a destructive rationale-loss call left for Emma per todo.md, not stale drift.
