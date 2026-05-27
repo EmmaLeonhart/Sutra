@@ -55,28 +55,9 @@ see §"Watchdogs" below.
 
 ## Active
 
-### ⭐ #1 PRIORITY (Emma 2026-05-26) — Equality cosine-similarity adjustment
+### ⭐ #1 PRIORITY — Rank-k `is_X` matrix constrain-train experiment
 
-First piecemeal target of the §"Agentic RAG for constrained-training design" agenda. The Stage-B `w` finding (`planning/findings/2026-05-18-differentiable-training-is-a-proxy-not-compiled.md`) showed a per-rule scalar gain trained through the compiled graph baked back into `.su` as a literal — but the K=5 task saturated at 100% accuracy, so `w*≈1.43`'s actual effect on the cosine output was invisible.
-
-**Goal: measure the cosine margin directly.** A learned `T` on `similarity` should sharpen the gap between `sim(x, x_same_concept)` and `sim(x, x_different_concept)` — the *equality* discrimination — separately from any classification accuracy. Anisotropy framing: the LLM content cone compresses cosines; `T > 1` decompresses them.
-
-**Steps:**
-
-1. **Write `experiments/equality_cosine_adjustment.py`.** Same compile + train + bake + round-trip pattern as `differentiable_training_weighted.py`, but the reported metric is the **margin** — mean[sim(x, same) − sim(x, different)] over a held-out probe set — not just classification accuracy. Report (baseline T=1 margin, trained T* margin, T*) for n≥3 seeds.
-2. **Use the existing `dt.CATEGORIES` corpus** for embeddings (`differentiable_training.embed_all` + cache). No new embedding work.
-3. **Equivalence guard.** Before training begins, assert batched-vs-per-sample cosine outputs match within 10⁻⁴ — abort the run on mismatch (Stage-B-style integrity guard).
-4. **Bake-back round-trip.** After training, emit a `.su` where the trained `T*` is a literal multiplier on every `similarity(...)` call (no `T` param); recompile via the real PyTorch codegen; assert max-logit Δ < 1e-4 between baked and trained.
-5. **Findings doc.** `planning/findings/YYYY-MM-DD-equality-cosine-adjustment.md` matching prior findings format: verified facts, measured numbers, verdict, what is NOT claimed. Emma reviews/edits before paper integration.
-6. **Decide on language placement.** Once the experiment confirms `T*` helps the margin, decide where `T` lives long-term: per-call-site, per-program, or a compile-time-calibrated language constant. (Doc decision in `planning/open-questions/` if not obvious from the experiment.)
-
-**Honest scope.** This is the *probe* version of cosine adjustment, not the full language-level commitment. The experiment tells us whether the cosine-temperature lever is worth pulling. If trained `T*` gives a margin improvement of, say, >2× the baseline gap, the language commitment is justified; if the improvement is marginal, the finding sharpens what the lever actually does.
-
-**No matrix-literal blocker** — `T` is a scalar; bakes back trivially. This is exactly why it's #1 in the priority sequence: smallest concrete piece of evidence for the larger constrain-train agenda.
-
-### ⭐ #2 PRIORITY — Rank-k `is_X` matrix constrain-train experiment
-
-Now scaffoldable: `vector_literal` builtin shipped at `164e499d`; matrix-valued bake-back doesn't need new `.su` matrix syntax per `planning/sutra-spec/matrix-valued-bake-back.md` — a rank-k matrix is a list of vector_literals + scalars composed with existing `bundle` / `similarity` / scalar-multiply.
+(Promoted from #2 after the equality cosine adjustment measurement landed 2026-05-27 — finding at `planning/findings/2026-05-26-equality-cosine-adjustment.md`: +1.08× margin, T*=1.1118, n=3 degenerate-but-flagged, round-trip clean. Rank-k is the architectural next step — k prototypes + k gains per class — and was already unblocked by the `vector_literal` builtin and the matrix-valued-bake-back lean spec.) GPU is free now that `bu7o9mqxu` completed.
 
 **Mechanism.** Rank-k discrimination for class X is:
 
