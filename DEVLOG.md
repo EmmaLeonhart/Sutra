@@ -15,6 +15,45 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: lexer — scientific-notation float literals (`1e10`, `1.5e-3`, `2E+5`)
+
+Work-loop tick. The rank-k is_X bake-back path discovered a sharp
+edge in the lexer 2026-05-27 (commit `bbead213`): trained float values
+that ended up small enough for Python's `repr()` to switch to
+scientific notation (e.g. `4.5e-05`) failed to parse in `.su` source
+(SUT0100 / SUT0104). The workaround was to bake values with
+`f"{v:.8f}"` (fixed-point), but the underlying parser limitation
+remained latent for every future trained-value experiment.
+
+Fix in `_scan_number`: after the optional fractional part, scan an
+optional `[eE][+-]?[0-9]+` exponent. The exponent is consumed only
+when a digit (or `±` immediately followed by a digit) follows the
+`e`/`E` — otherwise the `e` falls through to the identifier lexer
+(`2ex` → INT_LIT(2) + IDENT("ex")). Same disambiguation discipline
+as the `i` imaginary suffix below it.
+
+Verification:
+- 3 new lexer tests covering integer-mantissa exponent (`1e10`),
+  fractional-mantissa signed exponent (`1.5e-3`), explicit positive
+  sign (`2E+5`), large magnitude (`6.022e23`), zero exponent
+  (`3.14E0`), and the disambiguation case (`2ex` / `5index` →
+  INT_LIT + IDENT, no errors).
+- 23/23 `test_lexer.py` pass.
+- End-to-end probe: a `.su` function containing `1e10`, `1.5e-3`,
+  `2E+5`, `4.5e-5` parses cleanly; AST values are exact
+  (`1e10` → `10000000000.0`, `4.5e-5` → `4.5e-05`).
+- 403 passed / 7 skipped across the full compiler suite (minus the
+  pre-existing egglog subprocess issue, which is unrelated — exits
+  127 mid-run on this environment regardless of lexer changes).
+
+The `f"{v:.8f}"` workaround in `experiments/rank_k_is_x.py` can stay
+(fixed-point is still readable in baked source), but future
+trained-value experiments are no longer forced to avoid Python's
+default float `repr()`.
+
+queue.md: scientific-notation sub-item under rank-k #1 marked DONE
+with the test numbers.
+
 ## 2026-05-27: rank-k is_X — k-means cluster-centroid anchors landed (`--anchor-strategy kmeans`)
 
 Work-loop tick (continuation of prior sessions on rank-k). The remaining

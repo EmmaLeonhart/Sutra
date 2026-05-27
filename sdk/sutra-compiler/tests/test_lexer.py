@@ -67,6 +67,46 @@ class TestBasicTokens(unittest.TestCase):
         self.assertEqual(toks[0].value, 42)
         self.assertEqual(toks[1].value, 3.14)
 
+    def test_scientific_notation_floats(self):
+        # Integer-mantissa exponent, float-mantissa exponent, both
+        # signs, both case (`e` and `E`) — all become FLOAT_LIT.
+        toks, diag = lex("1e10 1.5e-3 2E+5 6.022e23 3.14E0")
+        self.assertFalse(diag.has_errors())
+        self.assertEqual(
+            kinds(toks),
+            [TokenKind.FLOAT_LIT] * 5,
+        )
+        self.assertEqual(toks[0].value, 1e10)
+        self.assertEqual(toks[1].value, 1.5e-3)
+        self.assertEqual(toks[2].value, 2e5)
+        self.assertEqual(toks[3].value, 6.022e23)
+        self.assertEqual(toks[4].value, 3.14)
+
+    def test_scientific_notation_disambiguation(self):
+        # `2ex` is INT_LIT(2) + IDENT("ex") — no digit after `e`,
+        # so the exponent is not consumed and `ex` lexes as an
+        # identifier. Same discipline as `5index` → INT_LIT + IDENT.
+        toks, diag = lex("2ex 5index")
+        self.assertFalse(diag.has_errors())
+        self.assertEqual(
+            kinds(toks),
+            [
+                TokenKind.INT_LIT, TokenKind.IDENT,
+                TokenKind.INT_LIT, TokenKind.IDENT,
+            ],
+        )
+        self.assertEqual(toks[0].value, 2)
+        self.assertEqual(toks[1].lexeme, "ex")
+        self.assertEqual(toks[2].value, 5)
+        self.assertEqual(toks[3].lexeme, "index")
+
+    def test_scientific_notation_signed_exponent_with_digit(self):
+        # `1e+10` and `1e-10` consume the sign because a digit follows.
+        toks, _ = lex("1e+10 1e-10")
+        self.assertEqual(kinds(toks), [TokenKind.FLOAT_LIT, TokenKind.FLOAT_LIT])
+        self.assertEqual(toks[0].value, 1e10)
+        self.assertEqual(toks[1].value, 1e-10)
+
 
 class TestOperators(unittest.TestCase):
     def test_two_char_operators(self):
