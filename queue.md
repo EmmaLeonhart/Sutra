@@ -55,6 +55,25 @@ see §"Watchdogs" below.
 
 ## Active
 
+### ⭐ #1 PRIORITY (Emma 2026-05-26) — Equality cosine-similarity adjustment
+
+First piecemeal target of the §"Agentic RAG for constrained-training design" agenda. The Stage-B `w` finding (`planning/findings/2026-05-18-differentiable-training-is-a-proxy-not-compiled.md`) showed a per-rule scalar gain trained through the compiled graph baked back into `.su` as a literal — but the K=5 task saturated at 100% accuracy, so `w*≈1.43`'s actual effect on the cosine output was invisible.
+
+**Goal: measure the cosine margin directly.** A learned `T` on `similarity` should sharpen the gap between `sim(x, x_same_concept)` and `sim(x, x_different_concept)` — the *equality* discrimination — separately from any classification accuracy. Anisotropy framing: the LLM content cone compresses cosines; `T > 1` decompresses them.
+
+**Steps:**
+
+1. **Write `experiments/equality_cosine_adjustment.py`.** Same compile + train + bake + round-trip pattern as `differentiable_training_weighted.py`, but the reported metric is the **margin** — mean[sim(x, same) − sim(x, different)] over a held-out probe set — not just classification accuracy. Report (baseline T=1 margin, trained T* margin, T*) for n≥3 seeds.
+2. **Use the existing `dt.CATEGORIES` corpus** for embeddings (`differentiable_training.embed_all` + cache). No new embedding work.
+3. **Equivalence guard.** Before training begins, assert batched-vs-per-sample cosine outputs match within 10⁻⁴ — abort the run on mismatch (Stage-B-style integrity guard).
+4. **Bake-back round-trip.** After training, emit a `.su` where the trained `T*` is a literal multiplier on every `similarity(...)` call (no `T` param); recompile via the real PyTorch codegen; assert max-logit Δ < 1e-4 between baked and trained.
+5. **Findings doc.** `planning/findings/YYYY-MM-DD-equality-cosine-adjustment.md` matching prior findings format: verified facts, measured numbers, verdict, what is NOT claimed. Emma reviews/edits before paper integration.
+6. **Decide on language placement.** Once the experiment confirms `T*` helps the margin, decide where `T` lives long-term: per-call-site, per-program, or a compile-time-calibrated language constant. (Doc decision in `planning/open-questions/` if not obvious from the experiment.)
+
+**Honest scope.** This is the *probe* version of cosine adjustment, not the full language-level commitment. The experiment tells us whether the cosine-temperature lever is worth pulling. If trained `T*` gives a margin improvement of, say, >2× the baseline gap, the language commitment is justified; if the improvement is marginal, the finding sharpens what the lever actually does.
+
+**No matrix-literal blocker** — `T` is a scalar; bakes back trivially. This is exactly why it's #1 in the priority sequence: smallest concrete piece of evidence for the larger constrain-train agenda.
+
 ### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
 
 **Real, good GPU — RTX 4070, `torch.cuda.is_available()` == True — plus ample

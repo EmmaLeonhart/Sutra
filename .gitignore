@@ -122,6 +122,8 @@ paper/feedback before arXiv/paper.pdf
 experiments/.stageA_rule.su
 experiments/.stageB_param.su
 experiments/.stageB_baked.su
+experiments/.eqcos_param.su
+experiments/.eqcos_baked.su
 experiments/.diff_train_embeddings.pt
 experiments/differentiable_training_weights.pt
 
