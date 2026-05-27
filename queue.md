@@ -74,6 +74,37 @@ First piecemeal target of the §"Agentic RAG for constrained-training design" ag
 
 **No matrix-literal blocker** — `T` is a scalar; bakes back trivially. This is exactly why it's #1 in the priority sequence: smallest concrete piece of evidence for the larger constrain-train agenda.
 
+### ⭐ #2 PRIORITY — `vector_literal` builtin (unblocks matrix-valued bake-back)
+
+Per `planning/sutra-spec/matrix-valued-bake-back.md`: the matrix-valued constrain-train targets reduce to a list of vectors + scalars composed with existing primitives. The one concrete prerequisite is a `.su`-emittable vector-of-floats literal — currently vectors are only constructible via `basis_vector("name")`, `bundle(...)`, etc.; there is no way for the bake-back harness to emit a trained prototype as numeric values.
+
+**Design (lean, mirrors `basis_vector`'s shape):**
+
+Option A — variadic float args:
+```
+vector v = vector_literal(0.123, -0.045, 0.312, ...);
+```
+Requires the parser to accept N float literals as builtin args; codegen lowers to `_VSA.vector_from_floats([0.123, -0.045, 0.312, ...])`.
+
+Option B — single base64-encoded string:
+```
+vector v = vector_from_bytes("AAA...QQQ");  // base64 of float32 bytes
+```
+Same parser surface as `basis_vector` (one string arg); codegen decodes at runtime first call; cacheable.
+
+**Pick Option A first** — keeps the trained values legible in source (anybody can `grep -o "vector_literal([^)]*)"` and read the float list). Option B is the fallback for very-large-vector cases where source-form readability isn't a priority.
+
+**Steps:**
+
+1. Add `_builtin_vector_literal` to `sdk/sutra-compiler/sutra_compiler/codegen_base.py` (BUILTINS dict).
+2. Lower to `_VSA.vector_from_floats([...])` — a new `_VSA` method that builds a `torch.tensor([...], dtype=self.dtype, device=self.device)`.
+3. Validator: confirm the parser accepts float-list builtin args (check existing `argmax_cosine(query, [a, b, c])` handling — if elements may already be numeric, no parser change; otherwise extend).
+4. Substrate-purity audit: vector_from_floats does NOT take a host gradient path; it produces a substrate tensor on the runtime device. No numpy on the runtime path. Substrate-leak sweep (`scripts/substrate_leak_sweep.py`) must stay green.
+5. Tests: `tests/test_codegen.py::TestVectorLiteral` — round-trip a known float list through the builtin; cross-check substrate tensor against the expected values within 1e-7.
+6. Smoke: a `.su` that declares `vector v = vector_literal(0.1, 0.2, 0.3);`, recompiles, returns the tensor. Verify via the same compile-once + exec pattern Stage-B uses.
+
+**Why this is #2 (right after the equality cosine adjustment):** Once it lands, the *rank-k* `is_X` matrix experiment (the first matrix-valued constrain-train target) becomes scaffoldable with no further spec work — trained `v_1, ..., v_k` vectors bake back as `vector_literal(...)` calls in the `is_X` function body.
+
 ### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
 
 **Real, good GPU — RTX 4070, `torch.cuda.is_available()` == True — plus ample
