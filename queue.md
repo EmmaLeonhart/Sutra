@@ -55,49 +55,6 @@ see §"Watchdogs" below.
 
 ## Active
 
-### Cached compile helper — `sutra_compiler.compile_su` (Emma 2026-05-26, Yantra ask)
-
-Lift Yantra's per-app codegen disk cache (shipped in
-`apps/font/font_demo.py`) into Sutra as a shared helper so all consumers
-of `translate_module` benefit. Yantra has six call sites that each
-re-implement the lex → parse → translate → exec dance; for the
-36-letter `font.su` the codegen pass alone is ~410 s on Emma's machine
-(measured: 297 s in `codegen_pytorch.translate_module`; zero `embed()`
-calls because the program has no string roles). Output is deterministic
-for a fixed (.su content, Sutra source) pair, so:
-
-```python
-from sutra_compiler import compile_su
-mod = compile_su(
-    src_path="apps/font/font.su",
-    llm_model="nomic-embed-text",
-    runtime_dim=768,
-    runtime_dtype="float64",
-    # cache_dir=None  -> write next to the .su as .<stem>.compiled-<hash>.py
-)
-mod.glyph_pixel(1.0, 0.0, 65.0)  # 1.0
-```
-
-Cache key: SHA-256 of (.su content + codegen_pytorch.py source +
-codegen_base.py source + (llm_model, runtime_dim, runtime_dtype)
-canonicalized). Any change in any of those invalidates. Atomic write
-(tmp + rename) so Ctrl-C mid-codegen leaves no half-baked file.
-
-Steps:
-1. New module `sutra_compiler/cached_compile.py` exporting `compile_su`.
-2. Re-export from `sutra_compiler/__init__.py`.
-3. Test on a small fixture .su under `sdk/sutra-compiler/tests/`: first
-   call writes the cache, second call uses it (verify by deleting the
-   in-memory imports between calls; cache hit should not call
-   `translate_module` again).
-4. Bump `__version__` to `0.7.1` (the helper is new public surface).
-5. Commit + push `main`; tag `v0.7.1`; Yantra pins to it and refactors
-   its six call sites.
-
-Substrate purity is unaffected: the cached output IS the same Python
-the codegen emits today. The cache memoizes a pure function of its
-inputs; nothing changes about what runs on the substrate.
-
 ### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
 
 **Real, good GPU — RTX 4070, `torch.cuda.is_available()` == True — plus ample
