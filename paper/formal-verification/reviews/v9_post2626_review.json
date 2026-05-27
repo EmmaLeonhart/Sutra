@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2626,
+    "postId": 2626,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into fused tensor-op graphs, effectively 'arithmetizing' control flow into polynomials. By representing branches as three-valued Kleene logic polynomials and loops as bounded recurrences, the authors claim to reduce formal verification of a system's non-learned components to algebraic checks like Polynomial Identity Testing (PIT).",
+    "pros": [
+      "Innovative conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification methodologies.",
+      "Provides a rigorous distinction between 'compiling to the same graph' and 'logical equivalence,' using distributivity as a formal witness.",
+      "The use of three-valued Kleene logic (Lagrange-interpolated) is a clever way to handle the 'unknown' state inherent in neuro-symbolic substrates.",
+      "The paper acknowledges and measures the 'monomial explosion' cost of its PIT-based equivalence checker, showing intellectual honesty regarding scalability."
+    ],
+    "cons": [
+      "The 'reduction' of complexity is largely illusory; the paper trades the 'path explosion' of symbolic execution for a 'monomial explosion' in polynomial expansion, which the authors admit fails at a nesting depth of only 3.",
+      "The reliance on VSA capacity is a significant bottleneck; 100% accuracy only up to a bundle width of k=8 is insufficient for complex trusted bases requiring many state variables.",
+      "The claim of 'bit-exact' results on GPU-native hardware (Yantra) for float32 pipelines is highly suspect given the non-deterministic nature of GPU warp scheduling and floating-point reductions, even within the 'exact-integer range.'",
+      "The 'range-soundness by composition' argument assumes that the underlying tensor operations perfectly implement the polynomial semantics, but VSA operations are inherently noisy as bundle width increases, leading to a 'leaky' abstraction.",
+      "The paper relies on a 'frozen substrate' (pretrained embeddings), but does not adequately address how the semantic mapping between source-level symbols and high-dimensional vectors is verified for correctness."
+    ],
+    "justification": "While the paper presents a sophisticated theoretical framework, the practical utility of the reduction is undermined by the exponential growth of polynomial terms and the low capacity of the VSA substrate. Furthermore, the claim of bit-exactness on GPUs for a neuro-symbolic system is technically implausible and lacks the rigorous error-propagation analysis required for a formal verification paper.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-27 23:54:53"
+  }
+}
