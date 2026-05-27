@@ -73,7 +73,8 @@ where `⊕` is fuzzy OR (Lagrange poly) — class X looks like x if ANY of its k
 
 **Remaining work after end-to-end pass:**
 
-- **Proper K=5 sweep** with k ∈ {1, 2, 4}, per_class=5+, epochs≥20, n=3 (with REAL variation source per the equality-cosine n=3-degeneracy finding — randomized data ordering OR per-seed ε-perturbation of the anchor prototypes; NOT just torch.manual_seed which the equality-cosine experiment showed has no live effect when prototypes are frozen at deterministic anchors).
+- **REAL per-seed variation source: DONE** 2026-05-27 — per-seed ε=0.02 anchor perturbation + per-seed data shuffle now live in `build_data`. Verified (K=2 k=2 5 ep seeds=0,1): baseline +0.1892 vs +0.1839, trained +0.5863 vs +0.5687, **SD non-zero** (baseline 0.0037, trained 0.0124). Seeds produce genuinely different trajectories.
+- **Proper K=5 sweep** with k ∈ {1, 2, 4}, per_class=5+, epochs≥20, n=3 — now unblocked. Wall time projection from the K=2 k=2 2-seed run (1614 s): K=5 k ∈ {1,2,4} × n=3 × 20+ epochs is many hours; surface to Emma before launching autonomously.
 - **Margin curve comparison** rank-1 vs rank-2 vs rank-4 — does k > 1 widen the margin substantially, or are the anchor-and-nudge initialization's extras absorbed into Adam's noise?
 - **Findings doc** `planning/findings/YYYY-MM-DD-rank-k-is-x.md` matching prior format. Cite measured numbers only; flag any degeneracy the same way the equality-cosine doc did.
 - **k-means cluster-centroid anchors** for k > 1 (currently using ε-perturbed copies of the category-word embedding — adequate for proof-of-concept but lossy as a real initializer).
