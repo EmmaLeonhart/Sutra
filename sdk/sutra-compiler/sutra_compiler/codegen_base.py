@@ -270,6 +270,18 @@ def _builtin_dot(args: List[str]) -> str:
     return f"_VSA.dot({args[0]}, {args[1]})"
 
 
+def _builtin_vector_literal(args: List[str]) -> str:
+    # Variadic float-args literal vector constructor — the
+    # bake-back source form for trained vector-valued parameters
+    # (see planning/sutra-spec/matrix-valued-bake-back.md). Lowers
+    # to a substrate-side tensor construction:
+    #     vector_literal(0.1, -0.045, 0.3, ...)
+    #       -> _VSA.vector_from_floats([0.1, -0.045, 0.3, ...])
+    # Substrate-pure: vector_from_floats builds a torch tensor on
+    # the runtime device+dtype; no numpy on the runtime hot path.
+    return f"_VSA.vector_from_floats([{', '.join(args)}])"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -279,6 +291,7 @@ BUILTINS = {
     "unbind": (_builtin_unbind, 2),
     "bundle": (_builtin_bundle, None),   # variadic, at least 1
     "zero_vector": (_builtin_zero_vector, 0),
+    "vector_literal": (_builtin_vector_literal, None),  # variadic floats
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
     "Equals": (_builtin_equals, None),
