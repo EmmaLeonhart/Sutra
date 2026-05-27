@@ -672,6 +672,16 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.zeros(self.dim, dtype=self.dtype, device=self.device)")
         self._indent -= 1
         self._emit()
+        self._emit("def vector_from_floats(self, values):")
+        self._indent += 1
+        self._emit('"""Substrate-side tensor literal — bake-back source form for')
+        self._emit("trained vector-valued parameters. `values` is a Python list of")
+        self._emit("numeric literals emitted by the codegen for a `.su` source line")
+        self._emit("`vector v = vector_literal(0.123, -0.045, ...);`. Built on the")
+        self._emit('runtime device+dtype; no numpy on the hot path."""')
+        self._emit("return _torch.tensor(values, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit()
         self._emit("def bundle_of_binds(self, *role_filler_pairs):")
         self._indent += 1
         self._emit('"""Fused bind+sum+normalize over N role-filler pairs.')
