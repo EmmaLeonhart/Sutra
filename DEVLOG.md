@@ -15,6 +15,28 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: arbitrary-precision design-question dossier (digit-array + carry primitive)
+
+Work-loop tick. The `parse_int2.su` finding from earlier this session
+named the carry-loop design choice as "needs a `planning/open-
+questions/` dossier before implementation." Wrote it.
+
+`planning/open-questions/arbitrary-precision-digit-array.md` covers:
+- Option A (associative-scan substrate intrinsic): tensor-uniform,
+  asymptotically faster, expands runtime ABI.
+- Option B (sequential soft-halt loop in Sutra): no new primitive,
+  auditable, O(N) per call.
+- Hybrid (Sutra surface + scan-rewrite pass): best of both, requires
+  the scan kernel anyway.
+- The four sub-decisions that need to go with the path pick:
+  BigInt typing, digit layout (radix), max width, integer-division
+  primitive.
+
+queue.md updated to point at the dossier. README index in
+`planning/open-questions/` updated with the new entry. No code change;
+planning surface only — this is what "write spec/queue item instead"
+looks like when the work isn't 100% understood (per HARD RAILS).
+
 ## 2026-05-27: R_CHAIN tests un-xfailed — fixed substring-count assertion
 
 Work-loop tick. The two `test_rchain_*_matrix_fuse` tests were marked
