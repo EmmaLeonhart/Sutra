@@ -15,6 +15,53 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: rank-k is_X end-to-end PASS (smoke, K=2 k=2); fixed-point bake-back fix
+
+Work-loop tick: implemented the training loop on top of the
+rank_k_is_x.py scaffold (`b6f21a24` 2026-05-26). Added build_data
+(K-class anchor protos from embed(category-word) + ε-perturbed
+extras for k > 1), vmap-batched logits with equivalence guard at
+init, joint Adam over K*k vectors + K*k scalars, bake-back via
+vector_literal + scalar literals, round-trip check.
+
+Smoke run (K=2 k=2 per_class=4 5 ep seed=0, real exec, exit 0):
+- equivalence guard: vmap vs per-sample max|Δ| = 0.00e+00 (literally
+  exact — vmap of the emitted rule_i is the SAME compiled
+  computation as per-sample on this K=2 k=2 shape).
+- baseline margin (T_init=1, embed-anchor protos): +0.1935
+- trained margin (Adam, 5 epochs): +0.5557
+- ratio: +2.87×
+- round-trip max|Δ| (param-form vs baked-literal form): 2.38e-07
+  (< 1e-4 threshold)
+- wall: 811.4 s ≈ 13.5 min
+
+NOT YET a publishable finding — N=8, n=1, 5 epochs is a smoke
+config not a measurement. The substantive next step is a proper
+K=5 k ∈ {1, 2, 4} sweep with a REAL per-seed variation source
+(randomized data ordering or per-seed ε-perturbation of the
+anchor prototypes), per the equality-cosine n=3-degeneracy finding
+which proved that torch.manual_seed alone is degenerate when
+prototypes are deterministic.
+
+INTEGRITY FIX caught during smoke: the first attempt threw parse
+errors in the baked .su at trained values that ended up small
+enough for Python's repr() to switch to scientific notation
+(e.g. `4.5e-05`). Sutra's parser does NOT accept scientific
+notation (probed and confirmed: SUT0100 / SUT0104 errors at the
+`e` character). Fixed in both rank_k_is_x.py and prophylactically
+in equality_cosine_adjustment.py by formatting bake-back floats
+as `f"{v:.8f}"` (fixed-point, precision ~5e-9, well below the
+1e-4 round-trip threshold). The equality-cosine completed run
+(bu7o9mqxu, T*=1.1118) was not affected — but a future K=10+ run
+with a smaller T* could have hit the same bug. Lexer-level
+acceptance of scientific notation is queued as a separate item
+(NOT this commit's scope).
+
+Queue.md: marked rank-k is_X #1 as END-TO-END WORKING (was
+SCAFFOLD SHIPPED); listed remaining work (proper K=5 sweep with
+real variation; findings doc; k-means cluster anchors for k > 1;
+scientific-notation lexer enhancement).
+
 ## 2026-05-27: equality cosine adjustment MEASURED — bu7o9mqxu landed, findings doc filled
 
 Background K=5 n=3 measurement `bu7o9mqxu` (launched 2026-05-26)

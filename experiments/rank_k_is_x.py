@@ -65,6 +65,8 @@ from sutra_compiler.lexer import Lexer
 from sutra_compiler.parser import Parser
 from sutra_compiler.codegen_pytorch import translate_module as translate_pytorch
 
+import differentiable_training as dt
+
 
 def _rank_k_or(k: int, t_names: list[str], v_names: list[str]) -> str:
     """Generate a chained fuzzy-OR expression for rank-k is_X:
@@ -104,14 +106,24 @@ def _su(K: int, k: int, baked_vectors: list[list[float]] | None,
         assert len(baked_scalars) == K * k
         per_class_t_names = []
         per_class_v_names = []
+        # IMPORTANT: format as fixed-point (.8f) not repr() — Sutra's
+        # parser does not accept scientific notation like 4.5e-05, and
+        # trained Adam weights can be small enough that repr() switches
+        # to scientific (verified 2026-05-27 on the K=2 k=2 smoke). 8
+        # decimal places gives precision ~5e-9, well below the 1e-4
+        # round-trip threshold; far more than enough for bake-back.
+        def fp(v: float) -> str:
+            return f"{v:.8f}"
         for ci in range(K):
             v_names = []
             t_names = []
             for ri in range(k):
                 idx = ci * k + ri
-                values_csv = ", ".join(f"({v!r})" for v in baked_vectors[idx])
+                values_csv = ", ".join(
+                    f"({fp(v)})" for v in baked_vectors[idx]
+                )
                 v_names.append(f"vector_literal({values_csv})")
-                t_names.append(f"({baked_scalars[idx]!r})")
+                t_names.append(f"({fp(baked_scalars[idx])})")
             per_class_t_names.append(t_names)
             per_class_v_names.append(v_names)
         sig = "vector x"
@@ -223,6 +235,184 @@ def smoke_compile_only(K: int = 2, k: int = 2):
     print(f"  PASS: baked form emits the same symbols; vector_literal round-trips through codegen")
 
 
+def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int):
+    """Load embeddings for K categories; build (data, prototype anchors).
+
+    - data: list of (x_tensor, class_index) pairs, len = K * per_class.
+    - protos: K*k tensors of shape (dim,) each, requires_grad-able.
+      For k_rank=1 the proto is exactly embed(category-name).
+      For k_rank>1 the first anchor is embed(category-name) and the
+      remaining are eps-perturbations of it. (k-means cluster-centroid
+      anchors are a queued follow-up — explicitly NOT done here.)
+    """
+    cache = os.path.join(HERE, ".diff_train_embeddings.pt")
+    cats = dt.CATEGORIES[:K]
+    cat_names = [name for name, _ in cats]
+    words = [w for _, ws in cats for w in ws]
+    needed = sorted(set(words + cat_names))
+    vecs_cpu = dt.embed_all(needed, cache_path=cache)
+    dim = next(iter(vecs_cpu.values())).shape[0]
+
+    def to_dev(t):
+        return t.to(device=device, dtype=dtype).detach()
+
+    g = torch.Generator(device="cpu").manual_seed(seed)
+
+    protos = []  # length K * k_rank
+    for ci, name in enumerate(cat_names):
+        anchor = to_dev(vecs_cpu[name])
+        protos.append(anchor.clone())
+        for _ in range(k_rank - 1):
+            noise = torch.randn(dim, generator=g, dtype=dtype).to(device) * 0.05
+            protos.append((anchor + noise).clone())
+
+    data = []
+    for ci, (_, ws) in enumerate(cats):
+        for w in ws[:per_class]:
+            if w in cat_names:
+                continue
+            data.append((to_dev(vecs_cpu[w]), ci))
+    return data, protos, dim
+
+
+def logits_per_sample_factory(mod, K, k):
+    """Returns single(x, protos, scalars) -> [K] using the emitted rule_i
+    functions. protos: list len K*k of (dim,) tensors. scalars: list len
+    K*k of 0-d tensors. The rule_i signature takes (x, all_vectors,
+    all_scalars) per the .su generator."""
+    rule_fns = [getattr(mod, f"rule_{i}") for i in range(K)]
+
+    def single(x, protos, scalars):
+        # All rules consume the same flat (protos..., scalars...) tail
+        # because the .su generator's `other_arg` passes every class's
+        # params to every rule body.
+        tail = list(protos) + list(scalars)
+        return torch.stack([fn(x, *tail) for fn in rule_fns])
+
+    return single
+
+
+def margin_per_sample(logits, y):
+    """logit_correct - max logit_wrong, scalar."""
+    K = logits.shape[-1]
+    correct = logits[..., y]
+    mask = torch.ones(K, dtype=torch.bool, device=logits.device)
+    mask[y] = False
+    wrong_max = logits[..., mask].max()
+    return float(correct - wrong_max)
+
+
+def run_one(K, k_rank, per_class, epochs, lr, seed, verbose=True):
+    """Compile + train + bake + round-trip + measure. Returns a dict
+    with the measured numbers."""
+    mod = _compile(_su(K, k_rank, None, None), f"param_K{K}_k{k_rank}")
+    runtime = mod._VSA
+    device, dtype = runtime.device, runtime.dtype
+
+    data, protos_init, dim = build_data(K, k_rank, per_class, device, dtype, seed)
+    if verbose:
+        print(
+            f"  build_data: K={K} k_rank={k_rank} per_class={per_class} "
+            f"N={len(data)} dim={dim} seed={seed}"
+        )
+
+    # --- Equivalence guard at init: vmap vs per-sample logits ---
+    single = logits_per_sample_factory(mod, K, k_rank)
+    init_protos = [p.clone() for p in protos_init]
+    init_scalars = [
+        torch.tensor(1.0, dtype=dtype, device=device) for _ in range(K * k_rank)
+    ]
+    with torch.no_grad():
+        lp = torch.stack(
+            [single(x, init_protos, init_scalars) for x, _ in data]
+        )
+        # vmap captures (init_protos, init_scalars) by closure; only x batches.
+        vlogits = torch.vmap(lambda xx: single(xx, init_protos, init_scalars))
+        X = torch.stack([x for x, _ in data])
+        lb = vlogits(X)
+        dmax = float((lp - lb).abs().max())
+    if dmax >= 1e-4:
+        raise SystemExit(
+            f"EQUIVALENCE GUARD FAILED at init: vmap vs per-sample max|Δ|"
+            f"={dmax:.2e}. Abort -- batched != per-sample compiled computation."
+        )
+    if verbose:
+        print(f"  equivalence guard PASSED (max|Δ|={dmax:.2e} < 1e-4)")
+
+    # --- Baseline margin (T_init=1, anchor protos) ---
+    with torch.no_grad():
+        baseline_margin = statistics.mean(
+            margin_per_sample(single(x, init_protos, init_scalars), y)
+            for x, y in data
+        )
+
+    # --- Train: all K*k vectors + K*k scalars ---
+    torch.manual_seed(seed)
+    protos = [p.clone().requires_grad_(True) for p in protos_init]
+    scalars = [
+        torch.tensor(1.0, dtype=dtype, device=device, requires_grad=True)
+        for _ in range(K * k_rank)
+    ]
+    opt = torch.optim.Adam(protos + scalars, lr=lr)
+
+    for _ in range(epochs):
+        opt.zero_grad()
+        losses = []
+        for x, y in data:
+            logits = single(x, protos, scalars)
+            losses.append(
+                F.cross_entropy(
+                    (logits * 10.0).unsqueeze(0),
+                    torch.tensor([y], device=device),
+                )
+            )
+        loss = torch.stack(losses).mean()
+        loss.backward()
+        opt.step()
+
+    # --- Trained margin ---
+    with torch.no_grad():
+        trained_margin = statistics.mean(
+            margin_per_sample(single(x, protos, scalars), y) for x, y in data
+        )
+
+    # --- Bake back: each v_ci_ri -> vector_literal(...), each T_ci_ri -> literal ---
+    baked_vecs = [
+        [round(float(v), 6) for v in p.detach().cpu().tolist()] for p in protos
+    ]
+    baked_scalars = [round(float(t.detach()), 6) for t in scalars]
+    baked = _compile(
+        _su(K, k_rank, baked_vecs, baked_scalars),
+        f"baked_K{K}_k{k_rank}_seed{seed}",
+    )
+
+    # --- Round-trip check: baked logits vs trained logits, per-sample ---
+    baked_rules = [getattr(baked, f"rule_{i}") for i in range(K)]
+
+    def baked_single(x):
+        return torch.stack([fn(x) for fn in baked_rules])
+
+    with torch.no_grad():
+        max_rt = 0.0
+        for x, _ in data:
+            lp_ = single(x, protos, scalars)
+            lb_ = baked_single(x)
+            max_rt = max(max_rt, float((lp_ - lb_).abs().max()))
+    rt_ok = max_rt < 1e-4
+
+    return {
+        "seed": seed,
+        "K": K, "k_rank": k_rank, "per_class": per_class,
+        "epochs": epochs, "lr": lr,
+        "N": len(data), "dim": dim,
+        "equiv_guard_dmax": dmax,
+        "baseline_margin": baseline_margin,
+        "trained_margin": trained_margin,
+        "round_trip_max_delta": max_rt,
+        "round_trip_ok": rt_ok,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -242,17 +432,58 @@ def main():
         smoke_compile_only(K=a.K_classes, k=a.k_rank)
         return
 
-    # Full training path -- NOT YET IMPLEMENTED in this scaffold commit.
-    # See queue.md #2 PRIORITY for the full plan: vmap-batched logits
-    # with equivalence guard, joint Adam over K*k vectors + K*k scalars,
-    # bake-back via vector_literal + scalar literals, round-trip
-    # recompile, rank-1 vs rank-k margin sweep.
+    seeds = [int(s) for s in a.seeds.split(",") if s.strip()]
+    t0 = time.time()
+    results = []
     print(
-        "training path not yet implemented; rerun with --smoke for the "
-        "compile-only sanity check. The training scaffold lands in a "
-        "follow-up commit once the bu7o9mqxu GPU is free."
+        f"rank-k is_X training: K={a.K_classes} k={a.k_rank} "
+        f"per_class={a.per_class} epochs={a.epochs} seeds={seeds} lr={a.lr}"
     )
-    raise SystemExit(2)
+    for s in seeds:
+        print(f"--- seed {s} ---")
+        r = run_one(
+            K=a.K_classes,
+            k_rank=a.k_rank,
+            per_class=a.per_class,
+            epochs=a.epochs,
+            lr=a.lr,
+            seed=s,
+        )
+        print(
+            f"  seed {s}: baseline margin = {r['baseline_margin']:+.4f}  ->  "
+            f"trained margin = {r['trained_margin']:+.4f}  "
+            f"round-trip max|Δ|={r['round_trip_max_delta']:.2e}  "
+            f"round_trip_ok={r['round_trip_ok']}"
+        )
+        results.append(r)
+
+    bm = [r["baseline_margin"] for r in results]
+    tm = [r["trained_margin"] for r in results]
+
+    def ms(v):
+        return (
+            statistics.mean(v),
+            statistics.stdev(v) if len(v) > 1 else 0.0,
+        )
+
+    bmean, bsd = ms(bm)
+    tmean, tsd = ms(tm)
+    print(
+        f"\n=== RANK-{a.k_rank} is_X MEASURED (K={a.K_classes}, "
+        f"per_class={a.per_class}, epochs={a.epochs}, n={len(seeds)}) "
+        f"in {time.time() - t0:.1f}s ==="
+    )
+    print(f"baseline margin (T_init=1, embed-anchor protos): "
+          f"{bmean:+.4f} ± {bsd:.4f}")
+    print(f"trained  margin (joint Adam over K*k vectors + K*k scalars): "
+          f"{tmean:+.4f} ± {tsd:.4f}")
+    if abs(bmean) > 1e-9:
+        print(f"trained / baseline margin ratio: {tmean / bmean:+.2f}x")
+    print(
+        f"round_trip_ok(all): {all(r['round_trip_ok'] for r in results)}  "
+        f"max|Δ| over all seeds: "
+        f"{max(r['round_trip_max_delta'] for r in results):.2e}"
+    )
 
 
 if __name__ == "__main__":
