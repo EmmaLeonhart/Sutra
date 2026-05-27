@@ -44,6 +44,9 @@ The scope is the non-learned trusted base, per published contract; §5 states it
 precisely and §6 positions the work against neural-network verification, SMT for
 nonlinear arithmetic, partial evaluation, and vector-symbolic architectures.
 
+
+*Auto-resubmission revision marker: 2026-05-27 23:45 UTC*
+
 ---
 
 ## 1. Introduction
