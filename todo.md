@@ -256,10 +256,10 @@ the lever that removes branch/path explosion.**
   connective polynomial (`and`/`or`/`not`/t-norms) at the nine grid points
   {−1,0,+1}² and assert exact reproduction of the 3-valued Kleene table.
   Finite + decidable; anchors the smooth polynomial to the discrete logic.
-- **Contract obligation (§3.1) — the genuinely-hard family. Three halves,
-  one discharged.** A program `p` with axon-typed contract `C` must: read only
-  `C.read_roles`, write only `C.write_roles`, AND compute the role-to-role
-  function `C` specifies. Status:
+- **Contract obligation (§3.1) — the genuinely-hard family. Two halves
+  discharged, one open.** A program `p` with axon-typed contract `C` must:
+  read only `C.read_roles`, write only `C.write_roles`, AND compute the
+  role-to-role function `C` specifies. Status:
   - ✅ **Role-isolation (confinement) — DISCHARGED at the kernel (2026-05-24).**
     A process emits only on roles in its `write_roles` (capability-checked,
     else `CapabilityError`) and is delivered only axons on roles in its
@@ -268,23 +268,28 @@ the lever that removes branch/path explosion.**
     `test_send_refused_when_sender_lacks_write_role`,
     `test_send_to_unadmitted_role_is_black_hole`). This is the read/write
     *confinement* part only.
-  - ❌ **Role-to-role function correctness — OPEN, needs design.** That `p`'s compiled graph
-    computes the function `C` specifies, not merely that it stays within its
-    roles. This is program-correctness, not confinement: it needs a way to
-    state the intended role-to-role map as a checkable spec and compare the
-    reduced graph against it. For the pure-arithmetic/Kleene fragment the
-    general checker (below) can decide it via polynomial identity against a
-    reference; for programs with learned weights or intrinsics it cannot, and
-    we should not pretend otherwise. Discharge for `echo` (identity map) and
-    the calculator's `switch.su` (the four ops + select) first.
-  - ❌ **Static `AXON_KEYS_READ`/`BOUND` soundness — OPEN, needs design.** That
-    the compiler's statically-emitted key sets match the keys the program
-    actually touches at runtime (the lazy-delivery contract the kernel relies
-    on). Needs runtime key-usage instrumentation, or a key-level contract in
-    the manifest to check the static analysis against. Do NOT ship a vacuous
-    check; settle the design in `planning/sutra-spec/formal-verification.md`
-    first. Why it matters: if the static keys under-approximate, the lazy
-    router could withhold an axon the program needs → silent wrong behaviour.
+  - ✅ **Role-to-role function correctness — DISCHARGED for the Kleene
+    fragment (2026-05-24, commit `133d9364`).** For a trusted program whose
+    body is a Kleene-logic expression, "does the implementation compute the
+    contract's specified function?" IS the equivalence procedure already
+    built: `reduces_to_same_graph(implementation, contract_reference)` —
+    decidable, exact, any depth. Demonstrated by
+    `test_contract_function_correctness_kleene_fragment` (a NAND
+    implementation passes its `!(a && b)` contract; a NOR implementation
+    is correctly rejected). Honest scope: `echo` and `switch.su` are
+    OUTSIDE the Kleene fragment and have their function-correctness
+    covered by their own substrate tests, not by this procedure.
+  - ❌ **Static `AXON_KEYS_READ`/`BOUND` soundness — OPEN, needs design.**
+    (Re-added 2026-05-27 per Emma — explanation cron `b348c005` fires
+    13:36 PST.) That the compiler's statically-emitted key sets match the
+    keys the program actually touches at runtime (the lazy-delivery
+    contract the kernel relies on). Needs runtime key-usage instrumentation,
+    or a key-level contract in the manifest to check the static analysis
+    against. Do NOT ship a vacuous check; settle the design in
+    `planning/sutra-spec/formal-verification.md` first. Why it matters: if
+    the static keys under-approximate, the lazy router could withhold an
+    axon the program needs → silent wrong behaviour. Emma's leaning is to
+    ship it with very good specifications inside the FV paper.
 - **Branch-range obligation discharge.** ✅ DONE for the connectives,
   closed-form (2026-05-24). The polynomial-bounding routine — the core of the
   bespoke checker — is built (`sutra_compiler/fv_poly_bound.py`,

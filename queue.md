@@ -55,6 +55,23 @@ see §"Watchdogs" below.
 
 ## Active
 
+### ⭐ Emma 2026-05-27 13:21 PST — multi-front authorization batch
+
+Emma greenlit a batch of FV + infra + experiment work in one message
+(see DEVLOG 2026-05-27 entry). The atomized work items are interleaved
+into the lists below; this header is a pointer so future sessions
+don't lose the context. Items below this header carry the
+`(Emma 2026-05-27)` tag.
+
+Scheduled crons (one-shot, this session):
+- `5531b8af` — K=5 rank-k sweep, fires `0 0 28 5 *` (midnight tonight).
+  Self-contained prompt covers all three configs (k ∈ {1, 2, 4})
+  with the findings-doc write-up. GPU is free; not blocking other
+  work, so scheduled rather than started now per Emma's instruction.
+- `b348c005` — Contract key-soundness explanation, fires `36 13 27 5 *`
+  (≈15 min from authorization). Emma is deciding whether to go through
+  with the work after reading the explanation.
+
 ### ⭐ #1 PRIORITY — Rank-k `is_X` matrix constrain-train experiment
 
 (Promoted from #2 after the equality cosine adjustment measurement landed 2026-05-27 — finding at `planning/findings/2026-05-26-equality-cosine-adjustment.md`: +1.08× margin, T*=1.1118, n=3 degenerate-but-flagged, round-trip clean. Rank-k is the architectural next step — k prototypes + k gains per class — and was already unblocked by the `vector_literal` builtin and the matrix-valued-bake-back lean spec.) GPU is free now that `bu7o9mqxu` completed.
@@ -172,6 +189,18 @@ venue choice); (7) **general obligation checker** (extract from the emitted grap
 discharge arbitrary obligations — the bulk of the remaining build). A human
 venue is the real target.
 
+**Pick this session (Emma 2026-05-27):** start with **(2) term-count / PIT
+honesty** as the quickest — the general checker (`fv_obligation_checker.py`)
+already extracts the polynomial; counting `sympy.expand(p).args` per
+reduced-program shape is a small measurement loop + a finding doc + a
+paper §3.4 update. Then **(1) k=8 → capacity curve** as the slower second:
+needs a bundle-decoding harness at higher k (the k=8 baseline likely lives
+under `experiments/` or `planning/findings/`); if a substrate-pure decoder
+exists, sweep k ∈ {8, 16, 32, 64} and report. The paper gets a periodic
+update from each (CI auto-submits on push). Items (4) key-soundness and
+arbitrary-precision are tracked separately below + in todo.md per Emma's
+instruction.
+
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 
 The framework (`planning/sutra-spec/formal-verification.md`) states the
@@ -187,7 +216,9 @@ genuinely open and need design before code, not just wiring:
    `AXON_KEYS_READ`/`BOUND` match the keys a program touches at runtime.
    Needs runtime key-usage instrumentation OR a key-level manifest contract
    to check against. Design first in `planning/sutra-spec/formal-
-   verification.md`; don't ship a vacuous check.
+   verification.md`; don't ship a vacuous check. **(Emma 2026-05-27: also
+   in todo.md; explanation cron `b348c005` fires 13:36 PST to brief Emma
+   before she greenlights.)**
 2. **Arbitrary precision (calc).** True unbounded exact integers need
    carry propagation ON THE SUBSTRATE (digit-array). The 1–2 digit substrate
    parser (`parse_int2.su`) is the start; the carry loop is the hard piece
@@ -196,6 +227,38 @@ genuinely open and need design before code, not just wiring:
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
+
+### Compiler-side CI workflow (Emma 2026-05-27)
+
+The repo's `.github/workflows/` has paper/site/package workflows
+(`fv-paper-ci.yml`, `pages.yml`, `papers-ci.yml`, `paper-pdf.yml`,
+`pull-reviews.yml`, `publish-sutra-compiler.yml`, `submit-papers.yml`,
+`sutradb-ci.yml`, `sutradb-integration.yml`) but no workflow that runs
+the Sutra compiler test suite on push. CLAUDE.md HARD RAILS says
+"Verify CI green, not just local." Add a workflow that runs
+`pytest sdk/sutra-compiler/tests/` on push to `main` and on PR.
+
+Shape: ubuntu-latest runner (egglog is broken on local Windows but the
+suite should be fine on Linux), Python 3.13, install `sdk/sutra-compiler`
+with the dev extras, run the full suite. Acceptable to skip the slowest
+tests (the substrate-leak-sweep is ~29 min per Audit.md) on per-PR runs;
+keep them on the daily schedule.
+
+### Investigate / fix `test_simplify_egglog` hang (Emma 2026-05-27)
+
+On this Windows environment the test collects (35 tests) but execution
+hangs / exits 127 mid-suite. Pre-existing — observed across `f0341fbd`
+and `bqf7blxvw` runs this session. Pre-existing means it ISN'T from
+the lexer change, but also that nobody's traced root cause yet.
+
+Plan: (a) run a single test in isolation to confirm it's not a
+collection-time issue; (b) check whether the egglog *binary* (not just
+the Python package) is what's missing — `egglog` Python lib does have
+native bindings and may try to subprocess. (c) If it's a Linux-only
+test in practice, mark the whole file as `pytest.mark.skipif(WINDOWS)`
+with a precise reason — NOT a generic skip. (d) If it's a real
+algorithmic hang (egraph saturation), surface the offending test
+and either xfail it with a tracked issue or fix the root cause.
 
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
 
