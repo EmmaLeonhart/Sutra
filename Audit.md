@@ -281,9 +281,12 @@ decision (and a comment) rather than being silently host:
   ~29 min runtime → make it slow/nightly or compile-once-reuse
   for per-PR use (speed refinement, not correctness; the gate is
   real and clean today).
-- **Dangling `examples/todo.md` references** in dated findings
-  (`planning/findings/2026-04-15-llm-substrate-role-name-collision.md`,
-  `2026-05-10-spec-implementation-audit.md`, `planning/sutra-
-  spec/README.md`) — the file was merged into root `todo.md`
-  2026-05-15. Findings are point-in-time records; the spec README
-  ref is the only one worth repointing.
+- **Dangling `examples/todo.md` references — RESOLVED 2026-05-19**
+  (commit `4f604520`). The `planning/sutra-spec/README.md` pointer
+  was repointed to root `todo.md` with a historical note ("merged
+  from the old `examples/todo.md` 2026-05-15"). The dated-findings
+  references in `planning/findings/2026-04-15-llm-substrate-role-
+  name-collision.md` and `2026-05-10-spec-implementation-audit.md`
+  intentionally remain as point-in-time records of what was true at
+  the time the finding was written, per the cross-cutting framing
+  above. Kept here as resolution evidence; no further action needed.

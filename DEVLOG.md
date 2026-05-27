@@ -15,6 +15,21 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: Audit.md cleanup — "dangling examples/todo.md refs" item marked resolved
+
+Work-loop tick. Audit.md's cross-cutting "Dangling `examples/todo.md`
+references" entry said the `planning/sutra-spec/README.md` pointer
+was "the only one worth repointing." That repointing actually
+happened on 2026-05-19 in commit `4f604520` (verified by git log on
+the README), but Audit.md was never updated to reflect resolution.
+README line 101 now reads "Longer-horizon agenda (merged from the
+old `examples/todo.md` 2026-05-15): root `todo.md`" — historical
+note, not a dangling pointer.
+
+Marked the Audit.md entry RESOLVED with the commit cite. Findings-
+side references stay (point-in-time records, per Audit.md's own
+framing). No code touched; documentation reconciliation only.
+
 ## 2026-05-27: lexer — scientific-notation float literals (`1e10`, `1.5e-3`, `2E+5`)
 
 Work-loop tick. The rank-k is_X bake-back path discovered a sharp
