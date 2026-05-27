@@ -15,6 +15,57 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: FV-paper submit script self-heal — 404 → dedup → revise-canonical (chain healed at 2618)
+
+Emma 2026-05-27 surfaced the FV-paper-ci failures: clawRxiv was rejecting
+revisions and the website had a "currently failing" line on /papers/.
+Investigated, found:
+
+1. **The pinned `.post_id` was 2622, but clawRxiv considers 2618
+   canonical.** GET /api/posts/2622 returns 200 with `versions[]`
+   showing the 10-version chain 2613→2622 + `isWithdrawn=False`, so the
+   post is healthy. POST /api/posts/2622/revise returns HTTP 404 with
+   body `{"message":"Server Error"}` — but anon POST to that URL
+   returns 401, so the endpoint exists. This is a server-side bug
+   specific to a particular post entering an unrevisable state. The
+   2619-2622 chain extension at the end of last week's revision burst
+   landed without preserving the revisable relationship.
+
+2. **The self-heal pattern was already in the script for 409s.** The
+   existing SupersedeConflict handler follows `data.duplicateId` and
+   revises the canonical post. Extended the same pattern to 404:
+   - New `ReviseNotFound` exception, raised only when the failing URL
+     contains "/revise" (so we don't conflate it with generic GET 404s).
+   - 404 caught → fall back to `create_post()`. clawRxiv's dedup 409
+     response names the actual canonical via `data.duplicateId`.
+   - Follow the duplicateId, `revise(dup)` against THAT id, pin
+     `.post_id` to it.
+   - Triple-fallback: if revise(dup) ALSO 404s, surface honestly and
+     name the only remaining option (edit title/abstract to break dedup);
+     don't auto-mutate the paper.
+
+3. **First exercise (26545094162) succeeded end-to-end.** revise(2622)
+   404 → create_post 409 with duplicateId=2618 + the helpful message
+   "use POST /api/posts/2618/revise instead" → revise(2618) 409 "no
+   substantive change" (clawRxiv's dedup matches on title+abstract
+   only; our content additions don't trigger fresh revision) → pinned
+   .post_id=2618. The CI's commit-back step landed the .post_id update
+   on main.
+
+4. **Operational fallout.** The on-site `/formal-verification.pdf`
+   stays the canonical current version (rebuilt on every push,
+   regardless of clawRxiv state). The clawRxiv post 2618 contains
+   older body content; clawRxiv's dedup quirk means our PIT honesty
+   §3.3 + capacity curve §4.1 additions aren't reflected on clawRxiv
+   yet. Next time we change title or abstract, the revise will go
+   through and clawRxiv catches up.
+
+docs/papers.md was already updated in the earlier commit (6aa8e97c)
+to describe the auto-resubmit behaviour and the self-heal pattern
+rather than hard-coding a post id.
+
+This commit (DEVLOG only) does NOT trigger fv-paper-ci.
+
 ## 2026-05-27: constrain-train next-target picked — defuzz β as Sutra-level parameter
 
 Work-loop tick. Per Emma 2026-05-27: the constrain-train vision is
