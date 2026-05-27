@@ -1,0 +1,42 @@
+// 1-2 digit substrate parser — the "easy start" of the arbitrary-
+// precision (calc) thread per queue.md FV next-concrete-work #2.
+//
+// What this is. Given a String "47", compute the int 47 entirely
+// through substrate operations. Two digits is enough to demonstrate
+// the digit-extraction shape without yet needing the carry loop.
+//
+// Mechanism. Each digit character is its codepoint (ASCII '0' = 48,
+// '9' = 57). Subtract 48 to recover the digit's integer value. Then
+// 10 * d0 + d1 for a two-digit number. All operations are substrate-
+// pure: `string_char_at` is a tensor index-select + saturating mask
+// (see codegen_pytorch.string_char_at), the subtraction and the
+// multiplication are number-axis tensor ops, and the sum is a
+// vector add.
+//
+// What this is NOT. This is not arbitrary precision. The carry loop
+// — what makes BigInt-style arithmetic possible — is the hard piece
+// that comes next and likely needs a Sutra-side primitive (the queue
+// flags this honestly). See planning/findings/2026-05-27-arbitrary-
+// precision-parser.md for the analysis of what's blocked.
+//
+// 2026-05-27.
+
+function int parse_int1(Character c) {
+    // Single digit: codepoint - 48. Works for '0'..'9' only;
+    // out-of-range input returns whatever (codepoint - 48) gives —
+    // no validation, per Sutra's "no runtime errors by mechanism"
+    // design. The validator is the last line of defense.
+    return c.string_char_at(0) - 48;
+}
+
+function int parse_int2(String s) {
+    // Two digits, big-endian: "47" -> 10*4 + 7 = 47.
+    int d0 = s.string_char_at(0) - 48;
+    int d1 = s.string_char_at(1) - 48;
+    return 10 * d0 + d1;
+}
+
+function int main() {
+    String s = String.make_string("47");
+    return parse_int2(s);
+}

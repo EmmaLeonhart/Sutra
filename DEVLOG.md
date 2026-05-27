@@ -15,6 +15,70 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: Emma multi-front authorization — CI workflow + PIT honesty + parse_int2 + paper update
+
+Work-loop continuation. Emma 2026-05-27 13:21 PST greenlit a batch
+of FV + infra + experiment work in one message. Scheduled what's
+time-bounded; landed what's bounded; surfaced what's blocked.
+
+**Scheduled (one-shot crons, this session):**
+- `5531b8af` K=5 rank-k sweep — fires `0 0 28 5 *` (midnight tonight).
+  GPU is free; not blocking other work, so scheduled rather than
+  started now per Emma's instruction. Self-contained prompt covers
+  k ∈ {1,2,4} with the findings-doc write-up.
+- `b348c005` Contract key-soundness explanation — fires `36 13 27 5 *`
+  (≈15 min from authorization). Emma is deciding whether to go
+  through with the work after reading the explanation.
+
+**Compiler-side CI workflow (Task #8) — landed.**
+`.github/workflows/compiler-ci.yml` (commit `332759e5`). First run
+(`26536740782`) failed: 23 failed + 7 errors, all
+`ModuleNotFoundError: No module named 'ollama'`. The `_TorchVSA`
+runtime imports `ollama` at init for embeddings; CI didn't have it.
+Fix (`d68f684a`): mirror the daily-audit setup — pip install
+`ollama`, install the ollama server via the upstream curl one-liner,
+`ollama pull nomic-embed-text`. Second run (`26538579290`) green.
+Adds ~30 s install + ~250 MB model pull per CI run.
+
+**PIT honesty (Task #5, the quickest TASKS-TO-SUBMITTABLE) — landed.**
+`experiments/fv_pit_term_count.py` measures the expanded polynomial's
+term count on balanced Kleene trees via the SAME pipeline the
+obligation checker uses (`extract_truth_polynomial` → `sympy.expand`).
+Measured wall: depth 1 → 6 terms; depth 2 → 66/177/312 terms
+(vp=2/3/4); depth 3 vp=2 → 1054 terms in 56 s. Depth ≥ 3 vp ≥ 3
+exceeded any per-row budget we'd accept for CI (~770 MB resident
+before stop). Finding:
+`planning/findings/2026-05-27-pit-term-count.md`. FV paper §3.3
+gains a new "Honest cost of the polynomial-identity check (PIT term
+count)" paragraph citing the measured numbers and the practical
+`sympy.expand` wall. Correctness claim unchanged; cost claim
+sharpened from "path explosion is removed" to "branch enumeration is
+replaced by monomial enumeration whose count grows geometrically in
+depth."
+
+**Arbitrary-precision (Task #7) — first piece shipped, hard piece
+honestly surfaced.** `examples/parse_int2.su` (1-2 digit substrate
+parser) compiles + runs substrate-pure: `parse_int2("47")` →
+`tensor(47., device='cuda:0')` on CUDA. No host scalar leak; all
+primitives (`string_char_at`, subtract-constant, multiply-constant,
+vector add) are existing substrate ops. The carry loop is NOT built —
+per HARD RAILS "don't implement what you don't 100% understand."
+The design choice (associative-scan primitive vs. sequential
+soft-halt loop) materially affects the spec and the runtime ABI;
+picking either without Emma's sign-off would either ship a poor
+implementation or hard-code a runtime representation. The right next
+step is a `planning/open-questions/` dossier on the digit-array
+representation. Finding:
+`planning/findings/2026-05-27-arbitrary-precision-parser.md`.
+
+**Not yet done (still on the queue / tasks):**
+- (#6) k=8 → real capacity curve (slower second TASKS-TO-SUBMITTABLE)
+- (#9) test_simplify_egglog hang — the CI run on Linux didn't include
+  this file, so the Windows-vs-Linux datapoint isn't yet collected
+- (#10) FV paper periodic updates — landed one round this commit
+  (PIT honesty); will fold in the k=8 capacity curve when it lands
+- K=5 rank-k sweep at midnight per the cron
+
 ## 2026-05-27: queue.md FV section trimmed — 8 stale DONE narratives + 1 already-discharged "Still OPEN" item removed (-117 net lines)
 
 Work-loop tick. queue.md's own discipline (top of file) says "If you find
