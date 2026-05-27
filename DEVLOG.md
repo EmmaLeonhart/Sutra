@@ -15,6 +15,42 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: rank-k is_X — k-means cluster-centroid anchors landed (`--anchor-strategy kmeans`)
+
+Work-loop tick (continuation of prior sessions on rank-k). The remaining
+"k-means cluster-centroid anchors" sub-item in queue.md said the
+default `perturb` strategy is "adequate for proof-of-concept but lossy
+as a real initializer." Shipped the second strategy.
+
+`build_data(..., anchor_strategy="kmeans")` runs Lloyd's k-means
+(`_kmeans_lloyd`) over each class's first `per_class` word embeddings
+(filtering out the category name itself), then uses the k centroids +
+ε=0.02 perturbation as the k anchors. The k-means *initial assignment*
+is seeded by the per-seed RNG (`torch.randperm(N, generator=g)`), so
+different seeds yield different clusterings — a second per-seed
+variation source on top of the ε perturbation. Trivial-case handling:
+if k ≥ N (too few words to cluster into k groups), pads by repeating
+points[0] instead of crashing.
+
+Verification (real exec, K=2 k=2 per_class=5 5 ep n=2, exit 0, wall
+2083.6 s ≈ 35 min):
+- seed 0: baseline +0.1913, trained +0.5365, round-trip 1.49e-07
+- seed 1: baseline +0.1996, trained +0.5484, round-trip 2.38e-07
+- baseline mean ± SD: +0.1955 ± **0.0058**
+- trained  mean ± SD: +0.5424 ± **0.0084**
+- ratio +2.78×; equiv guard 0.00e+00 (still exact)
+- round_trip_ok: True; max|Δ| over all seeds 2.38e-07
+
+The `perturb` strategy stays the default. The kmeans path is exposed
+via the `--anchor-strategy kmeans` CLI flag; verified end-to-end
+without changing the substrate-purity invariants (equivalence guard
+exact; round-trip clean). Margin variance per seed is real, not a
+precision artifact.
+
+queue.md: marked "k-means cluster-centroid anchors: DONE" inside the
+rank-k #1 item; the "proper K=5 sweep" sub-item is still flagged for
+Emma sign-off before autonomous launch (multi-hour budget).
+
 ## 2026-05-27: rank-k is_X — real per-seed variation source landed; n=2 SD non-zero
 
 Work-loop tick: the equality-cosine n=3-degeneracy finding
