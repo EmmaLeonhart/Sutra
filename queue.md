@@ -88,9 +88,11 @@ where `⊕` is fuzzy OR (Lagrange poly) — class X looks like x if ANY of its k
 
 **Trained params per class:** `k` prototype vectors + `k` scalars. Across K classes: `K × k` vectors and `K × k` scalars. All bake back via `vector_literal(...)` (just shipped) + scalar literals.
 
-**Steps (concrete, ready to run):**
+**SCAFFOLD SHIPPED** (`b6f21a24`, 2026-05-26): `experiments/rank_k_is_x.py` with `--smoke` compile-only sanity check (K=2 k=2 param + baked forms both compile; vector_literal round-trips through codegen; PASS, exit 0). Training loop NOT yet implemented — gated on GPU availability (`bu7o9mqxu` still holds it).
 
-1. **Harness: `experiments/rank_k_is_x.py`.** Compile a `.su` rule:
+**Remaining steps after scaffold:**
+
+1. **Harness: `experiments/rank_k_is_x.py`.** ~~Compile a `.su` rule~~ DONE (scaffold). Compile path proven for:
    ```
    function fuzzy is_X(vector x, vector v1, vector v2, ..., vector vk,
                        number T1, number T2, ..., number Tk) {

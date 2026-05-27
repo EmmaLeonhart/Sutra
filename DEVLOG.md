@@ -15,6 +15,34 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-26: rank-k is_X harness scaffold (smoke-compile PASS) — work-loop tick
+
+Work-loop tick: top actionable item was queue.md #1 (equality cosine
+adjustment) but `bu7o9mqxu` holds the GPU for the K=5 n=3
+measurement, so picked up #2 (rank-k is_X) and scaffolded the
+harness without claiming the experiment.
+
+Shipped (`b6f21a24`): `experiments/rank_k_is_x.py` — parametric
+(K, k) .su generator that produces both the param form (everything
+trainable) and the baked form (vector_literal + scalar literals
+substituted inline), plus a `--smoke` compile-only sanity check.
+.gitignore extended for the temp `.rankk_*.su` files.
+
+Smoke MEASURED (real, exit 0): K=2 k=2 param form (1,161 chars, 12
+lines) compiles + executes; K=2 k=2 baked form (35,853 chars — the
+4 fake 768-d vectors expand the source — 12 lines after expansion)
+also compiles, `vector_literal(...)` calls round-trip through the
+codegen, both forms expose the expected {rule_0, rule_1, is_class_0,
+is_class_1} symbols.
+
+Deliberately NOT in this commit (named plainly, not glossed over per
+the work-loop HARD RAILS): the training loop (joint Adam over K*k
+vectors + K*k scalars, vmap-batched logits with mandatory
+equivalence guard to 1e-4 before training begins, the rank-1 vs
+rank-k margin sweep) and the k-means-cluster-centroid anchor
+initialization. Both gated on GPU availability and queued for the
+next tick that lands after bu7o9mqxu completes.
+
 ## 2026-05-26: constrain-train agenda landed; back-prop-into-code paper queued; matrix-bake-back lean-spec + vector_literal builtin shipped; master cherry-picked + deleted
 
 Session opened the three-cron autonomous loop and advanced through
