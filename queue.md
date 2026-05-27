@@ -69,9 +69,17 @@ where `⊕` is fuzzy OR (Lagrange poly) — class X looks like x if ANY of its k
 
 **Trained params per class:** `k` prototype vectors + `k` scalars. Across K classes: `K × k` vectors and `K × k` scalars. All bake back via `vector_literal(...)` (just shipped) + scalar literals.
 
-**SCAFFOLD SHIPPED** (`b6f21a24`, 2026-05-26): `experiments/rank_k_is_x.py` with `--smoke` compile-only sanity check (K=2 k=2 param + baked forms both compile; vector_literal round-trips through codegen; PASS, exit 0). Training loop NOT yet implemented — gated on GPU availability (`bu7o9mqxu` still holds it).
+**END-TO-END WORKING** (2026-05-27): scaffold (`b6f21a24` 2026-05-26) + training loop ships this commit. Smoke (K=2 k=2 per_class=4 5 ep seed=0): equivalence guard max|Δ|=0.00e+00 (exact), baseline margin +0.1935 → trained +0.5557 (ratio +2.87×), round-trip max|Δ|=2.38e-07. 13.5 min wall. End-to-end pipeline confirmed; remaining work is bigger configurations (proper K=5, k sweep ∈ {1,2,4}, real per-seed variation source — see "Remaining work" below) plus the findings doc with real measurements.
 
-**Remaining steps after scaffold:**
+**Remaining work after end-to-end pass:**
+
+- **Proper K=5 sweep** with k ∈ {1, 2, 4}, per_class=5+, epochs≥20, n=3 (with REAL variation source per the equality-cosine n=3-degeneracy finding — randomized data ordering OR per-seed ε-perturbation of the anchor prototypes; NOT just torch.manual_seed which the equality-cosine experiment showed has no live effect when prototypes are frozen at deterministic anchors).
+- **Margin curve comparison** rank-1 vs rank-2 vs rank-4 — does k > 1 widen the margin substantially, or are the anchor-and-nudge initialization's extras absorbed into Adam's noise?
+- **Findings doc** `planning/findings/YYYY-MM-DD-rank-k-is-x.md` matching prior format. Cite measured numbers only; flag any degeneracy the same way the equality-cosine doc did.
+- **k-means cluster-centroid anchors** for k > 1 (currently using ε-perturbed copies of the category-word embedding — adequate for proof-of-concept but lossy as a real initializer).
+- **Sutra parser: scientific-notation float literals** — separate lexer/parser enhancement. The bake-back side now uses fixed-point format (`f"{v:.8f}"`) to avoid the parser limitation, but accepting scientific notation in `.su` source would remove a class of latent bake-back-format bugs across all future trained-value experiments. Not blocking; queue under todo.md if not picked up soon.
+
+**Original steps for reference (now mostly DONE):**
 
 1. **Harness: `experiments/rank_k_is_x.py`.** ~~Compile a `.su` rule~~ DONE (scaffold). Compile path proven for:
    ```

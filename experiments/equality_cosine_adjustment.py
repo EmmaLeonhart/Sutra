@@ -68,7 +68,13 @@ def _su(k: int, t_literal: float | None) -> str:
         sig = "vector x, vector own, " + ", ".join(
             f"vector {o}" for o in oth
         )
-        g = f"({t_literal!r})"
+        # Fixed-point, not repr() — Sutra parser rejects scientific
+        # notation like 4.5e-05; trained T* could be small enough that
+        # repr switches to it. 8 decimals = precision ~5e-9, far below
+        # the 1e-4 round-trip threshold. (Same fix applied to
+        # rank_k_is_x.py 2026-05-27 after the K=2 k=2 smoke caught it
+        # in trained vector_literal weights.)
+        g = f"({t_literal:.8f})"
     nots = " ".join(f"&& !({g} * similarity(x, {o}))" for o in oth)
     return (
         "// Equality cosine-similarity adjustment — T is the cosine "
