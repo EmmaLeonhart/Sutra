@@ -630,7 +630,7 @@ def _try_lower_to_ast(extracted: object, ctx: LiftContext,
 # Public AST entry points
 # ---------------------------------------------------------------------
 
-def simplify_ast_vec(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
+def simplify_ast_vec(node: _ast.Expr, *, iters: int = 8) -> _ast.Expr:
     """Try to simplify a vector-context AST expression via egglog.
 
     Returns the simplified AST node if egglog reduced it to a known
@@ -639,6 +639,16 @@ def simplify_ast_vec(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
     confidently reconstruct, and short-circuits when saturation didn't
     change the egglog expression at all (so a literal AST node round-
     trips through unchanged rather than getting reformatted).
+
+    Default `iters=8` rather than the historical 30 (changed 2026-05-27).
+    Reason: rules R12/R13 — `bind/unbind(R, Vec.zero()) -> Vec.zero()` —
+    drive an egglog saturation that explodes past iters≈9 on at least
+    Windows / egglog 1.0+, measured directly: iters=8 finishes in 0.4s,
+    iters=9 in 12.5s, iters=10 effectively hangs > 50s. The rule itself
+    is sound; the saturation strategy explores too aggressively. Lowering
+    the default here protects the compiler (`simplify.py` calls this
+    bridge as a post-pass) from the same hang. All known compiler
+    simplifications saturate well under 8 iterations.
     """
     ctx = LiftContext()
     lifted = lift_vec(node, ctx)
@@ -654,7 +664,7 @@ def simplify_ast_vec(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
     return out if out is not None else node
 
 
-def simplify_ast_num(node: _ast.Expr, *, iters: int = 30) -> _ast.Expr:
+def simplify_ast_num(node: _ast.Expr, *, iters: int = 8) -> _ast.Expr:
     """Try to simplify a numeric-context AST expression via egglog.
 
     Same short-circuit as `simplify_ast_vec`: if saturation didn't
