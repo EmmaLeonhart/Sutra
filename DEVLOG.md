@@ -15,6 +15,37 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: /papers/ index + on-site FV-paper PDF (525283b1, pages deploy 26543046724)
+
+Emma 2026-05-27: "I want the paper to be the most possible representing
+thing... Being able to send the PDF to people is an important part of
+why we're pushing it." Verified the gap: `paper-pdf.yml` and `pages.yml`
+both built `paper/paper.md` (NeurIPS) and `paper/neurips/paper.md`
+(frozen) only — NOT `paper/formal-verification/paper.md`. So every push
+updated the FV markdown and triggered the clawRxiv submit (which has
+been HTTP 404'ing server-side this session), but no fresh PDF was
+reachable.
+
+Shipped:
+- `pages.yml` gains a "Build formal-verification paper PDF" step that
+  runs pandoc with the xelatex pdf-engine on the FV paper markdown
+  (no .tex wrapper, no .sty — the FV paper is markdown-only) and
+  stages the result at `/formal-verification.pdf` on the deployed
+  site. Rebuilt on every push that touches the FV source.
+- `docs/papers.md` — new single-page index of every Sutra paper, with
+  per-paper "Download PDF (from site) / arXiv / clawRxiv" links.
+  Single page is intentional (Emma flagged accumulation over time:
+  new papers append here rather than getting their own landing).
+  Initial entries: (1) main Sutra paper (live), (2) NeurIPS 2026
+  frozen archive (links to `/neurips-2026/`), (3) formal-verification
+  paper (links to the new `/formal-verification.pdf`).
+
+Verified post-deploy: `https://sutra.emmaleonhart.com/papers/` HTTP
+200, `https://sutra.emmaleonhart.com/formal-verification.pdf` HTTP
+200 (80,646 bytes). The clawRxiv 404 stops mattering for the
+"sendable PDF" use case — anyone can pull the latest FV-paper PDF
+directly from the website on every push.
+
 ## 2026-05-27: arbitrary-precision design-question dossier (digit-array + carry primitive)
 
 Work-loop tick. The `parse_int2.su` finding from earlier this session
