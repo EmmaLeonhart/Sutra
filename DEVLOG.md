@@ -15,6 +15,40 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: rank-k is_X — real per-seed variation source landed; n=2 SD non-zero
+
+Work-loop tick: the equality-cosine n=3-degeneracy finding
+(`21778648`) flagged that `torch.manual_seed` alone has no live
+effect when prototypes are deterministic. The rank-k harness
+inherited that vulnerability. Before launching the proper K=5
+sweep, the variation source had to be real.
+
+Fix in `build_data`: every anchor prototype is now `embed(category-
+name) + eps*N(0,1)` with eps=0.02 (a ~2% magnitude shift on an
+L2-normalized 768-d anchor — small enough to preserve the "near
+embed(category-name)" semantics, large enough to give Adam a
+genuinely different starting trajectory per seed). Plus per-seed
+shuffle of the data ordering via `torch.randperm(N,
+generator=g)` so the gradient-step sequence varies.
+
+Verification (real smoke, K=2 k=2 per_class=4 5 ep seeds=0,1,
+exit 0, wall 1614 s ≈ 27 min):
+- seed 0: baseline +0.1892, trained +0.5863, round-trip 1.79e-07
+- seed 1: baseline +0.1839, trained +0.5687, round-trip 1.19e-07
+- baseline mean ± SD: +0.1866 ± **0.0037** (was 0.0000)
+- trained  mean ± SD: +0.5775 ± **0.0124** (was 0.0000)
+- ratio +3.10x; equiv guard 0.00e+00 (still exact per seed)
+
+n=2 here is HONEST n=2 — the SD is real, not a precision
+artifact. The variation source change does what it claims; the
+"n=3 degenerate" pattern from equality cosine is now broken for
+rank-k.
+
+queue.md: marked "REAL per-seed variation source: DONE" inside
+the rank-k #1 item; the "proper K=5 sweep" sub-item is now
+unblocked but flagged with the wall-time projection (many hours)
+so it gets explicit Emma sign-off before launching autonomously.
+
 ## 2026-05-27: rank-k is_X end-to-end PASS (smoke, K=2 k=2); fixed-point bake-back fix
 
 Work-loop tick: implemented the training loop on top of the
