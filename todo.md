@@ -1922,3 +1922,228 @@ needs human review.
   RESULTS.md` — so the cumulative evidence for "the pattern
   generalizes" stays auditable. Cite-able from the live
   `paper/paper.md` once the freeze lifts (2026-06-01).
+
+## [This year] Constrained Adam + FV-linked training + NN→code decompilation (Emma 2026-05-26)
+
+Extends the agentic-RAG agenda above. The three threads are tightly
+coupled: a *constrained* Adam (which parameters move, with what
+range/monotonicity constraints) *is* the bridge between the FV
+checker's discharged obligations and the trained substrate values,
+and the bake-back step *is* a degenerate decompilation that wants to
+generalize beyond the Stage-B `w` scalar.
+
+Honest scope: this is multi-month exploratory work, not the next
+queue item. Captured here so the meta-tool above (corpus indexer +
+decision-template) can route training-design decisions through it
+once the scalar targets land and the matrix-literal spec decision
+settles.
+
+### Constrained Adam — constraints from FV become training constraints
+
+**The core idea (Emma 2026-05-26): constrain to only meaningful
+things when training, at least at first.** Adam wanders by default —
+it'll happily push a learned 768-d vector into the *undersymbolic
+realm* (directions roughly orthogonal to the LLM content cone where
+no natural concept lives) or off a canonical axis (a truth-axis
+scalar developing a number-axis component that nothing should ever
+emit). The §3.2 polynomial-range-bounder (`fv_poly_bound.py`) +
+`range_sound_by_composition` prove operator-output ranges; **the
+*meaningful-only* constraint goes further and restricts the parameter
+itself to the subspace where it has semantic interpretation**, not
+just keeps its downstream output in-range. The two stack: meaningful-
+direction projection first, then box/monotonicity/freeze on what
+remains.
+
+This matches the language's architecture. `equality-and-
+defuzzification.md` already separates the semantic subspace (where
+LLM content lives, anisotropic, content cone) from the synthetic
+subspace (canonical axes for bookkeeping — truth axis, number axis;
+constructed-orthogonal-by-design). A learned parameter has a *type*
+that says which subspace it inhabits; the constraint enforces that
+the trained value still inhabits it after every Adam step.
+
+- [ ] **Semantic-cone projection (TOP PRIORITY).** Project gradient
+  updates onto the empirical content cone of the frozen LLM
+  embedding. Implementation: precompute the top-K PCA directions of
+  a representative corpus's `nomic-embed-text` embeddings (this is
+  the "where meaning lives" subspace); at each Adam step, project the
+  update vector onto that K-dim span before applying. Trained
+  vectors then stay in the manifold where real concepts embed —
+  they never drift into the undersymbolic void where the FV
+  guarantees don't apply and the decode-back-to-meaning is
+  unstable. K is a hyperparameter; start at K=50 and measure decode
+  quality vs full-dim Adam. This is the load-bearing constraint —
+  the others stack on top.
+- [ ] **Canonical-axis projection.** For parameters typed as
+  truth-axis scalars / number-axis scalars / any future canonical-
+  axis-typed value, project the update onto exactly that single axis
+  (or pair, for `complex` on `synthetic[0..1]`). Zero the orthogonal
+  components. Cheap (single dot product + scale per step) and makes
+  "this is a truth-axis value" a real invariant, not a convention
+  that learned drift violates.
+- [ ] **Codepoint-snap projection (for string-typed parameters).**
+  When a learned vector is supposed to decode to a codepoint via the
+  codebook (`strings.md`), project the update so the post-step value
+  stays within the Voronoi cell of *some* valid codepoint. Without
+  this, training a string-typed parameter is free to push the value
+  into a region the codebook decodes ambiguously or to a junk
+  codepoint. The cheap version: nearest-codepoint snap every K
+  steps; the expensive version: project onto the union of small
+  balls around each codebook entry continuously.
+- [ ] **Anchor-ball constraint (init-from-meaning, stay-near-
+  meaning).** Initialize each learned vector from `embed("anchor
+  word")` for some known meaningful anchor; constrain updates to a
+  δ-ball around the anchor. Trained value stays interpretable as
+  "the meaning of anchor, slightly nudged." δ is a hyperparameter;
+  too tight = nothing learned, too loose = drift. Measure δ vs
+  decode quality on the constrain-train targets.
+- [ ] **Box-constrained Adam wrapper.** A drop-in `BoxedAdam` that
+  takes a `param_name → (lo, hi)` map and projects each step onto
+  the box. Implementation is `param.data.clamp_(lo, hi)` after
+  `optimizer.step()` — the simple part. The work is *wiring* the
+  constraint source: the FV checker emits the box per learnable
+  parameter as a side output of the obligation discharge.
+- [ ] **Monotonicity-constrained Adam.** Some learned scalars
+  (sharpening factors, defuzz rates) should monotonically increase
+  during training (or decrease) — going the wrong way means the
+  loss landscape lied. Add a `monotone={"increasing","decreasing"}`
+  option that vetoes step directions opposite the declared
+  monotonicity. This catches optimizer pathology that loss-only
+  training silently absorbs.
+- [ ] **Frozen-mask Adam.** Mark subsets of parameters as
+  `frozen={...}` per-step — used for staged training (train `w`
+  first, freeze, then train prototypes; or train prototypes first,
+  freeze, then train `w`). Stage-B already does this implicitly;
+  formalize it as a first-class optimizer option so the meta-tool
+  can schedule staged training.
+- [ ] **Constraint-source plumbing from FV checker.** Extend
+  `fv_obligation_checker.py` to emit, per checked program, a
+  `parameter_constraints.json` mapping each learnable name to its
+  proved box + monotonicity + freeze schedule. The meta-tool reads
+  this when scaffolding an experiment. Substrate-purity:
+  constraints are produced symbolically (sympy) at compile-time, not
+  on the runtime hot path.
+- [ ] **Equivalence-guard composition with constraints.** The
+  batched-vs-per-sample 10⁻⁴ guard must still pass *under* the
+  constraints — a clamp that breaks equivalence is a bug, not a
+  feature. The guard runs post-clamp every K steps (cheap; same
+  shape as the existing equivalence check).
+- [ ] **Findings doc per constraint type.** Each constraint type
+  (box / monotonicity / frozen-mask) gets a
+  `planning/findings/YYYY-MM-DD-constrained-adam-<type>.md` once
+  measured on a real target, with the (free Adam vs constrained
+  Adam) accuracy + wall-clock comparison.
+
+### Automatic theorem proving for FV — extend the obligation checker beyond Kleene
+
+`fv_obligation_checker.py` decides equivalence in the Kleene fragment
+via polynomial identity, refuses on non-polynomial residuals, and
+bounds branch ranges. To verify training outputs, the checker needs
+to discharge ATP-style obligations the constrain-train step *targets*
+("the trained classifier separates classes with margin ≥ M"; "the
+trained gain `w` keeps the AND/NOT polynomial range inside [−1,+1]").
+
+- [ ] **Obligation language.** A small DSL for trainable-program
+  obligations: `range(param) ⊆ [lo, hi]`, `margin(classes) ≥ M`,
+  `round_trip(bake_back) ≤ ε`, `monotone(param, direction)`. Each
+  obligation has (a) a static verifier (runs at compile time on the
+  symbolic polynomial), (b) a runtime monitor (runs at each
+  training step; raises if violated), and (c) a final-pass certifier
+  (runs on the trained value; produces a `parameter_certificate.json`
+  bundled with the baked `.su`).
+- [ ] **Polynomial-identity discharge for trained scalar bake-back.**
+  When a Stage-B-style scalar bake-back happens (param `w` →
+  literal `1.4339`), the baked `.su` reduces via
+  `reduces_to_same_graph` to a known canonical form modulo `w`. The
+  ATP step is mechanical: substitute the literal and check the
+  resulting polynomial against the obligation. Cheap; first target.
+- [ ] **External solver bridge — Z3 / dReal — bounded scope.**
+  For obligations the polynomial-identity / range-bounder can't
+  decide (real-arithmetic inequalities over composed connectives,
+  margin obligations against trained prototypes), bridge to Z3
+  (linear / nonlinear real arithmetic) or dReal (δ-decidable
+  reals). Bounded scope: only the contract layer, never the
+  substrate runtime. Refusal-on-timeout is acceptable — surfaces the
+  obligation as undischarged rather than faking a discharge.
+- [ ] **Certificate format + paper integration.** Each fully
+  discharged training run emits a certificate file the FV paper
+  (`paper/formal-verification/paper.md`, free to evolve) can cite as
+  evidence. Format: which obligations, which checker discharged each,
+  which timed out, sympy / Z3 / dReal version + seed. The paper
+  drops "FV is an agenda" framing once a real certificate exists for
+  a real training run.
+- [ ] **Counterexample-driven retraining (CEGAR shape).** When the
+  ATP step finds a counterexample (a point where the trained
+  parameter violates an obligation), surface it back into the
+  training data as a hard example. CEGAR-style loop: train → check
+  → counterexample → retrain. Risk: divergence; guard with a max-
+  iteration cap and a "no progress" detector.
+
+### NN → code decompilation — generalize the Stage-B bake-back
+
+Stage-B baked one scalar `w` back into `.su` as a numeric literal
+(round-trip Δ ≈ 2×10⁻⁷). That is decompilation of a 1-parameter
+"NN" — the simplest case. The generalization is: take a trained
+neural fragment (matrix, multi-layer MLP, attention block) and
+decompile it back into a Sutra program whose compiled graph is
+behaviorally equivalent.
+
+This is *not* "interpret the NN's weights" — that's a different
+ambition. This is the inverse of constrain-train: if a Sutra program
+compiles to a tensor-op graph that *behaves like* an arbitrary
+trained NN fragment, then decompilation is *finding the Sutra
+program* whose compile output matches the fragment.
+
+- [ ] **Decompilation target: matrix → `.su` literal.** Given a
+  trained matrix `M` (e.g. the `is_X` matrix from the constrain-train
+  targets above), emit a `.su` matrix literal that the compiler
+  reads back as `M` exactly (up to a documented ε). Requires the
+  matrix-literal spec decision (cross-ref to the meta-tool agenda).
+  This is the smallest non-trivial decompilation — load-bearing for
+  the matrix-valued constrain-train targets.
+- [ ] **Decompilation target: MLP → composed Kleene rule.** Given
+  a trained MLP that classifies via Kleene-style soft logic, decompile
+  to a `&&`/`||`/`!` composition over learned `is_X` predicates.
+  Decision procedure: enumerate composition trees up to depth D,
+  compile each through the real codegen, score against the MLP's
+  outputs on a probe set, return the smallest tree within ε. This is
+  the FV-friendly fragment — every decompiled program lands inside
+  the Kleene fragment the checker already decides.
+- [ ] **Decompilation target: attention head → `select` + bind.**
+  Single attention heads compute weighted sums that look a lot like
+  `select(scores, values)` over a bound store. Probe: can the
+  Yantra-calculator `select`-sharpness pattern decompile a real
+  attention head (e.g. one head from a frozen small model) into a
+  Sutra `select` + `bind` program? Honest non-claim: this is
+  exploratory; "no" is a real possible outcome and a finding.
+- [ ] **Verifiability of decompiled programs (where the ATP closes
+  the loop).** A decompiled program is only useful if it (a) matches
+  the source NN within ε on a probe set AND (b) is in a fragment the
+  FV checker can verify. The ATP step from the previous sub-agenda
+  is what makes (b) load-bearing. Decompiled programs that fall
+  outside the Kleene + scalar-parameter fragment are flagged as
+  "decompiled-but-unverified" rather than presented as equivalent.
+- [ ] **Anti-claim discipline.** Do NOT advertise "decompile any
+  NN into Sutra" as a paper claim. The honest claim is "for
+  fragments inside the FV-decided language subset, decompilation
+  produces source-recompilable equivalents." Outside that subset the
+  result is a probe with measured similarity, not a proof. The
+  `paper/formal-verification/paper.md` § "What we are not claiming"
+  discipline applies here too.
+
+### Cross-cutting: how these three threads compose
+
+The meta-tool's decision template (above) grows three new fields per
+target:
+1. `fv_obligations: List[Obligation]` — what the trained parameter
+   must satisfy.
+2. `optimizer_constraints: BoxedAdam config` — which Adam constraints
+   the FV checker emits.
+3. `decompilation_target: Optional[NNShape]` — if the goal is to
+   decompile a known trained NN fragment, what shape.
+
+A constrain-train run thus produces: (trained values, certificate,
+decompiled `.su` if applicable). The cumulative results table
+gains certificate-status columns alongside the accuracy / wall-clock
+columns. The FV paper's "agenda → done" sentence rests on the
+existence of real certificates for real training runs.
