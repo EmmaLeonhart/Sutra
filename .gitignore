@@ -124,6 +124,7 @@ experiments/.stageB_param.su
 experiments/.stageB_baked.su
 experiments/.eqcos_param.su
 experiments/.eqcos_baked.su
+experiments/.rankk_*.su
 experiments/.diff_train_embeddings.pt
 experiments/differentiable_training_weights.pt
 
