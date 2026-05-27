@@ -114,6 +114,29 @@ jobs:
             exit 1
           fi
 
+      - name: Build formal-verification paper PDF
+        working-directory: paper/formal-verification
+        run: |
+          # The FV paper is markdown-only (no .tex wrapper, no .sty).
+          # pandoc renders it directly via the latex pdf-engine. Output
+          # is staged at /formal-verification.pdf on the site so the
+          # /papers/ index page's "Download PDF" link resolves. Emma
+          # authorized this PDF build path 2026-05-27 (the live clawRxiv
+          # /api/posts/2622/revise endpoint started returning HTTP 404
+          # server-side; this gives an on-site PDF independent of that).
+          pandoc paper.md \
+            --from=markdown-smart \
+            --to=pdf \
+            --pdf-engine=xelatex \
+            --variable=geometry:margin=1in \
+            --variable=fontsize:11pt \
+            --variable=linkcolor:blue \
+            --variable=urlcolor:blue \
+            --variable=colorlinks:true \
+            --toc \
+            --output=formal-verification.pdf
+          ls -la formal-verification.pdf
+
       - name: Build arXiv source tarball
         working-directory: paper
         run: |
@@ -149,6 +172,9 @@ jobs:
           cp sutra-neurips-supplementary.zip _site/sutra-neurips-supplementary.zip
           # arXiv source bundle — the /arxiv/ page links to this at /sutra-arxiv-source.tar.gz.
           cp sutra-arxiv-source.tar.gz _site/sutra-arxiv-source.tar.gz
+          # Formal-verification paper PDF — the /papers/ index page
+          # links to this at /formal-verification.pdf.
+          cp paper/formal-verification/formal-verification.pdf _site/formal-verification.pdf
 
       - uses: actions/upload-pages-artifact@v3
         with:
