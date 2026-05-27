@@ -15,6 +15,27 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: work-loop tick — drop stale `dot` builtin queue entry
+
+Both top-priority items are blocked on GPU (#1 equality cosine
+adjustment: `bu7o9mqxu` measurement still in flight, 0 lines of
+output; #2 rank-k is_X: scaffold shipped 2026-05-26 `b6f21a24`, the
+remaining training loop also needs the GPU). Pick a CPU-only,
+bounded queue-hygiene action this tick: remove the stale `dot`
+builtin queue entry — shipped 2026-05-24 at `d17feaf4` (`"dot":
+(_builtin_dot, 2)` in `codegen_base.py:317`), tagged `v0.6.1`,
+queue-note commit `8e792a1f`. The queue rule says completed work
+lives in git log, not the queue.
+
+No code changes; queue-CRUD only. Findings doc for the equality
+cosine adjustment is now in main (Emma's sibling commit
+`0b1e742f` 2026-05-26 23:41 PT picked up the DRAFT and committed
+it via the GitHub web UI; content identical to the local draft —
+no reconciliation needed). The placeholders (`<PENDING>`,
+`<MEASURED>`) stay in the committed file until `bu7o9mqxu`
+delivers numbers; filling them is the work-loop tick that lands
+after the measurement completes.
+
 ## 2026-05-26: rank-k is_X harness scaffold (smoke-compile PASS) — work-loop tick
 
 Work-loop tick: top actionable item was queue.md #1 (equality cosine
