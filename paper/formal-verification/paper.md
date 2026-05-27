@@ -321,6 +321,36 @@ primitives the compiled graph is built from recover their inputs exactly at the
 small, fixed widths the trusted base actually uses (a kernel role's axon carries a
 handful of named slots, not hundreds).
 
+**Capacity curve out to *k* = 48 (2026-05-27 measurement).** Because the
+*k* = 8 datapoint above is the *comparison-width* claim and not a capacity
+ceiling, we measured the curve out to *k* = 48 on the three text encoders to
+answer the natural follow-up question. Rotation binding stays at 100% through
+*k* = 8 on all three substrates and degrades smoothly past it, in a pattern
+consistent with the VSA capacity literature cited above (capacity grows with
+substrate dimension):
+
+|   *k* | nomic (768-d) | mxbai (1024-d) | all-minilm (384-d) |
+|------:|--------------:|---------------:|-------------------:|
+|     2 |        100.0% |         100.0% |             100.0% |
+|     4 |        100.0% |         100.0% |             100.0% |
+|     8 |        100.0% |         100.0% |             100.0% |
+|    16 |        100.0% |          98.8% |              92.5% |
+|    24 |        100.0% |          95.8% |              76.2% |
+|    32 |         99.1% |          85.3% |              66.9% |
+|    48 |         93.3% |        (mem)\* |              42.3% |
+
+\*mxbai *k* = 48 hit a memory-allocator error during Haar-QR matrix
+construction on this configuration; reported as missing data rather than
+guessed. (Hadamard binding by contrast: never above 95% on any substrate even at
+*k* = 2, and below 50% by *k* = 48 on all three.) The reading we draw is the
+expected one for verification: rotation binding is accurate at the small, fixed
+widths the trusted base exercises (≪ 8) and well beyond — 768-d substrate stays
+above 99% through *k* = 32; 1024-d substrate stays above 95% through *k* = 24 —
+which is the property the FV claims need, not unbounded capacity.
+(`experiments/rotation_binding_capacity_llm.py`, 10 trials per *k*; full table
+including signal cosines and the Hadamard comparison in
+`planning/findings/2026-05-27-bundle-decoding-capacity-curve.md`.)
+
 **4.2 Reversibility.** A single bind+unbind cycle returns the input at the
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
 across all four substrates — the rotation is invertible to machine epsilon.
