@@ -55,6 +55,18 @@ see §"Watchdogs" below.
 
 ## Active
 
+### ⭐ Next constrain-train ship — defuzz β as Sutra-level parameter (queued, fires when GPU frees from K=5)
+
+Per Emma's "every operation trainable" vision (capabilities doc 2026-05-27): the next SHIPPED constrain-train instance should *expand the trainable surface to a new operator*, not polish equality-cosine. Ranking + decision rationale: `planning/exploratory/constrain-train-next-targets.md`.
+
+**Picked next:** `defuzzy` β as a Sutra-level number parameter. Today `defuzzify_trit(v, iters=10, beta=2.0)` has a hardcoded β at the runtime; no Sutra source can override it. Ship adds: (1) Sutra-level `defuzzy(v, number beta)` 2-arg overload (parser/validator/codegen, backwards-compatible with 1-arg form), (2) `experiments/defuzz_beta_adjustment.py` that trains β on a polarization task + bakes back as a numeric literal + round-trip-checks.
+
+**Why this one first:** smallest parser/codegen change of the candidates; training loop doesn't need embeddings (synthetic truth-axis data, much faster than equality-cosine's 2.7h GPU run); directly demonstrates the vision because `defuzzy` is currently SHIPPED-not-trainable in the capabilities inventory and this moves it to SHIPPED-trainable.
+
+**Fires when:** the K=5 rank-k sweep (background, runlog `experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt`) finishes; the GPU is then free, though defuzz training doesn't need it anyway.
+
+After this ships, the queue advances per the ranking doc: `select` softmax temperature → `bundle` weights → Kleene connective coefficients per call site.
+
 ### ⭐ Emma 2026-05-27 13:21 PST — multi-front authorization batch
 
 Emma greenlit a batch of FV + infra + experiment work in one message

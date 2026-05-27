@@ -15,6 +15,39 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: constrain-train next-target picked — defuzz β as Sutra-level parameter
+
+Work-loop tick. Per Emma 2026-05-27: the constrain-train vision is
+"every operation in Sutra trainable; entire code back-propagatable
+from a learned NN." Today only ONE operation (`==` cosine T) is
+fully SHIPPED. The right next move is to expand the trainable
+surface, not polish the one shipped instance.
+
+Wrote `planning/exploratory/constrain-train-next-targets.md` with
+seven ranked candidates + decision rationale. Picked target 1:
+**`defuzzy` β as a Sutra-level number parameter**. Today
+`defuzzify_trit(v, iters=10, beta=2.0)` hardcodes β at the runtime;
+no Sutra source can override it. Adding `defuzzy(v, number beta)`
+as a 2-arg overload + a `defuzz_beta_adjustment.py` training harness
+moves `defuzzy` from "SHIPPED-not-trainable" to "SHIPPED-trainable"
+in the capabilities inventory.
+
+Why this one first: smallest parser/codegen change of the candidates;
+training loop doesn't need real embeddings (synthetic truth-axis
+data is enough), so it's much faster than equality-cosine's 2.7h
+GPU run. Directly demonstrates the vision rather than extending
+one existing instance.
+
+Queued as the next ship in `queue.md`. Fires when K=5 sweep
+finishes; defuzz training doesn't need the GPU anyway. After this
+lands, the queue advances to `select` softmax temperature →
+`bundle` weights → Kleene connective coefficients per call site
+(four more rows lit in the capabilities inventory).
+
+No code changed this commit — planning surface only. Per HARD RAILS,
+"write spec/queue item instead" when the work needs alignment before
+the next implementation session.
+
 ## 2026-05-27: /papers/ index + on-site FV-paper PDF (525283b1, pages deploy 26543046724)
 
 Emma 2026-05-27: "I want the paper to be the most possible representing
