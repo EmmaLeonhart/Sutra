@@ -1931,6 +1931,36 @@ needs human review.
   generalizes" stays auditable. Cite-able from the live
   `paper/paper.md` once the freeze lifts (2026-06-01).
 
+## [This year] Back-propagation into code — third paper + docs page (Emma 2026-05-26)
+
+The "back-prop into code" thread — trained model values bake back into recompilable `.su` source — is substantial enough to warrant its own paper and a dedicated docs page on `sutra.emmaleonhart.com`, separate from the main arXiv paper (`paper/paper.md`), the frozen NeurIPS submission (`paper/neurips/`), and the live FV paper (`paper/formal-verification/`).
+
+The thread spans:
+- **Stage-B (2026-05-18, shipped):** trained scalar `w*` baked into `.su` as a numeric literal; recompile round-trip max logit Δ ≈ 2×10⁻⁷.
+- **Equality cosine adjustment (2026-05-26, in flight as `bu7o9mqxu`):** trained `T*` baked into `.su` as a numeric literal in the isolated-`T`-only probe; smoke run +1.18× margin ratio, round-trip 2.38e-07.
+- **Per-rule literal placement decision (2026-05-26, resolved):** `planning/open-questions/equality-cosine-T-placement.md`. Lean.
+- **Matrix-valued bake-back (next):** gated on the `.su` matrix-literal spec decision; learned matrices land back as `.su` literals.
+- **Endpoint:** arbitrary trained NN fragments (matrices, MLPs, attention heads) decompile to recompilable `.su` — see §"NN → code decompilation" thread below.
+
+### Paper: `paper/back-prop-into-code/paper.md` (new clawRxiv post chain)
+
+- [ ] **Scaffold the paper directory.** `paper/back-prop-into-code/{paper.md, .post_id, reviews/}`. Mirror the FV paper's auto-submit workflow (`fv-paper-ci.yml`): on push to this paper, submit to clawRxiv, fetch review, commit back.
+- [ ] **Workflow file.** `.github/workflows/bpic-paper-ci.yml` — copy from `fv-paper-ci.yml`, change paper dir.
+- [ ] **First draft.** Scope: "trained models as recompilable source code." Cite Stage-B + equality cosine + (when measured) matrix bake-back results. Mirror the §"What we are not claiming" discipline; do NOT claim "decompile any NN into Sutra" (anti-claim documented in §"NN → code decompilation").
+- [ ] **Live artifact (not frozen).** Like the FV paper, this is free to evolve as the constrain-train targets land. Cite measured numbers only.
+
+### Docs page: `docs/back-prop-into-code.md` (`sutra.emmaleonhart.com/back-prop-into-code/`)
+
+- [ ] **Write the page.** Human-facing explanation of the bake-back idea. Start with Stage-B's "trained `w*=1.4339...` IS the trained model — recompilable, legible, no checkpoint blob" framing. Add the equality cosine result once measured. Build a worked example: a tiny `.su` rule, training, bake-back, side-by-side trained-rule-source. Indexable; no `noindex`. Keep free of repo-internal scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`) per CLAUDE.md §"Audiences".
+- [ ] **Link from homepage.** Add a card / link from `docs/index.md` in the same shape as the existing concept-page links. Don't ship the page un-discoverable.
+- [ ] **Cross-link to /paper/.** When the paper PDF is available on clawRxiv, link it from the docs page; same shape as the existing `/paper/` button.
+
+### Honest non-claims for both surfaces
+
+- Not "trained models always decompile to legible code" — only for the FV-decided fragment (scalars, then matrix-valued once the spec lands, then composed Kleene rules; attention heads explicitly exploratory).
+- Not "Sutra replaces neural-network training" — it composes with NN training; the back-prop-into-code result is that the *trained values* are recompilable source, not that the *training procedure* is novel.
+- Not "this is decompilation in the reverse-engineering sense" — it's bake-back of trained values into a source form the compiler already accepts; the *training graph* is the compiled `.su`'s emitted form, not an arbitrary NN's forward pass.
+
 ## [This year] Constrained Adam + FV-linked training + NN→code decompilation (Emma 2026-05-26)
 
 Extends the agentic-RAG agenda above. The three threads are tightly
