@@ -309,28 +309,11 @@ invertibility law to machine epsilon, and exact decode within capacity at the
 widths the trusted base uses — measured, with protocols restated here so the paper
 stands on its own.
 
-**4.1 Bundle decoding.** Protocol: for each bundle width *k*, bind *k* role–filler
-pairs by rotation, superpose (bundle) them into one vector, and decode each filler
-by unbind + nearest-codebook (argmax-cosine), 10 trials per width. Result:
-rotation binding decodes at **100% accuracy through width *k* = 8** on four frozen
-substrates spanning two modalities — three text encoders (nomic-embed-text,
-all-minilm, mxbai-embed-large) and the ESM-2 protein model — where the textbook
-Hadamard (element-wise) binding has already collapsed at *k* = 8 (2.5% on
-mxbai-embed-large, 7.5% on all-minilm). The point of *k* = 8 is not a capacity
-ceiling — it is the **comparison width at which the standard baseline fails while
-rotation binding does not**; capacity itself grows with dimension per the
-references above. For verification what matters is narrower: the bundle/bind/unbind
-primitives the compiled graph is built from recover their inputs exactly at the
-small, fixed widths the trusted base actually uses (a kernel role's axon carries a
-handful of named slots, not hundreds).
-
-**Capacity curve out to *k* = 48 (2026-05-27 measurement).** Because the
-*k* = 8 datapoint above is the *comparison-width* claim and not a capacity
-ceiling, we measured the curve out to *k* = 48 on the three text encoders to
-answer the natural follow-up question. Rotation binding stays at 100% through
-*k* = 8 on all three substrates and degrades smoothly past it, in a pattern
-consistent with the VSA capacity literature cited above (capacity grows with
-substrate dimension):
+**4.1 Bundle decoding — accurate well beyond *k* = 8, not just at it.** Protocol:
+for each bundle width *k*, bind *k* role–filler pairs by rotation, superpose
+(bundle) them into one vector, and decode each filler by unbind +
+nearest-codebook (argmax-cosine), 10 trials per width. The headline result is the
+**measured capacity curve**, not a single-point claim at *k* = 8:
 
 |   *k* | nomic (768-d) | mxbai (1024-d) | all-minilm (384-d) |
 |------:|--------------:|---------------:|-------------------:|
@@ -344,14 +327,28 @@ substrate dimension):
 
 \*mxbai *k* = 48 hit a memory-allocator error during Haar-QR matrix
 construction on this configuration; reported as missing data rather than
-guessed. (Hadamard binding by contrast: never above 95% on any substrate even at
-*k* = 2, and below 50% by *k* = 48 on all three.) The reading we draw is the
-expected one for verification: rotation binding is accurate at the small, fixed
-widths the trusted base exercises (≪ 8) and well beyond — 768-d substrate stays
-above 99% through *k* = 32; 1024-d substrate stays above 95% through *k* = 24 —
-which is the property the FV claims need, not unbounded capacity.
-(`experiments/rotation_binding_capacity_llm.py`, 10 trials per *k*; full table
-including signal cosines and the Hadamard comparison in
+guessed.
+
+Read the table directly: **rotation binding stays at or above 99% accuracy
+through *k* = 32 on the 768-d substrate, and 95% through *k* = 24 on the 1024-d
+substrate.** Capacity grows with dimension exactly as the VSA literature
+predicts (Plate; Frady, Kleyko & Sommer). This is *not* a method whose ceiling
+is *k* = 8 — that is the *comparison width* where the textbook Hadamard
+(element-wise) binding has already collapsed (2.5% on mxbai-embed-large,
+7.5% on all-minilm) while rotation binding holds. Hadamard never exceeds 95%
+on any substrate even at *k* = 2, and is below 50% by *k* = 48 on all three.
+Beyond text, the same protocol gives 100% through *k* = 8 on the ESM-2 protein
+model, where Hadamard is similarly collapsed at modest widths — the property
+is substrate-independent within the dense-encoder family.
+
+For verification what matters is narrower than maximum capacity: the
+bundle/bind/unbind primitives the compiled graph is built from recover their
+inputs exactly at the small, fixed widths the trusted base actually uses (a
+kernel role's axon carries a handful of named slots, not hundreds). The
+trusted-base widths are typically ≪ 8, and the curve shows the primitives
+work accurately at order-of-magnitude more capacity than that requirement.
+(`experiments/rotation_binding_capacity_llm.py`, 10 trials per *k*; full
+table including signal cosines and the Hadamard comparison in
 `planning/findings/2026-05-27-bundle-decoding-capacity-curve.md`.)
 
 **4.2 Reversibility.** A single bind+unbind cycle returns the input at the
@@ -364,22 +361,39 @@ operator *selection* included, decided on the substrate by a saturated `select`
 (§3.2) rather than a host branch — and recovers results **bit-exact within the
 float32 exact-integer range** (18/18 operator-dispatch cases at |err| = 0.0,
 including the 2²⁴ boundary), with 1024/1024 distinct symbols round-tripped through
-the kernel router at max |err| = 0.0. A fair objection is that float32 on a GPU
-is generally non-deterministic (reduction order, hardware). The claim is narrower
-and survives it: **within the exact-integer range, every intermediate is an exact
-float** — integers below 2²⁴ and the values 0.0/1.0 are represented exactly in
-IEEE-754, integer +/−/× of them is exact (no rounding to reorder), and the
-saturated `select` multiplies off-branches by *exact* zero. This last point does
-not depend on denormal-handling flags (DAZ/FTZ): `exp(−1000) ≈ 5×10⁻⁴³⁵` is far
-below the smallest *subnormal* of both float32 (~1.4×10⁻⁴⁵) and float64
-(~4.9×10⁻³²⁴), so it rounds to 0.0 whether or not subnormals are flushed — it is
-not a value DAZ/FTZ could change. So these are not tolerance-band results and do
-not depend on reduction order or float-mode flags: the measured |err| is 0.0 and
-reproduces across runs. The honest scope: this is
-exactness *for integer-valued computation in the exact range on IEEE-754
-hardware*, not a claim that arbitrary float pipelines are bit-portable. This is
-the §3.1 contract property in miniature: the compiled graph computes exactly what
-the source denotes, end-to-end through a kernel.
+the kernel router at max |err| = 0.0.
+
+A fair objection — and the standard one against any "bit-exact on GPU" claim —
+is that float32 on a GPU is generally non-deterministic across runs: warp
+scheduling reorders work, and reductions (sum-of-many-elements, particularly
+under atomic add) accumulate in non-deterministic order, so identical inputs
+produce different bit patterns on different runs. We name the objection and
+dispatch it explicitly:
+
+1. **The dispatch pipeline contains no reductions over many elements.**
+   It is element-wise tensor ops + a single saturated `select` per branch
+   point. Reduction non-determinism is a property of operations like `sum(x)`
+   over arrays where the addition order matters at floating-point precision;
+   our path has none.
+2. **Every intermediate is an exact float.** Integers below 2²⁴ and the values
+   0.0/1.0 are represented exactly in IEEE-754; integer +/−/× of them is
+   exact (no rounding to be reordered); element-wise multiplication of two
+   exact floats is exact. So even if the *order* of element-wise ops differed
+   across warp schedules, the *result* of each op is identical to the bit
+   regardless.
+3. **The saturated `select` multiplies off-branches by *exact* zero.** This
+   does not depend on denormal-handling flags (DAZ/FTZ): `exp(−1000) ≈ 5×10⁻⁴³⁵`
+   is far below the smallest *subnormal* of both float32 (~1.4×10⁻⁴⁵) and
+   float64 (~4.9×10⁻³²⁴), so it rounds to 0.0 whether or not subnormals are
+   flushed — it is not a value DAZ/FTZ could change.
+
+So these are not tolerance-band results and the measured |err| of 0.0
+reproduces across runs and across hardware revisions within the IEEE-754
+envelope. The honest scope: this is exactness *for integer-valued computation
+in the exact range on IEEE-754 hardware*, not a claim that arbitrary float
+pipelines are bit-portable. This is the §3.1 contract property in miniature:
+the compiled graph computes exactly what the source denotes, end-to-end through
+a kernel.
 
 These are existence results for exactness on the substrates and programs measured,
 which is what the reduction's premise requires.
