@@ -15,6 +15,61 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: equality cosine adjustment MEASURED — bu7o9mqxu landed, findings doc filled
+
+Background K=5 n=3 measurement `bu7o9mqxu` (launched 2026-05-26)
+completed exit 0 after 9891.2 s ≈ 2.75 h on the per-sample driver
+path. Real numbers:
+
+- equivalence guard (vmap vs per-sample at T=1): 2.98e-07 (passed,
+  < 1e-4 threshold)
+- baseline margin (T=1): +0.0748
+- trained margin (T=T*): +0.0807
+- trained T*: 1.1118
+- ratio = trained / baseline = **+1.08x** (modest but real)
+- round-trip recompile max|Δ|: 3.58e-07 (passed, < 1e-4)
+- wall time: 9891.2 s ≈ 2.75 h
+
+The cosine-temperature lever is REAL — a learned T*≈1.11
+decompresses the anisotropic-cone-compressed cosine output enough
+to widen the equality-discrimination margin by +1.08x. The trained
+model bakes back cleanly: the entire baked .su classifier is
+literally `(1.1118 * similarity(x, own)) && !(1.1118 *
+similarity(x, other)) && ...` — recompiles to bit-equivalent
+logits (max|Δ| 3.58e-07).
+
+**Integrity finding flagged plainly:** all 3 seeds returned
+BIT-IDENTICAL numbers (std=0.0000). With prototypes FROZEN at
+embed(category-name) (deterministic), fixed data ordering, T
+init=1.0, and Adam state deterministic given the rest, the
+`torch.manual_seed(s)` calls had no live source of variation. The
+"n=3" is effectively n=1 repeated. The numbers are real
+measurements of the one trajectory the experiment defines; they
+just don't establish robustness across init / data-ordering
+choices. Patching the harness to introduce real variation (random
+word sub-sampling within categories, or prototype ε-perturbation
+per seed) is a queued follow-up — NOT a "fix to make n=3
+meaningful" but a deliberate next experiment.
+
+Comparison with K=3 smoke (single seed, per-class=5, 20 ep): K=3
+gave T*=1.25, ratio +1.18x. K=5 gives T*=1.11, ratio +1.08x. As K
+rises, T* and the margin improvement both decrease — interpretation:
+single-anchor (rank-1) prototypes get less salient as competing
+classes proliferate; the per-class-T or rank-k extension may
+capture more. Both are queued.
+
+Findings doc `planning/findings/2026-05-26-equality-cosine-
+adjustment.md` updated with measured numbers, verdict, and the
+"Honest finding: the n=3 is degenerate" section. The placeholders
+that were committed in Emma's sibling commit `0b1e742f` are now
+filled with real measurements.
+
+queue.md: dropped the now-MEASURED #1 priority (Equality cosine
+adjustment); promoted Rank-k is_X from #2 to #1 with a cross-ref
+to the equality-cosine finding. GPU is free now that bu7o9mqxu
+completed — the next work-loop tick can pick up the rank-k
+training loop.
+
 ## 2026-05-27: work-loop tick — drop stale `dot` builtin queue entry
 
 Both top-priority items are blocked on GPU (#1 equality cosine
