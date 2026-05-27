@@ -384,6 +384,20 @@ CI `master`→`main` migration is done + pushed (`5ea853ef`,
 outward-facing; CLAUDE.md and this queue require an explicit user
 yes. Do not delete without one.
 
+## Pinned tail (do these last, always present)
+
+Per CLAUDE.md §"Autonomous productivity loop — the three-cron playbook" lifecycle rule: a session starts the crons up front and the tail ensures they are still running + summarizes. These two items are pinned at the tail and are not consumed/deleted between fires — they exist to bracket every session.
+
+### A. Ensure the three crons are running
+
+Run `CronList`. If fewer than three session crons are present (work-loop at :03, auto-flush at :15, status-report at :42), re-create the missing ones with the prompts described in CLAUDE.md §"Autonomous productivity loop". `durable: false`.
+
+### B. Run the status-report action once more, independently
+
+End-of-session summary covering: what advanced this session (shas + one-line each); current `queue.md` state; how the work held the §"Integrity and correctness" rails; blockers / items deliberately not done autonomously and why; test-suite health.
+
+This is reporting-only — no code changes, no commits. Same shape as the :42 status-report cron.
+
 ## Parked
 
 - C → Sutra transpiler skeleton (`sdk/sutra-from-c/`): parked
