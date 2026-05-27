@@ -15,6 +15,50 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-27: queue.md FV section trimmed — 8 stale DONE narratives + 1 already-discharged "Still OPEN" item removed (-117 net lines)
+
+Work-loop tick. queue.md's own discipline (top of file) says "If you find
+yourself writing '✅ DONE / ANSWERED / Recently shipped' status here, it
+belongs in git log or a finding, not in this file." The FV section
+violated this with eight "DONE 2026-05-24" narrative blocks. Worse:
+internal contradiction — the "Discharged FV obligations" paragraph listed
+contract function-correctness (Kleene fragment) as done, while the same
+section's "Still OPEN" #1 asked for the same thing.
+
+Verified before trimming:
+- Function-correctness for the Kleene fragment IS discharged: commit
+  `133d9364` (2026-05-24), test `test_contract_function_correctness_
+  kleene_fragment` in `tests/test_fv_general_checker.py`, spec doc
+  `planning/sutra-spec/formal-verification.md` lines 108-117. The commit
+  message itself notes that `echo`/`switch.su` are outside the Kleene
+  fragment and have their function-correctness covered by their own
+  substrate tests — so the queue.md item asking to "wire `echo`/`switch.su`
+  as a contract check" was based on a stale framing.
+- DAZ/FTZ pass-2 fix shipped: commit `1e30554d`.
+- All discharged narrative preserved in git log (commits 2026-05-23 →
+  2026-05-25 cover each piece) and in the spec file's per-obligation
+  DISCHARGED markers.
+
+Trim:
+- Drop 8 "DONE 2026-05-24" status blocks (grid-exactness, branch-range
+  closed-form, termination, role-isolation, general checker, boundary
+  scaling by composition, paper de-TNF'd, function-correctness Kleene).
+- Drop the duplicate "Still OPEN in §3.1" list (role-to-role function
+  correctness was covered by the Kleene discharge; key-soundness was
+  already duplicated in the lower "Still OPEN" list).
+- Drop the discharged "Still OPEN" #1 (function-correctness wiring) —
+  replaced by a pointer to the spec doc's authoritative discharged set.
+- Drop the STATUS 2026-05-25 paragraph + the latest-cons-disposition
+  bullets (paper itself + the per-revision reviews in
+  `paper/formal-verification/reviews/` are the live record).
+- Keep: FV-paper deliverables overview, reviewer-signal note (one
+  paragraph), TASKS TO SUBMITTABLE (the actionable 7-item agenda), the
+  two genuinely-open obligation halves (key-soundness, arbitrary
+  precision), the "out-of-scope tracked" loop-equality entry.
+
+queue.md goes 411 → 294 lines (-117 net). No code touched; the
+discipline restored is "this file is a queue, not a state snapshot."
+
 ## 2026-05-27: Audit.md cleanup — "dangling examples/todo.md refs" item marked resolved
 
 Work-loop tick. Audit.md's cross-cutting "Dangling `examples/todo.md`
