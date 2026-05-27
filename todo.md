@@ -1757,6 +1757,14 @@ the term into the spec/paper. Mirrored in Yantra `todo.md`.
 
 ## [This year] Agentic RAG for constrained-training design (generalize the equals-stuff machinery)
 
+**Priority sequence (Emma 2026-05-26):**
+1. **Equality cosine-similarity adjustment** — first concrete piecemeal target. The Stage-B `w` scalar generalized to a global / per-rule learnable `similarity` temperature (or anisotropy-correction term) that tightens the AND/NOT decision margin on the narrow LLM cone. Smallest, most-architectural scalar; the "equals stuff" sharpening Emma is most confident about.
+2. **Everything else that's low-hanging fruit** — the remaining scalar-first targets in the list below (`select` sharpness, soft-halt threshold, number-axis scale/offset, codebook decode threshold, class-method dispatch sharpness, per-axis defuzz rates). Each is small, scoped, individually verifiable.
+3. **Harder stuff made easier by 1 + 2** — matrix-valued targets (`is_X`, defuzz matrix, learned-matrix binding). Gated on the `.su` matrix-literal spec decision; the meta-tool + equivalence-guard + bake-back machinery built during phases 1+2 carries straight over.
+4. **Full back-propagation of all weights into code** — the endpoint of the §"NN → code decompilation" thread below: arbitrary trained NN fragments (matrices, multi-layer MLPs, attention heads) decompile back into source-recompilable `.su`. The Stage-B `w`-scalar bake-back is the degenerate 1-parameter case of this; phase 4 generalizes to all parameter shapes the language can express as literals.
+
+The four phases are sequential — each builds the infrastructure the next consumes. The work-loop cron should always prefer (1)-style scalar work over (3)-style matrix work until phases 1+2 are demonstrably finished.
+
 Stage A/B (`planning/findings/2026-05-18-differentiable-training-is-a-
 proxy-not-compiled.md`) showed the pattern works for the equality-rule
 case: compile a `.su` rule (similarity + Kleene AND/NOT) through the
@@ -1931,6 +1939,100 @@ range/monotonicity constraints) *is* the bridge between the FV
 checker's discharged obligations and the trained substrate values,
 and the bake-back step *is* a degenerate decompilation that wants to
 generalize beyond the Stage-B `w` scalar.
+
+### Vision arc — "constrain to meaningful" is the *first phase* of mapping everything to meaning
+
+**Emma 2026-05-26: "the vision is eventually we will be able to map
+everything to being meaningful." Long-term direction, advanced
+piecemeal — the near-term work IS the scalar-first targets in the
+preceding agenda and the constrained-Adam section below.** This vision
+arc is *what makes those piecemeal choices coherent over time*, not a
+replacement plan. Read every sub-item through this lens; don't promote
+the long-arc phases over the piecemeal targets.
+
+Current state. The 768-d frozen-LLM embedding space is anisotropic:
+content concentrates in a cone (`equality-and-defuzzification.md`
+§ "undersymbolic realm"), with the rest of the unit sphere sparsely
+populated by anything natural-language can name. Sutra currently
+splits this into:
+- **Semantic subspace** — the content cone where the LLM's meaning
+  lives. Descriptive (work with what the model already learned).
+- **Synthetic subspace** — a handful of *constructed-orthogonal*
+  canonical axes (truth axis, number axis; future enum / position /
+  time) hosting bookkeeping that should never collide with content.
+  Prescriptive (nothing was supposed to live here in the first place).
+- **Undersymbolic realm** — the void. Directions orthogonal to both
+  the content cone and the named canonical axes. Currently used as
+  a *reservoir of safe rotation-bind slots* (nothing collides because
+  nothing lives there).
+
+The arc. Each phase below shrinks the undersymbolic realm by
+mapping more directions to *named, typed, meaningful* roles.
+
+- **Phase 1 (now): Restrict training to the union of (content cone +
+  named canonical axes + anchor-ball neighborhoods).** This is the
+  meaningful-only Adam constraint in the constrained-Adam section
+  below. Adam never pushes a learned value into the undersymbolic
+  realm — *because we don't yet know what those directions mean.*
+- **Phase 2: Add more canonical axes for known abstract types.**
+  Enum, position, time, sentiment — types the language can name
+  without LLM-corpus evidence. Each new canonical axis carves a slice
+  out of the undersymbolic realm and tags it as meaningful-of-this-
+  type. (Some of this is already in todo.md § "Extended state
+  vector".) The constrain-train framework picks up each new axis as
+  an additional target subspace.
+- **Phase 3: Discover canonical axes by training.** Run a learned
+  decomposition over the undersymbolic realm that surfaces directions
+  whose variation across a corpus correlates with a useful abstract
+  distinction (causality, modality, aspect, evidentiality — things
+  LLMs encode implicitly but don't surface as orthogonal axes). Each
+  discovered axis gets a name + a type + a place in the canonical-
+  axis registry. The FV checker gets a new role to verify; the
+  constrain-train framework gets a new target subspace.
+- **Phase 4: Coverage measurement as a first-class metric.** Track
+  the fraction of the unit sphere assigned to a named meaningful
+  role over time. Coverage starts low (the content cone is a small
+  fraction of 768-d) and rises as Phase 2/3 axes accumulate.
+  Publishable as a real metric in the next-venue paper.
+- **Phase 5: Cone-expansion / meaningfulness saturation.** The end
+  state: every direction in the representation space carries either
+  semantic-cone meaning (descriptive) or canonical-axis meaning
+  (prescriptive). The undersymbolic realm shrinks to zero. The
+  constrain-train framework's *restriction* role becomes obsolete
+  (every direction is meaningful, so "constrain to meaningful" no
+  longer restricts); only its *structural* role remains (which type
+  of meaning, not whether meaning). Substrate purity rules stay
+  identical — every operation still runs on the substrate, just over
+  a fully-mapped representation.
+
+Concrete near-term experiments this vision suggests (independent of
+the constrain-train scalar targets above):
+
+- [ ] **Coverage measurement script.** A scriptable estimator that,
+  given the current set of canonical axes + an empirical content-
+  cone estimate (top-K PCA of `nomic-embed-text` over a fixed
+  corpus), reports the fraction of unit-sphere directions within
+  angle `θ` of *some* meaningful subspace. Baseline number first;
+  watch it climb across phases.
+- [ ] **Discovered-axis probe.** Phase-3 proof-of-concept: run
+  per-position embedding statistics on a labeled corpus (e.g. negated
+  vs unnegated sentences) and check whether the leading principal
+  component of the *difference vectors* lies in the undersymbolic
+  realm. If yes, that's a candidate canonical axis for "negation
+  polarity." Honest non-claim: this might just rediscover known
+  cone directions; "no new axis found" is a real possible outcome
+  and a finding.
+- [ ] **Anti-realm-collision audit.** Every time a new canonical
+  axis is committed, check that no current `bind` / `bundle` /
+  rotation operation produces a nonzero coordinate on that axis
+  *before* the axis was added. If yes, the prior code was
+  accidentally living in what is now meaningful space and needs
+  audit. This is the inverse of the substrate-purity audit:
+  catches *retroactive* meaning collisions.
+- [ ] **Vision-arc DEVLOG entries.** Track each canonical axis
+  added (with date + commit) so the long-arc claim "we are
+  progressively mapping more of the space to meaning" is backed by
+  a real timeline, not a story.
 
 Honest scope: this is multi-month exploratory work, not the next
 queue item. Captured here so the meta-tool above (corpus indexer +
