@@ -201,14 +201,17 @@ update from each (CI auto-submits on push). Items (4) key-soundness and
 arbitrary-precision are tracked separately below + in todo.md per Emma's
 instruction.
 
-**PIT honesty: DONE 2026-05-27** —
-`experiments/fv_pit_term_count.py` measures depth-1/2/3 term counts on
-balanced Kleene trees via the actual obligation-checker pipeline; FV
-paper §3.3 picked up a new "Honest cost of the polynomial-identity
-check (PIT term count)" paragraph; finding at
-`planning/findings/2026-05-27-pit-term-count.md`. Remaining of the
-TASKS-TO-SUBMITTABLE batch: (1) k=8 → real capacity curve still
-pending.
+**Both TASKS-TO-SUBMITTABLE items DONE 2026-05-27.**
+- (2) PIT honesty — `experiments/fv_pit_term_count.py`, FV paper §3.3,
+  finding `planning/findings/2026-05-27-pit-term-count.md`.
+- (1) k=8 → capacity curve — `experiments/rotation_binding_capacity_llm.py`
+  (already supported widths [2..48]; re-ran), FV paper §4.1, finding
+  `planning/findings/2026-05-27-bundle-decoding-capacity-curve.md`.
+  Headlines: rotation binding stays 100% through k=8 on all three
+  text substrates; nomic 100% through k=24; mxbai 95.8% at k=24.
+
+Items (3) fragment scope, (5) termination framing, (7) general
+obligation checker still pending in the TASKS-TO-SUBMITTABLE list.
 
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 
@@ -255,22 +258,6 @@ suite should be fine on Linux), Python 3.13, install `sdk/sutra-compiler`
 with the dev extras, run the full suite. Acceptable to skip the slowest
 tests (the substrate-leak-sweep is ~29 min per Audit.md) on per-PR runs;
 keep them on the daily schedule.
-
-### Investigate / fix `test_simplify_egglog` hang (Emma 2026-05-27)
-
-On this Windows environment the test collects (35 tests) but execution
-hangs / exits 127 mid-suite. Pre-existing — observed across `f0341fbd`
-and `bqf7blxvw` runs this session. Pre-existing means it ISN'T from
-the lexer change, but also that nobody's traced root cause yet.
-
-Plan: (a) run a single test in isolation to confirm it's not a
-collection-time issue; (b) check whether the egglog *binary* (not just
-the Python package) is what's missing — `egglog` Python lib does have
-native bindings and may try to subprocess. (c) If it's a Linux-only
-test in practice, mark the whole file as `pytest.mark.skipif(WINDOWS)`
-with a precise reason — NOT a generic skip. (d) If it's a real
-algorithmic hang (egraph saturation), surface the offending test
-and either xfail it with a tracked issue or fix the root cause.
 
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
 

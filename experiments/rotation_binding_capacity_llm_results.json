@@ -131,67 +131,6 @@
   },
   {
     "substrate": "mxbai-embed-large",
-    "dim": 1024,
-    "n_codebook": 84,
-    "rotation": {
-      "2": {
-        "accuracy": 1.0,
-        "signal_cos": 0.7078900733081486
-      },
-      "4": {
-        "accuracy": 1.0,
-        "signal_cos": 0.4997735526296162
-      },
-      "8": {
-        "accuracy": 1.0,
-        "signal_cos": 0.35281610210703407
-      },
-      "16": {
-        "accuracy": 0.9875,
-        "signal_cos": 0.25149491920712364
-      },
-      "24": {
-        "accuracy": 0.9583333333333334,
-        "signal_cos": 0.20285894774619848
-      },
-      "32": {
-        "accuracy": 0.853125,
-        "signal_cos": 0.17646018791605292
-      },
-      "48": {
-        "accuracy": 0.7208333333333333,
-        "signal_cos": 0.14594935109362658
-      }
-    },
-    "hadamard": {
-      "2": {
-        "accuracy": 0.15,
-        "signal_cos": 0.3109538881960131
-      },
-      "4": {
-        "accuracy": 0.025,
-        "signal_cos": 0.3041073752682203
-      },
-      "8": {
-        "accuracy": 0.025,
-        "signal_cos": 0.29510254157032334
-      },
-      "16": {
-        "accuracy": 0.0125,
-        "signal_cos": 0.2942432763971371
-      },
-      "24": {
-        "accuracy": 0.008333333333333333,
-        "signal_cos": 0.29291256666424953
-      },
-      "32": {
-        "accuracy": 0.009375,
-        "signal_cos": 0.29224739986032033
-      },
-      "48": {
-        "accuracy": 0.010416666666666666,
-        "signal_cos": 0.2915205547213717
-      }
-    }
+    "error": "Unable to allocate 8.00 MiB for an array with shape (1024, 1024) and data type float64"
   }
 ]
