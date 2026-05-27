@@ -65,97 +65,35 @@ clawRxiv auto-submit runs on every paper edit (per the §"Paper" section below).
 
 ### Vibe-coded projects need legacy code removed, not kept
 
-This project is built vibe-coding-first — large architectural decisions get made in chat, partially implemented, then sometimes superseded by a different shape a few sessions later. In a more traditional engineering process, "deprecate, don't remove" is the safe default because the old code has known users and predictable behavior. **In a vibe-coded project, the opposite tends to be true:** legacy code that lingers after a design shift gets quietly re-wired into newer paths by later sessions that don't know the old code was supposed to be retired. The 2026-05-10 host-Python-string bug is a concrete example — an April 10 design decision (string literals stay host because the codebook decode is the substrate boundary) was correct in its original scope but silently became wrong when a parallel string model landed on May 8, because no one removed the old emission path and the spec / code drift was invisible until a new use case exposed it.
+This project is built vibe-coding-first: architectural decisions get made in chat, partially implemented, then sometimes superseded a few sessions later. The standard "deprecate, don't remove" default assumes old code has known users and predictable behavior. Here the opposite holds: lingering legacy paths get quietly re-wired into newer code by sessions that don't know they were supposed to be retired.
 
-In practice this means:
+- When a design shift makes the old path *incorrect* (not just less preferred), remove it. Don't leave both alive expecting callers to migrate.
+- When an old code path contradicts the current spec, **ask whether it's superseded-design residue** before adding a workaround. Workarounds papering over spec drift are how drift becomes load-bearing.
+- Reconciliation with "deprecate, don't remove": that rule applies when the old path is *still correct* in its original scope. When it's no longer correct, removal is the right move.
 
-- When a design shift makes the old path *also* incorrect rather than just less preferred, remove the old path. Do not leave both alive on the assumption that callers will migrate.
-- When you find an old code path that contradicts the current spec, **stop and ask whether it's legacy weirdness from a superseded direction** before adding a workaround. Workarounds that paper over spec drift are how the drift becomes load-bearing.
-- The `feedback_check_what_is_open_before_pitching_blocker` memory generalizes here: read the spec and the open questions before assuming a long-lived code path is correct. A code path being present is not evidence that it's correct in the current design.
-
-This rule is in tension with "deprecate, don't remove." The reconciliation: deprecate-don't-remove applies when the old path is *still correct* in its original scope and someone might depend on it. When the old path is no longer correct, removal is the right move and a stale-path-left-behind is the bigger risk.
-
-**Carve-out for intentional compatibility code (Emma 2026-05-10).** Code that exists explicitly to absorb a different ecosystem — the `JavaScriptObject` class and its operator overrides, the TS transpiler's coercion shims, `make_char` as an alias for `make_string`, the legacy `AXIS_CHAR_FLAG` name — is not "legacy weirdness" in the sense above. It's intentional compatibility code that has a current purpose (let JS / TS source land correctly on the Sutra substrate). Don't sweep that away under the "remove legacy" rule. The rule targets *superseded-design residue* (an old code path that was correct in a previous design but is wrong in the current one); intentional compatibility code is a different category. Strings are core substrate types and need to be correct under the current design; JavaScript-object overrides are interop and exist precisely because the ecosystem they target is weird in known ways.
+**Carve-out: intentional compatibility code is not legacy residue.** `JavaScriptObject` + operator overrides, the TS transpiler's coercion shims, `make_char` aliasing `make_string`, the legacy `AXIS_CHAR_FLAG` name — these exist to absorb a different ecosystem and have a current purpose. Don't sweep them under the "remove legacy" rule.
 
 `todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
 
 ### Barrel through specified work; verify against spec; don't add false caution
 
-**Counterbalance to the §"Integrity and correctness" rules at the top of this file
-(Emma 2026-05-20).** The safety-critical framing says do the real
-operation on the real substrate, even if slower or uglier. It does NOT
-say "treat every queued item as needing a multi-session gated approach
-before touching it." When Emma adds an item to `queue.md` and the design
-is already laid out in `planning/sutra-spec/*.md`, the expected behavior
-is:
+**Counterbalance to §"Integrity and correctness".** Safety-critical means *don't fake results / don't fake substrate purity* — it does NOT mean treat every queue item as needing a multi-session gated approach. When the design is already in `planning/sutra-spec/*.md`:
 
-1. **Read the spec.** Promises/await is `promises.md` + `axon-io.md`.
-   Loops is `control-flow.md`. Binding is `binding.md`. The specs are
-   the authoritative design; they aren't aspirational sketches.
-2. **Check whether the code already matches.** `Audit.md` keeps a
-   per-leak status with file:line anchors. The tests under
-   `sdk/sutra-compiler/tests/` are regression guards on the
-   substrate-purity claims — running them tells you what's currently
-   true, not what was true when an old session wrote a queue item.
-3. **Barrel through the work.** If the spec is clear and the
-   implementation is close, finish it. The §"Integrity and correctness" rules
-   are about *faking results* and *fake substrate purity*, not about
-   pace. Verification (run the tests, check decoded output against
-   ground truth, read what's emitted) is how you discharge the safety
-   rules — not by avoiding the work.
-4. **Only flag "deliberate, gated session" when the spec is genuinely
-   not settled.** Spec-level open questions belong in
-   `planning/open-questions/`; if the open question doesn't exist
-   there, the design is settled and the work is implementation.
+1. **Read the spec.** It's the authoritative design, not an aspirational sketch.
+2. **Check whether the code already matches.** `Audit.md` has per-leak status; tests under `sdk/sutra-compiler/tests/` are regression guards. Running them tells you what's true *now*, not what was true when an old session wrote a queue item.
+3. **Barrel through.** If the spec is clear and the implementation is close, finish it. Verification (run tests, compare decoded output to ground truth) is how you discharge the safety rules — not by avoiding the work.
+4. **Only flag "deliberate, gated session" when the spec is genuinely unsettled.** If no doc exists in `planning/open-questions/`, the design is settled and the work is implementation.
 
-Concrete anti-pattern Emma flagged 2026-05-20: I copied an old
-"deliberate, gated" framing for `await_value` from a stale handoff
-into a fresh queue item without first reading `promises.md` +
-`axon-io.md` + `Audit.md`. That reading would have shown the leak was
-already fixed 2026-05-17 as the exact algebraic reduction of the
-spec-2 lowering. Adding a queue item for already-done work isn't
-caution — it's noise that makes future sessions think there's
-something pending.
-
-The rule the user wants codified: **read the spec, verify against
-ground truth, barrel through; don't multiply caution by quoting
-prior sessions.**
+Codified rule: **read the spec, verify against ground truth, barrel through; don't multiply caution by quoting prior sessions.**
 
 ### When Emma gives an algorithmic explanation, IMPLEMENT it — don't brush it off
 
-**Added 2026-05-24 after a repeated, costly pattern.** Emma designed
-Sutra and knows its mechanisms — defuzzification, saturation, the
-canonical axes, `select`, binding — far better than any agent landing
-in this repo. The recurring failure mode: Emma gives a concrete
-algorithmic explanation of how to do something on the substrate; the
-agent decides it "can't work," substitutes its own variant, the
-variant fails or is uglier, and the agent reports the idea as blocked.
-**Almost every time, Emma's original idea was correct** and the agent
-simply never built the thing she actually described.
+Emma designed Sutra and knows its mechanisms far better than any agent landing in this repo. Recurring failure mode: she gives a concrete algorithm on the substrate; the agent decides it "can't work," substitutes a variant, the variant fails, and the agent reports the idea as blocked. **Almost every time Emma's original idea was correct** and the agent never built what she described.
 
-Concrete instance (2026-05-24): exact operator dispatch for the Yantra
-calculator. Emma said *defuzzify `select` enough and the branches stop
-blending.* The agent first concluded "`select` is softmax, never a hard
-one-hot, so it can't be exact," then tried Lagrange polynomial masks,
-then elementwise `tanh` masks (which failed on vector noise). Only when
-it finally built **the literal thing Emma described** — `select` with
-scores sharpened past the float32 softmax-saturation point (`exp(-120)`
-underflows to exactly `0.0`), scored by `dot(op - t, make_real(1))` —
-did it come out **18/18 bit-exact**. The detour burned most of a session.
-
-The rule:
-1. **When Emma describes an algorithm, implement that algorithm first**,
-   exactly as described, before proposing alternatives. Build it, run it,
-   read the real output.
-2. **"I think that can't work" is a hypothesis to test, not a
-   conclusion.** Test it on the substrate. The integrity rules *require*
-   measuring; they never license dismissing an idea unmeasured.
-3. **If it seems not to compose, the gap is usually a primitive to
-   expose, not a wrong idea.** Here `dot` simply wasn't a callable
-   builtin; exposing it made Emma's approach work.
-4. **Substituting your own variant for Emma's stated method is the
-   anti-pattern** — especially on Sutra internals, where she has the
-   ground truth and you do not.
+1. **Implement Emma's algorithm first**, exactly as described, before proposing alternatives. Build, run, read the real output.
+2. **"I think that can't work" is a hypothesis, not a conclusion.** Test it on the substrate — the integrity rules *require* measuring and never license unmeasured dismissal.
+3. **If it seems not to compose, the gap is usually a missing primitive to expose, not a wrong idea.**
+4. **Substituting your own variant for Emma's stated method is the anti-pattern** — especially on Sutra internals, where she has ground truth and you do not.
 
 ## Cross-repo workflow: Sutra ↔ Yantra
 
