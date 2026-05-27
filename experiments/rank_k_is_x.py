@@ -26,20 +26,23 @@ calls in baked .su (no vector/number params); recompile via the real
 PyTorch codegen; assert max-logit Δ < 1e-4 vs the param-form model.
 
 Metric: logit MARGIN (correct - max wrong) at rank-1 baseline vs at
-rank-k trained, with prototypes initialized from embed(category-word)
-anchors (extra anchors are k-means cluster centroids of the class's
-words if k > 1; for now, additional anchors fall back to nudged
-copies of the category-word embedding for rank-k > 1).
+rank-k trained. Prototype init has two strategies (--anchor-strategy):
 
-STATUS (2026-05-26): scaffold landed; smoke-compile-test verifies the
-.su generator + codegen pipeline produces parseable Python. Training
-+ measurement deliberately NOT executed this commit because
-bu7o9mqxu (the equality-cosine K=5 n=3 measurement) holds the GPU.
-The training run is the next work-loop tick.
+  perturb (default): every per-class anchor = embed(category-word)
+    + eps*N(0,1) using the per-seed RNG. Anchors cluster tightly
+    around the category name; per-seed variation comes only from
+    the eps perturbation.
 
-Usage (when GPU is free):
+  kmeans: Lloyd's k-means over the per-class word embeddings finds
+    k_rank cluster centroids; anchors are centroids + eps*N(0,1).
+    Captures intra-category sub-structure (e.g. "vehicle" =
+    land/water/air clusters); per-seed variation also comes from
+    the seeded k-means initialization (second variation source).
+
+Usage:
     py experiments/rank_k_is_x.py [--k K_RANK] [--K NUM_CLASSES]
         [--per-class N] [--epochs E] [--seeds 0,1,2] [--lr LR]
+        [--anchor-strategy perturb|kmeans]
     py experiments/rank_k_is_x.py --smoke   # compile-only sanity check
 """
 from __future__ import annotations
@@ -235,27 +238,79 @@ def smoke_compile_only(K: int = 2, k: int = 2):
     print(f"  PASS: baked form emits the same symbols; vector_literal round-trips through codegen")
 
 
+def _kmeans_lloyd(points: torch.Tensor, k: int, gen: torch.Generator,
+                  max_iter: int = 50, tol: float = 1e-6) -> torch.Tensor:
+    """Lloyd's k-means on `points` shape (N, d). Returns k centroids
+    shape (k, d). `gen` seeds the initial assignment so two seeds yield
+    different clusterings (the per-seed variation source for the
+    kmeans anchor strategy).
+
+    Trivial-case handling: if k >= N (too few class words to cluster
+    into k groups), return points padded by repeating points[0].
+    """
+    N, d = points.shape
+    if k >= N:
+        if k == N:
+            return points.clone()
+        pad = points[0:1].expand(k - N, d)
+        return torch.cat([points, pad], dim=0).clone()
+
+    perm = torch.randperm(N, generator=gen).tolist()
+    centroids = points[perm[:k]].clone()
+    for _ in range(max_iter):
+        # (N, k) squared distances; argmin over k gives assignments.
+        d2 = (
+            (points.unsqueeze(1) - centroids.unsqueeze(0)) ** 2
+        ).sum(dim=-1)
+        assignments = d2.argmin(dim=1)
+        new_centroids = centroids.clone()
+        for ki in range(k):
+            mask = (assignments == ki)
+            if bool(mask.any()):
+                new_centroids[ki] = points[mask].mean(dim=0)
+            # If a cluster goes empty, leave the prior centroid in place
+            # — re-seeding would change the seeded-variation contract.
+        if torch.allclose(new_centroids, centroids, atol=tol):
+            break
+        centroids = new_centroids
+    return centroids
+
+
 def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int,
-               anchor_perturb_eps: float = 0.02):
+               anchor_perturb_eps: float = 0.02,
+               anchor_strategy: str = "perturb"):
     """Load embeddings for K categories; build (data, prototype anchors).
 
     - data: list of (x_tensor, class_index) pairs, len = K * per_class,
       SHUFFLED by the seeded RNG (per-seed data ordering — Adam's
       stochastic gradient sees a different sequence per seed).
     - protos: K*k tensors of shape (dim,) each, requires_grad-able.
-      EVERY anchor (including the first per class) is initialized as
-      embed(category-name) + eps*N(0,1) using the seeded generator, so
-      different seeds produce different starting trajectories. For
-      k_rank > 1 the extras get an independently-perturbed copy.
-      (k-means cluster-centroid anchors are a queued follow-up.)
 
-    The eps=0.02 default is small (~2% magnitude shift on the
-    L2-normalized anchor) — preserves "near embed(category-name)"
-    semantics while giving Adam genuine per-seed variation. Larger eps
-    would erode the meaningful-anchor framing; smaller eps would
-    re-collapse to the n=3-degenerate case the equality-cosine
+    anchor_strategy:
+        "perturb" (default, original) -- every anchor is
+            embed(category-name) + eps*N(0,1) using the seeded generator.
+            Anchors cluster tightly around the category name; per-seed
+            variation comes only from the eps perturbation.
+        "kmeans" -- run Lloyd's k-means on the per-class word
+            embeddings to find k_rank cluster centroids per class.
+            Anchors are then centroids + eps*N(0,1). Captures
+            sub-structure within each category (e.g. "vehicle" =
+            land/water/air clusters). The k-means initial assignment
+            is seeded, so different seeds yield different clusterings
+            -- a second per-seed variation source on top of the eps
+            perturbation. eps default stays 0.02 (low — k-means
+            already varies).
+
+    eps=0.02 is small (~2% magnitude shift on L2-normalized 768-d
+    anchors). Larger erodes the meaningful-anchor framing; smaller
+    re-collapses to the n=3-degenerate case the equality-cosine
     finding flagged.
     """
+    if anchor_strategy not in ("perturb", "kmeans"):
+        raise ValueError(
+            f"anchor_strategy must be 'perturb' or 'kmeans', got "
+            f"{anchor_strategy!r}"
+        )
     cache = os.path.join(HERE, ".diff_train_embeddings.pt")
     cats = dt.CATEGORIES[:K]
     cat_names = [name for name, _ in cats]
@@ -270,14 +325,23 @@ def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int,
     g = torch.Generator(device="cpu").manual_seed(seed)
 
     protos = []  # length K * k_rank
-    for name in cat_names:
-        anchor_base = to_dev(vecs_cpu[name])
-        for _ in range(k_rank):
+    for ci, (_, ws) in enumerate(cats):
+        if anchor_strategy == "perturb":
+            anchor_base = to_dev(vecs_cpu[cat_names[ci]])
+            anchors_for_class = [anchor_base for _ in range(k_rank)]
+        else:  # kmeans
+            # Cluster the class's per_class word embeddings (CPU is fine —
+            # K * per_class is tiny vs LLM inference cost).
+            class_words = [w for w in ws[:per_class] if w not in cat_names]
+            class_vecs_cpu = torch.stack([vecs_cpu[w] for w in class_words])
+            centroids_cpu = _kmeans_lloyd(class_vecs_cpu, k_rank, gen=g)
+            anchors_for_class = [to_dev(centroids_cpu[ri]) for ri in range(k_rank)]
+        for ri in range(k_rank):
             noise = (
                 torch.randn(dim, generator=g, dtype=dtype).to(device)
                 * anchor_perturb_eps
             )
-            protos.append((anchor_base + noise).clone())
+            protos.append((anchors_for_class[ri] + noise).clone())
 
     data = []
     for ci, (_, ws) in enumerate(cats):
@@ -318,14 +382,18 @@ def margin_per_sample(logits, y):
     return float(correct - wrong_max)
 
 
-def run_one(K, k_rank, per_class, epochs, lr, seed, verbose=True):
+def run_one(K, k_rank, per_class, epochs, lr, seed, verbose=True,
+            anchor_strategy="perturb"):
     """Compile + train + bake + round-trip + measure. Returns a dict
     with the measured numbers."""
     mod = _compile(_su(K, k_rank, None, None), f"param_K{K}_k{k_rank}")
     runtime = mod._VSA
     device, dtype = runtime.device, runtime.dtype
 
-    data, protos_init, dim = build_data(K, k_rank, per_class, device, dtype, seed)
+    data, protos_init, dim = build_data(
+        K, k_rank, per_class, device, dtype, seed,
+        anchor_strategy=anchor_strategy,
+    )
     if verbose:
         print(
             f"  build_data: K={K} k_rank={k_rank} per_class={per_class} "
@@ -442,6 +510,12 @@ def main():
     ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--lr", type=float, default=0.05)
+    ap.add_argument(
+        "--anchor-strategy",
+        choices=["perturb", "kmeans"],
+        default="perturb",
+        help="how to initialize the k>=1 per-class prototype anchors",
+    )
     a = ap.parse_args()
 
     if a.smoke:
@@ -454,6 +528,7 @@ def main():
     print(
         f"rank-k is_X training: K={a.K_classes} k={a.k_rank} "
         f"per_class={a.per_class} epochs={a.epochs} seeds={seeds} lr={a.lr}"
+        f"  anchor_strategy={a.anchor_strategy}"
     )
     for s in seeds:
         print(f"--- seed {s} ---")
@@ -464,6 +539,7 @@ def main():
             epochs=a.epochs,
             lr=a.lr,
             seed=s,
+            anchor_strategy=a.anchor_strategy,
         )
         print(
             f"  seed {s}: baseline margin = {r['baseline_margin']:+.4f}  ->  "
