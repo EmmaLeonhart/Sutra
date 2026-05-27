@@ -16,7 +16,8 @@ Language features handled:
       INTERP_CLOSE  STRING_LIT_CHUNK  STRING_INTERP_END
   That lets the parser walk inside `{...}` with the full expression
   grammar and still know we're inside a string.
-- Numeric literals: integer and decimal; no hex/exponent yet.
+- Numeric literals: integer, decimal, and decimal-with-exponent
+  (`1e10`, `1.5e-3`, `2E+5`); no hex yet.
 - Identifiers and keywords.
 - Multi-character operators: `==`, `!=`, `<=`, `>=`, `&&`, `||`,
   `++`, `--`, `+=`, `-=`, `*=`, `/=`, `=>`, `->`, `::`, `|>`.
@@ -704,6 +705,21 @@ class Lexer:
             self._advance()
             while not self._at_end() and self._peek().isdigit():
                 self._advance()
+        # Optional exponent: e±N or E±N (`1e10`, `1.5e-3`, `2E+5`).
+        # Only consumed when a digit (or signed digit) follows the
+        # e/E — otherwise the `e` falls through to the identifier
+        # lexer (`2ex` → INT_LIT(2) + IDENT("ex")). Same dispatch
+        # discipline as the `i` imaginary suffix below.
+        if self._peek() in ("e", "E"):
+            nxt1 = self._peek(1)
+            nxt2 = self._peek(2)
+            if nxt1.isdigit() or (nxt1 in ("+", "-") and nxt2.isdigit()):
+                is_float = True
+                self._advance()  # consume e / E
+                if self._peek() in ("+", "-"):
+                    self._advance()
+                while not self._at_end() and self._peek().isdigit():
+                    self._advance()
         # Imaginary-unit suffix: `5i`, `3.14i`. Only binds when the
         # character AFTER the `i` is not an identifier continuation —
         # so `5i` → IMAG_LIT(5) but `5index` → INT_LIT(5) + IDENT("index")
