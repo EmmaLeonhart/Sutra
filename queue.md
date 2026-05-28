@@ -570,6 +570,15 @@ This one contains a very large amount of vision of what the future of Sutra as a
 
 Please update the FV paper and submit and push it. Ironically, because of the earlier issues that we were having where it was not submitting because of some kind of an error, now we're in a situation where the paper has not been updated in a very long time, even while we have done a lot of very significant updates. It needs to actually be updated so that we can start to get proper feedback on it. I would say here that we've really been overdoing it with the 10-minute cron job and everything with the paper, and we need an updated one to be done quickly. 
 
+## After current work: AskUserQuestion sweep on every deferred item awaiting Emma input
+
+As I believe this was explained earlier somewhere, we are in a situation right now where a lot of content may have been accidentally "deferred" due to the agent not believing it had enough information
+
+These are particularly dangerous things to exist because often what ends up happening is the deferred content ends up not being made for weeks. Afterwards, Emma mentions it in a conversation, and the agent produces a confabulated or hallucinated idea of what it should be, which is almost always not accurate to what it should be or what Emma suggested it should be. 
+
+The idea here is that we are doing a full audit of the entirety of all of the different things we're doing. We're doing a full audit of everything in the repository that is labelled as a deferred item awaiting user input, because often times if these are present in the repository, they can cause a potential problem. We're specifically using the ask user question tool for all of these. 
+
+Like, no, no, mentioning it in chat and then the user never seeing it. You have to specifically use this particular tool thing and put in, which I believe is in the CLAUDE.md, that these kinds of things should happen for it. Just because this is actual, this is architectural enough that it's a significant issue. 
 
 ## Pointers
 
