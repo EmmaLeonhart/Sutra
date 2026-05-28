@@ -146,9 +146,20 @@ def _su(K: int, k: int, baked_vectors: list[list[float]] | None,
     other_arg = ""
     if baked_vectors is None:
         # Forward every class's param list to is_class_j calls.
-        all_vec_names = [v for cl in per_class_v_names for v in cl]
-        all_t_names = [t for cl in per_class_t_names for t in cl]
-        other_arg = ", " + ", ".join(all_vec_names + all_t_names)
+        # The function SIGNATURE for is_class_j (above, via `sig`) is built
+        # per-class — class ci contributes `vector v_ci_0..v_ci_(k-1),
+        # number T_ci_0..T_ci_(k-1)` and the whole signature is the
+        # concatenation of those per-class blocks. The call site MUST
+        # match that order or args bind wrong. Bug fixed 2026-05-28:
+        # previously emitted [all_v, all_t] which is fine at K=1 but
+        # misaligns at K>=2 (and at K>=3 the type-shaped mismatch surfaces
+        # as a runtime crash inside `similarity` — the 0-D/1-D tensor
+        # error seen in the K=5 k=1 background run runlog).
+        per_class_arg_blocks = []
+        for ci in range(K):
+            per_class_arg_blocks.extend(per_class_v_names[ci])
+            per_class_arg_blocks.extend(per_class_t_names[ci])
+        other_arg = ", " + ", ".join(per_class_arg_blocks)
     for ci in range(K):
         nots = " ".join(
             f"&& !(is_class_{cj}(x{other_arg}))"
