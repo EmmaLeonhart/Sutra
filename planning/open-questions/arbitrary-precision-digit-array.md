@@ -1,7 +1,7 @@
 # Arbitrary-precision integers: digit-array representation and add-with-carry primitive
 
 **Opened:** 2026-05-27.
-**Status:** OPEN. The 1-2 digit substrate parser (`examples/parse_int2.su`) ships in commit `22d785db` and runs substrate-pure on CUDA. The full unbounded-precision goal needs a digit-array representation and a substrate-compatible add-with-carry implementation; neither has a settled design. Two paths have force; surfacing the gap rather than picking one silently.
+**Status (2026-05-28):** TOP-LEVEL CHOICE LOCKED — **Option A (associative-scan substrate intrinsic)** per Emma sweep Q3. The 1-2 digit substrate parser (`examples/parse_int2.su`) ships in commit `22d785db` and runs substrate-pure on CUDA. The full unbounded-precision design now proceeds along the Option A path: a new substrate intrinsic for parallel carry propagation via associative scan (Hillis-Steele / Blelloch). The four sub-decisions (BigInt typing, digit layout, max width, integer-division primitive) are still open and need Emma input before the spec doc at `planning/sutra-spec/arbitrary-precision.md` is finalized.
 
 **Related:**
 - `planning/findings/2026-05-27-arbitrary-precision-parser.md` — the bounded "first piece" that shipped + the analysis this dossier reduces to a decision.
