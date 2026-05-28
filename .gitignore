@@ -139,3 +139,6 @@ experiments/*.log
 # Compile artifacts from experiments/ harnesses
 experiments/.defuzzgain_*.su
 experiments/.*.su
+
+# Sutra compile-cache artifacts (sutra_compiler.compile_su disk cache)
+**/.*.compiled-sutra*.py
