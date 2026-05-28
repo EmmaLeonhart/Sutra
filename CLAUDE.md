@@ -23,7 +23,7 @@ The repository has two audiences and they read different files. Do not conflate 
 
 - **AI agents and contributors read the repo Markdown.** That includes this `CLAUDE.md`, the `AGENTS.md` index at the repo root, `queue.md`, `todo.md`, `DEVLOG.md`, `paper/`, `paper/supplementary/`, and everything under `planning/` (`sutra-spec/`, `findings/`, `open-questions/`, `exploratory/`). This is the canonical, fullest-fidelity surface — when something is true about Sutra, it's true here first.
 
-- **Humans read the website at `sutra.emmaleonhart.com`.** It is a static site rendered from Markdown by `scripts/build_site.py` — a hand-rolled generator that replaced the old MkDocs Material setup (`mkdocs.yml`, `docs/stylesheets/`, `docs/assets/` are gone) onto the shared emmaleonhart.com identity. The build emits **one HTML page per Markdown file under `docs/`** (every `docs/*.md` and `docs/tutorials/*.md`, except any path containing `interactive/`), plus `/paper/` rendered from `paper/paper.md`. So the live site is **~23 pages, not two** — the swap from MkDocs to `build_site.py` changed the generator, not the page count. The set: the homepage (`docs/index.md`); the concept/tutorial pages (`vision`, `operators`, `ontology`, `compilation`, `loops`, `promises`, `numeric-math`, `typescript-to-sutra`, `what-is-sutra`, `memory`, `paradigms`, `primitive-classes`, `logical-operations`, `demos`, `history`, and the `tutorials/` set); `/paper/`; `/neurips-2026/` (`docs/neurips-2026.md`, the frozen-submission archive with the paper PDFs + reproduction zip); and `/arxiv/` (`docs/arxiv.md`). The homepage is **not** bare — it carries an "Explore" section linking the doc pages, a "Read the paper" button, and a NeurIPS 2026 archive card. `/arxiv/` is a direct-URL-only utility page for grabbing the LaTeX source bundle when a paper correction needs re-uploading; it carries a `noindex, nofollow` meta tag and `robots.txt` disallows the bundle file (`/sutra-arxiv-source.tar.gz`), so it stays out of search — every other page is indexable. Keep every website page free of repo-internal scratchpad references (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`).
+- **Humans read the website at `sutra.emmaleonhart.com`.** Static site rendered by `scripts/build_site.py` — one HTML page per Markdown file under `docs/` (every `docs/*.md` and `docs/tutorials/*.md`, except paths containing `interactive/`), plus `/paper/` rendered from `paper/paper.md`. `/neurips-2026/` is the frozen-submission archive page; `/arxiv/` is a direct-URL-only utility page for grabbing the LaTeX source bundle (`noindex, nofollow`; bundle disallowed in `robots.txt`). MkDocs is gone — don't reintroduce it. **Keep every website page free of repo-internal scratchpad references** (`queue.md`, `todo.md`, `planning/...`, deep `sdk/...`).
 
 The two surfaces are **not generated from the same source**. `docs/neurips-2026.md` is hand-written for the website; the canonical Markdown elsewhere in the repo is hand-written for agents. They are allowed to drift in framing, level of detail, and which examples they pick. They must not contradict each other on facts.
 
@@ -65,15 +65,11 @@ clawRxiv auto-submit runs on every paper edit (per the §"Paper" section below).
 
 ### Vibe-coded projects need legacy code removed, not kept
 
-This project is built vibe-coding-first: architectural decisions get made in chat, partially implemented, then sometimes superseded a few sessions later. The standard "deprecate, don't remove" default assumes old code has known users and predictable behavior. Here the opposite holds: lingering legacy paths get quietly re-wired into newer code by sessions that don't know they were supposed to be retired.
+This project is vibe-coded — decisions get made in chat, partially implemented, sometimes superseded a few sessions later. The standard "deprecate, don't remove" default assumes old code has known users; here the opposite holds: lingering legacy paths get quietly re-wired into newer code by sessions that don't know they were supposed to be retired. **When a design shift makes the old path *incorrect* (not just less preferred), remove it.** When an old code path contradicts the current spec, ask whether it's superseded-design residue before adding a workaround.
 
-- When a design shift makes the old path *incorrect* (not just less preferred), remove it. Don't leave both alive expecting callers to migrate.
-- When an old code path contradicts the current spec, **ask whether it's superseded-design residue** before adding a workaround. Workarounds papering over spec drift are how drift becomes load-bearing.
-- Reconciliation with "deprecate, don't remove": that rule applies when the old path is *still correct* in its original scope. When it's no longer correct, removal is the right move.
+**Carve-out: intentional compatibility code is not legacy residue.** `JavaScriptObject` + operator overrides, the TS transpiler's coercion shims, `make_char` aliasing `make_string`, the legacy `AXIS_CHAR_FLAG` name — these absorb a different ecosystem and have a current purpose. Don't sweep them under the "remove legacy" rule.
 
-**Carve-out: intentional compatibility code is not legacy residue.** `JavaScriptObject` + operator overrides, the TS transpiler's coercion shims, `make_char` aliasing `make_string`, the legacy `AXIS_CHAR_FLAG` name — these exist to absorb a different ecosystem and have a current purpose. Don't sweep them under the "remove legacy" rule.
-
-`todo.md` is for longer-horizon work. `queue.md` is for the next active session. Items migrate from `todo.md` → `queue.md` → deleted on completion.
+`todo.md` is longer-horizon. `queue.md` is the next active session. Items migrate `todo.md` → `queue.md` → deleted on completion.
 
 ### Barrel through specified work; verify against spec; don't add false caution
 
@@ -97,69 +93,29 @@ Emma designed Sutra and knows its mechanisms far better than any agent landing i
 
 ## Cross-repo workflow: Sutra ↔ Yantra
 
-Sutra is consumed downstream by **Yantra**
-(`https://github.com/EmmaLeonhart/Yantra`), the GPU-native operating
-system being built in Sutra. Yantra pins this repo as a git submodule
-at `external/Sutra` and may **drive Sutra-side changes from inside
-Yantra sessions**. This isn't a typical workflow but it's the right
-shape because the projects are tightly coupled — Yantra is "the OS
-that uses Sutra"; Sutra is "the language Yantra is built in."
+Sutra is consumed downstream by **Yantra** (`https://github.com/EmmaLeonhart/Yantra`),
+the GPU-native OS built in Sutra. Yantra pins this repo as a git submodule at
+`external/Sutra` and may **drive Sutra-side changes from inside Yantra sessions**.
+Sutra commit messages mentioning Yantra are the workflow operating as designed.
 
-If you see a Sutra commit message that mentions Yantra (e.g.,
-"sutra-from-ts v0.1.0: docs catch up to working CLI; sutra-dev[ts]
-extra"), that's the workflow operating as designed, not someone
-pushing from the wrong repo. The Yantra-side companion CLAUDE.md
-documents the same pattern from the other end.
+**Division of responsibility:**
+- **Yantra** — kernel orchestration (`kernel/`, axon router, storage tiers,
+  capability checks, FS bridge, GUI/browser stack, Yantra paper).
+- **Sutra (this repo)** — the language itself. `sdk/sutra-compiler/`,
+  `sdk/sutra-from-ts/`, `sdk/sutra-from-c/`, lowering passes, axon spec,
+  multi-process runtime, runtime ABI.
 
-### Division of responsibility
+**Rules that bind regardless of who's driving the change** — when a Yantra-driven
+session edits Sutra source, the rules in this file still apply: integrity /
+substrate-correctness (top of file); NO MATH SHORTCUTS; Workflow Rules
+(commit+push immediately, plan-into-queue.md-first, no local-only work — this
+repo's queue.md is the one that binds when editing this repo); the frozen
+`paper/neurips/` archive (don't touch; surface conflicts, don't silently amend).
 
-- **Yantra — actual kernel orchestration, runtime shape, OS-level
-  concerns.** `kernel/` (the Connectome Manager + axon router),
-  the Rust orchestrator (eventually), storage-tier moves
-  (disc/RAM/GPU), capability check architecture, the FS bridge,
-  the GUI/browser stack, the Yantra paper.
-- **Sutra (this repo) — the language. Connecting things together
-  at the language level, debugging the language, language-side
-  primitives Yantra needs.** `sdk/sutra-compiler/`,
-  `sdk/sutra-from-ts/`, `sdk/sutra-from-c/`, the lowering passes,
-  the axon spec, the multi-process runtime, the
-  serialise-process-state primitive, the runtime ABI Yantra
-  consumes.
-
-### Rules that bind regardless of who's driving the change
-
-When a Yantra-driven session is editing Sutra source, the rules in
-this file still apply, in this order of force:
-
-1. **The integrity / substrate-correctness rules at the
-   top of this file.** A
-   change driven by "Yantra needs this primitive" does not get a
-   pass on substrate-purity validation.
-2. **The "NO MATH SHORTCUTS" section.** Same reason. Every Sutra
-   operation runs on the substrate; numpy is compile + monitor
-   only; tensor operations only on the runtime hot path.
-3. **The Workflow Rules above** (commit + push immediately,
-   plan-into-`queue.md`-first, mirror to the task tool, no
-   local-only work). Yantra's own queue.md is separate; this
-   repo's queue.md is the one that binds when editing this repo.
-4. **The frozen `paper/neurips/` archive.** Don't touch it. If a
-   Yantra-driven change makes the NeurIPS paper claims look shaky,
-   surface that to the user; do not silently amend.
-
-When the Yantra-driven change is purely docs / pyproject / CLI
-scaffolding (no runtime code touched), the substrate-purity rules
-don't directly bite, but the workflow rules still do.
-
-### When to tag a Sutra release vs. just push to master
-
-- **Tag a release** when Yantra needs to depend on a specific
-  Sutra version that carries the change (e.g., a new optional
-  extra, a new public API, a bug fix that affects Yantra's tests).
-  Yantra then pins its `external/Sutra` submodule at the new tag.
-- **Just push to master** for docs-only fixes, internal
-  refactors, or anything where Yantra doesn't need version
-  pinning. Yantra can bump its submodule pointer to the new
-  master HEAD without a release ceremony.
+**Release vs. push:** tag a release when Yantra needs to depend on a specific
+Sutra version (new extra, new public API, bug fix affecting Yantra tests);
+Yantra pins to the tag. Just push to master for docs/refactor — Yantra can bump
+its submodule pointer to HEAD without a release ceremony.
 
 ## Paper
 
@@ -198,69 +154,39 @@ The live `paper/paper.md` is **not** under this freeze. It is free to evolve. Th
 ### 🔒 `paper/paper.md` is also FROZEN through May 2026 (the arXiv lock)
 
 **Added 2026-05-20.** Emma uploaded `paper/paper.md` to arXiv on
-2026-05-19 (the arXiv-fitting abstract-trim commit is `e7cca673`).
-**Updated 2026-05-21:** Emma authorized a minor arXiv correction and
-a v2 re-upload (correction series starting at commit `0b151b79`):
-(1) fixed the broken Appendix H hyperparameter table (overflowing
-7-column table → per-experiment bullet list, no data changed);
-(2) dropped "figure" from the AI-use statement's "no … was generated
-by a language model" sentence (the figures are AI-drafted TikZ
-schematics, not data plots); (3) removed the AI-use statement's
-parenthetical about AI-suggested code substituting host numpy (aired
-an internal bug inside the disclosure). **The arXiv-v2 target is the
-current `main` HEAD** — the freeze is re-pinned to whatever HEAD is
-once the v2 correction series lands, not to a single fixed hash,
-because each correction commit moves it. Until **June 1, 2026** the
-live `paper/paper.md` is otherwise treated as immutable so the repo
-state matches what was uploaded.
-This is a *time-bounded* freeze, not the permanent NeurIPS one above
-— the lock lifts automatically the moment May 2026 ends, and the
-live paper resumes being the free-to-evolve next-venue draft.
+2026-05-19; v2 correction series started 2026-05-21 at `0b151b79`
+(Appendix H table fix; AI-use statement tightening). The arXiv-v2
+target is the current `main` HEAD; until **June 1, 2026** the live
+`paper/paper.md` is treated as immutable so the repo state matches
+what was uploaded. *Time-bounded freeze* — lifts automatically once
+May 2026 ends.
 
-This means, until June 1:
+Until June 1:
 
-- Do not edit `paper/paper.md`. Not for typos, not for clawRxiv
-  reviewer feedback, not for new findings, not for tightening,
-  not for the next-venue polish items previously queued (ablation
-  table, polynomial-rationale paragraph, section-granular AI-use
-  breakdown, Futamura bib entry). All of those wait until June.
-- Do not edit any file referenced from the arXiv submission as
-  if it were the source of an arXiv-visible claim (e.g. the
-  supplementary docs the arXiv source bundle links into).
-- `paper/neurips/` stays under its own permanent freeze (above).
-  Both locks are active concurrently.
-- The `papers-ci.yml` auto-resubmit on `paper/paper.md` push is
-  fine to leave running — there is just nothing to push.
-- If a later finding *contradicts* the arXiv text, stop and tell
-  the user; do not silently amend. Same discipline as the
-  NeurIPS freeze.
+- Do not edit `paper/paper.md`. Not for typos, not for reviewer
+  feedback, not for new findings, not for next-venue polish.
+- Do not edit any file referenced from the arXiv submission as an
+  arXiv-visible claim (e.g. supplementary docs the bundle links to).
+- `paper/neurips/` stays under its own permanent freeze; both locks
+  are active concurrently.
+- If a later finding contradicts the arXiv text, stop and tell the
+  user; do not silently amend. Same discipline as the NeurIPS freeze.
 
-If the user explicitly says "unfreeze the paper" before June 1,
-the lock lifts. Mention the freeze first if a user request appears
-to ask for a `paper/paper.md` edit before then, so there is no
-silent overriding.
+If Emma explicitly says "unfreeze the paper" before June 1, the lock
+lifts. Mention the freeze first if a user request looks like it asks
+for a `paper/paper.md` edit before then.
 
 ### Paper-code durability — keep the original NeurIPS paper's examples working
 
-Every `.su` program, reproduction script, and supplementary surface that the **NeurIPS submission** (now frozen at `paper/neurips/`) references must continue to compile, run, and produce the same observable outputs **for at least one year after submission, ideally indefinitely**. The frozen paper text cannot be patched if the code drifts; the only way the NeurIPS claims stay reproducible is if the code keeps working.
+Every `.su`, reproduction script, and supplementary surface that the **NeurIPS submission** (frozen at `paper/neurips/`) references must continue to compile, run, and produce the same observable outputs for **at least one year after submission, ideally indefinitely**. The frozen paper text cannot be patched if the code drifts.
 
-In practice this means:
-- Surface syntax used in any example cited by `paper/neurips/paper.md` (`map<vector, string>` codebooks, `bind`/`unbind`/`bundle`, `loop` forms, `dict<K, V>` rotation hashmaps, etc.) stays valid. If a feature is renamed or restructured, keep an alias / deprecation shim — do not break the spelling the NeurIPS paper uses.
-- The supplementary smoke test (`examples/_smoke_test.py`) keeps passing. If a refactor regresses it, the refactor is wrong, not the smoke test.
-- The reproduction scripts under `experiments/` referenced by `paper/neurips/supplementary/SKILL.md` / `REPRODUCE.md` continue to produce the same output (modulo run-to-run sampling noise that's already documented as such).
-- The supplementary `SYNTAX.md` description (frozen under `paper/neurips/supplementary/SYNTAX.md`) must keep matching what the compiler actually emits for the NeurIPS-cited surface. If implementation drifts past those forms, **add a new alias** rather than retroactively changing the frozen description.
+In practice: surface syntax cited by `paper/neurips/paper.md` (`map<vector, string>` codebooks, `bind`/`unbind`/`bundle`, `loop` forms, `dict<K, V>` rotation hashmaps) stays valid — if a feature is renamed, keep an alias. `examples/_smoke_test.py` keeps passing; if a refactor regresses it, the refactor is wrong. Reproduction scripts under `experiments/` (per `paper/neurips/supplementary/SKILL.md` / `REPRODUCE.md`) keep producing the same output (modulo documented sampling noise). `paper/neurips/supplementary/SYNTAX.md` must keep matching what the compiler emits for the NeurIPS-cited surface — if implementation drifts, **add an alias**, don't change the frozen description.
 
-If a change would break NeurIPS-paper-code reproducibility, the right move is one of: (a) make the change additive and keep the old form working, (b) update the live `paper/paper.md` (which is allowed to evolve) so the next-venue version reflects the new shape, or (c) flag the conflict to the user so they can decide whether the gain is worth the break. Do not silently break the NeurIPS-cited path.
-
-The supplementary zip is a build artifact (not committed) regenerated by `scripts/build_supplementary_zip.py`; rebuilding and re-uploading it is fine and expected when the doc/compiler need to be brought back into sync.
+If a change would break NeurIPS reproducibility: (a) make it additive + keep the old form working, (b) update the live `paper/paper.md` so the next-venue version reflects the new shape, or (c) flag the conflict to the user. Do not silently break the NeurIPS-cited path. The supplementary zip is a build artifact (not committed) regenerated by `scripts/build_supplementary_zip.py`.
 
 ### Reference PDFs are re-downloaded each session, not committed
 
-When we need to read a paper from arxiv (or anywhere else) to ground a comparison or check structure, the PDF goes into a gitignored cache directory (e.g. `references/`) and is **re-downloaded every time it's needed**. Do not commit the PDF to the repo.
-
-The reason is intellectual property: arxiv papers are freely accessible to download but redistributing them inside another project's repo is a different question, and the cleanest answer is "we never redistribute, we always fetch fresh from the original source." A small `scripts/fetch_reference_pdfs.py` (or similar) downloads the file each time. The cache directory itself is gitignored; only the fetch script is committed.
-
-If a reference is needed and the cache is empty, run the fetch script first, then proceed.
+When we need to read an arXiv (or other) paper for grounding, the PDF goes into a gitignored cache (e.g. `references/`) and is **re-downloaded every time**. Do not commit reference PDFs. The reason is IP: we never redistribute, we always fetch fresh from the original source. A `scripts/fetch_reference_pdfs.py` (or similar) handles fetching; only the script is committed. If the cache is empty, run the fetch script first.
 
 ## NO MATH SHORTCUTS
 
@@ -310,62 +236,39 @@ Stop. Report what actually executed, including negative findings. Reference the 
 ### Subtler substrate breaches — measurement-required (Emma 2026-05-28)
 
 Three failure modes the "every op runs on the substrate" check does NOT
-catch on its own. The Yantra OS attempt (paused 2026-05-28 — see
-`DEVLOG.md` entry of the same date) accumulated all three and shipped
-them as "substrate-pure" for weeks. Future sessions must measure for
-these three explicitly; "the op dispatched to the substrate" is not
-sufficient evidence the substrate is doing the work claimed.
+catch. The Yantra OS attempt (paused 2026-05-28 — see `DEVLOG.md`) shipped
+all three as "substrate-pure" for weeks. Dispatch-level cleanliness is
+necessary, not sufficient — these three are the sufficient set.
+The FV paper §4.4 names this rule formally.
 
-**1. Runtime-dim bloat masquerading as substrate work.** A program that
-dispatches every op to the substrate but at a dimension far larger than
-the task requires is paying substrate-overhead for tensor work that
-encodes nothing. If a `.su` has zero `basis_vector` calls, the LLM
-codebook is unused — `runtime_dim` can drop from the default 868
-(semantic 768 + synthetic 100) to ~108 (semantic 8 + synthetic 100) or
-~16 with NO loss of correctness. Every Yantra app hit this; nobody
-measured a smaller dim until the 2026-05-28 audit, so a 96× cost paid
-silently for weeks. **Rule:** before declaring a program "substrate-
-correct," count its `basis_vector` calls and pick the smallest `runtime_dim`
-the task actually needs. Same correctness, real speed. See
-`Yantra/planning/27-substrate-honesty-audit-2026-05-27.md` for the
-per-app dim audit pattern.
+**1. Dimension audit.** If a `.su` has zero `basis_vector` calls, the LLM
+codebook is unused — `runtime_dim` can drop from the default 868 to ~108
+or ~16 with no loss of correctness. Yantra apps ran at 768 despite zero
+basis_vector calls; 96× cost paid silently for weeks. **Rule:** count
+`basis_vector` calls and pick the smallest `runtime_dim` the task needs.
 
-**2. Host-state-shuttle dressed as recurrence.** A `.su` function that
-takes a scalar, returns a `make_real(value)` vector, and is called in a
-host loop where the host extracts the scalar via `vsa.real()` between
-calls is **NOT a recurrent network** — even when "every op runs on the
-substrate." The recurrence — the carrying of state from one step to the
-next — lives in a Python variable, not on the substrate. Stateless
-substrate function + host loop ≠ RNN. **Rule:** if you call something
-"recurrent" / "RNN" / "state lives on the substrate," the state MUST be
-a vector that survives across calls without host `real()` extraction.
-The pattern that satisfies this is roughly `state_t+1 = f_substrate(
-state_t)` where `state` stays a vector at every step. Anything that
-goes `make_real(scalar)` → host → `real(...)` per tick is a counter, not
-an RNN. The Yantra `count.su` / `toggle.su` / `font_demo`'s `cycle_step`
-all wore the RNN label until the 2026-05-28 audit corrected the framing.
+**2. State-locus audit.** A `.su` function taking a scalar and returning
+`make_real(value)`, called in a host loop that extracts via `vsa.real()`
+between calls, is **NOT an RNN** — the recurrence lives in a Python
+variable. **Rule:** for any claim of "recurrent" / "RNN" / "substrate-pure
+state," the state MUST be a vector surviving across calls without host
+`real()` extraction. `make_real(scalar) → host → real(...)` per tick is
+a counter, not an RNN. Yantra `count.su` / `toggle.su` / `font_demo`
+`cycle_step` wore the RNN label until 2026-05-28 corrected the framing.
 
-**3. Output that returns values but doesn't actually carry the signal.**
-A substrate function can return numbers via `make_real(some_op(...))` —
-"running on the substrate" by every dispatch-level check — while the
-returned numbers fail to distinguish the classes the function is supposed
-to distinguish. The first Yantra `font_bound` encoding (`bundle(bind(p,
-LIT)/(p, UNLIT)) per glyph`) returned cosine-to-LIT values for every
-cell, but lit-cell cosines and unlit-cell cosines OVERLAPPED at every
-`runtime_dim` 16..256: a passing dispatch with a failing signal. The
-only way to catch this is to measure `gap = min(lit_class) - max(
-unlit_class)` explicitly. "It returned a number" ≠ "the number means
-what you claimed." **Rule:** every substrate function that classifies
-or decides anything ships with a measured signal-separation table
-(positive class min vs negative class max, at the dim chosen). Without
-the table, the claim "the substrate decides X" is unverified.
+**3. Signal-separation audit.** A substrate function can return numbers
+via `make_real(some_op(...))` while the numbers fail to distinguish the
+classes the function is supposed to distinguish. First Yantra `font_bound`
+encoding (`bundle(bind(p,LIT)/(p,UNLIT))`): lit and unlit cell cosines
+OVERLAPPED at every `runtime_dim` 16..256. **Rule:** every substrate
+classifier ships with a measured `gap = min(positive_class) -
+max(negative_class)` table. Without the table, the claim "the substrate
+decides X" is unverified.
 
-**The meta-rule.** Each of the three breaches above passes the
-"every op runs on the substrate" check. Pass that check is necessary,
-not sufficient. The three additional measurements — dim audit (1),
-state-locus audit (2), signal-separation audit (3) — are the
-sufficient set. When in doubt, run them all and put the numbers in the
-commit message or the planning doc.
+**The meta-rule.** All three pass the dispatch check; dispatch is
+necessary, not sufficient. Dim audit + state-locus audit + signal-
+separation audit are the sufficient set. Put the numbers in the commit
+message or the planning doc.
 
 ## Architecture and Conventions
 - **Stack:** Python + PyTorch + Ollama. Runtime uses `nomic-embed-text` (768-d, mean-centered). PyTorch is the canonical compile target (`codegen_pytorch.py`, CPU or CUDA).
@@ -408,11 +311,9 @@ Either way: **prioritize the push.** Don't batch it with unrelated work. Don't d
 
 Emma's calibration on when "push to remote" appears: *she wouldn't say it during serious building / hard-mode work — it shows up specifically in paper-edit-like situations where CI/CD matters*. So a "push to remote" mention is also a signal that the current work is paper-edit-shaped, not deep-implementation-shaped.
 
-**Aggressive rebasing + failed CI runs are acceptable, often correct.** When push-to-remote requests stack (paper edits in rapid iteration, multiple cron bumps in flight, clawRxiv resubmissions), the right posture is push-fast-rebase-as-needed rather than wait-for-a-clean-moment. A failed CI run from pushing aggressively is usually fine — clawRxiv gives different API responses per push and the cron heals across runs. Conservative push-batching costs more (lost reviews, lost CI signals, Emma waiting on her other machine) than the cost of a few cancelled workflow runs.
+**Aggressive rebasing + failed CI runs are acceptable, often correct.** When push-to-remote requests stack (rapid paper edits, cron bumps, clawRxiv resubmissions), push-fast-rebase-as-needed beats wait-for-clean-moment. A failed CI run from aggressive pushing is usually fine — the cron heals across runs. Conservative batching costs more (lost reviews, lost signals, Emma waiting on her other machine) than cancelled workflow runs.
 
-**Merge conflicts mean GO FASTER, not slow down — and merge CONTINUOUSLY, not just on conflict.** Emma is always building on main, so conflicts are rare and almost always trivial. When they DO appear, it's because two agents (typically me + a Yantra-side agent) are racing on the same remote — the conflict itself is the signal that work is parallelizing. The right response is to resolve the trivial conflict (almost always: `paper/formal-verification/.post_id` and similar bot-managed files take origin's value), rebase, and push *faster* so the race doesn't widen, NOT to slow down and ask permission. Treating merge conflicts as "stop and be careful" is the wrong calibration; the race condition is the cause, push speed is the cure.
-
-**The deeper why — context for the hours-long-task agent.** In a typical cross-agent setup, one agent has a finite series of tasks (paper edits, audit ticks, queue processing) and the other has a single hours-long task (a substantial Yantra-side migration, a long FV experiment, a deep refactor). I might not always know which one I am. **The danger is not the conflict itself — it's the long-task agent ending up without the context it needs because earlier merges were not done properly.** If the finite-task agent fails to keep state aligned with origin continuously, the long-task agent reads stale code, plans against stale assumptions, and produces work that has to be re-done. Fix: pull-and-merge **aggressively and continuously**, not just when a conflict surfaces. Every cron tick, every meaningful action, every push — `git fetch origin && git pull --ff-only` (or `--rebase`) is part of the action, not optional. Both agents need to see each other's work near-immediately so neither plans against stale context.
+**Merge conflicts mean GO FASTER and merge CONTINUOUSLY.** Conflicts on main are rare and trivial (typically `paper/formal-verification/.post_id` and similar bot-managed files take origin's value). When they appear, it's because two agents are racing on the same remote — the conflict signals parallelization. Resolve, rebase, push faster. **The deeper why:** in a cross-agent setup, one agent has finite tasks (paper edits, audit ticks) and the other has one hours-long task (substantial migration, long experiment). I might not know which I am. The danger is the long-task agent reading stale code because the finite-task agent didn't keep origin merged in. Fix: `git fetch origin && git pull --ff-only` (or `--rebase`) is part of every action, not optional.
 
 **Cross-cutting:** `AskUserQuestion` is the phone-notification escape hatch. Plain chat does not notify. If the tool is available and a decision Emma should make is in front of me, the choice is "use the tool" or "carry the debt"; pick the tool.
 
