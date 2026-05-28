@@ -2304,7 +2304,7 @@ first* for each step to be startable. We should have some level of
 explaining the requirements before barreling into the roadmap. Spell out,
 at minimum:
 
-- [ ] **Constrain-train harness generalization** — the §3 per-category
+- [ ] **Constrain-train harness generalization** — the Stage-1b per-category
   setups (single scalars, per-key values, per-role rotation matrices,
   Kleene coefficients) as a uniform, reusable harness, not one-off scripts.
   Prereq for the corpus. (Shipped instances to template from: `==` cosine
@@ -2331,10 +2331,49 @@ concrete, verifiable queue items is the "explain the requirements" work.
 
 Once the requirements above are spelled out: **walk
 `planning/self-improving-system-roadmap.md` end to end and act on every
-instruction / step in it.** Section by section (§3 setups → §4 long arc →
-§5 self-improvement loop → §6 decompiler family + bootstrap → §8 concrete
-next steps), atomize each instruction into a concrete `queue.md` item
-(mirrored to the task tool), do it, verify against ground truth, and check
-it off. This is the standing pointer that keeps the roadmap from becoming a
-document nobody executes — its §8 "Concrete next steps" list is the ordered
-entry point.
+instruction / step in it.** Stage by stage (Stage 1 general-purpose language +
+trainable components + structural FV → Stage 2 build the corpus → Stage 3 the
+program-recovery model → Stage 4 generalize generation/fine-tuning → Stage 5
+the completely neural computer → Stage 6 self-training auditable computer),
+atomize each into a concrete `queue.md` item (mirrored to the task tool), do
+it, verify against ground truth, and check it off. This is the standing
+pointer that keeps the roadmap from becoming a document nobody executes —
+**Stage 1 is the current stage**, and its trainable-component list (1b) is the
+near-term entry point.
+
+## [This year] Make the loop-halting flag explicit
+
+Sutra loops emit a **halting flag** — the signal a repeating loop raises to
+say *"the output right now is NOT the final output,"* which on reaching its top
+value means the program halts. Its intended shape is a **monotone function that
+starts at 0 and rises to 1** (sigmoid-like, but it need not be a sigmoid — any
+monotone 0→1 signal works); reaching 1 = halt. It is **not** meant to be a hard
+step, which is how it is implemented today.
+
+Status: the flag exists **implicitly** right now and is a real program
+behavior — the codegen gates the halting loop forms (`do_while` /
+`iterative_loop` / `foreach_loop`) via the runtime `heaviside` helper — but it
+is underspecified and awkward to work with. Emma is not 100% certain on the
+halting details; settle the design before changing the loop gate.
+
+- [ ] Spec the halt flag explicitly: what it is (a program-emitted
+  "not-final-output" / halt signal), its monotone 0→1 shape and polarity, and
+  how a program emits/reads it. Reconcile with `recur` (non-halting loops have
+  no such flag) and with the FV termination obligation.
+- [ ] Decide whether/how the runtime gate moves from the hard `heaviside`
+  helper to the intended monotone 0→1 flag without breaking termination — a
+  function that actually *reaches* 1 gives crisp halt while staying soft on the
+  way (unlike an asymptotic sigmoid that never quite arrives).
+
+## [This year] todo.md follows the roadmap; make planning documentation more comprehensible
+
+`planning/self-improving-system-roadmap.md` (the Stage 1→6 timeline) is the
+spine this file follows. The rest of the planning documentation
+(`planning/*.md`, `planning/sutra-spec/`, `planning/findings/`,
+`planning/open-questions/`) should be pulled into a more comprehensible,
+navigable shape that points back to the roadmap stage each piece supports, so
+the agenda reads as one coherent plan rather than scattered docs.
+
+- [ ] Build a planning index / map tying each planning doc to the roadmap
+  stage it serves; surface it from `todo.md` and the roadmap so the planning
+  surface is legible end to end.
