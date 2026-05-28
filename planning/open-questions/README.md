@@ -44,10 +44,13 @@ one line).
 | `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
 | `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
 | `cosine-as-its-own-transcendental.md` | RESOLVED | complex-argument `cos(z)` shipped 2026-05-17 as `ccos` (`codegen_pytorch.py:1384`); finding `2026-05-17-complex-argument-cosine-implemented.md`; OPEN only on the `csin` follow-on |
+| `equality-cosine-T-placement.md` | RESOLVED | per-rule literal (Emma 2026-05-26); `experiments/equality_cosine_adjustment.py` |
+| `non-halting-loop-recur-primitive.md` | RESOLVED | `sutra-spec/non-halting-loop.md` (all 5 sub-decisions locked 2026-05-28); v1 shipped in `6757863d` + `6fc64c15` |
+| `arbitrary-precision-digit-array.md` | RESOLVED | Option A locked + 4 sub-decisions locked 2026-05-28; implementation across `b991781a`, `49183f3b`, `2ee0fe54`, `baafa8ed`, `8a009e38`, `befdac0b`; FV obligations in `planning/findings/2026-05-28-digit-array-add-fv-obligations.md` |
 
-Tally (incl. the later-added `cosine-as-its-own-transcendental.md` row):
-**5 RESOLVED/STALE**, **3 RESOLVED-core with a narrow OPEN tail**,
-**11 genuinely OPEN** — but most "open" ones are narrow sub-questions,
+Tally (incl. the 2026-05-26+28 resolutions):
+**8 RESOLVED/STALE**, **3 RESOLVED-core with a narrow OPEN tail**,
+**10 genuinely OPEN** — but most "open" ones are narrow sub-questions,
 not undefined design space, and none currently blocks queue work. The
 RESOLVED/STALE docs should be deleted/archived on the next pruning
 pass (rule 3 above) once their rationale is confirmed captured in the
@@ -99,4 +102,4 @@ genuinely OPEN.
 - `function-taxonomy-and-closure.md` — what counts as a closure in Sutra given the no-host-mutation rule, and how the four function-kind taxonomy (free function, method, intrinsic, loop-function) relates to the closure question. Partially resolved 2026-05-09 (closure-free closure capture for TS arrow functions ships by parameter-lifting); the deeper taxonomy question stays open.
 - `axon-bind-needs-permutation-for-synthetic-fillers.md` — **shipped 2026-05-10**. Diagnosed the bug where scalar/string axon fillers in the synthetic block didn't separate per key because bind is identity in synthetic. Fix landed in commit `6d25f232` (per-key permutation applied inside `axon_add`/`axon_item` only; free-standing `bind`/`unbind` unchanged). Doc kept for the diagnostic + fix-design rationale.
 - `javascript-primitive-subclasses.md` — surfaced 2026-05-10. Emma's clarification of the JS-compat model: per-primitive subclasses (`JavaScriptInt extends int`, `JavaScriptString extends String`, etc.) with JS-specific operator overrides, instead of the catch-all `JavaScriptObject` carrying all of them. Refinement of the MVP that landed 2026-05-10; not blocking, picks up when a real TS program exposes a dispatch case the catch-all can't handle.
-- `arbitrary-precision-digit-array.md` — surfaced 2026-05-27 from the FV "arbitrary precision (calc)" queue item. The bounded first piece (`parse_int2.su`) shipped substrate-pure, but the carry-loop step needs a design pick between (A) an associative-scan substrate intrinsic, (B) a sequential soft-halt loop in Sutra, or (C) a hybrid (Sutra surface, scan-rewrite pass). Four sub-decisions named (BigInt typing, digit layout, max width, integer-division primitive). Blocking the next concrete step in the FV calc thread.
+- `arbitrary-precision-digit-array.md` — **RESOLVED 2026-05-28**. Top-level choice locked: Option A (associative-scan substrate intrinsic). All four sub-decisions locked via Emma's `AskUserQuestion` sweep: BigInt class form, radix-10, BigInt<MAX> const-template, `_int_div_mod` substrate primitive. Implementation shipped same day across six commits: `b991781a` (int_div + int_mod intrinsics), `49183f3b` (parser const-template for int-literal in type-arg position; `BigInt<256>` parses everywhere), `2ee0fe54` (digit_array_add intrinsic, v1 N-step carry propagation), `baafa8ed` (end-to-end harness with overflow-saturates test), `8a009e38` (stdlib/bigint.su with `bigint_add` wrapper), and `befdac0b` (BigInt class declaration). FV obligations documented in `planning/findings/2026-05-28-digit-array-add-fv-obligations.md`. Remaining tail items (operator `+` overload, construction helpers from string/int, FV paper §3 wiring) are smaller follow-ons, not load-bearing design questions.
