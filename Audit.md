@@ -33,10 +33,12 @@ retired; this audit targets the canonical `codegen_pytorch.py`.
 
 ## Current status — 2026-05-28
 
-**All REAL LEAK entries (#1–#8) are FIXED.** Every site catalogued in
+**All REAL LEAK entries (#1–#9) are FIXED.** Every site catalogued in
 the REAL LEAK section has either been resolved (with the fixing commit
 hash inline) or reclassified to a defensible boundary (#4 generic loop
-runtime, recorded as NOT A LEAK after rereading the loop body). The
+runtime, recorded as NOT A LEAK after rereading the loop body). #9
+(`eq`/`eq_synthetic`) was added later in the day after the defuzz β
+grad-broken investigation surfaced it; same shape as #2, separate site. The
 `experiments/substrate_leak_sweep.py` CI-gate is wired in
 (`sdk/sutra-compiler/tests/test_substrate_leak_sweep.py`); it sweeps 67
 user `.su` programs and asserts 0 operator leaks per run.
@@ -236,6 +238,38 @@ saturate instead of raise.
    (`arr[…] = float(len/ v)` + host `for`). Literal lift is a
    defensible boundary, but the host `%`/`for` here are doing
    substrate-shaped work on the host.
+
+9. **`eq` / `eq_synthetic` — `make_truth(float(cos.item()))`** —
+   ✅ FIXED 2026-05-28 in commit `e2b8ee7a` (defuzz β grad
+   investigation; SutraBarrel session). Was
+   `return self.make_truth(float(cos.item()))` (and
+   `make_truth(float(truth.item()))` in `eq_synthetic`) at
+   `codegen_pytorch.py:2414` / `:2429`. `cos` / `truth` is a 0-d
+   tensor with a `grad_fn`; `.item()` extracts a Python scalar
+   (severing the autograd chain) and `float(...)` rewraps it,
+   then `make_truth` builds a fresh vector with the scalar
+   written into the truth axis. The numerical value is identical
+   to a direct scatter, but the gradient connection is lost
+   AND it's a host scalar extraction inside the op (the exact
+   pattern fixed for `defuzzify_trit` in #2). Now: scatter the
+   0-d tensor directly — `out = _torch.zeros(self.dim, …); out[
+   self.semantic_dim + self.AXIS_TRUTH] = cos; return out`
+   (preserves grad via `index_put_`; substrate-pure; semantic
+   identity with the previous form Δ=0.00e+00). Verified:
+   `defuzz_gain_adjustment.py --smoke` PASS (Δ=0); direct
+   autograd test (`gain.grad is not None: True`,
+   `out.requires_grad: True`); compiler suite 402 passed / 7
+   skipped / 116 subtests / 0 failed; substrate-leak-sweep
+   `tests/test_substrate_leak_sweep.py` 1 passed in 1288s
+   (67 user .su, 0 operator leaks). Surfaced by the defuzz β
+   training BLOCKED finding (`c6a8470d`); root-caused +
+   fixed in the follow-up finding
+   `planning/findings/2026-05-28-defuzz-gain-grad-fixed-eq-
+   substrate-leak.md`. Survived the broader audit because the
+   substrate-leak-sweep gate greps user .su programs' emitted
+   Python — it does NOT grep the runtime-prelude `_TorchVSA`
+   class itself, where this leak lived. Follow-on (separate
+   tick): extend the sweep to cover the runtime prelude.
 
 ## BORDERLINE — entry/exit boundary or commit, justify-or-fix
 
