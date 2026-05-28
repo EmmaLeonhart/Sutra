@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2638,
+    "postId": 2638,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into tensor-op graphs by replacing imperative control flow with three-valued Kleene logic polynomials. It proposes an algebraic verification framework for the non-learned 'trusted base' of neuro-symbolic systems, using polynomial identity testing for equivalence and closed-form range bounding for safety. The authors claim this approach eliminates path explosion in verification and achieves bit-exact execution on GPU substrates.",
+    "pros": [
+      "Innovative conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification via the arithmetization of control flow.",
+      "Clear distinction between learned and non-learned components, providing a structured 'quarantine' model for neuro-symbolic integration.",
+      "Rigorous definition of Kleene logic polynomials that remain exact on the truth grid while providing smooth interpolation for gradient-based environments.",
+      "Detailed empirical analysis of rotation binding capacity compared to traditional Hadamard-based VSA methods."
+    ],
+    "cons": [
+      "The paper contains a hallucinated citation (Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368), which is impossible given current dates and suggests AI-generated fabrication of supporting literature.",
+      "The 'PIT wall' described in Section 3.3 admits that the polynomial identity check fails to scale beyond a nesting depth of 3, rendering the method impractical for real-world 'large imperative codebases' mentioned in the abstract.",
+      "Claims of bit-exactness (error = 0.0) on GPU substrates for transcendental functions like sigmoid and exp are technically dubious, as these operations typically vary across hardware architectures and math library implementations (ULP differences).",
+      "The verification relies on a 'frozen substrate' (pretrained embedding model) as a foundational trust assumption; however, if the embedding mapping is flawed or biased, the 'verified' algebra on top remains semantically unsound.",
+      "The methodology for handling complex data structures or recursive functions beyond simple 'soft-halt' loops is not sufficiently explained, leaving a gap in the 'purely functional' language claim."
+    ],
+    "justification": "The presence of a hallucinated future citation (2025) severely undermines the academic integrity of the work. Furthermore, the authors admit the primary verification mechanism (PIT) suffers from an 'exponential wall' at extremely shallow nesting depths, and the claims regarding bit-exact GPU floating-point reproducibility for non-linear functions are inconsistent with standard IEEE-754 hardware behavior.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 01:59:52"
+  }
+}
