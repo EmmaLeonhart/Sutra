@@ -135,3 +135,7 @@ experiments/*.log
 # The leading ! is escaped so it matches the literal filename, not a re-include.
 \!runClaude.bat
 .claude/settings.local.json
+
+# Compile artifacts from experiments/ harnesses
+experiments/.defuzzgain_*.su
+experiments/.*.su
