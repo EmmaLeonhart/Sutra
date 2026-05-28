@@ -271,6 +271,36 @@ saturate instead of raise.
    class itself, where this leak lived. Follow-on (separate
    tick): extend the sweep to cover the runtime prelude.
 
+10. **`_select_softmax` scores `as_tensor` autograd-detachment** —
+    ✅ FIXED 2026-05-28 in the SutraBarrel work-loop tick that shipped
+    `experiments/select_temperature_adjustment.py` (task #21 / constrain-
+    train target 4). Was
+    `s = _torch.as_tensor(scores, dtype=_DTYPE, device=_DEVICE)` at
+    `codegen_pytorch.py:67`. When `scores` is a Python list of 0-d
+    grad-tracked tensors (the typical shape: `[similarity(x, p_0)/T,
+    similarity(x, p_1)/T, ...]` with `T` a trainable param),
+    `_torch.as_tensor(list_of_grad_tensors)` silently detaches by
+    forcing each element through scalar conversion (PyTorch emits
+    the warning `Converting a tensor with requires_grad=True to a
+    scalar may lead to unexpected behavior`). The downstream softmax
+    is mathematically correct but disconnected from the autograd
+    graph — `.backward()` raises `RuntimeError: element 0 of tensors
+    does not require grad`. Now: when scores carries tensors,
+    `_torch.stack([sc.to(dtype=_DTYPE, device=_DEVICE) for sc in
+    scores])` (preserves grad via `StackBackward0`); raw-number
+    scores still go through `_torch.as_tensor`. Verified: select-T
+    smoke (`experiments/select_temperature_smoke.py`) monotonic
+    across T ∈ {0.01..100}; select-T training (`experiments/
+    select_temperature_adjustment.py`) K=3 per-class=3 epochs=10
+    smoke trains T*=0.0185 from baseline 1.0, baseline margin
+    +0.0039 → trained +0.2796 (71.6× ratio), round-trip max|Δ|
+    = 2.50e-06. Same shape as #9 (host scalar extraction inside a
+    runtime op; semantically identical to the substrate-pure form
+    but autograd-broken). Surfaced by the select-T training
+    BLOCKED first iteration of the 3-seed K=5 run, root-caused by
+    a 2-line autograd check + minimal fix. Now also covered by
+    the runtime-prelude scan extension (`c270acc0`).
+
 ## BORDERLINE — entry/exit boundary or commit, justify-or-fix
 
 Defensible as a host↔substrate boundary, but each needs an explicit

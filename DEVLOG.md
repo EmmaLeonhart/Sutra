@@ -15,6 +15,19 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: select-T constrain-train SHIPPED + REAL LEAK #10 fixed in `_select_softmax`
+
+Work-loop tick: built `experiments/select_temperature_adjustment.py` (full 3-seed K=5 harness mirroring `equality_cosine_adjustment.py`). The first run hit `RuntimeError: element 0 of tensors does not require grad` in the backward pass. Root-cause: `_select_softmax` (emitted by `codegen_pytorch.py:67`) ran `_torch.as_tensor(scores, ...)` on a Python list of 0-d grad-tracked tensors, which silently detaches by forcing each through scalar conversion (PyTorch's warning: "Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior"). The downstream softmax stayed mathematically correct but disconnected from the autograd graph. **Same shape as REAL LEAK #9** (`eq`/`eq_synthetic` `float(cos.item())` fix on 2026-05-28): host scalar extraction inside a runtime op, semantically identical to substrate-pure form but autograd-broken. Fix: when scores carries tensors, route through `_torch.stack([sc.to(dtype, device) for sc in scores])` instead (preserves grad via `StackBackward0`). Raw-number scores still go through `as_tensor`.
+
+Audit.md REAL LEAK #10 entry added documenting the fix. After the codegen change:
+- Smoke (`experiments/select_temperature_smoke.py`, shipped earlier in `a01184e3`): monotonic across T ∈ {0.01..100}.
+- Micro K=3/per-class=3/epochs=10/1-seed: baseline margin +0.0039 → trained +0.2796 (71.6× ratio), T*=0.0185, round-trip max|Δ|=2.50e-06.
+- Full K=5/per-class=10/epochs=80/3-seeds (52.9s): T trains 1.0 → -0.79 (sign flip), margin stays ≈ 0. NEGATIVE task-fit result: the K=5 frozen-embed-prototype task's raw-similarity gap is too narrow for select-T's softmax-temperature lever to help. Mechanism is fully trainable + substrate-pure + bit-exact bake-back (round-trip 1.79e-07), but the task is flat for this operator. Finding doc: `planning/findings/2026-05-28-select-T-trains-but-K5-embed-task-is-flat.md`.
+
+This is the **fourth** shipped constrain-train instance (after equality-cosine T, defuzz β, rank-k K=2 smoke). Updated `planning/exploratory/constrain-train-next-targets.md` with the result and the next pick (target 3 `bundle` weights, ~4-6h; or a cheap pre-bundle non-flat select-T task to push the existing ship from "mechanism trainable" to "mechanism trainable + non-trivial task win," ~1h).
+
+Compiler codegen/select suite 113/0 green after the codegen change. Substrate-purity inventory: REAL LEAK #1–#10 all FIXED.
+
 ## 2026-05-28: constrain-train synthesis — defuzz β SHIPPED; next pick is `select` softmax temperature
 
 Work-loop tick: synthesis update to `planning/exploratory/constrain-train-next-targets.md` per `feedback-be-less-procedural-more-creative` + `feedback-constrain-train-vision-is-every-op`. The doc was last updated 2026-05-27 picking defuzz β as the next ship — defuzz β shipped today (`5ca1b043`, measured 15× loss reduction + β\* = 6.58 ± 0.17 consistent across 3 seeds + round-trip 1.19e-7). Updated the doc with the actual path taken (cosine-`==` scale-invariance diagnosis → `defuzzify_trit` source-level intrinsic → runtime-variable iters per Emma's Option-1) and the three-item shipped inventory (equality-cosine T from `21978648` 2026-05-26; defuzz β today; rank-k is_X with K=2 smoke verified 3.01× margin in `132c8925` and K=5 sweep in flight). Next pick per the original ranking: target 4, `select` softmax temperature — smaller surface change (wrap scores in a divide rather than a new parser form) and reuses existing classification harnesses. After that: target 3 bundle weights, then target 7 Kleene per-callsite coefficients.
