@@ -107,6 +107,8 @@ These slot into the FV paper's §3 obligation framework as a new family parallel
 - Multiple `recurring` slots per function with named `recur(slot, EXPR)` — v1 supports one slot per function. (If a function has two `recurring` declarations and one `recur(...)`, the validator picks the right slot by type-matching; if ambiguous, parse error.)
 - Cross-program axon wiring of recurring outputs (this is the "axon-only alternative" from the dossier — left for the Yantra-OS-shaped future).
 - `recur` as an expression (instead of statement) — v1 is statement-only.
+- **`recurring TYPE NAME = INITIAL;` with non-vector types auto-lifted to substrate vectors.** v1 requires `recurring vector NAME = make_real(N)` for scalar-shaped state; Emma's example `recurring int x = 50` is not yet supported. Codegen would need to wrap the initializer in `_VSA.make_real(...)` when the declared type is `int` / `scalar` / `number`.
+- **Sutra source-level `real()` / `imag()` / `truth()` accessor functions.** Currently `_VSA.real(v)` is a host accessor (returns a Python float; in the Audit.md LEGITIMATE list) but is not callable from .su source. This blocks rewrites that legitimately need one in-function extraction — see `planning/findings/2026-05-28-cycle-step-rewrite-blocked.md`. Without these, any function whose body's arithmetic was previously written for a `scalar` argument cannot trivially be lifted to a `recurring vector` slot, because there is no Sutra-level way to bridge the vector slot to scalar arithmetic. Two unblock paths: (A) expose `real()` etc. at the source level (small surface change), or (B) rework the body to do matrix-style tensor-only scoring (larger but fully substrate-pure).
 
 ## Cross-refs
 
