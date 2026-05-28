@@ -55,6 +55,10 @@ see §"Watchdogs" below.
 
 ## Active
 
+### 🔍 Daily substrate-honesty audit — 2026-05-28
+
+Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
+
 ## 📋 STATE INVENTORY — 2026-05-28 05:06 UTC (compression-survival snapshot)
 
 Per Emma 2026-05-27 22:06 PST: context is running low; this section is the authoritative state of all queued work so a future session (after compression or a fresh session start) can pick up cleanly. Everything below this section is the longer-form detail; this section is the index.
