@@ -105,6 +105,9 @@ No hex literals yet.
 | `try { ... } catch { ... }` | exception barrier | n/a (no learned recovery policy yet) |
 | `return expr;` | return | n/a |
 | `pass v1, v2, ..., replace, ...;` | tail-recursive yield in loop functions; `replace` keeps prior value | n/a |
+| `recurring TYPE name = INITIAL;` | non-halting-loop state slot declaration (substrate-resident tensor across calls) | n/a — slot lifetime is structural |
+| `recur(expr);` | sets the recurring slot's value for the next tick | n/a — substrate write to the slot |
+| `return(expr);` | non-halting per-tick output (parens distinguish from halting-`return expr;`) | n/a |
 | `var x = ...;`, `const x = ...;`, `TYPE x = ...;`, `var x : TYPE;`, `var[N] x : TYPE;` | declarations | n/a |
 | `slot ...` | slot declaration (compiler-allocated rotation slot) | vision — learned slot-index assignment |
 | `role X = ...;` | role declaration (contextual) | vision — learned role-rotation matrix (the deferred learned-binding track) |
@@ -117,7 +120,8 @@ No hex literals yet.
 |---|---|---|
 | `unsafeCast<Type>(value)` | type-system escape | n/a |
 | `unsafeOverride(value)` | type-system escape | n/a |
-| `defuzzy(value)` | truth-axis polarizer | **mechanism** — `defuzz_gain_adjustment.py` trains an input gain inside a user-level wrapper rule that uses the same `iterate N: f = f == true` shape with a learnable gain factor; bake-back round-trip clean at smoke. The underlying runtime `defuzzify_trit(v, iters=10, beta=2.0)` also has a hardcoded β that is a vision-level trainable surface (no Sutra-level parameter exposed yet) |
+| `defuzzy(value)` | truth-axis polarizer | mechanism — the cosine `(v == true)` loop body is scale-invariant in any input gain (`cos(g*v, true) = sign(x)`), so a wrapper gain on top of `defuzzy` is degenerate. The shipped trainable polarizer is `defuzzify_trit` below |
+| `defuzzify_trit(v, iters, beta)` | three-way β-sharpening polarizer (Sutra-source intrinsic since 2026-05-28) | **shipped** — β is the trainable scalar; `experiments/defuzz_gain_adjustment.py --body trit --iters 1` converges to β\* = 6.58 ± 0.17 across 3 seeds; baseline 0.2126 → trained 0.0146 (~15× loss reduction); bake-back round-trip max\|Δ\| = 1.19e-7 (bit-exact within float32 precision). Second shipped constrain-train instance after `==` cosine-scale T. Runtime iters became runtime-variable 2026-05-28 (Emma decision); default iters=10 preserves prior behavior |
 | `embed(string)` | LLM-embedding primitive | vision — per-string embedding fine-tunes (a tiny adaptation layer on the frozen substrate) |
 
 ---
@@ -304,7 +308,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `_truth_projector()` / `_real_projector()` / `_truth_from_real()` | projection matrices | n/a |
 | `make_truth(t)` / `make_trit(t)` | constructors | n/a |
 | `_as_truth_vector(x)` / `_as_any_vector(x)` | coercions | n/a |
-| `defuzzify_trit(v, iters=10, beta=2.0)` | runtime softmax polarizer | **mechanism** — `defuzz_gain_adjustment.py` trains a related gain in the spec-form expansion; the runtime's `beta` is a vision-level Sutra-side parameter exposure away from being directly trainable |
+| `defuzzify_trit(v, iters=10, beta=2.0)` | three-way β-sharpening polarizer | **shipped** — runtime uses `for _t in range(int(iters))` over the structural iters parameter (substrate-pure per Audit #4); β is the trainable scalar, exposed at Sutra source via `intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);` in `stdlib/logic.su`. See the §9 Special-call entry for the harness measurement |
 
 ### Number constructors
 
