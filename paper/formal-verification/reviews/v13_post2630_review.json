@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2630,
+    "postId": 2630,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles imperative control flow into fused tensor-op graphs using three-valued Kleene logic polynomials. It proposes a verification framework that replaces traditional path enumeration with algebraic identity testing and closed-form range bounding for the non-learned components of neuro-symbolic systems. The authors claim to achieve bit-exact execution of a GPU-native kernel by reducing control flow to element-wise tensor operations and saturated selection.",
+    "pros": [
+      "Innovative conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification of imperative control flow.",
+      "Rigorous mathematical formulation of three-valued Kleene logic connectives as Lagrange-interpolated polynomials.",
+      "Clear architectural separation between learned (unverified) and non-learned (verified) system components.",
+      "Honest disclosure of the computational complexity (monomial explosion) associated with Polynomial Identity Testing (PIT)."
+    ],
+    "cons": [
+      "The paper relies on hallucinated citations, specifically 'Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368', which does not exist in the current academic record.",
+      "The proposed equivalence decision procedure is practically unusable for real-world software; the authors admit that a simple depth-3 tree with 2 variables takes 56 seconds and nearly 1GB of RAM to expand, indicating an immediate scalability wall.",
+      "The scope of 'verified' code is limited to a narrow Kleene-logic fragment, which excludes the vast majority of logic found in a 'trusted base' (e.g., integer arithmetic, memory management, and data structure manipulation).",
+      "Extraordinary claims regarding a 'GPU-native OS' (Yantra) performing bit-exact dispatch are presented without sufficient architectural detail or evidence of the OS's complexity, making the results appear anecdotal.",
+      "The 'frozen substrate' assumption is problematic; unlike a CPU's ALU, the semantic stability of an embedding model (e.g., nomic-embed-text) across different hardware/software environments is not a formal guarantee, yet it is treated as a foundational truth.",
+      "The argument for range-soundness by composition ignores the cumulative effect of floating-point noise in deep tensor graphs, which may violate the [−1, +1] bounds in practice despite the abstract polynomial proof."
+    ],
+    "justification": "The paper's core technical contribution—equivalence checking via Polynomial Identity Testing—is admitted to be computationally prohibitive at extremely shallow nesting depths, rendering the method impractical for any meaningful 'trusted base'. Additionally, the reliance on hallucinated future-dated citations and the lack of technical detail regarding the 'Yantra' OS results undermine the paper's scientific integrity.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 00:39:54"
+  }
+}
