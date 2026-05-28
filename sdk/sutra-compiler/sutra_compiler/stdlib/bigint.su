@@ -1,0 +1,33 @@
+// bigint.su — arbitrary-precision integer arithmetic helpers.
+//
+// Per planning/sutra-spec/arbitrary-precision.md (Option A, all four
+// sub-decisions locked Emma 2026-05-28). Ergonomic wrappers over the
+// substrate intrinsics int_div, int_mod, and digit_array_add (declared
+// in logic.su § "Section 3 — intrinsic declarations").
+//
+// Representation: a BigInt value is a 1-d substrate vector of `max_digits`
+// elements, each holding a base-10 digit in [0, 9]. Little-endian:
+// digit[0] is the ones place, digit[1] is the tens, ..., digit[N-1] is
+// the most-significant place. Overflow saturates by dropping the top
+// carry-out (matching the String overflow posture per strings.md).
+//
+// The wider `BigInt<MAX>` class form (sub-decision 1) is deferred to a
+// follow-on commit; v1 ships these functions so that callers can do
+// arbitrary-precision arithmetic before the class wrapper lands.
+//
+// Worked example end-to-end: experiments/bigint_worked_example.py
+// demonstrates `bigint_add` on the spec's `"99999" + "1" = "100000"`
+// case + 8 other cases including cascade and overflow-saturates.
+
+
+// bigint_add — add two digit-array BigInt values.
+//
+// Inputs: 1-d vectors `a` and `b` of equal length N, each digit in
+// [0, 10). Returns: 1-d vector of length N with the carry-propagated
+// sum digits; the top-digit carry-out is silently dropped (overflow
+// saturates at N digits). Substrate-pure end-to-end — the digit array
+// never round-trips through host scalars; carry propagation is the
+// `digit_array_add` substrate intrinsic.
+function vector bigint_add(vector a, vector b) {
+    return digit_array_add(a, b, 10);
+}
