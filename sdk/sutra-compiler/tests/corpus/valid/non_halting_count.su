@@ -1,0 +1,12 @@
+// Non-halting-loop primitive smoke (planning/sutra-spec/non-halting-loop.md).
+// Each `tick(input)` call advances the substrate state by `input`. State
+// lives in a module-level tensor slot; survives across calls without
+// host scalar extraction. See planning/sutra-spec/non-halting-loop.md.
+function vector tick(scalar input) {
+    recurring vector state = make_real(0.0);
+    vector new_state = state + make_real(input);
+    recur(new_state);
+    return(new_state);
+}
+
+function string main() { return "ok"; }

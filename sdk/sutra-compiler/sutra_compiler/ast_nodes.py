@@ -447,6 +447,32 @@ class PassStmt(Stmt):
 
 
 @dataclass
+class RecurStmt(Stmt):
+    """`recur(expr);` — set the recurring-state slot for the next tick.
+
+    Marks the enclosing function as non-halting (planning/sutra-spec/
+    non-halting-loop.md). The expression's value becomes the value of the
+    associated `recurring` slot on the next tick. v1 supports a single
+    slot per function; the slot is identified by type-match.
+    """
+    value: Expr
+
+
+@dataclass
+class RecurringDecl(Stmt):
+    """`recurring TYPE NAME (= EXPR)?;` — declare a recurring-state slot.
+
+    Lives inside a function body, NOT in the parameter list. The slot
+    is initialized to `EXPR` on the first tick (or zero-of-type if no
+    initializer). On subsequent ticks the slot holds whatever the prior
+    tick's `recur(...)` set. See planning/sutra-spec/non-halting-loop.md.
+    """
+    type_ref: TypeRef
+    name: str
+    initializer: Optional[Expr]
+
+
+@dataclass
 class LoopCallStmt(Stmt):
     """`loop name(cond_arg, state_arg, ...);` — invoke a loop function.
 
@@ -533,6 +559,12 @@ class FunctionDecl(Node):
     # `await expr` to gate on incoming axons. Lowering is spec'd in
     # planning/sutra-spec/promises.md; codegen lowering is pending.
     is_async: bool = False
+    # Non-halting function — body contains at least one `recur(...)`.
+    # Set by the parser/validator (not the user). Codegen treats the
+    # function as a stateful tick: substrate state held across calls
+    # in a hidden module-level slot. See
+    # planning/sutra-spec/non-halting-loop.md.
+    is_non_halting: bool = False
 
 
 @dataclass

@@ -1101,9 +1101,64 @@ class BaseCodegen:
             raise CodegenNotSupported(
                 decl, "generic function declarations are not supported by the V1 codegen"
             )
+
+        # Non-halting function setup (planning/sutra-spec/non-halting-loop.md).
+        # If the function body contains `recur(...)`, the function is non-
+        # halting: substrate state is held in a module-level slot that
+        # survives across calls. v1 allows at most one `recurring` slot.
+        nonhalting_slot_var: str | None = None
+        nonhalting_local_name: str | None = None
+        nonhalting_recurring_decl: ast.RecurringDecl | None = None
+        if decl.is_non_halting:
+            recurring_decls = [
+                s for s in decl.body.statements
+                if isinstance(s, ast.RecurringDecl)
+            ]
+            if len(recurring_decls) > 1:
+                raise CodegenNotSupported(
+                    decl,
+                    "v1: at most one `recurring` slot per function "
+                    "(planning/sutra-spec/non-halting-loop.md). v2 will "
+                    "support multiple slots with named `recur(slot, expr)`.",
+                )
+            if len(recurring_decls) == 1:
+                nonhalting_recurring_decl = recurring_decls[0]
+                nonhalting_local_name = nonhalting_recurring_decl.name
+                nonhalting_slot_var = (
+                    f"_{decl.name}__{nonhalting_local_name}_state"
+                )
+                # Emit the module-level slot var (None sentinel for lazy
+                # init on first call).
+                self._emit(
+                    f"{nonhalting_slot_var} = None  "
+                    f"# recurring state for `{decl.name}`"
+                )
+                self._emit("")
+
         param_names = [p.name for p in decl.params]
         self._emit(f"def {decl.name}({', '.join(param_names)}):")
         self._indent += 1
+
+        # Non-halting: emit `global SLOT`, lazy-init the slot, load it
+        # into the user's local name. The first tick uses the init
+        # expression; subsequent ticks load whatever the prior tick's
+        # `recur(...)` set.
+        if nonhalting_slot_var is not None and nonhalting_recurring_decl is not None:
+            self._emit(f"global {nonhalting_slot_var}")
+            if nonhalting_recurring_decl.initializer is not None:
+                init_src = self._translate_expr(
+                    nonhalting_recurring_decl.initializer
+                )
+            else:
+                init_src = "_VSA.zero_vector()"
+            self._emit(f"if {nonhalting_slot_var} is None:")
+            self._indent += 1
+            self._emit(f"{nonhalting_slot_var} = {init_src}")
+            self._indent -= 1
+            self._emit(
+                f"{nonhalting_local_name} = {nonhalting_slot_var}"
+            )
+
         # Register parameter types so instance-method dispatch
         # (Axon-typed params) and the general typed-receiver path
         # find them. Without this, `function int f(Axon a) {
@@ -1114,6 +1169,13 @@ class BaseCodegen:
                 self._var_type[p.name] = p.type_ref.name
                 if p.type_ref.name == "Axon":
                     self._axon_declared.add(p.name)
+        # Register the recurring local's type so it routes correctly
+        # through the type-aware dispatch path.
+        if (nonhalting_recurring_decl is not None
+                and nonhalting_recurring_decl.type_ref is not None):
+            self._var_type[nonhalting_local_name] = (
+                nonhalting_recurring_decl.type_ref.name
+            )
         # Reset the slot table for this function scope. If the body
         # has any slot declarations we'll need a `_slot_state` local,
         # initialized to a zero vector before the first slot_store.
@@ -1123,6 +1185,10 @@ class BaseCodegen:
         self._current_return_type = decl.return_type.name if decl.return_type else None
         outer_axon_elide = self._axon_elide_keys
         self._axon_elide_keys = self._compute_axon_elision(decl)
+        # Track the non-halting slot for `_translate_stmt`'s RecurStmt
+        # handling. None outside a non-halting function.
+        outer_nonhalting_slot = getattr(self, "_nonhalting_slot_var", None)
+        self._nonhalting_slot_var = nonhalting_slot_var
         self._emit("_program_halt = 1.0")
         if _has_slot_decl(decl.body):
             self._emit("_slot_state = _VSA.zero_vector()")
@@ -1130,10 +1196,15 @@ class BaseCodegen:
             self._emit("pass")
         else:
             for stmt in decl.body.statements:
+                # RecurringDecl statements were handled above (the slot
+                # is initialized at the function top); skip inline.
+                if isinstance(stmt, ast.RecurringDecl):
+                    continue
                 self._translate_stmt(stmt)
         self._slot_vars = outer_slot_vars
         self._current_return_type = outer_return_type
         self._axon_elide_keys = outer_axon_elide
+        self._nonhalting_slot_var = outer_nonhalting_slot
         self._indent -= 1
 
     def _compute_axon_elision(
@@ -1790,6 +1861,32 @@ class BaseCodegen:
     # -- statements -------------------------------------------------------
 
     def _translate_stmt(self, stmt: ast.Stmt) -> None:
+        # RecurStmt: write the current tick's value into the non-halting
+        # function's state slot. The slot was set up in _translate_function_decl;
+        # this just assigns to the module-level global.
+        if isinstance(stmt, ast.RecurStmt):
+            slot = getattr(self, "_nonhalting_slot_var", None)
+            if slot is None:
+                raise CodegenNotSupported(
+                    stmt,
+                    "`recur(...)` is only valid inside a non-halting function "
+                    "body (one that declares a `recurring` slot). See "
+                    "planning/sutra-spec/non-halting-loop.md.",
+                )
+            value_src = self._translate_expr(stmt.value)
+            self._emit(f"{slot} = {value_src}")
+            return
+        # RecurringDecl outside the body-top scan is unexpected — the
+        # body-top loop in _translate_function_decl skips them. If we
+        # see one here it's nested inside a control-flow body, which is
+        # not supported in v1.
+        if isinstance(stmt, ast.RecurringDecl):
+            raise CodegenNotSupported(
+                stmt,
+                "`recurring` declarations must be at the top of a function "
+                "body in v1 (not inside if / loop / try bodies). See "
+                "planning/sutra-spec/non-halting-loop.md.",
+            )
         # PassStmt: tail-recursive yield in a loop function body.
         # Translates to assignment of the loop's state locals.
         # Handled here rather than in a more general dispatcher so that

@@ -126,6 +126,29 @@ _PRIMITIVE_TYPES = {
 _SPECIAL_CALL_NAMES = {"unsafeCast", "unsafeOverride", "defuzzy", "embed"}
 
 
+def _body_contains_recur(node) -> bool:
+    """Return True if `node` or any of its children contains a `RecurStmt`.
+
+    Used to set `FunctionDecl.is_non_halting` per
+    planning/sutra-spec/non-halting-loop.md (presence of `recur(...)` in
+    the body marks the function as non-halting). Walks the AST without
+    recursing into nested FunctionDecls (a nested function with its own
+    `recur` is its own non-halting unit, not the outer's).
+    """
+    if isinstance(node, ast.RecurStmt):
+        return True
+    if isinstance(node, ast.FunctionDecl):
+        # Don't recurse into nested function bodies.
+        return False
+    if isinstance(node, list):
+        return any(_body_contains_recur(x) for x in node)
+    if hasattr(node, "__dataclass_fields__"):
+        for fld in node.__dataclass_fields__:
+            if _body_contains_recur(getattr(node, fld)):
+                return True
+    return False
+
+
 class Parser:
     def __init__(
         self,
@@ -388,6 +411,7 @@ class Parser:
             return None
 
         end_span = body.span
+        is_non_halting = _body_contains_recur(body)
         return ast.FunctionDecl(
             modifiers=mods,
             return_type=return_type,
@@ -397,6 +421,7 @@ class Parser:
             body=body,
             is_operator=False,
             is_async=is_async,
+            is_non_halting=is_non_halting,
             span=SourceSpan(start=start_span.start, end=end_span.end),
         )
 
@@ -976,6 +1001,10 @@ class Parser:
             return self._parse_return()
         if tok.kind is TokenKind.KW_PASS:
             return self._parse_pass()
+        if tok.kind is TokenKind.KW_RECUR:
+            return self._parse_recur()
+        if tok.kind is TokenKind.KW_RECURRING:
+            return self._parse_recurring_decl()
         if tok.kind in (TokenKind.KW_VAR, TokenKind.KW_CONST):
             return self._parse_var_or_const()
         if tok.kind is TokenKind.KW_SLOT:
@@ -1404,6 +1433,66 @@ class Parser:
             self._advance()
             return ast.ReplaceMarker(span=tok.span)
         return self._parse_expr()
+
+    def _parse_recur(self) -> Optional[ast.RecurStmt]:
+        """Parse `recur(expr);` — non-halting-loop state update.
+
+        Sets the recurring-state slot for the next tick. Presence of this
+        statement in a function body makes the function non-halting (per
+        planning/sutra-spec/non-halting-loop.md). The validator detects
+        non-halting functions; the parser just builds the node.
+        """
+        start = self._current_span()
+        self._advance()  # recur
+        if not self._expect(TokenKind.LPAREN, "`(` after `recur`"):
+            self._skip_to_statement_boundary()
+            return None
+        value = self._parse_expr()
+        if value is None:
+            self._skip_to_statement_boundary()
+            return None
+        if not self._expect(TokenKind.RPAREN, "`)` after recur value"):
+            self._skip_to_statement_boundary()
+            return None
+        end = self._expect(TokenKind.SEMICOLON, "`;` after `recur(...)`")
+        end_span = end.span if end else self._current_span()
+        return ast.RecurStmt(
+            value=value,
+            span=SourceSpan(start=start.start, end=end_span.end),
+        )
+
+    def _parse_recurring_decl(self) -> Optional[ast.RecurringDecl]:
+        """Parse `recurring TYPE NAME (= EXPR)?;` — declare a recurring slot.
+
+        Lives inside a function body, NOT in the parameter list. On the
+        first tick the slot holds the initializer value (or zero-of-type
+        if omitted); subsequent ticks load whatever the prior `recur(...)`
+        set. See planning/sutra-spec/non-halting-loop.md.
+        """
+        start = self._current_span()
+        self._advance()  # recurring
+        type_ref = self._parse_type()
+        if type_ref is None:
+            self._skip_to_statement_boundary()
+            return None
+        name_tok = self._expect(TokenKind.IDENT, "recurring-slot name")
+        if name_tok is None:
+            self._skip_to_statement_boundary()
+            return None
+        initializer: Optional[ast.Expr] = None
+        if self._match(TokenKind.ASSIGN):
+            initializer = self._parse_expr()
+            if initializer is None:
+                self._skip_to_statement_boundary()
+                return None
+        end = self._expect(TokenKind.SEMICOLON, "`;` after `recurring` decl")
+        end_span = end.span if end else self._current_span()
+        return ast.RecurringDecl(
+            type_ref=type_ref,
+            name=name_tok.lexeme,
+            initializer=initializer,
+            span=SourceSpan(start=start.start, end=end_span.end),
+        )
 
     def _parse_return(self) -> Optional[ast.ReturnStmt]:
         start = self._current_span()
