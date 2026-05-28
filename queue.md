@@ -483,16 +483,6 @@ call `compile_su` directly + admit-shim, like font/gui do, or (b) move
 the relevant kernel pieces along. Decision belongs to Emma, not
 autonomous.
 
-## Metabolize chat — DONE (Emma-directed reformat + move 2026-05-28)
-
-Emma directly instructed the full reformat as five individual commits: speaker
-attribution → readability → drop conversational framing → reorganize into a
-clear set of steps → move out of `exploratory/`. The 2026-05-27 vision
-conversation is now a clean, step-organized roadmap at
-`planning/self-improving-system-roadmap.md` (a concrete agenda, not
-exploratory). All design substance + Emma's scope calls are preserved; the
-verbatim chat log and each intermediate edit remain in git history.
-
 ## Update the paper
 
 Please update the FV paper and submit and push it. Ironically, because of the earlier issues that we were having where it was not submitting because of some kind of an error, now we're in a situation where the paper has not been updated in a very long time, even while we have done a lot of very significant updates. It needs to actually be updated so that we can start to get proper feedback on it. I would say here that we've really been overdoing it with the 10-minute cron job and everything with the paper, and we need an updated one to be done quickly.
