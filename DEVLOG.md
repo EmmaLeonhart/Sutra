@@ -66,6 +66,39 @@ rather than hard-coding a post id.
 
 This commit (DEVLOG only) does NOT trigger fv-paper-ci.
 
+## 2026-05-28: queue.md rank-k trim + docs/papers.md description update (audit #2 + #3)
+
+Work-loop tick. The grand honesty audit (`742641db`) surfaced three
+items, two of which are mechanical cleanups not gated on Emma triage:
+
+- **Audit #2** — queue.md rank-k section had re-accumulated "DONE
+  2026-05-27" sub-items (REAL per-seed variation, k-means anchors,
+  scientific-notation literals, original-steps), violating queue.md's
+  own discipline rule (top-of-file: "no DONE/SHIPPED status in
+  queue"). Same anti-pattern as the FV section trim from earlier
+  today in `1a54045b`. Trimmed: dropped the "Remaining work after
+  end-to-end pass" + "Original steps" + "END-TO-END WORKING" status
+  blocks, kept the mechanism / status / scope / cross-refs.
+  Rank-k section now ~25 lines instead of ~70; the K=5 sweep status
+  points at the still-blocking 🚨 BUG above. Also dropped the now-
+  stale "scheduled crons" subsection of the multi-front auth header
+  (both crons fired and were resolved hours ago).
+
+- **Audit #3** — docs/papers.md described the FV-paper chain starting
+  fresh "whenever clawRxiv's revise endpoint returns 404," which is
+  the recovery posture but not the steady-state behavior. Updated to
+  describe what actually happens: the auto-resubmit cron bumps the
+  title revision marker every 10 min, breaking clawRxiv's dedup hash
+  and forcing a fresh post per cron tick. Notes the 2026-05-27
+  origin and the server-side-bug context.
+
+- **Audit #1** stays in queue.md pending Emma triage (paper/neurips/
+  freeze touched by a metadata commit `599424f8`; the question is
+  whether contact-email standardization is an implicit carve-out in
+  the freeze rule or a real violation to revert).
+
+No code change; queue + docs reconciliation only.
+
 ## 2026-05-28: K=5 rank-k sweep CRASHED at equivalence guard (RuntimeError 1D vs 0D tensors)
 
 The K=5 k=1 n=3 20ep background run (`b4mrbfebl`, started 2026-05-27

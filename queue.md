@@ -55,37 +55,21 @@ see §"Watchdogs" below.
 
 ## Active
 
-## Audit findings 2026-05-27 19:15 PST
+## Audit findings 2026-05-27 19:15 PST — only #1 remains
 
-Three discipline-drift items surfaced by the grand honesty audit
-(report: `planning/findings/2026-05-27-grand-honesty-audit.md`). No
-fabricated numbers, no stale shas, no broken tests; these are queue/
-freeze/doc-description drift, not integrity violations.
+Audits #2 (queue.md rank-k DONE trim) and #3 (docs/papers.md
+description steady-state) are addressed in this commit. The trim
+mirrors the FV-section trim from earlier today (`1a54045b`).
 
 - **Audit #1 — paper/neurips/ freeze touched by metadata commit `599424f8`.**
-  What's wrong: 2026-05-24 contact-email standardization commit touched
-  files under the explicitly-frozen `paper/neurips/`. Emma-authored;
-  metadata-only (not paper content). What closes it: Emma triage —
-  either accept as an explicit carve-out in CLAUDE.md's freeze rule
-  (probably the right call; project-wide contact-email changes are
-  legitimate even on frozen archives), or revert the change in
-  `paper/neurips/` while keeping it on the live `paper/paper.md`.
-
-- **Audit #2 — queue.md rank-k section re-accumulating "DONE 2026-05-27" sub-items.**
-  What's wrong: lines 143/147/148/152 carry "DONE" status that
-  violates queue.md's own discipline rule at lines 6-8 (DONE belongs in
-  git log / findings, not in queue). Same pattern as the FV section trim
-  in `1a54045b` earlier today. What closes it: trim those sub-items
-  from queue.md, leaving the rank-k section with a pointer to the
-  capabilities doc + the still-blocking K=5 bug item below.
-
-- **Audit #3 — docs/papers.md description doesn't match steady-state behavior.**
-  What's wrong: the page describes the chain starting fresh "whenever
-  clawRxiv's revise endpoint returns 404," but with the title-bump cron
-  in steady state, every cron tick produces a new post (no 404
-  involved). What closes it: one-sentence update to docs/papers.md
-  reflecting that title-bump-per-cron is the current pattern, not
-  just-on-404 recovery.
+  Pending Emma triage. The 2026-05-24 contact-email standardization
+  touched files under the explicitly-frozen `paper/neurips/`. Two
+  reasonable closures: (a) accept as an explicit carve-out in
+  CLAUDE.md's freeze rule (project-wide identity changes are
+  legitimate even on frozen archives — this is probably the right
+  call); (b) revert the change inside `paper/neurips/` while keeping
+  it on the live `paper/paper.md`. Either way is small; the question
+  is which intent the freeze rule should encode.
 
 ### 🚨 BUG: rank_k_is_x.py crashes at K=5 equivalence guard — RuntimeError 1D vs 0D tensors
 
@@ -140,23 +124,14 @@ After this ships, the queue advances per the ranking doc: `select` softmax tempe
 ### ⭐ Emma 2026-05-27 13:21 PST — multi-front authorization batch
 
 Emma greenlit a batch of FV + infra + experiment work in one message
-(see DEVLOG 2026-05-27 entry). The atomized work items are interleaved
-into the lists below; this header is a pointer so future sessions
-don't lose the context. Items below this header carry the
+(see DEVLOG 2026-05-27 entries). The atomized work items are
+interleaved into the lists below; this header is a pointer so future
+sessions don't lose the context. Items below this header carry the
 `(Emma 2026-05-27)` tag.
-
-Scheduled crons (one-shot, this session):
-- `5531b8af` — K=5 rank-k sweep, fires `0 0 28 5 *` (midnight tonight).
-  Self-contained prompt covers all three configs (k ∈ {1, 2, 4})
-  with the findings-doc write-up. GPU is free; not blocking other
-  work, so scheduled rather than started now per Emma's instruction.
-- `b348c005` — Contract key-soundness explanation, fires `36 13 27 5 *`
-  (≈15 min from authorization). Emma is deciding whether to go through
-  with the work after reading the explanation.
 
 ### ⭐ #1 PRIORITY — Rank-k `is_X` matrix constrain-train experiment
 
-(Promoted from #2 after the equality cosine adjustment measurement landed 2026-05-27 — finding at `planning/findings/2026-05-26-equality-cosine-adjustment.md`: +1.08× margin, T*=1.1118, n=3 degenerate-but-flagged, round-trip clean. Rank-k is the architectural next step — k prototypes + k gains per class — and was already unblocked by the `vector_literal` builtin and the matrix-valued-bake-back lean spec.) GPU is free now that `bu7o9mqxu` completed.
+The first matrix-valued constrain-train target. K classes × k prototypes per class + K×k scalar gains; trained values bake back as `vector_literal(...)` + numeric literals; round-trip-checked against the param-form graph.
 
 **Mechanism.** Rank-k discrimination for class X is:
 
@@ -164,46 +139,15 @@ Scheduled crons (one-shot, this session):
 is_X(x) = T_1 * sim(x, v_X_1) ⊕ T_2 * sim(x, v_X_2) ⊕ ... ⊕ T_k * sim(x, v_X_k)
 ```
 
-where `⊕` is fuzzy OR (Lagrange poly) — class X looks like x if ANY of its k prototypes is close enough. Stage-B is the rank-1 special case (one prototype `v_X`, one scalar `T`). Rank-k gives the model k "modes" per class — useful when a category has multiple sub-clusters in embedding space (e.g., "vehicle" = land vehicles ∪ water vehicles ∪ air vehicles).
+where `⊕` is fuzzy OR (Lagrange poly). Rank-1 is the equality-cosine adjustment shape; rank-k generalizes to k prototypes per class.
 
-**Trained params per class:** `k` prototype vectors + `k` scalars. Across K classes: `K × k` vectors and `K × k` scalars. All bake back via `vector_literal(...)` (just shipped) + scalar literals.
-
-**END-TO-END WORKING** (2026-05-27): scaffold (`b6f21a24` 2026-05-26) + training loop ships this commit. Smoke (K=2 k=2 per_class=4 5 ep seed=0): equivalence guard max|Δ|=0.00e+00 (exact), baseline margin +0.1935 → trained +0.5557 (ratio +2.87×), round-trip max|Δ|=2.38e-07. 13.5 min wall. End-to-end pipeline confirmed; remaining work is bigger configurations (proper K=5, k sweep ∈ {1,2,4}, real per-seed variation source — see "Remaining work" below) plus the findings doc with real measurements.
-
-**Remaining work after end-to-end pass:**
-
-- **REAL per-seed variation source: DONE** 2026-05-27 — per-seed ε=0.02 anchor perturbation + per-seed data shuffle now live in `build_data`. Verified (K=2 k=2 5 ep seeds=0,1): baseline +0.1892 vs +0.1839, trained +0.5863 vs +0.5687, **SD non-zero** (baseline 0.0037, trained 0.0124). Seeds produce genuinely different trajectories.
-- **Proper K=5 sweep** with k ∈ {1, 2, 4}, per_class=5+, epochs≥20, n=3 — now unblocked. Wall time projection from the K=2 k=2 2-seed run (1614 s): K=5 k ∈ {1,2,4} × n=3 × 20+ epochs is many hours; surface to Emma before launching autonomously.
-- **Margin curve comparison** rank-1 vs rank-2 vs rank-4 — does k > 1 widen the margin substantially, or are the anchor-and-nudge initialization's extras absorbed into Adam's noise?
-- **Findings doc** `planning/findings/YYYY-MM-DD-rank-k-is-x.md` matching prior format. Cite measured numbers only; flag any degeneracy the same way the equality-cosine doc did.
-- **k-means cluster-centroid anchors: DONE** 2026-05-27 — `--anchor-strategy kmeans` runs Lloyd's k-means over each class's `per_class` word embeddings (seeded initial assignment → per-seed clustering variation) and uses the centroids + ε-perturbation as the k anchors per class. End-to-end smoke (K=2 k=2 5 ep n=2): equivalence guard exact 0.00, baseline +0.1955 ± 0.0058 → trained +0.5424 ± 0.0084 (+2.78×), round-trip max|Δ|=2.38e-07, SD non-zero on both. The `perturb` strategy stays the default; switch via `--anchor-strategy kmeans` for k > 1.
-- **Sutra parser: scientific-notation float literals: DONE** 2026-05-27 — `_scan_number` now consumes an optional `[eE][+-]?[0-9]+` exponent (only when a digit follows the e/E, so `2ex` still lexes as INT_LIT + IDENT — same disambiguation discipline as the `i` imaginary suffix). 23 lexer tests pass (3 new for sci-notation + 20 prior); 403 passed / 7 skipped across the full compiler suite (minus pre-existing egglog subprocess issue, unrelated). Removes the latent bake-back-format trap that motivated the `f"{v:.8f}"` workaround; the workaround can stay since fixed-point is still readable, but future trained-value bake-back can use Python's default repr without parse errors.
-
-**Original steps for reference (now mostly DONE):**
-
-1. **Harness: `experiments/rank_k_is_x.py`.** ~~Compile a `.su` rule~~ DONE (scaffold). Compile path proven for:
-   ```
-   function fuzzy is_X(vector x, vector v1, vector v2, ..., vector vk,
-                       number T1, number T2, ..., number Tk) {
-       return (T1 * similarity(x, v1)) || (T2 * similarity(x, v2))
-              || ... || (Tk * similarity(x, vk));
-   }
-   ```
-   For K-class classification, per-class `is_X_i` gates against `is_X_j` (j≠i) via AND/NOT as in Stage-B.
-2. **Initialization:** Initialize `v_X_i` to `embed(category_word_i)` for i ≤ |class words| (anchor-ball init per the constrain-Adam meaningful-only framing). Fall back to random for `i` > |class words|, or pre-cluster the embeddings of the category words via k-means and use cluster centroids as the k anchors.
-3. **Train** all `K × k` vectors and `K × k` scalars jointly via Adam + cross-entropy. Equivalence guard (vmap vs per-sample to 1e-4) before training begins.
-4. **Bake back:** emit a fresh `.su` where each `v_X_i` becomes `vector_literal(<trained floats>)` and each `T_X_i` becomes the trained numeric literal. The rule body has all `vector` and `number` params dropped.
-5. **Round-trip recompile + max-logit-Δ check** to <1e-4 (substrate equivalence between trained graph and baked-literal graph).
-6. **Measure: logit margin at rank-1 vs rank-k.** Does k > 1 widen the equality-discrimination margin? Sweep `k ∈ {1, 2, 4}` on K=5 categories; report margin curves with n≥3 seeds.
-7. **Findings doc** at `planning/findings/YYYY-MM-DD-rank-k-is-x.md`. Cite measured numbers only. The §"What we are NOT claiming" discipline: not "rank-k always wins" — could come out a wash; the finding is the measurement.
+**Status.** Harness ships and the K=2 k=2 smoke passes (equivalence guard exact, round-trip clean). The K=5 sweep that would produce a publishable finding is **blocked on the 🚨 BUG above** (RuntimeError 1D vs 0D tensors in `similarity` inside `is_class_2` — surfaces at K ≥ 3). Once the bug is fixed, the K=5 k ∈ {1, 2, 4} n=3 sweep can run and the findings doc at `planning/findings/YYYY-MM-DD-rank-k-is-x.md` lands.
 
 **Honest scope:**
-- This is the *first* matrix-valued constrain-train target. Defuzz matrix, learned-binding matrices are separate later experiments.
 - The K=5 classification baseline saturates fast (Stage-B was 100%); the rank-1 vs rank-k *margin* is the metric, not accuracy.
-- The per-sample bottleneck observed in Stage-A (≈6 h for K=5 N=50 30 ep) applies here. Use `torch.vmap`-batched logits like `differentiable_training_compiled.py --batched`, NOT plain per-sample loops — same vmap-vs-per-sample equivalence guard required.
 - Substrate-purity rails compose with this — the trained values run through the emitted graph, not through host shortcuts.
 
-**Cross-refs:** `planning/sutra-spec/matrix-valued-bake-back.md` (mechanism), `todo.md` §"Agentic RAG for constrained-training design" → "is_X matrix end-to-end" (target list), `experiments/equality_cosine_adjustment.py` (rank-1 precedent).
+**Cross-refs:** `planning/sutra-spec/matrix-valued-bake-back.md` (mechanism), `experiments/equality_cosine_adjustment.py` (rank-1 precedent), `experiments/rank_k_is_x.py` (harness).
 
 ### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
 
