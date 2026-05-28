@@ -46,10 +46,12 @@
 
 
 function vector step(vector prev_state, scalar x, scalar y, scalar char_code) {
-    // Emma's recurrent step: discard the previous pixel state (`* 0`), then
-    // add the new glyph's bit at this position. The * 0 is explicit -- the
-    // substrate forgets, not the host. Both summands are real-axis vectors,
-    // so the sum is real-axis too (no make_real needed).
+    // Stateless per-cell substrate dispatch. The prev_state input is multiplied
+    // by 0 (discarded) and the new glyph bit for cell (x, y) under char_code is
+    // returned. The 'recurrence' across renders lives in the host's pixel array,
+    // not on the substrate -- this is host-state-shuttle, not a substrate RNN
+    // (CLAUDE.md "Subtler substrate breaches" #2; finding
+    // planning/findings/2026-05-28-demos-font-substrate-audit.md).
     vector zeroed = prev_state * 0.0;
     vector new_pix = glyph_pixel(x, y, char_code);
     return zeroed + new_pix;

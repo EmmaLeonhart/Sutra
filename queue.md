@@ -66,13 +66,17 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 3. **Defuzz β harness** — `experiments/defuzz_gain_adjustment.py` ships, smoke clean (bake-back bit-exact at gain=1.0). GPU free. Ready to run the full 3-seed training; ~30min on CPU, no GPU contention.
 4. **Daily substrate-honesty audit prepended item** (originally below) — first action of next autonomous loop per `.github/workflows/daily-audit.yml`.
 
-### B. Pending Emma decisions (sweep these via `AskUserQuestion` per task #20)
+### B. Emma decisions LANDED 2026-05-28 (replaces former "Pending Emma decisions")
 
-1. **Audit #1 — paper/neurips/ freeze touched by `599424f8`** (2026-05-24 contact-email standardization). Two closures: (a) accept as carve-out in CLAUDE.md freeze rule, or (b) revert inside paper/neurips/ while keeping on live paper.md.
-2. **Contract key-soundness** — go/no-go after the 13:36 PST explanation cron `b348c005` ran. Either ship per the design (instrumentation vs manifest), or close as "not now."
-3. **Arbitrary-precision carry loop** — Option A (associative-scan substrate intrinsic) vs Option B (sequential soft-halt loop in Sutra) vs Hybrid. Plus 4 sub-decisions (BigInt typing, digit layout, max width, integer-division primitive). Dossier at `planning/open-questions/arbitrary-precision-digit-array.md`.
-4. **Defuzz β full training launch** — smoke passed; greenlight to run end-to-end?
-5. **demos/gui count.su + toggle.su substrate-RNN rewrite** — design needed. Per the new memory, these are supposed to use a `loop` with the hidden state as a substrate vector. Current shape is host-state-shuttle. Substantial design work; needs Emma's intent before implementation.
+All five deferred items below are now ANSWERED via `AskUserQuestion` sweep (per task #20). The decisions are recorded here so they don't vanish; the actual work items have moved into the relevant top-of-queue sections.
+
+1. **Audit #1 paper/neurips/ freeze (`599424f8`)** → **Both — carve-out + audit.** Codify a project-wide-identity-changes carve-out in the CLAUDE.md freeze rule; run a one-time audit of every paper/neurips/ touch since freeze date to confirm no non-identity drift slipped through.
+2. **Contract key-soundness** → **Runtime instrumentation.** Compile-time inject key-usage logging into the emitted graph; gate `AXON_KEYS_*` against the runtime trace. Discharges FV-paper §3.1 the strong way.
+3. **Arbitrary-precision carry loop** → **Option A — associative-scan substrate intrinsic.** Parallel carry, one new substrate primitive. Spec next, then implementation. The 4 sub-decisions (BigInt typing, digit layout, max width, integer-division primitive) follow once the dossier is re-opened with Option A as the locked choice.
+4. **Defuzz β full training launch** → **Run it — full 3-seed end-to-end.** GPU free; ~30min on CPU. Launch and commit the trained β + bake-back + round-trip-check as a finding.
+5. **demos/gui count.su + toggle.su substrate-RNN rewrite** → **Single `loop (cond)` per render.** Each render runs `loop (still_running) { state <- f_substrate(state) }` once; the host provides the trigger but the recurrence (state across ticks) lives on the substrate as a vector surviving across iterations.
+6. **Phase 3 calc/echo/terminal migration** → **Re-architect to skip the kernel.** Rewrite each to call `compile_su` directly + admit-shim, like font/gui do. The apps lose their kernel-routed-axon shape but become Sutra-only demos.
+7. **demos/font + demos/gui driver/test docstring tightening** → **Tighten now AND set up a 5-hour cron to recheck.** Done in this commit (font.su step() comment + counter_demo.py + test_gui_counter.py); cron `bea893bf` fires at 03:23 local on 2026-05-28.
 
 ### C. Cross-repo migrations (Yantra → Sutra)
 

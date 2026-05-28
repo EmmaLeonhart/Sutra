@@ -1,11 +1,17 @@
 """Test the GUI counter (apps/gui/counter_demo.py + count.su).
 
-Emma's recurrent-loop demo: each click increments an integer ON THE SUBSTRATE
-(count.su's step(n) = n + 1), and the displayed glow's centre is positioned FROM
-the count on the substrate (pixel(x, y, n)), so it steps left -> right as you
-count. This guards both substrate computations. No window/click is exercised
+Per-click substrate-dispatch demo (current shape: host-state-shuttle, NOT a
+substrate RNN — see planning/findings/2026-05-28-demos-gui-substrate-audit.md
+and CLAUDE.md "Subtler substrate breaches" #2). Each click invokes
+count.su's step(n) = n + 1 on the substrate; the resulting count is read
+back and stored in a host variable as the next state. pixel(x, y, n)
+positions the displayed glow's centre from the current count. This test
+guards both substrate computations. No window/click is exercised
 (headless-safe); the live click is verified by hand via `python
-apps/gui/counter_demo.py`. Torch-gated like the other real-Sutra tests.
+apps/gui/counter_demo.py`. Target shape (queued, Emma 2026-05-28): rewrite
+count.su to use `loop (cond)` with substrate-held state across iterations
+so the recurrence lives on the substrate, not the host. Torch-gated like
+the other real-Sutra tests.
 """
 from __future__ import annotations
 
