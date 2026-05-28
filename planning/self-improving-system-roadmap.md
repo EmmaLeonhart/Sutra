@@ -1,11 +1,12 @@
 # Sutra as a long-term, legibly self-improving system — roadmap
 
 > **Status: planning / agenda.** This is a concrete roadmap, not an
-> exploratory sketch — it should be moved out of `planning/exploratory/`
-> (done in the next commit). It was reorganized on 2026-05-28 from a
-> 2026-05-27 design conversation between **Emma** (Sutra's designer) and the
-> **agent** (Claude); the verbatim chat log and the intermediate reformatting
-> steps remain in git history.
+> exploratory sketch. It was reorganized on 2026-05-28 from a 2026-05-27
+> design conversation between **Emma** (Sutra's designer) and the **agent**
+> (Claude). It previously lived at
+> `planning/exploratory/2026-05-27-sutra-vision-conversation.md`; the verbatim
+> chat log and the intermediate reformatting steps (speaker attribution →
+> readability → framing removal → reorganization) remain in git history.
 >
 > **Speaker convention.** The design calls in this document are **Emma's**
 > — she has ground truth on Sutra's mechanisms. Where a framing originated
