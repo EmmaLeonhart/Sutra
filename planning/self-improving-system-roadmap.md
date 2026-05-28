@@ -41,10 +41,19 @@ every component below into that trainable form, one at a time.
 | `select` softmax temperature | task performance | positive | float | **harness shipped** (mechanism trains, bit-exact) |
 | `gt` smooth-sign sharpness | downstream task | positive | float | vision |
 | `if` branch threshold (per call site) | task performance | `[-1, +1]` | float | vision |
-| `heaviside` step location | downstream task | `[-1, +1]` | float | vision |
+| `heaviside` step location | downstream task | `[-1, +1]` | float | vision — smooth surrogate (see note) |
 | `sawtooth_mod` n_terms | downstream task | positive integer | int | vision |
 | loop `threshold`, `k` (halt sharpening) | downstream task | `k > 0`, threshold in `[0,1]` | float | vision |
 | loop `max_iters` | task + wasted-iteration penalty | positive integer (round) | int | vision |
+
+> **`heaviside` note.** The trainable component is a **smooth sigmoid
+> surrogate** — `sigmoid(k·(x − loc))`, with `loc` the trained step location —
+> not the hard `torch.heaviside`, whose gradient is zero almost everywhere and
+> so has nothing for backprop to move. This is distinct from the **loop halt
+> gate**, which is the hard `heaviside` today and is load-bearing for crisp
+> termination (a purely soft sigmoid never fully reaches 0, so the loop would
+> never truly halt); that path stays hard and is governed by the separate
+> `loop threshold, k` params and the FV termination obligation.
 
 **Per-key learned values:**
 - **Hashmap angle assignments** — per-key rotation angle (currently
