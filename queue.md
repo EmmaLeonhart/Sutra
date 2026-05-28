@@ -595,6 +595,18 @@ Like, no, no, mentioning it in chat and then the user never seeing it. You have 
 
 ‼ Large CLAUDE.md will impact performance (46.5k chars > 40.0k)
 
+## Go over the Substrate-leak catalogue: `Audit.md`.
+
+idk why we did not go over this. We should go over this and fix all of them and when they are complete if they are complete then we finish stuff
+
+# Metabolize this thing
+
+
+I am not sure why this is here but we gotta actually get working on it. Should not be crudding up the repository this way.
+
+- 2026-05-17 voice-vision (verbatim):
+  `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`.
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
