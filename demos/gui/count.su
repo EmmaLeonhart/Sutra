@@ -1,28 +1,32 @@
-// count.su — a GUI counter. The +1 IS computed on the substrate, but the
-// recurrence is HOST-state-shuttle, not a substrate-state RNN. Plainly:
+// count.su — a GUI counter that's a real substrate-state RNN.
 //
-//   step(n) = n + 1   — substrate computes one increment per call. The host
-//                       extracts the scalar via real(), holds it in a Python
-//                       variable, feeds it back as the next call's input.
-//                       State lives on the host between ticks; the substrate
-//                       function is stateless. Calling this a "recurrent
-//                       loop" or "state lives on the substrate" was the same
-//                       framing error font.su carried until 2026-05-27 —
-//                       the audit flagged both. A real substrate-state RNN
-//                       would keep n as a vector across ticks without the
-//                       host extracting it; that refactor is queued for the
-//                       Sutra migration.
+// The recurrence (state across ticks) lives ON THE SUBSTRATE as a vector
+// surviving across calls, NOT as a host scalar shuttled through real().
+// This is the substrate-RNN shape per planning/sutra-spec/non-halting-loop.md
+// (Emma 2026-05-28). The count itself never gets extracted to a Python
+// number between ticks; the host can decode it for display via vsa.real(),
+// but that's a monitoring boundary — separate from the recurrence.
 //
-//   pixel(x, y, n)    — radial-glow field. The host passes the scalar n
-//                       (decoded from a prior step() call); the substrate
-//                       computes cx = 2n/9 - 1 and the gaussian-shaped
-//                       brightness. The host paints. No recurrence in this
-//                       function; it's a stateless dispatch per cell.
+//   step()           — one click. Loads the recurring `state` vector,
+//                      increments its real axis by 1.0, writes the new
+//                      state back via `recur(...)`, and returns the new
+//                      state as the per-tick output. The substrate state
+//                      vector is the count; subsequent ticks read it
+//                      back without extraction.
 //
-// make_real lifts each result onto the real axis so the host reads it with
-// real(). We do NOT wrap back to 0 after 9 (Emma: don't care past the count);
-// n just keeps rising and the glow exits the right edge.
-function vector step(scalar n) { return make_real(n + 1.0); }
+//   pixel(x, y, n)   — radial-glow field. Stateless per-cell dispatch;
+//                      the host passes the current count `n` (decoded via
+//                      vsa.real() — that's the monitoring boundary, fine).
+//                      The pixel function itself is just geometry.
+//
+// We do NOT wrap back to 0 after 9 (Emma: don't care past the count); the
+// count just keeps rising and the glow exits the right edge.
+function vector step() {
+    recurring vector state = make_real(0.0);
+    vector next_state = state + make_real(1.0);
+    recur(next_state);
+    return(next_state);
+}
 
 function vector pixel(scalar x, scalar y, scalar n) {
     scalar cx = (2.0 * n / 9.0) - 1.0;
@@ -30,4 +34,4 @@ function vector pixel(scalar x, scalar y, scalar n) {
     return make_real(1.0 - dx * dx - y * y);
 }
 
-function vector main() { return step(0.0); }
+function vector main() { return step(); }

@@ -1,17 +1,15 @@
 """Test the GUI counter (apps/gui/counter_demo.py + count.su).
 
-Per-click substrate-dispatch demo (current shape: host-state-shuttle, NOT a
-substrate RNN — see planning/findings/2026-05-28-demos-gui-substrate-audit.md
-and CLAUDE.md "Subtler substrate breaches" #2). Each click invokes
-count.su's step(n) = n + 1 on the substrate; the resulting count is read
-back and stored in a host variable as the next state. pixel(x, y, n)
-positions the displayed glow's centre from the current count. This test
-guards both substrate computations. No window/click is exercised
-(headless-safe); the live click is verified by hand via `python
-apps/gui/counter_demo.py`. Target shape (queued, Emma 2026-05-28): rewrite
-count.su to use `loop (cond)` with substrate-held state across iterations
-so the recurrence lives on the substrate, not the host. Torch-gated like
-the other real-Sutra tests.
+Substrate-state-RNN demo: count.su's `step()` is a non-halting-loop
+function (planning/sutra-spec/non-halting-loop.md) whose `recurring vector
+state` lives on the substrate as a tensor in a module-level slot, surviving
+across calls without host scalar extraction. Each click invokes `step()`
+with NO host arg; the substrate loads the slot, increments the real axis,
+writes back via `recur(...)`, returns the new state vector. `pixel(x, y, n)`
+is stateless geometry — host decodes the current count via vsa.real() for
+display purposes only (monitoring boundary, allowed). This test guards
+both pieces. No window/click is exercised (headless-safe); the live click
+is verified by hand via `python demos/gui/counter_demo.py`.
 """
 from __future__ import annotations
 
@@ -34,26 +32,26 @@ def _load_counter_demo():
 
 
 def test_step_increments_on_substrate() -> None:
-    """count.su's step(n) = n + 1 on the substrate: 0 -> 1 -> ... -> 10, exact.
-
-    The host holds the decoded value and feeds it back (the register in the
-    recurrent loop); the +1 is the substrate's, not a host n += 1.
+    """count.su's step() is a non-halting loop: 10 calls walk 1..10 on the
+    substrate. The state vector lives between calls — no host scalar is fed
+    back; the substrate's slot is the source of truth.
     """
     cd = _load_counter_demo()
     ns = cd._compile("count.su")
     step, vsa = ns["step"], ns["_VSA"]
-    n = 0.0
+    # Reset the substrate slot — see _Counter.__init__ note about
+    # _compile caching the compiled module across tests.
+    ns["_step__state_state"] = None
     seen = []
     for _ in range(10):
-        n = float(vsa.real(step(n)))  # SUBSTRATE increment, fed back
-        seen.append(round(n))
+        state_vec = step()  # no host arg; substrate loads its own slot
+        seen.append(round(float(vsa.real(state_vec))))  # decode for display
     assert seen == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    # Each step is an exact integer (substrate increment, no drift).
-    assert abs(float(vsa.real(step(4.0))) - 5.0) < 1e-9
 
 
 def test_counter_class_increments_on_substrate() -> None:
-    """_Counter.click() walks 0 -> 1 -> 2 -> 3 via the substrate step."""
+    """_Counter.click() walks 0 -> 1 -> 2 -> 3. The host's `state` attribute
+    is just a display cache; the canonical count lives on the substrate."""
     cd = _load_counter_demo()
     counter = cd._Counter()
     assert counter.state == 0.0

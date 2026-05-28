@@ -101,18 +101,39 @@ def colormap(field: np.ndarray) -> np.ndarray:
 
 
 class _Counter:
-    """Substrate-backed integer counter: each click is count.su's step() on the
-    substrate. The host holds the decoded value and feeds it back (the register
-    in Emma's recurrent loop); the +1 is a substrate computation, not a host
-    increment."""
+    """Substrate-state-RNN counter (planning/sutra-spec/non-halting-loop.md).
+
+    The recurring count lives ON THE SUBSTRATE as a vector held across
+    calls in count.su's module-level `_step__state_state` slot. Each click
+    invokes `step()` with NO host arg; the substrate loads the slot,
+    increments the real axis by 1, writes the new state back via
+    `recur(...)`, and returns the new state vector for display decoding.
+
+    The host's `state` attribute is just a *display cache* (the most-
+    recently-decoded count for the window title); it is NOT the source
+    of truth and is NOT fed back into step(). That distinction is the
+    substrate-RNN shape — recurrence lives on the substrate, monitoring
+    happens on the host.
+    """
 
     def __init__(self) -> None:
         ns = _compile("count.su")
-        self._step, self._vsa = ns["step"], ns["_VSA"]
+        self._step, self._vsa, self._ns = ns["step"], ns["_VSA"], ns
+        # Reset the substrate recurring slot so this counter starts at 0,
+        # not at wherever the prior _Counter() left off. The slot name
+        # follows the v1 codegen convention `_<funcname>__<slotname>_state`
+        # (planning/sutra-spec/non-halting-loop.md). Without this, multiple
+        # _Counter() instances would share state because _compile() caches
+        # the compiled module.
+        self._ns["_step__state_state"] = None
+        # Display cache. The substrate holds the canonical count between
+        # clicks; this is just the most-recently-decoded value for the
+        # window title.
         self.state = 0.0
 
     def click(self) -> float:
-        self.state = float(self._vsa.real(self._step(self.state)))  # SUBSTRATE +1
+        new_state = self._step()  # substrate increments; state lives on substrate
+        self.state = float(self._vsa.real(new_state))  # decode for display
         return self.state
 
 

@@ -128,6 +128,13 @@ class TokenKind(Enum):
     # parameter's input value across the recurrence."
     KW_PASS = auto()
     KW_REPLACE = auto()
+    # Non-halting loop primitive (planning/sutra-spec/non-halting-loop.md,
+    # Emma 2026-05-28). `recur(expr)` sets the recurring-state slot for the
+    # next tick; `recurring TYPE NAME (= EXPR)?;` declares a recurring slot
+    # inside a function body (not in the parameter list). Presence of
+    # `recur(...)` in a function body makes the function non-halting.
+    KW_RECUR = auto()
+    KW_RECURRING = auto()
     # Note: `element` (the foreach_loop's current-array-value reference)
     # and `iterator` (the iterative_loop's tick number) are CONTEXTUAL
     # — they parse as plain IDENT tokens and the codegen recognizes
@@ -217,6 +224,9 @@ KEYWORDS = {
     "foreach_loop": TokenKind.KW_FOREACH_LOOP,
     "pass": TokenKind.KW_PASS,
     "replace": TokenKind.KW_REPLACE,
+    # Non-halting loop primitive (Emma 2026-05-28).
+    "recur": TokenKind.KW_RECUR,
+    "recurring": TokenKind.KW_RECURRING,
     "as": TokenKind.KW_AS,
     "try": TokenKind.KW_TRY,
     "catch": TokenKind.KW_CATCH,
