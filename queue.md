@@ -422,31 +422,49 @@ Move it back to Sutra; pause the OS while the language matures.
    CLI utilities (`cat`, `ls`, `wc` — gated on Sutra's string + IO + FS
    vocabulary).
 
-### Phase 1 — `apps/font/` (this commit & follow-ups)
+### Phase 1 — `apps/font/` — SHIPPED 2026-05-28
 
-Direct-substrate app (compile_su + cycle_step + render_glyph; no Yantra
-kernel coupling), so migration is a clean file move. Files:
+Landed in commit `e12e1ebd` (15 files; 8793 insertions). Smoke result:
+82 passed in 497s when run via `pytest demos/font/` from Sutra repo root.
+All 39+41+2 test cases behave identically to the Yantra-side run.
+DEVLOG entry covering the three substrate-leak categories the Yantra
+audit found: commit `4c98d31a`. CLAUDE.md subsection codifying the
+three measurement-required substrate breaches: commit `f8beb415`.
 
-- `apps/font/font.su` (1244 lines, the cycle/glyph counter)
-- `apps/font/font_bound.su` (723 lines, the sparse-only-LIT rewrite,
-  measured-working at dim=384 — see Yantra `planning/26`)
-- `apps/font/font_demo.py` (the tkinter window driver)
-- `tools/font_data.py` (the font oracle the .su is generated from)
-- `tools/generate_font_su.py` + `tools/generate_font_bound_su.py` (the
-  generators)
-- `tests/test_font.py` + `test_font_cycle.py` + `test_font_bound.py`
-- `tests/fixtures/nomic-embed-text-d108.pt` (108-dim, font runs at this)
+**Yantra-side delete + pin bump still pending** — the font app is
+currently DUPLICATED in both repos until that Yantra commit lands. The
+delete + pin bump is the next migration sub-step (see "Phase 1 cleanup"
+below).
 
-Target location Sutra-side: `demos/font/` (new top-level `demos/` dir —
-distinct from `examples/` which is single-file demos; the Yantra apps
-have multi-file Python drivers + tests). README in the dir explaining
-what each piece does.
+### Phase 1 cleanup — delete duplicates from Yantra, bump pin
 
-After phase 1: `apps/gui/` (`count.su`, `frame.su`, `toggle.su` and their
-demos), also direct-substrate. Then `apps/calc/`, `apps/echo/`,
-`apps/terminal/` — these are kernel-coupled (use `kernel.Manifest`,
-`kernel.SutraService`, `kernel.router.Axon`) and need either re-architecting
-to not need the kernel OR moving the relevant kernel pieces along.
+Single Yantra commit that:
+1. Deletes `apps/font/`, `tools/font_data.py`, `tools/generate_font_su.py`,
+   `tools/generate_font_bound_su.py`, `tests/test_font.py`,
+   `test_font_cycle.py`, `test_font_bound.py`,
+   `tests/fixtures/nomic-embed-text-d108.pt`.
+2. Bumps `external/Sutra` to a commit containing `demos/font/`
+   (currently `f8beb415` or later).
+3. Removes Yantra-side font references from `queue.md`, `planning/26`,
+   `planning/27` (link them to the Sutra locations).
+4. Confirms Yantra's remaining test suite still passes (apps/font tests
+   removed, but the other 215 tests should be untouched).
+
+### Phase 2 — `apps/gui/` (direct-substrate, NEXT)
+
+`count.su`, `frame.su`, `toggle.su` and their demos (`counter_demo.py`,
+`window.py`, `click_demo.py`) plus their tests
+(`test_gui_counter.py`, `test_gui_render.py`, `test_gui_click.py`).
+Same shape as font — no kernel coupling, drop straight into `demos/gui/`.
+
+### Phase 3 — `apps/calc/`, `apps/echo/`, `apps/terminal/` — needs design
+
+These USE the Yantra kernel: `kernel.Init`, `kernel.Manifest`,
+`kernel.SutraService`, `kernel.PythonService`, `kernel.router.Axon`. To
+migrate them cleanly we either (a) re-architect to skip the kernel and
+call `compile_su` directly + admit-shim, like font/gui do, or (b) move
+the relevant kernel pieces along. Decision belongs to Emma, not
+autonomous.
 
 ## Pointers
 
