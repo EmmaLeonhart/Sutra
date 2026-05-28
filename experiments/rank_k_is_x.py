@@ -369,15 +369,28 @@ def build_data(K: int, k_rank: int, per_class: int, device, dtype, seed: int,
 def logits_per_sample_factory(mod, K, k):
     """Returns single(x, protos, scalars) -> [K] using the emitted rule_i
     functions. protos: list len K*k of (dim,) tensors. scalars: list len
-    K*k of 0-d tensors. The rule_i signature takes (x, all_vectors,
-    all_scalars) per the .su generator."""
+    K*k of 0-d tensors. The rule_i signature takes (x, <per-class
+    interleaved blocks>) per the .su generator — each per-class block is
+    [v_ci_0, v_ci_1, ..., v_ci_(k-1), T_ci_0, T_ci_1, ..., T_ci_(k-1)].
+    K=5 k=1 caught this 2026-05-28 (runlog
+    `experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt`): the prior
+    all-vectors-then-all-scalars tail misalignment passed half of the
+    T positions vectors and half of the v positions scalars, which
+    surfaced as `RuntimeError: 1D tensors expected, but got 1D and 0D`
+    inside similarity once the resulting cross-typed multiplication
+    reached a downstream substrate call. The 68b7ade1 fix corrected the
+    .su generator's own signature/call shape; this commit lines up the
+    Python caller that feeds runtime args to it."""
     rule_fns = [getattr(mod, f"rule_{i}") for i in range(K)]
 
     def single(x, protos, scalars):
-        # All rules consume the same flat (protos..., scalars...) tail
-        # because the .su generator's `other_arg` passes every class's
-        # params to every rule body.
-        tail = list(protos) + list(scalars)
+        # Per-class interleaved tail: for each class ci, all k vectors
+        # then all k scalars for that class. Matches the .su signature
+        # built by `per_class_arg_blocks` in `_su()`.
+        tail = []
+        for ci in range(K):
+            tail.extend(protos[ci * k:(ci + 1) * k])
+            tail.extend(scalars[ci * k:(ci + 1) * k])
         return torch.stack([fn(x, *tail) for fn in rule_fns])
 
     return single
