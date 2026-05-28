@@ -1,7 +1,27 @@
 # Constrain-train — next targets, ranked
 
-**Date:** 2026-05-27.
-**Status:** Planning. Picks the second SHIPPED constrain-train instance and the order behind it. Per Emma's "every operation trainable" vision, the next target should *expand the trainable surface to a new operator*, not polish the equality-cosine instance.
+**Date:** 2026-05-27, updated 2026-05-28.
+**Status:** Planning. Picks the next SHIPPED constrain-train instance and the order behind it. Per Emma's "every operation trainable" vision, the next target should *expand the trainable surface to a new operator*, not polish the equality-cosine instance.
+
+## Update 2026-05-28: defuzz β SHIPPED; next pick is `select` softmax temperature
+
+The 2026-05-27 doc picked defuzz β as the next ship. **That landed today** (`5ca1b043`). Measured:
+- baseline loss 0.2126 ± 0.0114 → trained loss 0.0146 ± 0.0050 (~15× reduction)
+- β* = 6.58 ± 0.17 across 3 seeds (real task optimum, low variance)
+- round-trip max|Δ| = 1.19e-7 (bit-exact within float32 precision)
+
+Path taken: (a) the cosine `==` wrapper-gain was diagnosed as scale-invariant (`85429dfd`), so the original "expose β at Sutra level" reframed as "the actual β IS inside `defuzzify_trit`, expose THAT"; (b) added `intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);` to stdlib/logic.su (`ffd085de`); (c) per Emma's `AskUserQuestion` Option-1 choice, made iters runtime-variable so the loss surface isn't step-shaped at iters=10 (`5ca1b043`). Documentation caught up in `73c995fc` (capabilities.md).
+
+**Shipped constrain-train inventory after today:**
+1. Equality-cosine T (`21778648`, 2026-05-26): +1.08× margin gain.
+2. Defuzz β (`5ca1b043`, 2026-05-28): ~15× loss reduction.
+3. Rank-k is_X (K=5 sweep `bwf96wgym` in flight 2026-05-28; K=2 smoke `132c8925` verified 3.01× margin improvement).
+
+**Next pick per the original ranking: target 4, `select` softmax temperature.** Concrete because (a) `select` is the language's softmax/case-switch primitive — high-leverage; (b) the Sutra-level surface change is "wrap the scores in a divide" rather than a new parser form, smaller than (3) `bundle` weights; (c) the training task is just rerouting any existing classification harness to use a divided-score variant of select. ~3-4 hours estimated. After that, target (3) `bundle` weights, then target (7) Kleene per-callsite coefficients (the biggest swing, 1-2 days).
+
+The ranking below is preserved as the original 2026-05-27 analysis. Read with the update above in mind.
+
+---
 
 ## The constraint
 
