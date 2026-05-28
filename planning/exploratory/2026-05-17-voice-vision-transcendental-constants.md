@@ -68,7 +68,8 @@ trusted.
   leaves"** — needs explicit verification that the *shipped*
   transcendentals literally realize this (tau bound in the runtime; the
   two leaves are genuine cross-talk-exploiting lookup tables, not a
-  libm/torch elementwise call). This is a real queue item — see queue.md.
+  libm/torch elementwise call). This is a real queue item — see queue.md
+  § "Voice-vision live items" item 1 (added 2026-05-28).
 - **STILL LIVE / NEW OPEN DESIGN QUESTION — "cosine needs to be its own
   transcendental function, not derived from the algebraic exponential;
   imaginary output of cosine implemented geometrically"** — this
@@ -76,4 +77,5 @@ trusted.
   `sin = imag(cexp(iθ))`. It is a design change the user is asserting; it
   must be captured as an open question and decided with the user, NOT
   silently implemented or silently kept as-is. See
-  `planning/open-questions/cosine-as-its-own-transcendental.md`.
+  `planning/open-questions/cosine-as-its-own-transcendental.md` and
+  queue.md § "Voice-vision live items" item 2 (added 2026-05-28).
