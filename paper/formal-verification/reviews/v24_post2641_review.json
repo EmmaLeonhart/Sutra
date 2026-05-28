@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2641,
+    "postId": 2641,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs, effectively reducing imperative control flow to polynomial algebra. It proposes a verification framework for the 'non-learned' components of neuro-symbolic systems by using three-valued Kleene logic and Polynomial Identity Testing (PIT) to discharge obligations like contract adherence, range-soundness, and termination. The authors claim this approach eliminates path explosion in verification, though they acknowledge a different complexity bottleneck in polynomial term expansion.",
+    "pros": [
+      "Innovative conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification of control flow.",
+      "Provides a concrete mathematical mapping for 'if/else' constructs into Lagrange-interpolated polynomials on a three-valued logic grid.",
+      "Distinguishes between logical equivalence and 'same-graph' identity, offering a more granular view of program semantics in a neuro-symbolic context.",
+      "Includes an 'honest cost' analysis that identifies the exponential growth of monomials in the PIT process, showing awareness of complexity trade-offs."
+    ],
+    "cons": [
+      "The paper contains hallucinated citations and future-dated references (e.g., Shaw et al. 2025, arXiv:2501.05368; paper date 2026), which undermines its academic integrity.",
+      "The proposed verification method is practically unusable for real-world software, as the PIT term count explosion causes the system to fail at a nesting depth of only 3.",
+      "The claim of 'bit-exact' GPU execution is supported by empirical measurements rather than a formal proof of the compiler's correctness or a formal model of the hardware's IEEE-754 implementation.",
+      "The 'trusted base' argument is somewhat circular; it assumes the 'frozen substrate' (the embedding model) is a foundational truth, yet the semantic stability of these embeddings is the very thing a neuro-symbolic system would need to verify.",
+      "The termination proof is trivialized by the language design (only allowing bounded loops), which sidesteps the actual difficulty of verifying termination in general-purpose logic."
+    ],
+    "justification": "The paper presents a novel but technically flawed approach that hits a scalability wall at trivial program depths, making the 'reduction' impractical for meaningful verification. Furthermore, the presence of hallucinated future citations and a reliance on empirical 'exactness' rather than formal proofs for the hardware-software mapping makes it unsuitable for a rigorous formal methods venue.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 02:29:52"
+  }
+}
