@@ -37,6 +37,21 @@ Target 4 shipped in the SutraBarrel work-loop tick:
 
 **Alternative pre-bundle ship: a non-flat select-T task.** ~1h to construct: K random orthonormal prototypes (not embeddings) + controlled-SNR mixture queries. Would push select-T from "mechanism shipped" to "mechanism shipped + non-trivial task win." Carries less new-operator-surface impact than target 3 but is cheap insurance against the existing shipped inventory being misread as "select-T mechanism doesn't help."
 
+### Update 2026-05-28 (third): orthogonal-protos task SHIPPED — clean +1.77× margin gain + bimodal-T finding
+
+The "alternative pre-bundle ship" above shipped in this work-loop tick. `experiments/select_temperature_orthogonal.py` (K random orthonormal protos + alpha=0.7 / noise=0.15 mixture queries; K=5 / per-class=10 / epochs=80 / 3-seeds):
+- Smoke K=3 / per-class=3 / epochs=10: baseline margin +0.3389 → trained +0.9780 (2.89× ratio), T*=0.1899, round-trip 3.58e-07.
+- Full K=5 / 3-seeds at lr=0.005: baseline +0.2233 ± 0.0013 → trained +0.3955 ± 0.0016 (1.77× ratio), T*=0.6222 ± 0.0002, round-trip 3.58e-07.
+- Discovery: CE surface is BIMODAL in T (global min at T≈0.1, spurious basin at T<0). The original embed-protos K=5 NEGATIVE result was partially an optimizer pathology (lr=0.05 overshoots T=0 into wrong basin), not pure task-fit. Finding doc: `planning/findings/2026-05-28-select-T-bimodal-T-surface.md`.
+
+**Shipped constrain-train inventory after this tick:**
+1. Equality-cosine T (`21778648`, 2026-05-26): +1.08× margin gain on K=5 embed-protos task.
+2. Defuzz β (`5ca1b043`, 2026-05-28): ~15× loss reduction on β-sweep task.
+3. Rank-k is_X K=2 smoke (`132c8925`, 2026-05-27): 3.01× margin improvement.
+4. Select-T (orthogonal protos K=5, this tick): +1.77× margin gain.
+
+**Next pick: target 3, `bundle` weights** (4-6h, needs parser change + task design). After that, target 7 Kleene per-callsite coefficients (1-2 days, biggest swing).
+
 The ranking below is preserved as the original 2026-05-27 analysis. Read with the update above in mind.
 
 ---
