@@ -47,12 +47,15 @@ every component below into that trainable form, one at a time.
 
 > **`heaviside` is deliberately not in this list.** It is **not a Sutra
 > source-level construct** — no `.su` program writes it. It is a runtime helper
-> the compiler emits (part of the PyTorch wrapper) to gate the halting loop
-> forms (`do_while` / `iterative_loop` / `foreach_loop`), so there is no source
-> literal to train or bake back. The program-level halt knobs are the
-> `loop threshold, k` params above; the loop gate itself stays a hard step for
-> crisp termination. (If a smooth trainable step were ever wanted it would be a
-> wrapper-level `sigmoid(k·(x − loc))` surrogate, not a program feature.)
+> the compiler currently emits to implement the halting loop forms
+> (`do_while` / `iterative_loop` / `foreach_loop`), so there is no source
+> literal to train or bake back. The halting *flag* it stands in for is a real
+> but currently implicit program behavior — a monotone 0→1 "this output is not
+> the final output" signal that, on reaching 1, means halt. Its intended shape
+> is that monotone flag (sigmoid-like, but any monotone 0→1 function works),
+> **not** the hard step used today; making it explicit is tracked in `todo.md`
+> (§ "Make the loop-halting flag explicit"). The program-level training knobs
+> for loops are the `loop threshold, k` params above.
 
 **Per-key learned values:**
 - **Hashmap angle assignments** — per-key rotation angle (currently
