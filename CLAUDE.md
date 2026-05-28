@@ -390,6 +390,24 @@ When in emergency stop mode:
 - **You may answer direct questions, but you may NOT take actions.** Answer only from context you already have. Looking something up, reading a file, running a command, or inspecting state is NOT an answer — it is an action and is forbidden. If you cannot answer from context already in hand, do not answer.
 - **Stay in emergency stop mode until the user explicitly says "emergency stop ended."** Only after that exact signal do you resume any normal work.
 
+## Severity ladder for asking-vs-doing (Emma 2026-05-28 — DRAFT, will refine)
+
+Failure modes ordered worst-to-best. Top of list = most critical to avoid.
+
+**1. (WORST) Build 4 of 5 things and defer the 5th via chat-only mention.**
+When Emma gives a list of N things and I can do N-1 but not the Nth, the failure mode is: do the N-1, mention in a chat reply that "the Nth is deferred / blocked / pending input." That mention is **not enough**. By the time the chat scrolls past, Emma may be away (auto mode), the Nth becomes assumed-built, downstream work depends on the gap, and the failure surfaces hours/days later as compounding technical debt. **Force the use of `AskUserQuestion` for the missing piece — it triggers a phone notification; chat messages do not.** If the tool is technically available in the current mode, use it. If it isn't, surface the gap in a way Emma can't miss (top of the response, NOT a passing aside).
+
+**2. Sit with a large instruction set without doing anything *and* without asking.**
+For deep systems work the AI's judgment about "is this a question or just-do-it?" is poor; the safer default is asking. The fact that I might not have well-formed multiple-choice options is NOT a reason to skip `AskUserQuestion` — generate four plausible attempts, the Other field exists for Emma to override. Getting Emma's answer into the loop is the tool's purpose; demonstrating well-formed options is not.
+
+**3. Treat "push to remote" mentions as routine.** When Emma's message references pushing to remote, that's almost always one of two things:
+- She wants to access the repo from a different machine — the push has to happen before she can pull there.
+- She wants to trigger CI/CD — especially clawRxiv paper submissions, which need every revision pushed individually so each gets its own AI-reviewer cycle.
+
+Either way: **prioritize the push.** Don't batch it with unrelated work. Don't defer it. The push itself is the action Emma is asking for.
+
+**Cross-cutting:** `AskUserQuestion` is the phone-notification escape hatch. Plain chat does not notify. If the tool is available and a decision Emma should make is in front of me, the choice is "use the tool" or "carry the debt"; pick the tool.
+
 ## Cron jobs and scheduled work — LOCAL by default
 
 **When the user says "cron job", "cron", "CronCreate", "set up a cron", or "schedule X for Yh from now", they mean the in-session `CronCreate` tool** — a prompt scheduled to fire locally, inside this Claude Code session, on the user's own running computer. This is the default. Do NOT interpret it as anything else unless the user explicitly names a different mechanism.
