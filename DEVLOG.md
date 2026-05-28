@@ -15,6 +15,39 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: cycle_step substrate-RNN rewrite blocked + documented
+
+Emma asked to extend the substrate-RNN rewrite (count.su `step()` and
+toggle.su `flip()` both shipped via `recur` earlier in the session) to
+font.su's `cycle_step`. Attempted; reverted. The wall:
+
+- cycle_step's body computes 36 squared-distance scores from `prev_code`
+  in *scalar* arithmetic positions (`prev_code - 65.0` etc.), then feeds
+  the scalar scores to `_select_softmax`.
+- The original cycle_step was host-state-shuttle: `prev_code` came in as
+  a function argument (Python float), arithmetic was Python-float, scores
+  were Python floats.
+- Recur-wrapping requires `prev_state` to be a vector held across calls.
+- Two attempted bridges between vector slot and scalar arithmetic failed:
+  (1) vector-arithmetic throughout produced 16-d tensor scores that
+  `_select_softmax` can't ingest; (2) Sutra source has no `real()` free
+  function, so a "one extraction inside the op" rewrite hit
+  `NameError: name 'real' is not defined`.
+
+Working tree reverted to HEAD (cycle_step's host-state-shuttle shape is
+preserved; nothing half-shipped). The blocker + three unblock options
+documented in `planning/findings/2026-05-28-cycle-step-rewrite-blocked.md`
+(`18b335a6`); v2 follow-on items appended to
+`planning/sutra-spec/non-halting-loop.md` § "What's NOT in v1" —
+non-vector recurring auto-lift + Sutra-source `real()`/`imag()`/
+`truth()` accessors. Task #18 tracks.
+
+Honest scope: the substrate-RNN rewrite that landed for count.su and
+toggle.su closed the breach for those two demos. cycle_step remains as
+host-state-shuttle until the v2 primitives land — that's the one
+remaining stateful demo that the "Subtler substrate breaches" #2 rule
+flags as not yet fixed.
+
 ## 2026-05-28: `recur` / non-halting-loop primitive shipped + GUI substrate-RNN rewrite
 
 Closes Q5 of Emma's AskUserQuestion sweep (substrate-RNN rewrite for
