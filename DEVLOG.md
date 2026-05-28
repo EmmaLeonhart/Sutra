@@ -15,6 +15,93 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: Yantra OS attempt paused — substrate leaks throughout; GUI/IO work migrates back to Sutra
+
+**Context.** Yantra is the GPU-native OS attempt built in Sutra. Over the
+past several sessions it accumulated `apps/` (echo, calc, font, gui/*,
+terminal) — each meant to exercise the substrate end-to-end at the
+OS-level. Today's session uncovered that **most of these apps were faking
+substrate work in load-bearing ways the prior sessions did not surface.**
+Three categories of leak, named plainly:
+
+**1. Runtime-dim bloat masquerading as substrate work.** Every Yantra app
+ran at `runtime_dim=768` (the `nomic-embed-text` width) despite ZERO
+`basis_vector` calls in any of their `.su` files. The semantic block of
+the extended-state layout was unused; every substrate op was carrying
+~767 dead-weight tensor elements per call to encode at most 1-2 scalars on
+the real axis. **96× more tensor work than the task required**, paid on
+every render / every cycle step. Measured fix: dropping to `runtime_dim=8`
+for the apps with no embeddings recovered the cost while keeping all 295
+Yantra tests green at exact tolerances. Apps that DO use rotation-binding
+(echo's `axon_item("stdin_text")` implicitly embeds the key string) went
+to `runtime_dim=16` — still 48× smaller. See `Yantra/planning/27-
+substrate-honesty-audit-2026-05-27.md` for the per-app measurement table.
+
+**2. "RNN" framing on host-state-shuttle counters.** `count.su` (GUI
+counter), `toggle.su` (GUI red↔blue flip), and the font demo's
+`cycle_step` (auto-advancing character cycler) were each framed as
+"recurrent" / "state lives on the substrate." **They are not.** Each
+substrate function takes a scalar, returns a vector via `make_real`. The
+host calls `vsa.real()` between ticks to extract the scalar back, holds
+it in a Python variable, feeds it to the next tick's substrate call. The
+substrate computes the per-step decision; the *recurrence* — the carrying
+of state from one step to the next — happens in a Python dict on the
+host, not on the substrate. That is structurally a stateless function
+called in a host loop, NOT a recurrent neural network. Headers in all
+three `.su` files now say so plainly (Yantra commits `29551b1` /
+`26a6acb`). The actual substrate-state-RNN refactor (state lives as a
+vector across ticks, no `vsa.real()` shuttle) is queued for a deliberate
+design session, not autonomously forced.
+
+**3. Bound-vector encoding that biased toward one filler — fake separation.**
+When the font renderer was rewritten to use rotation-binding
+(`bundle(bind(p, LIT_or_UNLIT) for cell)` per glyph), the first encoding
+had lit/unlit cosines OVERLAP at every `runtime_dim` 16..256. Bundle
+crosstalk biased toward whichever filler appeared more often. The encoding
+*returned values* and *looked like it ran on the substrate* — but the
+output didn't actually separate the two classes. The negative result was
+caught only by measuring lit_min vs unlit_max gap; an "it works because it
+returns something" eyeball check would have shipped a broken renderer. The
+sparse-only-LIT variant (omit unlit bindings entirely) worked at
+`runtime_dim=384`, threshold 0.14 — 36/36 glyphs pixel-exact at 91
+ms/render. Full table in `Yantra/planning/26-font-bound-vector-rewrite.md`.
+
+**Why the Yantra OS attempt was failing.** Yantra was doing language-level
+work (figuring out how the substrate represents state, decides operations,
+recurses) at the OS level. The OS framing imposed unwarranted load —
+manifests, capability checks, axon routers, multi-process runtime — on
+top of mechanics that weren't actually understood yet. The "is this a
+real RNN" question is a Sutra-the-language question, not an OS question.
+Putting it at the OS level meant every confusion compounded with kernel
+complexity. **Emma's call 2026-05-27: pause the OS; move the apps back
+to Sutra; understand the language-level mechanics first.**
+
+**The migration.** Yantra's `apps/echo`, `apps/calc`, `apps/font`,
+`apps/gui/*`, `apps/terminal` plus their tests + `tools/font_data.py` +
+the codebook fixtures all migrate to Sutra under a new `demos/`
+top-level directory. The kernel-coupled apps (calc, echo, terminal use
+`kernel.Manifest` + `kernel.SutraService` + `kernel.router.Axon`) need
+either re-architecting to not need the Yantra kernel OR moving the
+relevant kernel pieces along — separate decision tracked in `queue.md`.
+**Phase 1 — `demos/font/` — landed in commit `e12e1ebd`.** Phase 2
+(`apps/gui/`, direct-substrate, easy) is the next migration tick. The
+kernel-coupled apps are the harder phase 3.
+
+**What this entry exists for.** Emma explicitly asked the substrate-leak
+issues be named in CLAUDE.md / DEVLOG / planning docs so future sessions
+don't repeat them. The dim-bloat one was particularly easy to miss: every
+test passed at `runtime_dim=768`, no one had measured against a smaller
+dim until today, so the bloat hid behind correct output. The framing one
+was inherited (the first session that shipped `count.su`'s `step(n) =
+make_real(n+1.0)` called it "Emma's recurrent step" in the header; every
+later session copied that framing without re-auditing). The bound-vector
+one was caught only because the audit forced measurement — without `gap
+= min(lit) - max(unlit)` being computed explicitly, "the rewrite works"
+would have been a session-level lie.
+
+The CLAUDE.md clarification on what counts as a substrate breach is a
+separate commit following this entry.
+
 ## 2026-05-27: FV-paper submit script self-heal — 404 → dedup → revise-canonical (chain healed at 2618)
 
 Emma 2026-05-27 surfaced the FV-paper-ci failures: clawRxiv was rejecting
