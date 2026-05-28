@@ -307,6 +307,66 @@ Accessor methods (`real()`, `imag()`, `truth()`, `component()`) are monitoring/d
 
 Stop. Report what actually executed, including negative findings. Reference the specific spec file. Fix the implementation or propose a justified spec change. Silently hand-waving past a failed validation is not acceptable.
 
+### Subtler substrate breaches — measurement-required (Emma 2026-05-28)
+
+Three failure modes the "every op runs on the substrate" check does NOT
+catch on its own. The Yantra OS attempt (paused 2026-05-28 — see
+`DEVLOG.md` entry of the same date) accumulated all three and shipped
+them as "substrate-pure" for weeks. Future sessions must measure for
+these three explicitly; "the op dispatched to the substrate" is not
+sufficient evidence the substrate is doing the work claimed.
+
+**1. Runtime-dim bloat masquerading as substrate work.** A program that
+dispatches every op to the substrate but at a dimension far larger than
+the task requires is paying substrate-overhead for tensor work that
+encodes nothing. If a `.su` has zero `basis_vector` calls, the LLM
+codebook is unused — `runtime_dim` can drop from the default 868
+(semantic 768 + synthetic 100) to ~108 (semantic 8 + synthetic 100) or
+~16 with NO loss of correctness. Every Yantra app hit this; nobody
+measured a smaller dim until the 2026-05-28 audit, so a 96× cost paid
+silently for weeks. **Rule:** before declaring a program "substrate-
+correct," count its `basis_vector` calls and pick the smallest `runtime_dim`
+the task actually needs. Same correctness, real speed. See
+`Yantra/planning/27-substrate-honesty-audit-2026-05-27.md` for the
+per-app dim audit pattern.
+
+**2. Host-state-shuttle dressed as recurrence.** A `.su` function that
+takes a scalar, returns a `make_real(value)` vector, and is called in a
+host loop where the host extracts the scalar via `vsa.real()` between
+calls is **NOT a recurrent network** — even when "every op runs on the
+substrate." The recurrence — the carrying of state from one step to the
+next — lives in a Python variable, not on the substrate. Stateless
+substrate function + host loop ≠ RNN. **Rule:** if you call something
+"recurrent" / "RNN" / "state lives on the substrate," the state MUST be
+a vector that survives across calls without host `real()` extraction.
+The pattern that satisfies this is roughly `state_t+1 = f_substrate(
+state_t)` where `state` stays a vector at every step. Anything that
+goes `make_real(scalar)` → host → `real(...)` per tick is a counter, not
+an RNN. The Yantra `count.su` / `toggle.su` / `font_demo`'s `cycle_step`
+all wore the RNN label until the 2026-05-28 audit corrected the framing.
+
+**3. Output that returns values but doesn't actually carry the signal.**
+A substrate function can return numbers via `make_real(some_op(...))` —
+"running on the substrate" by every dispatch-level check — while the
+returned numbers fail to distinguish the classes the function is supposed
+to distinguish. The first Yantra `font_bound` encoding (`bundle(bind(p,
+LIT)/(p, UNLIT)) per glyph`) returned cosine-to-LIT values for every
+cell, but lit-cell cosines and unlit-cell cosines OVERLAPPED at every
+`runtime_dim` 16..256: a passing dispatch with a failing signal. The
+only way to catch this is to measure `gap = min(lit_class) - max(
+unlit_class)` explicitly. "It returned a number" ≠ "the number means
+what you claimed." **Rule:** every substrate function that classifies
+or decides anything ships with a measured signal-separation table
+(positive class min vs negative class max, at the dim chosen). Without
+the table, the claim "the substrate decides X" is unverified.
+
+**The meta-rule.** Each of the three breaches above passes the
+"every op runs on the substrate" check. Pass that check is necessary,
+not sufficient. The three additional measurements — dim audit (1),
+state-locus audit (2), signal-separation audit (3) — are the
+sufficient set. When in doubt, run them all and put the numbers in the
+commit message or the planning doc.
+
 ## Architecture and Conventions
 - **Stack:** Python + PyTorch + Ollama. Runtime uses `nomic-embed-text` (768-d, mean-centered). PyTorch is the canonical compile target (`codegen_pytorch.py`, CPU or CUDA).
 - **Numpy backend** (`codegen.py`) is deprecated and being retired. New code uses `PyTorchCodegen`.
