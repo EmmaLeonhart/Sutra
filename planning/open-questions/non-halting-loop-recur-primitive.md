@@ -1,8 +1,10 @@
 # Non-halting loop / `recur` primitive (Emma 2026-05-28)
 
+> **VERDICT — RESOLVED 2026-05-28** by `planning/sutra-spec/non-halting-loop.md` (all five sub-decisions locked Emma 2026-05-28; v1 primitive shipped in `6757863d` + `6fc64c15`). Emma's verbatim explanation is preserved below as the original design intent; the canonical implementation surface is the spec doc.
+
 **Opened:** 2026-05-28 during the demos/gui substrate-RNN rewrite (queue.md State Inventory B item D.5, Emma sweep Q5). The rewrite turned out to be larger than a code change — Emma's description of the target shape is a new language-level primitive Sutra does not currently have.
 
-**Status:** OPEN — design needed before implementation. Preserved verbatim below; do not paraphrase her wording when the spec lands.
+**Status:** RESOLVED 2026-05-28 by `planning/sutra-spec/non-halting-loop.md`. The five sub-decisions (function signature, initial state, caller surface, axon interaction, halt-vs-non-halt distinction) all landed via Emma's `AskUserQuestion` sweep on 2026-05-28; the spec doc is canonical and supersedes this dossier; the v1 implementation shipped same day. This file is kept for the verbatim design intent below.
 
 ## Emma's explanation (verbatim, 2026-05-28)
 

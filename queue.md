@@ -55,14 +55,6 @@ see §"Watchdogs" below.
 
 ## Active
 
-### 🧹 Resolved-elsewhere open-question doc — `non-halting-loop-recur-primitive.md`
-
-Daily audit 2026-05-28: `planning/open-questions/non-halting-loop-recur-primitive.md` still says `**Status:** OPEN — design needed before implementation` with five sub-decisions (a–e) listed as open, but the authoritative spec `planning/sutra-spec/non-halting-loop.md` is now LIVE with status `SPEC (all 5 sub-decisions locked Emma 2026-05-28)` and explicitly `Supersedes planning/open-questions/non-halting-loop-recur-primitive.md`. The primitive shipped today in `6757863d` + `6fc64c15`; DEVLOG 2026-05-28 entry "`recur` / non-halting-loop primitive shipped + GUI substrate-RNN rewrite" confirms end-to-end. Per `planning/open-questions/README.md` rule 3 ("Resolving an open question means updating the spec, then removing the doc"), reduce the dossier to a top-of-doc pointer: replace the body with `**Status:** RESOLVED 2026-05-28 by `planning/sutra-spec/non-halting-loop.md` (all five sub-decisions locked Emma 2026-05-28; primitive shipped `6757863d` + `6fc64c15`). Preserved verbatim below for Emma's design intent.` and keep the verbatim quote section intact. Also stamp the `> **VERDICT — RESOLVED**` banner per the 2026-05-17 stamping convention.
-
-### 🔍 Daily substrate-honesty audit — 2026-05-28
-
-Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
-
 ## 📋 STATE INVENTORY — 2026-05-28 05:06 UTC (compression-survival snapshot)
 
 Per Emma 2026-05-27 22:06 PST: context is running low; this section is the authoritative state of all queued work so a future session (after compression or a fresh session start) can pick up cleanly. Everything below this section is the longer-form detail; this section is the index.
