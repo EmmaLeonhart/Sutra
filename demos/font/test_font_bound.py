@@ -1,17 +1,16 @@
-"""Test the sparse-only-LIT bound-vector encoding (apps/font/font_bound.su).
+"""Test the sparse-only-LIT bound-vector encoding (demos/font/font_bound.su).
 
 Measured-working at runtime_dim=384, threshold 0.14 on the cosine output:
-36/36 glyphs (A-Z + 0-9) pixel-exact vs the font oracle. See
-planning/26-font-bound-vector-rewrite.md for the full capacity-vs-dim table
-and the design history (first encoding bind(p,LIT)/(p,UNLIT) failed at every
-dim — measured-negative — before the sparse-only-LIT variant landed).
+36/36 glyphs (A-Z + 0-9) pixel-exact vs the font oracle. See planning
+docs (Yantra-side `planning/26-font-bound-vector-rewrite.md` carries the
+full capacity-vs-dim table and the design history; the encoding moved
+Sutra-side 2026-05-28 along with the rest of the font demo).
 
-The encoding uses 63 basis_vector keys not in the canonical d868 codebook
-fixture (``font_bound_p_00..p_24``, ``font_bound_LIT``, ``font_bound_UNLIT``,
-``font_bound_c_A..c_9``). Until a d484 fixture covering those keys is
-committed, this test skips when the per-test-session XDG codebook lookup
-falls through (signalled by ``import ollama`` succeeding ONLY when ollama
-is actually installed, which the CI runner deliberately is not).
+The encoding uses 63 basis_vector keys (``font_bound_p_00..p_24``,
+``font_bound_LIT``, ``font_bound_UNLIT``, ``font_bound_c_A..c_9``). The
+codebook fixture covering them at total dim 484 (semantic 384 + synthetic
+100) ships in ``demos/font/fixtures/nomic-embed-text-d484.pt``, so this
+test runs unconditionally on CI — no ollama needed.
 """
 from __future__ import annotations
 
