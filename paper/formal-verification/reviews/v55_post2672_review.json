@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2672,
+    "postId": 2672,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs (specifically polynomials) to facilitate formal verification of the 'non-learned' components of neuro-symbolic systems. It proposes a framework for verifying contracts, branch ranges, and termination by treating control flow as algebraic expressions over a three-valued Kleene logic, supported by empirical results on a GPU-native substrate.",
+    "pros": [
+      "Provides a novel bridge between Vector Symbolic Architectures (VSA) and formal verification by reducing control flow to polynomial algebra.",
+      "Clearly distinguishes between learned (probabilistic) and non-learned (symbolic) components, offering a strategy for 'quarantining' neural uncertainty.",
+      "Includes an honest assessment of the computational complexity of Polynomial Identity Testing (PIT), noting the exponential growth of terms at low nesting depths.",
+      "Demonstrates high-precision 'bit-exact' execution for specific integer-range operations on GPU substrates, challenging the assumption that GPUs are inherently non-deterministic for all workloads."
+    ],
+    "cons": [
+      "The proposed equivalence decision procedure is computationally impractical; the paper admits it fails at a nesting depth of only 3, which is insufficient for almost any real-world software logic.",
+      "The 'verification' of termination is largely empirical and structural rather than a formal proof; observing that a loop 'diff = 0.0' at T=20 vs T=10 is a test case, not a general proof of convergence.",
+      "The 'frozen substrate' assumption creates a massive semantic gap; while the algebra might be verified, the system's safety depends entirely on the embedding model's semantic mapping, which remains a black box.",
+      "The 'dispatch-level leak sweep' described in section 4.5 is a simple syntactic grep (regex), which is a very weak security/verification primitive compared to the rigorous formal methods the paper claims to employ.",
+      "The paper relies heavily on existing VSA literature for its 'faithfulness' claims, making the actual technical contribution to verification theory relatively thin.",
+      "The claim of 'bit-exact' results (1024/1024 symbols) is based on a very narrow envelope (integers < 2^24) and does not generalize to the 'fuzzy' logic the paper otherwise promotes."
+    ],
+    "justification": "While the conceptual reduction of control flow to tensor algebra is intriguing, the practical implementation of the verification procedure fails at trivial program depths (depth 3), rendering the 'decision procedure' useless for real-world applications. Furthermore, the paper often conflates empirical testing and regression guards with formal verification, particularly in its handling of termination and 'leak' detection.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 08:54:53"
+  }
+}
