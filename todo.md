@@ -2284,3 +2284,57 @@ decompiled `.su` if applicable). The cumulative results table
 gains certificate-status columns alongside the accuracy / wall-clock
 columns. The FV paper's "agenda → done" sentence rests on the
 existence of real certificates for real training runs.
+
+---
+
+## [This year] Self-improving-system roadmap — explain the requirements FIRST
+
+`planning/self-improving-system-roadmap.md` is the consolidated long-term
+agenda (reformatted 2026-05-28 from the 2026-05-27 Emma↔agent vision
+conversation): **train everything trainable → accumulate a corpus →
+train a formally-verified learned decompiler → close a legible
+self-improvement loop.** Most of the finer-grained work it sits above is
+already tracked in this file (§ "Constrain-train / NN→code decompilation",
+§ "Formal verification") and in `queue.md`.
+
+**Before executing the roadmap's steps, write out its requirements /
+prerequisites here.** The roadmap describes the destination and the order;
+it does not yet enumerate, as todo items, *what must be true or built
+first* for each step to be startable. We should have some level of
+explaining the requirements before barreling into the roadmap. Spell out,
+at minimum:
+
+- [ ] **Constrain-train harness generalization** — the §3 per-category
+  setups (single scalars, per-key values, per-role rotation matrices,
+  Kleene coefficients) as a uniform, reusable harness, not one-off scripts.
+  Prereq for the corpus. (Shipped instances to template from: `==` cosine
+  scale `T`; defuzz β.)
+- [ ] **FV-obligation-as-acceptance-criterion plumbing** — the bake-back
+  check that re-runs the relevant FV obligation on each trained literal and
+  refuses to bake on drift. Prereq for "every trained value is certified."
+- [ ] **Corpus-generation infrastructure** — a fine-tuned Sutra code
+  generator + the compile-filter pipeline (idiomatic preferred; anything
+  that compiles is valuable; non-compiling = ~infinite loss). The roadmap
+  calls this the immediate unlock.
+- [ ] **Depth / dimension indexing** — how `(composition-depth, substrate-
+  dimension)` is measured on the compiled graph so the decompiler family is
+  well-defined. (Roadmap notes the *formalization* of layer-count can wait,
+  but the *indexing scheme* is a prerequisite for per-cell training.)
+- [ ] **Round-trip residual harness** — compile a candidate `.su`, compare
+  its graph to a target tensor, report the residual norm as the certificate
+  / error metric. Prereq for the first per-cell decompiler.
+
+Each of these is a requirement gating a roadmap step; turning them into
+concrete, verifiable queue items is the "explain the requirements" work.
+
+## [This year] Go through every instruction in the self-improving-system roadmap
+
+Once the requirements above are spelled out: **walk
+`planning/self-improving-system-roadmap.md` end to end and act on every
+instruction / step in it.** Section by section (§3 setups → §4 long arc →
+§5 self-improvement loop → §6 decompiler family + bootstrap → §8 concrete
+next steps), atomize each instruction into a concrete `queue.md` item
+(mirrored to the task tool), do it, verify against ground truth, and check
+it off. This is the standing pointer that keeps the roadmap from becoming a
+document nobody executes — its §8 "Concrete next steps" list is the ordered
+entry point.
