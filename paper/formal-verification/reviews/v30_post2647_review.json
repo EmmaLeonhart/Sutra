@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2647,
+    "postId": 2647,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs, effectively reducing imperative control flow to polynomial algebra. By representing branches as three-valued Kleene polynomials and loops as bounded recurrences, the authors propose a verification framework based on polynomial identity testing (PIT) and closed-form range bounding. The work claims to achieve bit-exact execution of a trusted base on GPU substrates by leveraging Vector Symbolic Architecture (VSA) primitives.",
+    "pros": [
+      "Proposes a novel intersection between Vector Symbolic Architectures (VSA) and formal verification, treating tensor graphs as the primary semantic target.",
+      "Provides a clear architectural separation between 'learned' components (quarantined) and 'non-learned' trusted bases (verified).",
+      "Addresses the notorious problem of GPU non-determinism by restricting the execution model to element-wise operations and exact integer-range float32 arithmetic.",
+      "Includes a rigorous analysis of the 'cost of the reduction,' specifically acknowledging the exponential term growth in polynomial expansion."
+    ],
+    "cons": [
+      "The scalability of the core verification method is extremely limited; the authors admit that polynomial expansion (PIT) fails or exceeds memory budgets at a nesting depth of only 3 with 3 variables.",
+      "The 'Kleene-logic fragment' is too restrictive for general-purpose programming, and the paper provides no clear path for verifying non-polynomial intrinsics or complex data structures.",
+      "The claim of 'bit-exact' results through a GPU-native OS kernel (Yantra) is likely overstated or applies only to a trivialized set of operations, as real-world kernel logic involves non-linear state transitions that are difficult to map to smooth polynomials.",
+      "The reliance on a 'frozen substrate' (pretrained embeddings) as a foundational trust assumption essentially moves the goalposts of verification; if the embedding mapping is flawed, the 'verified' algebra on top of it remains semantically meaningless.",
+      "The termination argument is circular: it claims to solve termination by only allowing bounded loops, which is a language restriction rather than a verification breakthrough.",
+      "The citation 'Shaw, Furlong, Anderson & Orchard 2025' appears to be a hallucination or refers to a non-existent/future-dated work, undermining the bibliographic integrity of the paper."
+    ],
+    "justification": "The paper presents an elegant theoretical framework but fails on practical scalability, as the verification procedure collapses at a nesting depth of 3. Furthermore, the 'bit-exact' GPU claims are restricted to such a narrow domain (integers in float32) that they do not support the broader claim of verifying a general-purpose trusted base. The presence of future-dated or potentially hallucinated citations further reduces the work's academic credibility.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 03:27:53"
+  }
+}
