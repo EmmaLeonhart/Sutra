@@ -149,6 +149,8 @@ This means:
 - If a later result contradicts a claim in the NeurIPS paper, **stop and tell the user** — do not silently amend `paper/neurips/paper.md` to match. The user decides whether to file an erratum at the next venue, draft a separate revision in `paper/paper.md`, or accept the discrepancy.
 - If the user explicitly says "unfreeze the NeurIPS paper" or "edit `paper/neurips/` anyway," then and only then does this rule lift. Mention the lock first if the user appears to be requesting an edit to the frozen archive; do not assume implicit consent.
 
+**Carve-out: project-wide identity changes** (Emma sweep 2026-05-28 Q1). Identity metadata that applies project-wide and not to the paper's content — author contact email (`contact@emmaleonhart.com`), `.mailmap` consolidation, repository username changes — may flow into `paper/neurips/` without re-asking. The freeze protects the as-submitted paper *content*, not the agent's identity. Example: `599424f8` (contact email standardization, 2026-05-24) is the canonical instance. *Not* covered by this carve-out: substantive paper edits, reviewer-response edits, finding-driven edits, typo fixes inside the paper body, anything that changes what the paper claims.
+
 The live `paper/paper.md` is **not** under this freeze. It is free to evolve. The downloadable artifacts on the website (camera-ready PDF, anonymized PDF, supplementary zip) are built from `paper/neurips/`, not from `paper/paper.md`. See `docs/neurips-2026.md` for the user-facing download page and `paper/neurips/README.md` for the in-repo explanation.
 
 ### 🔒 `paper/paper.md` is also FROZEN through May 2026 (the arXiv lock)
