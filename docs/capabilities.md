@@ -303,7 +303,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | Method | Description | Training |
 |---|---|---|
 | `truth_axis(vec_or_scalar)` | project to truth axis | n/a |
-| `heaviside(x)` | step function | vision — learned step location |
+| `heaviside(x)` | step function — runtime helper used to gate the halting loop forms; not a source-level construct | n/a (wrapper-internal) |
 | `saturate_unit(x)` | clamp to [0, 1] | n/a |
 | `_truth_projector()` / `_real_projector()` / `_truth_from_real()` | projection matrices | n/a |
 | `make_truth(t)` / `make_trit(t)` | constructors | n/a |
