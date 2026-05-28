@@ -15,6 +15,10 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: constrain-train synthesis — defuzz β SHIPPED; next pick is `select` softmax temperature
+
+Work-loop tick: synthesis update to `planning/exploratory/constrain-train-next-targets.md` per `feedback-be-less-procedural-more-creative` + `feedback-constrain-train-vision-is-every-op`. The doc was last updated 2026-05-27 picking defuzz β as the next ship — defuzz β shipped today (`5ca1b043`, measured 15× loss reduction + β\* = 6.58 ± 0.17 consistent across 3 seeds + round-trip 1.19e-7). Updated the doc with the actual path taken (cosine-`==` scale-invariance diagnosis → `defuzzify_trit` source-level intrinsic → runtime-variable iters per Emma's Option-1) and the three-item shipped inventory (equality-cosine T from `21978648` 2026-05-26; defuzz β today; rank-k is_X with K=2 smoke verified 3.01× margin in `132c8925` and K=5 sweep in flight). Next pick per the original ranking: target 4, `select` softmax temperature — smaller surface change (wrap scores in a divide rather than a new parser form) and reuses existing classification harnesses. After that: target 3 bundle weights, then target 7 Kleene per-callsite coefficients.
+
 ## 2026-05-28: BigInt<MAX> barrel-through — four pieces shipped, three remaining
 
 Per Emma's "barrel through these tasks" instruction, advanced #15 (BigInt<MAX> implementation) by four concrete pieces in sequence:
