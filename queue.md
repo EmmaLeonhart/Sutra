@@ -470,6 +470,11 @@ call `compile_su` directly + admit-shim, like font/gui do, or (b) move
 the relevant kernel pieces along. Decision belongs to Emma, not
 autonomous.
 
+## Metabolizing a chat
+Here is a chat file [[Here is a discussion of the Sutra progra.md]]
+
+This one contains a very large amount of vision of what the future of Sutra as a language is going to be. I'm specifically here saying we're committing all this stuff, but I want you to actively move it around. Maybe rename it and edit it and trim it to make it something that's more clear, more of a timeline, but actually, in the actual edit history of that chat, that is how it works. 
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
