@@ -1,4 +1,4 @@
-# [r 2026-05-28 05:13 UTC] Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
+# [r 2026-05-28 05:23 UTC] Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
 
 ---
 
@@ -45,7 +45,7 @@ precisely and §6 positions the work against neural-network verification, SMT fo
 nonlinear arithmetic, partial evaluation, and vector-symbolic architectures.
 
 
-*Auto-resubmission revision marker: 2026-05-28 05:13 UTC*
+*Auto-resubmission revision marker: 2026-05-28 05:23 UTC*
 
 ---
 
@@ -425,6 +425,66 @@ a kernel.
 
 These are existence results for exactness on the substrates and programs measured,
 which is what the reduction's premise requires.
+
+**4.4 Substrate-faithfulness: dispatch-level discharge is necessary, not
+sufficient.** A natural way to claim a Sutra program "runs on the substrate" is
+to confirm every operation dispatches to a substrate primitive — no host scalar
+branch, no `float()` extraction inside an op, no Python control flow on a
+substrate value. The leak catalogue in this work's repository (`Audit.md`)
+enumerates these dispatch-level breaches and which sites have been closed.
+Dispatch-level cleanliness is necessary, but it is not sufficient for the
+faithfulness claim §4 needs — three further measurements separate "every op
+dispatched correctly" from "the substrate carries the signal the claim asserts,"
+and we name them here because conflating the two has been the silent failure
+mode caught in the downstream OS audit.
+
+- **Dimension audit.** A program can dispatch every op to the substrate but at
+  a runtime dimension that encodes nothing — paying substrate cost for unused
+  capacity. If a Sutra source has no `basis_vector` invocations, the
+  semantic-codebook capacity is unused and the synthetic axes carry all the
+  work; the runtime dimension can drop from the default of semantic + synthetic
+  (768 + 100 on nomic-embed-text) to a small fraction with no change in
+  observable output. A dimension audit confirms `runtime_dim` matches what the
+  source actually needs. *Caught downstream:* every Yantra application was at
+  the default 768-d substrate despite zero `basis_vector` calls — a ~96×
+  over-dimensioning paid silently for weeks until the audit cut each app to
+  the dimension its `.su` actually exercised.
+- **State-locus audit.** A function that takes a scalar, returns a substrate
+  vector, and is invoked in a host loop that extracts the scalar between calls
+  is not a recurrent network even when every internal op dispatches to the
+  substrate — the recurrence lives in a host variable, not on the substrate.
+  Any claim of "recurrent" or "substrate-pure state" requires the state vector
+  to survive across time steps without an intermediate host scalar extraction
+  (`vsa.real(...)`-style). The state-locus audit traces where the state lives
+  between steps. *Caught downstream:* counter and toggle demos and a font
+  cycle-step demo were labelled as RNNs until the audit corrected the framing
+  to "stateless substrate function in a host loop"; the rewrite to a real
+  substrate `loop` carrying the hidden state as a vector is the natural fix
+  (Sutra's `loop (cond)` lowers to a bounded substrate recurrence, §3.3).
+- **Signal-separation audit.** A substrate classifier — any function whose
+  output is a decision — can return numbers from substrate ops while those
+  numbers fail to distinguish the classes the function is supposed to
+  distinguish. The audit measures `gap = min(positive-class output) −
+  max(negative-class output)` over the program's input distribution; without a
+  positive gap the classifier is not separating the classes the dispatch claim
+  implies. *Caught downstream:* an initial font-glyph encoding (`bundle(bind(p,
+  LIT)) / bind(p, UNLIT)` per cell) returned LIT-cell cosines that overlapped
+  UNLIT-cell cosines at every runtime dimension between 16 and 256 — every
+  dispatch correct, signal-separation gap negative. The corrected sparse-only
+  encoding ships with a measured positive gap reported alongside its rendered
+  output.
+
+The §4 results above already discharge the third check for the substrate
+primitives: §4.1's multi-width capacity table is a signal-separation report
+(positive-class accuracy across *k*, negative class being the alternative
+codebook entries) and §4.3's |err| = 0.0 is its strongest possible form. We
+name the three checks here because they apply across the trusted base — not
+only to the substrate primitives — and the silent failure mode is treating
+dispatch-level cleanliness as if it were the full claim. The composition with
+§3 is structural: dispatch-level cleanliness keeps the obligation-checker
+inputs honest (the polynomial extracted from the lowered graph is the one the
+substrate executes); the three measurements keep the §4 faithfulness claim
+honest at the program level.
 
 ## 5. Scope
 
