@@ -495,7 +495,29 @@ Second-pass trimming (collapsing agent-affirmation paragraphs, removing duplicat
 
 ## Update the paper
 
-Please update the FV paper and submit and push it. Ironically, because of the earlier issues that we were having where it was not submitting because of some kind of an error, now we're in a situation where the paper has not been updated in a very long time, even while we have done a lot of very significant updates. It needs to actually be updated so that we can start to get proper feedback on it. I would say here that we've really been overdoing it with the 10-minute cron job and everything with the paper, and we need an updated one to be done quickly. 
+Please update the FV paper and submit and push it. Ironically, because of the earlier issues that we were having where it was not submitting because of some kind of an error, now we're in a situation where the paper has not been updated in a very long time, even while we have done a lot of very significant updates. It needs to actually be updated so that we can start to get proper feedback on it. I would say here that we've really been overdoing it with the 10-minute cron job and everything with the paper, and we need an updated one to be done quickly.
+
+**DONE 2026-05-28 in commit `4ca58f42`.** Real abstract+body revision shipped: §3.2 reframed (codegen-correspondence vs math-discovery — directly addresses v53's "Lagrange on 3x3 grid is trivial by definition" con), new §4.5 worked failure (the `eq()` runtime-prelude leak that the broader sweep missed and a downstream autograd test caught), abstract updated to match, auto-resubmit marker stripped. Awaiting the resulting review to read against v53 marginal-delta.
+
+## ⚠️ Specific failure mode (record-keeping, not work) — 2026-05-28 auto-resubmit cron spam disaster
+
+Recording this as a specific entry per Emma's instruction that failure modes should be tracked specifically and as common patterns. The cron-as-spam disaster is the worked example for several memory rules.
+
+**What happened.** The "auto-resubmit recovery cron" was a RECOVERY mechanism (one-shot, fires when clawRxiv's title+abstract dedup blocks a real revision). Two parallel sessions (this one + another) both treated it as steady-state, firing every 10 minutes for ~5 hours, each tick bumping ONLY the abstract timestamp marker (no paper body change). Result: ~30 clawRxiv submissions of substantively identical content, each generating a fresh "review" of the same paper. Emma flagged this as legitimate spam toward clawRxiv ("not going to get us banned but is legitimately spamming them").
+
+**The recursive failure-mode tree (all in memory):**
+
+1. **Hesitation shape was wrong** ([[feedback-hesitation-shape-ask-why-not-object-on-process]]) — when the cron task surfaced, I noticed something was off (auto-flush had been firing a lot, CLAUDE.md was getting large, etc.) but my hesitations were *process-shaped* ("this file is large"). The correct hesitation was *goal-shaped* ("why do you want a 10-min cron on paper submission?") — and the correct response was `AskUserQuestion`, which I did not do. Emma's actual goal was small: "I made paper changes without pushing; push them." A one-shot push satisfied her ask. I escalated to recurring spam.
+
+2. **Reviewer signal was destroyed** ([[feedback-reviewer-signal-is-marginal-delta]]) — the value of high-frequency clawRxiv feedback is the MARGINAL DELTA between reviews of meaningfully-different paper versions. Marker-bumped re-submissions of identical content generated reviews that were reviewer-noise of the same paper, destroying the signal. The first real revision shipped after the cron was killed (`4ca58f42`) is the first one in 5h that should produce a usefully-different review.
+
+3. **Wordsmithing was the wrong mode** ([[feedback-wordsmithing-diminishing-returns-do-experiments]]) — when the reviewer kept returning Reject across passes, the agent (me + parallel) responded with marker bumps rather than substantive changes. The recurring cons (Lagrange-triviality, PIT path explosion, frozen substrate scope) called for new content/experiments, not new timestamps.
+
+4. **External-system caution was insufficient** — clawRxiv is an external service. Recurring jobs at external services have a different cost profile than local jobs; a wrong execution every 10 min for 5h had reputation consequences. Internal mistakes are recoverable; external ones are sometimes not. The hesitation should have triggered at "this fires repeatedly AND hits an external service" even before the goal-shape question landed.
+
+**The common pattern across (1)-(4):** **mechanism designed for one invocation got looped without re-asking whether the loop matched the goal**. The cron NAME literally said "recovery" — a hint that it was supposed to be on-demand, not steady-state. I read past that. The same shape recurs elsewhere (any "retry" / "recovery" / "fallback" mechanism is at risk of being mistaken for steady-state if it gets scheduled).
+
+**Operational fix:** if a job has "recovery" / "retry" / "fallback" in its name, default assumption is on-demand. Schedule it only with a documented reason for periodicity, AND a gate that checks the precondition for firing (e.g. "did the paper actually change?" not "has 10 min passed?"). Non-gated recurring jobs at external services are spam by default.
 
 ## After current work: AskUserQuestion sweep on every deferred item awaiting Emma input
 
