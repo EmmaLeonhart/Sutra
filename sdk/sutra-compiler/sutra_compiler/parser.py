@@ -939,10 +939,27 @@ class Parser:
             self._advance()
             args_ok = True
             while True:
-                inner = self._parse_type()
-                if inner is None:
-                    args_ok = False
-                    break
+                # Allow integer literals as type arguments (compile-time
+                # const-template parameters) — supports `BigInt<256>` and
+                # similar size-parameterized types per planning/sutra-spec/
+                # arbitrary-precision.md sub-decision 3 (Emma 2026-05-28
+                # locked compile-time constant `BigInt<MAX>`). Encoded as a
+                # synthetic TypeRef whose `name` is the literal's lexeme;
+                # downstream consumers (validator, codegen) interpret the
+                # numeric name as an int when the surrounding type allows.
+                nt = self._peek()
+                if nt.kind is TokenKind.INT_LIT:
+                    self._advance()
+                    inner = ast.TypeRef(
+                        name=nt.lexeme,
+                        type_args=[],
+                        span=nt.span,
+                    )
+                else:
+                    inner = self._parse_type()
+                    if inner is None:
+                        args_ok = False
+                        break
                 type_args.append(inner)
                 if self._match(TokenKind.COMMA):
                     continue
