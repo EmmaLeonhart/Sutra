@@ -55,6 +55,97 @@ see §"Watchdogs" below.
 
 ## Active
 
+## 📋 STATE INVENTORY — 2026-05-28 05:06 UTC (compression-survival snapshot)
+
+Per Emma 2026-05-27 22:06 PST: context is running low; this section is the authoritative state of all queued work so a future session (after compression or a fresh session start) can pick up cleanly. Everything below this section is the longer-form detail; this section is the index.
+
+### A. In-flight / unblocked-ready-to-go (no Emma input needed)
+
+1. **K=5 rank-k sweep — bug fixed in `68b7ade1`, sweep can now actually run.** The misalignment between is_class_i function signature (per-class interleaved `[v_ci_*, T_ci_*]`) and call-site args (`[all_v, all_t]`) is repaired. K=2 k=2 smoke verification is the next safety step before launching K=5; the smoke runs in background (`bqrzxm1yu` at submission time). Once smoke confirms no regression, the K=5 k ∈ {1, 2, 4} n=3 20ep sweep is ready (5-9h wall).
+2. **demos/gui/ substrate-honesty audit** — same three-check shape (dim / state-locus / signal-gap) as the demos/font audit (`f02fc798`). Files to audit: count.su, frame.su, toggle.su + their drivers + tests. Per the **new GUI-RNN design memory** (Emma 2026-05-28): the stateful ones (count, toggle) are SUPPOSED to use substrate loops with hidden-state vectors across iterations — current shape is host-state-shuttle, which is a design failure (not just documentation drift). Audit doc surfaces; the rewrite to real substrate-RNN is queued under D below.
+3. **Defuzz β harness** — `experiments/defuzz_gain_adjustment.py` ships, smoke clean (bake-back bit-exact at gain=1.0). GPU free. Ready to run the full 3-seed training; ~30min on CPU, no GPU contention.
+4. **Daily substrate-honesty audit prepended item** (originally below) — first action of next autonomous loop per `.github/workflows/daily-audit.yml`.
+
+### B. Pending Emma decisions (sweep these via `AskUserQuestion` per task #20)
+
+1. **Audit #1 — paper/neurips/ freeze touched by `599424f8`** (2026-05-24 contact-email standardization). Two closures: (a) accept as carve-out in CLAUDE.md freeze rule, or (b) revert inside paper/neurips/ while keeping on live paper.md.
+2. **Contract key-soundness** — go/no-go after the 13:36 PST explanation cron `b348c005` ran. Either ship per the design (instrumentation vs manifest), or close as "not now."
+3. **Arbitrary-precision carry loop** — Option A (associative-scan substrate intrinsic) vs Option B (sequential soft-halt loop in Sutra) vs Hybrid. Plus 4 sub-decisions (BigInt typing, digit layout, max width, integer-division primitive). Dossier at `planning/open-questions/arbitrary-precision-digit-array.md`.
+4. **Defuzz β full training launch** — smoke passed; greenlight to run end-to-end?
+5. **demos/gui count.su + toggle.su substrate-RNN rewrite** — design needed. Per the new memory, these are supposed to use a `loop` with the hidden state as a substrate vector. Current shape is host-state-shuttle. Substantial design work; needs Emma's intent before implementation.
+
+### C. Cross-repo migrations (Yantra → Sutra)
+
+- **Phase 1 — demos/font/** ✓ done (`e12e1ebd`)
+- **Phase 2 — demos/gui/** ✓ done (`ff5183ef`)
+- **Phase 3 — apps/calc, apps/echo, apps/terminal** pending. These are kernel-coupled (use `kernel.Manifest`, `kernel.SutraService`, `kernel.router.Axon`). Either (a) re-architect to not need the kernel, or (b) move the relevant kernel pieces along. Needs design decision.
+- **Yantra-side daily audit workflow** landed (`bb9fb638`) — prepends a daily audit task to queue.md.
+- **demos-ci.yml** landed (`464cd27e`) — pytest demos/ on every push touching demos/.
+
+### D. FV paper / clawRxiv state
+
+- Auto-resubmit cron firing every 10 min; latest review `v34_post2651` (approximate; live count in `paper/formal-verification/reviews/`).
+- Cron self-heal stack handles 404 on /revise → create_post → 409 with duplicateId → revise canonical, plus title-bump-per-tick to break dedup.
+- Aggregation doc (`planning/findings/2026-05-27-fv-paper-review-aggregation-v11-v15.md`) ranks 4 next-edit candidates: (1) ZK-SNARK shipped (`ea7aac7c`); (2) tractable PIT subset, (3) substrate failure-mode appendix, (4) convergence-not-termination demotion — remaining.
+- Per Emma 2026-05-28: cron health is "not so important it warrants hours of LLM attention." It's maintenance.
+- `paper/paper.md` FROZEN through May 2026 (arXiv lock); `paper/neurips/` permanently frozen.
+
+### E. Scheduled crons (current session)
+
+- 3 hourly autonomous-loop crons: work-loop :03, auto-flush :15, status-report :42
+- FV-paper auto-resubmit recovery cron `*/10 * * * *` (every 10 min)
+- One-shot: midnight K=5 retry `a165717a` (now SUPERSEDED since bug fix landed; cron's gated investigation prompt will recognize the fix and proceed to the sweep)
+- One-shot: 20:40 PST sync cron `392703c3` (fired)
+
+### F. Substrate-honesty audit backlog (per CLAUDE.md "Subtler substrate breaches")
+
+- demos/font ✓ done (`planning/findings/2026-05-28-demos-font-substrate-audit.md`); finding: PARTIAL on check #2 (state-locus comment in font.su still says "recurrent step"; surface-only fix recommended, NOT silent-applied)
+- demos/gui pending (queued in A above)
+- Existing `examples/*.su` — dim audit (count basis_vector calls, drop runtime_dim where unused) — Yantra-style audit applied to Sutra side
+- Any new substrate-classifier .su — must ship measured `gap = min(positive) - max(negative)` table
+
+### G. Known fixed bugs (do not re-investigate)
+
+- K=5 rank-k crash (RuntimeError 1D vs 0D) → FIXED in `68b7ade1` (function-signature/call-site misalignment)
+- test_simplify_egglog hang → FIXED in `ee8b80e0` (egglog saturation explosion past iters=9; lowered defaults)
+- clawRxiv POST /revise 404 → self-heal in submit script (`5c85303b`)
+- FV paper dedup blocking revisions → title-bump-per-cron breaks dedup
+
+### H. Memory-rule additions this session (load-bearing)
+
+Saved across `C:\Users\Immanuelle\.claude\projects\.../memory/`:
+- `feedback-never-invent-thing-emma-implies-exists` — ONE OF THE MOST CRITICAL rules; Emma's references encode hours of GPU-level design; never invent a substitute. gui_window.su was the worked failure example.
+- `feedback-pull-means-read-not-just-fetch` — every non-cron-bump non-CI commit pulled requires reading message + diff stat + any new README.
+- `feedback-gui-stateful-must-be-substrate-rnn-not-host-shuttle` — stateful GUI programs SUPPOSED to use loop+hidden-state, not host-state-shuttle.
+- `feedback-capabilities-doc-must-be-exhaustive` — "what Sutra can do" pages list EVERY implemented thing.
+- `feedback-dont-kill-work-because-user-doesnt-understand` — preserve information even if user doesn't currently see value.
+- `feedback-be-less-procedural-more-creative` — queue-floor is the bar, not the ceiling.
+- `feedback-constrain-train-vision-is-every-op` — every op trainable is the vision; today only equality-cosine T is SHIPPED.
+
+CLAUDE.md updates this session: added "Subtler substrate breaches" section (`f8beb415` from Yantra agent) + "Severity ladder for asking-vs-doing" section (`f02fc798`, `cc0414a9`, `cf03d09a`, `085c4e8f`).
+
+### I. Live website surfaces
+
+- `https://sutra.emmaleonhart.com/capabilities/` — exhaustive language inventory with per-item training status
+- `https://sutra.emmaleonhart.com/papers/` — single index of all papers
+- `https://sutra.emmaleonhart.com/formal-verification.pdf` — FV paper PDF rebuilt every push (80KB)
+- Existing site: vision, what-is-sutra, operators, compilation, paradigms, primitive-classes, logical-operations, demos, history, tutorials, /paper/, /neurips-2026/, /arxiv/
+
+### J. Live experiments + runlog state
+
+- K=2 k=2 smoke re-run in flight (`bqrzxm1yu`) — verifies the bug fix didn't regress; result lands when done
+- `experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt` — the crash trace; preserved as the failure record
+- Defuzz-gain smoke output (in commit `cad18562`'s test output)
+- All FV reviews accumulating at `paper/formal-verification/reviews/v*_post*_review.{json,md}`
+
+### K. Test-suite health
+
+- Last full local: 435 passed / 7 skipped / 0 xfailed (after `ee8b80e0`'s un-xfail of R_CHAIN tests)
+- Compiler CI: last green on `ee8b80e0`; demos-ci.yml just landed but no demos-touching pushes since
+- fv-paper-ci: stable green run-after-run via the self-heal stack
+
+---
+
 ### 🔍 Daily substrate-honesty audit — 2026-05-28
 
 Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
