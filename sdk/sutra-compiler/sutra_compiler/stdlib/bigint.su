@@ -48,11 +48,14 @@ function vector bigint_add(vector a, vector b) {
 //
 // v1 scope: type-name wrapper only. Construction (from string literal,
 // from int, from string codepoint extraction) and operator `+` overload
-// are deferred to a follow-on (both depend on either declaring
-// bigint_add as a `static intrinsic method` on the class with a new
-// runtime intrinsic backing it, OR on the validator allowing
-// class-method bodies to call file-scope intrinsics — neither is shipped
-// today). Users write `BigInt c = bigint_add(a, b);` in v1.
+// are deferred. The operator path requires removing the free
+// `intrinsic function digit_array_add` from logic.su (the stdlib loader
+// rejects duplicate names) so the class can carry it as a static
+// intrinsic method; but `bigint_add` (free wrapper) and existing test
+// callers depend on the free form. The proper fix is to refactor the
+// shared intrinsic registry to allow a single name to be both
+// free-function and class-static-method, which is a separate change.
+// Users write `BigInt c = bigint_add(a, b);` in v1.
 //
 // Same pattern as `Character extends String` in strings.su — a class
 // declaration whose only contribution is the static type.
