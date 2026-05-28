@@ -2341,6 +2341,39 @@ class PyTorchCodegen(Codegen):
         self._indent -= 1
         self._emit()
 
+        self._emit("# ---- Integer-axis arithmetic (BigInt building blocks) ----")
+        self._emit("#")
+        self._emit("# Per planning/sutra-spec/arbitrary-precision.md sub-decision 4")
+        self._emit("# (locked Emma 2026-05-28): integer-division primitive.")
+        self._emit("# `int_div(x, m)` is floor division; `int_mod(x, m)` is")
+        self._emit("# modulo. Both substrate-pure: take and return 0-d tensors,")
+        self._emit("# no .item() / float() extraction. Building block for the")
+        self._emit("# arbitrary-precision _digit_array_add scan (carry =")
+        self._emit("# int_div(sum, radix), digit = int_mod(sum, radix)).")
+        self._emit()
+        self._emit("def int_div(self, x, m):")
+        self._indent += 1
+        self._emit('"""Floor division on 0-d tensors. Substrate-pure (no extraction).')
+        self._emit('Wraps _torch.div with floor rounding mode; preserves grad.')
+        self._emit('"""')
+        self._emit("x = self._st(x)")
+        self._emit("m = self._st(m)")
+        self._emit("return _torch.div(x, m, rounding_mode='floor')")
+        self._indent -= 1
+        self._emit()
+        self._emit("def int_mod(self, x, m):")
+        self._indent += 1
+        self._emit('"""Integer modulo on 0-d tensors. Substrate-pure (no extraction).')
+        self._emit('For positive x and m: x - int_div(x, m) * m, computed as the')
+        self._emit('tensor remainder op (`%`) which matches Python `%` semantics')
+        self._emit('on non-negative integer-valued tensors.')
+        self._emit('"""')
+        self._emit("x = self._st(x)")
+        self._emit("m = self._st(m)")
+        self._emit("return x - _torch.div(x, m, rounding_mode='floor') * m")
+        self._indent -= 1
+        self._emit()
+
         self._emit("# ---- Logical operators — smooth polynomial form ----")
         self._emit("#")
         self._emit("# Same Lagrange-derived polynomials as the numpy backend:")

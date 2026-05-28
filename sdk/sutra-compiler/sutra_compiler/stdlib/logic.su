@@ -209,3 +209,10 @@ intrinsic function number truth_axis(vector v);
 // planning/findings/2026-05-28-defuzz-gain-task-scale-invariant.md
 // for why the cosine path is degenerate.
 intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);
+// int_div / int_mod — substrate-pure integer division + modulo on
+// 0-d tensors. Building block for the arbitrary-precision BigInt<MAX>
+// digit-array carry-propagation scan (planning/sutra-spec/arbitrary-
+// precision.md sub-decision 4 locked Emma 2026-05-28). No host
+// extraction; both return 0-d tensors with autograd preserved.
+intrinsic function number int_div(number x, number m);
+intrinsic function number int_mod(number x, number m);
