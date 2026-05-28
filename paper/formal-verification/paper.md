@@ -264,23 +264,51 @@ insensitive polynomial identity) and range-soundness (degree-insensitive
 composition) both scale; the closed-form bounder remains the exact tool for the
 per-connective lemma they rest on.
 
-**Honest cost of the polynomial-identity check (PIT term count).** Branch / path
-enumeration is replaced by *monomial* enumeration in the expanded polynomial;
-that replacement is exact, but it is not free. We measured the term count of the
-expanded polynomial on balanced Kleene trees of varying depth and variable pool
+**The composition argument is structural, not numerical — substrate noise is a
+separate concern, addressed in §4.** A reasonable critique is that VSA
+operations accumulate noise at increasing bundle width, so the per-connective
+lemma (range = [−1, +1] exactly) is "leaky" once the connectives are realised
+on a real substrate. That critique conflates two layers that are deliberately
+kept separate. The composition argument here is *about the polynomial*: given
+the inputs of each connective are in [−1, +1], the output of the polynomial
+the connective lowers to is in [−1, +1] — a closed-form fact about the
+polynomial, independent of how it's executed. Whether the substrate computes
+that polynomial *faithfully* (within machine epsilon, or bit-exactly under the
+integer-exact-range conditions named in §4.3) is a separate, measured question.
+The two layers stack: §3.3 says the *abstract* range is sound for any depth;
+§4 (esp. §4.1's capacity curve and §4.3's bit-exact dispatch) says the
+*substrate* realises that abstract range to documented precision within the
+trusted-base usage envelope. Conflating them would let either layer's
+limitations contaminate the other's claim; keeping them separate is what lets
+each layer's argument be precise.
+
+**Honest cost of the polynomial-identity check (PIT term count) — and why it is
+not a regression over the alternative.** Branch / path enumeration is replaced by
+*monomial* enumeration in the expanded polynomial; that replacement is exact, but
+it is not free. We measured the term count of the expanded polynomial on
+balanced Kleene trees of varying depth and variable pool
 (`experiments/fv_pit_term_count.py`; the same `extract_truth_polynomial`
 pipeline the obligation checker uses, so the measurement is on what the compiler
 emits): depth 1 → **6 terms** (any var pool); depth 2 → **66 / 177 / 312 terms**
 for var pools 2 / 3 / 4 (the depth-2 balanced tree caps at 4 distinct variables);
 depth 3 with 2 variables → **1054 terms** in 56 s of `sympy.expand`. At depth ≥ 3
 and var pool ≥ 3 the expansion exceeded a per-row budget we'd accept for a CI
-gate (~770 MB resident before the run was stopped). Equivalence by
-`reduces_to_same_graph(p, q)` is `expand(p − q) == 0` and pays the same wall as
-the extraction step. So the cost surface that PIT actually exposes is "term count
-grows geometrically in nesting depth," and the practical wall is `sympy.expand`
-on the composed polynomial, not the polynomial-identity decision itself. The
-correctness claim (the reduction *is* the equivalence procedure for the Kleene
-fragment) is unchanged; what we are sharpening here is the *cost* claim. See
+gate (~770 MB resident before the run was stopped).
+
+It would be wrong to read this as "PIT fails at depth 3" — the alternative this
+replaces is enumerating execution paths through nested branches, which is also
+exponential in nesting depth (the classic *path explosion* of symbolic
+execution). PIT trades one exponential surface for another. Where it wins is in
+the *constants* (no combinatorial branch fork-out per path; no SMT call per
+predicate) and in the *transparency* (the cost is one number — the monomial
+count — that you can measure and report, rather than a path tree whose true
+size you discover at run time). Equivalence by `reduces_to_same_graph(p, q)` is
+`expand(p − q) == 0` and pays the same wall as the extraction step. So the cost
+surface that PIT actually exposes is "term count grows geometrically in nesting
+depth, with the cost concentrated in `sympy.expand`," and we name that wall in
+the same paragraph as the result — not bury it. The correctness claim (the
+reduction *is* the equivalence procedure for the Kleene fragment) is unchanged;
+what we are sharpening here is the *cost* claim. See
 `planning/findings/2026-05-27-pit-term-count.md` for the full table.
 
 ## 4. Faithfulness: the reduction is computed exactly
