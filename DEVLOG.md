@@ -15,6 +15,18 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: `defuzzify_trit` exposed at Sutra source; β-training still blocked by 3 layered issues
+
+Work-loop tick: followed the prior tick's "expose `defuzzify_trit` as Sutra intrinsic" plan. Added `intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);` to `stdlib/logic.su` — compiles to `_VSA.defuzzify_trit(v, iters, beta)`. The defuzz harness now has a `--body trit` mode that uses it.
+
+β IS scale-sensitive at the polarization boundary (measured table in the finding). But β STILL doesn't train end-to-end. Three layered blockers surfaced:
+
+1. **Runtime hardcodes iters=10** in `defuzzify_trit` (codegen-time unroll ignores the intrinsic's iters arg). Need runtime-variable iters so iters=1 keeps β-sensitivity.
+2. **Loss surface is step-shaped at iters=10** — Adam stays stuck at β=0.5 over 30 epochs (saturation regions have ~0 gradient).
+3. **3-way polarizer target ≠ harness's sign(x) target** — for |x| < 0.5 the polarizer correctly outputs 0 but harness expects ±1, unrecoverable loss=1 regardless of β.
+
+Task #19 scope updated to cover all three. The Sutra-source surface change (intrinsic exposure) is real and lands clean; the harness end-to-end β-training is the next layer.
+
 ## 2026-05-28: defuzz β harness — task is scale-invariant in `gain`, not saturated
 
 Work-loop tick: tried the queue's documented next step for the defuzz β harness ("rewrite to use loop (2)/(3) or non-saturated inputs, then run 3-seed end-to-end"). Added a `--iters` CLI flag (default 10, original behavior); ran iters=2 + 3 seeds; **gain still didn't move from 1.0 across any seed, loss still zero at baseline.**
