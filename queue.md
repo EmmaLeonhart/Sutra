@@ -61,10 +61,9 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 
 ### A. In-flight / unblocked-ready-to-go (no Emma input needed)
 
-1. **K=5 rank-k sweep — bug fixed in `68b7ade1`, sweep can now actually run.** The misalignment between is_class_i function signature (per-class interleaved `[v_ci_*, T_ci_*]`) and call-site args (`[all_v, all_t]`) is repaired. K=2 k=2 smoke verification is the next safety step before launching K=5; the smoke runs in background (`bqrzxm1yu` at submission time). Once smoke confirms no regression, the K=5 k ∈ {1, 2, 4} n=3 20ep sweep is ready (5-9h wall).
-2. **demos/gui/ substrate-honesty audit** — same three-check shape (dim / state-locus / signal-gap) as the demos/font audit (`f02fc798`). Files to audit: count.su, frame.su, toggle.su + their drivers + tests. Per the **new GUI-RNN design memory** (Emma 2026-05-28): the stateful ones (count, toggle) are SUPPOSED to use substrate loops with hidden-state vectors across iterations — current shape is host-state-shuttle, which is a design failure (not just documentation drift). Audit doc surfaces; the rewrite to real substrate-RNN is queued under D below.
-3. **Defuzz β harness** — `experiments/defuzz_gain_adjustment.py` ships, smoke clean (bake-back bit-exact at gain=1.0). GPU free. Ready to run the full 3-seed training; ~30min on CPU, no GPU contention.
-4. **Daily substrate-honesty audit prepended item** (originally below) — first action of next autonomous loop per `.github/workflows/daily-audit.yml`.
+1. **K=5 rank-k sweep — bug fixed in `68b7ade1`, sweep can now actually run.** K=2 smoke status from last session's background run (`bqrzxm1yu`) is not retrievable; rerunning the smoke fresh is the safety step before launching K=5. Once smoke confirms no regression, the K=5 k ∈ {1, 2, 4} n=3 20ep sweep is ready (5-9h wall).
+2. **demos/gui/ substrate-honesty audit** — DONE (`81d97507`); PARTIAL on state-locus. The substrate-RNN rewrite Emma envisioned (Q5) escalated to a language-level primitive design (planning/open-questions/non-halting-loop-recur-primitive.md, `25822f43`); 5 sub-decisions need AskUserQuestion before code.
+3. **Implement arbitrary-precision `BigInt<MAX>`** — spec is canonical (`b6525412`, all 4 sub-decisions locked). Substrate intrinsics `_digit_array_add` + `_int_div_mod`, parser surface, operator dispatch, worked-example test. Concrete TODOs in `planning/sutra-spec/arbitrary-precision.md`.
 
 ### B. Emma decisions LANDED 2026-05-28 (replaces former "Pending Emma decisions")
 
@@ -144,77 +143,15 @@ CLAUDE.md updates this session: added "Subtler substrate breaches" section (`f8b
 
 ### K. Test-suite health
 
-- Last full local: 435 passed / 7 skipped / 0 xfailed (after `ee8b80e0`'s un-xfail of R_CHAIN tests)
-- Compiler CI: last green on `ee8b80e0`; demos-ci.yml just landed but no demos-touching pushes since
+- Last full local: 437 passed / 7 skipped / 0 xfailed (after `e2b8ee7a`'s codegen `eq` substrate-leak fix; +2 tests from the 2026-05-28 session)
+- Compiler CI: last green on `ee8b80e0`; demos-ci.yml landed (`464cd27e`) but no demos-touching pushes since
 - fv-paper-ci: stable green run-after-run via the self-heal stack
 
 ---
 
-## Audit findings 2026-05-27 19:15 PST — only #1 remains
+### ⭐ Defuzz β harness: autograd unblocked (codegen `e2b8ee7a`); task design needs reshape
 
-Audits #2 (queue.md rank-k DONE trim) and #3 (docs/papers.md
-description steady-state) are addressed in this commit. The trim
-mirrors the FV-section trim from earlier today (`1a54045b`).
-
-- **Audit #1 — paper/neurips/ freeze touched by metadata commit `599424f8`.**
-  Pending Emma triage. The 2026-05-24 contact-email standardization
-  touched files under the explicitly-frozen `paper/neurips/`. Two
-  reasonable closures: (a) accept as an explicit carve-out in
-  CLAUDE.md's freeze rule (project-wide identity changes are
-  legitimate even on frozen archives — this is probably the right
-  call); (b) revert the change inside `paper/neurips/` while keeping
-  it on the live `paper/paper.md`. Either way is small; the question
-  is which intent the freeze rule should encode.
-
-### 🚨 BUG: rank_k_is_x.py crashes at K=5 equivalence guard — RuntimeError 1D vs 0D tensors
-
-Surfaced 2026-05-27 after the K=5 k=1 n=3 20ep run completed with exit
-0 BUT containing a real crash. Runlog at
-`experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt`:
-
-```
---- seed 0 ---
-  build_data: K=5 k_rank=1 per_class=5 N=25 dim=768 seed=0
-Traceback (most recent call last):
-  ...
-  File "<rankk param_K5_k1>", line 1948, in rule_0
-  File "<rankk param_K5_k1>", line 1936, in is_class_2
-  File "<rankk param_K5_k1>", line 787, in similarity
-RuntimeError: 1D tensors expected, but got 1D and 0D tensors
-```
-
-The K=2 k=2 smoke (`bbead213`, `e52588f5`) did NOT trigger this — it
-only surfaces at K ≥ 3 (the rule_0 → is_class_2 cross-call shape
-needs at least 3 classes). The K=5 sweep authorised by Emma
-2026-05-27 13:21 PST is fully blocked until this is fixed.
-
-The crash is at the *equivalence guard* — line 411 of
-`experiments/rank_k_is_x.py`, the per-sample call BEFORE training
-starts. So no training happened; ~3 hours of background time was
-Ollama embedding generation + the failing guard call.
-
-**What's needed to fix:** investigation of the generated K=5 rule
-shape. The rule generator `_su()` and the per-class rule emission
-need to be inspected to find where a 0D tensor is being passed where
-a 1D vector is expected. Probably one of the K-1 negation terms in
-`is_X` (which compose differently at K=5 vs K=2) is reducing to a
-scalar somewhere.
-
-**Not started in this tick** because the bug needs investigation,
-not a guess fix. Per HARD RAILS: "Don't implement what you don't
-100% understand."
-
-### ⭐ Next constrain-train ship — defuzz β as Sutra-level parameter (UNBLOCKED — K=5 has crashed, GPU is free; defuzz training doesn't need GPU anyway)
-
-Per Emma's "every operation trainable" vision (capabilities doc 2026-05-27): the next SHIPPED constrain-train instance should *expand the trainable surface to a new operator*, not polish equality-cosine. Ranking + decision rationale: `planning/exploratory/constrain-train-next-targets.md`.
-
-**Picked next:** `defuzzy` β as a Sutra-level number parameter. Today `defuzzify_trit(v, iters=10, beta=2.0)` has a hardcoded β at the runtime; no Sutra source can override it. Ship adds: (1) Sutra-level `defuzzy(v, number beta)` 2-arg overload (parser/validator/codegen, backwards-compatible with 1-arg form), (2) `experiments/defuzz_beta_adjustment.py` that trains β on a polarization task + bakes back as a numeric literal + round-trip-checks.
-
-**Why this one first:** smallest parser/codegen change of the candidates; training loop doesn't need embeddings (synthetic truth-axis data, much faster than equality-cosine's 2.7h GPU run); directly demonstrates the vision because `defuzzy` is currently SHIPPED-not-trainable in the capabilities inventory and this moves it to SHIPPED-trainable.
-
-**Fires when:** the K=5 rank-k sweep (background, runlog `experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt`) finishes; the GPU is then free, though defuzz training doesn't need it anyway.
-
-After this ships, the queue advances per the ranking doc: `select` softmax temperature → `bundle` weights → Kleene connective coefficients per call site.
+The codegen `eq` substrate-leak (`float(cos.item())` host-extraction detaching autograd) was fixed in `e2b8ee7a`. The defuzz training harness now compiles + trains + round-trips without crashing (437 compiler tests still pass). However the harness's synthetic polarization task happens to be at loss=0 at the default gain=1.0 — so training "succeeds" but doesn't actually exercise gradient flow against a meaningful loss surface. The next ship of this item needs a task redesign so the baseline gain is non-optimal and training visibly moves the parameter. After that, β bakes back as a numeric literal + round-trip-checks per the original plan.
 
 ### ⭐ Emma 2026-05-27 13:21 PST — multi-front authorization batch
 
@@ -367,22 +304,6 @@ genuinely open and need design before code, not just wiring:
 
 Keep `paper/formal-verification/paper.md` updated as each lands (CLAUDE.md
 § FV-paper-sync). Fuller roadmap: `todo.md` § Formal verification.
-
-### Compiler-side CI workflow (Emma 2026-05-27)
-
-The repo's `.github/workflows/` has paper/site/package workflows
-(`fv-paper-ci.yml`, `pages.yml`, `papers-ci.yml`, `paper-pdf.yml`,
-`pull-reviews.yml`, `publish-sutra-compiler.yml`, `submit-papers.yml`,
-`sutradb-ci.yml`, `sutradb-integration.yml`) but no workflow that runs
-the Sutra compiler test suite on push. CLAUDE.md HARD RAILS says
-"Verify CI green, not just local." Add a workflow that runs
-`pytest sdk/sutra-compiler/tests/` on push to `main` and on PR.
-
-Shape: ubuntu-latest runner (egglog is broken on local Windows but the
-suite should be fine on Linux), Python 3.13, install `sdk/sutra-compiler`
-with the dev extras, run the full suite. Acceptable to skip the slowest
-tests (the substrate-leak-sweep is ~29 min per Audit.md) on per-PR runs;
-keep them on the daily schedule.
 
 ### 1. `loop while_loop` equality / negation bounds  (out-of-scope, tracked)
 
