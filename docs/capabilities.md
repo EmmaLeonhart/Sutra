@@ -174,7 +174,7 @@ For each: the syntactic surface, what it lowers to on the substrate, and the tra
 
 | Op | Surface | Lowers to | Training |
 |---|---|---|---|
-| `==` | binary | cosine similarity → truth-axis projection (`_VSA.eq`) | **shipped** — `equality_cosine_adjustment.py` trains a per-program scalar T scaling the cosine inside `is_X(x) = (T * similarity(x, own)) && !(T * similarity(x, others))`; T baked back as a numeric literal in the recompile; round-trip max\|Δ\| < 1e-4 (typical ≈ 2e-7). The ONE fully-shipped constrain-train instance in the language. |
+| `==` | binary | cosine similarity → truth-axis projection (`_VSA.eq`) | **shipped** — `equality_cosine_adjustment.py` trains a per-program scalar T scaling the cosine inside `is_X(x) = (T * similarity(x, own)) && !(T * similarity(x, others))`; T baked back as a numeric literal in the recompile; round-trip max\|Δ\| < 1e-4 (typical ≈ 2e-7). One of the **four shipped constrain-train instances** today (alongside `defuzzify_trit` β, rank-k is_X K=2, and `select` softmax temperature). |
 | `!=` | binary | `!(a == b)` (composes through `==`) | vision (inherits the T from `==` indirectly) |
 | `<`, `>`, `<=`, `>=` | binary | tanh-smooth comparison on the real axis (`_VSA.gt` + composition) | vision — a learned sharpness scalar inside the smooth-sign |
 
@@ -270,7 +270,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | Method | Description | Training |
 |---|---|---|
 | `_argmax_cosine(query, candidates)` | nearest-codebook lookup | vision — learned candidate weighting or temperature |
-| `_select_softmax(scores, options)` | softmax-weighted superposition (the differentiable `switch`) | vision — learned softmax temperature, learned firing threshold |
+| `_select_softmax(scores, options)` | softmax-weighted superposition (the differentiable `switch`) | **shipped via T scaling the scores at the Sutra source level** (`select([s_i/T for i], [opt_i for i])`); `experiments/select_temperature_orthogonal.py` trains T at K=5 / 3-seeds for +1.77× margin gain (substrate-pure autograd via `_torch.stack`, see Audit.md REAL LEAK #10); also: learned firing threshold (vision) |
 | `_vector_map_lookup(pairs, key)` | vector-keyed map lookup | vision — learned key matching weights |
 
 ### Hashmap (rotation-bound accumulator)
@@ -504,6 +504,9 @@ Top-level CLI front-end: `sutrac.py`.
 
 ## Summary of trainable status
 
-- **Shipped (1):** equality `==` cosine scalar T.
-- **Mechanism (2):** rank-k `is_X` (K×k prototypes + K×k scalar gains per class; smoke clean, K=5 sweep running); defuzz gain (a learnable scalar inside the spec-form defuzz iteration; smoke clean).
-- **Vision (many):** essentially every other surface listed above where "Training: vision" appears — each is a trainable surface in principle whose harness has not been written. Per the design vision, the long-arc goal is for every operation to have a shipped trainable form; today we have one. Each new shipped instance is a step toward the picture where the entire program is back-propagatable from a learned neural network into legible Sutra source.
+- **Shipped (4):**
+    1. **Equality `==` cosine scalar T** (`experiments/equality_cosine_adjustment.py`, 2026-05-26): trains a per-program T scaling the cosine inside `is_X(x) = (T*sim(x,own)) && !(T*sim(x,others))`; ~1.08× margin gain on K=5 embed-protos.
+    2. **Defuzz β** (`experiments/defuzz_gain_adjustment.py --body trit`, 2026-05-28): trains the sharpening rate inside `defuzzify_trit`; ~15× loss reduction; β\* = 6.58 ± 0.17 across 3 seeds; round-trip 1.19e-7.
+    3. **Rank-k `is_X` K=2** (`experiments/rank_k_is_x.py`, 2026-05-27): trains K×k vector prototypes + K×k scalar gains per class; 3.01× margin improvement on K=2 smoke.
+    4. **Select softmax temperature** (`experiments/select_temperature_orthogonal.py`, 2026-05-28): trains T inside `select([s_i/T for i], [opt_i for i])`; +1.77× margin gain on K=5 orthogonal-protos; round-trip 3.58e-07. CE surface is bimodal in T (global min at small +T, spurious basin at T<0); lr=0.005 default stays in the correct basin.
+- **Vision (many):** essentially every other surface listed above where "Training: vision" appears — each is a trainable surface in principle whose harness has not been written. Per the design vision, the long-arc goal is for every operation to have a shipped trainable form; today we have four. Each new shipped instance is a step toward the picture where the entire program is back-propagatable from a learned neural network into legible Sutra source.
