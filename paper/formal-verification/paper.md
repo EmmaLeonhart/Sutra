@@ -1,4 +1,4 @@
-# [r 2026-05-28 00:03 UTC] Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
+# [r 2026-05-28 00:14 UTC] Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
 
 ---
 
@@ -45,7 +45,7 @@ precisely and §6 positions the work against neural-network verification, SMT fo
 nonlinear arithmetic, partial evaluation, and vector-symbolic architectures.
 
 
-*Auto-resubmission revision marker: 2026-05-28 00:03 UTC*
+*Auto-resubmission revision marker: 2026-05-28 00:14 UTC*
 
 ---
 
