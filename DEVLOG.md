@@ -15,6 +15,12 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: SutraBarrel session — top-of-queue cleanup + 12 commits worth of substantive work
+
+A continuous session driven by /remote-control SutraBarrel barreled through queue.md's full backlog of Emma-flagged tail items (CLAUDE.md trim, Audit.md catalogue, AskUserQuestion sweep, metabolize chat + voice-vision) and then — after Emma redirected to start at the *top* of the queue — landed top-of-queue items: FV paper §4.4 (three substrate-faithfulness measurements), NeurIPS freeze carve-out for identity changes + audit, arbitrary-precision spec with all 4 sub-decisions locked (class `BigInt` / radix-10 / `BigInt<MAX>` / `_int_div_mod`), non-halting-loop / `recur` primitive planning doc (Emma's Q5 design intent escalated beyond a code rewrite), codegen `eq` substrate-leak fix that unblocked defuzz β training (`e2b8ee7a`; 437 compiler tests pass). The AskUserQuestion sweep landed **12 Emma decisions** via the phone-notification path that had been sitting as deferred-mention items.
+
+This cron tick (work-loop) pruned stale queue.md sections: the Audit findings #1 entry whose carve-out + audit just landed in `c32c1c41`; the K=5 BUG section (FIXED in `68b7ade1`); the Compiler-side CI workflow entry (DONE in `332759e5`); the defuzz β harness entry (autograd unblocked, harness-design issue surfaced as the next concrete piece). State Inventory K test-suite health bumped from 435 → 437 passed reflecting the new tests + the `eq` fix. New task #15 tracks the arbitrary-precision BigInt&lt;MAX&gt; implementation now that the spec is canonical.
+
 ## 2026-05-28: FV paper §4.4 — three substrate-faithfulness measurements added
 
 `paper/formal-verification/paper.md` §4.4 added (the substantive 62-insertion
