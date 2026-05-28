@@ -15,6 +15,22 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: FV paper §4.4 — three substrate-faithfulness measurements added
+
+`paper/formal-verification/paper.md` §4.4 added (the substantive 62-insertion
+diff landed accidentally inside marker-bump commit `3edbe2a7` whose message
+calls itself non-substantive; the actual diff added a new subsection naming
+the three measurements that distinguish dispatch-level substrate-purity from
+program-level substrate-faithfulness: dimension audit, state-locus audit,
+signal-separation audit). Each cites the failure mode caught in the
+2026-05-28 Yantra downstream audit (768→8 dim, host-state-shuttle as RNN,
+font-glyph LIT/UNLIT overlap). The §4.4 composition with §3 is named in
+the closing paragraph: dispatch-level cleanliness keeps the obligation-
+checker's polynomial inputs honest; the three measurements keep §4's
+faithfulness claim honest at the program level. This is a real new signal
+for clawRxiv reviewers (the bump-only marker cron had been resubmitting
+the same content for ~5 hours).
+
 ## 2026-05-28: Yantra OS attempt paused — substrate leaks throughout; GUI/IO work migrates back to Sutra
 
 **Context.** Yantra is the GPU-native OS attempt built in Sutra. Over the
