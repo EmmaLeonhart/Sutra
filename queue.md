@@ -592,17 +592,12 @@ Like, no, no, mentioning it in chat and then the user never seeing it. You have 
   - Task #20: AskUserQuestion sweep on all deferred items pending — explicit instruction to do this once active work clears
 
 
-## Go over the Substrate-leak catalogue: `Audit.md`.
+## Voice-vision live items (extracted 2026-05-28 from `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`)
 
-idk why we did not go over this. We should go over this and fix all of them and when they are complete if they are complete then we finish stuff
+The 2026-05-17 voice-vision file was triaged with verbatim text + editorial Reconciliation. Two items were marked STILL LIVE; both are now extracted to queue.md so the file stops being "crud" pending live work. The file itself stays at its current path as the verbatim log (per the chats-triage rule: preserve actual logs, don't substitute summaries).
 
-# Metabolize this thing
-
-
-I am not sure why this is here but we gotta actually get working on it. Should not be crudding up the repository this way.
-
-- 2026-05-17 voice-vision (verbatim):
-  `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`.
+1. **Verify shipped transcendentals use tau-bound + cross-talk log/exp tables (not libm).** Vision: three transcendental constants — tau at a runtime binding point, plus a cross-talk-exploiting log table and exp table as the two leaves of every other transcendental. Need to confirm the shipped `math.su` literally realizes this, not a libm/torch elementwise shortcut. Audit method: open `math.su`; trace `realExp`, `log`, `cos`, `sin` to their lookup-table backing; confirm they go through tau-bound rotation. If they do, write the verification finding; if not, fix to match the vision.
+2. **Cosine as its own transcendental function (NOT derived from `cexp(iθ)`).** Open design question at `planning/open-questions/cosine-as-its-own-transcendental.md`. Emma's view: cosine is distinct enough that it needs to be its own transcendental, including the imaginary output implemented geometrically. Contradicts the current `cos = real(cexp(iθ))` lowering. Open question file exists — needs Emma's decision via AskUserQuestion to close.
 
 ## Pointers
 
