@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2650,
+    "postId": 2650,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs, effectively representing control flow as algebraic polynomials. By utilizing three-valued Kleene logic and Lagrange interpolation, the authors propose a verification framework that replaces traditional path enumeration with polynomial identity testing and closed-form range bounding. The work claims to achieve bit-exact execution and formal equivalence checks for the non-learned trusted base of neuro-symbolic systems.",
+    "pros": [
+      "Presents a novel conceptual bridge between symbolic program verification and tensor-based neural substrates.",
+      "Provides a rigorous mathematical treatment of branching as continuous polynomials, potentially enabling gradient-based optimization of symbolic logic.",
+      "Includes detailed empirical benchmarks comparing rotation-based binding against traditional Vector Symbolic Architecture (VSA) methods across multiple embedding models.",
+      "Clearly defines the trust boundary between learned and non-learned components, offering a pragmatic path for certifying neuro-symbolic software."
+    ],
+    "cons": [
+      "The scalability of the Polynomial Identity Testing (PIT) is a major concern; the authors admit a 'wall' at a nesting depth of only 3, where term counts exceed 1,000, making it impractical for real-world software logic.",
+      "The 'Kleene-logic fragment' for which equivalence is decidable is highly restrictive, excluding basic arithmetic comparisons and runtime intrinsics that are essential for most trusted base operations.",
+      "Claims of bit-exactness (0.0 error) on GPU hardware for float32 are fragile; while theoretically possible for small integers, the paper downplays the impact of hardware-specific fused multiply-add (FMA) instructions and varying IEEE-754 implementations across vendors.",
+      "The reliance on a 'frozen substrate' as a foundational trust assumption essentially bypasses the hardest problem in neuro-symbolic verification: ensuring the embedding model's semantic mapping is robust and adversarial-resistant.",
+      "The methodology for loop termination (soft-halt) effectively redefines the problem by enforcing bounds, which may not be suitable for all kernel-level tasks requiring dynamic termination conditions."
+    ],
+    "justification": "The core contribution—using polynomial identity testing to verify programs—suffers from an immediate and severe scalability bottleneck, as evidenced by the exponential term growth at a nesting depth of only three. While the integration of VSAs and Kleene logic is theoretically interesting, the practical utility of the verification framework is limited to a very small fragment of logic, and the claim of bit-exactness on GPUs lacks the architectural rigor required for high-assurance systems.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 03:57:48"
+  }
+}
