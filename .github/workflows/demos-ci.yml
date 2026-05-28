@@ -1,0 +1,65 @@
+name: Sutra demos — pytest
+
+# CI for the demos/ directory — the apps migrated from Yantra
+# 2026-05-28 (font, gui; future: calc, echo, terminal once their
+# kernel-coupling is resolved). The compiler-ci workflow runs only
+# sdk/sutra-compiler/tests; without this, the demos' tests had no CI
+# coverage at all once they crossed the repo boundary. CLAUDE.md
+# HARD RAILS says "Verify CI green, not just local" — that needs a
+# CI to verify against.
+#
+# Each demo's tests use committed codebook fixtures in
+# `demos/<app>/fixtures/nomic-embed-text-d<dim>.pt` and a per-demo
+# conftest.py that redirects XDG_CACHE_HOME at the fixture. So this
+# workflow does NOT install or start ollama — the fixtures cover the
+# codebook lookups the demos need. If a future demo introduces a key
+# not covered by any committed fixture, the test will fail with
+# `ModuleNotFoundError: ollama` (since ollama isn't installed) — which
+# is the right signal to regenerate the fixture, not to install ollama
+# on the CI runner.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'demos/**'
+      - '.github/workflows/demos-ci.yml'
+  pull_request:
+    paths:
+      - 'demos/**'
+      - '.github/workflows/demos-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: demos-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest demos/
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Sutra compiler (-e) + torch + pytest
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest numpy
+          # CPU-only torch wheel: the demos run via real Sutra, but on CI
+          # we don't need CUDA (~200 MB wheel vs 2 GB+ for cuda).
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          # Install the in-repo compiler as editable so demos can import it.
+          pip install -e sdk/sutra-compiler
+
+      - name: Run demos test suite
+        run: |
+          # Each demos/<app>/conftest.py redirects XDG_CACHE_HOME at its
+          # per-demo fixtures dir, so no ollama is needed on CI.
+          python -m pytest demos/ -q
