@@ -200,3 +200,12 @@ intrinsic function fuzzy make_truth(number t);
 // pull a scalar out of `defuzzy(cond)` for use as a softmax score
 // in `select`.
 intrinsic function number truth_axis(vector v);
+// defuzzify_trit — three-way polarizer toward {-1, 0, +1} with a
+// β-sharpening knob. Compiles to _VSA.defuzzify_trit(v, iters, beta);
+// the runtime unrolls `iters` straight-line `exp(-β*(x±1)²)` steps
+// (codegen-time unroll). `beta` is scale-sensitive (it's the exponent
+// in the polarization weights), so β IS trainable through this
+// surface — unlike the cosine `==` path in `defuzzy(v)`. See
+// planning/findings/2026-05-28-defuzz-gain-task-scale-invariant.md
+// for why the cosine path is degenerate.
+intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);

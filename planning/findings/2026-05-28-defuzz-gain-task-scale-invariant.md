@@ -56,18 +56,38 @@ Option 1 is the cleanest — it goes back to the `defuzzify_trit` β that the ex
 
 - `--iters` CLI flag for future task-redesign experiments (default 10, matches original). Exposed but documented as not-a-fix.
 - This finding doc names the real issue (scale-invariance, not saturation) so the next session doesn't repeat the "try fewer iterations" attempt.
-- Queue.md State Inventory A.4 needs updating to reflect the deeper diagnosis (deferred to the work-loop tick that commits this finding).
 
-## What still needs to happen
+## Update 2026-05-28 (later in session): `defuzzify_trit` exposed as Sutra intrinsic; loss surface is STILL mostly flat
 
-Real fix is Option 1 above: rewrite `gated_polarize` to use `defuzzify_trit(v, β)` with β as the trainable parameter. This requires exposing `defuzzify_trit`'s β at the .su source level (it's currently a Python kwarg on `_VSA.defuzzify_trit`, not a Sutra-level parameter). The path:
+Followed Option 1's path. Added an intrinsic declaration in `sdk/sutra-compiler/sutra_compiler/stdlib/logic.su`:
 
-1. Add a Sutra-source 2-arg form `defuzzy(v, β)` that compiles to `_VSA.defuzzify_trit(v, β)` with the β threaded through.
-2. Rewrite the `gated_polarize` .su to use `defuzzy(v, β)` directly.
-3. Train; gain (now β) actually moves.
-4. Bake back the trained β as a numeric literal.
+```sutra
+intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);
+```
 
-Step 1 is the source-of-truth change; the harness redesign follows.
+This compiles to `_VSA.defuzzify_trit(v, iters, beta)` at runtime. Verified: the .su `function fuzzy gated_polarize(fuzzy v, number beta) { return defuzzify_trit(v, 10, beta); }` compiles, runs, and produces β-sensitive outputs at the polarization boundary (table below). The harness now has a `--body trit` CLI option that switches to this path.
+
+### β-sensitivity table (iters=10, hardcoded in runtime)
+
+| input x | β=0.01 | β=0.1 | β=1.0 | β=10.0 |
+|---:|:---:|:---:|:---:|:---:|
+| 0.05 | 0.0 | 0.0 | 0.0 | 0.0 |
+| 0.30 | 0.0 | 0.0 | 0.0 | 0.0 |
+| 0.50 | 0.0 | 0.0 | 0.0 | 0.0 |
+| 0.70 | 0.0 | 0.0 | +0.9999 | +0.9999 |
+| 0.90 | 0.0 | 0.0 | +0.9999 | +0.9999 |
+
+β has a STEP behavior — the transition is between 0.1 and 1.0 for inputs > 0.5. Within saturation regions the gradient is ~0. Adam training at β=0.5 with inputs in (0.55, 0.85) stays stuck at β=0.5 over 30 epochs (loss=1.0 throughout — all outputs collapse to 0).
+
+### What's still blocking real β-training
+
+1. **Runtime hardcodes iters=10** inside `defuzzify_trit` (codegen-time unroll). The intrinsic accepts an `iters` argument but the runtime ignores it. For real β-sensitivity, iters=1 or 2 keeps β-changes visible across the whole input range. v2 work: make iters runtime-variable.
+
+2. **The 3-way polarizer's loss landscape is step-shaped at iters=10**, not smooth. Even with Adam, the gradient flowing through the saturation regions is negligible. Real β-training needs either (a) iters<3, or (b) a different loss design that pulls β toward the active boundary (e.g., a regularizer on the polarization-strength rather than direct MSE on outputs).
+
+3. **The 3-way polarizer target doesn't match the harness's sign(x) target.** For x ∈ (0.1, 0.5), the polarizer correctly outputs 0 (the nearest trit), but the harness's target is sign(x) = +1 — unrecoverable loss=1 from that input bucket regardless of β. Either the harness needs to use 3-way targets (sign(x) only if |x| > 0.5, else 0) or the input distribution needs to be concentrated in |x| > 0.5.
+
+Tracked as the v2 follow-on under task #19 (originally "expose defuzzy 2-arg"; renamed to "implement runtime-variable iters in defuzzify_trit + redesign harness loss + verify β trains end-to-end").
 
 ## Cross-refs
 
