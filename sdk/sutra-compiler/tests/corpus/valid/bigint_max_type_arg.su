@@ -1,0 +1,21 @@
+// BigInt<MAX> type-arg parsing smoke (planning/sutra-spec/arbitrary-precision.md
+// sub-decision 3 locked Emma 2026-05-28: compile-time constant BigInt<MAX>).
+// Integer literals in type-arg position parse as synthetic TypeRef whose
+// `name` is the literal's lexeme. Validates that BigInt<256> + Array<int, 10>
+// shapes parse in local-var, parameter, and return-type positions.
+
+function string make_local() {
+    BigInt<256> x = 0;
+    Array<int, 10> y = 0;
+    return "ok";
+}
+
+function string take_bigint(BigInt<128> x) {
+    return "ok";
+}
+
+function BigInt<512> produce_bigint() {
+    return 0;
+}
+
+function string main() { return "ok"; }
