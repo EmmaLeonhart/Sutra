@@ -1,27 +1,7 @@
 # Sutra as a long-term, legibly self-improving system — roadmap
 
-> **Status: planning / agenda.** This is a concrete roadmap, not an
-> exploratory sketch. It was reorganized on 2026-05-28 from a 2026-05-27
-> design conversation between **Emma** (Sutra's designer) and the **agent**
-> (Claude). It previously lived at
-> `planning/exploratory/2026-05-27-sutra-vision-conversation.md`; the verbatim
-> chat log and the intermediate reformatting steps (speaker attribution →
-> readability → framing removal → reorganization) remain in git history.
->
-> **Speaker convention.** The design calls in this document are **Emma's**
-> — she has ground truth on Sutra's mechanisms. Where a framing originated
-> as the agent's restatement, it has been folded into the structure and
-> kept only where it sharpens Emma's point; load-bearing scope calls are
-> tagged **(Emma)**. When in doubt, the authoritative design intent is
-> Emma's, per CLAUDE.md §"When Emma gives an algorithmic explanation,
-> IMPLEMENT it."
->
-> **One-line thesis.** Sutra already compiles programs into trainable
-> tensor-op graphs. The plan: make as much of every program trainable as
-> possible, use the resulting corpus to train a *formally-verified learned
-> decompiler* that turns trained tensors back into idiomatic Sutra source,
-> and thereby bootstrap a self-improving AI whose improvements are
-> human-legible by construction.
+> Reorganized 2026-05-28 from a 2026-05-27 Emma↔Claude design
+> conversation; verbatim chat log is in git history.
 
 ---
 
