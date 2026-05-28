@@ -15,6 +15,14 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: K=5 rank-k sweep LAUNCHED (both bug levels fixed)
+
+Work-loop tick: discharged queue State Inventory A.1. Both bug levels of the K=5 sweep are now fixed (generator-side in `68b7ade1`, caller-side in `132c8925`); K=2 smoke verified clean (baseline margin +0.21 → trained +0.63, 3.01× improvement, equivalence guard max|Δ|=0.00e+00, round-trip max|Δ|=1.79e-7).
+
+A sibling-agent left a Python runner script (`experiments/run_rank_k_K5_sweep.py`, committed in `fa8d037c`) that avoids the prior shell-chain wrapper's exit-127 failure. Single Python invocation runs k ∈ {1, 2, 4} sequentially; each k's stdout+stderr go to a dated runlog; the wrapper continues past per-k failures and writes a summary with the last 30 lines of each runlog.
+
+Launched the sweep as background task `bwf96wgym` (5-9h wall). Pickup task #20 will aggregate per-k margins + write the rank-k findings doc when complete. Per-k runlogs persist to disk so partial progress survives session restarts.
+
 ## 2026-05-28: defuzz β SHIPPED end-to-end — second constrain-train instance after equality-cosine T
 
 Work-loop tick: closed the layered blockers from the prior tick. Per Emma's `AskUserQuestion` Option-1 choice ("change defuzzify_trit to runtime-variable iters"), replaced the 10-iter codegen-time unroll in `_VSA.defuzzify_trit` with a runtime `for _t in range(int(iters))` over the structural iters parameter. Per Audit #4's 2026-05-17 reclassification, range() over a structural index is substrate-pure when there's no host scalar branch on data; the codegen comment explicitly cites it.
