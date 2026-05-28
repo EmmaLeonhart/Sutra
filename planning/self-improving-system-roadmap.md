@@ -91,7 +91,6 @@ every component below into that trainable form, one at a time.
   `ε` instead of `0.0`) or train only within the subspace that preserves the 9
   grid equalities exactly. Bake: float coefficients per call site.
 
-**Harder, of interest (in scope but not low-hanging):** beta reduction.
 
 **Out of scope at this stage:** operator-overloading dispatch (the dispatch
 structure must stay fixed); lookup-table contents (`_exp_table`, `_ln_table`);
