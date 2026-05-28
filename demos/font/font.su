@@ -8,21 +8,25 @@
 // computations:
 //
 //   step(prev_state, x, y, char_code)
-//       Emma's recurrent step for the pixel field. The current pixel value at
-//       (x, y) is the state; each tick, `state = prev*0 + glyph_pixel(...)` --
-//       explicit substrate "forget then add", same shape as toggle.su's flip
-//       and count.su's +1. The * 0 is the substrate's way of saying "discard
-//       previous state"; the +/glyph is the substrate's way of saying "the
-//       new input is now what's on screen."
+//       Stateless per-cell substrate dispatch. `prev_state` is multiplied
+//       by 0 (discarded) and the new glyph bit for cell (x, y) under
+//       char_code is returned. The "recurrence" across renders lives in
+//       the host's pixel array, NOT on the substrate — this function is
+//       not a substrate-state RNN (CLAUDE.md "Subtler substrate breaches"
+//       #2; finding planning/findings/2026-05-28-demos-font-substrate-audit.md).
 //
 //   cycle_step(prev_code, typed_code, has_typed) -- 2026-05-27
-//       Emma's recurrent step for the *character* (not the pixel). The
-//       previous char_code is the state; without an override, the substrate
-//       advances it one step around the 36-glyph cycle (A->B->...->Z->0->...
-//       ->9->A) via a 36-way defuzzified select. With has_typed=1.0, the
-//       weighted sum `has_typed*typed_code + (1-has_typed)*advanced` lets
-//       the typed code take the place -- override decided on the substrate,
-//       not by a host if.
+//       Computes next char_code from prev_code via a 36-way defuzzified
+//       select (cycle A->B->...->Z->0->...->9->A); with has_typed=1.0
+//       the typed code takes the place via the substrate weighted sum
+//       `has_typed*typed_code + (1-has_typed)*advanced`. CURRENT SHAPE
+//       IS HOST-STATE-SHUTTLE — prev_code is a function arg the host
+//       carries between ticks, NOT a substrate-resident slot. The
+//       substrate-RNN rewrite via `recur` (planning/sutra-spec/
+//       non-halting-loop.md) is BLOCKED on v2 primitives (Sutra-source
+//       real() accessor or matrix-lookup softmax) per
+//       planning/findings/2026-05-28-cycle-step-rewrite-blocked.md +
+//       queue.md task #18.
 //
 //   glyph_pixel(x, y, char_code)
 //       Returns 1.0 if pixel (x, y) is lit for the letter with this codepoint,
@@ -46,12 +50,14 @@
 
 
 function vector step(vector prev_state, scalar x, scalar y, scalar char_code) {
-    // Stateless per-cell substrate dispatch. The prev_state input is multiplied
-    // by 0 (discarded) and the new glyph bit for cell (x, y) under char_code is
-    // returned. The 'recurrence' across renders lives in the host's pixel array,
-    // not on the substrate -- this is host-state-shuttle, not a substrate RNN
-    // (CLAUDE.md "Subtler substrate breaches" #2; finding
-    // planning/findings/2026-05-28-demos-font-substrate-audit.md).
+    // Stateless per-cell substrate dispatch. The prev_state input is
+    // multiplied by 0 (discarded) and the new glyph bit for cell (x, y)
+    // under char_code is returned. The "recurrence" across renders lives
+    // in the host's pixel array, not on the substrate — this is
+    // host-state-shuttle, not a substrate RNN (CLAUDE.md "Subtler
+    // substrate breaches" #2; finding planning/findings/2026-05-28-demos-
+    // font-substrate-audit.md). Both summands are real-axis vectors, so
+    // the sum is real-axis too (no make_real needed).
     vector zeroed = prev_state * 0.0;
     vector new_pix = glyph_pixel(x, y, char_code);
     return zeroed + new_pix;

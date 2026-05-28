@@ -1,22 +1,23 @@
-"""Yantra GUI counter — click to count 0, 1, 2, 3, ... via per-click substrate dispatch.
+"""Yantra GUI counter — click to count 0, 1, 2, 3, ... as a substrate-state RNN.
 
-Current shape: host-state-shuttle (the count lives as a Python variable
-between clicks; each click feeds it through step() on the substrate, the
-incremented count comes back, host stores it as the next state). The +1 IS
-a substrate op, not a host ``n += 1``. But the recurrence (state across
-clicks) lives in the host, not on the substrate — by CLAUDE.md "Subtler
-substrate breaches" #2, this is host-state-shuttle, NOT a substrate RNN.
-See planning/findings/2026-05-28-demos-gui-substrate-audit.md.
-
-Target shape (queued, design picked Emma 2026-05-28): rewrite count.su to
-use `loop (cond)` with the hidden state as a substrate vector that
-survives across iterations — see queue.md item D.6.
+count.su's `step()` is a non-halting-loop function
+(planning/sutra-spec/non-halting-loop.md, Emma 2026-05-28): the count
+lives as a `recurring vector state` on the substrate, held between calls
+in a module-level tensor slot. Each click invokes `step()` with NO host
+arg; the substrate loads its slot, adds make_real(1.0), writes the new
+state back via `recur(...)`, returns the new state vector. The host
+decodes vsa.real(state_vec) only for display (the window title), never
+to feed back into step() — the substrate's slot is the source of truth.
+This is the substrate-state RNN shape: closes CLAUDE.md "Subtler
+substrate breaches" #2.
 
 Two substrate computations drive the per-click path (count.su):
-  - step(n) = n + 1  — substrate increment.
-  - pixel(x, y, n)   — the displayed glow, centred at position n.
+  - step()           — substrate-state RNN; advances the recurring slot.
+  - pixel(x, y, n)   — stateless geometry; the displayed glow, centred
+                       at position n decoded from the substrate slot.
 
-The window title shows the current count, decoded from the substrate.
+The window title shows the current count, decoded from the substrate
+(vsa.real() is a monitoring boundary, not feedback).
 
 Usage:
     python apps/gui/counter_demo.py                 # open the window; click to count
