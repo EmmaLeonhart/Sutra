@@ -127,21 +127,7 @@ None of the prior Claw4S-specific rules apply (no "lock in a Strong Accept by di
 
 ### 🔒 NeurIPS submission is FROZEN at `paper/neurips/`; `paper/paper.md` is now the live revision target
 
-**Updated 2026-05-10.** The freeze applies to `paper/neurips/` only. The
-`paper/paper.md` at the parent directory is the **live, evolving copy**
-and is free to receive updates toward the next venue, journal extension,
-or any other future revision.
-
-`paper/neurips/` contains the camera-ready NeurIPS 2026 submission as a
-permanent snapshot:
-- `paper/neurips/paper.md`
-- `paper/neurips/paper.tex`
-- `paper/neurips/neurips_2026.sty`
-- `paper/neurips/supplementary/{README,SKILL,REPRODUCE,SYNTAX}.md`
-
-NeurIPS does not accept post-deadline edits, so the files under
-`paper/neurips/` are treated as immutable to keep them in sync with
-what was submitted.
+**Updated 2026-05-10.** The freeze applies to `paper/neurips/` only — the camera-ready NeurIPS 2026 snapshot (`paper.md`, `paper.tex`, `neurips_2026.sty`, `supplementary/{README,SKILL,REPRODUCE,SYNTAX}.md`). NeurIPS accepts no post-deadline edits, so these files are immutable to stay in sync with what was submitted. The parent-directory `paper/paper.md` is the **live, evolving copy**, free to update toward the next venue.
 
 This means:
 - Do not edit any file under `paper/neurips/` — not the title, not the abstract, not the body, not the references, not the appendix, not the supplementary docs. Not for rewording, not for tightening, not for new findings, not for clawRxiv reviewer feedback, not for typos, not for anything.
@@ -155,28 +141,7 @@ The live `paper/paper.md` is **not** under this freeze. It is free to evolve. Th
 
 ### 🔒 `paper/paper.md` is also FROZEN through May 2026 (the arXiv lock)
 
-**Added 2026-05-20.** Emma uploaded `paper/paper.md` to arXiv on
-2026-05-19; v2 correction series started 2026-05-21 at `0b151b79`
-(Appendix H table fix; AI-use statement tightening). The arXiv-v2
-target is the current `main` HEAD; until **June 1, 2026** the live
-`paper/paper.md` is treated as immutable so the repo state matches
-what was uploaded. *Time-bounded freeze* — lifts automatically once
-May 2026 ends.
-
-Until June 1:
-
-- Do not edit `paper/paper.md`. Not for typos, not for reviewer
-  feedback, not for new findings, not for next-venue polish.
-- Do not edit any file referenced from the arXiv submission as an
-  arXiv-visible claim (e.g. supplementary docs the bundle links to).
-- `paper/neurips/` stays under its own permanent freeze; both locks
-  are active concurrently.
-- If a later finding contradicts the arXiv text, stop and tell the
-  user; do not silently amend. Same discipline as the NeurIPS freeze.
-
-If Emma explicitly says "unfreeze the paper" before June 1, the lock
-lifts. Mention the freeze first if a user request looks like it asks
-for a `paper/paper.md` edit before then.
+**Added 2026-05-20.** `paper/paper.md` was uploaded to arXiv 2026-05-19 (v2 correction series from 2026-05-21 `0b151b79`); the arXiv-v2 target is current `main` HEAD. Until **June 1, 2026** treat `paper/paper.md` as immutable so the repo matches what was uploaded — no edits for typos, reviewer feedback, findings, or next-venue polish, and none to any arXiv-visible supplementary file the bundle links to. `paper/neurips/` stays under its own permanent freeze (both locks active concurrently). If a later finding contradicts the arXiv text, stop and tell the user — don't silently amend (same discipline as the NeurIPS freeze). *Time-bounded — lifts automatically June 1.* If Emma says "unfreeze the paper" before then, it lifts; mention the freeze first if a request looks like a pre-June `paper/paper.md` edit.
 
 ### Paper-code durability — keep the original NeurIPS paper's examples working
 
@@ -297,13 +262,11 @@ When in emergency stop mode:
 
 ## K=5 rank-k sweep — LAST attempt; do not restart if it dies (Emma 2026-05-28)
 
-The K=5 rank-k sweep (`experiments/rank_k_is_x.py` at `--K 5 --k {1, 2, 4}`) has been a persistent queue item that has failed repeatedly and produced no usable data this session. Emma's call: **the current background run is the last attempt.**
+The K=5 rank-k sweep (`experiments/rank_k_is_x.py --K 5 --k {1,2,4}`) has failed repeatedly (~3+h of subprocess time, 0 usable bytes). Emma's call: **the current run is the last attempt.**
 
-- **If the running subprocess is still alive: leave it.** Don't kill it. If it eventually produces results that's a bonus, but the value of the experiment is low enough that interrupting it for any reason isn't justified.
-- **If the subprocess dies or has already died: do not restart it.** Remove the K=5 sweep entry from `queue.md` State Inventory A.1 and the corresponding task (#20). Note in the commit that Emma has decided the experiment isn't worth continuing — the purpose has not been clear and the failure rate has been 100% across attempts.
-- **Do not re-queue this work in future sessions** unless Emma re-greenlights it explicitly. If a future session sees the K=5 sweep as queue-able, the rule is "Emma said no; check with her before re-attempting."
-
-This is a closed item from Emma's perspective. Future agents that find "but the smoke passed at K=2" or "but the bug is fixed at both levels" should NOT use that as justification to relaunch — the failure mode that matters is the wall-clock outcome (~3+h of silent subprocess time produced 0 bytes of useful output), not the per-fix verification.
+- **Alive: leave it** — don't kill it; results are a bonus, not worth interrupting for.
+- **Dead / already-dead: do not restart.** Remove the entry from `queue.md` State Inventory A.1 + task #20; note in the commit that Emma closed it.
+- **Do not re-queue in future sessions** unless Emma re-greenlights explicitly. "The smoke passed at K=2" / "the bug is fixed at both levels" is NOT justification to relaunch — the failure that matters is the wall-clock outcome (0 useful output), not per-fix verification.
 
 ## Severity ladder for asking-vs-doing (Emma 2026-05-28 — DRAFT, will refine)
 
