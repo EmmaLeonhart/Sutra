@@ -1,0 +1,17 @@
+// toggle.su — flip a 0/1 GUI state. The 1-s arithmetic IS on the substrate,
+// but the state-shuttle is host-resident, not a substrate-state RNN.
+//
+// flip(s) = 1 - s, computed on the Sutra substrate (make_real lifts the
+// result onto the real axis so the host can read it with real()). flip(0)
+// returns 1, flip(1) returns 0. The host extracts the scalar via real()
+// after each call and passes it to the next click's flip(). So the click
+// handler's "state transition" is: host scalar → substrate function call →
+// host scalar — stateless function with host carrying state across calls.
+//
+// This is the same host-state-shuttle pattern font.su's cycle_step and
+// count.su's step use; the 2026-05-27 audit (planning/27-substrate-honesty-
+// audit-2026-05-27.md) flagged all three. A real substrate-state version
+// would keep the toggle state as a vector across clicks. Queued.
+function vector flip(scalar s) { return make_real(1.0 - s); }
+
+function vector main() { return flip(0.0); }
