@@ -14,18 +14,86 @@ neural computer.
 Today Sutra is mostly symbolic — largely a conventional programming language
 that compiles to the substrate and runs as an RNN. There are real
 accomplishments here, but it is not yet convenient to use as a general-purpose
-language. This stage is about getting it there:
+language. This stage has three workstreams:
 
-- **Expand the language and its capabilities** so it can run a wide range of
-  tasks and become a genuine general-purpose language.
-- **Add constrained training to select parts of the language** — individual
-  components that can be trained while the rest of the program stays fixed (the
-  arXiv paper gives the worked examples). The set of trainable components grows
-  over time; this is itself an expansion of the language.
-- **Formal verification, especially of the structures of the program.** Wanted
-  sooner rather than later — alongside or after the language expansion — though
-  not something that must be running right now. This is the structural
-  groundwork the later stages depend on.
+### 1a. Expand the language and its capabilities
+
+Grow the language so it can run a wide range of tasks and become a genuine
+general-purpose language — the broad capability and ergonomics work.
+
+### 1b. Add constrained training to select components — the low-hanging fruit
+
+The mechanism already ships: a number or vector literal in source can be
+declared a trainable parameter, emitted as a substrate tensor, trained, and
+**baked back into source as a literal**. For each component, the narrow recipe
+is the same four parts — **parameter / loss / constraint / baked form** — and
+the constraint is a closed-form formal-verification obligation that doubles as
+the **bake-back acceptance check** (re-run it on the trained value; it passes,
+or it drifted and you don't bake). The goal of this workstream is to bring
+every component below into that trainable form, one at a time.
+
+**Single scalars** (the shape of the shipped `== T`):
+
+| Component | Loss | Constraint | Baked form | Status |
+|---|---|---|---|---|
+| `==` cosine scale `T` | task classification | `T > 0` | float | **shipped** (the template) |
+| `defuzzify_trit` β (polarizer aggressiveness) | downstream accuracy | positive | float | **shipped** |
+| `select` softmax temperature | task performance | positive | float | **harness shipped** (mechanism trains, bit-exact) |
+| `gt` smooth-sign sharpness | downstream task | positive | float | vision |
+| `if` branch threshold (per call site) | task performance | `[-1, +1]` | float | vision |
+| `heaviside` step location | downstream task | `[-1, +1]` | float | vision |
+| `sawtooth_mod` n_terms | downstream task | positive integer | int | vision |
+| loop `threshold`, `k` (halt sharpening) | downstream task | `k > 0`, threshold in `[0,1]` | float | vision |
+| loop `max_iters` | task + wasted-iteration penalty | positive integer (round) | int | vision |
+
+**Per-key learned values:**
+- **Hashmap angle assignments** — per-key rotation angle (currently
+  hash-derived). Loss: retrieval accuracy over `(key, value, query)` triples.
+  Constraint: angle in `[0, 2π]`. Bake: float per key.
+- **Axon binding rotations** — per named role. Loss: unbind accuracy (how
+  cleanly `unbind(role, axon)` recovers the filler). Constraint: orthogonal.
+  Bake: `vector_literal(...)` per role, or the generating angles.
+- **Codebook vectors for `argmax_cosine`** — currently from `embed("string")`.
+  Loss: nearest-neighbor accuracy. Constraint: unit sphere (L2-normalize each
+  step). Bake: `vector_literal(...)` per candidate.
+
+**Other literals:**
+- **`embed("...")` call sites → `vector_literal(...)`** — a string literal used
+  as a vector initializes from the frozen embedding and trains away from it.
+  Constraint: unit sphere.
+- **Bundle component weights** — a scalar weight per component before
+  normalization (currently uniform). Constraint: positive (or unconstrained if
+  normalized). Bake: float per component.
+- **Slot index assignments** — currently hash-derived; learnable per program.
+
+**Matrices:**
+- **Per-role rotation matrices** — replace the hash-derived rotation with a
+  trained orthogonal `n×n` matrix per role. Loss: bind/unbind round-trip +
+  cross-role isolation. Constraint `RᵀR = I` via SVD projection or a
+  skew-symmetric (Cayley / matrix-exponential) parameterization. Bake:
+  `vector_literal(...)` per row. *(The rank-k `is_X` discrimination matrix is
+  the matrix-valued instance; the K=2 smoke is shipped.)*
+- **Per-loop cell update matrix** — the recurrent step's matrix, trainable per
+  loop.
+- **Kleene polynomial coefficients (per call site)** — the connectives are
+  fixed by Lagrange interpolation on `{-1, 0, +1}` (6 coefficients per binary
+  connective). Loss: task-defined. Constraint: grid-exactness pins the degrees
+  of freedom, so either relax it to a regularizer (the checker reports a bound
+  `ε` instead of `0.0`) or train only within the subspace that preserves the 9
+  grid equalities exactly. Bake: float coefficients per call site.
+
+**Harder, of interest (in scope but not low-hanging):** beta reduction.
+
+**Out of scope at this stage:** operator-overloading dispatch (the dispatch
+structure must stay fixed); lookup-table contents (`_exp_table`, `_ln_table`);
+introducing new program structure from scratch (that is the later decompiler
+work).
+
+### 1c. Formal verification, especially of program structure
+
+The structural-FV groundwork the later stages depend on — wanted sooner rather
+than later, alongside or after the language expansion, though not something
+that must be running right now.
 
 *Challenges at this stage:* making the language genuinely convenient and
 general-purpose; getting the formal-verification / structural work in place.
