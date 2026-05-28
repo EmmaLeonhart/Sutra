@@ -77,10 +77,20 @@ from sutra_compiler.parser import Parser
 from sutra_compiler.codegen_pytorch import translate_module as translate_pytorch
 
 
-def _su(gain_literal: float | None) -> str:
+def _su(gain_literal: float | None, iters: int = 10) -> str:
     """Generate the .su. If gain_literal is None, gain is a `number`
     param (trainable). Else the trained gain* is inlined as a literal
-    and the param is dropped — the trained model AS source."""
+    and the param is dropped — the trained model AS source.
+
+    `iters` controls how many polarization sharpening steps run.
+    Default is 10 (matching the original behavior). Note: the current
+    task `v = (gain * v) == true` is SCALE-INVARIANT in `gain` (cosine
+    similarity cancels the scaling), so gain has NO effect on the loss
+    regardless of iters. The `iters` parameter is exposed as a CLI
+    knob for future experiments that redesign the task to be scale-
+    sensitive; see planning/findings/2026-05-28-defuzz-gain-task-
+    scale-invariant.md for the diagnosis.
+    """
     if gain_literal is None:
         sig = "fuzzy v, number gain"
         body_gain = "gain"
@@ -95,7 +105,7 @@ def _su(gain_literal: float | None) -> str:
         "// Defuzz gain adjustment — gain is the trainable scalar\n"
         "// applied before each equality-check polarization step.\n"
         f"function fuzzy gated_polarize({sig}) {{\n"
-        "    loop (10) {\n"
+        f"    loop ({iters}) {{\n"
         f"        v = ({body_gain} * v) == true;\n"
         "    }\n"
         "    return v;\n"
@@ -157,16 +167,16 @@ def polarization_loss(out_truth: torch.Tensor, target: torch.Tensor) -> torch.Te
     return ((out_truth - target) ** 2).mean()
 
 
-def smoke():
+def smoke(iters: int = 2):
     """Compile + equivalence-guard the param + baked forms with a
     dummy gain literal. No training run. Verifies the .su parses,
     the codegen pipeline emits, the runtime executes, and the
     param-vs-literal forms agree."""
-    mod = _compile(_su(None), "smoke_param")
-    print("smoke: compiled param form OK")
+    mod = _compile(_su(None, iters=iters), "smoke_param")
+    print(f"smoke: compiled param form OK (iters={iters})")
 
-    baked = _compile(_su(1.0), "smoke_baked")
-    print("smoke: compiled baked form (gain=1.0) OK")
+    baked = _compile(_su(1.0, iters=iters), "smoke_baked")
+    print(f"smoke: compiled baked form (gain=1.0, iters={iters}) OK")
 
     runtime = mod._VSA
     device, dtype = runtime.device, runtime.dtype
@@ -193,15 +203,23 @@ def main():
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--lr", type=float, default=0.05)
+    ap.add_argument("--iters", type=int, default=10,
+                    help="polarization sharpening iterations inside the .su "
+                         "loop (default 10, matching the original task). "
+                         "NOTE: the current task is scale-invariant in `gain` "
+                         "(cosine equality cancels the scaling); changing "
+                         "iters does NOT make gain trainable on this task. "
+                         "See finding 2026-05-28-defuzz-gain-task-scale-"
+                         "invariant.md.")
     a = ap.parse_args()
 
     if a.smoke:
-        smoke()
+        smoke(iters=a.iters)
         print("smoke: PASS")
         return
 
     seeds = [int(s) for s in a.seeds.split(",") if s.strip()]
-    mod = _compile(_su(None), "param")
+    mod = _compile(_su(None, iters=a.iters), "param")
     runtime = mod._VSA
     device, dtype = runtime.device, runtime.dtype
     print(
@@ -257,7 +275,7 @@ def main():
             tl = polarization_loss(outs, ys)
 
         # Bake back + round-trip check.
-        baked = _compile(_su(round(gain_star, 6)), "baked")
+        baked = _compile(_su(round(gain_star, 6), iters=a.iters), "baked")
         with torch.no_grad():
             md = 0.0
             for v in vs:
