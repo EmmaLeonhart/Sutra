@@ -566,6 +566,11 @@ Here is a chat file [[Here is a discussion of the Sutra progra.md]]
 
 This one contains a very large amount of vision of what the future of Sutra as a language is going to be. I'm specifically here saying we're committing all this stuff, but I want you to actively move it around. Maybe rename it and edit it and trim it to make it something that's more clear, more of a timeline, but actually, in the actual edit history of that chat, that is how it works. 
 
+## Update the paper
+
+Please update the FV paper and submit and push it. Ironically, because of the earlier issues that we were having where it was not submitting because of some kind of an error, now we're in a situation where the paper has not been updated in a very long time, even while we have done a lot of very significant updates. It needs to actually be updated so that we can start to get proper feedback on it. I would say here that we've really been overdoing it with the 10-minute cron job and everything with the paper, and we need an updated one to be done quickly. 
+
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
