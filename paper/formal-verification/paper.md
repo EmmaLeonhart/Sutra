@@ -28,8 +28,13 @@ guard against codegen drift, *not* a math-discovery claim about Lagrange
 interpolation, which is exact by construction; §3.2 makes the distinction
 explicit), connective range-soundness (a closed-form proof that outputs lie in
 [−1, +1] over the whole fuzzy domain), and loop termination (bounded, monotone
-halt), plus the kernel-enforced read/write confinement half of the contract
-obligation. We further give a **decision procedure for program equivalence over
+halt). The termination story is sharper than a blanket "Sutra bans unbounded
+loops": the surface syntax distinguishes **`loop` / `while_loop`** (bounded
+soft-halt recurrence with a termination obligation) from **`recur`** (an
+explicitly non-halting form for UI tick-loops and event-driven recurrences,
+declared outside the trusted-base scope by construction); §3.3 names the
+split. We also discharge the kernel-enforced read/write confinement half of
+the contract obligation. We further give a **decision procedure for program equivalence over
 the Kleene-logic fragment**: a checker extracts each expression's polynomial via
 the compiler's own lowering and decides whether two programs compile to the same
 tensor graph by the polynomial identity `expand(p₁ − p₂) = 0`, for arbitrary
@@ -50,7 +55,13 @@ method (`float(cos.item())` inside the operation severed autograd and was the
 exact host-extraction pattern banned in the spec) survived the broader leak
 sweep because the sweep greps user `.su` programs' emitted Python, not the
 `_TorchVSA` prelude itself; it was caught downstream by a differentiability
-test on a trainable program that the prelude was supposed to support. The scope
+test on a trainable program that the prelude was supposed to support. The fix
+has shipped along with a sweep-coverage extension that scans the runtime
+prelude itself with a method-level allowlist of legitimate host↔substrate
+boundaries, and a second constrain-train experiment (training `beta` inside
+Sutra's `defuzzify_trit` operator end-to-end through the compiled graph)
+provides live evidence that the substrate now carries autograd cleanly across
+the equality surface — both reported in §4.5 with measured numbers. The scope
 is the non-learned trusted base, per published contract; §5 states it precisely
 and §6 positions the work against neural-network verification, SMT for nonlinear
 arithmetic, partial evaluation, and vector-symbolic architectures.
@@ -238,14 +249,36 @@ Termination reduces to "the halt signal is monotone within bounded steps,"
 discharged per loop — far smaller than proving an arbitrary `while` terminates.
 
 We are explicit about what this is and is not, since "all loops are bounded" can
-read as a sidestep. It is a deliberate **language design choice**: Sutra has no
-unbounded `while`, only the bounded soft-halt recurrence, so the language does not
-*pose* the halting problem — termination is guaranteed by construction and the
-remaining content is the *convergence* check (does the halt signal actually fire,
-monotonically, before the bound, or does the loop run to the bound?). That is a
-real, useful property for a trusted base — a kernel role must not hang — but it is
-**not** functional correctness, which is a separate obligation (§3.1, discharged
-for the Kleene fragment) and not subsumed by termination.
+read as a sidestep. It is a deliberate **language design choice**, and one that
+has been made *visibly* at the surface syntax level — Sutra distinguishes two
+forms with two purposes:
+
+- **`loop (cond)` / `while_loop`** (this section): a bounded soft-halt
+  recurrence over a fixed-width state vector. Termination obligation applies,
+  discharges as described below, and the trusted base is composed exclusively
+  of this form.
+- **`recur(...)`** (non-halting; introduced as part of Sutra's `recur` /
+  non-halting-loop primitive, `planning/sutra-spec/non-halting-loop.md`,
+  shipped in this work's reference implementation): an *explicitly non-halting*
+  loop, used for UI tick-loops, event-driven recurrences carrying substrate
+  state across iterations, and other cases where the program *should* run
+  forever. `recur` does not pose a termination obligation because it asserts
+  non-termination as its declared semantics. The trusted base does not use
+  `recur`; programs that do are outside the scope of the FV agenda by
+  construction (and the obligation framework reports this without an attempt
+  to prove a property the form does not claim).
+
+Naming both forms explicitly addresses the natural worry that "Sutra bans
+unbounded loops" is a sidestep: the language design **separates** the cases
+rather than collapsing them, so the absence of an unbounded `while` in the
+trusted-base fragment is a meaningful scope claim, not a missing feature.
+With this split, what §3.3 covers is bounded recurrences specifically — the
+language does not *pose* the halting problem for the trusted base, and the
+remaining content is the *convergence* check (does the halt signal actually
+fire, monotonically, before the bound, or does the loop run to the bound?).
+That is a real, useful property for a trusted base — a kernel role must not
+hang — but it is **not** functional correctness, which is a separate obligation
+(§3.1, discharged for the Kleene fragment) and not subsumed by termination.
 
 This is discharged structurally and observably. Structurally the emitted loop is
 `for _t in range(max_iters)` (bounded by construction) with
@@ -542,16 +575,51 @@ The lesson for the framework is structural, not a one-off bug report. The
 audit's BNF-shaped leak check (a syntactic grep) has a precise blind spot: it
 sees the surface where user programs touch the substrate, not the substrate's
 own surface where it touches PyTorch. Closing the blind spot is an
-implementation move (extend the sweep to grep `_TorchVSA` and other runtime
-helpers; OR run a per-op differentiability unit test as part of the gate; OR
-both), but the conceptual point lands above the implementation: a syntactic
-audit family discharges a syntactic claim, and substrate faithfulness is a
-semantic claim. The leak is now documented in `Audit.md` as entry #9, and the
-sweep gate continues at zero leaks across the 67-program user corpus while
-the runtime-prelude coverage extension is under design. This is the
+implementation move, and the implementation move has now shipped: the leak
+sweep gains a second scan pass that targets the runtime prelude
+(`_TorchVSA`) with a **method-level allowlist of legitimate boundaries** —
+the `make_*` constructors, the `_st` / `_as_*_vector` entry boundaries, the
+`real` / `imag` / `truth` / `similarity` / `argmax_cosine` / `select` output
+edges, the Promise inspectors, the JS-interop coercion methods, embedding
+bootstrap, and the loop machinery's structural `for` ranges. Inside any other
+prelude method, `float()` / `.item()` / host scalar coercion is flagged.
+Conceptually this is the right shape because the allowlist names *what each
+boundary is for*: an entry boundary lifts a host literal into a substrate
+tensor; an output edge collapses a substrate value to a host scalar for
+monitoring. Both are documented host↔substrate edges by design. What lives
+*inside* an operation's definition between those edges should stay on the
+substrate. The leak is now documented in `Audit.md` as entry #9; the user-
+program sweep continues at zero leaks across the 67-program corpus; the
+runtime-prelude sweep also returns zero leaks after the `eq()` / `eq_synthetic`
+fix. A per-op differentiability unit test is an additional layer that can
+catch a leak even when both grep passes are clean — autograd connectivity
+is a semantic property the syntactic grep cannot fully discharge — but the
+sweep extension is now load-bearing, not aspirational. The conceptual point
+above the implementation: a syntactic audit family discharges a syntactic
+claim, and substrate faithfulness is a semantic claim. This is the
 positive-result side of §4.4's argument: when a dispatch-level check misses
 something, the §4 program-level measurements (here, an autograd-based
 differentiability probe of a trainable program) are what catch it.
+
+**A separate live evidence point that the substrate supports differentiable
+computation.** A second constrain-train experiment ships in the reference
+implementation: `defuzz β` trains a scalar `beta` parameter inside Sutra's
+`defuzzify_trit` operator against a polarization task, with the loss
+backpropagated end-to-end through the compiled tensor-op graph (3 seeds,
+40 epochs, baseline loss ≈ 0.21 → trained loss ≈ 0.01, `beta*` ≈ 6.5–6.8;
+`experiments/defuzz_gain_adjustment.py`). The diagnostic-with-teeth here:
+the task surface in the first iteration of the harness was the cosine-form
+`(gain * v) == true`, which is *scale-invariant* in `gain` (cosine
+normalizes away positive scaling), so gradient was zero everywhere despite
+the autograd chain being intact — caught as a measurement, not a guess,
+once the `eq()` autograd fix removed the prior obstruction. Rewriting the
+harness to `defuzzify_trit(v, iters=1, beta=beta)` (a scale-sensitive
+surface) put gradient on the parameter and the experiment converged. We
+flag this because it is the same shape as §4.4/§4.5's broader point: a
+"the substrate computes the graph faithfully" claim is only as strong as
+the experiment that distinguishes a working channel from a failing one,
+and the right experiment was an end-to-end training run that actually
+moved a parameter, not a syntactic check that the operator dispatched.
 
 ## 5. Scope
 
