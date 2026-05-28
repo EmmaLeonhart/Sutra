@@ -491,6 +491,23 @@ program that still runs in a conventional model; §2 argues the compiled graph i
 beyond this spectrum, and beyond symbolic execution and deep-learning graph
 optimization.
 
+**Arithmetic-circuit compilation (cryptography).** Compiling a program's
+control flow into a polynomial arithmetic circuit is a well-studied technique
+in zero-knowledge proofs and verifiable computation: Pinocchio (Parno, Howell,
+Gentry & Raykova 2013) compiles C-like programs into quadratic arithmetic
+programs over a finite field; Groth16 (Groth 2016) gives a succinct
+preprocessing-SNARK over the resulting QAP; libsnark, ZoKrates, and Circom are
+the practical compiler frontends. The mechanism is similar to ours — surface
+control flow becomes polynomial — but the *purpose* is different: ZK-SNARKs
+compile in order to *prove* program execution succinctly to a verifier without
+revealing inputs; we compile in order to *verify* program properties by closed-
+form algebra on the same graph the substrate runs. The cost surfaces also
+differ: ZK-SNARKs pay setup + proof time + verifier time per execution and the
+field is finite (mod p); we pay polynomial-identity / range-bounding wall once
+per equivalence check and the field is the reals embedded in IEEE-754. The
+shared ancestor is "compile branches into a polynomial circuit"; the
+divergence is what you do with the resulting polynomial.
+
 **Vector-symbolic architectures.** The substrate primitives are VSA/HRR
 operations — binding, bundling, cleanup (Plate 1995; Gayler 2003; Kanerva 2009) —
 and they have a formal foundation we rely on rather than reinvent: a
