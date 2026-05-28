@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2657,
+    "postId": 2657,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs to facilitate formal verification of neuro-symbolic systems. It proposes replacing imperative control flow with three-valued Kleene logic polynomials and bounded recurrences, allowing verification to be treated as algebraic identity testing and polynomial range bounding. The authors claim this reduction enables bit-exact verification of a 'trusted base' on frozen embedding substrates.",
+    "pros": [
+      "Presents a novel conceptual bridge between Vector Symbolic Architectures (VSA) and formal verification methods.",
+      "Provides a rigorous distinction between structural graph equivalence and logical equivalence, using distributivity as a counter-example.",
+      "Addresses the inherent noise of neural substrates by defining specific 'integer-exact' conditions for IEEE-754 hardware.",
+      "Includes an honest assessment of the computational complexity of Polynomial Identity Testing (PIT), documenting the exponential growth of term counts."
+    ],
+    "cons": [
+      "The scalability of the primary verification mechanism is highly suspect; the paper admits that polynomial expansion for a balanced tree of depth 3 already exceeds reasonable memory/time budgets.",
+      "The 'bit-exact' claim for GPU execution is extremely fragile, relying on the total absence of reductions and specific warp-scheduling assumptions that are rarely guaranteed in production environments.",
+      "The scope of the 'Kleene-logic fragment' is too narrow for general-purpose software verification, as it excludes common requirements like complex data structures, recursion, or non-linear arithmetic beyond the provided polynomials.",
+      "The reliance on a 'frozen substrate' (pretrained embeddings) as a foundational trust assumption is problematic, as the semantic properties of these embeddings are unverified and could introduce silent failures in the 'trusted' base.",
+      "Several key components, such as the 'Yantra' OS and specific verification scripts (e.g., fv_obligation_checker.py), are referenced as evidence but are not accessible for independent validation.",
+      "The method for loop termination (bounded recurrences) essentially sidesteps the halting problem by construction, which limits the language's expressivity for complex algorithms."
+    ],
+    "justification": "While the idea of reducing control flow to tensor algebra is theoretically interesting, the paper's primary verification tool (Polynomial Identity Testing) suffers from a catastrophic state-space explosion at very shallow nesting depths, making it impractical for real-world code. Additionally, the reliance on bit-exactness in a floating-point tensor substrate is a precarious foundation for formal methods that is unlikely to generalize beyond the extremely constrained examples provided.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 05:47:52"
+  }
+}
