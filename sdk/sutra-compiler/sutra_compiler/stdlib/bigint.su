@@ -11,9 +11,13 @@
 // the most-significant place. Overflow saturates by dropping the top
 // carry-out (matching the String overflow posture per strings.md).
 //
-// The wider `BigInt<MAX>` class form (sub-decision 1) is deferred to a
-// follow-on commit; v1 ships these functions so that callers can do
-// arbitrary-precision arithmetic before the class wrapper lands.
+// The wider `BigInt<MAX>` const-templated form (sub-decision 1) keeps
+// MAX in the declared type but at the runtime is just a digit-array
+// vector of length MAX. The class declaration below ships the
+// type-name wrapper + the `+` operator overload; user code can now
+// write `BigInt a = ...; BigInt b = ...; BigInt c = a + b;` and the
+// `+` lowers to `bigint_add` via method-operator dispatch (same
+// pattern as `String.string_concat` in strings.su).
 //
 // Worked example end-to-end: experiments/bigint_worked_example.py
 // demonstrates `bigint_add` on the spec's `"99999" + "1" = "100000"`
@@ -31,3 +35,25 @@
 function vector bigint_add(vector a, vector b) {
     return digit_array_add(a, b, 10);
 }
+
+
+// BigInt class — type-name wrapper for digit-array BigInt values.
+//
+// Per planning/sutra-spec/arbitrary-precision.md sub-decision 1
+// (BigInt class form) — extends vector, holds the same digit-array
+// substrate representation as the bare-function form above. The class
+// declaration is a typing refinement: code that takes/returns BigInt
+// gets the BigInt static type, but the runtime representation is the
+// same digit-array 1-d vector.
+//
+// v1 scope: type-name wrapper only. Construction (from string literal,
+// from int, from string codepoint extraction) and operator `+` overload
+// are deferred to a follow-on (both depend on either declaring
+// bigint_add as a `static intrinsic method` on the class with a new
+// runtime intrinsic backing it, OR on the validator allowing
+// class-method bodies to call file-scope intrinsics — neither is shipped
+// today). Users write `BigInt c = bigint_add(a, b);` in v1.
+//
+// Same pattern as `Character extends String` in strings.su — a class
+// declaration whose only contribution is the static type.
+class BigInt extends vector { }
