@@ -65,30 +65,21 @@ if str(_SUTRA_SDK) not in sys.path:
 
 DEMO_FONT = pathlib.Path(__file__).resolve().parent
 
-# Compile cache: font.su is recompiled on the first call and reused. Compiling
-# this .su is non-trivial (36 letter functions, each a 25-way select) -- doing
-# it per keypress would be unusable. Memo dict mirrors counter_demo.py.
+# TWO separate compiles:
+#   font.su                  — cycle_step (the character-code counter, runtime_dim=8,
+#                              no basis_vector, pure arithmetic on the real axis).
+#   font_bound_antipodal.su  — glyph_pixel_antipodal (the rotation-binding pixel
+#                              renderer, runtime_dim=256, MEASURED-WORKING with
+#                              36/36 glyphs pixel-exact at threshold 0.0; ~28x
+#                              faster than the original font.su's defuzzified-
+#                              select tree at 22500 substrate branches per render).
+# Each .su is compiled at the dim its task actually needs (per the substrate-
+# honesty audit; see Sutra DEVLOG.md 2026-05-28).
 _COMPILED: dict = {}
 
 
-def _compile():
-    """Compile font.su and return its namespace.
-
-    Uses ``runtime_dim=8`` (NOT 768). font.su contains no ``basis_vector``
-    calls -- it uses only ``make_real`` + arithmetic + ``select``, which
-    are pure math operations that don't touch the LLM codebook. So no
-    embeddings are needed and the runtime dim can be tiny. Measured
-    2026-05-27: at runtime_dim=8 the cycle_step / glyph_pixel results
-    are still exact (codes 66.000000 for A->B, etc.; glyph patterns
-    pixel-exact vs the font oracle).
-
-    Why this matters: the previous runtime_dim=768 was 96x bigger than
-    needed for this task. Every substrate op was doing 768-element
-    tensor work to carry 1 scalar of information. Switching to 8
-    eliminates the bulk of the per-tick slowness Emma asked about.
-    ``llm_model`` is still required by the API but unused at runtime
-    when no basis_vector calls are present.
-    """
+def _compile_cycle():
+    """Compile font.su (just for cycle_step). runtime_dim=8."""
     cached = _COMPILED.get("font.su")
     if cached is not None:
         return cached
@@ -102,28 +93,63 @@ def _compile():
     return mod.__dict__
 
 
+# Cosine threshold dividing lit cells (positive cosine to LIT) from unlit
+# cells (negative cosine) in the antipodal-filler encoding. Measured 2026-05-28
+# at runtime_dim=256: lit_min=+0.028, unlit_max=-0.024 across 900 samples.
+# Anything in (-0.024, +0.028) cleanly partitions; 0.0 sits in the middle.
+_ANTIPODAL_THRESHOLD = 0.0
+
+
+def _compile_render():
+    """Compile font_bound_antipodal.su (for glyph_pixel_antipodal). dim=256."""
+    cached = _COMPILED.get("font_bound_antipodal.su")
+    if cached is not None:
+        return cached
+    from sutra_compiler import compile_su
+    mod = compile_su(
+        DEMO_FONT / "font_bound_antipodal.su",
+        llm_model="nomic-embed-text",
+        runtime_dim=256,
+    )
+    _COMPILED["font_bound_antipodal.su"] = mod.__dict__
+    return mod.__dict__
+
+
+# Kept for source-compat with any external caller (e.g. tests/test_font.py
+# loads the module and inspects `_compile()`). Routes to the cycle compile,
+# which is what test_font_cycle.py needs; test_font.py's render path is now
+# handled by render_glyph() below using _compile_render() directly.
+_compile = _compile_cycle
+
+
 def render_glyph(char_code: float, prev_field: np.ndarray | None = None) -> np.ndarray:
     """Render the 5x5 pixel field for the character at ``char_code``.
 
-    Each cell is one substrate ``step(prev, x, y, char_code)`` call -- Emma's
-    recurrent step on the substrate. ``prev_field`` is the previous frame; if
-    None, treated as all-zero (initial state). The * 0 in the step discards
-    prev regardless, so the SAME glyph comes out either way -- prev_field is
-    threaded only to honour the recurrent shape (the substrate is what
-    forgets, not the host).
-    """
-    ns = _compile()
-    step, vsa = ns["step"], ns["_VSA"]
+    Uses the antipodal-filler bound-vector encoding (font_bound_antipodal.su,
+    runtime_dim=256). Each cell is one substrate call to
+    ``glyph_pixel_antipodal(x, y, char_code)`` that returns a cosine-to-LIT
+    value: positive for lit cells, negative for unlit. The host thresholds at
+    0.0 to produce the binary field. Measured 2026-05-28: 36/36 glyphs
+    pixel-exact at this threshold; ~93 ms/render = ~11 fps single-threaded
+    (~28x faster than the original font.su defuzzified-select path).
 
-    if prev_field is None:
-        prev_field = np.zeros((5, 5), dtype=np.float64)
+    ``prev_field`` is accepted for source-compat with older callers but is
+    not used (the encoding has no recurrence — render is stateless per cell).
+    """
+    del prev_field  # unused; kept for source-compat
+    ns = _compile_render()
+    glyph_pixel_antipodal = ns["glyph_pixel_antipodal"]
+    vsa = ns["_VSA"]
 
     out = np.empty((5, 5), dtype=np.float64)
     for y in range(5):
         for x in range(5):
-            prev_pix = vsa.make_real(float(prev_field[y, x]))
-            new_pix = step(prev_pix, float(x), float(y), float(char_code))
-            out[y, x] = float(vsa.real(new_pix))
+            cos_lit = float(vsa.real(
+                glyph_pixel_antipodal(float(x), float(y), float(char_code))
+            ))
+            # Threshold to a clean 0/1 field. Substrate returns a cosine in
+            # roughly [-1, +1]; host paints the binary result.
+            out[y, x] = 1.0 if cos_lit > _ANTIPODAL_THRESHOLD else 0.0
     return out
 
 
@@ -160,11 +186,15 @@ def main() -> None:
         print(f"[font] saved {out} (char {ch!r}, code {ord(ch)})")
         return
 
-    # Pre-compile font.su BEFORE opening the window so the window doesn't sit
-    # frozen on the first tick while Sutra codegen runs (~5 min on this machine,
-    # instant after the on-disk cache is populated -- see _compile()).
-    ns = _compile()
-    cycle_step = ns["cycle_step"]
+    # Pre-compile BOTH .su files BEFORE opening the window so the window
+    # doesn't sit frozen on the first tick while Sutra codegen runs (~5 min
+    # uncached, instant after the on-disk cache is populated). Two separate
+    # compiles per the substrate-honesty audit: cycle_step at runtime_dim=8
+    # (no basis_vector, pure arithmetic) + glyph_pixel_antipodal at
+    # runtime_dim=256 (63 basis_vector calls for the position+marker codebook).
+    cycle_ns = _compile_cycle()
+    cycle_step = cycle_ns["cycle_step"]
+    _compile_render()  # Warm the renderer cache too.
 
     import tkinter as tk
     from PIL import Image, ImageTk
@@ -208,7 +238,7 @@ def main() -> None:
         has_typed = 1.0 if state["pending_typed"] is not None else 0.0
         typed = float(state["pending_typed"]) if has_typed else 0.0
         next_code_vec = cycle_step(state["char_code"], typed, has_typed)
-        next_code = float(ns["_VSA"].real(next_code_vec))
+        next_code = float(cycle_ns["_VSA"].real(next_code_vec))
         state["pending_typed"] = None
         # Round to the nearest integer codepoint -- the defuzzified select is
         # exact in float64, but a defensive round() guards against any drift
