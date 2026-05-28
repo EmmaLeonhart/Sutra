@@ -445,6 +445,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `javascript_object.su` | `JavaScriptObject extends vector` | `wrap`, `js_add`, `js_strict_eq`, `js_strict_neq`, `js_loose_eq`, `js_loose_neq`, `js_lt`, `js_gt`, `js_le`, `js_ge`, `js_truthy`, `js_typeof` | vision per-op |
 | `javascript_primitives.su` | `JavaScriptString extends String`, `JavaScriptInt extends int`, `JavaScriptFloat extends float`, `JavaScriptBool extends bool` | empty bodies — structural-only subclasses for dispatch | n/a |
 | `rotation.su` | — | spec-only pseudocode for `make_random_rotation`, `compile_prototypes`, `eigenrotation_loop` (runtime backing lives on `_VSA`) | vision (per-runtime) |
+| `bigint.su` | `BigInt extends vector` (+ free `bigint_add`) | `bigint_add(vector, vector)` literate wrapper over the `digit_array_add` substrate intrinsic (Hillis-Steele-style carry propagation, radix 10); class is a type-name wrapper for digit-array values | vision per `digit_array_add` |
 
 ---
 

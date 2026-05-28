@@ -15,6 +15,14 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: full compiler suite green after `_select_softmax` codegen change
+
+The select-T harness work that fixed REAL LEAK #10 (`fe274d3c` -> `5a2f39f9`) modified `_select_softmax`'s emitted Python to route tensor scores through `_torch.stack` instead of `_torch.as_tensor`. The status-report tick after `0422ebb5` flagged that the focused codegen/select run (113/0 in 67s) was a proxy for the full suite, and the full run hadn't been verified post-change. This entry closes that gap.
+
+Full suite (`pytest sdk/sutra-compiler/tests/ -q`, ran 16:22 -> 16:43 wall, 21m38s): **438 passed, 7 skipped, 118 subtests passed.** Zero failures. The codegen change holds across the full test surface — no non-select test path regressed.
+
+This is the canonical post-change suite state. Future codegen changes touching the runtime prelude should re-run the full suite before claiming green.
+
 ## 2026-05-28: select-T orthogonal-protos SHIPPED — clean +1.77× margin gain + bimodal-T finding
 
 Work-loop follow-on to `fe274d3c` (select-T K=5 embed-protos NEGATIVE task-fit result). `experiments/select_temperature_orthogonal.py` uses K random orthonormal protos (gram-schmidt on Gaussian) + queries `x = alpha*p_y + Σ_{j≠y} eps_j*p_j` with alpha=0.7 / eps~U(-0.15,+0.15) so the similarity gap is controlled and non-trivial.
