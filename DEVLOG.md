@@ -15,6 +15,10 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: capabilities.md catch-up — defuzz β SHIPPED + recur primitive entries added
+
+Work-loop tick: caught three stale/missing inventory entries in `docs/capabilities.md` per the memory rule `feedback-capabilities-doc-must-be-exhaustive`. (1) `defuzzy(value)` §9 entry said the wrapper-gain was trainable — wrong, cosine `==` is scale-invariant (today's `85429dfd` diagnosis). (2) Two `defuzzify_trit` entries said β was "a Sutra-side parameter exposure away from being directly trainable" — wrong, β IS trained end-to-end as of today's `5ca1b043` (β\* = 6.58 ± 0.17 across 3 seeds, ~15× loss reduction, round-trip 1.19e-7). (3) `recur` / `recurring` / `return(...)` non-halting-loop primitive was completely missing from the §8 Statements inventory; added three rows reflecting the primitive shipped in `6757863d` + `6fc64c15`. Committed at `73c995fc`.
+
 ## 2026-05-28: K=5 rank-k sweep LAUNCHED (both bug levels fixed)
 
 Work-loop tick: discharged queue State Inventory A.1. Both bug levels of the K=5 sweep are now fixed (generator-side in `68b7ade1`, caller-side in `132c8925`); K=2 smoke verified clean (baseline margin +0.21 → trained +0.63, 3.01× improvement, equivalence guard max|Δ|=0.00e+00, round-trip max|Δ|=1.79e-7).
