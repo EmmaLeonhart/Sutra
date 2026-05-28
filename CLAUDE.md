@@ -295,6 +295,16 @@ When in emergency stop mode:
 - **You may answer direct questions, but you may NOT take actions.** Answer only from context you already have. Looking something up, reading a file, running a command, or inspecting state is NOT an answer — it is an action and is forbidden. If you cannot answer from context already in hand, do not answer.
 - **Stay in emergency stop mode until the user explicitly says "emergency stop ended."** Only after that exact signal do you resume any normal work.
 
+## K=5 rank-k sweep — LAST attempt; do not restart if it dies (Emma 2026-05-28)
+
+The K=5 rank-k sweep (`experiments/rank_k_is_x.py` at `--K 5 --k {1, 2, 4}`) has been a persistent queue item that has failed repeatedly and produced no usable data this session. Emma's call: **the current background run is the last attempt.**
+
+- **If the running subprocess is still alive: leave it.** Don't kill it. If it eventually produces results that's a bonus, but the value of the experiment is low enough that interrupting it for any reason isn't justified.
+- **If the subprocess dies or has already died: do not restart it.** Remove the K=5 sweep entry from `queue.md` State Inventory A.1 and the corresponding task (#20). Note in the commit that Emma has decided the experiment isn't worth continuing — the purpose has not been clear and the failure rate has been 100% across attempts.
+- **Do not re-queue this work in future sessions** unless Emma re-greenlights it explicitly. If a future session sees the K=5 sweep as queue-able, the rule is "Emma said no; check with her before re-attempting."
+
+This is a closed item from Emma's perspective. Future agents that find "but the smoke passed at K=2" or "but the bug is fixed at both levels" should NOT use that as justification to relaunch — the failure mode that matters is the wall-clock outcome (~3+h of silent subprocess time produced 0 bytes of useful output), not the per-fix verification.
+
 ## Severity ladder for asking-vs-doing (Emma 2026-05-28 — DRAFT, will refine)
 
 Failure modes ordered worst-to-best. Top of list = most critical to avoid.
