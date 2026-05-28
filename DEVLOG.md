@@ -15,6 +15,50 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: `recur` / non-halting-loop primitive shipped + GUI substrate-RNN rewrite
+
+Closes Q5 of Emma's AskUserQuestion sweep (substrate-RNN rewrite for
+demos/gui count.su + toggle.su) end-to-end. The path:
+
+1. Q5's first answer ("single loop(cond) per render") was ambiguous between
+   "vector-across-clicks" and "substrate loop iterates within one click";
+   asked the disambiguation, Emma's verbatim answer revealed a new
+   language-level primitive (`recur(state); return(pixels);` — non-halting
+   loop with separate recur + return paths).
+2. Captured Emma's verbatim design in
+   planning/open-questions/non-halting-loop-recur-primitive.md (`25822f43`)
+   per the "never invent a thing Emma implies exists" rule.
+3. Five sub-decisions via AskUserQuestion: signature (presence of
+   `recur(...)` marks it), initial state (zero-default + `recurring TYPE
+   NAME = INITIAL;` override), caller surface (`mod.tick(input)` looks
+   normal), halt-vs-non-halt distinction (`recur` is the marker; the
+   distinction is currently more ergonomic-Python-host than runtime —
+   Yantra OS won't necessarily have it as a runtime split). Promoted to
+   planning/sutra-spec/non-halting-loop.md (`35b6a8d3`).
+4. v1 implementation (`6757863d`): lexer (`recur`/`recurring` keywords),
+   AST (RecurStmt + RecurringDecl + FunctionDecl.is_non_halting), parser,
+   codegen (module-level slot var + lazy init + global write inside the
+   function). Single slot per function in v1; multi-slot and non-vector-
+   recurring types are v2 polish.
+5. count.su rewritten (`6757863d`) — `step()` is now non-halting; the
+   substrate slot is the count's source of truth; host's `state` attribute
+   is just a display cache.
+6. toggle.su rewritten (`6fc64c15`) — same pattern. `flip()` loads its
+   substrate slot, computes `make_real(1.0) - state`, writes back via
+   `recur(...)`.
+
+Verified end-to-end: 437-test compiler suite green; 6/6 demos/gui tests
+pass with the new substrate-RNN shapes. The substrate-leak-sweep gate
+was also extended this session (`c270acc0`) to scan the runtime prelude
+in addition to user .su programs — that's the gap that let `eq()` /
+`eq_synthetic()`'s host-extraction survive Audit.md sweeps for weeks
+before `e2b8ee7a` fixed it. Canonical sweep post-extension: 0 user-
+program leaks + 0 prelude leaks.
+
+Closes CLAUDE.md "Subtler substrate breaches" #2 for both stateful gui
+demos — the recurrence now lives on the substrate as a vector across
+calls, not as a host scalar shuttled through `vsa.real()`.
+
 ## 2026-05-28: multi-agent convergence on the defuzz β / eq() fix
 
 The work-loop tick in this session (the one driving the every-10-min FV auto-resubmit + K=5 midnight retry) independently arrived at the same codegen fix the SutraBarrel session had shipped 23 minutes earlier in `e2b8ee7a`, and the same Audit.md #9 / queue.md A.4 / finding-doc catch-up the SutraBarrel session shipped in `83d07da4` shortly after. Two agents reaching identical fixes with near-identical docstring wording is an artifact of both running off the same CLAUDE.md / Audit.md priors — recording it here because future readers seeing two near-simultaneous commits covering the same ground might otherwise read it as duplicate work, not convergence.
