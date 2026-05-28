@@ -580,6 +580,18 @@ The idea here is that we are doing a full audit of the entirety of all of the di
 
 Like, no, no, mentioning it in chat and then the user never seeing it. You have to specifically use this particular tool thing and put in, which I believe is in the CLAUDE.md, that these kinds of things should happen for it. Just because this is actual, this is architectural enough that it's a significant issue. 
 
+### Examples of this that were in the llm convo
+
+  Blockers / items deliberately not done autonomously
+  - demos/gui substrate-RNN rewrite — needs your design intent (loop+hidden-state shape per the GUI-RNN memory)
+  - Audit #1 paper/neurips/ freeze — your triage (carve-out vs revert)
+  - Contract key-soundness — go/no-go
+  - Arbitrary-precision design pick — Option A/B/Hybrid + 4 sub-decisions
+  - Defuzz β full training — smoke passed, ready to fire on greenlight
+  - K=5 sweep — can run after K=2 smoke confirms no regression from 68b7ade1
+  - Task #20: AskUserQuestion sweep on all deferred items pending — explicit instruction to do this once active work clears
+
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
