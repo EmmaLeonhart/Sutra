@@ -15,6 +15,23 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: defuzz β SHIPPED end-to-end — second constrain-train instance after equality-cosine T
+
+Work-loop tick: closed the layered blockers from the prior tick. Per Emma's `AskUserQuestion` Option-1 choice ("change defuzzify_trit to runtime-variable iters"), replaced the 10-iter codegen-time unroll in `_VSA.defuzzify_trit` with a runtime `for _t in range(int(iters))` over the structural iters parameter. Per Audit #4's 2026-05-17 reclassification, range() over a structural index is substrate-pure when there's no host scalar branch on data; the codegen comment explicitly cites it.
+
+Default behavior preserved (iters=10 if not specified). Harness's `--body trit --iters 1` mode now polarizes in one step, giving a smooth β-gradient surface.
+
+3-seed CLI training measured: baseline 0.2126 ± 0.0114 → trained 0.0146 ± 0.0050 (~15× loss reduction); β* = 6.58 ± 0.17 across seeds (real optimum, low variance); round-trip max|Δ| = 1.19e-7 (bit-exact within float32 precision). Full compiler suite 437/7 green.
+
+**defuzz β is the second shipped constrain-train instance**, after equality-cosine T from 2026-05-26 (`21778648`). It expands the trainable surface to a second operator per Emma's "every operation trainable" vision (memory `feedback-constrain-train-vision-is-every-op`). The bake-back round-trip works numerically: `defuzzify_trit(v, 1, β=6.5837)` produces the same emitted graph whether β is a runtime tensor (param form) or a baked literal — the trained β IS the model in source.
+
+Layered blockers closed:
+- Blocker #1 (iters hardcoded): codegen change makes iters runtime-variable.
+- Blocker #2 (step-shaped loss): at iters=1 the gradient is smooth, monotonic across the input distribution.
+- Blocker #3 (target mismatch): input distribution moved to [0.55, 0.85] earlier in the session.
+
+Task #19 functionally discharged.
+
 ## 2026-05-28: `defuzzify_trit` exposed at Sutra source; β-training still blocked by 3 layered issues
 
 Work-loop tick: followed the prior tick's "expose `defuzzify_trit` as Sutra intrinsic" plan. Added `intrinsic function fuzzy defuzzify_trit(fuzzy v, number iters, number beta);` to `stdlib/logic.su` — compiles to `_VSA.defuzzify_trit(v, iters, beta)`. The defuzz harness now has a `--body trit` mode that uses it.

@@ -109,7 +109,7 @@ def _su(gain_literal: float | None, iters: int = 10, body: str = "cosine") -> st
         body_gain = f"({gain_literal:.8f})"
     if body == "trit":
         body_src = (
-            f"    return defuzzify_trit(v, 10, {body_gain});\n"
+            f"    return defuzzify_trit(v, {iters}, {body_gain});\n"
         )
     else:  # "cosine"
         body_src = (
@@ -151,20 +151,23 @@ def _compile(su_text: str, tag: str):
     return m
 
 
-def build_fuzzy_data(N: int, seed: int = 0):
-    """Synthetic polarization task: N fuzzy inputs sampled uniformly
-    on [-1, +1] of the truth axis, with target polarization = sign(input).
+def build_fuzzy_data(N: int, seed: int = 0, mag_lo: float = 0.55, mag_hi: float = 0.85):
+    """Synthetic polarization task: N fuzzy inputs on the truth axis with
+    target polarization = sign(input).
 
-    Inputs are make_truth(x) vectors where x ∈ [-1, +1]; targets are
-    +1 for x > 0 and -1 for x < 0 (we exclude x near 0 to avoid an
-    undefined polarization target — those are the "hard" cases by
-    design, but they're not in this task's training set)."""
+    Default magnitudes are concentrated in [0.55, 0.85] so the 3-way
+    polarizer's "active" region (|x| > 0.5 polarizes toward ±1) is
+    fully exercised. The original [0.1, 0.9] range mixed in inputs
+    that the polarizer correctly maps to 0 (the nearest trit, since
+    |x| < 0.5), giving an unrecoverable loss=1 against the sign(x)
+    target regardless of β — see planning/findings/2026-05-28-defuzz-
+    gain-task-scale-invariant.md (Update later-in-session) for the
+    full analysis. Half positive, half negative."""
     g = torch.Generator(device="cpu").manual_seed(seed)
-    # Sample N x's well-separated from 0 so sign() is unambiguous.
-    # Half positive, half negative; magnitudes in [0.1, 0.9].
     half = N // 2
-    pos_mags = 0.1 + 0.8 * torch.rand(half, generator=g, dtype=torch.float32)
-    neg_mags = 0.1 + 0.8 * torch.rand(N - half, generator=g, dtype=torch.float32)
+    span = mag_hi - mag_lo
+    pos_mags = mag_lo + span * torch.rand(half, generator=g, dtype=torch.float32)
+    neg_mags = mag_lo + span * torch.rand(N - half, generator=g, dtype=torch.float32)
     xs = torch.cat([pos_mags, -neg_mags])
     perm = torch.randperm(N, generator=g)
     xs = xs[perm]
