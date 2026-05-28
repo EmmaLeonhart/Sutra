@@ -587,9 +587,6 @@ Like, no, no, mentioning it in chat and then the user never seeing it. You have 
   - K=5 sweep — can run after K=2 smoke confirms no regression from 68b7ade1
   - Task #20: AskUserQuestion sweep on all deferred items pending — explicit instruction to do this once active work clears
 
-## Clean up the Claude.md to be smaller.
-
-‼ Large CLAUDE.md will impact performance (46.5k chars > 40.0k)
 
 ## Go over the Substrate-leak catalogue: `Audit.md`.
 
