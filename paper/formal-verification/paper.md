@@ -1,4 +1,4 @@
-# [r 2026-05-28 08:43 UTC] Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
+# Reducing Control Flow to Tensor Algebra: Verifying the Non-Learned Trusted Base of a Neuro-Symbolic Substrate
 
 ---
 
@@ -21,17 +21,21 @@ tensor graphs rather than enumeration of control-flow paths.
 
 We make this precise as three per-construct obligation families — contract,
 branch-range, termination — and we give **mechanical checks for all three**,
-running on the real compile-and-execute substrate: Kleene-gate exactness (worst
-error 0.0 across the truth grid), connective range-soundness (a closed-form proof
-that outputs lie in [−1, +1] over the whole fuzzy domain), and loop termination
-(bounded, monotone halt), plus the kernel-enforced read/write confinement half of
-the contract obligation. We further give a **decision procedure for program
-equivalence over the Kleene-logic fragment**: a checker extracts each expression's
-polynomial via the compiler's own lowering and decides whether two programs
-compile to the same tensor graph by the polynomial identity `expand(p₁ − p₂) = 0`,
-for arbitrary nesting depth. This separates two notions that are usually
-conflated — compiling to the same graph versus being logically equivalent — and
-we exhibit distributivity as a clean witness that the former is strictly stronger.
+running on the real compile-and-execute substrate: a codegen-correspondence
+check that the polynomials the compiler emits agree with the spec on the Kleene
+grid (worst |error| = 0.0 across the nine {−1, 0, +1}² points — a regression
+guard against codegen drift, *not* a math-discovery claim about Lagrange
+interpolation, which is exact by construction; §3.2 makes the distinction
+explicit), connective range-soundness (a closed-form proof that outputs lie in
+[−1, +1] over the whole fuzzy domain), and loop termination (bounded, monotone
+halt), plus the kernel-enforced read/write confinement half of the contract
+obligation. We further give a **decision procedure for program equivalence over
+the Kleene-logic fragment**: a checker extracts each expression's polynomial via
+the compiler's own lowering and decides whether two programs compile to the same
+tensor graph by the polynomial identity `expand(p₁ − p₂) = 0`, for arbitrary
+nesting depth. This separates two notions that are usually conflated — compiling
+to the same graph versus being logically equivalent — and we exhibit
+distributivity as a clean witness that the former is strictly stronger.
 
 The reduction is meaningful because the substrate computes the compiled graph
 exactly, which we establish with measured results restated in full here (§4):
@@ -40,12 +44,16 @@ frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7
 with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and a downstream GPU-native OS
 (Yantra) runs full arithmetic — operator selection included — bit-exact through
 its kernel (18/18 dispatch cases and 1024/1024 symbol round-trips at |err| = 0.0).
-The scope is the non-learned trusted base, per published contract; §5 states it
-precisely and §6 positions the work against neural-network verification, SMT for
-nonlinear arithmetic, partial evaluation, and vector-symbolic architectures.
-
-
-*Auto-resubmission revision marker: 2026-05-28 08:43 UTC*
+§4.5 reports a worked example of why dispatch-level cleanliness is necessary
+but not sufficient: a runtime-prelude substrate leak in the `eq()` runtime
+method (`float(cos.item())` inside the operation severed autograd and was the
+exact host-extraction pattern banned in the spec) survived the broader leak
+sweep because the sweep greps user `.su` programs' emitted Python, not the
+`_TorchVSA` prelude itself; it was caught downstream by a differentiability
+test on a trainable program that the prelude was supposed to support. The scope
+is the non-learned trusted base, per published contract; §5 states it precisely
+and §6 positions the work against neural-network verification, SMT for nonlinear
+arithmetic, partial evaluation, and vector-symbolic architectures.
 
 ---
 
@@ -186,11 +194,20 @@ and uncertain learned signals**: the middle value (unknown) is first-class, so t
 verifier reasons about "undetermined" directly, while crisp true/false stays
 bit-exact because the interpolation is exact on the grid.
 
-**Grid-exactness is discharged mechanically.** A test compiles the real pipeline —
-parse → inline the polynomial → simplify → tensor-op codegen → runtime — and
-evaluates `&&`, `||`, `!` at all nine grid points on the substrate, asserting the
-Kleene strong-logic table (and = min, or = max, not = negate on the antipodal
-encoding). Measured: **worst |error| = 0.0** across the grid. The polynomials
+**Grid-exactness is discharged mechanically — as a codegen-correspondence
+check, not a math-discovery claim.** A degree-≤2-per-variable polynomial
+interpolated through the nine {−1, 0, +1}² grid points hits those nine points
+exactly by construction; that piece is Lagrange interpolation, not a result.
+What the check verifies is something distinct and load-bearing: that the
+polynomial the *compiler actually emits* at the end of `parse → inline →
+simplify → tensor-op codegen → runtime` agrees with the spec polynomial on the
+grid. A typo or rewrite-pass bug in the codegen — a stray sign, a missing
+`a²b²` term, a constant folded the wrong way — would show up as a non-zero
+grid error even though Lagrange interpolation as a method is untouched. So
+"worst |error| = 0.0 across the grid" is a regression guard against codegen
+drift, asserting that the chain ending at the substrate's tensor ops still
+produces the spec connectives. Measured value reported as the empirical
+discharge of the check, not as a mathematical discovery. The polynomials
 checked are the ones the compiler emits: `a&&b = (a+b+ab−a²−b²+a²b²)/2`,
 `a||b = (a+b−ab+a²+b²−a²b²)/2`, `!a = −a`.
 
@@ -485,6 +502,56 @@ dispatch-level cleanliness as if it were the full claim. The composition with
 inputs honest (the polynomial extracted from the lowered graph is the one the
 substrate executes); the three measurements keep the §4 faithfulness claim
 honest at the program level.
+
+**4.5 Coverage of the dispatch-level check itself: a worked failure.** §4.4
+argues dispatch-level cleanliness is necessary; this subsection reports a
+concrete leak the dispatch sweep silently missed, and how it surfaced. The
+repository ships an automated leak sweep (`experiments/substrate_leak_sweep.py`,
+wired as a CI gate) that re-emits every user `.su` program in the test corpus
+to Python and greps the emitted module for the banned patterns —
+`float(...)`/`.item()` on a substrate tensor, host `for`/`if` on a scalar,
+libm calls on values pulled off the substrate. The sweep runs across 67 user
+programs and asserts zero operator leaks. It returns green.
+
+It missed a leak in the runtime prelude itself. The emitted `_TorchVSA.eq(a,
+b)` method computed the cosine similarity as a 0-D tensor with a live autograd
+chain (`cos = (av·bv) / (||av||·||bv|| + ε)`) and then returned
+`self.make_truth(float(cos.item()))` — a host scalar extraction followed by a
+re-wrap. The numerical value is identical to a substrate scatter, but the
+autograd connection is severed, and the pattern is the exact banned
+host-extraction-inside-an-op that the leak catalogue formalises. It survived
+because the sweep is over user programs' emitted Python; the `_TorchVSA` class
+that *is* the substrate prelude is not part of any user program's emitted
+output, so the sweep never reads it.
+
+The leak surfaced downstream rather than from any check named in this paper:
+a constrain-train experiment compiled a Sutra source that used `==`, made the
+output of `==` depend on a trainable scalar parameter, and called
+`loss.backward()` to update the parameter. The backward pass failed with
+"element 0 of tensors does not require grad and does not have a grad_fn"
+because the autograd chain ended inside `_TorchVSA.eq`. Tracing back through
+the chain — input tensor with `requires_grad=True` survives until the
+`make_truth(float(cos.item()))` line, then does not — located the leak in one
+read. The fix is a substrate-pure scatter: `out = zeros(self.dim, ...);
+out[truth_axis] = cos; return out`, with `cos` kept as a 0-D tensor; numerics
+identical, autograd preserved. After the fix, the differentiability test
+returned `out.requires_grad = True`, `out.grad_fn = <MulBackward0>`, and a
+non-None `gain.grad` after `backward()`.
+
+The lesson for the framework is structural, not a one-off bug report. The
+audit's BNF-shaped leak check (a syntactic grep) has a precise blind spot: it
+sees the surface where user programs touch the substrate, not the substrate's
+own surface where it touches PyTorch. Closing the blind spot is an
+implementation move (extend the sweep to grep `_TorchVSA` and other runtime
+helpers; OR run a per-op differentiability unit test as part of the gate; OR
+both), but the conceptual point lands above the implementation: a syntactic
+audit family discharges a syntactic claim, and substrate faithfulness is a
+semantic claim. The leak is now documented in `Audit.md` as entry #9, and the
+sweep gate continues at zero leaks across the 67-program user corpus while
+the runtime-prelude coverage extension is under design. This is the
+positive-result side of §4.4's argument: when a dispatch-level check misses
+something, the §4 program-level measurements (here, an autograd-based
+differentiability probe of a trainable program) are what catch it.
 
 ## 5. Scope
 
