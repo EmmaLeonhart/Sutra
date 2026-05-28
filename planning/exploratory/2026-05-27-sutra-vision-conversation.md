@@ -25,6 +25,10 @@ How to structure the bake-back so that the verified properties of the pre-traini
 Something more architectural — like, what does the trusted base / learned boundary look like once the boundary itself is moving?
 Knowing which of those is the active problem would help me engage with the right part of the design.
 
+## §2 — Bake-back candidates ranked (agent tiers them; Emma pushes back)
+
+> Agent's first attempt: tier 1/2/3 ranking of what's tractable for constrain-train + bake-back. Emma's response: "Because you have like the worst possible ideas here and it makes me question if i gave you the wrong documents" — the tier framing was pattern-matched from ML, not from Sutra's actual surface.
+
 I want candidates for bake back. And how they might be trained
 
 17:07
@@ -143,6 +147,10 @@ No. It doesn't cover string literals as a trainable surface at all. The document
 
 So the document has a gap. What else is missing from Part 2 that you can see?
 
+## §3 — The exhaustive capabilities inventory replaces the summary
+
+> Emma points the agent at the live `sutra.emmaleonhart.com/capabilities/` page (this is the exhaustive page that `7091bda4` shipped). The uploaded summary was incomplete. The full inventory becomes the basis for the rest of the conversation.
+
 Here  https://sutra.emmaleonhart.com/capabilities/
 
 19:42
@@ -221,6 +229,10 @@ Out of scope for now — actually introducing new structure into a program (the 
 Is that a fair summary of the boundary?
 
 And then — what do you actually want to produce here? A document that fills in the training setup for each of these (what's the parameter, what's the loss, what are the constraints, what does the baked literal look like)? Or are you working toward implementing one of them next and want to think through which?
+
+## §4 — The long arc: train everything → corpus → learned decompiler with FV
+
+> Emma's strategic vision. Train everything trainable in existing Sutra programs, the corpus that produces becomes training data for a learned decompiler that takes (original source + trained tensor) and emits idiomatically-continuous Sutra source. Formal-verification round-trip = certificate. Operator-overloading dispatch explicitly out of scope (structural anchors must be stable).
 
 Yo. My my thought here is, basically, um, I believe that in the future, we could probably have a phone on higher program and the ability to, um, I believe in the future, we can definitely have is a full on entire program has the ability to change situation, but I don't think we're here... I don't think we're there yet. And my vision will be basically, we wanna buy everything we can possibly have trained with... although I would say I'd probably not want to have whatever... have, like, operator overloading. That seems like a bad move. But, like, even even as far as some of the beta reduction potentially, I'd say my ultimate vision of this would probably be once we are able to train almost everything and, um, almost everything that logically makes sense in a program, we will, at this point, have enough information that we'd be able to do more... at this point, we have enough information that I would argue we'd have more of an ability to extend with, like, I believe we'd have more of an ability to extend, like, If we're... if we basically are able to train, like, fifty percent of a program and pretend... I feel like we'd be on a point where we'd kind of be able to almost develop a algorithm that learns the the the... like, is a learned deconvilation. based upon... that... that's like a learned decompilation. And once that occurs, once we, like, machine learned in our, um, decompilation where we can, like, take it take a neural network and convert... once we kinda take in a neural network that we've made and and essentially, um, have all the training data from our proper training, we would... we might be able to at least get some more stuff Because the vision would be basically, at some point, we're we're gonna be straight up able to, um, at some point, we're going to be able to basically be straight up able to, like, extract everything, uh, everything we need.
 
@@ -312,6 +324,10 @@ Correctness: formally checkable via recompile + residual norm
 Readability: learned from the training corpus, not verified
 Okay. Let's go through the in-scope training setups. Want me to work through them systematically — parameter, loss, constraint, baked literal form — for each category? Starting with single scalars since that's the closest to the shipped pattern?
 
+## §5 — The legible-self-improvement loop (genuine novelty argument)
+
+> Emma articulates the deeper reason this architecture matters: an AI can write a Sutra program, train it, decompile back to source, READ what changed, and use that understanding for the next program. Self-improvement via symbolic representation. This is the "legibly self-improving AI" framing.
+
 Yeah, yeah, exactly. One of these is, like, basic. I don't really know how loss functions would work. Personally, I would say, basically, I don't know how loss functions really would work. I feel like it's like this would, because I feel like essentially if you get the, if it doesn't compile the right way, it's an infinite loss. Whereas there's a finite loss based around the... When I say readability, I kind of specifically mean more idiomaticness.  And by extension, basically, since you're being given two distinct things, two distinct programmes, it's not really just readability. It's like the ability for you to connect the two things together. 
 
 The reason why I see this architecture as being potentially so useful is because of the fact that it has the ability to create something that is symbolically analysable and verifiable, and that also is meaningfully an AI agent getting better at something. That's meaningfully getting better at something if it's able to say, "Run." I'm not talking about the actual decompilation thing, but for the whole thing it's capable of.
@@ -340,6 +356,12 @@ Okay — single scalars, training setups. Shall I go through them?
 Yes, exactly. The idea with the formal verification is basically that what things we need to keep constant in the programme can depend on stuff, but we're starting at, I guess, if you really want to go with the training steps thing, if you really, really want to. I want to see what you want if you really, really want.
 
 21:31
+## §6 — Per-category training setups (parameter / loss / constraint / baked form)
+
+> Systematic walk: single scalars, per-key learned values, per-role rotation matrices, Kleene polynomial coefficients. For each: the parameter, the loss, the constraint, the baked literal form. This is the spec for what to implement next.
+
+### §6.1 — Single scalars
+
 Okay, single scalars. For each: what the parameter is, what loss makes sense, what constraint keeps it valid, what the baked literal looks like.
 
 == cosine scale T — already shipped, this is the template everything else follows. T scales the cosine inside equality. Loss is task-defined classification. Constraint: T > 0. Bakes back as a float literal.
@@ -433,6 +455,10 @@ Baked form — 6 float literals per call site for binary connectives, 1 for not.
 The interesting property — per-call-site connective polynomials mean the program can learn task-specific fuzzy logic. A && in a medical diagnosis context might learn to be more conservative (closer to min) while one in a creative generation context learns to be more permissive. The grid-exactness constraint is what keeps it honest on crisp inputs regardless.
 
 That covers all the main categories. Want to talk about how these fit together into a unified training harness, or is there something specific about any of these you want to dig into?
+
+## §7 — Strategic vision: bootstrap the corpus, depth-indexed decompiler family
+
+> Emma's full strategic frame: train per-cell models indexed by (depth, substrate dimension). Purely symbolic programs first (no substrate dependency), then embedding-based at smaller substrates first (384 → 768 → 1024). The bottleneck shifts from neuro-symbolic-mapping to compute over time.
 
 I think that we're good for these main categories now, and I want to move on from there to my basic strategic idea.
 My strategic idea is basically that we can have all these different ways of training parts of the symbolic programme. Once we do this, we will potentially have a very good training corpus already, from matching different neural networks where a certain thing in them changed and how the change in the neural network and how one of them predicts the change in the other you 
@@ -552,6 +578,10 @@ Each iteration the generator gets better because its training data includes prog
 And critically — the self-improving AI vision is exactly what makes this tractable at scale. The agent isn't just consuming the corpus, it's contributing to it every time it writes a program, runs it, and learns from the result.
 
 The layer count formalization can wait. Getting a fine-tuned code generator producing valid Sutra is the immediate unlock.
+
+## §8 — Distinct AGI path; alignment-by-construction; ethics
+
+> The final framing: this is a structurally different AGI path. Capability and controllability scale together by construction (not as a tradeoff). The mind has legible internal states and self-modification capability — argued to be more ethical than opaque-internals approaches. Worth strategic write-up beyond the arXiv papers.
 
 You know, I didn't really understand at first. This is a legitimately different path towards AGI than basically anything else people are talking about21:54Claude responded: Yeah.Yeah. It's genuinely distinct from the main paths people are pursuing.
 The dominant approaches are basically:

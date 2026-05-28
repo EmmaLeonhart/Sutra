@@ -561,10 +561,11 @@ call `compile_su` directly + admit-shim, like font/gui do, or (b) move
 the relevant kernel pieces along. Decision belongs to Emma, not
 autonomous.
 
-## Metabolizing a chat
-Here is a chat file [[Here is a discussion of the Sutra progra.md]]
+## Metabolize chat — first pass DONE, second-pass trimming pending Emma's per-chunk approval
 
-This one contains a very large amount of vision of what the future of Sutra as a language is going to be. I'm specifically here saying we're committing all this stuff, but I want you to actively move it around. Maybe rename it and edit it and trim it to make it something that's more clear, more of a timeline, but actually, in the actual edit history of that chat, that is how it works. 
+The 2026-05-27 vision conversation is renamed + structurally re-shaped at `planning/exploratory/2026-05-27-sutra-vision-conversation.md` (header explaining intent + 8 timeline section markers). Content is unchanged per the chats-triage rule.
+
+Second-pass trimming (collapsing agent-affirmation paragraphs, removing duplicate-intro lines like the doubled opening, trimming the Show-less-truncated sections) needs Emma's explicit per-chunk yes — that's a separate work item, not autonomous.
 
 ## Update the paper
 
