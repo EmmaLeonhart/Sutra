@@ -410,6 +410,8 @@ Emma's calibration on when "push to remote" appears: *she wouldn't say it during
 
 **Aggressive rebasing + failed CI runs are acceptable, often correct.** When push-to-remote requests stack (paper edits in rapid iteration, multiple cron bumps in flight, clawRxiv resubmissions), the right posture is push-fast-rebase-as-needed rather than wait-for-a-clean-moment. A failed CI run from pushing aggressively is usually fine — clawRxiv gives different API responses per push and the cron heals across runs. Conservative push-batching costs more (lost reviews, lost CI signals, Emma waiting on her other machine) than the cost of a few cancelled workflow runs.
 
+**Merge conflicts mean GO FASTER, not slow down.** Emma is always building on main, so conflicts are rare and almost always trivial. When they DO appear, it's because two agents (typically me + a Yantra-side agent) are racing on the same remote — the conflict itself is the signal that work is parallelizing. The right response is to resolve the trivial conflict (almost always: `paper/formal-verification/.post_id` and similar bot-managed files take origin's value), rebase, and push *faster* so the race doesn't widen, NOT to slow down and ask permission. Treating merge conflicts as "stop and be careful" is the wrong calibration; the race condition is the cause, push speed is the cure.
+
 **Cross-cutting:** `AskUserQuestion` is the phone-notification escape hatch. Plain chat does not notify. If the tool is available and a decision Emma should make is in front of me, the choice is "use the tool" or "carry the debt"; pick the tool.
 
 ## Cron jobs and scheduled work — LOCAL by default
