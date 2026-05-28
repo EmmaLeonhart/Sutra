@@ -33,15 +33,18 @@ retired; this audit targets the canonical `codegen_pytorch.py`.
 
 ## Current status — 2026-05-28
 
-**All REAL LEAK entries (#1–#9) are FIXED.** Every site catalogued in
+**All REAL LEAK entries (#1–#10) are FIXED.** Every site catalogued in
 the REAL LEAK section has either been resolved (with the fixing commit
 hash inline) or reclassified to a defensible boundary (#4 generic loop
 runtime, recorded as NOT A LEAK after rereading the loop body). #9
-(`eq`/`eq_synthetic`) was added later in the day after the defuzz β
-grad-broken investigation surfaced it; same shape as #2, separate site. The
-`experiments/substrate_leak_sweep.py` CI-gate is wired in
-(`sdk/sutra-compiler/tests/test_substrate_leak_sweep.py`); it sweeps 67
-user `.su` programs and asserts 0 operator leaks per run.
+(`eq`/`eq_synthetic`) was added later 2026-05-28 after the defuzz β
+grad-broken investigation surfaced it; same shape as #2, separate site.
+#10 (`_select_softmax` scores `as_tensor` autograd-detachment) was added
+later 2026-05-28 after the select-T training BLOCKED first iteration of
+the 3-seed K=5 run surfaced it; same shape as #9, in the same emitted-
+helper region. The `experiments/substrate_leak_sweep.py` CI-gate is
+wired in (`sdk/sutra-compiler/tests/test_substrate_leak_sweep.py`); it
+sweeps 67 user `.su` programs and asserts 0 operator leaks per run.
 
 **BORDERLINE entries are documented boundaries**, not leaks — each is
 the host↔substrate entry/exit edge per CLAUDE.md's monitoring/literal-
