@@ -15,6 +15,12 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: multi-agent convergence on the defuzz β / eq() fix
+
+The work-loop tick in this session (the one driving the every-10-min FV auto-resubmit + K=5 midnight retry) independently arrived at the same codegen fix the SutraBarrel session had shipped 23 minutes earlier in `e2b8ee7a`, and the same Audit.md #9 / queue.md A.4 / finding-doc catch-up the SutraBarrel session shipped in `83d07da4` shortly after. Two agents reaching identical fixes with near-identical docstring wording is an artifact of both running off the same CLAUDE.md / Audit.md priors — recording it here because future readers seeing two near-simultaneous commits covering the same ground might otherwise read it as duplicate work, not convergence.
+
+Concrete contribution from this session that did NOT duplicate: an independent substrate-leak-sweep run (1288s, 67 .su, 0 leaks) confirming the eq() runtime-prelude change didn't break the user-program-side gate, and a direct autograd unit test (runtime_dim=64, input truth=0.05, gain=0.5 → `out.requires_grad=True`, `out.grad_fn=<MulBackward0>`, `gain.grad is not None`).
+
 ## 2026-05-28: SutraBarrel session — top-of-queue cleanup + 12 commits worth of substantive work
 
 A continuous session driven by /remote-control SutraBarrel barreled through queue.md's full backlog of Emma-flagged tail items (CLAUDE.md trim, Audit.md catalogue, AskUserQuestion sweep, metabolize chat + voice-vision) and then — after Emma redirected to start at the *top* of the queue — landed top-of-queue items: FV paper §4.4 (three substrate-faithfulness measurements), NeurIPS freeze carve-out for identity changes + audit, arbitrary-precision spec with all 4 sub-decisions locked (class `BigInt` / radix-10 / `BigInt<MAX>` / `_int_div_mod`), non-halting-loop / `recur` primitive planning doc (Emma's Q5 design intent escalated beyond a code rewrite), codegen `eq` substrate-leak fix that unblocked defuzz β training (`e2b8ee7a`; 437 compiler tests pass). The AskUserQuestion sweep landed **12 Emma decisions** via the phone-notification path that had been sitting as deferred-mention items.
