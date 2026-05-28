@@ -31,6 +31,35 @@ get caught at PR time (queue.md item 4 carried this open).
 The numpy/host-CPU `codegen.py` backend is deprecated and being
 retired; this audit targets the canonical `codegen_pytorch.py`.
 
+## Current status — 2026-05-28
+
+**All REAL LEAK entries (#1–#8) are FIXED.** Every site catalogued in
+the REAL LEAK section has either been resolved (with the fixing commit
+hash inline) or reclassified to a defensible boundary (#4 generic loop
+runtime, recorded as NOT A LEAK after rereading the loop body). The
+`experiments/substrate_leak_sweep.py` CI-gate is wired in
+(`sdk/sutra-compiler/tests/test_substrate_leak_sweep.py`); it sweeps 67
+user `.su` programs and asserts 0 operator leaks per run.
+
+**BORDERLINE entries are documented boundaries**, not leaks — each is
+the host↔substrate entry/exit edge per CLAUDE.md's monitoring/literal-
+lift carve-outs. They are kept here so a future session does not
+re-flag them as leaks without reading the rationale.
+
+**Cross-cutting follow-on still open:** `atan2` in `rotation_mod` is a
+tensor op but libm-shaped; an eigenrotation/lookup decomposition is the
+natural extension of the 2026-05-15 transcendental fix. Low priority —
+not a current substrate leak (it dispatches as a tensor op), just a
+candidate for a more-substrate-native shape.
+
+**Composes with the 2026-05-28 measurement-required checks**
+(CLAUDE.md "Subtler substrate breaches"; FV paper §4.4): dispatch-level
+cleanliness (this file's grep) is *necessary, not sufficient*. The
+dimension audit, state-locus audit, and signal-separation audit are
+the sufficient set. Future entries adding to this file should reference
+which of the four (dispatch + the three measurement audits) a given
+breach falls under.
+
 ---
 
 ## REAL LEAK — host scalar arithmetic / control flow inside a runtime op
