@@ -1,14 +1,20 @@
-"""Yantra GUI counter — click to count 0, 1, 2, 3, ... ON THE SUBSTRATE.
+"""Yantra GUI counter — click to count 0, 1, 2, 3, ... via per-click substrate dispatch.
 
-Emma's recurrent-loop demo. Two substrate computations drive it (count.su):
-  - step(n) = n + 1  — the recurrent step. The current count is the state; each
-    click feeds it through step() on the substrate, the incremented count comes
-    out, and the host stores it back as the next state. The host is only the
-    register in the loop; the +1 is a substrate op, not a host ``n += 1`` (the
-    same role toggle.su's flip plays in the red<->blue demo).
-  - pixel(x, y, n)   — the displayed glow, whose centre steps left -> right as
-    the count rises. The position is chosen FROM the count on the substrate;
-    the host only paints. Each click walks the glow one step across the screen.
+Current shape: host-state-shuttle (the count lives as a Python variable
+between clicks; each click feeds it through step() on the substrate, the
+incremented count comes back, host stores it as the next state). The +1 IS
+a substrate op, not a host ``n += 1``. But the recurrence (state across
+clicks) lives in the host, not on the substrate — by CLAUDE.md "Subtler
+substrate breaches" #2, this is host-state-shuttle, NOT a substrate RNN.
+See planning/findings/2026-05-28-demos-gui-substrate-audit.md.
+
+Target shape (queued, design picked Emma 2026-05-28): rewrite count.su to
+use `loop (cond)` with the hidden state as a substrate vector that
+survives across iterations — see queue.md item D.6.
+
+Two substrate computations drive the per-click path (count.su):
+  - step(n) = n + 1  — substrate increment.
+  - pixel(x, y, n)   — the displayed glow, centred at position n.
 
 The window title shows the current count, decoded from the substrate.
 
