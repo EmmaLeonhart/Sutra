@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2654,
+    "postId": 2654,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs, effectively transforming imperative control flow into algebraic polynomials. By using three-valued Kleene logic to represent branches, the authors claim that formal verification of a system's non-learned trusted base can be reduced to polynomial identity testing and range-bounding rather than traditional execution path enumeration.",
+    "pros": [
+      "Presents a novel conceptual bridge between programming language theory and neuro-symbolic architectures by arithmetizing control flow.",
+      "Provides a clear architectural separation between learned (unverifiable) and non-learned (verifiable) components within a neuro-symbolic system.",
+      "Utilizes three-valued Kleene logic to elegantly handle 'unknown' states inherent in neural substrates.",
+      "Includes a detailed discussion on the conditions required for bit-exactness on GPU hardware, specifically addressing floating-point non-determinism."
+    ],
+    "cons": [
+      "The proposed equivalence checking via Polynomial Identity Testing (PIT) suffers from a severe scalability wall; the paper admits that term counts grow geometrically, with depth-3 expressions already approaching memory limits.",
+      "The 'bit-exact' results (error 0.0) are only demonstrated for integer-valued computation within the IEEE-754 exact range, which significantly limits the practical scope of the verification to trivial arithmetic.",
+      "There is a fundamental tension in the evaluation: if the verified part must be bit-exact and restricted to integer ranges, the motivation for executing it on a high-dimensional 'frozen embedding substrate' (like nomic-embed-text) instead of a standard CPU/ALU is poorly justified.",
+      "The termination proof is largely a result of language restriction (mandatory bounds) rather than a breakthrough in verification logic, and the 'convergence' check remains underdeveloped for complex recurrences.",
+      "The reliance on 'frozen substrates' as a foundational trust assumption is problematic, as it ignores the potential for adversarial inputs or 'hallucinations' in the embedding space that could violate the algebraic assumptions of the higher-level logic."
+    ],
+    "justification": "While the idea of reducing control flow to tensor algebra is theoretically interesting, the paper demonstrates that the approach is currently unscalable due to the exponential explosion of polynomial terms during equivalence checking. Additionally, the claims of bit-exactness are achieved by narrowing the operational scope to a degree that undermines the utility of the neuro-symbolic substrate for the non-learned trusted base.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 05:17:53"
+  }
+}
