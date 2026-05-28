@@ -551,6 +551,18 @@ Issue file (read first, includes the closures): `planning/issues/2026-05-28-k5-r
 
 **Decision needed (via AskUserQuestion when Emma is available).** Until then, the sweep continues in flight. If it crashes (the new `logits_per_sample_factory` fix may not be the only issue), surface the crash and reassess scope; don't relaunch under the same assumptions.
 
+### ⏰ Hard deadline (Emma 2026-05-28): K=5 sweep gets garbage-collected if not still actively running
+
+**Rule:** if at any moment on **2026-05-29 or later** the K=5 sweep is NOT currently active in a running session (i.e. no python process is executing `rank_k_is_x.py --K 5 ...` or `run_rank_k_K5_sweep.py`), this entry and the experiment are **declared not done and removed from the queue**. No retry, no relaunch — the experiment lapses. Rationale: the in-flight sweep is being given a one-shot completion window; if the local process dies between sessions, the strategic-fit concern outweighs the cost of reattempting. The matrix-valued constrain-train demo can be closed with a smaller K (Closure #4) any time later if Emma wants.
+
+How to check on or after 2026-05-29:
+```
+# PowerShell on Emma's machine
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" `
+  | Where-Object { $_.CommandLine -like "*rank_k*" }
+```
+If empty → remove this whole section + the issue file's "what's currently in flight" paragraph; do NOT relaunch; if any results landed under `experiments/runlogs/2026-05-28-rank-k-K5-*.txt` keep those as the partial record but treat the matrix-valued demo as **not shipped**.
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
