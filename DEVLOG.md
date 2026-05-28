@@ -15,6 +15,18 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: defuzz β harness — task is scale-invariant in `gain`, not saturated
+
+Work-loop tick: tried the queue's documented next step for the defuzz β harness ("rewrite to use loop (2)/(3) or non-saturated inputs, then run 3-seed end-to-end"). Added a `--iters` CLI flag (default 10, original behavior); ran iters=2 + 3 seeds; **gain still didn't move from 1.0 across any seed, loss still zero at baseline.**
+
+Diagnosis: the prior queue note's "task saturates at 10 iters" hypothesis was wrong. The real issue is that `v = (gain * v) == true` is cosine similarity, which **normalizes out the scale of `gain`**. `cos(gain*v, true) = sign(x)` regardless of `gain > 0`. The output is independent of the trainable parameter; loss is zero everywhere; gradient is zero everywhere. Lowering iters doesn't help — even one iteration outputs sign(x).
+
+The shipped precedent (`equality_cosine_adjustment.py`) trains `T` inside `softmax(T * sim(x, prototype))` + cross-entropy — softmax IS scale-sensitive, so T meaningfully shifts the distribution. The defuzz harness chose the wrong context for `gain`: applying it before cosine cancels it.
+
+Real unblock: expose `defuzzy(v, β)` 2-arg at Sutra source level (β IS scale-sensitive — exponent in `exp(-β*(x±1)²)` polarization), rewrite `gated_polarize.su` to use it, train. Task #19 tracks. Finding: `planning/findings/2026-05-28-defuzz-gain-task-scale-invariant.md`.
+
+This commit: `--iters` CLI flag (default 10, no behavior change), the docstring + arg-help name the scale-invariance explicitly so future sessions don't re-attempt the lower-iters fix, the finding doc walks the math, queue.md State Inventory A.4 updated, task #19 created for the real unblock.
+
 ## 2026-05-28: work-loop tick — daily audit pass 2 (clean) + non-halting-loop dossier RESOLVED-stamped
 
 Two prepended queue.md items discharged in `ce4bd726`:
