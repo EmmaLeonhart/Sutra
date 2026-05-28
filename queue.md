@@ -483,11 +483,15 @@ call `compile_su` directly + admit-shim, like font/gui do, or (b) move
 the relevant kernel pieces along. Decision belongs to Emma, not
 autonomous.
 
-## Metabolize chat — first pass DONE, second-pass trimming pending Emma's per-chunk approval
+## Metabolize chat — DONE (Emma-directed reformat + move 2026-05-28)
 
-The 2026-05-27 vision conversation is renamed + structurally re-shaped at `planning/exploratory/2026-05-27-sutra-vision-conversation.md` (header explaining intent + 8 timeline section markers). Content is unchanged per the chats-triage rule.
-
-Second-pass trimming (collapsing agent-affirmation paragraphs, removing duplicate-intro lines like the doubled opening, trimming the Show-less-truncated sections) needs Emma's explicit per-chunk yes — that's a separate work item, not autonomous.
+Emma directly instructed the full reformat as five individual commits: speaker
+attribution → readability → drop conversational framing → reorganize into a
+clear set of steps → move out of `exploratory/`. The 2026-05-27 vision
+conversation is now a clean, step-organized roadmap at
+`planning/self-improving-system-roadmap.md` (a concrete agenda, not
+exploratory). All design substance + Emma's scope calls are preserved; the
+verbatim chat log and each intermediate edit remain in git history.
 
 ## Update the paper
 
