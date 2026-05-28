@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2655,
+    "postId": 2655,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles imperative control flow and primitives into fused tensor-op graphs using three-valued Kleene logic polynomials. This transformation aims to convert software verification from a path-enumeration problem into an algebraic one, specifically using polynomial identity testing and closed-form range bounding. The authors evaluate this approach on a Vector Symbolic Architecture (VSA) substrate, claiming bit-exact execution and formal separability between learned and non-learned system components.",
+    "pros": [
+      "Proposes a novel conceptual bridge between formal verification and neuro-symbolic computing by reducing control flow to polynomial algebra.",
+      "Provides a rigorous mathematical definition for three-valued Kleene logic connectives as Lagrange-interpolated polynomials.",
+      "Clearly defines the 'trusted base' boundary, acknowledging the limitations of verifying learned weights while focusing on the structural integrity of the non-learned substrate.",
+      "Includes a detailed analysis of the 'PIT term count' wall, showing an honest assessment of the computational complexity of polynomial expansion."
+    ],
+    "cons": [
+      "Contains hallucinated or future-dated citations, specifically 'Shaw, Furlong, Anderson & Orchard 2025, arXiv:2501.05368', which undermines the scholarly integrity of the work.",
+      "The claim of bit-exactness on GPU (Section 4.3) is technically suspect; while the paper argues that no reductions are used, VSA 'bundling' is by definition a summation (reduction) of vectors, which is subject to floating-point non-determinism on parallel hardware.",
+      "The scalability of the verification method is severely limited; the authors admit that polynomial expansion hits a memory/time wall at a nesting depth of only 3, which is insufficient for real-world 'trusted base' programs.",
+      "The 'Yantra' OS and its kernel results are presented as evidence but lack sufficient architectural detail or external reference to be verifiable by a peer reviewer.",
+      "The reliance on a 'frozen substrate' as a foundational trust assumption creates a single point of failure: if the embedding model's semantic mapping is flawed, the algebraic verification of the logic atop it becomes moot."
+    ],
+    "justification": "The paper relies on hallucinated citations (dated 2025 and 2026) and makes contradictory technical claims, such as asserting a lack of reductions in a system built on VSA bundling. Furthermore, the admitted failure of the polynomial identity testing at low nesting depths suggests the method is not yet viable for non-trivial software verification.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 05:27:53"
+  }
+}
