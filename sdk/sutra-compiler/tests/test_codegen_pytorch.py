@@ -175,6 +175,20 @@ class TestPyTorchVectorAccessors(unittest.TestCase):
         # a float, not a tensor.
         self.assertIn("float(v[int(i)].item())", py)
 
+    def test_bigint_class_accepted_as_type(self):
+        # Regression guard for the BigInt class declaration in
+        # stdlib/bigint.su (befdac0b 2026-05-28). User code typed
+        # with BigInt should compile cleanly.
+        src = (
+            "function BigInt my_add(BigInt a, BigInt b) {\n"
+            "    return bigint_add(a, b);\n"
+            "}\n"
+            "function string main() { return \"ok\"; }\n"
+        )
+        py = _compile(src)
+        # bigint_add lowers through digit_array_add(a, b, 10).
+        self.assertIn("def digit_array_add(self, digits_a, digits_b, radix=10):", py)
+
 
 if __name__ == "__main__":
     unittest.main()
