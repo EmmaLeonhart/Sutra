@@ -77,19 +77,25 @@ from sutra_compiler.parser import Parser
 from sutra_compiler.codegen_pytorch import translate_module as translate_pytorch
 
 
-def _su(gain_literal: float | None, iters: int = 10) -> str:
+def _su(gain_literal: float | None, iters: int = 10, body: str = "cosine") -> str:
     """Generate the .su. If gain_literal is None, gain is a `number`
     param (trainable). Else the trained gain* is inlined as a literal
     and the param is dropped — the trained model AS source.
 
-    `iters` controls how many polarization sharpening steps run.
-    Default is 10 (matching the original behavior). Note: the current
-    task `v = (gain * v) == true` is SCALE-INVARIANT in `gain` (cosine
-    similarity cancels the scaling), so gain has NO effect on the loss
-    regardless of iters. The `iters` parameter is exposed as a CLI
-    knob for future experiments that redesign the task to be scale-
-    sensitive; see planning/findings/2026-05-28-defuzz-gain-task-
-    scale-invariant.md for the diagnosis.
+    Two body shapes:
+    - `body="cosine"` (legacy default, scale-invariant — does NOT train):
+      `loop (iters) { v = (gain * v) == true; }`. Cosine eq normalizes
+      out the scale of gain — see planning/findings/2026-05-28-defuzz-
+      gain-task-scale-invariant.md.
+    - `body="trit"` (uses the newly-exposed `defuzzify_trit` intrinsic):
+      `return defuzzify_trit(v, 10, gain);`. β IS scale-sensitive in
+      principle (it's the exponent in `exp(-β*(x±1)²)`), but the runtime
+      hardcodes its own internal 10-iter unroll regardless of the
+      passed `iters` arg, and the loss surface is mostly flat in β at
+      iters=10 (saturated regime). Real β-training requires either
+      runtime-variable iters in `defuzzify_trit` OR carefully
+      designed input distributions near the polarization boundary —
+      both queued as task #19 follow-ons.
     """
     if gain_literal is None:
         sig = "fuzzy v, number gain"
@@ -101,14 +107,21 @@ def _su(gain_literal: float | None, iters: int = 10) -> str:
         # path 2026-05-27 in commit f0341fbd; the workaround was kept
         # since fixed-point is still readable in baked .su).
         body_gain = f"({gain_literal:.8f})"
+    if body == "trit":
+        body_src = (
+            f"    return defuzzify_trit(v, 10, {body_gain});\n"
+        )
+    else:  # "cosine"
+        body_src = (
+            f"    loop ({iters}) {{\n"
+            f"        v = ({body_gain} * v) == true;\n"
+            "    }\n"
+            "    return v;\n"
+        )
     return (
-        "// Defuzz gain adjustment — gain is the trainable scalar\n"
-        "// applied before each equality-check polarization step.\n"
+        "// Defuzz gain adjustment — gain is the trainable scalar.\n"
         f"function fuzzy gated_polarize({sig}) {{\n"
-        f"    loop ({iters}) {{\n"
-        f"        v = ({body_gain} * v) == true;\n"
-        "    }\n"
-        "    return v;\n"
+        f"{body_src}"
         "}\n\n"
         'function string main() { return "ok"; }\n'
     )
@@ -204,13 +217,18 @@ def main():
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--lr", type=float, default=0.05)
     ap.add_argument("--iters", type=int, default=10,
-                    help="polarization sharpening iterations inside the .su "
-                         "loop (default 10, matching the original task). "
-                         "NOTE: the current task is scale-invariant in `gain` "
-                         "(cosine equality cancels the scaling); changing "
-                         "iters does NOT make gain trainable on this task. "
-                         "See finding 2026-05-28-defuzz-gain-task-scale-"
-                         "invariant.md.")
+                    help="polarization sharpening iterations (cosine body "
+                         "only; trit body ignores this — runtime hardcodes "
+                         "10 iters inside defuzzify_trit).")
+    ap.add_argument("--body", choices=("cosine", "trit"), default="cosine",
+                    help="polarization body shape. 'cosine' (default) = "
+                         "legacy `(gain*v) == true` looped, SCALE-INVARIANT "
+                         "in gain so does not actually train. 'trit' = the "
+                         "newly-exposed `defuzzify_trit(v, 10, beta)` "
+                         "intrinsic, scale-sensitive in principle but the "
+                         "current runtime-hardcoded 10-iter unroll gives a "
+                         "mostly-flat loss surface. See finding 2026-05-28-"
+                         "defuzz-gain-task-scale-invariant.md.")
     a = ap.parse_args()
 
     if a.smoke:
@@ -219,7 +237,7 @@ def main():
         return
 
     seeds = [int(s) for s in a.seeds.split(",") if s.strip()]
-    mod = _compile(_su(None, iters=a.iters), "param")
+    mod = _compile(_su(None, iters=a.iters, body=a.body), "param")
     runtime = mod._VSA
     device, dtype = runtime.device, runtime.dtype
     print(
@@ -275,7 +293,7 @@ def main():
             tl = polarization_loss(outs, ys)
 
         # Bake back + round-trip check.
-        baked = _compile(_su(round(gain_star, 6), iters=a.iters), "baked")
+        baked = _compile(_su(round(gain_star, 6), iters=a.iters, body=a.body), "baked")
         with torch.no_grad():
             md = 0.0
             for v in vs:
