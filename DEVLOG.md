@@ -15,6 +15,20 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: select-T orthogonal-protos SHIPPED — clean +1.77× margin gain + bimodal-T finding
+
+Work-loop follow-on to `fe274d3c` (select-T K=5 embed-protos NEGATIVE task-fit result). `experiments/select_temperature_orthogonal.py` uses K random orthonormal protos (gram-schmidt on Gaussian) + queries `x = alpha*p_y + Σ_{j≠y} eps_j*p_j` with alpha=0.7 / eps~U(-0.15,+0.15) so the similarity gap is controlled and non-trivial.
+
+K=3 / per-class=3 / epochs=10 smoke at lr=0.1: T trains 1.0 → 0.19 (sharpening), baseline margin +0.34 → +0.98 (2.89× ratio), round-trip 3.58e-07.
+
+K=5 / per-class=10 / epochs=80 / 3-seeds at lr=0.05: T trains 1.0 → -0.89 (sign-flip), margin +0.22 → -0.19. UNEXPECTED. Probed loss landscape: CE at T={-5, -1, -0.5, -0.1, 0.1, 0.5, 1, 5} = {1.91, 2.89, 3.62, 6.09, 0.0002, 0.02, 0.31, 1.30}. **Two basins:** global min at T≈0.1, spurious basin at T<0. Adam at lr=0.05 starting from T=1 overshoots T=0 (Adam's momentum + adaptive lr cross the barrier) and ends up descending the negative-T slope.
+
+Re-ran K=5 at lr=0.005: T trains 1.0 → 0.62 (sharpening, stays in correct basin), baseline +0.2233 ± 0.0013 → trained +0.3955 ± 0.0016 (1.77× ratio), T*=0.6222 ± 0.0002 across 3 seeds, round-trip 3.58e-07. Clean positive result. T=0.62 is moving toward the true minimum at T≈0.1 but hasn't reached it in 80 epochs; Adam's effective step shrinks near the flat minimum.
+
+Updated experiment default to lr=0.005 with an inline comment explaining the bimodal surface. The fix: NOT mechanism (the substrate is already trainable, REAL LEAK #10 closed this morning); it's a property of `select`'s softmax being sign-symmetric in T. This is now documented in `planning/findings/2026-05-28-select-T-bimodal-T-surface.md` so future trainable-operator additions involving softmax pick safe lr from the start.
+
+This is the **fourth clean-positive** shipped constrain-train instance (after equality-cosine T, defuzz β, rank-k K=2). The synthesis doc's "alternative pre-bundle ship" is now done; next pick is target 3 `bundle` weights (4-6h, needs parser change + task design).
+
 ## 2026-05-28: select-T constrain-train SHIPPED + REAL LEAK #10 fixed in `_select_softmax`
 
 Work-loop tick: built `experiments/select_temperature_adjustment.py` (full 3-seed K=5 harness mirroring `equality_cosine_adjustment.py`). The first run hit `RuntimeError: element 0 of tensors does not require grad` in the backward pass. Root-cause: `_select_softmax` (emitted by `codegen_pytorch.py:67`) ran `_torch.as_tensor(scores, ...)` on a Python list of 0-d grad-tracked tensors, which silently detaches by forcing each through scalar conversion (PyTorch's warning: "Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior"). The downstream softmax stayed mathematically correct but disconnected from the autograd graph. **Same shape as REAL LEAK #9** (`eq`/`eq_synthetic` `float(cos.item())` fix on 2026-05-28): host scalar extraction inside a runtime op, semantically identical to substrate-pure form but autograd-broken. Fix: when scores carries tensors, route through `_torch.stack([sc.to(dtype, device) for sc in scores])` instead (preserves grad via `StackBackward0`). Raw-number scores still go through `as_tensor`.
