@@ -1,0 +1,23 @@
+rank-k is_X training: K=5 k=1 per_class=5 epochs=20 seeds=[0, 1, 2] lr=0.05  anchor_strategy=perturb
+--- seed 0 ---
+  build_data: K=5 k_rank=1 per_class=5 N=25 dim=768 seed=0
+Traceback (most recent call last):
+  File "C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py", line 582, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py", line 535, in main
+    r = run_one(
+        K=a.K_classes,
+    ...<5 lines>...
+        anchor_strategy=a.anchor_strategy,
+    )
+  File "C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py", line 411, in run_one
+    [single(x, init_protos, init_scalars) for x, _ in data]
+     ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py", line 370, in single
+    return torch.stack([fn(x, *tail) for fn in rule_fns])
+                        ~~^^^^^^^^^^
+  File "<rankk param_K5_k1>", line 1948, in rule_0
+  File "<rankk param_K5_k1>", line 1936, in is_class_2
+  File "<rankk param_K5_k1>", line 787, in similarity
+RuntimeError: 1D tensors expected, but got 1D and 0D tensors
