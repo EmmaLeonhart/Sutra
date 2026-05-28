@@ -66,6 +66,44 @@ rather than hard-coding a post id.
 
 This commit (DEVLOG only) does NOT trigger fv-paper-ci.
 
+## 2026-05-28: K=5 rank-k sweep CRASHED at equivalence guard (RuntimeError 1D vs 0D tensors)
+
+The K=5 k=1 n=3 20ep background run (`b4mrbfebl`, started 2026-05-27
+~14:55 PST, ran ~3 hours) completed with shell exit 0 but the Python
+process raised a RuntimeError that the shell didn't propagate. The
+runlog at `experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt` shows:
+
+```
+--- seed 0 ---
+  build_data: K=5 k_rank=1 per_class=5 N=25 dim=768 seed=0
+Traceback (most recent call last):
+  ...
+  File "<rankk param_K5_k1>", line 1948, in rule_0
+  File "<rankk param_K5_k1>", line 1936, in is_class_2
+  File "<rankk param_K5_k1>", line 787, in similarity
+RuntimeError: 1D tensors expected, but got 1D and 0D tensors
+```
+
+The crash is at the equivalence guard's first per-sample call (line
+411 of `experiments/rank_k_is_x.py`); training never started. The
+K=2 k=2 smoke runs (commits `bbead213`, `e52588f5`) did NOT exercise
+this codepath — the K-class rule structure at K ≥ 3 has cross-class
+`is_class_i` calls that the K=2 smoke didn't trigger.
+
+The 3 hours of background CPU was mostly Ollama embedding generation
+for the 30 K=5 codebook words, plus the failing guard call.
+
+Status:
+- The K=5 rank-k sweep authorized 2026-05-27 13:21 PST is **blocked
+  on the bug** — k=1 / k=2 / k=4 will all hit the same crash.
+- Surfaced as queue.md top item with a precise description of where
+  to investigate (rule shape generator `_su()` + per-class emission).
+- Not fixed in this tick per HARD RAILS ("Don't implement what you
+  don't 100% understand"): the fix needs investigation of which 0D
+  tensor surfaces in which negation term at K ≥ 3, not a guess.
+- GPU is now free → the defuzz β work (queue.md next-ship) is
+  unblocked; defuzz training doesn't need GPU anyway.
+
 ## 2026-05-27: constrain-train next-target picked — defuzz β as Sutra-level parameter
 
 Work-loop tick. Per Emma 2026-05-27: the constrain-train vision is

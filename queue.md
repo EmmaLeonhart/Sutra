@@ -55,7 +55,45 @@ see §"Watchdogs" below.
 
 ## Active
 
-### ⭐ Next constrain-train ship — defuzz β as Sutra-level parameter (queued, fires when GPU frees from K=5)
+### 🚨 BUG: rank_k_is_x.py crashes at K=5 equivalence guard — RuntimeError 1D vs 0D tensors
+
+Surfaced 2026-05-27 after the K=5 k=1 n=3 20ep run completed with exit
+0 BUT containing a real crash. Runlog at
+`experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt`:
+
+```
+--- seed 0 ---
+  build_data: K=5 k_rank=1 per_class=5 N=25 dim=768 seed=0
+Traceback (most recent call last):
+  ...
+  File "<rankk param_K5_k1>", line 1948, in rule_0
+  File "<rankk param_K5_k1>", line 1936, in is_class_2
+  File "<rankk param_K5_k1>", line 787, in similarity
+RuntimeError: 1D tensors expected, but got 1D and 0D tensors
+```
+
+The K=2 k=2 smoke (`bbead213`, `e52588f5`) did NOT trigger this — it
+only surfaces at K ≥ 3 (the rule_0 → is_class_2 cross-call shape
+needs at least 3 classes). The K=5 sweep authorised by Emma
+2026-05-27 13:21 PST is fully blocked until this is fixed.
+
+The crash is at the *equivalence guard* — line 411 of
+`experiments/rank_k_is_x.py`, the per-sample call BEFORE training
+starts. So no training happened; ~3 hours of background time was
+Ollama embedding generation + the failing guard call.
+
+**What's needed to fix:** investigation of the generated K=5 rule
+shape. The rule generator `_su()` and the per-class rule emission
+need to be inspected to find where a 0D tensor is being passed where
+a 1D vector is expected. Probably one of the K-1 negation terms in
+`is_X` (which compose differently at K=5 vs K=2) is reducing to a
+scalar somewhere.
+
+**Not started in this tick** because the bug needs investigation,
+not a guess fix. Per HARD RAILS: "Don't implement what you don't
+100% understand."
+
+### ⭐ Next constrain-train ship — defuzz β as Sutra-level parameter (UNBLOCKED — K=5 has crashed, GPU is free; defuzz training doesn't need GPU anyway)
 
 Per Emma's "every operation trainable" vision (capabilities doc 2026-05-27): the next SHIPPED constrain-train instance should *expand the trainable surface to a new operator*, not polish equality-cosine. Ranking + decision rationale: `planning/exploratory/constrain-train-next-targets.md`.
 
