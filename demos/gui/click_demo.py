@@ -82,15 +82,31 @@ def tint(field: np.ndarray, state: float) -> np.ndarray:
 
 
 class _Flip:
-    """Substrate-backed 0/1 state: each step is toggle.su's flip() on the substrate."""
+    """Substrate-state-RNN 0/1 toggle (planning/sutra-spec/non-halting-loop.md).
+
+    The recurring state vector lives ON THE SUBSTRATE as a tensor held
+    across calls in toggle.su's module-level `_flip__state_state` slot.
+    Each click invokes `flip()` with NO host arg; the substrate loads
+    the slot, computes `make_real(1.0) - state`, writes the new state
+    back via `recur(...)`, and returns the new state vector for display.
+
+    The host's `state` attribute is just a *display cache* (the most-
+    recently-decoded value, used to drive the colour tint). It is NOT
+    fed back into flip(); the substrate is the source of truth.
+    """
 
     def __init__(self) -> None:
         ns = _compile("toggle.su")
-        self._flip, self._vsa = ns["flip"], ns["_VSA"]
-        self.state = 0.0
+        self._flip, self._vsa, self._ns = ns["flip"], ns["_VSA"], ns
+        # Reset the substrate recurring slot so this flipper starts at 0,
+        # not where a prior _Flip() left off (see _Counter.__init__ note
+        # in counter_demo.py for the cache-shared-slot rationale).
+        self._ns["_flip__state_state"] = None
+        self.state = 0.0  # display cache only
 
     def toggle(self) -> float:
-        self.state = float(self._vsa.real(self._flip(self.state)))  # SUBSTRATE flip
+        new_state = self._flip()  # no arg; substrate loads its own slot
+        self.state = float(self._vsa.real(new_state))  # decode for display
         return self.state
 
 
