@@ -446,6 +446,26 @@ individually tractable, not to a closed-form whole-system proof. And a certified
 configuration is per-customer and per-mission; the present contribution is the
 framework, the reduction, and the discharged obligations.
 
+**The frozen substrate is a foundational trust assumption, not a verified
+property — and that is the same posture every formally-verified system has had
+to take.** A formally-verified C compiler trusts the CPU's IEEE-754 unit; a
+verified OS trusts the silicon's MMU; a verified bytecode interpreter trusts the
+machine that runs it. Sutra trusts the **frozen-substrate semantic mapping**:
+that `embed("cat")` returns a particular vector and that that vector's
+relationships to other embeddings have whatever properties the substrate
+provides. We do not prove the semantic mapping is correct — that would require
+verifying the pretrained embedding model itself, which is the learned-component
+verification problem we explicitly *do not* claim to solve. What we do claim:
+once the substrate is fixed (a particular pretrained model at particular weights,
+say nomic-embed-text at the published checkpoint), the *algebra over those
+embeddings* — bind, unbind, bundle, similarity, the polynomial connectives —
+behaves as our §3 obligations specify, measured to the precision §4 documents.
+The trust boundary is named: substrate-vector identity is foundational;
+everything built on top is verified or quarantined. Conflating "the substrate is
+trusted" with "the system is unverified" misreads where the boundary is, in the
+same way that "the CPU is trusted" does not invalidate the verified-compiler
+above it.
+
 ## 6. Related work
 
 **Neural-network verification.** A large line verifies properties of *learned*
