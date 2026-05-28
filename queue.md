@@ -538,11 +538,25 @@ The 2026-05-17 voice-vision file was triaged with verbatim text + editorial Reco
 1. **Verify shipped transcendentals use tau-bound + cross-talk log/exp tables (not libm).** Vision: three transcendental constants — tau at a runtime binding point, plus a cross-talk-exploiting log table and exp table as the two leaves of every other transcendental. Need to confirm the shipped `math.su` literally realizes this, not a libm/torch elementwise shortcut. Audit method: open `math.su`; trace `realExp`, `log`, `cos`, `sin` to their lookup-table backing; confirm they go through tau-bound rotation. If they do, write the verification finding; if not, fix to match the vision.
 2. **Cosine as its own transcendental function (NOT derived from `cexp(iθ)`).** Open design question at `planning/open-questions/cosine-as-its-own-transcendental.md`. Emma's view: cosine is distinct enough that it needs to be its own transcendental, including the imaginary output implemented geometrically. Contradicts the current `cos = real(cexp(iθ))` lowering. Open question file exists — needs Emma's decision via AskUserQuestion to close.
 
+## 🔎 Assess strategic fit of the K=5 rank-k is_X sweep
+
+Emma 2026-05-28 14:30 UTC: the in-flight K=5 rank-k sweep (5-9h wall, currently running as PID 16164 launched by the parallel session via `experiments/run_rank_k_K5_sweep.py`) may not actually align with the constrain-train strategic goal. The vision is **breadth across operators** (every operation trainable), and K=5 specifically is a *bigger demonstration of an already-shipped matrix-valued mechanism* — not a NEW trainable surface. Spending 5-9h here may be polishing depth at the cost of breadth.
+
+Issue file (read first, includes the closures): `planning/issues/2026-05-28-k5-rank-k-sweep-strategic-fit.md`. Four reasonable closures laid out:
+
+1. Let the sweep finish — close the matrix-valued case, move to breadth next
+2. Stop and run K=3 instead — same demonstration, ~2x faster
+3. Stop and pivot to a new operator's first trainable instance (e.g. `select` softmax temperature) — direct breadth advance
+4. Stop and ship a minimal K=2 k=2 bake-back proof, move on — minimal cost for "matrix-valued path works" claim
+
+**Decision needed (via AskUserQuestion when Emma is available).** Until then, the sweep continues in flight. If it crashes (the new `logits_per_sample_factory` fix may not be the only issue), surface the crash and reassess scope; don't relaunch under the same assumptions.
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
 - Longer-horizon agenda: `todo.md`.
 - Findings (dated): `planning/findings/`.
+- Issues (strategic-fit / scope-decision items): `planning/issues/`.
 - Open design questions: `planning/open-questions/`.
 - 2026-05-17 voice-vision (verbatim):
   `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`.
