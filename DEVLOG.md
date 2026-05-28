@@ -15,6 +15,17 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: BigInt<MAX> barrel-through — four pieces shipped, three remaining
+
+Per Emma's "barrel through these tasks" instruction, advanced #15 (BigInt<MAX> implementation) by four concrete pieces in sequence:
+
+- `b991781a` — int_div + int_mod substrate intrinsics. Building block for carry-propagation: `q = int_div(x, m)` floor division, `r = int_mod(x, m)` modulo. Both substrate-pure (0-d tensor in, 0-d tensor out, autograd preserved). Source surface in stdlib/logic.su.
+- `49183f3b` — parser const-template support. `_parse_type` now accepts integer literals in type-arg position, so `BigInt<256>` (and `Array<int, 10>`) parse in local-var, parameter, and return-type positions. Encoded as a synthetic TypeRef whose `name` is the literal's lexeme; downstream consumers interpret as int when the surrounding type allows. Corpus test `bigint_max_type_arg.su` locks the surface.
+- `2ee0fe54` — `digit_array_add` substrate intrinsic. v1 ships N stride-1 carry-propagation steps (per-position pairwise sum + per-step `cat + add + div + mul` to propagate carries). Substrate-pure: every step a tensor op, no .item()/float(), loop count is a structural index per Audit #4. 8 internal test cases (47+53, 99+1, 999+1, 99999+1, 123+456, 12+9, 0+0, 5000+5000) all correct. (The proper Hillis-Steele log2(N) form using generate/propagate signals is a possible v2 optimization.)
+- `baafa8ed` — `experiments/bigint_worked_example.py` end-to-end harness. Parse Python decimal string → digit tensor → compiled .su calling `digit_array_add(a, b, 10)` → output tensor → format back to string. 9 cases including the spec's "99999"+"1"="100000" worked example + explicit overflow-saturates at max_digits=16.
+
+Today's barrel covered the substrate intrinsics + parser surface + working demonstration. Remaining for #15: a BigInt class declaration in stdlib wrapping the digit-block layout with operator overloads dispatching to `digit_array_add`; range-soundness + termination FV obligations; FV paper §3 wiring. Smaller now that the substrate primitives are landed.
+
 ## 2026-05-28: capabilities.md catch-up — defuzz β SHIPPED + recur primitive entries added
 
 Work-loop tick: caught three stale/missing inventory entries in `docs/capabilities.md` per the memory rule `feedback-capabilities-doc-must-be-exhaustive`. (1) `defuzzy(value)` §9 entry said the wrapper-gain was trainable — wrong, cosine `==` is scale-invariant (today's `85429dfd` diagnosis). (2) Two `defuzzify_trit` entries said β was "a Sutra-side parameter exposure away from being directly trainable" — wrong, β IS trained end-to-end as of today's `5ca1b043` (β\* = 6.58 ± 0.17 across 3 seeds, ~15× loss reduction, round-trip 1.19e-7). (3) `recur` / `recurring` / `return(...)` non-halting-loop primitive was completely missing from the §8 Statements inventory; added three rows reflecting the primitive shipped in `6757863d` + `6fc64c15`. Committed at `73c995fc`.
