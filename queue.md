@@ -373,6 +373,81 @@ This is reporting-only — no code changes, no commits. Same shape as the :42 st
   via `scripts/build_site.py`. Aspirational polish in `todo.md`
   → "Docs / website".
 
+## 🚚 Yantra → Sutra migration of GUI / I-O apps (Emma 2026-05-27)
+
+Strategic decision recorded Yantra-side (`Yantra/queue.md` § "LAST ITEM"):
+the GUI / I-O work in `Yantra/apps/` is language-level (exercising what the
+substrate can do), not OS-level. The Yantra OS work was failing because we
+were doing language-level work at the OS level without enough context.
+Move it back to Sutra; pause the OS while the language matures.
+
+### Migration tail items (Emma 2026-05-27, appended to the back of Sutra's queue per her instruction)
+
+1. **Audit any inappropriate use of the 768-dim embedding space for
+   non-embedding code.** Yantra's audit (planning/27-substrate-honesty-
+   audit-2026-05-27.md, mirror in Yantra repo) found every Yantra app at
+   `runtime_dim=768` despite zero `basis_vector` calls — 96× over-dimensioned.
+   Same audit needed Sutra-side: every `examples/*.su`, every test fixture,
+   every demo. Drop dim where the .su has no `basis_vector` (the LLM
+   codebook is unused; tiny dim suffices).
+
+2. **Update Sutra docs for the migrated apps based on Yantra-side history.**
+   Each migrated demo's README + .su header needs to plainly say what it
+   does and does NOT do on the substrate. The Yantra-side audit found
+   misleading "RNN" framing on `count.su`/`toggle.su` (host-state-shuttle,
+   not substrate-state recurrence — the host extracts the scalar via
+   `vsa.real()` between ticks). Same audit applies to anything labelled
+   "recurrent" / "substrate-pure" / "verified" Sutra-side. Headers were
+   corrected Yantra-side in `26a6acb` / `29551b1`; migrate the corrected
+   text, don't revert it.
+
+3. **Honesty test every migrated demo:** does the recurrence actually live
+   on the substrate as a vector across ticks, or is the host shuttling a
+   scalar? The latter is NOT an RNN even if it dispatches substrate ops
+   per tick. Same test for any Sutra-side example that claims recurrence.
+
+4. **Write up the full design + history** — one document in Sutra
+   (`planning/findings/2026-05-2X-yantra-gui-migration.md`?) covering what
+   was attempted across the Yantra sessions: the cycle-step demo, the
+   font dim-bloat discovery, the host-state-shuttle misframing, the
+   bound-vector rewrite's first encoding failure (planning/26 § negative
+   table), the sparse-only-LIT working result at dim=384 (36/36 glyphs
+   pixel-exact, 91 ms/render). Lessons learned, not just final state.
+
+5. **Append the rest of Yantra's open queue items** once the apps land:
+   the font bound-vector rewrite's open work (d484 fixture, antipodal-
+   filler variant, demo wiring); the GUI follow-ups (live window
+   verification, batched render — already blocked on Sutra-side
+   `make_real` batch capability; reverse-CNN decoder); the headline-demo
+   CLI utilities (`cat`, `ls`, `wc` — gated on Sutra's string + IO + FS
+   vocabulary).
+
+### Phase 1 — `apps/font/` (this commit & follow-ups)
+
+Direct-substrate app (compile_su + cycle_step + render_glyph; no Yantra
+kernel coupling), so migration is a clean file move. Files:
+
+- `apps/font/font.su` (1244 lines, the cycle/glyph counter)
+- `apps/font/font_bound.su` (723 lines, the sparse-only-LIT rewrite,
+  measured-working at dim=384 — see Yantra `planning/26`)
+- `apps/font/font_demo.py` (the tkinter window driver)
+- `tools/font_data.py` (the font oracle the .su is generated from)
+- `tools/generate_font_su.py` + `tools/generate_font_bound_su.py` (the
+  generators)
+- `tests/test_font.py` + `test_font_cycle.py` + `test_font_bound.py`
+- `tests/fixtures/nomic-embed-text-d108.pt` (108-dim, font runs at this)
+
+Target location Sutra-side: `demos/font/` (new top-level `demos/` dir —
+distinct from `examples/` which is single-file demos; the Yantra apps
+have multi-file Python drivers + tests). README in the dir explaining
+what each piece does.
+
+After phase 1: `apps/gui/` (`count.su`, `frame.su`, `toggle.su` and their
+demos), also direct-substrate. Then `apps/calc/`, `apps/echo/`,
+`apps/terminal/` — these are kernel-coupled (use `kernel.Manifest`,
+`kernel.SutraService`, `kernel.router.Axon`) and need either re-architecting
+to not need the kernel OR moving the relevant kernel pieces along.
+
 ## Pointers
 
 - Substrate-leak catalogue: `Audit.md`.
