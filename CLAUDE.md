@@ -402,9 +402,13 @@ For deep systems work the AI's judgment about "is this a question or just-do-it?
 
 **3. Treat "push to remote" mentions as routine.** When Emma's message references pushing to remote, that's almost always one of two things:
 - She wants to access the repo from a different machine — the push has to happen before she can pull there.
-- She wants to trigger CI/CD — especially clawRxiv paper submissions, which need every revision pushed individually so each gets its own AI-reviewer cycle.
+- She wants to trigger CI/CD — especially clawRxiv paper submissions, which need every revision pushed individually so each gets its own AI-reviewer cycle. **This is usually the primary thing she's actually asking for.**
 
-Either way: **prioritize the push.** Don't batch it with unrelated work. Don't defer it. The push itself is the action Emma is asking for.
+Either way: **prioritize the push.** Don't batch it with unrelated work. Don't defer it. The push itself is the action Emma is asking for. **Work more aggressively to get the push out than you would in normal commit flow.**
+
+Emma's calibration on when "push to remote" appears: *she wouldn't say it during serious building / hard-mode work — it shows up specifically in paper-edit-like situations where CI/CD matters*. So a "push to remote" mention is also a signal that the current work is paper-edit-shaped, not deep-implementation-shaped.
+
+**Aggressive rebasing + failed CI runs are acceptable, often correct.** When push-to-remote requests stack (paper edits in rapid iteration, multiple cron bumps in flight, clawRxiv resubmissions), the right posture is push-fast-rebase-as-needed rather than wait-for-a-clean-moment. A failed CI run from pushing aggressively is usually fine — clawRxiv gives different API responses per push and the cron heals across runs. Conservative push-batching costs more (lost reviews, lost CI signals, Emma waiting on her other machine) than the cost of a few cancelled workflow runs.
 
 **Cross-cutting:** `AskUserQuestion` is the phone-notification escape hatch. Plain chat does not notify. If the tool is available and a decision Emma should make is in front of me, the choice is "use the tool" or "carry the debt"; pick the tool.
 
