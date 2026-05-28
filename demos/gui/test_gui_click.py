@@ -1,10 +1,15 @@
-"""Test the interactive GUI's click toggle (apps/gui/click_demo.py + toggle.su).
+"""Test the interactive GUI's click toggle (demos/gui/click_demo.py + toggle.su).
 
-The red<->blue toggle's state transition is a substrate computation: toggle.su's
-flip(s) = 1 - s. This guards that the flip runs on the substrate and that the
-host tint maps state 0 -> red, state 1 -> blue. No window/click is exercised
-(headless-safe); the live click is verified by hand via `python
-apps/gui/click_demo.py`. Torch-gated like the other real-Sutra tests.
+Substrate-state-RNN demo: toggle.su's `flip()` is a non-halting-loop
+function (planning/sutra-spec/non-halting-loop.md) whose `recurring vector
+state` lives on the substrate as a tensor in a module-level slot, surviving
+across calls without host scalar extraction. Each click invokes `flip()`
+with NO host arg; the substrate loads the slot, computes `make_real(1.0)
+- state`, writes back via `recur(...)`. The host decodes vsa.real(new) for
+display only. This test guards the flip is on the substrate and that the
+host tint maps state 0 -> red, state 1 -> blue. No window/click is
+exercised (headless-safe); live click verified by hand via `python
+demos/gui/click_demo.py`. Torch-gated like the other real-Sutra tests.
 """
 from __future__ import annotations
 
@@ -26,16 +31,24 @@ def _load_click_demo():
 
 
 def test_flip_toggles_state_on_substrate() -> None:
-    """toggle.su's flip(s) = 1 - s, computed on the substrate: 0<->1."""
+    """toggle.su's flip() is a non-halting loop: state vector flips 0 <-> 1
+    on the substrate slot between calls; no host scalar shuttle."""
     cd = _load_click_demo()
     ns = cd._compile("toggle.su")
     flip, vsa = ns["flip"], ns["_VSA"]
-    assert abs(float(vsa.real(flip(0.0))) - 1.0) < 1e-6
-    assert abs(float(vsa.real(flip(1.0))) - 0.0) < 1e-6
-    # Two flips return to the start (a true toggle).
-    once = float(vsa.real(flip(0.0)))
-    twice = float(vsa.real(flip(once)))
-    assert abs(twice - 0.0) < 1e-6
+    # Reset the substrate slot — _compile caches the compiled module
+    # across tests; without this the slot may carry state from a prior
+    # test or _Flip() instance.
+    ns["_flip__state_state"] = None
+    # Sequence: 0 -> 1 -> 0 -> 1 -> 0
+    a = float(vsa.real(flip()))
+    b = float(vsa.real(flip()))
+    c = float(vsa.real(flip()))
+    d = float(vsa.real(flip()))
+    assert abs(a - 1.0) < 1e-6
+    assert abs(b - 0.0) < 1e-6
+    assert abs(c - 1.0) < 1e-6
+    assert abs(d - 0.0) < 1e-6
 
 
 def test_tint_maps_state_to_red_and_blue() -> None:
