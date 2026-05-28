@@ -19,6 +19,24 @@ Path taken: (a) the cosine `==` wrapper-gain was diagnosed as scale-invariant (`
 
 **Next pick per the original ranking: target 4, `select` softmax temperature.** Concrete because (a) `select` is the language's softmax/case-switch primitive — high-leverage; (b) the Sutra-level surface change is "wrap the scores in a divide" rather than a new parser form, smaller than (3) `bundle` weights; (c) the training task is just rerouting any existing classification harness to use a divided-score variant of select. ~3-4 hours estimated. After that, target (3) `bundle` weights, then target (7) Kleene per-callsite coefficients (the biggest swing, 1-2 days).
 
+## Update 2026-05-28 (later): target 4 SHIPPED + REAL LEAK #10 fixed; next pick is target 3 `bundle` weights
+
+Target 4 shipped in the SutraBarrel work-loop tick:
+- Smoke: `experiments/select_temperature_smoke.py` (`a01184e3`) — orthogonal-3-class synthetic task, monotonic gradient surface across T ∈ {0.01, 0.1, 0.5, 1.0, 5.0, 100.0}.
+- Full harness: `experiments/select_temperature_adjustment.py` (this tick) — mirrors equality_cosine_adjustment.py; K=3 micro-task trains baseline margin +0.0039 → +0.2796 (71.6× ratio) with T*=0.0185 and round-trip max|Δ|=2.50e-06.
+- K=5/per-class=10/epochs=80/3-seeds = NEGATIVE TASK-FIT RESULT (52.9s): T trains 1.0 → -0.79, margin stays flat. Mechanism trains, but the K=5 frozen-embed-prototype task's similarity gap is too narrow for select-T to lever. Details in `planning/findings/2026-05-28-select-T-trains-but-K5-embed-task-is-flat.md`.
+- Substrate-purity contribution: surfaced REAL LEAK #10 in `Audit.md` — `_select_softmax`'s `_torch.as_tensor(scores)` was detaching grad-tracked tensor scores; fixed by routing tensor scores through `_torch.stack`.
+
+**Shipped constrain-train inventory after target 4:**
+1. Equality-cosine T (`21778648`, 2026-05-26): +1.08× margin gain on K=5 embed-protos task.
+2. Defuzz β (`5ca1b043`, 2026-05-28): ~15× loss reduction on β-sweep task.
+3. Rank-k is_X K=2 smoke (`132c8925`, 2026-05-27): 3.01× margin improvement; K=5 sweep still in flight under last-attempt rule.
+4. Select T (this tick): mechanism trainable; K=3 micro 71.6× margin ratio; K=5 task FLAT.
+
+**Next pick: target 3, `bundle` weights.** `bundle(w_a*a, w_b*b, w_c*c)` with trained scalars per term. Adds the `bundle` operator (a VSA primitive) to the trainable inventory. Needs both a parser-level extension (weighted bundle syntax) AND a task design where bundle weighting demonstrably matters. ~4-6h estimated. After that, target 7 Kleene per-callsite coefficients (1-2 days, biggest swing).
+
+**Alternative pre-bundle ship: a non-flat select-T task.** ~1h to construct: K random orthonormal prototypes (not embeddings) + controlled-SNR mixture queries. Would push select-T from "mechanism shipped" to "mechanism shipped + non-trivial task win." Carries less new-operator-surface impact than target 3 but is cheap insurance against the existing shipped inventory being misread as "select-T mechanism doesn't help."
+
 The ranking below is preserved as the original 2026-05-27 analysis. Read with the update above in mind.
 
 ---

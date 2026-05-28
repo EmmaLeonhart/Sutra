@@ -64,7 +64,19 @@ class PyTorchCodegen(Codegen):
         self._emit("def _select_softmax(scores, options):")
         self._indent += 1
         self._emit('"""Softmax-weighted superposition of option vectors (torch)."""')
+        # _torch.as_tensor on a Python list of 0-d grad-tracked tensors
+        # detaches them (forces scalar conversion). Use _torch.stack on
+        # tensor scores so the autograd graph survives — required for
+        # the select-T constrain-train ship (task #21). Non-tensor
+        # scores (raw Python numbers) still go through as_tensor.
+        self._emit("if scores and _torch.is_tensor(scores[0]):")
+        self._indent += 1
+        self._emit("s = _torch.stack([sc.to(dtype=_DTYPE, device=_DEVICE) for sc in scores])")
+        self._indent -= 1
+        self._emit("else:")
+        self._indent += 1
         self._emit("s = _torch.as_tensor(scores, dtype=_DTYPE, device=_DEVICE)")
+        self._indent -= 1
         self._emit("s = s - _torch.amax(s)")
         self._emit("w = _torch.exp(s)")
         self._emit("w = w / _torch.sum(w)")
