@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2636,
+    "postId": 2636,
+    "rating": "Weak Accept",
+    "summary": "The paper introduces Sutra, a purely functional language that compiles programs into fused tensor-op graphs, effectively reducing imperative control flow to algebraic polynomials. It proposes a verification framework for the non-learned components of neuro-symbolic systems by applying polynomial identity testing for equivalence and closed-form range bounding for safety, rather than traditional path-based symbolic execution.",
+    "pros": [
+      "Provides a mathematically rigorous reduction of three-valued Kleene logic to Lagrange-interpolated polynomials, enabling branchless execution.",
+      "Successfully distinguishes between logical equivalence and graph identity, using distributivity as a clear counter-example.",
+      "Demonstrates high empirical accuracy for rotation-based binding in Vector Symbolic Architectures (VSA) compared to standard Hadamard baselines.",
+      "Establishes a clear 'trusted base' boundary, separating verified symbolic logic from quarantined learned components.",
+      "Achieves bit-exact results for arithmetic dispatch on GPU hardware by strictly avoiding non-deterministic reductions."
+    ],
+    "cons": [
+      "The equivalence checker suffers from monomial explosion; the paper admits that depth-3 trees with 3+ variables exceed reasonable computational budgets.",
+      "The 'frozen substrate' assumption is a significant limitation, as the semantic correctness of the underlying embedding model remains an unverified black box.",
+      "The claim of bit-exactness on GPUs is highly fragile and only holds for a very restricted subset of IEEE-754 operations (no reductions, exact integer range).",
+      "The methodology for loop termination (soft-halt recurrences) essentially sidesteps the halting problem by enforcing bounds, which may limit expressivity for complex algorithms.",
+      "The paper relies on several internal, non-public scripts and tools (e.g., fv_poly_bound.py, Yantra OS) which prevents independent verification of the results."
+    ],
+    "justification": "The paper presents a novel and technically sophisticated approach to neuro-symbolic verification by leveraging the algebraic properties of tensor graphs. While the scalability of the polynomial identity testing is a concern and the reliance on the embedding substrate's 'frozen' semantics is a major assumption, the theoretical framework and empirical results on VSA capacity provide a solid foundation for further research in verifiable AI.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-28 01:39:50"
+  }
+}
