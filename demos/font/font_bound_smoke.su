@@ -1,0 +1,37 @@
+// Smoke test for the bound-vector font design (apps/font/font_bound.su, future).
+//
+// Substrate-only state: characters are basis_vector codebook entries, glyphs
+// are bundles of (position -> lit/unlit) bindings, and the host never sees
+// the integer char_code -- only the vector. Verifies the basic primitives
+// (basis_vector, bundle, bind, unbind, similarity, make_real) compose the
+// way the bound-vector rewrite needs them to before generating 36 glyphs.
+
+vector c_A = basis_vector("font_char_A");
+vector c_B = basis_vector("font_char_B");
+
+vector p_00 = basis_vector("font_pos_00");
+vector p_01 = basis_vector("font_pos_01");
+
+vector LIT   = basis_vector("font_lit");
+vector UNLIT = basis_vector("font_unlit");
+
+// A 2-cell "glyph" for c_A: pos_00 is unlit, pos_01 is lit.
+vector glyph_A = bundle(bind(p_00, UNLIT), bind(p_01, LIT));
+vector glyph_B = bundle(bind(p_00, LIT),   bind(p_01, UNLIT));
+
+// char -> glyph map; 2-character codebook for smoke purposes.
+vector char_to_glyph = bundle(bind(c_A, glyph_A), bind(c_B, glyph_B));
+
+// Look up the lit/unlit bit at (char, pos) entirely on the substrate. Returns
+// a real-axis vector whose scalar component is ~1.0 for lit, ~0.0 for unlit
+// (plus rotation-binding noise from the capacity-2 bundles).
+function vector glyph_pixel_bound(vector char_vec, vector pos_vec) {
+    vector glyph = unbind(char_vec, char_to_glyph);
+    vector bit   = unbind(pos_vec, glyph);
+    return make_real(similarity(bit, LIT));
+}
+
+function vector main() {
+    // Should return ~1.0 (A is lit at position 01).
+    return glyph_pixel_bound(c_A, p_01);
+}
