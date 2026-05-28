@@ -1,0 +1,33 @@
+// count.su — a GUI counter. The +1 IS computed on the substrate, but the
+// recurrence is HOST-state-shuttle, not a substrate-state RNN. Plainly:
+//
+//   step(n) = n + 1   — substrate computes one increment per call. The host
+//                       extracts the scalar via real(), holds it in a Python
+//                       variable, feeds it back as the next call's input.
+//                       State lives on the host between ticks; the substrate
+//                       function is stateless. Calling this a "recurrent
+//                       loop" or "state lives on the substrate" was the same
+//                       framing error font.su carried until 2026-05-27 —
+//                       the audit flagged both. A real substrate-state RNN
+//                       would keep n as a vector across ticks without the
+//                       host extracting it; that refactor is queued for the
+//                       Sutra migration.
+//
+//   pixel(x, y, n)    — radial-glow field. The host passes the scalar n
+//                       (decoded from a prior step() call); the substrate
+//                       computes cx = 2n/9 - 1 and the gaussian-shaped
+//                       brightness. The host paints. No recurrence in this
+//                       function; it's a stateless dispatch per cell.
+//
+// make_real lifts each result onto the real axis so the host reads it with
+// real(). We do NOT wrap back to 0 after 9 (Emma: don't care past the count);
+// n just keeps rising and the glow exits the right edge.
+function vector step(scalar n) { return make_real(n + 1.0); }
+
+function vector pixel(scalar x, scalar y, scalar n) {
+    scalar cx = (2.0 * n / 9.0) - 1.0;
+    scalar dx = x - cx;
+    return make_real(1.0 - dx * dx - y * y);
+}
+
+function vector main() { return step(0.0); }
