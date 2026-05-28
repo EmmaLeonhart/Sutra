@@ -55,6 +55,38 @@ see §"Watchdogs" below.
 
 ## Active
 
+## Audit findings 2026-05-27 19:15 PST
+
+Three discipline-drift items surfaced by the grand honesty audit
+(report: `planning/findings/2026-05-27-grand-honesty-audit.md`). No
+fabricated numbers, no stale shas, no broken tests; these are queue/
+freeze/doc-description drift, not integrity violations.
+
+- **Audit #1 — paper/neurips/ freeze touched by metadata commit `599424f8`.**
+  What's wrong: 2026-05-24 contact-email standardization commit touched
+  files under the explicitly-frozen `paper/neurips/`. Emma-authored;
+  metadata-only (not paper content). What closes it: Emma triage —
+  either accept as an explicit carve-out in CLAUDE.md's freeze rule
+  (probably the right call; project-wide contact-email changes are
+  legitimate even on frozen archives), or revert the change in
+  `paper/neurips/` while keeping it on the live `paper/paper.md`.
+
+- **Audit #2 — queue.md rank-k section re-accumulating "DONE 2026-05-27" sub-items.**
+  What's wrong: lines 143/147/148/152 carry "DONE" status that
+  violates queue.md's own discipline rule at lines 6-8 (DONE belongs in
+  git log / findings, not in queue). Same pattern as the FV section trim
+  in `1a54045b` earlier today. What closes it: trim those sub-items
+  from queue.md, leaving the rank-k section with a pointer to the
+  capabilities doc + the still-blocking K=5 bug item below.
+
+- **Audit #3 — docs/papers.md description doesn't match steady-state behavior.**
+  What's wrong: the page describes the chain starting fresh "whenever
+  clawRxiv's revise endpoint returns 404," but with the title-bump cron
+  in steady state, every cron tick produces a new post (no 404
+  involved). What closes it: one-sentence update to docs/papers.md
+  reflecting that title-bump-per-cron is the current pattern, not
+  just-on-404 recovery.
+
 ### 🚨 BUG: rank_k_is_x.py crashes at K=5 equivalence guard — RuntimeError 1D vs 0D tensors
 
 Surfaced 2026-05-27 after the K=5 k=1 n=3 20ep run completed with exit
