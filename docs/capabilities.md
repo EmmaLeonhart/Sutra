@@ -57,6 +57,7 @@ There is **one shipped** training instance in the whole language today (the equa
 | Array literal | `[a, b, c]` | n/a (compile-time aggregate) |
 | Map literal | `{k1: v1, k2: v2}` | vision — a learned key-value mapping |
 | Vector literal (constructed) | `vector_literal(0.1, -0.2, ...)` | **shipped** on **rank-k prototype vectors** (see §13 — bake-back format for trained vectors) |
+| Matrix literal (constructed) | `matrix_literal(vector_literal(...), vector_literal(...), ...)` | **shipped** — variadic row-vectors stacked into a 2-D substrate tensor; the source form for frozen lookup / permutation / cached matrices, consumed by `Tensor.MatrixMul` |
 
 No hex literals yet.
 
@@ -232,6 +233,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `bundle_of_binds(*role_filler_pairs)` | bundle + bind composition | vision |
 | `zero_vector()` | additive identity | n/a (constant) |
 | `vector_from_floats(values)` | substrate vector from float list | n/a (compile-time, used by `vector_literal`) |
+| `matrix_from_rows(rows)` | substrate 2-D tensor from row tensors (stack) | n/a (compile-time, used by `matrix_literal`) |
 
 ### Rotation internals
 

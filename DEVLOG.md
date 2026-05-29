@@ -15,6 +15,31 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: matrix literals shipped — `matrix_literal` builtin (font.su Option-B prereq + stdlib unblock)
+
+Emma's `AskUserQuestion` answer chose "add matrix-literal support to the
+language" (over a narrow `cyclic_shift_matrix` intrinsic) to unblock font.su
+Option B and the `numbers.su`/`logic.su`/`vectors.su` "Blocked on: matrix
+literals" items. Investigating the existing `vector_literal` showed the lean
+path: it's a **builtin function** (variadic floats → `_VSA.vector_from_floats`),
+not `[...]` literal syntax — so matrix literals need **no lexer/parser change**,
+just the 2-D generalization as a builtin.
+
+Shipped `matrix_literal(row0, row1, ...)` (variadic row-vectors, each typically a
+`vector_literal`) → `_VSA.matrix_from_rows([...])` → `_torch.stack(rows, dim=0)`
+on the runtime dtype+device (substrate-pure, no numpy on the hot path). Wired in
+`codegen_base.BUILTINS` + the `matrix_from_rows` runtime method in
+`codegen_pytorch.py`.
+
+Verified end-to-end (the exact font.su Option-B use): a frozen 3×3 cyclic-shift
+permutation P, `Tensor.MatrixMul(P, onehot)`, shifts the one-hot by one with wrap
+— `P@e0=e1`, `P@e1=e2`, `P@e2=e0`, bit-exact on the substrate.
+`test_matrix_literal.py` (4 tests) + `test_vector_literal.py` (4) green (8/8).
+Capabilities page updated (`matrix_literal` + `matrix_from_rows` rows added).
+This **unblocks font.su Option B** (task #2) — the permutation-matmul advance now
+has its frozen-P primitive — and is the source-level form the stdlib cached-matrix
+items were waiting on.
+
 ## 2026-05-28: complex sine `csin(z)` shipped — last residue of the cosine open question closed
 
 Emma's `AskUserQuestion` answer ("make cos its own transcendental, retire
