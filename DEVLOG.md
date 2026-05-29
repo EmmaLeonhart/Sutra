@@ -15,6 +15,27 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: Phase-3 apps migration COMPLETE — terminal migrated (all 3 apps kernel-free)
+
+Third and last app. `demos/terminal/{terminal.py, test_terminal.py}`
+(13/13). The Yantra terminal admitted echo through the kernel (Init /
+SutraService / admit_from_path / producer / sink / tick loop) and lazily
+imported the kernel-routed calc; the migrated terminal simply COMPOSES the
+two already-migrated kernel-free demos — `_cmd_echo` → `demos/echo`'s
+`echo()`, `_cmd_calc` → `demos/calc`'s `Calculator` — behind the same host
+command-dispatch loop. The host/substrate line is unchanged from the
+design: command *routing* (which utility a typed name selects) is host
+orchestration; the computation + the output shown are the substrate's.
+Tests: echo round-trips verbatim, calc exact + refuses 10/3, help lists
+commands, unknown command → CommandError, no kernel import.
+
+**Phase-3 complete: echo + calc + terminal all migrated kernel-free** (the
+"admit-shim" the queue anticipated was never needed — the apps just call
+compile_su directly + invoke the entry fn, the font/gui precedent). This
+also closes the LAST of Emma's four 2026-05-29 AskUserQuestion-greenlit
+items (binding matrix, 0-d projection drop, FV key-soundness, Phase-3
+apps) — all shipped this session.
+
 ## 2026-05-29: Phase-3 apps migration — calc migrated kernel-free (Yantra → Sutra)
 
 Second of the three apps. `demos/calc/{calc.py, switch.su, digits.su,
