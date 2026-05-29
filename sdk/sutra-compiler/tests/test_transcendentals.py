@@ -198,5 +198,53 @@ class TestComplexArgumentCosine(unittest.TestCase):
                 )
 
 
+class TestComplexArgumentSine(unittest.TestCase):
+    """`Math.csin(complex z)` = (e^(i z) − e^(−i z))/(2i), the complex-
+    argument sine — the csin follow-on to ccos. Ground-truth vs Python
+    `cmath.sin`.
+
+    Torch backend only, same rationale as `ccos`: the numpy codegen has
+    no `cexp` keystone and is being retired. Cases mirror the ccos set:
+    real argument (must equal the paper-cited real sin with zero
+    imaginary part), pure-imaginary argument (sin(i) = i·sinh 1, the
+    geometric imaginary-output path), and two general complex points.
+    Absolute tolerance 2e-2 — same float32 / table-precision class as
+    ccos; measured, not tuned."""
+
+    _CASES = [
+        (0.0, 0.0),
+        (0.5, 0.0),   # real arg: must match real sin, imag == 0
+        (0.0, 1.0),   # sin(i) = i*sinh(1) ≈ 0 + 1.1752 i
+        (0.5, 1.0),   # general
+        (1.0, 2.0),   # general
+    ]
+    _TOL = 2e-2
+
+    def _run_part(self, a: float, b: float, part: str) -> float:
+        src = (
+            f"function scalar f() {{ return "
+            f"Math.csin(complex_number({a!r}, {b!r})).{part}(); }}\n"
+        )
+        return _compile_and_run(torch_translate, src, "f")
+
+    def test_csin_vs_cmath(self):
+        for a, b in self._CASES:
+            true = cmath.sin(complex(a, b))
+            with self.subTest(z=f"{a}+{b}i", part="real"):
+                got_r = self._run_part(a, b, "real")
+                self.assertLess(
+                    abs(got_r - true.real), self._TOL,
+                    f"Re csin({a}+{b}i): got={got_r}, "
+                    f"true={true.real}, |Δ|={abs(got_r - true.real):.2e}",
+                )
+            with self.subTest(z=f"{a}+{b}i", part="imag"):
+                got_i = self._run_part(a, b, "imag")
+                self.assertLess(
+                    abs(got_i - true.imag), self._TOL,
+                    f"Im csin({a}+{b}i): got={got_i}, "
+                    f"true={true.imag}, |Δ|={abs(got_i - true.imag):.2e}",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

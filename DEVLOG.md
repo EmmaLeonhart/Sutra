@@ -15,6 +15,28 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: complex sine `csin(z)` shipped — last residue of the cosine open question closed
+
+Emma's `AskUserQuestion` answer ("make cos its own transcendental, retire
+`cos = real(cexp(iθ))`") turned out, on reading the emitted code, to already be
+true at the numerics level: `_cos0` reads its own `_COS_VALUES` table, so `cos`
+is not numerically derived from `exp` — the `real(cexp(iθ))` phrasing was only
+surface routing (corrected in the open-question doc 2026-05-17). So no real-`cos`
+numerics were changed (doing so would be a no-op or a regression of the
+paper-cited path). The actionable work the answer pointed at ("unblocks the csin
+follow-on") was complex sine, which did not exist.
+
+Shipped `Math.csin(complex z) = (e^(i·z) − e^(−i·z))/(2i)`, mirroring `ccos`:
+built only from the verified-pure `cexp` keystone + `complex_mul`/`complex_sub`,
+the `1/(2i)` factor as the complex constant `[0, −0.5]`; no new leaf, no host
+branch, no scalar extraction. Real-axis reduces to exactly `[sin a, 0]` (zero
+imaginary leakage — paper-cited real `sin` untouched). Ground-truth vs
+`cmath.sin` < 2e-2 across 5 cases (real, pure-imaginary `sin(i)=i·sinh 1`, two
+general); regression guard `TestComplexArgumentSine` in `test_transcendentals.py`
+(6 passed / 43 subtests). Finding:
+`planning/findings/2026-05-28-csin-complex-sine-shipped.md`; open-question doc
+`cosine-as-its-own-transcendental.md` now fully resolved.
+
 ## 2026-05-28: BigInt `operator +` shipped — no intrinsic-registry refactor needed
 
 Emma's `AskUserQuestion` answer was "refactor the intrinsic registry" (option a)
