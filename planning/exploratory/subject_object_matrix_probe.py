@@ -13,6 +13,11 @@ that role matrices exist and differ — which is what the spec claims.
 If M_subject ≈ M_object (both collapse to identity or mean), that's
 strong negative evidence that nomic linearly distinguishes roles.
 
+Documented in: planning/findings/2026-05-29-trainable-matrix-through-substrate.md
+(host least-squares role-matrix existence probe; the substrate
+gradient-descent trainable-matrix demonstration lives in
+experiments/trainable_matrix_adjustment.py).
+
 Setup: same 30 SVO sentences, but with both subject and object
 labelled. Fit both matrices via 5-fold CV. Report per-role top-1,
 and critically — per-role top-1 of the *wrong* matrix

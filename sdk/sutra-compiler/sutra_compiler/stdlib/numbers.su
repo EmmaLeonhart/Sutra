@@ -64,11 +64,16 @@
 //       return _cm_real @ ab + _cm_imag @ swapped_ab;
 //   }
 //
-// Blocked on: matrix literals for the three cached matrices, `@`
-// matmul as a Sutra operator. The matrices themselves are
-// d×d sparse with a handful of entries — the fusion pass wants
-// to see them as compile-time constants so chains of complex_mul
-// collapse into a single cached matrix.
+// Blocked on: a d×d matrix BUILDER and `@` matmul as a Sutra operator.
+// (matrix_literal shipped 2026-05-28 but is for SMALL fixed matrices —
+// permutations, lookup tables — not these three, which are d×d sparse
+// at runtime_dim and impractical to spell out as literals; they want a
+// builder primitive. matmul itself exists as the `Tensor.MatrixMul`
+// function, but the inlinable body above is written with the `@`
+// operator sugar, which is not yet a Sutra operator.) The matrices are
+// d×d sparse with a handful of entries — the fusion pass wants to see
+// them as compile-time constants so chains of complex_mul collapse into
+// a single cached matrix.
 
 
 // conj — complex conjugate. Flips the imag-axis sign, leaves the real
@@ -82,7 +87,9 @@
 //
 // Blocked on: indexed read/write to synthetic slots. Alternative
 // formulation as a matrix (diag of 1s with a -1 at the imag slot)
-// needs matmul + matrix-literal surfaces.
+// needs the `@` matmul operator and a d×d matrix builder (matrix_literal
+// shipped 2026-05-28 is for small fixed matrices, not a d×d diagonal at
+// runtime_dim).
 
 
 

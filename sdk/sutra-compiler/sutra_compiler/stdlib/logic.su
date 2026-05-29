@@ -158,8 +158,10 @@ function fuzzy le(complex a, complex b) {
 //       return t;
 //   }
 //
-// Blocked on: `truth_projector` as a matrix literal, `sign_polarize`
-// β primitive.
+// Blocked on: a `truth_projector` d×d builder and a `sign_polarize` β
+// primitive. (matrix_literal shipped 2026-05-28 but is for small fixed
+// matrices; truth_projector is d×d at runtime_dim, so a builder is the
+// right primitive, not a literal.)
 
 
 // gt — differentiable smooth sign on real-axis difference.
@@ -171,8 +173,11 @@ function fuzzy le(complex a, complex b) {
 //       return truth_from_real @ signed;
 //   }
 //
-// Blocked on: axis-projector matrix literals, `tanh` on vectors,
-// `@` matmul as a Sutra operator.
+// Blocked on: d×d axis-projector builders, `tanh` on vectors, and `@`
+// matmul as an operator. (matrix_literal shipped 2026-05-28 is for small
+// fixed matrices, not d×d projectors at runtime_dim; matmul exists as
+// the `Tensor.MatrixMul` function but not yet as the `@` operator sugar
+// used in the body above.)
 //
 // See also:
 //   similarity.su — `eq`, `neq`, cosine operations on vectors.
