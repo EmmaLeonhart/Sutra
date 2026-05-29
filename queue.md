@@ -65,7 +65,13 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 
 **RESOLVED 2026-05-28 via `AskUserQuestion` (Emma answered in-session):** font.su path → **matrix-lookup softmax** (now §A in-flight); BigInt `+` path → **refactor the intrinsic registry** to allow one intrinsic to be both free + class-static (now §A in-flight); cosine → **make it its own transcendental** with geometric imaginary output, retire `cos = real(cexp(iθ))` (now §A in-flight); FV-paper push → **push now** (done this session). K=5 strategic-fit → closed: the sweep process is **dead** and per CLAUDE.md §"K=5 rank-k sweep — LAST attempt" it is NOT restarted; entry removed.
 
-1. **Drop the 0-d projection on `exp`/`cos`/`sin`?** Deferred per Emma 2026-05-20 to the end of the Active section. Today the substrate transcendentals project to a 0-d output via `make_real` packaging; removing the projection would make them return the full rotated vector. Question is whether to lift the projection or keep it as the canonical surface for scalar transcendentals. (Not yet asked — risky/observable-shape change; the cosine-as-own-transcendental work may reshape this anyway.)
+**RESOLVED 2026-05-29 via `AskUserQuestion` (Emma answered all four "deliberately-not-done" items):**
+1. **Drop the 0-d projection on `exp`/`cos`/`sin` → TAKE IT ON NOW** (test-gated, keep the old 0-d form working via an alias so the NeurIPS-frozen paper's cos/sin/exp examples keep producing the same outputs). Now §A task #5 below.
+2. **Trainable binding matrix (semantic bind = learned matrix) → BUILD IT NOW.** Now §A task #6 below (continues the trainable-matrix arc; mechanism proven this session).
+3. **Contract key-soundness (FV §3.1 runtime key-usage instrumentation) → TAKE IT ON.** Was §A.3 / task #10 — now greenlit, design-first.
+4. **Phase-3 apps migration (calc/echo/terminal → compile_su + admit-shim, skip the kernel) → TAKE IT ON.** Was §A.4 / task #13 — now greenlit, large re-architecture.
+
+Execution order (by momentum + leverage): #6 binding matrix → #5 0-d projection → #3 FV key-soundness → #4 Phase-3 apps.
 
 
 ### A. In-flight / unblocked-ready-to-go (no Emma input needed)
