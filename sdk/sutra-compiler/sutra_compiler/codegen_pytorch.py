@@ -1427,6 +1427,28 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.complex_mul(self.complex_add(self.cexp(iz), self.cexp(miz)), half)")
         self._indent -= 1
         self._emit()
+        self._emit("def csin(self, z):")
+        self._indent += 1
+        self._emit('"""Complex-argument sine, the documented reduction')
+        self._emit('sin(z) = (e^(i*z) - e^(-i*z)) / (2i). Substrate-pure: built')
+        self._emit('only from the verified-pure cexp keystone + complex_mul /')
+        self._emit('complex_sub (no new leaf, no host branch, no scalar')
+        self._emit('extraction) - the csin follow-on to ccos. The 1/(2i)')
+        self._emit('factor is the complex constant -i/2 = [0, -0.5], applied')
+        self._emit('as a complex product so the whole op stays in canonical-')
+        self._emit('complex-vector space. For real z (imag 0): i*z = [0, a],')
+        self._emit('cexp = [cos a, sin a]; -i*z = [0,-a], cexp = [cos a,-sin a];')
+        self._emit('diff = [0, 2 sin a]; (x)[0,-0.5] = [sin a, 0] - identical')
+        self._emit('to the scalar sin() eigenrotation, so the paper-cited real')
+        self._emit('sin path is unaffected. For z = a+bi it yields')
+        self._emit('sin a*cosh b + i*cos a*sinh b. Canonical complex vector out."""')
+        self._emit("zc = self._cnum(z)")
+        self._emit("iz = self.complex_mul(zc, self._mk(0.0, 1.0))")
+        self._emit("miz = self.complex_mul(zc, self._mk(0.0, -1.0))")
+        self._emit("inv_two_i = self._mk(0.0, -0.5)")
+        self._emit("return self.complex_mul(self.complex_sub(self.cexp(iz), self.cexp(miz)), inv_two_i)")
+        self._indent -= 1
+        self._emit()
         self._emit("def log(self, x):")
         self._indent += 1
         self._emit('"""Natural log. Real positive x: ln(x) via the ln leaf. (Full')

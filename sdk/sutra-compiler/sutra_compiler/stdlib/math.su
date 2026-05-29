@@ -93,6 +93,24 @@ class Math extends vector {
     //   dispatch path as cexp.
     static intrinsic method complex ccos(complex z);
 
+    // csin — complex-argument sine. The documented reduction:
+    //   sin(z) = (e^(i·z) − e^(−i·z)) / (2i).
+    //   The csin follow-on to ccos (the only residue the
+    //   cosine-as-its-own-transcendental open question left open).
+    //   For real z = a this collapses to [sin a, 0] — identical to the
+    //   scalar sin(x) eigenrotation path, so the paper-cited real sin
+    //   is unaffected. For z = a + b·i it yields the correct
+    //   sin a·cosh b + i·cos a·sinh b, the geometric imaginary output
+    //   of sine. Substrate-pure: built only from the verified-pure cexp
+    //   keystone + complex_mul/complex_sub; no new leaf, no host branch.
+    //   The 1/(2i) factor is the complex constant −i/2 = [0, −0.5].
+    //   Intrinsic + documented (not a literate body) for the same reason
+    //   as ccos — the literate source spelling of the complex
+    //   transcendentals is still pending. Declared `complex` so
+    //   `_is_complex_expr` routes its result through complex dispatch,
+    //   same path as cexp / ccos.
+    static intrinsic method complex csin(complex z);
+
     // The remaining transcendentals are literate bodies — the
     // documented identity IS the executable source (inliner expands
     // Math.<f>(x) to exactly this over the intrinsic scalar leaves;

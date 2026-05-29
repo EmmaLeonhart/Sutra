@@ -54,11 +54,35 @@ The real-angle surface `cos(x)` is unchanged and was already
 substrate-pure (its own `_COS_VALUES` table — see "Corrected framing"
 above).
 
-## Genuinely-open residue
+## Genuinely-open residue — CLOSED 2026-05-28
 
-Complex sine — `csin(z)` — is **not yet implemented** (named in the
-verdict banner as the follow-on; not done, not faked). When picked up
-it gets the same `21a9ff77`-model treatment: built from `cexp` +
-`complex_mul`/`complex_add`, ground-truth-compared to `cmath.sin`,
-measured delta reported. That is the only thing this doc still leaves
-undecided.
+Complex sine — `csin(z)` — **shipped 2026-05-28**, the last residue this
+doc left open. Same model as `ccos`: `sin(z) = (e^(i·z) − e^(−i·z))/(2i)`,
+built only from the verified-pure `cexp` keystone + `complex_mul` /
+`complex_sub`, with the `1/(2i)` factor as the complex constant
+`−i/2 = [0, −0.5]`; no new leaf, no host branch, no scalar extraction.
+For real `z = a` it reduces to exactly `[sin a, 0]` (zero imaginary
+leakage — the paper-cited real `sin` path is untouched). Implementation:
+`codegen_pytorch.py` `def csin`; declaration: `math.su`
+`static intrinsic method complex csin(complex z)`. Ground-truth vs
+`cmath.sin` < 2e-2 across 5 cases (real arg, pure-imaginary
+`sin(i) = i·sinh 1`, two general points), regression guard
+`TestComplexArgumentSine` in `test_transcendentals.py`. See
+`planning/findings/2026-05-28-csin-complex-sine-shipped.md`.
+
+**This doc is now fully resolved on both sub-questions** (cos already its
+own table-backed transcendental; ccos + csin complex-argument forms
+shipped) and is a candidate for the next open-question pruning pass.
+
+### A note on the "make cos its own transcendental" framing
+
+Emma's 2026-05-28 `AskUserQuestion` answer was "make cos its own
+transcendental (retire `cos = real(cexp(iθ))`)." Reading the emitted code
+showed this was **already true at the numerics level** before any change:
+`_cos0` reads its own dedicated `_COS_VALUES` table (the real coordinate
+of the eigenrotation), so `cos` is not numerically derived from `exp` —
+the `real(cexp(iθ))` phrasing was only the *surface routing*, corrected in
+the "Corrected framing" section above on 2026-05-17. So the actionable
+work the answer pointed at ("unblocks the csin follow-on") was `csin`,
+which is what shipped. No real-`cos` numerics were changed — doing so
+would have been a no-op or a regression of the paper-cited path.
