@@ -1,0 +1,23 @@
+K=5 rank-k sweep launched at 2026-05-28T17:23:17.627045+00:00 UTC
+K=5, k in [1, 2, 4], seeds=0,1,2, epochs=20
+
+[k=1] launching: C:\Users\Immanuelle\AppData\Local\Programs\Python\Python313\python.exe C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py --K 5 --k 1 --seeds 0,1,2 --epochs 20  -> C:\Users\Immanuelle\Documents\Github\Sutra\experiments\runlogs\2026-05-28-rank-k-K5-k1-n3.txt
+[k=1] exit=1073807364  wall=25735.2s  log=C:\Users\Immanuelle\Documents\Github\Sutra\experiments\runlogs\2026-05-28-rank-k-K5-k1-n3.txt
+  ⚠️  k=1 failed; continuing to next k
+  --- last 30 lines of runlog ---
+  --- end runlog tail ---
+
+[k=2] launching: C:\Users\Immanuelle\AppData\Local\Programs\Python\Python313\python.exe C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py --K 5 --k 2 --seeds 0,1,2 --epochs 20  -> C:\Users\Immanuelle\Documents\Github\Sutra\experiments\runlogs\2026-05-28-rank-k-K5-k2-n3.txt
+[k=2] exit=3221226091  wall=0.2s  log=C:\Users\Immanuelle\Documents\Github\Sutra\experiments\runlogs\2026-05-28-rank-k-K5-k2-n3.txt
+  ⚠️  k=2 failed; continuing to next k
+  --- last 30 lines of runlog ---
+  --- end runlog tail ---
+
+[k=4] launching: C:\Users\Immanuelle\AppData\Local\Programs\Python\Python313\python.exe C:\Users\Immanuelle\Documents\Github\Sutra\experiments\rank_k_is_x.py --K 5 --k 4 --seeds 0,1,2 --epochs 20  -> C:\Users\Immanuelle\Documents\Github\Sutra\experiments\runlogs\2026-05-28-rank-k-K5-k4-n3.txt
+[k=4] exit=3221226091  wall=0.1s  log=C:\Users\Immanuelle\Documents\Github\Sutra\experiments\runlogs\2026-05-28-rank-k-K5-k4-n3.txt
+  ⚠️  k=4 failed; continuing to next k
+  --- last 30 lines of runlog ---
+  --- end runlog tail ---
+
+
+total wall: 25735.4s
