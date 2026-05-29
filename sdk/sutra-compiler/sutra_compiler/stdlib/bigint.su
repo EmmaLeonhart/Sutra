@@ -37,6 +37,22 @@ function vector bigint_add(vector a, vector b) {
 }
 
 
+// bigint_from_string — the BigInt construction surface (Emma 2026-05-28).
+//
+// Declared as a free intrinsic in logic.su (`intrinsic function vector
+// bigint_from_string(string s, number max_digits)`), so it is called
+// directly — no literate wrapper here (a same-named wrapper would trip
+// the stdlib loader's duplicate-name rule). Given a decimal `String`
+// (big-endian, as written) and a `max_digits` width, it returns a
+// little-endian base-10 digit-array vector of length `max_digits` — the
+// same representation `bigint_add` consumes. Substrate-pure: the
+// codepoint→digit conversion and big-endian→little-endian
+// reverse-alignment are tensor ops in the intrinsic (no host digit loop).
+// Example: `bigint_from_string(String.make_string("12345"), 8)` →
+// `[5, 4, 3, 2, 1, 0, 0, 0]`. Digits beyond `max_digits` saturate.
+// End-to-end: `bigint_add(bigint_from_string(a, N), bigint_from_string(b, N))`.
+
+
 // BigInt class — type-name wrapper for digit-array BigInt values.
 //
 // Per planning/sutra-spec/arbitrary-precision.md sub-decision 1
