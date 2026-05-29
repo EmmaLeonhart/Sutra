@@ -185,8 +185,19 @@ intended function as a reference expression, "does the implementation compute it
 is exactly `reduces_to_same_graph(implementation, reference)` (§2) — decided
 exactly, any depth. (Demonstrated: a NAND contract `!(a&&b)` is satisfied by the
 De Morgan implementation `!a||!b` and correctly rejects a NOR implementation.) The
-remaining open part is soundness of the static `AXON_KEYS` analysis against the
-keys a program touches at runtime, which needs runtime key-usage instrumentation.
+**key-soundness** part — that the static `AXON_KEYS` analysis matches the keys a
+program touches at runtime — is **discharged by opt-in runtime key-usage
+instrumentation**: the runtime's axon read/bind methods record, when enabled, the
+key of each access (a string by name; a non-string, statically-unnamable key as
+`<dynamic>`), and soundness is the set inclusion `runtime_keys ⊆ AXON_KEYS`. The
+check is non-vacuous — a program touching only its statically-collected keys is
+sound, while a read or bind of an uncollected key, or any `<dynamic>` key, is
+caught. (The instrumentation is off by default, so it adds nothing to the
+compiled hot path; it is a monitoring recorder around the substrate ops. The
+check witnesses the executed paths; a path-coverage argument or a key-level
+manifest would make it exhaustive rather than execution-witnessed.) With role
+confinement (kernel), function-correctness (Kleene fragment), and key-soundness
+all in hand, the contract obligation of §3.1 is discharged rather than half-done.
 
 **3.2 Branch-range obligations (from polynomial Kleene logic).** This family
 carries most of the weight, because branches are what make conventional
