@@ -1,16 +1,17 @@
 # Open question — Cosine as its own transcendental function?
 
-> **VERDICT: RESOLVED 2026-05-17.** User decided the scope (implement
-> it). Complex-argument cosine shipped as `Math.ccos(complex z) =
-> (cexp(i·z) + cexp(-i·z))/2` — substrate-pure, built only from the
-> verified-pure `cexp` keystone + `complex_mul`/`complex_add`; no new
-> leaf, no host branch. Ground-truth vs `cmath.cos` ≤2e-4; real-arg
-> case carries exactly zero imaginary leakage (paper-cited real `cos`
-> untouched). See
-> `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`
-> and the implementing commit. Doc kept for rationale until the next
-> open-question pruning pass (README rule 3). Follow-on (not done,
-> not faked): complex `csin`.
+> **VERDICT: FULLY RESOLVED.** Both complex-argument transcendentals
+> have shipped, substrate-pure. (1) `Math.ccos(complex z) =
+> (cexp(i·z) + cexp(-i·z))/2` shipped 2026-05-17 (`codegen_pytorch.py`
+> `def ccos`); ground-truth vs `cmath.cos` ≤2e-4; real-arg case carries
+> exactly zero imaginary leakage (paper-cited real `cos` untouched).
+> See `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`.
+> (2) The `csin` follow-on — the only residue that was still open — also
+> SHIPPED 2026-05-28 (`codegen_pytorch.py` `def csin`); see
+> `planning/findings/2026-05-28-csin-complex-sine-shipped.md`. Built only
+> from the verified-pure `cexp` keystone + `complex_mul`/`complex_add`;
+> no new leaf, no host branch. Nothing in this doc remains open — it is
+> now eligible for the next open-question pruning pass (README rule 3).
 
 ## Corrected framing (2026-05-17 — after reading the emitted code)
 

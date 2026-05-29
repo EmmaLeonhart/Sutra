@@ -1,5 +1,7 @@
 # 2026-05-28 — `cycle_step` substrate-RNN rewrite blocked
 
+> **CLOSED 2026-05-28 — see `2026-05-28-font-cycle-step-substrate-rnn-shipped.md` (Option B shipped).** The block below is kept as the wall-analysis record.
+
 Per Emma's "rewrite them" instruction (after count.su + toggle.su shipped substrate-RNN via `recur`), I attempted the same rewrite for `demos/font/font.su`'s `cycle_step`. Reverted; the file is at HEAD. Documenting the wall so the next attempt has the analysis in hand.
 
 ## The blocker

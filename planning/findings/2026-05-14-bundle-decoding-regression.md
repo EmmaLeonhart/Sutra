@@ -1,7 +1,9 @@
 # Bundle-decoding regression in `examples/multi_program_axon`
 
+> **FIXED — see `2026-05-15-axon-key-make-string-coercion-regression.md`.**
+
 **Date:** 2026-05-14
-**Status:** **Regression confirmed and bisected. Not yet fixed.** Tracking for separate work.
+**Status:** **Regression confirmed and bisected. FIXED — see `2026-05-15-axon-key-make-string-coercion-regression.md`.**
 **Surfaced by:** Yantra-driven testing of `MultiProcessRuntime` cross-program axon-passing (Yantra commit `64b77e1` and surrounding work).
 
 ## Summary

@@ -208,8 +208,8 @@ the appropriate kind:
 | `loop(cond) { body }` | one of the four kinds above, depending on the termination shape |
 
 The semantic-corrections doc captures the migration; the loop
-spec docs (`loop-function-declarations.md`,
-`loop-surface-redesign.md`) capture the design history.
+spec doc (`loop-function-declarations.md`) captures the design
+history.
 
 ### `try-catch` — parsed but rejected
 
