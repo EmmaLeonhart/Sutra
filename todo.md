@@ -106,52 +106,23 @@
 > keeps the term legitimately). What remains, genuinely hard,
 > left in-progress on purpose (NOT faked):
 >
-> ### 1. Implicit tail-recursive loops — `loop(x){ body }` sugar
-> **Emma direction 2026-05-17.** (Audit #4 is gone — that "host
-> `for`" is the fixed-T tail-recursive cell, not a leak.) The new
-> work is the *ergonomic implicit form*: `loop(x){ body }` where
-> the compiler infers the recurrent state (every var the body
-> mutates or references) and desugars to the existing, working
-> tail-recursive loop-function form, threading that state as an
-> **implicit axon**.
+> ### 1. Implicit tail-recursive loops — `loop(x){ body }` sugar — ✅ SHIPPED
+> **DONE.** The implicit `loop(expr){ body }` desugar is built
+> (`sdk/sutra-compiler/sutra_compiler/loop_desugar.py`, with
+> `loop_capture.py` for the free/mutated-variable analysis) and
+> tested end-to-end on both backends
+> (`sdk/sutra-compiler/tests/test_implicit_loop_desugar.py`):
+> single-var, multi-var (the implicit axon, item 1b), `while`-
+> relational bounds, class-method local state, literal-bound
+> still-unrolls no-regression, plus clear-error cases. The old
+> "parsed-but-rejected / build-from-scratch" framing below is
+> obsolete.
 >
-> Model (Emma's, verified-correct restatement):
-> - One var mutated → tail-recursive fn carrying that var + the
->   bound: `i = Loop_x_i(i, iterator, x){ i+=iterator; if
->   (iterator>=x) return i; else return Loop_x_i(i,iterator,x); }`.
-> - Many vars → an implicit axon of all mutated/referenced vars;
->   the recursive call threads the axon; `if (axon["iterator"] >=
->   axon["x"]) return axon; else recurse`. **Tail recursion always
->   carries an implicit axon** (the loop's captured state) — it is
->   effectively a closure / an RNN run N times.
-> - Soft-unsafety Emma accepts for ergonomics: captured vars (e.g.
->   `x`) must stay invariant across iterations; the compiler should
->   hold them constant per run. Accepted now, bet on later
->   optimization. **Compile-time evaluation stays the PREFERRED
->   path** (cheap, no architectural machinery); the tail-recursion
->   desugar is the fallback for genuinely unbounded/dynamic loops.
->
-> Verified current state (compiled Emma's exact example
-> 2026-05-17): the implicit `loop(x){body}` is **parsed-but-
-> rejected** (`CodegenNotSupported`). The explicit declared
-> loop-function tail-recursive machinery (control-flow.md §Loops)
-> **works**. Emma confirms she **just invented the implicit form**
-> — there is no prior implementation, so this is **pure
-> design-and-build from scratch, NOT an audit of existing code**.
-> Two tasks:
->   - **(1a) Build + verify the implicit desugar:** revive the
->     `loop(expr){body}` surface to desugar (free/mutated-variable
->     analysis → synthesize the loop-function + implicit axon →
->     emit the tail-recursive form) instead of rejecting. **Gate:**
->     `test_branchless_loop` + `test_loop_function_decl` + corpus +
->     smoke green; an end-to-end test that the multi-var example
->     runs and returns the right values. Deliberate, gated — high
->     blast radius (control-flow surface); do not rush.
->   - **(1b) Lighten the implicit axon:** carry only vars actually
->     mutated/needed across ticks, not every referenced name —
->     minimize the closure the axon captures.
->
-> ### 2. Audit REAL LEAK #3 — promise `await_value` host `if/break`
+> ### 2. Audit REAL LEAK #3 — promise `await_value` host `if/break` — (may be shipped — verify)
+> Audit.md now reports all REAL LEAK #1–#10 FIXED, which includes
+> #3; the host `if/break` poll-loop framing here is likely closed.
+> Verify against `Audit.md` and `planning/sutra-spec/promises.md`
+> before acting on the text below.
 > `codegen_pytorch.py:~808` `for _ in range(100): if
 > self.isPending(p) <= 0.5: break` — the `if … break` is a real
 > host Python branch on a predicate (this is the genuine leak;
@@ -198,22 +169,6 @@
 > anything done; revert rather than ship wrong/half math; read
 > the documented vision (todo.md / spec / findings) before calling
 > anything an "open design gap"; commit+push each verified unit.
-
-> ## ⛔ TOP PRIORITY — go through `Audit.md` and fix the substrate leaks
->
-> `Audit.md` (repo root) is the running catalogue of every place the
-> runtime still leaks the substrate — host `float()`/`if`/`for`/libm
-> inside operations whose spec says they run on the substrate. Sutra
-> is biomedical-hardware-adjacent; a faked-purity operation is the
-> #1 safety failure (CLAUDE.md intro). **Before any other todo work,
-> open `Audit.md` and burn down its "REAL LEAK" section** (top:
-> `rotate_slot`/Givens host-trig, `defuzzify_trit` host loop, the
-> promise + generic loop host `for`, host string-codepoint loops).
-> The 2026-05-15 transcendental fix (`21a9ff77`) is the worked
-> model: one `_st()` boundary, tensor-only body, tensor return,
-> saturate-not-raise. Triage each item real-leak / borderline /
-> legitimate, fix or justify-in-comment, and delete it from
-> `Audit.md` when closed (same discipline as queue.md).
 
 This file is the long-term agenda. `queue.md` at the repo root is the
 active session queue — if the two disagree, queue.md wins for what is
@@ -1532,10 +1487,10 @@ constant; it falls out of the primitive.
 = (cexp(i·z) + cexp(-i·z))/2` — substrate-pure over the verified
 `cexp` keystone; ground-truth ≤2e-4 vs `cmath.cos`; finding:
 `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`.
-**Follow-on (not done, not faked):** complex `csin(z) = (cexp(i·z) −
-cexp(-i·z))/(2i)` — the symmetric sibling; trivial once `ccos` exists
-(same primitives, swap `+`→`−` and divide by `2i` instead of `2`).
-Add when there's a caller; not built unrequested.
+**Follow-on — ✅ SHIPPED 2026-05-28.** Complex `csin(z) = (cexp(i·z) −
+cexp(-i·z))/(2i)` — the symmetric sibling — is declared in
+`stdlib/math.su` (`static intrinsic method complex csin(complex z)`).
+Finding: `planning/findings/2026-05-28-csin-complex-sine-shipped.md`.
 
 ### `^` operator (no XOR conflict in Sutra)
 
@@ -1788,12 +1743,15 @@ picks a training shape for a given target by retrieving prior
 findings + harnesses + spec snippets, and (b) the **list of
 concrete constrain-train targets** the meta-tool can be aimed at.
 
-**Honest scope.** The pattern is proven for *scalar* + *prototype-
+**Scope.** The pattern is proven for *scalar* + *prototype-
 vector* parameters. Matrix-valued parameters (the `is_X` matrix; the
-defuzz matrix; learned binding matrices) need the bake-back surface
-syntax to grow — matrix literals don't exist in `.su` yet. That's
-load-bearing and a real spec decision; flag it before scaffolding any
-matrix-target experiment.
+defuzz matrix; learned binding matrices) need a bake-back surface for
+frozen matrices — and that surface now exists: **`matrix_literal`
+shipped 2026-05-28** (per Emma's AskUserQuestion decision;
+`sdk/sutra-compiler/tests/test_matrix_literal.py`,
+`_VSA.matrix_from_rows`). The matrix-target training experiments below
+are still open, but the "no matrix literal in `.su`" blocker they cite
+is resolved.
 
 ### Meta-tool: the agentic RAG system
 
@@ -1845,26 +1803,29 @@ needs human review.
   graph. Currently `equality-and-defuzzification.md` § "Open questions"
   asks: "What is the exact construction of the is-X matrix? Is it a
   single canonical function per type, or user-definable per
-  predicate?" — train it and find out. **Blocker: matrix literals in
-  `.su`** — bake-back surface doesn't exist; spec decision needed
-  before scaffolding (the matrix-literal grammar; how recompile
-  consumes a baked matrix; whether it's a typed `matrix<d,d>` or a
-  vector-of-vectors form). Open-question doc first, then the
-  experiment.
+  predicate?" — train it and find out. (Former blocker "matrix
+  literals in `.su`" is **resolved** — `matrix_literal` shipped
+  2026-05-28; bake-back surface exists.)
 - [ ] **Defuzz matrix.** `equality-and-defuzzification.md` says "a
   defuzz matrix exists such that multiplying a fuzzy value by it
   produces a defuzzified-by-a-certain-amount version" — *exists* is
   a placeholder. Train the polarization matrix on the truth axis
-  against ground-truth defuzz-step targets. Same `.su`-literal-
-  matrix blocker as `is_X`. Possibly the same matrix as some
-  canonical `is_true`-matrix factor — answer that en route.
-- [ ] **`select` sharpness coefficient (scalar — no matrix blocker).**
-  The Yantra-calculator dispatch (CLAUDE.md, "When Emma gives an
-  algorithmic explanation, IMPLEMENT it") hand-picked a sharpening
-  factor large enough to push `exp(-120)` past float32 underflow,
-  giving 18/18 bit-exact dispatch. Train the optimal sharpness per
-  dispatch table size — too small and branches blend, too large and
-  gradient is dead. Scalar → bakes back as a `.su` literal trivially.
+  against ground-truth defuzz-step targets. (Same former matrix-
+  literal blocker as `is_X`, now **resolved** — `matrix_literal`
+  shipped 2026-05-28.) Possibly the same matrix as some canonical
+  `is_true`-matrix factor — answer that en route.
+- [x] **`select` sharpness coefficient (scalar) — ✅ MECHANISM SHIPPED 2026-05-28.**
+  The select softmax temperature `T` is exposed as a Sutra-level
+  trainable `number`; the full harness
+  (`experiments/select_temperature_adjustment.py`) trains it, bakes
+  T\* back as a `.su` numeric literal, and verifies round-trip
+  (max|Δ| ≈ 2.5e-06). Findings:
+  `planning/findings/2026-05-28-select-T-trains-but-K5-embed-task-is-flat.md`
+  and `…-select-T-bimodal-T-surface.md`. Task-fit caveat recorded in
+  the finding: the K=5 embedded-category-name task surface is flat
+  (near-degenerate similarity gap, nothing for T to sharpen) — that is
+  a task observation, not a mechanism failure, and per CLAUDE.md the
+  K=5 sweep is closed, do not re-run.
 - [ ] **Soft-halt threshold for loops (scalar).** `loop (condition)`
   iterates `state ← R · state` with a sigmoid halt. The threshold
   determines decisiveness; train it on a corpus of converging /
@@ -2234,10 +2195,11 @@ program* whose compile output matches the fragment.
 - [ ] **Decompilation target: matrix → `.su` literal.** Given a
   trained matrix `M` (e.g. the `is_X` matrix from the constrain-train
   targets above), emit a `.su` matrix literal that the compiler
-  reads back as `M` exactly (up to a documented ε). Requires the
-  matrix-literal spec decision (cross-ref to the meta-tool agenda).
-  This is the smallest non-trivial decompilation — load-bearing for
-  the matrix-valued constrain-train targets.
+  reads back as `M` exactly (up to a documented ε). (The matrix-literal
+  spec decision + surface **shipped 2026-05-28** — `matrix_literal` /
+  `_VSA.matrix_from_rows`; this no longer blocks.) This is the smallest
+  non-trivial decompilation — load-bearing for the matrix-valued
+  constrain-train targets.
 - [ ] **Decompilation target: MLP → composed Kleene rule.** Given
   a trained MLP that classifies via Kleene-style soft logic, decompile
   to a `&&`/`||`/`!` composition over learned `is_X` predicates.

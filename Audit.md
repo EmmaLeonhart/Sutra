@@ -88,7 +88,7 @@ saturate instead of raise.
    `AXIS_REAL`), not data. Verified: 0 leak signatures in emitted
    code; loop runtime suites (`test_branchless_loop`,
    `test_loop_function_decl`) 33 passed/20 subtests;
-   `examples/_smoke_test.py` PASS (11/11). The numpy/host
+   `examples/_smoke_test.py` PASS (10/10). The numpy/host
    `codegen.py` backend is deprecated and out of scope.
 
 2. **`defuzzify_trit` / `sign_polarize`** — ✅ FIXED 2026-05-15
@@ -183,7 +183,7 @@ saturate instead of raise.
    out) — neither is an op-internal leak. Verified: ground-truth
    correct + substrate-tensor returns; corpus+codegen_pytorch+
    transcendentals+inliner 39 passed/103 subtests; TS string
-   fixtures 2 passed; `examples/_smoke_test.py` PASS 11/11 (real
+   fixtures 2 passed; `examples/_smoke_test.py` PASS 10/10 (real
    string decode/retrieval). Zero regression.
 
 6. **`complex_div` NaN/zero guard** — ✅ ALREADY RESOLVED (stale
@@ -207,7 +207,7 @@ saturate instead of raise.
    zero score vector → argmax picks index 0 → `candidates[0]`,
    exactly the old behaviour, no host branch. Verified: 0 host
    `if float(q_norm)` in emitted code; `examples/_smoke_test.py`
-   PASS (11/11, exercises real argmax_cosine retrieval);
+   PASS (10/10, exercises real argmax_cosine retrieval);
    `test_corpus` 3 passed/83 subtests. (The terminal
    `int(argmax(...).item())` is the program-terminal commit edge —
    BORDERLINE/output boundary, intentionally left.)
