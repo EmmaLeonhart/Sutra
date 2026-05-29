@@ -1,0 +1,48 @@
+// switch.su — calculator operator dispatch via the LANGUAGE'S OWN
+// `select` primitive, made exact by softmax saturation. Migrated from
+// Yantra into Sutra as part of the kernel-free calc demo (Phase-3,
+// 2026-05-29) — UNCHANGED source; calc.py now calls on_axon directly via
+// compile_su instead of admitting it as a kernel SutraService.
+//
+// How it stays exact:
+//   score_t = -1000 * (op - t)^2, read as a clean scalar via
+//   dot(op - make_real(t), make_real(1)) — the dot with the real unit
+//   zeroes every other axis (incl. axon-recovery noise), so the score is
+//   exactly 0 at op=t and <= -1000 elsewhere. exp(-1000) underflows to
+//   exactly 0.0 in BOTH float32 (underflow ~ -88) and float64 (~ -745),
+//   so select's softmax is a TRUE one-hot: the matched branch passes
+//   through and the others are killed by exact-zero weights (no blend).
+//   A second select picks the division denominator (b for op=/, else 1)
+//   so a zero denominator in a killed branch can never produce nan. A
+//   genuine /0 (op=/, b=0) is a domain error caught upstream by the host.
+//
+// The operator arrives as a 1-char string ("+"/"-"/"*"/"/") the host injects;
+// switch reads its codepoint and decides which operation runs HERE, on the
+// substrate. Operands are `complex` so `/` routes through complex_div; for
+// real inputs every result lands on the real axis. float64 runtime dtype
+// gives exact integers to 2^53.
+function vector on_axon(vector input_axon) {
+    complex a = axon_item(input_axon, "a");
+    complex b = axon_item(input_axon, "b");
+    // The operator arrives as a 1-char string; read its codepoint ON THE
+    // SUBSTRATE (string_char_at) and score it against the four operator
+    // codepoints. cp is an exact integer, so score_t = -1000*(cp-target)^2
+    // is exactly 0 at a match and <= -1000 otherwise; exp(-1000) underflows
+    // to exact 0, so select is a true one-hot.
+    string op_char = axon_item(input_axon, "op_char");
+    scalar cp = op_char.string_char_at(0);
+    scalar s0 = 0.0 - 1000.0 * (cp - 43.0) * (cp - 43.0);  // '+'
+    scalar s1 = 0.0 - 1000.0 * (cp - 45.0) * (cp - 45.0);  // '-'
+    scalar s2 = 0.0 - 1000.0 * (cp - 42.0) * (cp - 42.0);  // '*'
+    scalar s3 = 0.0 - 1000.0 * (cp - 47.0) * (cp - 47.0);  // '/'
+
+    vector one = real_number(1.0);
+    complex denom = select([s0, s1, s2, s3], [one, one, one, b]);
+    complex quot = a / denom;
+
+    complex sum  = a + b;
+    complex diff = a - b;
+    complex prod = a * b;
+
+    return select([s0, s1, s2, s3], [sum, diff, prod, quot]);
+}
