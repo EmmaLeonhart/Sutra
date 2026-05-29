@@ -157,9 +157,12 @@ which side of that line any given pair falls on.
 
 ## 3. The obligation framework
 
-Verifying the trusted base concentrates into three closed-form obligation
-families, one per Sutra construct that survives into the compiled graph. All three
-have a mechanical check that runs on the real compile-and-execute pipeline.
+Verifying the trusted base concentrates into a small set of closed-form
+obligation families, one per Sutra construct that survives into the compiled
+graph: contracts (§3.1), branches (§3.2), loops (§3.3), and — once the base does
+arithmetic the substrate's native float range cannot hold exactly —
+digit-array carry propagation (§3.4). Each has a mechanical check that runs on
+the real compile-and-execute pipeline.
 
 **3.1 Contract obligations.** Each trusted program carries an *axon-typed
 contract*. An **axon** is a structured embedding — a single vector carrying named
@@ -360,6 +363,50 @@ the same paragraph as the result — not bury it. The correctness claim (the
 reduction *is* the equivalence procedure for the Kleene fragment) is unchanged;
 what we are sharpening here is the *cost* claim. See
 `planning/findings/2026-05-27-pit-term-count.md` for the full table.
+
+**3.4 Range-soundness and termination for unbounded-precision arithmetic
+(digit-array carry propagation).** The three families above cover the
+control-flow surface (branches, loops, contracts). A fourth obligation shape
+appears once the trusted base does *arithmetic the substrate's native float
+range cannot hold exactly*: arbitrary-precision integers, represented as a
+fixed-width digit array with carry propagation. The `digit_array_add` substrate
+intrinsic computes radix-`r` addition entirely in tensor ops — pairwise sum,
+floor-division carry extraction, and an `N`-step shift-and-propagate, no
+`.item()` and no host scalar branch on a digit value. It carries two
+obligations, both discharged by the same finite reasoning the §3.2/§3.3
+families use, lifted to the digit-array domain.
+
+*Range-soundness (by induction on the step index).* The obligation is that
+every digit stays in `[0, r)` and every carry in `{0, 1}` at every step.
+Initially `s = a + b ∈ [0, 2r)`, so `c = ⌊s/r⌋ ∈ {0, 1}` and
+`d = s − cr ∈ [0, r)` by the floor-division identity. The invariant is
+preserved across each propagation step: `d_new = d + c_shifted ∈ [0, r+1)`
+(the maximal `d_new = r` is exactly the "9 + 1" cascade), so
+`new_c = ⌊d_new/r⌋ ∈ {0, 1}` (since `r+1 ≤ 2r`) and the re-extracted
+`d ∈ [0, r)` again. By induction the output digit array contains only values in
+`[0, r)`; the terminal carry is dropped (overflow saturates, by design). This is
+a closed-form invariant proof in the same spirit as the §3.2 range-bound — a
+fact about the arithmetic, independent of how the substrate executes it — for
+any positive integer radix (the shipped path uses `r = 10`).
+
+*Termination (structural, not measured).* The runtime is
+`for _step in range(n)` where `n` is the digit-array width — a *structural*
+shape parameter (Audit's 2026-05-17 reclassification), not a data-dependent
+value. The body has no `break`/`continue`/early-exit and is a finite
+composition of tensor ops, so the loop runs exactly `n` iterations
+(`O(N²)` element-wise work; the queued Hillis–Steele form would be `O(N log N)`)
+and cannot fail to halt on any input. The loop count depends only on the width,
+never on a digit value — the same "the trusted base does not pose the halting
+problem" property as §3.3, here because the bound is a shape, not a soft-halt
+signal. End-to-end the shipped intrinsic is bit-exact on the worked cases
+(`12345 + 67891 = 80236`; `"99999" + "1" = "100000"`; overflow saturates at
+`max_digits = 16`; `experiments/bigint_worked_example.py`, nine cases).
+
+What §3.4 does *not* yet cover: signed digit arrays (v1 is unsigned), and
+expressing these bounds in the §3.2 polynomial-Kleene style rather than as a
+step-indexed induction (a wiring task, not a new result). Obligations and proofs
+in full: `planning/findings/2026-05-28-digit-array-add-fv-obligations.md`; spec:
+`planning/sutra-spec/arbitrary-precision.md`.
 
 ## 4. Faithfulness: the reduction is computed exactly
 

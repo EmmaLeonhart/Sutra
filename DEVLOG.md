@@ -15,6 +15,27 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: FV paper §3.4 — digit-array carry-propagation obligations wired in
+
+Per Emma's in-session `AskUserQuestion` answer ("push now"), wired the
+`digit_array_add` range-soundness + termination obligations
+(`planning/findings/2026-05-28-digit-array-add-fv-obligations.md`) into
+`paper/formal-verification/paper.md` as a new **§3.4**. The §3 intro now names
+four obligation families (contracts/branches/loops/digit-array carry) instead of
+three. §3.4 states: range-soundness by induction on the step index (every digit
+stays in `[0, r)`, every carry in `{0, 1}`; the "9 + 1" cascade is the maximal
+`d_new = r` case), termination as structural-not-measured (`for _step in
+range(n)` over a shape parameter, no data-dependent branch), and the bit-exact
+worked cases (`12345 + 67891 = 80236`; `"99999" + "1" = "100000"`; overflow
+saturates at `max_digits = 16`). Mirrors the §"What we are not claiming"
+discipline: unsigned-only, polynomial-Kleene-style restatement still a wiring
+task. Push triggers `fv-paper-ci.yml` clawRxiv submit + review cycle.
+
+Also resolved this session via `AskUserQuestion` (Emma answered live): font.su
+cycle_step → matrix-lookup softmax; BigInt `+` → refactor the intrinsic registry;
+cosine → its own transcendental. K=5 rank-k sweep process found **dead** → closed
+per CLAUDE.md §"K=5 rank-k sweep — LAST attempt", not restarted.
+
 ## 2026-05-28: full compiler suite green after `_select_softmax` codegen change
 
 The select-T harness work that fixed REAL LEAK #10 (`fe274d3c` -> `5a2f39f9`) modified `_select_softmax`'s emitted Python to route tensor scores through `_torch.stack` instead of `_torch.as_tensor`. The status-report tick after `0422ebb5` flagged that the focused codegen/select run (113/0 in 67s) was a proxy for the full suite, and the full run hadn't been verified post-change. This entry closes that gap.
