@@ -94,7 +94,7 @@ How does the language know a value is a BigInt vs a regular `int`?
 
 ## Cross-refs
 
-- `planning/open-questions/arbitrary-precision-digit-array.md` — the dossier (now showing the locked top-level choice).
+- arbitrary-precision-digit-array (pruned 2026-05-28; in git history) — the dossier (now showing the locked top-level choice).
 - `planning/findings/2026-05-27-arbitrary-precision-parser.md` — `parse_int2.su` substrate-pure bounded parser.
 - `planning/sutra-spec/strings.md` — synthetic-axis-encoded codepoint arrays (the layout pattern this borrows).
 - `planning/sutra-spec/control-flow.md` — soft-halt loop (the Option B fallback this avoids).

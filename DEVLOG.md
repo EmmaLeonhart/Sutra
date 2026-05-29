@@ -15,6 +15,22 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: open-questions pruning pass (Emma-greenlit) — 9 resolved docs removed
+
+Emma greenlit (AskUserQuestion) the long-deferred open-questions pruning pass.
+`git rm` (working-tree only, full history preserved) the 9 fully-RESOLVED docs
+whose rationale is captured in spec/findings: binding-kind-surface-syntax,
+loop-function-declarations / loop-tail-call-surface / loop-body-semantics,
+axon-bind-needs-permutation-for-synthetic-fillers, cosine-as-its-own-transcendental,
+equality-cosine-T-placement, non-halting-loop-recur-primitive,
+arbitrary-precision-digit-array. The two RESOLVED-core docs with a live OPEN tail
+(literals-and-auto-embedding, no-null) were LEFT in place. Updated the
+open-questions README triage table + tally + a 2026-05-28 pruning-pass note, and
+removed the 6 corresponding prose entries. Redirected the now-dangling
+back-references in the 5 live spec files (binding/control-flow/non-halting-loop/
+arbitrary-precision/matrix-valued-bake-back) to "(pruned 2026-05-28; in git
+history)"; findings keep their refs as dated historical context.
+
 ## 2026-05-28: fold shipped features into canonical spec (operations.md / types.md)
 
 Doc-scan follow-on §B#2. The recently-shipped features had findings but no
