@@ -51,7 +51,7 @@ Loops use the declared-function form (`do_while_adder.su`), exercised by the `te
 | [`planning/findings/`](planning/findings/) | Dated experimental findings — what was measured, with raw numbers and what they mean. Includes negative results. |
 | [`planning/open-questions/`](planning/open-questions/) | Known design gaps where the implementation has made a choice the spec doesn't yet justify. |
 | [`examples/`](examples/) | Demo `.su` programs and the smoke-test harness. |
-| [`docs/`](docs/) | `index.md` (homepage) + `neurips-2026.md` — the two source pages for the website at <https://sutra.emmaleonhart.com>. |
+| [`docs/`](docs/) | Hand-written Markdown source for the website at <https://sutra.emmaleonhart.com> — the homepage plus concept guides (capabilities, compilation, loops, operators, vision, …), tutorials, and the NeurIPS archive page. One HTML page per file. |
 | [`sutraDB/`](sutraDB/) | SutraDB — embedded vector database, brought in as a git subtree. |
 
 The empirical foundation that motivated Sutra — relational-displacement structure in frozen embedding spaces — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography).
@@ -84,10 +84,14 @@ To open the repo in an IDE with syntax support, run [`sdk/intellij-sutra/editor.
 
 | Workflow | What it does |
 |---|---|
+| [`compiler-ci.yml`](.github/workflows/compiler-ci.yml) | The main test gate — runs the Sutra compiler test suite. |
+| [`demos-ci.yml`](.github/workflows/demos-ci.yml) | Runs the substrate GUI and font demo tests under [`demos/`](demos/). |
+| [`daily-audit.yml`](.github/workflows/daily-audit.yml) | Scheduled audit run that keeps [`Audit.md`](Audit.md) current. |
 | [`pages.yml`](.github/workflows/pages.yml) | Renders the website pages and deploys them (with the paper PDFs + reproduction zip) to GitHub Pages. |
 | [`publish-sutra-compiler.yml`](.github/workflows/publish-sutra-compiler.yml) | Publishes the `sutra-dev` compiler package to PyPI. |
 | [`sutradb-ci.yml`](.github/workflows/sutradb-ci.yml) · [`sutradb-integration.yml`](.github/workflows/sutradb-integration.yml) | Run the SutraDB Rust unit + integration tests. |
 | `papers-ci.yml` · `submit-papers.yml` · `pull-reviews.yml` · `paper-pdf.yml` | Paper pipeline: submit the paper to clawRxiv on edit, pull back AI reviews, and build the PDFs. |
+| [`fv-paper-ci.yml`](.github/workflows/fv-paper-ci.yml) | Auto-submits the formal-verification paper ([`paper/formal-verification/paper.md`](paper/formal-verification/paper.md)) to clawRxiv on edit. |
 
 ## License
 
