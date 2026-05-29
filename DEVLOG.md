@@ -15,6 +15,19 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: fold shipped features into canonical spec (operations.md / types.md)
+
+Doc-scan follow-on §B#2. The recently-shipped features had findings but no
+canonical spec home. Added to `operations.md`: `vector_literal`/`matrix_literal`
+in the builtin-set table (+ a frozen-constant-constructor subsection citing the
+font.su substrate-RNN use and the egglog-skip), a complex-transcendental table
+(`realExp`/`imaginaryExp`/`cexp`/`exp`/`ccos`/`csin`/`log` with their
+lookup+eigenrotation decomposition and ground-truth deltas), and a
+trainable-surfaces note (`select` temperature = 2nd mechanism instance). Added
+`BigInt`/`BigInt<MAX>` to `types.md` § "Subtypes of vector" (class + intrinsic +
+operator + shipped; construction helpers deferred pending source-surface design).
+Verified against the shipped code. §B#2 closed in queue.
+
 ## 2026-05-28: documentation & directory scan — 23 stale doc files fixed
 
 Emma asked for a general scan of dirs + docs (hunch: docs, esp. planning/, stale
