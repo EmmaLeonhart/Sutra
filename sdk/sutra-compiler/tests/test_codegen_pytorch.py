@@ -213,6 +213,23 @@ class TestPyTorchVectorAccessors(unittest.TestCase):
         # ... and the `+` call site dispatches to it, not to raw bundling.
         self.assertIn("c = BigInt_operator_plus(a, b)", py)
 
+    def test_bigint_from_string_lowers_to_intrinsic(self):
+        # Regression guard for the BigInt construction surface
+        # (Emma 2026-05-28): bigint_from_string(s, N) is a free intrinsic
+        # that parses a decimal String into a little-endian digit array.
+        # It must lower to the _VSA.bigint_from_string runtime method
+        # (string codepoints -> digit array, substrate-pure).
+        src = (
+            "function vector parse(String s) {\n"
+            "    return bigint_from_string(s, 8);\n"
+            "}\n"
+            "function string main() { return \"ok\"; }\n"
+        )
+        py = _compile(src)
+        self.assertIn("_VSA.bigint_from_string(", py)
+        # The runtime method is defined and reverse-aligns via a gather.
+        self.assertIn("def bigint_from_string(self, s, max_digits, radix=10):", py)
+
 
 if __name__ == "__main__":
     unittest.main()

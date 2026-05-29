@@ -224,3 +224,12 @@ intrinsic function number int_mod(number x, number m);
 // saturates (top-digit carry-out is silently dropped, matching the
 // String overflow posture per strings.md).
 intrinsic function vector digit_array_add(vector a, vector b, number radix);
+// bigint_from_string — parse a decimal String into a little-endian
+// base-10 digit-array vector of width `max_digits` (the BigInt
+// construction surface, Emma 2026-05-28). Substrate-pure: gather the
+// codepoint block, map each digit char to its value (codepoint - 48,
+// padding masked to 0), and reverse-align the big-endian string order
+// into little-endian digit order by a computed-index gather. "12345"
+// with max_digits=8 -> [5,4,3,2,1,0,0,0]. High digits beyond
+// max_digits saturate (drop), matching the digit_array_add posture.
+intrinsic function vector bigint_from_string(string s, number max_digits);
