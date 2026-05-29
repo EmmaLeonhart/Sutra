@@ -694,6 +694,19 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.tensor(values, dtype=self.dtype, device=self.device)")
         self._indent -= 1
         self._emit()
+        self._emit("def matrix_from_rows(self, rows):")
+        self._indent += 1
+        self._emit('"""Substrate-side 2-D tensor literal — the matrix generalization')
+        self._emit("of vector_from_floats. `rows` is a Python list of 1-D row tensors")
+        self._emit("(each typically a vector_literal) emitted by the codegen for a")
+        self._emit("`.su` source line `matrix M = matrix_literal(row0, row1, ...);`.")
+        self._emit("Rows are stacked into an (nrows, ncols) tensor on the runtime")
+        self._emit("device+dtype; no numpy on the hot path. Consumed by Tensor.MatrixMul")
+        self._emit('(e.g. a frozen permutation matrix for a substrate-RNN advance)."""')
+        self._emit("stacked = _torch.stack([_torch.as_tensor(r, dtype=self.dtype, device=self.device) for r in rows], dim=0)")
+        self._emit("return stacked")
+        self._indent -= 1
+        self._emit()
         self._emit("def bundle_of_binds(self, *role_filler_pairs):")
         self._indent += 1
         self._emit('"""Fused bind+sum+normalize over N role-filler pairs.')
