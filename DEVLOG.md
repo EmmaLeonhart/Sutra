@@ -15,6 +15,33 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: FV contract key-soundness discharged (runtime key-usage instrumentation)
+
+Greenlit by Emma (AskUserQuestion). Closes the long-open half of the
+formal-verification §3.1 contract obligation: that the compiler's STATIC
+`AXON_KEYS_READ`/`AXON_KEYS_BOUND` analysis is SOUND vs the keys a program
+actually touches at runtime.
+
+Mechanism: opt-in key-usage tracing on the PyTorch runtime's
+`axon_add`/`axon_item` (`_VSA._fv_key_trace`, OFF by default → zero hot-path
+cost; a host-side `set.add` of a compile-time key string around the substrate
+op, never inside the tensor math). `fv_key_soundness.check_key_soundness`
+enables it, runs the program's axon accesses, and gates
+`runtime_read ⊆ AXON_KEYS_READ` / `runtime_bound ⊆ AXON_KEYS_BOUND`. A str key
+is recorded by name; a non-str (pre-embedded vector) key the static analysis
+can't name is recorded `<dynamic>` — never in the static literal set, so always
+an escape (catches runtime-computed keys).
+
+Non-vacuous: `tests/test_fv_key_soundness.py` 5/5 — sound program passes;
+read-escape, bound-escape, and `<dynamic>` vector-key are each caught; trace
+off by default. Static-collection (`test_axon_keys.py` 10/10) unaffected.
+With role-isolation (kernel) + function-correctness (Kleene fragment) +
+key-soundness now all discharged, §3.1 is no longer half-done. Updated
+`planning/sutra-spec/formal-verification.md` (OPEN→DISCHARGED + task #4 DONE)
+and the FV paper §3.1 (auto-resubmits to clawRxiv on push). Residual
+sharpening: per-run path coverage → exhaustive (a manifest or coverage
+argument), not an open hole.
+
 ## 2026-05-29: exp/cos/sin return the full number-vector (0-d projection dropped) + real()/imag() free functions
 
 Emma's AskUserQuestion choice (fix-real + keep-literate) for the long-deferred

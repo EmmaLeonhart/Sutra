@@ -115,11 +115,26 @@ A Sutra program compiles to a fused tensor-op graph that is its semantics.
     expressions; a program outside the fragment (echo = identity axon rebind;
     switch.su = arithmetic + select) has its function-correctness covered by its
     own substrate tests, not by this procedure.
-  - **Still OPEN:** soundness of the static `AXON_KEYS_READ`/`BOUND` analysis vs
-    the keys the program actually touches at runtime — needs runtime key-usage
-    instrumentation (or a key-level manifest contract to check against). The
-    genuinely-hard remaining half; do not read "function-correctness discharged
-    for the Kleene fragment" as "contract obligation done" for arbitrary programs.
+  - **Key-soundness — DISCHARGED via runtime key-usage instrumentation,
+    2026-05-29.** The static `AXON_KEYS_READ`/`BOUND` sets are now gated against
+    the keys a program actually touches at runtime. The PyTorch runtime carries
+    opt-in key tracing on `axon_add`/`axon_item` (`_VSA._fv_key_trace`, OFF by
+    default so the hot path is untouched — it is a host-side `set.add` of a
+    compile-time key string around the substrate op, never inside the tensor
+    math). `fv_key_soundness.check_key_soundness` enables the trace, runs the
+    program's axon accesses, and checks `runtime_read ⊆ AXON_KEYS_READ` and
+    `runtime_bound ⊆ AXON_KEYS_BOUND`. A `str` key is recorded by name; a non-str
+    (pre-embedded vector) key the static analysis could not name is recorded as
+    `'<dynamic>'`, which is never in the static literal set and so is always an
+    escape — catching any program that reaches an axon via a runtime-computed key.
+    Non-vacuous (`tests/test_fv_key_soundness.py`, 5/5): a program touching only
+    its statically-collected keys is sound; a read of an uncollected key, a bind
+    of an uncollected key, and a `'<dynamic>'` vector key are each caught. With
+    role-isolation (kernel) + function-correctness (Kleene fragment) + key-
+    soundness now all discharged, the §3.1 contract obligation is no longer half-
+    done. (Residual: the check is *per-run* over the exercised paths; a
+    path-coverage argument or a key-level manifest would make it exhaustive
+    rather than execution-witnessed — a sharpening, not an open hole.)
 
 ### Pillar 2 — polynomial Kleene logic for branches (the lever that kills path explosion)
 
@@ -279,10 +294,13 @@ returns; these are the substantive items (and a human venue is the real target).
    arithmetic predicates) toward more of the trusted base, or (b) tighten the
    paper's claim to exactly the fragment covered and state the path to more. Tie
    to the actual trusted-base programs (kernel roles, echo, switch).
-4. **Contract key-soundness (the open §3.1 half).** Build runtime key-usage
-   instrumentation (or a key-level manifest contract) so the static
-   `AXON_KEYS_READ`/`BOUND` analysis can be checked against the keys a program
-   actually touches. Then the contract obligation is fully discharged, not half.
+4. **Contract key-soundness (the open §3.1 half) — DONE 2026-05-29.** Runtime
+   key-usage instrumentation shipped: opt-in `_VSA._fv_key_trace` on
+   `axon_add`/`axon_item` + `fv_key_soundness.check_key_soundness` gating
+   `runtime_keys ⊆ AXON_KEYS_*` (non-str keys recorded `<dynamic>`, always an
+   escape). Non-vacuous, `tests/test_fv_key_soundness.py` 5/5. §3.1 contract
+   obligation now fully discharged (role-isolation + function-correctness +
+   key-soundness). Residual sharpening: per-run path-coverage → exhaustive.
 5. **Termination framing (con: "trivial / bounded loops sidestep").** Decide the
    framing: lean into "bounded-by-design is the point, the content is convergence
    detection" with a sharper convergence result, or scope the claim. Not a
