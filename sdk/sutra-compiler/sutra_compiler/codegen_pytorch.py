@@ -251,6 +251,13 @@ class PyTorchCodegen(Codegen):
         self._emit("self.device = _DEVICE")
         self._emit("self.dtype = _DTYPE")
         self._emit("self._codebook = {}")
+        self._emit("# FV key-usage trace (OFF by default = None -> zero hot-path")
+        self._emit("# cost). Set to {'read': set(), 'bound': set()} to record the")
+        self._emit("# axon keys touched at runtime, for the formal-verification")
+        self._emit("# key-soundness check (runtime keys subset of static AXON_KEYS_*).")
+        self._emit("# Monitoring only: a host-side set.add of a compile-time key")
+        self._emit("# string around the substrate op, never inside the tensor math.")
+        self._emit("self._fv_key_trace = None")
         self._emit("# Rotation matrix cache: role-hash -> tensor on self.device.")
         self._emit("# Generating a 768x768 Haar rotation is O(d^3) on CPU (seeded")
         self._emit("# via numpy for Haar-uniformity). Cached on the GPU after the")
@@ -948,6 +955,14 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("key_vec = _torch.as_tensor(key, dtype=self.dtype, device=self.device)")
         self._indent -= 1
+        self._emit("# FV key-soundness trace: record the key actually bound at")
+        self._emit("# runtime. A str key is named; a non-str (pre-embedded vector)")
+        self._emit("# key the static analysis could not name is recorded as")
+        self._emit("# '<dynamic>' so the checker flags it as escaping AXON_KEYS_BOUND.")
+        self._emit("if self._fv_key_trace is not None:")
+        self._indent += 1
+        self._emit("self._fv_key_trace['bound'].add(key if isinstance(key, str) else '<dynamic>')")
+        self._indent -= 1
         self._emit("# Scalar fillers (Python int / float) are promoted to")
         self._emit("# a real-axis vector via make_real. Python str fillers")
         self._emit("# are promoted to the codepoint-array form via make_string.")
@@ -1010,6 +1025,12 @@ class PyTorchCodegen(Codegen):
         self._emit("else:")
         self._indent += 1
         self._emit("key_vec = _torch.as_tensor(key, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit("# FV key-soundness trace: record the key actually read at runtime")
+        self._emit("# (str -> named; non-str -> '<dynamic>', flagged by the checker).")
+        self._emit("if self._fv_key_trace is not None:")
+        self._indent += 1
+        self._emit("self._fv_key_trace['read'].add(key if isinstance(key, str) else '<dynamic>')")
         self._indent -= 1
         self._emit("perm = self._axon_permutation_for(key_vec)")
         self._emit("unpermuted = self._axon_unpermute_synthetic(axon, perm)")
