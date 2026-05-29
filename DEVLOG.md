@@ -45,6 +45,16 @@ the substrate matmul. Bake-back re-expresses the trained matrix as a
 (no basis_vector → runtime_dim=K, not 768). Finding:
 `planning/findings/2026-05-29-trainable-matrix-through-substrate.md`.
 
+Then ran the mechanism at **real d=768 scale** on the dark-probe's SVO
+task (`experiments/trainable_role_matrix.py`): train M (init identity) so
+`MatrixMul(M, sentence) ≈ object` through the compiled matmul, vs host
+lstsq + identity baselines (5-fold CV, live Ollama). Mechanism validated
+(‖dL/dM‖>0, train cos 0.733→0.994), and it **reproduces the probe's
+"identity wins"** — held-out top-1: identity 100%, lstsq 0%, GD 0%; both
+learned matrices overfit. Negative result, expected (object word lexically
+present, so identity already retrieves it), now confirmed through the
+substrate path.
+
 **Queue B.1 (dark code).** Documented the two role-matrix probes
 (`planning/exploratory/{object,subject_object}_matrix_probe.py`) in the
 finding + header pointers — they are the host least-squares "does a role

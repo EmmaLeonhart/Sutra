@@ -125,14 +125,52 @@ Sutra graph on a task with clean ground truth (permutations). The
 least-squares probes motivate the eventual semantic target; the
 permutation task proves the trainable-matrix mechanism end to end first.
 
+## Semantic role matrix at real scale — substrate reproduction of the probe
+
+`experiments/trainable_role_matrix.py` runs the trainable-matrix
+mechanism on the dark-code probe's actual task: train `M` (d×d, init
+identity) so `Tensor.MatrixMul(M, sentence_emb) ≈ object_emb` over the
+30 SVO pairs, by gradient descent **through the compiled substrate
+matmul**, with the host `torch.linalg.lstsq` fit and the identity matrix
+as baselines (5-fold CV, real d=768 nomic embeddings, cuda/fp32).
+
+**Mechanism (asserted, true regardless of task learnability):**
+- the matmul the program runs IS `torch.matmul` (substrate);
+- first-step `‖dL/dM‖` = 0.27 > 0 — backprop reaches the d×d matrix
+  through the compiled matmul at full scale;
+- GD drives train `cos(M@s, o)` **0.733 → 0.994** — the substrate
+  trainer fits the training pairs.
+
+**Held-out (reported, the probe's open question):**
+
+| | held-out cos | held-out top-1 (chance 3%) |
+|---|---|---|
+| identity `M = I` | **+0.733** | **100%** |
+| host lstsq fit | +0.674 | 0% |
+| GD-trained (substrate) | +0.668 | 0% |
+
+This **reproduces the probe's "identity wins" conclusion through the
+substrate path.** A learned linear role matrix — whether fit by host
+closed-form least-squares or by gradient descent through the compiled
+graph — *overfits* (train 0.99, held-out 0.67) and is beaten outright by
+the identity matrix, which retrieves the held-out object every time
+because the object word is lexically present in the sentence embedding
+(so `cos(I@s, o) = cos(s, o)` already points at it). A negative result,
+and the expected one: this embedding substrate does not support a
+generalising linear "object-of" operator on this task. The value here is
+that the **trainable-matrix mechanism is now validated at real d=768
+scale on real embeddings**, not just toy permutations, and it lands on
+the same answer the host probe did.
+
 ## Next
 
-- Semantic variant: train `M` (init identity) so
-  `Tensor.MatrixMul(M, sentence_emb) ≈ object_emb` through the compiled
-  graph — the substrate version of `object_matrix_probe.py`, with the
-  host lstsq fit as the baseline. Needs live Ollama embeddings.
 - Constrain `M` to the orthogonal/permutation manifold during CE
   training (so the function-learner also yields a canonical matrix).
+- A task where a generalising linear operator plausibly *does* exist
+  (analogy/displacement: capital-of, plural-of) to see GD-through-the-
+  substrate beat identity on held-out — the role-matrix probe's task is
+  degenerate (object word lexically present).
 - Wire a trainable binding matrix (semantic `bind` = learned matrix) —
   the long-standing learned-matrix-binding target, now mechanically
-  unblocked by trainable matrices + matrix literals.
+  unblocked by trainable matrices + matrix literals. (Kept deferred as a
+  headline per Emma; the mechanism is ready when she wants it.)
