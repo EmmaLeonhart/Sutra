@@ -44,11 +44,14 @@ Three base types at the bottom of the user-framed hierarchy:
   fixed-width little-endian digit array (base-10) held as a 1-d
   substrate vector; `BigInt<256>` carries the max width in the type.
   **Implementation status**: the class, the `digit_array_add`
-  carry-propagation substrate intrinsic, and `operator +` (dispatching
-  to `digit_array_add` via the String-`operator +` pattern) are
-  SHIPPED (2026-05-28, bit-exact e.g. `12345 + 67891 = 80236`, overflow
-  saturates). Construction helpers (from int / string literal) are
-  deferred pending a source-surface design decision. See
+  carry-propagation substrate intrinsic, `operator +` (dispatching
+  to `digit_array_add` via the String-`operator +` pattern), and
+  string construction (`bigint_from_string(s, max_digits)` — parses a
+  decimal `String`'s codepoints into a little-endian digit array,
+  substrate-pure) are SHIPPED (2026-05-28, bit-exact e.g.
+  `12345 + 67891 = 80236`, overflow saturates;
+  `bigint_from_string("12345", 8)` → `[5,4,3,2,1,0,0,0]`). A
+  from-host-int helper is optional/not yet built. See
   `arbitrary-precision.md` and `stdlib/bigint.su`.
 
 ### String and numeric types

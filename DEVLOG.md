@@ -15,6 +15,26 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: BigInt string construction — bigint_from_string intrinsic shipped
+
+Emma's AskUserQuestion choice for the BigInt construction surface: a
+`bigint_from_string("12345")` intrinsic (over a literal-suffix or int helper).
+Shipped it as a free intrinsic (logic.su decl + `_VSA.bigint_from_string` runtime
+method + bigint.su doc). It parses a decimal `String`'s codepoint block into a
+little-endian base-10 digit array of width `max_digits`, substrate-pure: gather
+codepoints → `dig = (cp-48)·(cp≠0)` → reverse-align big-endian string order into
+little-endian digit order by a computed-index gather (`digit[j] = dig[L-1-j]`,
+masked for `j≥L`; `L = string_length`). No host digit loop/branch/.item();
+`max_digits` is a structural width literal.
+
+Verified end-to-end: `"12345",8 → [5,4,3,2,1,0,0,0]`; `"100" → [0,0,1,0,…]`
+(internal/trailing zeros correct); round-trips through bigint_add
+(99999+1=100000, 12345+67891=80236, 0+0=0). Regression guard
+`test_bigint_from_string_lowers_to_intrinsic` (codegen 14/14). No same-named
+wrapper (would trip the stdlib duplicate-name rule — the intrinsic name is
+already ergonomic). types.md/queue updated; BigInt task essentially complete
+(only an optional from-host-int helper remains).
+
 ## 2026-05-28: open-questions pruning pass (Emma-greenlit) — 9 resolved docs removed
 
 Emma greenlit (AskUserQuestion) the long-deferred open-questions pruning pass.
