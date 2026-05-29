@@ -1,6 +1,6 @@
 # Non-halting loop — `recur` + `return` primitive
 
-**Status:** SPEC (all 5 sub-decisions locked Emma 2026-05-28). Implementation pending. Supersedes `planning/open-questions/non-halting-loop-recur-primitive.md` (which preserves Emma's verbatim design intent).
+**Status:** SHIPPED (all 5 sub-decisions locked Emma 2026-05-28; implemented in commits `6757863d` + `6fc64c15` — see `planning/open-questions/non-halting-loop-recur-primitive.md`, whose banner confirms "v1 shipped"). `recur` / `recurring` codegen lives in `codegen_base.py` (`is_non_halting`); parsing in `parser.py` / `ast_nodes.py`. Live consumers: `tests/corpus/valid/non_halting_count.su`, `demos/gui/count.su`, `demos/gui/toggle.su`, and `demos/font/font.su` (whose `cycle_step` now uses it as a substrate-RNN). Supersedes `planning/open-questions/non-halting-loop-recur-primitive.md` (which preserves Emma's verbatim design intent).
 
 ## What this is
 
@@ -118,10 +118,10 @@ These slot into the FV paper's §3 obligation framework as a new family parallel
 - `planning/sutra-spec/control-flow.md` — the halting `loop` primitive.
 - `demos/gui/count.su`, `demos/gui/toggle.su` — the first targets of the rewrite.
 
-## Implementation plan
+## Implementation (shipped — commits `6757863d` + `6fc64c15`)
 
-1. **Parser** — accept `recurring TYPE NAME (= EXPR)?;` declarations in function bodies; accept `recur(EXPR);` and `return(EXPR);` statements.
-2. **Validator** — detect non-halting functions (presence of `recur`); require return-with-parens for them; verify single `recurring` slot in v1.
-3. **Codegen** — emit a module-level `_NonHaltingState` holder + a `tick(input)` method; store the recurring state as a substrate tensor field.
-4. **Test** — a small `tests/corpus/valid/count_recur.su` that uses the new shape; verify state survives across calls without host extraction.
-5. **Rewrite** — `demos/gui/count.su` and `demos/gui/toggle.su` to use the new shape; update the demo harnesses to call `mod.tick(...)` per click.
+1. **Parser** — [DONE] accepts `recurring TYPE NAME (= EXPR)?;` declarations in function bodies; accepts `recur(EXPR);` and `return(EXPR);` statements (`parser.py`, `ast_nodes.py`).
+2. **Validator** — [DONE] detects non-halting functions (presence of `recur`); requires return-with-parens for them; verifies single `recurring` slot in v1.
+3. **Codegen** — [DONE] emits a non-halting-state holder + a `tick(input)` method; stores the recurring state as a substrate tensor field (`codegen_base.py`, gated on `is_non_halting`).
+4. **Test** — [DONE] `tests/corpus/valid/non_halting_count.su` exercises the new shape; state survives across calls without host extraction.
+5. **Rewrite** — [DONE] `demos/gui/count.su`, `demos/gui/toggle.su`, and `demos/font/font.su` use the new shape. Notably `font.su`'s `cycle_step` now carries a 36-dim one-hot glyph cursor in a `recurring vector`, advancing it on the substrate each tick — a real substrate-RNN, not a host-state shuttle.

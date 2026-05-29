@@ -1,7 +1,10 @@
 # Arbitrary-precision integers: digit-array representation and add-with-carry primitive
 
 **Opened:** 2026-05-27.
-**Status (2026-05-28):** TOP-LEVEL CHOICE LOCKED — **Option A (associative-scan substrate intrinsic)** per Emma sweep Q3. The 1-2 digit substrate parser (`examples/parse_int2.su`) ships in commit `22d785db` and runs substrate-pure on CUDA. The full unbounded-precision design now proceeds along the Option A path: a new substrate intrinsic for parallel carry propagation via associative scan (Hillis-Steele / Blelloch). The four sub-decisions (BigInt typing, digit layout, max width, integer-division primitive) are still open and need Emma input before the spec doc at `planning/sutra-spec/arbitrary-precision.md` is finalized.
+
+> **VERDICT: RESOLVED 2026-05-28.** Top-level choice locked: Option A (associative-scan substrate intrinsic). All four sub-decisions are now LOCKED and implemented via Emma's `AskUserQuestion` sweep: BigInt class form, radix-10, `BigInt<MAX>` const-template, `_int_div_mod` substrate primitive. Implementation shipped same day across six commits (`b991781a` int_div+int_mod intrinsics, `49183f3b` parser const-template, `2ee0fe54` digit_array_add intrinsic, `baafa8ed` end-to-end harness, `8a009e38` stdlib/bigint.su, `befdac0b` BigInt class). FV obligations in `planning/findings/2026-05-28-digit-array-add-fv-obligations.md`. Remaining tail items (operator `+` overload, string/int construction helpers, FV paper §3 wiring) are smaller follow-ons, not load-bearing design questions. Matches the open-questions README verdict. Doc kept for rationale until the next pruning pass.
+
+**Status (2026-05-28):** RESOLVED — see VERDICT above. The 1-2 digit substrate parser (`examples/parse_int2.su`) shipped in commit `22d785db` and runs substrate-pure on CUDA; the full unbounded-precision design then shipped along the Option A path (associative-scan carry propagation, Hillis-Steele / Blelloch). All four sub-decisions (BigInt typing, digit layout, max width, integer-division primitive) are now locked and implemented.
 
 **Related:**
 - `planning/findings/2026-05-27-arbitrary-precision-parser.md` — the bounded "first piece" that shipped + the analysis this dossier reduces to a decision.

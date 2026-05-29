@@ -1,5 +1,7 @@
 # 2026-05-28 — K=5 rank-k is_X sweep: what it actually does + strategic-fit assessment
 
+> **CLOSED 2026-05-28 — Emma's call: let-die-don't-restart.** Per `CLAUDE.md` §"K=5 rank-k sweep — LAST attempt", the sweep process is dead and is NOT relaunched. Do not re-queue unless Emma explicitly re-greenlights. The body below is kept as the historical record of what the experiment was and why.
+
 Emma 2026-05-28 surfaced a concern that the K=5 rank-k experiment may not align with strategic goals. This file lays out what the experiment is doing, plainly, and provides the materials needed to decide whether to continue, scope it down, or stop.
 
 ## What the experiment actually does
