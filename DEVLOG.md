@@ -21,6 +21,44 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: First trainable MATRIX through the compiled substrate + queue barrel
+
+Barrelled the bounded queue items, then built the headline new work Emma
+asked for: the first **trainable matrix** through the compiled Sutra graph
+(the tier after the scalar constrain-train instances).
+
+**Trainable matrix (`experiments/trainable_matrix_adjustment.py`,
+`tests/test_trainable_matrix.py`).** A `matrix`-typed parameter flows
+through the compiled program `apply(matrix M, vector x) {
+Tensor.MatrixMul(M, x); }`. `Tensor.MatrixMul` lowers to
+`_VSA.matmul == torch.matmul`, so the forward runs on the substrate; `M`
+is a leaf tensor with `requires_grad` and Adam updates it through the
+compiled matmul. Task: learn a target permutation of K=8 one-hots, `M`
+initialised at the frozen font.su cyclic-shift-by-1 P. Measured (3 seeds,
+cuda/fp32): **CE** learns the permutation *function* (acc 0%→100%, sep
+gap −1.0→+1.47) while Frobenius to the canonical matrix *rises* 4.0→8.61
+— it implements the permutation without being the 0/1 matrix; **MSE**
+*shifts the matrix* to the exact target (Fro 4.0→0.0, gap +1.0), bake-back
+3e-10. First-step ‖dL/dM‖>0 confirms backprop reaches the matrix through
+the substrate matmul. Bake-back re-expresses the trained matrix as a
+`matrix_literal(...)` .su (weight→code round-trip). Dim-audit honest
+(no basis_vector → runtime_dim=K, not 768). Finding:
+`planning/findings/2026-05-29-trainable-matrix-through-substrate.md`.
+
+**Queue B.1 (dark code).** Documented the two role-matrix probes
+(`planning/exploratory/{object,subject_object}_matrix_probe.py`) in the
+finding + header pointers — they are the host least-squares "does a role
+matrix exist" probes (result: identity baseline wins, object word is
+lexically present), complementary to the substrate gradient-descent
+trainable-matrix demo. No longer orphaned.
+
+**Stale stdlib notes corrected.** The "Blocked on: matrix literals" notes
+in numbers.su/logic.su overclaimed — matrix_literal (shipped 2026-05-28)
+is for *small fixed* matrices (permutations, lookup); the d×d projector /
+cached-complex-mul matrices at runtime_dim need a matrix *builder* + the
+`@` operator sugar (matmul exists as the `Tensor.MatrixMul` function).
+Corrected the notes to say so.
+
 ## 2026-05-28: BigInt string construction — bigint_from_string intrinsic shipped
 
 Emma's AskUserQuestion choice for the BigInt construction surface: a
