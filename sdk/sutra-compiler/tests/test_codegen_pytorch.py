@@ -189,6 +189,30 @@ class TestPyTorchVectorAccessors(unittest.TestCase):
         # bigint_add lowers through digit_array_add(a, b, 10).
         self.assertIn("def digit_array_add(self, digits_a, digits_b, radix=10):", py)
 
+    def test_bigint_operator_plus_dispatches_to_digit_array_add(self):
+        # Regression guard for the BigInt `operator +` overload in
+        # stdlib/bigint.su (2026-05-28). `a + b` on BigInt-typed operands
+        # must dispatch to the emitted BigInt_operator_plus, whose body
+        # calls the FREE digit_array_add intrinsic (-> _VSA.digit_array_add).
+        # This is the String-operator-+ pattern: the operator method body
+        # calls a free intrinsic, so no intrinsic-registry change and no
+        # re-declaration of digit_array_add on the class is needed (the
+        # earlier f34103b2 deferral assumed otherwise).
+        src = (
+            "function vector add_via_op(BigInt a, BigInt b) {\n"
+            "    BigInt c = a + b;\n"
+            "    return c;\n"
+            "}\n"
+            "function string main() { return \"ok\"; }\n"
+        )
+        py = _compile(src)
+        # The operator overload is emitted as a top-level function ...
+        self.assertIn("def BigInt_operator_plus(a, b):", py)
+        # ... whose body routes to the free digit_array_add intrinsic ...
+        self.assertIn("_VSA.digit_array_add(a, b, 10)", py)
+        # ... and the `+` call site dispatches to it, not to raw bundling.
+        self.assertIn("c = BigInt_operator_plus(a, b)", py)
+
 
 if __name__ == "__main__":
     unittest.main()
