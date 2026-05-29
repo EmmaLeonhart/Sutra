@@ -69,6 +69,12 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 
 3. **FV paper push timing — should `digit_array_add` range-soundness + termination obligations land in `paper/formal-verification/paper.md` now?** Per the "live artifact" rule, FV work that lands should update the paper. Today shipped: int_div/int_mod intrinsics, digit_array_add intrinsic, BigInt class, range-soundness + termination FV obligations doc (`planning/findings/2026-05-28-digit-array-add-fv-obligations.md`). The paper push auto-triggers a clawRxiv submission + AI review cycle via `fv-paper-ci.yml`. Two named alternatives: (a) push now (substantive delta — new discharged obligation); (b) batch with the next substantive FV change to amortize the review cycle.
 
+4. **Cosine as its own transcendental function (NOT derived from `cexp(iθ)`)?** Open design question at `planning/open-questions/cosine-as-its-own-transcendental.md`. Emma's prior position: cosine is distinct enough that it needs to be its own transcendental, including the imaginary output implemented geometrically. Current implementation: `cos = real(cexp(iθ))` (contradicts that position). Decision unblocks the open-question doc + the `csin` follow-on. Surfaced 2026-05-17.
+
+5. **Drop the 0-d projection on `exp`/`cos`/`sin`?** Deferred per Emma 2026-05-20 to the end of the Active section. Today the substrate transcendentals project to a 0-d output via `make_real` packaging; removing the projection would make them return the full rotated vector. Question is whether to lift the projection or keep it as the canonical surface for scalar transcendentals.
+
+6. **K=5 rank-k sweep strategic fit (`planning/issues/2026-05-28-k5-rank-k-sweep-strategic-fit.md`).** Sibling-agent flagged 2026-05-28 that the in-flight K=5 sweep (5-9h wall) may not align with the breadth-across-operators constrain-train vision. Four named closures laid out in the issue file: (1) let finish; (2) stop + run K=3; (3) stop + pivot to new operator first-trainable-instance (this CLOSED for select-T orthogonal via `5a2f39f9`); (4) stop + ship minimal K=2 k=2 bake-back proof. Hard deadline (`f5064c3f`): if not active 2026-05-29+, declared not-shipped + removed. Task #20.
+
 ### A. In-flight / unblocked-ready-to-go (no Emma input needed)
 
 1. **K=5 rank-k sweep — LAST ATTEMPT (Emma 2026-05-28).** Per CLAUDE.md §"K=5 rank-k sweep — LAST attempt; do not restart if it dies": the running `bwf96wgym` subprocess is the last attempt. If it produces results, capture them; if it dies/has died, remove this entry + task #20 + do NOT restart. Hard deadline (sibling agent `f5064c3f`): if not active 2026-05-29+, declared not-shipped + removed. Task #20.
@@ -76,25 +82,9 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 3. **Contract key-soundness — runtime instrumentation.** Per Emma's `AskUserQuestion` sweep Q2 answer (2026-05-28): compile-time inject key-usage logging into the emitted graph; gate `AXON_KEYS_*` against the runtime trace. Discharges FV-paper §3.1 the strong way (currently §3.1 names "remaining open part is soundness of the static `AXON_KEYS` analysis against the keys a program touches at runtime"). Substantial work. Task #10.
 4. **Phase 3 — `apps/calc`, `apps/echo`, `apps/terminal` migration.** Per Emma's `AskUserQuestion` sweep Q6 answer (2026-05-28): re-architect to skip the kernel — rewrite each to call `compile_su` directly + admit-shim, like font/gui do. The apps lose their kernel-routed-axon shape but become Sutra-only demos. Large. Task #13.
 
-### B. Emma decisions LANDED 2026-05-28 (replaces former "Pending Emma decisions")
-
-All five deferred items below are now ANSWERED via `AskUserQuestion` sweep (per task #20). The decisions are recorded here so they don't vanish; the actual work items have moved into the relevant top-of-queue sections.
-
-1. **Audit #1 paper/neurips/ freeze (`599424f8`)** → **Both — carve-out + audit.** Codify a project-wide-identity-changes carve-out in the CLAUDE.md freeze rule; run a one-time audit of every paper/neurips/ touch since freeze date to confirm no non-identity drift slipped through.
-2. **Contract key-soundness** → **Runtime instrumentation.** Compile-time inject key-usage logging into the emitted graph; gate `AXON_KEYS_*` against the runtime trace. Discharges FV-paper §3.1 the strong way.
-3. **Arbitrary-precision carry loop** → **Option A — associative-scan substrate intrinsic.** Parallel carry, one new substrate primitive. Spec next, then implementation. The 4 sub-decisions (BigInt typing, digit layout, max width, integer-division primitive) follow once the dossier is re-opened with Option A as the locked choice.
-4. **Defuzz β full training launch** → **Run it — full 3-seed end-to-end.** GPU free; ~30min on CPU. Launch and commit the trained β + bake-back + round-trip-check as a finding.
-5. **demos/gui count.su + toggle.su substrate-RNN rewrite** → **SHIPPED** via the new `recur` / non-halting-loop primitive. Q5's "single loop(cond) per render" answer + follow-up sub-decisions (signature: presence of `recur(...)` marks the function; init: zero-vector default, `recurring TYPE NAME = INITIAL;` override; caller: `mod.tick(input)`; distinction: `recur` is the marker, halt/non-halt is currently more ergonomic than runtime) crystallized as planning/sutra-spec/non-halting-loop.md + `6757863d` v1 implementation + count.su rewrite + toggle.su rewrite. 6/6 demos/gui tests pass.
-6. **Phase 3 calc/echo/terminal migration** → **Re-architect to skip the kernel.** Rewrite each to call `compile_su` directly + admit-shim, like font/gui do. The apps lose their kernel-routed-axon shape but become Sutra-only demos.
-7. **demos/font + demos/gui driver/test docstring tightening** → **Tighten now AND set up a 5-hour cron to recheck.** Done in this commit (font.su step() comment + counter_demo.py + test_gui_counter.py); cron `bea893bf` fires at 03:23 local on 2026-05-28.
-
 ### C. Cross-repo migrations (Yantra → Sutra)
 
-- **Phase 1 — demos/font/** ✓ done (`e12e1ebd`)
-- **Phase 2 — demos/gui/** ✓ done (`ff5183ef`)
-- **Phase 3 — apps/calc, apps/echo, apps/terminal** pending. These are kernel-coupled (use `kernel.Manifest`, `kernel.SutraService`, `kernel.router.Axon`). Either (a) re-architect to not need the kernel, or (b) move the relevant kernel pieces along. Needs design decision.
-- **Yantra-side daily audit workflow** landed (`bb9fb638`) — prepends a daily audit task to queue.md.
-- **demos-ci.yml** landed (`464cd27e`) — pytest demos/ on every push touching demos/.
+- **Phase 3 — apps/calc, apps/echo, apps/terminal** pending. Kernel-coupled today; re-architect to call `compile_su` directly + admit-shim (Emma sweep Q6 2026-05-28). Task #13.
 
 ### D. FV paper / clawRxiv state
 
@@ -113,30 +103,8 @@ All five deferred items below are now ANSWERED via `AskUserQuestion` sweep (per 
 
 ### F. Substrate-honesty audit backlog (per CLAUDE.md "Subtler substrate breaches")
 
-- demos/font ✓ done (`planning/findings/2026-05-28-demos-font-substrate-audit.md`); finding: PARTIAL on check #2 (state-locus comment in font.su still says "recurrent step"; surface-only fix recommended, NOT silent-applied)
-- demos/gui pending (queued in A above)
 - Existing `examples/*.su` — dim audit (count basis_vector calls, drop runtime_dim where unused) — Yantra-style audit applied to Sutra side
 - Any new substrate-classifier .su — must ship measured `gap = min(positive) - max(negative)` table
-
-### G. Known fixed bugs (do not re-investigate)
-
-- K=5 rank-k crash (RuntimeError 1D vs 0D) → FIXED in `68b7ade1` (function-signature/call-site misalignment)
-- test_simplify_egglog hang → FIXED in `ee8b80e0` (egglog saturation explosion past iters=9; lowered defaults)
-- clawRxiv POST /revise 404 → self-heal in submit script (`5c85303b`)
-- FV paper dedup blocking revisions → title-bump-per-cron breaks dedup
-
-### H. Memory-rule additions this session (load-bearing)
-
-Saved across `C:\Users\Immanuelle\.claude\projects\.../memory/`:
-- `feedback-never-invent-thing-emma-implies-exists` — ONE OF THE MOST CRITICAL rules; Emma's references encode hours of GPU-level design; never invent a substitute. gui_window.su was the worked failure example.
-- `feedback-pull-means-read-not-just-fetch` — every non-cron-bump non-CI commit pulled requires reading message + diff stat + any new README.
-- `feedback-gui-stateful-must-be-substrate-rnn-not-host-shuttle` — stateful GUI programs SUPPOSED to use loop+hidden-state, not host-state-shuttle.
-- `feedback-capabilities-doc-must-be-exhaustive` — "what Sutra can do" pages list EVERY implemented thing.
-- `feedback-dont-kill-work-because-user-doesnt-understand` — preserve information even if user doesn't currently see value.
-- `feedback-be-less-procedural-more-creative` — queue-floor is the bar, not the ceiling.
-- `feedback-constrain-train-vision-is-every-op` — every op trainable is the vision; today only equality-cosine T is SHIPPED.
-
-CLAUDE.md updates this session: added "Subtler substrate breaches" section (`f8beb415` from Yantra agent) + "Severity ladder for asking-vs-doing" section (`f02fc798`, `cc0414a9`, `cf03d09a`, `085c4e8f`).
 
 ### I. Live website surfaces
 
@@ -159,10 +127,6 @@ CLAUDE.md updates this session: added "Subtler substrate breaches" section (`f8b
 - fv-paper-ci: stable green run-after-run via the self-heal stack
 
 ---
-
-### ⭐ Defuzz β harness: autograd unblocked (codegen `e2b8ee7a`); task design needs reshape
-
-The codegen `eq` substrate-leak (`float(cos.item())` host-extraction detaching autograd) was fixed in `e2b8ee7a`. The defuzz training harness now compiles + trains + round-trips without crashing (437 compiler tests still pass). However the harness's synthetic polarization task happens to be at loss=0 at the default gain=1.0 — so training "succeeds" but doesn't actually exercise gradient flow against a meaningful loss surface. The next ship of this item needs a task redesign so the baseline gain is non-optimal and training visibly moves the parameter. After that, β bakes back as a numeric literal + round-trip-checks per the original plan.
 
 ### ⭐ Emma 2026-05-27 13:21 PST — multi-front authorization batch
 
