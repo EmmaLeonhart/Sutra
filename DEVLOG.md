@@ -15,6 +15,30 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: BigInt `operator +` shipped — no intrinsic-registry refactor needed
+
+Emma's `AskUserQuestion` answer was "refactor the intrinsic registry" (option a)
+to unblock the BigInt `+` overload. Implementing it surfaced that the registry
+refactor is **not necessary**: the f34103b2 deferral assumed the only path was
+re-declaring `digit_array_add` as a static intrinsic *on* BigInt (which collides
+with the free `intrinsic function digit_array_add` in logic.su under the stdlib
+loader's duplicate-name rule). But the `String.operator +`→`string_concat`
+pattern shows the operator method body can call a **free** intrinsic directly:
+`method operator +(BigInt a, BigInt b) { return digit_array_add(a, b, 10); }`.
+The codegen's `_emit_stdlib_class_operators` lowers that to
+`_VSA.digit_array_add(a, b, 10)`, and the binary-op dispatch routes `a + b` to
+the emitted `BigInt_operator_plus` whenever an operand is BigInt-typed. The free
+`digit_array_add` and `bigint_add` wrapper stay intact; the duplicate-name rule
+is never triggered.
+
+Verified end-to-end on the substrate (bit-exact): `12345 + 67891 = 80236`,
+`"99999" + "1" = "100000"`. Regression guard:
+`test_bigint_operator_plus_dispatches_to_digit_array_add` in
+`test_codegen_pytorch.py` (13/13 pass). The dual-registration capability option
+(a) named — letting one intrinsic also be callable as namespaced
+`BigInt.digit_array_add` — is a separate, non-blocking want; flagged to Emma, not
+built, since operator `+` (the actual goal) is delivered without it.
+
 ## 2026-05-28: FV paper §3.4 — digit-array carry-propagation obligations wired in
 
 Per Emma's in-session `AskUserQuestion` answer ("push now"), wired the
