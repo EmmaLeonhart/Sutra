@@ -55,7 +55,7 @@ unroll of the body with a soft halt); the loop function's
 parameters are the named recurrent state — the implicit axon the
 loop threads from tick to tick.
 
-The full design is at `planning/open-questions/loop-function-declarations.md`
+The full design is at loop-function-declarations (pruned 2026-05-28; in git history)
 and the user-facing surface is at `docs/loops.md`. This section
 gives the canonical summary.
 
@@ -142,7 +142,7 @@ surface.
 
 For a loop call as a tail expression of an enclosing function, the
 `return NAME(args)` short form invokes the loop and returns the
-resulting state in one step. See `loop-tail-call-surface.md` for
+resulting state in one step. See loop-tail-call-surface (pruned 2026-05-28; in git history) for
 the surface and lowering.
 
 ### Substrate execution model
@@ -208,7 +208,7 @@ the appropriate kind:
 | `loop(cond) { body }` | one of the four kinds above, depending on the termination shape |
 
 The semantic-corrections doc captures the migration; the loop
-spec doc (`loop-function-declarations.md`) captures the design
+spec doc (loop-function-declarations (pruned 2026-05-28; in git history)) captures the design
 history.
 
 ### `try-catch` — parsed but rejected
