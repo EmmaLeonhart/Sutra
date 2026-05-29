@@ -1,36 +1,34 @@
-"""Yantra font demo -- character cycler / pixel renderer (NOT an RNN).
+"""Font demo -- substrate-state-RNN glyph cycler + pixel renderer.
 
-Honest framing, corrected 2026-05-27 after Emma called the previous header
-out: this is a *counter* with substrate function calls inside it, not a
-recurrent neural network. Specifically:
+The cycle_step rewrite (2026-05-28, Option B) makes the glyph cursor a REAL
+substrate-state RNN, fixing the host-state-shuttle shape Emma called out on
+2026-05-27. Specifically:
 
-  - The "hidden state" of this task is 2-dimensional at most: (input, current
-    character-on-screen). One scalar in, one scalar out per tick.
-  - The substrate's word width is 768-d (fixed by nomic-embed-text, the LLM
-    backing the runtime). Every substrate value is therefore 768-d regardless
-    of how much information it carries. For this 2-d-state task, 766 of those
-    768 dims are dead weight; the substrate adds no semantic structure.
-  - The pixels are 25 bits (5x5 black/white). Each cell is computed as one
-    768-d substrate vector with the bit on the real axis. 767 dims of dead
-    weight per pixel.
-  - Across ticks, the host extracts the scalar char_code via vsa.real() and
-    feeds it back next tick (apps/font/font_demo.py:tick()). That host-scalar-
-    shuttle is what makes the loop a counter, not a recurrent network --
-    state lives on the host, not on the substrate.
+  - The hidden state is a 36-dim ONE-HOT over the glyph cycle, held in a
+    `recurring vector` slot that lives ON THE SUBSTRATE across ticks
+    (non-halting-loop.md). It is NOT extracted to a host scalar and fed back
+    between ticks -- the recurrence stays on the substrate. The host decodes
+    the one-hot to a char only for RENDERING (a monitoring boundary, like
+    count.su decoding its count vector to position the glow).
+  - The advance is a single matmul `next = P @ glyph` against the frozen 36x36
+    cyclic-permutation matrix P, built with the `matrix_literal` primitive.
+    One-hot in, one-hot out; the state stays bit-exact one-hot across ticks
+    (signal-separation gap = 1.0 - 0.0 = 1.0, measured in test_font_cycle.py).
+  - The state/advance tensors are 36-dim problem-sized (no basis_vector calls),
+    so cycle_step runs at runtime_dim=8 -- the old "766 of 768 dims are dead
+    weight" critique does not apply; the 36-d state is fully load-bearing.
 
-The substrate operations DO run on real PyTorch tensors. The cycle decision
-(which char comes next) and the pixel decision (lit / unlit per cell) are
-computed by real substrate ops. What this demo is NOT is "an RNN" or
-"substrate-pure end-to-end" -- those framings would require state to live as
-a substrate vector across ticks AND for the substrate's 768-d capacity to be
-load-bearing on the task, neither of which is true here.
+Pixel rendering is a SEPARATE substrate compile (font_bound_antipodal.su at
+runtime_dim=256, 63 basis_vector calls for the position+marker codebook); see
+render_glyph / _compile_render below. The two paths are independent.
 
-Substrate computations (apps/font/font.su):
+Substrate computations:
 
-  cycle_step(prev_code, typed_code, has_typed)
-      Counter step. 36-way defuzzified select picks (prev -> next) in cycle
-      order; override gate replaces with typed_code when has_typed=1.0.
-      Decision is on the substrate; state is on the host (real() between ticks).
+  cycle_step(typed_onehot, has_typed)   [font.su, runtime_dim=8]
+      Substrate-state RNN. recurring 36-dim one-hot `glyph` advances via
+      next = P @ glyph (frozen cyclic-permutation matmul); has_typed=1.0 lets
+      a host-provided typed one-hot replace the advance via the substrate
+      weighted sum. State lives on the substrate across ticks.
 
   step(prev_state, x, y, char_code)
       Per-cell substrate dispatch. ``prev*0 + glyph_pixel(...)`` is host-
@@ -199,15 +197,30 @@ def main() -> None:
     import tkinter as tk
     from PIL import Image, ImageTk
 
-    # State the host shuttles between substrate ticks:
-    #   char_code    -- the current scalar code (the RNN's hidden state, decoded
-    #                   from the substrate vector each tick via vsa.real()).
-    #   field        -- the rendered 5x5 pixel field for that code.
+    # The RNN hidden state lives ON THE SUBSTRATE — cycle_step's `recurring`
+    # one-hot `glyph` slot is the source of truth and survives across ticks
+    # without the host carrying it (substrate-state RNN, non-halting-loop.md).
+    # The host keeps only:
+    #   field         -- the rendered 5x5 pixel field for the current glyph.
     #   pending_typed -- the last typed code, or None. Set by on_key, cleared
-    #                   by tick. The tick passes it to cycle_step as the
-    #                   typed-code branch.
+    #                   by tick; the tick turns it into a one-hot and passes it
+    #                   to cycle_step with has_typed=1.0.
+    import torch as _torch
+    cycle_vsa = cycle_ns["_VSA"]
+    CYCLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+    def _typed_onehot(code_or_none):
+        """Build a 36-dim one-hot for a typed char (or all-zeros when none).
+        A host-side INPUT crossing the boundary — not state; the recurring
+        state lives on the substrate."""
+        v = _torch.zeros(len(CYCLE), dtype=cycle_vsa.dtype, device=cycle_vsa.device)
+        if code_or_none is not None:
+            ch = chr(int(code_or_none)).upper()
+            if ch in CYCLE:
+                v[CYCLE.index(ch)] = 1.0
+        return v
+
     state = {
-        "char_code": float(ord("A")),
         "field": np.zeros((5, 5), dtype=np.float64),
         "pending_typed": None,
     }
@@ -231,24 +244,25 @@ def main() -> None:
     label.pack(padx=args.cell, pady=args.cell)
 
     def tick():
-        # Substrate-recurrent step on the char_code. Without a key, the
-        # 36-way defuzzified select advances the code one step in cycle order.
-        # With a pending key, has_typed=1.0 and the typed code wins via the
-        # weighted-sum gate -- no host if.
+        # Substrate-state-RNN step. cycle_step advances its own recurring
+        # one-hot `glyph` slot ON THE SUBSTRATE (next = P @ glyph, the frozen
+        # cyclic-permutation matmul); the host does NOT carry the cursor.
+        # Without a key, has_typed=0.0 and the advance passes through; with a
+        # pending key, has_typed=1.0 and the host-built typed one-hot wins via
+        # the substrate weighted-sum gate -- no host if.
         has_typed = 1.0 if state["pending_typed"] is not None else 0.0
-        typed = float(state["pending_typed"]) if has_typed else 0.0
-        next_code_vec = cycle_step(state["char_code"], typed, has_typed)
-        next_code = float(cycle_ns["_VSA"].real(next_code_vec))
+        typed_oh = _typed_onehot(state["pending_typed"])
+        glyph_oh = cycle_step(typed_oh, has_typed)
         state["pending_typed"] = None
-        # Round to the nearest integer codepoint -- the defuzzified select is
-        # exact in float64, but a defensive round() guards against any drift
-        # from the typed override (typed_vec * 1.0 is exact, but be careful).
-        state["char_code"] = float(round(next_code))
+        # Decode the returned one-hot to a char_code for RENDERING only -- a
+        # monitoring boundary (like count.su decoding its count vector), NOT
+        # state feedback. The recurrence already advanced on the substrate.
+        char_code = float(ord(CYCLE[int(_torch.argmax(glyph_oh))]))
 
         # Render the 25-cell pixel field for the new code. This is the expensive
-        # part (22500 substrate branches via the existing glyph_pixel design);
-        # the cycle_step itself is one 36-way select on top.
-        new_field = render_glyph(state["char_code"], prev_field=state["field"])
+        # part (the glyph_pixel_antipodal bound-vector design at dim=256);
+        # the cycle_step advance itself is one matmul.
+        new_field = render_glyph(char_code, prev_field=state["field"])
         state["field"] = new_field
         photo = make_photo(new_field)
         label.configure(image=photo)

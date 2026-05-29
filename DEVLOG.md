@@ -15,6 +15,37 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: font.su cycle_step is a real substrate-state RNN (Option B) + egglog literal fix
+
+Built the font cycle_step substrate-RNN Emma chose (Option B). The glyph cursor
+is now a 36-dim one-hot in a `recurring vector` slot living on the substrate
+across ticks; the advance is one matmul `next = P @ glyph` against the frozen
+36×36 cyclic-permutation matrix P (built with `matrix_literal`); typed override
+is a substrate weighted sum. No scalar char_code ever materializes; the host
+decodes the one-hot for render only (monitoring boundary). This fixes the
+host-state-shuttle shape Emma flagged 2026-05-27 and discharges the blocker in
+`2026-05-28-cycle-step-rewrite-blocked.md`.
+
+Measured: advance walks `BCDE…Z0…9ABC` (every step + both wraps + full loop);
+typed override → Q then advances Q→R; **signal-separation gap = 1.0** (state is
+bit-exact one-hot every tick, no drift over 40 ticks). State-locus + dim audits
+pass (recurring vector survives across calls without host real(); 36-d state,
+zero basis_vector, runtime_dim=8). `test_font_cycle.py` rewritten (4/4, 12s).
+`font_demo.py` host + docstring updated. Finding:
+`planning/findings/2026-05-28-font-cycle-step-substrate-rnn-shipped.md`.
+
+Sub-fix: `matrix_literal(vector_literal×36)` (~1300 literal nodes) made the
+egglog post-pass run equality-saturation on the whole literal tree — 65s for
+cycle_step alone. Skipped egglog for `vector_literal`/`matrix_literal` Call
+nodes (pure float literals, nothing to simplify): `simplify_module` 65.09s →
+0.84s; 89 simplify/egglog/literal tests still pass.
+
+Flagged (PRE-EXISTING, not introduced here): the full font.su compile is >300s,
+dominated by the egglog post-pass on the 36 `bit_<C>` + `glyph_pixel` selects
+(masked by an on-disk compile cache). cycle_step now compiles in isolation for
+its test. The same literal-constructor skip would likely help the `select([…],
+[make_real…])` glyph case — left as a measured follow-on (queue).
+
 ## 2026-05-28: matrix literals shipped — `matrix_literal` builtin (font.su Option-B prereq + stdlib unblock)
 
 Emma's `AskUserQuestion` answer chose "add matrix-literal support to the

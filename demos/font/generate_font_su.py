@@ -42,18 +42,21 @@ _HEADER = """\
 //       not a substrate-state RNN (CLAUDE.md "Subtler substrate breaches"
 //       #2; finding planning/findings/2026-05-28-demos-font-substrate-audit.md).
 //
-//   cycle_step(prev_code, typed_code, has_typed) -- 2026-05-27
-//       Computes next char_code from prev_code via a 36-way defuzzified
-//       select (cycle A->B->...->Z->0->...->9->A); with has_typed=1.0
-//       the typed code takes the place via the substrate weighted sum
-//       `has_typed*typed_code + (1-has_typed)*advanced`. CURRENT SHAPE
-//       IS HOST-STATE-SHUTTLE — prev_code is a function arg the host
-//       carries between ticks, NOT a substrate-resident slot. The
-//       substrate-RNN rewrite via `recur` (planning/sutra-spec/
-//       non-halting-loop.md) is BLOCKED on v2 primitives (Sutra-source
-//       real() accessor or matrix-lookup softmax) per
-//       planning/findings/2026-05-28-cycle-step-rewrite-blocked.md +
-//       queue.md task #18.
+//   cycle_step(typed_onehot, has_typed) -- substrate-state RNN (rewritten 2026-05-28)
+//       The glyph cursor is a 36-dim ONE-HOT held in a `recurring vector`
+//       slot that survives across ticks ON THE SUBSTRATE (non-halting-loop.md).
+//       The advance is one matmul `next = P @ glyph` against the frozen
+//       36x36 cyclic-permutation matrix P (shift-by-one, wraps
+//       Z->0->...->9->A), built with the `matrix_literal` primitive. One-hot
+//       in, one-hot out, no scalar char_code ever materializes. With
+//       has_typed=1.0 a host-provided typed one-hot replaces the advance via
+//       the substrate weighted sum `has_typed*typed_onehot +
+//       (1-has_typed)*advanced`. This is a REAL substrate RNN: the recurring
+//       slot is a vector that survives across calls without host real()
+//       extraction (the prior host-state-shuttle shape is gone). The host
+//       decodes the returned one-hot to a glyph for rendering only — a
+//       monitoring boundary, like count.su decoding its count vector. Option
+//       B of planning/findings/2026-05-28-cycle-step-rewrite-blocked.md.
 //
 //   glyph_pixel(x, y, char_code)
 //       Returns 1.0 if pixel (x, y) is lit for the letter with this codepoint,
@@ -68,7 +71,9 @@ _HEADER = """\
 //       The lit/unlit bit for character <C> at flat position pos = y*5 + x
 //       (pos in 0..24). Same defuzzified-select pattern, 25-way over pos.
 //
-// Together: each tick -> cycle_step(prev_code, ...) gives next char_code
+// Together: each tick -> cycle_step(typed_onehot, has_typed) advances the
+//                    recurring one-hot glyph cursor on the substrate; the host
+//                    decodes it to a char_code (argmax, monitoring boundary)
 //                 -> for each of 25 cells, glyph_pixel(x, y, code) selects
 //                    a bit from the 36-way outer + 25-way inner switches.
 // No host font table on the runtime path; both the cycle advance and the
@@ -155,45 +160,66 @@ function vector step(vector prev_state, scalar x, scalar y, scalar char_code) {
 
 
 def gen_cycle_step() -> str:
-    """Emma's recurrent step on the *character code* (added 2026-05-27).
+    """Emma's recurrent step on the glyph cycle — a real substrate-state RNN
+    (rewritten 2026-05-28, Option B of the cycle-step-rewrite-blocked finding).
 
-    Without a keypress, the char_code advances one step around the 36-glyph
-    cycle (A->B->...->Z->0->...->9->A) via a 36-way defuzzified select that
-    enumerates every (prev_code -> next_code) pair. With ``has_typed=1.0``
-    the substrate weighted sum lets the typed code take the place of the
-    advanced one. No host ``if`` -- the override is just arithmetic on the
-    real axis, the same way ``step`` does ``prev*0 + glyph_pixel(...)``.
+    The recurring state is a 36-dim ONE-HOT over the glyph cycle
+    (A->B->...->Z->0->...->9->A), held as a ``recurring vector`` slot that
+    survives across ticks ON THE SUBSTRATE (per non-halting-loop.md). It is
+    NOT a scalar char_code shuttled through the host via ``real()`` between
+    ticks — that was the prior host-state-shuttle shape and the source of the
+    blocker (scalar scoring needs a source-level ``real()`` Sutra doesn't have).
+
+    The advance is a single matmul: ``next = P @ glyph`` where ``P`` is the
+    frozen 36x36 cyclic-permutation matrix (shift-by-one, wraps Z->0->...->9->A),
+    built with the ``matrix_literal`` source-level primitive (shipped
+    2026-05-28). One-hot in, one-hot out, no scalar ever touched. With
+    ``has_typed=1.0`` the substrate weighted sum lets a host-provided typed
+    one-hot take the place of the advance — same gate pattern as before, on
+    one-hot vectors instead of ``make_real(code)``. The host decodes the
+    returned one-hot to a glyph for rendering — a monitoring boundary, exactly
+    like count.su decoding its count vector to position the glow; the
+    recurrence itself never leaves the substrate.
+
+    Note: the state/advance are 36-dim problem-sized tensors, independent of
+    runtime_dim (no basis_vector calls), so the dim-audit rule is satisfied
+    at the smallest runtime_dim.
     """
-    # Cycle order: A..Z then 0..9, wrapping back to A.
     cycle = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    pairs: list[tuple[int, int]] = []
-    for i, c in enumerate(cycle):
-        nxt = cycle[(i + 1) % len(cycle)]
-        pairs.append((ord(c), ord(nxt)))
+    n = len(cycle)  # 36
+
+    def row(active_col: int) -> str:
+        vals = ", ".join("1.0" if k == active_col else "0.0" for k in range(n))
+        return f"vector_literal({vals})"
 
     lines: list[str] = []
-    lines.append("function vector cycle_step(scalar prev_code, scalar typed_code, scalar has_typed) {")
-    lines.append("    // 36-way defuzzified select: for each supported prev_code, the next code")
-    lines.append("    // in cycle order (A->B, ..., Y->Z, Z->0, 0->1, ..., 8->9, 9->A). Same")
-    lines.append("    // softmax-saturation trick as glyph_pixel -- exp(-1000) underflows in")
-    lines.append("    // float64, so the matching score's branch passes through and the others")
-    lines.append("    // are zeroed.")
-    for cp, _ in pairs:
-        lines.append(
-            f"    scalar s_{cp} = 0.0 - 1000.0 * (prev_code - {float(cp):.1f}) "
-            f"* (prev_code - {float(cp):.1f});"
-        )
+    lines.append("function vector cycle_step(vector typed_onehot, scalar has_typed) {")
+    lines.append("    // Substrate-state RNN over the 36-glyph cycle. The recurring `glyph`")
+    lines.append("    // slot is a 36-dim one-hot living on the substrate across ticks; the")
+    lines.append("    // advance is one matmul against the frozen cyclic-permutation matrix P.")
     lines.append("")
-    scores = ", ".join(f"s_{cp}" for cp, _ in pairs)
-    branches = ", ".join(f"make_real({float(nxt):.1f})" for _, nxt in pairs)
-    lines.append("    // advanced_vec is make_real(next_code) for the matching prev_code.")
-    lines.append(f"    vector advanced_vec = select([{scores}], [{branches}]);")
+    # Initial one-hot: glyph 'A' = cycle index 0.
+    lines.append("    // First-tick state: one-hot for 'A' (cycle index 0).")
+    lines.append(f"    recurring vector glyph = {row(0)};")
     lines.append("")
-    lines.append("    // Override: if has_typed=1.0, the typed code replaces the advance;")
-    lines.append("    // if has_typed=0.0, the advance passes through. Substrate weighted sum,")
-    lines.append("    // not a host if -- both branches are computed; the gate picks.")
-    lines.append("    vector typed_vec = make_real(typed_code);")
-    lines.append("    return advanced_vec * (1.0 - has_typed) + typed_vec * has_typed;")
+    # Permutation P: (P @ e_i) = e_{(i+1)%n}, so row j has its 1 at column (j-1)%n.
+    lines.append("    // Cyclic-shift permutation: (P @ e_i) = e_{(i+1) mod 36}. Row j has")
+    lines.append("    // its single 1 at column (j-1) mod 36, so a one-hot advances by one")
+    lines.append("    // and wraps Z(25)->0(26), 9(35)->A(0).")
+    lines.append("    matrix P = matrix_literal(")
+    row_lines = [f"        {row((j - 1) % n)}" for j in range(n)]
+    lines.append(",\n".join(row_lines))
+    lines.append("    );")
+    lines.append("")
+    lines.append("    vector advanced = Tensor.MatrixMul(P, glyph);")
+    lines.append("")
+    lines.append("    // Override: has_typed=1.0 -> the host-provided typed one-hot replaces")
+    lines.append("    // the advance; has_typed=0.0 -> the advance passes through. Substrate")
+    lines.append("    // weighted sum, not a host if -- both branches computed, the gate picks.")
+    lines.append("    vector next = advanced * (1.0 - has_typed) + typed_onehot * has_typed;")
+    lines.append("")
+    lines.append("    recur(next);")
+    lines.append("    return(next);")
     lines.append("}")
     return "\n".join(lines)
 

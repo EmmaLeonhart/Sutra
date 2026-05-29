@@ -206,6 +206,18 @@ def _egglog_post_pass(module: ast.Module) -> None:
 
     def _walk_expr(expr: ast.Expr) -> ast.Expr:
         """Bottom-up walk: simplify children first, then the node."""
+        # Fast-path literal constructors. `vector_literal(...)` and
+        # `matrix_literal(...)` carry only pure float literals (and, for
+        # matrix_literal, nested vector_literals) — there is nothing for
+        # egglog to algebraically simplify, and lifting a large literal
+        # tree into egglog is pathologically slow (equality saturation
+        # over ~1300 nodes for a 36x36 permutation matrix took 65s).
+        # Skip them entirely: don't walk the args, don't run egglog on
+        # the node. See planning/findings/2026-05-28 matrix-literal note.
+        if (isinstance(expr, ast.Call)
+                and isinstance(expr.callee, ast.Identifier)
+                and expr.callee.name in ("vector_literal", "matrix_literal")):
+            return expr
         if isinstance(expr, ast.Call):
             expr.args = [_walk_expr(a) for a in expr.args]
         elif isinstance(expr, ast.BinaryOp):

@@ -15,18 +15,21 @@
 //       not a substrate-state RNN (CLAUDE.md "Subtler substrate breaches"
 //       #2; finding planning/findings/2026-05-28-demos-font-substrate-audit.md).
 //
-//   cycle_step(prev_code, typed_code, has_typed) -- 2026-05-27
-//       Computes next char_code from prev_code via a 36-way defuzzified
-//       select (cycle A->B->...->Z->0->...->9->A); with has_typed=1.0
-//       the typed code takes the place via the substrate weighted sum
-//       `has_typed*typed_code + (1-has_typed)*advanced`. CURRENT SHAPE
-//       IS HOST-STATE-SHUTTLE — prev_code is a function arg the host
-//       carries between ticks, NOT a substrate-resident slot. The
-//       substrate-RNN rewrite via `recur` (planning/sutra-spec/
-//       non-halting-loop.md) is BLOCKED on v2 primitives (Sutra-source
-//       real() accessor or matrix-lookup softmax) per
-//       planning/findings/2026-05-28-cycle-step-rewrite-blocked.md +
-//       queue.md task #18.
+//   cycle_step(typed_onehot, has_typed) -- substrate-state RNN (rewritten 2026-05-28)
+//       The glyph cursor is a 36-dim ONE-HOT held in a `recurring vector`
+//       slot that survives across ticks ON THE SUBSTRATE (non-halting-loop.md).
+//       The advance is one matmul `next = P @ glyph` against the frozen
+//       36x36 cyclic-permutation matrix P (shift-by-one, wraps
+//       Z->0->...->9->A), built with the `matrix_literal` primitive. One-hot
+//       in, one-hot out, no scalar char_code ever materializes. With
+//       has_typed=1.0 a host-provided typed one-hot replaces the advance via
+//       the substrate weighted sum `has_typed*typed_onehot +
+//       (1-has_typed)*advanced`. This is a REAL substrate RNN: the recurring
+//       slot is a vector that survives across calls without host real()
+//       extraction (the prior host-state-shuttle shape is gone). The host
+//       decodes the returned one-hot to a glyph for rendering only — a
+//       monitoring boundary, like count.su decoding its count vector. Option
+//       B of planning/findings/2026-05-28-cycle-step-rewrite-blocked.md.
 //
 //   glyph_pixel(x, y, char_code)
 //       Returns 1.0 if pixel (x, y) is lit for the letter with this codepoint,
@@ -41,7 +44,9 @@
 //       The lit/unlit bit for character <C> at flat position pos = y*5 + x
 //       (pos in 0..24). Same defuzzified-select pattern, 25-way over pos.
 //
-// Together: each tick -> cycle_step(prev_code, ...) gives next char_code
+// Together: each tick -> cycle_step(typed_onehot, has_typed) advances the
+//                    recurring one-hot glyph cursor on the substrate; the host
+//                    decodes it to a char_code (argmax, monitoring boundary)
 //                 -> for each of 25 cells, glyph_pixel(x, y, code) selects
 //                    a bit from the 36-way outer + 25-way inner switches.
 // No host font table on the runtime path; both the cycle advance and the
@@ -64,57 +69,65 @@ function vector step(vector prev_state, scalar x, scalar y, scalar char_code) {
 }
 
 
-function vector cycle_step(scalar prev_code, scalar typed_code, scalar has_typed) {
-    // 36-way defuzzified select: for each supported prev_code, the next code
-    // in cycle order (A->B, ..., Y->Z, Z->0, 0->1, ..., 8->9, 9->A). Same
-    // softmax-saturation trick as glyph_pixel -- exp(-1000) underflows in
-    // float64, so the matching score's branch passes through and the others
-    // are zeroed.
-    scalar s_65 = 0.0 - 1000.0 * (prev_code - 65.0) * (prev_code - 65.0);
-    scalar s_66 = 0.0 - 1000.0 * (prev_code - 66.0) * (prev_code - 66.0);
-    scalar s_67 = 0.0 - 1000.0 * (prev_code - 67.0) * (prev_code - 67.0);
-    scalar s_68 = 0.0 - 1000.0 * (prev_code - 68.0) * (prev_code - 68.0);
-    scalar s_69 = 0.0 - 1000.0 * (prev_code - 69.0) * (prev_code - 69.0);
-    scalar s_70 = 0.0 - 1000.0 * (prev_code - 70.0) * (prev_code - 70.0);
-    scalar s_71 = 0.0 - 1000.0 * (prev_code - 71.0) * (prev_code - 71.0);
-    scalar s_72 = 0.0 - 1000.0 * (prev_code - 72.0) * (prev_code - 72.0);
-    scalar s_73 = 0.0 - 1000.0 * (prev_code - 73.0) * (prev_code - 73.0);
-    scalar s_74 = 0.0 - 1000.0 * (prev_code - 74.0) * (prev_code - 74.0);
-    scalar s_75 = 0.0 - 1000.0 * (prev_code - 75.0) * (prev_code - 75.0);
-    scalar s_76 = 0.0 - 1000.0 * (prev_code - 76.0) * (prev_code - 76.0);
-    scalar s_77 = 0.0 - 1000.0 * (prev_code - 77.0) * (prev_code - 77.0);
-    scalar s_78 = 0.0 - 1000.0 * (prev_code - 78.0) * (prev_code - 78.0);
-    scalar s_79 = 0.0 - 1000.0 * (prev_code - 79.0) * (prev_code - 79.0);
-    scalar s_80 = 0.0 - 1000.0 * (prev_code - 80.0) * (prev_code - 80.0);
-    scalar s_81 = 0.0 - 1000.0 * (prev_code - 81.0) * (prev_code - 81.0);
-    scalar s_82 = 0.0 - 1000.0 * (prev_code - 82.0) * (prev_code - 82.0);
-    scalar s_83 = 0.0 - 1000.0 * (prev_code - 83.0) * (prev_code - 83.0);
-    scalar s_84 = 0.0 - 1000.0 * (prev_code - 84.0) * (prev_code - 84.0);
-    scalar s_85 = 0.0 - 1000.0 * (prev_code - 85.0) * (prev_code - 85.0);
-    scalar s_86 = 0.0 - 1000.0 * (prev_code - 86.0) * (prev_code - 86.0);
-    scalar s_87 = 0.0 - 1000.0 * (prev_code - 87.0) * (prev_code - 87.0);
-    scalar s_88 = 0.0 - 1000.0 * (prev_code - 88.0) * (prev_code - 88.0);
-    scalar s_89 = 0.0 - 1000.0 * (prev_code - 89.0) * (prev_code - 89.0);
-    scalar s_90 = 0.0 - 1000.0 * (prev_code - 90.0) * (prev_code - 90.0);
-    scalar s_48 = 0.0 - 1000.0 * (prev_code - 48.0) * (prev_code - 48.0);
-    scalar s_49 = 0.0 - 1000.0 * (prev_code - 49.0) * (prev_code - 49.0);
-    scalar s_50 = 0.0 - 1000.0 * (prev_code - 50.0) * (prev_code - 50.0);
-    scalar s_51 = 0.0 - 1000.0 * (prev_code - 51.0) * (prev_code - 51.0);
-    scalar s_52 = 0.0 - 1000.0 * (prev_code - 52.0) * (prev_code - 52.0);
-    scalar s_53 = 0.0 - 1000.0 * (prev_code - 53.0) * (prev_code - 53.0);
-    scalar s_54 = 0.0 - 1000.0 * (prev_code - 54.0) * (prev_code - 54.0);
-    scalar s_55 = 0.0 - 1000.0 * (prev_code - 55.0) * (prev_code - 55.0);
-    scalar s_56 = 0.0 - 1000.0 * (prev_code - 56.0) * (prev_code - 56.0);
-    scalar s_57 = 0.0 - 1000.0 * (prev_code - 57.0) * (prev_code - 57.0);
+function vector cycle_step(vector typed_onehot, scalar has_typed) {
+    // Substrate-state RNN over the 36-glyph cycle. The recurring `glyph`
+    // slot is a 36-dim one-hot living on the substrate across ticks; the
+    // advance is one matmul against the frozen cyclic-permutation matrix P.
 
-    // advanced_vec is make_real(next_code) for the matching prev_code.
-    vector advanced_vec = select([s_65, s_66, s_67, s_68, s_69, s_70, s_71, s_72, s_73, s_74, s_75, s_76, s_77, s_78, s_79, s_80, s_81, s_82, s_83, s_84, s_85, s_86, s_87, s_88, s_89, s_90, s_48, s_49, s_50, s_51, s_52, s_53, s_54, s_55, s_56, s_57], [make_real(66.0), make_real(67.0), make_real(68.0), make_real(69.0), make_real(70.0), make_real(71.0), make_real(72.0), make_real(73.0), make_real(74.0), make_real(75.0), make_real(76.0), make_real(77.0), make_real(78.0), make_real(79.0), make_real(80.0), make_real(81.0), make_real(82.0), make_real(83.0), make_real(84.0), make_real(85.0), make_real(86.0), make_real(87.0), make_real(88.0), make_real(89.0), make_real(90.0), make_real(48.0), make_real(49.0), make_real(50.0), make_real(51.0), make_real(52.0), make_real(53.0), make_real(54.0), make_real(55.0), make_real(56.0), make_real(57.0), make_real(65.0)]);
+    // First-tick state: one-hot for 'A' (cycle index 0).
+    recurring vector glyph = vector_literal(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-    // Override: if has_typed=1.0, the typed code replaces the advance;
-    // if has_typed=0.0, the advance passes through. Substrate weighted sum,
-    // not a host if -- both branches are computed; the gate picks.
-    vector typed_vec = make_real(typed_code);
-    return advanced_vec * (1.0 - has_typed) + typed_vec * has_typed;
+    // Cyclic-shift permutation: (P @ e_i) = e_{(i+1) mod 36}. Row j has
+    // its single 1 at column (j-1) mod 36, so a one-hot advances by one
+    // and wraps Z(25)->0(26), 9(35)->A(0).
+    matrix P = matrix_literal(
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
+        vector_literal(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+        vector_literal(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    );
+
+    vector advanced = Tensor.MatrixMul(P, glyph);
+
+    // Override: has_typed=1.0 -> the host-provided typed one-hot replaces
+    // the advance; has_typed=0.0 -> the advance passes through. Substrate
+    // weighted sum, not a host if -- both branches computed, the gate picks.
+    vector next = advanced * (1.0 - has_typed) + typed_onehot * has_typed;
+
+    recur(next);
+    return(next);
 }
 
 function vector glyph_pixel(scalar x, scalar y, scalar char_code) {
