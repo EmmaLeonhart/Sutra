@@ -8,6 +8,14 @@ Sutra spec's position that roles are learned matrices. If there isn't
 (no better than random or degenerate solutions), that's a strike
 against the matrix-for-a-role framing on this particular substrate.
 
+Documented in: planning/findings/2026-05-29-trainable-matrix-through-substrate.md
+(this is the host least-squares "does a role matrix exist" probe; the
+substrate gradient-descent "train a matrix through the compiled graph"
+demonstration lives in experiments/trainable_matrix_adjustment.py).
+Result: the identity baseline wins -- the object word is lexically
+present in the sentence embedding, so a learned linear "object-of"
+operator buys little over reading the sentence embedding directly.
+
 Method:
 - 30 simple SVO sentences with unambiguous direct objects.
 - Embed both sentence and object with nomic-embed-text via Ollama,
