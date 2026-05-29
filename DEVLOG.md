@@ -15,6 +15,28 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: Phase-3 apps migration — echo migrated kernel-free (Yantra → Sutra)
+
+Greenlit by Emma. First of the three kernel-coupled Yantra apps
+(echo/calc/terminal) migrated into Sutra as a kernel-free demo. The
+"admit-shim" the queue anticipated turned out unnecessary — the migrated
+apps (precedent: the already-migrated font/gui) simply skip the kernel and
+call `compile_su` directly, then invoke the compiled entry function.
+
+`demos/echo/{echo.su, echo_demo.py, test_echo.py}` (6/6): `on_axon` is
+called directly on a host-built axon (`axon_add(zero, "stdin_text",
+make_string(text))`); the result is decoded with `string_to_python`. The
+string round-trips bit-exact through rotation binding at runtime_dim=16
+(measured 5/5 exact at dims {16,32,64,128,256}; it rides a single binding,
+which inverts exactly). Substrate-honesty correction: the Yantra echo.toml
+note "no basis_vector calls, LLM codebook never touched at dim=16" does
+NOT hold for the Sutra runtime — `axon_add`/`axon_item` embed their string
+keys via `embed()`, which has no random fallback, so echo needs Ollama
+(nomic). The cheap part is the dimension (the string value, not the keys),
+not the model. echo.su header + demo docstring corrected to say so.
+REMAINING: calc (363L + switch.su/digits.su) and terminal (212L) — source
+in `../Yantra/apps/`.
+
 ## 2026-05-29: FV contract key-soundness discharged (runtime key-usage instrumentation)
 
 Greenlit by Emma (AskUserQuestion). Closes the long-open half of the
