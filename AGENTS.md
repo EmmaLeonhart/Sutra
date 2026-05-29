@@ -35,13 +35,17 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | Path | What's there |
 |---|---|
 | `sdk/sutra-compiler/` | The compiler. `sutra_compiler/` is the Python package; `tests/` is the test suite; `stdlib/` holds the `.su` standard library that gets inlined into user code. |
+| `sdk/sutra-from-ts/` | The TypeScript→Sutra transpiler. The **sole active transpiler** (per `CLAUDE.md`) and Yantra's downstream gate. |
+| `sdk/sutra-from-c/` | Parked C→Sutra skeleton. At the back of the agenda; TypeScript is the only transpiler being built. |
 | `sdk/intellij-sutra/` | IntelliJ plugin (syntax highlighting, completion, external annotator, settings). |
 | `sdk/vscode-sutra/` | VS Code extension (TextMate grammar, snippets). |
 | `examples/` | `.su` programs. The smoke-tested ten plus reference material. `examples/_smoke_test.py` is the end-to-end driver. |
+| `demos/` | Substrate GUI and font demos. `demos/font/` holds `font.su`, the `font_bound*.su` family, the `cycle_step` substrate-RNN, and font tests; `demos/gui/` holds `count.su`, `toggle.su`, `frame.su`, `window.py`, and GUI tests. Has its own CI: `.github/workflows/demos-ci.yml`. |
 | `experiments/` | One-off scripts that aren't part of the main pipeline. |
 | `tests/` | Top-level integration tests; per-component tests live next to their component. |
 | `sutraDB/` | The bundled vector database (subtree). Less mature than the compiler. |
 | `scripts/` | Utility scripts (paper submission, reference fetching, etc.). |
+| `sutrac.py` | Top-level compiler entry-point shim. |
 
 ### Planning, spec, and findings
 
@@ -51,6 +55,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | `planning/findings/` | Dated experimental results. Negative and mixed findings live here too — they are required, not optional. |
 | `planning/open-questions/` | Design gaps where the implementation made a call the spec doesn't justify yet. |
 | `planning/exploratory/` | Ideas not yet tried. |
+| `planning/issues/` | Tracked design/implementation issues. |
 | `planning/semantic-corrections.md` | Pinned corrections to wording / framing the user has flagged before. Honor these. |
 
 ### Paper
@@ -62,6 +67,7 @@ If you only have time for two files: `CLAUDE.md` and `queue.md`.
 | `paper/supplementary/` | Live supplementary docs. The frozen NeurIPS copy is under `paper/neurips/supplementary/`. |
 | `paper/reviews/` | clawRxiv AI peer review responses, auto-committed by the CI workflow. Signal, not verdicts. |
 | `paper/.post_id` | Tracks the latest clawRxiv post in the supersedes chain. |
+| `paper/formal-verification/` | The **second, LIVE paper** — formal verification (`paper.md` + `reviews/` + its own `.post_id`). Distinct from the frozen `paper/neurips/`: it is kept in sync with the FV work as obligations land. Auto-submits on push via `.github/workflows/fv-paper-ci.yml`. Ground truth: `planning/sutra-spec/formal-verification.md`. |
 
 ### Website source
 
