@@ -67,11 +67,11 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 
 **RESOLVED 2026-05-29 via `AskUserQuestion` (Emma answered all four "deliberately-not-done" items):**
 1. **Drop the 0-d projection on `exp`/`cos`/`sin` → TAKE IT ON NOW** (test-gated, keep the old 0-d form working via an alias so the NeurIPS-frozen paper's cos/sin/exp examples keep producing the same outputs). Now §A task #5 below.
-2. **Trainable binding matrix (semantic bind = learned matrix) → BUILD IT NOW.** Now §A task #6 below (continues the trainable-matrix arc; mechanism proven this session).
+2. **Trainable binding matrix (semantic bind = learned matrix) → SHIPPED 2026-05-29.** `experiments/trainable_binding_matrix.py` + finding `2026-05-29-trainable-binding-matrix.md`. Measured the semantic-vs-non-semantic bind distinction: learned matrices recover KNOWN fillers perfectly at all K (random-orth degrades 0.785→0.181 at K=2→32), but it's the UNBIND side memorising the fixed bundle (init ‖dL/dB‖~6e-8 vs ‖dL/dU‖~0.22) and does NOT generalise to new fillers — for arbitrary content random-orthogonal stays near-optimal (VSA limit). Exact fit to "objects track which learned matrices bound their fields." Next (in finding): tie U=B^T; train over a filler distribution.
 3. **Contract key-soundness (FV §3.1 runtime key-usage instrumentation) → TAKE IT ON.** Was §A.3 / task #10 — now greenlit, design-first.
 4. **Phase-3 apps migration (calc/echo/terminal → compile_su + admit-shim, skip the kernel) → TAKE IT ON.** Was §A.4 / task #13 — now greenlit, large re-architecture.
 
-Execution order (by momentum + leverage): #6 binding matrix → #5 0-d projection → #3 FV key-soundness → #4 Phase-3 apps.
+Execution order: ✅ binding matrix (done) → 0-d projection (next) → FV key-soundness → Phase-3 apps.
 
 
 ### A. In-flight / unblocked-ready-to-go (no Emma input needed)
