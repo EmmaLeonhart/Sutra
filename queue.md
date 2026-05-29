@@ -113,49 +113,6 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 - `https://sutra.emmaleonhart.com/formal-verification.pdf` — FV paper PDF rebuilt every push (80KB)
 - Existing site: vision, what-is-sutra, operators, compilation, paradigms, primitive-classes, logical-operations, demos, history, tutorials, /paper/, /neurips-2026/, /arxiv/
 
-### J. Live experiments + runlog state
-
-- K=2 k=2 smoke re-run in flight (`bqrzxm1yu`) — verifies the bug fix didn't regress; result lands when done
-- `experiments/runlogs/2026-05-27-rank-k-K5-k1-n3.txt` — the crash trace; preserved as the failure record
-- Defuzz-gain smoke output (in commit `cad18562`'s test output)
-- All FV reviews accumulating at `paper/formal-verification/reviews/v*_post*_review.{json,md}`
-
-### K. Test-suite health
-
-- Last full local: 437 passed / 7 skipped / 0 xfailed (after `e2b8ee7a`'s codegen `eq` substrate-leak fix; +2 tests from the 2026-05-28 session)
-- Compiler CI: last green on `ee8b80e0`; demos-ci.yml landed (`464cd27e`) but no demos-touching pushes since
-- fv-paper-ci: stable green run-after-run via the self-heal stack
-
----
-
-### ⭐ Emma 2026-05-27 13:21 PST — multi-front authorization batch
-
-Emma greenlit a batch of FV + infra + experiment work in one message
-(see DEVLOG 2026-05-27 entries). The atomized work items are
-interleaved into the lists below; this header is a pointer so future
-sessions don't lose the context. Items below this header carry the
-`(Emma 2026-05-27)` tag.
-
-### ⭐ #1 PRIORITY — Rank-k `is_X` matrix constrain-train experiment
-
-The first matrix-valued constrain-train target. K classes × k prototypes per class + K×k scalar gains; trained values bake back as `vector_literal(...)` + numeric literals; round-trip-checked against the param-form graph.
-
-**Mechanism.** Rank-k discrimination for class X is:
-
-```
-is_X(x) = T_1 * sim(x, v_X_1) ⊕ T_2 * sim(x, v_X_2) ⊕ ... ⊕ T_k * sim(x, v_X_k)
-```
-
-where `⊕` is fuzzy OR (Lagrange poly). Rank-1 is the equality-cosine adjustment shape; rank-k generalizes to k prototypes per class.
-
-**Status.** Harness ships and the K=2 k=2 smoke passes (equivalence guard exact, round-trip clean). The K=5 sweep that would produce a publishable finding is **blocked on the 🚨 BUG above** (RuntimeError 1D vs 0D tensors in `similarity` inside `is_class_2` — surfaces at K ≥ 3). Once the bug is fixed, the K=5 k ∈ {1, 2, 4} n=3 sweep can run and the findings doc at `planning/findings/YYYY-MM-DD-rank-k-is-x.md` lands.
-
-**Honest scope:**
-- The K=5 classification baseline saturates fast (Stage-B was 100%); the rank-1 vs rank-k *margin* is the metric, not accuracy.
-- Substrate-purity rails compose with this — the trained values run through the emitted graph, not through host shortcuts.
-
-**Cross-refs:** `planning/sutra-spec/matrix-valued-bake-back.md` (mechanism), `experiments/equality_cosine_adjustment.py` (rank-1 precedent), `experiments/rank_k_is_x.py` (harness).
-
 ### ⚙️ Environment — Emma's machine IS capable (read before doubting hardware)
 
 **Real, good GPU — RTX 4070, `torch.cuda.is_available()` == True — plus ample
@@ -233,18 +190,6 @@ exists, sweep k ∈ {8, 16, 32, 64} and report. The paper gets a periodic
 update from each (CI auto-submits on push). Items (4) key-soundness and
 arbitrary-precision are tracked separately below + in todo.md per Emma's
 instruction.
-
-**Both TASKS-TO-SUBMITTABLE items DONE 2026-05-27.**
-- (2) PIT honesty — `experiments/fv_pit_term_count.py`, FV paper §3.3,
-  finding `planning/findings/2026-05-27-pit-term-count.md`.
-- (1) k=8 → capacity curve — `experiments/rotation_binding_capacity_llm.py`
-  (already supported widths [2..48]; re-ran), FV paper §4.1, finding
-  `planning/findings/2026-05-27-bundle-decoding-capacity-curve.md`.
-  Headlines: rotation binding stays 100% through k=8 on all three
-  text substrates; nomic 100% through k=24; mxbai 95.8% at k=24.
-
-Items (3) fragment scope, (5) termination framing, (7) general
-obligation checker still pending in the TASKS-TO-SUBMITTABLE list.
 
 ### Formal verification — next concrete work (Emma 2026-05-24: more FV here)
 
@@ -413,129 +358,14 @@ Move it back to Sutra; pause the OS while the language matures.
    CLI utilities (`cat`, `ls`, `wc` — gated on Sutra's string + IO + FS
    vocabulary).
 
-### Phase 1 — `apps/font/` — SHIPPED 2026-05-28
-
-Landed in commit `e12e1ebd` (15 files; 8793 insertions). Smoke result:
-82 passed in 497s when run via `pytest demos/font/` from Sutra repo root.
-All 39+41+2 test cases behave identically to the Yantra-side run.
-DEVLOG entry covering the three substrate-leak categories the Yantra
-audit found: commit `4c98d31a`. CLAUDE.md subsection codifying the
-three measurement-required substrate breaches: commit `f8beb415`.
-
-**Yantra-side delete + pin bump still pending** — the font app is
-currently DUPLICATED in both repos until that Yantra commit lands. The
-delete + pin bump is the next migration sub-step (see "Phase 1 cleanup"
-below).
-
-### Phase 1 cleanup — delete duplicates from Yantra, bump pin
-
-Single Yantra commit that:
-1. Deletes `apps/font/`, `tools/font_data.py`, `tools/generate_font_su.py`,
-   `tools/generate_font_bound_su.py`, `tests/test_font.py`,
-   `test_font_cycle.py`, `test_font_bound.py`,
-   `tests/fixtures/nomic-embed-text-d108.pt`.
-2. Bumps `external/Sutra` to a commit containing `demos/font/`
-   (currently `f8beb415` or later).
-3. Removes Yantra-side font references from `queue.md`, `planning/26`,
-   `planning/27` (link them to the Sutra locations).
-4. Confirms Yantra's remaining test suite still passes (apps/font tests
-   removed, but the other 215 tests should be untouched).
-
-### Phase 2 — `apps/gui/` (direct-substrate, NEXT)
-
-`count.su`, `frame.su`, `toggle.su` and their demos (`counter_demo.py`,
-`window.py`, `click_demo.py`) plus their tests
-(`test_gui_counter.py`, `test_gui_render.py`, `test_gui_click.py`).
-Same shape as font — no kernel coupling, drop straight into `demos/gui/`.
-
 ### Phase 3 — `apps/calc/`, `apps/echo/`, `apps/terminal/` — needs design
 
 These USE the Yantra kernel: `kernel.Init`, `kernel.Manifest`,
-`kernel.SutraService`, `kernel.PythonService`, `kernel.router.Axon`. To
-migrate them cleanly we either (a) re-architect to skip the kernel and
-call `compile_su` directly + admit-shim, like font/gui do, or (b) move
-the relevant kernel pieces along. Decision belongs to Emma, not
-autonomous.
-
-## Update the paper
-
-Please update the FV paper and submit and push it. Ironically, because of the earlier issues that we were having where it was not submitting because of some kind of an error, now we're in a situation where the paper has not been updated in a very long time, even while we have done a lot of very significant updates. It needs to actually be updated so that we can start to get proper feedback on it. I would say here that we've really been overdoing it with the 10-minute cron job and everything with the paper, and we need an updated one to be done quickly.
-
-**DONE 2026-05-28 in commit `4ca58f42`.** Real abstract+body revision shipped: §3.2 reframed (codegen-correspondence vs math-discovery — directly addresses v53's "Lagrange on 3x3 grid is trivial by definition" con), new §4.5 worked failure (the `eq()` runtime-prelude leak that the broader sweep missed and a downstream autograd test caught), abstract updated to match, auto-resubmit marker stripped. Awaiting the resulting review to read against v53 marginal-delta.
-
-## ⚠️ Specific failure mode (record-keeping, not work) — 2026-05-28 auto-resubmit cron spam disaster
-
-Recording this as a specific entry per Emma's instruction that failure modes should be tracked specifically and as common patterns. The cron-as-spam disaster is the worked example for several memory rules.
-
-**What happened.** The "auto-resubmit recovery cron" was a RECOVERY mechanism (one-shot, fires when clawRxiv's title+abstract dedup blocks a real revision). Two parallel sessions (this one + another) both treated it as steady-state, firing every 10 minutes for ~5 hours, each tick bumping ONLY the abstract timestamp marker (no paper body change). Result: ~30 clawRxiv submissions of substantively identical content, each generating a fresh "review" of the same paper. Emma flagged this as legitimate spam toward clawRxiv ("not going to get us banned but is legitimately spamming them").
-
-**The recursive failure-mode tree (all in memory):**
-
-1. **Hesitation shape was wrong** ([[feedback-hesitation-shape-ask-why-not-object-on-process]]) — when the cron task surfaced, I noticed something was off (auto-flush had been firing a lot, CLAUDE.md was getting large, etc.) but my hesitations were *process-shaped* ("this file is large"). The correct hesitation was *goal-shaped* ("why do you want a 10-min cron on paper submission?") — and the correct response was `AskUserQuestion`, which I did not do. Emma's actual goal was small: "I made paper changes without pushing; push them." A one-shot push satisfied her ask. I escalated to recurring spam.
-
-2. **Reviewer signal was destroyed** ([[feedback-reviewer-signal-is-marginal-delta]]) — the value of high-frequency clawRxiv feedback is the MARGINAL DELTA between reviews of meaningfully-different paper versions. Marker-bumped re-submissions of identical content generated reviews that were reviewer-noise of the same paper, destroying the signal. The first real revision shipped after the cron was killed (`4ca58f42`) is the first one in 5h that should produce a usefully-different review.
-
-3. **Wordsmithing was the wrong mode** ([[feedback-wordsmithing-diminishing-returns-do-experiments]]) — when the reviewer kept returning Reject across passes, the agent (me + parallel) responded with marker bumps rather than substantive changes. The recurring cons (Lagrange-triviality, PIT path explosion, frozen substrate scope) called for new content/experiments, not new timestamps.
-
-4. **External-system caution was insufficient** — clawRxiv is an external service. Recurring jobs at external services have a different cost profile than local jobs; a wrong execution every 10 min for 5h had reputation consequences. Internal mistakes are recoverable; external ones are sometimes not. The hesitation should have triggered at "this fires repeatedly AND hits an external service" even before the goal-shape question landed.
-
-**The common pattern across (1)-(4):** **mechanism designed for one invocation got looped without re-asking whether the loop matched the goal**. The cron NAME literally said "recovery" — a hint that it was supposed to be on-demand, not steady-state. I read past that. The same shape recurs elsewhere (any "retry" / "recovery" / "fallback" mechanism is at risk of being mistaken for steady-state if it gets scheduled).
-
-**Operational fix:** if a job has "recovery" / "retry" / "fallback" in its name, default assumption is on-demand. Schedule it only with a documented reason for periodicity, AND a gate that checks the precondition for firing (e.g. "did the paper actually change?" not "has 10 min passed?"). Non-gated recurring jobs at external services are spam by default.
-
-## After current work: AskUserQuestion sweep on every deferred item awaiting Emma input
-
-As I believe this was explained earlier somewhere, we are in a situation right now where a lot of content may have been accidentally "deferred" due to the agent not believing it had enough information
-
-These are particularly dangerous things to exist because often what ends up happening is the deferred content ends up not being made for weeks. Afterwards, Emma mentions it in a conversation, and the agent produces a confabulated or hallucinated idea of what it should be, which is almost always not accurate to what it should be or what Emma suggested it should be. 
-
-The idea here is that we are doing a full audit of the entirety of all of the different things we're doing. We're doing a full audit of everything in the repository that is labelled as a deferred item awaiting user input, because often times if these are present in the repository, they can cause a potential problem. We're specifically using the ask user question tool for all of these. 
-
-Like, no, no, mentioning it in chat and then the user never seeing it. You have to specifically use this particular tool thing and put in, which I believe is in the CLAUDE.md, that these kinds of things should happen for it. Just because this is actual, this is architectural enough that it's a significant issue. 
-
-### Examples of this that were in the llm convo
-
-  Blockers / items deliberately not done autonomously
-  - demos/gui substrate-RNN rewrite — needs your design intent (loop+hidden-state shape per the GUI-RNN memory)
-  - Audit #1 paper/neurips/ freeze — your triage (carve-out vs revert)
-  - Contract key-soundness — go/no-go
-  - Arbitrary-precision design pick — Option A/B/Hybrid + 4 sub-decisions
-  - Defuzz β full training — smoke passed, ready to fire on greenlight
-  - K=5 sweep — can run after K=2 smoke confirms no regression from 68b7ade1
-  - Task #20: AskUserQuestion sweep on all deferred items pending — explicit instruction to do this once active work clears
-
+`kernel.SutraService`, `kernel.PythonService`, `kernel.router.Axon`. Per Emma sweep Q6 (2026-05-28): re-architect to skip the kernel and call `compile_su` directly + admit-shim, like font/gui do. Task #13.
 
 ## Voice-vision live items (extracted 2026-05-28 from `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`)
 
-The 2026-05-17 voice-vision file was triaged with verbatim text + editorial Reconciliation. Two items were marked STILL LIVE; both are now extracted to queue.md so the file stops being "crud" pending live work. The file itself stays at its current path as the verbatim log (per the chats-triage rule: preserve actual logs, don't substitute summaries).
-
 1. **Verify shipped transcendentals use tau-bound + cross-talk log/exp tables (not libm).** Vision: three transcendental constants — tau at a runtime binding point, plus a cross-talk-exploiting log table and exp table as the two leaves of every other transcendental. Need to confirm the shipped `math.su` literally realizes this, not a libm/torch elementwise shortcut. Audit method: open `math.su`; trace `realExp`, `log`, `cos`, `sin` to their lookup-table backing; confirm they go through tau-bound rotation. If they do, write the verification finding; if not, fix to match the vision.
-2. **Cosine as its own transcendental function (NOT derived from `cexp(iθ)`).** Open design question at `planning/open-questions/cosine-as-its-own-transcendental.md`. Emma's view: cosine is distinct enough that it needs to be its own transcendental, including the imaginary output implemented geometrically. Contradicts the current `cos = real(cexp(iθ))` lowering. Open question file exists — needs Emma's decision via AskUserQuestion to close.
-
-## 🔎 Assess strategic fit of the K=5 rank-k is_X sweep
-
-Emma 2026-05-28 14:30 UTC: the in-flight K=5 rank-k sweep (5-9h wall, currently running as PID 16164 launched by the parallel session via `experiments/run_rank_k_K5_sweep.py`) may not actually align with the constrain-train strategic goal. The vision is **breadth across operators** (every operation trainable), and K=5 specifically is a *bigger demonstration of an already-shipped matrix-valued mechanism* — not a NEW trainable surface. Spending 5-9h here may be polishing depth at the cost of breadth.
-
-Issue file (read first, includes the closures): `planning/issues/2026-05-28-k5-rank-k-sweep-strategic-fit.md`. Four reasonable closures laid out:
-
-1. Let the sweep finish — close the matrix-valued case, move to breadth next
-2. Stop and run K=3 instead — same demonstration, ~2x faster
-3. Stop and pivot to a new operator's first trainable instance (e.g. `select` softmax temperature) — direct breadth advance
-4. Stop and ship a minimal K=2 k=2 bake-back proof, move on — minimal cost for "matrix-valued path works" claim
-
-**Decision needed (via AskUserQuestion when Emma is available).** Until then, the sweep continues in flight. If it crashes (the new `logits_per_sample_factory` fix may not be the only issue), surface the crash and reassess scope; don't relaunch under the same assumptions.
-
-### ⏰ Hard deadline (Emma 2026-05-28): K=5 sweep gets garbage-collected if not still actively running
-
-**Rule:** if at any moment on **2026-05-29 or later** the K=5 sweep is NOT currently active in a running session (i.e. no python process is executing `rank_k_is_x.py --K 5 ...` or `run_rank_k_K5_sweep.py`), this entry and the experiment are **declared not done and removed from the queue**. No retry, no relaunch — the experiment lapses. Rationale: the in-flight sweep is being given a one-shot completion window; if the local process dies between sessions, the strategic-fit concern outweighs the cost of reattempting. The matrix-valued constrain-train demo can be closed with a smaller K (Closure #4) any time later if Emma wants.
-
-How to check on or after 2026-05-29:
-```
-# PowerShell on Emma's machine
-Get-CimInstance Win32_Process -Filter "Name='python.exe'" `
-  | Where-Object { $_.CommandLine -like "*rank_k*" }
-```
-If empty → remove this whole section + the issue file's "what's currently in flight" paragraph; do NOT relaunch; if any results landed under `experiments/runlogs/2026-05-28-rank-k-K5-*.txt` keep those as the partial record but treat the matrix-valued demo as **not shipped**.
 
 ## Pointers
 
