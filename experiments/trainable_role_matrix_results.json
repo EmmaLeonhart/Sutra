@@ -1,0 +1,23 @@
+{
+  "experiment": "trainable role matrix through compiled Tensor.MatrixMul",
+  "N": 30,
+  "d": 768,
+  "epochs": 400,
+  "lr": 0.01,
+  "wd": 0.0001,
+  "substrate_matmul_is_torch_matmul": true,
+  "first_step_grad_norm": 0.27155,
+  "train_cos_identity": 0.73297,
+  "train_cos_gd": 0.994056,
+  "heldout_cos": {
+    "identity": 0.73297,
+    "lstsq": 0.673567,
+    "gd": 0.667835
+  },
+  "heldout_top1": {
+    "identity": 1.0,
+    "lstsq": 0.0,
+    "gd": 0.0
+  },
+  "heldout_top1_winner": "identity"
+}
