@@ -25,10 +25,10 @@ The exact camera-ready Sutra paper as submitted to NeurIPS 2026. Permanent, immu
 
 ## 3. Formal verification of Sutra — clawRxiv (live)
 
-A second paper on formally verifying the non-learned trusted base of Sutra. Spine: compiling control flow into a tensor-op graph reduces verification to a finite set of closed-form polynomial obligations over a small fixed set of graphs, rather than enumeration of control-flow paths. The paper carries the obligation framework, the mechanical discharges that exist today (grid-exactness, branch-range by composition, termination, contract role-isolation, contract function-correctness for the Kleene fragment), and an honest cost characterization (PIT term-count growth, bundle-decoding capacity out to *k* = 48).
+A second paper on formally verifying the non-learned trusted base of Sutra. Spine: compiling control flow into a tensor-op graph reduces verification to a finite set of closed-form polynomial obligations over a small fixed set of graphs, rather than enumeration of control-flow paths. The paper carries the obligation framework, the mechanical discharges that exist today (grid-exactness, branch-range by composition, termination, contract role-isolation, contract function-correctness for the Kleene fragment), and a plain accounting of the costs (PIT term-count growth, bundle-decoding capacity out to *k* = 48).
 
 - **PDF:** [formal-verification.pdf](/formal-verification.pdf) — rebuilt on every push to the FV paper source; this is the canonical current version regardless of clawRxiv state.
-- **On clawRxiv:** auto-resubmitted on every push by `fv-paper-ci.yml`. In steady state, an auto-resubmit cron bumps the paper's title revision marker every 10 minutes, which breaks clawRxiv's title+abstract dedup and forces a fresh post per cron tick (a recovery posture introduced 2026-05-27 after a clawRxiv server-side bug made the previously-pinned chain unrevisable; the `.post_id` file in the paper directory tracks the current chain head).
+- **On clawRxiv:** posted and revised as the formal-verification work lands.
 - **Source markdown:** [`paper/formal-verification/paper.md`](https://github.com/EmmaLeonhart/Sutra/blob/main/paper/formal-verification/paper.md) on GitHub.
 
 ---

@@ -1,6 +1,6 @@
 # Demos
 
-Ten of the `.su` programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/master/examples) are exercised end-to-end by the smoke test (the directory holds more — see [Other examples](#other-examples-in-the-directory) below):
+Ten of the `.su` programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/main/examples) are exercised end-to-end by the smoke test (the directory holds more — see [Other examples](#other-examples-in-the-directory) below):
 
 ```bash
 git clone https://github.com/EmmaLeonhart/Sutra
@@ -14,18 +14,18 @@ The smoke test compiles each `.su` source through the reference codegen path, ex
 
 | # | File | What it demonstrates |
 |---|---|---|
-| 0 | [`hello_world.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/hello_world.su) | Embed plus retrieve. Three candidate phrases, `argmax_cosine`, name lookup at the edge. |
-| 1 | [`fuzzy_branching.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/fuzzy_branching.su) | Weighted-superposition conditional. Four program variants × four inputs. All branches contribute to a weighted sum; `argmax_cosine` commits at the end. |
-| 2 | [`role_filler_record.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/role_filler_record.su) | Structured record as a flat vector. `bundle(bind(role, filler), …)`; decode a field by `unbind(role, record)` followed by `argmax_cosine`. |
-| 3 | [`classifier.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/classifier.su) | Bundled-prototype classifier. Three classes, three examples each, bundle averages them into a per-class prototype. |
-| 4 | [`analogy.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/analogy.su) | Associative pair memory. Five (capital, country) pairs bundled into one vector; query a capital, recover the country. |
-| 5 | [`knowledge_graph.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/knowledge_graph.su) | Bundled triples with compositional query. `bind(object, bind(subject, predicate))`; lookup is `unbind(predicate, unbind(subject, graph))`. |
-| 6 | [`predicate_lookup.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/predicate_lookup.su) | Multi-object superposition. When a (subject, predicate) key has multiple objects, all members score above all non-members. |
-| 7 | [`fuzzy_dispatch.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/fuzzy_dispatch.su) | N-way dispatch returning structured records. Each branch returns an (action, target) record; the winner is decoded with two `unbind` calls. |
-| 8 | [`nearest_phrase.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/nearest_phrase.su) | 20-phrase codebook, clean and noisy retrieval. Target plus 0.2·distractor still returns target. |
-| 9 | [`sequence.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/sequence.su) | Position-bound sequence encoder. A 5-token sequence is one vector; decode any position with `unbind(pos_i, record)`. Two sequences compared by cosine. |
+| 0 | [`hello_world.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/hello_world.su) | Embed plus retrieve. Three candidate phrases, `argmax_cosine`, name lookup at the edge. |
+| 1 | [`fuzzy_branching.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/fuzzy_branching.su) | Weighted-superposition conditional. Four program variants × four inputs. All branches contribute to a weighted sum; `argmax_cosine` commits at the end. |
+| 2 | [`role_filler_record.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/role_filler_record.su) | Structured record as a flat vector. `bundle(bind(role, filler), …)`; decode a field by `unbind(role, record)` followed by `argmax_cosine`. |
+| 3 | [`classifier.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/classifier.su) | Bundled-prototype classifier. Three classes, three examples each, bundle averages them into a per-class prototype. |
+| 4 | [`analogy.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/analogy.su) | Associative pair memory. Five (capital, country) pairs bundled into one vector; query a capital, recover the country. |
+| 5 | [`knowledge_graph.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/knowledge_graph.su) | Bundled triples with compositional query. `bind(object, bind(subject, predicate))`; lookup is `unbind(predicate, unbind(subject, graph))`. |
+| 6 | [`predicate_lookup.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/predicate_lookup.su) | Multi-object superposition. When a (subject, predicate) key has multiple objects, all members score above all non-members. |
+| 7 | [`fuzzy_dispatch.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/fuzzy_dispatch.su) | N-way dispatch returning structured records. Each branch returns an (action, target) record; the winner is decoded with two `unbind` calls. |
+| 8 | [`nearest_phrase.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/nearest_phrase.su) | 20-phrase codebook, clean and noisy retrieval. Target plus 0.2·distractor still returns target. |
+| 9 | [`sequence.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/sequence.su) | Position-bound sequence encoder. A 5-token sequence is one vector; decode any position with `unbind(pos_i, record)`. Two sequences compared by cosine. |
 
-Loops use first-class declared functions. The canonical example is [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/master/examples/do_while_adder.su), with coverage in the `test_loop_function_decl.py` suite (23 tests). See the [Loops page](loops.md) for the surface.
+Loops use first-class declared functions. The canonical example is [`do_while_adder.su`](https://github.com/EmmaLeonhart/Sutra/blob/main/examples/do_while_adder.su), with coverage in the `test_loop_function_decl.py` suite (23 tests). See the [Loops page](loops.md) for the surface.
 
 ## Other examples in the directory
 

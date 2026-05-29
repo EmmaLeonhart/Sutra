@@ -164,7 +164,7 @@ Examples of control flow moved to algebra in Sutra:
 | `hashmap.get(k)` | `unbind(k, bundled_hashmap)` — exact same operation |
 | `a && b` | `(a + b + ab − a² − b² + a²b²) / 2` — polynomial min |
 | `x == y` | `make_truth(cos(x, y))` — cosine similarity on the truth axis |
-| `defuzzify` | matmul by truth-axis projector, then iterate `f = f == true` |
+| `defuzzy(x)` | expanded inline to a stack of ten nested `eq` evaluations — iterated `f = f == true` polarization on the truth axis, with no single runtime defuzzify call |
 
 In every row, the Sutra form:
 

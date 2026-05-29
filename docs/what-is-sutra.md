@@ -43,7 +43,7 @@ Locally, this looks wasteful — `1 + 1` doing 768-d vector addition is more ari
 
 ## What's a Sutra program for
 
-The thing a Sutra program is good at is computing in the geometry of an embedding space: looking up structured records by role, computing analogies as displacement-plus-bind, classifying against bundled prototypes, walking a trajectory until it lands in a basin. The demo programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/master/examples) show the surface — embed/retrieve, fuzzy branching, role-filler records, bundled triples, position-bound sequences, declared-function loops.
+The thing a Sutra program is good at is computing in the geometry of an embedding space: looking up structured records by role, computing analogies as displacement-plus-bind, classifying against bundled prototypes, walking a trajectory until it lands in a basin. The demo programs in [`examples/`](https://github.com/EmmaLeonhart/Sutra/tree/main/examples) show the surface — embed/retrieve, fuzzy branching, role-filler records, bundled triples, position-bound sequences, declared-function loops.
 
 What it isn't good at is being a portable general-purpose language. You do not write a web server in Sutra, or a filesystem walker, or a UI event loop. The language is for the part of a system that lives in vector space.
 

@@ -14,7 +14,7 @@ Status legend:
 - **In Sutra** — the body is written in Sutra's standard library and gets inlined into user code.
 - **Intrinsic** — declared in the standard library without a body; the codegen routes the call to a runtime method.
 - **Blocked** — the Sutra-level body is sketched but a primitive surface (matrix literals, `@` matmul as an operator, indexed axis write, etc.) needs to land before the body can replace the runtime method. The runtime method works today; only the compile-time inlining is blocked.
-- **Disabled** — declared but the codegen rejects calls with `CodegenNotSupported`.
+- **Live** — declared, and the codegen routes calls to a substrate-pure runtime method that runs at runtime.
 
 ---
 
@@ -205,9 +205,9 @@ function Number Pow(Number a, Number b) {
 }
 ```
 
-Each step of the chain is a function-expansion: `^` reduces to `Pow`, `Pow` reduces to `exp` and `log`. The chain bottoms out at `exp` and `log` — currently disabled (see Transcendental functions below).
+Each step of the chain is a function-expansion: `^` reduces to `Pow`, `Pow` reduces to `exp` and `log`. The chain bottoms out at `exp` and `log`, both of which are live and substrate-pure (see Transcendental functions below).
 
-**Status: not yet implemented.** Lexer needs `^` token; parser needs an infix-binary production at the appropriate precedence (above `*`, right-associative is the math convention); codegen routes through whatever exponentiation tier the math-approximation work picks.
+**Status: operator surface not yet wired.** The underlying `Math.pow` / `exp` / `log` intrinsics run today, but the `^` infix operator itself is still pending: the lexer needs a `^` token and the parser needs an infix-binary production at the appropriate precedence (above `*`, right-associative is the math convention). Until then, call `Math.pow(a, b)` directly.
 
 ---
 
@@ -390,7 +390,7 @@ Iterates cosine equality with `true` ten times. Inputs with `truth = 0` stay at 
 
 ---
 
-## Transcendental functions (currently disabled)
+## Transcendental functions (live, substrate-pure)
 
 ```sutra
 intrinsic function number log(number x);
@@ -402,9 +402,9 @@ intrinsic function number tan(number x);
 intrinsic function number pow(number x, number y);
 ```
 
-**Status: disabled.** Codegen rejects calls with `CodegenNotSupported`. A 2026-04-29 Taylor-with-frexp implementation was withdrawn 2026-04-30 because it ran as host Python scalar arithmetic (substrate-purity violation). Future direction: eigenrotation-as-modulus for substrate-pure trig, with `exp` / `log` building on top.
+**Status: live, substrate-pure.** Every call routes to a runtime method that runs on the substrate — `exp` and `log` via interpolated lookup tables on a bounded domain, the trig family via the unit-circle rotation primitive the language already uses for binding, and `pow` / `sqrt` beta-reducing onto those. No call reaches a host math library at runtime. The unlock was eigenrotation-as-modulus, which makes the unit-circle rotation naturally periodic without floor-based range reduction. (An earlier Taylor-with-frexp implementation was withdrawn because it ran as host Python scalar arithmetic, a substrate-purity violation.)
 
-If a substrate-pure `log` and `exp(E)` land, the rest of the chain falls into place automatically — `Pow(a, b) = exp(a * log(b))` makes `^` work, and `sin` / `cos` can compose from eigenrotation. That's the unlock.
+With substrate-pure `log` and `exp` in place, the rest of the chain composes: `Pow(a, b) = exp(b * log(a))`, and `sin` / `cos` come straight from eigenrotation.
 
 ---
 
