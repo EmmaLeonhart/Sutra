@@ -25,11 +25,6 @@ one line).
 
 | Doc | Verdict | Where decided / the precise open part |
 |---|---|---|
-| `binding-kind-surface-syntax.md` | RESOLVED | `sutra-spec/binding.md` (role=semantic, var=rotation-bound; 2026-04-21) |
-| `loop-function-declarations.md` | RESOLVED | `sutra-spec/control-flow.md` §Loops (shipped 2026-04-30→05-10) |
-| `loop-tail-call-surface.md` | RESOLVED | `return NAME(args)` shipped + tested |
-| `loop-body-semantics.md` | RESOLVED | by `loop-function-declarations.md` |
-| `axon-bind-needs-permutation-for-synthetic-fillers.md` | RESOLVED | commit `6d25f232` (per-key permutation in axon_add/item) |
 | `literals-and-auto-embedding.md` | RESOLVED (core) | `sutra-spec/strings.md` + literals shipped 2026-04-23; OPEN only on deferred binary-op/return/map-value embedding rules |
 | `defuzzify-iteration-formula.md` | OPEN | which rule per type: exp-weighted 3-way polarizer vs `iterate f=f==true`; both coherent, pick/unify (see `sutra-spec/equality-and-defuzzification.md`) |
 | `no-null.md` | RESOLVED (core) | no runtime null — `sutra-spec/types.md:262,273`; OPEN only on whether to forbid `var X:TYPE;` uninitialized syntax (user leaned forbid) |
@@ -43,48 +38,33 @@ one line).
 | `nested-loops-as-orthogonal-subspaces.md` | OPEN | subspace allocation + termination + cross-subspace channel for nested `loop(cond)` |
 | `cosine-vs-euclidean-for-post-algebraic-similarity.md` | OPEN | is Euclidean right for post-bind/bundle compare (magnitude info); never tested; gates any "right metric" claim |
 | `contextual-vs-static-embedding-keys.md` | OPEN | static string-keyed `embed()` vs contextual; load-bearing only for beyond-toy NL claims |
-| `cosine-as-its-own-transcendental.md` | RESOLVED | complex-argument `cos(z)` shipped 2026-05-17 as `ccos` (`codegen_pytorch.py:1384`); finding `2026-05-17-complex-argument-cosine-implemented.md`; OPEN only on the `csin` follow-on |
-| `equality-cosine-T-placement.md` | RESOLVED | per-rule literal (Emma 2026-05-26); `experiments/equality_cosine_adjustment.py` |
-| `non-halting-loop-recur-primitive.md` | RESOLVED | `sutra-spec/non-halting-loop.md` (all 5 sub-decisions locked 2026-05-28); v1 shipped in `6757863d` + `6fc64c15` |
-| `arbitrary-precision-digit-array.md` | RESOLVED | Option A locked + 4 sub-decisions locked 2026-05-28; implementation across `b991781a`, `49183f3b`, `2ee0fe54`, `baafa8ed`, `8a009e38`, `befdac0b`; FV obligations in `planning/findings/2026-05-28-digit-array-add-fv-obligations.md` |
 
-Tally (incl. the 2026-05-26+28 resolutions):
-**8 RESOLVED/STALE**, **3 RESOLVED-core with a narrow OPEN tail**,
-**10 genuinely OPEN** — but most "open" ones are narrow sub-questions,
-not undefined design space, and none currently blocks queue work. The
-RESOLVED/STALE docs should be deleted/archived on the next pruning
-pass (rule 3 above) once their rationale is confirmed captured in the
-cited spec file.
+Tally (after the 2026-05-28 pruning pass):
+**2 RESOLVED-core with a narrow OPEN tail** (`literals-and-auto-embedding`,
+`no-null` — kept because each still has a live sub-question),
+**11 genuinely OPEN** — most are narrow sub-questions, not undefined design
+space, and none currently blocks queue work.
+
+**Pruning pass (2026-05-28, Emma-greenlit).** Nine fully-RESOLVED docs whose
+rationale is captured in the cited spec/findings were removed from the tree
+(git history preserved): `binding-kind-surface-syntax` (→ `binding.md`),
+`loop-function-declarations` / `loop-tail-call-surface` / `loop-body-semantics`
+(→ `control-flow.md` §Loops), `axon-bind-needs-permutation-for-synthetic-fillers`
+(→ commit `6d25f232`), `cosine-as-its-own-transcendental` (→ `ccos`+`csin`
+shipped; findings), `equality-cosine-T-placement` (→ per-rule literal), `non-halting-loop-recur-primitive`
+(→ `non-halting-loop.md`), `arbitrary-precision-digit-array` (→
+`arbitrary-precision.md` + BigInt shipped). RESOLVED-core docs with a live OPEN
+tail were LEFT in place.
 
 **Pruning pass (2026-05-21).** The fly-brain-related resolved/stale
 dossiers were removed from the tree (git history preserved):
 `loop-surface-redesign`, `tier2-bundle-substrate-vs-algebra`,
 `numpy-inheriting-from-flybrain`, and
 `project-kind-connectome-vs-embedding` — all premised on the retired
-connectome target. RESOLVED docs that still carry live design
-rationale are intentionally LEFT in place; they already carry
-`> **VERDICT**` banners.
-
-Task #15 status (2026-05-17): **both remaining sub-deliverables are
-now done.** The verdict pass over `sutra-spec/open-questions.md` is
-complete (that file's own "Triage (2026-05-16, task #15 — part 2)"
-section). Per-doc top-line `> **VERDICT — …**` banners are stamped on
-every doc in this folder (21 stamped 2026-05-17; `binding-kind-surface-
-syntax.md` already carried a RESOLVED header; `cosine-as-its-own-
-transcendental.md`, added 2026-05-17, was stamped GENUINELY OPEN that
-morning and **then RESOLVED the same day** when Emma decided scope and
-`ccos` shipped — see its verdict table row above). The remaining task
-#15 work is the *pruning* pass — deleting RESOLVED/STALE docs once their
-rationale is confirmed captured in the cited spec file (a deliberate
-pass, not folded into this banner run, to avoid losing rationale
-mid-session). Counting the same-day resolution of
-`cosine-as-its-own-transcendental.md` (RESOLVED core, narrow `csin`
-tail), the tally is: 5 RESOLVED/STALE, 3 RESOLVED-core+tail, 11
-genuinely OPEN.
+connectome target.
 
 ## Current contents
 
-- `binding-kind-surface-syntax.md` — **resolved 2026-04-21**. Candidate B chosen: `role` for semantic, `var` for rotation-bound. Syntax is now spec in `planning/sutra-spec/binding.md`. Doc retained for decision rationale until the next resolved-entry pruning pass.
 - `rotation-hashmap-as-language-feature.md` — should Sutra have a rotation-hashmap (hash-vector-to-angles → rotation-bind storage) as a first-class `map<K, V>` language feature, as a library pattern, or not at all? Soft-lookup on semantic-vector keys is the distinctive property. Decision pending; depends partly on what programs people end up writing.
 - `concurrency-and-monads.md` — the concurrency model is sketched in `planning/sutra-spec/concurrency.md` but the monad/effect structure isn't settled.
 - `conditional-branching-on-remote.md` — conditional branching currently decides at host Python time (the outer `argmax_cosine` call). What would it mean for the branch decision itself to execute on the substrate, not just the prototype matching that feeds it? Unresolved.
@@ -96,10 +76,5 @@ genuinely OPEN.
 - `nested-loops-as-orthogonal-subspaces.md` — the spec defines single `loop(cond)` as eigenrotation on the substrate but is silent on what nested `loop(cond)` constructs compose into. Design intuition is "rotations in orthogonal subspaces, cross-subspace info flow via bind"; the compiler currently host-sequences nested loops, recapitulating the host-sequencer caveat at every nesting level. Subspace allocation, termination semantics, and cross-subspace back-channel are all unresolved.
 - `cosine-vs-euclidean-for-post-algebraic-similarity.md` — Sutra uses cosine everywhere (similarity, equality, argmax_cosine, defuzzify, vector-keyed map fallback), but the user has an old recorded reservation that Euclidean might be the right metric for post-bind/post-bundle comparison since "magnitude carries information" that cosine throws away. Never tested; harvested from chats triage 2026-04-29. Not blocking current work; needs settling before any "we picked the right metric" public claim.
 - `contextual-vs-static-embedding-keys.md` — Sutra's `embed()` is string-keyed and static: `embed("bank")` always returns the same vector regardless of whether the program is reasoning about rivers or finance. The user has explicit recorded interest in contextual embeddings ("more contextuality is better"); the static-keyed surface is the opposite pole by accident of which substrates were cheap to integrate. Not blocking current work; load-bearing when Sutra tries to claim natural-language reasoning beyond toy domains. Harvested from chats triage 2026-04-29.
-- `loop-body-semantics.md` — 2026-04-30 sub-question on what a loop body actually does inside the substrate cell (RNN cell vs. body-as-discardable-decoration). Resolved by `loop-function-declarations.md`; doc retained for the resolution rationale.
-- `loop-function-declarations.md` — **largely shipped 2026-04-30 through 2026-05-10**. Loops as function-decl forms (`do_while`, `while_loop`, `iterative_loop`, `foreach_loop`) with `pass`/`replace` tail-yield. Current canonical surface; spec lives in `planning/sutra-spec/control-flow.md` §"Loops". Doc kept for the design-decision rationale (substrate-RNN cell shape, by-reference call-site, T-step soft-mux halt). Open sub-questions remaining: substrate-pure condition evaluation, idiomatic cleanup of by-reference mutation (tuple-return form tracked in `todo.md` §"Make loops idiomatic").
-- `loop-tail-call-surface.md` — **shipped**. The `return NAME(args)` tail-call surface for loop invocations is live and tested. Per the rules above, the doc should be removed once a "shipped open questions get retired" pass happens; kept here pending that pass to avoid losing the rationale mid-session.
 - `function-taxonomy-and-closure.md` — what counts as a closure in Sutra given the no-host-mutation rule, and how the four function-kind taxonomy (free function, method, intrinsic, loop-function) relates to the closure question. Partially resolved 2026-05-09 (closure-free closure capture for TS arrow functions ships by parameter-lifting); the deeper taxonomy question stays open.
-- `axon-bind-needs-permutation-for-synthetic-fillers.md` — **shipped 2026-05-10**. Diagnosed the bug where scalar/string axon fillers in the synthetic block didn't separate per key because bind is identity in synthetic. Fix landed in commit `6d25f232` (per-key permutation applied inside `axon_add`/`axon_item` only; free-standing `bind`/`unbind` unchanged). Doc kept for the diagnostic + fix-design rationale.
 - `javascript-primitive-subclasses.md` — surfaced 2026-05-10. Emma's clarification of the JS-compat model: per-primitive subclasses (`JavaScriptInt extends int`, `JavaScriptString extends String`, etc.) with JS-specific operator overrides, instead of the catch-all `JavaScriptObject` carrying all of them. Refinement of the MVP that landed 2026-05-10; not blocking, picks up when a real TS program exposes a dispatch case the catch-all can't handle.
-- `arbitrary-precision-digit-array.md` — **RESOLVED 2026-05-28**. Top-level choice locked: Option A (associative-scan substrate intrinsic). All four sub-decisions locked via Emma's `AskUserQuestion` sweep: BigInt class form, radix-10, BigInt<MAX> const-template, `_int_div_mod` substrate primitive. Implementation shipped same day across six commits: `b991781a` (int_div + int_mod intrinsics), `49183f3b` (parser const-template for int-literal in type-arg position; `BigInt<256>` parses everywhere), `2ee0fe54` (digit_array_add intrinsic, v1 N-step carry propagation), `baafa8ed` (end-to-end harness with overflow-saturates test), `8a009e38` (stdlib/bigint.su with `bigint_add` wrapper), and `befdac0b` (BigInt class declaration). FV obligations documented in `planning/findings/2026-05-28-digit-array-add-fv-obligations.md`. Remaining tail items (operator `+` overload, construction helpers from string/int, FV paper §3 wiring) are smaller follow-ons, not load-bearing design questions.

@@ -67,7 +67,7 @@ Sutra has two binding kinds, each acting in its own subspace:
    structural-storage kind.
 
 Surface syntax must make the choice visible at role-declaration
-time; see `planning/open-questions/binding-kind-surface-syntax.md`
+time; see binding-kind-surface-syntax (pruned 2026-05-28; in git history)
 (pending re-evaluation under the two-kinds-as-of-2026-04-21 model).
 
 The family is open. Other kinds (sparse-code bindings, attention-
@@ -247,7 +247,7 @@ The compiler does not try to guess from context: a rotation-bound
 variable and a semantically-bound role are different declarations
 with different source-level markers. The exact surface syntax is
 an open question — see
-`planning/open-questions/binding-kind-surface-syntax.md`.
+binding-kind-surface-syntax (pruned 2026-05-28; in git history).
 
 ## Surface syntax
 
@@ -311,7 +311,7 @@ The compiler checks the kind from the declaration and emits the
 correct primitive. Mixing a `role` into a call site where a `var`
 is expected (or vice versa) is a compile-time type error.
 
-See `planning/open-questions/binding-kind-surface-syntax.md` for
+See binding-kind-surface-syntax (pruned 2026-05-28; in git history) for
 the history of this decision — five candidates were considered and
 Candidate B (`role` / `var`) was chosen on 2026-04-21 for
 pedagogical clarity (`var` reads the same in every imperative
@@ -360,7 +360,7 @@ preferred default is not yet fixed.
 - **Surface syntax for binding-kind choice.** How does a `.su`
   program distinguish a rotation-bound variable from a semantic
   role at declaration? See
-  `planning/open-questions/binding-kind-surface-syntax.md`.
+  binding-kind-surface-syntax (pruned 2026-05-28; in git history).
   Re-evaluation pending under the new two-kinds model.
 - **Synthetic-subspace budget.** How many synthetic dimensions
   does a program get? Fixed at language level, set per-program,

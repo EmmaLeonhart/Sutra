@@ -48,6 +48,6 @@ The common pattern: matrix-valued parameters bake back as **lists of vectors + l
 
 - Stage-B precedent (rank-1 = prototype + scalar): `planning/findings/2026-05-18-differentiable-training-is-a-proxy-not-compiled.md` § "Cron fire 9"
 - Equality cosine adjustment (same shape, isolated): `experiments/equality_cosine_adjustment.py`
-- T-placement decision (same lean principle): `planning/open-questions/equality-cosine-T-placement.md`
+- T-placement decision (same lean principle): equality-cosine-T-placement (pruned 2026-05-28; in git history)
 - Constrain-train agenda the unblock feeds: `todo.md` §"Agentic RAG for constrained-training design" + §"Constrained Adam + FV-linked training + NN→code decompilation"
 - Learned-matrix binding (still its own agenda; this doc doesn't replace it): `todo.md` §"Learned-matrix binding"

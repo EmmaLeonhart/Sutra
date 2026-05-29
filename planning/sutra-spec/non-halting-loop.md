@@ -1,6 +1,6 @@
 # Non-halting loop — `recur` + `return` primitive
 
-**Status:** SHIPPED (all 5 sub-decisions locked Emma 2026-05-28; implemented in commits `6757863d` + `6fc64c15` — see `planning/open-questions/non-halting-loop-recur-primitive.md`, whose banner confirms "v1 shipped"). `recur` / `recurring` codegen lives in `codegen_base.py` (`is_non_halting`); parsing in `parser.py` / `ast_nodes.py`. Live consumers: `tests/corpus/valid/non_halting_count.su`, `demos/gui/count.su`, `demos/gui/toggle.su`, and `demos/font/font.su` (whose `cycle_step` now uses it as a substrate-RNN). Supersedes `planning/open-questions/non-halting-loop-recur-primitive.md` (which preserves Emma's verbatim design intent).
+**Status:** SHIPPED (all 5 sub-decisions locked Emma 2026-05-28; implemented in commits `6757863d` + `6fc64c15` — see non-halting-loop-recur-primitive (pruned 2026-05-28; in git history), whose banner confirms "v1 shipped"). `recur` / `recurring` codegen lives in `codegen_base.py` (`is_non_halting`); parsing in `parser.py` / `ast_nodes.py`. Live consumers: `tests/corpus/valid/non_halting_count.su`, `demos/gui/count.su`, `demos/gui/toggle.su`, and `demos/font/font.su` (whose `cycle_step` now uses it as a substrate-RNN). Supersedes non-halting-loop-recur-primitive (pruned 2026-05-28; in git history) (which preserves Emma's verbatim design intent).
 
 ## What this is
 
@@ -112,7 +112,7 @@ These slot into the FV paper's §3 obligation framework as a new family parallel
 
 ## Cross-refs
 
-- `planning/open-questions/non-halting-loop-recur-primitive.md` — Emma's verbatim design intent (preserved per chats-triage rule).
+- non-halting-loop-recur-primitive (pruned 2026-05-28; in git history) — Emma's verbatim design intent (preserved per chats-triage rule).
 - `CLAUDE.md` §"Subtler substrate breaches" #2 — the state-locus rule this primitive satisfies.
 - `paper/formal-verification/paper.md` §3.3 — the existing (halting) loop's termination obligation.
 - `planning/sutra-spec/control-flow.md` — the halting `loop` primitive.
