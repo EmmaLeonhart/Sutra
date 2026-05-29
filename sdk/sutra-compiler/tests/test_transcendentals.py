@@ -46,13 +46,20 @@ def _compile_and_run(translate_fn, src: str, fn_name: str):
 # reflect the float32 runtime + N=16384 (or N=4096 for trig) lookup
 # table precision. Relax if a real demo needs tighter — bumping table
 # N or moving to range-reduction is the principled fix.
+# exp/cos/sin return the full number-vector since 2026-05-29 (0-d
+# projection dropped), so their programs extract the real-axis scalar with
+# the substrate-pure free function real(...) for the numeric comparison.
+# The derived transcendentals (pow/sqrt/tan/sinh/cosh/tanh) already return
+# scalars (their math.su literate bodies wrap exp/sin/cos in real()), and
+# log is still a 0-d scalar. See TestTranscendentalsReturnNumberVector for
+# the new return-shape assertion.
 _PROGRAMS = [
-    ('function scalar f() { return Math.exp(2.0); }\n',  "f", math.exp(2.0),    1e-3),
+    ('function scalar f() { return real(Math.exp(2.0)); }\n',  "f", math.exp(2.0),    1e-3),
     ('function scalar f() { return Math.log(2.0); }\n',  "f", math.log(2.0),    1e-3),
     ('function scalar f() { return Math.sqrt(16.0); }\n', "f", 4.0,             1e-3),
     ('function scalar f() { return Math.pow(2.0, 5.0); }\n', "f", 32.0,         1e-2),
-    ('function scalar f() { return Math.sin(0.5); }\n',  "f", math.sin(0.5),    1e-3),
-    ('function scalar f() { return Math.cos(0.5); }\n',  "f", math.cos(0.5),    1e-3),
+    ('function scalar f() { return real(Math.sin(0.5)); }\n',  "f", math.sin(0.5),    1e-3),
+    ('function scalar f() { return real(Math.cos(0.5)); }\n',  "f", math.cos(0.5),    1e-3),
     ('function scalar f() { return Math.tan(0.5); }\n',  "f", math.tan(0.5),    1e-3),
     ('function scalar f() { return Math.sinh(1.0); }\n', "f", math.sinh(1.0),   1e-3),
     ('function scalar f() { return Math.cosh(1.0); }\n', "f", math.cosh(1.0),   1e-3),
@@ -110,11 +117,11 @@ class TestNumberScalarAlias(unittest.TestCase):
         ("function number f() { number x = 2.5; return x; }\n",
          "function scalar f() { scalar x = 2.5; return x; }\n",
          "f", 2.5),
-        ("function number f() { return Math.cos(0.0); }\n",
-         "function scalar f() { return Math.cos(0.0); }\n",
+        ("function number f() { return real(Math.cos(0.0)); }\n",
+         "function scalar f() { return real(Math.cos(0.0)); }\n",
          "f", 1.0),
-        ("function number f() { return Math.exp(1.0); }\n",
-         "function scalar f() { return Math.exp(1.0); }\n",
+        ("function number f() { return real(Math.exp(1.0)); }\n",
+         "function scalar f() { return real(Math.exp(1.0)); }\n",
          "f", math.e),
     ]
 
@@ -140,6 +147,55 @@ class TestNumberScalarAlias(unittest.TestCase):
                 # synonym).
                 self.assertEqual(nt, st, "torch: number vs scalar alias")
                 self.assertEqual(nn, sn, "numpy: number vs scalar alias")
+
+
+class TestTranscendentalsReturnNumberVector(unittest.TestCase):
+    """As of 2026-05-29 (Emma's AskUserQuestion decision) the 0-d
+    projection on exp/cos/sin was dropped: they return the full
+    number-vector [v, 0, ...] on the torch (canonical) backend - a number
+    IS a vector, the real axis carries the value. The substrate-pure
+    free function real(...) recovers the 0-d scalar (the alias). Derived
+    transcendentals (pow/sqrt/tan/...) and log stay 0-d, their math.su
+    literate bodies wrapping exp/sin/cos in real()."""
+
+    def _run_raw(self, src, fn="f"):
+        lexer = Lexer(src, file="<test>")
+        tokens = lexer.tokenize()
+        module = Parser(
+            tokens, file="<test>", diagnostics=lexer.diagnostics
+        ).parse_module()
+        assert not lexer.diagnostics.has_errors(), list(lexer.diagnostics)
+        ns: dict = {}
+        exec(torch_translate(module), ns)
+        return ns[fn](), ns["_VSA"]
+
+    def test_exp_cos_sin_return_full_number_vector(self):
+        import torch
+        cases = [
+            ("function vector f() { return Math.exp(2.0); }\n", math.exp(2.0)),
+            ("function vector f() { return Math.cos(0.5); }\n", math.cos(0.5)),
+            ("function vector f() { return Math.sin(0.5); }\n", math.sin(0.5)),
+        ]
+        for src, true in cases:
+            with self.subTest(src=src.strip()):
+                v, vsa = self._run_raw(src)
+                self.assertTrue(torch.is_tensor(v))
+                # full number-vector, not a 0-d projection
+                self.assertEqual(v.ndim, 1)
+                self.assertEqual(v.shape[-1], vsa.dim)
+                # real axis carries the value
+                self.assertAlmostEqual(float(vsa._re(v)), true, places=2)
+                # every other axis is ~0 (it is a pure real number-vector)
+                resid = v.clone()
+                resid[vsa.semantic_dim + vsa.AXIS_REAL] = 0.0
+                self.assertLess(float(resid.abs().max()), 1e-4)
+
+    def test_real_alias_recovers_the_scalar(self):
+        # real(Math.exp(x)) == the real axis of Math.exp(x) (the 0-d alias).
+        v, vsa = self._run_raw(
+            "function number f() { return real(Math.exp(2.0)); }\n"
+        )
+        self.assertAlmostEqual(float(v), math.exp(2.0), places=2)
 
 
 class TestComplexArgumentCosine(unittest.TestCase):

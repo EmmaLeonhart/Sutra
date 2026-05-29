@@ -270,6 +270,22 @@ def _builtin_dot(args: List[str]) -> str:
     return f"_VSA.dot({args[0]}, {args[1]})"
 
 
+def _builtin_real(args: List[str]) -> str:
+    # Substrate-pure real-axis read -> 0-d tensor via `_VSA._re`. This is
+    # the SUBSTRATE-PURE extractor (dot with the real one-hot), distinct
+    # from the host-float `.real()` monitoring accessor (`_VSA.real`,
+    # which does `.item()` and must NOT appear inside an operation). Used
+    # inside math.su's literate transcendental bodies (tan/sqrt/sinh/...)
+    # to take the scalar of the now-vector-valued exp/cos/sin.
+    return f"_VSA._re({args[0]})"
+
+
+def _builtin_imag(args: List[str]) -> str:
+    # Substrate-pure imag-axis read -> 0-d tensor via `_VSA._im` (counterpart
+    # to `real`; the host-float monitoring accessor is `_VSA.imag`).
+    return f"_VSA._im({args[0]})"
+
+
 def _builtin_vector_literal(args: List[str]) -> str:
     # Variadic float-args literal vector constructor — the
     # bake-back source form for trained vector-valued parameters
@@ -330,6 +346,12 @@ BUILTINS = {
     # "Blocked on: dot" in stdlib/similarity.su + logic.su. A backend
     # lacking the method fails at runtime with a clear AttributeError.
     "dot": (_builtin_dot, 2),
+    # Substrate-pure canonical-axis reads as free functions: real(v)/imag(v)
+    # -> 0-d tensor (_VSA._re/_im). The SUBSTRATE-PURE form (NOT the
+    # host-float `.real()` accessor), safe to use inside operations such as
+    # math.su's literate transcendental bodies. Emma 2026-05-29.
+    "real": (_builtin_real, 1),
+    "imag": (_builtin_imag, 1),
     # Plain-list array helpers used by the TS transpiler's primitive-
     # array lowering. The richer binding-array runtime methods on the
     # `_VSA` class are reached through different paths.
