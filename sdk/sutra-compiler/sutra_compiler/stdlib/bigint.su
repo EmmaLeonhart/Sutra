@@ -46,17 +46,27 @@ function vector bigint_add(vector a, vector b) {
 // gets the BigInt static type, but the runtime representation is the
 // same digit-array 1-d vector.
 //
-// v1 scope: type-name wrapper only. Construction (from string literal,
-// from int, from string codepoint extraction) and operator `+` overload
-// are deferred. The operator path requires removing the free
-// `intrinsic function digit_array_add` from logic.su (the stdlib loader
-// rejects duplicate names) so the class can carry it as a static
-// intrinsic method; but `bigint_add` (free wrapper) and existing test
-// callers depend on the free form. The proper fix is to refactor the
-// shared intrinsic registry to allow a single name to be both
-// free-function and class-static-method, which is a separate change.
-// Users write `BigInt c = bigint_add(a, b);` in v1.
+// The `operator +` overload (below) lets user code write
+// `BigInt a = ...; BigInt b = ...; BigInt c = a + b;`. It dispatches via
+// the same mechanism as `String`'s `operator +` -> `string_concat`: a
+// plain (non-intrinsic) operator method whose body calls a FREE
+// intrinsic. The codegen lowers `return digit_array_add(a, b, 10)` to
+// `return _VSA.digit_array_add(a, b, 10)` (see codegen_base
+// `_emit_stdlib_class_operators`). Because the operator body calls the
+// free `digit_array_add` directly — rather than re-declaring it as a
+// static intrinsic method on BigInt — the free `digit_array_add` and the
+// `bigint_add` wrapper both stay intact, and the stdlib loader's
+// duplicate-name rule is never triggered. (The earlier f34103b2 deferral
+// assumed the only path was re-declaring the intrinsic on the class; the
+// operator-calls-free-intrinsic path needs no intrinsic-registry change.)
 //
-// Same pattern as `Character extends String` in strings.su — a class
-// declaration whose only contribution is the static type.
-class BigInt extends vector { }
+// Construction helpers (from string literal, from int, from string
+// codepoint extraction) are still deferred — users build a BigInt by
+// packing a digit-array vector for now.
+//
+// Radix is fixed to 10 per arbitrary-precision.md sub-decision 2.
+class BigInt extends vector {
+    method operator +(BigInt a, BigInt b) {
+        return digit_array_add(a, b, 10);
+    }
+}
