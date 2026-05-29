@@ -138,11 +138,14 @@ Empirical verification on the classic cases (from `tests/corpus/valid/36_complex
 | `(5 + 5i) + (3 + 2i)` | `8 + 7i` | ✓ |
 | `5 * 3` (plain int) | `15` as Python int | ✓ |
 
+### Shipped
+
+- `complex - complex` — dispatches through a dedicated `complex_sub` runtime when either operand is complex, so `complex_var - scalar` broadcasts correctly.
+- `complex / complex` — implemented in its natural form `(a · conjugate(b)) / |b|²` via a dedicated `complex_div` runtime.
+
 ### Pending
 
-- `complex - complex` — currently emits vector subtraction, which works for pure complex-complex subtraction but broadcasts wrong for `complex_var - scalar`. Same fix pattern as multiplication: dispatch through a `complex_sub` runtime when either operand is complex.
-- `complex / complex` — division not yet implemented. Natural form: `(a · conjugate(b)) / |b|²`.
-- Conjugate, modulus, and other standard complex operations as runtime methods.
+- Conjugate, modulus, and other standard complex operations as named runtime methods.
 
 ---
 
@@ -178,7 +181,7 @@ This is the same "primitive class = compile-time tag on shared storage" pattern 
 - **One representation** — `(real, imag)` on `synthetic[0..1]` — carries every number.
 - **Literals parse and fold to this representation** at compile time (`5i`, `5+5i`, `3.14`, all → single `make_complex` allocations).
 - **Complex ⊃ float ⊃ int** as a chain of compile-time restrictions, not a chain of runtime conversions.
-- **One multiplication rule** — complex multiply — is the target for all numeric `*`. When imag parts are zero, it's scalar multiply. (Currently half-shipped; complex addition works, complex multiplication needs a dedicated runtime call.)
+- **One multiplication rule** — complex multiply — is the target for all numeric `*`. When imag parts are zero, it's scalar multiply. Addition, subtraction, multiplication, and division all ship as dedicated complex-aware runtime calls.
 - **Differentiable and CUDA-capable** end to end, same as the logic layer.
 
 ---
@@ -197,13 +200,13 @@ The design is built around two primitives: **`exp`** and **`ln`**, both backed b
 
 So at the substrate level, the transcendentals collapse to two lookup tables (for exp / ln) plus one rotation primitive (for the trig family) — both already first-class operations in the runtime.
 
-### Status: disabled
+### Status: shipped, substrate-pure
 
-This is **not currently implemented**. An earlier attempt (withdrawn 2026-04-30) ran Taylor + Newton refinement on host-side Python floats inside what claimed to be substrate-pure code. It was reverted because biomedical-hardware downstream uses cannot tolerate that lie about where the math executes. A bound-table approach was then explored for `exp` and `ln` and produced ~85% relative error on `exp` due to a 2-scalar bundle capacity limit and Gibbs phenomenon at the periodic boundary.
+The transcendentals are implemented and run entirely on the substrate. `exp` and `ln` evaluate through interpolated lookup tables on a bounded domain; the trig family (`sin`, `cos`, `tan`) evaluates through the unit-circle rotation primitive the language already uses for binding; and `pow`, `sqrt`, and friends beta-reduce onto those two paths. No call ever reaches a host math library (`libm` / IEEE-754) at runtime — the precision contract is set at compile time.
 
-Today the codegen rejects calls to `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`, `pow` with a `CodegenNotSupported` error. The intrinsic declarations remain so the parser knows the names; the rejection happens at code generation.
+The breakthrough that made this work is **eigenrotation-as-modulus**: the unit-circle rotation is naturally periodic without floor-based range reduction, which sidesteps the wrap-around crosstalk that broke an earlier bound-table experiment (which had produced large relative error on `exp` from bundle-capacity limits and Gibbs ringing at the periodic boundary). An even earlier attempt that ran Taylor + Newton refinement on host-side Python floats was rejected outright — it lied about where the math executed, which downstream hardware uses cannot tolerate.
 
-The path forward — sketched but not implemented — is **eigenrotation-as-modulus**: the unit-circle rotation is naturally periodic without floor-based range reduction, which sidesteps the wrap-around crosstalk that broke the bound-table experiments.
+So `log`, `sqrt`, `exp`, `sin`, `cos`, `tan`, and `pow` all compile and run today, each composed from lookup-table evaluation, eigenrotation, and matrix multiplication.
 
 ---
 

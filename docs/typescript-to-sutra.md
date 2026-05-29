@@ -441,13 +441,15 @@ share the synthetic real-axis encoding under the hood.
 (`<`, `>`, `<=`, `>=`, `==`, `!=`) lower to Sutra's polynomial
 comparison forms.
 
-### `Math.*` — does not work yet
+### `Math.*` transcendentals — work
 
-`Math.sqrt`, `Math.sin`, `Math.PI`, `Math.floor`, etc. all fail at
-the Sutra codegen layer. The Sutra-side stdlib has stub
-declarations (`stdlib/math.su`) but the underlying transcendentals
-need a compile-time-approximation pass — a polynomial / lookup-table
-approximation that the codegen folds into a single matmul.
+`Math.sqrt`, `Math.pow`, `Math.sin`, `Math.cos`, `Math.exp`,
+`Math.log`, etc. pass through verbatim. The transpiler recognizes
+`Math` as a class-namespace declared in the Sutra-side stdlib, and
+the Sutra codegen routes the calls to the matching substrate-pure
+runtime intrinsics — `exp` / `log` via interpolated lookup tables,
+the trig family via the unit-circle rotation primitive. So a TS
+program calling `Math.pow(2, 10)` transpiles and runs end to end.
 
 ### Bitwise operators — does not work yet
 
@@ -711,7 +713,7 @@ underneath. Use type annotations whenever possible.
 | `.length`, `.charAt` | ✅ | |
 | `.slice`, `.split`, regex | ❌ | |
 | Number literals + arithmetic | ✅ | |
-| `Math.*` | ❌ | Needs transcendental approximation |
+| `Math.*` transcendentals | ✅ | `sqrt`/`pow`/`sin`/`cos`/`exp`/`log` route to substrate-pure intrinsics |
 | Bitwise operators | ❌ | No substrate-pure design yet |
 | Array literals + indexing | ✅ | |
 | `.length` on arrays | ✅ | |
