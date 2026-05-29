@@ -282,6 +282,20 @@ def _builtin_vector_literal(args: List[str]) -> str:
     return f"_VSA.vector_from_floats([{', '.join(args)}])"
 
 
+def _builtin_matrix_literal(args: List[str]) -> str:
+    # Variadic row-vector matrix literal — the 2-D generalization of
+    # vector_literal (the bake-back / frozen-constant source form for
+    # matrix-valued parameters and lookup matrices, e.g. a cyclic-
+    # permutation matrix for a substrate-RNN advance). Each arg is a
+    # row vector (typically itself a vector_literal). Lowers to a
+    # substrate-side stack:
+    #     matrix_literal(r0, r1, ...) -> _VSA.matrix_from_rows([r0, r1, ...])
+    # Substrate-pure: matrix_from_rows stacks the row tensors on the
+    # runtime device+dtype; no numpy on the runtime hot path. Consumed
+    # by Tensor.MatrixMul.
+    return f"_VSA.matrix_from_rows([{', '.join(args)}])"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -292,6 +306,7 @@ BUILTINS = {
     "bundle": (_builtin_bundle, None),   # variadic, at least 1
     "zero_vector": (_builtin_zero_vector, 0),
     "vector_literal": (_builtin_vector_literal, None),  # variadic floats
+    "matrix_literal": (_builtin_matrix_literal, None),  # variadic row-vectors
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
     "Equals": (_builtin_equals, None),
