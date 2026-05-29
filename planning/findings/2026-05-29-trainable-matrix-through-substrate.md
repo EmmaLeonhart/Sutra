@@ -197,18 +197,65 @@ space does not encode.
 answer is *lexically present* (identity copies it); relation-matrix fails
 because the inputs are *degenerate* (nothing to copy, nothing to learn).
 A real positive semantic case needs a vocabulary whose same-type entities
-do **not** collapse — that is the open hunt, separate from the
-mechanism (which is proven on permutations + at d=768 scale).
+do **not** collapse and a target that is a *different* word from the input
+— found below.
+
+## Category/hypernym matrix — the POSITIVE semantic case
+
+`experiments/trainable_category_matrix.py` picks the task the two
+negatives ruled in: **word → its category** over the 20 well-separated
+`differentiable_training` categories (animal, vehicle, food, …). The
+target `embed(category_name)` is a *different* word from the input
+`embed(word)`, so identity cannot copy it, and the categories genuinely
+separate (that is why the classification experiments work). Train one
+matrix `M` (init identity) so `Tensor.MatrixMul(M, word) ≈
+embed(category)` through the compiled substrate matmul; the whole 760-word
+batch is one compiled call (`mod.apply(M, X.T).T`, equivalence-guarded ==
+per-sample, max|Δ|=0). Held-out: 240 words, top-1 retrieval over the
+20-name codebook.
+
+**Held-out top-1 (chance 5%), robust across holdout 10 / 20:**
+
+| | held-out top-1 |
+|---|---|
+| identity `M = I` | 62.0–62.1% |
+| host lstsq fit | 4–9% |
+| **GD-trained (substrate)** | **78.5–79.6%** |
+
+**This is the positive case.** A single linear operator trained by
+gradient descent **through the compiled substrate matmul** generalises
+the "→ its category" map and **beats the identity baseline by ~16–17
+points** on held-out words. First-step `‖dL/dM‖` = 0.25 > 0 (backprop
+reaches the d×d matrix). The contrast with host **lstsq** is the
+instructive part: closed-form least-squares jumps to the min-norm
+interpolant and *overfits catastrophically* (4–9%, near chance), while
+**gradient descent from an identity init implicitly regularises** —
+it stays near the already-good identity and improves on it. The
+trainable-matrix mechanism is not just runnable; on a task with both
+separation and linear structure it learns a *generalising* semantic
+operator, and the identity-init GD path is materially better than the
+host closed-form fit.
+
+## The three semantic outcomes, summarised
+
+| task | identity | host lstsq | GD (substrate) | why |
+|---|---|---|---|---|
+| object-of-sentence | **100%** | 0% | 0% | answer lexically present |
+| capital-of | 2% (chance) | 2% | 2% | place-name embeddings degenerate |
+| **word → category** | 62% | 4–9% | **80%** | separation + linear structure |
+
+The mechanism (a trainable matrix through `Tensor.MatrixMul`) is constant
+across all three; the outcome is set by the data. Where a generalising
+linear operator exists, GD-through-the-substrate finds it and beats both
+identity and the host closed-form fit.
 
 ## Next
 
 - Constrain `M` to the orthogonal/permutation manifold during CE
   training (so the function-learner also yields a canonical matrix).
-- Find a positive semantic case: a relation over a vocabulary that
-  separates under nomic (cross-domain pairs, or contextualised phrases
-  rather than bare single-token entities) so GD-through-the-substrate can
-  beat identity on held-out. Bare place names are degenerate (above);
-  SVO objects are lexically present (above) — both dead ends.
+- Bake the trained category matrix back to a `matrix_literal` .su like the
+  permutation case (it is d×d = 768², large but mechanical) — a real
+  trained semantic operator as legible Sutra source.
 - Wire a trainable binding matrix (semantic `bind` = learned matrix) —
   the long-standing learned-matrix-binding target, now mechanically
   unblocked by trainable matrices + matrix literals. (Kept deferred as a

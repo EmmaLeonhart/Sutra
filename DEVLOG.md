@@ -66,6 +66,22 @@ two causes (role-matrix=lexical presence; relation-matrix=embedding
 degeneracy); the mechanism itself is proven (permutations + d=768 scale).
 A positive semantic case needs a separating vocabulary — open hunt.
 
+Found the POSITIVE case (`experiments/trainable_category_matrix.py`):
+**word → its category** over the 20 separated differentiable_training
+categories. Target embed(category-name) is a different word from the input
+(identity can't copy) and the categories genuinely separate. Train M (init
+identity) so MatrixMul(M, word)≈embed(category) through the compiled
+substrate matmul (whole 760-word batch = one `mod.apply(M, X.T).T` call,
+equivalence-guarded == per-sample). Held-out top-1 (chance 5%, robust
+across holdout 10/20): identity 62%, host lstsq 4–9% (overfits to the
+min-norm interpolant), **GD-trained 80%** — beats identity by ~17 pts.
+The instructive contrast: identity-init GD implicitly regularises and
+generalises; host closed-form lstsq overfits catastrophically. Mechanism
+is constant across all three semantic tasks; the outcome is set by the
+data (object-of = lexical presence → identity wins; capital-of =
+degeneracy → all chance; category = separation + linear structure →
+positive). 3-outcome summary table added to the finding.
+
 **Queue B.1 (dark code).** Documented the two role-matrix probes
 (`planning/exploratory/{object,subject_object}_matrix_probe.py`) in the
 finding + header pointers — they are the host least-squares "does a role
