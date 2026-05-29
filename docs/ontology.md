@@ -184,7 +184,7 @@ Now the Sutra programmer's job becomes concrete:
 3. **Organize** it into the `Country` class as a method:
 
    ```c
-   class Country inherits vector {
+   class Country extends vector {
        function Capital get_capital() {
            return this + capital_of;
        }

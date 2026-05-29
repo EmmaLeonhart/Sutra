@@ -15,23 +15,27 @@ graph LR
     SRC[".su source<br/>TypeScript-ish"]
     TOK["Tokens<br/>(lexer)"]
     AST["AST<br/>(parser)"]
-    SAST["Simplified AST<br/>(simplify)"]
     CHK["Validated AST<br/>(validator)"]
+    DSG["Lowered AST<br/>(desugar passes)"]
+    INL["Inlined AST<br/>(inliner)"]
+    SAST["Simplified AST<br/>(simplify)"]
     PY["Python source<br/>(codegen)"]
     RUN["Tensor ops<br/>(runtime)"]
 
     SRC --> TOK
     TOK --> AST
-    AST --> SAST
-    SAST --> CHK
-    CHK --> PY
+    AST --> CHK
+    CHK --> DSG
+    DSG --> INL
+    INL --> SAST
+    SAST --> PY
     PY --> RUN
 
     classDef src fill:#d1c4e9,color:#311b92,stroke:#512da8
     classDef mid fill:#7e57c2,color:#fff,stroke:#512da8
     classDef out fill:#ffb74d,color:#311b92,stroke:#f57c00
     class SRC src
-    class TOK,AST,SAST,CHK mid
+    class TOK,AST,CHK,DSG,INL,SAST mid
     class PY,RUN out
 ```
 
@@ -60,9 +64,23 @@ At this point the AST still looks like the source. `fuzzy f = 0.7;` is a `VarDec
 
 ---
 
-## Stage 3 — Simplify
+## Stage 3 — Validator
 
-This is where most of the "surface sugar" disappears. The simplify pass walks the AST and applies a series of rewrites:
+The validator walks the parsed AST to check things that the grammar alone can't enforce:
+
+- **Primitive-class compatibility.** `fuzzy f = 2.5;` gets an out-of-range warning (SUT0120) because `2.5` is outside `[-1, +1]` on the truth axis.
+- **Cast guards.** `(vector) "string"` is flagged — string-to-vector must go through `embed()`, not a cast (SUT0111).
+- **Pipe-forward ban.** `x |> f` is rejected (SUT0110) because the spec reserves `|>` for a future use.
+- **Modifier conflicts.** `public private f()` is rejected (SUT0112).
+- **Naming consistency.** A file using both `Cat` and `cat` as class names gets a casing-drift warning (SUT0113).
+
+No code transformation happens here — the AST goes in and comes out unchanged, possibly with a bag of diagnostics attached.
+
+---
+
+## Stage 4 — Lowering, inlining, and simplify
+
+This is where most of the "surface sugar" disappears. First the lowering / desugar passes run (`promise_desugar`, then the implicit tail-recursive `loop` desugar with its capture handling), so synthesized loop and promise bodies look like ordinary functions. Then the inliner pulls stdlib function bodies into the call sites. Finally the simplify pass walks the fully-inlined AST and applies a series of rewrites:
 
 ### 3.1 Compile-time literal folds
 
@@ -129,23 +147,9 @@ One stacked matmul on GPU instead of N separate bind calls followed by a sum. Fu
 
 ---
 
-## Stage 4 — Validator
-
-The validator walks the simplified AST to check things that the grammar alone can't enforce:
-
-- **Primitive-class compatibility.** `fuzzy f = 2.5;` gets an out-of-range warning (SUT0120) because `2.5` is outside `[-1, +1]` on the truth axis.
-- **Cast guards.** `(vector) "string"` is flagged — string-to-vector must go through `embed()`, not a cast (SUT0111).
-- **Pipe-forward ban.** `x |> f` is rejected (SUT0110) because the spec reserves `|>` for a future use.
-- **Modifier conflicts.** `public private f()` is rejected (SUT0112).
-- **Naming consistency.** A file using both `Cat` and `cat` as class names gets a casing-drift warning (SUT0113).
-
-No code transformation happens here — the AST goes in and comes out unchanged, possibly with a bag of diagnostics attached.
-
----
-
 ## Stage 5 — Codegen
 
-The codegen walks the validated AST and emits Python source. This is where the remaining sugar — operators, classes, methods — gets translated into the substrate's algebra. The canonical target is `codegen_pytorch.py`, which emits torch tensor ops and picks CUDA at module init if available.
+The codegen walks the lowered, inlined, simplified AST and emits Python source. This is where the remaining sugar — operators, classes, methods — gets translated into the substrate's algebra. The canonical target is `codegen_pytorch.py`, which emits torch tensor ops and picks CUDA at module init if available.
 
 Key translations:
 
@@ -158,7 +162,7 @@ Key translations:
 | `a != b` | `_VSA.neq(a, b)` — logical_not of eq |
 | `a * b` (complex) | `_VSA.complex_mul(a, b)` — (r1r2−i1i2, r1i2+i1r2) on the 2D subspace |
 | `a * b` (int/float) | `(a * b)` — Python scalar fast path, type-directed |
-| `defuzzy(x)` | `_VSA.defuzzify(x)` — truth-axis projection + iterated eq |
+| `defuzzy(x)` | expanded inline to a stack of ten nested `eq` calls — there is no single runtime `defuzzify` method; the iterated truth-axis polarization is emitted directly into the program |
 | `true` | `_VSA.make_truth(1.0)` |
 | `false` | `_VSA.make_truth(-1.0)` |
 | `unknown` | `_VSA.make_truth(0.0)` |
@@ -301,7 +305,7 @@ A useful summary, in one table, of what the programmer writes and what the machi
 | `a && b` | five arithmetic ops on two scalars (or vectors, componentwise) |
 | `a == b` | one matmul (dot product), one sqrt, one division, one allocation |
 | `complex_a * complex_b` | four scalar products, two scalar sums, one allocation |
-| `defuzzy(x)` | one matmul (projection), 10 cosine-similarity calls |
+| `defuzzy(x)` | ten nested `eq` (cosine-similarity) evaluations, emitted inline |
 | `(a && !b) \|\| (!a && b)` | five polynomial calls today; one multiplication after a future simplifier recognizes the XOR pattern |
 | `hashmap.get(k)` | one matmul (unbind rotation), one argmax against a codebook |
 

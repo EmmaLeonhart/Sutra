@@ -9,13 +9,13 @@ Training status legend used throughout:
 - **vision** — the item has a trainable surface in principle, but no harness exists yet.
 - **n/a** — not a trainable surface (compiler infrastructure, syntax, lexical forms, etc.).
 
-There is **one shipped** training instance in the whole language today (the equality `==` cosine scaling scalar) and **two mechanism** instances (rank-k `is_X` classification, defuzz gain). The bulk of trainable surfaces are **vision** — capable in principle, not yet built. The point of this page is to be honest about that.
+There is **one shipped** training instance in the whole language today (the equality `==` cosine scaling scalar) and **two mechanism** instances (rank-k `is_X` classification, defuzz gain). The bulk of trainable surfaces are **vision** — capable in principle, not yet built. This page states that distinction plainly rather than blurring it.
 
 ---
 
 ## 1. Keywords (reserved)
 
-`function`, `method`, `static`, `public`, `private`, `var`, `const`, `return`, `if`, `else`, `while`, `for`, `foreach`, `in`, `do`, `loop`, `do_while`, `while_loop`, `iterative_loop`, `foreach_loop`, `pass`, `replace`, `as`, `try`, `catch`, `this`, `operator`, `new`, `implicit`, `intrinsic`, `class`, `extends`, `slot`, `field`, `true`, `false`, `unknown` (alias `unk`), `wait`, `async`, `await`.
+`function`, `method`, `static`, `public`, `private`, `var`, `const`, `return`, `if`, `else`, `while`, `for`, `foreach`, `in`, `do`, `loop`, `do_while`, `while_loop`, `iterative_loop`, `foreach_loop`, `pass`, `recur`, `recurring`, `replace`, `as`, `try`, `catch`, `this`, `operator`, `new`, `implicit`, `intrinsic`, `class`, `extends`, `slot`, `field`, `true`, `false`, `unknown` (alias `unk`), `wait`, `async`, `await`.
 
 **Training: n/a** — keywords are syntax.
 
@@ -122,7 +122,7 @@ No hex literals yet.
 | `unsafeCast<Type>(value)` | type-system escape | n/a |
 | `unsafeOverride(value)` | type-system escape | n/a |
 | `defuzzy(value)` | truth-axis polarizer | mechanism — the cosine `(v == true)` loop body is scale-invariant in any input gain (`cos(g*v, true) = sign(x)`), so a wrapper gain on top of `defuzzy` is degenerate. The shipped trainable polarizer is `defuzzify_trit` below |
-| `defuzzify_trit(v, iters, beta)` | three-way β-sharpening polarizer (Sutra-source intrinsic since 2026-05-28) | **shipped** — β is the trainable scalar; `experiments/defuzz_gain_adjustment.py --body trit --iters 1` converges to β\* = 6.58 ± 0.17 across 3 seeds; baseline 0.2126 → trained 0.0146 (~15× loss reduction); bake-back round-trip max\|Δ\| = 1.19e-7 (bit-exact within float32 precision). Second shipped constrain-train instance after `==` cosine-scale T. Runtime iters became runtime-variable 2026-05-28 (Emma decision); default iters=10 preserves prior behavior |
+| `defuzzify_trit(v, iters, beta)` | three-way β-sharpening polarizer (Sutra-source intrinsic since 2026-05-28) | **shipped** — β is the trainable scalar; a training run with `--body trit --iters 1` converges to β\* = 6.58 ± 0.17 across 3 seeds; baseline 0.2126 → trained 0.0146 (~15× loss reduction); bake-back round-trip max\|Δ\| = 1.19e-7 (bit-exact within float32 precision). Second shipped constrain-train instance after `==` cosine-scale T. Runtime iters became runtime-variable 2026-05-28; default iters=10 preserves prior behavior |
 | `embed(string)` | LLM-embedding primitive | vision — per-string embedding fine-tunes (a tiny adaptation layer on the frozen substrate) |
 
 ---
@@ -137,7 +137,7 @@ No hex literals yet.
 
 ## 11. Compiler passes
 
-Lexer → Parser → Validator → Simplifier (hand-written `simplify.py`; optional egglog backend `simplify_egglog.py`) → Inliner → Lowering passes (`loop_desugar`, `loop_capture`, `promise_desugar`) → Codegen → Runtime.
+Lexer → Parser → Validator → Lowering / desugar passes (`promise_desugar` then `loop_desugar`, with `loop_capture` as part of the loop lowering) → Inliner → Simplifier (hand-written `simplify.py`; optional egglog backend `simplify_egglog.py`) → Codegen → Runtime. The desugar passes run before inlining so the synthesized loop and promise bodies get the same stdlib inlining as hand-written code, and the simplifier runs last over the fully-inlined tree.
 
 Additional surface: workspace + atman config, cached-compile, stdlib loader, axon-keys static analysis, trace, review (FV checker public API `fv` namespace exposing the polynomial-obligation checker).
 
@@ -150,8 +150,7 @@ Additional surface: workspace + atman config, cached-compile, stdlib loader, axo
 | Target | Status | Training |
 |---|---|---|
 | PyTorch (canonical) | active | the runtime trainable parameters land as `nn.Parameter`-shaped tensors here; this is the codegen target trained programs use |
-| numpy | DEPRECATED — file header explicitly states deprecation; retained for literal-lowering hooks inherited by PyTorch backend and for some emit-shape test assertions | n/a |
-| base codegen | abstract base class shared by both | n/a |
+| base codegen | abstract base class the active target extends | n/a |
 
 ---
 
@@ -272,7 +271,7 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | Method | Description | Training |
 |---|---|---|
 | `_argmax_cosine(query, candidates)` | nearest-codebook lookup | vision — learned candidate weighting or temperature |
-| `_select_softmax(scores, options)` | softmax-weighted superposition (the differentiable `switch`) | **shipped via T scaling the scores at the Sutra source level** (`select([s_i/T for i], [opt_i for i])`); `experiments/select_temperature_orthogonal.py` trains T at K=5 / 3-seeds for +1.77× margin gain (substrate-pure autograd via `_torch.stack`, see Audit.md REAL LEAK #10); also: learned firing threshold (vision) |
+| `_select_softmax(scores, options)` | softmax-weighted superposition (the differentiable `switch`) | **shipped via T scaling the scores at the Sutra source level** (`select([s_i/T for i], [opt_i for i])`); a training run learns T at K=5 / 3-seeds for +1.77× margin gain, with substrate-pure autograd; also: learned firing threshold (vision) |
 | `_vector_map_lookup(pairs, key)` | vector-keyed map lookup | vision — learned key matching weights |
 
 ### Hashmap (rotation-bound accumulator)
@@ -508,8 +507,8 @@ Top-level CLI front-end: `sutrac.py`.
 ## Summary of trainable status
 
 - **Shipped (4):**
-    1. **Equality `==` cosine scalar T** (`experiments/equality_cosine_adjustment.py`, 2026-05-26): trains a per-program T scaling the cosine inside `is_X(x) = (T*sim(x,own)) && !(T*sim(x,others))`; ~1.08× margin gain on K=5 embed-protos.
-    2. **Defuzz β** (`experiments/defuzz_gain_adjustment.py --body trit`, 2026-05-28): trains the sharpening rate inside `defuzzify_trit`; ~15× loss reduction; β\* = 6.58 ± 0.17 across 3 seeds; round-trip 1.19e-7.
-    3. **Rank-k `is_X` K=2** (`experiments/rank_k_is_x.py`, 2026-05-27): trains K×k vector prototypes + K×k scalar gains per class; 3.01× margin improvement on K=2 smoke.
-    4. **Select softmax temperature** (`experiments/select_temperature_orthogonal.py`, 2026-05-28): trains T inside `select([s_i/T for i], [opt_i for i])`; +1.77× margin gain on K=5 orthogonal-protos; round-trip 3.58e-07. CE surface is bimodal in T (global min at small +T, spurious basin at T<0); lr=0.005 default stays in the correct basin.
+    1. **Equality `==` cosine scalar T** (2026-05-26): trains a per-program T scaling the cosine inside `is_X(x) = (T*sim(x,own)) && !(T*sim(x,others))`; ~1.08× margin gain on K=5 embed-protos.
+    2. **Defuzz β** (2026-05-28): trains the sharpening rate inside `defuzzify_trit`; ~15× loss reduction; β\* = 6.58 ± 0.17 across 3 seeds; round-trip 1.19e-7.
+    3. **Rank-k `is_X` K=2** (2026-05-27): trains K×k vector prototypes + K×k scalar gains per class; 3.01× margin improvement on K=2 smoke.
+    4. **Select softmax temperature** (2026-05-28): trains T inside `select([s_i/T for i], [opt_i for i])`; +1.77× margin gain on K=5 orthogonal-protos; round-trip 3.58e-07. CE surface is bimodal in T (global min at small +T, spurious basin at T<0); lr=0.005 default stays in the correct basin.
 - **Vision (many):** essentially every other surface listed above where "Training: vision" appears — each is a trainable surface in principle whose harness has not been written. Per the design vision, the long-arc goal is for every operation to have a shipped trainable form; today we have four. Each new shipped instance is a step toward the picture where the entire program is back-propagatable from a learned neural network into legible Sutra source.
