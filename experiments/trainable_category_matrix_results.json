@@ -1,0 +1,19 @@
+{
+  "experiment": "trainable category/hypernym matrix through Tensor.MatrixMul",
+  "C": 20,
+  "d": 768,
+  "epochs": 500,
+  "lr": 0.005,
+  "wd": 0.0001,
+  "train_words": 760,
+  "heldout_words": 240,
+  "substrate_matmul_is_torch_matmul": true,
+  "equivalence_guard_max_delta": 0.0,
+  "first_step_grad_norm": 0.245842,
+  "heldout_top1": {
+    "identity": 0.620833,
+    "lstsq": 0.041667,
+    "gd": 0.795833
+  },
+  "gd_beats_identity": true
+}
