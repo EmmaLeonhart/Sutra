@@ -15,6 +15,41 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: exp/cos/sin return the full number-vector (0-d projection dropped) + real()/imag() free functions
+
+Emma's AskUserQuestion choice (fix-real + keep-literate) for the long-deferred
+"drop the 0-d projection on exp/cos/sin." A number IS a vector, so the
+transcendentals now return the full number-vector `[v, 0, …]` instead of a
+0-d tensor — on the torch (canonical) backend.
+
+Investigation first established: NO frozen-paper risk (`paper/neurips/` uses
+zero `Math.cos/sin/exp` in `.su`); the real blocker was that
+`tan/sqrt/pow/sinh/cosh/tanh` are LITERATE source-level methods in `math.su`
+calling `exp/sin/cos` at source level, plus a substrate-purity landmine (the
+existing `real()` accessor returns a HOST FLOAT via `.item()` and must not
+leak into an operation).
+
+The fix, both backends where needed:
+- **`real()`/`imag()` as substrate-pure free functions** (`codegen_base`
+  BUILTINS → `_VSA._re`/`_im`, 0-d *tensor* extractor — NOT the host-float
+  `.real()` accessor). Added `_re`/`_im` to the numpy backend for parity.
+- **torch `exp/cos/sin` → number-vector** via new scalar primitives
+  `_exp_s/_cos_s/_sin_s` (the 0-d alias); internal runtime callers
+  (`_rotor`, modulus `atan2`, `defuzzify_trit`, and the dead derived
+  runtime methods) redirected to the `_s` primitives so the substrate
+  arithmetic that needs a scalar still gets one.
+- **`math.su` literate bodies** (pow/sqrt/tan/sinh/cosh/tanh) wrap the now-
+  vector exp/sin/cos in the substrate-pure `real(...)`.
+- numpy backend keeps `exp/cos/sin` 0-d (deprecated; `real()` normalises).
+
+Verified: torch `Math.exp(2.0)` returns a (dim,) vector with the real axis =
+e² and every other axis ~0; `real(Math.exp(2.0))` recovers the scalar;
+derived transcendentals + log unchanged (scalars). `test_transcendentals.py`
+8/8 (46 subtests) on both backends; targeted defuzz/modulus/rotation/logic/
+matrix sweep 54/54; new `TestTranscendentalsReturnNumberVector` asserts the
+vector shape + the real() alias. The literate-source design is preserved
+(Emma's option C), not traded away.
+
 ## 2026-05-29: Trainable binding matrices — semantic vs non-semantic bind measured
 
 Emma greenlit (AskUserQuestion) building the learned-matrix binding she'd

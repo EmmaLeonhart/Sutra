@@ -1152,8 +1152,8 @@ class PyTorchCodegen(Codegen):
         self._emit('float()); the plane update is tensor arithmetic + scatter. i, j')
         self._emit('are structural layout indices (like AXIS_REAL), not data."""')
         self._emit("i, j = self._slot_plane(slot_idx)")
-        self._emit("c = self.cos(angle)")
-        self._emit("s = self.sin(angle)")
+        self._emit("c = self._cos_s(angle)")
+        self._emit("s = self._sin_s(angle)")
         self._emit("new = state.clone() if hasattr(state, 'clone') else state.copy()")
         self._emit("xi = state[i]")
         self._emit("xj = state[j]")
@@ -1408,14 +1408,25 @@ class PyTorchCodegen(Codegen):
         self._emit("return self.complex_mul(self.realExp(z), self.imaginaryExp(z))")
         self._indent -= 1
         self._emit()
+        self._emit("def _exp_s(self, x):")
+        self._indent += 1
+        self._emit('"""exp as a 0-d (scalar) tensor = real(cexp(x)). The internal')
+        self._emit('scalar primitive used by every derived transcendental (pow,')
+        self._emit('sqrt, sinh, cosh, tanh) and by defuzzify_trit, whose downstream')
+        self._emit('arithmetic (division, weighted sums) needs a scalar not a')
+        self._emit('number-vector. This 0-d form is the alias; public exp() below')
+        self._emit('returns the full number-vector (Emma 2026-05-29)."""')
+        self._emit("return self._re(self.cexp(self._cnum(x)))")
+        self._indent -= 1
+        self._emit()
         self._emit("def exp(self, x):")
         self._indent += 1
-        self._emit('"""exp at a scalar-typed boundary = real(cexp(x)). For real x')
-        self._emit('(imag 0): realExp=[e^x,0], imaginaryExp=[1,0], product=[e^x,0],')
-        self._emit('real part = e^x. This IS the documented real(exp(i*theta))')
-        self._emit('projection, not a deviation. 0-d tensor out (back-compat with')
-        self._emit('scalar call sites; the full complex op is cexp)."""')
-        self._emit("return self._re(self.cexp(self._cnum(x)))")
+        self._emit('"""e^x as the full number-vector [e^x, 0, ...] - a number IS a')
+        self._emit('vector, the real axis carries e^x. The 0-d projection is no')
+        self._emit('longer applied here (Emma 2026-05-29: drop the 0-d projection on')
+        self._emit('exp/cos/sin); decode with real()/_re at the monitoring boundary,')
+        self._emit('or call _exp_s for the scalar alias."""')
+        self._emit("return self._mk(self._exp_s(x), 0.0)")
         self._indent -= 1
         self._emit()
         self._emit("def ccos(self, z):")
@@ -1473,61 +1484,75 @@ class PyTorchCodegen(Codegen):
         self._emit()
         self._emit("ln = log")
         self._emit()
-        self._emit("def cos(self, x):")
+        self._emit("def _cos_s(self, x):")
         self._indent += 1
-        self._emit('"""cos(theta) = real(exp(i*theta)) - the documented')
-        self._emit('definitional reduction. exp(i*theta) = cexp of the PURE-')
-        self._emit('IMAGINARY number theta*i (theta on the imag axis), so the')
-        self._emit('eigenrotation turns through theta. Real part = cos."""')
+        self._emit('"""cos(theta) as a 0-d scalar = real(eigenrotation). Internal')
+        self._emit('scalar primitive (used by tan, _rotor, modulus atan2). The')
+        self._emit('eigenrotation turns through theta; its real coordinate is cos."""')
         self._emit("itheta = self._mk(0.0, self._st(x))")
         self._emit("return self._re(self.imaginaryExp(itheta))")
         self._indent -= 1
         self._emit()
-        self._emit("def sin(self, x):")
+        self._emit("def cos(self, x):")
         self._indent += 1
-        self._emit('"""sin(theta) = imag(exp(i*theta)) - imag part of the same')
-        self._emit('pure-imaginary eigenrotation (theta on the imag axis)."""')
+        self._emit('"""cos(theta) as the full number-vector [cos theta, 0, ...]. 0-d')
+        self._emit('projection dropped (Emma 2026-05-29); _cos_s is the scalar alias')
+        self._emit('used internally and at the monitoring boundary."""')
+        self._emit("return self._mk(self._cos_s(x), 0.0)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _sin_s(self, x):")
+        self._indent += 1
+        self._emit('"""sin(theta) as a 0-d scalar = imag(eigenrotation). Internal')
+        self._emit('scalar primitive (used by tan, _rotor, modulus atan2)."""')
         self._emit("itheta = self._mk(0.0, self._st(x))")
         self._emit("return self._im(self.imaginaryExp(itheta))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def sin(self, x):")
+        self._indent += 1
+        self._emit('"""sin(theta) as the full number-vector [sin theta, 0, ...]. 0-d')
+        self._emit('projection dropped (Emma 2026-05-29); _sin_s is the scalar alias."""')
+        self._emit("return self._mk(self._sin_s(x), 0.0)")
         self._indent -= 1
         self._emit()
         self._emit("def pow(self, x, y):")
         self._indent += 1
         self._emit('"""x^y = exp(y*ln x) - change-of-base identity. 0-d tensor."""')
-        self._emit("return self.exp(self._st(y) * self.log(x))")
+        self._emit("return self._exp_s(self._st(y) * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def sqrt(self, x):")
         self._indent += 1
         self._emit('"""sqrt(x) = exp(0.5*ln x) - the y=1/2 case of pow."""')
-        self._emit("return self.exp(0.5 * self.log(x))")
+        self._emit("return self._exp_s(0.5 * self.log(x))")
         self._indent -= 1
         self._emit()
         self._emit("def tan(self, x):")
         self._indent += 1
         self._emit('"""tan = sin/cos. cos->0 gives +/-inf (valid limit; no host if)."""')
-        self._emit("return self.sin(x) / self.cos(x)")
+        self._emit("return self._sin_s(x) / self._cos_s(x)")
         self._indent -= 1
         self._emit()
         self._emit("def sinh(self, x):")
         self._indent += 1
         self._emit('"""(e^x - e^-x)/2."""')
         self._emit("xt = self._st(x)")
-        self._emit("return (self.exp(xt) - self.exp(-xt)) * 0.5")
+        self._emit("return (self._exp_s(xt) - self._exp_s(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def cosh(self, x):")
         self._indent += 1
         self._emit('"""(e^x + e^-x)/2."""')
         self._emit("xt = self._st(x)")
-        self._emit("return (self.exp(xt) + self.exp(-xt)) * 0.5")
+        self._emit("return (self._exp_s(xt) + self._exp_s(-xt)) * 0.5")
         self._indent -= 1
         self._emit()
         self._emit("def tanh(self, x):")
         self._indent += 1
         self._emit('"""(e^2x - 1)/(e^2x + 1) [stable]; large |x| => exp saturates')
         self._emit('so tanh -> +/-1, the correct limit, no host range check."""')
-        self._emit("e2x = self.exp(2.0 * self._st(x))")
+        self._emit("e2x = self._exp_s(2.0 * self._st(x))")
         self._emit("return (e2x - 1.0) / (e2x + 1.0)")
         self._indent -= 1
         self._emit()
@@ -1606,7 +1631,7 @@ class PyTorchCodegen(Codegen):
         self._emit("xt = self._st(x)")
         self._emit("mt = self._st(m)")
         self._emit("theta = self._TWO_PI * xt / mt")
-        self._emit("phi = _torch.atan2(self.sin(theta), self.cos(theta))")
+        self._emit("phi = _torch.atan2(self._sin_s(theta), self._cos_s(theta))")
         self._emit("phi_pos = phi - self._TWO_PI * _torch.floor(phi / self._TWO_PI)")
         self._emit("return mt * phi_pos / self._TWO_PI")
         self._indent -= 1
@@ -2400,9 +2425,9 @@ class PyTorchCodegen(Codegen):
         self._emit("# tensor structural indices; iters is a loop count, not data.")
         self._emit("for _t in range(int(iters)):")
         self._indent += 1
-        self._emit("w_neg = self.exp(-b * (x + 1.0) ** 2)")
-        self._emit("w_zero = self.exp(-b * x ** 2)")
-        self._emit("w_pos = self.exp(-b * (x - 1.0) ** 2)")
+        self._emit("w_neg = self._exp_s(-b * (x + 1.0) ** 2)")
+        self._emit("w_zero = self._exp_s(-b * x ** 2)")
+        self._emit("w_pos = self._exp_s(-b * (x - 1.0) ** 2)")
         self._emit("s = w_neg + w_zero + w_pos")
         self._emit("x = (-w_neg + w_pos) / s")
         self._emit("b = b * 2.0")
