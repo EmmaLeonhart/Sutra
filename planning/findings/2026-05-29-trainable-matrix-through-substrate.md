@@ -162,14 +162,53 @@ that the **trainable-matrix mechanism is now validated at real d=768
 scale on real embeddings**, not just toy permutations, and it lands on
 the same answer the host probe did.
 
+## Relation/displacement matrix (capital-of) — a second negative, different cause
+
+`experiments/trainable_relation_matrix.py` chased the *positive* case:
+capital-of (country → capital), where a generalising linear displacement
+plausibly exists (the king−man+woman intuition) and identity has nothing
+to copy (country and capital are different words). Train `M` (init
+identity) so `Tensor.MatrixMul(M, country) ≈ capital` through the
+compiled matmul; 5-fold CV vs identity + host lstsq.
+
+It is **not** a positive case — but for a reason worth recording. The
+nomic embeddings of bare single-token place names **collapse into a
+near-degenerate cone**:
+
+- mean pairwise cos among 44 countries = **+1.000**, among capitals =
+  **+0.995**, `cos(country_i, capital_i)` = **+0.997**.
+- Verified not a pipeline bug: `cos(France, France)=1.0000`,
+  `cos(France, banana)=0.493`, `cos(France, democracy)=0.424`,
+  `cos(banana, democracy)=0.387` — but `cos(France, Paris) =
+  cos(France, Japan) = cos(Paris, Tokyo) = 1.0000`. nomic-embed-text
+  (mean-centered + L2, no task prefix, single token) maps *all place
+  names onto one "this is a place" direction*; non-place words stay
+  distinct.
+
+Consequence: held-out top-1 retrieval is at **chance (2%) for identity,
+host lstsq AND the trained matrix alike** — there is no signal to learn,
+because the inputs are all the same vector. (lstsq's design matrix is
+rank-deficient → degenerate prediction, cos reported as 0.) The
+trainable-matrix mechanism still runs correctly (‖dL/dM‖>0, train fit
+held at 0.997), but no method can recover a relation that the embedding
+space does not encode.
+
+**Two negatives, two distinct causes.** Role-matrix fails because the
+answer is *lexically present* (identity copies it); relation-matrix fails
+because the inputs are *degenerate* (nothing to copy, nothing to learn).
+A real positive semantic case needs a vocabulary whose same-type entities
+do **not** collapse — that is the open hunt, separate from the
+mechanism (which is proven on permutations + at d=768 scale).
+
 ## Next
 
 - Constrain `M` to the orthogonal/permutation manifold during CE
   training (so the function-learner also yields a canonical matrix).
-- A task where a generalising linear operator plausibly *does* exist
-  (analogy/displacement: capital-of, plural-of) to see GD-through-the-
-  substrate beat identity on held-out — the role-matrix probe's task is
-  degenerate (object word lexically present).
+- Find a positive semantic case: a relation over a vocabulary that
+  separates under nomic (cross-domain pairs, or contextualised phrases
+  rather than bare single-token entities) so GD-through-the-substrate can
+  beat identity on held-out. Bare place names are degenerate (above);
+  SVO objects are lexically present (above) — both dead ends.
 - Wire a trainable binding matrix (semantic `bind` = learned matrix) —
   the long-standing learned-matrix-binding target, now mechanically
   unblocked by trainable matrices + matrix literals. (Kept deferred as a

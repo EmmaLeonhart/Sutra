@@ -1,0 +1,28 @@
+{
+  "experiment": "trainable relation matrix (capital-of) through Tensor.MatrixMul",
+  "N": 44,
+  "d": 768,
+  "epochs": 600,
+  "lr": 0.01,
+  "wd": 0.0,
+  "substrate_matmul_is_torch_matmul": true,
+  "first_step_grad_norm": 0.019233,
+  "train_cos_identity": 0.997237,
+  "train_cos_gd": 0.997428,
+  "heldout": {
+    "identity": {
+      "cos": 0.997237,
+      "top1": 0.022727
+    },
+    "lstsq": {
+      "cos": 0.0,
+      "top1": 0.022727
+    },
+    "gd": {
+      "cos": 0.997349,
+      "top1": 0.022727
+    }
+  },
+  "heldout_top1_winner": "identity",
+  "gd_beats_identity": false
+}

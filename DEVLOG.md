@@ -55,6 +55,17 @@ learned matrices overfit. Negative result, expected (object word lexically
 present, so identity already retrieves it), now confirmed through the
 substrate path.
 
+Chased the *positive* case too — capital-of (country→capital), a relation
+where a linear displacement plausibly exists and identity can't copy
+(`experiments/trainable_relation_matrix.py`). Not a positive case, for a
+recorded reason: nomic collapses bare single-token place names to a
+near-degenerate cone (`cos(France,Paris)=cos(France,Japan)=1.0000` while
+`cos(France,banana)=0.49` — verified not a pipeline bug). Held-out top-1 at
+chance for identity/lstsq/GD alike — no signal to learn. Two negatives,
+two causes (role-matrix=lexical presence; relation-matrix=embedding
+degeneracy); the mechanism itself is proven (permutations + d=768 scale).
+A positive semantic case needs a separating vocabulary — open hunt.
+
 **Queue B.1 (dark code).** Documented the two role-matrix probes
 (`planning/exploratory/{object,subject_object}_matrix_probe.py`) in the
 finding + header pointers — they are the host least-squares "does a role
