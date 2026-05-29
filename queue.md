@@ -89,8 +89,7 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 Full scan + fixes shipped 2026-05-28 (`planning/findings/2026-05-28-documentation-and-directory-scan.md`): 23 stale doc files corrected across planning/, docs/ website, and root (AGENTS map, README, todo, Audit). Remaining follow-ons (flagged, not done):
 
 1. **open-questions/ pruning pass (needs Emma greenlight — deletion).** 8+ RESOLVED open-questions docs are deletion-eligible per the dir's README rule 3 (rationale already in spec): `binding-kind-surface-syntax`, the `loop-*` set, `axon-bind-needs-permutation`, `equality-cosine-T-placement`, `non-halting-loop-recur-primitive`, `cosine-as-its-own-transcendental`, `arbitrary-precision-digit-array`. Bulk `git rm` (working-tree only, history kept) once Emma confirms. Also the struck-through DECIDED lines in `sutra-spec/open-questions.md`.
-2. **Fold shipped features into canonical spec.** `csin`/`ccos`, `matrix_literal`, `select`-temperature, BigInt have findings but aren't in `operations.md`/`types.md`. A "fold findings into spec" pass.
-3. **Dark code:** `planning/exploratory/{object,subject_object}_matrix_probe.py` — loose scripts, no writeup, zero refs. Document what they probe or remove.
+2. **Dark code:** `planning/exploratory/{object,subject_object}_matrix_probe.py` — loose scripts, no writeup, zero refs. Document what they probe or remove.
 
 ### C. Cross-repo migrations (Yantra → Sutra)
 
