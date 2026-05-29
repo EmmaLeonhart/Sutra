@@ -1,0 +1,23 @@
+// echo.su — the smallest userspace utility, migrated from Yantra into
+// Sutra as a KERNEL-FREE demo (Phase-3 migration, 2026-05-29).
+//
+// Take an input axon, return its "stdin_text" value rebound under
+// "stdout_text". In Yantra this ran as a kernel-admitted SutraService
+// routed over R_stdin/R_stdout axon channels; here the host compiles it
+// with compile_su and calls on_axon directly (see echo_demo.py), exactly
+// the pattern demos/font + demos/gui use — no kernel, no admit, no router.
+//
+// The string round-trips on the substrate: rotation-bind into the axon,
+// echo re-binds it under stdout_text, the host unbinds + decodes. The
+// string rides a SINGLE rotation binding, which inverts exactly, so the
+// round-trip is bit-exact even at small dim (measured 5/5 exact at
+// runtime_dim 16..256). The two axon keys ("stdin_text"/"stdout_text")
+// ARE embedded via the frozen LLM (nomic) — embed() has no random
+// fallback — so echo needs Ollama at runtime (unlike the make_real-only
+// font/gui demos, which need no model).
+
+function vector on_axon(vector input_axon) {
+    Axon out;
+    out.add("stdout_text", axon_item(input_axon, "stdin_text"));
+    return out;
+}
