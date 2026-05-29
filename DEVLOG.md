@@ -15,6 +15,28 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-28: documentation & directory scan — 23 stale doc files fixed
+
+Emma asked for a general scan of dirs + docs (hunch: docs, esp. planning/, stale
+relative to what's running). Four parallel audits cross-checked every status
+claim against the code. Conclusion: docs are real and mostly accurate;
+staleness was CONCENTRATED in back-propagation lag (features that shipped but
+whose older "pending" status lines were never flipped), not systemic.
+
+Fixed 23 files in 3 commits: planning/ (non-halting-loop "pending"→SHIPPED — the
+worst offender; k5 issue→CLOSED; cosine + arbitrary-precision OQ→RESOLVED;
+finding forward-pointers; exploratory README), docs/ website (transcendentals +
+complex_sub/div "disabled"→live, contradicting tutorial 04; stripped numpy /
+Audit.md / experiments / clawRxiv-CI / "honest" / master-link leaks; fixed
+pass-order + deleted-defuzzify), root (AGENTS map gained demos/ + both
+transpilers + web/ + FV paper; README docs/ + CI table; Audit smoke 11→10;
+todo.md shipped-item + obsolete-block removal). Site rebuilds clean.
+
+Synthesis + remaining gaps: `planning/findings/2026-05-28-documentation-and-
+directory-scan.md`. Flagged follow-ons (queue §B): open-questions pruning pass
+(needs Emma greenlight — 8+ resolved docs), fold shipped features into
+operations.md/types.md, the two dark exploratory matrix-probe scripts.
+
 ## 2026-05-28: font.su cycle_step is a real substrate-state RNN (Option B) + egglog literal fix
 
 Built the font cycle_step substrate-RNN Emma chose (Option B). The glyph cursor

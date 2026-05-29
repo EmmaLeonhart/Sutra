@@ -84,6 +84,14 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 3. **Contract key-soundness — runtime instrumentation.** Per Emma's `AskUserQuestion` sweep Q2 answer (2026-05-28): compile-time inject key-usage logging into the emitted graph; gate `AXON_KEYS_*` against the runtime trace. Discharges FV-paper §3.1 the strong way (currently §3.1 names "remaining open part is soundness of the static `AXON_KEYS` analysis against the keys a program touches at runtime"). Substantial work. Task #10.
 4. **Phase 3 — `apps/calc`, `apps/echo`, `apps/terminal` migration.** Per Emma's `AskUserQuestion` sweep Q6 answer (2026-05-28): re-architect to skip the kernel — rewrite each to call `compile_su` directly + admit-shim, like font/gui do. The apps lose their kernel-routed-axon shape but become Sutra-only demos. Large. Task #13.
 
+### B. Documentation maintenance (from the 2026-05-28 doc+dir scan)
+
+Full scan + fixes shipped 2026-05-28 (`planning/findings/2026-05-28-documentation-and-directory-scan.md`): 23 stale doc files corrected across planning/, docs/ website, and root (AGENTS map, README, todo, Audit). Remaining follow-ons (flagged, not done):
+
+1. **open-questions/ pruning pass (needs Emma greenlight — deletion).** 8+ RESOLVED open-questions docs are deletion-eligible per the dir's README rule 3 (rationale already in spec): `binding-kind-surface-syntax`, the `loop-*` set, `axon-bind-needs-permutation`, `equality-cosine-T-placement`, `non-halting-loop-recur-primitive`, `cosine-as-its-own-transcendental`, `arbitrary-precision-digit-array`. Bulk `git rm` (working-tree only, history kept) once Emma confirms. Also the struck-through DECIDED lines in `sutra-spec/open-questions.md`.
+2. **Fold shipped features into canonical spec.** `csin`/`ccos`, `matrix_literal`, `select`-temperature, BigInt have findings but aren't in `operations.md`/`types.md`. A "fold findings into spec" pass.
+3. **Dark code:** `planning/exploratory/{object,subject_object}_matrix_probe.py` — loose scripts, no writeup, zero refs. Document what they probe or remove.
+
 ### C. Cross-repo migrations (Yantra → Sutra)
 
 - **Phase 3 — apps/calc, apps/echo, apps/terminal** pending. Kernel-coupled today; re-architect to call `compile_su` directly + admit-shim (Emma sweep Q6 2026-05-28). Task #13.
