@@ -6,7 +6,7 @@ listed below. The BUILTINS table in
 authoritative list; this section describes what each does and
 where it currently runs.
 
-## The builtin set (as of 2026-04-26)
+## The builtin set (updated 2026-05-28)
 
 | Op | Arity | Purpose | Backend status |
 |---|---|---|---|
@@ -22,6 +22,8 @@ where it currently runs.
 | `permute` | 2 | Sign-flip permutation (legacy; see below) | ✓ |
 | `permutation_key` | 1 | Sign-flip key derivation | ✓ |
 | `identity_permutation` | 0 | `ones(d)` sign-flip identity | ✓ |
+| `vector_literal` | variadic floats | Frozen 1-d substrate tensor from float literals (`_VSA.vector_from_floats`) | ✓ |
+| `matrix_literal` | variadic row-vectors | Frozen 2-d substrate tensor, rows stacked (`_VSA.matrix_from_rows` → `torch.stack`) | ✓ (2026-05-28) |
 | `snap` | 1 | Cleanup against a real attractor circuit | ✗ rejected (no cleanup circuit) |
 | `make_rotation` | 1–2 | Build a Haar-random rotation matrix | ✗ rejected (substrate-level) |
 | `compile_prototypes` | 1 | Compile a codebook to substrate-readable patterns | ✗ rejected (substrate-level) |
@@ -32,6 +34,48 @@ circuit that the current pure-tensor PyTorch substrate doesn't
 have. They were operational on the retired fly-brain backend; on
 the current backend, programs that use them are rejected at
 codegen time.
+
+`vector_literal` / `matrix_literal` are the source-level frozen-constant
+constructors — the bake-back form for trained vector/matrix parameters and the
+way to write a fixed lookup/permutation matrix in `.su`. `matrix_literal(r0, r1,
+…)` takes row vectors (each typically a `vector_literal`) and stacks them on the
+runtime dtype/device; it is consumed by `Tensor.MatrixMul`. Example in anger:
+`demos/font/font.su`'s `cycle_step` builds a frozen 36×36 cyclic-permutation
+matrix with `matrix_literal` and advances a recurring one-hot glyph cursor by
+`MatrixMul(P, glyph)` — a substrate-state RNN. (Both skip the egglog
+simplify post-pass: their args are pure literals, nothing to algebraically
+rewrite, and lifting a large literal tree into egglog is pathologically slow.)
+
+### Complex transcendentals (substrate-pure, lookup + eigenrotation)
+
+The math intrinsics live in `stdlib/math.su` and lower to `_VSA` methods in
+`codegen_pytorch.py`. They are NOT libm/torch-elementwise shortcuts — each
+decomposes to a crosstalk lookup table + eigenrotation composition:
+
+| Op | Form | Notes |
+|---|---|---|
+| `realExp(z)` | `e^(Re z)` | crosstalk-lookup leaf (`_exp_table`) |
+| `imaginaryExp(z)` | `e^(i·Im z)` = `[cos, sin]` | eigenrotation; `cos`/`sin` are its real/imag projections, each with its own table (`_COS_VALUES`/`_SIN_VALUES`) |
+| `cexp(z)` | `realExp(z) ⊗ imaginaryExp(z)` | the documented keystone (`⊗` = `complex_mul`) |
+| `exp(x)` | `real(cexp(x))` | scalar-boundary real exponential |
+| `ccos(z)` | `(e^(i·z)+e^(−i·z))/2` | complex-argument cosine (2026-05-17); vs `cmath.cos` ≤2e-4 |
+| `csin(z)` | `(e^(i·z)−e^(−i·z))/(2i)` | complex-argument sine (2026-05-28); vs `cmath.sin` <2e-2 |
+| `log`/`ln` | natural log via inverse codebook | real-axis; complex log deferred |
+
+`ccos`/`csin` are built only from the verified-pure `cexp` keystone +
+`complex_mul`/`complex_add`/`complex_sub` — no new leaf, no host branch, no
+scalar extraction; for real argument they reduce to exactly `[cos a, 0]` /
+`[sin a, 0]` (zero imaginary leakage, so the paper-cited real `cos`/`sin` are
+untouched). See `planning/findings/2026-05-17-complex-argument-cosine-implemented.md`
+and `2026-05-28-csin-complex-sine-shipped.md`.
+
+### Trainable surfaces (constrain-train)
+
+`select` carries a softmax **temperature** that is a trainable parameter — the
+second *mechanism* constrain-train instance after the equality `==` cosine-scale
+scalar (the one *shipped* instance). See `equality-and-defuzzification.md` and
+the 2026-05-28 select-T findings; the full per-item training status is in the
+website capabilities inventory.
 
 ## Binding (semantic + rotation)
 

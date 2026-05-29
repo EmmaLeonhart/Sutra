@@ -40,6 +40,16 @@ Three base types at the bottom of the user-framed hierarchy:
   no crisp-boolean form in Sutra; `bool` is always still a fuzzy.
   Implementation is currently the same placeholder `float` zero
   as `fuzzy`.
+- **`BigInt` / `BigInt<MAX>`** — arbitrary-precision integer as a
+  fixed-width little-endian digit array (base-10) held as a 1-d
+  substrate vector; `BigInt<256>` carries the max width in the type.
+  **Implementation status**: the class, the `digit_array_add`
+  carry-propagation substrate intrinsic, and `operator +` (dispatching
+  to `digit_array_add` via the String-`operator +` pattern) are
+  SHIPPED (2026-05-28, bit-exact e.g. `12345 + 67891 = 80236`, overflow
+  saturates). Construction helpers (from int / string literal) are
+  deferred pending a source-surface design decision. See
+  `arbitrary-precision.md` and `stdlib/bigint.su`.
 
 ### String and numeric types
 
