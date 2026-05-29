@@ -1,0 +1,66 @@
+{
+  "experiment": "trainable binding matrices through compiled Tensor.MatrixMul",
+  "d": 64,
+  "epochs": 400,
+  "lr": 0.01,
+  "Ks": [
+    2,
+    4,
+    8,
+    16,
+    32
+  ],
+  "substrate_matmul_is_torch_matmul": true,
+  "rows": [
+    {
+      "K": 2,
+      "d": 64,
+      "recovery_cos_random_orth": 0.78461,
+      "recovery_cos_learned": 1.0,
+      "newfiller_cos_random_orth": 0.712952,
+      "newfiller_cos_learned": 0.707613,
+      "init_grad_bind": 2.0333087036306097e-07,
+      "init_grad_unbind": 0.43839892745018005
+    },
+    {
+      "K": 4,
+      "d": 64,
+      "recovery_cos_random_orth": 0.542181,
+      "recovery_cos_learned": 1.0,
+      "newfiller_cos_random_orth": 0.408662,
+      "newfiller_cos_learned": 0.241747,
+      "init_grad_bind": 1.2701291041139484e-07,
+      "init_grad_unbind": 0.4178096652030945
+    },
+    {
+      "K": 8,
+      "d": 64,
+      "recovery_cos_random_orth": 0.384613,
+      "recovery_cos_learned": 1.0,
+      "newfiller_cos_random_orth": 0.331976,
+      "newfiller_cos_learned": 0.141498,
+      "init_grad_bind": 7.061191809043521e-08,
+      "init_grad_unbind": 0.32555949687957764
+    },
+    {
+      "K": 16,
+      "d": 64,
+      "recovery_cos_random_orth": 0.246195,
+      "recovery_cos_learned": 1.0,
+      "newfiller_cos_random_orth": 0.195022,
+      "newfiller_cos_learned": 0.099063,
+      "init_grad_bind": 4.986096868719869e-08,
+      "init_grad_unbind": 0.24129749834537506
+    },
+    {
+      "K": 32,
+      "d": 64,
+      "recovery_cos_random_orth": 0.180578,
+      "recovery_cos_learned": 1.0,
+      "newfiller_cos_random_orth": 0.157786,
+      "newfiller_cos_learned": 0.131835,
+      "init_grad_bind": 3.807904391806005e-08,
+      "init_grad_unbind": 0.17276644706726074
+    }
+  ]
+}

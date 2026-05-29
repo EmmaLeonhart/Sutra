@@ -15,6 +15,31 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: Trainable binding matrices — semantic vs non-semantic bind measured
+
+Emma greenlit (AskUserQuestion) building the learned-matrix binding she'd
+deferred as a headline. `experiments/trainable_binding_matrix.py` makes the
+per-field bind/unbind matrices trainable parameters through the same
+compiled substrate path (`apply(matrix M, vector x){Tensor.MatrixMul(M,x)}`):
+a VSA role-filler record, K fields, `S=(1/√K)Σ B_i@f_i`, `f̂_j=U_j@S`, all
+substrate ops. Non-semantic baseline = random-orthogonal `B_i`, `U_i=B_i^T`.
+
+Measured (d=64): learned matrices recover the KNOWN fillers perfectly
+(cos=1.0) at every K while random-orth degrades 0.785→0.181 (K=2→32). But
+the honest mechanics: init `‖dL/dB‖≈6e-8` (bind side near-stationary) vs
+`‖dL/dU‖≈0.22` — it's the UNBIND side memorising the single fixed bundle
+vector, not the bind matrices improving. It does NOT generalise: on new
+random fillers learned is no better than (mid-K worse than) random-orth
+(K=8: 0.332→0.141). Exactly the VSA capacity limit (perfect zero-crosstalk
+recovery for K>1 full-rank matrices is impossible). This is a clean,
+measured statement of Emma's distinction: non-semantic bind = random
+orthogonal (content-agnostic, generalises, capacity-limited); semantic
+bind = a matrix specialised to KNOWN content (perfect known recovery, no
+generalisation) = "objects track which learned matrices bound their
+fields." Finding: `2026-05-29-trainable-binding-matrix.md`. (Greenlit with
+3 other items via AskUserQuestion: 0-d projection drop, FV key-soundness,
+Phase-3 apps — being worked through in order.)
+
 ## 2026-05-29: daily audit — clean (no-op)
 
 2026-05-29 daily audit: clean (70 .su compiled, 0 leaks; 14 open-questions dossiers + sutra-spec/open-questions.md index checked, 0 resolved-elsewhere; promise/await fit-to-spec). Fresh container with no torch/numpy/ollama preinstalled — installed pytest + torch (CPU) + numpy + the `ollama` python pkg, the ollama server (needed zstd), and pulled `nomic-embed-text`, so every leg ran live (no env-skip, no false-clean). Promise/await: codegen lint clean + `test_await_substrate_pure` 4/4 both backends incl. the two live-embedding semantic legs (`main()` = 3.0). Substrate-leak sweep: 70 user .su compiled + runtime prelude scanned, 0 leaks. Codegen-pytorch grep findings all match Audit.md BORDERLINE/LEGITIMATE taxonomy (literal-lift `_st()` boundaries at make_real/make_truth/make_char/make_complex; monitoring accessors at real/imag/truth/component/semantic/norm; compile-time constants self.PI/TAU; JS-interop equality/promotion under CLAUDE.md compat carve-out; structural for-range loops in defuzzify_trit/digit_array_add/loop runtime — Audit #4 NOT-A-LEAK shape; argmax_cosine terminal commit edge). Audit.md REAL LEAK #1-#10 all still marked FIXED, #4 still NOT-A-LEAK; spec-fit watchdog and `experiments/substrate_leak_sweep.py` both green. Open-questions README verdict table (refreshed 2026-05-28 pruning pass) still authoritative — 2 RESOLVED-core with narrow OPEN tail + 11 genuinely OPEN — confirmed against current spec/findings/code (`codegen-v1-feature-coverage.md`: EmbedExpr+DefuzzyExpr now lowered in `codegen.py`, methods/operator-decls still unsupported = doc's "which V1-refused constructs to close" OPEN tail intact). Per-commit §"Subtler substrate breaches" audit on the 3 code-touching commits since 2026-05-28 pass-2 audit: `15a8da7` font.su cycle_step rewrite — substrate-state RNN, runtime_dim=8 (0 basis_vector calls = tiny dim PASS; `recurring vector glyph` + `recur(next)` keeps state on substrate slot, advance is one `P @ glyph` matmul = state-locus PASS; signal-separation gap=1.0 bit-exact one-hot per commit message); `ba5c562` matrix_literal builtin — `torch.stack(rows, dim=0)` on runtime dtype/device, substrate-pure; `f662565` bigint_from_string intrinsic — substrate-pure parse (gather codepoints, masked computed-index reverse, no host digit loop/.item(); max_digits is structural width literal per Audit #4 NOT-A-LEAK shape). All three pass dim + state-locus + signal-separation. The remaining commits (`7bdca42`/`ff1b681`/`ec308e2`/`f787e50`/`cc12930`/`2e39b40`/`5b031a0`) are doc-only and don't touch the codegen leak path or resolve a `planning/open-questions/` dossier or `sutra-spec/open-questions.md` line.
