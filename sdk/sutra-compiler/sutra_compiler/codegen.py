@@ -1397,6 +1397,29 @@ class Codegen(BaseCodegen):
         self._emit("return float(v[self.semantic_dim + self.AXIS_IMAG])")
         self._indent -= 1
         self._emit()
+        self._emit("def _re(self, v):")
+        self._indent += 1
+        self._emit('"""Real-axis read WITHOUT the host-float cast that real() does')
+        self._emit('- returns the extended-state-vector real coordinate (or v itself')
+        self._emit('when v is already a scalar). The free-function real(x) builtin')
+        self._emit('lowers here so literate bodies stay backend-agnostic."""')
+        self._emit("if hasattr(v, 'ndim') and v.ndim >= 1 and v.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return v[self.semantic_dim + self.AXIS_REAL]")
+        self._indent -= 1
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _im(self, v):")
+        self._indent += 1
+        self._emit('"""Imag-axis counterpart of _re (no host-float cast)."""')
+        self._emit("if hasattr(v, 'ndim') and v.ndim >= 1 and v.shape[-1] == self.dim:")
+        self._indent += 1
+        self._emit("return v[self.semantic_dim + self.AXIS_IMAG]")
+        self._indent -= 1
+        self._emit("return v")
+        self._indent -= 1
+        self._emit()
         self._emit("def truth(self, v):")
         self._indent += 1
         self._emit('"""Truth value carried by v — synthetic[AXIS_TRUTH].')
