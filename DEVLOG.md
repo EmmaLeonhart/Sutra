@@ -15,6 +15,29 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: Phase-3 apps migration — calc migrated kernel-free (Yantra → Sutra)
+
+Second of the three apps. `demos/calc/{calc.py, switch.su, digits.su,
+test_calc.py}` (26/26). The Yantra calc admitted switch.su as a kernel
+SutraService and routed operands/results over R_switch_in/out with a
+producer + sink + tick loop; the migrated driver compiles switch.su with
+`compile_su` and calls its `on_axon` directly per binary op (decode the
+real axis). digits.su (substrate digit-string decomposition) was already a
+direct `_compile_su` call, carried over unchanged. Kept intact: the
+recursive-descent parser (precedence, parens, unary minus), the
+exact-rational oracle that refuses anything inexact (10/3 non-terminating,
+/0, parse errors, out-of-range digit string), and the on-substrate
+operator selection (switch.su scores the operator codepoint → exact
+softmax one-hot select). runtime_dim=8 (audited floor), nomic for the axon
+keys "a"/"b"/"op_char".
+
+Rail check that paid off: switch.su's `select` and digits.su's `Math.mod`
+both lean on exp/sin/cos, which this session's 0-d-projection change
+touched — so before porting I probed compiled switch.su directly (2+3=5,
+7*8=56, 100-50=50, 15/3=5, 2*3=6 all exact at dim=8), confirming the
+internal-caller redirects held. REMAINING: terminal (composes the migrated
+echo + calc behind a command-dispatch loop).
+
 ## 2026-05-29: Phase-3 apps migration — echo migrated kernel-free (Yantra → Sutra)
 
 Greenlit by Emma. First of the three kernel-coupled Yantra apps
