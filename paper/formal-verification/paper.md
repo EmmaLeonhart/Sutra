@@ -47,9 +47,10 @@ exactly, which we establish with measured results restated in full here (§4):
 rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
 frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
 with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and Sutra's compiled arithmetic —
-operator selection included — runs bit-exact on the substrate within the float32
-exact-integer range (18/18 dispatch cases and 1024/1024 symbol round-trips at
-|err| = 0.0, measured at scale in a downstream Sutra codebase).
+operator selection included — runs exactly on the substrate (the kernel-free
+`demos/calc` evaluates 11/11 expressions exactly against a rational oracle and
+refuses the inexact; `demos/echo` round-trips strings bit-exact at runtime
+dimension 16).
 §4.5 reports a worked example of why dispatch-level cleanliness is necessary
 but not sufficient: a runtime-prelude substrate leak in the `eq()` runtime
 method (`float(cos.item())` inside the operation severed autograd and was the
@@ -494,19 +495,23 @@ floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10�
 across all four substrates — the rotation is invertible to machine epsilon.
 
 **4.3 Exactness of the compiled arithmetic dispatch.** Bit-exactness here is a
-property of *Sutra's compilation*, not of any particular application: the
-compiler lowers arithmetic — operator *selection* included — to on-substrate
-dispatch decided by a saturated `select` (§3.2) rather than a host branch, and
-that dispatch recovers results **bit-exact within the float32 exact-integer
-range** (18/18 operator-dispatch cases at |err| = 0.0, including the 2²⁴
-boundary), with 1024/1024 distinct symbols round-tripped through the dispatch
-router at max |err| = 0.0. The property follows from the lowering, so it holds
-for any Sutra program that compiles arithmetic the same way. We measured it by
-running full arithmetic expressions through the Sutra kernel at scale in a
-downstream codebase (Yantra, an OS prototype built on Sutra); the figures are
-that codebase's own kernel tests, not a benchmark constructed for this paper.
-Yantra is the measurement harness, not part of the claim — the result is about
-the language.
+property of *Sutra's compilation*, not of any application. Two kernel-free demos
+in this repository exercise it with no OS, kernel, or router in the loop — each
+compiles a `.su` source and calls its substrate entry point directly. In
+`demos/calc`, the operator is *selected on the substrate* from its character's
+codepoint (`string_char_at` + a softmax-saturated `select`, §3.2) rather than by
+a host dispatch table, and the arithmetic runs on the substrate in float64 (exact
+integers to 2⁵³): **11/11 expressions evaluate exactly** against an exact-rational
+oracle, **6/6** inexact or unparseable inputs are *refused* rather than
+approximated, and **7/7** result strings are decomposed exactly on the substrate.
+In `demos/echo`, a string rides a single rotation binding into an axon and back,
+**bit-exact on 5/5 round-trips** down to runtime dimension 16. Both run at small
+width — `demos/calc` at the audited floor of `runtime_dim = 8`, with no
+`basis_vector` calls so the semantic codebook is unused — so the exactness is the
+dispatch's, not an artifact of high dimension. Reproduce in-repo:
+`python -m pytest demos/calc demos/echo` (32/32, measured on torch + CUDA with
+nomic-embed-text). The property follows from the lowering, so it holds for any
+Sutra program that compiles arithmetic the same way.
 
 A fair objection — and the standard one against any "bit-exact on GPU" claim —
 is that float32 on a GPU is generally non-deterministic across runs: warp
@@ -520,7 +525,8 @@ dispatch it explicitly:
    point. Reduction non-determinism is a property of operations like `sum(x)`
    over arrays where the addition order matters at floating-point precision;
    our path has none.
-2. **Every intermediate is an exact float.** Integers below 2²⁴ and the values
+2. **Every intermediate is an exact float.** Integers below the exact-integer
+   bound (2²⁴ for float32, 2⁵³ for the float64 the calc demo runs) and the values
    0.0/1.0 are represented exactly in IEEE-754; integer +/−/× of them is
    exact (no rounding to be reordered); element-wise multiplication of two
    exact floats is exact. So even if the *order* of element-wise ops differed
@@ -537,8 +543,8 @@ reproduces across runs and across hardware revisions within the IEEE-754
 envelope. The honest scope: this is exactness *for integer-valued computation
 in the exact range on IEEE-754 hardware*, not a claim that arbitrary float
 pipelines are bit-portable. This is the §3.1 contract property in miniature:
-the compiled graph computes exactly what the source denotes, end-to-end through
-a kernel.
+the compiled graph computes exactly what the source denotes, end-to-end on the
+substrate.
 
 These are existence results for exactness on the substrates and programs measured,
 which is what the reduction's premise requires.
