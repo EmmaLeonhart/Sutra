@@ -6,6 +6,27 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C option A tick 2 — full hardened corpus regenerated + pushed
+
+Ran `weight_to_code_corpus.py` at defaults to regenerate the whole corpus with
+the 15 hardened families: **3600 programs** (15 structures × 6 K {4,6,8,10,12,16}
+× 4 kinds {gaussian, perm, trained_rotation, trained_perm} × 10 seeds), 5760
+weight CSVs, 14400 substrate IO pairs. The 5 new families add 2160 new CSVs; the
+10 original families' CSVs regenerated with fresh weights (a few small `perm`
+matrices collided to identical permutations — benign). Self-consistency test
+`test_weight_to_code_corpus.py` passes 2/2 on the substrate (recompiled source +
+weights reproduce the recorded IO). `corpus/README.md` card stats updated
+(2400→3600, new family list, 900/kind, 600/K). Corpus submodule committed
+`03336b9` and pushed to `EmmaLeonhart/sutra-w2c-corpus`; Sutra pointer bumped
+`6814817→03336b9`.
+
+**HF mirror NOT yet done** — `mirror_corpus_to_hf.py` was blocked by the
+auto-mode classifier as an outward publish to an unverified external destination
+without explicit session authorization (the session ask was "run the work cron",
+not "publish"). Surfaced to Emma via AskUserQuestion; re-run once okayed (HF auth
+is cached, `whoami`=EmmaLeonhart). Does not block tick 3 (retrain + re-eval),
+which is now the live W2C item.
+
 ## 2026-05-30: W2C option A tick 1 — harder families implemented + guarded
 
 Built the generator side of the hardening (the prior entry below planned +
