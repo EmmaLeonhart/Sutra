@@ -1,3 +1,6 @@
 # Build artifact: deterministically regenerated from the corpus/ submodule
 # by prepare.py. Not committed (the corpus is the source of truth).
 data/
+
+# eval scratch + result artifact (regenerable by eval_substrate.py)
+_*
