@@ -210,6 +210,16 @@ def main():
         "permutation matrix (Frobenius -> 0). The two objectives are the "
         "'train the function' vs 'shift the matrix to a target' contrast.",
     )
+    ap.add_argument(
+        "--ortho", action="store_true",
+        help="Add a soft orthogonality penalty w*||MᵀM − I||² to the loss "
+        "(CE only). Plain CE learns the permutation FUNCTION but lets the "
+        "matrix entries grow (Frobenius to the canonical 0/1 matrix RISES). "
+        "Constraining M to the orthogonal manifold should keep accuracy 100% "
+        "AND pull Frobenius DOWN — the function-learner also yielding a "
+        "canonical matrix.",
+    )
+    ap.add_argument("--ortho-weight", type=float, default=1.0)
     a = ap.parse_args()
     seeds = [int(s) for s in a.seeds.split(",") if s.strip()]
     K = a.k
@@ -279,6 +289,7 @@ def main():
         gap_before = separation_gap(mod, M.detach(), es, perm)
 
         targets_onehot = torch.stack([es[perm[i]] for i in range(K)])  # (K,K)
+        eye = torch.eye(K, dtype=dtype, device=device)
         grad_norm_first = None
         for ep in range(a.epochs):
             opt.zero_grad()
@@ -288,6 +299,13 @@ def main():
                 loss = F.cross_entropy(outs * 5.0, y_idx)
             else:
                 loss = F.mse_loss(outs, targets_onehot)
+            if a.ortho:
+                # Soft orthogonality penalty: pull M onto the orthogonal
+                # manifold (||MᵀM − I||²). A permutation matrix is the
+                # orthogonal matrix with a one-hot argmax pattern, so
+                # CE (fixes the argmax) + ortho (fixes the geometry)
+                # together drive M toward the canonical permutation.
+                loss = loss + a.ortho_weight * ((M.t() @ M - eye) ** 2).sum()
             loss.backward()
             if grad_norm_first is None:
                 grad_norm_first = float(M.grad.norm())
@@ -323,6 +341,7 @@ def main():
             "seed": s,
             "target": a.target,
             "loss": a.loss,
+            "ortho": a.ortho,
             "perm": perm,
             "fro_before": round(fro_before, 6),
             "fro_after": round(fro_after, 6),
@@ -348,12 +367,14 @@ def main():
     )
     fb_m, fb_s = agg("fro_before")
     fa_m, fa_s = agg("fro_after")
-    print(f"K={K} target={a.target} loss={a.loss} epochs={a.epochs} "
-          f"n_seeds={len(seeds)}")
-    fro_note = (
-        "(mse drives this -> 0)" if a.loss == "mse"
-        else "(ce learns the FUNCTION, not the canonical matrix -> rises)"
-    )
+    print(f"K={K} target={a.target} loss={a.loss}{'+ortho' if a.ortho else ''} "
+          f"epochs={a.epochs} n_seeds={len(seeds)}")
+    if a.loss == "mse":
+        fro_note = "(mse drives this -> 0)"
+    elif a.ortho:
+        fro_note = "(ce+ortho: function AND canonical matrix -> should FALL)"
+    else:
+        fro_note = "(ce learns the FUNCTION, not the canonical matrix -> rises)"
     print(f"Frobenius to target: {fb_m:.3f} ± {fb_s:.3f}  ->  "
           f"{fa_m:.4f} ± {fa_s:.4f}  {fro_note}")
     print(f"transform accuracy:  "
@@ -376,6 +397,8 @@ def main():
         "dim_audit": "no basis_vector in apply.su; codebook unused",
         "target": a.target,
         "loss": a.loss,
+        "ortho": a.ortho,
+        "ortho_weight": a.ortho_weight if a.ortho else None,
         "epochs": a.epochs,
         "lr": a.lr,
         "seeds": seeds,
@@ -412,6 +435,14 @@ def main():
         )
         assert all(r["fro_after"] < 0.1 for r in rows), (
             f"MSE did not converge to the canonical matrix: {rows}"
+        )
+    if a.loss == "ce" and a.ortho:
+        # The headline claim: the orthogonality penalty makes the CE
+        # function-learner ALSO yield a canonical matrix -- Frobenius to
+        # the target FALLS (vs plain CE where it rises), while accuracy
+        # stays exact (asserted above).
+        assert all(r["fro_after"] < r["fro_before"] for r in rows), (
+            f"ce+ortho did not pull Frobenius toward the target: {rows}"
         )
     print("All assertions passed.")
 
