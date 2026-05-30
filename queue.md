@@ -23,31 +23,6 @@ deleted on completion. Keep the task tool in sync with this file.
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
-## Emma says do this now (2026-05-30)
-
-1. **Switch to Gemma for generating the training-data code** (task #17,
-   ACTIVE — approach LOCKED via AskUserQuestion 2026-05-30). Use
-   **`gemma3:12b`** (ollama, available locally) to generate Sutra program
-   variations for the weights↔code corpus. Emma's choices: **AUGMENT**
-   (Gemma is the primary new source; the 10 hand-written structure
-   templates stay as a verified fallback) + **FREE-FORM Sutra** (Gemma may
-   use any Sutra, not just matrix/vector ops). Pipeline: prompt gemma3:12b
-   to write programs with a fixed entry contract `function vector
-   apply(vector x)` (so IO is recordable) but free-form bodies; validate
-   each — compile (translate_pytorch) + run on the substrate; keep ONLY
-   valid ones; record `{source, weights[] (load_matrix CSV where present,
-   else []), io[]}` into the `corpus/` submodule alongside the template
-   entries; mirror to HF. Filter/log the compile-failure rate. Free-form
-   means some programs need a model (basis_vector/embed) — those pass
-   llm_model=nomic; pure-op ones stay model-free.
-2. **Clear up the queue** — addressed by the 2026-05-30 rewrite (this file).
-   Root cause was my discipline failure (left SHIPPED logs instead of
-   deleting completed items), NOT a lost rule.
-3. **Check CLAUDE.md queue rules** — DONE: the rules are intact (lines
-   59-61, 72, 313: remove completed items in the same commit; queue is not
-   a status snapshot; deleted on completion). No "cube"/"queue" rule was
-   lost. The bloat came from me not following them; fixed going forward.
-
 ## Active
 
 - **#10 — bake the trained d=768 category matrix to a `load_matrix` .su.**
@@ -61,13 +36,17 @@ deleted on completion. Keep the task tool in sync with this file.
   A `--bake` path in the experiment + a finding.
 
 - **Self-propagation corpus (weights↔code) — built; now scaling/diversity.**
-  Shipped: optional `llm_model`, `load_matrix`, the generator (10 structures
-  × weight-kinds incl. trained_rotation/trained_perm), the `corpus/` submodule
-  (`EmmaLeonhart/sutra-w2c-corpus`, public) + HF dataset mirror
+  Shipped: optional `llm_model`, `load_matrix`, the template generator (10
+  structures × weight-kinds incl. trained_rotation/trained_perm), **Gemma
+  free-form codegen** (`experiments/gemma_codegen_corpus.py`, gemma3:12b,
+  validate-compile+run-on-substrate→keep, augments the templates), the
+  `corpus/` submodule (`EmmaLeonhart/sutra-w2c-corpus`, public) + HF mirror
   (`experiments/mirror_corpus_to_hf.py`). Workflow: generate into `corpus/`
   → commit+push submodule → mirror to HF → bump the Sutra pointer. Open:
-  Gemma-generated code (#17 above); scale N (more seeds/K); a category/
-  semantic trained kind (needs embeddings). Detail: DEVLOG 2026-05-29.
+  scale N (more Gemma batches + dedup; more seeds/K on templates); a
+  category/semantic trained kind (needs embeddings); a consistency test
+  over `gemma_corpus.jsonl` (entries are consistent-by-construction today —
+  IO recorded from the validated run). Detail: DEVLOG 2026-05-29/30.
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 
