@@ -491,13 +491,20 @@ table including signal cosines and the Hadamard comparison in
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
 across all four substrates — the rotation is invertible to machine epsilon.
 
-**4.3 Exactness through a real trusted base.** A downstream GPU-native OS (Yantra)
-runs full arithmetic expressions on the Sutra substrate through its kernel —
-operator *selection* included, decided on the substrate by a saturated `select`
-(§3.2) rather than a host branch — and recovers results **bit-exact within the
-float32 exact-integer range** (18/18 operator-dispatch cases at |err| = 0.0,
-including the 2²⁴ boundary), with 1024/1024 distinct symbols round-tripped through
-the kernel router at max |err| = 0.0.
+**4.3 Exactness through a real trusted base.** The downstream system here is
+*Yantra*, an open GPU-native operating system written in Sutra: it pins this
+compiler as a git submodule, runs on the same frozen-embedding tensor substrate
+described above, and contributes the kernel — axon router, capability checks,
+on-substrate arithmetic dispatch — that *is* the trusted base under test, so the
+property below is measured against a running system rather than a paper
+construction. Its kernel runs full arithmetic expressions on the Sutra substrate
+through that dispatch — operator *selection* included, decided on the substrate
+by a saturated `select` (§3.2) rather than a host branch — and recovers results
+**bit-exact within the float32 exact-integer range** (18/18 operator-dispatch
+cases at |err| = 0.0, including the 2²⁴ boundary), with 1024/1024 distinct symbols
+round-tripped through the kernel router at max |err| = 0.0. These figures are
+measured by Yantra's own kernel tests, not a bespoke benchmark built for this
+paper.
 
 A fair objection — and the standard one against any "bit-exact on GPU" claim —
 is that float32 on a GPU is generally non-deterministic across runs: warp
