@@ -55,6 +55,12 @@ see §"Watchdogs" below.
 
 ## Active
 
+## Emma says do this stuff now
+
+1. Switch to Gemma for creating new code for the training data. Presumably it is capable of generating code.
+2. Please actually clear up the queue. I have no idea how the queue got this bloated again.
+3. Check in the claude.md to see if the rules about the cube may have been lost or something, because yes, it seems pretty strong that it isn't like this. 
+
 ## 📋 STATE INVENTORY — 2026-05-28 05:06 UTC (compression-survival snapshot)
 
 Per Emma 2026-05-27 22:06 PST: context is running low; this section is the authoritative state of all queued work so a future session (after compression or a fresh session start) can pick up cleanly. Everything below this section is the longer-form detail; this section is the index.
@@ -412,6 +418,9 @@ These USE the Yantra kernel: `kernel.Init`, `kernel.Manifest`,
 ## Voice-vision live items (extracted 2026-05-28 from `planning/exploratory/2026-05-17-voice-vision-transcendental-constants.md`)
 
 1. **Verify shipped transcendentals use tau-bound + cross-talk log/exp tables (not libm).** Vision: three transcendental constants — tau at a runtime binding point, plus a cross-talk-exploiting log table and exp table as the two leaves of every other transcendental. Need to confirm the shipped `math.su` literally realizes this, not a libm/torch elementwise shortcut. Audit method: open `math.su`; trace `realExp`, `log`, `cos`, `sin` to their lookup-table backing; confirm they go through tau-bound rotation. If they do, write the verification finding; if not, fix to match the vision.
+
+
+
 
 ## Pointers
 
