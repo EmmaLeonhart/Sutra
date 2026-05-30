@@ -1,0 +1,195 @@
+"""Weights<->code corpus generator (v0) — the self-propagation payoff.
+
+Emma's 2026-05-29 strategic direction: now that Sutra has a trainable
+matrix component, mass-generate program variations whose behavior is
+carried by (file-backed) matrices, and record (code, weights, IO) triples
+as training data for the end goal — converting WEIGHTS back to CODE
+(weight->code decompilation).
+
+This v0 RANDOMISES the matrix components (Emma: "even just kind of
+randomise the trainable components ... to create different code, different
+matrix variations") rather than training them — fast, and every triple is
+a valid datapoint. Each generated program is:
+
+  - model-free (no embed / basis_vector -> no Ollama; compile_su
+    llm_model defaults to "none"), runtime_dim = K (dim-audit honest);
+  - a small structure drawn from a grammar, parameterised by one or two
+    K×K matrices loaded from CSV via `load_matrix` (the file-backed weight
+    store, enabler #12);
+  - run on the real substrate (Tensor.MatrixMul + vector add) to produce
+    the recorded input->output behavior.
+
+Structure grammar (v0, 3 families):
+  linear    : M0 @ x
+  chain2    : M1 @ (M0 @ x)
+  residual  : (M0 @ x) + x
+
+Weight kinds: gaussian (randn) and perm (random permutation matrix).
+
+Output: a directory with one CSV per weight matrix + a corpus.jsonl whose
+each line is {id, structure, K, weight_kind, seed, source (with RELATIVE
+csv basenames, portable), weights[], io[], runtime_dim, llm_model}. The
+`source` is the canonical code; `weights` are the separate CSV files;
+together with `io` that is one (code <-> weights <-> behavior) datapoint.
+
+Usage:
+    py experiments/weight_to_code_corpus.py [--out DIR] [--ks 4,6]
+        [--kinds gaussian,perm] [--seeds 0] [--n-io 4]
+"""
+from __future__ import annotations
+
+import argparse
+import io as _io
+import json
+import os
+import sys
+
+sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(REPO, "sdk", "sutra-compiler"))
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+import torch
+
+from sutra_compiler.lexer import Lexer
+from sutra_compiler.parser import Parser
+from sutra_compiler.codegen_pytorch import translate_module as translate_pytorch
+
+
+# Each structure: the matrices it uses (in order) and a body template over
+# those matrix names + the input `x`.
+STRUCTURES = {
+    "linear":   {"mats": ["M0"],       "body": "Tensor.MatrixMul(M0, x)"},
+    "chain2":   {"mats": ["M0", "M1"], "body": "Tensor.MatrixMul(M1, Tensor.MatrixMul(M0, x))"},
+    "residual": {"mats": ["M0"],       "body": "Tensor.MatrixMul(M0, x) + x"},
+}
+
+
+def make_weight(kind: str, K: int, gen: torch.Generator) -> torch.Tensor:
+    if kind == "gaussian":
+        return torch.randn(K, K, generator=gen, dtype=torch.float64)
+    if kind == "perm":
+        perm = torch.randperm(K, generator=gen)
+        P = torch.zeros(K, K, dtype=torch.float64)
+        for i in range(K):
+            P[perm[i], i] = 1.0
+        return P
+    raise ValueError(f"unknown weight kind {kind!r}")
+
+
+def write_csv(path: str, M: torch.Tensor) -> None:
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        for row in M.tolist():
+            f.write(",".join(repr(float(v)) for v in row) + "\n")
+
+
+def build_source(structure: str, mat_to_path: dict) -> str:
+    spec = STRUCTURES[structure]
+    decls = "".join(
+        f'    matrix {m} = load_matrix("{mat_to_path[m]}");\n' for m in spec["mats"]
+    )
+    return (
+        "function vector apply(vector x) {\n"
+        f"{decls}"
+        f"    return {spec['body']};\n"
+        "}\n"
+        'function string main() { return "ok"; }\n'
+    )
+
+
+def compile_source(src: str, K: int):
+    lx = Lexer(src, file="<corpus>")
+    ast = Parser(lx.tokenize(), file="<corpus>", diagnostics=lx.diagnostics).parse_module()
+    if lx.diagnostics.has_errors():
+        raise RuntimeError(f"corpus program failed to parse: {list(lx.diagnostics)}")
+    # model-free (llm_model defaults to 'none' in codegen base only when
+    # passed; pass 'none' explicitly), runtime_dim = K (no basis_vector).
+    py = translate_pytorch(ast, llm_model="none", runtime_dim=K)
+    ns: dict = {}
+    exec(py, ns)
+    return ns
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=os.path.join(HERE, "weight_to_code_corpus"))
+    ap.add_argument("--ks", default="4,6")
+    ap.add_argument("--kinds", default="gaussian,perm")
+    ap.add_argument("--seeds", default="0")
+    ap.add_argument("--n-io", type=int, default=4)
+    a = ap.parse_args()
+    Ks = [int(k) for k in a.ks.split(",") if k.strip()]
+    kinds = [k for k in a.kinds.split(",") if k.strip()]
+    seeds = [int(s) for s in a.seeds.split(",") if s.strip()]
+    os.makedirs(a.out, exist_ok=True)
+
+    entries = []
+    for structure in STRUCTURES:
+        for K in Ks:
+            for kind in kinds:
+                for seed in seeds:
+                    rid = f"{structure}_K{K}_{kind}_s{seed}"
+                    gen = torch.Generator().manual_seed(
+                        hash((structure, K, kind, seed)) & 0x7FFFFFFF
+                    )
+                    # weights -> CSV (one per matrix); abs path for compile,
+                    # relative basename stored in the portable source.
+                    abs_paths, rel_paths, weights_meta = {}, {}, []
+                    for m in STRUCTURES[structure]["mats"]:
+                        W = make_weight(kind, K, gen)
+                        base = f"{rid}_{m}.csv"
+                        ap_ = os.path.join(a.out, base)
+                        write_csv(ap_, W)
+                        abs_paths[m] = ap_.replace("\\", "/")
+                        rel_paths[m] = base
+                        weights_meta.append(
+                            {"name": m, "csv": base, "shape": [K, K], "kind": kind}
+                        )
+
+                    src_abs = build_source(structure, abs_paths)   # compiles here
+                    src_rel = build_source(structure, rel_paths)   # portable, stored
+
+                    ns = compile_source(src_abs, K)
+                    apply_fn, vsa = ns["apply"], ns["_VSA"]
+
+                    iogen = torch.Generator().manual_seed(1000 + seed)
+                    io_pairs = []
+                    for _ in range(a.n_io):
+                        x = torch.randn(K, generator=iogen, dtype=vsa.dtype).to(vsa.device)
+                        y = apply_fn(x)
+                        io_pairs.append({
+                            "input": [round(float(v), 6) for v in x.tolist()],
+                            "output": [round(float(v), 6) for v in y.tolist()],
+                        })
+
+                    entries.append({
+                        "id": rid,
+                        "structure": structure,
+                        "K": K,
+                        "weight_kind": kind,
+                        "seed": seed,
+                        "source": src_rel,
+                        "weights": weights_meta,
+                        "io": io_pairs,
+                        "runtime_dim": K,
+                        "llm_model": "none",
+                    })
+
+    corpus_path = os.path.join(a.out, "corpus.jsonl")
+    with open(corpus_path, "w", encoding="utf-8", newline="\n") as f:
+        for e in entries:
+            f.write(json.dumps(e) + "\n")
+
+    print(f"weight<->code corpus v0: {len(entries)} programs "
+          f"({len(STRUCTURES)} structures × {len(Ks)} K × {len(kinds)} kinds × "
+          f"{len(seeds)} seeds), {a.n_io} IO pairs each, model-free, substrate.")
+    print(f"  structures: {', '.join(STRUCTURES)}")
+    print(f"  -> {corpus_path}  (+ {sum(len(e['weights']) for e in entries)} weight CSVs)")
+    # one-line peek at a sample entry's shape
+    e0 = entries[0]
+    print(f"  sample id={e0['id']} weights={[w['csv'] for w in e0['weights']]} "
+          f"io={len(e0['io'])} src_chars={len(e0['source'])}")
+
+
+if __name__ == "__main__":
+    main()
