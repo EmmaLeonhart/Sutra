@@ -78,7 +78,17 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 From `planning/findings/2026-05-29-trainable-matrix-through-substrate.md` § "Next". Both bounded + verifiable, substrate-pure through `Tensor.MatrixMul`:
 
 1. **Orthogonal-manifold constraint for CE training — SHIPPED 2026-05-29.** `--ortho` mode adds a soft `w·‖MᵀM−I‖²` penalty to the CE loss. Measured (K=8, init shift-1): CE+ortho keeps accuracy 0%→100% AND Frobenius-to-target FALLS 4.00→**0.0104** (vs plain CE's rise to 8.61), bake-back 4.7e-9. Honest nuance: for a *distant* target it converges to an orthogonal matrix in the right argmax-class (Frobenius falls but not to 0 — random-K8 3.91→1.32, K4-shift2 2.83→1.78, argmaxes exact); the guarantee is "bounded + orthogonal + function-exact," vs plain CE's runaway entries. `tests/test_trainable_matrix.py::test_ce_plus_ortho_pulls_frobenius_down_not_up` (9/9). Finding updated.
-2. **Bake the trained category matrix → `matrix_literal` .su (weight→code arc).** The d=768 category matrix that beat identity (80% vs 62% held-out) re-expressed as a `matrix_literal(...)` .su, recompiled, verified to reproduce the held-out retrieval (the full weight→legible-Sutra-source loop on a real semantic operator, not just toy permutations). 768² is a large literal — measure compile time / file size; if impractical, document that + the threshold. In `experiments/trainable_category_matrix.py` (a `--bake` path) + finding. Task #10.
+2. **Bake the trained category matrix → file-backed matrix (weight→code arc).** The d=768 category matrix (beat identity 80% vs 62%) re-expressed as a file-backed matrix via `load_matrix` (see §A.6 — Emma 2026-05-29: large matrices use a CSV file, NOT a 768²-entry inline literal), recompiled, verified to reproduce held-out retrieval. Task #10. **Now gated on §A.6 item 2 (`load_matrix`).**
+
+### A.6 SELF-PROPAGATION → weights↔code training corpus (Emma's 2026-05-29 strategic direction + AskUserQuestion answers)
+
+The end goal: mass-generate Sutra programs with trainable components, randomize/train them, and record (code ↔ weights ↔ behavior) as training data for **weight→code decompilation**. Three enablers + the generator, in dependency order:
+
+1. **Optional `llm_model` (no nomic by default).** `compile_su(llm_model=...)` becomes optional (default None/"none"); the runtime `embed()` raises a clear error ONLY when actually called without a model. Programs with no `embed`/`basis_vector`/axon-keys (the whole trainable-matrix corpus) compile + run with NO model. Embedding-using programs (echo/calc axon keys, semantic embed) still pass a model. (Emma AskUserQuestion: "Optional llm_model only" — NOT a deterministic key basis.) Task #11. FOUNDATIONAL — do first.
+
+2. **`load_matrix(path)` builtin — file-backed matrices.** General file loader (Emma's pick over same-dir-only): `matrix M = load_matrix("weights.su.csv")` (or any path) reads a CSV at compile time into a frozen substrate matrix constant. Large trained weights live in files, not inline literals. Substrate-pure (loads to a torch tensor on runtime dtype/device, like `matrix_from_rows`). Task #12. Then re-do Task #10 (category matrix) via `load_matrix`.
+
+3. **Generator → (code, weights, IO) JSONL corpus.** A generator that emits many small trainable-matrix `.su` programs (varied K, target transforms, op mixes — all model-free per item 1), trains/randomizes their matrices (weights stored via `load_matrix` CSV per item 2), and records `{source, weights_csv, input→output behavior}` as a JSONL corpus. The v0 training data for weights→code. Task #13. Built on items 1+2.
 
 
 ### A. In-flight / unblocked-ready-to-go (no Emma input needed)
