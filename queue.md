@@ -38,10 +38,37 @@ deleted on completion. Keep the task tool in sync with this file.
   BEFORE modeling** — generator default bumped to thousands-scale (10
   structures × 6 K {4,6,8,10,12,16} × 4 kinds × 10 seeds = 2400 programs).
   Workflow: generate into `corpus/` → commit+push submodule → mirror to HF
-  → bump the Sutra pointer + dataset-card stats. THEN (her chosen order)
-  the weight→code model baseline. Also open: a category/semantic trained
-  kind (needs embeddings). Detail: DEVLOG 2026-05-29/30. (Both corpora have
-  consistency guards.)
+  → bump the Sutra pointer + dataset-card stats. Corpus now at 2400+ (10
+  structures × 6 K × 4 kinds × 10 seeds). THEN (her chosen order) the
+  weight→code **seq2seq** model (see section below). Also open: a category/
+  semantic trained kind (needs embeddings). Detail: DEVLOG 2026-05-29/30.
+  (Both corpora have consistency guards.)
+
+## Weight→code seq2seq model (Emma 2026-05-30 AskUserQuestion: source generation)
+
+The corpus is at scale (2400+); now the end goal — a model that GENERATES
+`.su` source from a program's weights + IO (real decompilation, not a
+structure classifier; Emma's explicit pick). Host-side ML (torch/CUDA) over
+the corpus — analysis/training, NOT a substrate op. Build in bounded ticks:
+
+1. **Data prep (task #19, NEXT).** `experiments/w2c_seq2seq/` — read
+   `corpus/corpus.jsonl` (+ gemma), build (input → target) pairs: input =
+   encoded weights (per-matrix flattened values + shape markers) + the IO
+   pairs; target = the `source` string. Build a source tokenizer/vocab.
+   Train/held-out split BY program id (no leakage). Verifiable: round-trip
+   the tokenizer (encode→decode == source) + report split sizes/vocab.
+2. **Model + training.** Small seq2seq transformer (torch): encode the
+   numeric weights+IO, decode source tokens. Train on the split.
+3. **Substrate-grounded eval.** The key metric: generated source, compiled
+   with the given weights, **reproduces the held-out program's IO** (the
+   corpus consistency invariant applied to GENERATED code) = decompilation
+   accuracy; plus token/exact-match. This is what makes "weight→code" real,
+   not just plausible-looking source.
+
+Caveat to measure honestly: the template source space is constrained (10
+structures + load_matrix refs), so v0 generation is close to structure-
+inference + templating; the Gemma free-form entries + the IO-reproduction
+eval are what keep it from being trivial. Report the real numbers.
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 
