@@ -6,6 +6,30 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C option A tick 1 — harder families implemented + guarded
+
+Built the generator side of the hardening (the prior entry below planned +
+probed it). Added to `weight_to_code_corpus.STRUCTURES` (now 15 families): a
+discrete per-program coefficient mechanism (`COEFFS=[0.5,1.0,1.5,2.0,3.0]`,
+assigned deterministically from the program id, rendered as source literals)
+plus 5 families — `chain4` (deeper chain) and four additive/coefficient
+families that directly target the measured ±x failure: `scaled_res`
+(`a·M@x + x`), `gen_affine` (`a·M@x + b·x`), `scaled_diff` (`a·M@x − b·x`),
+`two_mat_affine` (`a·M0@x + b·M1@x`). A coefficient is recoverable only from
+IO+weights (`a = (y−x)/(M@x)`), so these defeat templating — the model must
+infer a number, not memorize a fixed body.
+
+Guard `experiments/test_harder_families.py` (10/10): each new family's
+substrate output matches its intended formula (host reference, <1e-4) and the
+coeff families emit their coefficient as a literal; `test_weight_to_code_corpus`
+(2/2) confirms the existing 10 families + committed 2400 corpus are unchanged.
+Also fixed a latent bug: the module-level `sys.stdout = TextIOWrapper(...)`
+closed pytest's capture on import — moved into `main()` (same fix already
+applied to `gemma_codegen_corpus.py`). I chose this focused additive-heavy
+set over the prior probe's `chain5`/`mixed2` because stress-testing the ±x
+miss is the point of the hardening. NEXT: tick 2 regen full corpus (15 × 6 K
+× 4 kinds × 10 seeds = 3600) + push submodule/HF; tick 3 retrain + re-eval.
+
 ## 2026-05-30: W2C next phase = option A (harden corpus); planned + probed, build queued
 
 Emma (AskUserQuestion) chose **A: harden the corpus + retrain** for the next
