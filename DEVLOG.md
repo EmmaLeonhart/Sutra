@@ -6,6 +6,20 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: corpus dataset card (HF) — schema + stats + YAML front-matter
+
+Made `sutra-w2c-corpus` a properly documented public HF dataset (serves
+Emma's save-to-HF goal). Rewrote `corpus/README.md` as a dataset card with
+HF YAML front-matter (license agpl-3.0 mirroring the Sutra repo, pretty
+name, tags) — which clears the "empty or missing yaml metadata" warning the
+mirror was emitting — plus the JSONL schema, the file layout
+(corpus.jsonl / gemma_corpus.jsonl / weight CSVs), COMPUTED stats (480
+programmatic = 10 structures × 4 dims {4,6,8,10} × 4 weight-kinds × 3
+seeds, 48/structure, 120/kind, 720 CSVs, 1920 IO pairs; + 8 Gemma), the
+self-consistency guarantee, and reproduction commands. Pushed to the
+submodule (fffad4b) + HF; Sutra pointer bumped. The corpus is now a
+complete, usable, documented artifact.
+
 ## 2026-05-30: gemma_corpus.jsonl consistency guard
 
 Gave the Gemma corpus the same self-consistency guard the template corpus
