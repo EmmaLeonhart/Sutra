@@ -314,6 +314,18 @@ decision (and a comment) rather than being silently host:
   into an axis slot. This is the literal→substrate entry boundary
   (the `_st()` analogue). Decide: should they also accept an
   already-substrate tensor without round-tripping through `float`?
+- **`load_matrix(path)`** — `codegen_pytorch.py:731-755` (commit
+  `a2cbc05`, 2026-05-29). File-backed literal-lift: opens a CSV,
+  parses comma-separated string tokens to host floats
+  (`float(_x) for _x in _line.split(',')`), stacks into a 2-D
+  tensor, caches by path. The `float()` is `str → float` (text
+  parsing), NOT `tensor → float` (substrate extraction); no
+  substrate tensor enters the body. File-backed analogue of
+  `array_from_literal` / `make_real`, same entry-boundary class.
+  Cached as a frozen constant; not on the runtime hot path. Added
+  to `experiments/substrate_leak_sweep.py`'s
+  `_PRELUDE_LEAK_EXEMPT_METHODS` 2026-05-30 (daily audit) so the
+  sweep stops misfiring on this boundary.
 - **`similarity`/`dot` returning `float`** — `1109,1136`:
   `return float(_torch.dot(…))`. `similarity` is a spec operation
   (operations.md) used *inside* `argmax_cosine`. Returning a host
