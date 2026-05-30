@@ -15,6 +15,25 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: corpus grammar broadened 3→10 structures (Emma: grammar + trained)
+
+Emma's AskUserQuestion pick was "both grammar + trained"; this is the
+grammar half (task #14). The weights↔code generator's structure grammar
+grew from 3 to **10 families**: linear, chain2, chain3, residual, diff,
+scaled (`2·M@x`), affine (`0.5·M@x + 0.5·x`), sum2 (`M0@x + M1@x`),
+bundle2, bundle3. Each body was **probed to compile + run on the substrate
+before being added** (rails: don't assume the ops compose). Two candidates
+were verified to ERROR on bare K-vectors and deliberately EXCLUDED (with a
+note in the generator): bind/unbind (they build full-extended-dim role
+rotations, not bare-vector ops) and element-wise vector `tanh` (no such
+op). `select`/conditionals deferred (need scalar-score plumbing).
+
+Sample regenerated: 40 programs (10 structures × 2 K × 2 weight-kinds), 60
+weight CSVs. `test_weight_to_code_corpus.py` 2/2 — recompiles EVERY entry
+across all 10 structures from its (source + weights) and reproduces the
+recorded IO on the substrate. Next corpus piece: trained-weight variants
+(task #15, the "trained" half — weights carry meaning, not just noise).
+
 ## 2026-05-29: weights<->code corpus generator v0 — the self-propagation payoff
 
 Both enablers in place (#11 model-free, #12 file-backed weights), so the
