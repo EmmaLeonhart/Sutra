@@ -58,6 +58,7 @@ There is **one shipped** training instance in the whole language today (the equa
 | Map literal | `{k1: v1, k2: v2}` | vision — a learned key-value mapping |
 | Vector literal (constructed) | `vector_literal(0.1, -0.2, ...)` | **shipped** on **rank-k prototype vectors** (see §13 — bake-back format for trained vectors) |
 | Matrix literal (constructed) | `matrix_literal(vector_literal(...), vector_literal(...), ...)` | **shipped** — variadic row-vectors stacked into a 2-D substrate tensor; the source form for frozen lookup / permutation / cached matrices, consumed by `Tensor.MatrixMul` |
+| Matrix from file (CSV) | `load_matrix("weights.su.csv")` | **shipped** — file-backed matrix constant: reads a CSV (comma floats, one row per line) at the path (absolute or CWD-relative) into a frozen 2-D substrate tensor, cached by path. The large-matrix counterpart to `matrix_literal` — trained weights live in a file (a weights store), not a giant inline literal |
 
 No hex literals yet.
 
@@ -233,6 +234,8 @@ This is the substrate's full operation set. Each row is one method emitted into 
 | `zero_vector()` | additive identity | n/a (constant) |
 | `vector_from_floats(values)` | substrate vector from float list | n/a (compile-time, used by `vector_literal`) |
 | `matrix_from_rows(rows)` | substrate 2-D tensor from row tensors (stack) | n/a (compile-time, used by `matrix_literal`) |
+| `load_matrix(path)` | frozen substrate matrix read from a CSV file (cached by path) | n/a — the file-backed weight store; the loaded matrix's *consumers* train |
+| `real(v)` / `imag(v)` | substrate-pure real/imag-axis read → 0-d tensor (free-function form, distinct from the host-float `.real()` monitoring accessor) | n/a (axis read) |
 
 ### Rotation internals
 
