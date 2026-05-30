@@ -98,6 +98,45 @@ class TestTrainableMatrix(unittest.TestCase):
             with torch.no_grad():
                 self.assertEqual(int(self.ns["apply"](M, e).argmax()), perm[i])
 
+    def test_ce_plus_ortho_pulls_frobenius_down_not_up(self):
+        # Plain CE learns the permutation FUNCTION but lets entries grow
+        # unboundedly (Frobenius to the canonical 0/1 matrix RISES above the
+        # start). A soft orthogonality penalty ||MᵀM − I||² keeps M bounded
+        # on the orthogonal manifold: the function stays exact (argmax) AND
+        # Frobenius FALLS below the start (the discriminating claim vs plain
+        # CE). It reaches the EXACT canonical matrix for a nearby target
+        # (K=8 shift3 -> ~0.01) but, for a distant target, an orthogonal
+        # matrix in the correct argmax class (Frobenius down, not to 0) --
+        # so we assert the fall + exact function, not near-zero.
+        # (Experiment: trainable_matrix_adjustment.py --loss ce --ortho.)
+        K = self.K
+        init = torch.zeros(K, K, dtype=self.dtype, device=self.device)
+        for i in range(K):
+            init[(i + 1) % K, i] = 1.0
+        perm = [(i + 2) % K for i in range(K)]
+        target = torch.zeros(K, K, dtype=self.dtype, device=self.device)
+        for i in range(K):
+            target[perm[i], i] = 1.0
+        y_idx = torch.tensor(perm, device=self.device)
+        eye = torch.eye(K, dtype=self.dtype, device=self.device)
+
+        M = init.clone().detach().requires_grad_(True)
+        opt = torch.optim.Adam([M], lr=0.05)
+        fro_before = float((M.detach() - target).norm())
+        for _ in range(400):
+            opt.zero_grad()
+            outs = torch.stack([self.ns["apply"](M, e) for e in self.es])
+            loss = F.cross_entropy(outs * 5.0, y_idx)
+            loss = loss + ((M.t() @ M - eye) ** 2).sum()  # ortho penalty
+            loss.backward()
+            opt.step()
+        fro_after = float((M.detach() - target).norm())
+
+        self.assertLess(fro_after, fro_before)  # ortho pulls it DOWN
+        for i, e in enumerate(self.es):          # function still exact
+            with torch.no_grad():
+                self.assertEqual(int(self.ns["apply"](M, e).argmax()), perm[i])
+
     def test_trained_matrix_bakes_back_to_matrix_literal(self):
         # A trained matrix re-expressed as a matrix_literal .su reproduces
         # the same transform (weight -> legible Sutra source).

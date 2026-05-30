@@ -15,6 +15,27 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: Trainable-matrix follow-up — orthogonal-manifold CE constraint
+
+Emma's AskUserQuestion pick after the greenlit batch drained. Fixes the
+earlier CE result (CE learns the permutation FUNCTION but its Frobenius to
+the canonical 0/1 matrix RISES as entries grow to sharpen the softmax).
+`trainable_matrix_adjustment.py --loss ce --ortho` adds a soft
+orthogonality penalty `w·‖MᵀM−I‖²`. Measured (K=8, init shift-1):
+CE+ortho keeps accuracy 0%→100% AND drives Frobenius 4.00 → **0.0104**
+(vs plain CE's rise to 8.61), bake-back 4.7e-9 — the function-learner now
+ALSO yields the canonical matrix for a nearby target.
+
+Honest nuance: the discriminating claim is "Frobenius falls (vs plain CE's
+rise)," not "always reaches 0." For a distant target ortho pulls M onto an
+orthogonal matrix in the correct argmax class but not necessarily the
+exact 0/1 permutation (random-K8 3.91→1.32, K4-shift2 2.83→1.78, argmaxes
+exact) — the orthogonal manifold has 2^K·K! signed perms sharing an argmax
+pattern. What ortho guarantees vs plain CE: M stays bounded + orthogonal
+(no runaway entries) while the function stays exact. Test:
+`test_ce_plus_ortho_pulls_frobenius_down_not_up` (9/9). Finding updated.
+Next follow-up: bake the d=768 category matrix to a matrix_literal .su.
+
 ## 2026-05-29: Phase-3 apps migration COMPLETE — terminal migrated (all 3 apps kernel-free)
 
 Third and last app. `demos/terminal/{terminal.py, test_terminal.py}`
