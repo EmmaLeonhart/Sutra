@@ -38,21 +38,12 @@ training data for that. Two things finished today:
    Shas: data prep `eb8140a9`, model+train `f9a7ef14`, substrate eval
    `8648a24f`.
 
-**The one open decision (yours, when you're back).** The seq2seq build is a
-finished milestone; the next phase of the weight→code program is your call.
-I raised four candidates on the blocker sweep; you deferred to documenting:
-   - **(A) Harden the corpus + retrain** *(my pick)* — the 84.2% is inflated
-     by a small, templated program space, so the model is largely
-     template-matching, not inferring. Add harder families (deeper chains,
-     mixed scaled+residual, varied coefficients) so weights→code needs real
-     inference and the ±x failure gets stress-tested.
-   - **(B) Diagnose the ±x failure** — the 38 misses are one clean error;
-     test whether capacity / more IO / encoding the residual fixes it.
-   - **(C) Extend to the Gemma free-form / inline-weight regime** — closer to
-     arbitrary programs; bigger lift.
-   - **(D) Pause W2C, advance formal verification** (FV roadmap in todo.md).
-Nothing is mid-flight and nothing is blocked — a fresh session can wait for
-your pick or default to (D).
+**Decision made (Emma, AskUserQuestion 2026-05-30): (A) Harden the corpus +
+retrain.** The 84.2% is inflated by a small, templated program space, so the
+model is largely template-matching, not inferring. Add harder families
+(deeper chains, mixed scaled+residual, varied coefficients) so weights→code
+needs real inference and the ±x failure gets stress-tested. See the
+"Active — W2C corpus hardening (Emma: option A)" section below for the plan.
 
 **About the restart.** The hourly crons (work-loop / auto-flush / status /
 blocker-sweep) are session-local — restarting the computer kills them and
