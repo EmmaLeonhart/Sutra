@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: weight→code seq2seq data prep (Emma: source generation)
+
+Emma's AskUserQuestion pick for the weight→code model phase: **source
+generation (seq2seq)** — generate `.su` source from a program's weights +
+IO (real decompilation), not a structure classifier. First of three bounded
+ticks: data prep (`experiments/w2c_seq2seq/prepare.py` + `test_prepare.py`,
+4/4).
+
+Key design call — **source normalization**. The template source references
+its weights via `load_matrix("<csv>")`, and that filename literally encodes
+the answer (`linear_K4_gaussian_s0_M0.csv`). A model forced to reproduce it
+would be reading the answer out of its own target. So the prep canonicalizes
+`load_matrix("<csv>")` → `load_matrix("<weight name>")` (e.g. `M0`); the
+target is the program STRUCTURE + canonical refs, and the weight VALUES are
+supplied separately as the model input (eval re-substitutes the real CSV to
+compile + run on the substrate). Split is **by program id** so accuracy
+measures generalization, not memorization.
+
+Output: 2400 entries → 2160 train / 240 val, char vocab 45, max target 261
+chars. `data/` is a gitignored build artifact (regenerated deterministically
+from the `corpus/` submodule). Guards: tokenizer round-trips on every target,
+splits are id-disjoint, vocab covers every target char, and no normalized
+target still contains a `.csv` filename. NEXT: the seq2seq model + training,
+then the substrate-grounded eval (generated source compiles + reproduces
+held-out IO). This is host-side ML over the corpus — no substrate op here.
+
 ## 2026-05-30: corpus scaled to 2400 programs (Emma: scale before modeling)
 
 Emma's AskUserQuestion choice — scale the corpus much larger before the
