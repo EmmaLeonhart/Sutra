@@ -51,13 +51,13 @@ The corpus is at scale (2400+); now the end goal — a model that GENERATES
 structure classifier; Emma's explicit pick). Host-side ML (torch/CUDA) over
 the corpus — analysis/training, NOT a substrate op. Build in bounded ticks:
 
-1. **Data prep (task #19, NEXT).** `experiments/w2c_seq2seq/` — read
-   `corpus/corpus.jsonl` (+ gemma), build (input → target) pairs: input =
-   encoded weights (per-matrix flattened values + shape markers) + the IO
-   pairs; target = the `source` string. Build a source tokenizer/vocab.
-   Train/held-out split BY program id (no leakage). Verifiable: round-trip
-   the tokenizer (encode→decode == source) + report split sizes/vocab.
-2. **Model + training.** Small seq2seq transformer (torch): encode the
+1. ~~Data prep~~ **DONE** (`prepare.py` + `test_prepare.py`, 4/4): reads
+   `corpus/corpus.jsonl`, NORMALIZES the source (`load_matrix("<csv>")` →
+   `load_matrix("<weight name>")` so the unguessable filename that encodes
+   the answer is canonicalized), char tokenizer (vocab 45), split by id
+   → 2160 train / 240 val, max target 261 chars. `data/` is a gitignored
+   build artifact (regenerate with `py experiments/w2c_seq2seq/prepare.py`).
+2. **Model + training (NEXT).** Small seq2seq transformer (torch): encode the
    numeric weights+IO, decode source tokens. Train on the split.
 3. **Substrate-grounded eval.** The key metric: generated source, compiled
    with the given weights, **reproduces the held-out program's IO** (the
