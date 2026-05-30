@@ -63,6 +63,31 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
+## Active — W2C corpus hardening (Emma: option A)
+
+Goal: make weights→code require **inference**, not template-matching, and
+stress-test the measured failure (model drops the additive `±x` term). Add
+harder program families to `experiments/weight_to_code_corpus.py`, regen,
+retrain, re-eval, compare numbers. Bounded ticks:
+
+1. ~~Generator: harder families~~ **DONE** (`test_harder_families.py` 10/10,
+   existing corpus consistency 2/2). Added `COEFFS=[0.5,1,1.5,2,3]` drawn
+   per-program (deterministic from id) + 5 families: `chain4`, `scaled_res`
+   (`a·M@x + x`), `gen_affine` (`a·M@x + b·x`), `scaled_diff` (`a·M@x − b·x`),
+   `two_mat_affine` (`a·M0@x + b·M1@x`) — 15 structures total. Each verified
+   to compute its intended formula on the substrate (output vs host
+   reference < 1e-4) and to emit its coefficient as a source literal.
+   Existing 10 families untouched (committed 2400 corpus + tests stay valid).
+2. **Regen full corpus + push.** Generate 15 structures × 6 K × 4 kinds ×
+   10 seeds = 3600 programs → `corpus/` submodule → HF mirror → bump Sutra
+   pointer + dataset-card stats.
+3. **Retrain + re-eval, compare.** Re-run prepare/model/eval_substrate.
+   Report the new exact-match + substrate IO-reproduction vs the 0.842
+   baseline, and specifically whether the coeff families recover `a`/`b`
+   (per-family breakdown). Honest expected outcome: exact-match likely DROPS
+   (the space is now harder) — that drop is the point (it shows the v0 was
+   templating). Update the finding.
+
 ## Corpus (built & at scale — not active work)
 
 The weights↔code corpus is built and at **2400 programs** (10 structures ×

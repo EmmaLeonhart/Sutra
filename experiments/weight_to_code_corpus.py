@@ -44,7 +44,6 @@ import json
 import os
 import sys
 
-sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(REPO, "sdk", "sutra-compiler"))
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -73,7 +72,41 @@ STRUCTURES = {
     "sum2":     {"mats": ["M0", "M1"], "body": "Tensor.MatrixMul(M0, x) + Tensor.MatrixMul(M1, x)"},
     "bundle2":  {"mats": ["M0"],       "body": "bundle(Tensor.MatrixMul(M0, x), x)"},
     "bundle3":  {"mats": ["M0", "M1"], "body": "bundle(Tensor.MatrixMul(M0, x), Tensor.MatrixMul(M1, x), x)"},
+    # --- harder families (corpus hardening, Emma option A 2026-05-30) ---
+    # These force INFERENCE over template-matching. The {a}/{b} placeholders
+    # are per-program discrete coefficients (drawn from COEFFS) that appear as
+    # literals in the source; a coefficient is only recoverable from IO+weights
+    # (a = (y - x) / (M0@x)), so the model cannot template it. The additive
+    # families directly stress-test the measured failure (v0 dropped the ±x
+    # term). Existing 10 families above are unchanged on purpose — the
+    # committed 2400 corpus + its consistency tests stay valid.
+    "chain4":         {"mats": ["M0", "M1", "M2", "M3"],
+                       "body": "Tensor.MatrixMul(M3, Tensor.MatrixMul(M2, Tensor.MatrixMul(M1, Tensor.MatrixMul(M0, x))))"},
+    "scaled_res":     {"mats": ["M0"], "coeffs": ["a"],
+                       "body": "{a} * Tensor.MatrixMul(M0, x) + x"},
+    "gen_affine":     {"mats": ["M0"], "coeffs": ["a", "b"],
+                       "body": "{a} * Tensor.MatrixMul(M0, x) + {b} * x"},
+    "scaled_diff":    {"mats": ["M0"], "coeffs": ["a", "b"],
+                       "body": "{a} * Tensor.MatrixMul(M0, x) - {b} * x"},
+    "two_mat_affine": {"mats": ["M0", "M1"], "coeffs": ["a", "b"],
+                       "body": "{a} * Tensor.MatrixMul(M0, x) + {b} * Tensor.MatrixMul(M1, x)"},
 }
+
+# Discrete coefficient set for the varied-coefficient families. Discrete (not
+# continuous) so recovering a coefficient is a finite choice the seq2seq can
+# emit as a literal, not an open regression-to-text problem. Each is rendered
+# as repr(float) -> "0.5", "1.0", ... matching what the parser reads.
+COEFFS = [0.5, 1.0, 1.5, 2.0, 3.0]
+
+
+def _coeff_values(rid: str, slots: list) -> dict:
+    """Per-program coefficient assignment, deterministic from the program id
+    so generation stays reproducible (no host RNG state dependence)."""
+    out = {}
+    for c in slots:
+        idx = (hash((rid, c)) & 0x7FFFFFFF) % len(COEFFS)
+        out[c] = COEFFS[idx]
+    return out
 
 
 # Cache one compiled `apply(matrix M, vector x) = M @ x` per K, so trained
@@ -161,15 +194,18 @@ def write_csv(path: str, M: torch.Tensor) -> None:
             f.write(",".join(repr(float(v)) for v in row) + "\n")
 
 
-def build_source(structure: str, mat_to_path: dict) -> str:
+def build_source(structure: str, mat_to_path: dict, coeff_vals: dict = None) -> str:
     spec = STRUCTURES[structure]
     decls = "".join(
         f'    matrix {m} = load_matrix("{mat_to_path[m]}");\n' for m in spec["mats"]
     )
+    body = spec["body"]
+    if spec.get("coeffs"):
+        body = body.format(**{c: repr(float(coeff_vals[c])) for c in spec["coeffs"]})
     return (
         "function vector apply(vector x) {\n"
         f"{decls}"
-        f"    return {spec['body']};\n"
+        f"    return {body};\n"
         "}\n"
         'function string main() { return "ok"; }\n'
     )
@@ -189,6 +225,7 @@ def compile_source(src: str, K: int):
 
 
 def main():
+    sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     ap = argparse.ArgumentParser()
     # Default output is the `corpus/` submodule (EmmaLeonhart/sutra-w2c-corpus,
     # pinned in Sutra, mirrored to Hugging Face) — the corpus data lives in its
@@ -231,8 +268,10 @@ def main():
                             {"name": m, "csv": base, "shape": [K, K], "kind": kind}
                         )
 
-                    src_abs = build_source(structure, abs_paths)   # compiles here
-                    src_rel = build_source(structure, rel_paths)   # portable, stored
+                    coeff_vals = (_coeff_values(rid, STRUCTURES[structure]["coeffs"])
+                                  if STRUCTURES[structure].get("coeffs") else None)
+                    src_abs = build_source(structure, abs_paths, coeff_vals)   # compiles here
+                    src_rel = build_source(structure, rel_paths, coeff_vals)   # portable, stored
 
                     ns = compile_source(src_abs, K)
                     apply_fn, vsa = ns["apply"], ns["_VSA"]
@@ -258,6 +297,7 @@ def main():
                         "io": io_pairs,
                         "runtime_dim": K,
                         "llm_model": "none",
+                        **({"coeffs": coeff_vals} if coeff_vals else {}),
                     })
 
     corpus_path = os.path.join(a.out, "corpus.jsonl")
