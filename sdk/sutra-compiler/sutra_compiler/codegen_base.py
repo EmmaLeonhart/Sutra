@@ -312,6 +312,17 @@ def _builtin_matrix_literal(args: List[str]) -> str:
     return f"_VSA.matrix_from_rows([{', '.join(args)}])"
 
 
+def _builtin_load_matrix(args: List[str]) -> str:
+    # File-backed matrix constant (Emma 2026-05-29): the LARGE-matrix
+    # counterpart to matrix_literal. `load_matrix("weights.su.csv")` reads
+    # a CSV (comma-separated floats, one row per line) at the path into a
+    # frozen substrate matrix on the runtime device+dtype (cached by path).
+    # General path (absolute or CWD-relative), so trained weights can live
+    # in a weights store / be shared across dirs rather than spelled out as
+    # a 768²-entry inline literal. Consumed by Tensor.MatrixMul.
+    return f"_VSA.load_matrix({args[0]})"
+
+
 BUILTINS = {
     "basis_vector": (_builtin_basis_vector, 1),
     "permutation_key": (_builtin_permutation_key, 1),
@@ -323,6 +334,7 @@ BUILTINS = {
     "zero_vector": (_builtin_zero_vector, 0),
     "vector_literal": (_builtin_vector_literal, None),  # variadic floats
     "matrix_literal": (_builtin_matrix_literal, None),  # variadic row-vectors
+    "load_matrix": (_builtin_load_matrix, 1),  # file-backed matrix constant (CSV)
     "displacement": (_builtin_displacement, 2),  # a - b (vector subtract)
     "similarity": (_builtin_similarity, 2),
     "Equals": (_builtin_equals, None),
