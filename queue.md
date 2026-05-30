@@ -25,18 +25,19 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## Active
 
-- **Self-propagation corpus (weights↔code) — built; now scaling/diversity.**
+- **Self-propagation corpus (weights↔code) — built; scale PROGRAMMATICALLY.**
   Shipped: optional `llm_model`, `load_matrix`, the template generator (10
-  structures × weight-kinds incl. trained_rotation/trained_perm), **Gemma
-  free-form codegen** (`experiments/gemma_codegen_corpus.py`, gemma3:12b,
-  validate-compile+run-on-substrate→keep, augments the templates), the
-  `corpus/` submodule (`EmmaLeonhart/sutra-w2c-corpus`, public) + HF mirror
-  (`experiments/mirror_corpus_to_hf.py`). Workflow: generate into `corpus/`
-  → commit+push submodule → mirror to HF → bump the Sutra pointer. Open:
-  scale N (more Gemma batches + dedup; more seeds/K on templates); a
-  category/semantic trained kind (needs embeddings); a consistency test
-  over `gemma_corpus.jsonl` (entries are consistent-by-construction today —
-  IO recorded from the validated run). Detail: DEVLOG 2026-05-29/30.
+  structures × weight-kinds incl. trained_rotation/trained_perm), Gemma
+  free-form codegen (`gemma_codegen_corpus.py`), the `corpus/` submodule
+  (`EmmaLeonhart/sutra-w2c-corpus`) + HF mirror. **Emma 2026-05-30 steer:
+  programmatic (template) generation is the workhorse for scaling NOW
+  (fast, deterministic, clean (code,weights,IO) at volume); Gemma is good
+  but FUTURE — keep it built, don't make it the near-term volume path.**
+  So scaling = grow the PROGRAMMATIC generator: more structures, K, seeds,
+  weight-kinds → big N. Workflow: generate into `corpus/` → commit+push
+  submodule → mirror to HF → bump the Sutra pointer. Also open (bounded):
+  a consistency test over `gemma_corpus.jsonl`; a category/semantic trained
+  kind (needs embeddings). Detail: DEVLOG 2026-05-29/30.
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 
