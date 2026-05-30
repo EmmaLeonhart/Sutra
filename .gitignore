@@ -141,6 +141,10 @@ experiments/*.log
 # The leading ! is escaped so it matches the literal filename, not a re-include.
 \!runClaude.bat
 .claude/settings.local.json
+# Session-runtime lock for the in-session cron scheduler: pure transient
+# state (sessionId/pid/acquiredAt), rewritten every session. Was tracked by
+# accident and churned ~9+ Create/Delete/Update commits; untracked 2026-05-30.
+.claude/scheduled_tasks.lock
 
 # Compile artifacts from experiments/ harnesses
 experiments/.defuzzgain_*.su
