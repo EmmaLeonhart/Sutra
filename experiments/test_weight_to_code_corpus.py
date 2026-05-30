@@ -62,7 +62,11 @@ def corpus():
 
 def test_corpus_nonempty_and_well_formed(corpus):
     _, entries = corpus
-    assert len(entries) == 3 * 2 * 2  # structures × Ks × kinds
+    # structures × Ks × kinds — grammar-size-agnostic (count distinct
+    # structures actually emitted; Ks=2, kinds=2 in the fixture).
+    n_struct = len({e["structure"] for e in entries})
+    assert n_struct >= 3
+    assert len(entries) == n_struct * 2 * 2
     for e in entries:
         assert e["llm_model"] == "none"          # model-free
         assert e["runtime_dim"] == e["K"]        # dim-audit honest
