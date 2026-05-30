@@ -6,6 +6,22 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: substrate-honesty audit of the w2c tick-3 eval (reproduced 0.842)
+
+Decision-neutral verification (didn't preempt Emma's open A/B/C/D pick on the
+next W2C phase). Audited `experiments/w2c_seq2seq/eval_substrate.py` against
+CLAUDE.md §"Integrity" + §"Subtler substrate breaches": it compiles each
+GENERATED source through the real `sutra_compiler` (lexer→parser→
+`codegen_pytorch`, model-free, `runtime_dim=K` — minimal-correct, dim-audit
+clean) and runs `apply(x)` where `Tensor.MatrixMul` lowers to `_VSA.matmul`
+on torch — no host reimplementation of the matmul, so "substrate
+IO-reproduction" means what it says. Re-ran end-to-end on the trained
+checkpoint and **independently reproduced the headline**: `EVALRESULT n=240
+exact=202 repro=202 nonexact_io_ok=0 compfail=0 runfail=0 emr=0.8417
+rpr=0.8417`. Matches `8648a24f` exactly. The 38 misses are genuine substrate
+runs that produced wrong values (dropped ±x term), not failures-to-run.
+Scratch/result artifacts (`_*`, `data/`) confirmed gitignored + untracked.
+
 ## 2026-05-30: FV paper §4.3 — cite in-repo kernel-free demos, not Yantra figures
 
 Emma: the bit-exact arithmetic result is part of Sutra, not Yantra, and the
