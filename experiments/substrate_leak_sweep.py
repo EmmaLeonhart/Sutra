@@ -77,7 +77,7 @@ _PRELUDE_LEAK_EXEMPT_METHODS = {
     # Literal-lift entry boundary (host literal → substrate vector)
     "make_real", "make_complex", "make_truth", "make_char",
     "make_string", "make_trit", "_st", "array_from_literal",
-    "basis_vector",
+    "basis_vector", "load_matrix",
     # Coercion helpers — host Python value → substrate vector at entry.
     # These call `float()` on host scalars (the canonical entry boundary
     # form) and are documented Python-host-interop dispatch surfaces.

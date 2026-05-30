@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: daily audit — `load_matrix` added to sweep allowlist (BORDERLINE)
+
+Daily substrate-leak audit run. Promise/await codegen lint PASS, structural
+leak-check tests (`test_no_host_loop_or_branch_{numpy,torch}`) PASS; the 2
+semantic tests need an Ollama server (unavailable in this sandbox), so
+end-to-end semantic equivalence not re-verified this pass. Substrate-leak
+sweep flagged 1 runtime-prelude signature: `load_matrix` at
+`codegen_pytorch.py:731-755` (added 2026-05-29, commit `a2cbc05`). Reading
+the body: `float(_x) for _x in _line.split(',')` is `str → float` (parsing
+CSV text), NOT `tensor → float` (substrate extraction). No substrate
+tensor enters the method body — it's the file-backed analogue of
+`array_from_literal` / `make_real`, same literal-lift entry-boundary
+class. Cached as a frozen constant; not on any runtime hot path. The
+sweep's `_PRELUDE_LEAK_EXEMPT_METHODS` allowlist simply wasn't updated
+when Emma added `load_matrix`. Fix: added `load_matrix` to the allowlist
+and recorded the boundary as a new BORDERLINE entry in `Audit.md`. Sweep
+now clean — 70 compiled, 18 skipped, 0 user-program leaks, 0 prelude
+leaks. Open-questions audit: 13 dossiers + README in
+`planning/open-questions/` match the README triage table — 2
+RESOLVED-core-with-narrow-OPEN-tail (correctly kept with banners), 11
+genuinely OPEN; no drift. The 3 DECIDED entries in
+`planning/sutra-spec/open-questions.md` are a known deferred-cleanup
+backlog from the 2026-05-16 triage, not new drift.
+
+
+
 The repository has been through multiple identities — **embedding-mapping →
 FOL discovery → Latent Space Cartography → S2 → Akasha → Sutra** — plus
 major sibling projects (**SutraDB** as an RDF-star triplestore, **fly-brain**
