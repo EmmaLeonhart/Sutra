@@ -57,11 +57,22 @@ from sutra_compiler.codegen_pytorch import translate_module as translate_pytorch
 
 
 # Each structure: the matrices it uses (in order) and a body template over
-# those matrix names + the input `x`.
+# those matrix names + the input `x`. Every body below is verified to
+# compile + run on the substrate (probed 2026-05-29). bind/unbind are
+# excluded (they build full-extended-dim role rotations, not bare-K-vector
+# ops) and vector `tanh` is excluded (no element-wise vector tanh) — both
+# error on bare K-vectors, so they are not part of this bare-vector grammar.
 STRUCTURES = {
     "linear":   {"mats": ["M0"],       "body": "Tensor.MatrixMul(M0, x)"},
     "chain2":   {"mats": ["M0", "M1"], "body": "Tensor.MatrixMul(M1, Tensor.MatrixMul(M0, x))"},
+    "chain3":   {"mats": ["M0", "M1", "M2"], "body": "Tensor.MatrixMul(M2, Tensor.MatrixMul(M1, Tensor.MatrixMul(M0, x)))"},
     "residual": {"mats": ["M0"],       "body": "Tensor.MatrixMul(M0, x) + x"},
+    "diff":     {"mats": ["M0"],       "body": "Tensor.MatrixMul(M0, x) - x"},
+    "scaled":   {"mats": ["M0"],       "body": "2.0 * Tensor.MatrixMul(M0, x)"},
+    "affine":   {"mats": ["M0"],       "body": "0.5 * Tensor.MatrixMul(M0, x) + 0.5 * x"},
+    "sum2":     {"mats": ["M0", "M1"], "body": "Tensor.MatrixMul(M0, x) + Tensor.MatrixMul(M1, x)"},
+    "bundle2":  {"mats": ["M0"],       "body": "bundle(Tensor.MatrixMul(M0, x), x)"},
+    "bundle3":  {"mats": ["M0", "M1"], "body": "bundle(Tensor.MatrixMul(M0, x), Tensor.MatrixMul(M1, x), x)"},
 }
 
 
