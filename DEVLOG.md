@@ -6,6 +6,34 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: weight→code seq2seq model trained (tick 2) — val exact-match 0.84
+
+Tick 2: a small Transformer seq2seq (`experiments/w2c_seq2seq/model.py`,
+1.48M params) that maps a program's WEIGHTS + IO → its normalized `.su`
+source. Encoder tokenizes every weight-matrix entry + every IO scalar
+(value `Linear(1→d)` + type/slot/pos embeddings); char decoder (vocab 45)
+cross-attends. Guard `test_model.py` overfits a tiny synthetic batch (arch +
+masks + teacher-forcing + greedy decode), passing.
+
+40-epoch run on the 2160/240 split (CUDA), **converged held-out numbers
+(full val n=240, measured):** val_loss 0.0028, token-accuracy 0.9991,
+greedy **exact-match 0.842** — i.e. for 84% of held-out programs the model
+regenerates the character-identical normalized source from weights + IO
+alone. Train loss fell 1.90 → 0.0021; exact-match climbed 0.63 (ep5) →
+~0.84–0.97 band by ep35–40 (the per-epoch greedy used a 64-sample subset, so
+it bounces; the 0.842 is the full-val number).
+
+Caveat kept honest (this is the constrained-space caveat from the plan, now
+quantified): the template source space is small (10 structures + canonical
+`load_matrix` refs), so this high exact-match is largely the model inferring
+STRUCTURE from the weights/IO and emitting the matching template — real, but
+not yet "decompile an arbitrary program." The 16% miss + the Gemma free-form
+regime are where it gets hard. The non-gameable metric is **tick 3**:
+re-substitute the real CSV into the GENERATED source, compile, run on the
+substrate, and check it reproduces the held-out IO (an 84%-exact-match
+generation should mostly pass, but tick 3 measures it on the substrate
+instead of asserting it). Checkpoint saved to the gitignored `data/model.pt`.
+
 ## 2026-05-30: weight→code seq2seq data prep (Emma: source generation)
 
 Emma's AskUserQuestion pick for the weight→code model phase: **source
