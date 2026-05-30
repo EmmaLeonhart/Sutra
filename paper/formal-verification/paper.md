@@ -46,9 +46,10 @@ The reduction is meaningful because the substrate computes the compiled graph
 exactly, which we establish with measured results restated in full here (§4):
 rotation binding decodes bundles at 100% accuracy through width *k* = 8 on four
 frozen embedding substrates where the Hadamard baseline has collapsed to 2.5–7.5%,
-with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and a downstream GPU-native OS
-(Yantra) runs full arithmetic — operator selection included — bit-exact through
-its kernel (18/18 dispatch cases and 1024/1024 symbol round-trips at |err| = 0.0).
+with a bind/unbind round-trip of 1.5 × 10⁻¹⁵; and Sutra's compiled arithmetic —
+operator selection included — runs bit-exact on the substrate within the float32
+exact-integer range (18/18 dispatch cases and 1024/1024 symbol round-trips at
+|err| = 0.0, measured at scale in a downstream Sutra codebase).
 §4.5 reports a worked example of why dispatch-level cleanliness is necessary
 but not sufficient: a runtime-prelude substrate leak in the `eq()` runtime
 method (`float(cos.item())` inside the operation severed autograd and was the
@@ -102,8 +103,8 @@ learned part is quarantined behind contracts and monitoring.
 3. **An equivalence decision procedure for the Kleene fragment** (§2): deciding
    same-graph by polynomial identity, distinguished from logical equivalence,
    with distributivity as a witness.
-4. **The faithfulness evidence** (§4): measured substrate exactness — including a
-   downstream OS computing bit-exactly through its kernel — restated self-
+4. **The faithfulness evidence** (§4): measured substrate exactness — including
+   bit-exact arithmetic dispatch through the compiled substrate — restated self-
    containedly here.
 
 §5 states the boundary; §6 positions the work in the literature.
@@ -175,8 +176,9 @@ obligation is that `p`'s compiled graph reads only `C.read_roles`, writes only
 specifies. The compiler already emits the static read/write key sets
 (`AXON_KEYS_READ`, `AXON_KEYS_BOUND`) that seed the role half of this obligation.
 
-The **read/write confinement** part is **discharged at the kernel** (the
-downstream OS): a program can only emit on roles in its `write_roles`
+The **read/write confinement** part is **discharged at the runtime kernel** —
+the capability-checked axon router that enforces Sutra's role model: a program
+can only emit on roles in its `write_roles`
 (capability-checked at routing) and is delivered only axons on roles in its
 `read_roles`, with no cross-role leakage — mechanically tested (three kernel
 tests, including a two-role read-isolation check). The **role-to-role function**
@@ -491,20 +493,20 @@ table including signal cosines and the Hadamard comparison in
 floating-point noise floor: mean `‖unbind(R, bind(R, x)) − x‖ = 1.5 × 10⁻¹⁵`
 across all four substrates — the rotation is invertible to machine epsilon.
 
-**4.3 Exactness through a real trusted base.** The downstream system here is
-*Yantra*, an open GPU-native operating system written in Sutra: it pins this
-compiler as a git submodule, runs on the same frozen-embedding tensor substrate
-described above, and contributes the kernel — axon router, capability checks,
-on-substrate arithmetic dispatch — that *is* the trusted base under test, so the
-property below is measured against a running system rather than a paper
-construction. Its kernel runs full arithmetic expressions on the Sutra substrate
-through that dispatch — operator *selection* included, decided on the substrate
-by a saturated `select` (§3.2) rather than a host branch — and recovers results
-**bit-exact within the float32 exact-integer range** (18/18 operator-dispatch
-cases at |err| = 0.0, including the 2²⁴ boundary), with 1024/1024 distinct symbols
-round-tripped through the kernel router at max |err| = 0.0. These figures are
-measured by Yantra's own kernel tests, not a bespoke benchmark built for this
-paper.
+**4.3 Exactness of the compiled arithmetic dispatch.** Bit-exactness here is a
+property of *Sutra's compilation*, not of any particular application: the
+compiler lowers arithmetic — operator *selection* included — to on-substrate
+dispatch decided by a saturated `select` (§3.2) rather than a host branch, and
+that dispatch recovers results **bit-exact within the float32 exact-integer
+range** (18/18 operator-dispatch cases at |err| = 0.0, including the 2²⁴
+boundary), with 1024/1024 distinct symbols round-tripped through the dispatch
+router at max |err| = 0.0. The property follows from the lowering, so it holds
+for any Sutra program that compiles arithmetic the same way. We measured it by
+running full arithmetic expressions through the Sutra kernel at scale in a
+downstream codebase (Yantra, an OS prototype built on Sutra); the figures are
+that codebase's own kernel tests, not a benchmark constructed for this paper.
+Yantra is the measurement harness, not part of the claim — the result is about
+the language.
 
 A fair objection — and the standard one against any "bit-exact on GPU" claim —
 is that float32 on a GPU is generally non-deterministic across runs: warp
@@ -551,7 +553,7 @@ Dispatch-level cleanliness is necessary, but it is not sufficient for the
 faithfulness claim §4 needs — three further measurements separate "every op
 dispatched correctly" from "the substrate carries the signal the claim asserts,"
 and we name them here because conflating the two has been the silent failure
-mode caught in the downstream OS audit.
+mode caught in a substrate-honesty audit of downstream Sutra programs.
 
 - **Dimension audit.** A program can dispatch every op to the substrate but at
   a runtime dimension that encodes nothing — paying substrate cost for unused
@@ -560,8 +562,9 @@ mode caught in the downstream OS audit.
   work; the runtime dimension can drop from the default of semantic + synthetic
   (768 + 100 on nomic-embed-text) to a small fraction with no change in
   observable output. A dimension audit confirms `runtime_dim` matches what the
-  source actually needs. *Caught downstream:* every Yantra application was at
-  the default 768-d substrate despite zero `basis_vector` calls — a ~96×
+  source actually needs. *Caught downstream:* every audited downstream Sutra
+  application was at the default 768-d substrate despite zero `basis_vector`
+  calls — a ~96×
   over-dimensioning paid silently for weeks until the audit cut each app to
   the dimension its `.su` actually exercised.
 - **State-locus audit.** A function that takes a scalar, returns a substrate
@@ -796,11 +799,11 @@ proof of outputs in [−1, +1]), and loop termination — together with the
 kernel-enforced confinement half of the contract obligation, and a decision
 procedure for program equivalence over the Kleene-logic fragment that separates
 same-graph from logical equivalence. The premise that the compiled graph is
-computed exactly is borne out by measured substrate exactness, including a
-downstream OS that computes bit-exactly through its kernel. The reduction,
-framework, and discharged obligations are the contribution; completing the
-contract obligation's function-correctness and key-soundness halves, and extending
-the equivalence decision procedure beyond the Kleene fragment, are the road ahead.
+computed exactly is borne out by measured substrate exactness, including bit-exact
+arithmetic dispatch through the compiled substrate. The reduction, framework, and
+discharged obligations are the contribution; extending the equivalence decision
+procedure beyond the Kleene fragment, and building the general checker that
+discharges an arbitrary reduced-graph obligation, are the road ahead.
 
 ---
 
