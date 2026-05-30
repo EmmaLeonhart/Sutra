@@ -76,6 +76,29 @@ def test_parse_error_rejected():
     assert _mod().validate(PARSE_ERR) is None
 
 
+def test_committed_gemma_corpus_is_consistent():
+    """Every committed Gemma entry must recompile + reproduce its recorded
+    IO on the substrate (the corpus self-consistency invariant — the guard
+    the template corpus has). Skips if the submodule isn't checked out or
+    Ollama is unavailable (free-form entries may use embeddings)."""
+    import json
+
+    path = os.path.abspath(os.path.join(HERE, "..", "corpus", "gemma_corpus.jsonl"))
+    if not os.path.isfile(path) or os.path.getsize(path) == 0:
+        pytest.skip("corpus/gemma_corpus.jsonl not present (submodule not init?)")
+    try:
+        import ollama
+        ollama.embed(model="nomic-embed-text", input="probe")
+    except Exception as e:  # noqa: BLE001
+        pytest.skip(f"Ollama unavailable (free-form entries may need it): {e}")
+    m = _mod()
+    entries = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
+    assert entries
+    for e in entries:
+        ok, d = m.verify_entry(e)
+        assert ok, f"gemma entry {e.get('id')} inconsistent (max|delta|={d})"
+
+
 def test_split_programs_handles_fences_and_separators():
     m = _mod()
     text = "```sutra\n" + GOOD_ARITH + "\n```\n---\n" + GOOD_LINEAR

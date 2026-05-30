@@ -36,8 +36,8 @@ deleted on completion. Keep the task tool in sync with this file.
   So scaling = grow the PROGRAMMATIC generator: more structures, K, seeds,
   weight-kinds → big N. Workflow: generate into `corpus/` → commit+push
   submodule → mirror to HF → bump the Sutra pointer. Also open (bounded):
-  a consistency test over `gemma_corpus.jsonl`; a category/semantic trained
-  kind (needs embeddings). Detail: DEVLOG 2026-05-29/30.
+  a category/semantic trained kind (needs embeddings). Detail: DEVLOG
+  2026-05-29/30. (gemma_corpus.jsonl now has a consistency guard too.)
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 

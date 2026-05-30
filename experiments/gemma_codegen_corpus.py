@@ -121,6 +121,40 @@ def validate(src: str):
     return None
 
 
+def verify_entry(entry: dict) -> tuple[bool, float]:
+    """Recompile a corpus entry's `source` and check it reproduces the
+    recorded `io` on the substrate — the corpus self-consistency invariant
+    (same guard the template corpus has). Returns (ok, max_abs_diff)."""
+    src = entry.get("source", "")
+    ns = None
+    for model in ("none", "nomic-embed-text"):
+        try:
+            lx = Lexer(src, file="<verify>")
+            ast = Parser(lx.tokenize(), file="<verify>", diagnostics=lx.diagnostics).parse_module()
+            if lx.diagnostics.has_errors():
+                return (False, float("inf"))
+            ns_try: dict = {}
+            exec(translate_pytorch(ast, llm_model=model, runtime_dim=8), ns_try)
+            ns = ns_try
+            break
+        except Exception:
+            ns = None
+            continue
+    if ns is None or "apply" not in ns:
+        return (False, float("inf"))
+    apply_fn, vsa = ns["apply"], ns["_VSA"]
+    maxd = 0.0
+    for pair in entry.get("io", []):
+        x = torch.tensor(pair["input"], dtype=vsa.dtype, device=vsa.device)
+        try:
+            y = apply_fn(x).tolist()
+        except Exception:
+            return (False, float("inf"))
+        for g, w in zip(y, pair["output"]):
+            maxd = max(maxd, abs(g - w))
+    return (maxd < 1e-4, maxd)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=8, help="programs to request")
