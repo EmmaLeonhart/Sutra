@@ -73,6 +73,13 @@ Per Emma 2026-05-27 22:06 PST: context is running low; this section is the autho
 
 **✅ PHASE-3 COMPLETE — all 3 apps migrated kernel-free; all 4 of Emma's 2026-05-29 greenlit items DONE** (binding matrix, 0-d projection, FV key-soundness, Phase-3 apps).
 
+### A.5 NEXT (Emma's AskUserQuestion choice 2026-05-29, batch drained → "trainable-matrix follow-ups")
+
+From `planning/findings/2026-05-29-trainable-matrix-through-substrate.md` § "Next". Both bounded + verifiable, substrate-pure through `Tensor.MatrixMul`:
+
+1. **Orthogonal-manifold constraint for CE training.** Today CE learns the permutation FUNCTION but its Frobenius distance to the canonical 0/1 matrix RISES (entries grow to sharpen softmax). Constrain `M` to (or regularize toward) the orthogonal/permutation manifold during CE so the function-learner ALSO yields a canonical matrix — e.g. a soft orthogonality penalty `‖MᵀM − I‖`, or project to the nearest orthogonal each step (polar/SVD), or a doubly-stochastic (Sinkhorn) parametrization. Measure: CE accuracy stays 100% AND Frobenius-to-target now FALLS (vs the current rise). New mode in `experiments/trainable_matrix_adjustment.py` (e.g. `--ortho`) + test + finding update. Task #9.
+2. **Bake the trained category matrix → `matrix_literal` .su (weight→code arc).** The d=768 category matrix that beat identity (80% vs 62% held-out) re-expressed as a `matrix_literal(...)` .su, recompiled, verified to reproduce the held-out retrieval (the full weight→legible-Sutra-source loop on a real semantic operator, not just toy permutations). 768² is a large literal — measure compile time / file size; if impractical, document that + the threshold. In `experiments/trainable_category_matrix.py` (a `--bake` path) + finding. Task #10.
+
 
 ### A. In-flight / unblocked-ready-to-go (no Emma input needed)
 
