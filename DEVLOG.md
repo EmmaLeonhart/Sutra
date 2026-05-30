@@ -6,6 +6,31 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: FV paper §4.3 — cite in-repo kernel-free demos, not Yantra figures
+
+Emma: the bit-exact arithmetic result is part of Sutra, not Yantra, and the
+demos were migrated into this repo — so cite the in-repo source and fix the
+numbers. Verified: `demos/calc/` (operator selected on-substrate from codepoint
+via `switch.su`, arithmetic in float64 exact to 2⁵³, verified against an
+exact-rational oracle, **kernel-free** — `test_calc.py` asserts no kernel
+import) and `demos/echo/` (string rotation-bind round-trip) are migrated and
+runnable here. **Ran them** (torch + CUDA, nomic-embed-text): `python -m pytest
+demos/calc demos/echo` → **32/32 passed in 10.84s** — calc 11/11 expressions
+exact + 6/6 inexact refused + 7/7 result strings exact (at the audited floor
+`runtime_dim = 8`, no `basis_vector` calls), echo 5/5 round-trips bit-exact at
+dim 16.
+
+The paper's old §4.3 figures — "18/18 operator-dispatch cases" and "1024/1024
+symbol round-trips," float32 / 2²⁴ boundary — were **Yantra kernel-test
+numbers**, which the kernel-free in-repo demos do NOT reproduce (different
+harness, float64/2⁵³, smaller case counts). Relabeling Yantra's numbers as
+coming from `demos/calc` would have doctored the source, so instead §4.3 (and
+the abstract, and the GPU-nondeterminism rebuttal's 2²⁴/"through a kernel"
+phrasing) now cite the **measured in-repo demo numbers**. Bonus: this also
+answers the reviewer con that the mechanical checks were "scripts in a
+hypothetical repository" — they are named, in-repo, and reproduced with an
+exact command. Yantra now appears only as a see-also pointer.
+
 ## 2026-05-30: untrack .claude/scheduled_tasks.lock
 
 The in-session cron scheduler's lock file (`sessionId`/`pid`/`acquiredAt`,
