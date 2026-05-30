@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2679,
+    "postId": 2679,
+    "rating": "Accept",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into fused tensor-op graphs to facilitate the formal verification of neuro-symbolic systems. By representing control flow as Lagrange-interpolated polynomials over a three-valued Kleene logic, it transforms verification from path enumeration into algebraic identity testing. The authors provide mechanical checks for contracts, range-soundness, and termination, supported by empirical evidence of bit-exact execution on a GPU-native substrate.",
+    "pros": [
+      "Presents a novel reduction of imperative control flow to polynomial arithmetic, enabling algebraic verification in neuro-symbolic contexts.",
+      "Provides a rigorous and transparent analysis of the computational costs and scaling limits of Polynomial Identity Testing (PIT).",
+      "Demonstrates impressive empirical results, including bit-exact arithmetic on GPU substrates and high-accuracy rotation binding in Vector Symbolic Architectures (VSA).",
+      "Clearly defines the boundary between the verifiable symbolic trusted base and the quarantined learned components.",
+      "Includes a detailed 'worked failure' analysis in Section 4.5 that illustrates the practical utility of the framework's leak-detection mechanisms."
+    ],
+    "cons": [
+      "The scalability of the equivalence check is a major concern, as the paper admits the monomial count for polynomials explodes at a nesting depth of only 3.",
+      "The 'trusted base' remains fundamentally dependent on the unverified semantic mapping of the frozen embedding substrate, which is a significant trust assumption.",
+      "The methodology is tightly coupled with specific VSA operations (rotation binding), which may limit its applicability to other neuro-symbolic architectures.",
+      "The distinction between 'same-graph' and 'logical' equivalence, while interesting, appears to be an artifact of the specific compiler implementation rather than a broader theoretical necessity.",
+      "The termination proofs for loops are restricted to bounded recurrences, which effectively sidesteps the general halting problem by language design rather than solving it for arbitrary logic."
+    ],
+    "justification": "The paper offers a technically sophisticated and original approach to the verification of neuro-symbolic systems by leveraging polynomial identity testing. While the scalability of the algebraic checks is currently limited to shallow nesting depths, the authors' honesty regarding these constraints and their thorough empirical validation of the tensor substrate make this a high-quality contribution to the field.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-30 18:41:02"
+  }
+}
