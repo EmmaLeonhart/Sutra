@@ -6,6 +6,17 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: gemma_corpus.jsonl consistency guard
+
+Gave the Gemma corpus the same self-consistency guard the template corpus
+has. `gemma_codegen_corpus.verify_entry(entry)` recompiles an entry's
+`source` (model-free, nomic fallback) and checks it reproduces the
+recorded `io` on the substrate (max|Δ| < 1e-4). `test_gemma_codegen_corpus.py`
+now verifies every committed `corpus/gemma_corpus.jsonl` entry (7/7 incl.
+the 8 committed Gemma programs; skips cleanly if the submodule isn't
+checked out or Ollama is down, since free-form entries may embed). Closes
+the "gemma corpus has no consistency test" gap.
+
 ## 2026-05-30: scale the programmatic corpus → 480 programs (Emma's steer)
 
 Per Emma 2026-05-30 ("programmatically making programs is fine but Gemma
