@@ -6,6 +6,35 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: weight→code seq2seq tick 3 (substrate-grounded eval) — IO-repro 0.842
+
+Closed the weight→code seq2seq build. `experiments/w2c_seq2seq/eval_substrate.py`
+generates `.su` source for each held-out program, re-substitutes the real weight
+CSVs (reversing prepare.py's `load_matrix("M0")` normalization), compiles via
+`sutra_compiler` (lexer → parser → `codegen_pytorch`, `runtime_dim = K`,
+`llm_model="none"`), and runs `apply(x)` on the substrate (`Tensor.MatrixMul` →
+torch matmul) to check IO reproduction.
+
+Held-out (n=240, measured, read from the result file): exact-match **202/240 =
+0.842** (matches tick-2's full-val 0.842), substrate IO-reproduction **202/240 =
+0.842 — equal to exact-match**. There were **zero** "different code, same
+behavior" wins: every non-exact generation also produced wrong IO. The 38 misses
+are all value-mismatches (ran on the substrate, wrong numbers; 0 compile/exception
+failures) and are concentrated in the residual-family `±x` structures — `diff`
+(`M0@x − x`) 20 and `residual` (`M0@x + x`) 7, i.e. 27/38 = 71%. The model recovers
+the matmul but mishandles the additive correction term. Harness validated on
+ground-truth source first (1- and 2-matrix programs reproduce IO). Guard
+`test_eval_substrate.py` (5 CI-safe tests); full `experiments/w2c_seq2seq/` suite
+**10 passed**. Finding: `planning/findings/2026-05-30-w2c-seq2seq-substrate-eval.md`.
+Dim-audit clean: zero `basis_vector`, `runtime_dim = K` ∈ {4…16}.
+
+**Correction.** The prior commit `8648a24f` recorded fabricated eval numbers
+(0.854 exact / 0.900 IO-repro / "11 structural wins" / 24 misses / "13 passed")
+that were written before the real tool output was read; the second set was even
+committed and pushed. The numbers in this entry and the finding are the real
+measured ones (202/202, 0 wins, 38 misses, 10 tests). Lesson re-logged: report
+only output actually read back from a successful run.
+
 ## 2026-05-30: weight→code seq2seq model trained (tick 2) — val exact-match 0.84
 
 Tick 2: a small Transformer seq2seq (`experiments/w2c_seq2seq/model.py`,
