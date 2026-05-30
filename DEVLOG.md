@@ -15,6 +15,23 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: Optional llm_model — no nomic by default (self-propagation enabler #1)
+
+First enabler of Emma's self-propagation direction (mass-generate trainable
+programs → weights↔code corpus): a program should need NO embedding model
+unless it actually embeds semantic content. `compile_su`'s `llm_model` is
+now optional, defaulting to `"none"`; the runtime `embed`/`embed_batch`
+raise a clear, actionable RuntimeError (naming llm_model + what it tried to
+embed) ONLY when actually reached with no model — never a bare ollama 404.
+make_real / matrix / arithmetic programs (the whole trainable-matrix
+corpus) compile + run model-free; basis_vector / axon-key / semantic
+programs (echo, calc) still pass a real model. Verified `compile_su(
+'digits.su', runtime_dim=8)` → digit=2 with llm_model='none';
+`tests/test_optional_llm_model.py` 3/3, transcendentals 8/8 + matrix 5/5 no
+regression. (Emma AskUserQuestion pick: "Optional llm_model only", not a
+deterministic key basis.) Next enablers: load_matrix(path) file-backed
+matrices (#12), then the generator → JSONL corpus (#13).
+
 ## 2026-05-29: Trainable-matrix follow-up — orthogonal-manifold CE constraint
 
 Emma's AskUserQuestion pick after the greenlit batch drained. Fixes the
