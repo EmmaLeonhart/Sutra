@@ -34,10 +34,14 @@ deleted on completion. Keep the task tool in sync with this file.
   (fast, deterministic, clean (code,weights,IO) at volume); Gemma is good
   but FUTURE — keep it built, don't make it the near-term volume path.**
   So scaling = grow the PROGRAMMATIC generator: more structures, K, seeds,
-  weight-kinds → big N. Workflow: generate into `corpus/` → commit+push
-  submodule → mirror to HF → bump the Sutra pointer. Also open (bounded):
-  a category/semantic trained kind (needs embeddings). Detail: DEVLOG
-  2026-05-29/30. (gemma_corpus.jsonl now has a consistency guard too.)
+  weight-kinds → big N. **Emma 2026-05-30: scale the corpus much larger
+  BEFORE modeling** — generator default bumped to thousands-scale (10
+  structures × 6 K {4,6,8,10,12,16} × 4 kinds × 10 seeds = 2400 programs).
+  Workflow: generate into `corpus/` → commit+push submodule → mirror to HF
+  → bump the Sutra pointer + dataset-card stats. THEN (her chosen order)
+  the weight→code model baseline. Also open: a category/semantic trained
+  kind (needs embeddings). Detail: DEVLOG 2026-05-29/30. (Both corpora have
+  consistency guards.)
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 
