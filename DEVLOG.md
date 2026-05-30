@@ -15,6 +15,33 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: weights<->code corpus generator v0 — the self-propagation payoff
+
+Both enablers in place (#11 model-free, #12 file-backed weights), so the
+payoff of Emma's self-propagation direction: `experiments/
+weight_to_code_corpus.py` mass-generates program variations whose behavior
+is carried by file-backed matrices, recording (code, weights, IO) triples
+as v0 training data for weight->code decompilation.
+
+Each generated program is model-free (no embed → no Ollama; runtime_dim=K,
+dim-audit honest), drawn from a structure grammar (v0: linear `M@x`,
+chain2 `M1@(M0@x)`, residual `(M@x)+x`) × K × weight-kind (gaussian/perm)
+× seed. Weights are RANDOMISED (Emma: "even just kind of randomise the
+trainable components") → CSV via `load_matrix`; each program runs on the
+real substrate (Tensor.MatrixMul + add) to produce the recorded IO. Output:
+one CSV per matrix + `corpus.jsonl` of `{id, structure, K, weight_kind,
+source (relative CSV names, portable), weights[], io[], runtime_dim,
+llm_model}`.
+
+The corpus's value rests on one invariant, and it's tested:
+`experiments/test_weight_to_code_corpus.py` (2/2) recompiles EVERY entry
+from its stored (source + weight CSVs) and reproduces the recorded IO on
+the substrate — the (code ↔ weights ↔ behavior) triple is self-consistent.
+A 12-program sample is committed as the demonstrator. This is the seed of
+the weight→code training set. OPEN (surfaced for Emma): expand the
+variation space (more structures/ops, trained not just randomised,
+nonlinearities, control flow) and scale N from the v0 sample.
+
 ## 2026-05-29: load_matrix(path) — file-backed matrices (self-propagation enabler #2)
 
 Second enabler. Emma's pick (AskUserQuestion "load_matrix(path) general"):
