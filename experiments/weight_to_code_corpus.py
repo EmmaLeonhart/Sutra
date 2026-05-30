@@ -76,15 +76,76 @@ STRUCTURES = {
 }
 
 
+# Cache one compiled `apply(matrix M, vector x) = M @ x` per K, so trained
+# weights are produced by gradient descent THROUGH THE COMPILED SUBSTRATE
+# matmul (the trainable component), not host-side torch.
+_APPLY_CACHE: dict = {}
+
+
+def _apply_for(K: int):
+    if K not in _APPLY_CACHE:
+        src = (
+            "function vector apply(matrix M, vector x) {\n"
+            "    return Tensor.MatrixMul(M, x);\n"
+            "}\n"
+            'function string main() { return "ok"; }\n'
+        )
+        lx = Lexer(src, file="<train>")
+        ast = Parser(lx.tokenize(), file="<train>", diagnostics=lx.diagnostics).parse_module()
+        ns: dict = {}
+        exec(translate_pytorch(ast, llm_model="none", runtime_dim=K), ns)
+        _APPLY_CACHE[K] = (ns["apply"], ns["_VSA"])
+    return _APPLY_CACHE[K]
+
+
+def _random_perm_matrix(K, gen):
+    perm = torch.randperm(K, generator=gen)
+    P = torch.zeros(K, K, dtype=torch.float64)
+    for i in range(K):
+        P[perm[i], i] = 1.0
+    return P
+
+
+def _random_rotation(K, gen):
+    a = torch.randn(K, K, generator=gen, dtype=torch.float64)
+    q, r = torch.linalg.qr(a)
+    return q * torch.sign(torch.diagonal(r))  # Haar-ish orthogonal
+
+
+def _train_to_target(target: torch.Tensor, K: int, gen: torch.Generator,
+                     epochs: int = 250) -> torch.Tensor:
+    """Train a matrix M (init small-random) so M @ e_i == target's column i,
+    by MSE through the COMPILED substrate matmul. Returns the trained M —
+    weights reached by gradient descent on the substrate (provenance:
+    'trained'), carrying the target's structure (orthogonal / permutation)."""
+    apply_fn, vsa = _apply_for(K)
+    es = [torch.eye(K, dtype=vsa.dtype, device=vsa.device)[i] for i in range(K)]
+    tgt = target.to(dtype=vsa.dtype, device=vsa.device).T.contiguous()  # rows = target cols
+    M = (0.1 * torch.randn(K, K, generator=gen, dtype=torch.float64)).to(
+        dtype=vsa.dtype, device=vsa.device).clone().detach().requires_grad_(True)
+    opt = torch.optim.Adam([M], lr=0.05)
+    for _ in range(epochs):
+        opt.zero_grad()
+        outs = torch.stack([apply_fn(M, e) for e in es])  # (K, K) = M columns
+        loss = torch.nn.functional.mse_loss(outs, tgt)
+        loss.backward()
+        opt.step()
+    return M.detach().to(dtype=torch.float64, device="cpu")
+
+
 def make_weight(kind: str, K: int, gen: torch.Generator) -> torch.Tensor:
     if kind == "gaussian":
         return torch.randn(K, K, generator=gen, dtype=torch.float64)
     if kind == "perm":
-        perm = torch.randperm(K, generator=gen)
-        P = torch.zeros(K, K, dtype=torch.float64)
-        for i in range(K):
-            P[perm[i], i] = 1.0
-        return P
+        return _random_perm_matrix(K, gen)
+    # Trained kinds: weights produced by GD through the compiled substrate
+    # matmul toward a structured target (Emma's stated targets: rotations,
+    # permutations) — "meaning, not noise". The trained M carries the
+    # target's structure (near-orthogonal / near-permutation).
+    if kind == "trained_rotation":
+        return _train_to_target(_random_rotation(K, gen), K, gen)
+    if kind == "trained_perm":
+        return _train_to_target(_random_perm_matrix(K, gen), K, gen)
     raise ValueError(f"unknown weight kind {kind!r}")
 
 
@@ -128,7 +189,7 @@ def main():
     # own repo, not in Sutra. Override --out for scratch/large runs elsewhere.
     ap.add_argument("--out", default=os.path.join(REPO, "corpus"))
     ap.add_argument("--ks", default="4,6")
-    ap.add_argument("--kinds", default="gaussian,perm")
+    ap.add_argument("--kinds", default="gaussian,perm,trained_rotation,trained_perm")
     ap.add_argument("--seeds", default="0")
     ap.add_argument("--n-io", type=int, default=4)
     a = ap.parse_args()

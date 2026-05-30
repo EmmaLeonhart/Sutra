@@ -49,7 +49,8 @@ def corpus():
     tmp = tempfile.mkdtemp()
     r = subprocess.run(
         [sys.executable, os.path.join(HERE, "weight_to_code_corpus.py"),
-         "--out", tmp, "--ks", "4,6", "--kinds", "gaussian,perm", "--seeds", "0"],
+         "--out", tmp, "--ks", "4,6",
+         "--kinds", "gaussian,perm,trained_rotation", "--seeds", "0"],
         capture_output=True, text=True,
     )
     assert r.returncode == 0, r.stderr
@@ -62,11 +63,15 @@ def corpus():
 
 def test_corpus_nonempty_and_well_formed(corpus):
     _, entries = corpus
-    # structures × Ks × kinds — grammar-size-agnostic (count distinct
-    # structures actually emitted; Ks=2, kinds=2 in the fixture).
+    # structures × Ks × kinds — fully agnostic (count distinct values
+    # actually emitted, so adding structures/Ks/kinds doesn't break it).
     n_struct = len({e["structure"] for e in entries})
-    assert n_struct >= 3
-    assert len(entries) == n_struct * 2 * 2
+    n_k = len({e["K"] for e in entries})
+    n_kind = len({e["weight_kind"] for e in entries})
+    assert n_struct >= 3 and n_kind >= 3
+    assert len(entries) == n_struct * n_k * n_kind
+    # at least one trained-weight entry present (the "trained" half)
+    assert any(e["weight_kind"].startswith("trained_") for e in entries)
     for e in entries:
         assert e["llm_model"] == "none"          # model-free
         assert e["runtime_dim"] == e["K"]        # dim-audit honest
