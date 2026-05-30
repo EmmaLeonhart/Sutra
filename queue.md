@@ -26,8 +26,9 @@ deleted on completion. Keep the task tool in sync with this file.
 ## Handoff — START HERE (fresh session)
 
 The session pivoted to the **weight→code seq2seq** build (Emma 2026-05-30
-AskUserQuestion: *source generation*). Tick 1 (data prep) is done + pushed
-(`eb8140a9`). A new session's first moves, in order:
+AskUserQuestion: *source generation*). Ticks 1 (data prep) + 2 (model+train)
+are done + pushed; **tick 3 (substrate-grounded eval) is next — task #21.**
+A new session's first moves, in order:
 
 1. **Start the four local crons** (CLAUDE.md §"Autonomous productivity
    loop"): work-loop `3 * * * *`, auto-flush `15 * * * *`, status-report
@@ -40,7 +41,11 @@ AskUserQuestion: *source generation*). Tick 1 (data prep) is done + pushed
    clone won't have it. Confirm `data/{train,val}.jsonl` + `vocab.json`
    appear (2160 / 240 / vocab 45). Sanity: `pytest
    experiments/w2c_seq2seq/test_prepare.py` → 4/4.
-4. **Do task #20 — seq2seq model + training** (the Active item below).
+4. **Do task #21 — tick 3, substrate-grounded eval** (the Active item
+   below). The trained checkpoint `data/model.pt` is also gitignored, so a
+   fresh session must first `py experiments/w2c_seq2seq/model.py` to retrain
+   (~minutes on GPU; converges to ~0.84 val exact-match) before running the
+   tick-3 eval over the val split.
 
 **A.0 — decisions blocked on Emma:** none right now. (The big one is
 already answered: model approach = source generation / seq2seq.) If a fork
@@ -60,14 +65,18 @@ Three bounded ticks:
    name>")` so the filename that encodes the answer is canonicalized out of
    the generation target; the weight VALUES become the model input), char
    tokenizer (vocab 45), split BY id → 2160 train / 240 val, max target 261.
-2. **Model + training — NEXT (task #20).** Small seq2seq transformer
-   (torch/CUDA): encode the numeric weights + IO, decode source tokens over
-   the char vocab. Train on the split. Verifiable: train loss falls; report
-   val token-accuracy.
-3. **Substrate-grounded eval.** The metric that makes "weight→code" real:
-   generated source, with the real CSV re-substituted, compiled + run on the
-   substrate, **reproduces the held-out program's IO** = decompilation
-   accuracy; plus token/exact-match.
+2. ~~Model + training~~ **DONE** (`model.py` + `test_model.py`, `f9a7ef14`):
+   1.48M-param Transformer seq2seq (weights+IO → source). 40-epoch CUDA run,
+   converged held-out (n=240): val_loss 0.0028, token-acc 0.9991, greedy
+   **exact-match 0.842**. Checkpoint → gitignored `data/model.pt`.
+3. **Substrate-grounded eval — NEXT (task #21).** The metric that makes
+   "weight→code" real: take the GENERATED source, re-substitute the real CSV
+   (reverse the `load_matrix("M0")` normalization), compile, run on the
+   substrate, and check it **reproduces the held-out program's IO** =
+   decompilation accuracy. An 84%-exact-match generation should mostly pass,
+   but tick 3 MEASURES it on the substrate rather than assuming it. Report
+   the gap between exact-match and IO-reproduction (the non-exact-match
+   generations that still reproduce IO are the interesting wins).
 
 Caveat to measure honestly (don't paper over): the template source space is
 constrained (10 structures + load_matrix refs), so v0 generation is close to
