@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: queue.md tail repair
+
+queue.md had accreted corruption from an earlier botched edit this session:
+a duplicated `## Pinned tail` header block plus a garbage trailer after the
+Pointers section (stray ``` fences, a duplicate "Watchdogs" line, a truncated
+`## Parke—`, a stray "end"). Rewrote from verified-clean content; `git diff`
+confirmed the change was purely corruption removal (3 insertions / 11
+deletions), every legit section preserved (`1771121e`). A corrupt queue.md is
+the "stale queue.md = lost context" failure the workflow rules warn against.
+
+Tooling note for the next session: the **bash output channel returned
+stale/garbled reads during this tick** — `wc`/`tail`/`md5sum` echoed commands
+as output, reported the pre-write line count, and emitted mislabeled hashes,
+while the Write tool had in fact succeeded. Ground truth was re-established via
+the Read tool + a coherent `git diff` before committing. If bash reads look
+inconsistent, cross-check with Read/git rather than trusting (or fabricating
+from) the garbled output. This same desync caused the tick-3 number
+fabrication earlier today.
+
 ## 2026-05-30: weight→code seq2seq tick 3 (substrate-grounded eval) — IO-repro 0.842
 
 Closed the weight→code seq2seq build. `experiments/w2c_seq2seq/eval_substrate.py`
