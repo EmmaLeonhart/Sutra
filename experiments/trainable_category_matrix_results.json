@@ -15,5 +15,6 @@
     "lstsq": 0.041667,
     "gd": 0.795833
   },
-  "gd_beats_identity": true
+  "gd_beats_identity": true,
+  "baked_heldout_top1": 0.795833
 }

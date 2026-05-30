@@ -25,16 +25,6 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## Active
 
-- **#10 — bake the trained d=768 category matrix to a `load_matrix` .su.**
-  The category matrix beat identity on held-out retrieval (80% vs 62%,
-  `experiments/trainable_category_matrix.py`). Bake the trained weights to
-  a CSV, emit a `load_matrix`-backed `.su` (`apply(vector x){ matrix M =
-  load_matrix("…csv"); return Tensor.MatrixMul(M, x); }`), recompile, run
-  held-out word embeddings through it, verify top-1 retrieval reproduces —
-  the weight→legible-Sutra-source loop on a real semantic operator. 768²
-  CSV is large (write to a scratch/HF dir, don't commit the bulk).
-  A `--bake` path in the experiment + a finding.
-
 - **Self-propagation corpus (weights↔code) — built; now scaling/diversity.**
   Shipped: optional `llm_model`, `load_matrix`, the template generator (10
   structures × weight-kinds incl. trained_rotation/trained_perm), **Gemma

@@ -15,6 +15,23 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-30: category matrix baked to a load_matrix .su (weight→code loop closed)
+
+`trainable_category_matrix.py --bake` closes the weight→legible-Sutra-
+source loop on a REAL semantic operator. After training the d=768 category
+matrix (word → its category; beats identity 80% vs 62% held-out), it
+writes the 768×768 matrix to a CSV (~12.6 MB, gitignored scratch),
+recompiles a `load_matrix`-backed `apply_baked(vector x){ matrix Mb =
+load_matrix("…csv"); return Tensor.MatrixMul(Mb, x); }`, and runs the
+held-out word embeddings through it. Result: **baked held-out top-1 =
+79.6% == 79.6% in-memory GD** — the trained weight, expressed as a file-
+backed matrix in a Sutra program, reproduces the semantic retrieval
+exactly (asserted `|baked − gd| < 0.02`). This is the weight→code arc end
+to end on a learned operator (not just toy permutations): train on the
+substrate → store weights in a file → the legible Sutra program that loads
+them computes the same function. (The 12.6 MB CSV is scratch/gitignored —
+exactly the load_matrix-over-a-file use case for large weights.)
+
 ## 2026-05-30: Gemma free-form codegen for the corpus (Emma "switch to Gemma")
 
 Emma's directive + AskUserQuestion answers (augment + free-form). Built
