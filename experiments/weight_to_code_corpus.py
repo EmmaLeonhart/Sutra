@@ -123,7 +123,10 @@ def compile_source(src: str, K: int):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=os.path.join(HERE, "weight_to_code_corpus"))
+    # Default output is the `corpus/` submodule (EmmaLeonhart/sutra-w2c-corpus,
+    # pinned in Sutra, mirrored to Hugging Face) — the corpus data lives in its
+    # own repo, not in Sutra. Override --out for scratch/large runs elsewhere.
+    ap.add_argument("--out", default=os.path.join(REPO, "corpus"))
     ap.add_argument("--ks", default="4,6")
     ap.add_argument("--kinds", default="gaussian,perm")
     ap.add_argument("--seeds", default="0")

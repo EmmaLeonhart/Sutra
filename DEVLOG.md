@@ -15,6 +15,22 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: corpus moved to its own repo + Sutra submodule (Emma's storage call)
+
+Emma's AskUserQuestion choices: corpus lives in a dedicated repo, GitHub
+canonical mirrored to Hugging Face, PUBLIC, named `sutra-w2c-corpus`.
+Executed (auth confirmed — `gh` as EmmaLeonhart, HF token set):
+- created public `github.com/EmmaLeonhart/sutra-w2c-corpus`, pushed the v0
+  corpus (40 programs / 60 weight CSVs + corpus.jsonl + README);
+- wired it as a **Sutra submodule at `corpus/`** (Yantra-style — Sutra
+  pins a corpus-repo commit via `.gitmodules` + pointer);
+- re-pointed the generator's default `--out` to `corpus/` (corpus data now
+  lives in its own repo, NOT in Sutra; the generator .py stays in Sutra);
+- removed the old in-Sutra `experiments/weight_to_code_corpus/` data.
+REMAINING (#16 tail): Hugging Face dataset mirror (create the HF dataset +
+push; token available) + a periodic-push path. The submodule `corpus/` is
+now the editable, massive, not-gitignored store Emma described.
+
 ## 2026-05-29: corpus grammar broadened 3→10 structures (Emma: grammar + trained)
 
 Emma's AskUserQuestion pick was "both grammar + trained"; this is the

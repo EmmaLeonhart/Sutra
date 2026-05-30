@@ -1,0 +1,3 @@
+[submodule "corpus"]
+	path = corpus
+	url = https://github.com/EmmaLeonhart/sutra-w2c-corpus.git
