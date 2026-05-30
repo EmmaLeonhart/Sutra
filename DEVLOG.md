@@ -15,6 +15,23 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: load_matrix(path) — file-backed matrices (self-propagation enabler #2)
+
+Second enabler. Emma's pick (AskUserQuestion "load_matrix(path) general"):
+large matrices live in a file, not a 768²-entry inline literal.
+`matrix M = load_matrix("weights.su.csv")` (general path — absolute or
+CWD-relative) reads a CSV (comma-separated floats, one row per line; blank
+and `#` lines skipped) into a frozen substrate matrix on the runtime
+device+dtype, cached by path (`_matrix_cache`). The file-backed
+counterpart to `matrix_literal`; substrate-pure, consumed by
+Tensor.MatrixMul. `codegen_base` BUILTIN `load_matrix` →
+`_VSA.load_matrix`. `tests/test_load_matrix.py` 5/5 — lowers, a CSV cyclic
+permutation shifts a one-hot, equals `matrix_literal` for the same data,
+path-cached. This is where the corpus's trained weights will live (the
+generator writes a CSV per program and references it via load_matrix).
+Next: the generator → (code, weights, IO) JSONL corpus (#13); also re-do
+the category-matrix bake (#10) via load_matrix.
+
 ## 2026-05-29: Optional llm_model — no nomic by default (self-propagation enabler #1)
 
 First enabler of Emma's self-propagation direction (mass-generate trainable

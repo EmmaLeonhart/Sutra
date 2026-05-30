@@ -258,6 +258,9 @@ class PyTorchCodegen(Codegen):
         self._emit("# Monitoring only: a host-side set.add of a compile-time key")
         self._emit("# string around the substrate op, never inside the tensor math.")
         self._emit("self._fv_key_trace = None")
+        self._emit("# load_matrix path -> frozen 2-D tensor (file-backed matrix")
+        self._emit("# constants are read once and reused; see load_matrix).")
+        self._emit("self._matrix_cache = {}")
         self._emit("# Rotation matrix cache: role-hash -> tensor on self.device.")
         self._emit("# Generating a 768x768 Haar rotation is O(d^3) on CPU (seeded")
         self._emit("# via numpy for Haar-uniformity). Cached on the GPU after the")
@@ -723,6 +726,33 @@ class PyTorchCodegen(Codegen):
         self._emit('(e.g. a frozen permutation matrix for a substrate-RNN advance)."""')
         self._emit("stacked = _torch.stack([_torch.as_tensor(r, dtype=self.dtype, device=self.device) for r in rows], dim=0)")
         self._emit("return stacked")
+        self._indent -= 1
+        self._emit()
+        self._emit("def load_matrix(self, path):")
+        self._indent += 1
+        self._emit('"""Load a matrix CONSTANT from a CSV file (comma-separated')
+        self._emit("floats, one matrix row per line; blank lines and lines starting")
+        self._emit("with '#' skipped) into a 2-D tensor on the runtime device+dtype.")
+        self._emit("The file-backed form of matrix_literal, for LARGE matrices —")
+        self._emit("trained weights in a weights store rather than a giant inline")
+        self._emit("literal (Emma 2026-05-29). General path: absolute, or relative to")
+        self._emit("the process CWD. Cached by path (it is a frozen constant), so")
+        self._emit('repeat calls reuse the loaded tensor. Consumed by Tensor.MatrixMul."""')
+        self._emit("if path not in self._matrix_cache:")
+        self._indent += 1
+        self._emit("rows = []")
+        self._emit("with open(path, 'r', encoding='utf-8') as _fh:")
+        self._indent += 1
+        self._emit("for _line in _fh:")
+        self._indent += 1
+        self._emit("_line = _line.strip()")
+        self._emit("if not _line or _line.startswith('#'): continue")
+        self._emit("rows.append([float(_x) for _x in _line.split(',')])")
+        self._indent -= 1
+        self._indent -= 1
+        self._emit("self._matrix_cache[path] = _torch.tensor(rows, dtype=self.dtype, device=self.device)")
+        self._indent -= 1
+        self._emit("return self._matrix_cache[path].clone()")
         self._indent -= 1
         self._emit()
         self._emit("def bundle_of_binds(self, *role_filler_pairs):")
