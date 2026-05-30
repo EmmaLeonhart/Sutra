@@ -6,6 +6,18 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: corpus scaled to 2400 programs (Emma: scale before modeling)
+
+Emma's AskUserQuestion choice — scale the corpus much larger before the
+weight→code model. Generated **2400 programmatic programs** (10 structures
+× 6 K {4,6,8,10,12,16} × 4 weight-kinds × 10 seeds), 3600 weight CSVs, 9600
+input→output pairs (18m10s; the vectorized trained-weight trainer kept the
+1200 trained-kind entries tractable). Pushed to the corpus submodule (@
+6814817) + dataset-card stats updated; Sutra pointer bumped; HF mirror
+upload (3600 files) launched. Per Emma's order, the weight→code model
+baseline is next, now that the corpus is at thousands-scale. Scale further
+is a one-flag `--seeds`/`--ks` bump.
+
 ## 2026-05-30: corpus dataset card (HF) — schema + stats + YAML front-matter
 
 Made `sutra-w2c-corpus` a properly documented public HF dataset (serves
