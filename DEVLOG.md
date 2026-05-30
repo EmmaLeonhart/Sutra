@@ -15,6 +15,32 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-30: queue.md de-bloat + daily-audit discharge (Emma "clear up the queue")
+
+Emma flagged the queue bloated again and asked me to check whether the
+CLAUDE.md queue rules were lost. They are NOT lost — CLAUDE.md §Workflow
+Rules (lines 59-61, 72, 313) clearly say to remove completed items in the
+same commit and that the queue is not a status snapshot; there is no
+"cube" concept (the voice-typo reads as "queue"). The bloat was my own
+discipline failure: I kept appending "SHIPPED 2026-05-29" closure logs
+instead of deleting completed items. Fixed: rewrote queue.md lean
+(~390→~110 lines) — kept load-bearing context (arXiv/NeurIPS freezes,
+watchdogs, pinned tail, pointers), Emma's current directives, and the
+genuinely-open items (#10 category bake, the corpus scaling/Gemma work,
+the FV roadmap pointer); deleted every SHIPPED/RESOLVED log (history is in
+git log / this DEVLOG / planning/findings). Going forward: delete on
+completion, don't log.
+
+Daily substrate-honesty audit (2026-05-30) discharged: reviewed the
+commits since the last audit (optional llm_model, load_matrix, corpus v0 +
+grammar 3→10 + trained_rotation/trained_perm variants, submodule+HF,
+capabilities). All corpus programs are model-free with runtime_dim=K (no
+basis_vector → tiny dim, dim-audit honest); trained weights are produced
+ON the substrate (compiled Tensor.MatrixMul); the corpus invariant is
+tested (recompile→reproduce IO), not asserted; no "RNN"/"verified"
+overclaim. No breach. Audit item folded into the Watchdogs section as a
+standing instruction rather than a per-day queue entry.
+
 ## 2026-05-29: capabilities page — load_matrix + real()/imag() free-function reads
 
 Doc maintenance (capabilities doc must stay exhaustive). Added this
