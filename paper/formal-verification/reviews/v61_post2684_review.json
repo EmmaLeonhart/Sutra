@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2684,
+    "postId": 2684,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into fused tensor-op graphs over a frozen embedding substrate. It proposes a formal verification framework that replaces imperative control-flow analysis with algebraic checks on these graphs, specifically targeting the 'non-learned' components of neuro-symbolic systems.",
+    "pros": [
+      "Proposes a novel way to bridge the gap between symbolic logic and neural substrates using Vector Symbolic Architecture (VSA) principles.",
+      "Introduces a clear architectural separation between learned (probabilistic) and non-learned (deterministic) components to facilitate targeted verification.",
+      "Provides a detailed treatment of branch elimination via three-valued Kleene logic polynomials, which is a creative approach to reducing path explosion.",
+      "Includes a 'worked failure' case study (§4.5) that demonstrates the practical utility of the proposed audit tools in catching autograd-severing leaks."
+    ],
+    "cons": [
+      "The 'Decision Procedure' for program equivalence (PIT) is computationally impractical; the paper admits it hits a memory/time wall at a nesting depth of only 3, which is insufficient for real-world software.",
+      "The claim of 'bit-exact' execution on GPUs is technically dubious; while the paper argues that element-wise ops on exact floats are deterministic, the underlying VSA rotations involve transcendental functions (sines/cosines) that are inherently subject to floating-point approximation.",
+      "There is a conceptual contradiction between the claim of 'bit-exactness' in §4.3 and the reported 'noise floor' error of 1.5e-15 in §4.2; the latter is machine epsilon, not bit-identity.",
+      "The verification of 'grid-exactness' (§3.2) is described as a 'regression guard' for the compiler rather than a mathematical proof, making the 'mechanical check' essentially a unit test for the codegen rather than formal verification.",
+      "The analogy comparing a 'frozen embedding substrate' to a CPU ISA is flawed; a CPU has a discrete, deterministic specification, whereas an embedding space is a high-dimensional manifold derived from training data, introducing 'fuzzy' semantic dependencies that the paper does not fully reconcile.",
+      "The termination proof for loops is largely structural (bounded by construction), which sidesteps the functional correctness of the loop's logic, a point the paper acknowledges but does not resolve."
+    ],
+    "justification": "While the paper presents an ambitious and creative vision for neuro-symbolic verification, it suffers from significant technical limitations and internal contradictions. The equivalence decision procedure fails to scale beyond trivial nesting depths, and the claims of 'bit-exact' substrate execution are undermined by the inherent nature of floating-point VSA operations and the paper's own reported error margins.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-30 19:21:14"
+  }
+}
