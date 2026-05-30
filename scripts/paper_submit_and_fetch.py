@@ -228,6 +228,39 @@ def revise_post(
     )
 
 
+def _orphan_refused(pinned_post_id: int, create_response: dict[str, Any]) -> int:
+    """Loud-fail when the create-fallback minted a fresh orphan post.
+
+    "Stop new chains" guard (Emma 2026-05-30). When a `.post_id` is pinned,
+    `create_post` is only ever a *probe* to elicit clawRxiv's 409 dedup
+    response naming the canonical post to revise. If create_post instead
+    SUCCEEDS, clawRxiv minted a brand-new unchained post — the exact failure
+    that produced orphans 2626..2632 during the 2026-05-27 `/revise` outage
+    (compounded then by `scripts/bump_fv_paper_revision.py` changing the H1
+    timestamp so dedup could not collapse the resubmissions).
+
+    We refuse to pin `.post_id` to the orphan: the caller returns this exit
+    code 1 so CI goes red and a human looks, and `.post_id` stays at the
+    pinned chain tip so the next push retries `revise` against the chain
+    rather than feeding the orphan. The orphan clawRxiv already created is
+    cosmetic (canonical text lives in the repo + on the site); the damage is
+    bounded to one orphan per outage instead of one per push.
+    """
+    orphan_id = create_response.get("id") or create_response.get("postId")
+    print(
+        f"ERROR: revise of pinned post {pinned_post_id} failed and the "
+        f"create-fallback minted a NEW unchained post {orphan_id} instead "
+        f"of 409-deduping back onto the chain. Refusing to pin .post_id to "
+        f"an orphan — this is the 2026-05-27/28 orphan-explosion failure "
+        f"mode (orphans 2626..2632). Leaving .post_id={pinned_post_id} so "
+        f"the next push retries revise against the chain. Likely cause: a "
+        f"clawRxiv /revise outage. Wait for clawRxiv to repair revise, or "
+        f"inspect the chain manually — do NOT let CI spawn a new chain.",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def fetch_review(
     *, api_key: str, post_id: int, poll_seconds: int, timeout_seconds: int,
 ) -> dict[str, Any] | None:
@@ -442,6 +475,16 @@ def main() -> int:
               f"{e}", file=sys.stderr)
         try:
             response = create_post(api_key=api_key, payload=payload)
+            # STOP-NEW-CHAINS guard (Emma 2026-05-30). create_post is used
+            # here only as a probe to elicit clawRxiv's 409 dedup response
+            # (caught below) that names the canonical post to revise. If it
+            # instead SUCCEEDS, clawRxiv just minted a brand-new *orphan*
+            # post rather than deduping back onto the pinned chain — that is
+            # exactly the 2026-05-27/28 failure that produced orphans
+            # 2626..2632. Refuse to pin .post_id to the orphan: report
+            # loudly and fail CI so a human investigates. .post_id stays at
+            # {supersedes}, so the next run retries revise against the chain.
+            return _orphan_refused(supersedes, response)
         except SupersedeConflict as e2:
             # The 409 we want: dedup pointed at the canonical post.
             dup = e2.duplicate_id()
@@ -508,6 +551,14 @@ def main() -> int:
                   f"  Underlying 409 error: {e}", file=sys.stderr)
             try:
                 response = create_post(api_key=api_key, payload=payload)
+                # STOP-NEW-CHAINS guard (Emma 2026-05-30) — same rationale
+                # as the ReviseNotFound branch above. A *successful* create
+                # here means an orphan was minted instead of deduping back
+                # onto the pinned chain. (The old policy deliberately wanted
+                # this — the bump-revision script changed the title so
+                # create would succeed and spawn a fresh post. That policy
+                # is retired: we now refuse the orphan and fail loudly.)
+                return _orphan_refused(supersedes, response)
             except SupersedeConflict as e_dup:
                 dup2 = e_dup.duplicate_id()
                 if dup2 is None:
