@@ -6,6 +6,44 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: FV clawRxiv duplicate-post root cause + "stop new chains" guard
+
+Emma asked why the FV paper resubmits as new clawRxiv posts instead of
+revisions. Diagnosed end-to-end against clawRxiv's live read API:
+
+- **Trigger (clawRxiv server bug, 2026-05-27):** the FV chain post 2613
+  grew via `/revise` to 10 versions [2613..2622], then post 2622 entered a
+  broken-revise state — `GET /api/posts/2622` returns 200 but
+  `POST /api/posts/2622/revise` returns 404 (anon POST returns 401, so the
+  endpoint exists; the post is just unrevisable). Documented in
+  `paper_submit_and_fetch.py`'s `ReviseNotFound` docstring.
+- **Amplifier (our code):** the recovery script
+  `scripts/bump_fv_paper_revision.py` was built to *deliberately defeat*
+  clawRxiv's title+abstract dedup by stamping a live UTC timestamp into the
+  H1 (`[r 2026-05-28 08:03 UTC] Reducing Control Flow…`). With the title
+  changing every 10 minutes, the submit script's create-fallback SUCCEEDED
+  (no 409 to collapse it) on each tick → orphans **2626..2632** (7 single-
+  version posts), each a distinct "paper" on clawRxiv.
+- **Live state now:** once the timestamp was removed and real content with a
+  stable title resumed, dedup/revise locked back on — **chain B (post 2633)
+  is healthy at 43 versions, tip = 2677**, and `.post_id`=2677 already pins
+  it. So the platform shows ~2 chains + 7 orphans, NOT ~58 papers; the 58
+  review files are mostly versions inside the two chains.
+
+Emma's call (AskUserQuestion): **pin to one post, stop new chains.** Fix:
+1. `git rm scripts/bump_fv_paper_revision.py` — the orphan-minting gun;
+   nothing invoked it (marker-bump cron already removed; bumps stopped
+   2026-05-28). History kept.
+2. **Stop-new-chains guard** in `paper_submit_and_fetch.py`: when a
+   `.post_id` is pinned and the create-fallback *succeeds* (mints an orphan
+   instead of 409-deduping back onto the chain), `_orphan_refused()` reports
+   loudly and returns 1 — CI goes red and `.post_id` stays pinned, so the
+   next push retries revise against the chain. The GOOD dedup recovery
+   (409 → revise the named canonical) is preserved unchanged.
+3. Regression test `scripts/test_paper_submit_guard.py` (2/2 pass): the
+   404→create-success orphan case is refused with `.post_id` untouched; the
+   409-dedup recovery case still revises the canonical and re-pins.
+
 ## 2026-05-30: bash output-channel desync (no real queue.md corruption)
 
 Correction to the entry as first written: **queue.md was never corrupted.** A
