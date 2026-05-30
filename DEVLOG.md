@@ -15,6 +15,27 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-30: Gemma free-form codegen for the corpus (Emma "switch to Gemma")
+
+Emma's directive + AskUserQuestion answers (augment + free-form). Built
+`experiments/gemma_codegen_corpus.py`: few-shot prompt `gemma3:12b`
+(ollama, local) for Sutra programs with a fixed `function vector
+apply(vector x)` entry (so IO is recordable) but free-form bodies, then
+`validate()` each — parse + compile (model-free, falling back to nomic if
+it calls embed) + run on the substrate across candidate input dims; keep
+ONLY programs that compile and produce a finite vector. Records `{id,
+generator, source, K, weights[] (inline => []), io[]}` to
+`corpus/gemma_corpus.jsonl`. The validator is the filter Emma's free-form
+plan relies on; it's unit-tested deterministically
+(`test_gemma_codegen_corpus.py` 6/6: good-linear accepted at K=2,
+arithmetic = 3x, shape-mismatch / missing-apply / parse-error rejected,
+fence+separator splitting). Live run: gemma3:12b produced 8/8 valid
+programs (K=2/3 matrix/vector) — the few-shot prompt keeps free-form output
+mostly valid; the validator catches the rest. Appended to the corpus
+submodule (@ eec6830) + HF mirror. Gemma entries are consistent-by-
+construction (IO recorded from the validated run). Open: scale N + dedup;
+a standalone consistency test over gemma_corpus.jsonl.
+
 ## 2026-05-30: queue.md de-bloat + daily-audit discharge (Emma "clear up the queue")
 
 Emma flagged the queue bloated again and asked me to check whether the
