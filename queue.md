@@ -26,14 +26,20 @@ deleted on completion. Keep the task tool in sync with this file.
 ## Emma says do this now (2026-05-30)
 
 1. **Switch to Gemma for generating the training-data code** (task #17,
-   ACTIVE). Use Gemma (LLM via ollama) to generate new Sutra program
-   variations for the weights↔code corpus, instead of / on top of the
-   fixed structure-template grammar in `experiments/weight_to_code_corpus.py`.
-   Validate each generated `.su` compiles + runs on the substrate; keep the
-   valid ones; attach randomized/trained weights + IO. Investigate gemma
-   availability in ollama + the generation API first. **Open design point
-   to confirm with Emma: does Gemma replace the template grammar entirely,
-   or augment it?** (next AskUserQuestion if she's away.)
+   ACTIVE — approach LOCKED via AskUserQuestion 2026-05-30). Use
+   **`gemma3:12b`** (ollama, available locally) to generate Sutra program
+   variations for the weights↔code corpus. Emma's choices: **AUGMENT**
+   (Gemma is the primary new source; the 10 hand-written structure
+   templates stay as a verified fallback) + **FREE-FORM Sutra** (Gemma may
+   use any Sutra, not just matrix/vector ops). Pipeline: prompt gemma3:12b
+   to write programs with a fixed entry contract `function vector
+   apply(vector x)` (so IO is recordable) but free-form bodies; validate
+   each — compile (translate_pytorch) + run on the substrate; keep ONLY
+   valid ones; record `{source, weights[] (load_matrix CSV where present,
+   else []), io[]}` into the `corpus/` submodule alongside the template
+   entries; mirror to HF. Filter/log the compile-failure rate. Free-form
+   means some programs need a model (basis_vector/embed) — those pass
+   llm_model=nomic; pure-op ones stay model-free.
 2. **Clear up the queue** — addressed by the 2026-05-30 rewrite (this file).
    Root cause was my discipline failure (left SHIPPED logs instead of
    deleting completed items), NOT a lost rule.
