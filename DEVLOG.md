@@ -27,9 +27,14 @@ Executed (auth confirmed — `gh` as EmmaLeonhart, HF token set):
 - re-pointed the generator's default `--out` to `corpus/` (corpus data now
   lives in its own repo, NOT in Sutra; the generator .py stays in Sutra);
 - removed the old in-Sutra `experiments/weight_to_code_corpus/` data.
-REMAINING (#16 tail): Hugging Face dataset mirror (create the HF dataset +
-push; token available) + a periodic-push path. The submodule `corpus/` is
-now the editable, massive, not-gitignored store Emma described.
+HF mirror now DONE: public dataset `huggingface.co/datasets/EmmaLeonhart/
+sutra-w2c-corpus` (v0 corpus uploaded), with `experiments/
+mirror_corpus_to_hf.py` as the one-command periodic-push path. Full infra
+wired — GitHub canonical (submodule `corpus/`) + HF dataset mirror. The
+self-propagation workflow: generate into `corpus/` → commit+push the
+submodule → `mirror_corpus_to_hf.py` → bump the Sutra submodule pointer.
+The submodule `corpus/` is the editable, massive, not-gitignored store
+Emma described. #16 done.
 
 ## 2026-05-29: corpus grammar broadened 3→10 structures (Emma: grammar + trained)
 
