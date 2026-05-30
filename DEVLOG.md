@@ -6,6 +6,16 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: untrack .claude/scheduled_tasks.lock
+
+The in-session cron scheduler's lock file (`sessionId`/`pid`/`acquiredAt`,
+rewritten every session) had been tracked by accident, churning 9+
+Create/Delete/Update commits and repeatedly tripping the auto-flush cron into
+near-empty commits. `git rm --cached` + a `.gitignore` entry (next to
+`.claude/settings.local.json`); the file stays on disk for the scheduler but
+git no longer sees it (`e4c4e9eb`). Verified: `git check-ignore` returns the
+path, working tree clean after commit, push landed (local == origin).
+
 ## 2026-05-30: FV clawRxiv duplicate-post root cause + "stop new chains" guard
 
 Emma asked why the FV paper resubmits as new clawRxiv posts instead of
