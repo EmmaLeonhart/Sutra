@@ -392,6 +392,12 @@ class PyTorchCodegen(Codegen):
         self._emit('"""')
         self._emit("if name not in self._codebook:")
         self._indent += 1
+        self._emit("if self.llm_model in (None, 'none', ''): raise RuntimeError("
+                   "\"embed(\" + repr(name) + \") needs an embedding model, but \""
+                   " \"compile_su llm_model is 'none'. Pass "
+                   "llm_model='nomic-embed-text' to embed semantic content; \""
+                   " \"programs using only make_real / matrices / arithmetic "
+                   "need no model.\")")
         self._emit("import ollama")
         self._emit("r = ollama.embed(model=self.llm_model, input=name)")
         self._emit("v = _torch.tensor(r['embeddings'][0], dtype=self.dtype, device=self.device)")
@@ -433,6 +439,11 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("return")
         self._indent -= 1
+        self._emit("if self.llm_model in (None, 'none', ''): raise RuntimeError("
+                   "\"embed_batch needs an embedding model, but compile_su \""
+                   " \"llm_model is 'none'. Pass llm_model='nomic-embed-text' "
+                   "to embed semantic content; programs using only make_real / \""
+                   " \"matrices / arithmetic need no model. Tried: \" + repr(missing))")
         self._emit("import ollama")
         self._emit("r = ollama.embed(model=self.llm_model, input=missing)")
         self._emit("for i, name in enumerate(missing):")
