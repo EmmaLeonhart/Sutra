@@ -100,7 +100,7 @@ def _cache_key(
 def compile_su(
     src_path: Union[str, pathlib.Path],
     *,
-    llm_model: str,
+    llm_model: str = "none",
     runtime_dim: int,
     runtime_dtype: str = "float32",
     cache_dir: Optional[Union[str, pathlib.Path]] = None,
@@ -110,8 +110,15 @@ def compile_su(
 
     Args:
         src_path: Path to a .su source file.
-        llm_model: Frozen-LLM model name passed to the codegen
-            (e.g. "nomic-embed-text").
+        llm_model: Frozen-LLM model name for semantic embeddings
+            (e.g. "nomic-embed-text"). OPTIONAL — defaults to "none"
+            (no model). A program that never calls `embed` (no
+            basis_vector, no axon string keys, no semantic embedding —
+            e.g. pure make_real / matrix / arithmetic programs, the whole
+            trainable-matrix corpus) compiles and runs with NO model. The
+            runtime raises a clear error only if `embed` is actually
+            reached with llm_model="none". (Emma 2026-05-29: no nomic by
+            default; pass a model only when truly embedding content.)
         runtime_dim: Total extended-state dim (semantic + synthetic);
             e.g. 768 for the default `nomic-embed-text` build.
         runtime_dtype: "float32" (default) or "float64".
