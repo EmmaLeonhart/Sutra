@@ -119,14 +119,20 @@ def _train_to_target(target: torch.Tensor, K: int, gen: torch.Generator,
     weights reached by gradient descent on the substrate (provenance:
     'trained'), carrying the target's structure (orthogonal / permutation)."""
     apply_fn, vsa = _apply_for(K)
-    es = [torch.eye(K, dtype=vsa.dtype, device=vsa.device)[i] for i in range(K)]
+    # Batched through the compiled substrate matmul: apply_fn(M, I) = M @ I
+    # = M (one compiled call), so outs = (M @ I).T has row i = M's column i
+    # = M @ e_i. One substrate call per step instead of K (the per-e_i loop)
+    # — same math, ~K× faster, which is what makes scaling the trained kinds
+    # to big N feasible (Emma 2026-05-30: programmatic generation is the
+    # scaling workhorse).
+    eye = torch.eye(K, dtype=vsa.dtype, device=vsa.device)
     tgt = target.to(dtype=vsa.dtype, device=vsa.device).T.contiguous()  # rows = target cols
     M = (0.1 * torch.randn(K, K, generator=gen, dtype=torch.float64)).to(
         dtype=vsa.dtype, device=vsa.device).clone().detach().requires_grad_(True)
     opt = torch.optim.Adam([M], lr=0.05)
     for _ in range(epochs):
         opt.zero_grad()
-        outs = torch.stack([apply_fn(M, e) for e in es])  # (K, K) = M columns
+        outs = apply_fn(M, eye).T  # (K, K): row i = M @ e_i = M's column i
         loss = torch.nn.functional.mse_loss(outs, tgt)
         loss.backward()
         opt.step()
@@ -188,9 +194,12 @@ def main():
     # pinned in Sutra, mirrored to Hugging Face) — the corpus data lives in its
     # own repo, not in Sutra. Override --out for scratch/large runs elsewhere.
     ap.add_argument("--out", default=os.path.join(REPO, "corpus"))
-    ap.add_argument("--ks", default="4,6")
+    # Programmatic scaling is the corpus workhorse (Emma 2026-05-30): grow
+    # K / seeds / kinds for big N. Defaults: 10 structures × 4 K × 4 kinds
+    # × 3 seeds = 480 programs. Bump --seeds / --ks for more.
+    ap.add_argument("--ks", default="4,6,8,10")
     ap.add_argument("--kinds", default="gaussian,perm,trained_rotation,trained_perm")
-    ap.add_argument("--seeds", default="0")
+    ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--n-io", type=int, default=4)
     a = ap.parse_args()
     Ks = [int(k) for k in a.ks.split(",") if k.strip()]

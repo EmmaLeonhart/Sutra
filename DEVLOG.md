@@ -6,6 +6,21 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: scale the programmatic corpus → 480 programs (Emma's steer)
+
+Per Emma 2026-05-30 ("programmatically making programs is fine but Gemma
+will be good for the future"), the template/programmatic generator is the
+corpus scaling workhorse; grew it 80 → **480 programs** (10 structures × 4
+K {4,6,8,10} × 4 weight-kinds × 3 seeds), 720 weight CSVs. Enabler:
+**vectorized `_train_to_target`** — the trained_rotation/trained_perm kinds
+now do one batched substrate call per step (`apply_fn(M, I).T`, row i = M @
+e_i) instead of K per-`e_i` calls; same math (consistency test 2/2 after
+the change), ~K× faster, which is what made 240 trained-kind entries
+tractable (full 480-program generation = 3m35s). Pushed to the corpus
+submodule (`00a90bb`) + HF mirror; Sutra pointer bumped. Gemma codegen
+stays built but is NOT the volume path (Emma's steer). Scale further with
+`--seeds`/`--ks`.
+
 ## 2026-05-30: daily audit — `load_matrix` added to sweep allowlist (BORDERLINE)
 
 Daily substrate-leak audit run. Promise/await codegen lint PASS, structural
