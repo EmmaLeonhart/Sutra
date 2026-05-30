@@ -77,6 +77,27 @@ def _compile(runtime_dim: int):
     return m, py
 
 
+def _compile_baked(csv_path: str, runtime_dim: int):
+    """Compile a frozen `apply_baked(vector x)` that loads the trained
+    matrix from a CSV via `load_matrix` — the weight→legible-Sutra-source
+    form of the trained category operator."""
+    p = csv_path.replace("\\", "/")
+    src = (
+        "function vector apply_baked(vector x) {\n"
+        f'    matrix Mb = load_matrix("{p}");\n'
+        "    return Tensor.MatrixMul(Mb, x);\n"
+        "}\n"
+        'function string main() { return "ok"; }\n'
+    )
+    lx = Lexer(src, file="<catbake>")
+    ast = Parser(lx.tokenize(), file="<catbake>", diagnostics=lx.diagnostics).parse_module()
+    assert not lx.diagnostics.has_errors(), list(lx.diagnostics)
+    py = translate_pytorch(ast, runtime_dim=runtime_dim, runtime_seed=42)
+    m = types.ModuleType("_catbake")
+    exec(compile(py, "<catbake>", "exec"), m.__dict__)
+    return m
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--epochs", type=int, default=500)
@@ -84,6 +105,10 @@ def main():
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--per-class", type=int, default=50)
     ap.add_argument("--holdout", type=int, default=15)
+    ap.add_argument("--bake", action="store_true",
+                    help="After training, write the d×d matrix to a CSV, "
+                    "recompile a load_matrix-backed apply_baked(vector x), and "
+                    "verify it reproduces the held-out retrieval (weight→code).")
     a = ap.parse_args()
 
     mod, py = _compile(runtime_dim=8)
@@ -172,6 +197,29 @@ def main():
     print(f"  GD beats identity: {beats}  "
           f"({'POSITIVE CASE -- the learned matrix generalises the category operator' if beats else 'no -- identity competitive'})")
 
+    # --- bake: trained matrix -> CSV -> load_matrix .su -> verify ---
+    baked_top1 = None
+    if a.bake:
+        bake_dir = os.path.join(HERE, ".category_matrix_bake")
+        os.makedirs(bake_dir, exist_ok=True)
+        csv_path = os.path.join(bake_dir, f"category_M_C{C}_d{d}.csv")
+        with open(csv_path, "w", encoding="utf-8", newline="\n") as f:
+            for row in M.detach().cpu().tolist():
+                f.write(",".join(repr(float(v)) for v in row) + "\n")
+        sz = os.path.getsize(csv_path)
+        baked = _compile_baked(csv_path, runtime_dim=8)
+        ab, bvsa = baked.apply_baked, baked._VSA
+        with torch.no_grad():
+            preds = ab(Xte.to(dtype=bvsa.dtype, device=bvsa.device).T).T  # load_matrix Mb @ Xte
+            pn = preds / (preds.norm(dim=1, keepdim=True) + 1e-12)
+            cn = (codebook.to(dtype=bvsa.dtype, device=bvsa.device)
+                  / (codebook.norm(dim=1, keepdim=True) + 1e-12))
+            baked_top1 = float((pn @ cn.T).argmax(dim=1).cpu()
+                               .eq(yte.cpu()).float().mean())
+        print(f"  BAKED via load_matrix ({d}×{d} CSV, {sz/1e6:.1f} MB): held-out "
+              f"top-1 = {baked_top1:.1%}  (GD in-memory {gd_top1:.1%}) — the "
+              f"trained category operator as legible Sutra source")
+
     out = {
         "experiment": "trainable category/hypernym matrix through Tensor.MatrixMul",
         "C": C, "d": d, "epochs": a.epochs, "lr": a.lr, "wd": a.wd,
@@ -183,6 +231,7 @@ def main():
                           "lstsq": round(ls_top1, 6),
                           "gd": round(gd_top1, 6)},
         "gd_beats_identity": beats,
+        "baked_heldout_top1": (round(baked_top1, 6) if baked_top1 is not None else None),
     }
     with open(os.path.join(HERE, "trainable_category_matrix_results.json"), "w") as f:
         json.dump(out, f, indent=2)
@@ -198,9 +247,18 @@ def main():
         f"POSITIVE CASE REGRESSED: GD {gd_top1:.1%} did not beat identity "
         f"{id_top1:.1%} on held-out category retrieval"
     )
+    if baked_top1 is not None:
+        # The trained matrix, re-expressed as a load_matrix-backed .su,
+        # reproduces the held-out retrieval — the weight→legible-source loop.
+        assert abs(baked_top1 - gd_top1) < 0.02, (
+            f"bake-back diverged: load_matrix .su gave {baked_top1:.1%} vs "
+            f"in-memory GD {gd_top1:.1%}"
+        )
     print("\nMechanism assertions passed; POSITIVE CASE confirmed: GD-trained "
           "matrix beats identity on held-out category retrieval "
-          f"({id_top1:.1%} -> {gd_top1:.1%}).")
+          f"({id_top1:.1%} -> {gd_top1:.1%})."
+          + (f" Bake-back (load_matrix .su) reproduced it: {baked_top1:.1%}."
+             if baked_top1 is not None else ""))
 
 
 if __name__ == "__main__":
