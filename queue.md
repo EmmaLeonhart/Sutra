@@ -25,63 +25,30 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ## Handoff — START HERE (fresh session)
 
-The session pivoted to the **weight→code seq2seq** build (Emma 2026-05-30
-AskUserQuestion: *source generation*). Ticks 1 (data prep) + 2 (model+train)
-are done + pushed; **tick 3 (substrate-grounded eval) is next — task #21.**
-A new session's first moves, in order:
+The **weight→code seq2seq build is COMPLETE** — all three ticks done + pushed
+(data prep `eb8140a9`, model+train `f9a7ef14`, substrate eval `8648a24f`).
+Verified held-out result (n=240): exact-match 202/240 = 0.842, **substrate
+IO-reproduction 202/240 = 0.842 — equal** (0 "different code, same behavior"
+wins; 38 value-mismatch misses concentrated in the `diff`/`residual` ±x
+structures, 0 compile failures). The model recovers the matmul but mishandles
+the additive ±x correction term. Detail:
+`planning/findings/2026-05-30-w2c-seq2seq-substrate-eval.md`.
 
-1. **Start the four local crons** (CLAUDE.md §"Autonomous productivity
-   loop"): work-loop `3 * * * *`, auto-flush `15 * * * *`, status-report
-   `42 * * * *`, AskUserQuestion blocker-sweep `50 * * * *` — all
-   `durable: false`. A fresh session has none running; create them first.
-2. **Ensure the corpus submodule is present** — `git submodule update
-   --init corpus` (the dataset source lives there; tick 2 needs it).
-3. **Regenerate the gitignored dataset** — `py
-   experiments/w2c_seq2seq/prepare.py`. `data/` is NOT committed, so a fresh
-   clone won't have it. Confirm `data/{train,val}.jsonl` + `vocab.json`
-   appear (2160 / 240 / vocab 45). Sanity: `pytest
-   experiments/w2c_seq2seq/test_prepare.py` → 4/4.
-4. **Do task #21 — tick 3, substrate-grounded eval** (the Active item
-   below). The trained checkpoint `data/model.pt` is also gitignored, so a
-   fresh session must first `py experiments/w2c_seq2seq/model.py` to retrain
-   (~minutes on GPU; converges to ~0.84 val exact-match) before running the
-   tick-3 eval over the val split.
+A fresh session's first moves:
 
-**A.0 — decisions blocked on Emma:** none right now. (The big one is
-already answered: model approach = source generation / seq2seq.) If a fork
-appears mid-build, surface it via AskUserQuestion, don't guess.
+1. **Start the local crons** (CLAUDE.md §"Autonomous productivity loop"):
+   work-loop `3 * * * *`, auto-flush `15 * * * *`, status-report `42 * * * *`
+   — all `durable: false`. A fresh session has none running; create them first.
+2. **Pick the next item.** No active build is in flight. Promote the next
+   genuinely-unblocked, bounded item from `todo.md` (the FV roadmap below is
+   the richest source) into queue.md first, then execute.
 
-## Active — weight→code seq2seq (Emma: source generation)
+To re-run the seq2seq eval (everything under `data/` is gitignored):
+`git submodule update --init corpus` → `py experiments/w2c_seq2seq/prepare.py`
+→ `py experiments/w2c_seq2seq/model.py` → `py experiments/w2c_seq2seq/eval_substrate.py`.
 
-The end goal: a model that GENERATES `.su` source from a program's weights
-+ IO — real decompilation, Emma's explicit pick over a structure classifier.
-Host-side ML (torch/CUDA) over the corpus — analysis/training, NOT a Sutra
-substrate op (the substrate enters only at tick 3, on *generated* source).
-Three bounded ticks:
-
-1. ~~Data prep~~ **DONE** (`experiments/w2c_seq2seq/prepare.py` +
-   `test_prepare.py`, 4/4, `eb8140a9`): reads `corpus/corpus.jsonl`,
-   NORMALIZES the source (`load_matrix("<csv>")` → `load_matrix("<weight
-   name>")` so the filename that encodes the answer is canonicalized out of
-   the generation target; the weight VALUES become the model input), char
-   tokenizer (vocab 45), split BY id → 2160 train / 240 val, max target 261.
-2. ~~Model + training~~ **DONE** (`model.py` + `test_model.py`, `f9a7ef14`):
-   1.48M-param Transformer seq2seq (weights+IO → source). 40-epoch CUDA run,
-   converged held-out (n=240): val_loss 0.0028, token-acc 0.9991, greedy
-   **exact-match 0.842**. Checkpoint → gitignored `data/model.pt`.
-3. **Substrate-grounded eval — NEXT (task #21).** The metric that makes
-   "weight→code" real: take the GENERATED source, re-substitute the real CSV
-   (reverse the `load_matrix("M0")` normalization), compile, run on the
-   substrate, and check it **reproduces the held-out program's IO** =
-   decompilation accuracy. An 84%-exact-match generation should mostly pass,
-   but tick 3 MEASURES it on the substrate rather than assuming it. Report
-   the gap between exact-match and IO-reproduction (the non-exact-match
-   generations that still reproduce IO are the interesting wins).
-
-Caveat to measure honestly (don't paper over): the template source space is
-constrained (10 structures + load_matrix refs), so v0 generation is close to
-structure-inference + templating; the Gemma free-form entries + the IO-
-reproduction eval (tick 3) are what keep it non-trivial. Report real numbers.
+**A.0 — decisions blocked on Emma:** none right now. If a fork appears
+mid-work, surface it via AskUserQuestion, don't guess.
 
 ## Corpus (built & at scale — not active work)
 
