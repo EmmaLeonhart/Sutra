@@ -194,12 +194,13 @@ def main():
     # pinned in Sutra, mirrored to Hugging Face) — the corpus data lives in its
     # own repo, not in Sutra. Override --out for scratch/large runs elsewhere.
     ap.add_argument("--out", default=os.path.join(REPO, "corpus"))
-    # Programmatic scaling is the corpus workhorse (Emma 2026-05-30): grow
-    # K / seeds / kinds for big N. Defaults: 10 structures × 4 K × 4 kinds
-    # × 3 seeds = 480 programs. Bump --seeds / --ks for more.
-    ap.add_argument("--ks", default="4,6,8,10")
+    # Programmatic scaling is the corpus workhorse (Emma 2026-05-30: scale
+    # much larger before modeling). Default = thousands-scale: 10 structures
+    # × 6 K {4,6,8,10,12,16} × 4 kinds × 10 seeds = 2400 programs. Pass small
+    # --ks / --seeds for a quick dev run (the tests do).
+    ap.add_argument("--ks", default="4,6,8,10,12,16")
     ap.add_argument("--kinds", default="gaussian,perm,trained_rotation,trained_perm")
-    ap.add_argument("--seeds", default="0,1,2")
+    ap.add_argument("--seeds", default="0,1,2,3,4,5,6,7,8,9")
     ap.add_argument("--n-io", type=int, default=4)
     a = ap.parse_args()
     Ks = [int(k) for k in a.ks.split(",") if k.strip()]
