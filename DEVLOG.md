@@ -6,7 +6,33 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
-## 2026-05-30: substrate-honesty audit of the w2c tick-3 eval (reproduced 0.842)
+## 2026-05-30: W2C next phase = option A (harden corpus); planned + probed, build queued
+
+Emma (AskUserQuestion) chose **A: harden the corpus + retrain** for the next
+weight→code phase — the 0.842 is inflated by a small templated program space, so
+the model template-matches rather than infers. Decision + plan written into
+queue.md ("Active — W2C corpus hardening") with 4 mirrored tasks (`cd1cfee9`).
+The four bounded ticks: (1) add harder structure families; (2) varied
+per-program coefficients threaded through build_source (the change that most
+defeats templating — forces the model to recover a number, not memorize a
+template); (3) regenerate + push corpus submodule + HF mirror; (4) retrain +
+re-eval, reporting new numbers vs the 0.842 / 38-miss baseline (a *drop* is the
+expected correct result for a harder space).
+
+Verified the candidate structure bodies compile + run on the substrate at K=4
+(throwaway probe, identity weights on all-ones input): `chain4`→1.0,
+`chain5`→1.0, `scaled_residual` (0.75·M@x+0.25·x)→1.0, `mixed2`
+(0.75·M@x+0.25·M1@x)→1.0 — all four PASS, math correct. Probe deleted after
+running; working tree clean.
+
+Build itself (the four ticks) is queued for the next work-loop tick, not
+executed here — this tick spent its budget on the decision + plan + probe.
+Process note: two Edit calls this tick no-op'd because I built `old_string`
+from stale assumptions (guessed a duplicate `## Context` header that didn't
+exist; didn't re-read DEVLOG after a sibling agent prepended an entry). No harm
+— git showed the planning content had already landed in `cd1cfee9` — but the
+fix is to re-Read a file's exact current bytes before every Edit, especially
+with a sibling agent committing concurrently.
 
 Decision-neutral verification (didn't preempt Emma's open A/B/C/D pick on the
 next W2C phase). Audited `experiments/w2c_seq2seq/eval_substrate.py` against
