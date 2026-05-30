@@ -15,6 +15,16 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: capabilities page — load_matrix + real()/imag() free-function reads
+
+Doc maintenance (capabilities doc must stay exhaustive). Added this
+session's new language-surface builtins to `docs/capabilities.md`:
+`load_matrix("…csv")` (file-backed matrix constant — large-matrix
+counterpart to `matrix_literal`, in both the literals table and the
+runtime-methods table) and the substrate-pure `real(v)`/`imag(v)`
+free-function axis reads (distinct from the host-float `.real()` monitoring
+accessor). No internal-path refs (website-clean).
+
 ## 2026-05-29: corpus trained-weight variants (the "trained" half of Emma's "both")
 
 Completes Emma's "grammar + trained" corpus expansion. Two trained weight
