@@ -23,52 +23,68 @@ deleted on completion. Keep the task tool in sync with this file.
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
-## Active
+## Handoff — START HERE (fresh session)
 
-- **Self-propagation corpus (weights↔code) — built; scale PROGRAMMATICALLY.**
-  Shipped: optional `llm_model`, `load_matrix`, the template generator (10
-  structures × weight-kinds incl. trained_rotation/trained_perm), Gemma
-  free-form codegen (`gemma_codegen_corpus.py`), the `corpus/` submodule
-  (`EmmaLeonhart/sutra-w2c-corpus`) + HF mirror. **Emma 2026-05-30 steer:
-  programmatic (template) generation is the workhorse for scaling NOW
-  (fast, deterministic, clean (code,weights,IO) at volume); Gemma is good
-  but FUTURE — keep it built, don't make it the near-term volume path.**
-  So scaling = grow the PROGRAMMATIC generator: more structures, K, seeds,
-  weight-kinds → big N. **Emma 2026-05-30: scale the corpus much larger
-  BEFORE modeling** — generator default bumped to thousands-scale (10
-  structures × 6 K {4,6,8,10,12,16} × 4 kinds × 10 seeds = 2400 programs).
-  Workflow: generate into `corpus/` → commit+push submodule → mirror to HF
-  → bump the Sutra pointer + dataset-card stats. Corpus now at 2400+ (10
-  structures × 6 K × 4 kinds × 10 seeds). THEN (her chosen order) the
-  weight→code **seq2seq** model (see section below). Also open: a category/
-  semantic trained kind (needs embeddings). Detail: DEVLOG 2026-05-29/30.
-  (Both corpora have consistency guards.)
+The session pivoted to the **weight→code seq2seq** build (Emma 2026-05-30
+AskUserQuestion: *source generation*). Tick 1 (data prep) is done + pushed
+(`eb8140a9`). A new session's first moves, in order:
 
-## Weight→code seq2seq model (Emma 2026-05-30 AskUserQuestion: source generation)
+1. **Start the four local crons** (CLAUDE.md §"Autonomous productivity
+   loop"): work-loop `3 * * * *`, auto-flush `15 * * * *`, status-report
+   `42 * * * *`, AskUserQuestion blocker-sweep `50 * * * *` — all
+   `durable: false`. A fresh session has none running; create them first.
+2. **Ensure the corpus submodule is present** — `git submodule update
+   --init corpus` (the dataset source lives there; tick 2 needs it).
+3. **Regenerate the gitignored dataset** — `py
+   experiments/w2c_seq2seq/prepare.py`. `data/` is NOT committed, so a fresh
+   clone won't have it. Confirm `data/{train,val}.jsonl` + `vocab.json`
+   appear (2160 / 240 / vocab 45). Sanity: `pytest
+   experiments/w2c_seq2seq/test_prepare.py` → 4/4.
+4. **Do task #20 — seq2seq model + training** (the Active item below).
 
-The corpus is at scale (2400+); now the end goal — a model that GENERATES
-`.su` source from a program's weights + IO (real decompilation, not a
-structure classifier; Emma's explicit pick). Host-side ML (torch/CUDA) over
-the corpus — analysis/training, NOT a substrate op. Build in bounded ticks:
+**A.0 — decisions blocked on Emma:** none right now. (The big one is
+already answered: model approach = source generation / seq2seq.) If a fork
+appears mid-build, surface it via AskUserQuestion, don't guess.
 
-1. ~~Data prep~~ **DONE** (`prepare.py` + `test_prepare.py`, 4/4): reads
-   `corpus/corpus.jsonl`, NORMALIZES the source (`load_matrix("<csv>")` →
-   `load_matrix("<weight name>")` so the unguessable filename that encodes
-   the answer is canonicalized), char tokenizer (vocab 45), split by id
-   → 2160 train / 240 val, max target 261 chars. `data/` is a gitignored
-   build artifact (regenerate with `py experiments/w2c_seq2seq/prepare.py`).
-2. **Model + training (NEXT).** Small seq2seq transformer (torch): encode the
-   numeric weights+IO, decode source tokens. Train on the split.
-3. **Substrate-grounded eval.** The key metric: generated source, compiled
-   with the given weights, **reproduces the held-out program's IO** (the
-   corpus consistency invariant applied to GENERATED code) = decompilation
-   accuracy; plus token/exact-match. This is what makes "weight→code" real,
-   not just plausible-looking source.
+## Active — weight→code seq2seq (Emma: source generation)
 
-Caveat to measure honestly: the template source space is constrained (10
-structures + load_matrix refs), so v0 generation is close to structure-
-inference + templating; the Gemma free-form entries + the IO-reproduction
-eval are what keep it from being trivial. Report the real numbers.
+The end goal: a model that GENERATES `.su` source from a program's weights
++ IO — real decompilation, Emma's explicit pick over a structure classifier.
+Host-side ML (torch/CUDA) over the corpus — analysis/training, NOT a Sutra
+substrate op (the substrate enters only at tick 3, on *generated* source).
+Three bounded ticks:
+
+1. ~~Data prep~~ **DONE** (`experiments/w2c_seq2seq/prepare.py` +
+   `test_prepare.py`, 4/4, `eb8140a9`): reads `corpus/corpus.jsonl`,
+   NORMALIZES the source (`load_matrix("<csv>")` → `load_matrix("<weight
+   name>")` so the filename that encodes the answer is canonicalized out of
+   the generation target; the weight VALUES become the model input), char
+   tokenizer (vocab 45), split BY id → 2160 train / 240 val, max target 261.
+2. **Model + training — NEXT (task #20).** Small seq2seq transformer
+   (torch/CUDA): encode the numeric weights + IO, decode source tokens over
+   the char vocab. Train on the split. Verifiable: train loss falls; report
+   val token-accuracy.
+3. **Substrate-grounded eval.** The metric that makes "weight→code" real:
+   generated source, with the real CSV re-substituted, compiled + run on the
+   substrate, **reproduces the held-out program's IO** = decompilation
+   accuracy; plus token/exact-match.
+
+Caveat to measure honestly (don't paper over): the template source space is
+constrained (10 structures + load_matrix refs), so v0 generation is close to
+structure-inference + templating; the Gemma free-form entries + the IO-
+reproduction eval (tick 3) are what keep it non-trivial. Report real numbers.
+
+## Corpus (built & at scale — not active work)
+
+The weights↔code corpus is built and at **2400 programs** (10 structures ×
+6 K {4,6,8,10,12,16} × 4 weight-kinds × 10 seeds), on the `corpus/`
+submodule (`EmmaLeonhart/sutra-w2c-corpus`) + HF mirror, both consistency-
+guarded (`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
+Scale further = one-flag bump (`--seeds`/`--ks`) on
+`experiments/weight_to_code_corpus.py` → push submodule →
+`experiments/mirror_corpus_to_hf.py` → bump the Sutra pointer + card stats.
+Open/deferred: a category/semantic *trained* weight-kind (needs embeddings;
+heavy 768²/nomic, uncertain value at small K). Detail: DEVLOG 2026-05-29/30.
 
 ## Formal verification (roadmap lives in formal-verification.md + todo.md)
 
@@ -104,8 +120,9 @@ Per CLAUDE.md §"Autonomous productivity loop" lifecycle: a fresh session
 starts the three crons up front; the tail ensures they're still running +
 summarizes. Not consumed between fires.
 
-- **A. Ensure the three crons run** (`CronList`; re-create work-loop :03,
-  auto-flush :15, status-report :42 if missing; `durable: false`).
+- **A. Ensure the crons run** (`CronList`; re-create work-loop :03,
+  auto-flush :15, status-report :42, AskUserQuestion blocker-sweep :50 if
+  missing; `durable: false`). See the Handoff section at the top.
 - **B. End-of-session status report** (reporting only, no commits): what
   advanced (shas + one-line), queue state, how the rails held, blockers,
   test health.
