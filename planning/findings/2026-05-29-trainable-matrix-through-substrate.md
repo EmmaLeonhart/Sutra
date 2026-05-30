@@ -249,10 +249,37 @@ across all three; the outcome is set by the data. Where a generalising
 linear operator exists, GD-through-the-substrate finds it and beats both
 identity and the host closed-form fit.
 
+## Orthogonal-manifold CE — the function-learner can also yield a canonical matrix
+
+The CE "Frobenius rises" result above is fixable. Adding a soft
+orthogonality penalty `w · ‖MᵀM − I‖²` to the CE loss
+(`trainable_matrix_adjustment.py --loss ce --ortho`, w=1.0) keeps the
+matrix bounded on the orthogonal manifold instead of letting its entries
+grow to sharpen the softmax. Measured (K=8, init shift-1):
+
+| | transform acc | Frobenius to target | sep gap | bake-back |
+|---|---|---|---|---|
+| CE (plain) | 0%→**100%** | 4.00 → **8.61** (rises) | +1.47 | exact |
+| **CE + ortho** | 0%→**100%** | 4.00 → **0.0104** (falls) | +1.00 | 4.7e-9 |
+
+So the orthogonality penalty makes the CE function-learner **also**
+converge to the canonical 0/1 permutation matrix for a nearby target —
+function exact AND geometry canonical, the best of CE and MSE.
+
+Honest nuance (the discriminating claim is "Frobenius falls vs plain CE's
+rise," not "always reaches 0"): for a *distant* target the penalty pulls M
+to an orthogonal matrix in the correct argmax class but not necessarily
+the exact 0/1 permutation — random-perm K=8 lands at 1.32 ± 1.14 (down
+from 3.91, vs plain CE's rise), and K=4 shift-by-2 lands at 1.78 (down
+from 2.83) with argmaxes exact. The orthogonal manifold has 2^K · K!
+signed permutations sharing an argmax pattern; GD lands in whichever basin
+it's nearest. What ortho *guarantees* is what plain CE lacked: M stays
+bounded and orthogonal (no runaway entries) while the function stays
+exact. Regression-guarded: `tests/test_trainable_matrix.py::
+test_ce_plus_ortho_pulls_frobenius_down_not_up`.
+
 ## Next
 
-- Constrain `M` to the orthogonal/permutation manifold during CE
-  training (so the function-learner also yields a canonical matrix).
 - Bake the trained category matrix back to a `matrix_literal` .su like the
   permutation case (it is d×d = 768², large but mechanical) — a real
   trained semantic operator as legible Sutra source.
