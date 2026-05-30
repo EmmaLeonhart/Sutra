@@ -13,6 +13,55 @@ deleted on completion. Keep the task tool in sync with this file.
 
 ---
 
+## 🟢 HANDOFF — READ THIS FIRST (Emma restarting computer 2026-05-30)
+
+**What this session did, in plain terms.** The track is "weight→code" —
+recovering a program's source from its learned weights, and building the
+training data for that. Two things finished today:
+
+1. **The corpus is built and at scale.** 2400 small Sutra programs whose
+   behavior is carried by matrices, each paired with its weight matrices
+   (CSV files) and its substrate input→output behavior. It lives in its own
+   git repo as the `corpus/` submodule (`EmmaLeonhart/sutra-w2c-corpus`),
+   mirrored to Hugging Face. Every entry is self-consistency-checked.
+
+2. **A first weight→code model works end-to-end.** A small Transformer
+   (`experiments/w2c_seq2seq/`) reads a program's weights + IO and GENERATES
+   its `.su` source. Trained on 2160 programs, tested on 240 held-out:
+   - regenerates the correct source for **202 / 240 = 84.2%**;
+   - verified on the real substrate — the generated source, recompiled and
+     run, reproduces the held-out IO for the **same 202 / 240**;
+   - **0 compile failures.** The 38 misses are all one bug-class: the model
+     gets the matrix multiply right but drops the `+x` / `−x` correction
+     term in the `diff` / `residual` program families.
+   Write-up: `planning/findings/2026-05-30-w2c-seq2seq-substrate-eval.md`.
+   Shas: data prep `eb8140a9`, model+train `f9a7ef14`, substrate eval
+   `8648a24f`.
+
+**The one open decision (yours, when you're back).** The seq2seq build is a
+finished milestone; the next phase of the weight→code program is your call.
+I raised four candidates on the blocker sweep; you deferred to documenting:
+   - **(A) Harden the corpus + retrain** *(my pick)* — the 84.2% is inflated
+     by a small, templated program space, so the model is largely
+     template-matching, not inferring. Add harder families (deeper chains,
+     mixed scaled+residual, varied coefficients) so weights→code needs real
+     inference and the ±x failure gets stress-tested.
+   - **(B) Diagnose the ±x failure** — the 38 misses are one clean error;
+     test whether capacity / more IO / encoding the residual fixes it.
+   - **(C) Extend to the Gemma free-form / inline-weight regime** — closer to
+     arbitrary programs; bigger lift.
+   - **(D) Pause W2C, advance formal verification** (FV roadmap in todo.md).
+Nothing is mid-flight and nothing is blocked — a fresh session can wait for
+your pick or default to (D).
+
+**About the restart.** The hourly crons (work-loop / auto-flush / status /
+blocker-sweep) are session-local — restarting the computer kills them and
+this session, so the next session must recreate them (see Pinned tail). All
+work is committed and pushed. `data/` (dataset + model checkpoint) is
+gitignored, so re-running the model means: `git submodule update --init
+corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
+`…/eval_substrate.py`.
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is on arXiv and FROZEN through May 31, 2026.** Lock
@@ -22,33 +71,6 @@ deleted on completion. Keep the task tool in sync with this file.
   stop and tell Emma — don't silently amend. (DEVLOG 2026-05-20.)
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
-
-## Handoff — START HERE (fresh session)
-
-The **weight→code seq2seq build is COMPLETE** — all three ticks done + pushed
-(data prep `eb8140a9`, model+train `f9a7ef14`, substrate eval `8648a24f`).
-Verified held-out result (n=240): exact-match 202/240 = 0.842, **substrate
-IO-reproduction 202/240 = 0.842 — equal** (0 "different code, same behavior"
-wins; 38 value-mismatch misses concentrated in the `diff`/`residual` ±x
-structures, 0 compile failures). The model recovers the matmul but mishandles
-the additive ±x correction term. Detail:
-`planning/findings/2026-05-30-w2c-seq2seq-substrate-eval.md`.
-
-A fresh session's first moves:
-
-1. **Start the local crons** (CLAUDE.md §"Autonomous productivity loop"):
-   work-loop `3 * * * *`, auto-flush `15 * * * *`, status-report `42 * * * *`
-   — all `durable: false`. A fresh session has none running; create them first.
-2. **Pick the next item.** No active build is in flight. Promote the next
-   genuinely-unblocked, bounded item from `todo.md` (the FV roadmap below is
-   the richest source) into queue.md first, then execute.
-
-To re-run the seq2seq eval (everything under `data/` is gitignored):
-`git submodule update --init corpus` → `py experiments/w2c_seq2seq/prepare.py`
-→ `py experiments/w2c_seq2seq/model.py` → `py experiments/w2c_seq2seq/eval_substrate.py`.
-
-**A.0 — decisions blocked on Emma:** none right now. If a fork appears
-mid-work, surface it via AskUserQuestion, don't guess.
 
 ## Corpus (built & at scale — not active work)
 
