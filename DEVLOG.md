@@ -15,6 +15,24 @@ current layout looks the way it does.
 
 ---
 
+## 2026-05-29: corpus trained-weight variants (the "trained" half of Emma's "both")
+
+Completes Emma's "grammar + trained" corpus expansion. Two trained weight
+kinds — `trained_rotation`, `trained_perm` — where each matrix is produced
+by gradient descent THROUGH THE COMPILED SUBSTRATE matmul (`_train_to_target`:
+MSE of `M @ e_i` to the target's columns via the cached compiled
+`apply(matrix M, vector x)`, Adam 250 steps) toward a structured target
+(Haar-ish orthogonal / random permutation). So the weights carry STRUCTURE
+("meaning, not noise" — Emma's stated targets: rotations, permutations),
+not iid gaussian. Default `--kinds` is now
+gaussian,perm,trained_rotation,trained_perm → an 80-program corpus (10
+structures × 2 K × 4 kinds, 120 weight CSVs). The corpus consistency test
+is now fully count-agnostic, asserts ≥1 trained entry, and recompile-
+reproduces-IO across trained kinds (2/2). Pushed to the submodule (corpus @
+e4dcb26) + HF mirror updated. (The category/semantic-operator trained kind
+is deferred — it needs embeddings, so it's not model-free.) Self-
+propagation arc #11–#16 all shipped.
+
 ## 2026-05-29: corpus moved to its own repo + Sutra submodule (Emma's storage call)
 
 Emma's AskUserQuestion choices: corpus lives in a dedicated repo, GitHub
