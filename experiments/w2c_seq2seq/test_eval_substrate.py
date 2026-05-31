@@ -25,7 +25,22 @@ from eval_substrate import (  # noqa: E402
     resubstitute,
     compile_su,
     check_io,
+    canonicalize_source,
 )
+
+
+def test_canonicalize_drops_unit_coeff_keeps_others():
+    # `1.0 * EXPR` -> `EXPR` (multiplicative identity), both terms.
+    assert (canonicalize_source("1.0 * Tensor.MatrixMul(M0, x) + 1.0 * x")
+            == "Tensor.MatrixMul(M0, x) + x")
+    # non-unit coefficients are behaviorally meaningful — untouched.
+    for s in ("0.5 * Tensor.MatrixMul(M0, x) + 0.5 * x",
+              "2.0 * Tensor.MatrixMul(M0, x)",
+              "1.5 * Tensor.MatrixMul(M0, x) - 3.0 * x"):
+        assert canonicalize_source(s) == s
+    # a correct simplification compares equal to the redundant reference.
+    assert (canonicalize_source("Tensor.MatrixMul(M0, x) + x")
+            == canonicalize_source("1.0 * Tensor.MatrixMul(M0, x) + x"))
 
 # A tiny model-free program: apply(x) = M0 @ x.
 _SRC = (

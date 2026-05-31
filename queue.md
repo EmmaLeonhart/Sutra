@@ -78,19 +78,23 @@ family collapses (`scaled_res` 0.083, `scaled_diff` 0.125, `gen_affine` 0.25,
 `two_mat_affine` 0.33 exact). Unit-coeff cases exact 0.000 (model correctly
 simplifies `1.0 *` away — corpus artifact); non-unit cases exact 0.241 (real
 inference, mostly fails). This validates option A: structure transfers, scalar
-coefficients do not. Two follow-ups surfaced (bounded, unblocked):
+coefficients do not.
 
-1. **Corpus canonicalization** (low-risk, additive). Generator should emit the
-   simplified form when a coefficient is 1.0 (or eval canonicalizes `1.0 *` /
-   `+ 0.0`/`- 0.0`), so exact-match stops mis-scoring the 17 unit-coeff val
-   cases. Guard with `test_harder_families` + corpus consistency; regen +
-   re-push corpus + HF + pointer bump (same pipeline as tick 2).
-2. **Coefficient head** (the real research lever). The char-decoder recovers
-   discrete coefficients poorly (non-unit exact 0.241). Add an explicit
-   coefficient-prediction head or a coefficient-augmented encoder feature, then
-   re-eval non-unit coeff recovery. Bounded model change in
-   `experiments/w2c_seq2seq/model.py`; measure before/after on the per-structure
-   table. Heavier than #1 — do #1 first.
+**Follow-up #1 — DONE (eval-side canonicalization).** `eval_substrate.py` now
+reports `exact_match_canonical` (strips redundant `1.0 *`) + per-structure
+`exact_canon_rate`; guard `canonicalize_source` test in `test_eval_substrate.py`
+(6/6). Measured: canonical exact 244→**254 = IO-repro exactly**, in every one of
+the 15 families — so the "10 behavioral wins" were a pure scoring artifact, not
+equivalent-code diversity (tick-3 finding Corrected). Generator-side
+canonicalization is now optional (corpus cleanliness only, no metric impact);
+deferred unless we regen for another reason.
+
+**Follow-up #2 — LIVE (the real research lever).** The char-decoder recovers
+discrete *non-unit* coefficients poorly (exact 0.241). Add an explicit
+coefficient-prediction head or a coefficient-augmented encoder feature to
+`experiments/w2c_seq2seq/model.py`, retrain, then re-eval non-unit coeff
+recovery; measure before/after on the per-structure table. This is the next
+substantive W2C step.
 
 ## Corpus (built & at scale — not active work)
 

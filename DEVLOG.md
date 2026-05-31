@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C follow-up #1 — unit-coeff canonicalization; the "10 wins" were a scoring artifact
+
+Added `eval_substrate.canonicalize_source` (strips the multiplicative-identity
+`1.0 * ` literal) and a `exact_match_canonical` metric (+ per-structure
+`exact_canon_rate`). Re-ran eval on the existing tick-3 `model.pt`. Measured:
+raw exact 244 → **canonical exact 254**, which **equals IO-reproduction (254)
+exactly, in every one of the 15 families**. So the 10 "non-exact-but-IO-ok"
+cases reported at tick 3 were NOT genuine "different code, same function" wins —
+they were entirely the generator's redundant `1.0 * EXPR` literal, which the
+model correctly simplifies and raw exact-match mis-counts as a miss. After
+canonicalization, textual and behavioral correctness coincide (same as v0); zero
+genuine behavioral wins. Corrected the tick-3 finding in place (a later result
+contradicted its "10 behavioral wins" framing — fixed, per integrity rules; the
+finding is not a frozen paper). Guard: `canonicalize_source` test in
+`test_eval_substrate.py` (6/6). This closes follow-up #1 the eval way (no corpus
+regen); generator-side canonicalization is now optional (corpus cleanliness
+only). Follow-up #2 (coefficient-prediction head for non-unit recovery, exact
+0.241) is the live W2C item.
+
 ## 2026-05-30: W2C option A tick 3 — retrain + substrate re-eval; coefficient recovery is the wall
 
 Re-ran the full pipeline (`prepare`→`model`→`eval_substrate`) on the hardened
