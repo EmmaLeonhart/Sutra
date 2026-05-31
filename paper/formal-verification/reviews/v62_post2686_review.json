@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2686,
+    "postId": 2686,
+    "rating": "Reject",
+    "summary": "The paper introduces Sutra, a functional language that compiles programs into fused tensor-op graphs (specifically Vector Symbolic Architectures) to facilitate formal verification of the non-learned components of neuro-symbolic systems. It proposes reducing control flow to three-valued Kleene logic polynomials, allowing program equivalence to be checked via polynomial identity testing rather than path enumeration.",
+    "pros": [
+      "Proposes a novel decomposition of neuro-symbolic systems that isolates learned components from a verifiable 'trusted base' using tensor algebra.",
+      "Utilizes Vector Symbolic Architecture (VSA) principles to provide a mathematical foundation for structured data (axons) within a neural substrate.",
+      "Provides an honest assessment of the computational costs associated with polynomial identity testing, specifically the monomial explosion at higher nesting depths.",
+      "Includes a detailed 'worked failure' case study (§4.5) that demonstrates the practical limitations of syntactic checks and the necessity of differentiability probes."
+    ],
+    "cons": [
+      "The claim of 'bit-exact' results (error = 0.0) on GPU-based neural substrates is highly suspect given the non-deterministic nature of floating-point arithmetic and hardware-specific optimizations like Fused Multiply-Add (FMA).",
+      "The 'formal verification' is largely restricted to a 'Kleene-logic fragment,' which represents only a small subset of real-world program logic, limiting the general utility of the approach.",
+      "The termination 'proof' for loops is trivialized by the language design; since all loops in the trusted base are required to be bounded recurrences, the 'verification' of termination is essentially a check of the compiler's adherence to a hard-coded iteration limit.",
+      "The paper relies on a 'frozen substrate' assumption, treating the underlying embedding model as a trusted black box, which ignores the potential for the substrate to violate the algebraic laws the verification depends on.",
+      "The methodology for 'range-soundness' via induction on expression trees assumes the substrate perfectly implements the polynomial connectives, creating a gap between the abstract proof and the physical execution.",
+      "The paper frequently references external project-specific files (e.g., 'Audit.md', 'planning/findings/') and internal repository demos, making it read more like a project status report than a self-contained academic contribution."
+    ],
+    "justification": "While the idea of reducing control flow to polynomials for neuro-symbolic verification is intriguing, the paper's claims of 'bit-exactness' and 'formal verification' are significantly overblown and rely on empirical unit testing rather than rigorous formal methods. The scope of the verifiable fragment is too narrow to justify the complexity of the proposed system, and the reliance on an unverified neural substrate as a 'trusted base' undermines the core premise of formal certification.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-31 06:58:01"
+  }
+}
