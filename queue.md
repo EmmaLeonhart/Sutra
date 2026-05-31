@@ -90,11 +90,23 @@ canonicalization is now optional (corpus cleanliness only, no metric impact);
 deferred unless we regen for another reason.
 
 **Follow-up #2 — LIVE (the real research lever).** The char-decoder recovers
-discrete *non-unit* coefficients poorly (exact 0.241). Add an explicit
-coefficient-prediction head or a coefficient-augmented encoder feature to
-`experiments/w2c_seq2seq/model.py`, retrain, then re-eval non-unit coeff
-recovery; measure before/after on the per-structure table. This is the next
-substantive W2C step.
+discrete *non-unit* coefficients poorly (exact 0.241). First step = the
+**diagnostic**: is the coefficient even decodable from the encoder rep? Concrete
+plan (in flight):
+1. `prepare.py`: propagate per-program coeff class labels (`coeff_a`, `coeff_b`
+   as idx into `COEFF_CLASSES=[0.5,1,1.5,2,3]`, or -1 if the slot is absent).
+   Additive; test_prepare stays green.
+2. `model.py`: add a coefficient head (masked mean-pool of encoder memory → two
+   `Linear(d,5)` for slots a,b) as a SEPARATE branch (`coeff_logits`); keep
+   `forward` returning decoder logits so test_model's overfit guard is
+   untouched. Joint train with an auxiliary CE loss masked to present slots.
+   Report val head-accuracy for a/b (the diagnostic) + decoder exact (does the
+   aux loss shape the rep enough to help emission?).
+3. Retrain + measure. Honest branch: if the head decodes coeffs well but decoder
+   exact stays low → bottleneck is emission → next tick does post-hoc coeff
+   substitution at decode. If the head ALSO fails → the encoder isn't capturing
+   the coeff from weights+IO → input-feature problem. Either way it's a real
+   measured result.
 
 ## Corpus (built & at scale — not active work)
 

@@ -42,6 +42,8 @@ PAD_ID, BOS_ID, EOS_ID = 0, 1, 2
 TYPE_W, TYPE_IN, TYPE_OUT = 0, 1, 2
 MAX_SLOT = 8     # >= max(#matrices, #io pairs)
 MAX_POS = 300    # >= max(K*K, K) per element
+N_COEFF = 5      # |COEFF_CLASSES| = {0.5,1,1.5,2,3} (prepare.COEFF_CLASSES)
+COEFF_IGNORE = -1  # slot absent for this program's family
 
 
 # ---------------------------------------------------------------- encoding
@@ -81,6 +83,8 @@ class W2CDataset(Dataset):
             "poss": torch.tensor(poss, dtype=torch.long),
             "tgt": torch.tensor(r["target_ids"], dtype=torch.long),
             "target": r["target"],
+            "coeff_a": int(r.get("coeff_a", COEFF_IGNORE)),
+            "coeff_b": int(r.get("coeff_b", COEFF_IGNORE)),
         }
 
 
@@ -101,8 +105,11 @@ def collate(batch):
         src_pad[i, :n] = False
         m = b["tgt"].numel()
         tgt[i, :m] = b["tgt"]
+    coeff_a = torch.tensor([b.get("coeff_a", COEFF_IGNORE) for b in batch], dtype=torch.long)
+    coeff_b = torch.tensor([b.get("coeff_b", COEFF_IGNORE) for b in batch], dtype=torch.long)
     return {"vals": vals, "types": types, "slots": slots, "poss": poss,
-            "src_pad": src_pad, "tgt": tgt, "targets": [b["target"] for b in batch]}
+            "src_pad": src_pad, "tgt": tgt, "targets": [b["target"] for b in batch],
+            "coeff_a": coeff_a, "coeff_b": coeff_b}
 
 
 # ------------------------------------------------------------------- model
@@ -126,11 +133,29 @@ class W2CSeq2Seq(nn.Module):
         self.head = nn.Linear(d_model, vocab_size)
         self.max_dec = max_dec
 
+        # Coefficient-prediction head (tick-3 follow-up #2 diagnostic): from a
+        # masked mean-pool of the encoder memory, predict the discrete
+        # coefficient class for slots a and b. Trained with an auxiliary loss;
+        # does NOT touch `forward` (decoder path) so the overfit guard stays
+        # valid. Tells us whether the coefficient is decodable from the rep.
+        self.coeff_a_head = nn.Linear(d_model, N_COEFF)
+        self.coeff_b_head = nn.Linear(d_model, N_COEFF)
+
     def encode(self, b):
         x = (self.val_proj(b["vals"].unsqueeze(-1)) + self.type_emb(b["types"])
              + self.slot_emb(b["slots"]) + self.pos_emb(b["poss"]))
         x = self.enc_norm(x)
         return self.encoder(x, src_key_padding_mask=b["src_pad"])
+
+    def coeff_logits(self, b, memory=None):
+        """Predict coefficient class for slots a, b from a masked mean-pool of
+        the encoder memory. Returns (logits_a, logits_b), each (B, N_COEFF).
+        Separate from forward() — the decoder path is unchanged."""
+        if memory is None:
+            memory = self.encode(b)
+        keep = (~b["src_pad"]).unsqueeze(-1).to(memory.dtype)   # (B, L, 1)
+        pooled = (memory * keep).sum(1) / keep.sum(1).clamp_min(1.0)
+        return self.coeff_a_head(pooled), self.coeff_b_head(pooled)
 
     def decode(self, tgt_in, memory, src_pad):
         T = tgt_in.size(1)
@@ -189,18 +214,32 @@ def decode_ids(ids, inv):
     return "".join(out)
 
 
+def _coeff_acc(logits, labels):
+    """(#correct, #present) for one coeff slot, ignoring absent (-1) slots."""
+    mask = labels.ne(COEFF_IGNORE)
+    if mask.sum().item() == 0:
+        return 0, 0
+    pred = logits.argmax(-1)
+    return (pred.eq(labels) & mask).sum().item(), mask.sum().item()
+
+
 def evaluate(model, loader, dev, inv, greedy_batches=None):
     model.eval()
     crit = nn.CrossEntropyLoss(ignore_index=PAD_ID)
     tot_loss = tok_ok = tok_n = exact_ok = exact_n = 0
+    ca_ok = ca_n = cb_ok = cb_n = 0
     with torch.no_grad():
         for bi, b in enumerate(loader):
             b = _to(b, dev)
-            logits = model(b)
+            memory = model.encode(b)
+            logits = model.decode(b["tgt"][:, :-1], memory, b["src_pad"])
             tgt_out = b["tgt"][:, 1:]
             tot_loss += crit(logits.reshape(-1, logits.size(-1)), tgt_out.reshape(-1)).item()
             ok, n = token_accuracy(logits, tgt_out)
             tok_ok += ok; tok_n += n
+            la, lb = model.coeff_logits(b, memory)
+            o, m = _coeff_acc(la, b["coeff_a"]); ca_ok += o; ca_n += m
+            o, m = _coeff_acc(lb, b["coeff_b"]); cb_ok += o; cb_n += m
             if greedy_batches is None or bi < greedy_batches:
                 seq = model.greedy(b)
                 for k, tgt_str in enumerate(b["targets"]):
@@ -212,6 +251,8 @@ def evaluate(model, loader, dev, inv, greedy_batches=None):
         "token_acc": tok_ok / max(1, tok_n),
         "exact_match": exact_ok / max(1, exact_n),
         "exact_n": exact_n,
+        "coeff_a_acc": ca_ok / max(1, ca_n), "coeff_a_n": ca_n,
+        "coeff_b_acc": cb_ok / max(1, cb_n), "coeff_b_n": cb_n,
     }
 
 
@@ -229,25 +270,39 @@ def train(args):
                        dec_layers=args.layers).to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     crit = nn.CrossEntropyLoss(ignore_index=PAD_ID)
+    coeff_crit = nn.CrossEntropyLoss(ignore_index=COEFF_IGNORE)
     nparams = sum(p.numel() for p in model.parameters())
     print(f"device={dev}  params={nparams:,}  vocab={len(vocab)}  "
-          f"train={len(tr.dataset)} val={len(va.dataset)}", flush=True)
+          f"train={len(tr.dataset)} val={len(va.dataset)}  "
+          f"coeff_aux_w={args.coeff_aux_w}", flush=True)
 
     for ep in range(1, args.epochs + 1):
         model.train()
         run = 0.0
         for b in tr:
             b = _to(b, dev)
-            logits = model(b)
+            # one encode shared by decoder + coeff head (forward() unchanged;
+            # re-implemented here to add the auxiliary coeff loss without a
+            # second encode pass).
+            memory = model.encode(b)
+            logits = model.decode(b["tgt"][:, :-1], memory, b["src_pad"])
             tgt_out = b["tgt"][:, 1:]
             loss = crit(logits.reshape(-1, logits.size(-1)), tgt_out.reshape(-1))
+            if args.coeff_aux_w > 0:
+                la, lb = model.coeff_logits(b, memory)
+                aux = coeff_crit(la, b["coeff_a"]) + coeff_crit(lb, b["coeff_b"])
+                # coeff_crit returns nan if a batch has zero present slots; guard.
+                if torch.isfinite(aux):
+                    loss = loss + args.coeff_aux_w * aux
             opt.zero_grad(); loss.backward(); opt.step()
             run += loss.item()
         if ep % args.eval_every == 0 or ep == args.epochs:
             m = evaluate(model, va, dev, inv, greedy_batches=args.greedy_batches)
             print(f"epoch {ep:3d}  train_loss {run/len(tr):.4f}  "
                   f"val_loss {m['loss']:.4f}  tok_acc {m['token_acc']:.4f}  "
-                  f"exact {m['exact_match']:.4f} (n={m['exact_n']})", flush=True)
+                  f"exact {m['exact_match']:.4f} (n={m['exact_n']})  "
+                  f"coeff_a {m['coeff_a_acc']:.4f} (n={m['coeff_a_n']})  "
+                  f"coeff_b {m['coeff_b_acc']:.4f} (n={m['coeff_b_n']})", flush=True)
         else:
             print(f"epoch {ep:3d}  train_loss {run/len(tr):.4f}", flush=True)
 
@@ -273,6 +328,8 @@ def main():
     ap.add_argument("--eval-every", type=int, default=5)
     ap.add_argument("--greedy-batches", type=int, default=2,
                     help="batches to greedy-decode during periodic eval (full at the end)")
+    ap.add_argument("--coeff-aux-w", type=float, default=0.5,
+                    help="weight of the auxiliary coefficient-head loss (0 disables it)")
     train(ap.parse_args())
 
 

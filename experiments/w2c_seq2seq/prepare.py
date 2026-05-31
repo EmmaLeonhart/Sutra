@@ -49,6 +49,21 @@ DEFAULT_OUT = os.path.join(HERE, "data")
 
 PAD, BOS, EOS = "\x00", "\x02", "\x03"  # specials (not used by Sutra source text)
 
+# Discrete coefficient classes — must match weight_to_code_corpus.COEFFS. Used
+# for the coefficient-head diagnostic (tick-3 follow-up #2): each coeff-family
+# program carries `coeffs` {a, b}; we propagate them as class indices so the
+# model can train an auxiliary head that predicts the coefficient from the
+# encoder rep. -1 = slot absent for this program's family.
+COEFF_CLASSES = [0.5, 1.0, 1.5, 2.0, 3.0]
+
+
+def _coeff_class(value) -> int:
+    """Map a coefficient value to its class index, or -1 if not a known class."""
+    for i, c in enumerate(COEFF_CLASSES):
+        if abs(float(value) - c) < 1e-9:
+            return i
+    return -1
+
 
 def normalize_source(entry: dict) -> str:
     """Replace each per-program `load_matrix("<csv>")` with the canonical
@@ -146,6 +161,7 @@ def prepare(corpus_dir: str, out_dir: str, include_gemma: bool = False) -> dict:
     try:
         for e, tgt in zip(entries, targets):
             pid = e["id"]
+            cv = e.get("coeffs") or {}
             rec = {
                 "id": pid,
                 "structure": e.get("structure"),
@@ -155,6 +171,9 @@ def prepare(corpus_dir: str, out_dir: str, include_gemma: bool = False) -> dict:
                 "target_ids": encode(tgt, vocab),
                 "weights": _load_weights(e, corpus_dir),
                 "io": e.get("io", []),
+                # coeff-head labels (-1 = slot absent for this family)
+                "coeff_a": _coeff_class(cv["a"]) if "a" in cv else -1,
+                "coeff_b": _coeff_class(cv["b"]) if "b" in cv else -1,
             }
             split = "val" if is_val(pid) else "train"
             fhs[split].write(json.dumps(rec) + "\n")
