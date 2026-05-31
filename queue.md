@@ -100,19 +100,23 @@ representation-shaping aux loss **hurts the decoder monotonically** (exact
 `--coeff-aux-w` set to 0.0 (head stays available explicitly). Two levers remain
 open (next W2C items):
 
-1. **Post-hoc coefficient substitution** (LIVE — in flight). Decouple via a
-   **detached (stop-grad) head**: train the head on `memory.detach()` so the
-   decoder stays at the aux_w=0 baseline (0.669, good structure) AND we get a
-   trained probe head in ONE run (avoids the aux-loss decoder penalty). Then in
-   `eval_substrate.py`: decode source, predict coeffs via the head, overwrite the
-   coefficient literal(s) (positional: 1st `f * `→a, 2nd→b) for coeff-family
-   programs (structure used as the slot-presence oracle — a ceiling measurement,
-   not a deployable decompiler), compile+run, report coeff-family IO-repro with
-   vs without substitution. Capped by head acc ~0.59 so it lifts, not solves.
-2. **Richer input features** (heavier, speculative). The coeff is
-   `a=(y−x)/(M@x)`-shaped — a relationship the per-token encoder may not surface.
-   Feed a derived per-IO residual feature (`y−M@x` or `y−x`) so the coeff is more
-   separable; re-measure head acc + decoder exact.
+1. ~~Post-hoc coefficient substitution~~ **DONE — NEGATIVE.** Detached probe head
+   worked (decoder held at 0.667, probe 0.615/0.556), but blanket substitution
+   did NOT lift coeff-family IO (28→**27**/96): a 0.61 head corrupts the decoder's
+   already-correct coefficients ≈ as often as it fixes wrong ones. Output-side
+   coefficient injection needs a head ≫0.6, unreachable while the coeff is only
+   ~½ decodable from the rep. Both output-side levers now exhausted. Finding
+   updated (`…coeff-head-diagnostic.md` § "Lever 1 result").
+2. **Richer input features** (LIVE — the indicated path, output-side levers
+   exhausted). The coeff is `a=(y−x)/(M@x)`-shaped — a relationship the per-token
+   encoder may not surface. The cleanest first probe: add a derived per-IO
+   **residual token** (`y−M@x`, computed host-side at prepare-time from the
+   program's weights+IO) to the encoder input, then re-measure (a) the detached
+   **probe head accuracy** — does the coeff become more decodable? — and (b)
+   decoder exact / coeff-family IO. If the residual feature lifts probe accuracy
+   well above 0.6, post-hoc substitution (lever 1) also becomes viable again.
+   Build: `prepare.py` emits the residual per IO pair; `model.py` `build_enc`
+   adds a TYPE_RESID token stream. Bounded, additive.
 
 ## Corpus (built & at scale — not active work)
 
