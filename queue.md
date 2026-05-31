@@ -58,18 +58,8 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- **W2C coefficient wall — direction decision.** weight→code recovers program
-  *structure* near-perfectly (chain4 = 1.0) but *scalar coefficients* are a
-  measured wall: ~0.60 probe accuracy / ~0.30 coeff-family IO, and **three
-  architecture levers came back negative/null** — aux loss (hurts the decoder),
-  post-hoc substitution (0.61 head too weak), matmul input feature (no movement).
-  The next moves are bigger, more speculative bets and it's a research-direction
-  call, not implementation. Options: (a) readout redesign — the mean-pool head
-  likely dilutes the per-component ratio signal, try an attention/per-component
-  head; (b) regression formulation of the coefficient; (c) document the wall as
-  the finding and pivot to another W2C/meaningfulness-arc direction; (d) bigger
-  model/corpus. **If unanswered, do NOT silently pick — re-ask via the
-  blocker-sweep.**
+- *(none open — W2C coefficient-wall direction decided 2026-05-31: bigger
+  model/corpus; now the live item under "Active — W2C".)*
 
 ## Context (read first, do not work on)
 
@@ -108,34 +98,27 @@ equivalent-code diversity (tick-3 finding Corrected). Generator-side
 canonicalization is now optional (corpus cleanliness only, no metric impact);
 deferred unless we regen for another reason.
 
-**Follow-up #2 — DONE (NEGATIVE result, measured).** Built the coefficient head
-(masked mean-pool → 2×`Linear(d,5)`, aux CE loss) + label propagation; ran a
-3-point ablation. Finding:
-`planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`. Result: (a) the
-coefficient is only **~½ decodable** from the encoder rep (head acc 0.59/0.47 at
-aux_w=0.5 vs 0.20 chance — present but not cleanly separable); (b) a
-representation-shaping aux loss **hurts the decoder monotonically** (exact
-0.669→0.589→0.508 as aux_w 0→0.1→0.5) — net negative, no sweet spot. Default
-`--coeff-aux-w` set to 0.0 (head stays available explicitly). Two levers remain
-open (next W2C items):
+**Follow-up #2 — DONE (coefficient WALL, 3 levers exhausted).** The coefficient
+head diagnostic + both follow-on levers are written up in
+`planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`. Net: the coefficient
+is only ~½ decodable from the encoder rep (~0.60 probe / ~0.30 coeff-family IO),
+and all three architecture levers came back negative/null — aux loss (hurts the
+decoder), post-hoc substitution (0.61 head too weak), matmul input feature (no
+movement). weight→code recovers *structure* near-perfectly (chain4 = 1.0) but
+scalar coefficients are a wall for this architecture.
 
-1. ~~Post-hoc coefficient substitution~~ **DONE — NEGATIVE.** Detached probe head
-   worked (decoder held at 0.667, probe 0.615/0.556), but blanket substitution
-   did NOT lift coeff-family IO (28→**27**/96): a 0.61 head corrupts the decoder's
-   already-correct coefficients ≈ as often as it fixes wrong ones. Output-side
-   coefficient injection needs a head ≫0.6, unreachable while the coeff is only
-   ~½ decodable from the rep. Both output-side levers now exhausted. Finding
-   updated (`…coeff-head-diagnostic.md` § "Lever 1 result").
-2. ~~Richer input features~~ **DONE — NULL/marginal.** Fed `M_s@x` matmul
-   partial-products as a `TYPE_MM` token stream (committed `8d39a4bc`, survived
-   the history rewrite). Probe accuracy unchanged (0.615/0.556 → 0.604/0.597),
-   decoder + coeff-family IO move only within retrain noise. The `M@x` feature
-   did NOT make the coeff more decodable — likely the head's mean-pool readout
-   dilutes the per-component ratio, but that's a 4th lever. Finding updated
-   (§ "Lever 2 result").
-
-**→ Coefficient recovery is a measured WALL (~0.60 probe / ~0.30 coeff-IO);
-three levers exhausted. Direction is now Emma's call — see A.0 at top.**
+**LIVE — scale model + corpus (Emma 2026-05-31 decision).** Test whether the
+coefficient wall is **capacity-bound** rather than architectural. Plan:
+1. **Bigger model first** (cheap, isolates capacity): retrain at `--d-model 256
+   --layers 6` (and a `--coeff-detach --coeff-aux-w 0.5` run for the probe), then
+   re-measure decoder exact + per-structure + the coeff probe acc / coeff-family
+   IO vs the d128/L3 baseline (decoder 0.667, probe 0.615/0.556, coeff-IO ~0.30).
+   If the wall moves with model size → capacity-bound; if flat → architectural.
+2. **Bigger corpus** (if model scaling helps or is inconclusive): one-flag bump
+   `--seeds`/`--ks` on `experiments/weight_to_code_corpus.py` → push submodule →
+   HF mirror → bump pointer + card; re-prepare + retrain. More coefficient
+   examples per family may sharpen the probe.
+   Measure honestly; a flat result is the finding (wall is architectural).
 
 ## Corpus (built & at scale — not active work)
 
