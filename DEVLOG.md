@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C follow-up #2 — coefficient head: only ~½ decodable, aux loss hurts (NEGATIVE)
+
+Built the coefficient-head diagnostic (`prepare.py` propagates `coeff_a`/`coeff_b`
+class labels; `model.py` adds a masked mean-pool head → 2×`Linear(d,5)` as a
+separate branch with a masked auxiliary CE loss; `forward()` unchanged so the
+overfit guard holds). Ran a 3-point ablation over the aux weight (n=360 val,
+CUDA, 40 ep):
+
+| aux_w | decoder exact | coeff_a acc | coeff_b acc |
+|---|---|---|---|
+| 0.0 | 0.669 | 0.250 (chance) | 0.181 (chance) |
+| 0.1 | 0.589 | 0.458 | 0.500 |
+| 0.5 | 0.508 | 0.594 | 0.472 |
+
+Two negatives, both measured: (1) the coefficient is only **~½ decodable** from
+the encoder rep — head acc tops out at 0.59/0.47 (≫ 0.20 chance, so the info is
+present, but not cleanly separable); (2) a representation-shaping aux loss
+**hurts the decoder monotonically** (0.669→0.508) — it competes with source
+generation, no sweet spot. So the aux-loss lever is wrong. Changed the
+`--coeff-aux-w` default to 0.0 so the standard run isn't degraded by a harmful
+lever (head still trainable via `--coeff-aux-w 0.5`). Negative result logged, not
+buried (integrity rule). Finding:
+`planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`. Next levers queued:
+post-hoc coefficient substitution (bounded) and richer input features (heavier).
+Guards green: test_model + test_prepare 5/5, eval harness 6/6.
+
 ## 2026-05-30: W2C follow-up #1 — unit-coeff canonicalization; the "10 wins" were a scoring artifact
 
 Added `eval_substrate.canonicalize_source` (strips the multiplicative-identity
