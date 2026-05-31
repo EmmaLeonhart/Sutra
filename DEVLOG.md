@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C follow-up #2 lever 1 — post-hoc coeff substitution does NOT help (NEGATIVE)
+
+Tried the output-side fix: a **detached (stop-grad) probe head** so we get a
+good decoder AND a trained head in one run. The detach worked — decoder
+exact-match held at **0.667** (vs 0.508 for the coupled aux_w=0.5), and the probe
+reached **coeff_a 0.615 / coeff_b 0.556** (even higher than the coupled head).
+Then `eval_substrate.py` overwrites the decoder's coeff literals with the probe's
+prediction (gated to slot-carrying programs via the corpus label). Measured on
+the 96 coeff-slot val programs: IO-reproduction **28→27** (0.292→0.281) — a
+slight wash-to-worse, NOT a lift. A 0.61 head is below the decoder's own
+coefficient quality on the cases it already gets right, so blanket substitution
+corrupts correct coefficients ≈ as often as it fixes wrong ones (and two-slot
+families need both a,b right, ≈0.34 from the head alone). So BOTH output-side
+levers (aux loss, post-hoc substitution) are negative — the bottleneck is the
+encoder's coefficient representation. Indicated next path = lever 2 (richer input
+features: a per-IO residual `y−M@x` token to make the coeff separable). Finding
+updated (`…coeff-head-diagnostic.md` § "Lever 1 result"). Guards: eval 7/7
+(+`substitute_coeffs`), test_model + test_prepare 5/5.
+
 ## 2026-05-30: W2C follow-up #2 — coefficient head: only ~½ decodable, aux loss hurts (NEGATIVE)
 
 Built the coefficient-head diagnostic (`prepare.py` propagates `coeff_a`/`coeff_b`
