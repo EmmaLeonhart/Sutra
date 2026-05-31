@@ -134,6 +134,30 @@ architecture. Whether to keep investing (readout redesign, regression head,
 bigger model) or document the wall and move on is a research-direction call —
 surfaced to Emma (queue.md A.0), not decided autonomously.
 
+## Capacity test (Emma 2026-05-31: "bigger model / corpus") — NOT capacity-bound
+
+Emma's call on the wall: test whether it's capacity-bound before concluding it's
+architectural. Step 1 (bigger model): retrained at `--d-model 256 --layers 6`
+(≈4–8× the params of the d128/L3 baseline), same detached-probe setup.
+
+| metric | d128 / L3 (baseline) | d256 / L6 |
+|---|---|---|
+| decoder exact-match | 0.689 | 0.658 |
+| canonical exact = IO | 0.714 | 0.678 |
+| probe coeff_a / coeff_b | 0.604 / 0.597 | 0.615 / 0.569 |
+| coeff-slot IO (`io_base`, n=96) | 30 (0.31) | 22 (0.23) |
+
+**Quadrupling-to-octupling the model did not move the wall** — probe accuracy
+stays ~0.60, coeff-family IO is flat-to-noisily-lower, decoder exact unchanged-
+to-down. So the wall is **not capacity-bound** (model side). This is consistent
+with the lever-2 read that the bottleneck is the **readout architecture** (the
+mean-pool head can't extract a per-component ratio), not the parameter budget.
+Step 2 (bigger *corpus*) is the remaining half of Emma's test — but the flat
+probe across a 4–8× model-size change already makes a data-starvation explanation
+unlikely (a model that structurally can't represent the ratio won't learn it from
+more examples). Corpus-scaling is being measured to scratch (no HF push) to
+confirm before drawing the architectural conclusion.
+
 ## Honesty caveats
 
 - **Single seed per config, single greedy decode.** The finding's robust signal
