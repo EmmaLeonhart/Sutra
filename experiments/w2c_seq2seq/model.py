@@ -328,8 +328,11 @@ def main():
     ap.add_argument("--eval-every", type=int, default=5)
     ap.add_argument("--greedy-batches", type=int, default=2,
                     help="batches to greedy-decode during periodic eval (full at the end)")
-    ap.add_argument("--coeff-aux-w", type=float, default=0.5,
-                    help="weight of the auxiliary coefficient-head loss (0 disables it)")
+    ap.add_argument("--coeff-aux-w", type=float, default=0.0,
+                    help="weight of the auxiliary coefficient-head loss. Default 0 "
+                         "(OFF): the 2026-05-30 ablation found it hurts decoder "
+                         "exact-match monotonically (0.669@0 -> 0.508@0.5). Set 0.5 "
+                         "to train the diagnostic head; see the coeff-head finding.")
     train(ap.parse_args())
 
 
