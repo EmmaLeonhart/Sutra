@@ -24,8 +24,7 @@ training data for that. Two things finished today:
    behavior is carried by matrices, each paired with its weight matrices
    (CSV files) and its substrate input→output behavior. It lives in its own
    git repo as the `corpus/` submodule (`EmmaLeonhart/sutra-w2c-corpus`).
-   Every entry is self-consistency-checked. HF mirror lags one regen (Active
-   step 2 — pending Emma's okay on the outward publish).
+   Every entry is self-consistency-checked, GitHub + HF mirror in sync.
 
 2. **A first weight→code model works end-to-end.** A small Transformer
    (`experiments/w2c_seq2seq/`) reads a program's weights + IO and GENERATES
@@ -80,14 +79,12 @@ retrain, re-eval, compare numbers. Bounded ticks:
    to compute its intended formula on the substrate (output vs host
    reference < 1e-4) and to emit its coefficient as a source literal.
    Existing 10 families untouched (committed 2400 corpus + tests stay valid).
-2. ~~Regen full corpus + push~~ **DONE on GitHub** (corpus `03336b9`, Sutra
-   pointer bumped). 3600 programs (15 structures × 6 K × 4 kinds × 10 seeds),
-   5760 weight CSVs, 14400 IO pairs; consistency test 2/2 on the substrate;
-   README card stats updated. **HF mirror PENDING Emma authorization** — the
-   auto-mode classifier blocked the outward publish (`mirror_corpus_to_hf.py`)
-   as an unverified-destination external push; re-run it once Emma okays it
-   (auth is cached, `whoami`=EmmaLeonhart). Does NOT block step 3.
-3. **Retrain + re-eval, compare** (NOW ACTIONABLE). Re-run prepare/model/eval_substrate.
+2. ~~Regen full corpus + push~~ **DONE** (corpus `03336b9`, Sutra pointer
+   bumped; HF mirror `d464fdb` — Emma authorized the outward publish). 3600
+   programs (15 structures × 6 K × 4 kinds × 10 seeds), 5760 weight CSVs,
+   14400 IO pairs; consistency test 2/2 on the substrate; README card stats
+   updated. GitHub + HF now in sync.
+3. **Retrain + re-eval, compare** (NOW ACTIONABLE — the live W2C item). Re-run prepare/model/eval_substrate.
    Report the new exact-match + substrate IO-reproduction vs the 0.842
    baseline, and specifically whether the coeff families recover `a`/`b`
    (per-family breakdown). Honest expected outcome: exact-match likely DROPS
@@ -98,8 +95,8 @@ retrain, re-eval, compare numbers. Bounded ticks:
 
 The weights↔code corpus is built and at **3600 programs** (15 structures ×
 6 K {4,6,8,10,12,16} × 4 weight-kinds × 10 seeds), on the `corpus/`
-submodule (`EmmaLeonhart/sutra-w2c-corpus`; HF mirror lags by one regen —
-see Active step 2), both consistency-guarded (`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
+submodule (`EmmaLeonhart/sutra-w2c-corpus`) + HF mirror (in sync, `d464fdb`),
+both consistency-guarded (`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
 Scale further = one-flag bump (`--seeds`/`--ks`) on
 `experiments/weight_to_code_corpus.py` → push submodule →
 `experiments/mirror_corpus_to_hf.py` → bump the Sutra pointer + card stats.
