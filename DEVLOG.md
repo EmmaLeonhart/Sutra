@@ -6,6 +6,37 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C option A tick 3 — retrain + substrate re-eval; coefficient recovery is the wall
+
+Re-ran the full pipeline (`prepare`→`model`→`eval_substrate`) on the hardened
+3600-program corpus (train 3240 / val 360, CUDA, same 1.48M-param model, 40
+epochs). Measured on 360 held-out:
+
+- **exact-match 0.842→0.678**, **substrate IO-reproduction 0.842→0.706**, 0
+  compile/run failures, **10 behavioral wins** (v0 had 0 — "different source,
+  same IO").
+
+The drop is exactly what option A predicted, and it is localized to the
+coefficient axis, not depth:
+
+- `chain4` (deepest, 4-matrix chain) solved 1.0; all structural families
+  (bundle*, chain*, sum2, affine, diff) stay 0.83–1.0.
+- every coefficient family collapses: `scaled_res` 0.083, `scaled_diff` 0.125,
+  `gen_affine` 0.25, `two_mat_affine` 0.33 (exact). Splitting the 96 coeff-family
+  val programs: all-unit-coeff exact **0.000** (the model correctly simplifies
+  the generator's redundant `1.0 *` literal away — a corpus artifact that
+  exact-match mis-penalizes; these are the 10 IO-wins), non-unit-coeff exact
+  **0.241** (genuine hard inference — read 0.5/1.5/2/3 off weights+IO — mostly
+  fails). `linear`/`scaled` also degraded (≈0.96→0.708): cross-family
+  interference from confusable neighbors.
+
+So: structure transfers near-perfectly, scalar-coefficient inference does not.
+Validates option A (v0's 0.842 was templating). Finding:
+`planning/findings/2026-05-30-w2c-tick3-hardened-corpus-eval.md`. Two bounded
+follow-ups queued: (1) corpus canonicalization of unit coefficients (low-risk),
+(2) an explicit coefficient-prediction head (the real lever). `eval_substrate.py`
+now emits a `per_structure` breakdown (additive, eval test 5/5, sha `a2204f12`).
+
 ## 2026-05-30: W2C option A tick 2 — full hardened corpus regenerated + pushed
 
 Ran `weight_to_code_corpus.py` at defaults to regenerate the whole corpus with
