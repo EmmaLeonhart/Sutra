@@ -273,7 +273,6 @@ This is the substrate's full operation set. Each row is one method emitted into 
 
 | Method | Description | Training |
 |---|---|---|
-| `_argmax_cosine(query, candidates)` | nearest-codebook lookup | vision — learned candidate weighting or temperature |
 | `_select_softmax(scores, options)` | softmax-weighted superposition (the differentiable `switch`) | **shipped via T scaling the scores at the Sutra source level** (`select([s_i/T for i], [opt_i for i])`); a training run learns T at K=5 / 3-seeds for +1.77× margin gain, with substrate-pure autograd; also: learned firing threshold (vision) |
 | `_vector_map_lookup(pairs, key)` | vector-keyed map lookup | vision — learned key matching weights |
 
