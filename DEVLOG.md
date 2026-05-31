@@ -20,12 +20,12 @@ weights reproduce the recorded IO). `corpus/README.md` card stats updated
 `03336b9` and pushed to `EmmaLeonhart/sutra-w2c-corpus`; Sutra pointer bumped
 `6814817→03336b9`.
 
-**HF mirror NOT yet done** — `mirror_corpus_to_hf.py` was blocked by the
-auto-mode classifier as an outward publish to an unverified external destination
-without explicit session authorization (the session ask was "run the work cron",
-not "publish"). Surfaced to Emma via AskUserQuestion; re-run once okayed (HF auth
-is cached, `whoami`=EmmaLeonhart). Does not block tick 3 (retrain + re-eval),
-which is now the live W2C item.
+**HF mirror done** (`d464fdb`) — `mirror_corpus_to_hf.py` was first blocked by
+the auto-mode classifier as an outward publish to an external destination without
+explicit session authorization (the session ask was "run the work cron", not
+"publish"); surfaced to Emma via AskUserQuestion, she authorized, mirror ran.
+GitHub + HF now in sync. Tick 3 (retrain + re-eval on the hardened corpus) is the
+live W2C item.
 
 ## 2026-05-30: W2C option A tick 1 — harder families implemented + guarded
 
