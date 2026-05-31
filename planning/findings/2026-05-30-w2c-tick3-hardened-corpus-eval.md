@@ -32,9 +32,20 @@ four families carrying a per-program **discrete coefficient** `a`/`b` ∈
 
 Exact-match dropped 0.842 → 0.678 and IO-reproduction 0.842 → 0.706, **as
 predicted** — the harder space defeats templating, which was the point of the
-hardening. Two new qualitative signals appear that v0 never produced: a gap
-between IO-reproduction and exact-match (0.706 > 0.678), and the first 10
-behavioral wins.
+hardening.
+
+> **Correction (follow-up #1, same day).** The "10 non-exact-but-IO-ok" cases
+> above are **not** genuine "different code, same function" wins — they are
+> entirely a scoring artifact. The generator renders a unit coefficient as the
+> redundant literal `1.0 * EXPR`; the model correctly simplifies it to `EXPR`,
+> which raw exact-match counts as a miss. Adding a canonical exact-match that
+> strips `1.0 * ` (`eval_substrate.canonicalize_source`) lifts exact-match from
+> 244 → **254**, exactly closing the gap, and **canonical exact-match == IO-
+> reproduction (254 = 0.7056) in every one of the 15 families**. So after
+> canonicalization there are **zero** genuine behavioral wins: textual and
+> behavioral correctness coincide here, same as v0. The `io_rate > exact_rate`
+> entries in the per-structure table below are all unit-coeff mis-scoring; the
+> `exact_canon_rate` column (now emitted) equals `io_rate` throughout.
 
 ## Per-structure breakdown (the actual story)
 
@@ -94,14 +105,20 @@ Both buckets are hard for exact-match, for **different** reasons:
   inference, the same model drops to 0.678 exact / 0.706 IO, and the drop is
   localized entirely to the coefficient axis. Structure transfer is real and
   near-perfect (chain4 = 1.0); scalar-coefficient inference is the open problem.
-- **Two concrete follow-ups (queued):**
-  1. *Corpus canonicalization:* the generator should emit the simplified form
-     when a coefficient is 1.0 (or eval should canonicalize `1.0 *` / `+ 0.0`),
-     so exact-match stops mis-scoring the 17 unit cases. Low-risk, additive.
-  2. *Coefficient head:* recovering a discrete coefficient is a classification
-     the char-decoder does poorly; an explicit coefficient-prediction head (or
-     a coefficient-augmented input feature) is the model-side lever. This is the
-     real research item the hardening surfaced.
+- **Follow-up #1 — DONE (eval-side canonicalization).** `eval_substrate.py`
+  now reports `exact_match_canonical` (strips `1.0 * `) alongside raw exact, and
+  `exact_canon_rate` per structure. Measured: it lifts exact 244 → 254 = IO-
+  reproduction exactly, confirming the unit-coeff gap was a pure scoring
+  artifact (see Correction above). This makes the metric honest without a corpus
+  regen. The *generator-side* canonicalization (emit the bare form when a
+  coefficient is 1.0) is now **optional** — it improves published-corpus
+  cleanliness but has no further metric impact; deferred unless we regen for
+  another reason.
+- **Follow-up #2 — open (the real research lever).** Recovering a discrete
+  *non-unit* coefficient (exact 0.241) is a classification the char-decoder does
+  poorly; an explicit coefficient-prediction head (or a coefficient-augmented
+  input feature) is the model-side lever. This is the item the hardening
+  surfaced and the next substantive W2C step.
 
 ## Honesty caveats
 

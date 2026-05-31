@@ -48,6 +48,20 @@ import re  # noqa: E402
 
 TOL = 1e-3
 _LM = re.compile(r'load_matrix\("([^"]+)"\)')
+# Multiplicative-identity coefficient: the generator renders a unit coefficient
+# as the redundant literal `1.0 * EXPR`, but `1.0 * EXPR == EXPR`. The model
+# correctly drops it, so raw exact-match mis-scores those (tick-3 finding: the
+# 17 all-unit-coeff val cases scored 0.000 exact despite reproducing IO).
+# Canonicalizing both sides credits the correct simplification. Only 1.0 is the
+# identity here (COEFFS = {0.5,1,1.5,2,3}; no 0.0), so this never rewrites a
+# behaviorally-meaningful coefficient.
+_UNIT_COEFF = re.compile(r'1\.0 \* ')
+
+
+def canonicalize_source(src: str) -> str:
+    """Drop redundant `1.0 * ` so a correct unit-coeff simplification compares
+    equal. Pure/string-only — does NOT touch non-unit coefficients (0.5, 2.0…)."""
+    return _UNIT_COEFF.sub("", src)
 
 
 def write_csv(path: str, mat) -> None:
@@ -117,7 +131,7 @@ def main() -> None:
 
     ds = W2CDataset(os.path.join(DATA, "val.jsonl"))
     n = len(ds)
-    exact = io_ok = compile_fail = run_fail = 0
+    exact = exact_canon = io_ok = compile_fail = run_fail = 0
     wins, fails = [], []
     # Per-structure (family) breakdown — the tick-3 hardening question is
     # whether the new inference-forcing families (chain4 / coeff families)
@@ -131,7 +145,12 @@ def main() -> None:
         gen = decode_ids(seq[0, 1:].tolist(), inv)
         rec = ds.recs[i]
         is_exact = gen == rec["target"]
+        # canonical exact-match: credit correct `1.0 *` simplifications (tick-3
+        # follow-up #1). Strictly >= raw exact; the delta is the unit-coeff
+        # mis-scoring the raw metric suffered.
+        is_exact_canon = canonicalize_source(gen) == canonicalize_source(rec["target"])
         exact += int(is_exact)
+        exact_canon += int(is_exact_canon)
 
         ok = False
         stage = "compile"
@@ -151,9 +170,10 @@ def main() -> None:
             ok = False
 
         st = rec.get("structure") or "?"
-        agg = per_structure.setdefault(st, {"n": 0, "exact": 0, "io_ok": 0})
+        agg = per_structure.setdefault(st, {"n": 0, "exact": 0, "exact_canon": 0, "io_ok": 0})
         agg["n"] += 1
         agg["exact"] += int(is_exact)
+        agg["exact_canon"] += int(is_exact_canon)
         agg["io_ok"] += int(ok)
 
         if ok:
@@ -167,6 +187,8 @@ def main() -> None:
         "n": n,
         "exact_match": exact,
         "exact_match_rate": round(exact / n, 4),
+        "exact_match_canonical": exact_canon,
+        "exact_match_canonical_rate": round(exact_canon / n, 4),
         "io_reproduction": io_ok,
         "io_reproduction_rate": round(io_ok / n, 4),
         "non_exact_but_io_ok": len(wins),
@@ -176,6 +198,7 @@ def main() -> None:
         "per_structure": {
             k: {**v,
                 "exact_rate": round(v["exact"] / v["n"], 4),
+                "exact_canon_rate": round(v["exact_canon"] / v["n"], 4),
                 "io_rate": round(v["io_ok"] / v["n"], 4)}
             for k, v in sorted(per_structure.items())
         },
@@ -184,9 +207,11 @@ def main() -> None:
         json.dump({"summary": summary, "wins": wins[:25], "fails": fails[:40]}, f, indent=1)
     # single self-contained result line (survives display-relay line duplication)
     print("EVALRESULT "
-          f"n={n} exact={exact} repro={io_ok} nonexact_io_ok={len(wins)} "
-          f"compfail={compile_fail} runfail={run_fail} "
-          f"emr={summary['exact_match_rate']} rpr={summary['io_reproduction_rate']}")
+          f"n={n} exact={exact} exact_canon={exact_canon} repro={io_ok} "
+          f"nonexact_io_ok={len(wins)} compfail={compile_fail} runfail={run_fail} "
+          f"emr={summary['exact_match_rate']} "
+          f"emcr={summary['exact_match_canonical_rate']} "
+          f"rpr={summary['io_reproduction_rate']}")
 
 
 if __name__ == "__main__":
