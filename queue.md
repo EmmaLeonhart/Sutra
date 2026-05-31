@@ -104,17 +104,18 @@ movement). weight→code recovers *structure* near-perfectly (chain4 = 1.0) but
 scalar coefficients are a wall for this architecture.
 
 **LIVE — scale model + corpus (Emma 2026-05-31 decision).** Test whether the
-coefficient wall is **capacity-bound** rather than architectural. Plan:
-1. **Bigger model first** (cheap, isolates capacity): retrain at `--d-model 256
-   --layers 6` (and a `--coeff-detach --coeff-aux-w 0.5` run for the probe), then
-   re-measure decoder exact + per-structure + the coeff probe acc / coeff-family
-   IO vs the d128/L3 baseline (decoder 0.667, probe 0.615/0.556, coeff-IO ~0.30).
-   If the wall moves with model size → capacity-bound; if flat → architectural.
-2. **Bigger corpus** (if model scaling helps or is inconclusive): one-flag bump
-   `--seeds`/`--ks` on `experiments/weight_to_code_corpus.py` → push submodule →
-   HF mirror → bump pointer + card; re-prepare + retrain. More coefficient
-   examples per family may sharpen the probe.
-   Measure honestly; a flat result is the finding (wall is architectural).
+coefficient wall is **capacity-bound** rather than architectural.
+1. ~~Bigger model~~ **DONE — NOT capacity-bound.** d256/L6 (≈4–8× params) left
+   the probe flat (~0.60) and coeff-family IO flat-to-down (0.31→0.23); decoder
+   unchanged. Finding § "Capacity test". Points at the readout architecture, not
+   capacity.
+2. **Bigger corpus** (LIVE — confirm the data side). Generate 2× (`--seeds 0-19`)
+   to a SCRATCH dir (NO submodule/HF push yet — measure first, per the
+   measure-before-outward-op discipline), re-prepare from scratch, retrain
+   d128/L3, re-measure probe + coeff-family IO. Expected (given model-null):
+   also flat → wall is architectural, not data. If it DOES help, then do the
+   official regen + push + HF + pointer bump. Generation of trained kinds is slow
+   (~GD per matrix) so this spans ticks.
 
 ## Corpus (built & at scale — not active work)
 
