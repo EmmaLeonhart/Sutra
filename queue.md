@@ -89,24 +89,27 @@ equivalent-code diversity (tick-3 finding Corrected). Generator-side
 canonicalization is now optional (corpus cleanliness only, no metric impact);
 deferred unless we regen for another reason.
 
-**Follow-up #2 — LIVE (the real research lever).** The char-decoder recovers
-discrete *non-unit* coefficients poorly (exact 0.241). First step = the
-**diagnostic**: is the coefficient even decodable from the encoder rep? Concrete
-plan (in flight):
-1. `prepare.py`: propagate per-program coeff class labels (`coeff_a`, `coeff_b`
-   as idx into `COEFF_CLASSES=[0.5,1,1.5,2,3]`, or -1 if the slot is absent).
-   Additive; test_prepare stays green.
-2. `model.py`: add a coefficient head (masked mean-pool of encoder memory → two
-   `Linear(d,5)` for slots a,b) as a SEPARATE branch (`coeff_logits`); keep
-   `forward` returning decoder logits so test_model's overfit guard is
-   untouched. Joint train with an auxiliary CE loss masked to present slots.
-   Report val head-accuracy for a/b (the diagnostic) + decoder exact (does the
-   aux loss shape the rep enough to help emission?).
-3. Retrain + measure. Honest branch: if the head decodes coeffs well but decoder
-   exact stays low → bottleneck is emission → next tick does post-hoc coeff
-   substitution at decode. If the head ALSO fails → the encoder isn't capturing
-   the coeff from weights+IO → input-feature problem. Either way it's a real
-   measured result.
+**Follow-up #2 — DONE (NEGATIVE result, measured).** Built the coefficient head
+(masked mean-pool → 2×`Linear(d,5)`, aux CE loss) + label propagation; ran a
+3-point ablation. Finding:
+`planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`. Result: (a) the
+coefficient is only **~½ decodable** from the encoder rep (head acc 0.59/0.47 at
+aux_w=0.5 vs 0.20 chance — present but not cleanly separable); (b) a
+representation-shaping aux loss **hurts the decoder monotonically** (exact
+0.669→0.589→0.508 as aux_w 0→0.1→0.5) — net negative, no sweet spot. Default
+`--coeff-aux-w` set to 0.0 (head stays available explicitly). Two levers remain
+open (next W2C items):
+
+1. **Post-hoc coefficient substitution** (bounded, next experiment). Decode
+   source as today (structure is recovered well), then overwrite the coefficient
+   literal with the head's prediction at decode. Decouples coeff recovery from
+   the decoder objective; capped by head acc ~0.59 so it lifts, not solves, the
+   coeff families. Build in `eval_substrate.py` (load the aux-trained head,
+   predict, substitute, then the existing compile+run IO check measures it).
+2. **Richer input features** (heavier, speculative). The coeff is
+   `a=(y−x)/(M@x)`-shaped — a relationship the per-token encoder may not surface.
+   Feed a derived per-IO residual feature (`y−M@x` or `y−x`) so the coeff is more
+   separable; re-measure head acc + decoder exact.
 
 ## Corpus (built & at scale — not active work)
 
