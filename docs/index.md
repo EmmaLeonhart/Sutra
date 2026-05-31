@@ -13,7 +13,7 @@ Write a program in a TypeScript-shaped language. The compiler turns the *entire*
 
 ## How it works
 
-Every value is a vector; every operation — `bundle`, `bind`, `unbind`, `similarity`, `argmax_cosine`, `select`, `loop` — is a tensor op on that shape. Because the shape never changes, the compiler reads a whole program as one tensor expression: chains of bind/unbind/bundle collapse into chains of matrix multiplies, the simplifier folds those into cached matrices at compile time, and the runtime executes the result as one sequence of tensor ops.
+Every value is a vector; every operation — `bundle`, `bind`, `unbind`, `similarity`, `select`, `loop` — is a tensor op on that shape. Because the shape never changes, the compiler reads a whole program as one tensor expression: chains of bind/unbind/bundle collapse into chains of matrix multiplies, the simplifier folds those into cached matrices at compile time, and the runtime executes the result as one sequence of tensor ops.
 
 A Sutra value is a vector in a frozen LLM embedding space (default substrate: `nomic-embed-text`, 768-d). Strings auto-embed in vector contexts — `vector v = "cat"` embeds the string through the substrate. Conditionals are softmax-weighted sums; loops are recurrent cells that unroll to a fixed-length tensor-op chain with a soft-halt mask, the loop counter being angular position on a helix in the substrate rather than a host variable.
 
