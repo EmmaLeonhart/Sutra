@@ -26,7 +26,25 @@ from eval_substrate import (  # noqa: E402
     compile_su,
     check_io,
     canonicalize_source,
+    substitute_coeffs,
 )
+from prepare import COEFF_CLASSES  # noqa: E402
+
+
+def test_substitute_coeffs_overwrites_present_slots_only():
+    # COEFF_CLASSES = [0.5, 1.0, 1.5, 2.0, 3.0]; class 3 -> 2.0, class 0 -> 0.5.
+    src = "1.5 * Tensor.MatrixMul(M0, x) + 3.0 * x"
+    # both slots present: 1st literal -> a, 2nd -> b
+    out = substitute_coeffs(src, pred_a=3, pred_b=0, has_a=True, has_b=True)
+    assert out == "2.0 * Tensor.MatrixMul(M0, x) + 0.5 * x"
+    # only slot a present: 2nd literal untouched
+    out = substitute_coeffs(src, pred_a=4, pred_b=0, has_a=True, has_b=False)
+    assert out == "3.0 * Tensor.MatrixMul(M0, x) + 3.0 * x"
+    # no slots: source unchanged (fixed-coeff families never touched)
+    assert substitute_coeffs(src, 0, 0, has_a=False, has_b=False) == src
+    # no coefficient literal to find: unchanged even if a slot is claimed
+    assert substitute_coeffs("Tensor.MatrixMul(M0, x)", 3, 0, True, False) \
+        == "Tensor.MatrixMul(M0, x)"
 
 
 def test_canonicalize_drops_unit_coeff_keeps_others():

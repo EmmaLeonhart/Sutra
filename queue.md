@@ -100,12 +100,15 @@ representation-shaping aux loss **hurts the decoder monotonically** (exact
 `--coeff-aux-w` set to 0.0 (head stays available explicitly). Two levers remain
 open (next W2C items):
 
-1. **Post-hoc coefficient substitution** (bounded, next experiment). Decode
-   source as today (structure is recovered well), then overwrite the coefficient
-   literal with the head's prediction at decode. Decouples coeff recovery from
-   the decoder objective; capped by head acc ~0.59 so it lifts, not solves, the
-   coeff families. Build in `eval_substrate.py` (load the aux-trained head,
-   predict, substitute, then the existing compile+run IO check measures it).
+1. **Post-hoc coefficient substitution** (LIVE — in flight). Decouple via a
+   **detached (stop-grad) head**: train the head on `memory.detach()` so the
+   decoder stays at the aux_w=0 baseline (0.669, good structure) AND we get a
+   trained probe head in ONE run (avoids the aux-loss decoder penalty). Then in
+   `eval_substrate.py`: decode source, predict coeffs via the head, overwrite the
+   coefficient literal(s) (positional: 1st `f * `→a, 2nd→b) for coeff-family
+   programs (structure used as the slot-presence oracle — a ceiling measurement,
+   not a deployable decompiler), compile+run, report coeff-family IO-repro with
+   vs without substitution. Capped by head acc ~0.59 so it lifts, not solves.
 2. **Richer input features** (heavier, speculative). The coeff is
    `a=(y−x)/(M@x)`-shaped — a relationship the per-token encoder may not surface.
    Feed a derived per-IO residual feature (`y−M@x` or `y−x`) so the coeff is more
