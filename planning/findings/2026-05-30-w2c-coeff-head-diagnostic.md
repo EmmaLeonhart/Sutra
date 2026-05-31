@@ -1,4 +1,4 @@
-# weight→code follow-up #2: a coefficient head — the coeff is only ~½ decodable, and an aux loss hurts (NEGATIVE)
+# weight→code follow-up #2: the coefficient wall — ~½ decodable, three levers exhausted (NEGATIVE ×3)
 
 **Date:** 2026-05-30
 **Scripts:** `experiments/w2c_seq2seq/{prepare,model}.py`
@@ -65,13 +65,11 @@ weight→code; it degrades it.
 - **The aux-loss integration is the wrong lever. Two paths were named; #1 is now
   also closed (negative); #2 is the indicated direction:**
   1. *Post-hoc substitution — TRIED, NEGATIVE (see "Lever 1 result" below).*
-  2. *Richer input features.* The coefficient is `a = (y − x)/(M@x)`-shaped —
-     a *relationship* between IO and weights the current per-token encoder may
-     not surface. Feeding a derived feature (e.g. per-IO residual `y − M@x`, or
-     `y − x`) could make the coefficient linearly separable. Heavier; speculative.
-     **Now the indicated path** — both output-side levers (aux loss, post-hoc
-     substitution) failed, so the bottleneck is the encoder's coefficient
-     representation, which is an *input*-side fix.
+  2. *Richer input features — TRIED, NULL (see "Lever 2 result" below).* Both
+     output-side levers (aux loss, post-hoc substitution) AND this input-side
+     lever failed, so coefficient recovery is a measured wall for this
+     architecture; the next moves are bigger bets (readout redesign, regression
+     head, bigger model) — a research-direction call surfaced to Emma.
 
 ## Lever 1 result — post-hoc substitution does NOT help (NEGATIVE)
 
@@ -102,6 +100,39 @@ needs a head materially more accurate than ~0.6; the head can't get there becaus
 the coefficient is only ~½ decodable from the encoder rep (finding #1 above).
 **Conclusion: the bottleneck is representational — lever 2 (input features) is the
 path; output-side tricks are exhausted.**
+
+## Lever 2 result — matmul input feature does NOT move it (NULL/marginal)
+
+The coefficient is a *relationship* `y ≈ a·(M@x) + …`, so the natural input-side
+fix is to feed the matmul partial-products `M_s @ x` directly (a new `TYPE_MM`
+token stream in `build_enc`, computed host-side — feature prep for the host
+weight→code model, not a substrate op), making `y`-vs-`M@x` visible instead of
+something the per-token encoder must synthesize. Retrained the same detached
+config with the feature on:
+
+| metric | without feature (lever 1 run) | with `M@x` feature |
+|---|---|---|
+| decoder exact-match | 0.667 | 0.689 |
+| probe coeff_a / coeff_b | 0.615 / 0.556 | **0.604 / 0.597** |
+| coeff-slot IO (`io_base`, n=96) | 28 | 30 |
+| post-hoc substitution (`io_subst`) | 27 | 27 |
+
+**The feature did not move coefficient recovery** — probe accuracy stays ~0.60,
+decoder and coeff-family IO move only within retrain noise (a few programs).
+Feeding `M@x` explicitly was supposed to make the coefficient linearly readable;
+it didn't. The most likely reason is the head's **mean-pool readout**: the
+coefficient is a *per-component* ratio `a = (yᵢ−…)/(M@x)ᵢ`, and mean-pooling the
+encoder memory over all tokens dilutes exactly that per-component signal. So the
+limit may be the readout, not the input — but that is now a *fourth* speculative
+lever, and three have already returned the same ~0.60.
+
+**Verdict: three levers exhausted (aux loss, post-hoc substitution, input
+feature), all converging on a ~0.60 probe / ~0.30 coeff-family-IO wall.** This is
+a genuine, measured result: weight→code recovers program *structure* near-
+perfectly (chain4 = 1.0) but *scalar coefficients* are a wall for this
+architecture. Whether to keep investing (readout redesign, regression head,
+bigger model) or document the wall and move on is a research-direction call —
+surfaced to Emma (queue.md A.0), not decided autonomously.
 
 ## Honesty caveats
 

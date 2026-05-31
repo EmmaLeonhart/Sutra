@@ -6,6 +6,30 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-05-30: W2C follow-up #2 lever 2 — matmul input feature: NULL; coefficient wall confirmed (3 levers exhausted)
+
+Lever 2 (richer input features): fed the matmul partial-products `M_s@x` as a
+`TYPE_MM` token stream (host-side matvec in `build_enc` — feature prep for the
+host model, not a substrate op), so the coefficient relationship `y ≈ a·(M@x)+…`
+is visible directly. Retrained the detached config. Result: probe accuracy
+**unchanged** (0.615/0.556 → 0.604/0.597), decoder exact 0.667→0.689 and
+coeff-family IO move only within retrain noise. The `M@x` feature did NOT make
+the coefficient more decodable — likely the head's mean-pool readout dilutes the
+per-component ratio, but that's a 4th lever.
+
+**Coefficient recovery is a measured WALL** (~0.60 probe / ~0.30 coeff-family IO)
+with three architecture levers exhausted (aux loss hurts; post-hoc substitution
+0.61-head too weak; input feature null). weight→code recovers structure near-
+perfectly but scalar coefficients are hard for this architecture. Direction
+(readout redesign / regression head / document-and-pivot / bigger model) surfaced
+to Emma (queue.md A.0), NOT decided autonomously. Finding:
+`…coeff-head-diagnostic.md` (§ "Lever 2 result").
+
+(Note: this result's first write-up was lost when the 2026-05-30 author-identity
+history rewrite [filter-repo, force-pushed] reset the working tree; re-applied on
+top of the rewritten history. The matmul-feature code itself was already
+committed [`8d39a4bc`] and survived.)
+
 ## 2026-05-30: W2C follow-up #2 lever 1 — post-hoc coeff substitution does NOT help (NEGATIVE)
 
 Tried the output-side fix: a **detached (stop-grad) probe head** so we get a
