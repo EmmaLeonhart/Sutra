@@ -119,6 +119,11 @@ def main() -> None:
     n = len(ds)
     exact = io_ok = compile_fail = run_fail = 0
     wins, fails = [], []
+    # Per-structure (family) breakdown — the tick-3 hardening question is
+    # whether the new inference-forcing families (chain4 / coeff families)
+    # recover behavior, so aggregate exact + io_ok by structure. Built from
+    # every val program (not the truncated fails list).
+    per_structure: dict = {}
 
     for i in range(n):
         batch = _to(collate([ds[i]]), dev)
@@ -145,6 +150,12 @@ def main() -> None:
                 run_fail += 1
             ok = False
 
+        st = rec.get("structure") or "?"
+        agg = per_structure.setdefault(st, {"n": 0, "exact": 0, "io_ok": 0})
+        agg["n"] += 1
+        agg["exact"] += int(is_exact)
+        agg["io_ok"] += int(ok)
+
         if ok:
             io_ok += 1
             if not is_exact:
@@ -162,6 +173,12 @@ def main() -> None:
         "compile_fail": compile_fail,
         "run_fail": run_fail,
         "tol": TOL,
+        "per_structure": {
+            k: {**v,
+                "exact_rate": round(v["exact"] / v["n"], 4),
+                "io_rate": round(v["io_ok"] / v["n"], 4)}
+            for k, v in sorted(per_structure.items())
+        },
     }
     with open(os.path.join(HERE, "_eval_result.json"), "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "wins": wins[:25], "fails": fails[:40]}, f, indent=1)
