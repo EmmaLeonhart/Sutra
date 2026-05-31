@@ -56,6 +56,21 @@ gitignored, so re-running the model means: `git submodule update --init
 corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 `…/eval_substrate.py`.
 
+## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
+
+- **W2C coefficient wall — direction decision.** weight→code recovers program
+  *structure* near-perfectly (chain4 = 1.0) but *scalar coefficients* are a
+  measured wall: ~0.60 probe accuracy / ~0.30 coeff-family IO, and **three
+  architecture levers came back negative/null** — aux loss (hurts the decoder),
+  post-hoc substitution (0.61 head too weak), matmul input feature (no movement).
+  The next moves are bigger, more speculative bets and it's a research-direction
+  call, not implementation. Options: (a) readout redesign — the mean-pool head
+  likely dilutes the per-component ratio signal, try an attention/per-component
+  head; (b) regression formulation of the coefficient; (c) document the wall as
+  the finding and pivot to another W2C/meaningfulness-arc direction; (d) bigger
+  model/corpus. **If unanswered, do NOT silently pick — re-ask via the
+  blocker-sweep.**
+
 ## Context (read first, do not work on)
 
 - **`paper/paper.md` is on arXiv and FROZEN through May 31, 2026.** Lock
@@ -107,16 +122,16 @@ open (next W2C items):
    coefficient injection needs a head ≫0.6, unreachable while the coeff is only
    ~½ decodable from the rep. Both output-side levers now exhausted. Finding
    updated (`…coeff-head-diagnostic.md` § "Lever 1 result").
-2. **Richer input features** (LIVE — the indicated path, output-side levers
-   exhausted). The coeff is `a=(y−x)/(M@x)`-shaped — a relationship the per-token
-   encoder may not surface. The cleanest first probe: add a derived per-IO
-   **residual token** (`y−M@x`, computed host-side at prepare-time from the
-   program's weights+IO) to the encoder input, then re-measure (a) the detached
-   **probe head accuracy** — does the coeff become more decodable? — and (b)
-   decoder exact / coeff-family IO. If the residual feature lifts probe accuracy
-   well above 0.6, post-hoc substitution (lever 1) also becomes viable again.
-   Build: `prepare.py` emits the residual per IO pair; `model.py` `build_enc`
-   adds a TYPE_RESID token stream. Bounded, additive.
+2. ~~Richer input features~~ **DONE — NULL/marginal.** Fed `M_s@x` matmul
+   partial-products as a `TYPE_MM` token stream (committed `8d39a4bc`, survived
+   the history rewrite). Probe accuracy unchanged (0.615/0.556 → 0.604/0.597),
+   decoder + coeff-family IO move only within retrain noise. The `M@x` feature
+   did NOT make the coeff more decodable — likely the head's mean-pool readout
+   dilutes the per-component ratio, but that's a 4th lever. Finding updated
+   (§ "Lever 2 result").
+
+**→ Coefficient recovery is a measured WALL (~0.60 probe / ~0.30 coeff-IO);
+three levers exhausted. Direction is now Emma's call — see A.0 at top.**
 
 ## Corpus (built & at scale — not active work)
 
