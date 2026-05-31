@@ -39,16 +39,31 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 
 PAD_ID, BOS_ID, EOS_ID = 0, 1, 2
-TYPE_W, TYPE_IN, TYPE_OUT = 0, 1, 2
+TYPE_W, TYPE_IN, TYPE_OUT, TYPE_MM = 0, 1, 2, 3
+N_TYPES = 4
 MAX_SLOT = 8     # >= max(#matrices, #io pairs)
 MAX_POS = 300    # >= max(K*K, K) per element
 N_COEFF = 5      # |COEFF_CLASSES| = {0.5,1,1.5,2,3} (prepare.COEFF_CLASSES)
 COEFF_IGNORE = -1  # slot absent for this program's family
+# Lever-2 input feature (follow-up #2): feed the matmul partial-products M_s @ x
+# as extra tokens. The coefficient is a relationship y ≈ a·(M@x)+…, so giving the
+# encoder M@x directly (host-side matvec, NOT a substrate op — this is feature
+# prep for the host-side weight→code analysis model) exposes y-vs-M@x so the
+# coefficient becomes linearly readable instead of something the encoder must
+# synthesize from separate weight/IO tokens. The "without" baseline is the prior
+# detached run (decoder 0.667, probe 0.615/0.556) — same setup, this feature off.
+USE_MM_FEAT = True
+
+
+def _matvec(mat, vec):
+    """Pure-Python M @ v for the matmul feature (host-side, no torch/numpy)."""
+    return [sum(row[j] * vec[j] for j in range(len(vec))) for row in mat]
 
 
 # ---------------------------------------------------------------- encoding
 def build_enc(rec: dict):
-    """Flatten a record's weights + IO into parallel token feature lists."""
+    """Flatten a record's weights + IO (+ matmul partial-products) into parallel
+    token feature lists."""
     vals, types, slots, poss = [], [], [], []
     for s, mat in enumerate(rec["weights"]):
         K = len(mat[0]) if mat else 0
@@ -63,6 +78,17 @@ def build_enc(rec: dict):
         for idx, v in enumerate(pair["output"]):
             vals.append(float(v)); types.append(TYPE_OUT)
             slots.append(min(p, MAX_SLOT - 1)); poss.append(min(idx, MAX_POS - 1))
+        # matmul partial-products M_s @ x for this pair's input. slot = pair index
+        # (aligns with this pair's IN/OUT so the model can attend y-vs-M@x within
+        # a pair); pos folds in matrix index s and vector position.
+        if USE_MM_FEAT:
+            x = [float(v) for v in pair["input"]]
+            for s, mat in enumerate(rec["weights"]):
+                if not mat or len(mat[0]) != len(x):
+                    continue
+                for idx, v in enumerate(_matvec(mat, x)):
+                    vals.append(float(v)); types.append(TYPE_MM)
+                    slots.append(min(p, MAX_SLOT - 1)); poss.append(min(s * 32 + idx, MAX_POS - 1))
     return vals, types, slots, poss
 
 
@@ -119,7 +145,7 @@ class W2CSeq2Seq(nn.Module):
         super().__init__()
         self.d_model = d_model
         self.val_proj = nn.Linear(1, d_model)
-        self.type_emb = nn.Embedding(3, d_model)
+        self.type_emb = nn.Embedding(N_TYPES, d_model)
         self.slot_emb = nn.Embedding(MAX_SLOT, d_model)
         self.pos_emb = nn.Embedding(MAX_POS, d_model)
         self.enc_norm = nn.LayerNorm(d_model)
