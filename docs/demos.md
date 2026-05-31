@@ -51,12 +51,11 @@ These don't have asserted outputs in the smoke test but parse and (where the cod
 | `bind(role, filler)` | rotation binding: `Q_role @ filler` | 1, 2, 5, 7, 9 |
 | `unbind(role, record)` | inverse rotation: `Q_role^T @ record` | 2, 5, 6, 7, 9 |
 | `similarity(a, b)` | cosine similarity | 1, 6, 9 |
-| `argmax_cosine(query, [candidates])` | nearest codebook entry | 0, 1, 3, 4, 5, 7, 8 |
 | `select([scores], [options])` | softmax-weighted superposition | 1, 7 |
 | Scalar-vector multiply, vector add | weighted superposition | 1, 7 |
 | `map<vector, string>` lookup | the single edge bridge from vector to host string | all |
 
-There is no `if`, `while`, `for`, or `switch` in any of these programs. Every conditional is a weighted sum across all options; the commitment to a discrete answer happens at the final `argmax_cosine` or map lookup. Loop primitives show up in `do_while_adder.su` and the dedicated test suite, not in the smoke-tested ten.
+There is no `if`, `while`, `for`, or `switch` in any of these programs. Every conditional is a weighted sum across all options; the commitment to a discrete answer happens at the final cleanup step or map lookup. Loop primitives show up in `do_while_adder.su` and the dedicated test suite, not in the smoke-tested ten.
 
 ## Reading the source
 

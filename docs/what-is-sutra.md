@@ -18,11 +18,10 @@ The Sutra compiler is a normal compiler in shape — lexer, parser, simplifier, 
 | `bind(role, filler)` | rotation binding: `Q_role @ filler` |
 | `unbind(role, record)` | inverse rotation: `Q_role^T @ record` |
 | `similarity(a, b)` | cosine similarity |
-| `argmax_cosine(query, [candidates])` | nearest codebook entry |
 | `select([scores], [options])` | softmax-weighted superposition |
 | `do_while`, `while_loop`, `iterative_loop`, `foreach_loop` | declared loop functions; each cell tick is a substrate-resident RNN step |
 
-These are tensor operations. Bundle is a sum. Bind and unbind are matrix multiplies against orthogonal matrices. Similarity is a dot product. Argmax_cosine is a matrix-vector multiply followed by an argmax. Select is a softmax-weighted sum. A loop is iterated matrix-vector multiplication with a substrate-resident soft-halt check — see [Loops](loops.md) for the declared-function surface.
+These are tensor operations. Bundle is a sum. Bind and unbind are matrix multiplies against orthogonal matrices. Similarity is a dot product. Select is a softmax-weighted sum. A loop is iterated matrix-vector multiplication with a substrate-resident soft-halt check — see [Loops](loops.md) for the declared-function surface.
 
 The current default substrate is `nomic-embed-text` (768-dimensional vectors, mean-centered, served via Ollama). On top of those 768 *semantic* axes the runtime appends 100 *synthetic* axes — used to encode numbers, truth values, and string codepoints — so a full runtime vector is 868-dimensional. (A different substrate changes the semantic count: `mxbai-embed-large`, for instance, is 1024-d.) String literals in `vector` contexts auto-embed: `vector v = "cat"` is short for "embed the string 'cat' and bind the result to `v`." The runtime caches embeddings and batches Ollama round-trips at module init.
 
@@ -30,7 +29,7 @@ The current default substrate is `nomic-embed-text` (768-dimensional vectors, me
 
 Sutra has functions, conditionals, and loops in its surface syntax, but none of them lower to a Python `if` or `while` on data values:
 
-- **Conditionals** lower to a softmax-weighted sum across all options. All branches contribute to the result; the weights decide how much. The commitment to a discrete answer happens at the final `argmax_cosine` or map lookup at the program's edge.
+- **Conditionals** lower to a softmax-weighted sum across all options. All branches contribute to the result; the weights decide how much. The commitment to a discrete answer happens at the final cleanup step or map lookup at the program's edge.
 - **Loops** are declared as first-class functions whose parameters are the recurrent state and whose body is a single cell evaluation. The four kinds (`do_while` / `while_loop` / `iterative_loop` / `foreach_loop`) compile to a fixed-T tensor-op unroll where each tick applies the cell on the substrate. A soft-halt mask freezes the state when the condition is met, so the host runs the unroll once but the logical loop terminates wherever the condition fires. The "loop counter" is the angular position on a helix in the substrate, not a host variable.
 
 The reason this matters: a program with no host-side branches lowers to straight-line tensor work, which lets the simplifier read the whole program as one tensor expression and fold chains of operations into cached matrices. Compile a chain of `bundle(bind(r1, f1), bind(r2, f2))`, and the simplifier can stack the binds into one matmul.
