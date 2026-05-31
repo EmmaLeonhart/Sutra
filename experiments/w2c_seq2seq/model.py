@@ -147,12 +147,19 @@ class W2CSeq2Seq(nn.Module):
         x = self.enc_norm(x)
         return self.encoder(x, src_key_padding_mask=b["src_pad"])
 
-    def coeff_logits(self, b, memory=None):
+    def coeff_logits(self, b, memory=None, detach=False):
         """Predict coefficient class for slots a, b from a masked mean-pool of
         the encoder memory. Returns (logits_a, logits_b), each (B, N_COEFF).
-        Separate from forward() — the decoder path is unchanged."""
+        Separate from forward() — the decoder path is unchanged.
+
+        detach=True stop-grads the memory so the head is a PROBE: it learns to
+        read the (decoder-shaped) representation without perturbing the encoder.
+        This avoids the aux-loss decoder penalty measured in follow-up #2 — the
+        decoder stays at its aux_w=0 baseline while the head still trains."""
         if memory is None:
             memory = self.encode(b)
+        if detach:
+            memory = memory.detach()
         keep = (~b["src_pad"]).unsqueeze(-1).to(memory.dtype)   # (B, L, 1)
         pooled = (memory * keep).sum(1) / keep.sum(1).clamp_min(1.0)
         return self.coeff_a_head(pooled), self.coeff_b_head(pooled)
@@ -289,7 +296,7 @@ def train(args):
             tgt_out = b["tgt"][:, 1:]
             loss = crit(logits.reshape(-1, logits.size(-1)), tgt_out.reshape(-1))
             if args.coeff_aux_w > 0:
-                la, lb = model.coeff_logits(b, memory)
+                la, lb = model.coeff_logits(b, memory, detach=args.coeff_detach)
                 aux = coeff_crit(la, b["coeff_a"]) + coeff_crit(lb, b["coeff_b"])
                 # coeff_crit returns nan if a batch has zero present slots; guard.
                 if torch.isfinite(aux):
@@ -333,6 +340,11 @@ def main():
                          "(OFF): the 2026-05-30 ablation found it hurts decoder "
                          "exact-match monotonically (0.669@0 -> 0.508@0.5). Set 0.5 "
                          "to train the diagnostic head; see the coeff-head finding.")
+    ap.add_argument("--coeff-detach", action="store_true",
+                    help="stop-grad the head's view of encoder memory so it PROBES "
+                         "without perturbing the decoder (decoder stays at the "
+                         "aux_w=0 baseline). Use with --coeff-aux-w 0.5 for post-hoc "
+                         "substitution: good decoder + trained probe head in one run.")
     train(ap.parse_args())
 
 

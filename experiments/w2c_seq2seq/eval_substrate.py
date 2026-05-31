@@ -39,6 +39,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(REPO, "sdk", "sutra-compiler"))
 
 from model import W2CSeq2Seq, W2CDataset, collate, decode_ids, _to  # noqa: E402
+from prepare import COEFF_CLASSES  # noqa: E402
 
 from sutra_compiler.lexer import Lexer  # noqa: E402
 from sutra_compiler.parser import Parser  # noqa: E402
@@ -62,6 +63,36 @@ def canonicalize_source(src: str) -> str:
     """Drop redundant `1.0 * ` so a correct unit-coeff simplification compares
     equal. Pure/string-only — does NOT touch non-unit coefficients (0.5, 2.0…)."""
     return _UNIT_COEFF.sub("", src)
+
+
+# Post-hoc coefficient substitution (follow-up #2 lever 1): overwrite the
+# coefficient literal(s) the decoder emitted with the coeff-head's prediction.
+# A `<float> * ` token is a coefficient slot; positionally the 1st is slot a,
+# the 2nd is slot b. Gated by slot-presence (caller passes has_a/has_b from the
+# corpus label) so the fixed-coeff families (affine 0.5*, scaled 2.0*) are never
+# touched. Capped by head accuracy; measures the lever's lift, not a decompiler.
+_COEFF_LIT = re.compile(r'\d+\.\d+ \* ')
+
+
+def substitute_coeffs(src: str, pred_a: int, pred_b: int, has_a: bool, has_b: bool) -> str:
+    reps = []
+    if has_a:
+        reps.append(f"{COEFF_CLASSES[pred_a]!r} * ")
+    if has_b:
+        reps.append(f"{COEFF_CLASSES[pred_b]!r} * ")
+    if not reps:
+        return src
+    out, idx = [], 0
+    last = 0
+    for m in _COEFF_LIT.finditer(src):
+        if idx >= len(reps):
+            break
+        out.append(src[last:m.start()])
+        out.append(reps[idx])
+        last = m.end()
+        idx += 1
+    out.append(src[last:])
+    return "".join(out)
 
 
 def write_csv(path: str, mat) -> None:
@@ -138,12 +169,18 @@ def main() -> None:
     # recover behavior, so aggregate exact + io_ok by structure. Built from
     # every val program (not the truncated fails list).
     per_structure: dict = {}
+    # Post-hoc coefficient substitution (follow-up #2 lever 1): for programs that
+    # carry a coeff slot, compare IO-reproduction of the decoder's raw source vs
+    # the source with coeff literals overwritten by the head's prediction.
+    cf_n = cf_io_base = cf_io_subst = 0
 
     for i in range(n):
         batch = _to(collate([ds[i]]), dev)
         seq = model.greedy(batch)
         gen = decode_ids(seq[0, 1:].tolist(), inv)
         rec = ds.recs[i]
+        has_a = rec.get("coeff_a", -1) != -1
+        has_b = rec.get("coeff_b", -1) != -1
         is_exact = gen == rec["target"]
         # canonical exact-match: credit correct `1.0 *` simplifications (tick-3
         # follow-up #1). Strictly >= raw exact; the delta is the unit-coeff
@@ -183,6 +220,25 @@ def main() -> None:
         else:
             fails.append({"id": rec["id"], "exact": is_exact, "detail": detail})
 
+        # Coeff-family post-hoc substitution measurement (only for slot-carrying
+        # programs). Predict coeffs via the head, overwrite the literals, recompile
+        # + rerun, and compare to the raw decoder source's IO on the SAME programs.
+        if has_a or has_b:
+            cf_n += 1
+            cf_io_base += int(ok)
+            la, lb = model.coeff_logits(batch)
+            pa = int(la.argmax(-1)[0].item())
+            pb = int(lb.argmax(-1)[0].item())
+            gen_sub = substitute_coeffs(gen, pa, pb, has_a, has_b)
+            try:
+                with tempfile.TemporaryDirectory() as td:
+                    paths = write_weight_csvs(rec["weights"], td)
+                    ns = compile_su(resubstitute(gen_sub, paths), rec["K"])
+                    ok_sub, _ = check_io(ns["apply"], ns["_VSA"], rec["io"])
+            except Exception:  # noqa: BLE001 — substituted source may not compile
+                ok_sub = False
+            cf_io_subst += int(ok_sub)
+
     summary = {
         "n": n,
         "exact_match": exact,
@@ -202,6 +258,14 @@ def main() -> None:
                 "io_rate": round(v["io_ok"] / v["n"], 4)}
             for k, v in sorted(per_structure.items())
         },
+        # post-hoc coeff substitution, measured on the cf_n coeff-slot programs
+        "coeff_subst": {
+            "n": cf_n,
+            "io_base": cf_io_base,
+            "io_base_rate": round(cf_io_base / max(1, cf_n), 4),
+            "io_subst": cf_io_subst,
+            "io_subst_rate": round(cf_io_subst / max(1, cf_n), 4),
+        },
     }
     with open(os.path.join(HERE, "_eval_result.json"), "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "wins": wins[:25], "fails": fails[:40]}, f, indent=1)
@@ -211,7 +275,8 @@ def main() -> None:
           f"nonexact_io_ok={len(wins)} compfail={compile_fail} runfail={run_fail} "
           f"emr={summary['exact_match_rate']} "
           f"emcr={summary['exact_match_canonical_rate']} "
-          f"rpr={summary['io_reproduction_rate']}")
+          f"rpr={summary['io_reproduction_rate']} "
+          f"cf_n={cf_n} cf_io_base={cf_io_base} cf_io_subst={cf_io_subst}")
 
 
 if __name__ == "__main__":
