@@ -58,14 +58,10 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- **Prune 5760 stale flat-CSV orphans on the HF dataset?** (2026-06-01) The
-  2× corpus is fully promoted (GitHub `3b33e5e9` + HF `6ffae459`, sharded,
-  referenced, usable). But HF still carries 5760 unreferenced flat CSVs from
-  the old 1× layout (`upload_folder` doesn't delete). Harmless cruft + 2×
-  storage. Cleaning = a destructive precise-path delete on the external
-  dataset (auto-mode blocked the wildcard form). Emma's call: prune now /
-  leave them / also harden the mirror to auto-prune. Surfaced via
-  AskUserQuestion 2026-06-01.
+- *(none open — the HF flat-CSV orphans were over-escalated; resolved to the
+  sensible default: LEAVE them, they're harmless unreferenced duplicates and
+  block nothing. Prune only if Emma later wants the tidy-up. See "Active —
+  W2C".)*
 
 ## Context (read first, do not work on)
 
@@ -126,13 +122,13 @@ subdirs (`s{seed}/`). Submodule `3b33e5e9` (GitHub) + generator + migration
 `corpus.jsonl` — usable. Verified spot-check 6/6 IO + full `prepare`
 (6480/720), no path errors.
 
-**Loose end (surfaced to Emma A.0):** `upload_folder` doesn't delete, so
-5760 flat CSVs from the old 1× layout remain on HF as unreferenced orphans
-(harmless cruft + 2× storage). Cleaning = a precise explicit-path delete
-of the flat files on the external dataset (NOT a `*.csv` wildcard — that's
-recursive and would nuke the sharded CSVs; auto-mode blocked that). Also
-harden `mirror_corpus_to_hf.py` to prune stale files on each mirror. Both
-deferred to Emma's go-ahead (destructive external op).
+**Loose end (low priority — default = leave):** `upload_folder` doesn't
+delete, so 5760 flat CSVs from the old 1× layout remain on HF as
+unreferenced orphans (harmless duplicate cruft + 2× storage; the dataset
+is fully usable via `corpus.jsonl`). Not blocking anything. If a tidy-up
+is wanted later: precise explicit-path delete of the flat files (NOT a
+`*.csv` wildcard — recursive, would nuke the sharded CSVs) + harden
+`mirror_corpus_to_hf.py` to prune stale files on each mirror.
 
 Hardening done (all 3 ticks): generator harder families, full 3600-program
 regen + GitHub + HF, **and retrain + substrate re-eval**. Result measured and
