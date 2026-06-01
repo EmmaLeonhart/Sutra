@@ -101,11 +101,20 @@ passing (write/number-field legs skip if no ollama). Remaining:
    sugar is what makes `await ramRead(pointer)` write as Emma specced.
    (Follow-up open Q: a model-free hash-keyed-role axon to drop the
    mailbox's 768-dim key-embedding cost.)
-2. **Finding: NTM-RAM vs substrate-RNN text-gen.** Same task (emit a
-   string), two architectures — external addressable RAM vs internal
-   recurrence. Write up under `planning/findings/`; the payoff Emma
-   named. (The RAM read+write halves are demonstrated; pair against the
-   substrate-RNN text-gen demo.)
+2. **Finding: RAM pixel-lookup rendering vs the neural font renderer
+   (Emma 2026-06-01 clarification).** The comparison Emma named: render
+   glyph pixels two ways — (a) the "pure neural network thing" =
+   `demos/font/font.su` `glyph_pixel(x,y,code)`, which COMPUTES each
+   pixel on the substrate via a 36-way × 25-way defuzzified-`select`
+   cascade (the font baked into the program); (b) the NTM/RAM way =
+   store the glyph bitmaps in RAM and FETCH each pixel by pointer
+   (`ramRead`), a lookup-table rendering. Same output bitmap, two
+   architectures (substrate compute vs external-memory lookup). Verify
+   the RAM-fetched bitmap matches `glyph_pixel`'s output exactly for
+   several glyphs; write up under `planning/findings/` with both ASCII
+   renders + the architectural tradeoff (the NN renderer bakes the font
+   into a huge select cascade; the RAM renderer stores it in addressable,
+   mutable, scalable external memory — what `ramWrite` enables).
 
 Deferred (todo.md): reservoir computing (OS-era); differentiable/soft
 addressing for the *trainable* NTM (open question — hard addressing
