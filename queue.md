@@ -73,6 +73,10 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
+### 🔍 Daily substrate-honesty audit — 2026-06-01
+
+Auto-prepended by .github/workflows/daily-audit.yml. The next autonomous-loop session should, as its first action: review every commit landed since the previous daily audit against CLAUDE.md § "Subtler substrate breaches — measurement-required": (a) for each commit touching a .su or its compile path, verify runtime_dim matches what the .su actually needs (count basis_vector calls; no basis_vector → tiny dim); (b) for any commit that frames work as "recurrent" / "RNN" / "substrate-pure" / "verified", verify the claim against measurement, not against earlier session framing; (c) for any commit shipping a substrate classifier or decision function, verify the measured gap = min(positive_class) - max(negative_class) is in the commit or planning doc. If anything is amiss, write a finding under planning/findings/ and a fix item under queue.md BEFORE doing other queue work. Then delete this item.
+
 Hardening done (all 3 ticks): generator harder families, full 3600-program
 regen + GitHub + HF, **and retrain + substrate re-eval**. Result measured and
 written up: `planning/findings/2026-05-30-w2c-tick3-hardened-corpus-eval.md`.
