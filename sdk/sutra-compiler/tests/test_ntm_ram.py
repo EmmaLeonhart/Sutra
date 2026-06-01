@@ -124,6 +124,31 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertAlmostEqual(vsa.real(ns["gp"](a)), 7.0, places=3)
         self.assertAlmostEqual(vsa.real(ns["gd"](a)), 65.0, places=3)
 
+    def test_ram_lookup_render_matches_font_ground_truth(self):
+        # RAM-lookup rendering (Emma 2026-06-01): store a glyph's 5x5
+        # bitmap in RAM, fetch all 25 cells by the read head's
+        # program-controlled pointers, and confirm it reproduces the font
+        # ground truth exactly. The pure-NN render (font.su glyph_pixel)
+        # is verified separately by demos/font/test_font.py; recompiling
+        # font.su here would be heavy, so this guards only the RAM side.
+        sys.path.insert(0, os.path.join(_REPO, "demos", "font"))
+        from font_data import bits_for
+        from ram_device import RamDevice
+        from orchestrator import Orchestrator
+        ns = self._compile("text_scan.su")
+        vsa = ns["_VSA"]
+        for ch in ("A", "7"):
+            ground = [round(b) for b in bits_for(ch)]
+            ram = RamDevice(vsa, size=32)
+            for pos, b in enumerate(ground):
+                ram.write_number(pos, float(b))
+            ns["_read_head__cursor_state"] = None  # fresh cursor per glyph
+            orch = Orchestrator(vsa, ram, ns["read_head"])
+            # fixed 25-cell fetch; 0 bits are valid pixels -> no sentinel
+            trace = orch.run_read_scan(max_steps=25, stop_on_sentinel=False)
+            got = [round(float(vsa.real(served))) for _a, served in trace]
+            self.assertEqual(got, ground, f"glyph {ch!r} RAM render mismatch")
+
     def test_dim_audit_is_honest(self):
         # No basis_vector calls => semantic content is unused => a tiny
         # semantic_dim is correct (CLAUDE.md dim audit).
