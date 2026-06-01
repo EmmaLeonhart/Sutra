@@ -71,6 +71,45 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
+## Active — RAM pointers → Neural Turing Machine (Emma 2026-06-01, barrel through)
+
+Spec: `planning/sutra-spec/ram-pointers.md`. Sutra gets pointers to RAM
+(host memory, distinct from VRAM), accessed as an I/O device via a
+modified `await`. An **orchestrator** (the first external `await`
+producer — `axon-io.md` left this open) bridges VRAM mailbox slots to
+host RAM. Surface: `number x = await ramRead(pointer);` /
+`ramWrite(pointer, data);`. **Read the spec's "honesty line" before
+implementing** — the program is substrate-pure on VRAM; the
+orchestrator does host I/O + decode/encode at the wire only.
+
+1. **Runtime: orchestrator + RAM device + `ramRead`/`ramWrite`.** Host
+   flat RAM buffer + orchestrator that services the VRAM mailbox.
+   `ramRead(ptr)` = an `await` whose producer is the orchestrator
+   (decode ptr-vector→addr, host read, encode→response slot, set
+   `AXIS_AXON_POPULATED`); `ramWrite(ptr,data)` emits to the write
+   mailbox → host write. Reuse the `await`→`Promise`→`while_loop`
+   lowering (`promises.md`) and the arrival check (`axon-io.md`).
+   Build it, RUN it, read the real output — don't substitute a variant.
+2. **Surface: parse + validate `ramRead` / `ramWrite`.** `number x =
+   await ramRead(ptr);` and `ramWrite(ptr, data);` lex/parse/validate.
+3. **Demo: read text from RAM and display it.** Store a string across
+   RAM cells; a `.su` program reads cell-by-cell via `ramRead` and
+   emits the string. Run on the real substrate; compare decoded output
+   to the ground-truth string (report the true delta).
+4. **Substrate audits + pytest guard.** Dim audit (model-free → small
+   `runtime_dim`, not 768); state-locus (any internal cursor is a
+   `recurring` VRAM vector, not a host var; RAM itself is *external* by
+   design); signal-separation gap if the program classifies anything
+   (e.g. end-of-string sentinel). Regression test under
+   `sdk/sutra-compiler/tests/`.
+5. **Finding: NTM-RAM vs substrate-RNN text-gen.** Same task (emit a
+   string), two architectures. Write up under `planning/findings/`;
+   this is the payoff Emma named.
+
+Deferred (todo.md): reservoir computing (OS-era); differentiable/soft
+addressing for the *trainable* NTM (open question — hard addressing
+first, do not substitute soft now).
+
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
 Hardening done (all 3 ticks): generator harder families, full 3600-program
