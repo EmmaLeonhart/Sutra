@@ -6,6 +6,51 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-01: RAM pointers → Neural Turing Machine — spec + working read runtime
+
+Emma's 2026-06-01 direction: give Sutra pointers to RAM (host memory,
+distinct from VRAM), accessed as an I/O device via a modified `await`,
+building toward a programmable Neural Turing Machine trainable to achieve
+goals — a deliberate widening beyond RNN-recurrence. Reservoir computing
+is named in the roadmap but deferred to the OS era. Captured in Emma's
+framing and grounded in the shipped `await`/`Promise` (`promises.md`),
+axon-IO slot protocol (`axon-io.md`), and `recur`/output-axon
+(`non-halting-loop.md`) mechanisms.
+
+Planning: `planning/sutra-spec/ram-pointers.md` (full spec + the
+"honesty line" + substrate audits + open questions, hard-addressing
+first with soft/differentiable addressing flagged for the trainable-NTM
+phase, not substituted in now); `todo.md` § "Architectural
+diversification"; `open-questions.md` index entries; queue decomposed
+into 5 steps (`5e3aa2ca`).
+
+Read runtime built and verified on the real substrate (`259b1765`,
+`f354a523`) under `experiments/ntm_ram/`: a host RAM device + the
+orchestrator — the first external `await`/I/O producer Sutra has wired
+(`axon-io.md` left "who writes the slot" open). Two addressing modes
+measured exact:
+- **Sequential scan** (`text_scan.su`): a recurring VRAM cursor advances
+  by `complex_add` each tick and is emitted as the pointer; the
+  orchestrator serves host RAM and stops at the zero-vector sentinel.
+  Decoded read stream == `"HELLO, RAM!"` exact, addresses `[0..11]`.
+- **Pointer-chase / data-dependent addressing** (`chase.su`): each cell
+  is a complex number (real = codepoint, imag = next address); the head
+  carries the cell through the substrate and the orchestrator decodes
+  payload + link from the program's output. `"WORLD"` stored at
+  non-sequential addresses `[0,5,2,9,4]` is recovered in reading order
+  (the non-sequential visit order is the proof it followed pointers).
+
+Audits: dim — `semantic_dim=2` (model-free, zero `basis_vector`);
+state-locus — the recurring cursor/counter is a VRAM tensor persisted via
+the module slot, the only host touches are the orchestrator's
+pointer/value decode at the I/O wire (monitoring); signal-separation —
+the read heads classify nothing. Regression guard
+`sdk/sutra-compiler/tests/test_ntm_ram.py` (3 passing) locks both modes +
+the dim audit; model-free so no ollama dependency in CI.
+
+Remaining (queue): the `ramWrite` path, the `ramRead`/`ramWrite` surface
+syntax, and the NTM-vs-substrate-RNN text comparison finding.
+
 ## 2026-05-31: daily audit — clean (no-op)
 
 2026-05-31 daily audit: clean (70 .su compiled, 0 leaks; 13 open-questions dossiers + sutra-spec/open-questions.md index checked, 0 resolved-elsewhere; promise/await fit-to-spec). Fresh container with no torch/numpy/ollama preinstalled — installed pytest + torch (CPU) + numpy + the `ollama` python pkg, the ollama server, and pulled `nomic-embed-text`, so every leg ran live (no env-skip, no false-clean). Promise/await: codegen lint clean + `test_await_substrate_pure` 4/4 both backends incl. the two live-embedding semantic legs (`main()` = 3.0). Substrate-leak sweep: 70 user .su compiled + runtime prelude scanned, 0 user-program leaks + 0 runtime-prelude leaks. Codegen-pytorch grep findings all match Audit.md BORDERLINE/LEGITIMATE taxonomy (literal-lift `_st()` boundaries at make_real/make_truth/make_char/make_complex/array_from_literal/load_matrix; monitoring accessors at real/imag/truth/component/semantic/norm; compile-time constants self.PI/TAU; JS-interop equality/promotion under CLAUDE.md compat carve-out incl. `_js_str_cmp` + `js_strict_eq`/`js_strict_neq`/`js_loose_eq`/`js_loose_neq`/`_js_relational`; structural for-range loops in defuzzify_trit/digit_array_add/_TorchVSA.loop — Audit #4 NOT-A-LEAK shape; string_to_python decode boundary; argmax_cosine terminal commit edge with `float('-inf')` sentinel). Audit.md REAL LEAK #1–#10 all still marked FIXED, #4 still NOT-A-LEAK; spec-fit watchdog and `experiments/substrate_leak_sweep.py` both green. Open-questions README verdict table (refreshed 2026-05-28 pruning pass) still authoritative — 2 RESOLVED-core with narrow OPEN tail + 11 genuinely OPEN — confirmed against current spec/findings/code; `sutra-spec/open-questions.md` triage section (2026-05-16/2026-05-17) accurate, all strikethrough-RESOLVED lines still match their cited authoritative location. No commits since the 2026-05-30 daily audit touched `codegen_pytorch.py` or any `.su` file — the 22 commits (`bb5d1b2`..`6156e80`) are all W2C seq2seq experiments under `experiments/w2c_seq2seq/`, paper-submission infrastructure, CI scripts, mailmap removal, docs delisting, and the daily-audit queue prepend; none touches the substrate runtime or resolves a `planning/open-questions/` dossier or `sutra-spec/open-questions.md` line.
