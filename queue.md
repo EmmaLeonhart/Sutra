@@ -58,15 +58,9 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- **W2C 2× corpus helped — promote to official + HF, or scale further first?**
-  (2026-06-01) The 2× corpus (7200) improved decoder exact 0.689→0.811,
-  canonical/IO 0.714→0.825, coeff-family IO 0.31→0.41 vs the 1× baseline
-  (coeff-head finding § "Bigger-corpus test"). The plan said "if it helps, do
-  the official regen + push + HF + pointer bump" — that is an outward op
-  (pushes a 7200-program dataset to the submodule + HF mirror). The result is
-  positive but partial (coeff still 0.41). Decision is Emma's: push official
-  now / scale to 4× first to see if the trend holds / hold. Surfaced via
-  AskUserQuestion 2026-06-01.
+- *(none open — W2C 2× corpus: Emma chose "promote to official" 2026-06-01;
+  GitHub submodule `d07feeba` done. HF mirror BLOCKED (10000-files/dir limit)
+  — fix is engineering, not an Emma decision; see "Active — W2C" below.)*
 
 ## Context (read first, do not work on)
 
@@ -118,6 +112,20 @@ RESOLVED 2026-06-01: RAM is not differentiable, round-to-nearest.)
 
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
+### HF mirror sharding fix (blocks the HF publish of the 7200 corpus)
+
+The 2× corpus is official on GitHub (`d07feeba`) but the HF mirror was
+rejected: **HF allows ≤10000 files per directory**; the flat layout has
+11520 CSVs in the corpus root. Fix: shard the CSVs into subdirectories
+(e.g. by structure or by `seed`, each <10000 files), update `corpus.jsonl`
+csv paths to include the subdir, and update path resolution in
+`experiments/w2c_seq2seq/prepare.py` + `eval_substrate.py` (they resolve
+csv basenames relative to the corpus dir) + the generator's output layout,
+then re-push the submodule and re-run `mirror_corpus_to_hf.py`. Keep
+GitHub + HF layouts identical. Verify the consistency spot-check + a
+prepare/eval run still pass after the path change. Until done, HF stays at
+the 3600 version (`d464fdb`) — do NOT claim HF in sync.
+
 Hardening done (all 3 ticks): generator harder families, full 3600-program
 regen + GitHub + HF, **and retrain + substrate re-eval**. Result measured and
 written up: `planning/findings/2026-05-30-w2c-tick3-hardened-corpus-eval.md`.
@@ -161,10 +169,12 @@ scalar coefficients are a wall for this architecture.
 
 ## Corpus (built & at scale — not active work)
 
-The weights↔code corpus is built and at **3600 programs** (15 structures ×
-6 K {4,6,8,10,12,16} × 4 weight-kinds × 10 seeds), on the `corpus/`
-submodule (`EmmaLeonhart/sutra-w2c-corpus`) + HF mirror (in sync, `d464fdb`),
-both consistency-guarded (`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
+The weights↔code corpus is built and at **7200 programs** (15 structures ×
+6 K {4,6,8,10,12,16} × 4 weight-kinds × 20 seeds; scaled 1×→2× 2026-06-01,
+submodule `d07feeba`), on the `corpus/` submodule
+(`EmmaLeonhart/sutra-w2c-corpus`); HF mirror is STALE at the 3600 version
+(`d464fdb`) pending the sharding fix above (HF 10000-files/dir limit).
+Consistency-guarded (`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
 Scale further = one-flag bump (`--seeds`/`--ks`) on
 `experiments/weight_to_code_corpus.py` → push submodule →
 `experiments/mirror_corpus_to_hf.py` → bump the Sutra pointer + card stats.
