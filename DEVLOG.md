@@ -48,8 +48,25 @@ the read heads classify nothing. Regression guard
 `sdk/sutra-compiler/tests/test_ntm_ram.py` (3 passing) locks both modes +
 the dim audit; model-free so no ollama dependency in CI.
 
-Remaining (queue): the `ramWrite` path, the `ramRead`/`ramWrite` surface
-syntax, and the NTM-vs-substrate-RNN text comparison finding.
+Write path then added (axon mailbox, Emma's decision): `write_head.su`
+emits an `Axon{ptr, data}` each tick (ptr = recurring cursor, data =
+cursor+100, both substrate-computed); the orchestrator reads the fields
+via `axon_item` (the substrate unbind), decodes the pointer, and writes
+the data vector to host RAM. Readback exact: RAM[0..4] = 100..104.
+Before building it I had flagged that pure-`number` axon fields might
+superpose (bind rotation is identity on the synthetic block) — measured
+it instead and the worry was wrong: two number fields recover cleanly
+(ptr=7, data=65 exact). The CLAUDE.md rule in practice — measure, don't
+derive-and-dismiss; Emma's design was right. Dim-audit note: `axon_add`
+embeds the field key, so the write head runs at `runtime_dim=868` (768
+for the keys, not the payloads); a model-free hash-keyed-role axon is a
+flagged follow-up. `test_ntm_ram.py` now 5 passing (write + number-field
+legs skip without ollama).
+
+Remaining (queue): the `ramRead`/`ramWrite` surface syntax (lower
+through the await→Promise→while_loop path with the orchestrator as
+producer and the axon mailbox as carrier), and the NTM-vs-substrate-RNN
+text comparison finding.
 
 ## 2026-05-31: daily audit — clean (no-op)
 

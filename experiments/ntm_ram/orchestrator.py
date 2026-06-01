@@ -92,6 +92,23 @@ class Orchestrator:
             addr = nxt
         return trace
 
+    def run_write_stream(self, n_steps: int):
+        """Drive a write head that emits an Axon{ptr, data} mailbox each
+        tick (ram-pointers.md § "Mailbox representation", Emma's
+        2026-06-01 decision). Read the two fields with axon_item (the
+        substrate unbind — the consumer side of the mailbox), decode the
+        pointer at the wire, and store the data VRAM vector in host RAM.
+        Returns [(addr, decoded_data)] in write order."""
+        written = []
+        for _ in range(n_steps):
+            req = self._tick()                          # program emits mailbox
+            ptr_vec = self._vsa.axon_item(req, "ptr")   # substrate unbind
+            data_vec = self._vsa.axon_item(req, "data")
+            addr = int(round(self._vsa.real(ptr_vec)))  # decode at the wire
+            self._ram.write_vector(addr, data_vec)      # host RAM I/O
+            written.append((addr, int(round(self._vsa.real(data_vec)))))
+        return written
+
     def chase_text(self, trace) -> str:
         """Decode a pointer-chase trace's codepoints to a string."""
         return "".join(chr(code) for _addr, code, _nxt in trace if code > 0)
