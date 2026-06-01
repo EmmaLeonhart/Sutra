@@ -258,17 +258,28 @@ def main():
                         hash((structure, K, kind, seed)) & 0x7FFFFFFF
                     )
                     # weights -> CSV (one per matrix); abs path for compile,
-                    # relative basename stored in the portable source.
+                    # relative subdir-prefixed path stored in the portable
+                    # source. CSVs are sharded into per-seed subdirs
+                    # (`s{seed}/...`) so no single directory exceeds Hugging
+                    # Face's 10000-files-per-directory limit (the flat layout
+                    # hit it at 2× = 11520 CSVs; 20 seeds → ~576 files/dir).
+                    # os.path.join(corpus_dir, csv) in prepare/eval/consistency
+                    # resolves the subdir transparently; the `source` token and
+                    # the `csv` field use the same `s{seed}/...` string so
+                    # normalize_source's replace still matches.
+                    subdir = f"s{seed}"
+                    os.makedirs(os.path.join(a.out, subdir), exist_ok=True)
                     abs_paths, rel_paths, weights_meta = {}, {}, []
                     for m in STRUCTURES[structure]["mats"]:
                         W = make_weight(kind, K, gen)
                         base = f"{rid}_{m}.csv"
-                        ap_ = os.path.join(a.out, base)
+                        rel = f"{subdir}/{base}"
+                        ap_ = os.path.join(a.out, subdir, base)
                         write_csv(ap_, W)
                         abs_paths[m] = ap_.replace("\\", "/")
-                        rel_paths[m] = base
+                        rel_paths[m] = rel
                         weights_meta.append(
-                            {"name": m, "csv": base, "shape": [K, K], "kind": kind}
+                            {"name": m, "csv": rel, "shape": [K, K], "kind": kind}
                         )
 
                     coeff_vals = (_coeff_values(rid, STRUCTURES[structure]["coeffs"])
