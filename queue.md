@@ -82,29 +82,35 @@ host RAM. Surface: `number x = await ramRead(pointer);` /
 implementing** — the program is substrate-pure on VRAM; the
 orchestrator does host I/O + decode/encode at the wire only.
 
-1. **Runtime: orchestrator + RAM device + `ramRead`/`ramWrite`.** Host
-   flat RAM buffer + orchestrator that services the VRAM mailbox.
-   `ramRead(ptr)` = an `await` whose producer is the orchestrator
-   (decode ptr-vector→addr, host read, encode→response slot, set
-   `AXIS_AXON_POPULATED`); `ramWrite(ptr,data)` emits to the write
-   mailbox → host write. Reuse the `await`→`Promise`→`while_loop`
-   lowering (`promises.md`) and the arrival check (`axon-io.md`).
-   Build it, RUN it, read the real output — don't substitute a variant.
+**Read runtime DONE** (`259b1765`, `f354a523`; DEVLOG 2026-06-01). The
+orchestrator (first external `await`/I/O producer), the host RAM device,
+and BOTH addressing modes run on the substrate and recover text exactly:
+sequential scan (`text_scan.su` → "HELLO, RAM!") and data-dependent
+pointer-chase (`chase.su` → "WORLD" at non-sequential addresses
+[0,5,2,9,4]). Audits clean; regression guard
+`sdk/sutra-compiler/tests/test_ntm_ram.py` (3 passing). Remaining:
+
+1. **Runtime: the `ramWrite` path.** Orchestrator services a write
+   mailbox → host RAM write. Faithful version has the program control
+   BOTH pointer and data; the clean substrate encoding is `make_complex`
+   (data in real, address in imag) mirroring the chase read — but
+   emitting independently-chosen (data, addr) from `.su` needs either a
+   source-level `real()`/`imag()` accessor or a `swap_ri` primitive
+   exposed (non-halting-loop.md notes the missing accessor). DECIDE:
+   expose the small primitive vs. orchestrator-sequential write address
+   for v1. Build it, RUN it (write a substrate-generated sequence to
+   RAM, read it back, verify exact), then extend `test_ntm_ram.py`.
 2. **Surface: parse + validate `ramRead` / `ramWrite`.** `number x =
-   await ramRead(ptr);` and `ramWrite(ptr, data);` lex/parse/validate.
-3. **Demo: read text from RAM and display it.** Store a string across
-   RAM cells; a `.su` program reads cell-by-cell via `ramRead` and
-   emits the string. Run on the real substrate; compare decoded output
-   to the ground-truth string (report the true delta).
-4. **Substrate audits + pytest guard.** Dim audit (model-free → small
-   `runtime_dim`, not 768); state-locus (any internal cursor is a
-   `recurring` VRAM vector, not a host var; RAM itself is *external* by
-   design); signal-separation gap if the program classifies anything
-   (e.g. end-of-string sentinel). Regression test under
-   `sdk/sutra-compiler/tests/`.
-5. **Finding: NTM-RAM vs substrate-RNN text-gen.** Same task (emit a
-   string), two architectures. Write up under `planning/findings/`;
-   this is the payoff Emma named.
+   await ramRead(ptr);` and `ramWrite(ptr, data);` lex/parse/validate,
+   lowering `ramRead` through the `await`→`Promise`→`while_loop` path
+   (`promises.md`) with the orchestrator as producer. Today the demos
+   wire the orchestrator by hand around a `recur` loop; the surface
+   sugar is what makes `await ramRead(pointer)` write as Emma specced.
+3. **Finding: NTM-RAM vs substrate-RNN text-gen.** Same task (emit a
+   string), two architectures — external addressable RAM vs internal
+   recurrence. Write up under `planning/findings/`; the payoff Emma
+   named. (The RAM-read half is demonstrated; pair it against the
+   substrate-RNN text-gen demo.)
 
 Deferred (todo.md): reservoir computing (OS-era); differentiable/soft
 addressing for the *trainable* NTM (open question — hard addressing
