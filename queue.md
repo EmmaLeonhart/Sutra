@@ -89,8 +89,11 @@ and round-trip exactly: sequential-scan read (`text_scan.su` →
 "HELLO, RAM!"), data-dependent pointer-chase read (`chase.su` → "WORLD"
 at non-sequential [0,5,2,9,4]), and the axon-mailbox write
 (`write_head.su` emits `Axon{ptr,data}` → RAM[0..4]=100..104 readback
-exact). Audits clean; `sdk/sutra-compiler/tests/test_ntm_ram.py` 5
-passing (write/number-field legs skip if no ollama). Remaining:
+exact). Audits clean; `sdk/sutra-compiler/tests/test_ntm_ram.py` 6
+passing (write/number-field legs skip if no ollama). The pixel-rendering
+finding Emma named is DONE: RAM pixel-lookup render == neural `glyph_pixel`
+render == font ground truth (`planning/findings/2026-06-01-ram-pixel-lookup-vs-neural-font-render.md`).
+Remaining:
 
 1. **Surface: parse + validate `ramRead` / `ramWrite`.** `number x =
    await ramRead(ptr);` and `ramWrite(ptr, data);` lex/parse/validate,
@@ -101,24 +104,10 @@ passing (write/number-field legs skip if no ollama). Remaining:
    sugar is what makes `await ramRead(pointer)` write as Emma specced.
    (Follow-up open Q: a model-free hash-keyed-role axon to drop the
    mailbox's 768-dim key-embedding cost.)
-2. **Finding: RAM pixel-lookup rendering vs the neural font renderer
-   (Emma 2026-06-01 clarification).** The comparison Emma named: render
-   glyph pixels two ways — (a) the "pure neural network thing" =
-   `demos/font/font.su` `glyph_pixel(x,y,code)`, which COMPUTES each
-   pixel on the substrate via a 36-way × 25-way defuzzified-`select`
-   cascade (the font baked into the program); (b) the NTM/RAM way =
-   store the glyph bitmaps in RAM and FETCH each pixel by pointer
-   (`ramRead`), a lookup-table rendering. Same output bitmap, two
-   architectures (substrate compute vs external-memory lookup). Verify
-   the RAM-fetched bitmap matches `glyph_pixel`'s output exactly for
-   several glyphs; write up under `planning/findings/` with both ASCII
-   renders + the architectural tradeoff (the NN renderer bakes the font
-   into a huge select cascade; the RAM renderer stores it in addressable,
-   mutable, scalable external memory — what `ramWrite` enables).
 
-Deferred (todo.md): reservoir computing (OS-era); differentiable/soft
-addressing for the *trainable* NTM (open question — hard addressing
-first, do not substitute soft now).
+Deferred (todo.md): reservoir computing (OS-era); trainable-controller /
+model-free-axon-key / multi-cell-payload design work. (Differentiability
+RESOLVED 2026-06-01: RAM is not differentiable, round-to-nearest.)
 
 ## Active — W2C weight→code (option A hardening complete; next levers)
 

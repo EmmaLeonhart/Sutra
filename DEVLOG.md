@@ -63,10 +63,31 @@ for the keys, not the payloads); a model-free hash-keyed-role axon is a
 flagged follow-up. `test_ntm_ram.py` now 5 passing (write + number-field
 legs skip without ollama).
 
-Remaining (queue): the `ramRead`/`ramWrite` surface syntax (lower
+Differentiability resolved (Emma 2026-06-01): RAM is NOT differentiable —
+I/O is outside that realm; a pointer between two cells rounds to the
+nearest. A trainable NTM trains its controller, not the discrete RAM
+access. The orchestrator already does `int(round(real(ptr)))`. Open-Q
+closed in `ram-pointers.md` + `open-questions.md`; remaining
+trainable-controller / model-free-axon / multi-cell work moved to
+`todo.md`.
+
+Pixel-rendering comparison (the payoff Emma named) DONE: render the same
+glyph two ways — the pure-NN `font.su` `glyph_pixel` (a 36×25-way
+defuzzified-`select` cascade computing each pixel) vs the NTM/RAM lookup
+(the bitmap stored in the RAM device, fetched cell-by-cell by a
+pointer-emitting read head). Measured both reproduce the font ground
+truth (`font_data.FONT_5x5`) exactly for 'A' and '7'; NN == RAM ==
+ground. Finding:
+`planning/findings/2026-06-01-ram-pixel-lookup-vs-neural-font-render.md`.
+Demo `experiments/ntm_ram/run_font_compare.py`; guarded cheaply (RAM side,
+no `font.su` recompile) by `test_ntm_ram.py`
+(`test_ram_lookup_render_matches_font_ground_truth`), now 6 passing. The
+NN side is already guarded by `demos/font/test_font.py`.
+
+Remaining (queue): only the `ramRead`/`ramWrite` surface syntax (lower
 through the await→Promise→while_loop path with the orchestrator as
-producer and the axon mailbox as carrier), and the NTM-vs-substrate-RNN
-text comparison finding.
+producer and the axon mailbox as carrier; the inline-await form gated on
+the async Stage-1 desugar maturing).
 
 ## 2026-05-31: daily audit — clean (no-op)
 
