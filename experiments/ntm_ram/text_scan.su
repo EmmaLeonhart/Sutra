@@ -1,0 +1,20 @@
+// text_scan.su — NTM read head, sequential scan.
+// planning/sutra-spec/ram-pointers.md.
+//
+// Non-halting substrate-RNN: a recurring cursor lives on VRAM and
+// advances by one each tick (vector add on the substrate). Each tick it
+// is emitted as the pointer the head wants to read. The orchestrator
+// (experiments/ntm_ram/orchestrator.py) decodes the pointer, reads the
+// host RAM cell, and serves it back as `served` on the next tick. The
+// program controls the address sequence on the substrate; the
+// orchestrator does the host RAM I/O at the wire. `served` is the
+// response slot (unused by a forward scan, consumed by pointer-chasing
+// variants).
+function vector read_head(vector served) {
+    recurring vector cursor = make_real(0.0);
+    vector next = cursor + make_real(1.0);
+    recur(next);
+    return(cursor);
+}
+
+function string main() { return "ok"; }
