@@ -79,7 +79,7 @@ STRUCTURES = {
     # (a = (y - x) / (M0@x)), so the model cannot template it. The additive
     # families directly stress-test the measured failure (v0 dropped the ±x
     # term). Existing 10 families above are unchanged on purpose — the
-    # committed 2400 corpus + its consistency tests stay valid.
+    # committed corpus + its consistency tests stay valid.
     "chain4":         {"mats": ["M0", "M1", "M2", "M3"],
                        "body": "Tensor.MatrixMul(M3, Tensor.MatrixMul(M2, Tensor.MatrixMul(M1, Tensor.MatrixMul(M0, x))))"},
     "scaled_res":     {"mats": ["M0"], "coeffs": ["a"],
@@ -232,12 +232,15 @@ def main():
     # own repo, not in Sutra. Override --out for scratch/large runs elsewhere.
     ap.add_argument("--out", default=os.path.join(REPO, "corpus"))
     # Programmatic scaling is the corpus workhorse (Emma 2026-05-30: scale
-    # much larger before modeling). Default = thousands-scale: 10 structures
-    # × 6 K {4,6,8,10,12,16} × 4 kinds × 10 seeds = 2400 programs. Pass small
-    # --ks / --seeds for a quick dev run (the tests do).
+    # much larger before modeling). Default reproduces the official corpus:
+    # 15 structures × 6 K {4,6,8,10,12,16} × 4 kinds × 20 seeds = 7200
+    # programs (scaled 1×→2× 2026-06-01: the data side measurably helps
+    # weight→code; see the coeff-head finding). Pass small --ks / --seeds
+    # for a quick dev run (the tests do).
     ap.add_argument("--ks", default="4,6,8,10,12,16")
     ap.add_argument("--kinds", default="gaussian,perm,trained_rotation,trained_perm")
-    ap.add_argument("--seeds", default="0,1,2,3,4,5,6,7,8,9")
+    ap.add_argument("--seeds",
+                    default=",".join(str(i) for i in range(20)))
     ap.add_argument("--n-io", type=int, default=4)
     a = ap.parse_args()
     Ks = [int(k) for k in a.ks.split(",") if k.strip()]
