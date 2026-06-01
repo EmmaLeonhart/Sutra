@@ -220,7 +220,23 @@ the first cut is hard (discrete) addressing; differentiable/soft
 addressing is an explicit open question, not to be substituted in now.
 Demo target: read text from RAM and display it, compared against the
 substrate-RNN text-generation demo (same task, two architectures).
-- [ ] Decomposed into concrete steps in `queue.md` (2026-06-01).
+- **Core DONE 2026-06-01:** spec (`ram-pointers.md`), read+write runtime
+  (orchestrator + RAM device; sequential-scan + pointer-chase reads +
+  axon-mailbox write, all exact on the substrate;
+  `experiments/ntm_ram/`, `test_ntm_ram.py` 6/6), and the pixel-lookup-vs-
+  neural-font-render finding Emma named. See DEVLOG 2026-06-01.
+- [ ] **`ramRead`/`ramWrite` surface syntax — BLOCKED on the async/await
+  Stage-1 desugar.** Emma's surface is the inline `number x = await
+  ramRead(pointer);` / `ramWrite(pointer, data);`. The mechanism (her
+  method: orchestrator + VRAM axon-mailbox + tick loop) is built and works
+  via the hand-wired harness; the inline-await *surface* needs the
+  function split at the await point into tick-resumable continuations =
+  the async Stage-1 desugar (`promises.md`; "Full async/await Stage-1
+  desugar" below, only trivial shapes done). Build that first, then lower
+  `ramRead`/`ramWrite` onto it. Do NOT substitute a non-inline surface or
+  fake the continuation transform. Spec: `ram-pointers.md`
+  § "Surface-syntax lowering". Follow-up open Q: a model-free
+  hash-keyed-role axon to drop the mailbox's 768-dim key-embedding cost.
 - **Differentiability — RESOLVED (Emma 2026-06-01): RAM is NOT
   differentiable.** I/O is outside the differentiable realm; a pointer
   between two cells rounds to the nearest discrete location (no soft
