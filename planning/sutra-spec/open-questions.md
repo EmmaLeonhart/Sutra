@@ -18,6 +18,24 @@ lives here.
 
 ---
 
+## RAM pointers (`ram-pointers.md`, 2026-06-01)
+
+- **Differentiable / soft addressing.** First cut is a *hard* discrete
+  address (`await ramRead(pointer)`); a trainable NTM needs soft
+  attention over memory. Soft addressing is the next design
+  conversation — do not substitute it for the hard surface now.
+- **Write-ack / ordering.** Is `ramWrite` fire-and-forget, or does it
+  return a `Promise<void>` to `await` for read-after-write ordering?
+- **What "RAM" physically is.** Flat host buffer for now; OS pages /
+  Yantra storage tier / device file is a Yantra-side question.
+- **Address space & out-of-bounds.** OOB read must return a
+  meaningless-but-valid vector (no runtime errors by mechanism), not
+  raise — confirm against `equality-and-defuzzification.md`.
+- **Value width.** One `number` per cell (strings span cells) vs. a
+  whole axon per cell.
+
+---
+
 ## Triage (2026-05-16, task #15 — part 2 of the open-question sweep)
 
 Frank finding: unlike the `planning/open-questions/` dossiers

@@ -191,6 +191,45 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## [This year] Architectural diversification — Neural Turing Machine + reservoir computing (2026-06-01)
+
+Emma's 2026-06-01 direction: widen Sutra's architectural surface beyond
+RNN-recurrence (which Sutra keeps siding with for many purposes). Two
+new architectures, very different maturity:
+
+### RAM pointers → a programmable Neural Turing Machine (ACTIVE, decomposed into `queue.md`)
+
+Spec: `planning/sutra-spec/ram-pointers.md`. Sutra gets pointers to
+**RAM** (host memory, distinct from VRAM), accessed as an **I/O device**
+via a modified `await`:
+
+```sutra
+number x = await ramRead(pointer);
+ramWrite(pointer, data);
+```
+
+An **orchestrator** (host-side producer — the role `axon-io.md` left
+open) bridges VRAM mailbox slots to host RAM: the program writes a
+pointer to a request slot and spins the `await` heartbeat; the
+orchestrator decodes the pointer, does the host RAM access, and writes
+the value back into the response slot. `ramRead` reuses the
+`await`→`Promise`→`while_loop` lowering (`promises.md`); `ramWrite`
+formalises the output axon (`non-halting-loop.md`). End goal: a
+*programmable* NTM that can later be **trained to achieve goals** — but
+the first cut is hard (discrete) addressing; differentiable/soft
+addressing is an explicit open question, not to be substituted in now.
+Demo target: read text from RAM and display it, compared against the
+substrate-RNN text-generation demo (same task, two architectures).
+- [ ] Decomposed into concrete steps in `queue.md` (2026-06-01).
+
+### Reservoir computing (DEFERRED to the OS era)
+
+Emma: materially more complex; expected to land **with Yantra**, not
+now. Do not start until the NTM direction is mature and Emma
+re-greenlights. Placeholder so the roadmap records the intent.
+
+---
+
 ## [This year] Formal verification — from framework to mechanical checks (2026-05-24)
 
 Emma: put more FV work here. The framework + first clawRxiv paper exist
