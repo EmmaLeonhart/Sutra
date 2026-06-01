@@ -119,6 +119,39 @@ optimisation / open question, not a blocker.
   └─────────────────────────────────────────┘        └────────────┘
 ```
 
+## Surface-syntax lowering — what's settled, what's gated (2026-06-01)
+
+`await ramRead(ptr)` and `ramWrite(ptr, data)` **already parse** (verified
+2026-06-01): `await` is an existing keyword and `ramRead` / `ramWrite`
+parse as ordinary function calls. No lexer/parser change is needed; the
+remaining work is **codegen lowering**.
+
+**The lowering target** (the pattern the `experiments/ntm_ram` demos
+hand-code today, so it is understood, not speculative): inside a `recur`
+(non-halting) function, `ramRead(ptr)` builds the request Axon
+(`req.add("ptr", ptr)`) and emits it as the tick output; the orchestrator
+services RAM and supplies the response as the next tick's input, which the
+`await` binds. `ramWrite(ptr, data)` builds `Axon{ptr, data}` and emits it
+as the request; the orchestrator performs the host write. The orchestrator
+is always the external producer (RAM is I/O); the compiled program is
+driven by its tick loop. This explicit `recur` + axon-mailbox form **works
+today** (read scan/chase + write, all measured exact).
+
+**What is gated.** The *inline* form Emma wrote —
+`number x = await ramRead(pointer);` continuing mid-function with `x`
+bound — requires splitting the function at the await point into
+tick-resumable continuations. That is exactly the **async/await Stage-1
+desugar** (`promises.md`; `.then()`-chain rewriting), which `todo.md`
+records as only partially implemented (trivial shapes). So:
+
+- Realizable **now**: the explicit `recur` + mailbox lowering (a desugar
+  that recognizes `ramRead`/`ramWrite` and emits the demo pattern, for
+  programs already shaped as a non-halting tick).
+- **Gated** on the async Stage-1 desugar maturing: the inline
+  `x = await ramRead(...)` mid-function form. Do not fake a continuation
+  transform; build the explicit form first, then lift to inline once the
+  async desugar handles non-trivial bodies.
+
 ## What runs where — the honesty line (read this before implementing)
 
 This feature touches host memory, so the substrate boundary must be
