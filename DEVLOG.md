@@ -6,6 +6,21 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-01: W2C corpus sharded into per-seed subdirs (fixes the HF 10k-files/dir block)
+
+Resolved the HF mirror rejection from the promotion below. Sharded the
+11520 CSVs into 20 per-seed subdirs (`s{seed}/`, ~576 files each, under
+HF's 10000-files-per-directory cap). `corpus.jsonl` `csv` fields + the
+`source` `load_matrix("…")` tokens rewritten to `s{seed}/<base>`; consumers
+unchanged because prepare/eval/consistency all do
+`os.path.join(corpus_dir, csv)`. Generator (`weight_to_code_corpus.py`)
+now writes this layout directly; one-off migration
+`experiments/shard_corpus_to_subdirs.py` reshaped the existing corpus
+(idempotent). Verified: spot-check 6/6 entries reproduce IO on the
+substrate (incl. trained-kind + new-seed entries), and a full `prepare`
+run reads all 7200 (6480/720) with no path errors. Submodule `3b33e5e9`
+pushed; HF re-mirror launched (confirm before claiming HF in sync).
+
 ## 2026-06-01: W2C 2× corpus promoted to official — GitHub DONE, HF mirror BLOCKED
 
 Emma chose (AskUserQuestion) to promote the 2× corpus to official after

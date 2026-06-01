@@ -112,19 +112,17 @@ RESOLVED 2026-06-01: RAM is not differentiable, round-to-nearest.)
 
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
-### HF mirror sharding fix (blocks the HF publish of the 7200 corpus)
+### HF mirror sharding fix — DONE on GitHub, HF re-mirror in progress
 
-The 2× corpus is official on GitHub (`d07feeba`) but the HF mirror was
-rejected: **HF allows ≤10000 files per directory**; the flat layout has
-11520 CSVs in the corpus root. Fix: shard the CSVs into subdirectories
-(e.g. by structure or by `seed`, each <10000 files), update `corpus.jsonl`
-csv paths to include the subdir, and update path resolution in
-`experiments/w2c_seq2seq/prepare.py` + `eval_substrate.py` (they resolve
-csv basenames relative to the corpus dir) + the generator's output layout,
-then re-push the submodule and re-run `mirror_corpus_to_hf.py`. Keep
-GitHub + HF layouts identical. Verify the consistency spot-check + a
-prepare/eval run still pass after the path change. Until done, HF stays at
-the 3600 version (`d464fdb`) — do NOT claim HF in sync.
+Resolved the HF 10000-files/dir rejection by sharding the CSVs into 20
+per-seed subdirs (`s{seed}/`, ~576 files each). Submodule `3b33e5e9`
+(GitHub) + generator (`weight_to_code_corpus.py` writes the subdir layout)
++ one-off migration `experiments/shard_corpus_to_subdirs.py`. Consumers
+unchanged (`os.path.join(corpus_dir, csv)` resolves the subdir); verified
+spot-check 6/6 IO + a full `prepare` (7200, 6480/720) with no path errors.
+HF re-mirror (`mirror_corpus_to_hf.py`) launched 2026-06-01 — confirm it
+succeeded (the sharded layout is under HF's per-dir cap) and then this item
+is fully done. Until the HF run confirms, do NOT claim HF in sync.
 
 Hardening done (all 3 ticks): generator harder families, full 3600-program
 regen + GitHub + HF, **and retrain + substrate re-eval**. Result measured and
