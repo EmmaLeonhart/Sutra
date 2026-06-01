@@ -1,0 +1,22 @@
+// write_head.su — NTM write head via the axon mailbox (Emma 2026-06-01).
+// planning/sutra-spec/ram-pointers.md § "Mailbox representation".
+//
+// Each tick emits an Axon{ptr, data}: ptr is a recurring substrate
+// cursor (the write address the program chooses), data = cursor + 100
+// (a substrate-computed payload). The orchestrator reads the two fields
+// with axon_item (the substrate unbind) and writes the data vector to
+// host RAM at ptr. Number-valued axon fields separate cleanly (measured
+// 2026-06-01: ptr=7/data=65 recover exact). Embedded field keys mean
+// this head runs at runtime_dim=768 (dim-audit note) — the cost is for
+// the keys, not the number payloads.
+function vector write_step() {
+    recurring vector cursor = make_real(0.0);
+    vector data = cursor + make_real(100.0);
+    Axon req;
+    req.add("ptr", cursor);
+    req.add("data", data);
+    recur(cursor + make_real(1.0));
+    return(req);
+}
+
+function string main() { return "ok"; }

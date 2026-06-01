@@ -31,6 +31,18 @@ if _NTM not in sys.path:
     sys.path.insert(0, _NTM)
 
 
+def _ollama_up() -> bool:
+    """The axon-mailbox write head embeds its field keys, so it needs an
+    embedding model. Skip those legs when no ollama server is reachable
+    (the read-path tests are model-free and always run)."""
+    try:
+        import urllib.request
+        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
+        return True
+    except Exception:
+        return False
+
+
 class TestNtmRamReadPath(unittest.TestCase):
     def _compile(self, su_name):
         from run_demo import compile_su  # noqa: E402
@@ -65,6 +77,52 @@ class TestNtmRamReadPath(unittest.TestCase):
         self.assertEqual(orch.chase_text(trace), text)
         # visited order == the stored link order => it followed pointers
         self.assertEqual([a for a, _c, _n in trace], addrs)
+
+    @unittest.skipUnless(_ollama_up(), "axon-mailbox write head needs an embedding model")
+    def test_axon_mailbox_write_path(self):
+        from run_demo import compile_su
+        from ram_device import RamDevice
+        from orchestrator import Orchestrator
+        ns = compile_su(os.path.join(_NTM, "write_head.su"),
+                        semantic_dim=768, llm_model="nomic-embed-text")
+        vsa = ns["_VSA"]
+        ram = RamDevice(vsa, size=64)
+        orch = Orchestrator(vsa, ram, ns["write_step"])
+        written = orch.run_write_stream(n_steps=5)
+        expected = [(i, i + 100) for i in range(5)]
+        # program-chosen address + substrate-computed data land in RAM
+        self.assertEqual(written, expected)
+        readback = [(a, int(round(vsa.real(ram.read_vector(a)))))
+                    for a, _ in written]
+        self.assertEqual(readback, expected)
+
+    @unittest.skipUnless(_ollama_up(), "axon number-field separation needs a model")
+    def test_axon_number_fields_separate(self):
+        # The measured fact ram-pointers.md records: two number fields in
+        # one axon recover cleanly (ptr=7, data=65), no superposition.
+        from run_demo import compile_su
+        import tempfile
+        src = (
+            'function vector build(scalar p, scalar d) {\n'
+            '    Axon a;\n'
+            '    a.add("ptr", make_real(p));\n'
+            '    a.add("data", make_real(d));\n'
+            '    return a;\n'
+            '}\n'
+            'function vector gp(vector a) { return axon_item(a, "ptr"); }\n'
+            'function vector gd(vector a) { return axon_item(a, "data"); }\n'
+            'function string main() { return "ok"; }\n'
+        )
+        with tempfile.NamedTemporaryFile("w", suffix=".su", delete=False,
+                                         encoding="utf-8") as f:
+            f.write(src)
+            path = f.name
+        ns = compile_su(path, semantic_dim=768, llm_model="nomic-embed-text")
+        os.unlink(path)
+        vsa = ns["_VSA"]
+        a = ns["build"](7.0, 65.0)
+        self.assertAlmostEqual(vsa.real(ns["gp"](a)), 7.0, places=3)
+        self.assertAlmostEqual(vsa.real(ns["gd"](a)), 65.0, places=3)
 
     def test_dim_audit_is_honest(self):
         # No basis_vector calls => semantic content is unused => a tiny

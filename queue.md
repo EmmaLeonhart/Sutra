@@ -82,39 +82,29 @@ host RAM. Surface: `number x = await ramRead(pointer);` /
 implementing** — the program is substrate-pure on VRAM; the
 orchestrator does host I/O + decode/encode at the wire only.
 
-**Read runtime DONE** (`259b1765`, `f354a523`; DEVLOG 2026-06-01). The
-orchestrator (first external `await`/I/O producer), the host RAM device,
-and BOTH addressing modes run on the substrate and recover text exactly:
-sequential scan (`text_scan.su` → "HELLO, RAM!") and data-dependent
-pointer-chase (`chase.su` → "WORLD" at non-sequential addresses
-[0,5,2,9,4]). Audits clean; regression guard
-`sdk/sutra-compiler/tests/test_ntm_ram.py` (3 passing). Remaining:
+**Read+write runtime DONE** (`259b1765`, `f354a523`, + write path;
+DEVLOG 2026-06-01). The orchestrator (first external `await`/I/O
+producer), the host RAM device, and all three flows run on the substrate
+and round-trip exactly: sequential-scan read (`text_scan.su` →
+"HELLO, RAM!"), data-dependent pointer-chase read (`chase.su` → "WORLD"
+at non-sequential [0,5,2,9,4]), and the axon-mailbox write
+(`write_head.su` emits `Axon{ptr,data}` → RAM[0..4]=100..104 readback
+exact). Audits clean; `sdk/sutra-compiler/tests/test_ntm_ram.py` 5
+passing (write/number-field legs skip if no ollama). Remaining:
 
-1. **Runtime: the `ramWrite` path — Axon mailbox (Emma 2026-06-01).**
-   The program emits an `Axon` with named fields (`req.add("ptr",
-   pointer); req.add("data", data);`); the orchestrator reads them with
-   `axon_item(req, "ptr")` / `axon_item(req, "data")`, decodes the
-   pointer, and writes the data vector to host RAM. **Measured already
-   (do NOT re-derive otherwise):** axon number fields separate cleanly —
-   `a.add("ptr", make_real(7)); a.add("data", make_real(65))` recovers
-   ptr=7, data=65 exact. So build the axon mailbox directly; the earlier
-   superposition worry was wrong by measurement. Dim-audit caveat:
-   `axon_add` embeds the key → needs a model → `runtime_dim=768` (unlike
-   the model-free read scan/chase); note it in the demo, and consider a
-   model-free hash-keyed-role axon as a follow-up (open question, not a
-   blocker). Build it, RUN it (program writes a substrate-generated
-   sequence to RAM via the axon mailbox, read it back, verify exact),
-   then extend `test_ntm_ram.py`.
-2. **Surface: parse + validate `ramRead` / `ramWrite`.** `number x =
+1. **Surface: parse + validate `ramRead` / `ramWrite`.** `number x =
    await ramRead(ptr);` and `ramWrite(ptr, data);` lex/parse/validate,
    lowering `ramRead` through the `await`→`Promise`→`while_loop` path
-   (`promises.md`) with the orchestrator as producer. Today the demos
-   wire the orchestrator by hand around a `recur` loop; the surface
+   (`promises.md`) with the orchestrator as producer and the axon
+   mailbox (Emma's decision) as the request/response carrier. Today the
+   demos wire the orchestrator by hand around a `recur` loop; the surface
    sugar is what makes `await ramRead(pointer)` write as Emma specced.
-3. **Finding: NTM-RAM vs substrate-RNN text-gen.** Same task (emit a
+   (Follow-up open Q: a model-free hash-keyed-role axon to drop the
+   mailbox's 768-dim key-embedding cost.)
+2. **Finding: NTM-RAM vs substrate-RNN text-gen.** Same task (emit a
    string), two architectures — external addressable RAM vs internal
    recurrence. Write up under `planning/findings/`; the payoff Emma
-   named. (The RAM-read half is demonstrated; pair it against the
+   named. (The RAM read+write halves are demonstrated; pair against the
    substrate-RNN text-gen demo.)
 
 Deferred (todo.md): reservoir computing (OS-era); differentiable/soft

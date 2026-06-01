@@ -31,7 +31,7 @@ from orchestrator import Orchestrator             # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def compile_su(path: str, semantic_dim: int):
+def compile_su(path: str, semantic_dim: int, llm_model: str = "none"):
     with open(path, "r", encoding="utf-8") as f:
         src = f.read()
     lx = Lexer(src, file=path)
@@ -39,10 +39,12 @@ def compile_su(path: str, semantic_dim: int):
     ast = Parser(toks, file=path, diagnostics=lx.diagnostics).parse_module()
     if lx.diagnostics.has_errors():
         raise RuntimeError(f"parse errors: {list(lx.diagnostics)}")
-    # Model-free program (no basis_vector / embed) -> tiny semantic_dim
-    # is honest (dim audit, CLAUDE.md). Numbers live in the synthetic
-    # block, which keeps its default width.
-    py = translate_pytorch(ast, llm_model="none", runtime_dim=semantic_dim)
+    # The read heads are model-free (no basis_vector / embed) -> tiny
+    # semantic_dim is honest (dim audit, CLAUDE.md); numbers live in the
+    # synthetic block. The axon-mailbox write head embeds its field keys,
+    # so it needs a model and runtime_dim=768 (ram-pointers.md dim-audit
+    # note) — pass llm_model="nomic-embed-text".
+    py = translate_pytorch(ast, llm_model=llm_model, runtime_dim=semantic_dim)
     ns: dict = {}
     exec(py, ns)
     return ns
