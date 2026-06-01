@@ -54,6 +54,27 @@ class RamDevice:
             return self._cells[addr]
         return self._vsa.zero_vector()
 
+    def write_complex(self, addr: int, real_val: float, imag_val: float) -> None:
+        """Store a complex number: real-part payload, imag-part link.
+        Used by the pointer-chase layout (real = codepoint, imag = next
+        address)."""
+        if 0 <= addr < self._size:
+            self._cells[addr] = self._vsa.make_complex(
+                float(real_val), float(imag_val))
+
+    def load_linked_text(self, text: str, addrs, terminator_addr: int) -> int:
+        """Lay a string out as a linked list across NON-consecutive cells.
+        Each cell holds (codepoint, next_address). The last char links to
+        `terminator_addr` (left as the zero vector = end sentinel).
+        `addrs` gives the address of each character, in reading order.
+        Returns the start address. The deliberately non-sequential
+        addresses prove the reader is following pointers, not scanning."""
+        assert len(addrs) == len(text), "need one address per character"
+        for i, ch in enumerate(text):
+            nxt = addrs[i + 1] if i + 1 < len(text) else terminator_addr
+            self.write_complex(addrs[i], float(ord(ch)), float(nxt))
+        return addrs[0]
+
     def load_text(self, text: str, base: int = 0, terminator: bool = True) -> int:
         """Lay a string out across consecutive cells, one codepoint per
         cell starting at `base`. Returns the address one past the last

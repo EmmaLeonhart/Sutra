@@ -63,6 +63,39 @@ class Orchestrator:
                     break
         return trace
 
+    def run_pointer_chase(self, start_addr: int, max_steps: int):
+        """Data-dependent addressing — the NTM read capability. Each RAM
+        cell is a complex number (real = codepoint, imag = next address).
+        Read the cell at `addr`, pass it THROUGH the substrate program,
+        then decode the payload (real) and the next address (imag) from
+        the program's OUTPUT — so the cell genuinely transited the
+        substrate before its link is followed. Follow `imag` until a
+        zero / non-positive cell (the end sentinel).
+
+        Returns a list of (address, codepoint, next_address). The
+        next-address comes from RAM via the substrate, so the visited
+        address sequence is determined by RAM contents, not a host
+        counter."""
+        import torch as _torch
+        addr = start_addr
+        trace = []
+        for _ in range(max_steps):
+            cell = self._ram.read_vector(addr)       # host RAM I/O
+            out = self._tick(cell)                    # carry through substrate
+            if float(_torch.linalg.vector_norm(out).item()) <= 1e-7:
+                break                                 # zero cell == sentinel
+            code = int(round(self._vsa.real(out)))    # payload, at the wire
+            nxt = int(round(self._vsa.imag(out)))     # link, at the wire
+            if code <= 0:
+                break
+            trace.append((addr, code, nxt))
+            addr = nxt
+        return trace
+
+    def chase_text(self, trace) -> str:
+        """Decode a pointer-chase trace's codepoints to a string."""
+        return "".join(chr(code) for _addr, code, _nxt in trace if code > 0)
+
     def decode_text(self, trace) -> str:
         """Decode a read trace's served values to a string (monitoring).
         Zero-vector cells (sentinel / empty) are dropped."""
