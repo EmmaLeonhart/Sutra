@@ -109,13 +109,23 @@ coefficient wall is **capacity-bound** rather than architectural.
    the probe flat (~0.60) and coeff-family IO flat-to-down (0.31→0.23); decoder
    unchanged. Finding § "Capacity test". Points at the readout architecture, not
    capacity.
-2. **Bigger corpus** (LIVE — confirm the data side). Generate 2× (`--seeds 0-19`)
-   to a SCRATCH dir (NO submodule/HF push yet — measure first, per the
-   measure-before-outward-op discipline), re-prepare from scratch, retrain
-   d128/L3, re-measure probe + coeff-family IO. Expected (given model-null):
-   also flat → wall is architectural, not data. If it DOES help, then do the
-   official regen + push + HF + pointer bump. Generation of trained kinds is slow
-   (~GD per matrix) so this spans ticks.
+2. **Bigger corpus** (IN FLIGHT — background job running since 2026-06-01).
+   Generate 2× (`--seeds 0,..,19`, 7200 programs) to SCRATCH (NO submodule/HF
+   push — measure first), re-prepare, retrain d128/L3 detached-probe
+   (`--coeff-aux-w 0.5 --coeff-detach`), re-measure probe + coeff-family IO.
+   Expected (given model-null): also flat → wall is architectural, not data. If
+   it DOES help, do the official regen + push + HF + pointer bump.
+   - **Detached background pipeline:** `experiments/w2c_seq2seq/_drive_2x.sh`
+     (gitignored scratch). It waits for the scratch corpus, then prepare→train→
+     eval. Progress/results land in `experiments/w2c_seq2seq/_drive_2x.log`
+     (ends with a `DONE` line); generation log `_scratch_gen.log`. `prepare`
+     clobbers the regenerable `data/` baseline (its metrics are in the
+     coeff-head finding) — fine.
+   - **Next cron tick:** if `_drive_2x.log` ends in `DONE`, harvest the eval
+     numbers (decoder exact / canonical-exact-IO / probe coeff_a,b / `io_base`
+     coeff-family IO) into the coeff-head finding under a "Bigger-corpus test"
+     section, draw the architectural-vs-data conclusion, delete this item; if
+     still running, report "w2c 2x in flight" and do NOT relaunch.
 
 ## Corpus (built & at scale — not active work)
 
