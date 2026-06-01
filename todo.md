@@ -221,6 +221,15 @@ addressing is an explicit open question, not to be substituted in now.
 Demo target: read text from RAM and display it, compared against the
 substrate-RNN text-generation demo (same task, two architectures).
 - [ ] Decomposed into concrete steps in `queue.md` (2026-06-01).
+- **Differentiability — RESOLVED (Emma 2026-06-01): RAM is NOT
+  differentiable.** I/O is outside the differentiable realm; a pointer
+  between two cells rounds to the nearest discrete location (no soft
+  attention). A trainable NTM trains its *controller* (the substrate
+  program computing pointers / consuming values), not the discrete RAM
+  access. Further RAM design work to scope here later: what training
+  signal the controller / write-head needs to be trained end-to-end
+  with RAM as a discrete I/O boundary; a model-free hash-keyed-role axon
+  to drop the mailbox's 768-dim key-embedding cost; multi-cell payloads.
 
 ### Reservoir computing (DEFERRED to the OS era)
 
