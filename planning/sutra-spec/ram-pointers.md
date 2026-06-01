@@ -212,15 +212,21 @@ architectures — the concrete payoff of the diversification.
 
 ## Open questions (genuine gaps — do not paper over)
 
-1. **Differentiable / soft addressing.** A *trainable* NTM uses soft
-   attention over memory (a read is a weighted sum over all cells,
-   differentiable end-to-end). Emma's first-cut surface
-   (`await ramRead(pointer)`) is a **hard** address — discrete, not
-   differentiable. Hard-first is what gets built now; soft addressing
-   (and what "trained to achieve goals" requires of the read/write
-   head) is the open design for the trainable-NTM phase. **Do not
-   substitute soft addressing for the hard surface Emma specified** —
-   build hard, leave soft as the next design conversation.
+1. **Differentiable / soft addressing — RESOLVED (Emma 2026-06-01): RAM
+   is NOT differentiable.** I/O is outside the differentiable realm.
+   Because RAM is accessed through a read/write head and RAM is
+   inherently discrete, the address is **hard**: a pointer that lands
+   between two memory locations **rounds to the nearest** one. There is
+   no soft attention / weighted-sum-over-cells read. A *trainable* NTM
+   trains its **controller** (the substrate program that computes
+   pointers and consumes values); the RAM access itself stays discrete
+   round-to-nearest I/O — it is not part of the differentiable graph,
+   the same way reading a file or awaiting a socket is not. The current
+   orchestrator already implements this exactly: `addr =
+   int(round(real(pointer)))`. Further RAM design work (what the
+   trainable controller needs, write-head training signals) is tracked
+   in `todo.md` § "Architectural diversification", but the
+   differentiability question is closed: no soft addressing.
 2. **Write-ack / ordering.** Is `ramWrite` fire-and-forget, or does it
    return a `Promise<void>` the program can `await` to order a
    subsequent read after the write lands? First cut: fire-and-forget;
