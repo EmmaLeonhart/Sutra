@@ -1,0 +1,19 @@
+// chase.su — value-feedback read head (pointer-chase).
+// planning/sutra-spec/ram-pointers.md.
+//
+// Each RAM cell is a complex number: real = codepoint, imag = next
+// address. The orchestrator reads the cell at the current address and
+// passes it as `served`; this head carries it through the substrate and
+// re-emits it, so the orchestrator can decode BOTH the payload (real)
+// and the next address (imag) from a value that genuinely transited the
+// substrate. The visited address chain is determined by RAM contents
+// fed back through the substrate — data-dependent addressing, the
+// defining NTM read capability. `steps` is a substrate-side counter of
+// how many cells were read.
+function vector chase(vector served) {
+    recurring vector steps = make_real(0.0);
+    recur(steps + make_real(1.0));
+    return(served);
+}
+
+function string main() { return "ok"; }

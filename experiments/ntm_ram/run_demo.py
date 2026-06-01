@@ -17,8 +17,6 @@ import io
 import os
 import sys
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(REPO, "sdk", "sutra-compiler"))
 sys.path.insert(0, os.path.dirname(__file__))
@@ -51,6 +49,7 @@ def compile_su(path: str, semantic_dim: int):
 
 
 def main():
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     text = "HELLO, RAM!"
     ns = compile_su(os.path.join(HERE, "text_scan.su"), semantic_dim=2)
     vsa = ns["_VSA"]
