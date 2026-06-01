@@ -86,6 +86,31 @@ it in host RAM at that address. Default is fire-and-forget; an
 optional write-ack slot lets the program `await` ordering (open
 question 2).
 
+### Mailbox representation — an Axon with named fields (Emma 2026-06-01)
+
+The mailbox is an **Axon** with named fields — `req.add("ptr", pointer);
+req.add("data", data);` on the program side, `axon_item(req, "ptr")` /
+`axon_item(req, "data")` on the orchestrator side. This is the faithful
+form of "a part of the VRAM that just has the pointer thing on it": each
+field is its own addressable region of the state vector.
+
+**Measured 2026-06-01 (do not re-derive the wrong conclusion):** an
+axon carrying two `number` fields recovers them *cleanly* —
+`a.add("ptr", make_real(7)); a.add("data", make_real(65))` then
+`real(axon_item(a,"ptr")) == 7` and `real(axon_item(a,"data")) == 65`,
+exact. The earlier worry that pure-`number` fields would superpose in
+the synthetic block (because bind rotation is identity there) is **wrong
+by measurement** — the axon machinery separates number-valued fields.
+Build the axon mailbox; don't substitute a slot / `swap_ri` workaround.
+
+**Dim-audit note:** `axon_add` currently embeds the field *key*
+(`embed("ptr")`), so a program using the axon mailbox needs an embedding
+model and runs at `runtime_dim = 768` — unlike the model-free read
+scan / chase. That cost is for the keys, not the number payloads. A
+model-free axon-key path (hash-seeded role rotations instead of embedded
+keys) would drop the mailbox back to a tiny dim; flagged as an
+optimisation / open question, not a blocker.
+
 ```
   ┌─────────── VRAM (substrate) ───────────┐        ┌─── host ───┐
   │  program: encode ptr → request slot    │        │            │

@@ -90,16 +90,21 @@ pointer-chase (`chase.su` → "WORLD" at non-sequential addresses
 [0,5,2,9,4]). Audits clean; regression guard
 `sdk/sutra-compiler/tests/test_ntm_ram.py` (3 passing). Remaining:
 
-1. **Runtime: the `ramWrite` path.** Orchestrator services a write
-   mailbox → host RAM write. Faithful version has the program control
-   BOTH pointer and data; the clean substrate encoding is `make_complex`
-   (data in real, address in imag) mirroring the chase read — but
-   emitting independently-chosen (data, addr) from `.su` needs either a
-   source-level `real()`/`imag()` accessor or a `swap_ri` primitive
-   exposed (non-halting-loop.md notes the missing accessor). DECIDE:
-   expose the small primitive vs. orchestrator-sequential write address
-   for v1. Build it, RUN it (write a substrate-generated sequence to
-   RAM, read it back, verify exact), then extend `test_ntm_ram.py`.
+1. **Runtime: the `ramWrite` path — Axon mailbox (Emma 2026-06-01).**
+   The program emits an `Axon` with named fields (`req.add("ptr",
+   pointer); req.add("data", data);`); the orchestrator reads them with
+   `axon_item(req, "ptr")` / `axon_item(req, "data")`, decodes the
+   pointer, and writes the data vector to host RAM. **Measured already
+   (do NOT re-derive otherwise):** axon number fields separate cleanly —
+   `a.add("ptr", make_real(7)); a.add("data", make_real(65))` recovers
+   ptr=7, data=65 exact. So build the axon mailbox directly; the earlier
+   superposition worry was wrong by measurement. Dim-audit caveat:
+   `axon_add` embeds the key → needs a model → `runtime_dim=768` (unlike
+   the model-free read scan/chase); note it in the demo, and consider a
+   model-free hash-keyed-role axon as a follow-up (open question, not a
+   blocker). Build it, RUN it (program writes a substrate-generated
+   sequence to RAM via the axon mailbox, read it back, verify exact),
+   then extend `test_ntm_ram.py`.
 2. **Surface: parse + validate `ramRead` / `ramWrite`.** `number x =
    await ramRead(ptr);` and `ramWrite(ptr, data);` lex/parse/validate,
    lowering `ramRead` through the `await`→`Promise`→`while_loop` path
