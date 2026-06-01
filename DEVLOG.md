@@ -6,6 +6,31 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-01: W2C 2× corpus promoted to official — GitHub DONE, HF mirror BLOCKED
+
+Emma chose (AskUserQuestion) to promote the 2× corpus to official after
+the data-side win below. The 7200-program corpus (15 structures × 6 K × 4
+weight-kinds × 20 seeds) is now the official `corpus/` submodule
+(`EmmaLeonhart/sutra-w2c-corpus` `d07feeba`), replacing the 3600/10-seed
+version; `gemma_corpus.jsonl` preserved. Promoted by copying the
+already-generated scratch corpus into the submodule (deterministic = a
+regen, no 1h re-run), spot-checked 6/6 entries reproduce IO on the
+substrate (incl. new seeds 10–19 + coeff families). Generator default
+`--seeds` bumped 0–9 → 0–19 so the bare command reproduces the official
+corpus; `corpus/README.md` count updated; Sutra submodule pointer bumped.
+
+**HF mirror FAILED — not in sync.** `mirror_corpus_to_hf.py` was rejected
+with HTTP 400: "too many files per directory. Each directory in your git
+repo can only contain up to 10000 files." The flat layout has 11520 CSVs
+in the corpus root; the 1× corpus's 5760 was under the limit, so this is a
+scaling regression the flat layout hits past ~10k files. GitHub has no
+such limit (the submodule push succeeded). The model trains from the local
+/ GitHub submodule, not HF, so this blocks only the public HF mirror, not
+the W2C work. Fix queued: shard the CSVs into subdirectories (each
+<10000 files) — touches `corpus.jsonl` csv paths + `prepare.py` /
+`eval_substrate.py` path resolution + the mirror. Until then HF stays at
+the 3600 version (`d464fdb`); do NOT claim HF in sync.
+
 ## 2026-06-01: W2C bigger-corpus test — the data side HELPS (coefficient wall is partly data-bound)
 
 Step 2 of Emma's 2026-05-31 "bigger model / corpus" test completed. Step 1
