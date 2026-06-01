@@ -20,10 +20,11 @@ lives here.
 
 ## RAM pointers (`ram-pointers.md`, 2026-06-01)
 
-- **Differentiable / soft addressing.** First cut is a *hard* discrete
-  address (`await ramRead(pointer)`); a trainable NTM needs soft
-  attention over memory. Soft addressing is the next design
-  conversation — do not substitute it for the hard surface now.
+- ~~**Differentiable / soft addressing.**~~ RESOLVED (Emma 2026-06-01):
+  RAM is NOT differentiable — I/O is outside that realm. The address is
+  hard; a pointer between two cells rounds to the nearest. No soft
+  attention. A trainable NTM trains its controller, not the discrete RAM
+  access. (Implementation already rounds: `int(round(real(ptr)))`.)
 - **Write-ack / ordering.** Is `ramWrite` fire-and-forget, or does it
   return a `Promise<void>` to `await` for read-after-write ordering?
 - **What "RAM" physically is.** Flat host buffer for now; OS pages /
