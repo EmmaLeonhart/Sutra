@@ -158,6 +158,47 @@ unlikely (a model that structurally can't represent the ratio won't learn it fro
 more examples). Corpus-scaling is being measured to scratch (no HF push) to
 confirm before drawing the architectural conclusion.
 
+## Bigger-corpus test (data side) — it HELPS, contradicting the model-null read
+
+Step 2 of Emma's test (2026-06-01): regenerate the corpus at 2×
+(`--seeds 0..19`, 7200 programs), re-prepare, retrain the SAME d128/L3
+detached-probe config for the same 40 epochs, re-measure. (Generated to a
+scratch dir, no HF push, per measure-before-outward-op.)
+
+| metric | d128/L3, 1× corpus (3600) | d128/L3, 2× corpus (7200) |
+|---|---|---|
+| decoder exact-match | 0.689 | **0.811** |
+| canonical exact = IO | 0.714 | **0.825** |
+| coeff-family IO (`io_base`) | 30/96 = **0.31** | 79/192 = **0.411** |
+| coeff post-hoc subst (`io_subst`) | — | 43/192 = 0.224 |
+
+Eval line: `n=720 exact=584 exact_canon=594 repro=595 emr=0.8111
+emcr=0.825 rpr=0.8264 cf_n=192 cf_io_base=79 cf_io_subst=43`, 0
+compile/run failures. The 96→192 coeff-case count is exactly 2× (same val
+fraction), so the rates compare apples-to-apples.
+
+**Doubling the corpus moved every metric, including the coefficient
+wall** (coeff-family IO 0.31 → 0.41). This **contradicts** the
+expectation drawn from the model-null result — the wall is *not* purely
+architectural; it is at least partially **data-bound**. The earlier
+inference ("a model that structurally can't represent the ratio won't
+learn it from more examples") was wrong: more examples did help the
+ratio-bearing families.
+
+**Caveats (do not overclaim):**
+- The coefficient families are still far from solved (`io_base` 0.41) —
+  this is movement, not a fix.
+- 2× data at the same epoch count is also ~2× gradient steps; the gain is
+  "more data + more updates," inherent to corpus-scaling, not isolated to
+  data volume alone.
+- `io_subst` (0.22) stays below `io_base` (0.41): post-hoc coefficient
+  substitution still hurts (consistent with the lever-1 negative above).
+
+Per the plan, "if the bigger corpus helps, do the official regen + push +
+HF + pointer bump" — it helped, so that outward step is now live (surfaced
+to Emma in `queue.md` A.0: promote 2× to official now vs. scale further
+(4×) to see if the trend continues vs. hold).
+
 ## Honesty caveats
 
 - **Single seed per config, single greedy decode.** The finding's robust signal

@@ -6,6 +6,23 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-01: W2C bigger-corpus test — the data side HELPS (coefficient wall is partly data-bound)
+
+Step 2 of Emma's 2026-05-31 "bigger model / corpus" test completed. Step 1
+(bigger model, d256/L6) was NULL — the coefficient wall is not capacity-bound.
+Step 2 (bigger corpus, 2× = 7200 programs, same d128/L3 / 40 epochs) **moved
+every metric**: decoder exact 0.689→0.811, canonical-exact/IO 0.714→0.825,
+coeff-family IO (`io_base`) 0.31→0.41 (96→192 coeff cases, same val fraction).
+0 compile/run fails. This **contradicts** the expectation drawn from the
+model-null result: the wall is not purely architectural — it is at least
+partially **data-bound**. Caveats: still far from solved (0.41); 2× data at
+fixed epochs is ~2× steps too; `io_subst` (0.22) still < `io_base` (0.41).
+Written up in `planning/findings/2026-05-30-w2c-coeff-head-diagnostic.md`
+§ "Bigger-corpus test". Generated to a gitignored scratch dir, **not pushed**
+to the submodule/HF — the "promote to official + HF" step is an outward op and
+a research-direction call, surfaced to Emma (queue.md A.0): push official now
+vs. scale to 4× first vs. hold.
+
 ## 2026-06-01: RAM pointers → Neural Turing Machine — spec + working read runtime
 
 Emma's 2026-06-01 direction: give Sutra pointers to RAM (host memory,

@@ -58,8 +58,15 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- *(none open — W2C coefficient-wall direction decided 2026-05-31: bigger
-  model/corpus; now the live item under "Active — W2C".)*
+- **W2C 2× corpus helped — promote to official + HF, or scale further first?**
+  (2026-06-01) The 2× corpus (7200) improved decoder exact 0.689→0.811,
+  canonical/IO 0.714→0.825, coeff-family IO 0.31→0.41 vs the 1× baseline
+  (coeff-head finding § "Bigger-corpus test"). The plan said "if it helps, do
+  the official regen + push + HF + pointer bump" — that is an outward op
+  (pushes a 7200-program dataset to the submodule + HF mirror). The result is
+  positive but partial (coeff still 0.41). Decision is Emma's: push official
+  now / scale to 4× first to see if the trend holds / hold. Surfaced via
+  AskUserQuestion 2026-06-01.
 
 ## Context (read first, do not work on)
 
@@ -141,29 +148,16 @@ decoder), post-hoc substitution (0.61 head too weak), matmul input feature (no
 movement). weight→code recovers *structure* near-perfectly (chain4 = 1.0) but
 scalar coefficients are a wall for this architecture.
 
-**LIVE — scale model + corpus (Emma 2026-05-31 decision).** Test whether the
-coefficient wall is **capacity-bound** rather than architectural.
-1. ~~Bigger model~~ **DONE — NOT capacity-bound.** d256/L6 (≈4–8× params) left
-   the probe flat (~0.60) and coeff-family IO flat-to-down (0.31→0.23); decoder
-   unchanged. Finding § "Capacity test". Points at the readout architecture, not
-   capacity.
-2. **Bigger corpus** (IN FLIGHT — background job running since 2026-06-01).
-   Generate 2× (`--seeds 0,..,19`, 7200 programs) to SCRATCH (NO submodule/HF
-   push — measure first), re-prepare, retrain d128/L3 detached-probe
-   (`--coeff-aux-w 0.5 --coeff-detach`), re-measure probe + coeff-family IO.
-   Expected (given model-null): also flat → wall is architectural, not data. If
-   it DOES help, do the official regen + push + HF + pointer bump.
-   - **Detached background pipeline:** `experiments/w2c_seq2seq/_drive_2x.sh`
-     (gitignored scratch). It waits for the scratch corpus, then prepare→train→
-     eval. Progress/results land in `experiments/w2c_seq2seq/_drive_2x.log`
-     (ends with a `DONE` line); generation log `_scratch_gen.log`. `prepare`
-     clobbers the regenerable `data/` baseline (its metrics are in the
-     coeff-head finding) — fine.
-   - **Next cron tick:** if `_drive_2x.log` ends in `DONE`, harvest the eval
-     numbers (decoder exact / canonical-exact-IO / probe coeff_a,b / `io_base`
-     coeff-family IO) into the coeff-head finding under a "Bigger-corpus test"
-     section, draw the architectural-vs-data conclusion, delete this item; if
-     still running, report "w2c 2x in flight" and do NOT relaunch.
+**Scale model + corpus (Emma 2026-05-31 decision) — both halves DONE & measured.**
+1. **Bigger model — NOT capacity-bound.** d256/L6 (≈4–8× params) left the probe
+   flat (~0.60), coeff-family IO flat-to-down (0.31→0.23). Readout, not capacity.
+2. **Bigger corpus (2×, 7200) — HELPED, contradicts the architectural read.**
+   Same d128/L3, 40 epochs, 2× data: decoder exact 0.689→**0.811**, canonical/IO
+   0.714→**0.825**, coeff-family IO 0.31→**0.41**. The coefficient wall is at
+   least partially **data-bound**, not purely architectural. Still far from
+   solved (0.41) and the gain bundles more-data + more-steps. Written up in the
+   coeff-head finding § "Bigger-corpus test". Scratch only — NOT pushed to
+   submodule/HF (the official-push decision is Emma's; see A.0).
 
 ## Corpus (built & at scale — not active work)
 
