@@ -58,9 +58,14 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 
 ## A.0 — Ask Emma (drain via AskUserQuestion; phone notification)
 
-- *(none open — W2C 2× corpus: Emma chose "promote to official" 2026-06-01;
-  GitHub submodule `d07feeba` done. HF mirror BLOCKED (10000-files/dir limit)
-  — fix is engineering, not an Emma decision; see "Active — W2C" below.)*
+- **Prune 5760 stale flat-CSV orphans on the HF dataset?** (2026-06-01) The
+  2× corpus is fully promoted (GitHub `3b33e5e9` + HF `6ffae459`, sharded,
+  referenced, usable). But HF still carries 5760 unreferenced flat CSVs from
+  the old 1× layout (`upload_folder` doesn't delete). Harmless cruft + 2×
+  storage. Cleaning = a destructive precise-path delete on the external
+  dataset (auto-mode blocked the wildcard form). Emma's call: prune now /
+  leave them / also harden the mirror to auto-prune. Surfaced via
+  AskUserQuestion 2026-06-01.
 
 ## Context (read first, do not work on)
 
@@ -112,17 +117,22 @@ RESOLVED 2026-06-01: RAM is not differentiable, round-to-nearest.)
 
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
-### HF mirror sharding fix — DONE on GitHub, HF re-mirror in progress
+### HF mirror — DONE (7200 sharded corpus live); orphan cleanup pending Emma
 
-Resolved the HF 10000-files/dir rejection by sharding the CSVs into 20
-per-seed subdirs (`s{seed}/`, ~576 files each). Submodule `3b33e5e9`
-(GitHub) + generator (`weight_to_code_corpus.py` writes the subdir layout)
-+ one-off migration `experiments/shard_corpus_to_subdirs.py`. Consumers
-unchanged (`os.path.join(corpus_dir, csv)` resolves the subdir); verified
-spot-check 6/6 IO + a full `prepare` (7200, 6480/720) with no path errors.
-HF re-mirror (`mirror_corpus_to_hf.py`) launched 2026-06-01 — confirm it
-succeeded (the sharded layout is under HF's per-dir cap) and then this item
-is fully done. Until the HF run confirms, do NOT claim HF in sync.
+Resolved the HF 10000-files/dir rejection by sharding into 20 per-seed
+subdirs (`s{seed}/`). Submodule `3b33e5e9` (GitHub) + generator + migration
+`experiments/shard_corpus_to_subdirs.py`. HF re-mirror succeeded (commit
+`6ffae459`): the 7200-program sharded corpus is on HF and referenced by
+`corpus.jsonl` — usable. Verified spot-check 6/6 IO + full `prepare`
+(6480/720), no path errors.
+
+**Loose end (surfaced to Emma A.0):** `upload_folder` doesn't delete, so
+5760 flat CSVs from the old 1× layout remain on HF as unreferenced orphans
+(harmless cruft + 2× storage). Cleaning = a precise explicit-path delete
+of the flat files on the external dataset (NOT a `*.csv` wildcard — that's
+recursive and would nuke the sharded CSVs; auto-mode blocked that). Also
+harden `mirror_corpus_to_hf.py` to prune stale files on each mirror. Both
+deferred to Emma's go-ahead (destructive external op).
 
 Hardening done (all 3 ticks): generator harder families, full 3600-program
 regen + GitHub + HF, **and retrain + substrate re-eval**. Result measured and
@@ -169,10 +179,11 @@ scalar coefficients are a wall for this architecture.
 
 The weights↔code corpus is built and at **7200 programs** (15 structures ×
 6 K {4,6,8,10,12,16} × 4 weight-kinds × 20 seeds; scaled 1×→2× 2026-06-01,
-submodule `d07feeba`), on the `corpus/` submodule
-(`EmmaLeonhart/sutra-w2c-corpus`); HF mirror is STALE at the 3600 version
-(`d464fdb`) pending the sharding fix above (HF 10000-files/dir limit).
-Consistency-guarded (`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
+submodule `3b33e5e9`, CSVs sharded into `s{seed}/` subdirs), on the
+`corpus/` submodule (`EmmaLeonhart/sutra-w2c-corpus`) + HF mirror
+(commit `6ffae459`, 7200 corpus live + referenced; 5760 old-layout flat
+orphans remain to be pruned — see A.0). Consistency-guarded
+(`test_weight_to_code_corpus.py`, `test_gemma_codegen_corpus.py`).
 Scale further = one-flag bump (`--seeds`/`--ks`) on
 `experiments/weight_to_code_corpus.py` → push submodule →
 `experiments/mirror_corpus_to_hf.py` → bump the Sutra pointer + card stats.
