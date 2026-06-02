@@ -43,6 +43,75 @@ def _ollama_up() -> bool:
         return False
 
 
+def _compile_src(src: str, dim: int = 2):
+    """Compile a .su source string to a runnable namespace (torch backend,
+    model-free) for the inline-surface tests."""
+    from sutra_compiler.lexer import Lexer
+    from sutra_compiler.parser import Parser
+    from sutra_compiler.codegen_pytorch import translate_module
+    lx = Lexer(src, file="<test>")
+    toks = lx.tokenize()
+    ast = Parser(toks, file="<test>", diagnostics=lx.diagnostics).parse_module()
+    assert not lx.diagnostics.has_errors(), list(lx.diagnostics)
+    ns: dict = {}
+    exec(translate_module(ast, llm_model="none", runtime_dim=dim), ns)
+    return ns
+
+
+class TestRamInlineSurface(unittest.TestCase):
+    """The `ramRead`/`ramWrite` surface builtins bridging to the
+    host-attached `_VSA.ram` device (planning/sutra-spec/ram-pointers.md).
+    Model-free; the RAM access is I/O at the boundary (round-to-nearest
+    pointer decode), the value transits VRAM."""
+
+    def test_synchronous_ram_read_write(self):
+        ns = _compile_src(
+            'function vector sl(vector ptr, vector data) {'
+            '  ramWrite(ptr, data); return ramRead(ptr); }'
+            'function string main() { return "ok"; }')
+        v = ns["_VSA"]
+        v.ram = [v.zero_vector() for _ in range(8)]
+        out = v.real(ns["sl"](v.make_real(2.0), v.make_real(77.0)))
+        self.assertAlmostEqual(out, 77.0, places=3)
+        self.assertAlmostEqual(v.real(v.ram[2]), 77.0, places=3)
+
+    def test_await_ram_read_in_async(self):
+        ns = _compile_src(
+            'async function vector ld(vector ptr) {'
+            '  number x = await ramRead(ptr); return x; }'
+            'function string main() { return "ok"; }')
+        v = ns["_VSA"]
+        v.ram = [v.zero_vector() for _ in range(8)]
+        v.ram[3] = v.make_real(55.0)
+        self.assertAlmostEqual(v.real(ns["ld"](v.make_real(3.0))), 55.0, places=3)
+
+    def test_synchronous_ram_read_in_recur(self):
+        # The NTM read head: a recurring VRAM cursor advances on the
+        # substrate each tick; ramRead reads the device at the decoded
+        # address. State-locus holds (cursor is a recurring tensor; real()
+        # is the I/O-wire address decode, not state extraction).
+        ns = _compile_src(
+            'function vector head(scalar dummy) {'
+            '  recurring vector cur = make_real(0.0);'
+            '  vector x = ramRead(cur);'
+            '  recur(cur + make_real(1.0)); return(x); }'
+            'function string main() { return "ok"; }')
+        v = ns["_VSA"]
+        v.ram = [v.make_real(72.0), v.make_real(73.0), v.make_real(74.0)] \
+            + [v.zero_vector() for _ in range(5)]
+        out = [v.real(ns["head"](0.0)) for _ in range(3)]
+        self.assertEqual([round(x) for x in out], [72, 73, 74])
+
+    def test_no_device_reads_zero(self):
+        # No attached device -> ram_read returns the zero vector (no
+        # runtime error by mechanism).
+        ns = _compile_src(
+            'function vector r(vector ptr) { return ramRead(ptr); }'
+            'function string main() { return "ok"; }')
+        v = ns["_VSA"]
+        self.assertAlmostEqual(v.real(ns["r"](v.make_real(0.0))), 0.0, places=3)
+
+
 class TestNtmRamReadPath(unittest.TestCase):
     def _compile(self, su_name):
         from run_demo import compile_su  # noqa: E402

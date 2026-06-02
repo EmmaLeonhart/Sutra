@@ -245,6 +245,23 @@ def _builtin_truth_value(args: List[str]) -> str:
     return f"_VSA.make_truth({args[0]})"
 
 
+def _builtin_ram_read(args: List[str]) -> str:
+    # RAM pointer read (planning/sutra-spec/ram-pointers.md). Bridges to
+    # the host-attached external memory device `_VSA.ram`: decode the
+    # pointer-`number` to a host address (round-to-nearest at the I/O
+    # wire), read the stored value-vector. I/O at the boundary, not a
+    # substrate op; the pointer is substrate-computed and the value
+    # returns as VRAM. `await ramRead(ptr)` flows through the promise
+    # desugar to Promise.await_value(_VSA.ram_read(ptr)).
+    return f"_VSA.ram_read({args[0]})"
+
+
+def _builtin_ram_write(args: List[str]) -> str:
+    # RAM pointer write — the ram_read mirror. ramWrite(ptr, data) stores
+    # the data value-vector at the decoded address in `_VSA.ram`.
+    return f"_VSA.ram_write({args[0]}, {args[1]})"
+
+
 def _builtin_array_length(args: List[str]) -> str:
     # `array_length(arr)` — Python `len(arr)` for plain lists. Used by
     # the TS transpiler's `arr.length` lowering for primitive arrays.
@@ -354,6 +371,12 @@ BUILTINS = {
     "real_number": (_builtin_real_number, 1),
     "complex_number": (_builtin_complex_number, 2),
     "truth_value": (_builtin_truth_value, 1),
+    # RAM pointers (planning/sutra-spec/ram-pointers.md): ramRead(ptr) ->
+    # _VSA.ram_read, ramWrite(ptr, data) -> _VSA.ram_write. Host attaches
+    # the external memory device as _VSA.ram. `await ramRead(ptr)` is the
+    # surface; the promise desugar lowers it to Promise.await_value(...).
+    "ramRead": (_builtin_ram_read, 1),
+    "ramWrite": (_builtin_ram_write, 2),
     # Inner product → scalar (`_VSA.dot`). Substrate-pure; listed as
     # "Blocked on: dot" in stdlib/similarity.su + logic.su. A backend
     # lacking the method fails at runtime with a clear AttributeError.

@@ -87,28 +87,40 @@ external producer populates the slot) + `ram-pointers.md` (the RAM
 device/orchestrator is that producer), the spec-grounded design — NOT a
 substituted synchronous variant — is:
 
-1. **Runtime: attachable RAM device + `ram_read`/`ram_write` on `_VSA`.**
-   Port `experiments/ntm_ram/ram_device.py` into the runtime as an
-   optional `_VSA.ram`. `ram_read(ptr_vec)` decodes ptr at the I/O wire
-   (`real()`), reads the device, returns the value vector; `ram_write`
-   the mirror. Host attaches the device (the orchestrator's role).
-2. **Codegen: recognize `ramRead`/`ramWrite` builtins.** `ramRead(ptr)`
-   emits a RAM-pending `Promise` carrying ptr; `ramWrite(ptr,data)` emits
-   `_VSA.ram_write(...)`. Additive — new builtin names only.
-3. **`await_value` resolves RAM-pending promises via the attached device**
-   (the producer), leaving regular-promise behavior unchanged (KEEP
-   `test_await_substrate_pure` 4/4). No device attached → stays
-   pending / clear error, never a fake value.
-4. **Test:** an inline `.su` (`number x = await ramRead(ptr); ...`) +
-   `ramWrite` round-trip against an attached device; reproduce stored
-   values exactly. Substrate audits: model-free → tiny dim; ptr is a VRAM
-   number; RAM access is IO at the boundary (not claimed substrate).
-5. **Migrate a demo** (`experiments/ntm_ram` read head) to the inline
-   surface; confirm same measured output.
+**DONE (steps 1-2 + tests, 0587e6b8 + this commit):** `_VSA.ram` device +
+`ram_read`/`ram_write` (round-to-nearest, OOB→zero); `ramRead`/`ramWrite`
+codegen builtins. Measured working + guarded (`test_ntm_ram.py`
+`TestRamInlineSurface`, 4 cases):
+- synchronous `ramRead(ptr)` / `ramWrite(ptr, data)` (any function);
+- `number x = await ramRead(ptr)` inside an **async** function (flows
+  through the existing promise desugar → `await_value` passes the
+  already-resolved device read through — no `await_value` change needed,
+  `test_await_substrate_pure` 4/4 intact);
+- the **NTM read head as a `recur` loop using *synchronous* `ramRead`**:
+  per-tick reads advance on the substrate (cursor is a recurring VRAM
+  tensor; `real()` is the I/O-wire address decode — state-locus holds).
 
-Open follow-up (todo.md): model-free hash-keyed-role axon for the mailbox
-dim cost; multi-program/Yantra separable-orchestrator mailbox (the demos'
-recur+axon pattern stays valid for that).
+**Realization note (honesty):** the inline surface compiles to a
+synchronous read of the host-attached `_VSA.ram` device (matches Emma's
+"RAM is a discrete IO device you read/write" framing). The separable-
+orchestrator VRAM-mailbox model (request emitted as substrate data for a
+*separate* process) is the distinct `experiments/ntm_ram` harness, kept
+for the multi-program/Yantra IPC story.
+
+**Remaining:**
+1. **`await` inside a non-async `recur` (Emma's exact read-head example)
+   — BLOCKED on the await-lowering phase.** Measured: it hits
+   `CodegenNotSupported` ("await lowering to a gated while_loop not yet
+   implemented"; promises.md). The synchronous-`ramRead`-in-`recur` form
+   above already gives the NTM read head functionally; the `await`
+   keyword in non-async recur is sugar pending the await→while_loop
+   lowering (the larger async/recur-composition work). Do NOT hack the
+   desugar to process non-async recur without settling that semantics.
+2. **(optional) Migrate an `experiments/ntm_ram` read head** to the inline
+   `_VSA.ram` surface; confirm same measured output.
+
+Open follow-up (todo.md): await→while_loop lowering for recur+await;
+model-free hash-keyed-role axon for the mailbox dim cost.
 
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
