@@ -250,11 +250,14 @@ substrate-RNN text-generation demo (same task, two architectures).
 ### Differentiable Neural Computer (DNC) — design exploration (Emma 2026-06-02)
 
 The NTM's differentiable successor (Graves 2016): a neural controller +
-an **on-substrate**, **differentiable** memory matrix with content /
-allocation / temporal-link soft addressing. Distinct from the RAM
-pointers (which are discrete host I/O, *not* differentiable per Emma's
-call) — the DNC is the differentiable cousin, kept on the substrate, and
-the natural showcase of the constrain-train "every op trainable" vision.
+a **differentiable** memory with content / allocation / temporal-link
+**soft addressing**. Differentiability is the access *method* (soft
+attention), not the store: the hard round-to-nearest `ramRead` method
+isn't differentiable, but soft attention over a substrate matrix — or
+over RAM contents read onto the substrate — is (Emma 2026-06-02). First
+build is an on-substrate matrix (simplest); it's the natural showcase of
+the constrain-train "every op trainable" vision. Defuzz stays smooth;
+DNC components are just smoother.
 Sutra is well-suited: content addressing = cosine+softmax+weighted-readout
 (native substrate ops), the PyTorch codegen is autograd-differentiable,
 and `recur` holds the memory/usage/link state. Full design + mechanism
