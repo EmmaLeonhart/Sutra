@@ -160,6 +160,31 @@ A DNC's memory math is *already* Sutra's native mode:
   threshold is the one shipped instance). A DNC is the natural large-scale
   demonstration: a whole differentiable program with trainable memory.
 
+## "Attention" in a DNC is weighting *vectors*, not attention matrices (Emma 2026-06-02)
+
+A common confusion (worth stating plainly): a DNC does **not** have a
+Transformer-style attention *matrix* (`softmax(QKᵀ)`, N×N). A DNC's
+"attention" is a per-head **addressing weighting `w`** — an **N-vector**,
+a soft distribution over the N memory rows — computed as
+`w = softmax(β · cosine(key, M_rows))`. The read is `r = w · M` (a vector
+× the memory matrix → one W-row). The write is an outer product
+`w ⊗ v` added into `M`. So the attention is **vectors and matmuls**, never
+a stored attention matrix.
+
+The only genuinely matrix-shaped state is:
+- **`M`** (N×W) — the memory itself; and
+- **`L`** (N×N) — the temporal-link matrix, which records write *order*
+  (so `L·w` shifts a weighting to the next-written row). `L` is **not**
+  attention — it is a maintained adjacency — and it is **deferred**: the
+  content-addressing-only minimal DNC has **no N×N matrix at all**, just
+  `M` and weighting vectors.
+
+Representation in Sutra: `M` is a substrate `matrix` (Tensor); a weighting
+`w` is a substrate vector; the cosine-against-all-rows is row-normalise +
+`Tensor.MatrixMul(M, key)`; the softmax is the smooth polarized `select`;
+the read `w·M` and write `w⊗v` are matmuls / outer products. All tensor
+ops, all differentiable. `L` (when added) is a recurring `matrix` slot.
+
 ## Mechanism → substrate mapping (proposed)
 
 State carried in `recur` slots (all VRAM tensors):

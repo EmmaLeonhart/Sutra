@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-02: DNC↔code isomorphism — first evidence (content read = associative lookup)
+
+Emma's 2026-06-02 direction: she most wants an isomorphism between a DNC's
+learned, differentiable memory access and written code (the weight→code
+vision specialized to memory). Her two corrections made it well-posed:
+defuzz is smooth (so soft DNC access and hard ram-code are two ends of a
+β dial), and differentiability is the access *method* not the store.
+Documented in `planning/exploratory/differentiable-neural-computer.md`
+§ "The point" (operation-correspondence table + round-trip plan) and the
+"attention = weighting vectors, not matrices" clarification.
+
+First experiment (`experiments/dnc/dnc_assoc_recall.py`, host-PyTorch
+prototype — NOT substrate-pure): a trainable content-addressing read on an
+associative-recall task, trained at β=5 then defuzzed at β=50 and compared
+to the explicit discrete op `M[argmax_cosine(read_key)]`. **Measured: the
+isomorphism holds for content read** — defuzz cleanliness peak weight
+0.979 (≈one-hot), defuzzed-soft row == argmax_cosine row 100%, recalled
+vector identical to the discrete op (cos 0.994). So a learned soft DNC
+read reads off as the associative-lookup ram-op. (The 93.1% recall is the
+lookup's own accuracy under query noise — same for soft and hard — not a
+fidelity gap.) Finding:
+`planning/findings/2026-06-02-dnc-content-read-code-isomorphism.md`.
+Caveats stated: easy case (content read), trivial linear controller, host
+prototype, single seed; the hard tests (ordered copy via temporal links,
+non-trivial learned controllers — open Q 7) are the next rungs.
+
 ## 2026-06-02: RAM inline `await ramRead` surface — builtins + device wired
 
 Emma's chosen next focus. Studied `promise_desugar.py`: the Stage-1
