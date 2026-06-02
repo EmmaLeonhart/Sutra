@@ -21,17 +21,20 @@ trainable linear controller maps query → read key; the soft read is
 ("attention" is the weighting **vector** `w`, not a matrix). Train at a
 gentle `β=5` (MSE to target), then **defuzz** at `β=50` and compare to the
 explicit discrete op `M_values[argmax_cosine(read_key, M_keys)]`. D=16,
-3000 steps, single seed (`torch.manual_seed(0)`).
+3000 steps, **swept over 5 seeds (0–4)**; verdict taken on the worst seed
+(no cherry-picking).
 
-## Result (measured)
+## Result (measured, 5-seed sweep min/mean/max)
 
-| metric | value |
+| metric | min / mean / max |
 |---|---|
-| trained soft read (β=5) recalled·target cos | 0.903 |
-| **defuzz cleanliness** (mean peak weight, β=50) | **0.979** (1.0 = one-hot) |
-| **defuzzed-soft row == `argmax_cosine` row** | **100.0%** |
-| **defuzzed-soft read · discrete-op read cos** | **0.994** (1.0 = identical) |
-| task: `M[argmax_cosine(query)]` == true row | 93.1% (random 12.5%) |
+| trained soft read (β=5) recalled·target cos | 0.898 / 0.901 / 0.903 |
+| **defuzz cleanliness** (mean peak weight, β=50) | **0.979 / 0.980 / 0.982** (1.0 = one-hot) |
+| **defuzzed-soft row == `argmax_cosine` row** | **100.0% (all 5 seeds)** |
+| **defuzzed-soft read · discrete-op read cos** | **0.994 / 0.994 / 0.995** (1.0 = identical) |
+| task: `M[argmax_cosine(query)]` == true row | ~93.1% (random 12.5%) |
+
+The result is tight across seeds — not a single-seed fluke.
 
 **The isomorphism holds for content read.** At β=50 the soft addressing
 collapses to a near-perfect one-hot (peak 0.979) on the same row the
@@ -56,7 +59,9 @@ neighbour, intrinsic to a content lookup), **not** a defuzz-fidelity gap.
 - **Trivial controller.** The controller is a single linear map; the
   "learning" is mild. A real DNC controller (LSTM + allocation/temporal
   heads) is untested here.
-- **Host prototype, single seed.** Not substrate-pure; not seed-swept.
+- **Host prototype.** Not substrate-pure (the substrate Sutra-DNC is the
+  follow-on if the harder rungs hold). Seed-swept (5), so not a fluke, but
+  one architecture/task.
 
 ## What it unlocks
 
