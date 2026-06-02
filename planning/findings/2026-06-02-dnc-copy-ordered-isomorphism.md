@@ -8,8 +8,11 @@ read row sequence **equals the write row sequence at shift s=+1, 100%**
 via the temporal links, pipelined one step ahead of the emit. It reads
 off as `write: loop t: p=alloc(); ramWrite(p,x_t)` /
 `read: p=first; loop t: emit(ramRead(p)); p=next(p)`. This is the hard
-(ordered) case of the DNC↔code isomorphism, confirmed on the substrate-op
-family (host prototype).
+(ordered) case of the DNC↔code isomorphism, confirmed **at the trained
+length (T=6)** on the substrate-op family (host prototype). It does NOT
+generalize to much longer/shorter lengths (degrades at T=8 and T=3 — see
+"Length generalization"): a clean program in-regime, not a length-general
+algorithm.
 
 ---
 
@@ -66,10 +69,34 @@ the read head I capture is already fetching item t+1's row.
 The trained differentiable copy DNC defuzzes to a clean sequential
 pointer-walk over the written rows — the ordered DNC↔code isomorphism.
 
+## Length generalization (measured — the isomorphism is in-regime, not general)
+
+Evaluated the same checkpoint (no retrain) across sequence lengths:
+
+| T | copy acc | read==write (best shift) | all-distinct |
+|---|---|---|---|
+| 3 | 0.592 | 99.5% (s=−1) | 0% |
+| 5 | 0.859 | 63% | 100% |
+| **6 (trained)** | **1.000** | **100% (s=+1)** | **100%** |
+| 7 | 0.954 | 94.9% (s=+1) | 96% |
+| 8 | 0.556 | 15.1% | 49% |
+
+The clean pointer-walk holds at the **trained length (T=6, 100%)** and
+mostly **one step beyond (T=7, ~95%)**, but **degrades off-distribution**:
+it breaks at T=8 (acc 0.56, alignment 15%) and also at short T=3 (acc
+0.59; the read-ahead pipeline shifts to s=−1 and rows repeat). So the
+trained DNC learned a clean program **in its trained regime**, NOT a
+length-universal copy algorithm — the well-known NTM/DNC length-
+generalization limit. The isomorphism claim is therefore "the trained
+policy defuzzes to a clean sequential ram-program **at its operating
+length**," not "a length-general copy program." Reaching length-general
+behavior would need longer/wider-curriculum training (or a larger N and
+explicit positional handling) — an open rung, not done.
+
 ## Caveats
 
-- Host-PyTorch prototype, not substrate-pure; single seed so far; one
-  task (copy) at T=6, N=16.
+- Host-PyTorch prototype, not substrate-pure; single seed; copy task;
+  trained at T=6, N=16 — clean in-regime, not length-general (above).
 - The β/sharpness is the controller's learned read/write strengths (not an
   explicit anneal); reads at peak 0.938 are near- but not perfectly
   one-hot — the ~6% residual is the open-Q-7 fidelity tail.
