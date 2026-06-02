@@ -1,0 +1,3 @@
+# Scratch training logs / checkpoints (regenerable from the committed scripts).
+_*
+*.pt
