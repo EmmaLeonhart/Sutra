@@ -125,6 +125,22 @@ for the multi-program/Yantra IPC story.
 Open follow-up (todo.md): await→while_loop lowering for recur+await;
 model-free hash-keyed-role axon for the mailbox dim cost.
 
+## Active — DNC↔code isomorphism: temporal-link copy (the correct full version, Emma 2026-06-02)
+
+The content-read rung is cleared (finding 2026-06-02; soft read defuzzes
+to `M[argmax_cosine]`, 5-seed robust). This is the **ordered** test: a
+faithful DNC (allocation write + temporal-link matrix `L` + content/
+forward/backward read + LSTM controller) on the **copy task**, β-annealed,
+then **defuzz and read off** — does the trained policy land on the
+sequential program `loop: ramWrite(alloc, x)` then `p=first; loop:
+emit(ramRead(p)); p=next(p)`? Design: `differentiable-neural-computer.md`
+§ "The correct full version". Verify per-step write/read weightings defuzz
+to clean one-hots following `L`, the read-off op sequence == the
+sequential program, and copy accuracy. Host-PyTorch prototype (honest:
+not substrate-pure). **Restart-proof:** commit the code first
+(re-runnable), train in background, commit results as they land. A
+trains-but-blurry-defuzz outcome is the open-Q-7 finding — report it.
+
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
 ### HF mirror — DONE (7200 sharded corpus live); orphan cleanup low-priority (default: leave)
