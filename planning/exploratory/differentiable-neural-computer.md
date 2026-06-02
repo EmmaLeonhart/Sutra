@@ -26,41 +26,58 @@ The defining property is **differentiability**: reads are weighted sums
 over *all* locations, writes are soft erase+add over all locations, and
 the addressing weights are smooth functions of the controller's output.
 
-## The crucial reconciliation: DNC memory is NOT the hard RAM pointers
+## Differentiability is the access *method*, not RAM-vs-substrate
 
-Sutra already has **RAM pointers** (`planning/sutra-spec/ram-pointers.md`):
-external host memory, **discrete** round-to-nearest addressing, accessed
-as an **I/O device**. Emma's 2026-06-01 decision is explicit: **RAM is not
-differentiable** — I/O is outside the differentiable realm.
+The earlier "RAM is not differentiable" framing (2026-06-01) was about a
+specific **method** — the hard single-index, round-to-nearest pointer that
+`ramRead`/`ramWrite` implement. That method isn't differentiable (a
+discrete index has no gradient). But **differentiable RAM access is
+possible** (Emma 2026-06-02): a *soft* method — read a region of RAM
+cells onto the substrate and weight them by `softmax(cosine(key, cells))`
+— is fully differentiable. The non-differentiable thing was the
+round-to-nearest *method*, not RAM the store.
 
-A DNC's memory is the *opposite* on both axes, and that is fine — they are
-**two distinct memory architectures** in the same NTM/DNC family:
+So the real axis is the **addressing method**, and it is somewhat
+orthogonal to where the memory lives:
 
-| | RAM pointers (built) | DNC memory (this doc) |
+| Access method | Differentiable? | Used by |
 |---|---|---|
-| Where | external host RAM (I/O device) | **on the substrate** (a VRAM matrix) |
-| Addressing | **discrete**, round-to-nearest | **soft** content/allocation/temporal weights |
-| Differentiable | no (I/O boundary) | **yes** (the whole point) |
-| Trains | the *controller* only | controller **and** memory access, end-to-end |
+| Hard single-index, round-to-nearest | no (discrete index) | `ramRead`/`ramWrite` (built) |
+| **Soft attention** (weighted over cells) | **yes** | a DNC; *differentiable RAM access* |
 
-So a Sutra-DNC does **not** use `ramRead`/`ramWrite`. Its memory lives on
-the substrate as a differentiable matrix, and the addressing is soft
-attention computed with substrate ops. This is the natural home for
-"differentiable memory" precisely *because* Emma put the discrete host
-RAM outside the differentiable realm — the DNC is the differentiable
-cousin, kept on-substrate.
+A DNC uses the **soft** method. Its memory can be an **on-substrate
+matrix** (the first thing to build — simplest), or equally **host RAM
+contents read onto the substrate** and soft-attended (differentiable RAM
+access). Either way the addressing is soft `softmax(cosine)` weighting
+computed with substrate ops, trained end-to-end. The built `ramRead`/
+`ramWrite` (hard index) remain the discrete-I/O method for when you want
+an exact addressed cell, not a gradient.
 
 ## Why Sutra is unusually well-suited
 
 A DNC's memory math is *already* Sutra's native mode:
 
+- **Defuzzification is smooth — there is no internal gradient boundary
+  (Emma 2026-06-02).** Sutra's defuzzification *polarizes* (sharpens
+  along a target axis) but stays smooth and differentiable; it never
+  binarizes. So `select`/`is_true` and friends are differentiable too —
+  gradients flow through them. **DNC-based components are simply
+  *smoother*** (gentler polarization). There is no point where "softness
+  ends," so a Sutra-DNC is differentiable **end-to-end** with no internal
+  boundary to manage. The only non-differentiable thing nearby is the
+  hard single-index round-to-nearest *method* (`ramRead`); a DNC uses the
+  soft attention method instead (differentiable — over an on-substrate
+  matrix or RAM contents read onto the substrate; see above). The
+  polarization strength (β) is just a dial: the font glyph renderer
+  cranks it high for an exact bitmap; a DNC dials it gentle to keep
+  addressing diffuse.
 - **Content addressing = cosine + softmax + weighted readout.** Sutra has
-  `similarity` / `argmax_cosine` (cosine), `select` (softmax-saturated
-  one-hot), `bundle` (superposition = weighted sum), `dot` (inner
-  product). A *soft* content read — `softmax(cosine(key, M)) · M` — is the
-  same shape as Sutra's cleanup/attractor and `select`, just left *un*-
-  saturated. The hardware-friendly fuzzy readout the substrate is built
-  on IS the DNC read head.
+  `similarity` / `argmax_cosine` (cosine), `select` (smooth polarized
+  softmax), `bundle` (superposition = weighted sum), `dot` (inner
+  product). A content read — `softmax(β · cosine(key, M)) · M` — is the
+  same smooth op family as Sutra's cleanup/attractor and `select`, just
+  with a gentler β. The fuzzy cosine readout the substrate is built on IS
+  the DNC read head.
 - **The substrate is autograd-differentiable.** The PyTorch codegen
   target emits tensor ops whose loop runtime is documented "every op is
   differentiable with respect to state, target, threshold"
@@ -90,8 +107,8 @@ State carried in `recur` slots (all VRAM tensors):
 
 Per tick, from a controller-emitted interface (keys, gates, modes):
 1. **Content weighting** `c = softmax(β · cosine(key, M))` — `similarity`
-   row-wise + a soft (un-saturated) `select`/softmax. `β` is a sharpening
-   gate.
+   row-wise + a gentle-β (diffuse) `select`/softmax — smooth, not
+   saturated to one-hot. `β` is the sharpening dial.
 2. **Write** — allocation `a` from `u` (least-used), blended with content
    `c_w` by an allocation gate, scaled by a write gate → `w_w`; then
    `M ← M ⊙ (1 − w_w ⊗ e) + w_w ⊗ v` (erase + add), all element-wise
@@ -119,11 +136,13 @@ substrate op shapes, all differentiable.
 2. **`N × N` link matrix at scale.** The temporal link matrix is `O(N²)`
    state. What `N` is feasible on the substrate, and is the sparse-link
    approximation (Graves' follow-up) needed?
-3. **Soft vs the snap/cleanup tension.** Sutra often *defuzzifies*
-   (`is_true`, `select` saturation). A DNC needs the addressing to stay
-   *soft* (un-saturated) for gradients. Where exactly does softness end
-   and readout begin? (This is the differentiability boundary the RAM
-   pointers sit outside; the DNC sits inside.)
+3. **Polarization strength (β) tuning — NOT a differentiability
+   boundary.** Resolved framing (Emma 2026-06-02): defuzzification is
+   smooth, so there is no soft/defuzz gradient boundary — `select` etc.
+   are differentiable, the DNC just uses gentler β. The real question is
+   the *practical* one: what β keeps addressing diffuse enough for stable
+   gradients yet sharp enough to recall a specific cell, and does it need
+   to anneal over training? (Tuning, not a boundary to manage.)
 4. **Training harness.** What loss / task drives the gradients, and does
    the existing autograd-through-compiled-substrate path (the w2c
    precedent) carry `N×N`-state DNC graphs without blowing up?
@@ -147,8 +166,10 @@ don't flow / recall stuck) is a finding, not a failure to hide.
 
 ## Cross-refs
 
-- `planning/sutra-spec/ram-pointers.md` — the discrete host-RAM I/O
-  pointers (the non-differentiable cousin); the differentiability decision.
+- `planning/sutra-spec/ram-pointers.md` — the hard single-index
+  round-to-nearest method (`ramRead`/`ramWrite`, non-differentiable *by
+  method*); soft attention over RAM contents would be the differentiable
+  alternative.
 - `planning/exploratory/constrain-train-next-targets.md` — the
   every-op-trainable vision a DNC showcases.
 - `non-halting-loop.md` — `recur` recurring substrate state (the home for
