@@ -91,6 +91,60 @@ section — soft (DNC) and hard (`ramRead`) — are then the *same* program at
 two ends of the β dial, which is precisely what makes the isomorphism
 well-posed.
 
+### The correct full version: temporal-link copy → a sequential ram program
+
+The content-read case (associative lookup, measured 2026-06-02 — finding
+`2026-06-02-dnc-content-read-code-isomorphism.md`) is the easy half: a
+*single* op with no ordering. "Doing this correctly" means an **ordered**
+task whose learned policy defuzzes to a multi-statement program with a
+loop and a moving pointer. The canonical one is **copy**, and here is what
+the correct version is, end to end:
+
+**Task.** Present `x_1 … x_T` (vectors), then a go delimiter; the network
+must emit `x_1 … x_T` in order.
+
+**The correct DNC mechanism (write head + temporal links + read head):**
+- *Write phase, step t:* write `x_t` to a fresh row via the **allocation**
+  weighting (least-used row) → in practice row `t`. The **temporal-link
+  matrix** `L` records the write order (`t → t+1`), and `p` (precedence)
+  marks the last-written row.
+- *Read phase, step t:* the read weighting starts at the first-written row
+  and each step follows the **forward temporal link** `L · w_r` to the
+  next-written row; read `r = w_r · M`. So it walks memory in written
+  order, emitting `x_1, x_2, …`.
+
+**What it defuzzes to (the isomorphism target).** At high β the write
+weighting is one-hot at row `t` (sequential write) and the read weighting
+is one-hot following `L` forward (sequential read). Read off:
+
+```
+// write phase
+loop t: p = alloc();  ramWrite(p, x_t)      // p advances 0,1,2,…
+// read phase
+p = first
+loop t: emit( ramRead(p) );  p = next(p)    // next = forward temporal link
+```
+
+— a **sequential write-then-read program over the ram-ops**, with a loop
+and a moving pointer. That is the correct isomorphism for an ordered task:
+the trained copy DNC's behavior decompiles to this loop.
+
+**How to verify it is correct (not just trains):** measure, per step,
+whether (a) the **write** weighting defuzzes to one-hot at the expected
+row `t`; (b) the **read** weighting defuzzes to one-hot following the
+forward link (read row `t` at output step `t`); (c) the read-off op
+sequence equals the sequential `ramWrite`-loop / `ramRead`-loop program;
+and (d) copy accuracy is high. A trained-but-**blurry** policy (defuzz
+doesn't land on clean per-step one-hots) is the open-Q-7 failure mode —
+report it, don't dress it up. Likely needs a β-anneal (train soft, sharpen
+over training) and enough memory rows (`N ≥ T`).
+
+This is the artifact "that does this correctly": not the single-lookup
+easy case, but an ordered learned policy that defuzzes to a readable
+multi-statement ram-program. The experiment that tests it is
+`experiments/dnc/` (copy task; see the finding for the content-read rung
+already cleared).
+
 ## Differentiability is the access *method*, not RAM-vs-substrate
 
 The earlier "RAM is not differentiable" framing (2026-06-01) was about a
