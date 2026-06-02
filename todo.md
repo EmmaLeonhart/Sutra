@@ -247,6 +247,22 @@ substrate-RNN text-generation demo (same task, two architectures).
   with RAM as a discrete I/O boundary; a model-free hash-keyed-role axon
   to drop the mailbox's 768-dim key-embedding cost; multi-cell payloads.
 
+### Differentiable Neural Computer (DNC) — design exploration (Emma 2026-06-02)
+
+The NTM's differentiable successor (Graves 2016): a neural controller +
+an **on-substrate**, **differentiable** memory matrix with content /
+allocation / temporal-link soft addressing. Distinct from the RAM
+pointers (which are discrete host I/O, *not* differentiable per Emma's
+call) — the DNC is the differentiable cousin, kept on the substrate, and
+the natural showcase of the constrain-train "every op trainable" vision.
+Sutra is well-suited: content addressing = cosine+softmax+weighted-readout
+(native substrate ops), the PyTorch codegen is autograd-differentiable,
+and `recur` holds the memory/usage/link state. Full design + mechanism
+mapping + open questions + a minimal copy-task first experiment:
+`planning/exploratory/differentiable-neural-computer.md`.
+- [ ] Decide controller expression + the soft/defuzz boundary (open Qs in
+  the doc), then try the content-addressing-only copy-task experiment.
+
 ### Reservoir computing (DEFERRED to the OS era)
 
 Emma: materially more complex; expected to land **with Yantra**, not
