@@ -6,6 +6,34 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-02: RAM inline `await ramRead` surface — builtins + device wired
+
+Emma's chosen next focus. Studied `promise_desugar.py`: the Stage-1
+desugar already lowers inline `await x` → `Promise.await_value(x)` and
+handles the `v = await x; return g(v)` continuation, so no new
+continuation transform was needed — the gap was the external producer.
+Implemented per Emma's spec (RAM as a discrete I/O device, round-to-
+nearest, not differentiable):
+- `_VSA.ram` optional host-attached device + `ram_read`/`ram_write`
+  (round-to-nearest pointer decode at the I/O wire; OOB→zero) — `0587e6b8`.
+- `ramRead`/`ramWrite` codegen builtins (`codegen_base.py` registry).
+
+Measured working + guarded (`test_ntm_ram.py` `TestRamInlineSurface`):
+synchronous `ramRead`/`ramWrite` round-trip; `number x = await
+ramRead(ptr)` inside an **async** function (existing desugar →
+`await_value` passes the resolved device read through, no `await_value`
+change, `test_await_substrate_pure` 4/4 intact); and the NTM read head as
+a `recur` loop using **synchronous** `ramRead` (per-tick reads advance on
+the substrate, state-locus holds). 10/10 in `test_ntm_ram.py`.
+
+Honesty: the inline surface compiles to a synchronous read of the
+host-attached `_VSA.ram` device; the separable-orchestrator VRAM-mailbox
+model is the distinct `experiments/ntm_ram` harness (multi-program/Yantra
+IPC). Remaining gap (measured, documented, NOT faked): `await` inside a
+non-async `recur` (Emma's exact example) hits `CodegenNotSupported` — the
+await→gated-while_loop lowering is the next phase; the synchronous-
+`ramRead`-in-`recur` form already gives the read head functionally.
+
 ## 2026-06-02: daily audit — clean (no-op)
 
 2026-06-02 daily audit: clean (70 .su compiled, 18 skipped, 0 user-program leaks + 0 runtime-prelude leaks; 13 open-questions dossiers + sutra-spec/open-questions.md index checked, 0 resolved-elsewhere; promise/await fit-to-spec). Fresh container with no torch/numpy/ollama preinstalled — installed pytest + torch (CPU) + numpy + the `ollama` python pkg, the ollama server (needed zstd), and pulled `nomic-embed-text`, so every leg ran live (no env-skip, no false-clean). Promise/await: codegen lint clean + `test_await_substrate_pure` 4/4 both backends incl. the two live-embedding semantic legs (`main()` = 3.0). Full compiler suite 424 passed / 9 skipped / 131 subtests (substrate-leak-sweep gate excluded — see comment below). Audit.md REAL LEAK #3 (await) verified intact: `def await_value(self, p):` @ codegen_pytorch.py:878, `return self.value(p)` @ :908 — pure tensor ops, no host poll loop, no host branch. #9 (`eq`/`eq_synthetic` scatter) verified intact: `out[self.semantic_dim + self.AXIS_TRUTH] = cos` @ :2673 and `... = truth` @ :2695 — 0-d tensor scatter, autograd preserved. #10 (`_select_softmax` scores) verified intact: `_torch.stack([sc.to(...) for sc in scores])` @ :74 (grad-preserving stack), `as_tensor` fallback @ :78 (raw-number path only). Audit.md #1/#2/#5/#6/#7/#8 still FIXED; #4 still NOT-A-LEAK. Recent commits since 2026-05-28 audit (`a1afec7`..HEAD) are W2C corpus/HF mirror work + RAM-ptr→NTM spec landing + RAM-ptr differentiability resolution + queue hygiene — no new compiler runtime touches, and `a1afec7` already updated the `ram-pointers.md` open-questions index entry to RESOLVED (strikethrough applied), so no stale-open-question drift. 13 dossiers in `planning/open-questions/` all align with the README verdict table (post-2026-05-28 pruning pass): 2 RESOLVED-core with narrow OPEN tails (`literals-and-auto-embedding.md`, `no-null.md`) + 11 genuinely OPEN, none decided elsewhere this session. Dispatch-level audit only; the three measurement-required checks (dimension / state-locus / signal-separation per CLAUDE.md "Subtler substrate breaches" + FV paper §4.4) remain out of scope for this dispatch-level gate and are tracked separately.
