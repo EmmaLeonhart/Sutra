@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 import sys
 
 import torch
@@ -134,11 +135,18 @@ def make_copy_batch(B, T):
     return x, target, T, in_size
 
 
+CKPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_copy_model.pt")
+
+
 def run(seq=6, steps=20000, seed=0, lr=1e-3, batch=16):
     torch.manual_seed(seed)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     in_size = BITS + 2
     model = DNC(in_size, BITS).to(dev)
+    if os.path.exists(CKPT):
+        model.load_state_dict(torch.load(CKPT, map_location=dev))
+        print(f"loaded checkpoint {CKPT} (skipping training)")
+        return model, dev
     opt = torch.optim.Adam(model.parameters(), lr=lr)
 
     for step in range(steps):
@@ -163,6 +171,8 @@ def run(seq=6, steps=20000, seed=0, lr=1e-3, batch=16):
                 acc = ((pred > 0).float() == target).float().mean().item()
             print(f"step {step:6d}  T={T}  loss {loss.item():.4f}  bit_acc {acc:.3f}")
 
+    torch.save(model.state_dict(), CKPT)
+    print(f"saved checkpoint {CKPT}")
     return model, dev
 
 
@@ -191,37 +201,46 @@ def defuzz_analysis(model, dev, seq=6, trials=200):
         pred = torch.stack(outs, 1)[:, T + 1:T + 1 + T]
         acc = ((pred > 0).float() == target.to(dev)).float().mean().item()
 
-    wr_rows = torch.stack(read_rows, 1)        # (trials, T) row read at each out step
+    wr_rows = torch.stack(read_rows, 1)         # (trials, T) row read at out step t
+    ww_rows = torch.stack(write_rows, 1)        # (trials, T) row written at write step t
     wr_pk = torch.stack(read_peak, 1).mean().item()
     ww_pk = torch.stack(write_peak, 1).mean().item()
-    # Does read step t land on a distinct, monotonically advancing row?
-    seq_match = (wr_rows[:, 1:] > wr_rows[:, :-1]).float().mean().item()  # advancing
-    distinct = (torch.stack([wr_rows[:, t].unique().numel()
-                             for t in range(T)]) if False else None)
-    # fraction of trials whose read-rows are all-distinct (a clean pointer walk)
+    # CORRECT isomorphism metric: does the read recover the WRITE ORDER?
+    # i.e. read-row[t] == write-row[t] (read the t-th written row at output t),
+    # following the temporal link `next`. (Physical row indices are an
+    # allocation permutation — NOT expected to be ascending; the earlier
+    # "advancing" metric was wrong.)
+    read_follows_write = (wr_rows == ww_rows).float().mean().item()
     all_distinct = torch.tensor(
         [len(set(wr_rows[b].tolist())) == T for b in range(trials)]).float().mean().item()
 
     print()
     print(f"DEFUZZ READ-OFF (seq={seq}, {trials} trials):")
-    print(f"  copy bit-accuracy            : {acc:.3f}")
+    print(f"  copy bit-accuracy             : {acc:.3f}")
     print(f"  write weighting peak (one-hot): {ww_pk:.3f}")
     print(f"  read  weighting peak (one-hot): {wr_pk:.3f}")
-    print(f"  read row advances each step   : {seq_match*100:.1f}%  "
-          f"(sequential forward walk)")
+    print(f"  read-row[t] == write-row[t]   : {read_follows_write*100:.1f}%  "
+          f"(read recovers the WRITTEN order via temporal links)")
     print(f"  read rows all-distinct        : {all_distinct*100:.1f}%  "
           f"(clean pointer walk over T rows)")
-    print(f"  example read-row sequences    : {wr_rows[:3].tolist()}")
-    clean = acc > 0.95 and wr_pk > 0.9 and seq_match > 0.9
+    print(f"  example write-row sequences   : {ww_rows[:3].tolist()}")
+    print(f"  example read-row  sequences   : {wr_rows[:3].tolist()}")
+    clean = acc > 0.95 and wr_pk > 0.9 and read_follows_write > 0.9
     print()
     if clean:
-        print("RESULT: the trained copy DNC DEFUZZES to a sequential pointer")
-        print("walk — read step t reads a distinct, advancing row (one-hot),")
-        print("reading off as  p=first; loop: emit(ramRead(p)); p=next(p).")
+        print("RESULT: the trained copy DNC DEFUZZES to a clean pointer walk —")
+        print("each output step reads a distinct one-hot row, and the read row")
+        print("sequence EQUALS the write row sequence (read recovers the written")
+        print("order via the temporal links). It reads off as:")
+        print("  write: loop t: p=alloc(); ramWrite(p, x_t)")
+        print("  read:  p=first; loop t: emit(ramRead(p)); p=next(p)")
+        print("The physical rows are an allocation permutation, not 0..T-1 —")
+        print("which is correct (alloc picks by usage; next() follows write order).")
         print("Ordered DNC↔code isomorphism: CONFIRMED for copy.")
     else:
-        print("RESULT: trained but defuzz is NOT a clean sequential walk")
-        print(f"(acc={acc:.2f}, read_peak={wr_pk:.2f}, advance={seq_match:.2f}).")
+        print("RESULT: trained but defuzz does NOT cleanly recover the write")
+        print(f"order (acc={acc:.2f}, read_peak={wr_pk:.2f}, "
+              f"read==write {read_follows_write:.2f}).")
         print("Open-Q-7 finding: the ordered policy does not read off as a")
         print("crisp program at these settings — needs more training / curriculum")
         print("/ β-anneal / larger N. Reported as-is, not hidden.")
