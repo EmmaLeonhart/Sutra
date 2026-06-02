@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-02: DNC↔code isomorphism — CONFIRMED for the ordered case (copy)
+
+The hard rung. A faithful DNC (LSTM controller, usage/allocation write,
+temporal-link matrix L, content/forward/backward read;
+`experiments/dnc/dnc_copy.py`, host-PyTorch prototype) trained on the
+**copy task** (T-curriculum 1→6, 20k steps) reaches **copy accuracy
+1.000**, then defuzzes to a clean sequential pointer-walk: write peak
+0.997, read peak 0.937 (one-hot), reads 100% all-distinct, and an
+**exhaustive shift-search shows read==write order at s=+1 = 100%** (s=0
+and s=−1 both 0%) — the read recovers the written order exactly via the
+temporal links, pipelined one step ahead of the emit. It reads off as
+`write: loop t: p=alloc(); ramWrite(p,x_t)` / `read: p=first; loop t:
+emit(ramRead(p)); p=next(p)`. Ordered DNC↔code isomorphism CONFIRMED.
+
+Process note (rails): two successive read-off metrics were wrong before I
+measured the right thing — an ascending-physical-row check, then a
+`read==write[t]` (s=0) check — both mislabeled a working model (acc=1.0).
+Rather than assert "it's fine" a third time, I ran an exhaustive
+shift-search and let the data pick s=+1 (100%). Allocation makes the
+physical rows a permutation, not 0..T-1, and the read leads the emit by
+one step. Finding:
+`planning/findings/2026-06-02-dnc-copy-ordered-isomorphism.md`. Caveats:
+host prototype (not substrate-pure), single seed, one task (copy, T=6,
+N=16), read peak 0.937 (a ~6% one-hot residual). Checkpoint saved
+(gitignored) so re-analysis needs no retrain.
+
 ## 2026-06-02: DNC↔code isomorphism — first evidence (content read = associative lookup)
 
 Emma's 2026-06-02 direction: she most wants an isomorphism between a DNC's
