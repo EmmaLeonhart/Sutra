@@ -1,0 +1,19 @@
+// text_scan_inline.su — NTM read head using the INLINE ramRead surface.
+// planning/sutra-spec/ram-pointers.md.
+//
+// Companion to text_scan.su (which emits the pointer for the external
+// orchestrator harness). Here the read is INLINE: a recurring VRAM cursor
+// advances by complex_add each tick (substrate), and `ramRead(cur)` reads
+// the host-attached `_VSA.ram` device at the decoded address directly —
+// no hand-wired orchestrator/mailbox. The host attaches the RAM and drives
+// the ticks; decoding the returned value to a char is monitoring. This is
+// the step-2 inline surface (ramRead builtin -> _VSA.ram_read) running in
+// a real recur read head.
+function vector read_step(scalar dummy) {
+    recurring vector cur = make_real(0.0);
+    vector val = ramRead(cur);
+    recur(cur + make_real(1.0));
+    return(val);
+}
+
+function string main() { return "ok"; }

@@ -218,6 +218,19 @@ class TestNtmRamReadPath(unittest.TestCase):
             got = [round(float(vsa.real(served))) for _a, served in trace]
             self.assertEqual(got, ground, f"glyph {ch!r} RAM render mismatch")
 
+    def test_inline_ramread_demo_recovers_text(self):
+        # experiments/ntm_ram/text_scan_inline.su: a recur read head using
+        # the INLINE ramRead builtin against a host-attached _VSA.ram.
+        from ram_device import RamDevice  # noqa: F401 (path side effect)
+        ns = self._compile("text_scan_inline.su")
+        vsa = ns["_VSA"]
+        text = "HELLO, RAM!"
+        vsa.ram = [vsa.make_real(float(ord(c))) for c in text] \
+            + [vsa.zero_vector() for _ in range(32 - len(text))]
+        out = "".join(chr(int(round(vsa.real(ns["read_step"](0.0)))))
+                       for _ in range(len(text)))
+        self.assertEqual(out, text)
+
     def test_dim_audit_is_honest(self):
         # No basis_vector calls => semantic content is unused => a tiny
         # semantic_dim is correct (CLAUDE.md dim audit).
