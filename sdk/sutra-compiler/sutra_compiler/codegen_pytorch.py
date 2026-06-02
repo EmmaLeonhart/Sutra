@@ -261,6 +261,10 @@ class PyTorchCodegen(Codegen):
         self._emit("# load_matrix path -> frozen 2-D tensor (file-backed matrix")
         self._emit("# constants are read once and reused; see load_matrix).")
         self._emit("self._matrix_cache = {}")
+        self._emit("# Optional external RAM device (planning/sutra-spec/ram-pointers.md):")
+        self._emit("# a host-attached list of number-vectors that ram_read/ram_write")
+        self._emit("# bridge to. None until the host (orchestrator) attaches one.")
+        self._emit("self.ram = None")
         self._emit("# Rotation matrix cache: role-hash -> tensor on self.device.")
         self._emit("# Generating a 768x768 Haar rotation is O(d^3) on CPU (seeded")
         self._emit("# via numpy for Haar-uniformity). Cached on the GPU after the")
@@ -1813,6 +1817,45 @@ class PyTorchCodegen(Codegen):
         self._emit("def truth(self, v):")
         self._indent += 1
         self._emit("return float(v[self.semantic_dim + self.AXIS_TRUTH].item())")
+        self._indent -= 1
+        self._emit()
+        # RAM pointers (planning/sutra-spec/ram-pointers.md). `self.ram` is
+        # an OPTIONAL external memory device the host attaches (the
+        # orchestrator's role) — a list of number-vectors. RAM access is
+        # I/O at the boundary, NOT a substrate op: ram_read decodes the
+        # pointer-vector to a host address (round(real(ptr)) — the same
+        # monitoring readout used elsewhere, here at the I/O wire), reads
+        # the host buffer, and returns the stored VRAM vector. The pointer
+        # is a substrate-computed `number`; the value comes back as VRAM.
+        # Address is discrete round-to-nearest (Emma 2026-06-01: RAM is not
+        # differentiable). OOB / no device -> zero vector (no runtime errors
+        # by mechanism), per ram-pointers.md open-Q 4.
+        self._emit("def ram_read(self, ptr):")
+        self._indent += 1
+        self._emit("if self.ram is None:")
+        self._indent += 1
+        self._emit("return self.zero_vector()")
+        self._indent -= 1
+        self._emit("addr = int(round(float(ptr[self.semantic_dim + self.AXIS_REAL].item())))")
+        self._emit("if 0 <= addr < len(self.ram):")
+        self._indent += 1
+        self._emit("return self.ram[addr]")
+        self._indent -= 1
+        self._emit("return self.zero_vector()")
+        self._indent -= 1
+        self._emit()
+        self._emit("def ram_write(self, ptr, value):")
+        self._indent += 1
+        self._emit("if self.ram is None:")
+        self._indent += 1
+        self._emit("return value")
+        self._indent -= 1
+        self._emit("addr = int(round(float(ptr[self.semantic_dim + self.AXIS_REAL].item())))")
+        self._emit("if 0 <= addr < len(self.ram):")
+        self._indent += 1
+        self._emit("self.ram[addr] = value")
+        self._indent -= 1
+        self._emit("return value")
         self._indent -= 1
         self._emit()
         self._emit("def make_real(self, x):")
