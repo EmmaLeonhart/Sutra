@@ -116,8 +116,11 @@ for the multi-program/Yantra IPC story.
    keyword in non-async recur is sugar pending the await→while_loop
    lowering (the larger async/recur-composition work). Do NOT hack the
    desugar to process non-async recur without settling that semantics.
-2. **(optional) Migrate an `experiments/ntm_ram` read head** to the inline
-   `_VSA.ram` surface; confirm same measured output.
+2. ~~Migrate a demo to the inline surface~~ **DONE:**
+   `experiments/ntm_ram/text_scan_inline.su` + `run_inline_demo.py` — a
+   `recur` read head calling inline `ramRead(cur)` against a host-attached
+   `_VSA.ram`; decodes "HELLO, RAM!" exact (guarded by `test_ntm_ram.py`,
+   11/11).
 
 Open follow-up (todo.md): await→while_loop lowering for recur+await;
 model-free hash-keyed-role axon for the mailbox dim cost.
