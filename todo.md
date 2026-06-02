@@ -263,8 +263,17 @@ Sutra is well-suited: content addressing = cosine+softmax+weighted-readout
 and `recur` holds the memory/usage/link state. Full design + mechanism
 mapping + open questions + a minimal copy-task first experiment:
 `planning/exploratory/differentiable-neural-computer.md`.
-- [ ] Decide controller expression + the soft/defuzz boundary (open Qs in
-  the doc), then try the content-addressing-only copy-task experiment.
+**The actual goal (Emma 2026-06-02): isomorphism between DNC memory access
+and written code.** A trained soft DNC policy should *defuzz* (β dial, the
+smooth defuzz path) into a readable program over the hard ram-ops
+(`ramRead`/`ramWrite` + content lookup + traversal), and back — the
+weight→code vision specialized to memory access. Soft (trainable) and hard
+(written) are the same op at two β. The doc's § "The point" has the
+operation correspondence + the round-trip plan.
+- [ ] First experiment: content-addressing-only copy-task DNC; train it,
+  then defuzz and read off the addressing — does it land on the obvious
+  sequential-`ramWrite`/`ramRead` program? Measure the soft→code recovery
+  (the smallest DNC↔code-isomorphism evidence).
 
 ### Reservoir computing (DEFERRED to the OS era)
 

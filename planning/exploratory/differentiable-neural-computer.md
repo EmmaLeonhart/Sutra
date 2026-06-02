@@ -26,6 +26,71 @@ The defining property is **differentiability**: reads are weighted sums
 over *all* locations, writes are soft erase+add over all locations, and
 the addressing weights are smooth functions of the controller's output.
 
+## The point (Emma 2026-06-02): isomorphism between DNC memory access and written code
+
+What Emma most wants from the DNC is **not** another memory architecture
+— it is an **isomorphism between a DNC's (learned, differentiable) memory
+access and written (discrete) code**. A trained DNC's read/write/address
+policy should correspond to a *readable program* over the hard memory ops
+(`ramRead`/`ramWrite` + content lookup + traversal), and the reverse. This
+is the **weight→code (W2C) vision specialized to memory access**: recover
+the imperative memory-access program from the learned soft-addressing
+weights. (Emma: "not sure what I can do for" it — this section is the
+candidate way, not a built thing.)
+
+**Why it is reachable — Emma's own two points are the bridge:**
+1. **Defuzzification is smooth.** The soft DNC access and the hard
+   ram-code are not disconnected — they are the two ends of a continuous
+   **polarization (β) dial**. As β rises, a soft content read
+   `softmax(β·cosine(key, M)) · M` sharpens toward a one-hot, i.e. toward
+   `M[argmax_cosine(key)]` — the discrete associative-lookup op. The
+   smooth defuzz path connects them; nothing snaps.
+2. **Differentiable access is a method, not the store.** The same
+   key/weighting that drives the soft (trainable) read is, at high β, the
+   discrete (written) address. Soft and hard are one operation at two β.
+
+**Operation correspondence (soft DNC ⟷ discrete code):**
+
+| DNC soft op (trainable) | β→∞ defuzz limit | written-code op |
+|---|---|---|
+| content read `softmax(β·cos(k,M))·M` | the `argmax_cosine(k,M)` row | `x = M[argmax_cosine(k)]` — associative lookup |
+| content write (sharp) | write that row | `M[find(k)] = v` |
+| allocation write (least-used) | a specific free index | `p = alloc(); M[p] = v` |
+| temporal forward `L·w` | next-written index | `p = next(p); x = M[p]` — sequential walk |
+| temporal backward `Lᵀ·w` | prev index | `p = prev(p)` |
+
+So a **defuzzed DNC is a program** over {associative-lookup, alloc/store,
+next/prev traversal} — exactly a written memory-access program in terms
+of the ram-ops + content lookup Sutra already has.
+
+**Both directions (the isomorphism):**
+- **code → soft (compile):** take a written ram-code program, relax each
+  op to its gentle-β soft form → a differentiable DNC to train/fine-tune.
+- **soft → code (decompile):** train the soft DNC, raise β / defuzzify,
+  read off the discrete ops → the written program. This is **W2C
+  decompilation applied to DNC addressing weights** — the DNC is the
+  learned-weights *source*, the recovered ram-op program is the *target*.
+- **isomorphism:** the round-trip recovers the program
+  (`decompile ∘ compile ≈ id`), and a DNC *trained on a task* defuzzes to
+  a readable program that does the task.
+
+**What it would take (the "way"):**
+1. Define the β-relaxation of each ram-op (hard→soft) and its defuzz
+   inverse, so the soft↔hard map is explicit per op.
+2. Reuse the session's **W2C machinery** (the weight→code seq2seq) as the
+   decompiler: learned DNC addressing weights → the ram-op program.
+3. Verify the round-trip on a small task: write a copy/sort program in
+   ram-ops → relax → train → defuzz → check the recovered program is
+   isomorphic to (or a valid program for) the task. A failed round-trip
+   is a finding, not a thing to hide.
+
+This is the **meaningfulness arc's** weight→code endpoint reached through
+memory (`project_meaningfulness_arc`): a learned differentiable computer
+whose behavior decompiles to readable code. The two cousins from the next
+section — soft (DNC) and hard (`ramRead`) — are then the *same* program at
+two ends of the β dial, which is precisely what makes the isomorphism
+well-posed.
+
 ## Differentiability is the access *method*, not RAM-vs-substrate
 
 The earlier "RAM is not differentiable" framing (2026-06-01) was about a
@@ -152,6 +217,13 @@ substrate op shapes, all differentiable.
 6. **Dim audit.** Memory rows are `dim`-wide; a content key needs the same
    width. Model-free numeric DNCs want a small `dim`; an
    embedding-content DNC wants 768. Pick per task (CLAUDE.md dim audit).
+7. **Isomorphism fidelity (the load-bearing one).** Does the β→∞ defuzz of
+   a *trained* soft policy actually land on a clean discrete program, or a
+   blurry mixture that doesn't read off as code? What β-anneal /
+   regulariser pushes the trained policy toward a defuzzable (near-one-hot
+   at the limit) addressing? And can the W2C decompiler read a DNC
+   addressing-weight trace at all — is its current matrix→source training
+   distribution close enough, or does it need DNC-trace examples?
 
 ## Minimal first experiment (when we try it)
 
@@ -163,6 +235,16 @@ accuracy as `N` and sequence length scale. If the soft read/write trains
 through the compiled substrate (autograd), add allocation, then temporal
 links. Report the measured recall curve; a negative result (gradients
 don't flow / recall stuck) is a finding, not a failure to hide.
+
+**The isomorphism milestone (the actual goal):** once the soft copy DNC
+trains, **defuzz it** (raise β) and read off the discrete addressing per
+step — does it land on the obvious written program (sequential
+`ramWrite` on the way in, sequential `ramRead` on the way out)? Compare
+the defuzzed program to a hand-written copy program over ram-ops; measure
+how cleanly the trained policy defuzzes (peak addressing weight per step,
+and whether the read-off ops match). That measured soft→code recovery is
+the first evidence of the DNC↔code isomorphism — the smallest version of
+"a learned differentiable computer whose behavior decompiles to code."
 
 ## Cross-refs
 
