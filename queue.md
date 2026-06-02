@@ -73,6 +73,43 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 - **Promise/await is fit-to-spec** (verified 2026-05-20;
   `test_await_substrate_pure.py` 4/4). Guarded by the watchdogs below.
 
+## Active — RAM inline `await ramRead` surface syntax (Emma chose 2026-06-01)
+
+Goal: `number x = await ramRead(pointer);` / `ramWrite(pointer, data);`
+compile + run directly in `.su` (today only the hand-wired
+`experiments/ntm_ram` harness does it). **Studied 2026-06-02:** the
+Stage-1 desugar (`promise_desugar.py`) ALREADY lowers inline `await x` →
+`Promise.await_value(x)` and handles the `v = await x; return g(v)`
+continuation — so no new continuation transform is needed. The gap is the
+**external producer**: `await_value` currently short-circuits to
+`value(p)` (no producer wired). Per `promises.md` (await resolves when an
+external producer populates the slot) + `ram-pointers.md` (the RAM
+device/orchestrator is that producer), the spec-grounded design — NOT a
+substituted synchronous variant — is:
+
+1. **Runtime: attachable RAM device + `ram_read`/`ram_write` on `_VSA`.**
+   Port `experiments/ntm_ram/ram_device.py` into the runtime as an
+   optional `_VSA.ram`. `ram_read(ptr_vec)` decodes ptr at the I/O wire
+   (`real()`), reads the device, returns the value vector; `ram_write`
+   the mirror. Host attaches the device (the orchestrator's role).
+2. **Codegen: recognize `ramRead`/`ramWrite` builtins.** `ramRead(ptr)`
+   emits a RAM-pending `Promise` carrying ptr; `ramWrite(ptr,data)` emits
+   `_VSA.ram_write(...)`. Additive — new builtin names only.
+3. **`await_value` resolves RAM-pending promises via the attached device**
+   (the producer), leaving regular-promise behavior unchanged (KEEP
+   `test_await_substrate_pure` 4/4). No device attached → stays
+   pending / clear error, never a fake value.
+4. **Test:** an inline `.su` (`number x = await ramRead(ptr); ...`) +
+   `ramWrite` round-trip against an attached device; reproduce stored
+   values exactly. Substrate audits: model-free → tiny dim; ptr is a VRAM
+   number; RAM access is IO at the boundary (not claimed substrate).
+5. **Migrate a demo** (`experiments/ntm_ram` read head) to the inline
+   surface; confirm same measured output.
+
+Open follow-up (todo.md): model-free hash-keyed-role axon for the mailbox
+dim cost; multi-program/Yantra separable-orchestrator mailbox (the demos'
+recur+axon pattern stays valid for that).
+
 ## Active — W2C weight→code (option A hardening complete; next levers)
 
 ### 🔍 Daily substrate-honesty audit — 2026-06-02
