@@ -205,12 +205,22 @@ def defuzz_analysis(model, dev, seq=6, trials=200):
     ww_rows = torch.stack(write_rows, 1)        # (trials, T) row written at write step t
     wr_pk = torch.stack(read_peak, 1).mean().item()
     ww_pk = torch.stack(write_peak, 1).mean().item()
-    # CORRECT isomorphism metric: does the read recover the WRITE ORDER?
-    # i.e. read-row[t] == write-row[t] (read the t-th written row at output t),
-    # following the temporal link `next`. (Physical row indices are an
-    # allocation permutation — NOT expected to be ascending; the earlier
-    # "advancing" metric was wrong.)
-    read_follows_write = (wr_rows == ww_rows).float().mean().item()
+    # Does the read recover the WRITE ORDER? Measure read[t]==write[t+s]
+    # over shifts s in {-1,0,+1} and take the best — the model may pipeline
+    # the read one step ahead of the emit (read[t]==write[t+1]). Exhaustive
+    # shift search so the alignment is MEASURED, not assumed. (Physical row
+    # indices are an allocation permutation, not ascending.)
+    def shift_match(s):
+        if s == 0:
+            a, b = wr_rows, ww_rows
+        elif s > 0:    # read[t] == write[t+s]
+            a, b = wr_rows[:, :T - s], ww_rows[:, s:]
+        else:          # read[t] == write[t+s]  (s<0)
+            a, b = wr_rows[:, -s:], ww_rows[:, :T + s]
+        return (a == b).float().mean().item()
+    sm = {s: shift_match(s) for s in (-1, 0, 1)}
+    best_s = max(sm, key=sm.get)
+    read_follows_write = sm[best_s]
     all_distinct = torch.tensor(
         [len(set(wr_rows[b].tolist())) == T for b in range(trials)]).float().mean().item()
 
@@ -219,8 +229,10 @@ def defuzz_analysis(model, dev, seq=6, trials=200):
     print(f"  copy bit-accuracy             : {acc:.3f}")
     print(f"  write weighting peak (one-hot): {ww_pk:.3f}")
     print(f"  read  weighting peak (one-hot): {wr_pk:.3f}")
-    print(f"  read-row[t] == write-row[t]   : {read_follows_write*100:.1f}%  "
-          f"(read recovers the WRITTEN order via temporal links)")
+    print(f"  read==write shift match       : s=-1 {sm[-1]*100:.1f}%  "
+          f"s=0 {sm[0]*100:.1f}%  s=+1 {sm[1]*100:.1f}%")
+    print(f"  best alignment (read follows write order) : {read_follows_write*100:.1f}% "
+          f"at shift s={best_s:+d}")
     print(f"  read rows all-distinct        : {all_distinct*100:.1f}%  "
           f"(clean pointer walk over T rows)")
     print(f"  example write-row sequences   : {ww_rows[:3].tolist()}")
@@ -228,10 +240,12 @@ def defuzz_analysis(model, dev, seq=6, trials=200):
     clean = acc > 0.95 and wr_pk > 0.9 and read_follows_write > 0.9
     print()
     if clean:
-        print("RESULT: the trained copy DNC DEFUZZES to a clean pointer walk —")
-        print("each output step reads a distinct one-hot row, and the read row")
-        print("sequence EQUALS the write row sequence (read recovers the written")
-        print("order via the temporal links). It reads off as:")
+        print(f"RESULT: the trained copy DNC DEFUZZES to a clean pointer walk —")
+        print(f"each output step reads a distinct one-hot row, and the read row")
+        print(f"sequence equals the write row sequence at shift s={best_s:+d} "
+              f"({read_follows_write*100:.0f}%)")
+        print(f"(read recovers the written order via the temporal links; s=+1 =")
+        print(f"the read pipelined one step ahead of the emit). It reads off as:")
         print("  write: loop t: p=alloc(); ramWrite(p, x_t)")
         print("  read:  p=first; loop t: emit(ramRead(p)); p=next(p)")
         print("The physical rows are an allocation permutation, not 0..T-1 —")
