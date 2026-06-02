@@ -37,7 +37,7 @@ import torch.nn.functional as F
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
-torch.manual_seed(0)
+SEEDS = [0, 1, 2, 3, 4]   # sweep to confirm the result isn't a single-seed fluke
 
 D = 16          # vector width
 N = 8           # memory rows / pairs per example
@@ -73,66 +73,74 @@ def soft_read(W, keys, values, query, beta):
     return recalled, w
 
 
-def main():
+def run(seed):
+    """Train + evaluate once for a given seed. Returns the metrics dict."""
+    torch.manual_seed(seed)
     W = nn.Parameter(torch.eye(D) + 0.01 * torch.randn(D, D))
     opt = torch.optim.Adam([W], lr=LR)
 
-    for step in range(STEPS):
+    for _ in range(STEPS):
         keys, values, query, q_idx, target = make_batch()
         recalled, _ = soft_read(W, keys, values, query, BETA_TRAIN)
         loss = F.mse_loss(recalled, target)
         opt.zero_grad(); loss.backward(); opt.step()
 
-    # Evaluation on fresh data.
     with torch.no_grad():
         keys, values, query, q_idx, target = make_batch(4000)
         idx = torch.arange(4000)
-        # (1) trained soft read (gentle beta)
         rec_soft, _ = soft_read(W, keys, values, query, BETA_TRAIN)
         cos_soft = F.cosine_similarity(rec_soft, target).mean().item()
-        # (2) DEFUZZED soft read (sharp beta) — the soft->discrete limit
+        # DEFUZZED soft read (sharp beta) — the soft->discrete limit
         rec_dz, w_dz = soft_read(W, keys, values, query, BETA_DEFUZZ)
         peak = w_dz.max(dim=-1).values.mean().item()
-        # (3) the EXPLICIT discrete ram-op  M[argmax_cosine(read_key)]
+        # the EXPLICIT discrete ram-op  M[argmax_cosine(read_key)]
         read_key = _unit(query @ W.t())
-        cos_rows = torch.einsum("bd,bnd->bn", read_key, _unit(keys))
-        hard_row = cos_rows.argmax(dim=-1)
-        rec_hard = values[idx, hard_row]                 # M_values[argmax_cosine]
-        # ISOMORPHISM metric: does the defuzzed soft read EQUAL the discrete op?
-        soft_hard_agree = F.cosine_similarity(rec_dz, rec_hard).mean().item()
+        hard_row = torch.einsum("bd,bnd->bn", read_key, _unit(keys)).argmax(dim=-1)
+        rec_hard = values[idx, hard_row]
+        # ISOMORPHISM: does the defuzzed soft read EQUAL the discrete op?
+        agree = F.cosine_similarity(rec_dz, rec_hard).mean().item()
         same_row = (w_dz.argmax(dim=-1) == hard_row).float().mean().item()
-        # TASK metric (separate): recall accuracy of the lookup under noise.
-        recall_acc = (hard_row == q_idx).float().mean().item()
-        rand_cos = F.cosine_similarity(values[idx, torch.randint(0, N, (4000,))],
-                                       target).mean().item()
+        recall_acc = (hard_row == q_idx).float().mean().item()   # TASK metric
+    return dict(cos_soft=cos_soft, peak=peak, agree=agree,
+                same_row=same_row, recall=recall_acc)
 
+
+def main():
     print(f"config: D={D} N={N} noise={NOISE} beta_train={BETA_TRAIN} "
-          f"beta_defuzz={BETA_DEFUZZ} steps={STEPS}")
-    print(f"trained soft read (β={BETA_TRAIN:.0f}): recalled·target cos = {cos_soft:.3f}")
+          f"beta_defuzz={BETA_DEFUZZ} steps={STEPS}  seeds={SEEDS}")
     print()
-    print("ISOMORPHISM (does the defuzzed soft read == the discrete ram-op?):")
-    print(f"  defuzz cleanliness (mean peak weight) : {peak:.3f}  (1.0 = one-hot)")
-    print(f"  defuzzed-soft row == argmax_cosine row: {same_row*100:.1f}%")
-    print(f"  defuzzed-soft read · hard-op read cos : {soft_hard_agree:.3f}  (1.0 = identical)")
+    print("seed |  soft_cos  peak   same_row  agree   recall")
+    rows = []
+    for s in SEEDS:
+        m = run(s)
+        rows.append(m)
+        print(f"  {s}  |   {m['cos_soft']:.3f}   {m['peak']:.3f}  "
+              f"{m['same_row']*100:5.1f}%   {m['agree']:.3f}  {m['recall']*100:5.1f}%")
+
+    def agg(k):
+        vals = [r[k] for r in rows]
+        return min(vals), sum(vals) / len(vals), max(vals)
+
+    pk, sr, ag = agg("peak"), agg("same_row"), agg("agree")
     print()
-    print("TASK (separate — accuracy of the lookup itself under query noise):")
-    print(f"  M[argmax_cosine(query)] == true row   : {recall_acc*100:.1f}%   "
-          f"(random {100/N:.1f}%)")
-    print(f"  (the discrete op and the soft read score the SAME here — the")
-    print(f"   misses are noisy-nearest-neighbour, intrinsic to the lookup.)")
+    print(f"ISOMORPHISM across {len(SEEDS)} seeds (min / mean / max):")
+    print(f"  defuzz cleanliness (peak weight)      : {pk[0]:.3f} / {pk[1]:.3f} / {pk[2]:.3f}")
+    print(f"  defuzzed-soft row == argmax_cosine row: {sr[0]*100:.1f}% / {sr[1]*100:.1f}% / {sr[2]*100:.1f}%")
+    print(f"  defuzzed-soft read · hard-op read cos : {ag[0]:.3f} / {ag[1]:.3f} / {ag[2]:.3f}")
+    print(f"  (task recall is the lookup's accuracy under noise — separate.)")
     print()
-    iso = peak > 0.95 and soft_hard_agree > 0.97 and same_row > 0.99
+    # Verdict on the WORST seed (no cherry-picking).
+    iso = pk[0] > 0.95 and ag[0] > 0.97 and sr[0] > 0.99
     if iso:
-        print("RESULT: the trained soft content read DEFUZZES to — and is")
-        print("numerically identical to — the discrete op  value =")
-        print("M[argmax_cosine(read_key)]. First measured evidence of the")
-        print("DNC↔code isomorphism: a learned soft read reads off as the")
-        print("associative-lookup ram-op. (Recall < 100% is the lookup's own")
+        print("RESULT (all seeds): the trained soft content read DEFUZZES to —")
+        print("and is numerically identical to — the discrete op  value =")
+        print("M[argmax_cosine(read_key)]. Robust evidence of the DNC↔code")
+        print("isomorphism for content read. (Recall<100% is the lookup's own")
         print("accuracy under noise, not a defuzz-fidelity gap.)")
     else:
-        print("RESULT: the defuzzed soft read does NOT match the discrete op")
-        print("(blurry weighting or argmax disagreement). Finding: needs")
-        print("β-anneal / regulariser (open Q 7). Reported as-is, not hidden.")
+        print("RESULT: at least one seed does NOT defuzz cleanly to the discrete")
+        print("op. Finding: content-read isomorphism is seed-sensitive here —")
+        print("needs β-anneal / regulariser (open Q 7). Reported as-is.")
     return 0 if iso else 1
 
 
