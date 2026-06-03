@@ -303,6 +303,22 @@ the lever that removes branch/path explosion.**
   connective polynomial (`and`/`or`/`not`/t-norms) at the nine grid points
   {−1,0,+1}² and assert exact reproduction of the 3-valued Kleene table.
   Finite + decidable; anchors the smooth polynomial to the discrete logic.
+- **[proposed] Promote the three measurement checks from prose to CI gates**
+  (dimension / state-locus / signal-separation). Per the 2026-06-02
+  substrate-leak retrospective
+  (`planning/findings/2026-06-02-substrate-leak-and-claim-reality-retrospective.md`
+  § S1): the breach class that cost the most weeks (C5, "dispatch
+  cleanliness mistaken for sufficiency") has the *weakest* automation —
+  only the dispatch leak-sweep is a hard gate; the other three are
+  manual/cron prose checks. Targets: a dimension gate (zero `basis_vector`
+  + large `runtime_dim` fails unless waived), a state-locus gate (any
+  "RNN"/"recurrent" label needs a walk-N-steps-no-host-extraction test —
+  `count.su`'s test is the template), a signal-separation gate (any
+  classifier ships a measured `gap = min(pos)−max(neg)` table —
+  `test_font_bound.py` is the template). **Needs gate-semantics design
+  first** (which `.su` claim dim-minimality vs. tutorials that legitimately
+  use the default; how to waive) — Emma's call before building, since it
+  touches the substrate rails. Not auto-started.
 - **Contract obligation (§3.1) — the genuinely-hard family. Two halves
   discharged, one open.** A program `p` with axon-typed contract `C` must:
   read only `C.read_roles`, write only `C.write_roles`, AND compute the
