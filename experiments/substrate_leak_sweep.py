@@ -105,6 +105,10 @@ _PRELUDE_LEAK_EXEMPT_METHODS = {
     # Embedding bootstrap / disk-cache (boot boundary, not op hot path)
     "embed", "embed_batch", "populate_sutradb", "prewarm_rotation_cache",
     "nearest_string",
+    # RAM orchestrator — I/O boundary, NOT a substrate op
+    # (planning/sutra-spec/ram-pointers.md §"What runs where": decode
+    # pointer-vector -> host address is allowed at the I/O wire).
+    "ram_read", "ram_write",
     # Loop machinery — output gating extracts iters_active for telemetry
     "_step",
 }
