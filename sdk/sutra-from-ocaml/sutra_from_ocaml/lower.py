@@ -115,6 +115,47 @@ def _lower_expression(node, source: bytes) -> str:
         fn_src = _lower_expression(kids[0], source)
         arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
         return f"{fn_src}({', '.join(arg_srcs)})"
+    if t == "if_expression":
+        # OCaml `if c then a else b` is an *expression*. Lower it to the
+        # same strong-defuzz blend the TS frontend uses for if/else:
+        #   weight = (1 + truth_axis(defuzzy(c))) / 2
+        #   result = weight * a + (1 - weight) * b
+        # i.e. ((1 + truth_axis(defuzzy(c))) * a
+        #       + (1 - truth_axis(defuzzy(c))) * b) / 2
+        # When c defuzzes true (+1) the blend is a; false (-1) it is b;
+        # at the midpoint it interpolates. Differentiable, fuzzy, no
+        # host-side branch — the substrate decides. An `if c then a`
+        # with no else is the implicit-zero-else form (OCaml types that
+        # unit; we mirror the TS select-with-implicit-zero shape).
+        cond = node.child_by_field_name("condition")
+        then_c = None
+        else_c = None
+        for c in node.named_children:
+            if c.type == "then_clause":
+                then_c = c
+            elif c.type == "else_clause":
+                else_c = c
+        cond_src = _lower_expression(cond, source) if cond is not None else "false"
+        then_expr = (
+            then_c.named_children[0]
+            if then_c is not None and then_c.named_children else None
+        )
+        then_src = _lower_expression(then_expr, source) if then_expr is not None else "0"
+        w = f"truth_axis(defuzzy({cond_src}))"
+        # Each product term is fully parenthesised — `((w) * (branch))` —
+        # and the two terms are grouped before `/ 2`. A bare
+        # `(weight) * (atom) + …` would emit `… * (a) + (b) …`, and the
+        # Sutra parser reads a parenthesised atom followed by a binary
+        # operator (`(a) + …`) as a *cast* `(Type) expr`, which the
+        # codegen rejects (CastExpr). Full grouping avoids putting a
+        # `(atom)` immediately before an infix operator.
+        if else_c is not None and else_c.named_children:
+            else_src = _lower_expression(else_c.named_children[0], source)
+            return (
+                f"(((1 + {w}) * ({then_src})) "
+                f"+ ((1 - {w}) * ({else_src}))) / 2"
+            )
+        return f"(((1 + {w}) * ({then_src}))) / 2"
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
