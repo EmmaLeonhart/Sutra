@@ -5,21 +5,22 @@ decompose into executable steps, then execute. See `CLAUDE.md` workflow rules.
 
 ## Forward goal: integrate transformer-vm into the Yantra OS
 
-The point of replicating Percepta's `transformer-vm` is to adopt it as the way
-the user's own operating system, **Yantra**, runs WebAssembly. Open architectural
-questions (to be drawn out in the 4:30 PM architecture-interview cron, then
-decomposed here):
+Adopt `transformer-vm` as the way the user's OS **Yantra** runs WebAssembly.
+Architecture decided in the 2026-06-05 interview — full design + trap-and-resume
+ABI + phased roadmap in **`notes/yantra_integration.md`**. Decisions: real neural
+executor · universal interpreter · per-process sandbox · full WASM MVP · syscalls
+trap-and-resume to kernel · floats trap to host FPU · linear memory = real RAM.
 
-- Execution mode in Yantra: universal interpreter vs Futamura-specialized weights
-  per program vs a hybrid/JIT that specializes hot programs.
-- Where WASM execution lives: kernel syscall/driver, privileged userspace runtime,
-  or per-process sandbox.
-- Is the analytic-weight transformer the *actual* runtime, or a reference/oracle
-  while Yantra runs a conventional WASM interpreter that must match its traces?
-- ISA scope: the 35-opcode subset (with compile-time lowering) vs fuller WASM MVP.
-- Backend & hardware target: the C++ hull-cache engine vs PyTorch vs a new backend.
-- Memory model: how residual-stream-as-machine-memory maps to Yantra's process &
-  I/O model.
+Phases (decompose into `queue.md` one at a time; design only until then):
+
+- **P0 — Trap substrate** (the linchpin): trap ABI + C++ engine pause/host-callback/
+  resume + one round-tripping demo trap.
+- **P1 — Memory as trapped real RAM** (LOAD/STORE → host RAM).
+- **P2 — Syscalls / WASI** over the trap channel.
+- **P3 — Floats via host-FPU trap.**
+- **P4 — Integer ISA completion** (i64, native bitwise/shift, br_table, typed select).
+- **P5 — Tables / indirect calls, memory.grow.**
+- **P6 — Per-process lifecycle** (snapshot/restore residual+hull state; scheduling).
 
 ## Replication follow-ups (optional — core replication already done)
 
