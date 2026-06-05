@@ -1,10 +1,10 @@
 # 📜 Sutra
 
-**Website · [sutra.emmaleonhart.com](https://sutra.emmaleonhart.com)**
+**Website · [sutra.yantraos.org](https://sutra.yantraos.org)**
 
 **Sutra is a geometrically compiled language where logical operations over vector spaces are resolved at compile time into matrix multiplications.**
 
-🌐 **Website: <https://sutra.emmaleonhart.com>** — a static site built from the Markdown under [`docs/`](docs/) (one page per file: the homepage plus the concept guides and tutorials) and the paper from [`paper/paper.md`](paper/paper.md) by [`scripts/build_site.py`](scripts/build_site.py), deployed by [`pages.yml`](.github/workflows/pages.yml). It includes the readable paper at `/paper/` and a NeurIPS 2026 archive at `/neurips-2026/` (the on-arXiv NeurIPS 2026 submission, with downloadable PDFs and a reproduction zip).
+🌐 **Website: <https://sutra.yantraos.org>** — a static site built from the Markdown under [`docs/`](docs/) (one page per file: the homepage plus the concept guides and tutorials) and the paper from [`paper/paper.md`](paper/paper.md) by [`scripts/build_site.py`](scripts/build_site.py), deployed by [`pages.yml`](.github/workflows/pages.yml). It includes the readable paper at `/paper/` and a NeurIPS 2026 archive at `/neurips-2026/` (the on-arXiv NeurIPS 2026 submission, with downloadable PDFs and a reproduction zip).
 
 ## What Sutra is
 
@@ -51,7 +51,7 @@ Loops use the declared-function form (`do_while_adder.su`), exercised by the `te
 | [`planning/findings/`](planning/findings/) | Dated experimental findings — what was measured, with raw numbers and what they mean. Includes negative results. |
 | [`planning/open-questions/`](planning/open-questions/) | Known design gaps where the implementation has made a choice the spec doesn't yet justify. |
 | [`examples/`](examples/) | Demo `.su` programs and the smoke-test harness. |
-| [`docs/`](docs/) | Hand-written Markdown source for the website at <https://sutra.emmaleonhart.com> — the homepage plus concept guides (capabilities, compilation, loops, operators, vision, …), tutorials, and the NeurIPS archive page. One HTML page per file. |
+| [`docs/`](docs/) | Hand-written Markdown source for the website at <https://sutra.yantraos.org> — the homepage plus concept guides (capabilities, compilation, loops, operators, vision, …), tutorials, and the NeurIPS archive page. One HTML page per file. |
 | [`sutraDB/`](sutraDB/) | SutraDB — embedded vector database, brought in as a git subtree. |
 
 The empirical foundation that motivated Sutra — relational-displacement structure in frozen embedding spaces — lives in [`EmmaLeonhart/latent-space-cartography`](https://github.com/EmmaLeonhart/latent-space-cartography).
