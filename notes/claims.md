@@ -7,13 +7,25 @@ Target: Percepta `transformer-vm`. Source of claims: the repo README + the blog
 
 | # | Claim | How verified | Status |
 |---|-------|--------------|--------|
-| C1 | A standard softmax-ReGLU transformer with **analytically-computed (untrained) weights** correctly simulates a WebAssembly VM on arbitrary programs | `wasm-run`: transformer output must match the reference WASM trace token-for-token | pending (wasm-run building weights) |
-| C2 | **35 WASM opcodes** encoded through a computation-graph DSL | opcode list in README; programs use them; reference traces execute | confirmed (compiles + runs; see C5) |
-| C3 | **~30K tokens/second** inference (C++ engine) | `wasm-run` C++ engine throughput on the example programs | pending |
-| C4 | Real algorithms run: **Sudoku (~900K tokens)**, fibonacci, collatz, Hungarian | reference traces + transformer match | partly confirmed (refs below) |
-| C5 | Graph evaluator (exact arithmetic, no weights) matches reference | `wasm-eval` PASS per program | addition PASS; rest slow under brute-force (see hull note) |
-| C6 | First Futamura projection: program baked into weights | `wasm-specialize` + run specialized model | pending |
-| C7 | O(log n) **hull** KV cache vs O(n) softmax | hull extension / C++ CHT cache | C++ engine has it; Python hull ext needs `python3-dev` (see gap) |
+| C1 | A standard softmax-ReGLU transformer with **analytically-computed (untrained) weights** correctly simulates a WebAssembly VM on arbitrary programs | `wasm-run`: transformer output matches the reference WASM trace token-for-token | **REPRODUCED** — all 6/6 PASS |
+| C2 | **35 WASM opcodes** encoded through a computation-graph DSL | opcode list in README; programs use them; reference traces execute | **REPRODUCED** — all programs compile + run |
+| C3 | **~30K tokens/second** inference (C++ engine) | `wasm-run` C++ engine throughput | **PARTIAL** — 18–24K tok/s on this WSL CPU box (~60–80% of claim; same order of magnitude; their ~30K is likely native/Accelerate) |
+| C4 | Real algorithms run: **Sudoku (~900K tokens)**, fibonacci, collatz, Hungarian | reference traces + transformer match | **REPRODUCED** — sudoku 1.06M tok solved; all correct |
+| C5 | Graph evaluator (exact arithmetic, no weights) matches reference | `wasm-eval` PASS per program | addition PASS; bigger programs need the hull ext (brute-force too slow) — superseded by C1's stronger C++-engine PASS |
+| C6 | First Futamura projection: program baked into weights | `wasm-specialize` + run specialized model | pending (optional) |
+| C7 | O(log n) **hull** KV cache vs O(n) softmax | hull extension / C++ CHT cache | **REPRODUCED** in the C++ engine (hull = 39.9% of runtime); Python `hull_ext` needs `python3-dev` (gap) |
+
+### Measured results (`uv run wasm-run`, C++ engine; analytic weights d_model=38, 7 layers, 19 heads, vocab=915)
+
+| Program | Result | Tokens | tok/s | Output |
+|---------|--------|-------:|------:|--------|
+| hello | PASS | 1,034 | 22,090 | `Hello World!` |
+| addition | PASS | 4,362 | 23,384 | `19134` |
+| fibonacci | PASS | 9,104 | 23,626 | `55` |
+| collatz | PASS | 44,589 | 22,002 | `7 22 11 … 1` |
+| min_cost_matching | PASS | 178,226 | 19,178 | Hungarian, `optimal cost: 9` |
+| sudoku | PASS | 1,055,417 | 17,684 | solved: `534678912…345286179` |
+| **total** | **6/6 PASS** | 1,292,732 | 18,049 (mean) | 269,858 wasm-ops, 71.6s |
 
 ## Reference outputs (WASM executed directly — validates VM semantics)
 

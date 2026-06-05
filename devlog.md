@@ -65,3 +65,33 @@ arXiv paper is kept under `replication_target/source/` as related work only.
   path used for the throughput/scale claims. Recorded in `notes/claims.md`.
 - Kicked off `uv run wasm-run` (builds analytic weights via MILP + torch, then
   the C++ engine, then runs all programs) — the headline ~30K tok/s path.
+
+## 2026-06-05 — REPLICATED: 6/6 programs PASS through analytic weights
+
+`uv run wasm-run` built the analytic transformer (MILP solved to optimality in
+5.5s: `d_model=38, 7 layers, 19 heads, vocab=915`), compiled the C++ engine, and
+ran all six programs through it. **Every program PASSed** — the transformer's
+output matches the reference WASM trace token-for-token:
+
+| Program | Tokens | tok/s | Output |
+|---|--:|--:|---|
+| hello | 1,034 | 22,090 | `Hello World!` |
+| addition | 4,362 | 23,384 | `19134` |
+| fibonacci | 9,104 | 23,626 | `55` |
+| collatz | 44,589 | 22,002 | `7 22 11 … 1` |
+| min_cost_matching | 178,226 | 19,178 | Hungarian, `optimal cost: 9` |
+| **sudoku** | **1,055,417** | 17,684 | **solved** `534678912…345286179` |
+
+Total 1,292,732 tokens, 18,049 tok/s mean. This confirms the core claim: a
+transformer with **analytically-computed, untrained weights** correctly simulates
+a WASM VM on real programs. Throughput is ~18–24K tok/s vs the authors' ~30K
+(same order; lower on a WSL CPU box, no Accelerate BLAS on Linux).
+
+- Wrote `scripts/run.py` (CI entry point) → `results/metrics.json`
+  (`all_pass: true`, 6/6, mean 21,355 tok/s on the cached re-run).
+- Set `paper.json` status → **`replicated`** (turns the Pages badge green).
+- Wrote `FINDINGS.md` (reproduced-vs-reported table, recipe-covered vs filled,
+  gaps) and filled `notes/claims.md`.
+- Added `.github/workflows/ci.yml` to run the replication end-to-end on push.
+- Milestone: **replication reproduced**. Remaining: confirm Pages/CI green; the
+  Futamura projection + Python hull path are optional extras.
