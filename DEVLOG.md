@@ -6,6 +6,21 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml frontend — comparison + float fixtures (transpiler-track tick 2)
+
+Second transpiler work-loop tick. Added `compare` (comparison operators: OCaml
+`=`/`<>`/`<`/`>=` → Sutra `==`/`!=`/`<`/`>=`, returning `bool`) and `floatarith`
+(`let addf (a:float)(b:float):float = a +. b`; `let main () : float = addf 2.5 4.0`)
+fixtures to `sutra-from-ocaml`. The operator/float-op maps were already in
+`lower.py`; this exercises them, and confirms Sutra accepts `bool`+`==` and
+`float` types (probed via the compiler before pinning the expected output).
+No type-table widening needed — `float`/`bool`/`string` were already mapped.
+
+Substrate-run test generalized to a `_RUNNABLE_FIXTURES` table; `floatarith`
+now also runs end-to-end via `sutrac --run` and measures **main()=addf(2.5,4.0)=6.5**
+on the real PyTorch substrate (alongside `arith_main`=7.0). 12 passed (5 fixtures
+× lowering+compile = 10, + 2 substrate runs). Next: `if/then/else` → defuzz blend.
+
 ## 2026-06-05: OCaml frontend scaffold — sutra-from-ocaml (first transpiler-track tick)
 
 First tick of the 1pm transpiler work-loop cron. Built `sdk/sutra-from-ocaml/`,
