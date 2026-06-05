@@ -125,12 +125,21 @@ def test_fixture_compiles(name, input_path, expected_path):
     _compile_with_sutra(sutra_src)
 
 
-def test_arith_main_runs_on_substrate(tmp_path):
-    """True end-to-end check for the one fixture with a callable entry:
-    transpile `arith_main.ml` → `.su`, then run it on the real Sutra
-    substrate (PyTorch codegen via `sutrac --run`) and assert
-    `main()` = add(3, 4) = 7. This is the "compile AND run AND produce
-    the expected output" bar, beyond the parse/codegen syntax check.
+# Fixtures with a callable `main ()` and a known ground-truth result.
+# These get the full "compile AND run AND produce the expected output"
+# treatment on the real substrate, beyond the parse/codegen syntax check.
+_RUNNABLE_FIXTURES = {
+    "arith_main": 7.0,   # main () = add 3 4
+    "floatarith": 6.5,   # main () = addf 2.5 4.0
+}
+
+
+@pytest.mark.parametrize("fixture_name,expected", sorted(_RUNNABLE_FIXTURES.items()))
+def test_fixture_runs_on_substrate(tmp_path, fixture_name, expected):
+    """Transpile a fixture with a callable entry → `.su`, then run it on
+    the real Sutra substrate (PyTorch codegen via `sutrac --run`) and
+    assert `main()` matches ground truth. The "compile AND run AND
+    produce the expected output" bar.
 
     Skipped when torch is unavailable (the substrate runtime needs it),
     so CI without the heavy runtime stays green instead of failing.
@@ -138,10 +147,9 @@ def test_arith_main_runs_on_substrate(tmp_path):
     pytest.importorskip("torch")
     import subprocess
 
-    fixture = FIXTURE_DIR / "arith_main" / "input.ml"
-    src = fixture.read_text(encoding="utf-8")
-    sutra_src = lower(src, source_path=fixture)
-    su_path = tmp_path / "arith_main.su"
+    fixture = FIXTURE_DIR / fixture_name / "input.ml"
+    sutra_src = lower(fixture.read_text(encoding="utf-8"), source_path=fixture)
+    su_path = tmp_path / f"{fixture_name}.su"
     su_path.write_text(sutra_src, encoding="utf-8")
 
     proc = subprocess.run(
@@ -151,6 +159,7 @@ def test_arith_main_runs_on_substrate(tmp_path):
     )
     out = (proc.stdout + proc.stderr).strip()
     assert proc.returncode == 0, f"sutrac --run failed:\n{out}"
-    # main() returns add(3, 4) = 7 on the substrate; decoded as a number.
     last = out.splitlines()[-1].strip() if out else ""
-    assert abs(float(last) - 7.0) < 0.5, f"expected ~7.0, got {last!r}\n{out}"
+    assert abs(float(last) - expected) < 0.5, (
+        f"{fixture_name}: expected ~{expected}, got {last!r}\n{out}"
+    )
