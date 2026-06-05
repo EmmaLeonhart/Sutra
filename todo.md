@@ -191,6 +191,81 @@ is now ongoing under `planning/findings/` rather than deadline-driven).
 
 ---
 
+## [This year] Multi-language transpiler frontends (source → Sutra) — roadmap (Emma 2026-06-05)
+
+Sutra today has exactly one working source-language frontend:
+`sdk/sutra-from-ts/` (TypeScript, with JavaScript read as untyped TS).
+`sdk/sutra-from-c/` is parked. The TS/JS path works but is not a great
+fit — JS's dynamic, imperative, mutation-heavy core fights Sutra's
+purely-functional algebraic substrate, so much of the surface lowers
+awkwardly or is rejected.
+
+**The bet:** Sutra is a *purely functional* language, so the source
+languages that transpile *cleanly* are the other functional languages —
+their expression-orientation, immutability, and algebraic data types
+line up with Sutra's core instead of fighting it. The next frontends are
+therefore functional, easiest-mapping first.
+
+**Execution model.** This whole track runs on the **1pm local-cron
+work-loop** (set up 2026-06-05), kept separate from the main RAM/W2C
+queue another agent is driving. The work-loop **pulls from remote and
+rebases first on every tick** — the other agent pushes real work, so
+sync-before-work is mandatory, not optional. The transpiler track gets
+its own queue.md section so it does not stomp the RAM/W2C items.
+
+### Phase 1 — functional-language frontends, in priority order
+
+Each is a new `sdk/sutra-from-<lang>/` frontend modeled on
+`sutra-from-ts/`: source reader/parser → lowering rules → `.su`
+emission → fixtures that compile end-to-end. Priority order
+(Emma 2026-06-05):
+
+1. **OCaml** — `sdk/sutra-from-ocaml/`. First: ML-family syntax +
+   algebraic data types + pattern matching are the closest structural
+   match to Sutra's axon/record model.
+2. **Scala** — `sdk/sutra-from-scala/`.
+3. **F#** — `sdk/sutra-from-fsharp/` (ML-family, close cousin of OCaml).
+4. **Elixir / Erlang** — `sdk/sutra-from-erlang/` (the BEAM pair;
+   immutable, message-passing — maps onto the axon IPC story).
+5. **Clojure** — `sdk/sutra-from-clojure/` (Lisp; homoiconic, persistent
+   data structures).
+6. **Haskell** — `sdk/sutra-from-haskell/` (purest; laziness +
+   typeclasses are the hardest edges — hence last in the functional set).
+
+(The bullet list in Emma's original message garbled the last name —
+"Oak Hamel" — ignore it; the authoritative order is the six above,
+OCaml first.)
+
+### Phase 2 — Rust
+
+After the functional set: **Rust** (`sdk/sutra-from-rust/`). Emma's
+read: Rust is the imperative language that translates *well*, because it
+is expression-oriented, immutable-by-default, and has algebraic enums +
+exhaustive matching — so it carries far more functional structure than C
+or plain JS. Framing: Python and JavaScript are the "most basic /
+supports a huge surface" baseline; Rust is the imperative language worth
+doing properly because it maps cleanly. This is the general vision of the
+imperative path.
+
+### Phase 3 — WASM + the Neural Computers documentation
+
+After Rust: **WASM**, tied to the replication work in
+`../replicating-neural-computers-2` (the "Neural Computers" paper
+replication, arXiv 2604.06425 — a learned runtime state unifying
+compute/memory/IO; video models rolling out CLI/GUI screen frames from
+instructions, pixels, and user actions).
+
+This phase carries an **additional local cron** whose job is
+documentation, not code: read `../replicating-neural-computers-2` and
+edit Sutra's own docs to include a discussion of that repo — what it
+contains, what Sutra can do with it, and how the WASM direction connects.
+Keep it within the website discipline: no internal-scratchpad refs, no
+overstatement beyond what runs (CLAUDE.md §Audiences). Exact wiring of
+this cron (start now vs. created when the WASM phase is reached) is
+recorded alongside the 1pm cron set — see DEVLOG 2026-06-05.
+
+---
+
 ## [This year] Architectural diversification — Neural Turing Machine + reservoir computing (2026-06-01)
 
 Emma's 2026-06-01 direction: widen Sutra's architectural surface beyond

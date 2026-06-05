@@ -6,6 +6,40 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: multi-language transpiler-frontend roadmap + 1pm local-cron set
+
+Emma set the next big direction: expand source-language transpilation beyond
+the one working frontend (`sdk/sutra-from-ts/`; JS read as untyped TS, fits the
+functional substrate poorly). Roadmap written to `todo.md` §"Multi-language
+transpiler frontends (source -> Sutra)": **Phase 1** — functional frontends
+easiest-mapping-first, priority order **OCaml -> Scala -> F# -> Elixir/Erlang
+-> Clojure -> Haskell** (each a new `sdk/sutra-from-<lang>/` modeled on
+`sutra-from-ts/`); **Phase 2** — Rust (the imperative language that maps cleanly:
+expression-oriented, immutable-by-default, algebraic enums + exhaustive match);
+**Phase 3** — WASM, tied to the sibling repo `../replicating-neural-computers-2`
+(the "Neural Computers" paper replication, arXiv 2604.06425).
+
+The work runs on a **session-local local-cron set** created this session (all
+`durable: false`, auto-expire in 7 days, continuous hourly once their start-gate
+passes — Emma's choices via AskUserQuestion). A separate agent drives the main
+RAM/W2C queue, so the transpiler work-loop **pulls+rebases from origin first
+every tick** and keeps a dedicated `queue.md` "Transpiler track" section so it
+never stomps the RAM/W2C items. The four crons:
+- work-loop `:03` — gate before 2026-06-05 13:00 PST; walks the priority order
+  starting at OCaml.
+- auto-flush `:15` — gate before 1pm; commit/push pending work between ticks.
+- status-report `:42` — gate before 1pm; reporting only, no edits.
+- WASM/Neural-Computers **documentation** cron `:33` — gate before
+  **2026-06-05 20:30 PST**. Per Emma: starting 8:30pm tonight it re-reads the
+  CURRENT state of `../replicating-neural-computers-2` (another agent is actively
+  evolving it) and progressively writes Sutra's docs discussion of the
+  idea-of-implementation grounded in what is actually present at that time —
+  documentation, not code, not required complete tonight, website-discipline
+  enforced.
+
+Session-local means the crons die if this chat closes; they must be recreated
+next session (or the session kept running through 1pm / 8:30pm).
+
 ## 2026-06-05: daily audit — clean (no-op)
 
 2026-06-05 daily audit: clean (70 .su compiled, 18 skipped, 0 user-program leaks + 0 runtime-prelude leaks; 13 open-questions dossiers + `sutra-spec/open-questions.md` index checked, 0 resolved-elsewhere drift; promise/await fit-to-spec 4/4 live). Fresh container with no torch/numpy/ollama preinstalled — installed pytest + torch (CPU) + numpy + the `ollama` python pkg, ran the ollama install.sh (needed zstd), started the server, and pulled `nomic-embed-text`, so every leg ran live (no env-skip, no false-clean). Promise/await: codegen lint clean + `test_await_substrate_pure` 4/4 both backends incl. the two live-embedding semantic legs (`main()` = 3.0); `await_value` @ codegen_pytorch.py:912 emits `return self.value(p)` (the spec-2 algebraic reduction), no `for _ in range(100)` / `if self.isPending` re-emission. Audit.md REAL LEAK #3 (await, FIXED 2026-05-17) intact at the cited site; #9 (`eq`/`eq_synthetic` scatter) verified intact at codegen_pytorch.py:2716/2738 — `out[self.semantic_dim + self.AXIS_TRUTH] = cos` / `= truth` (0-d tensor scatter, autograd preserved); #10 (`_select_softmax` scores) verified intact at codegen_pytorch.py:74 — `_torch.stack([sc.to(...) for sc in scores])` grad-preserving stack with raw-number `as_tensor` fallback at :78; #4 still NOT-A-LEAK (generic loop runtime is a fixed-T eigenrotation unroll). The 1 commit since the prior 2026-06-04 audit (`2fbe2d7`..HEAD) is `0b675a5` queue.md prepend only — no compiler runtime touches, no spec touches, no `planning/open-questions/` touches. Codegen-pytorch grep findings all match Audit.md taxonomy: monitoring accessors (`component`/`real`/`imag`/`truth`/`semantic` 1774-1819), terminal commit (`argmax_cosine`/`select` 2946/2979), RAM I/O boundary (ram_read/ram_write 1839/1853 — allowlisted in `_PRELUDE_LEAK_EXEMPT_METHODS` per yesterday's `3fab159`), JS-interop carve-out (`js_strict_neq`/`js_loose_neq`/`_js_str_cmp` 2244/2285/2308-2314 — host-scalar coercion documented at codegen_pytorch.py:2289-2297 per CLAUDE.md "intentional compatibility code"), literal-lift `_st` boundaries (`make_real`/`array_from_literal`/`load_matrix`), structural for-range loops in `defuzzify_trit`/`digit_array_add`/`_TorchVSA.loop` (Audit #4 NOT-A-LEAK shape, all with inline docstrings citing the reclassification), `string_to_python` decode boundary. Open-questions: 13 dossiers in `planning/open-questions/` plus the 10 sections in `sutra-spec/open-questions.md` all align with the 2026-05-28 README verdict table (refreshed across the 2026-05-21 + 2026-05-28 pruning passes); the three known-deletable struck-through lines flagged in the index's own 2026-05-16 triage (binding §"Surface syntax", control-flow §loop-can't-unroll, control-flow §if-else fate) are still present awaiting their cleanup commit — documented intent, not new drift. The RAM-pointers differentiability sub-question (RESOLVED 2026-06-01, Emma) is still struck-through in `sutra-spec/open-questions.md:23-27`; other RAM sub-questions (write-ack, physical-RAM, OOB, value width) genuinely open per spec. Dispatch-level audit only; the three measurement-required checks (dim / state-locus / signal-separation per CLAUDE.md "Subtler substrate breaches" + FV paper §4.4) remain out of scope.
