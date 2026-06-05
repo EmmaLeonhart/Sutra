@@ -32,7 +32,7 @@ dependencies = [
 c2su = "sutra_from_c.__main__:main"
 
 [project.urls]
-Homepage = "https://sutra.emmaleonhart.com"
+Homepage = "https://sutra.yantraos.org"
 Repository = "https://github.com/EmmaLeonhart/Sutra"
 
 [tool.setuptools]

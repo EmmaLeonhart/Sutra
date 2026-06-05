@@ -73,7 +73,7 @@ dev = [
 sutrac = "sutra_compiler.__main__:main"
 
 [project.urls]
-Homepage = "https://sutra.emmaleonhart.com"
+Homepage = "https://sutra.yantraos.org"
 Repository = "https://github.com/EmmaLeonhart/Sutra"
 Issues = "https://github.com/EmmaLeonhart/Sutra/issues"
 
