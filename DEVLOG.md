@@ -6,6 +6,27 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml frontend scaffold — sutra-from-ocaml (first transpiler-track tick)
+
+First tick of the 1pm transpiler work-loop cron. Built `sdk/sutra-from-ocaml/`,
+the OCaml→Sutra frontend, modeled on `sutra-from-ts/`: `lower.py` (tree-sitter-ocaml
+parse → walk → `.su` emission), `__main__.py` (`ocaml2su` CLI), `pyproject.toml`,
+README, LICENSE, fixture-driven tests. MVP scope: top-level `let f p… = body`
+(≥1 param) → Sutra `function`; `let main () = …` (unit param) → zero-arg function;
+plain/typed params (`a`, `(x:int)`); return-type annotation; infix arithmetic
+(`+ - * /` + float `+. -. *. /.`), comparisons (`= <> < > <= >=` → `== != < > <= >=`),
+application (`f a b`→`f(a,b)`), parens. Type inference deferred (OCaml is global HM);
+unannotated defaults to `int`, explicit otherwise — documented, not faked.
+
+Verified (hard rail = compile AND run AND match ground truth, not just "it parsed"):
+3 fixtures (`add`, `sub` typed, `arith_main`) × lowering + Sutra-compile tests =
+6 pass, plus `test_arith_main_runs_on_substrate` which transpiles `arith_main.ml`,
+runs the emitted `.su` on the real PyTorch substrate via `sutrac --run`, and asserts
+`main() = add(3,4) = 7.0` — **measured 7.0 on the substrate**, not a syntax check.
+7 passed total (the substrate-run test `importorskip`s torch so torch-less CI stays
+green). tree-sitter-ocaml added as a dep. Next: `compare`/float fixtures, then
+`if/then/else` → defuzz blend (queue.md §Transpiler track).
+
 ## 2026-06-05: multi-language transpiler-frontend roadmap + 1pm local-cron set
 
 Emma set the next big direction: expand source-language transpilation beyond

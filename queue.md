@@ -228,6 +228,33 @@ table; polynomial-interpolant-rationale paragraph (prose in `git show
 41fa446b`); Le Chat section-granular AI-use breakdown; optional Futamura
 1971 bib entry.
 
+## Transpiler track (source -> Sutra; OCaml first) — 1pm cron, owns this section only
+
+Roadmap: todo.md §"Multi-language transpiler frontends". Priority order
+OCaml -> Scala -> F# -> Elixir/Erlang -> Clojure -> Haskell -> Rust -> WASM.
+This section is driven by the 1pm transpiler work-loop cron; it pulls+rebases
+first and never touches the RAM/W2C sections above.
+
+**OCaml frontend (`sdk/sutra-from-ocaml/`), modeled on `sutra-from-ts/`:**
+- [ ] Add a `compare` fixture + a float-arithmetic fixture (the operator
+  mapping for `= <> < > <= >=` and float `+. -. *. /.` is already in
+  `lower.py`, just unexercised by a fixture). Then widen `_OCAML_TYPE_TO_SUTRA`
+  beyond the `int` default as those fixtures need float/bool/string carriers.
+  [scaffold + `add`/`sub`/`arith_main` fixtures landed; `arith_main` runs on the
+  substrate, main()=add(3,4)=7.0.]
+- [ ] `if c then a else b` -> Sutra if/else defuzz blend (mirror the TS
+  `_lower_function_body` if/else lowering). Fixture `max`.
+- [ ] `let x = e in body` local bindings; `let rec` recursion.
+- [ ] Tuples / records / variant types -> Sutra axons; `match ... with` ->
+  select/softmax or if-chain (the hard rung — spec first).
+- [ ] End-to-end verification: each fixture's `.su` compiles AND runs AND
+  reproduces ground-truth output (beyond the parse+codegen syntax check the TS
+  harness does today). [`arith_main` already does this — the pattern to extend.]
+- [ ] CI: no workflow currently runs the `sdk/sutra-from-*` frontends (TS has
+  none either). Consider a `transpilers-ci.yml` that installs the tree-sitter
+  grammars + runs both `sutra-from-ts` and `sutra-from-ocaml` test suites; would
+  cover TS too. Scope decision — not auto-started.
+
 ## Pinned tail (always present — bracket every session)
 
 Per CLAUDE.md §"Autonomous productivity loop" lifecycle: a fresh session
