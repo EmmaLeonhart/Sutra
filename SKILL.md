@@ -5,8 +5,26 @@ description: Replicate the methods of "Neural Computers" (arXiv:2604.06425) and 
 
 # Replicate: Neural Computers
 
+> **What this project actually replicated (truthful record).** Despite the arXiv
+> framing below, the real target was **Percepta's `transformer-vm`** — a
+> transformer with analytically-computed weights that simulates a WebAssembly VM
+> ("Can LLMs Be Computers?"). It has **no arXiv**: it is published as a GitHub
+> repo + blog post + Medium write-up (see `notes/sources.md`). The arXiv
+> "Neural Computers" paper below was downloaded by the scaffolder as the nearest
+> arXiv relative and is kept as **related work only**.
+>
+> **The recipe-first methodology still held end-to-end** and is the reusable
+> lesson: for a code+blog target the "reproduction recipe" is the repo's own
+> README/quickstart (here `uv run wasm-run`). Steps generalize as: *find the
+> repo's run command → get consent → add it as a submodule → provision the
+> toolchain → run it → verify its self-check/output against the blog's headline
+> claims*. Result: **REPLICATED, 6/6 programs PASS** (local + CI from a clean
+> clone). The only real work beyond running the recipe was environmental
+> (toolchain on WSL Ubuntu). The generic plan below applies; substitute "blog/
+> README claims" for "paper" and "repo quickstart" for "e-print recipe".
+
 arXiv:2604.06425 - Mingchen Zhuge, Changsheng Zhao, Haozhe Liu, Zijian Zhou, Shuming Liu, Wenyi Wang, Ernie Chang, Gael Le Lan, Junjie Fei, Wenxuan Zhang, Yasheng Sun, Zhipeng Cai, Zechun Liu, Yunyang Xiong, Yining Yang, Yuandong Tian, Yangyang Shi, Vikas Chandra, Jürgen Schmidhuber - 2026-04-07T20:01:05Z
-PDF: https://arxiv.org/pdf/2604.06425v2 - HTML: https://arxiv.org/html/2604.06425v2
+PDF: https://arxiv.org/pdf/2604.06425v2 - HTML: https://arxiv.org/html/2604.06425v2 *(related work only — not the target)*
 
 ## Prerequisite
 
