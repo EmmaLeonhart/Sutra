@@ -12,6 +12,19 @@ The canonical methodology is `SKILL.md`; this queue is its executable form.
 
 ---
 
+## Important
+
+Relatively different stuff. Look at the contents of the data lake and look at the actual links here, and use all of this stuff to put things together for what we're actually trying to replicate, because we're actually trying to replicate something pretty different and I don't want you to get confused. I only ran the script for the neural computer sabre because this thing I want to replicate doesn't actually have an arXiv. It just has a github, a blog post, and a bunch of other stuff. 
+
+This should be pushed to remote as "replicating-pertepta"
+
+https://www.percepta.ai/blog/can-llms-be-computers
+https://github.com/Percepta-Core/transformer-vm
+https://www.linkedin.com/posts/vladlarichev_a-major-shift-is-happening-in-the-llm-activity-7439246178526892032-poGU
+https://medium.com/data-science-collective/i-built-a-tiny-computer-inside-a-transformer-e3000a0019b3
+
+
+
 ## Active — Replicate "Neural Computers" (arXiv:2604.06425)
 
 The scaffold already made commit 1 (the framework) AND commit 2 (the extracted
