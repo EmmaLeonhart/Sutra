@@ -22,12 +22,21 @@ Headline claims: correct VM simulation on arbitrary programs, ~30K tokens/sec,
 and real algorithms (Sudoku ~900K tokens, fibonacci, collatz). Full source list +
 claims: [`notes/sources.md`](./notes/sources.md).
 
-## Replication status
+## Replication status: ✅ REPLICATED
 
-In progress (recipe-first). The repo ships its own reproduction recipe
-(`uv run wasm-run`), so the path is: run the authors' recipe, then verify its
-output against the blog's headline claims. The concrete step queue is in
-[`queue.md`](./queue.md); methodology in [`SKILL.md`](./SKILL.md).
+A transformer with **analytically-computed, untrained weights** correctly
+simulates a WebAssembly VM on **all 6/6** test programs — each reproduces its
+reference WASM trace token-for-token, including **sudoku (1,055,417 tokens,
+solved)** at ~18K tok/s (authors report ~30K; same order of magnitude). Full
+write-up in [`FINDINGS.md`](./FINDINGS.md).
+
+- **Live report:** https://emmaleonhart.github.io/replicating-transformer-vm/
+- **Method:** recipe-first — the repo ships `uv run wasm-run`; we provisioned the
+  toolchain (WSL Ubuntu), ran it, and checked its output against the blog's
+  headline claims. The concrete step queue is in [`queue.md`](./queue.md);
+  methodology in [`SKILL.md`](./SKILL.md).
+- **Reproduce:** `git submodule update --init && python scripts/run.py`
+  (needs `uv` + `clang`/`lld`/`g++`; see [`FINDINGS.md`](./FINDINGS.md)).
 
 ## What this repo produces
 
