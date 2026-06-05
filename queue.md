@@ -33,13 +33,9 @@ first, then verify its output against the blog's headline claims.
 
 ## Optional / nice-to-have (replication already succeeds without these)
 
-- **First Futamura projection (C6):** run `uv run wasm-specialize
-  transformer_vm/data/collatz.txt --save-weights=collatz.bin` then
-  `uv run wasm-run --model collatz.bin transformer_vm/data/collatz_spec.txt`;
-  record the result in `notes/claims.md` / `FINDINGS.md`.
 - **Hull Python path:** `sudo apt install -y python3-dev`, then `uv run wasm-eval`
   (hull) and `uv run pytest -m "not slow"` should pass fast. CI already installs
-  `python3-dev`.
+  `python3-dev`. (Quantify hull vs `--nohull` timings for the O(log n) claim.)
 
 ---
 

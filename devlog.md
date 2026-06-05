@@ -95,3 +95,19 @@ a WASM VM on real programs. Throughput is ~18–24K tok/s vs the authors' ~30K
 - Added `.github/workflows/ci.yml` to run the replication end-to-end on push.
 - Milestone: **replication reproduced**. Remaining: confirm Pages/CI green; the
   Futamura projection + Python hull path are optional extras.
+
+## 2026-06-05 — Deliverables green + Futamura projection (C6) confirmed
+
+- Enabled GitHub Pages via the API (the `configure-pages` auto-enable lacked
+  permission on the fresh repo), re-ran `pages` → **green**. Site live with the
+  "Replicated" badge: https://emmaleonhart.github.io/replicating-transformer-vm/
+- `package` workflow (ZIP) dispatched → **green**. `ci` workflow → **green**:
+  reproduced **6/6 PASS, all_pass=true** from a clean clone on `ubuntu-latest`
+  (~15–17K tok/s) — independent confirmation the replication runs from scratch.
+- **First Futamura projection (C6) reproduced:** `wasm-specialize` baked collatz
+  (813 instructions) into a specialized model (`d_model=40, 8 layers, d_ffn=1630`,
+  1,686,480 params, `collatz.bin` 13.5 MB; MILP optimal in ~20 min). The
+  specialized model output the correct collatz sequence (`7 22 11 … 1`).
+  Throughput ~1.2K tok/s (projection = 93% of runtime, the expected size/speed
+  trade). Updated `FINDINGS.md` + `notes/claims.md`.
+- All 7 headline claims now reproduced (C3 throughput partial; C6 confirmed).

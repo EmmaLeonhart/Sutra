@@ -23,9 +23,6 @@ decomposed here):
 
 ## Replication follow-ups (optional — core replication already done)
 
-- **First Futamura projection (C6):** verify `wasm-specialize` bakes a program
-  into weights and the specialized model runs correctly. (In progress — the
-  specialization MILP is large.)
 - **Python hull path:** with `python3-dev` installed, confirm `wasm-eval --hull`
   and `pytest -m "not slow"` pass fast; compare hull (O(log n)) vs `--nohull`
   brute-force timings to quantify the attention-scaling claim.

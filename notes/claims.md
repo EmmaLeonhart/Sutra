@@ -12,7 +12,7 @@ Target: Percepta `transformer-vm`. Source of claims: the repo README + the blog
 | C3 | **~30K tokens/second** inference (C++ engine) | `wasm-run` C++ engine throughput | **PARTIAL** — 18–24K tok/s on this WSL CPU box (~60–80% of claim; same order of magnitude; their ~30K is likely native/Accelerate) |
 | C4 | Real algorithms run: **Sudoku (~900K tokens)**, fibonacci, collatz, Hungarian | reference traces + transformer match | **REPRODUCED** — sudoku 1.06M tok solved; all correct |
 | C5 | Graph evaluator (exact arithmetic, no weights) matches reference | `wasm-eval` PASS per program | addition PASS; bigger programs need the hull ext (brute-force too slow) — superseded by C1's stronger C++-engine PASS |
-| C6 | First Futamura projection: program baked into weights | `wasm-specialize` + run specialized model | pending (optional) |
+| C6 | First Futamura projection: program baked into weights | `wasm-specialize` + run specialized model | **REPRODUCED** — collatz baked into weights (d_ffn=1630, 1.69M params); specialized model output correct |
 | C7 | O(log n) **hull** KV cache vs O(n) softmax | hull extension / C++ CHT cache | **REPRODUCED** in the C++ engine (hull = 39.9% of runtime); Python `hull_ext` needs `python3-dev` (gap) |
 
 ### Measured results (`uv run wasm-run`, C++ engine; analytic weights d_model=38, 7 layers, 19 heads, vocab=915)

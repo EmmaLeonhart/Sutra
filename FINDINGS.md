@@ -34,7 +34,7 @@ autoregressively, one byte of machine state per token. An O(log n) "hull" KV-cac
 | Real algorithms incl. Sudoku ~900K tokens | sudoku ~900K | **sudoku 1,055,417 tokens, solved correctly** | ✅ |
 | Inference throughput | ~30K tok/s | **18K–24K tok/s** (mean 18,049 over 1.29M tokens) | ◑ same order |
 | O(log n) hull KV cache | yes | exercised in the C++ engine (hull = 39.9% of runtime) | ✅ |
-| First Futamura projection (program baked into weights) | yes | not yet run (`wasm-specialize`) — optional | ⏳ |
+| First Futamura projection (program baked into weights) | yes | collatz baked into weights (d_ffn=1630, 1.69M params); specialized model output correct | ✅ |
 
 ### Per-program measurements (`uv run wasm-run`, C++ engine)
 
@@ -83,8 +83,14 @@ results above are the stronger check (they exercise the actual analytic weights)
    embeds the hull cache as a header (`hull2d_cht.h`) and needs no Python.h.
    Installing `python3-dev` would let the Python inference path and `wasm-eval
    --hull` run fast too.
-3. **First Futamura projection** (`wasm-specialize`) not yet exercised — it is an
-   additional mode, not part of the core "transformer-as-WASM-VM" claim.
+3. **First Futamura projection** confirmed: `wasm-specialize` baked collatz (813
+   instructions) into a specialized model (`d_model=40, 8 layers, d_ffn=1630`,
+   1.69M params, 13.5 MB) — MILP solved to optimality in ~20 min — and the
+   specialized model reproduced the correct collatz sequence. Throughput drops to
+   ~1.2K tok/s (projection becomes 93% of runtime since the program lives in the
+   FFN), the expected size/speed trade. The harness labels it "RAN" not "PASS"
+   only because the specialized input ships no `_ref` auto-compare file; the
+   output matches the known-correct reference trace.
 4. **Sudoku token count** 1.06M vs the README's "~900K" — same order of magnitude;
    exact count is puzzle-dependent.
 
