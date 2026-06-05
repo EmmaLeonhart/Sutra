@@ -26,36 +26,20 @@ first, then verify its output against the blog's headline claims.
 
 ## Active
 
-5. **Finish the light path.** `uv run wasm-eval` already compiled all 6 programs,
-   generated correct reference traces, and gave `addition: PASS`. Remaining:
-   (a) ask the user to `sudo apt install -y python3-dev` so the `hull_ext` Python
-   extension builds (currently falls back to slow brute-force, impractical for the
-   big programs); (b) re-run `uv run wasm-eval` with the hull extension to PASS the
-   larger programs; (c) `uv run pytest -m "not slow"`. Capture to `results/`. Commit.
+10. **Confirm the deliverables are green.** Push (done) triggers `pages.yml`
+    (themed FINDINGS site + PDF, status badge now `replicated`), `package.yml`
+    (ZIP), and the new `ci.yml` (runs `scripts/run.py` end-to-end). Watch the runs;
+    fix any red. The repo is already public; `pages.yml` auto-enables Pages.
 
-6. **Run the full recipe**: `uv run wasm-run`. Capture stdout, example-program
-   outputs, and any tokens/sec into `results/`. Commit.
+## Optional / nice-to-have (replication already succeeds without these)
 
-7. **Verify headline claims** against the blog (`notes/claims.md`): analytic
-   weights correctly simulate the WASM VM; example programs (collatz, fibonacci,
-   sudoku) produce correct outputs; throughput order-of-magnitude (~30K tok/s);
-   First Futamura projection (`wasm-specialize`) works. Note what reproduced and
-   what didn't. Commit.
-
-8. **`scripts/run.py`** — wrap the verified recipe steps as the CI entry point;
-   emit metrics JSON into `results/`. Commit.
-
-9. **Write `FINDINGS.md`**: reproduced vs claimed (table); what the recipe covered
-   vs what we filled; gaps/divergences (esp. platform/toolchain limits). Commit
-   and push.
-
-10. **Publish and finish.** Set the verdict in `paper.json` `status`
-    (`replicated` / `failed` / `insufficient-hardware`). Confirm
-    `.github/workflows/pages.yml` + `package.yml` run green; Settings → Pages →
-    Source: GitHub Actions. Keep `SKILL.md` truthful. Stop / hand back when
-    `FINDINGS.md` reports at least one headline claim reproduced, `scripts/run.py`
-    runs from a clean clone (or documents the un-automatable step), the repo is
-    public + pushed, and Pages is green.
+- **First Futamura projection (C6):** run `uv run wasm-specialize
+  transformer_vm/data/collatz.txt --save-weights=collatz.bin` then
+  `uv run wasm-run --model collatz.bin transformer_vm/data/collatz_spec.txt`;
+  record the result in `notes/claims.md` / `FINDINGS.md`.
+- **Hull Python path:** `sudo apt install -y python3-dev`, then `uv run wasm-eval`
+  (hull) and `uv run pytest -m "not slow"` should pass fast. CI already installs
+  `python3-dev`.
 
 ---
 

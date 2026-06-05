@@ -4,7 +4,7 @@
   "target_blog": "https://www.percepta.ai/blog/can-llms-be-computers",
   "no_arxiv": true,
   "summary": "A standard softmax-ReGLU transformer whose weights are computed analytically (not trained) that correctly simulates a WebAssembly virtual machine on arbitrary programs. It encodes 35 WASM opcodes through a computation-graph DSL, uses the residual stream as machine memory and an O(log n) hull KV-cache instead of O(n) softmax attention, and supports both a universal interpreter (program as input) and the First Futamura projection (program baked into weights). Reported: correct VM simulation on arbitrary programs, ~30K tokens/sec, and real algorithms such as Sudoku (~900K tokens), fibonacci and collatz.",
-  "status": "in-progress",
+  "status": "replicated",
   "related_work_note": "The arxiv_* fields below describe arXiv:2604.06425 'Neural Computers' (Zhuge, Schmidhuber et al.), a conceptual cousin downloaded by the scaffolder. It is kept as related work only and is NOT the replication target.",
   "arxiv_id": "2604.06425",
   "version": "2",
