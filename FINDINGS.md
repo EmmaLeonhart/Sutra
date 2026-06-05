@@ -54,6 +54,9 @@ Analytic model: `d_model=38, n_layers=7, n_heads=19, d_ffn=44, vocab=915`
 The graph evaluator (`wasm-eval`, exact arithmetic, no weights) independently
 generated the reference traces and confirmed `addition: PASS`; the C++-engine PASS
 results above are the stronger check (they exercise the actual analytic weights).
+The repo's own fast test suite also passes — `pytest -m "not slow"`: **4 passed,
+7 deselected** (graph-evaluator hello + collatz, WASM-machine build, graph
+imports).
 
 ## What the recipe covered vs. what we filled
 
