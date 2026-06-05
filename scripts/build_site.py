@@ -43,8 +43,8 @@ body { display: flex; flex-direction: column; min-height: 100vh; position: relat
   padding: 20px 28px; border-bottom: 1px solid var(--border);
 }
 .topbar a { font-family: var(--mono); font-size: 0.82rem; font-weight: 500; text-decoration: none; transition: color 0.2s; }
-.topbar .home { color: var(--text-mute); }
-.topbar .home:hover { color: var(--accent-bright); }
+.topbar .brand { color: var(--text-strong); font-size: 1rem; font-weight: 600; letter-spacing: -0.3px; }
+.topbar .brand:hover { color: var(--accent-bright); }
 main { position: relative; z-index: 2; flex: 1; display: flex; justify-content: center; padding: 64px 28px 96px; }
 .container { max-width: 820px; width: 100%; position: relative; }
 .scroll { font-size: 2.4rem; line-height: 1; }
@@ -292,7 +292,7 @@ def shell(title: str, inner: str, mermaid: bool = False, math: bool = False,
   <div class="aurora" aria-hidden="true"></div>
 {TOGGLE}
   <header class="topbar">
-    <a class="home" href="https://emmaleonhart.com">&larr; emmaleonhart.com</a>
+    <a class="brand" href="/">Sutra</a>
     {GH_PILL}
   </header>
   <main>
@@ -621,7 +621,6 @@ def main() -> int:
         f'      <a href="{ARXIV_URL}">Read on arXiv</a>\n'
         '      <a href="https://github.com/EmmaLeonhart/Sutra">View source on GitHub</a>\n'
         '      <a href="https://github.com/EmmaLeonhart/Sutra/releases">Releases &amp; downloads</a>\n'
-        '      <a href="https://emmaleonhart.com/projects/">All projects</a>\n'
         '    </div>\n'
     )
     (out / "index.html").write_text(
