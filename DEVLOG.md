@@ -6,6 +6,26 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml frontend — if/then/else defuzz blend (transpiler-track tick 3)
+
+Third transpiler tick. `sutra-from-ocaml` now lowers OCaml's `if c then a else b`
+*expression* to the Sutra strong-defuzz blend (weight = (1+truth_axis(defuzzy(c)))/2;
+result = weight*then + (1-weight)*else), mirroring the TS frontend's if/else math.
+Fixture `max` (`let maxi a b = if a >= b then a else b`; `let main () = maxi 5 3`).
+Verified on the real substrate: **main()=maxi(5,3)=5.0** (CUDA) via `sutrac --run` —
+the substrate decides the branch, no host control flow. 15 passed (6 fixtures ×
+lowering+compile + 3 substrate runs 7.0/6.5/5.0).
+
+**Finding (not buried):** the naive blend `… * ({branch})` produces `* (a) + …`
+for atom branches, and the Sutra parser reads a parenthesised atom followed by a
+binary operator — `(a) + …` — as a CAST (`CastExpr`), which the codegen rejects.
+The OCaml frontend works around it with a fully-grouped shape
+`((w)*(then)) + ((w)*(else))` (verified for atom/composite/nested-if/no-else
+branches). The TS frontend's `_lower_function_body` emits the un-grouped form and
+has the SAME latent bug — it never surfaced because no TS fixture compile-tests
+the if/else path. Queued a fix + a TS if/else fixture (queue.md §Transpiler track);
+the `(atom) <binop>`→cast ambiguity may deserve a Sutra open-question.
+
 ## 2026-06-05: OCaml frontend — comparison + float fixtures (transpiler-track tick 2)
 
 Second transpiler work-loop tick. Added `compare` (comparison operators: OCaml
