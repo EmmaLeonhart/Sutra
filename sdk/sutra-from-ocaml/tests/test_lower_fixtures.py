@@ -131,7 +131,21 @@ def test_fixture_compiles(name, input_path, expected_path):
 _RUNNABLE_FIXTURES = {
     "arith_main": 7.0,   # main () = add 3 4
     "floatarith": 6.5,   # main () = addf 2.5 4.0
+    "max": 5.0,          # main () = maxi 5 3  (if/then/else defuzz blend)
 }
+
+
+def _extract_result(out: str) -> float:
+    """Pull the numeric result from `sutrac --run` output, which may be
+    a bare float (`5.0`) or a tensor repr (`tensor(5., device='cuda:0')`)
+    depending on backend/device."""
+    last = out.splitlines()[-1].strip() if out else ""
+    m = re.search(r"tensor\(\s*(-?\d+\.?\d*)", last) or re.search(
+        r"(-?\d+\.\d+|-?\d+)", last
+    )
+    if m is None:
+        raise AssertionError(f"no numeric result in output:\n{out}")
+    return float(m.group(1))
 
 
 @pytest.mark.parametrize("fixture_name,expected", sorted(_RUNNABLE_FIXTURES.items()))
@@ -159,7 +173,7 @@ def test_fixture_runs_on_substrate(tmp_path, fixture_name, expected):
     )
     out = (proc.stdout + proc.stderr).strip()
     assert proc.returncode == 0, f"sutrac --run failed:\n{out}"
-    last = out.splitlines()[-1].strip() if out else ""
-    assert abs(float(last) - expected) < 0.5, (
-        f"{fixture_name}: expected ~{expected}, got {last!r}\n{out}"
+    got = _extract_result(out)
+    assert abs(got - expected) < 0.5, (
+        f"{fixture_name}: expected ~{expected}, got {got}\n{out}"
     )
