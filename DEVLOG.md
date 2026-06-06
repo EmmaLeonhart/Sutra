@@ -6,6 +6,33 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — closed nested-fn hoisting + arrays blocked (ISO-5 items 4/6; work-loop tick)
+
+Two ISO-5 findings this tick.
+
+**Arrays (item 4) — BLOCKED, measured.** The substrate-faithful array target is
+`dict<int,int>` (`list<T>` compiles to a Python host list — not substrate). Measured:
+`dict<int,int>` crashes (`'int' object has no attribute 'detach'` in `_role_hash`) —
+scalar keys/values aren't lifted to substrate vectors; the rotation-hashmap was only
+wired for `dict<vector,vector>`. Even if lifted, exact round-trip at array scale is
+unmeasured (rotation is identity on the synthetic axes where numbers live → bundling
+crosstalk). This is a core-compiler gap, not a transpiler one; per the hard rails it's
+recorded as a precise blocker, not hacked around. Finding:
+`planning/findings/2026-06-06-dict-int-keys-broken-blocks-arrays.md`.
+
+**Nested-fn hoisting (item 6) — DONE for the closed case.** A nested `let f x = … in …`
+whose body's free value-paths are all its own params or top-level names is lifted to a
+sibling top-level `function` (reusing `_lower_let_binding`); the inline binding emits
+nothing. Free-var analysis (`_value_paths` minus params minus `_TOPLEVEL_NAMES` minus
+self) gates it: a nested fn capturing an enclosing local is surfaced as
+`UNSUPPORTED-LOCAL-FN: … captures enclosing local(s) …` (closure conversion not
+supported) rather than mis-hoisted. Hoisted decls + while-loops are both prepended
+after the header. Substrate-verified `nested_fn` (`let dbl x = x*2 in dbl 5 + dbl 3`)
+→ **16.0**; capture-rejection verified on a `let addn x = x + n` example. OCaml suite
+**53 passed** (was 50; +3). On the ISO-5 reference: nested-fn markers 8→7, and all 7
+remaining are now closure captures (`push`/`pop`/… over `stack`) — the closed one
+hoisted. Next unblocked item: tuples + option.
+
 ## 2026-06-06: sutra-from-ocaml — char + string literals (ISO-5 item 3; work-loop tick)
 
 OCaml `character` literals lower to their codepoint integer (`_char_codepoint`:
