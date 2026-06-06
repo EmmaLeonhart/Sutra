@@ -259,6 +259,10 @@ def _is_type_node(node) -> bool:
 def _map_type(type_node, source: bytes, record_types=frozenset()) -> str:
     if type_node is None:
         return _DEFAULT_TYPE
+    # A tuple type (`int * int`) is carried by the same positional-record
+    # Axon that a tuple value lowers to.
+    if type_node.type == "tuple_type":
+        return "Axon"
     text = _node_text(type_node, source).strip()
     if text in record_types:
         # A record type is carried by a Sutra Axon (the structural-typing
@@ -346,6 +350,12 @@ def _lower_expression(node, source: bytes) -> str:
                 and _node_text(kids[0], source) == "ref"
                 and len(kids) == 2):
             return _lower_expression(kids[1], source)
+        # `fst t` / `snd t` read positional fields of a tuple-axon
+        # (`_0`/`_1`). MVP: numeric tuple elements (decoded via `.real()`).
+        if (kids[0].type == "value_path" and len(kids) == 2
+                and _node_text(kids[0], source) in ("fst", "snd")):
+            field = "_0" if _node_text(kids[0], source) == "fst" else "_1"
+            return f'{_lower_expression(kids[1], source)}.item("{field}").real()'
         fn_src = _lower_expression(kids[0], source)
         arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
         return f"{fn_src}({', '.join(arg_srcs)})"
@@ -516,6 +526,28 @@ def _lower_record_body(body, source: bytes, indent: str) -> str:
     return lines
 
 
+def _lower_tuple_body(body, source: bytes, indent: str) -> str:
+    """Lower a `tuple_expression` function body `(e0, e1, …)` to Sutra
+    axon construction with positional fields `_0`, `_1`, …. A tuple is an
+    anonymous positional record; `fst`/`snd` read `_0`/`_1` back. Same
+    body-position constraint as records (can't build in a nested
+    expression). MVP scope: numeric tuple elements (read back via
+    `.real()`)."""
+    lines = f"{indent}Axon _tuple;\n"
+    for i, el in enumerate(body.named_children):
+        lines += f'{indent}_tuple.add("_{i}", {_lower_expression(el, source)});\n'
+    lines += f"{indent}return _tuple;\n"
+    return lines
+
+
+def _unwrap_parens(node):
+    """Peel `parenthesized_expression` wrappers to the inner expression."""
+    while node is not None and node.type == "parenthesized_expression" \
+            and node.named_children:
+        node = node.named_children[0]
+    return node
+
+
 def _lower_local_binding(vd, source: bytes, indent: str,
                          record_types=frozenset(), refs: Optional[dict] = None) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
@@ -654,6 +686,9 @@ def _lower_body_to_statements(body, source: bytes, indent: str,
         refs = {}
     if body.type == "record_expression":
         return _lower_record_body(body, source, indent)
+    _unwrapped = _unwrap_parens(body)
+    if _unwrapped is not None and _unwrapped.type == "tuple_expression":
+        return _lower_tuple_body(_unwrapped, source, indent)
     if body.type == "let_expression":
         kids = body.named_children
         if len(kids) >= 2:
@@ -849,6 +884,12 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
     # later item; float fixtures rely on the current default).
     if ret_type is None and body.type == "string":
         ret = "String"
+    # A function whose body is a tuple returns an Axon (the positional-
+    # record carrier), like a record-bodied function.
+    if ret_type is None:
+        _ub = _unwrap_parens(body)
+        if _ub is not None and _ub.type == "tuple_expression":
+            ret = "Axon"
 
     if is_rec:
         # `let rec` is general recursion. Sutra's if/else is a defuzz
