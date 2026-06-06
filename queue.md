@@ -83,15 +83,25 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
 > `WASM/devlog.md` + that repo's git log. Long-horizon WASM items are in the
 > merged agenda at the top of `todo.md`. Overview: `docs/neural-webassembly.md`.
 
-- **ISO-5 — port the OCaml realisation into Sutra (UNBLOCKED 2026-06-06).** The
-  WASM isomorphism chain is transformer ≡ reference ≡ Rust ≡ OCaml, byte-identical
-  on all 6 programs (`WASM/iso/ocaml/`, `WASM/scripts/iso_equiv.sh`). The final
-  stage — express this autoregressive-deterministic-NTM machine in **Sutra** — was
-  blocked in the WASM repo ONLY on lack of access to Sutra's syntax/toolchain.
-  That blocker is gone: Sutra is this repo. On-ramp: the `sdk/sutra-from-ocaml/`
-  frontend can transpile the OCaml port; start there and measure how far it gets
-  on the substrate, then hand-finish. This is the end of the road for the
-  isomorphism program.
+- **ISO-5 — port the OCaml realisation into Sutra (UNBLOCKED 2026-06-06; gap
+  analysis DONE).** The WASM isomorphism chain is transformer ≡ reference ≡ Rust ≡
+  OCaml, byte-identical on all 6 programs (`WASM/iso/ocaml/`,
+  `WASM/scripts/iso_equiv.sh`). On-ramp = the `sdk/sutra-from-ocaml/` frontend.
+  Reconnaissance done (`planning/findings/2026-06-06-iso5-ocaml-to-sutra-gap-
+  analysis.md`): the 189-line reference is *imperative* (refs/while/arrays/Buffer);
+  it transpiles to visible `UNSUPPORTED-*` markers. Top-level value bindings + hex
+  literals are now closed. **Ordered bounded transpiler items to drive ISO-5
+  (also CLAUDE.md transpiler priority #1, OCaml):**
+  1. **Sequence expressions + local mutation** (`e1; e2`; `ref`/`:=`/`!` →
+     mutable Sutra locals) — the keystone (most of the body).
+  2. **`while`/`for` → substrate `loop`** carrying machine state as vectors (NOT a
+     host loop; the tail-rec path proves the shape) — the substrate-fidelity crux.
+  3. Char + string literals; 4. Arrays (`Array.make`/`arr.(i)`); 5. Tuples +
+  option (`fst`/`snd`, `Some`/`None`); 6. Nested-fn hoist; 7. stdlib shims.
+  Destination (bigger than transpiler coverage): the fetch-execute loop as a
+  substrate recurrence (state vectors across iterations, opcode dispatch as a
+  defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
+  Sutra. This is the end of the road for the isomorphism program.
 - **PCA on the WASM transformer (todo.md TOP PRIORITY, now unblocked).** Promote
   from todo.md: PCA the analytic transformer's weights (`WASM/`, `d_model=38`,
   7 layers, 19 heads) to find the genuine low-dimensional attention structure to
@@ -281,6 +291,14 @@ This section is driven by the 1pm transpiler work-loop cron; it pulls+rebases
 first and never touches the RAM/W2C sections above.
 
 ### Priority 1 — OCaml frontend (`sdk/sutra-from-ocaml/`)
+- **ISO-5 now drives the OCaml priority order.** The bounded items needed to port
+  `WASM/iso/ocaml/` to Sutra (sequence-expr + mutation → while/for → substrate
+  loop → chars/strings → arrays → tuples/option → nested-fn) are the highest-value
+  OCaml work; see the merged-WASM-queue ISO-5 item + `planning/findings/
+  2026-06-06-iso5-ocaml-to-sutra-gap-analysis.md`. [Top-level value bindings
+  (`let x = const`) → Sutra top-level constants: DONE — hex/oct/bin/`_`/width-
+  suffix number literals normalized to decimal; substrate-verified `toplevel_const`
+  `(300 - 0xFF) + 5 = 50`. OCaml suite 39 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.

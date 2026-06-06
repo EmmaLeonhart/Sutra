@@ -6,6 +6,37 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: ISO-5 gap analysis + OCaml top-level value bindings (work-loop tick)
+
+Worked the merged-WASM-queue top item (ISO-5: port `WASM/iso/ocaml/` to Sutra) as
+a bounded reconnaissance + first transpiler advance.
+
+**Gap analysis.** Ran the 189-line OCaml WASM stack-machine reference through
+`sutra-from-ocaml`. It degrades to visible `UNSUPPORTED-*` markers (no crash).
+Finding: `planning/findings/2026-06-06-iso5-ocaml-to-sutra-gap-analysis.md`. The
+reference is imperative (refs/while/arrays/Buffer/exceptions), so a faithful port
+is not mechanical — the destination is the fetch-execute loop as a substrate
+recurrence (state vectors across iterations, opcode dispatch as a defuzz match).
+Decomposed into ordered bounded transpiler items (sequence-expr + mutation →
+while/for → substrate loop → chars/strings → arrays → tuples/option → nested-fn),
+queued under both the ISO-5 item and the OCaml transpiler track.
+
+**Feature shipped: OCaml top-level value bindings → Sutra top-level constants.**
+`let mask32 = 0xFFFFFFFF` / `let mem_size = 10 * 1024 * 1024` previously emitted
+`UNSUPPORTED-LET`; they now lower to `int mask32 = 4294967295;` etc. Verified a
+top-level Sutra var is visible inside functions on the substrate (`masked(300)`
+with `int mask=255` → 45.0). Required normalizing OCaml hex/octal/binary/
+`_`-separated/width-suffixed number literals to decimal (`_normalize_number`),
+since Sutra's lexer rejects `0xFF`; the normalization applies to all number
+lowering (helps function bodies too). `let () = …` (the entry point) correctly
+stays UNSUPPORTED (`()` is not an identifier binder). Float/bool value-binding
+type inference via `_value_binding_type`; type annotations override. New runnable
+fixture `toplevel_const` (`main () = (300 - 0xFF) + 5 = 50.0` on the substrate).
+OCaml suite **39 passed** (was 36; +3 for the fixture's lower/compile/run tests),
+no regressions. After the fix, the ISO-5 reference's 2 value-binding gaps are
+closed; remaining: sequence-expr (4), strings (3), array-get (3), option (2),
+nested-fn (1), list (1), char (1).
+
 ## 2026-06-06: Integrate the Neural WebAssembly repo as the `WASM/` subtree
 
 Discharged queue ACTIVE #1 + #2. Brought `EmmaLeonhart/neural-webassembly` (local

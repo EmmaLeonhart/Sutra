@@ -85,6 +85,70 @@ def _node_text(node, source: bytes) -> str:
     return source[node.start_byte:node.end_byte].decode("utf-8")
 
 
+def _normalize_number(text: str) -> str:
+    """OCaml numeric literal text -> a literal Sutra's lexer accepts.
+
+    Sutra's lexer takes decimal ints and floats only (it rejects `0xFF`,
+    reading `0` then `xFF`). OCaml allows hex/octal/binary, `_` digit
+    separators, and `l`/`L`/`n` width suffixes — normalize all of those to
+    a plain decimal int, and floats to their `_`-stripped form. Anything
+    we don't recognize is returned unchanged (so it surfaces visibly at
+    compile time rather than being silently mangled)."""
+    raw = text.replace("_", "")
+    # Strip OCaml int width suffixes (int32 `l`, int64 `L`, nativeint `n`).
+    if raw and raw[-1] in "lLn" and not raw.lower().startswith("0x"):
+        raw = raw[:-1]
+    low = raw.lower()
+    try:
+        if low.startswith("0x"):
+            return str(int(raw, 16))
+        if low.startswith("0o"):
+            return str(int(raw, 8))
+        if low.startswith("0b"):
+            return str(int(raw, 2))
+    except ValueError:
+        return text
+    # Hex with a trailing width suffix (e.g. `0xFFl`) — strip then convert.
+    if low.startswith("0x") and low[-1] in "ln":
+        try:
+            return str(int(raw[:-1], 16))
+        except ValueError:
+            return text
+    return raw
+
+
+def _value_binding_type(body, source: bytes) -> str:
+    """Best-effort type for an unannotated `let x = expr` value binding.
+    OCaml is HM-inferred globally; we don't replicate that. We only
+    distinguish the cases the substrate cares about: a float literal
+    (`3.14`, `1e9`) or a float-operator infix (`a +. b`) -> `float`; a
+    boolean -> `bool`; everything else falls back to the `int` default."""
+    t = body.type
+    if t == "number":
+        txt = _node_text(body, source).lower()
+        if "." in txt or ("e" in txt and not txt.startswith("0x")):
+            return "float"
+        return "int"
+    if t == "boolean":
+        return "bool"
+    if t == "infix_expression":
+        op = body.child_by_field_name("operator")
+        if op is not None and _node_text(op, source) in {"+.", "-.", "*.", "/."}:
+            return "float"
+    return _DEFAULT_TYPE
+
+
+def _is_identifier(name: str) -> bool:
+    """True if `name` is a plain Sutra-safe identifier. OCaml binders like
+    `()` (unit) or names carrying a `'` (prime) are not lowerable as a
+    Sutra variable name."""
+    if not name:
+        return False
+    if not (name[0].isalpha() or name[0] == "_"):
+        return False
+    return all(c.isalnum() or c == "_" for c in name)
+
+
 def _blend(cond_src: str, then_src: str, else_src: str) -> str:
     """The Sutra strong-defuzz two-way blend used for both `if/then/else`
     and `match` cases: weight = (1 + truth_axis(defuzzy(cond)))/2;
@@ -115,7 +179,7 @@ def _map_type(type_node, source: bytes, record_types=frozenset()) -> str:
 def _lower_expression(node, source: bytes) -> str:
     t = node.type
     if t == "number":
-        return _node_text(node, source)
+        return _normalize_number(_node_text(node, source))
     if t == "boolean":
         # OCaml `true` / `false` -> Sutra `true` / `false`.
         return _node_text(node, source)
@@ -494,11 +558,33 @@ def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
     has_param = any(k.type == "parameter" for k in middle)
     if not has_param:
         # A zero-parameter `let x = expr` is a value binding, not a
-        # function. Top-level Sutra constants are a later item.
-        return (
-            f"// UNSUPPORTED-LET: value binding '{name}' (no parameters; "
-            "only function-shaped lets lower today)\n"
-        )
+        # function. Lower it to a Sutra top-level constant
+        # `<ty> <name> = <expr>;` — top-level var decls are visible inside
+        # functions on the substrate (verified). Only simple, lowerable
+        # bodies qualify; sequences / refs / the `let () = …` entry point
+        # have no `name`-shaped binder or no single-expression body, so
+        # they stay UNSUPPORTED rather than emit a footgun.
+        if is_rec:
+            return (
+                f"// UNSUPPORTED-LET-REC: value binding '{name}' "
+                "(recursive value, not a function)\n"
+            )
+        if not _is_identifier(name):
+            return (
+                f"// UNSUPPORTED-LET: value binding '{name}' "
+                "(binder is not a plain identifier)\n"
+            )
+        # A type annotation (`let x : int = …`) overrides the inferred type.
+        ann_type = next((_map_type(k, source, record_types)
+                         for k in middle if _is_type_node(k)), None)
+        expr_src = _lower_expression(body, source)
+        if "UNSUPPORTED" in expr_src:
+            return (
+                f"// UNSUPPORTED-LET: value binding '{name}' "
+                f"(body does not lower to a simple expression: {body.type})\n"
+            )
+        ty = ann_type if ann_type is not None else _value_binding_type(body, source)
+        return f"{ty} {name} = {expr_src};\n"
 
     params: list[tuple[str, str]] = []
     ret_type: Optional[str] = None

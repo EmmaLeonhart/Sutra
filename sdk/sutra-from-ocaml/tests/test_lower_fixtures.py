@@ -139,6 +139,7 @@ _RUNNABLE_FIXTURES = {
     "record": 7.0,         # main () = getx (mk 7 9)  (record -> axon, field via .real())
     "variant": 200.0,      # main () = label Green  (nullary variant enum + ctor-pattern match)
     "bool_ops": 100.0,     # main () = test true false  (&& || not in a condition)
+    "toplevel_const": 50.0,  # main () = (300 - mask) + bump  (top-level value bindings; hex 0xFF -> 255)
 }
 
 
