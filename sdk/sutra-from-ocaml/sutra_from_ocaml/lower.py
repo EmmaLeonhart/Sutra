@@ -445,6 +445,52 @@ def _lower_expression(node, source: bytes) -> str:
         # have nowhere to emit the statements.
         return ("/* UNSUPPORTED-EXPR: record_expression must be a function "
                 "body (nested record construction not supported) */")
+    if t == "let_expression":
+        # `let x = e in body` in EXPRESSION position (a nested sub-expr, not
+        # a function body — that path emits real Sutra locals). Here there
+        # is nowhere to emit a local, so a PURE simple binding is inlined by
+        # substituting the bound name in the body (reusing _MATCH_SUBST).
+        # Only simple-atom values (identifier/number) are substituted — a
+        # compound value (`a + b`) would need parens that risk the
+        # `(x) <op>`->cast ambiguity, and a `ref`/nested-fn binding needs a
+        # real local; those stay UNSUPPORTED rather than emit wrong output.
+        kids = node.named_children
+        if len(kids) < 2:
+            return "/* UNSUPPORTED-EXPR: malformed let_expression */"
+        *binds, body_e = kids
+        applied: list[tuple[str, object]] = []
+        try:
+            for b in binds:
+                if b.type != "value_definition":
+                    return f"/* UNSUPPORTED-EXPR: let_expression part {b.type} */"
+                lb = next((c for c in b.named_children
+                           if c.type == "let_binding"), None)
+                if lb is None or not lb.named_children:
+                    return "/* UNSUPPORTED-EXPR: malformed let binding */"
+                lbk = lb.named_children
+                name = _node_text(lbk[0], source)
+                if any(k.type == "parameter" for k in lbk[1:-1]):
+                    return "/* UNSUPPORTED-EXPR: nested function in let-expression */"
+                val = lbk[-1]
+                if val.type == "number":
+                    val_src = _normalize_number(_node_text(val, source))
+                elif val.type == "value_path":
+                    val_src = _lower_expression(val, source)
+                else:
+                    return ("/* UNSUPPORTED-EXPR: let-expression value not a "
+                            "simple atom (substitution would risk precedence) */")
+                if "UNSUPPORTED" in val_src:
+                    return val_src
+                saved = _MATCH_SUBST.get(name, _MISSING)
+                _MATCH_SUBST[name] = val_src
+                applied.append((name, saved))
+            return _lower_expression(body_e, source)
+        finally:
+            for name, saved in reversed(applied):
+                if saved is _MISSING:
+                    _MATCH_SUBST.pop(name, None)
+                else:
+                    _MATCH_SUBST[name] = saved
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 

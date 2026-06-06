@@ -6,6 +6,21 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — let..in in expression position (ISO-5 item 5d; work-loop tick)
+
+OCaml `let x = e in body` in EXPRESSION position (a nested sub-expr, not a function
+body — that path already emits real Sutra locals) now lowers for PURE simple-atom
+bindings: when `e` is an identifier or number, the bound name is substituted into the
+body (reuses `_MATCH_SUBST`, save/restore for nesting). Substrate-verified
+`let_in_expr` (`(let x = 5 in x + x) + 10`) -> **20.0**. OCaml suite **65 passed**
+(was 62; +3).
+
+Honest scope: compound values (`let x = a + b in ...`), `ref` bindings, and nested
+functions stay UNSUPPORTED -- a compound value would need parens that risk the
+`(x) <op>`->cast ambiguity, and a `ref` needs a real mutable local. So the WASM
+reference's 2 `let` markers (complex values) do NOT clear; the feature is verified on
+a standalone simple-atom fixture.
+
 ## 2026-06-06: sutra-from-ocaml — option types Some/None (ISO-5 item 5c; work-loop tick)
 
 OCaml `option` lowers to a tagged axon `{_tag,_val}`: `None`→tag 0, `Some e`→tag 1 +
