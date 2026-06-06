@@ -135,14 +135,23 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
      → payload via subst). 7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
   10. closure conversion; 11. core-compiler `dict<int,int>`.
 
-  **Direction (Emma decided 2026-06-06 via AskUserQuestion): KEEP GRINDING OCaml
-  ISO-5.** The remaining items (option, full string-match-with-`br` dispatch,
-  exceptions, stdlib, closures, arrays/`dict<int,int>` core fix) are each
-  substantial/coupled — clean single-tick wins are mostly spent, so accept slower
-  per-tick progress; the goal is the full WASM-machine port in Sutra. PCA on the
-  WASM transformer stays todo.md TOP PRIORITY but is NOT the loop's focus now; do
-  not pivot to it, the next language frontend, or the paper track unless Emma
-  re-decides. Do not re-ask this — it is answered.
+  **Direction (Emma 2026-06-06): grind OCaml ISO-5 UNTIL NOON, then PIVOT to PCA.**
+  Emma's update 2026-06-06 10:04: keep advancing the OCaml→Sutra transpiler for now,
+  but **at noon (12:00 local) the loop pivots to the PCA on the WASM transformer**
+  (todo.md TOP PRIORITY) regardless — one-shot cron `9d22a2f8` fires the pivot. Until
+  noon, grind OCaml ISO-5 (option, string-match-with-`br`, exceptions, stdlib,
+  closures, arrays/`dict<int,int>` core fix — all substantial/coupled, accept slower
+  per-tick progress). After noon, PCA is the active item; the OCaml grind pauses.
+  Do not re-ask the keep-grinding-vs-pivot question — it is answered (the noon cron
+  carries the pivot).
+
+  **Clarification — the two OCaml things (Emma asked 2026-06-06):** (1) *WebAssembly
+  OCaml* = `WASM/iso/ocaml/bin/main.ml`, the OCaml isomorph of the transformer-VM
+  (the WASM stack machine; the SOURCE program ISO-5 ports to Sutra). (2) *Sutra
+  OCaml* = `sdk/sutra-from-ocaml/`, the OCaml→Sutra transpiler (the TOOL). The loop
+  builds the TOOL (2), driven by the gaps surfaced when transpiling the WASM-OCaml
+  reference (1); each feature is verified with a small standalone OCaml fixture on
+  the substrate. End goal: the WASM machine running in Sutra.
   Destination (bigger than transpiler coverage): the fetch-execute loop as a
   substrate recurrence (state vectors across iterations, opcode dispatch as a
   defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
