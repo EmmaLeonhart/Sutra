@@ -38,6 +38,9 @@ concurrency:
   group: daily-audit-prepend
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   prepend-audit-task:
     runs-on: ubuntu-latest
