@@ -239,7 +239,12 @@ first and never touches the RAM/W2C sections above.
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.
-- [ ] `let x = e in body` local bindings; `let rec` recursion.
+- [ ] `let rec` recursion. **General recursion is NOT a plain Sutra function**:
+  the if/else defuzz blend evaluates both branches, so a recursive call in a
+  branch never terminates (verified — `let rec` now emits an UNSUPPORTED marker,
+  not broken code). Map TAIL-recursive `let rec` to Sutra `loop`/`recur`; non-tail
+  recursion (factorial-shape) is an open question — likely needs a bounded-depth
+  unroll or a different encoding. Spec first. (`let … in` local bindings: DONE.)
 - [ ] Tuples / records / variant types -> Sutra axons; `match ... with` ->
   select/softmax or if-chain (the hard rung — spec first).
 - [ ] End-to-end verification: each fixture's `.su` compiles AND runs AND
