@@ -6,6 +6,27 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: substrate bitwise primitive (band/bor/bxor) + OCaml land/lor/lxor/lsl/lsr (deferred-list barrel)
+
+Implemented the bitwise primitive the WASM machine needs. Sutra has no bitwise
+operator (& | are fuzzy-logical; << >> don't parse), so band/bor/bxor are a
+SUBSTRATE bit-plane decomposition in _VSA (codegen_pytorch): broadcast the
+number-vector against a (32,) powers tensor -> (32,dim) bit planes (non-real axes
+decompose to all-zero bits), apply per-bit logic element-wise (AND=a*b, OR=a+b-a*b,
+XOR=a+b-2ab), recombine by a powers-weighted sum. All torch tensor ops, no host
+scalar, no numpy. Domain: non-negative ints < 2^32 (the machine's unsigned 32-bit).
+Exposed via stdlib/bitwise.su `class Bits` (intrinsic -> _VSA.band/bor/bxor).
+Measured: band(12,10)=8, bor(12,10)=14, bxor(12,10)=6, 300&0xff=44, 3|1024=1027,
+0xDEAD&0xBEEF=40621, Bits.band(12,10)=8 from the .su surface.
+
+OCaml transpiler: land/lor/lxor -> Bits.band/bor/bxor; lsl/lsr by a CONSTANT ->
+exact arithmetic identities (a*2^k / Math.floor(a/2^k)); variable shifts + asr stay
+UNSUPPORTED-OP. Substrate-verified `bitwise` fixture
+`(255 land 12)+((3 lsl 8) lor 7)+(1024 lsr 2)` = 1043. OCaml suite 74 passed (was 71).
+This unblocks the WASM machine's byte arithmetic (the lor/land/lsl/lsr that pervade
+it). Remaining deferred primitives: exceptions (raise Exit), array->RAM lowering,
+ground-truth .txt build.
+
 ## 2026-06-06: wire the transformer-vm submodule into the parent (ground-truth access)
 
 The `transformer-vm` submodule (the authors' code, ground truth) couldn't init: after

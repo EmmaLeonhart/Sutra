@@ -1,0 +1,41 @@
+// =============================================================================
+// Bitwise — 32-bit AND / OR / XOR on non-negative integers. EXPENSIVE.
+// =============================================================================
+//
+// Sutra has no native bitwise OPERATOR (`&` / `|` are the fuzzy three-valued
+// LOGICAL ops; `<<` / `>>` do not parse). True bitwise is a substrate
+// computation: decompose each operand into its 32 bit-planes, apply the
+// per-bit logic, and recombine.
+//
+// ── Why this is substrate-pure (not scalar extraction) ──────────────────────
+//
+// A number-vector carries its value on AXIS_REAL and zero on every other
+// axis. `_VSA.band/bor/bxor` broadcast the WHOLE vector against a (32,)
+// powers-of-two tensor to form a (32, dim) bit-plane stack:
+//
+//   bit_i = floor(x / 2^i) - 2·floor(x / 2^(i+1))
+//
+// (every non-real axis decomposes to all-zero bits, so they stay zero), apply
+// the per-bit boolean as element-wise tensor arithmetic —
+//
+//   AND  = a·b          OR  = a + b - a·b          XOR = a + b - 2·a·b
+//
+// — and recombine with a powers-weighted sum back into a number-vector. All
+// torch tensor ops, no host scalar, no numpy. See codegen_pytorch.py
+// `_bits_of` / `band` / `bor` / `bxor`.
+//
+// Domain: non-negative integers < 2^32 (the WASM machine's unsigned 32-bit
+// values). Shifts are NOT here — `x << k` / `x >> k` are exact arithmetic
+// identities (`x * 2^k` / `Math.floor(x / 2^k)`) that callers emit directly.
+
+class Bits extends vector {
+
+    // Bitwise AND — `a & b` over 32-bit unsigned integers.
+    static intrinsic method number band(number a, number b);
+
+    // Bitwise OR — `a | b`.
+    static intrinsic method number bor(number a, number b);
+
+    // Bitwise XOR — `a ^ b`.
+    static intrinsic method number bxor(number a, number b);
+}

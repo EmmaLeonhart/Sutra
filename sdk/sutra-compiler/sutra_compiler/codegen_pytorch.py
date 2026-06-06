@@ -1666,6 +1666,64 @@ class PyTorchCodegen(Codegen):
         self._emit("return _torch.sign(self._st(x))")
         self._indent -= 1
         self._emit()
+        # =================================================================
+        # Bitwise — 32-bit AND / OR / XOR via a substrate bit-plane
+        # decomposition (stdlib/bitwise.su). NOT scalar extraction: the
+        # number-vector is broadcast against a (32,) powers tensor to get a
+        # (32, dim) bit-plane stack (only the real axis carries a value, so
+        # every other axis decomposes to all-zero bits), the per-bit logic
+        # is element-wise tensor arithmetic, and the planes are recombined
+        # by a powers-weighted sum back into a number-vector. All torch ops,
+        # no host scalar / numpy. Domain: non-negative integers < 2^32 (the
+        # WASM machine's unsigned 32-bit values). Shifts (`lsl`/`lsr`) are
+        # exact arithmetic identities (×2^k / floor(/2^k)) emitted directly
+        # by callers, not here.
+        # =================================================================
+        self._emit("def _bit_powers(self):")
+        self._indent += 1
+        self._emit("if getattr(self, '_bit_pow_cache', None) is None:")
+        self._indent += 1
+        self._emit("self._bit_pow_cache = (2.0 ** _torch.arange("
+                   "32, dtype=self.dtype, device=self.device)).reshape(-1, 1)")
+        self._indent -= 1
+        self._emit("return self._bit_pow_cache")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _bits_of(self, x):")
+        self._indent += 1
+        self._emit('"""(32, dim) bit-plane decomposition of number-vector x: '
+                   'bit i = floor(x/2^i) - 2·floor(x/2^(i+1)). Other axes -> 0."""')
+        self._emit("v = self._st(x).reshape(1, -1)")
+        self._emit("p = self._bit_powers()")
+        self._emit("return _torch.floor(v / p) - 2.0 * _torch.floor(v / (2.0 * p))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def _recombine_bits(self, bits):")
+        self._indent += 1
+        self._emit('"""(32, dim) bit-planes -> number-vector (powers-weighted sum)."""')
+        self._emit("return (bits * self._bit_powers()).sum(dim=0)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def band(self, a, b):")
+        self._indent += 1
+        self._emit('"""Bitwise AND (32-bit). bit = a_bit · b_bit."""')
+        self._emit("return self._recombine_bits(self._bits_of(a) * self._bits_of(b))")
+        self._indent -= 1
+        self._emit()
+        self._emit("def bor(self, a, b):")
+        self._indent += 1
+        self._emit('"""Bitwise OR (32-bit). bit = a + b - a·b."""')
+        self._emit("ab = self._bits_of(a); bb = self._bits_of(b)")
+        self._emit("return self._recombine_bits(ab + bb - ab * bb)")
+        self._indent -= 1
+        self._emit()
+        self._emit("def bxor(self, a, b):")
+        self._indent += 1
+        self._emit('"""Bitwise XOR (32-bit). bit = a + b - 2·a·b."""')
+        self._emit("ab = self._bits_of(a); bb = self._bits_of(b)")
+        self._emit("return self._recombine_bits(ab + bb - 2.0 * ab * bb)")
+        self._indent -= 1
+        self._emit()
         self._emit("def fmod(self, x, m):")
         self._indent += 1
         self._emit('"""Truncation modulus (JS / C / C# / Rust / TS `%`): result')
