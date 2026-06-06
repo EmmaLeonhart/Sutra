@@ -67,9 +67,10 @@ so if a new session starts before these fire, recreate them:
   the transpiler's `UNSUPPORTED` gaps by hand). Compare to ground truth, no faking;
   if the full machine is too big, get the simplest program (`hello`) working
   end-to-end and report what was hand-filled vs transpiled. Save the working `.su` +
-  a finding, commit+push.
-- **12:00 (cron `9d22a2f8`)** — PIVOT to PCA on the WASM transformer (todo.md TOP
-  PRIORITY); overrides the OCaml grind from then on.
+  a finding, commit+push. (Has until 12:30 before the PCA pivot.)
+- **12:30 (cron `12c5f8b2`, moved from noon)** — PIVOT to PCA on the WASM
+  transformer (todo.md TOP PRIORITY); overrides the OCaml grind from then on. (The
+  11:30 hand-edit now has a full hour before this fires.)
 - **17:00 (cron `9b7d8c5d`)** — start a THIRD clawRxiv paper (`paper/percepta-ntm/`)
   on implementing a DNC/NTM via the Percepta transformer + PCA and the measured
   results; wire its own CI (`percepta-ntm-paper-ci.yml`, model on `fv-paper-ci.yml`)
