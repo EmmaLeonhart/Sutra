@@ -136,6 +136,7 @@ _RUNNABLE_FIXTURES = {
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
     "record": 7.0,         # main () = getx (mk 7 9)  (record -> axon, field via .real())
+    "variant": 200.0,      # main () = label Green  (nullary variant enum + ctor-pattern match)
 }
 
 

@@ -255,10 +255,11 @@ first and never touches the RAM/W2C sections above.
   a bounded-depth encoding, open question. (b) Simultaneous state update for
   swap-style updates (`f y x`) — current emission is sequential; add temporaries.
   (c) Non-comparison halt conditions (`&&`/bool) — needs a Sutra `not`/negation.
-- [ ] `match … with` on **literal patterns + trailing `_`** -> nested defuzz
-  blend: DONE (substrate-verified `classify 1 = 200`). Remaining: constructor /
-  record / or- / guarded patterns (need the records-as-axons work + a binding
-  mechanism); `match` that binds a name in the catch-all (`| x -> …`).
+- [ ] `match … with`: **literal + trailing `_` DONE** (`classify 1 = 200`) and
+  **nullary-constructor patterns DONE** (variant match, `label Green = 200`,
+  substrate-verified; last case is the base, exact for exhaustive variant matches).
+  Remaining: constructor-with-args / record-destructuring / or- / guarded patterns;
+  `match` that binds a name in the catch-all (`| x -> …`).
 - [ ] **Records -> axons: DONE for numeric fields** (substrate-verified
   `getx (mk 7 9) = 7.0`). `type X = {…}` erased + record-name prepass; record-typed
   params -> `Axon`; construction `{x=a;y=b}` -> `Axon r; r.add("x",a); …`; field
@@ -266,9 +267,10 @@ first and never touches the RAM/W2C sections above.
   axon-field-reads-need-real-projection.md`): numeric axon field reads REQUIRE
   `.real()` — without it they return zeros on the substrate. No type-tracking layer
   was needed (OCaml `p.x` is unambiguously a record field via `field_get_expression`).
-  Remaining: variants (sum types), tuples, non-numeric record fields (field-type-aware
-  `.real()` off the record decl), record literals in argument position, constructor-
-  pattern `match` (now unblocked by records).
+  Remaining: tuples, non-numeric record fields (field-type-aware `.real()` off the
+  record decl), record literals in argument position. (Nullary **variants** ->
+  enum ints + constructor-pattern `match`: DONE — `label Green = 200`. Parameterised
+  constructors `C of t` still UNSUPPORTED.)
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] **FIX sutra-from-ts: interface field reads return zeros at runtime.** The TS
   `interface`->axon path emits `p.item("x")` without `.real()`, so `interface_pass`
