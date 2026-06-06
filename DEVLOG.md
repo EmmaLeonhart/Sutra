@@ -6,6 +6,26 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml nullary variants (enums) + constructor-pattern match (transpiler tick 9)
+
+`sutra-from-ocaml` now lowers nullary variant types to enum ints (same as the TS
+enum->int mapping): `type color = Red | Green | Blue` -> Red=0, Green=1, Blue=2
+(collected in the prepass; the `type` decl is erased). A constructor used as a
+value (`Green`) lowers to its tag; a constructor *pattern* in `match` lowers to
+`scrut == tag`. Rewrote `_lower_match` so the LAST case is always the base — exact
+for `_` and for an exhaustive variant match (no `_` needed); a trailing
+integer-literal case is still rejected (non-exhaustive). Fixture `variant`
+(`type color=…`, `label c = match c with Red->100 | Green->200 | Blue->300`,
+`main()=label Green`) runs on the substrate: **label(Green)=200.0** — distinct
+from Green's tag (1), so it genuinely tests the match dispatch, not just the enum
+value. 30 passed (11 fixtures × lowering+compile + 8 substrate runs
+7/6.5/5/10/15/200/7/200).
+
+Honest scope: parameterised constructors (`C of t`) are left out of the enum map,
+so using one lowers to UNSUPPORTED (verified). Constructor map is a per-`lower()`
+module global (OCaml `lower()` is single-pass/non-re-entrant) — flagged to move
+onto a threaded context if OCaml gains module imports.
+
 ## 2026-06-05: OCaml records → axons + axon-field-read runtime finding (transpiler tick 8)
 
 `sutra-from-ocaml` now lowers records to Sutra axons: `type X = {…}` erased (name
