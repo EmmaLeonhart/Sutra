@@ -255,14 +255,26 @@ replication, arXiv 2604.06425 — a learned runtime state unifying
 compute/memory/IO; video models rolling out CLI/GUI screen frames from
 instructions, pixels, and user actions).
 
-This phase carries an **additional local cron** whose job is
-documentation, not code: read `../replicating-neural-computers-2` and
-edit Sutra's own docs to include a discussion of that repo — what it
-contains, what Sutra can do with it, and how the WASM direction connects.
-Keep it within the website discipline: no internal-scratchpad refs, no
-overstatement beyond what runs (CLAUDE.md §Audiences). Exact wiring of
-this cron (start now vs. created when the WASM phase is reached) is
-recorded alongside the 1pm cron set — see DEVLOG 2026-06-05.
+**Integration plan (Emma 2026-06-05, explicitly authorized despite being
+non-standard).** The DNC/NTM WebAssembly work in
+`../replicating-neural-computers-2` is fundamental to Sutra's differentiable-
+neural-computer / Neural-Turing-machine capabilities, but agentic
+complications left it in a separate repo. Rather than keep it a submodule, we
+**`git subtree` it into this repo under `WASM/`, preserving its full history** —
+the history is worth keeping. A local hourly cron (`:33`) watches the sibling
+repo and triggers the integration **once its agent has gone quiet for a full
+hour** (no commit in 60 min = the agent that's actively working there has
+finished its current pass). Before the subtree, any uncommitted changes in the
+sibling are committed + pushed. After the subtree:
+- the sibling's `todo.md` is prepended to the TOP of this `todo.md`;
+- the sibling's `queue.md` is appended to the BOTTOM of this `queue.md`, under a
+  "BARREL THROUGH" section whose steps are: (1) commit + push so the integrated
+  subtree is canonical on origin; (2) systematically update ALL Sutra docs to
+  incorporate the WASM/Neural-Computers work (website discipline applies); then
+  the merged WASM queue items; (3) bottom item = work the merged WASM todo items.
+
+This is intentional and Emma-directed — not best practice, done on purpose to
+preserve the development history. See DEVLOG 2026-06-05.
 
 ---
 
