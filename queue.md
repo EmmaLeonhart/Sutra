@@ -151,10 +151,17 @@ state (avoid literal-vs-loop-state comparison).
   **Remaining:** breadth (the other ~32 opcodes — same blended dispatch); a SCALABLE
   RAM device for the 10MB linear memory (host RAM-list doesn't scale); ground-truth
   .txt build (BLOCKED: `uv`/`clang` missing locally; `iso_equiv.sh` uses WSL).
-- **PCA on the WASM transformer (todo.md TOP PRIORITY, now unblocked).** Promote
-  from todo.md: PCA the analytic transformer's weights (`WASM/`, `d_model=38`,
-  7 layers, 19 heads) to find the genuine low-dimensional attention structure to
-  run for the DNC work. Gating lifted now that `WASM/` is in-tree.
+- **PCA on the WASM transformer (todo.md TOP PRIORITY — ACTIVE; first pass DONE).**
+  Built the analytic transformer (MILP, 5.7s; `plan.yaml` cached; needs `pulp`+
+  `highspy`, now pip-installed) and SVD'd every weight matrix. Finding:
+  `planning/findings/2026-06-06-pca-wasm-transformer.md`. Headline: the model is
+  already tiny (d=38, 144,286 params) and magnitude-PCA is the WRONG lens — weights
+  span ~1e30+ dynamic range (hardmax/address switches), so energy-rank is a
+  giant-SV artifact (importance ≠ norm). Concretely reducible: (a) `attn.5`+`attn.6`
+  are ALL-ZERO (2/7 attention layers prunable), (b) token/head embeddings are ~3/38
+  rank @99% energy (915-vocab ≈ 3-d). The attention CORE must be reduced from the
+  computation graph/schedule, not SVD. Script `experiments/wasm_transformer_pca/`.
+  Remaining: graph-level reduction analysis; feed numbers to the 17:00 paper.
 - **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
   Spec `WASM/notes/e3_native_opcode_spec.md`; E3a verified the `op_dot` vocabulary
   extensible (28 spare points). Remaining = the build (own session): add to

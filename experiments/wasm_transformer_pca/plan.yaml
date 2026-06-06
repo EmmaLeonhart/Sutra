@@ -1,0 +1,117 @@
+summary:
+  layers: 7
+  milp_d_model: 38
+  max_dep_width: 31
+  max_lin_width: 27
+layers:
+- layer: 0
+  attention: ['store_bytes[0]', 'store_bytes[1]', 'store_bytes[2]', 'store_bytes[3]', byte_index_lu]
+  persist1: [store_value, persist_66, carry_late]
+  after_persist1:
+    dep_width: 20
+    lin_width: 20
+    dims: [byte_index_lu, byte_number, carry_late, delta_call_depth, delta_cursor, delta_stack, delta_stack_prefix, inv_log_pos, is_branch_taken, is_jump, is_write, one, opcode_x, opcode_y, persist_66,
+      position, position_sq, 'store_bytes[0]', store_to_stack_prefix, store_value]
+  ffn: [unsigned_branch+, reglu_24, reglu_25, reglu_28, reglu_29, reglu_31, reglu_32, reglu_127, reglu_128, reglu_169, reglu_170]
+  persist2: [jump_sign, is_boundary, persist_33, byte_at_2, byte_index_4]
+  after_persist2:
+    dep_width: 23
+    lin_width: 21
+    dims: [byte_at_2, byte_index_4, byte_index_lu, byte_number, carry_late, delta_call_depth, delta_cursor, delta_stack, delta_stack_prefix, inv_log_pos, is_boundary, is_branch_taken, is_write, jump_sign,
+      one, opcode_x, opcode_y, persist_66, position, position_sq, store_to_stack_prefix, store_value, unsigned_branch+]
+- layer: 1
+  attention: [lookup_5_v0, lookup_5_v1, lookup_5_v2]
+  persist1: []
+  after_persist1:
+    dep_width: 21
+    lin_width: 21
+    dims: [byte_at_2, byte_index_4, byte_index_lu, byte_number, carry_late, delta_stack_prefix, inv_log_pos, is_boundary, is_branch_taken, is_write, lookup_5_v0, lookup_5_v1, lookup_5_v2, one, opcode_x,
+      opcode_y, persist_66, position, position_sq, store_to_stack_prefix, store_value]
+  ffn: [stack_depth+, cursor+, call_depth+]
+  persist2: []
+  after_persist2:
+    dep_width: 21
+    lin_width: 21
+    dims: [byte_at_2, byte_index_4, byte_index_lu, byte_number, call_depth+, carry_late, cursor+, delta_stack_prefix, inv_log_pos, is_boundary, is_branch_taken, is_write, one, opcode_x, opcode_y, persist_66,
+      position, position_sq, stack_depth+, store_to_stack_prefix, store_value]
+- layer: 2
+  attention: [fetched_store_to_stack, fetched_opcode_y, fetched_stack_delta, fetched_opcode_x, fetched_is_write, lookup_7_v0, lookup_8_v0, lookup_9_v0, lookup_10_v0, const_byte]
+  persist1: [immediate]
+  after_persist1:
+    dep_width: 22
+    lin_width: 22
+    dims: [byte_at_2, byte_index_4, byte_index_lu, byte_number, call_depth+, carry_late, const_byte, fetched_is_write, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack, immediate,
+      inv_log_pos, is_boundary, is_branch_taken, one, persist_66, position, position_sq, stack_depth+, store_value]
+  ffn: [reglu_51, reglu_52, reglu_53, reglu_54, not_local_write-, not_local_write-1, reglu_58, reglu_59, reglu_63, reglu_64, not_call_byte-, reglu_115, reglu_116]
+  persist2: [memory_write_gate, persist_60, persist_61, persist_65, persist_117, persist_118]
+  after_persist2:
+    dep_width: 28
+    lin_width: 25
+    dims: [byte_at_2, byte_index_4, byte_index_lu, byte_number, call_depth+, carry_late, const_byte, fetched_is_write, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack, immediate,
+      inv_log_pos, is_boundary, is_branch_taken, memory_write_gate, one, persist_117, persist_118, persist_60, persist_61, persist_65, persist_66, position, position_sq, stack_depth+, store_value]
+- layer: 3
+  attention: [local_byte, stack_top_position, stack_top_value, stack_second_value, stack_second_position, stack_third_position, call_stack_byte]
+  persist1: [persist_78]
+  after_persist1:
+    dep_width: 26
+    lin_width: 24
+    dims: [byte_at_2, byte_index_4, byte_index_lu, byte_number, call_stack_byte, carry_late, const_byte, fetched_is_write, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack,
+      immediate, inv_log_pos, is_boundary, is_branch_taken, local_byte, one, persist_78, position, position_sq, stack_second_position, stack_second_value, stack_third_position, stack_top_position, stack_top_value]
+  ffn: [is_output+, reglu_75, reglu_76, reglu_94, reglu_95, reglu_97, reglu_98, reglu_100, reglu_101, reglu_102, reglu_103, reglu_111, reglu_112, csb+, cc+]
+  persist2: [persist_77, a_gt_b_u, a_lt_b_u, sign_diff, cond_nonzero, branch_sub_val]
+  after_persist2:
+    dep_width: 31
+    lin_width: 27
+    dims: [a_gt_b_u, a_lt_b_u, branch_sub_val, byte_at_2, byte_index_4, byte_index_lu, byte_number, carry_late, cond_nonzero, fetched_is_write, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack,
+      immediate, inv_log_pos, is_boundary, is_branch_taken, is_output+, local_byte, one, persist_77, persist_78, position, position_sq, sign_diff, stack_second_position, stack_second_value, stack_third_position,
+      stack_top_position, stack_top_value]
+- layer: 4
+  attention: [top_byte, second_byte, third_byte, memory_byte_dirty_position, memory_byte_dirty]
+  persist1: []
+  after_persist1:
+    dep_width: 29
+    lin_width: 23
+    dims: [a_gt_b_u, a_lt_b_u, branch_sub_val, byte_at_2, byte_index_4, byte_index_lu, carry_late, cond_nonzero, fetched_is_write, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack,
+      immediate, inv_log_pos, is_boundary, is_branch_taken, is_output+, local_byte, memory_byte_dirty, memory_byte_dirty_position, one, position, position_sq, second_byte, sign_diff, stack_top_value, third_byte,
+      top_byte]
+  ffn: [memory_byte+, memory_byte-, memory_byte+1, reglu_88, reglu_89, reglu_91, reglu_92, reglu_105, reglu_106, reglu_108, reglu_109, reglu_124, reglu_125, reglu_130, reglu_131, reglu_132, reglu_133]
+  persist2: [add_carry, sub_borrow, a_gt_b_s, a_lt_b_s, branch_sub_borrow, result_byte_early]
+  after_persist2:
+    dep_width: 29
+    lin_width: 24
+    dims: [a_gt_b_s, a_gt_b_u, a_lt_b_s, a_lt_b_u, add_carry, branch_sub_borrow, branch_sub_val, byte_at_2, byte_index_4, carry_late, cond_nonzero, fetched_is_write, fetched_opcode_x, fetched_opcode_y,
+      fetched_stack_delta, fetched_store_to_stack, inv_log_pos, is_boundary, is_branch_taken, memory_byte+, memory_byte+1, memory_byte-, one, position, position_sq, result_byte_early, second_byte, sub_borrow,
+      top_byte]
+- layer: 5
+  attention: []
+  persist1: []
+  after_persist1:
+    dep_width: 29
+    lin_width: 24
+    dims: [a_gt_b_s, a_gt_b_u, a_lt_b_s, a_lt_b_u, add_carry, branch_sub_borrow, branch_sub_val, byte_at_2, byte_index_4, carry_late, cond_nonzero, fetched_is_write, fetched_opcode_x, fetched_opcode_y,
+      fetched_stack_delta, fetched_store_to_stack, inv_log_pos, is_boundary, is_branch_taken, memory_byte+, memory_byte+1, memory_byte-, one, position, position_sq, result_byte_early, second_byte, sub_borrow,
+      top_byte]
+  ffn: [reglu_84, reglu_85, reglu_135, reglu_136, reglu_137, reglu_138, reglu_139, reglu_140, reglu_141, reglu_142, reglu_143, reglu_144, reglu_145, reglu_146, reglu_147, reglu_148, reglu_150, reglu_151,
+    reglu_152, reglu_153, reglu_154, reglu_155, reglu_156, reglu_157, reglu_158, reglu_159, reglu_160, reglu_172, reglu_173, emit_branch_taken+1, emit_byte_start+]
+  persist2: [memory_sign, result_byte, result_byte$1, early_done]
+  after_persist2:
+    dep_width: 24
+    lin_width: 20
+    dims: [add_carry, branch_sub_borrow, byte_at_2, byte_index_4, carry_late, early_done, emit_branch_taken+1, emit_byte_start+, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack,
+      inv_log_pos, is_boundary, is_branch_taken, memory_sign, one, position, position_sq, reglu_141, result_byte, result_byte$1, sub_borrow, top_byte]
+- layer: 6
+  attention: []
+  persist1: []
+  after_persist1:
+    dep_width: 24
+    lin_width: 20
+    dims: [add_carry, branch_sub_borrow, byte_at_2, byte_index_4, carry_late, early_done, emit_branch_taken+1, emit_byte_start+, fetched_opcode_x, fetched_opcode_y, fetched_stack_delta, fetched_store_to_stack,
+      inv_log_pos, is_boundary, is_branch_taken, memory_sign, one, position, position_sq, reglu_141, result_byte, result_byte$1, sub_borrow, top_byte]
+  ffn: [reglu_162, reglu_163, reglu_164, reglu_165, reglu_166, reglu_167, emit_halt+, emit_branch_taken+, emit_branch_taken+2, emit_branch_taken+3, emit_return_commit+, emit_out+, emit_call_commit+, emit_bt+,
+    emit_bt+1]
+  persist2: [result_carry]
+  after_persist2:
+    dep_width: 25
+    lin_width: 13
+    dims: [byte_index_4, early_done, emit_branch_taken+, emit_branch_taken+1, emit_branch_taken+2, emit_branch_taken+3, emit_bt+, emit_bt+1, emit_byte_start+, emit_call_commit+, emit_halt+, emit_out+, emit_return_commit+,
+      fetched_stack_delta, fetched_store_to_stack, inv_log_pos, is_boundary, is_branch_taken, one, position, position_sq, result_byte, result_byte$1, result_carry, top_byte]
