@@ -1,0 +1,526 @@
+slot_map:
+  0:
+  - position
+  1:
+  - inv_log_pos
+  2:
+  - position_sq
+  3:
+  - one
+  4:
+  - byte_number
+  - memory_byte+
+  - result_carry
+  5:
+  - carry
+  - is_output+
+  - memory_sign
+  - stack_depth+
+  - unsigned_branch+
+  6:
+  - cursor+
+  - delta_cursor
+  - emit_halt+
+  - memory_byte-
+  - memory_write_gate
+  - persist_77
+  7:
+  - a_gt_b_u
+  - call_depth+
+  - delta_stack
+  - emit_branch_taken+
+  8:
+  - fetched_opcode_x
+  - is_jump
+  - lookup_5_v0
+  9:
+  - fetched_opcode_y
+  - jump_sign
+  - store_to_stack
+  10:
+  - is_branch_taken
+  11:
+  - delta_call_depth
+  - fetched_stack_delta
+  12:
+  - is_boundary
+  - is_return_commit
+  13:
+  - a_lt_b_u
+  - delta_stack_prefix
+  - emit_branch_taken+2
+  - persist_60
+  14:
+  - persist_61
+  - reglu_141
+  - sign_diff
+  - store_to_stack_prefix
+  15:
+  - cond_nonzero
+  - emit_branch_taken+3
+  - opcode_x
+  - persist_65
+  16:
+  - branch_sub_val
+  - emit_return_commit+
+  - opcode_y
+  - persist_117
+  17:
+  - is_write
+  - persist_118
+  - top_byte
+  18:
+  - fetched_store_to_stack
+  - lookup_5_v1
+  - store_bytes[0]
+  19:
+  - emit_out+
+  - second_byte
+  - store_value
+  20:
+  - byte_index_lu
+  - result_byte
+  21:
+  - persist_66
+  - result_byte$1
+  - third_byte
+  22:
+  - carry_late
+  23:
+  - byte_at_2
+  24:
+  - byte_index_4
+  25:
+  - emit_call_commit+
+  - fetched_is_write
+  - lookup_5_v2
+  26:
+  - early_done
+  - immediate
+  27:
+  - const_byte
+  - emit_branch_taken+1
+  - memory_byte_dirty
+  28:
+  - emit_byte_start+
+  - local_byte
+  29:
+  - emit_bt+
+  - stack_top_value
+  30:
+  - emit_bt+1
+  - memory_byte+1
+  - stack_top_position
+  31:
+  - add_carry
+  - stack_second_value
+  32:
+  - stack_second_position
+  - sub_borrow
+  33:
+  - a_gt_b_s
+  - stack_third_position
+  34:
+  - a_lt_b_s
+  - persist_78
+  35:
+  - call_stack_byte
+  - memory_byte_dirty_position
+  36:
+  - branch_sub_borrow
+  37:
+  - result_byte_early
+layers:
+- layer: 0
+  attention_heads:
+  - head: 0
+    type: lookup
+    lookup: msb
+    values:
+    - store_bytes[0]
+    tie_break: latest
+  - head: 1
+    type: lookup
+    lookup: store_bytes
+    values:
+    - store_bytes[1]
+    tie_break: latest
+  - head: 2
+    type: lookup
+    lookup: store_bytes
+    values:
+    - store_bytes[2]
+    tie_break: latest
+  - head: 3
+    type: lookup
+    lookup: store_bytes
+    values:
+    - store_bytes[3]
+    tie_break: latest
+  - head: 4
+    type: lookup
+    lookup: byte_index_lu
+    values:
+    - byte_index_lu
+    tie_break: latest
+  - head: 5
+    type: passthrough
+    slot_v0: 9
+    slot_v1: 3
+  - head: 6
+    type: passthrough
+    slot_v0: 5
+    slot_v1: 12
+  persist1:
+  - store_value
+  - persist_66
+  - carry_late
+  ffn:
+  - unsigned_branch+
+  - reglu_24
+  - reglu_25
+  - reglu_28
+  - reglu_29
+  - reglu_31
+  - reglu_32
+  - reglu_127
+  - reglu_128
+  - reglu_169
+  - reglu_170
+  persist2:
+  - jump_sign
+  - is_boundary
+  - persist_33
+  - byte_at_2
+  - byte_index_4
+- layer: 1
+  attention_heads:
+  - head: 0
+    type: lookup
+    lookup: lookup_5
+    values:
+    - lookup_5_v0
+    - lookup_5_v1
+    tie_break: average
+  - head: 1
+    type: lookup
+    lookup: lookup_5
+    values:
+    - lookup_5_v2
+    tie_break: average
+  - head: 2
+    type: passthrough
+    slot_v0: 5
+    slot_v1: 6
+  - head: 3
+    type: passthrough
+    slot_v0: 7
+    slot_v1: 9
+  - head: 4
+    type: passthrough
+    slot_v0: 11
+  persist1: []
+  ffn:
+  - stack_depth+
+  - cursor+
+  - call_depth+
+  persist2: []
+- layer: 2
+  attention_heads:
+  - head: 0
+    type: lookup
+    lookup: fetched_stack_delta
+    values:
+    - fetched_opcode_x
+    - fetched_opcode_y
+    tie_break: latest
+  - head: 1
+    type: lookup
+    lookup: fetched_stack_delta
+    values:
+    - fetched_stack_delta
+    - fetched_store_to_stack
+    tie_break: latest
+  - head: 2
+    type: lookup
+    lookup: fetched_stack_delta
+    values:
+    - fetched_is_write
+    tie_break: latest
+  - head: 3
+    type: lookup
+    lookup: lookup_7
+    values:
+    - lookup_7_v0
+    tie_break: latest
+  - head: 4
+    type: lookup
+    lookup: lookup_8
+    values:
+    - lookup_8_v0
+    tie_break: latest
+  - head: 5
+    type: lookup
+    lookup: lookup_9
+    values:
+    - lookup_9_v0
+    tie_break: latest
+  - head: 6
+    type: lookup
+    lookup: lookup_10
+    values:
+    - lookup_10_v0
+    tie_break: latest
+  - head: 7
+    type: lookup
+    lookup: const_byte
+    values:
+    - const_byte
+    tie_break: latest
+  - head: 8
+    type: passthrough
+    slot_v0: 6
+    slot_v1: 13
+  - head: 9
+    type: passthrough
+    slot_v0: 14
+    slot_v1: 15
+  - head: 10
+    type: passthrough
+    slot_v0: 16
+    slot_v1: 17
+  persist1:
+  - immediate
+  ffn:
+  - reglu_51
+  - reglu_52
+  - reglu_53
+  - reglu_54
+  - not_local_write-
+  - not_local_write-1
+  - reglu_58
+  - reglu_59
+  - reglu_63
+  - reglu_64
+  - not_call_byte-
+  - reglu_115
+  - reglu_116
+  persist2:
+  - memory_write_gate
+  - persist_60
+  - persist_61
+  - persist_65
+  - persist_117
+  - persist_118
+- layer: 3
+  attention_heads:
+  - head: 0
+    type: lookup
+    lookup: local_byte
+    values:
+    - local_byte
+    tie_break: latest
+  - head: 1
+    type: lookup
+    lookup: stack_top_value
+    values:
+    - stack_top_value
+    - stack_top_position
+    tie_break: latest
+  - head: 2
+    type: lookup
+    lookup: stack_second_value
+    values:
+    - stack_second_value
+    - stack_second_position
+    tie_break: latest
+  - head: 3
+    type: lookup
+    lookup: stack_third_position
+    values:
+    - stack_third_position
+    tie_break: latest
+  - head: 4
+    type: lookup
+    lookup: call_stack_byte
+    values:
+    - call_stack_byte
+    tie_break: latest
+  - head: 5
+    type: passthrough
+    slot_v0: 3
+    slot_v1: 12
+  - head: 6
+    type: passthrough
+    slot_v0: 6
+    slot_v1: 5
+  - head: 7
+    type: passthrough
+    slot_v0: 7
+    slot_v1: 13
+  - head: 8
+    type: passthrough
+    slot_v0: 14
+    slot_v1: 15
+  - head: 9
+    type: passthrough
+    slot_v0: 16
+    slot_v1: 17
+  - head: 10
+    type: passthrough
+    slot_v0: 19
+    slot_v1: 21
+  persist1:
+  - persist_78
+  ffn:
+  - is_output+
+  - reglu_75
+  - reglu_76
+  - reglu_94
+  - reglu_95
+  - reglu_97
+  - reglu_98
+  - reglu_100
+  - reglu_101
+  - reglu_102
+  - reglu_103
+  - reglu_111
+  - reglu_112
+  - csb+
+  - cc+
+  persist2:
+  - persist_77
+  - a_gt_b_u
+  - a_lt_b_u
+  - sign_diff
+  - cond_nonzero
+  - branch_sub_val
+- layer: 4
+  attention_heads:
+  - head: 0
+    type: lookup
+    lookup: top_byte
+    values:
+    - top_byte
+    tie_break: latest
+  - head: 1
+    type: lookup
+    lookup: second_byte
+    values:
+    - second_byte
+    tie_break: latest
+  - head: 2
+    type: lookup
+    lookup: third_byte
+    values:
+    - third_byte
+    tie_break: latest
+  - head: 3
+    type: lookup
+    lookup: memory_byte_dirty
+    values:
+    - memory_byte_dirty
+    - memory_byte_dirty_position
+    tie_break: latest
+  - head: 4
+    type: passthrough
+    slot_v0: 32
+    slot_v1: 33
+  - head: 5
+    type: passthrough
+    slot_v0: 34
+    slot_v1: 4
+  - head: 6
+    type: passthrough
+    slot_v0: 6
+    slot_v1: 30
+  - head: 7
+    type: passthrough
+    slot_v0: 31
+  persist1: []
+  ffn:
+  - memory_byte+
+  - memory_byte-
+  - memory_byte+1
+  - reglu_88
+  - reglu_89
+  - reglu_91
+  - reglu_92
+  - reglu_105
+  - reglu_106
+  - reglu_108
+  - reglu_109
+  - reglu_124
+  - reglu_125
+  - reglu_130
+  - reglu_131
+  - reglu_132
+  - reglu_133
+  persist2:
+  - add_carry
+  - sub_borrow
+  - a_gt_b_s
+  - a_lt_b_s
+  - branch_sub_borrow
+  - result_byte_early
+- layer: 5
+  attention_heads: []
+  persist1: []
+  ffn:
+  - reglu_84
+  - reglu_85
+  - reglu_135
+  - reglu_136
+  - reglu_137
+  - reglu_138
+  - reglu_139
+  - reglu_140
+  - reglu_141
+  - reglu_142
+  - reglu_143
+  - reglu_144
+  - reglu_145
+  - reglu_146
+  - reglu_147
+  - reglu_148
+  - reglu_150
+  - reglu_151
+  - reglu_152
+  - reglu_153
+  - reglu_154
+  - reglu_155
+  - reglu_156
+  - reglu_157
+  - reglu_158
+  - reglu_159
+  - reglu_160
+  - reglu_172
+  - reglu_173
+  - emit_branch_taken+1
+  - emit_byte_start+
+  persist2:
+  - memory_sign
+  - result_byte
+  - result_byte$1
+  - early_done
+- layer: 6
+  attention_heads: []
+  persist1: []
+  ffn:
+  - reglu_162
+  - reglu_163
+  - reglu_164
+  - reglu_165
+  - reglu_166
+  - reglu_167
+  - emit_halt+
+  - emit_branch_taken+
+  - emit_branch_taken+2
+  - emit_branch_taken+3
+  - emit_return_commit+
+  - emit_out+
+  - emit_call_commit+
+  - emit_bt+
+  - emit_bt+1
+  persist2:
+  - result_carry

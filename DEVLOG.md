@@ -6,6 +6,21 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: PCA on the WASM transformer (todo TOP PRIORITY; 15:00 pivot)
+
+Built the analytic transformer-vm (MILP via pulp+highspy, 5.7s; cached plan.yaml) and
+SVD'd every weight matrix. Model is already tiny: d_model=38, 7 layers, vocab=915,
+144,286 params. KEY: magnitude-PCA is the wrong lens — weights span ~1e30+ dynamic
+range (HARD_K=1e10 hardmax temp + 2^k address/position scales), so energy-rank is a
+giant-singular-value artifact (importance != norm; you can't truncate small directions
+without deleting the byte logic). Concretely reducible (measured): attn.5 + attn.6 are
+ALL-ZERO (2/7 attention layers prunable — computation completes in 5 layers); token +
+head embeddings carry 99% energy in 3/38 dims (915-vocab ~ 3-d). The attention CORE
+must be reduced from the computation graph/schedule, not SVD of constructed weights —
+a negative result for PCA-truncation with two concrete positives + a redirect. Finding:
+planning/findings/2026-06-06-pca-wasm-transformer.md; script
+experiments/wasm_transformer_pca/. These numbers feed the 17:00 DNC/NTM paper.
+
 ## 2026-06-06: mini WASM machine — BR_IF conditional branch (control flow on the substrate)
 
 Added BR_IF (opcode 6) to the substrate mini-machine: pop the top as a condition,
