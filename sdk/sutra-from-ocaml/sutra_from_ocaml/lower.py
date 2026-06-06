@@ -77,6 +77,11 @@ _OP_MAP = {
     "mod": "%", "&&": "&&", "||": "||",
 }
 
+# OCaml bitwise operators -> the substrate Bits stdlib (stdlib/bitwise.su).
+# Sutra has no bitwise operator; these are 32-bit, non-negative. Shifts
+# (`lsl`/`lsr`) are handled separately as arithmetic identities.
+_BITWISE_FN = {"land": "Bits.band", "lor": "Bits.bor", "lxor": "Bits.bxor"}
+
 
 # Nullary variant constructors -> their integer tag, collected per
 # `lower()` call. A variant `type color = Red | Green | Blue` becomes an
@@ -382,14 +387,32 @@ def _lower_expression(node, source: bytes) -> str:
             # no value in expression position. Lowered by _lower_stmt_expr
             # inside a sequence; reaching here means it was used as a value.
             return "/* UNSUPPORTED-EXPR: assignment used as a value */"
-        op_sutra = _OP_MAP.get(op_text)
-        if op_sutra is None:
-            # Unknown operator (bitwise/shift `land lsl …`, string/list `^`
-            # `@`, …). No Sutra equivalent — surface it, don't pass through
-            # as invalid Sutra.
-            return f"/* UNSUPPORTED-OP: {op_text} */"
         left_src = _lower_expression(left, source) if left is not None else "0"
         right_src = _lower_expression(right, source) if right is not None else "0"
+        # Bitwise AND/OR/XOR -> the substrate Bits stdlib (stdlib/bitwise.su,
+        # 32-bit, non-negative). No Sutra bitwise operator exists.
+        if op_text in _BITWISE_FN:
+            return f"{_BITWISE_FN[op_text]}({left_src}, {right_src})"
+        # Shifts by a CONSTANT are exact arithmetic identities: `a lsl k` =
+        # a·2^k, `a lsr k` = floor(a/2^k) (unsigned). Variable shifts and
+        # `asr` (negative-sensitive) are not handled yet.
+        if op_text in ("lsl", "lsr"):
+            if right is not None and right.type == "number":
+                try:
+                    k = int(_normalize_number(_node_text(right, source)))
+                except ValueError:
+                    k = None
+                if k is not None and 0 <= k < 63:
+                    shift = 1 << k
+                    if op_text == "lsl":
+                        return f"{left_src} * {shift}"
+                    return f"Math.floor({left_src} / {shift})"
+            return f"/* UNSUPPORTED-OP: {op_text} by non-constant */"
+        op_sutra = _OP_MAP.get(op_text)
+        if op_sutra is None:
+            # Unknown operator (`asr`, string/list `^` `@`, …). No Sutra
+            # equivalent — surface it, don't pass through as invalid Sutra.
+            return f"/* UNSUPPORTED-OP: {op_text} */"
         return f"{left_src} {op_sutra} {right_src}"
     if t == "application_expression":
         kids = node.named_children
