@@ -142,6 +142,7 @@ _RUNNABLE_FIXTURES = {
     "toplevel_const": 50.0,  # main () = (300 - mask) + bump  (top-level value bindings; hex 0xFF -> 255)
     "seq_mut": 15.0,  # main () = let r = ref 0 in r := !r+5; r := !r+10; !r  (sequence + ref mutation)
     "while_sum": 10.0,  # main () = while !i<5 do sum:=!sum+!i; i:=!i+1 done; !sum  (while -> substrate loop)
+    "char_code": 65.0,  # main () = 'A'  (char literal -> codepoint int)
 }
 
 

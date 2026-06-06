@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — char + string literals (ISO-5 item 3; work-loop tick)
+
+OCaml `character` literals lower to their codepoint integer (`_char_codepoint`:
+named escapes + `\ddd` decimal + `\xHH` hex), and `string` literals to a Sutra
+`String` literal. Rationale: the ISO-5 stack machine uses chars as bytes
+(`Char.code`, `land 0xff`, byte stores/compares), so codepoint-int is the
+substrate-faithful and numerically-verifiable lowering; strings are genuine String
+values. Also: a function whose body is a string literal now infers return type
+`String` instead of the misleading `int` default (narrow — other body shapes keep
+the int default so the float fixtures are undisturbed). String value-binding type
+is `String`; char value-binding is `int`.
+
+Substrate-verified `char_code` (`let main () = 'A'`) → **65.0**; compile-verified
+`string_lit` (`let greet () = "hello"` → `function String greet() { return "hello"; }`,
+validates clean — strings need stdlib ops to produce a numeric result, so the bar
+here is compile, not run). OCaml suite **50 passed** (was 45; +5). The ISO-5
+reference's 5 string + 1 char markers are gone; remaining: 8 nested-fn, 4 list,
+4 array-get, 3 try, 2 while-body, 2 tuple, 2 let, 2 ctor. Next item: arrays.
+
 ## 2026-06-06: sutra-from-ocaml — while → substrate loop (ISO-5 item 2; work-loop tick)
 
 The substrate-fidelity crux. OCaml `while COND do BODY done` over scalar `ref`s
