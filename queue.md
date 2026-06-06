@@ -246,8 +246,16 @@ first and never touches the RAM/W2C sections above.
   a bounded-depth encoding, open question. (b) Simultaneous state update for
   swap-style updates (`f y x`) — current emission is sequential; add temporaries.
   (c) Non-comparison halt conditions (`&&`/bool) — needs a Sutra `not`/negation.
-- [ ] Tuples / records / variant types -> Sutra axons; `match ... with` ->
-  select/softmax or if-chain (the hard rung — spec first).
+- [ ] `match … with` on **literal patterns + trailing `_`** -> nested defuzz
+  blend: DONE (substrate-verified `classify 1 = 200`). Remaining: constructor /
+  record / or- / guarded patterns (need the records-as-axons work + a binding
+  mechanism); `match` that binds a name in the catch-all (`| x -> …`).
+- [ ] Tuples / records / variant types -> Sutra axons (modeled on the TS
+  interface->axon path). **Needs param/local TYPE TRACKING first** (to lower
+  `p.x` -> `p.item("x")` only when `p` is record-typed) — the OCaml frontend has
+  none yet. Prepass to collect record type names, map record-typed params to
+  `Axon`, track local types. Then record construction `{x=a; y=b}` -> Axon+add,
+  field access `p.x` -> `p.item("x")`. Spec/design the type-tracking layer first.
 - [ ] End-to-end verification: each fixture's `.su` compiles AND runs AND
   reproduces ground-truth output (beyond the parse+codegen syntax check the TS
   harness does today). [`arith_main` already does this — the pattern to extend.]
