@@ -6,6 +6,21 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml booleans — && / || / not / true / false (transpiler tick 10)
+
+`sutra-from-ocaml` now handles booleans: `true`/`false` literals (OCaml `boolean`
+node) pass through; `&&`/`||` already passed through the default operator map
+(Sutra accepts them); `not x` (an OCaml function application) lowers to Sutra's
+`!(x)` negation operator. Measured first: a bool function returning a bool decodes
+to a vector, not a scalar — because a bool is a *condition-feeder*, not a host
+scalar (it's consumed by `truth_axis(defuzzy(...))` in an `if`/`match`), so the
+meaningful test is bool ops INSIDE a condition. Fixture `bool_ops`
+(`let test a b = if (a && b) || (not b) then 100 else 200`; `main()=test true
+false`) runs on the substrate: **test(true,false)=100.0** ((F||T)=T → then). Spot-
+checked the truth table too (`pick true true`=100, `pick true false`=200,
+`choose false false`=10). 33 passed (12 fixtures × lowering+compile + 9 substrate
+runs 7/6.5/5/10/15/200/7/200/100).
+
 ## 2026-06-05: OCaml nullary variants (enums) + constructor-pattern match (transpiler tick 9)
 
 `sutra-from-ocaml` now lowers nullary variant types to enum ints (same as the TS

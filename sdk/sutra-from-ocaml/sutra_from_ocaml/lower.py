@@ -116,6 +116,9 @@ def _lower_expression(node, source: bytes) -> str:
     t = node.type
     if t == "number":
         return _node_text(node, source)
+    if t == "boolean":
+        # OCaml `true` / `false` -> Sutra `true` / `false`.
+        return _node_text(node, source)
     if t == "value_path":
         # A variable / function reference. MVP carries the path text
         # through verbatim (`a`, and later `Module.name`).
@@ -136,6 +139,13 @@ def _lower_expression(node, source: bytes) -> str:
         kids = node.named_children
         if not kids:
             return "/* UNSUPPORTED-APP: empty */"
+        # OCaml `not x` is a function application; lower it to Sutra's
+        # logical-negation operator `!(x)` rather than a call to an
+        # undefined `not`.
+        if (kids[0].type == "value_path"
+                and _node_text(kids[0], source) == "not"
+                and len(kids) == 2):
+            return f"!({_lower_expression(kids[1], source)})"
         fn_src = _lower_expression(kids[0], source)
         arg_srcs = [_lower_expression(a, source) for a in kids[1:]]
         return f"{fn_src}({', '.join(arg_srcs)})"
