@@ -6,6 +6,31 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: sutra-from-ts — fix two latent if/else bugs (transpiler-track tick 4)
+
+Discharged the TS if/else fix queued in tick 3. Reproduced first (not assumed):
+two new TS fixtures (`if_else_max` explicit-else, `if_implicit_else` if-then-
+trailing-return) — the implicit-else one failed compile with `CastExpr`, and the
+explicit-else one dropped its else branch entirely (`/* UNSUPPORTED-EXPR:
+else_clause */`). So TWO latent bugs, both real, neither covered by any prior TS
+fixture:
+- **Bug A — CastExpr grouping.** Both if/else emission sites (`_lower_statement`
+  if_statement + `_lower_function_body` implicit-else) emitted `… * ({atom}) + …`;
+  the Sutra parser reads a parenthesised atom before an infix op as a cast. Fixed
+  to the fully-grouped `((w)*(then)) + ((w)*(else))` shape (same as the OCaml
+  frontend).
+- **Bug B — dropped else branch.** `_lower_branch_result` never unwrapped the
+  tree-sitter `else_clause` node, so `else { return b; }` fell through to the
+  generic expression path and emitted UNSUPPORTED. Added an `else_clause` unwrap.
+
+Verified: both fixtures compile AND run on the real substrate —
+**maxi(5,3)=5.0** (CUDA) for each. Two existing fixtures (`discriminated_union`,
+`multi_function_loop`) reformatted to the grouped shape (their branches weren't
+bare atoms so they compiled before; new output re-verified COMPILE-OK, expected.su
+regenerated — not doctored). Full TS suite 41 passed, 1 xfailed (the pre-existing
+async_promise_basic compile xfail). The cast ambiguity itself is left as an
+optional Sutra open-question.
+
 ## 2026-06-05: OCaml frontend — if/then/else defuzz blend (transpiler-track tick 3)
 
 Third transpiler tick. `sutra-from-ocaml` now lowers OCaml's `if c then a else b`
