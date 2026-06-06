@@ -1,0 +1,1 @@
+let main () = failwith "boom"

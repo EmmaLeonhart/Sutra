@@ -438,6 +438,14 @@ def _lower_expression(node, source: bytes) -> str:
         kids = node.named_children
         if not kids:
             return "/* UNSUPPORTED-APP: empty */"
+        # OCaml `failwith "…"` raises Failure on an error path. Sutra has
+        # "no runtime errors by mechanism", so it lowers to a sentinel `0`
+        # (the path is not taken for valid input; a real value would need a
+        # typed error sentinel). `raise <exn>` for loop-break is the
+        # machine's explicit HALT, handled in the machine, not here.
+        if (kids[0].type == "value_path"
+                and _node_text(kids[0], source) == "failwith"):
+            return "0"
         # OCaml `not x` is a function application; lower it to Sutra's
         # logical-negation operator `!(x)` rather than a call to an
         # undefined `not`.

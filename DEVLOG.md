@@ -6,6 +6,18 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: failwith->sentinel + ground-truth build blocked (deferred-list closeout)
+
+`failwith "…"` lowers to `0` (Sutra's no-runtime-error mechanism — a sentinel on the
+error path; not taken for valid input). Substrate-verified `failwith_sentinel` = 0.
+OCaml suite 79 passed. `raise Exit` (loop-break) is the machine's explicit HALT (the
+capstone), handled there, not as a general lowering. Ground-truth .txt generation
+(building the WASM test programs from the .c examples) is BLOCKED on the local
+toolchain: `uv` and `clang` are both MISSING (iso_equiv.sh builds them under WSL).
+The transformer-vm submodule is wired and its .c sources present; generating the
+.txt + running the reference for a byte-exact comparison needs uv + clang/lld
+(install or run under WSL) — an environmental blocker, recorded honestly, not faked.
+
 ## 2026-06-06: ISO-5 CAPSTONE — a RAM-state WASM stack machine runs on the substrate
 
 Composed the shipped primitives into a working machine. mini_wasm_machine.su (a
