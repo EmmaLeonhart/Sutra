@@ -6,6 +6,15 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: regression guard for the substrate WASM machine (Emma: get WASM going good)
+
+Health check: OCaml->Sutra 79 passed; the WASM mini-machine harnesses all correct.
+The machine had NO pytest guard (only experiments/ harness scripts), so added
+sdk/sutra-compiler/tests/test_mini_wasm_machine.py: compiles mini_wasm_machine.su via
+the PyTorch codegen, attaches a RAM device, runs 7 programs-as-data on the substrate,
+asserts the decoded stack-top (3+4=7, 10-3=7, 6*7=42, 12&10=8, 5*6-2=28, br_if
+taken->7 / not-taken->100). 7/7 pass. The WASM-in-Sutra machine is now CI-guarded.
+
 ## 2026-06-06: WASM transformer graph-level attention usage — 42/133 heads (PCA follow-on)
 
 Since SVD can't reduce the attention (importance != magnitude), measured the real
