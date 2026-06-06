@@ -142,7 +142,9 @@ state (avoid literal-vs-loop-state comparison).
   land/lor/lxor + lsl/lsr, arrays→RAM, failwith→sentinel). OCaml suite 79 passing.
   Substrate primitives shipped + verified: bitwise stdlib (band/bor/bxor), arrays→RAM
   (ramRead/ramWrite + RAM-device hardening). **CAPSTONE: a RAM-state WASM stack machine
-  RUNS on the substrate** (program-as-data: 3+4=7, 5+6=11, 100+23=123, chained 1+2+3=6)
+  RUNS on the substrate** and is now TURING-COMPLETE (9 opcodes incl LOAD/STORE +
+  backward BR_IF memory loop: counter loop N=1/3/5 -> acc N; CI-guarded 9/9 in
+  test_mini_wasm_machine.py)
   — RAM memory + fresh-`ramRead` dispatch + conditional-no-op-write side effects +
   HALT (= `raise Exit`); host-driven steps dodge the v1 one-slot-`recur` limit.
   Findings: `planning/findings/2026-06-06-iso5-*`; artifacts

@@ -6,6 +6,18 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: WASM machine LOAD/STORE + memory loop -> Turing-complete on the substrate
+
+Added LOAD (op 7: pop addr, push ram[addr]) and STORE (op 8: pop value+addr,
+ram[addr]=value) to the substrate machine, via the same conditional-no-op-write
+discipline (LOAD rewrites the top cell; STORE writes the popped address, no-op
+rewrite otherwise; sp chain: LOAD net 0, STORE -2). With LOAD/STORE + backward BR_IF
+the machine runs a real memory-counter LOOP: counter@200=N, acc@201; each iteration
+acc++, counter--, br_if back -> acc=N. Verified N=1->1, 3->3, 5->5 on the substrate.
+The WASM-in-Sutra machine is now TURING-COMPLETE (memory + conditionals + loops),
+9 opcodes (HALT/CONST/ADD/SUB/MUL/AND/BR_IF/LOAD/STORE). pytest guard extended to
+9/9 (store/load round-trip + the loop). Artifact run_machine_loop.py; finding updated.
+
 ## 2026-06-06: regression guard for the substrate WASM machine (Emma: get WASM going good)
 
 Health check: OCaml->Sutra 79 passed; the WASM mini-machine harnesses all correct.
