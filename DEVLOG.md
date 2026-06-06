@@ -6,6 +6,23 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: WASM cron reconfigured — subtree-integrate the Neural-Computers repo
+
+Emma redirected the hourly `:33` WASM cron from "document the idea" to an
+INTEGRATION watcher (explicitly authorized, non-standard, intentional). It now
+watches `../replicating-neural-computers-2` (the DNC/NTM WebAssembly work) and,
+once that repo's agent goes quiet for a full hour (no commit in 60 min = the
+active agent finished its pass), commits+pushes any uncommitted sibling changes,
+then `git subtree`s the whole repo into `WASM/` **preserving full history** (not
+a submodule, not a shallow copy — Emma wants the development history kept). After
+the subtree: the sibling `todo.md` is prepended to the top of our `todo.md`, and
+its `queue.md` is appended to the bottom of our `queue.md` inside a BARREL-THROUGH
+section (commit+push to make it canonical on origin → systematically update all
+Sutra docs to incorporate the work → merged WASM queue items → bottom item: work
+the merged todo). Once `WASM/` exists the cron barrels through that section one
+item per tick. todo.md Phase 3 updated to record the plan. The non-standard
+subtree merge is Emma-directed on purpose to preserve history.
+
 ## 2026-06-05: OCaml frontend — tail-recursive let rec → while_loop (transpiler tick 6)
 
 Tick 5 guarded `let rec` as UNSUPPORTED (general recursion can't terminate through
