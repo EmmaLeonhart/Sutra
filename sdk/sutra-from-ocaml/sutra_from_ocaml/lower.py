@@ -100,6 +100,17 @@ _HOISTED_DECLS: list[str] = []
 # local is a capture we don't support yet).
 _TOPLEVEL_NAMES: set = set()
 
+# Active name -> Sutra-source substitutions for the body of a `match` arm
+# that binds a name (a catch-all `| x -> …` binds the scrutinee to `x`).
+# `match` lowers to a defuzz-blend *expression*, which can't introduce a
+# Sutra statement-level local, so the bound name is substituted into the
+# arm body at `value_path` sites. Module-level (single-pass, non-reentrant)
+# with explicit save/restore in `_lower_match` for nested matches.
+_MATCH_SUBST: dict = {}
+
+# Sentinel for "key absent" in save/restore (distinct from a real None value).
+_MISSING = object()
+
 
 def _value_paths(node, source: bytes) -> set:
     """All `value_path` identifiers appearing anywhere under `node`."""
@@ -298,8 +309,12 @@ def _lower_expression(node, source: bytes) -> str:
         return str(cp)
     if t == "value_path":
         # A variable / function reference. MVP carries the path text
-        # through verbatim (`a`, and later `Module.name`).
-        return _node_text(node, source)
+        # through verbatim (`a`, and later `Module.name`). Inside a
+        # name-binding `match` arm, a bound name is substituted.
+        name = _node_text(node, source)
+        if name in _MATCH_SUBST:
+            return _MATCH_SUBST[name]
+        return name
     if t == "parenthesized_expression":
         inner = node.named_children[0] if node.named_children else None
         return f"({_lower_expression(inner, source)})" if inner is not None else "()"
@@ -452,6 +467,29 @@ def _lower_match(node, source: bytes) -> str:
             # different child count — not handled.
             return "/* UNSUPPORTED-MATCH-CASE: guard/or-pattern not supported */"
         pat, res = cc[0], cc[1]
+        if pat.type == "value_pattern" and _node_text(pat, source) != "_":
+            # A name-binding catch-all `| x -> body`: `x` binds the whole
+            # scrutinee. Lower the body with `x` substituted by the
+            # scrutinee source (save/restore for nested matches). Treated
+            # as a wildcard for blend structure (must be the last case).
+            bound = _node_text(pat, source)
+            saved = _MATCH_SUBST.get(bound, _MISSING)
+            # Substitute bare for a simple-atom scrutinee (identifier or
+            # number — the common `match var with …` case). Parenthesizing
+            # would create a leading `(x) <op>` that Sutra mis-parses as a
+            # cast (the unresolved CastExpr grammar ambiguity); a complex
+            # scrutinee is wrapped best-effort and may hit that ambiguity.
+            simple = _is_identifier(scrut_src) or scrut_src.lstrip("-").isdigit()
+            _MATCH_SUBST[bound] = scrut_src if simple else f"({scrut_src})"
+            try:
+                res_src = _lower_expression(res, source)
+            finally:
+                if saved is _MISSING:
+                    _MATCH_SUBST.pop(bound, None)
+                else:
+                    _MATCH_SUBST[bound] = saved
+            parsed.append(("wild", None, res_src))
+            continue
         res_src = _lower_expression(res, source)
         if pat.type == "number":
             parsed.append(("literal", f"{scrut_src} == {_node_text(pat, source)}", res_src))
