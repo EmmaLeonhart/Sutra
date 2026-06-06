@@ -135,104 +135,22 @@ state (avoid literal-vs-loop-state comparison).
 > `WASM/devlog.md` + that repo's git log. Long-horizon WASM items are in the
 > merged agenda at the top of `todo.md`. Overview: `docs/neural-webassembly.md`.
 
-- **ISO-5 — port the OCaml realisation into Sutra (UNBLOCKED 2026-06-06; gap
-  analysis DONE).** The WASM isomorphism chain is transformer ≡ reference ≡ Rust ≡
-  OCaml, byte-identical on all 6 programs (`WASM/iso/ocaml/`,
-  `WASM/scripts/iso_equiv.sh`). On-ramp = the `sdk/sutra-from-ocaml/` frontend.
-  Reconnaissance done (`planning/findings/2026-06-06-iso5-ocaml-to-sutra-gap-
-  analysis.md`): the 189-line reference is *imperative* (refs/while/arrays/Buffer);
-  it transpiles to visible `UNSUPPORTED-*` markers. Top-level value bindings + hex
-  literals are now closed. **Ordered bounded transpiler items to drive ISO-5
-  (also CLAUDE.md transpiler priority #1, OCaml):**
-  1. ~~Sequence expressions + local mutation~~ **DONE** (`e1; e2` → statements;
-     `ref`/`:=`/`!` → mutable Sutra locals; substrate-verified `seq_mut` = 15).
-  2. **`while` → substrate `loop`** — DONE for the **scalar-ref shape**: OCaml
-     `while COND do BODY done` over scalar `ref`s lowers to a hoisted Sutra
-     `while_loop` (state = in-scope refs the cond/body touch; sequential body
-     mutations; slot/loop/writeback call site). Substrate-verified `while_sum`
-     (`while !i<5 do sum:=!sum+!i; i:=!i+1 done; !sum` = 10). The ISO-5 ref's 2
-     real loops still need their inner constructs (arrays/try/match-with-br), so
-     they degrade to `UNSUPPORTED-WHILE` (no broken output). `for` not yet done.
-  3. **Char + string literals** — DONE: char → codepoint int (substrate-verified
-     `char_code` `'A'`=65), string → Sutra `String` literal (compile-verified
-     `string_lit`; function body-string return-type inferred as `String`).
-  4. **Arrays** — **BLOCKED on a core-compiler defect** (NOT a transpiler issue):
-     `dict<int,int>` (the substrate-faithful array target; `list<T>` is a Python
-     host list, wrong for ISO-5) crashes — scalar keys aren't lifted to substrate
-     vectors before `_role_hash` (`'int' object has no attribute 'detach'`), and
-     even if lifted, exact read-what-you-wrote at array scale is unmeasured
-     (rotation is identity on the synthetic axes where numbers live → bundling
-     crosstalk risk). Finding: `planning/findings/2026-06-06-dict-int-keys-broken-
-     blocks-arrays.md`. Fix is core-compiler work (dict scalar-key/value lift +
-     measured exactness); do NOT hack the transpiler around it.
-  6. **Nested-fn hoist** — DONE for the **closed** case (free vars ⊆ params ∪
-     top-level names → hoisted to a sibling `function`; substrate-verified
-     `nested_fn` `let dbl x = x*2 in dbl 5 + dbl 3` = 16). Closures (capturing an
-     enclosing local — 7 of the ISO-5 ref's nested fns: `push`/`pop`/… over
-     `stack` etc.) are correctly surfaced as UNSUPPORTED; closure conversion is a
-     later item.
-  5. **Tuples** — DONE: `(a,b)` → positional-field axon (`_0`/`_1`); `fst`/`snd`
-     → `.item("_0"/"_1").real()`; tuple-body fn returns `Axon`; tuple-type param
-     `int * int` → `Axon`. Substrate-verified `tuple_fst_snd` `sum2 (pair 7 9)` =
-     16. Limitation (same as records): `fst`/`snd` need an **Axon-typed operand**
-     (bound var / annotated param) — inline `fst (pair 7 9)` fails because Sutra
-     method dispatch doesn't type a call result as Axon (torch `.item()` clash).
-  5b. **Match catch-all name binding** (`| x -> body` binds the scrutinee) — DONE:
-     `_MATCH_SUBST` substitutes the bound name into the arm body (bare for a
-     simple-atom scrutinee to dodge the `(x) <op>`→cast ambiguity). Substrate-
-     verified `match_bind` `classify 5` = 6, `classify 0` = 100. This is the
-     substitution foundation the option/constructor-arg patterns reuse.
-  5c. **option** (`Some`/`None`) — DONE for **body position**: tagged axon
-     `{_tag,_val}`; `None`→tag 0, `Some e`→tag 1+val; `int option` param → Axon;
-     `match o with Some x -> e1 | None -> e2` binds the payload. CRITICAL measured
-     constraint: the match must bind `_tag`/`_val` to `int` locals first — an inline
-     axon `o.item("_tag").real() == 1` defuzzes to truth 0 (not -1) for the false
-     branch (measured), so option-match is FUNCTION-BODY-ONLY (nested expression →
-     UNSUPPORTED). Substrate-verified `option_some` `get_or (mk 42) 0` = 42, None
-     path = 7. The ISO-5 reference uses options in EXPRESSION position (inside
-     `let input_base = … in`), so its option markers don't clear — a simpler test
-     program would.
-  5d. **`let … in` in expression position** — DONE for pure simple-atom bindings
-     (identifier/number) via `_MATCH_SUBST`; substrate-verified `let_in_expr`
-     `(let x = 5 in x + x) + 10` = 20. Compound/`ref`/nested-fn values stay
-     UNSUPPORTED (need a real local / risk the cast ambiguity) — the reference's
-     2 `let` markers (complex values) don't clear.
-  5e. **`mod` operator + bitwise-op correctness fix** — DONE: OCaml `mod` → Sutra
-     `%` (substrate-verified `modulo` `17 mod 5` = 2); `&&`/`||` made explicit in
-     the op map. FIXED a latent bug: unknown infix operators (`land lor lxor lsl
-     lsr asr`, `^`, `@`) were passed through verbatim → INVALID Sutra (compile
-     error); they now emit `UNSUPPORTED-OP` (no Sutra bitwise operator exists —
-     `&`/`|` are logical, `<<`/`>>` don't parse; a substrate bitwise stdlib is the
-     real need). Verified 0 raw bitwise passthrough remains in the reference.
-  5f. **Axon-returning-call -> local typed Axon** — DONE: a local bound to a call of
-     a record/tuple/option-returning function is now typed `Axon`, so `let p = pair 7 9
-     in fst p + snd p` works (was: p typed int -> `.item()` clash). Substrate-verified
-     `tuple_local` = 16. (Inline `fst (pair 7 9)` on a bare call result still needs a
-     bound local; that's the documented dispatch limit.)
-  7. try/exceptions; 8. `match`-with-`br`; 9. stdlib (incl. substrate bitwise for
-  `land`/`lsl`); 10. closure conversion; 11. core-compiler `dict<int,int>`.
-
-  **Direction (Emma 2026-06-06): grind OCaml ISO-5 UNTIL NOON, then PIVOT to PCA.**
-  Emma's update 2026-06-06 10:04: keep advancing the OCaml→Sutra transpiler for now,
-  but **at noon (12:00 local) the loop pivots to the PCA on the WASM transformer**
-  (todo.md TOP PRIORITY) regardless — one-shot cron `9d22a2f8` fires the pivot. Until
-  noon, grind OCaml ISO-5 (option, string-match-with-`br`, exceptions, stdlib,
-  closures, arrays/`dict<int,int>` core fix — all substantial/coupled, accept slower
-  per-tick progress). After noon, PCA is the active item; the OCaml grind pauses.
-  Do not re-ask the keep-grinding-vs-pivot question — it is answered (the noon cron
-  carries the pivot).
-
-  **Clarification — the two OCaml things (Emma asked 2026-06-06):** (1) *WebAssembly
-  OCaml* = `WASM/iso/ocaml/bin/main.ml`, the OCaml isomorph of the transformer-VM
-  (the WASM stack machine; the SOURCE program ISO-5 ports to Sutra). (2) *Sutra
-  OCaml* = `sdk/sutra-from-ocaml/`, the OCaml→Sutra transpiler (the TOOL). The loop
-  builds the TOOL (2), driven by the gaps surfaced when transpiling the WASM-OCaml
-  reference (1); each feature is verified with a small standalone OCaml fixture on
-  the substrate. End goal: the WASM machine running in Sutra.
-  Destination (bigger than transpiler coverage): the fetch-execute loop as a
-  substrate recurrence (state vectors across iterations, opcode dispatch as a
-  defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
-  Sutra. This is the end of the road for the isomorphism program.
+- **ISO-5 — WASM machine in Sutra (substantially advanced 2026-06-06).** The
+  transpiler (`sdk/sutra-from-ocaml/`) now lowers the OCaml constructs the machine
+  needs (value bindings, hex, sequences + ref mutation, while→loop, char/string,
+  nested-fn, tuples, match incl. catch-all + option, let-in-expr, mod, bitwise
+  land/lor/lxor + lsl/lsr, arrays→RAM, failwith→sentinel). OCaml suite 79 passing.
+  Substrate primitives shipped + verified: bitwise stdlib (band/bor/bxor), arrays→RAM
+  (ramRead/ramWrite + RAM-device hardening). **CAPSTONE: a RAM-state WASM stack machine
+  RUNS on the substrate** (program-as-data: 3+4=7, 5+6=11, 100+23=123, chained 1+2+3=6)
+  — RAM memory + fresh-`ramRead` dispatch + conditional-no-op-write side effects +
+  HALT (= `raise Exit`); host-driven steps dodge the v1 one-slot-`recur` limit.
+  Findings: `planning/findings/2026-06-06-iso5-*`; artifacts
+  `experiments/iso5_substrate_dispatch/`. The four hard substrate questions
+  (memory/dispatch/multi-state/side-effects) are answered with measurements.
+  **Remaining:** breadth (the other ~32 opcodes — same blended dispatch); a SCALABLE
+  RAM device for the 10MB linear memory (host RAM-list doesn't scale); ground-truth
+  .txt build (BLOCKED: `uv`/`clang` missing locally; `iso_equiv.sh` uses WSL).
 - **PCA on the WASM transformer (todo.md TOP PRIORITY, now unblocked).** Promote
   from todo.md: PCA the analytic transformer's weights (`WASM/`, `d_model=38`,
   7 layers, 19 heads) to find the genuine low-dimensional attention structure to
