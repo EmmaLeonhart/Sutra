@@ -35,16 +35,44 @@ def encode_inputs(a, b):
     return torch.stack([a.to(torch.float64), b.to(torch.float64)], dim=-1) / 255.0
 
 
-def exact_match_fraction(op, target_fn=lambda a, b: a & b):
-    """Fraction of all 65 536 byte pairs where thresholded op output == target_fn."""
+def target_and(a, b):
+    return a & b
+
+
+def target_sat_add_u(a, b):
+    """Unsigned 8-bit saturating add: min(a+b, 255). Piecewise-linear (one kink)."""
+    return torch.clamp(a + b, max=255)
+
+
+def target_sat_sub_u(a, b):
+    """Unsigned 8-bit saturating subtract: max(a-b, 0)."""
+    return torch.clamp(a - b, min=0)
+
+
+# Registry of learnable byte ops (target functions over int tensors in [0,255]).
+TARGETS = {
+    "and": target_and,
+    "sat_add_u": target_sat_add_u,
+    "sat_sub_u": target_sat_sub_u,
+}
+
+
+def exact_match_fraction(op, target_fn=target_and):
+    """Fraction of all 65 536 byte pairs where the op's output == target_fn.
+
+    Dispatches on output width: 8 -> thresholded bits (bitwise ops);
+    1 -> rounded byte value (arithmetic ops, the scaffold's native representation).
+    """
     a, b = all_byte_pairs()
     x = encode_inputs(a, b)
     op.eval()
     with torch.no_grad():
-        pred_bits = (op(x) > 0).to(torch.float64)
-    pred = byte_from_bits(pred_bits)
-    target = target_fn(a, b)
-    return (pred == target).to(torch.float64).mean().item()
+        out = op(x)
+        if out.shape[-1] == 1:
+            pred = out.squeeze(-1).round().clamp(0, 255).long()
+        else:
+            pred = byte_from_bits((out > 0).to(torch.float64))
+    return (pred == target_fn(a, b)).to(torch.float64).mean().item()
 
 
 class LearnedByteOp(nn.Module):
@@ -54,13 +82,14 @@ class LearnedByteOp(nn.Module):
     so a trained instance is crystallizable into the analytic DSL later.
     """
 
-    def __init__(self, width=1024, depth=3):
+    def __init__(self, width=1024, depth=3, out_dim=N_BITS):
         super().__init__()
+        self.out_dim = out_dim
         dims = [2] + [width] * depth
         self.hidden = nn.ModuleList(
             nn.Linear(dims[i], dims[i + 1]) for i in range(depth)
         )
-        self.out = nn.Linear(width, N_BITS)
+        self.out = nn.Linear(width, out_dim)
         self.to(torch.float64)
 
     def forward(self, x):

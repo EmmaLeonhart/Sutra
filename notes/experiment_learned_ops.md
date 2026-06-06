@@ -122,6 +122,36 @@ replication, reusing the submodule's torch model). The eventual *productized* hy
 graduates to its own project (Sutra/Yantra). Code is gated on user approval of this
 design — nothing implemented yet.
 
+## Findings so far (2026-06-05)
+
+Two results from the first build reshaped the target choice:
+
+1. **Bitwise AND is not learnable from raw integers by SGD (spectral bias).**
+   Training `i32.and` op-local from the two integer operand values plateaus ~23%
+   exact and crawls. The low result bits are the highest-frequency functions of the
+   inputs (`bit0(a&b) = [a odd]&[b odd]`, a period-2 square wave over 0..255), and
+   MLPs are low-frequency-biased. Exact-match needs zero errors across 524 288
+   bit-decisions. This is meaningful — it's *why* the paradigm constructs weights
+   rather than training them.
+
+2. **The architecture has no runtime bit decomposition.** `lower.py` only handles
+   bitwise ops against a *compile-time constant* mask (per-bit, statically); runtime
+   `a & b` of two variables is unsupported (except a boolean `select` special-case).
+   So integration would NOT rescue AND — the within-byte spectral wall persists. The
+   scaffold deliberately avoids runtime bitwise ops.
+
+3. **Learnability depends on op nature × output representation.** Arithmetic ops are
+   *value-natured* and **low-frequency**: e.g. unsigned saturating add
+   `min(a+b,255) = a+b - relu(a+b-255)` is piecewise-linear (one ReLU) and exactly
+   representable, so it learns to bit-exactness when output as a **value** (regress
+   the byte), not as 8 thresholded bits (which re-introduces the LSB parity wall).
+   The scaffold itself represents bytes as values — so arithmetic ops are its natural
+   learnable extensions; bitwise ops are not.
+
+**Retarget:** make **saturating arithmetic** (the user's E4 north star) the first
+learned op — value-output, low-frequency, scaffold-natural, and a genuinely new
+instruction. AND is kept as a documented negative result.
+
 ## Phases (→ queue.md)
 
 - **E0** — grad-enabled softmax-attention forward over the loaded analytic weights;

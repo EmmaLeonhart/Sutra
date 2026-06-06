@@ -164,3 +164,25 @@ proxy, NOT the vision: the integrated scaffold (E3) already manipulates bytes
 bit-wise (ADD's ReGLU carry machinery), so a learned op there builds on existing
 bit-level features. Surfaced the methodological fork to the user (pure-finding vs
 pivot-to-integrated vs relax-encoding vs brute-force).
+
+## 2026-06-05 — E1 WIN: learned unsigned saturating-add to 100% exact
+
+After the AND spectral-bias finding and discovering the architecture has no runtime
+bit decomposition (lower.py only handles constant masks), pivoted the learnable-op
+target to **saturating arithmetic** (the user's E4 north star) with **value-output**
+(regress the byte, not 8 bits). Rationale: arithmetic ops are low-frequency and
+value-natured (min(a+b,255) = a+b - relu(a+b-255), one ReLU) — exactly the scaffold's
+native byte representation.
+
+**Result: 100.0000% exact, 0/65536 wrong** (epoch 550), vs AND's 23% plateau.
+Verified via TDD gate `test_sat_add_checkpoint_exact.py` (5 passed, 1 skipped — the
+AND gate is now a documented negative-result skip). SGD learned a genuinely new CPU
+instruction (not in the 35 opcodes) to bit-exactness on the differentiable scaffold —
+the constructed+trained hybrid thesis, demonstrated.
+
+- Generalized the harness to an op registry (`TARGETS`) + value/bits output modes;
+  fixed the trainer's results path (was saving one dir too high).
+- Negative result (AND) preserved as an executable skip + documented in
+  `notes/experiment_learned_ops.md`.
+- Next (E2): crystallize the learned sat_add to its exact minimal DSL form
+  (a + b - relu(a+b-255)) and confirm learned == crystallized on all pairs.
