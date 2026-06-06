@@ -186,3 +186,22 @@ the constructed+trained hybrid thesis, demonstrated.
   `notes/experiment_learned_ops.md`.
 - Next (E2): crystallize the learned sat_add to its exact minimal DSL form
   (a + b - relu(a+b-255)) and confirm learned == crystallized on all pairs.
+
+## 2026-06-05 — E2 done: crystallized the learned sat_add (learn → re-compile)
+
+`crystallize.py: CrystallizedSatAddU` expresses the exact closed form the net
+learned — min(a+b,255) = a + b - relu(a+b-255), a single ReGLU neuron in the
+scaffold's primitives. TDD: gate failed (no module), then GREEN. Full learned_ops
+suite: **7 passed, 1 skipped** (AND negative result), incl.:
+- crystallized op is 100% exact, AND
+- the learned net agrees with the crystallized op on ALL 65 536 pairs (learned ==
+  crystallized).
+
+So the loop is closed: a new CPU instruction (unsigned saturating add) was
+discovered by gradient on the differentiable scaffold, then re-compiled to a
+permanent, deterministic, bit-exact DSL construction — the constructed+trained
+hybrid, demonstrated end-to-end (E0 forward → E1 learn → E2 crystallize).
+
+Remaining: E3 — wire crystallized sat_add as a native opcode into the interpreter and
+pass a program end-to-end through the transformer (integration); broader Yantra OS
+integration tracked in notes/yantra_integration.md.
