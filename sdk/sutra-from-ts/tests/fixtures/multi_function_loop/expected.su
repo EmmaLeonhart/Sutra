@@ -4,7 +4,7 @@
 // stdlib piece. Programs that hit it won't run end-to-end yet.
 
 function int clamp(int value, Axon r) {
-    return (((1 + truth_axis(defuzzy(value < r.item("lo")))) * (r.item("lo"))) + ((1 - truth_axis(defuzzy(value < r.item("lo")))) * (value))) / 2;
+    return (((1 + truth_axis(defuzzy(value < r.item("lo").real()))) * (r.item("lo").real())) + ((1 - truth_axis(defuzzy(value < r.item("lo").real()))) * (value))) / 2;
 }
 while_loop _loop_0(i < arr_size, int arr_size = 0, int i = 0, Axon r = 0, int total = 0) {
     total = total + clamp(i, r);

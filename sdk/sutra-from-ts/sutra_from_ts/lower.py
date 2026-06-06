@@ -92,6 +92,16 @@ class Context:
     # the call-site lowering (which appends the captured argument values
     # in the same order).
     arrow_captures: dict[str, list[str]] = field(default_factory=dict)
+    # field_types maps an interface/type-alias field NAME to its Sutra
+    # type ("int"/"float"/"String"/…), collected across every declared
+    # interface and type alias. Used at member access (`p.x`) to decide
+    # whether a numeric field read needs a `.real()` projection — without
+    # it, an axon numeric field read comes back as the raw filler vector
+    # and arithmetic on it collapses to ~0 on the substrate. String /
+    # literal-tag fields must NOT get `.real()` (they feed string
+    # comparisons). On a name collision with conflicting types the field
+    # is marked non-numeric to stay safe.
+    field_types: dict[str, str] = field(default_factory=dict)
 
     def is_axon_typed(self, type_name: str) -> bool:
         return (
@@ -121,6 +131,7 @@ class Context:
             extras=self.extras,
             loop_counter=self.loop_counter,
             arrow_captures=self.arrow_captures,
+            field_types=self.field_types,
         )
 
 
@@ -418,6 +429,16 @@ def _lower_expression(node, source: bytes, ctx: Context) -> str:
         prop_text = _node_text(prop, source) if prop is not None else ""
         obj_t = _expr_type(obj, source, ctx) if obj is not None else None
         if obj_t == "Axon":
+            # Numeric axon field reads need a `.real()` projection to
+            # decode the number off the axon's number-axis — without it
+            # the read is the raw filler vector and arithmetic collapses
+            # to ~0 on the substrate (measured 2026-06-05). String /
+            # literal-tag fields must NOT get `.real()` (they feed string
+            # comparisons). The field's type comes from the global
+            # interface/alias field-type map; unknown fields default to
+            # no projection (safe for strings).
+            if ctx.field_types.get(prop_text) in ("int", "float"):
+                return f'{obj_src}.item("{prop_text}").real()'
             return f'{obj_src}.item("{prop_text}")'
         # Array-typed `arr.length` → `array_length(arr)` (a Sutra
         # builtin that emits Python `len(arr)`).
@@ -1145,6 +1166,48 @@ def _lower_method(
     )
 
 
+def _record_field(ctx: Context, name: str, sutra_type: str) -> None:
+    """Record an interface/alias field's Sutra type into the global
+    field-type map. On a name collision with a *different* type, mark the
+    field non-numeric ("JavaScriptObject") so it won't get a `.real()`
+    projection it might not want."""
+    prev = ctx.field_types.get(name)
+    if prev is None:
+        ctx.field_types[name] = sutra_type
+    elif prev != sutra_type:
+        ctx.field_types[name] = "JavaScriptObject"
+
+
+def _collect_fields_from_type(node, source: bytes, ctx: Context) -> None:
+    """Walk an interface body or a type-alias value (object_type,
+    union_type of object_types, …) and record each `property_signature`
+    field's Sutra type into ctx.field_types."""
+    if node is None:
+        return
+    t = node.type
+    if t in ("interface_body", "object_type"):
+        for m in node.named_children:
+            if m.type != "property_signature":
+                continue
+            pid = next(
+                (c for c in m.named_children if c.type == "property_identifier"),
+                None,
+            )
+            ann = next(
+                (c for c in m.named_children if c.type == "type_annotation"), None
+            )
+            if pid is None:
+                continue
+            sutra_t = (
+                _ts_type_to_sutra(ann, source, ctx) if ann is not None
+                else "JavaScriptObject"
+            )
+            _record_field(ctx, _node_text(pid, source), sutra_t)
+    elif t in ("union_type", "intersection_type", "parenthesized_type"):
+        for c in node.named_children:
+            _collect_fields_from_type(c, source, ctx)
+
+
 def _prepass(root, source: bytes, ctx: Context) -> None:
     """Two-phase walk over top-level declarations: phase 1 collects
     interface, type-alias, and class names; phase 2 collects function
@@ -1169,10 +1232,16 @@ def _prepass(root, source: bytes, ctx: Context) -> None:
             name_node = child.child_by_field_name("name")
             if name_node is not None:
                 ctx.interface_names.add(_node_text(name_node, source))
+            body = next(
+                (c for c in child.named_children if c.type == "interface_body"), None
+            )
+            _collect_fields_from_type(body, source, ctx)
         elif child.type == "type_alias_declaration":
             name_node = child.child_by_field_name("name")
             if name_node is not None:
                 ctx.type_alias_names.add(_node_text(name_node, source))
+            value = child.child_by_field_name("value")
+            _collect_fields_from_type(value, source, ctx)
         elif child.type == "class_declaration":
             name_node = child.child_by_field_name("name")
             if name_node is not None:

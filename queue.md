@@ -276,13 +276,14 @@ first and never touches the RAM/W2C sections above.
   enum ints + constructor-pattern `match`: DONE — `label Green = 200`. Parameterised
   constructors `C of t` still UNSUPPORTED.)
 ### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
-- [ ] **FIX sutra-from-ts: interface field reads return zeros at runtime.** The TS
-  `interface`->axon path emits `p.item("x")` without `.real()`, so `interface_pass`
-  COMPILES but returns a zero vector instead of 25 (the harness only compile-tests,
-  never runs — that's how it hid). Add `.real()` to numeric axon field reads AND a
-  run-on-substrate test so it can't regress silently. See the finding above. (The
-  if/else CastExpr + dropped-else bugs were already fixed; this axon bug is the
-  remaining known TS defect.)
+- [ ] (follow-on) Per-variable interface typing so field-type lookup is exact even
+  when two interfaces share a field name with different types (current global
+  field-type map marks such collisions non-numeric to stay safe). Low priority —
+  no fixture needs it. [The axon-field `.real()` bug is FIXED: numeric axon field
+  reads now project via `.real()` (global interface/alias field-type map; string/
+  literal fields untouched). interface_pass + discriminated_union RUN = 25.0 on the
+  substrate (were zeros), guarded by new `test_fixture_runs_on_substrate`. TS suite
+  43 passed / 1 xfail.]
 
 ### Priority 3 — new-language frontends (each `sdk/sutra-from-<lang>/`, model on `sutra-from-ocaml`)
 Each: source reader (`tree-sitter-<lang>`) -> `lower.py` -> `.su` emission ->
