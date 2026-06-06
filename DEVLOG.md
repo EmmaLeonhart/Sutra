@@ -6,6 +6,24 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: ISO-5 CAPSTONE — a RAM-state WASM stack machine runs on the substrate
+
+Composed the shipped primitives into a working machine. mini_wasm_machine.su (a
+step() function) + run_mini_machine.py: all machine state in RAM (pc/sp/halted/
+program/stack), host-driven one step per instruction (autoregressive model, so the
+v1 one-slot-recur limit doesn't bite), opcode dispatch via FRESH ramRead(pc).real()
+== tag (clean), side effects as single blended writes to FIXED cells (no address
+blending; non-matching opcode rewrites the existing value; HALT idempotent).
+Program-as-data interpreter — measured: const 3;const 4;add = 7; 5+6=11; 9+9=18;
+100+23=123; chained 1+2 then +3 = 6. All correct on the substrate. The four hard
+substrate tensions (memory=RAM, dispatch=fresh-read, multi-state=RAM+host-steps,
+side-effects=conditional-no-op-writes) are resolved. Finding:
+planning/findings/2026-06-06-iso5-mini-wasm-machine-runs-on-substrate.md. Scope: a
+3-opcode (CONST/ADD/HALT) demo of the mechanism, NOT the full 35-opcode VM; the hard
+questions are answered, remaining work is breadth + a scalable RAM device for the
+10MB linear memory. The HALT mechanism is the substrate form of the machine's
+`raise Exit` (exceptions-as-halt handled here).
+
 ## 2026-06-06: OCaml arrays -> RAM (ramRead/ramWrite) + RAM-device hardening (deferred-list barrel)
 
 Emma's design: the WASM machine's arrays ARE RAM, not Sutra arrays. Lowered OCaml

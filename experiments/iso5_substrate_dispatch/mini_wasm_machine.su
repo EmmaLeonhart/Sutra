@@ -1,0 +1,34 @@
+// Mini RAM-state WASM stack machine (2026-06-06). All machine state lives in
+// RAM (Emma: "the wasm array is ram"); the host drives steps (autoregressive
+// model — one step per call), so no multi-slot recur is needed (spec: v1 recur
+// has one slot). Opcode dispatch reads the opcode FRESH from RAM each step
+// (ramRead(pc).real() == tag), which dispatches cleanly against literals.
+// Side effects are single blended writes to FIXED addresses (no address
+// blending): each cell is written its new value if its opcode matched, else
+// rewritten with its existing value (a no-op).
+//
+// RAM layout: [0]=pc  [1]=sp  [2]=halted   program at 10+  stack at 100+
+// Opcodes: 1=CONST(imm at pc+1)  2=ADD  0=HALT
+function int step(scalar d) {
+    int pc = ramRead(0).real();
+    int sp = ramRead(1).real();
+    int op = ramRead(pc).real();
+    int imm = ramRead(pc + 1).real();
+    int top1 = ramRead(99 + sp).real();
+    int top2 = ramRead(98 + sp).real();
+    int is_const = truth_axis(defuzzy(op == 1));
+    int is_add = truth_axis(defuzzy(op == 2));
+    int is_halt = truth_axis(defuzzy(op == 0));
+    int cell_hi = ramRead(100 + sp).real();
+    int new_hi = (((1 + is_const) * (imm)) + ((1 - is_const) * (cell_hi))) / 2;
+    ramWrite(100 + sp, new_hi);
+    int new_lo = (((1 + is_add) * (top1 + top2)) + ((1 - is_add) * (top2))) / 2;
+    ramWrite(98 + sp, new_lo);
+    int sp_c = (((1 + is_const) * (sp + 1)) + ((1 - is_const) * (sp))) / 2;
+    int new_sp = (((1 + is_add) * (sp - 1)) + ((1 - is_add) * (sp_c))) / 2;
+    ramWrite(1, new_sp);
+    int new_pc = (((1 + is_halt) * (pc)) + ((1 - is_halt) * (pc + 2))) / 2;
+    ramWrite(0, new_pc);
+    return ramRead(99 + sp).real();
+}
+function string main() { return "ok"; }
