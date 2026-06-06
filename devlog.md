@@ -320,3 +320,13 @@ script location; verified still 6/6 ISO_EQUIV_OK locally) and added two `ci.yml`
 install Rust (rustup) + OCaml (apt), then run the Python≡Rust≡OCaml equivalence on the
 programs the replication step compiles. The isomorphs are now CI-protected, not just
 locally checked. (Marked done only after CI goes green.)
+
+## 2026-06-05 — Work-loop tick: crystallized all 4 value-ops (E2b)
+
+SYNC clean. WORK (ISO-5 blocked, E3 impl too big for a tick): extended E2's
+crystallization to all four learned arithmetic ops. Added CrystallizedSatSubU/MinU/
+MaxU (one ReLU each: sat_sub=relu(a-b), min=a-relu(a-b), max=a+relu(b-a)) + a
+`CRYSTALLIZED` registry, plus a parametrized test (TDD: import-error RED → GREEN).
+Full learned_ops suite: **19 passed, 1 skipped** — each crystallized form 100% exact
+AND equal to its learned net on all 65 536 pairs. The learn → understand → re-compile
+loop is now closed for sat_add, sat_sub, min, and max (not just sat_add).
