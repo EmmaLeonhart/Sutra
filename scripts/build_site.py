@@ -493,7 +493,8 @@ def render(md_text: str, src_dir: str = ".") -> tuple[str, str, bool, bool]:
 ORDER = [
     "what-is-sutra", "vision", "paradigms", "ontology", "primitive-classes",
     "operators", "logical-operations", "numeric-math", "memory", "loops",
-    "promises", "typescript-to-sutra", "compilation", "demos", "history",
+    "promises", "typescript-to-sutra", "compilation", "neural-webassembly",
+    "demos", "history",
 ]
 BLURB = {
     "what-is-sutra": "The short version: a typed language whose compiled forward pass is a neural net.",
@@ -509,6 +510,7 @@ BLURB = {
     "promises": "Promises and async/await, geometrically.",
     "typescript-to-sutra": "How TypeScript source maps onto Sutra.",
     "compilation": "The five-stage pipeline from source to fused tensor graph.",
+    "neural-webassembly": "A transformer that is a WASM VM — and the isomorphism program down to Sutra.",
     "demos": "Every program in the smoke test.",
     "history": "How the language got to its current shape.",
 }

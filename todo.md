@@ -13,12 +13,76 @@
 > low-dimensional structure we can keep — i.e. the reduced attention we can
 > actually run on the substrate.
 >
-> **Gating:** this needs the WASM subtree to exist. **If `WASM/` has not been
-> merged in yet** and you are about to promote a `todo.md` item into the queue,
-> **skip this one and do the item after it** — then come back to this the moment
-> the WASM integration lands.
+> **Gating: LIFTED 2026-06-06 — `WASM/` is now in-tree** (subtree merge,
+> full history). The transformer weights live under `WASM/` (analytic model
+> `d_model=38, 7 layers, 19 heads, vocab=915`; plus the learned-ops
+> checkpoints under `WASM/src/learned_ops/`). This is the first WASM-gated
+> item to actually work — promote it into `queue.md` when starting.
 >
 > **Remove this entire block once the PCA work is done.**
+
+---
+
+## 🌐 Merged agenda — from the Neural WebAssembly (`WASM/`) repo
+
+> **Origin banner.** The items below were merged in from the long-horizon
+> `todo.md` of the **Neural WebAssembly** repo (`replicating-neural-computers-2`,
+> remote `EmmaLeonhart/neural-webassembly`) when it was subtreed into `WASM/`
+> on 2026-06-06. They are now part of Sutra's long-horizon agenda. Overview:
+> `docs/neural-webassembly.md`; deep notes under `WASM/notes/`. Decompose into
+> `queue.md` one phase at a time (design-only until pulled).
+
+### Forward goal: integrate `transformer-vm` into the Yantra OS
+
+Adopt `transformer-vm` as the way Yantra runs WebAssembly. Architecture decided in
+the 2026-06-05 interview — full design + trap-and-resume ABI + phased roadmap in
+`WASM/notes/yantra_integration.md`. Decisions: real neural executor · universal
+interpreter · per-process sandbox · full WASM MVP · syscalls trap-and-resume to
+kernel · floats trap to host FPU · linear memory = real RAM. **This converges with
+Sutra's own NTM/RAM-pointer track** (`planning/sutra-spec/ram-pointers.md`) — keep
+the trap ABI and the Sutra orchestrator design aligned.
+
+- **P0 — Trap substrate** (linchpin): trap ABI + C++ engine pause/host-callback/
+  resume + one round-tripping demo trap.
+- **P1 — Memory as trapped real RAM** (LOAD/STORE → host RAM).
+- **P2 — Syscalls / WASI** over the trap channel.
+- **P3 — Floats via host-FPU trap.**
+- **P4 — Integer ISA completion** (i64, native bitwise/shift, br_table, typed select).
+- **P5 — Tables / indirect calls, memory.grow.**
+- **P6 — Per-process lifecycle** (snapshot/restore residual+hull state; scheduling).
+
+### Replication follow-ups (optional — core replication already done)
+
+- **Python hull path:** with `python3-dev`, confirm `wasm-eval --hull` /
+  `pytest -m "not slow"` pass fast; compare hull (O(log n)) vs `--nohull`
+  brute-force timings to quantify the attention-scaling claim.
+- **Throughput gap:** investigate the ~18K vs ~30K tok/s gap (WSL overhead,
+  BLAS-free matvec); try a native-Linux or BLAS-linked build.
+
+### ★ The isomorphism program: Neural WebAssembly → Rust → OCaml → Sutra
+
+Full motivation/classification in `WASM/notes/significance_and_isomorphism.md`. In
+one line: `transformer-vm` is an **autoregressive, deterministic Neural Turing
+Machine** — attention used to address RAM, then deterministic, fully
+code-describable operations. Make that code **explicit and isomorphic**, and carry
+the isomorphism across languages until it reaches **Sutra**. Equivalence by
+behavioural tests (formal verification later). Worked strictly in order:
+
+1. **Research + write-up** — consolidate the architectural classification. (Done;
+   seed `WASM/notes/significance_and_isomorphism.md`, overview
+   `docs/neural-webassembly.md`.)
+2. **Search for a reference implementation** — C/C++/Rust of this append-only /
+   attention-addressed shape. (Done — Percepta's own reference.)
+3. **Rust (isomorphic)** — deterministic imperative port. (Done — `WASM/iso/rust/`.)
+4. **Test Rust** — byte-identical traces vs the transformer on all examples. (Done.)
+5. **OCaml (isomorphic)** — ML-family port, structurally close to Sutra. (Done —
+   `WASM/iso/ocaml/`; transformer ≡ reference ≡ Rust ≡ OCaml, byte-identical.)
+6. **Test OCaml** — same battery. (Done.)
+7. **Sutra (end of the road) — ISO-5.** Port the OCaml realisation into Sutra and
+   test how far Sutra can express this machine. **This is the final item.** It was
+   blocked in the WASM repo only on lack of access to Sutra's syntax/toolchain —
+   **that blocker is now gone** (Sutra is this repo). Sutra's `sutra-from-ocaml`
+   frontend (`sdk/sutra-from-ocaml/`) is the natural on-ramp.
 
 > ## 📋 ACTION FOR EMMA — set up the daily cloud-audit routine
 >

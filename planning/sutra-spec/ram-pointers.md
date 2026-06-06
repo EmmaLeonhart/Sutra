@@ -12,6 +12,14 @@
 > Captured in Emma's framing per the spec-README rule. Genuine design
 > gaps (differentiable addressing, write-ack ordering, what "RAM"
 > physically is) are open questions at the bottom, not papered over.
+>
+> **Cross-track (2026-06-06):** the `WASM/` subtree (Neural WebAssembly)
+> is a worked NTM where memory reads are argmax-attention lookups keyed by
+> address and the trap-and-resume design (`WASM/notes/yantra_integration.md`)
+> services LOAD/STORE against real per-process host RAM — the same external
+> producer / mailbox role this spec's orchestrator plays. The two tracks
+> converge on Yantra; keep the trap ABI and this orchestrator design aligned.
+> Overview: `docs/neural-webassembly.md`.
 
 ## Why — architectural diversification toward a Neural Turing Machine
 
