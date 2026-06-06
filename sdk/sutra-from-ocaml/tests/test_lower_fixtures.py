@@ -151,6 +151,7 @@ _RUNNABLE_FIXTURES = {
     "modulo": 2.0,  # 17 mod 5  (OCaml mod -> Sutra %)
     "tuple_local": 16.0,  # let p = pair 7 9 in fst p + snd p  (Axon-returning call -> local typed Axon)
     "bitwise": 1043.0,  # (255 land 12)+((3 lsl 8) lor 7)+(1024 lsr 2)  (land/lor->Bits, lsl/lsr->arith)
+    "failwith_sentinel": 0.0,  # failwith "boom" -> 0 (no-runtime-error sentinel)
 }
 
 
