@@ -330,3 +330,13 @@ MaxU (one ReLU each: sat_sub=relu(a-b), min=a-relu(a-b), max=a+relu(b-a)) + a
 Full learned_ops suite: **19 passed, 1 skipped** — each crystallized form 100% exact
 AND equal to its learned net on all 65 536 pairs. The learn → understand → re-compile
 loop is now closed for sat_add, sat_sub, min, and max (not just sat_add).
+
+## 2026-06-06 — Work-loop tick: publish post-replication findings to the report
+
+SYNC clean. WORK (ISO-5 blocked, E3 impl too big for a tick): legibility — the
+published FINDINGS.md / Pages report only covered the replication, while the
+learned-ops + isomorphism results lived only in notes/. Added a "Beyond replication"
+section to FINDINGS.md: (A) learned + crystallized CPU ops (4 value-ops to 100% exact,
+each crystallized to one ReGLU neuron; AND negative; the two laws), (B) the
+isomorphism program (transformer ≡ reference.py ≡ Rust ≡ OCaml, CI-verified). The
+public report now reflects the full body of work. Verify: pages builds green.

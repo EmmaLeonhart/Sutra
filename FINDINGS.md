@@ -109,3 +109,50 @@ python scripts/run.py            # runs the recipe, writes results/metrics.json
 # or directly:
 cd replication_target/transformer-vm && uv run wasm-run
 ```
+
+---
+
+# Beyond replication
+
+The replication established that the artifact works. Two further threads explore
+what it *is* and what it enables. Full detail in `notes/`.
+
+## A. Learned + crystallized CPU operations (constructed + trained hybrid)
+
+Because the analytic weights live in a standard differentiable transformer, new CPU
+operations can be **learned by gradient** on the frozen scaffold and then
+**crystallized** to exact weights. Results (all measured on the full 65,536 byte
+pairs; `src/learned_ops/`, `notes/learned_ops_findings.md`):
+
+| Op | Kind | Learned | Crystallized form |
+|----|------|---------|-------------------|
+| `i32.and` | bitwise | ❌ ~23% (spectral bias) | — |
+| `sat_add_u` = min(a+b,255) | arithmetic | ✅ 100.0000% | `a+b−relu(a+b−255)` |
+| `sat_sub_u` = max(a−b,0) | arithmetic | ✅ 100.0000% | `relu(a−b)` |
+| `min_u` | arithmetic | ✅ 100.0000% | `a−relu(a−b)` |
+| `max_u` | arithmetic | ✅ 100.0000% | `a+relu(b−a)` |
+
+Each crystallized form is **one ReGLU neuron**, verified 100% exact *and* equal to its
+learned net on all pairs (`learned == crystallized`). Two laws emerged: **(1)** spectral
+bias decides learnability (bitwise ops are high-frequency → unlearnable from raw
+integers — which is *why* the paradigm constructs weights), and **(2)** output
+representation must match op nature (value-output for arithmetic). So new instructions
+can be *discovered by gradient, then re-compiled to exact construction* — a concrete
+step toward a Completely Neural Computer.
+
+## B. The isomorphism program — attention rendered as code
+
+`transformer-vm` is, in effect, an **autoregressive, deterministic Neural Turing
+Machine**: it uses attention to address RAM and then performs deterministic, fully
+code-describable operations — the first time (as far as we know) an attention
+mechanism has been turned into deterministic, human-interpretable code
+(`notes/significance_and_isomorphism.md`). We are making that code explicit and
+**isomorphic** across languages. Status: the transformer's reference executor
+(`wasm/reference.py`, a 35-opcode stack machine) has been ported to **Rust**
+(`iso/rust/`) and **OCaml** (`iso/ocaml/`), and all three produce **byte-identical
+output on every example program** — verified in CI (`scripts/iso_equiv.sh` →
+`ISO_EQUIV_OK`):
+
+> **autoregressive transformer ≡ `reference.py` ≡ Rust ≡ OCaml**
+
+Next stage: **Sutra** (the end of the road; OCaml is the structural stepping stone).
