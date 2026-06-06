@@ -4,7 +4,8 @@
 # diff their outputs. Equivalence by testing (not formal proof).
 set -uo pipefail
 export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-REPO=/mnt/c/Users/Immanuelle/Documents/Github/replicating-neural-computers-2
+# Repo root derived from this script's location, so it runs anywhere (WSL + CI).
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VM="$REPO/replication_target/transformer-vm"
 DATA="$VM/transformer_vm/data"
 

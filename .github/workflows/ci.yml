@@ -41,6 +41,19 @@ jobs:
       - name: Run replication (build weights + C++ engine, run all programs)
         run: python3 scripts/run.py
 
+      - name: Install Rust + OCaml (for the isomorphs)
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          sudo apt-get install -y ocaml ocaml-dune
+
+      - name: Isomorph equivalence (Python ≡ Rust ≡ OCaml)
+        # The replication step above compiled the example programs into the
+        # submodule's data/; here we confirm the Rust + OCaml isomorphs of
+        # wasm/reference.py produce byte-identical output on all of them.
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          bash scripts/iso_equiv.sh
+
       - name: Upload metrics
         if: always()
         uses: actions/upload-artifact@v4
