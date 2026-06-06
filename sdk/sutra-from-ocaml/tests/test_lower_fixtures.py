@@ -135,6 +135,7 @@ _RUNNABLE_FIXTURES = {
     "let_in": 10.0,      # main () = f 4  (let x = a+1 in x*2)
     "tail_rec_sum": 15.0,  # main () = sum_to 0 5  (tail rec -> while_loop)
     "match_lit": 200.0,    # main () = classify 1  (match -> nested defuzz blend)
+    "record": 7.0,         # main () = getx (mk 7 9)  (record -> axon, field via .real())
 }
 
 
