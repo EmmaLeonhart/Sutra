@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml frontend — tail-recursive let rec → while_loop (transpiler tick 6)
+
+Tick 5 guarded `let rec` as UNSUPPORTED (general recursion can't terminate through
+the fuzzy-if blend). This tick implements the case that CAN work: TAIL recursion of
+the accumulator shape `let rec f p… = if COND then BASE else f a…` lowers to a
+bounded Sutra declared `while_loop` (state = params, continue = ¬COND when the else
+recurses, body = sequential param updates, return BASE after the loop) — no
+self-calling function. De-risked first by hand-running the target `.su` on the
+substrate before writing any transpiler code (15 measured). Then implemented +
+fixture `tail_rec_sum` (`let rec sum_to acc n = if n=0 then acc else sum_to (acc+n)
+(n-1)`; `main()=sum_to 0 5`): transpiles to `while_loop _rec_sum_to` and runs on
+the real substrate — **sum_to(0,5)=15.0** (0+5+4+3+2+1). 21 passed (8 fixtures ×
+lowering+compile + 5 substrate runs 7/6.5/5/10/15).
+
+Scope held honest: non-tail recursion (factorial — recursive call inside `n * …`)
+still falls back to the UNSUPPORTED-LET-REC marker (verified), as do non-comparison
+halt conditions; sequential state update means a swap-style `f y x` isn't handled
+yet. All three recorded in queue.md §Transpiler track, not faked.
+
 ## 2026-06-05: OCaml frontend — let…in local bindings + let-rec guard (transpiler tick 5)
 
 `sutra-from-ocaml` now lowers `let x = e in rest` (a `let_expression` body) to a
