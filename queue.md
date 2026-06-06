@@ -135,11 +135,14 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
      → payload via subst). 7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
   10. closure conversion; 11. core-compiler `dict<int,int>`.
 
-  **Note (easy wins thinning):** the remaining ISO-5 items (option, full
-  string-match-with-`br` dispatch, exceptions, stdlib, closures, arrays) are each
-  substantial/coupled — the clean single-tick OCaml wins are mostly spent. Per
-  CLAUDE.md priority, when the tractable OCaml items run out the order is fix-TS
-  (largely done) → other languages (Scala first), each a multi-session scaffold.
+  **Direction (Emma decided 2026-06-06 via AskUserQuestion): KEEP GRINDING OCaml
+  ISO-5.** The remaining items (option, full string-match-with-`br` dispatch,
+  exceptions, stdlib, closures, arrays/`dict<int,int>` core fix) are each
+  substantial/coupled — clean single-tick wins are mostly spent, so accept slower
+  per-tick progress; the goal is the full WASM-machine port in Sutra. PCA on the
+  WASM transformer stays todo.md TOP PRIORITY but is NOT the loop's focus now; do
+  not pivot to it, the next language frontend, or the paper track unless Emma
+  re-decides. Do not re-ask this — it is answered.
   Destination (bigger than transpiler coverage): the fetch-execute loop as a
   substrate recurrence (state vectors across iterations, opcode dispatch as a
   defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
