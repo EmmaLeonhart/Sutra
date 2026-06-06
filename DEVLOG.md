@@ -6,6 +6,25 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: sutra-from-ocaml — tuples (ISO-5 item 5; work-loop tick)
+
+OCaml tuples lower onto the existing record→axon machinery as a positional record:
+`(e0, e1, …)` in body position → `Axon _tuple; _tuple.add("_0", e0); …; return
+_tuple;` (`_lower_tuple_body`, reached by unwrapping `parenthesized_expression`);
+`fst t`/`snd t` → `t.item("_0"/"_1").real()`; a tuple-bodied function infers `Axon`
+return; a tuple-type annotation `int * int` → `Axon` param. Substrate-verified
+`tuple_fst_snd` (`let pair a b = (a,b)` / `let sum2 (t:int*int) = fst t + snd t` /
+`main () = sum2 (pair 7 9)`) → **16.0**. OCaml suite **56 passed** (was 53; +3).
+
+Measured limitation (the same one the record fixture sidesteps): `fst`/`snd` need
+an **Axon-typed operand** (a bound variable or annotated param). Inline
+`fst (pair 7 9)` fails at runtime — Sutra method dispatch doesn't type a function
+**call result** as an Axon, so `.item("_0")` resolves to torch's tensor `.item()`
+(`TensorBase.item() takes no arguments`). So the fixture passes the tuple through a
+typed param exactly like `record`'s `getx (mk 7 9)`. Cross-function return-type
+inference (which would let a bound local be typed Axon) is a later item. ISO-5
+reference tuple markers now cleared. Next unblocked item: option (`Some`/`None`).
+
 ## 2026-06-06: sutra-from-ocaml — closed nested-fn hoisting + arrays blocked (ISO-5 items 4/6; work-loop tick)
 
 Two ISO-5 findings this tick.

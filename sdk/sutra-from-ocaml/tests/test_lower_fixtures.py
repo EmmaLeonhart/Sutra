@@ -144,6 +144,7 @@ _RUNNABLE_FIXTURES = {
     "while_sum": 10.0,  # main () = while !i<5 do sum:=!sum+!i; i:=!i+1 done; !sum  (while -> substrate loop)
     "char_code": 65.0,  # main () = 'A'  (char literal -> codepoint int)
     "nested_fn": 16.0,  # main () = let dbl x = x*2 in dbl 5 + dbl 3  (closed nested fn hoisted)
+    "tuple_fst_snd": 16.0,  # main () = sum2 (pair 7 9)  (tuple -> positional axon; fst/snd off Axon param)
 }
 
 
