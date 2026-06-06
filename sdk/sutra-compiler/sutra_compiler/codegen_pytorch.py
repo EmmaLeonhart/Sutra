@@ -1894,7 +1894,12 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("return self.zero_vector()")
         self._indent -= 1
-        self._emit("addr = int(round(float(ptr[self.semantic_dim + self.AXIS_REAL].item())))")
+        self._emit("_pt = self._st(ptr)")
+        self._emit("# Address decode (I/O boundary). ptr may be a full number-")
+        self._emit("# vector (read AXIS_REAL) or a bare scalar address (a literal")
+        self._emit("# or computed RAM offset, e.g. base+i) — handle both.")
+        self._emit("addr = int(round(float((_pt if _pt.ndim == 0 else "
+                   "_pt[self.semantic_dim + self.AXIS_REAL]).item())))")
         self._emit("if 0 <= addr < len(self.ram):")
         self._indent += 1
         self._emit("return self.ram[addr]")
@@ -1908,12 +1913,23 @@ class PyTorchCodegen(Codegen):
         self._indent += 1
         self._emit("return value")
         self._indent -= 1
-        self._emit("addr = int(round(float(ptr[self.semantic_dim + self.AXIS_REAL].item())))")
+        self._emit("_pt = self._st(ptr)")
+        self._emit("# Address decode (I/O boundary). ptr may be a full number-")
+        self._emit("# vector (read AXIS_REAL) or a bare scalar address (a literal")
+        self._emit("# or computed RAM offset, e.g. base+i) — handle both.")
+        self._emit("addr = int(round(float((_pt if _pt.ndim == 0 else "
+                   "_pt[self.semantic_dim + self.AXIS_REAL]).item())))")
+        self._emit("# Store a number-vector so ramRead(...).real() round-trips: a")
+        self._emit("# scalar value (literal / computed) is lifted to make_real at")
+        self._emit("# the I/O boundary; a number-vector is stored as-is.")
+        self._emit("_vt = self._st(value)")
+        self._emit("val_vec = value if (hasattr(value, 'ndim') and "
+                   "_vt.ndim != 0) else self.make_real(float(_vt.item()))")
         self._emit("if 0 <= addr < len(self.ram):")
         self._indent += 1
-        self._emit("self.ram[addr] = value")
+        self._emit("self.ram[addr] = val_vec")
         self._indent -= 1
-        self._emit("return value")
+        self._emit("return val_vec")
         self._indent -= 1
         self._emit()
         self._emit("def make_real(self, x):")

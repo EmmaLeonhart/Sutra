@@ -119,6 +119,26 @@ _TOPLEVEL_NAMES: set = set()
 # accessor instead of clashing with torch's tensor `.item()`.
 _AXON_RETURNING: set = set()
 
+# OCaml arrays/bytes -> RAM (Emma 2026-06-06: "the wasm array isn't a sutra
+# array, it's ram"). Each `let a = Array.make …` / `Bytes.make …` binding gets
+# a compile-time base offset into the flat RAM device; `a.(i)` -> ramRead(base+i),
+# `a.(i) <- v` -> ramWrite(base+i, v). `_RAM_ARRAYS` maps array-var name -> base;
+# bases are spaced by `_RAM_STRIDE` (fits locals-sized arrays). NOTE: a 10MB Bytes
+# region exceeds the host RAM-list and is a documented limit, not handled here.
+_RAM_ARRAYS: dict = {}
+_RAM_STRIDE = 4096
+
+
+def _is_array_alloc(value, source: bytes) -> bool:
+    """True if `value` is an `Array.make`/`Array.create`/`Bytes.make` call —
+    an allocation that lowers to a RAM region."""
+    if value is None or value.type != "application_expression":
+        return False
+    head = value.named_children[0] if value.named_children else None
+    if head is None or head.type != "value_path":
+        return False
+    return _node_text(head, source) in ("Array.make", "Array.create", "Bytes.make")
+
 # Active name -> Sutra-source substitutions for the body of a `match` arm
 # that binds a name (a catch-all `| x -> …` binds the scrutinee to `x`).
 # `match` lowers to a defuzz-blend *expression*, which can't introduce a
@@ -500,6 +520,20 @@ def _lower_expression(node, source: bytes) -> str:
         obj_src = _lower_expression(obj, source) if obj is not None else "/* ? */"
         field_name = _node_text(field, source) if field is not None else ""
         return f'{obj_src}.item("{field_name}").real()'
+    if t == "array_get_expression":
+        # `a.(i)` -> RAM read at the array's base + index. Numeric element
+        # (decoded via `.real()`, like axon fields). The array must be a
+        # known RAM-backed binding (`let a = Array.make …`).
+        kids = node.named_children
+        arr = kids[0] if kids else None
+        idx = kids[1] if len(kids) > 1 else None
+        arr_name = _node_text(arr, source) if arr is not None else ""
+        if arr_name not in _RAM_ARRAYS:
+            return f"/* UNSUPPORTED-EXPR: array_get on non-RAM '{arr_name}' */"
+        idx_src = _lower_expression(idx, source) if idx is not None else "0"
+        base = _RAM_ARRAYS[arr_name]
+        addr = idx_src if base == 0 else f"{base} + {idx_src}"
+        return f"ramRead({addr}).real()"
     if t == "record_expression":
         # Building a record is multi-statement axon construction (Axon r;
         # r.add(...); …), only valid in body/statement position — handled
@@ -854,6 +888,14 @@ def _lower_local_binding(vd, source: bytes, indent: str,
         _HOISTED_DECLS.append(_lower_let_binding(lb, source, record_types))
         return ""
     value = kids[-1]
+    # `let a = Array.make n v` / `Bytes.make n v` -> a RAM region. Assign a
+    # compile-time base; `a.(i)` / `a.(i) <- v` route to ramRead/ramWrite at
+    # base+i. The binding itself emits a marker (the RAM device is the array;
+    # init to `v` is host-side at device-attach time).
+    if _is_array_alloc(value, source) and _is_identifier(name):
+        base = len(_RAM_ARRAYS) * _RAM_STRIDE
+        _RAM_ARRAYS[name] = base
+        return f"{indent}// {name}: RAM-backed array at base {base}\n"
     ret_type = None
     for k in kids[1:-1]:
         if _is_type_node(k):
@@ -940,6 +982,23 @@ def _lower_stmt_expr(node, source: bytes, indent: str,
     a bare expression statement `expr;`."""
     if node.type == "while_expression" and refs is not None:
         return _lower_while(node, source, indent, refs)
+    if node.type == "set_expression":
+        # `a.(i) <- v` -> RAM write at base+i. Array set is statement-only.
+        kids = node.named_children
+        target = kids[0] if kids else None
+        val = kids[1] if len(kids) > 1 else None
+        if target is not None and target.type == "array_get_expression":
+            tk = target.named_children
+            arr = tk[0] if tk else None
+            idx = tk[1] if len(tk) > 1 else None
+            arr_name = _node_text(arr, source) if arr is not None else ""
+            if arr_name in _RAM_ARRAYS:
+                idx_src = _lower_expression(idx, source) if idx is not None else "0"
+                base = _RAM_ARRAYS[arr_name]
+                addr = idx_src if base == 0 else f"{base} + {idx_src}"
+                val_src = _lower_expression(val, source) if val is not None else "0"
+                return f"{indent}ramWrite({addr}, {val_src});\n"
+            return f"{indent}// UNSUPPORTED-SET: array set on non-RAM '{arr_name}'\n"
     if node.type == "infix_expression":
         op = node.child_by_field_name("operator")
         if op is not None and _node_text(op, source) == ":=":
@@ -1223,6 +1282,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     _CONSTRUCTORS.clear()
     _HOISTED_LOOPS.clear()
     _HOISTED_DECLS.clear()
+    _RAM_ARRAYS.clear()
     for child in tree.root_node.named_children:
         if child.type != "type_definition":
             continue
