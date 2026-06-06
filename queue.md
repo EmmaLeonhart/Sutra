@@ -101,10 +101,12 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
      (`while !i<5 do sum:=!sum+!i; i:=!i+1 done; !sum` = 10). The ISO-5 ref's 2
      real loops still need their inner constructs (arrays/try/match-with-br), so
      they degrade to `UNSUPPORTED-WHILE` (no broken output). `for` not yet done.
-  3. **NEXT: Char + string literals**; 4. Arrays (`Array.make`/`arr.(i)`/`<-`);
-  5. Tuples + option (`fst`/`snd`, `Some`/`None`); 6. Nested-fn hoist;
-  7. try/exceptions (`raise Exit`/`failwith`); 8. `match`-with-`br` / control flow;
-  9. stdlib shims.
+  3. **Char + string literals** — DONE: char → codepoint int (substrate-verified
+     `char_code` `'A'`=65), string → Sutra `String` literal (compile-verified
+     `string_lit`; function body-string return-type inferred as `String`).
+  4. **NEXT: Arrays** (`Array.make`/`arr.(i)`/`arr.(i) <- v`); 5. Tuples + option
+  (`fst`/`snd`, `Some`/`None`); 6. Nested-fn hoist; 7. try/exceptions
+  (`raise Exit`/`failwith`); 8. `match`-with-`br` / control flow; 9. stdlib shims.
   Destination (bigger than transpiler coverage): the fetch-execute loop as a
   substrate recurrence (state vectors across iterations, opcode dispatch as a
   defuzz match) — closing items 1–2 first runs a real WASM-machine fragment on
@@ -307,7 +309,9 @@ first and never touches the RAM/W2C sections above.
   suffix number literals normalized to decimal; substrate-verified `toplevel_const`
   `(300 - 0xFF) + 5 = 50`. Sequence-expr + ref mutation (`e1;e2`, `ref`/`:=`/`!`):
   DONE — substrate-verified `seq_mut` = 15. `while`→substrate `loop` (scalar-ref
-  shape): DONE — substrate-verified `while_sum` = 10. OCaml suite 45 passed.]
+  shape): DONE — substrate-verified `while_sum` = 10. Char→codepoint-int +
+  string→String literal: DONE — substrate-verified `char_code` = 65, compile-verified
+  `string_lit`. OCaml suite 50 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.
