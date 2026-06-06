@@ -142,3 +142,25 @@ E0 via TDD (test-first, watched it fail, then implemented):
   position. **1 passed.** (Ground truth uses `StandardKVCache`, sidestepping the
   hull_ext/`python3-dev` gap.)
 - This is the foundation we can backprop through. Next: E1 — learn `i32.and`.
+
+## 2026-06-05 — E1 finding: bit-exact AND is not learnable from raw integers (spectral bias)
+
+Built the E1 op-local harness TDD-style: `learned_op.py` (LearnedByteOp ReGLU MLP +
+verified exactness metric), `train_and.py` (full-table trainer with hard-example
+focusing), gate test `test_and_checkpoint_exact.py` (RED until 100% exact). Contract
+tests pass; metric verified (reference-exact→1.0, trivial→<1.0, bit round-trip).
+
+**Result (user's chosen constraint = raw integer operands, no bit decomposition):**
+training plateaus far below 100% exact (10%→22% over 100 epochs, flattening).
+**Cause: spectral bias.** The low result bits are the highest-frequency functions of
+the integer inputs (bit0(a&b) = [a odd]&[b odd]; "a odd" is a period-2 square wave
+over 0..255). MLPs learn low frequencies first, so the LSB resists bit-exactness, and
+exact-match needs zero errors across 524,288 bit-decisions.
+
+This is meaningful, not a harness bug: gradient-learning bit-exact arithmetic from
+integers is exactly what's hard — which is *why* the paradigm constructs weights
+instead of training them. The hardness is an artifact of the op-local raw-scalar
+proxy, NOT the vision: the integrated scaffold (E3) already manipulates bytes
+bit-wise (ADD's ReGLU carry machinery), so a learned op there builds on existing
+bit-level features. Surfaced the methodological fork to the user (pure-finding vs
+pivot-to-integrated vs relax-encoding vs brute-force).
