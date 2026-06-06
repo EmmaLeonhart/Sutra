@@ -119,7 +119,13 @@ corpus` → `py experiments/w2c_seq2seq/prepare.py` → `…/model.py` →
      enclosing local — 7 of the ISO-5 ref's nested fns: `push`/`pop`/… over
      `stack` etc.) are correctly surfaced as UNSUPPORTED; closure conversion is a
      later item.
-  5. **NEXT (unblocked): Tuples + option** (`fst`/`snd`, `Some`/`None`);
+  5. **Tuples** — DONE: `(a,b)` → positional-field axon (`_0`/`_1`); `fst`/`snd`
+     → `.item("_0"/"_1").real()`; tuple-body fn returns `Axon`; tuple-type param
+     `int * int` → `Axon`. Substrate-verified `tuple_fst_snd` `sum2 (pair 7 9)` =
+     16. Limitation (same as records): `fst`/`snd` need an **Axon-typed operand**
+     (bound var / annotated param) — inline `fst (pair 7 9)` fails because Sutra
+     method dispatch doesn't type a call result as Axon (torch `.item()` clash).
+  5b. **NEXT (unblocked): option** (`Some`/`None` — needs a discriminated rep);
   7. try/exceptions (`raise Exit`/`failwith`); 8. `match`-with-`br`; 9. stdlib;
   10. closure conversion (capturing nested fns); 11. core-compiler `dict<int,int>`.
   Destination (bigger than transpiler coverage): the fetch-execute loop as a
@@ -328,7 +334,8 @@ first and never touches the RAM/W2C sections above.
   string→String literal: DONE — substrate-verified `char_code` = 65, compile-verified
   `string_lit`. Closed nested-fn hoisting: DONE — substrate-verified `nested_fn` = 16
   (closures correctly UNSUPPORTED). Arrays BLOCKED on core-compiler `dict<int,int>`
-  defect (finding 2026-06-06-dict-int-keys-broken). OCaml suite 53 passed.]
+  defect (finding 2026-06-06-dict-int-keys-broken). Tuples→positional axon + fst/snd:
+  DONE — substrate-verified `tuple_fst_snd` = 16. OCaml suite 56 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.
