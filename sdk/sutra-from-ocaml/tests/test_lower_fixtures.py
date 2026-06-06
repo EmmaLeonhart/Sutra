@@ -147,6 +147,7 @@ _RUNNABLE_FIXTURES = {
     "tuple_fst_snd": 16.0,  # main () = sum2 (pair 7 9)  (tuple -> positional axon; fst/snd off Axon param)
     "match_bind": 6.0,  # classify 5 = match n with 0 -> 100 | x -> x+1  (catch-all name binding)
     "option_some": 42.0,  # get_or (mk 42) 0  (option Some/None -> tagged axon; match binds payload via int locals)
+    "let_in_expr": 20.0,  # (let x = 5 in x + x) + 10  (let..in in expression position via substitution)
 }
 
 
