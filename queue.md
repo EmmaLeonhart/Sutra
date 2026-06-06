@@ -236,15 +236,9 @@ This section is driven by the 1pm transpiler work-loop cron; it pulls+rebases
 first and never touches the RAM/W2C sections above.
 
 **OCaml frontend (`sdk/sutra-from-ocaml/`), modeled on `sutra-from-ts/`:**
-- [ ] **Latent bug in `sutra-from-ts` (found 2026-06-05 via the OCaml if/else
-  work):** the TS `_lower_function_body` if/else lowering emits
-  `… * ({cons_src})` — when a branch value is a bare atom this produces
-  `* (a) + …`, and the Sutra parser reads `(atom) <binop>` as a CAST
-  (`CastExpr`), which the codegen rejects. No TS fixture compile-tests the
-  if/else path, so it never surfaced. Fix the TS lowering to the
-  fully-grouped `((w)*(then)) + ((w)*(else))` shape (the OCaml frontend
-  already does this) and add a TS if/else fixture to its compile test.
-  Possibly file the `(atom) <binop>` cast ambiguity as a Sutra open-question.
+- [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
+  ambiguity as an open-question — both frontends now work around it with
+  fully-grouped blends, but the grammar ambiguity itself is unresolved.
 - [ ] `let x = e in body` local bindings; `let rec` recursion.
 - [ ] Tuples / records / variant types -> Sutra axons; `match ... with` ->
   select/softmax or if-chain (the hard rung — spec first).
