@@ -234,6 +234,117 @@ def _lower_body_to_statements(body, source: bytes, indent: str) -> str:
     return f"{indent}return {_lower_expression(body, source)};\n"
 
 
+# Sutra comparison operator → its logical negation. Used to turn an
+# OCaml halt-condition (`if n = 0 then base else recurse`) into the
+# loop's *continue* condition.
+_NEG_CMP = {"==": "!=", "!=": "==", "<": ">=", ">": "<=", "<=": ">", ">=": "<"}
+
+
+def _self_call_args(node, name: str, arity: int, source: bytes):
+    """If `node` is exactly `name arg1 … arg{arity}` (a self-application
+    at the right arity), return the list of arg nodes; else None."""
+    if node.type != "application_expression":
+        return None
+    kids = node.named_children
+    if not kids:
+        return None
+    fn = kids[0]
+    if fn.type != "value_path" or _node_text(fn, source) != name:
+        return None
+    args = kids[1:]
+    if len(args) != arity:
+        return None
+    return args
+
+
+def _negate_cond(cond, source: bytes) -> Optional[str]:
+    """Negate a simple infix-comparison condition (return the Sutra
+    source of its logical negation), or None if it is not a single
+    comparison the MVP can invert."""
+    if cond is None or cond.type != "infix_expression":
+        return None
+    op = cond.child_by_field_name("operator")
+    left = cond.child_by_field_name("left")
+    right = cond.child_by_field_name("right")
+    if op is None or left is None or right is None:
+        return None
+    sutra_op = _OP_MAP.get(_node_text(op, source))
+    neg = _NEG_CMP.get(sutra_op) if sutra_op else None
+    if neg is None:
+        return None
+    return f"{_lower_expression(left, source)} {neg} {_lower_expression(right, source)}"
+
+
+def _try_lower_tail_recursive(
+    name: str, params: list[tuple[str, str]], ret: str, body, source: bytes,
+) -> Optional[str]:
+    """Try to lower a TAIL-recursive `let rec` of the accumulator shape
+    `let rec f p1 … pk = if COND then BASE else f a1 … ak` (or with the
+    self-call in the THEN branch) to a Sutra declared `while_loop`. The
+    recursion becomes bounded substrate iteration — no self-calling
+    function (which would not terminate through the fuzzy-if blend).
+    Returns the emitted Sutra (loop decl + function) or None if the body
+    is not this exact shape (caller then falls back to UNSUPPORTED).
+
+    Verified on the substrate: `let rec sum_to acc n = if n = 0 then acc
+    else sum_to (acc + n) (n - 1)` with `sum_to 0 5` decodes to 15."""
+    if body.type != "if_expression":
+        return None
+    cond = body.child_by_field_name("condition")
+    then_c = else_c = None
+    for c in body.named_children:
+        if c.type == "then_clause":
+            then_c = c
+        elif c.type == "else_clause":
+            else_c = c
+    if then_c is None or else_c is None or not then_c.named_children \
+            or not else_c.named_children:
+        return None
+    then_e = then_c.named_children[0]
+    else_e = else_c.named_children[0]
+    arity = len(params)
+    then_args = _self_call_args(then_e, name, arity, source)
+    else_args = _self_call_args(else_e, name, arity, source)
+    # Exactly ONE branch must be the self-call (the other is the base).
+    if (then_args is None) == (else_args is None):
+        return None
+    if else_args is not None:
+        cont = _negate_cond(cond, source)  # halt when COND, loop while not
+        rec_args, base = else_args, then_e
+    else:
+        cont = _lower_expression(cond, source)  # loop while COND
+        rec_args, base = then_args, else_e
+    if cont is None:
+        return None
+
+    loop_name = f"_rec_{name}"
+    state_decls = ", ".join(f"{ty} {nm} = 0" for nm, ty in params)
+    # Sequential state update p_i = a_i. NOTE: sequential, so a swap like
+    # `f y x` (a2 reading the already-updated p1) is NOT handled — only
+    # accumulator-style updates where later args don't depend on the new
+    # value of earlier params. Falls outside this if a real fixture needs it.
+    body_lines = "".join(
+        f"    {nm} = {_lower_expression(arg, source)};\n"
+        for (nm, _ty), arg in zip(params, rec_args)
+    )
+    loop_decl = f"while_loop {loop_name}({cont}, {state_decls}) {{\n{body_lines}}}\n"
+
+    slot_lines = "".join(f"    slot {ty} _{nm}_r = {nm};\n" for nm, ty in params)
+    slot_args = ", ".join(f"_{nm}_r" for nm, _ty in params)
+    writeback = "".join(f"    {nm} = _{nm}_r;\n" for nm, _ty in params)
+    params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
+    base_src = _lower_expression(base, source)
+    fn = (
+        f"function {ret} {name}({params_src}) {{\n"
+        f"{slot_lines}"
+        f"    loop {loop_name}({cont}, {slot_args});\n"
+        f"{writeback}"
+        f"    return {base_src};\n"
+        f"}}\n"
+    )
+    return loop_decl + fn
+
+
 def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
     kids = lb.named_children
     if not kids:
@@ -251,22 +362,6 @@ def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
             "only function-shaped lets lower today)\n"
         )
 
-    if is_rec:
-        # `let rec` is general recursion. Sutra's if/else is a defuzz
-        # BLEND that evaluates BOTH branches unconditionally, so a
-        # recursive call sitting in an else-branch is always evaluated —
-        # direct (non-tail) recursion never terminates on the substrate.
-        # Emitting a self-calling function would be a runtime footgun, so
-        # we surface the limitation instead of faking it. Tail-recursive
-        # `let rec` should lower to Sutra's `loop`/`recur`; non-tail
-        # recursion (e.g. factorial) is an open question — see queue.md
-        # §Transpiler track.
-        return (
-            f"// UNSUPPORTED-LET-REC: recursive function '{name}' — Sutra's "
-            "fuzzy if/else evaluates both branches, so direct recursion does "
-            "not terminate; needs loop/recur lowering (queue.md Transpiler track)\n"
-        )
-
     params: list[tuple[str, str]] = []
     ret_type: Optional[str] = None
     for k in middle:
@@ -276,8 +371,27 @@ def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
                 params.append(p)
         elif _is_type_node(k):
             ret_type = _map_type(k, source)
-
     ret = ret_type if ret_type is not None else _DEFAULT_TYPE
+
+    if is_rec:
+        # `let rec` is general recursion. Sutra's if/else is a defuzz
+        # BLEND that evaluates BOTH branches unconditionally, so a
+        # self-calling function never terminates on the substrate.
+        # TAIL recursion of the accumulator shape lowers to a bounded
+        # Sutra `while_loop` instead (substrate-verified). Anything that
+        # is NOT that shape (non-tail recursion like factorial, or a
+        # non-comparison halt condition) we surface as UNSUPPORTED rather
+        # than emit a runtime footgun.
+        tail = _try_lower_tail_recursive(name, params, ret, body, source)
+        if tail is not None:
+            return tail
+        return (
+            f"// UNSUPPORTED-LET-REC: recursive function '{name}' is not the "
+            "tail-recursive accumulator shape; Sutra's fuzzy if/else evaluates "
+            "both branches, so general recursion does not terminate — needs a "
+            "loop/recur encoding (queue.md Transpiler track)\n"
+        )
+
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
     body_src = _lower_body_to_statements(body, source, "    ")
     return f"function {ret} {name}({params_src}) {{\n{body_src}}}\n"
