@@ -186,7 +186,55 @@ def _lower_param(param_node, source: bytes) -> Optional[tuple[str, str]]:
     return (_node_text(child, source), _DEFAULT_TYPE)
 
 
-def _lower_let_binding(lb, source: bytes) -> str:
+def _lower_local_binding(vd, source: bytes, indent: str) -> str:
+    """Lower one `value_definition` from a `let … in` into a Sutra local
+    declaration (`<type> name = <expr>;`). OCaml `let` is immutable, so
+    no `slot`. A *local function* binding (params present) can't nest in
+    Sutra — emit an UNSUPPORTED marker rather than broken output."""
+    lb = None
+    for c in vd.named_children:
+        if c.type == "let_binding":
+            lb = c
+            break
+    if lb is None or not lb.named_children:
+        return f"{indent}// UNSUPPORTED-LOCAL-BINDING: malformed\n"
+    kids = lb.named_children
+    name = _node_text(kids[0], source)
+    if any(k.type == "parameter" for k in kids[1:-1]):
+        return (
+            f"{indent}// UNSUPPORTED-LOCAL-FN: nested function '{name}' "
+            "(Sutra has no nested function declarations)\n"
+        )
+    value = kids[-1]
+    ret_type = None
+    for k in kids[1:-1]:
+        if _is_type_node(k):
+            ret_type = _map_type(k, source)
+    ty = ret_type if ret_type is not None else _DEFAULT_TYPE
+    return f"{indent}{ty} {name} = {_lower_expression(value, source)};\n"
+
+
+def _lower_body_to_statements(body, source: bytes, indent: str) -> str:
+    """Lower a function-body expression into Sutra statements. A
+    `let x = e in rest` becomes a local declaration followed by the
+    lowering of `rest`; the final (non-let) expression becomes
+    `return …;`."""
+    if body.type == "let_expression":
+        kids = body.named_children
+        if len(kids) >= 2:
+            *bindings, in_body = kids
+            out = ""
+            for b in bindings:
+                if b.type == "value_definition":
+                    out += _lower_local_binding(b, source, indent)
+                else:
+                    out += f"{indent}// UNSUPPORTED-LET-IN-PART: {b.type}\n"
+            out += _lower_body_to_statements(in_body, source, indent)
+            return out
+    return f"{indent}return {_lower_expression(body, source)};\n"
+
+
+def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
     kids = lb.named_children
     if not kids:
         return "// UNSUPPORTED-LET: empty let_binding\n"
@@ -203,6 +251,22 @@ def _lower_let_binding(lb, source: bytes) -> str:
             "only function-shaped lets lower today)\n"
         )
 
+    if is_rec:
+        # `let rec` is general recursion. Sutra's if/else is a defuzz
+        # BLEND that evaluates BOTH branches unconditionally, so a
+        # recursive call sitting in an else-branch is always evaluated —
+        # direct (non-tail) recursion never terminates on the substrate.
+        # Emitting a self-calling function would be a runtime footgun, so
+        # we surface the limitation instead of faking it. Tail-recursive
+        # `let rec` should lower to Sutra's `loop`/`recur`; non-tail
+        # recursion (e.g. factorial) is an open question — see queue.md
+        # §Transpiler track.
+        return (
+            f"// UNSUPPORTED-LET-REC: recursive function '{name}' — Sutra's "
+            "fuzzy if/else evaluates both branches, so direct recursion does "
+            "not terminate; needs loop/recur lowering (queue.md Transpiler track)\n"
+        )
+
     params: list[tuple[str, str]] = []
     ret_type: Optional[str] = None
     for k in middle:
@@ -215,12 +279,8 @@ def _lower_let_binding(lb, source: bytes) -> str:
 
     ret = ret_type if ret_type is not None else _DEFAULT_TYPE
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
-    body_src = _lower_expression(body, source)
-    return (
-        f"function {ret} {name}({params_src}) {{\n"
-        f"    return {body_src};\n"
-        f"}}\n"
-    )
+    body_src = _lower_body_to_statements(body, source, "    ")
+    return f"function {ret} {name}({params_src}) {{\n{body_src}}}\n"
 
 
 def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
@@ -241,9 +301,14 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     out: list[str] = [_HEADER]
     for child in tree.root_node.named_children:
         if child.type == "value_definition":
+            # `let rec` carries the `rec` keyword as an anonymous token;
+            # detect it from the leading tokens so the recursion guard
+            # in _lower_let_binding fires.
+            toks = _node_text(child, src_bytes).split(None, 2)
+            is_rec = len(toks) >= 2 and toks[0] == "let" and toks[1] == "rec"
             for lb in child.named_children:
                 if lb.type == "let_binding":
-                    out.append(_lower_let_binding(lb, src_bytes))
+                    out.append(_lower_let_binding(lb, src_bytes, is_rec=is_rec))
         elif child.type == "comment":
             continue
         else:

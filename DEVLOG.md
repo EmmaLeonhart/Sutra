@@ -6,6 +6,23 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml frontend — let…in local bindings + let-rec guard (transpiler tick 5)
+
+`sutra-from-ocaml` now lowers `let x = e in rest` (a `let_expression` body) to a
+Sutra local declaration + the lowering of `rest`: `int x = a + 1; return x * 2;`.
+Chained/nested let…in supported via recursion; typed local bindings read the
+annotation. Fixture `let_in` (`let f a = let x = a + 1 in x * 2`; `main()=f 4`)
+runs on the substrate: **f(4)=(4+1)*2=10.0** measured. 18 passed (7 fixtures ×
+lowering+compile + 4 substrate runs 7.0/6.5/5.0/10.0).
+
+**let rec — deliberately NOT faked.** Sutra's if/else is a defuzz blend that
+evaluates BOTH branches, so a recursive call in a branch (`fact (n-1)`) is always
+evaluated → direct non-tail recursion never terminates on the substrate. Emitting
+a self-calling function would be a runtime footgun, so `let rec` now emits an
+`UNSUPPORTED-LET-REC` marker explaining why, instead of broken code. Correct path
+(queued): tail-recursive `let rec` → Sutra `loop`/`recur`; non-tail recursion
+(factorial) is an open question needing a bounded encoding — spec first.
+
 ## 2026-06-05: sutra-from-ts — fix two latent if/else bugs (transpiler-track tick 4)
 
 Discharged the TS if/else fix queued in tick 3. Reproduced first (not assumed):
