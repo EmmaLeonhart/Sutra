@@ -24,12 +24,26 @@ first, then verify its output against the blog's headline claims.
 
 ---
 
-## Active
+## Active — NEW THREAD: learn new CPU operations on the scaffold
 
-10. **Confirm the deliverables are green.** Push (done) triggers `pages.yml`
-    (themed FINDINGS site + PDF, status badge now `replicated`), `package.yml`
-    (ZIP), and the new `ci.yml` (runs `scripts/run.py` end-to-end). Watch the runs;
-    fix any red. The repo is already public; `pages.yml` auto-enables Pages.
+The replication is complete (REPLICATED, 6/6). New research direction (user's
+vision): train *new CPU operations* on the frozen analytic scaffold, then
+crystallize them to exact weights — the constructed+trained hybrid toward a
+Completely Neural Computer. Full design + grounding + metrics in
+`notes/experiment_learned_ops.md`. **Gated on user approval of the design + choice
+of the novel op (E4).** No code until approved.
+
+- **E0** — build a grad-enabled softmax-attention forward over the loaded analytic
+  weights (the shipped forward is inference-only `@torch.no_grad()` + argmax,
+  `model/transformer.py:41-69`); prove it matches the argmax forward at high τ on an
+  existing op. Lives in `src/learned_ops/`.
+- **E1** — freeze/trainable split + op-local trainer; learn `i32.and` to 100% exact
+  (G1) on all 65 536 byte pairs at τ→∞.
+- **E2** — crystallize AND to exact DSL weights (G3); confirm no regression on the
+  other ops (G4).
+- **E3** — repeat for `i32.mul` (carry-bearing); wire it as a native opcode and pass
+  end-to-end vs reference (G2).
+- **E4** — pick the genuinely *new* op with the user; learn + crystallize; write up.
 
 ## Optional / nice-to-have (replication already succeeds without these)
 

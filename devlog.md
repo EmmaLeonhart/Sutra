@@ -111,3 +111,20 @@ a WASM VM on real programs. Throughput is ~18–24K tok/s vs the authors' ~30K
   Throughput ~1.2K tok/s (projection = 93% of runtime, the expected size/speed
   trade). Updated `FINDINGS.md` + `notes/claims.md`.
 - All 7 headline claims now reproduced (C3 throughput partial; C6 confirmed).
+
+## 2026-06-05 — Deliverables green; new thread: learned CPU operations
+
+- `pages`, `package`, and `ci` workflows all green (CI reproduces 6/6 from a clean
+  clone). Replication thread closed.
+- New research direction opened (user's vision): because the analytic weights live
+  in a standard differentiable transformer (`VanillaTransformer(nn.Module)`,
+  `model/transformer.py:21`), we can **train new CPU operations** as new neurons on
+  the frozen, correct-by-construction scaffold, then **crystallize** them to exact
+  DSL weights — the constructed+trained hybrid toward a Completely Neural Computer.
+- Confirmed feasibility in source: trainable `nn.Module` params; inference forward is
+  `@torch.no_grad()` + argmax (`transformer.py:41-69`), so training needs a
+  grad-enabled softmax-attention forward (the one real build item). License confirmed
+  **Apache-2.0** (`LICENSE:1`, `pyproject.toml:7`) — permissive, derivatives OK.
+- Wrote the experiment design `notes/experiment_learned_ops.md` (thesis, frozen/
+  trainable split, op-local→end-to-end signal, soft/hard τ schedule, crystallization,
+  metrics G1–G4, phases E0–E4). Queued E0–E4. **Gated on user approval — no code yet.**
