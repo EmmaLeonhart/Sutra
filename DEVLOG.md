@@ -6,6 +6,16 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: WASM transformer graph-level attention usage — 42/133 heads (PCA follow-on)
+
+Since SVD can't reduce the attention (importance != magnitude), measured the real
+lever from the schedule: a head attends iff its Q AND K projection rows are non-zero.
+Nominal 19 heads x 7 layers = 133 head-slots; genuinely used = 42 (31.6%): layers
+0-4 use 7/5/11/11/8 heads, layers 5-6 use 0. So the reduced-attention target for the
+DNC is ~42 head-slots across 5 layers (peak 11/layer), not 133 across 7. Script
+experiments/wasm_transformer_pca/attention_usage.py; finding updated. Concrete number
+for the 17:00 paper.
+
 ## 2026-06-06: PCA on the WASM transformer (todo TOP PRIORITY; 15:00 pivot)
 
 Built the analytic transformer-vm (MILP via pulp+highspy, 5.7s; cached plan.yaml) and

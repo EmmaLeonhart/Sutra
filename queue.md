@@ -161,7 +161,9 @@ state (avoid literal-vs-loop-state comparison).
   are ALL-ZERO (2/7 attention layers prunable), (b) token/head embeddings are ~3/38
   rank @99% energy (915-vocab ≈ 3-d). The attention CORE must be reduced from the
   computation graph/schedule, not SVD. Script `experiments/wasm_transformer_pca/`.
-  Remaining: graph-level reduction analysis; feed numbers to the 17:00 paper.
+  Graph-level attention usage DONE: only 42/133 nominal heads attend (31.6%; peak 11/
+  layer over layers 0-4; L5/L6 zero) — the genuine reduced-attention target for the
+  DNC. Remaining: feed all numbers to the 17:00 paper.
 - **E3 — integrate a native `i32.sat_add_u` opcode (spec done; impl remaining).**
   Spec `WASM/notes/e3_native_opcode_spec.md`; E3a verified the `op_dot` vocabulary
   extensible (28 spare points). Remaining = the build (own session): add to
