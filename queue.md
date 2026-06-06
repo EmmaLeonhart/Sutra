@@ -33,16 +33,16 @@ crons are running this session (`57ccb9ba`/:03, `2c9174b4`/:15, `8b51cb26`/:42).
 **Priority thread — the isomorphism program** (Neural WebAssembly → Rust → OCaml →
 Sutra; see `notes/significance_and_isomorphism.md` and the ★ section of `todo.md`):
 
-1. **ISO-1 — search for a reference implementation.** Search online for existing code
-   (almost certainly C or C++, possibly Rust) that is an append-only / attention-
-   addressed WASM machine of this shape — or a plain, small WASM interpreter simple
-   enough to seed the Rust isomorph. Record candidates + an assessment (which is
-   closest, license, language) in `notes/isomorphism_reference_search.md`. Commit.
-2. **ISO-2 — decide the Rust seed.** From ISO-1: if a suitable Rust reference exists,
-   evaluate it; otherwise write the spec for the Rust isomorph derived from
-   `transformer-vm`'s `wasm/interpreter.py` semantics (cumulative-sum registers =
-   PC/SP/call-depth; argmax-attention lookups = stack/locals/memory/fetch; ReGLU =
-   per-step ALU; append-only autoregressive loop). Iterator-first addressing. Commit.
+1. **ISO-2 — write the Rust isomorph spec.** ISO-1 concluded the seed is the repo's
+   own `wasm/reference.py` (a plain imperative 35-opcode stack-machine interpreter =
+   the exact behavioural spec), not an external interpreter (see
+   `notes/isomorphism_reference_search.md`). Write the spec for a Rust port of
+   `reference.py` — opcode-for-opcode, iterator-first addressing — plus the
+   behavioural-equivalence test plan (run identical programs through both, diff
+   outputs/traces). Commit.
+2. **ISO-3 — build the Rust isomorph** under `iso/rust/` (new): port `reference.py`,
+   cross-check opcode edge cases against a minimal Rust interpreter (DLR-FT or wain),
+   and pass the equivalence tests on the example programs. Commit.
 
 **Learned-ops thread:**
 

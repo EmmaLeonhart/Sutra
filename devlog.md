@@ -221,3 +221,19 @@ Added the **isomorphism program** to the end of `todo.md`: find a reference impl
 arbitrary tests → **OCaml** (structurally close to Sutra) → tests → **Sutra** (final
 item). Equivalence by behavioural testing, not formal verification yet. Proposed repo
 rename to **"Neural WebAssembly"**. Persisted to project memory.
+
+## 2026-06-05 — Autonomous loop started; ISO-1 done (reference search)
+
+Started the three-cron work-loop playbook (session-local): work-loop :03 (57ccb9ba),
+auto-flush :15 (2c9174b4), status-report :42 (8b51cb26). Restructured queue.md to
+work top-to-bottom with the isomorphism program (Neural WebAssembly → Rust → OCaml →
+Sutra) as the priority thread, pinned tail = ensure-crons + final-status.
+
+**ISO-1 (search for a reference impl):** the seed already exists in the repo —
+`wasm/reference.py` is a plain imperative 35-opcode stack-machine interpreter = the
+exact behavioural spec the transformer's traces are checked against. So the Rust
+isomorph ports `reference.py` (not an external full-MVP interpreter). Secondary Rust
+refs for cross-checking: DLR-FT/wasm-interpreter, tinywasm, wain. Literature
+validating the thesis: "Weights to Code" (arXiv:2601.05770, attention-as-NTM-pointer
+→ closed-form code) and "Attention is Turing Complete" (JMLR 22). Recorded in
+`notes/isomorphism_reference_search.md`. Next: ISO-2 (Rust isomorph spec).
