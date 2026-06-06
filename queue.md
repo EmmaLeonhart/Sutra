@@ -250,12 +250,21 @@ first and never touches the RAM/W2C sections above.
   blend: DONE (substrate-verified `classify 1 = 200`). Remaining: constructor /
   record / or- / guarded patterns (need the records-as-axons work + a binding
   mechanism); `match` that binds a name in the catch-all (`| x -> …`).
-- [ ] Tuples / records / variant types -> Sutra axons (modeled on the TS
-  interface->axon path). **Needs param/local TYPE TRACKING first** (to lower
-  `p.x` -> `p.item("x")` only when `p` is record-typed) — the OCaml frontend has
-  none yet. Prepass to collect record type names, map record-typed params to
-  `Axon`, track local types. Then record construction `{x=a; y=b}` -> Axon+add,
-  field access `p.x` -> `p.item("x")`. Spec/design the type-tracking layer first.
+- [ ] **Records -> axons: DONE for numeric fields** (substrate-verified
+  `getx (mk 7 9) = 7.0`). `type X = {…}` erased + record-name prepass; record-typed
+  params -> `Axon`; construction `{x=a;y=b}` -> `Axon r; r.add("x",a); …`; field
+  access `p.x` -> `p.item("x").real()`. Key finding (`planning/findings/2026-06-05-
+  axon-field-reads-need-real-projection.md`): numeric axon field reads REQUIRE
+  `.real()` — without it they return zeros on the substrate. No type-tracking layer
+  was needed (OCaml `p.x` is unambiguously a record field via `field_get_expression`).
+  Remaining: variants (sum types), tuples, non-numeric record fields (field-type-aware
+  `.real()` off the record decl), record literals in argument position, constructor-
+  pattern `match` (now unblocked by records).
+- [ ] **FIX sutra-from-ts: interface field reads return zeros at runtime.** The TS
+  `interface`->axon path emits `p.item("x")` without `.real()`, so `interface_pass`
+  COMPILES but returns a zero vector instead of 25 (the harness only compile-tests,
+  never runs — that's how it hid). Add `.real()` to numeric axon field reads AND a
+  run-on-substrate test so it can't regress silently. See the finding above.
 - [ ] End-to-end verification: each fixture's `.su` compiles AND runs AND
   reproduces ground-truth output (beyond the parse+codegen syntax check the TS
   harness does today). [`arith_main` already does this — the pattern to extend.]

@@ -91,10 +91,14 @@ def _is_type_node(node) -> bool:
     return node.type == "type_constructor_path" or node.type.endswith("_type")
 
 
-def _map_type(type_node, source: bytes) -> str:
+def _map_type(type_node, source: bytes, record_types=frozenset()) -> str:
     if type_node is None:
         return _DEFAULT_TYPE
     text = _node_text(type_node, source).strip()
+    if text in record_types:
+        # A record type is carried by a Sutra Axon (the structural-typing
+        # carrier), same as the TS interface->Axon mapping.
+        return "Axon"
     return _OCAML_TYPE_TO_SUTRA.get(text, _DEFAULT_TYPE)
 
 
@@ -159,6 +163,29 @@ def _lower_expression(node, source: bytes) -> str:
         return f"(((1 + {w}) * ({then_src}))) / 2"
     if t == "match_expression":
         return _lower_match(node, source)
+    if t == "field_get_expression":
+        # `p.x` record field access. In OCaml this node ONLY appears for
+        # record fields (module access parses as value_path), so no type
+        # check is needed. Numeric fields must be decoded off the axon
+        # number-axis with `.real()` — WITHOUT it, axon field reads come
+        # back as the raw filler vector and arithmetic on them collapses
+        # to ~0 on the substrate (measured 2026-06-05; the TS interface
+        # path has the same latent runtime bug). MVP scope: numeric
+        # record fields.
+        obj = node.named_children[0] if node.named_children else None
+        field = next(
+            (c for c in node.named_children if c.type == "field_path"), None
+        )
+        obj_src = _lower_expression(obj, source) if obj is not None else "/* ? */"
+        field_name = _node_text(field, source) if field is not None else ""
+        return f'{obj_src}.item("{field_name}").real()'
+    if t == "record_expression":
+        # Building a record is multi-statement axon construction (Axon r;
+        # r.add(...); …), only valid in body/statement position — handled
+        # by _lower_body_to_statements. In a nested expression position we
+        # have nowhere to emit the statements.
+        return ("/* UNSUPPORTED-EXPR: record_expression must be a function "
+                "body (nested record construction not supported) */")
     return f"/* UNSUPPORTED-EXPR: {t} */"
 
 
@@ -204,7 +231,8 @@ def _lower_match(node, source: bytes) -> str:
     return expr
 
 
-def _lower_param(param_node, source: bytes) -> Optional[tuple[str, str]]:
+def _lower_param(param_node, source: bytes,
+                 record_types=frozenset()) -> Optional[tuple[str, str]]:
     """Lower one `parameter` node → (name, sutra_type), or None for the
     `unit` parameter (`let main () = …`), which contributes no Sutra
     parameter."""
@@ -224,14 +252,32 @@ def _lower_param(param_node, source: bytes) -> Optional[tuple[str, str]]:
             elif _is_type_node(c):
                 tp = c
         name = _node_text(vp, source) if vp is not None else "_arg"
-        ptype = _map_type(tp, source) if tp is not None else _DEFAULT_TYPE
+        ptype = _map_type(tp, source, record_types) if tp is not None else _DEFAULT_TYPE
         return (name, ptype)
     # Other pattern kinds (tuple / constructor destructuring) are a later
     # item; carry the name through as an int-typed param for now.
     return (_node_text(child, source), _DEFAULT_TYPE)
 
 
-def _lower_local_binding(vd, source: bytes, indent: str) -> str:
+def _lower_record_body(body, source: bytes, indent: str) -> str:
+    """Lower a `record_expression` function body `{ f1 = e1; … }` to Sutra
+    axon construction: `Axon _record; _record.add("f1", e1); …; return
+    _record;`. Mirrors the TS object-literal->axon lowering."""
+    lines = f"{indent}Axon _record;\n"
+    for fe in body.named_children:
+        if fe.type != "field_expression":
+            continue
+        fp = next((c for c in fe.named_children if c.type == "field_path"), None)
+        val = next((c for c in fe.named_children if c.type != "field_path"), None)
+        fname = _node_text(fp, source) if fp is not None else ""
+        val_src = _lower_expression(val, source) if val is not None else "0"
+        lines += f'{indent}_record.add("{fname}", {val_src});\n'
+    lines += f"{indent}return _record;\n"
+    return lines
+
+
+def _lower_local_binding(vd, source: bytes, indent: str,
+                         record_types=frozenset()) -> str:
     """Lower one `value_definition` from a `let … in` into a Sutra local
     declaration (`<type> name = <expr>;`). OCaml `let` is immutable, so
     no `slot`. A *local function* binding (params present) can't nest in
@@ -254,16 +300,19 @@ def _lower_local_binding(vd, source: bytes, indent: str) -> str:
     ret_type = None
     for k in kids[1:-1]:
         if _is_type_node(k):
-            ret_type = _map_type(k, source)
+            ret_type = _map_type(k, source, record_types)
     ty = ret_type if ret_type is not None else _DEFAULT_TYPE
     return f"{indent}{ty} {name} = {_lower_expression(value, source)};\n"
 
 
-def _lower_body_to_statements(body, source: bytes, indent: str) -> str:
+def _lower_body_to_statements(body, source: bytes, indent: str,
+                              record_types=frozenset()) -> str:
     """Lower a function-body expression into Sutra statements. A
     `let x = e in rest` becomes a local declaration followed by the
-    lowering of `rest`; the final (non-let) expression becomes
-    `return …;`."""
+    lowering of `rest`; a `record_expression` body becomes axon
+    construction; the final (non-let) expression becomes `return …;`."""
+    if body.type == "record_expression":
+        return _lower_record_body(body, source, indent)
     if body.type == "let_expression":
         kids = body.named_children
         if len(kids) >= 2:
@@ -271,10 +320,10 @@ def _lower_body_to_statements(body, source: bytes, indent: str) -> str:
             out = ""
             for b in bindings:
                 if b.type == "value_definition":
-                    out += _lower_local_binding(b, source, indent)
+                    out += _lower_local_binding(b, source, indent, record_types)
                 else:
                     out += f"{indent}// UNSUPPORTED-LET-IN-PART: {b.type}\n"
-            out += _lower_body_to_statements(in_body, source, indent)
+            out += _lower_body_to_statements(in_body, source, indent, record_types)
             return out
     return f"{indent}return {_lower_expression(body, source)};\n"
 
@@ -390,7 +439,8 @@ def _try_lower_tail_recursive(
     return loop_decl + fn
 
 
-def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
+def _lower_let_binding(lb, source: bytes, record_types=frozenset(),
+                       is_rec: bool = False) -> str:
     kids = lb.named_children
     if not kids:
         return "// UNSUPPORTED-LET: empty let_binding\n"
@@ -411,11 +461,11 @@ def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
     ret_type: Optional[str] = None
     for k in middle:
         if k.type == "parameter":
-            p = _lower_param(k, source)
+            p = _lower_param(k, source, record_types)
             if p is not None:
                 params.append(p)
         elif _is_type_node(k):
-            ret_type = _map_type(k, source)
+            ret_type = _map_type(k, source, record_types)
     ret = ret_type if ret_type is not None else _DEFAULT_TYPE
 
     if is_rec:
@@ -438,7 +488,7 @@ def _lower_let_binding(lb, source: bytes, is_rec: bool = False) -> str:
         )
 
     params_src = ", ".join(f"{ty} {nm}" for nm, ty in params)
-    body_src = _lower_body_to_statements(body, source, "    ")
+    body_src = _lower_body_to_statements(body, source, "    ", record_types)
     return f"function {ret} {name}({params_src}) {{\n{body_src}}}\n"
 
 
@@ -457,6 +507,26 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     src_bytes = source.encode("utf-8")
     tree = parser.parse(src_bytes)
 
+    # Prepass: collect record type names so record-typed params map to a
+    # Sutra Axon. `type X = { … }` parses as
+    # type_definition > type_binding > type_constructor (X) +
+    # record_declaration.
+    record_types: set[str] = set()
+    for child in tree.root_node.named_children:
+        if child.type != "type_definition":
+            continue
+        for tb in child.named_children:
+            if tb.type != "type_binding":
+                continue
+            tc = next(
+                (c for c in tb.named_children if c.type == "type_constructor"), None
+            )
+            rd = next(
+                (c for c in tb.named_children if c.type == "record_declaration"), None
+            )
+            if tc is not None and rd is not None:
+                record_types.add(_node_text(tc, src_bytes))
+
     out: list[str] = [_HEADER]
     for child in tree.root_node.named_children:
         if child.type == "value_definition":
@@ -467,7 +537,13 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
             is_rec = len(toks) >= 2 and toks[0] == "let" and toks[1] == "rec"
             for lb in child.named_children:
                 if lb.type == "let_binding":
-                    out.append(_lower_let_binding(lb, src_bytes, is_rec=is_rec))
+                    out.append(
+                        _lower_let_binding(lb, src_bytes, record_types, is_rec=is_rec)
+                    )
+        elif child.type == "type_definition":
+            # Erased — the record type name was collected in the prepass;
+            # the declaration emits nothing (like a TS interface).
+            continue
         elif child.type == "comment":
             continue
         else:
