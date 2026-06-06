@@ -45,6 +45,21 @@ The **addressing / hardmax matrices** (`attn.*.in_proj`, several `ff_in`) have
 redundancy — the moderate- and small-magnitude singular directions are the
 opcode/byte logic. Magnitude-based dimension reduction would break exact addressing.
 
+## Graph-level attention usage — the actual reduction lever (measured)
+
+Since SVD can't reduce the attention, the honest lever is the schedule: how many of
+the nominal heads actually attend. A head attends iff its Q **and** K projection rows
+are non-zero (`experiments/wasm_transformer_pca/attention_usage.py`). Nominal is
+19 heads × 7 layers = 133 head-slots. Measured genuinely-used:
+
+| layer | 0 | 1 | 2 | 3 | 4 | 5 | 6 | total |
+|---|---|---|---|---|---|---|---|---|
+| heads attending | 7 | 5 | 11 | 11 | 8 | 0 | 0 | **42 / 133 (31.6%)** |
+
+So the genuine attention is **42 head-slots across 5 layers** (peak 11/layer), not
+133 across 7 — the reduced-attention target for the DNC is ~⅓ of the nominal
+provisioning, concentrated in layers 0–4. (Confirms the two zero attention layers.)
+
 ## Implication for the reduced-attention DNC work
 
 Naive "PCA the weights → drop small directions" does **not** yield a reduced
