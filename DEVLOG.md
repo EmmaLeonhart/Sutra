@@ -6,6 +6,23 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-05: OCaml frontend — match on literal patterns (transpiler tick 7)
+
+`sutra-from-ocaml` now lowers `match scrut with k1 -> r1 | … | _ -> rd` (integer-
+literal patterns + trailing `_` wildcard) to a NESTED strong-defuzz blend — the
+exact same machinery as if/then/else, chained right-to-left. Factored the blend
+into a shared `_blend(cond, then, else)` helper and refactored if_expression onto
+it. Fixture `match_lit` (`let classify n = match n with 0->100 | 1->200 | _->300`;
+`main()=classify 1`) runs on the real substrate: **classify(1)=200.0**. 24 passed
+(9 fixtures × lowering+compile + 6 substrate runs 7/6.5/5/10/15/200).
+
+Honest scope: constructor/record/or-/guarded patterns and name-binding catch-alls
+all fall back to an UNSUPPORTED-MATCH marker (verified a guarded case stays
+unsupported), and a match without a trailing `_` is rejected rather than lowered
+non-exhaustively. Records/variants -> axons (the prerequisite for richer match
+patterns) needs a param/local type-tracking layer the OCaml frontend doesn't have
+yet — queued spec-first.
+
 ## 2026-06-05: WASM cron reconfigured — subtree-integrate the Neural-Computers repo
 
 Emma redirected the hourly `:33` WASM cron from "document the idea" to an

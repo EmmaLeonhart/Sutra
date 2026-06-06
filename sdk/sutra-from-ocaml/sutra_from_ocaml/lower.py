@@ -75,6 +75,16 @@ def _node_text(node, source: bytes) -> str:
     return source[node.start_byte:node.end_byte].decode("utf-8")
 
 
+def _blend(cond_src: str, then_src: str, else_src: str) -> str:
+    """The Sutra strong-defuzz two-way blend used for both `if/then/else`
+    and `match` cases: weight = (1 + truth_axis(defuzzy(cond)))/2;
+    result = weight*then + (1-weight)*else. Each product term is fully
+    parenthesised so a bare `* (atom)` never sits before an infix
+    operator (which the Sutra parser would read as a cast — CastExpr)."""
+    w = f"truth_axis(defuzzy({cond_src}))"
+    return f"(((1 + {w}) * ({then_src})) + ((1 - {w}) * ({else_src}))) / 2"
+
+
 def _is_type_node(node) -> bool:
     """True for the OCaml grammar's type-expression nodes (the things
     that show up as a return-type annotation or inside a typed_pattern)."""
@@ -141,22 +151,57 @@ def _lower_expression(node, source: bytes) -> str:
             if then_c is not None and then_c.named_children else None
         )
         then_src = _lower_expression(then_expr, source) if then_expr is not None else "0"
-        w = f"truth_axis(defuzzy({cond_src}))"
-        # Each product term is fully parenthesised — `((w) * (branch))` —
-        # and the two terms are grouped before `/ 2`. A bare
-        # `(weight) * (atom) + …` would emit `… * (a) + (b) …`, and the
-        # Sutra parser reads a parenthesised atom followed by a binary
-        # operator (`(a) + …`) as a *cast* `(Type) expr`, which the
-        # codegen rejects (CastExpr). Full grouping avoids putting a
-        # `(atom)` immediately before an infix operator.
         if else_c is not None and else_c.named_children:
             else_src = _lower_expression(else_c.named_children[0], source)
-            return (
-                f"(((1 + {w}) * ({then_src})) "
-                f"+ ((1 - {w}) * ({else_src}))) / 2"
-            )
+            return _blend(cond_src, then_src, else_src)
+        # if without else: implicit-zero else.
+        w = f"truth_axis(defuzzy({cond_src}))"
         return f"(((1 + {w}) * ({then_src}))) / 2"
+    if t == "match_expression":
+        return _lower_match(node, source)
     return f"/* UNSUPPORTED-EXPR: {t} */"
+
+
+def _lower_match(node, source: bytes) -> str:
+    """Lower `match scrut with k1 -> r1 | k2 -> r2 | _ -> rd` to a nested
+    strong-defuzz blend — the same machinery as if/then/else, chained.
+    MVP scope: integer-literal patterns plus a trailing `_` wildcard
+    catch-all. Anything else (constructor / record / or- / guarded
+    patterns, no final wildcard) lowers to an UNSUPPORTED marker rather
+    than silently producing a non-exhaustive or wrong blend."""
+    kids = node.named_children
+    if not kids:
+        return "/* UNSUPPORTED-MATCH: empty */"
+    scrut_src = _lower_expression(kids[0], source)
+    cases = [c for c in kids[1:] if c.type == "match_case"]
+    if not cases:
+        return "/* UNSUPPORTED-MATCH: no cases */"
+
+    parsed: list[tuple[Optional[str], str]] = []  # (cond or None=catch-all, result)
+    for c in cases:
+        cc = c.named_children
+        if len(cc) != 2:
+            # A guarded case (`| p when g -> r`) or or-pattern has a
+            # different child count — not handled.
+            return "/* UNSUPPORTED-MATCH-CASE: guard/or-pattern not supported */"
+        pat, res = cc[0], cc[1]
+        res_src = _lower_expression(res, source)
+        if pat.type == "number":
+            parsed.append((f"{scrut_src} == {_node_text(pat, source)}", res_src))
+        elif pat.type == "value_pattern" and _node_text(pat, source) == "_":
+            parsed.append((None, res_src))
+        else:
+            return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
+
+    if parsed[-1][0] is not None:
+        return "/* UNSUPPORTED-MATCH: needs a trailing `_` wildcard case */"
+    if any(cond is None for cond, _ in parsed[:-1]):
+        return "/* UNSUPPORTED-MATCH: wildcard `_` must be the last case */"
+
+    expr = parsed[-1][1]  # the catch-all result is the innermost else
+    for cond, res in reversed(parsed[:-1]):
+        expr = _blend(cond, res, expr)
+    return expr
 
 
 def _lower_param(param_node, source: bytes) -> Optional[tuple[str, str]]:
