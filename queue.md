@@ -165,7 +165,13 @@ Until 11:30: keep grinding the OCaml→Sutra transpiler (ISO-5 items).
      UNSUPPORTED). Substrate-verified `option_some` `get_or (mk 42) 0` = 42, None
      path = 7. The ISO-5 reference uses options in EXPRESSION position (inside
      `let input_base = … in`), so its option markers don't clear — a simpler test
-     program would. 7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
+     program would.
+  5d. **`let … in` in expression position** — DONE for pure simple-atom bindings
+     (identifier/number) via `_MATCH_SUBST`; substrate-verified `let_in_expr`
+     `(let x = 5 in x + x) + 10` = 20. Compound/`ref`/nested-fn values stay
+     UNSUPPORTED (need a real local / risk the cast ambiguity) — the reference's
+     2 `let` markers (complex values) don't clear.
+  7. try/exceptions; 8. `match`-with-`br`; 9. stdlib;
   10. closure conversion; 11. core-compiler `dict<int,int>`.
 
   **Direction (Emma 2026-06-06): grind OCaml ISO-5 UNTIL NOON, then PIVOT to PCA.**
@@ -395,7 +401,8 @@ first and never touches the RAM/W2C sections above.
   DONE — substrate-verified `tuple_fst_snd` = 16. Match catch-all name binding
   (`| x -> body`): DONE — substrate-verified `match_bind` = 6. Option Some/None
   (tagged axon, body-position match): DONE — substrate-verified `option_some` = 42
-  (None path = 7). OCaml suite 62 passed.]
+  (None path = 7). `let..in` in expression position (simple-atom): DONE —
+  substrate-verified `let_in_expr` = 20. OCaml suite 65 passed.]
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.
