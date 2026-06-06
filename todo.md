@@ -1,5 +1,25 @@
 # Sutra — consolidated TODO
 
+> ## 🔬 TOP PRIORITY — PCA on the WASM transformer (remove this block when done)
+>
+> Do **principal component analysis on the WASM transformer** — the
+> transformer that comes in with the `WASM/` subtree (from
+> `replicating-neural-computers-2`).
+>
+> **Why:** we want to use the transformer's learned **weights** to figure out
+> the most optimal way to run **attention for the differentiable-neural-computer
+> (DNC) work**. The transformer is very likely **significantly larger than it
+> needs to be**, so a PCA of its weights should reveal the genuine
+> low-dimensional structure we can keep — i.e. the reduced attention we can
+> actually run on the substrate.
+>
+> **Gating:** this needs the WASM subtree to exist. **If `WASM/` has not been
+> merged in yet** and you are about to promote a `todo.md` item into the queue,
+> **skip this one and do the item after it** — then come back to this the moment
+> the WASM integration lands.
+>
+> **Remove this entire block once the PCA work is done.**
+
 > ## 📋 ACTION FOR EMMA — set up the daily cloud-audit routine
 >
 > The `RemoteTrigger` tool fails in-session (every call arrives with
