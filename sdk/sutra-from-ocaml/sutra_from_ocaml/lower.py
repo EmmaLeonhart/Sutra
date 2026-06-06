@@ -62,12 +62,19 @@ _DEFAULT_TYPE = "int"
 # OCaml infix operator text → Sutra operator. The float-arithmetic forms
 # (`+.` …) collapse onto the same Sutra arithmetic ops — Sutra's number
 # axis is unified, so there is no separate float operator surface. OCaml
-# structural `=` / `<>` become Sutra `==` / `!=`.
+# structural `=` / `<>` become Sutra `==` / `!=`; `mod` → Sutra `%`
+# (truncated remainder, `_VSA.fmod`); `&&` / `||` carry through to Sutra's
+# fuzzy three-valued logical operators. An operator NOT in this table
+# lowers to an UNSUPPORTED marker (NOT passed through verbatim — e.g. the
+# bitwise/shift ops `land lor lxor lsl lsr asr` have no Sutra operator and
+# need a substrate bitwise stdlib; the string/list ops `^` `@` need their
+# own handling). Passing an unknown operator through produced invalid Sutra.
 _OP_MAP = {
     "+": "+", "-": "-", "*": "*", "/": "/",
     "+.": "+", "-.": "-", "*.": "*", "/.": "/",
     "=": "==", "<>": "!=",
     "<": "<", ">": ">", "<=": "<=", ">=": ">=",
+    "mod": "%", "&&": "&&", "||": "||",
 }
 
 
@@ -348,7 +355,12 @@ def _lower_expression(node, source: bytes) -> str:
             # no value in expression position. Lowered by _lower_stmt_expr
             # inside a sequence; reaching here means it was used as a value.
             return "/* UNSUPPORTED-EXPR: assignment used as a value */"
-        op_sutra = _OP_MAP.get(op_text, op_text)
+        op_sutra = _OP_MAP.get(op_text)
+        if op_sutra is None:
+            # Unknown operator (bitwise/shift `land lsl …`, string/list `^`
+            # `@`, …). No Sutra equivalent — surface it, don't pass through
+            # as invalid Sutra.
+            return f"/* UNSUPPORTED-OP: {op_text} */"
         left_src = _lower_expression(left, source) if left is not None else "0"
         right_src = _lower_expression(right, source) if right is not None else "0"
         return f"{left_src} {op_sutra} {right_src}"
