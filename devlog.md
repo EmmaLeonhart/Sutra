@@ -266,3 +266,16 @@ PASS; full learned_ops suite green, AND gate skipped). Consolidated the two laws
 architecture has no runtime bit decomposition); (2) output representation must match
 op nature (value-output for arithmetic) — into `notes/learned_ops_findings.md`.
 Remaining learned-ops item: E3 (native opcode integration) — spec-first per hard rails.
+
+## 2026-06-05 — ISO-4 done: OCaml isomorph, byte-identical across 3 languages
+
+Installed OCaml 4.14 + dune (user ran `apt install ocaml ocaml-dune`). Built
+`iso/ocaml/bin/main.ml` — a faithful port of `reference.py`'s 35-opcode machine.
+Systematic debug (added env-gated PC-trace to both Rust + OCaml, diffed): found the
+OCaml input-section parser returned empty (drop helper base case `k > last_brace`
+started already past it) — so input data (e.g. hello's "World!" in mem at 5120) was
+never loaded. Fixed the base case to `k >= len`.
+
+**`scripts/iso_equiv.sh`: 6/6 programs byte-identical across Python ref, Rust, and
+OCaml — ISO_EQUIV_OK.** So: autoregressive transformer ≡ reference.py ≡ Rust ≡ OCaml.
+Three of four isomorphism stages complete. ISO-5 (Sutra) needs user input on Sutra.

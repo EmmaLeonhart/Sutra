@@ -115,11 +115,19 @@ pub fn run(program: &[(String, u32)], input_str: &str, max_tokens: u64) -> RunRe
     let mut instr_count: u64 = 0;
     let mut token_count: u64 = 0;
     let mut output: Vec<u8> = Vec::new();
+    let trace = std::env::var("ISO_TRACE").is_ok();
 
     while pc < program.len() && token_count < max_tokens {
         let (op, imm) = (&program[pc].0, program[pc].1);
         instr_count += 1;
         let op = op.as_str();
+        if trace {
+            eprintln!(
+                "i={} pc={} op={} imm={} top={}",
+                instr_count, pc, op, imm,
+                stack.last().map(|v| v.to_string()).unwrap_or_else(|| "-".into())
+            );
+        }
 
         match op {
             "input_base" => {

@@ -37,16 +37,14 @@ ISO-1/2/3 DONE: the Rust isomorph (`iso/rust/`, port of `reference.py`) is
 behaviourally equivalent to the reference executor — 6/6 example programs produce
 byte-identical output (cargo test + `scripts/iso_equiv.sh` → ISO_EQUIV_OK).
 
-1. **ISO-4 — OCaml isomorph.** ⛔ BLOCKED ON USER: OCaml + dune are missing and need
-   sudo — please run `sudo apt install -y ocaml ocaml-dune m4` in WSL (on Ubuntu 24.04
-   the package is `ocaml-dune`, not `dune`; system OCaml means no opam needed). Then:
-   build an OCaml port of the same
-   35-opcode machine under `iso/ocaml/` and establish behavioural equivalence (OCaml
-   vs Python reference / Rust, diff outputs). OCaml ≈ Sutra structurally — the
-   stepping stone. Commit.
-2. **ISO-5 — Sutra.** Port the OCaml realisation into **Sutra** and test how far Sutra
-   can express this same machine. The end of the road (and of `todo.md`). Hardest —
-   plan carefully; this likely needs user input on Sutra specifics.
+ISO-4 DONE: `iso/ocaml/` (OCaml port of `reference.py`) is byte-identical to the
+Python reference and the Rust isomorph on all 6 programs (`scripts/iso_equiv.sh` →
+ISO_EQUIV_OK). So: transformer ≡ reference.py ≡ Rust ≡ OCaml.
+
+1. **ISO-5 — Sutra.** ⛔ NEEDS USER INPUT: port the OCaml realisation into **Sutra** and
+   test how far Sutra can express this machine. The end of the road. I don't know
+   Sutra's syntax/semantics/toolchain — the user must point me at it (a spec, example
+   programs, how to run it) before I can port. Until then, blocked.
 
 **Learned-ops thread** (E4 DONE: sat_add/sat_sub/min/max all learned to 100% exact,
 value-output; AND a documented negative result; findings in
