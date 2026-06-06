@@ -6,6 +6,32 @@ of how the repository got to its current shape. Where individual commits
 matter, commit hashes are cited; where a whole *week* of commits matters,
 the week is summarized.
 
+## 2026-06-06: Daily substrate-honesty audit — clean (transpiler commits)
+
+Audited every commit since the previous audit (`179a21af`, 2026-06-05) against
+CLAUDE.md §"Subtler substrate breaches". Substantive commits were the OCaml +
+TS transpiler frontends (the rest are docs/site/queue). Suites green under
+measurement: OCaml 36 passed, TS 43 passed / 1 xfail.
+
+- **(a) Dimension.** Transpiler fixtures have zero `basis_vector` calls and make
+  no efficiency/dim claim — they are lowering-correctness fixtures running at the
+  compiler default. No breach. (If any ever becomes a deployment target, its
+  `runtime_dim` should drop to what the numeric/control-flow task needs.)
+- **(b) State-locus.** `tail_rec_sum` / `tail_rec_swap` lower to a Sutra
+  `while_loop` + `loop` (substrate iteration per CLAUDE.md "`loop` iterates
+  `state ← R·state` on the substrate"), NOT a host loop extracting via `real()`
+  between calls. Verified live: `sum_to 0 5 = 15`, `swaploop 7 9 2 = 7` via
+  `sutra_compiler --run`. The "tail-rec → while_loop, substrate-verified" framing
+  holds against measurement.
+- **(c) Signal-separation.** The `match_lit` / `variant` defuzz-blend classifiers
+  were measured at every branch, not just the one input the fixture asserts:
+  `classify(0)=100, classify(1)=200, classify(2)=300, classify(5)=300` (catch-all),
+  each exact. Branch targets are 100 apart and each is hit to 0.0 error, so the
+  signal gap ≈ 100 ≫ substrate noise (<0.5). `variant` uses the identical
+  enum→int→blend mechanism. Clean classifiers.
+
+Nothing amiss → no finding/fix item filed; audit item removed from queue.
+
 ## 2026-06-06: FIX sutra-from-ts axon field reads (.real()) — P2 (transpiler tick 12)
 
 Discharged the TS axon-zeros bug found during the OCaml records work (2026-06-05
