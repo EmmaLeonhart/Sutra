@@ -71,6 +71,16 @@ _OP_MAP = {
 }
 
 
+# Nullary variant constructors -> their integer tag, collected per
+# `lower()` call. A variant `type color = Red | Green | Blue` becomes an
+# enum carried by Sutra `int` (same as the TS enum->int mapping): Red=0,
+# Green=1, Blue=2. Module-level because threading it through every
+# `_lower_expression` recursion would be heavy churn; safe today because
+# the OCaml `lower()` is single-pass and non-re-entrant (no imports yet).
+# If OCaml gains module imports, move this onto a threaded context.
+_CONSTRUCTORS: dict[str, int] = {}
+
+
 def _node_text(node, source: bytes) -> str:
     return source[node.start_byte:node.end_byte].decode("utf-8")
 
@@ -161,6 +171,15 @@ def _lower_expression(node, source: bytes) -> str:
         # if without else: implicit-zero else.
         w = f"truth_axis(defuzzy({cond_src}))"
         return f"(((1 + {w}) * ({then_src}))) / 2"
+    if t == "constructor_path":
+        # A nullary variant constructor used as a value (`Green`) lowers
+        # to its integer tag. Parameterised constructors (`Some x`) are
+        # not enums and are not supported.
+        cname = _node_text(node, source)
+        if cname in _CONSTRUCTORS:
+            return str(_CONSTRUCTORS[cname])
+        return (f"/* UNSUPPORTED-EXPR: constructor {cname} "
+                "(only nullary variants lower, as enum ints) */")
     if t == "match_expression":
         return _lower_match(node, source)
     if t == "field_get_expression":
@@ -204,7 +223,8 @@ def _lower_match(node, source: bytes) -> str:
     if not cases:
         return "/* UNSUPPORTED-MATCH: no cases */"
 
-    parsed: list[tuple[Optional[str], str]] = []  # (cond or None=catch-all, result)
+    # (kind, test_or_None, result_src); kind in {"literal", "ctor", "wild"}
+    parsed: list[tuple[str, Optional[str], str]] = []
     for c in cases:
         cc = c.named_children
         if len(cc) != 2:
@@ -214,20 +234,30 @@ def _lower_match(node, source: bytes) -> str:
         pat, res = cc[0], cc[1]
         res_src = _lower_expression(res, source)
         if pat.type == "number":
-            parsed.append((f"{scrut_src} == {_node_text(pat, source)}", res_src))
+            parsed.append(("literal", f"{scrut_src} == {_node_text(pat, source)}", res_src))
         elif pat.type == "value_pattern" and _node_text(pat, source) == "_":
-            parsed.append((None, res_src))
+            parsed.append(("wild", None, res_src))
+        elif pat.type == "constructor_path":
+            cname = _node_text(pat, source)
+            if cname not in _CONSTRUCTORS:
+                return f"/* UNSUPPORTED-MATCH-PATTERN: unknown constructor {cname} */"
+            parsed.append(("ctor", f"{scrut_src} == {_CONSTRUCTORS[cname]}", res_src))
         else:
             return f"/* UNSUPPORTED-MATCH-PATTERN: {pat.type} */"
 
-    if parsed[-1][0] is not None:
-        return "/* UNSUPPORTED-MATCH: needs a trailing `_` wildcard case */"
-    if any(cond is None for cond, _ in parsed[:-1]):
-        return "/* UNSUPPORTED-MATCH: wildcard `_` must be the last case */"
+    # The LAST case is the base/catch-all (its result is the innermost
+    # else, its test dropped). Exact for `_` and for an exhaustive variant
+    # match (every constructor listed). A trailing *integer-literal* case
+    # is rejected — an int match without `_` is non-exhaustive.
+    if parsed[-1][0] == "literal":
+        return "/* UNSUPPORTED-MATCH: integer-literal match needs a trailing `_` wildcard */"
+    for kind, _test, _res in parsed[:-1]:
+        if kind == "wild":
+            return "/* UNSUPPORTED-MATCH: wildcard `_` must be the last case */"
 
-    expr = parsed[-1][1]  # the catch-all result is the innermost else
-    for cond, res in reversed(parsed[:-1]):
-        expr = _blend(cond, res, expr)
+    expr = parsed[-1][2]
+    for _kind, test, res in reversed(parsed[:-1]):
+        expr = _blend(test, res, expr)
     return expr
 
 
@@ -512,6 +542,7 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
     # type_definition > type_binding > type_constructor (X) +
     # record_declaration.
     record_types: set[str] = set()
+    _CONSTRUCTORS.clear()
     for child in tree.root_node.named_children:
         if child.type != "type_definition":
             continue
@@ -526,6 +557,26 @@ def lower(source: str, source_path: Optional[pathlib.Path] = None) -> str:
             )
             if tc is not None and rd is not None:
                 record_types.add(_node_text(tc, src_bytes))
+            # Variant `type X = A | B | …` -> nullary constructors become
+            # enum tags (A=0, B=1, …). The tag index advances for every
+            # constructor (preserving OCaml's order) but only nullary
+            # ones are mapped; a parameterised constructor (`C of t`) is
+            # left out, so using it lowers to UNSUPPORTED.
+            vd = next(
+                (c for c in tb.named_children if c.type == "variant_declaration"), None
+            )
+            if vd is not None:
+                idx = 0
+                for cd in vd.named_children:
+                    if cd.type != "constructor_declaration":
+                        continue
+                    names = cd.named_children
+                    cn = next(
+                        (c for c in names if c.type == "constructor_name"), None
+                    )
+                    if cn is not None and len(names) == 1:
+                        _CONSTRUCTORS[_node_text(cn, src_bytes)] = idx
+                    idx += 1
 
     out: list[str] = [_HEADER]
     for child in tree.root_node.named_children:
