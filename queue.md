@@ -230,12 +230,21 @@ table; polynomial-interpolant-rationale paragraph (prose in `git show
 
 ## Transpiler track (source -> Sutra; OCaml first) — 1pm cron, owns this section only
 
-Roadmap: todo.md §"Multi-language transpiler frontends". Priority order
-OCaml -> Scala -> F# -> Elixir/Erlang -> Clojure -> Haskell -> Rust -> WASM.
+Roadmap: todo.md §"Multi-language transpiler frontends".
+
+**PRIORITY ORDER (Emma 2026-06-05):**
+**(1) OCaml first** — keep advancing it; it fits Sutra best and is the most
+complete *verified-running* frontend, so it's the reference impl for the rest.
+**(2) Fix TypeScript** (the axon-`.real()` runtime bug below).
+**(3) The other languages**, in roadmap order: **Scala -> F# -> Elixir/Erlang
+-> Clojure -> Haskell -> then Rust -> then WASM.** Each is scaffolded below so
+it's documented even before work starts; new frontends model on
+`sutra-from-ocaml` (not `-ts`, which has the latent axon bug).
+
 This section is driven by the 1pm transpiler work-loop cron; it pulls+rebases
 first and never touches the RAM/W2C sections above.
 
-**OCaml frontend (`sdk/sutra-from-ocaml/`), modeled on `sutra-from-ts/`:**
+### Priority 1 — OCaml frontend (`sdk/sutra-from-ocaml/`)
 - [ ] (optional) File the Sutra `(atom) <binop>` → cast (`CastExpr`) parser
   ambiguity as an open-question — both frontends now work around it with
   fully-grouped blends, but the grammar ambiguity itself is unresolved.
@@ -260,18 +269,36 @@ first and never touches the RAM/W2C sections above.
   Remaining: variants (sum types), tuples, non-numeric record fields (field-type-aware
   `.real()` off the record decl), record literals in argument position, constructor-
   pattern `match` (now unblocked by records).
+### Priority 2 — fix TypeScript (`sdk/sutra-from-ts/`)
 - [ ] **FIX sutra-from-ts: interface field reads return zeros at runtime.** The TS
   `interface`->axon path emits `p.item("x")` without `.real()`, so `interface_pass`
   COMPILES but returns a zero vector instead of 25 (the harness only compile-tests,
   never runs — that's how it hid). Add `.real()` to numeric axon field reads AND a
-  run-on-substrate test so it can't regress silently. See the finding above.
+  run-on-substrate test so it can't regress silently. See the finding above. (The
+  if/else CastExpr + dropped-else bugs were already fixed; this axon bug is the
+  remaining known TS defect.)
+
+### Priority 3 — new-language frontends (each `sdk/sutra-from-<lang>/`, model on `sutra-from-ocaml`)
+Each: source reader (`tree-sitter-<lang>`) -> `lower.py` -> `.su` emission ->
+fixtures that compile **AND run on the substrate** (the OCaml harness's
+`_RUNNABLE_FIXTURES` pattern, not the TS compile-only bar). Functional first
+(they map cleanly), then Rust, then WASM.
+- [ ] **Scala** — `sdk/sutra-from-scala/` (`tree-sitter-scala`).
+- [ ] **F#** — `sdk/sutra-from-fsharp/` (ML-family, close cousin of OCaml — should reuse much of the OCaml lowering shape).
+- [ ] **Elixir / Erlang** — `sdk/sutra-from-erlang/` (the BEAM pair; immutable, message-passing maps onto the axon IPC story).
+- [ ] **Clojure** — `sdk/sutra-from-clojure/` (Lisp; homoiconic, persistent data structures).
+- [ ] **Haskell** — `sdk/sutra-from-haskell/` (purest; laziness + typeclasses are the hardest edges — last of the functional set).
+- [ ] **Rust** — `sdk/sutra-from-rust/` (the imperative language that maps cleanly: expression-oriented, immutable-by-default, algebraic enums + exhaustive match).
+- [ ] **WASM** — Phase 3 (todo.md), tied to the `WASM/` subtree once integrated.
+
+### Cross-cutting (any frontend)
 - [ ] End-to-end verification: each fixture's `.su` compiles AND runs AND
   reproduces ground-truth output (beyond the parse+codegen syntax check the TS
-  harness does today). [`arith_main` already does this — the pattern to extend.]
-- [ ] CI: no workflow currently runs the `sdk/sutra-from-*` frontends (TS has
-  none either). Consider a `transpilers-ci.yml` that installs the tree-sitter
-  grammars + runs both `sutra-from-ts` and `sutra-from-ocaml` test suites; would
-  cover TS too. Scope decision — not auto-started.
+  harness does today). [OCaml's `_RUNNABLE_FIXTURES` already does this — the
+  pattern to extend to every frontend.]
+- [ ] CI: no workflow currently runs the `sdk/sutra-from-*` frontends. Consider a
+  `transpilers-ci.yml` that installs the tree-sitter grammars + runs every
+  `sutra-from-*` test suite. Scope decision — not auto-started.
 
 ## Pinned tail (always present — bracket every session)
 

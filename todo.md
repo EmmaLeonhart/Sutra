@@ -226,6 +226,16 @@ their expression-orientation, immutability, and algebraic data types
 line up with Sutra's core instead of fighting it. The next frontends are
 therefore functional, easiest-mapping first.
 
+**Borne out (2026-06-05).** `sdk/sutra-from-ocaml/` is now the most complete
+*verified-running* frontend (functions, arithmetic, comparisons, if/then/else,
+`let…in`, tail-recursive `let rec`→`loop`, `match`, records→axons — every
+feature checked compile-AND-run on the substrate). It is now the **reference
+implementation** new frontends model on, not `-ts`. Building OCaml records even
+exposed that the TS `interface`→axon path returns zeros at runtime (it was only
+ever compile-tested). **Priority (Emma 2026-06-05): (1) OCaml first; (2) fix the
+TS axon bug; (3) then Scala → F# → Elixir/Erlang → Clojure → Haskell → Rust →
+WASM.** Active decomposition lives in `queue.md` §Transpiler track.
+
 **Execution model.** This whole track runs on the **1pm local-cron
 work-loop** (set up 2026-06-05), kept separate from the main RAM/W2C
 queue another agent is driving. The work-loop **pulls from remote and
